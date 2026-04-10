@@ -108,6 +108,14 @@ export function useLoans() {
     });
   }, [loans]);
 
+  const updateLoan = useCallback((id: string, data: Partial<Omit<Loan, "id">>) => {
+    setLoans((prev) => {
+      const updated = prev.map((l) => (l.id === id ? { ...l, ...data } : l));
+      saveToStorage(LOANS_KEY, updated);
+      return updated;
+    });
+  }, []);
+
   const deleteLoan = useCallback((id: string) => {
     setLoans((prev) => {
       const updated = prev.filter((l) => l.id !== id);
@@ -121,7 +129,7 @@ export function useLoans() {
     });
   }, []);
 
-  return { loans, payments, addLoan, addPayment, addInterestOnlyPayment, deleteLoan };
+  return { loans, payments, addLoan, addPayment, addInterestOnlyPayment, updateLoan, deleteLoan };
 }
 
 export function calculateInstallment(principal: number, monthlyRate: number, months: number): number {
