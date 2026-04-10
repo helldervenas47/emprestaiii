@@ -24,8 +24,8 @@ export function LoanForm({ onAdd, onClose }: Props) {
   const [form, setForm] = useState({
     borrowerName: "",
     amount: "",
-    interestRate: "",
-    installments: "",
+    interestRate: "30",
+    installments: "1",
     startDate: defaultStart,
     dueDate: getDefaultDueDate(defaultStart),
     notes: "",
