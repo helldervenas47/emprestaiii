@@ -24,11 +24,12 @@ import {
 } from "@/lib/csv";
 import { toast } from "sonner";
 
-type Tab = "overview" | "dashboard" | "clients" | "products" | "overdue" | "expenses";
+type Tab = "overview" | "dashboard" | "clients" | "products" | "overdue" | "expenses" | "calendar";
 
 const tabConfig = [
   { id: "overview" as Tab, label: "Dashboard", icon: BarChart3 },
   { id: "dashboard" as Tab, label: "Empréstimos", icon: LayoutDashboard },
+  { id: "calendar" as Tab, label: "Cobrança", icon: CalendarDays },
   { id: "clients" as Tab, label: "Clientes", icon: Users },
   { id: "products" as Tab, label: "Vendas", icon: ShoppingBag },
   { id: "expenses" as Tab, label: "Despesas", icon: Receipt },
