@@ -44,7 +44,7 @@ const Index = () => {
   const handleExport = () => {
     if (tab === "dashboard") {
       if (loans.length === 0) return toast.error("Nenhum empréstimo para exportar");
-      downloadCSV(exportLoansToCSV(loans), "emprestimos.csv");
+      downloadCSV(exportLoansToCSV(loans, payments), "emprestimos.csv");
       toast.success("Empréstimos exportados com sucesso!");
     } else if (tab === "clients") {
       if (clients.length === 0) return toast.error("Nenhum cliente para exportar");

@@ -52,10 +52,13 @@ export function LoanForm({ onAdd, onClose, clients }: Props) {
       borrowerId: selectedClient.id,
       amount,
       interestRate: rate,
+      interestType: "Mensal",
+      paymentType: "Parcelado",
       installments,
       startDate: form.startDate,
       dueDate: form.dueDate || form.startDate,
       notes: form.notes,
+      createdAt: new Date().toISOString(),
     });
     onClose();
   };

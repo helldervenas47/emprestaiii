@@ -28,6 +28,9 @@ export function useLoans() {
       id: crypto.randomUUID(),
       status: "active",
       paidInstallments: 0,
+      interestType: loan.interestType || "Mensal",
+      paymentType: loan.paymentType || "Parcelado",
+      createdAt: loan.createdAt || new Date().toISOString(),
     };
     setLoans((prev) => {
       const updated = [...prev, newLoan];
