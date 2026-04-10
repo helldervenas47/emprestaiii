@@ -38,7 +38,11 @@ export function useLoans() {
       return updated;
     });
     // Loan given = money out (only for active loans)
-    if (newLoan.status !== "paid") {
+    // For paid loans (e.g. imported), credit the total with interest as income
+    if (newLoan.status === "paid") {
+      const totalReceived = calculateTotalWithInterest(newLoan.amount, newLoan.interestRate, newLoan.installments);
+      adjustBalance(totalReceived - newLoan.amount);
+    } else {
       adjustBalance(-loan.amount);
     }
   }, []);
