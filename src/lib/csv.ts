@@ -93,7 +93,6 @@ export function importClientsFromCSV(csv: string): Omit<Client, "id" | "createdA
       address: cols[4] || "",
       notes: cols[5] || "",
       active: true,
-      notes: cols[5] || "",
     };
   });
 }

@@ -21,7 +21,7 @@ type Tab = "dashboard" | "clients";
 
 const Index = () => {
   const { loans, addLoan, addPayment, deleteLoan } = useLoans();
-  const { clients, addClient, deleteClient } = useClients();
+  const { clients, addClient, deleteClient, updateClient } = useClients();
   const [showLoanForm, setShowLoanForm] = useState(false);
   const [showClientForm, setShowClientForm] = useState(false);
   const [tab, setTab] = useState<Tab>("dashboard");
