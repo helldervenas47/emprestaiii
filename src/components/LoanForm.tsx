@@ -14,13 +14,20 @@ interface Props {
 }
 
 export function LoanForm({ onAdd, onClose }: Props) {
+  const getDefaultDueDate = (start: string) => {
+    const d = new Date(start + "T00:00:00");
+    d.setMonth(d.getMonth() + 1);
+    return d.toISOString().split("T")[0];
+  };
+
+  const defaultStart = new Date().toISOString().split("T")[0];
   const [form, setForm] = useState({
     borrowerName: "",
     amount: "",
     interestRate: "",
     installments: "",
-    startDate: new Date().toISOString().split("T")[0],
-    dueDate: "",
+    startDate: defaultStart,
+    dueDate: getDefaultDueDate(defaultStart),
     notes: "",
   });
 
