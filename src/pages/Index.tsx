@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import { Plus, HandCoins, Users, LayoutDashboard, Download, Upload, ShoppingBag } from "lucide-react";
+import { Plus, HandCoins, Users, LayoutDashboard, Download, Upload, ShoppingBag, BarChart3 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DashboardCards } from "@/components/DashboardCards";
 import { LoanForm } from "@/components/LoanForm";
@@ -9,6 +9,7 @@ import { ClientList } from "@/components/ClientList";
 import { ProductForm } from "@/components/ProductForm";
 import { SaleForm } from "@/components/SaleForm";
 import { ProductSalesView } from "@/components/ProductSalesView";
+import { DashboardOverview } from "@/components/DashboardOverview";
 import { useLoans } from "@/hooks/useLoans";
 import { useClients } from "@/hooks/useClients";
 import { useProducts } from "@/hooks/useProducts";
@@ -18,9 +19,10 @@ import {
 } from "@/lib/csv";
 import { toast } from "sonner";
 
-type Tab = "dashboard" | "clients" | "products";
+type Tab = "overview" | "dashboard" | "clients" | "products";
 
 const tabConfig = [
+  { id: "overview" as Tab, label: "Dashboard", icon: BarChart3 },
   { id: "dashboard" as Tab, label: "Empréstimos", icon: LayoutDashboard },
   { id: "clients" as Tab, label: "Clientes", icon: Users },
   { id: "products" as Tab, label: "Vendas", icon: ShoppingBag },
