@@ -609,9 +609,9 @@ function ClientFolder({
   group: ClientGroup;
   payments: Payment[];
   view: "cards" | "rows";
-  onPayment: (id: string) => void;
-  onPartialPayment: (id: string, amount: number) => void;
-  onInterestPayment: (id: string) => void;
+  onPayment: (id: string, date?: string) => void;
+  onPartialPayment: (id: string, amount: number, date?: string) => void;
+  onInterestPayment: (id: string, date?: string) => void;
   onUpdate: (id: string, data: Partial<Omit<Loan, "id">>) => void;
   onDelete: (id: string) => void;
 }) {
