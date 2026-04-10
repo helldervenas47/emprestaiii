@@ -218,7 +218,7 @@ function LoanCardView({
             <div className="min-w-0">
               <h3 className="font-bold text-foreground text-sm truncate">{loan.borrowerName}</h3>
               <div className="flex items-center gap-1 text-[10px] text-muted-foreground mt-0.5">
-                <Calendar className="h-2.5 w-2.5 shrink-0" />
+                <CalendarIcon className="h-2.5 w-2.5 shrink-0" />
                 <span>{new Date(loan.startDate + "T00:00:00").toLocaleDateString("pt-BR")}</span>
                 <span>→</span>
                 <span>{new Date(loan.dueDate + "T00:00:00").toLocaleDateString("pt-BR")}</span>
