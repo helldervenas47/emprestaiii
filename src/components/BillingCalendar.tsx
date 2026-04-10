@@ -106,8 +106,8 @@ export function BillingCalendar({ loans, payments }: Props) {
   };
 
   const selectedItems = selectedDate ? (dueMap[selectedDate] || []) : [];
-  const unpaidSelected = selectedItems.filter((i) => !i.paid);
-  const paidSelected = selectedItems.filter((i) => i.paid);
+  const overdueSelected = selectedItems.filter((i) => i.date < todayStr);
+  const upcomingSelected = selectedItems.filter((i) => i.date >= todayStr);
 
   return (
     <div className="space-y-4">
