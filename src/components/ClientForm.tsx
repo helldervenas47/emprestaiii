@@ -18,7 +18,12 @@ export function ClientForm({ onAdd, onClose }: Props) {
     phone: "",
     email: "",
     cpf: "",
+    cnpj: "",
+    rg: "",
     address: "",
+    city: "",
+    state: "",
+    score: "",
     notes: "",
   });
 
@@ -53,6 +58,16 @@ export function ClientForm({ onAdd, onClose }: Props) {
                 <Input id="cpf" value={form.cpf} onChange={(e) => update("cpf", e.target.value)} placeholder="000.000.000-00" />
               </div>
               <div>
+                <Label htmlFor="cnpj">CNPJ</Label>
+                <Input id="cnpj" value={form.cnpj} onChange={(e) => update("cnpj", e.target.value)} placeholder="00.000.000/0000-00" />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="rg">RG</Label>
+                <Input id="rg" value={form.rg} onChange={(e) => update("rg", e.target.value)} placeholder="00.000.000-0" />
+              </div>
+              <div>
                 <Label htmlFor="phone">Telefone</Label>
                 <Input id="phone" value={form.phone} onChange={(e) => update("phone", e.target.value)} placeholder="(00) 00000-0000" />
               </div>
@@ -63,7 +78,21 @@ export function ClientForm({ onAdd, onClose }: Props) {
             </div>
             <div>
               <Label htmlFor="address">Endereço</Label>
-              <Input id="address" value={form.address} onChange={(e) => update("address", e.target.value)} placeholder="Rua, número, bairro, cidade" />
+              <Input id="address" value={form.address} onChange={(e) => update("address", e.target.value)} placeholder="Rua, número, bairro" />
+            </div>
+            <div className="grid grid-cols-3 gap-4">
+              <div>
+                <Label htmlFor="city">Cidade</Label>
+                <Input id="city" value={form.city} onChange={(e) => update("city", e.target.value)} placeholder="São Paulo" />
+              </div>
+              <div>
+                <Label htmlFor="state">Estado</Label>
+                <Input id="state" value={form.state} onChange={(e) => update("state", e.target.value)} placeholder="SP" />
+              </div>
+              <div>
+                <Label htmlFor="score">Score</Label>
+                <Input id="score" value={form.score} onChange={(e) => update("score", e.target.value)} placeholder="0-1000" />
+              </div>
             </div>
             <div>
               <Label htmlFor="notes">Observações</Label>

@@ -4,12 +4,15 @@ export interface Loan {
   borrowerId?: string;
   amount: number;
   interestRate: number;
+  interestType: string;
+  paymentType: string;
   startDate: string;
   dueDate: string;
   installments: number;
   paidInstallments: number;
   status: "active" | "paid" | "overdue";
   notes?: string;
+  createdAt: string;
 }
 
 export interface Payment {
@@ -26,7 +29,12 @@ export interface Client {
   phone: string;
   email: string;
   cpf: string;
+  cnpj: string;
+  rg: string;
   address: string;
+  city: string;
+  state: string;
+  score: string;
   notes?: string;
   active: boolean;
   createdAt: string;

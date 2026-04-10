@@ -17,7 +17,7 @@ interface Props {
 export function ClientList({ clients, onDelete, onUpdate }: Props) {
   const [search, setSearch] = useState("");
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [editForm, setEditForm] = useState({ name: "", phone: "", email: "", cpf: "", address: "", notes: "" });
+  const [editForm, setEditForm] = useState({ name: "", phone: "", email: "", cpf: "", cnpj: "", rg: "", address: "", city: "", state: "", score: "", notes: "" });
 
   const filtered = clients.filter(
     (c) =>
@@ -28,7 +28,7 @@ export function ClientList({ clients, onDelete, onUpdate }: Props) {
 
   const startEdit = (client: Client) => {
     setEditingId(client.id);
-    setEditForm({ name: client.name, phone: client.phone, email: client.email, cpf: client.cpf, address: client.address, notes: client.notes || "" });
+    setEditForm({ name: client.name, phone: client.phone, email: client.email, cpf: client.cpf, cnpj: client.cnpj || "", rg: client.rg || "", address: client.address, city: client.city || "", state: client.state || "", score: client.score || "", notes: client.notes || "" });
   };
 
   const saveEdit = (id: string) => {
