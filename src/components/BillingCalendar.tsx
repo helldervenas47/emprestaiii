@@ -52,6 +52,7 @@ export function BillingCalendar({ loans, payments }: Props) {
       const start = new Date(loan.startDate + "T00:00:00");
 
       for (let i = 1; i <= loan.installments; i++) {
+        if (paidInstallmentNumbers.has(i)) continue; // Skip paid installments
         const dueDate = new Date(start.getFullYear(), start.getMonth() + i, start.getDate());
         const dateStr = dueDate.toISOString().split("T")[0];
 
@@ -62,7 +63,7 @@ export function BillingCalendar({ loans, payments }: Props) {
           installmentNumber: i,
           totalInstallments: loan.installments,
           amount: installmentAmount,
-          paid: paidInstallmentNumbers.has(i),
+          paid: false,
           date: dateStr,
         });
       }
