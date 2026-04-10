@@ -218,6 +218,7 @@ function LoanCardView({
     "border-l-primary";
 
   return (
+    <>
     <Card className={`overflow-hidden hover:shadow-lg transition-all border-l-4 ${borderColor} h-full flex flex-col`}>
       {/* Header */}
       <div className="p-3 pb-0">
