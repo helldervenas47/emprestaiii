@@ -76,24 +76,36 @@ function parseCSVLine(line: string): string[] {
   return result;
 }
 
-export function importLoansFromCSV(csv: string): Omit<Loan, "id" | "status" | "paidInstallments">[] {
+function parseDateBR(dateStr: string): string {
+  if (!dateStr) return new Date().toISOString().split("T")[0];
+  // Handle DD/MM/YYYY
+  const brMatch = dateStr.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+  if (brMatch) return `${brMatch[3]}-${brMatch[2]}-${brMatch[1]}`;
+  // Already YYYY-MM-DD
+  if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return dateStr;
+  return new Date().toISOString().split("T")[0];
+}
+
+export function importLoansFromCSV(csv: string): Omit<Loan, "id">[] {
   const lines = csv.split("\n").filter((l) => l.trim());
   if (lines.length < 2) return [];
   return lines.slice(1).map((line) => {
     const cols = parseCSVLine(line);
+    const statusRaw = (cols[8] || "").toLowerCase();
+    const isPaid = statusRaw === "pago" || statusRaw === "paid";
+    const installments = parseInt(cols[5]) || 1;
     return {
       borrowerName: cols[0] || "",
       amount: parseFloat(cols[1]) || 0,
       interestRate: parseFloat(cols[2]) || 0,
       interestType: cols[3] || "Mensal",
       paymentType: cols[4] || "Parcelado",
-      installments: parseInt(cols[5]) || 1,
-      // cols[6] = Total Pago (computed, skip)
-      // cols[7] = Saldo Restante (computed, skip)
-      // cols[8] = Status (set by system)
-      startDate: cols[9] || new Date().toISOString().split("T")[0],
-      dueDate: cols[10] || "",
-      createdAt: cols[11] || new Date().toISOString(),
+      installments,
+      status: isPaid ? "paid" as const : "active" as const,
+      paidInstallments: isPaid ? installments : 0,
+      startDate: parseDateBR(cols[9]),
+      dueDate: parseDateBR(cols[10]),
+      createdAt: cols[11] ? parseDateBR(cols[11]) : new Date().toISOString(),
       notes: "",
     };
   });
