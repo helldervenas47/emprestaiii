@@ -3,7 +3,8 @@ import { Loan } from "@/types/loan";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle, Trash2, DollarSign, User, Calendar, LayoutGrid, List } from "lucide-react";
+import { CheckCircle, Trash2, DollarSign, User, Calendar, LayoutGrid, List, Search } from "lucide-react";
+import { Input } from "@/components/ui/input";
 import { calculateInstallment, calculateTotalWithInterest } from "@/hooks/useLoans";
 import { Progress } from "@/components/ui/progress";
 
