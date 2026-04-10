@@ -222,9 +222,9 @@ export function DashboardOverview({ loans, sales, payments, expenses, onDeletePa
   const saveRate = () => { setInterestRate(parseFloat(tempRate) || 0); setEditingRate(false); };
   const cancelEditRate = () => setEditingRate(false);
 
-  const healthColor = health.score >= 70 ? "text-success" : health.score >= 40 ? "text-warning" : "text-destructive";
-  const healthBg = health.score >= 70 ? "from-success/20 to-success/5" : health.score >= 40 ? "from-warning/20 to-warning/5" : "from-destructive/20 to-destructive/5";
-  const healthStroke = health.score >= 70 ? "stroke-success" : health.score >= 40 ? "stroke-warning" : "stroke-destructive";
+  const healthColor = portfolio.score >= 70 ? "text-success" : portfolio.score >= 40 ? "text-warning" : "text-destructive";
+  const healthBg = portfolio.score >= 70 ? "from-success/20 to-success/5" : portfolio.score >= 40 ? "from-warning/20 to-warning/5" : "from-destructive/20 to-destructive/5";
+  const healthStroke = portfolio.score >= 70 ? "stroke-success" : portfolio.score >= 40 ? "stroke-warning" : "stroke-destructive";
 
   return (
     <div className="space-y-6">
@@ -356,11 +356,11 @@ export function DashboardOverview({ loans, sales, payments, expenses, onDeletePa
                 <circle
                   cx="60" cy="60" r="52" fill="none" strokeWidth="10" strokeLinecap="round"
                   className={healthStroke}
-                  strokeDasharray={`${(health.score / 100) * 326.7} 326.7`}
+                  strokeDasharray={`${(portfolio.score / 100) * 326.7} 326.7`}
                 />
               </svg>
               <div className="absolute inset-0 flex flex-col items-center justify-center">
-                <span className={`text-3xl font-bold ${healthColor}`}>{health.score}</span>
+                <span className={`text-3xl font-bold ${healthColor}`}>{portfolio.score}</span>
                 <span className="text-xs text-muted-foreground">de 100</span>
               </div>
             </div>
@@ -369,29 +369,29 @@ export function DashboardOverview({ loans, sales, payments, expenses, onDeletePa
               <Card className={`bg-gradient-to-br ${healthBg} border-0`}>
                 <CardContent className="p-4">
                   <p className="text-xs text-muted-foreground">Taxa de Recebimento</p>
-                  <p className={`text-xl font-bold ${health.receivingRate >= 70 ? "text-success" : health.receivingRate >= 40 ? "text-warning" : "text-destructive"}`}>
-                    {health.receivingRate.toFixed(1)}%
+                  <p className={`text-xl font-bold ${portfolio.receivingRate >= 70 ? "text-success" : portfolio.receivingRate >= 40 ? "text-warning" : "text-destructive"}`}>
+                    {portfolio.receivingRate.toFixed(1)}%
                   </p>
                 </CardContent>
               </Card>
-              <Card className={`bg-gradient-to-br ${health.defaultRate <= 20 ? "from-success/20 to-success/5" : health.defaultRate <= 50 ? "from-warning/20 to-warning/5" : "from-destructive/20 to-destructive/5"} border-0`}>
+              <Card className={`bg-gradient-to-br ${portfolio.defaultRate <= 20 ? "from-success/20 to-success/5" : portfolio.defaultRate <= 50 ? "from-warning/20 to-warning/5" : "from-destructive/20 to-destructive/5"} border-0`}>
                 <CardContent className="p-4">
                   <p className="text-xs text-muted-foreground">Inadimplência</p>
-                  <p className={`text-xl font-bold ${health.defaultRate <= 20 ? "text-success" : health.defaultRate <= 50 ? "text-warning" : "text-destructive"}`}>
-                    {health.defaultRate.toFixed(1)}%
+                  <p className={`text-xl font-bold ${portfolio.defaultRate <= 20 ? "text-success" : portfolio.defaultRate <= 50 ? "text-warning" : "text-destructive"}`}>
+                    {portfolio.defaultRate.toFixed(1)}%
                   </p>
                 </CardContent>
               </Card>
               <Card className="border-0 bg-gradient-to-br from-success/10 to-success/5">
                 <CardContent className="p-4">
                   <p className="text-xs text-muted-foreground">Recebido</p>
-                  <p className="text-xl font-bold text-success">{formatCurrency(health.totalReceived)}</p>
+                  <p className="text-xl font-bold text-success">{formatCurrency(portfolio.totalReceived)}</p>
                 </CardContent>
               </Card>
               <Card className="border-0 bg-gradient-to-br from-destructive/10 to-destructive/5">
                 <CardContent className="p-4">
                   <p className="text-xs text-muted-foreground">Atrasado</p>
-                  <p className="text-xl font-bold text-destructive">{formatCurrency(health.overdueAmount)}</p>
+                  <p className="text-xl font-bold text-destructive">{formatCurrency(portfolio.overdueAmount)}</p>
                 </CardContent>
               </Card>
             </div>
