@@ -590,19 +590,28 @@ export function LoanList({ loans, payments, onPayment, onPartialPayment, onInter
               onPayment={onPayment} onPartialPayment={onPartialPayment}
               onInterestPayment={onInterestPayment} onUpdate={onUpdate} onDelete={onDelete} />
           ))}
-          {/* Single loans */}
-          {view === "cards" ? (
-            singles.map((loan) => (
-              <LoanCardView key={loan.id} loan={loan} payments={payments}
-                onPayment={() => onPayment(loan.id)} onPartialPayment={(amt) => onPartialPayment(loan.id, amt)}
-                onInterestPayment={() => onInterestPayment(loan.id)} onUpdate={(d) => onUpdate(loan.id, d)} onDelete={() => onDelete(loan.id)} />
-            ))
-          ) : (
-            singles.map((loan) => (
-              <LoanRowView key={loan.id} loan={loan} payments={payments}
-                onPayment={() => onPayment(loan.id)} onPartialPayment={(amt) => onPartialPayment(loan.id, amt)}
-                onInterestPayment={() => onInterestPayment(loan.id)} onUpdate={(d) => onUpdate(loan.id, d)} onDelete={() => onDelete(loan.id)} />
-            ))
+          {/* Single loans (hide when folders filter is active) */}
+          {category !== "folders" && (
+            view === "cards" ? (
+              singles.map((loan) => (
+                <LoanCardView key={loan.id} loan={loan} payments={payments}
+                  onPayment={() => onPayment(loan.id)} onPartialPayment={(amt) => onPartialPayment(loan.id, amt)}
+                  onInterestPayment={() => onInterestPayment(loan.id)} onUpdate={(d) => onUpdate(loan.id, d)} onDelete={() => onDelete(loan.id)} />
+              ))
+            ) : (
+              singles.map((loan) => (
+                <LoanRowView key={loan.id} loan={loan} payments={payments}
+                  onPayment={() => onPayment(loan.id)} onPartialPayment={(amt) => onPartialPayment(loan.id, amt)}
+                  onInterestPayment={() => onInterestPayment(loan.id)} onUpdate={(d) => onUpdate(loan.id, d)} onDelete={() => onDelete(loan.id)} />
+              ))
+            )
+          )}
+          {category === "folders" && grouped.length === 0 && (
+            <Card>
+              <CardContent className="py-8 text-center">
+                <p className="text-sm text-muted-foreground">Nenhum cliente com múltiplos empréstimos</p>
+              </CardContent>
+            </Card>
           )}
         </div>
       )}
