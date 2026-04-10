@@ -568,6 +568,29 @@ function LoanRowView({
         </div>
       )}
     </div>
+    <Dialog open={!!paymentDialog} onOpenChange={(open) => !open && setPaymentDialog(null)}>
+      <DialogContent className="sm:max-w-[340px]">
+        <DialogHeader>
+          <DialogTitle>
+            {paymentDialog?.type === "installment" ? "Receber Parcela" : paymentDialog?.type === "interest" ? "Pagar Juros" : "Pagamento Parcial"}
+          </DialogTitle>
+        </DialogHeader>
+        <div className="flex flex-col items-center gap-2">
+          <Label className="text-sm text-muted-foreground">Selecione a data do pagamento</Label>
+          <CalendarUI
+            mode="single"
+            selected={paymentDate}
+            onSelect={(d) => d && setPaymentDate(d)}
+            className="rounded-md border pointer-events-auto"
+          />
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => setPaymentDialog(null)}>Cancelar</Button>
+          <Button onClick={confirmPayment}>Confirmar</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+    </>
   );
 }
 
