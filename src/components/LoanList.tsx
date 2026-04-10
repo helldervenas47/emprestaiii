@@ -493,6 +493,7 @@ function LoanRowView({
   }
 
   return (
+    <>
     <div className="space-y-0">
       <div className={`flex items-center gap-4 px-4 py-3 bg-card rounded-lg border hover:shadow-sm transition-shadow ${category === "overdue" ? "border-destructive/30" : category === "due_today" ? "border-warning/30" : ""}`}>
         <div className="h-8 w-8 rounded-full gradient-primary flex items-center justify-center shrink-0">
