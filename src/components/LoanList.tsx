@@ -75,6 +75,7 @@ interface EditForm {
   startDate: string;
   dueDate: string;
   notes: string;
+  tags: string;
 }
 
 function loanToForm(loan: Loan): EditForm {
@@ -87,6 +88,7 @@ function loanToForm(loan: Loan): EditForm {
     startDate: loan.startDate,
     dueDate: loan.dueDate,
     notes: loan.notes || "",
+    tags: (loan.tags || []).join(", "),
   };
 }
 
