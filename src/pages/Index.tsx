@@ -36,7 +36,7 @@ const Index = () => {
   const [showClientForm, setShowClientForm] = useState(false);
   const [showProductForm, setShowProductForm] = useState(false);
   const [showSaleForm, setShowSaleForm] = useState(false);
-  const [tab, setTab] = useState<Tab>("dashboard");
+  const [tab, setTab] = useState<Tab>("overview");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleExport = () => {
