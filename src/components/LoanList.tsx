@@ -39,10 +39,12 @@ function formatCurrency(value: number): string {
   return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value);
 }
 
-function getNextDueDate(loan: Loan): Date {
-  const start = new Date(loan.startDate + "T00:00:00");
-  start.setMonth(start.getMonth() + loan.paidInstallments + 1);
-  return start;
+function getDaysOverdue(loan: Loan): number {
+  const today = new Date();
+  const todayNorm = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  const due = new Date(loan.dueDate + "T00:00:00");
+  const diff = Math.floor((todayNorm.getTime() - due.getTime()) / (1000 * 60 * 60 * 24));
+  return diff;
 }
 
 function getLoanCategory(loan: Loan, payments: Payment[]): "paid" | "paid_interest" | "overdue" | "due_today" | "on_track" {
@@ -50,12 +52,9 @@ function getLoanCategory(loan: Loan, payments: Payment[]): "paid" | "paid_intere
   const loanPayments = payments.filter((p) => p.loanId === loan.id);
   const lastPayment = loanPayments.sort((a, b) => b.date.localeCompare(a.date))[0];
   if (lastPayment && lastPayment.installmentNumber === 0) return "paid_interest";
-  const now = new Date();
-  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const nextDue = getNextDueDate(loan);
-  const nextDueDay = new Date(nextDue.getFullYear(), nextDue.getMonth(), nextDue.getDate());
-  if (nextDueDay.getTime() === today.getTime()) return "due_today";
-  if (nextDueDay < today) return "overdue";
+  const days = getDaysOverdue(loan);
+  if (days === 0) return "due_today";
+  if (days > 0) return "overdue";
   return "on_track";
 }
 
