@@ -136,17 +136,48 @@ export function DashboardOverview({ loans, sales, payments, expenses, onDeletePa
     return { totalIncome, incomeFromPayments, incomeFromSales, totalOutgoing, totalLoanOutgoing, totalExpenses, balance, transactions, loanCount: filteredLoans.length, saleCount: filteredSales.length, paymentCount: filteredPayments.length, expenseCount: filteredExpenses.length };
   }, [loans, sales, payments, expenses, range]);
 
-  // Health score computation (global, not period-filtered)
-  const health = useMemo(() => {
+  // Portfolio metrics (global)
+  const portfolio = useMemo(() => {
     const activeLoans = loans.filter((l) => l.status !== "paid");
-    const paidLoans = loans.filter((l) => l.status === "paid");
     const totalLoans = loans.length;
 
-    // Total expected from all loans
+    // Total principal lent (capital na rua = principal of active loans)
+    const capitalOnStreet = activeLoans.reduce((s, l) => s + l.amount, 0);
+    // Total expected (principal + interest) from all loans
     const totalExpected = loans.reduce((s, l) => s + calculateTotalWithInterest(l.amount, l.interestRate, l.installments), 0);
+    const totalPrincipal = loans.reduce((s, l) => s + l.amount, 0);
+    const totalInterestExpected = totalExpected - totalPrincipal;
+
     // Total received
     const totalReceived = payments.reduce((s, p) => s + p.amount, 0);
-    // Overdue loans
+
+    // Split received into principal vs interest per loan
+    let principalReceived = 0;
+    let interestReceived = 0;
+    loans.forEach((l) => {
+      const loanPayments = payments.filter((p) => p.loanId === l.id);
+      const installmentAmount = calculateInstallment(l.amount, l.interestRate, l.installments);
+      const principalPerInstallment = l.installments > 0 ? l.amount / l.installments : 0;
+      loanPayments.forEach((p) => {
+        if (p.installmentNumber === 0) {
+          // Interest-only payment
+          interestReceived += p.amount;
+        } else if (p.installmentNumber > 0) {
+          // Regular installment: split into principal and interest
+          principalReceived += principalPerInstallment;
+          interestReceived += installmentAmount - principalPerInstallment;
+        } else {
+          // Partial payment (-1): count as principal
+          principalReceived += p.amount;
+        }
+      });
+    });
+
+    const principalToReceive = Math.max(0, totalPrincipal - principalReceived);
+    const interestToReceive = Math.max(0, totalInterestExpected - interestReceived);
+    const totalToReceive = Math.max(0, totalExpected - totalReceived);
+
+    // Overdue
     const today = new Date().toISOString().split("T")[0];
     const overdueLoans = activeLoans.filter((l) => l.dueDate < today);
     const overdueAmount = overdueLoans.reduce((s, l) => {
@@ -154,15 +185,13 @@ export function DashboardOverview({ loans, sales, payments, expenses, onDeletePa
       const paid = payments.filter((p) => p.loanId === l.id).reduce((ss, p) => ss + p.amount, 0);
       return s + Math.max(0, expected - paid);
     }, 0);
-    // Total lent
-    const totalLent = loans.reduce((s, l) => s + l.amount, 0);
 
     // Rates
     const receivingRate = totalExpected > 0 ? (totalReceived / totalExpected) * 100 : 0;
     const defaultRate = totalLoans > 0 ? (overdueLoans.length / totalLoans) * 100 : 0;
-    const profitMargin = totalLent > 0 ? ((totalReceived - totalLent) / totalLent) * 100 : 0;
+    const profitMargin = totalPrincipal > 0 ? ((totalReceived - totalPrincipal) / totalPrincipal) * 100 : 0;
 
-    // Health score: weighted average
+    // Health score
     const receivingScore = Math.min(100, receivingRate);
     const defaultScore = Math.max(0, 100 - defaultRate * 2);
     const profitScore = Math.min(100, Math.max(0, 50 + profitMargin));
@@ -174,6 +203,12 @@ export function DashboardOverview({ loans, sales, payments, expenses, onDeletePa
       defaultRate,
       totalReceived,
       overdueAmount,
+      capitalOnStreet,
+      totalToReceive,
+      principalReceived,
+      interestReceived,
+      principalToReceive,
+      interestToReceive,
     };
   }, [loans, payments]);
 
@@ -187,9 +222,9 @@ export function DashboardOverview({ loans, sales, payments, expenses, onDeletePa
   const saveRate = () => { setInterestRate(parseFloat(tempRate) || 0); setEditingRate(false); };
   const cancelEditRate = () => setEditingRate(false);
 
-  const healthColor = health.score >= 70 ? "text-success" : health.score >= 40 ? "text-warning" : "text-destructive";
-  const healthBg = health.score >= 70 ? "from-success/20 to-success/5" : health.score >= 40 ? "from-warning/20 to-warning/5" : "from-destructive/20 to-destructive/5";
-  const healthStroke = health.score >= 70 ? "stroke-success" : health.score >= 40 ? "stroke-warning" : "stroke-destructive";
+  const healthColor = portfolio.score >= 70 ? "text-success" : portfolio.score >= 40 ? "text-warning" : "text-destructive";
+  const healthBg = portfolio.score >= 70 ? "from-success/20 to-success/5" : portfolio.score >= 40 ? "from-warning/20 to-warning/5" : "from-destructive/20 to-destructive/5";
+  const healthStroke = portfolio.score >= 70 ? "stroke-success" : portfolio.score >= 40 ? "stroke-warning" : "stroke-destructive";
 
   return (
     <div className="space-y-6">
@@ -321,11 +356,11 @@ export function DashboardOverview({ loans, sales, payments, expenses, onDeletePa
                 <circle
                   cx="60" cy="60" r="52" fill="none" strokeWidth="10" strokeLinecap="round"
                   className={healthStroke}
-                  strokeDasharray={`${(health.score / 100) * 326.7} 326.7`}
+                  strokeDasharray={`${(portfolio.score / 100) * 326.7} 326.7`}
                 />
               </svg>
               <div className="absolute inset-0 flex flex-col items-center justify-center">
-                <span className={`text-3xl font-bold ${healthColor}`}>{health.score}</span>
+                <span className={`text-3xl font-bold ${healthColor}`}>{portfolio.score}</span>
                 <span className="text-xs text-muted-foreground">de 100</span>
               </div>
             </div>
@@ -334,35 +369,75 @@ export function DashboardOverview({ loans, sales, payments, expenses, onDeletePa
               <Card className={`bg-gradient-to-br ${healthBg} border-0`}>
                 <CardContent className="p-4">
                   <p className="text-xs text-muted-foreground">Taxa de Recebimento</p>
-                  <p className={`text-xl font-bold ${health.receivingRate >= 70 ? "text-success" : health.receivingRate >= 40 ? "text-warning" : "text-destructive"}`}>
-                    {health.receivingRate.toFixed(1)}%
+                  <p className={`text-xl font-bold ${portfolio.receivingRate >= 70 ? "text-success" : portfolio.receivingRate >= 40 ? "text-warning" : "text-destructive"}`}>
+                    {portfolio.receivingRate.toFixed(1)}%
                   </p>
                 </CardContent>
               </Card>
-              <Card className={`bg-gradient-to-br ${health.defaultRate <= 20 ? "from-success/20 to-success/5" : health.defaultRate <= 50 ? "from-warning/20 to-warning/5" : "from-destructive/20 to-destructive/5"} border-0`}>
+              <Card className={`bg-gradient-to-br ${portfolio.defaultRate <= 20 ? "from-success/20 to-success/5" : portfolio.defaultRate <= 50 ? "from-warning/20 to-warning/5" : "from-destructive/20 to-destructive/5"} border-0`}>
                 <CardContent className="p-4">
                   <p className="text-xs text-muted-foreground">Inadimplência</p>
-                  <p className={`text-xl font-bold ${health.defaultRate <= 20 ? "text-success" : health.defaultRate <= 50 ? "text-warning" : "text-destructive"}`}>
-                    {health.defaultRate.toFixed(1)}%
+                  <p className={`text-xl font-bold ${portfolio.defaultRate <= 20 ? "text-success" : portfolio.defaultRate <= 50 ? "text-warning" : "text-destructive"}`}>
+                    {portfolio.defaultRate.toFixed(1)}%
                   </p>
                 </CardContent>
               </Card>
               <Card className="border-0 bg-gradient-to-br from-success/10 to-success/5">
                 <CardContent className="p-4">
                   <p className="text-xs text-muted-foreground">Recebido</p>
-                  <p className="text-xl font-bold text-success">{formatCurrency(health.totalReceived)}</p>
+                  <p className="text-xl font-bold text-success">{formatCurrency(portfolio.totalReceived)}</p>
                 </CardContent>
               </Card>
               <Card className="border-0 bg-gradient-to-br from-destructive/10 to-destructive/5">
                 <CardContent className="p-4">
                   <p className="text-xs text-muted-foreground">Atrasado</p>
-                  <p className="text-xl font-bold text-destructive">{formatCurrency(health.overdueAmount)}</p>
+                  <p className="text-xl font-bold text-destructive">{formatCurrency(portfolio.overdueAmount)}</p>
                 </CardContent>
               </Card>
             </div>
           </div>
         </CardContent>
       </Card>
+
+      {/* Portfolio metrics */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+        <Card>
+          <CardContent className="p-4">
+            <p className="text-xs text-muted-foreground">Capital na Rua</p>
+            <p className="text-lg font-bold text-foreground">{formatCurrency(portfolio.capitalOnStreet)}</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4">
+            <p className="text-xs text-muted-foreground">Total a Receber</p>
+            <p className="text-lg font-bold text-foreground">{formatCurrency(portfolio.totalToReceive)}</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4">
+            <p className="text-xs text-muted-foreground">Principal Recebido</p>
+            <p className="text-lg font-bold text-success">{formatCurrency(portfolio.principalReceived)}</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4">
+            <p className="text-xs text-muted-foreground">Juros Recebido</p>
+            <p className="text-lg font-bold text-success">{formatCurrency(portfolio.interestReceived)}</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4">
+            <p className="text-xs text-muted-foreground">Principal a Receber</p>
+            <p className="text-lg font-bold text-warning">{formatCurrency(portfolio.principalToReceive)}</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4">
+            <p className="text-xs text-muted-foreground">Juros a Receber</p>
+            <p className="text-lg font-bold text-warning">{formatCurrency(portfolio.interestToReceive)}</p>
+          </CardContent>
+        </Card>
+      </div>
 
       {/* Breakdown */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
