@@ -102,6 +102,12 @@ export function importLoansFromCSV(csv: string): Omit<Loan, "id">[] {
     const statusRaw = (cols[8] || "").toLowerCase();
     const isPaid = statusRaw === "pago" || statusRaw === "paid";
     const installments = parseInt(cols[5]) || 1;
+    // Add 1 day to the due date from CSV
+    const parsedDueDate = parseDateBR(cols[10]);
+    const dueDateObj = new Date(parsedDueDate + "T00:00:00");
+    dueDateObj.setDate(dueDateObj.getDate() + 1);
+    const adjustedDueDate = dueDateObj.toISOString().split("T")[0];
+
     return {
       borrowerName: cols[0] || "",
       amount: parseFloat(cols[1]) || 0,
@@ -112,7 +118,7 @@ export function importLoansFromCSV(csv: string): Omit<Loan, "id">[] {
       status: isPaid ? "paid" as const : "active" as const,
       paidInstallments: isPaid ? installments : 0,
       startDate: parseDateBR(cols[9]),
-      dueDate: parseDateBR(cols[10]),
+      dueDate: adjustedDueDate,
       createdAt: cols[11] ? parseDateBR(cols[11]) : new Date().toISOString(),
       notes: "",
     };
