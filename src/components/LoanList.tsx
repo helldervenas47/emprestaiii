@@ -633,6 +633,20 @@ export function LoanList({ loans, payments, onPayment, onPartialPayment, onInter
     return { grouped, singles };
   }, [categorized, payments]);
 
+  const summaryData = useMemo(() => {
+    const source = categorized;
+    const totalLent = source.reduce((s, l) => s + l.amount, 0);
+    const totalToReceive = source
+      .filter((l) => l.status !== "paid")
+      .reduce((s, l) => s + calculateTotalWithInterest(l.amount, l.interestRate, l.installments), 0);
+    const totalInterest = source.reduce(
+      (s, l) => s + (calculateTotalWithInterest(l.amount, l.interestRate, l.installments) - l.amount), 0
+    );
+    const activeCount = source.filter((l) => l.status === "active").length;
+    const overdueCount = source.filter((l) => getDaysOverdue(l) > 0 && l.status !== "paid").length;
+    return { totalLent, totalToReceive, totalInterest, activeCount, overdueCount };
+  }, [categorized]);
+
   if (loans.length === 0) {
     return (
       <Card>
@@ -647,6 +661,41 @@ export function LoanList({ loans, payments, onPayment, onPartialPayment, onInter
 
   return (
     <div className="space-y-3">
+      {/* Summary cards that react to filters */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="gradient-primary rounded-xl p-5 text-primary-foreground shadow-lg">
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-sm font-medium opacity-90">Total Emprestado</span>
+            <DollarSign className="h-5 w-5 opacity-80" />
+          </div>
+          <p className="text-2xl font-bold">{formatCurrency(summaryData.totalLent)}</p>
+        </div>
+        <div className="gradient-success rounded-xl p-5 text-primary-foreground shadow-lg">
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-sm font-medium opacity-90">Total a Receber</span>
+            <DollarSign className="h-5 w-5 opacity-80" />
+          </div>
+          <p className="text-2xl font-bold">{formatCurrency(summaryData.totalToReceive)}</p>
+        </div>
+        <div className="gradient-warning rounded-xl p-5 text-primary-foreground shadow-lg">
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-sm font-medium opacity-90">Lucro em Juros</span>
+            <DollarSign className="h-5 w-5 opacity-80" />
+          </div>
+          <p className="text-2xl font-bold">{formatCurrency(summaryData.totalInterest)}</p>
+        </div>
+        <div className="gradient-primary rounded-xl p-5 text-primary-foreground shadow-lg">
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-sm font-medium opacity-90">Empréstimos Ativos</span>
+            <User className="h-5 w-5 opacity-80" />
+          </div>
+          <p className="text-2xl font-bold">{summaryData.activeCount}</p>
+          {summaryData.overdueCount > 0 && (
+            <p className="text-xs mt-1 opacity-80">{summaryData.overdueCount} em atraso</p>
+          )}
+        </div>
+      </div>
+
       <div className="flex flex-wrap gap-2">
         {categoryConfig.map((cat) => (
           <button key={cat.id} onClick={() => setCategory(cat.id)}
