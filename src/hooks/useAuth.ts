@@ -8,17 +8,33 @@ export function useAuth() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // If sessionStorage flag is missing, user closed the tab — force sign out
+    if (!sessionStorage.getItem("hvcred_session")) {
+      // Clear persisted session so user must log in again
+      supabase.auth.signOut().then(() => {
+        setLoading(false);
+      });
+    }
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (_event, session) => {
         setSession(session);
         setUser(session?.user ?? null);
         setLoading(false);
+        if (session) {
+          sessionStorage.setItem("hvcred_session", "1");
+        } else {
+          sessionStorage.removeItem("hvcred_session");
+        }
       }
     );
 
     supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
+      // Only use session if sessionStorage flag exists (tab wasn't closed)
+      if (session && sessionStorage.getItem("hvcred_session")) {
+        setSession(session);
+        setUser(session?.user ?? null);
+      }
       setLoading(false);
     });
 
@@ -26,6 +42,7 @@ export function useAuth() {
   }, []);
 
   const signOut = async () => {
+    sessionStorage.removeItem("hvcred_session");
     await supabase.auth.signOut();
   };
 
