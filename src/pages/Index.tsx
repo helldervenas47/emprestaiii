@@ -138,6 +138,9 @@ const Index = () => {
       </header>
 
       <main className="container mx-auto px-4 py-6 space-y-6">
+        {tab === "overview" && (
+          <DashboardOverview loans={loans} sales={sales} payments={payments} />
+        )}
         {tab === "dashboard" && (
           <>
             <DashboardCards loans={loans} />
