@@ -31,3 +31,25 @@ export interface Client {
   active: boolean;
   createdAt: string;
 }
+
+export interface Product {
+  id: string;
+  name: string;
+  description: string;
+  price: number;
+  stock: number;
+  active: boolean;
+  createdAt: string;
+}
+
+export interface Sale {
+  id: string;
+  productId: string;
+  productName: string;
+  quantity: number;
+  unitPrice: number;
+  total: number;
+  customerName: string;
+  date: string;
+  notes?: string;
+}
