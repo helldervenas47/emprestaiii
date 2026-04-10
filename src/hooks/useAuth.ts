@@ -8,43 +8,41 @@ export function useAuth() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // If sessionStorage flag is missing, user closed the tab — force sign out
+    if (!sessionStorage.getItem("hvcred_session")) {
+      // Clear persisted session so user must log in again
+      supabase.auth.signOut().then(() => {
+        setLoading(false);
+      });
+    }
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (_event, session) => {
         setSession(session);
         setUser(session?.user ?? null);
         setLoading(false);
+        if (session) {
+          sessionStorage.setItem("hvcred_session", "1");
+        } else {
+          sessionStorage.removeItem("hvcred_session");
+        }
       }
     );
 
     supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
+      // Only use session if sessionStorage flag exists (tab wasn't closed)
+      if (session && sessionStorage.getItem("hvcred_session")) {
+        setSession(session);
+        setUser(session?.user ?? null);
+      }
       setLoading(false);
     });
 
-    // Sign out when tab/window is closed (not on refresh)
-    const handleBeforeUnload = () => {
-      // Mark that we're navigating away
-      sessionStorage.setItem("hvcred_active", "1");
-    };
-    const handleLoad = () => {
-      // If the flag is not set, it means the tab was closed and reopened — sign out
-      if (!sessionStorage.getItem("hvcred_active")) {
-        supabase.auth.signOut();
-      }
-    };
-
-    // Set flag on current session
-    sessionStorage.setItem("hvcred_active", "1");
-    window.addEventListener("beforeunload", handleBeforeUnload);
-
-    return () => {
-      subscription.unsubscribe();
-      window.removeEventListener("beforeunload", handleBeforeUnload);
-    };
+    return () => subscription.unsubscribe();
   }, []);
 
   const signOut = async () => {
+    sessionStorage.removeItem("hvcred_session");
     await supabase.auth.signOut();
   };
 
