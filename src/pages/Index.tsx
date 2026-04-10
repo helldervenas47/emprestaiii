@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import { Plus, HandCoins, Users, LayoutDashboard, Download, Upload, ShoppingBag } from "lucide-react";
+import { Plus, HandCoins, Users, LayoutDashboard, Download, Upload, ShoppingBag, BarChart3 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DashboardCards } from "@/components/DashboardCards";
 import { LoanForm } from "@/components/LoanForm";
@@ -9,6 +9,7 @@ import { ClientList } from "@/components/ClientList";
 import { ProductForm } from "@/components/ProductForm";
 import { SaleForm } from "@/components/SaleForm";
 import { ProductSalesView } from "@/components/ProductSalesView";
+import { DashboardOverview } from "@/components/DashboardOverview";
 import { useLoans } from "@/hooks/useLoans";
 import { useClients } from "@/hooks/useClients";
 import { useProducts } from "@/hooks/useProducts";
@@ -18,23 +19,24 @@ import {
 } from "@/lib/csv";
 import { toast } from "sonner";
 
-type Tab = "dashboard" | "clients" | "products";
+type Tab = "overview" | "dashboard" | "clients" | "products";
 
 const tabConfig = [
+  { id: "overview" as Tab, label: "Dashboard", icon: BarChart3 },
   { id: "dashboard" as Tab, label: "Empréstimos", icon: LayoutDashboard },
   { id: "clients" as Tab, label: "Clientes", icon: Users },
   { id: "products" as Tab, label: "Vendas", icon: ShoppingBag },
 ];
 
 const Index = () => {
-  const { loans, addLoan, addPayment, deleteLoan } = useLoans();
+  const { loans, payments, addLoan, addPayment, deleteLoan } = useLoans();
   const { clients, addClient, deleteClient, updateClient } = useClients();
   const { products, sales, addProduct, updateProduct, deleteProduct, addSale, deleteSale } = useProducts();
   const [showLoanForm, setShowLoanForm] = useState(false);
   const [showClientForm, setShowClientForm] = useState(false);
   const [showProductForm, setShowProductForm] = useState(false);
   const [showSaleForm, setShowSaleForm] = useState(false);
-  const [tab, setTab] = useState<Tab>("dashboard");
+  const [tab, setTab] = useState<Tab>("overview");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleExport = () => {
@@ -136,6 +138,9 @@ const Index = () => {
       </header>
 
       <main className="container mx-auto px-4 py-6 space-y-6">
+        {tab === "overview" && (
+          <DashboardOverview loans={loans} sales={sales} payments={payments} />
+        )}
         {tab === "dashboard" && (
           <>
             <DashboardCards loans={loans} />
