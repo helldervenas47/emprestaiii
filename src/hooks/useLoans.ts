@@ -92,18 +92,15 @@ export function useLoans() {
       return updated;
     });
 
+    // Extend dueDate by 1 month (never change startDate)
     setLoans((prev) => {
       const updated = prev.map((l) => {
         if (l.id !== loanId) return l;
-        const newStart = new Date(l.startDate + "T00:00:00");
-        newStart.setMonth(newStart.getMonth() + 1);
-        const newDue = new Date(newStart);
-        const remainingInstallments = l.installments - l.paidInstallments;
-        newDue.setMonth(newDue.getMonth() + remainingInstallments);
+        const currentDue = new Date(l.dueDate + "T00:00:00");
+        currentDue.setMonth(currentDue.getMonth() + 1);
         return {
           ...l,
-          startDate: newStart.toISOString().split("T")[0],
-          dueDate: newDue.toISOString().split("T")[0],
+          dueDate: currentDue.toISOString().split("T")[0],
         };
       });
       saveToStorage(LOANS_KEY, updated);
