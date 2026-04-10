@@ -71,7 +71,7 @@ export function useProducts() {
 
   const updateProduct = useCallback(async (id: string, data: Partial<Omit<Product, "id" | "createdAt">>) => {
     if (!user) return;
-    const updateData: Record<string, unknown> = {};
+    const updateData: { name?: string; description?: string; price?: number; stock?: number } = {};
     if (data.name !== undefined) updateData.name = data.name;
     if (data.description !== undefined) updateData.description = data.description;
     if (data.price !== undefined) updateData.price = data.price;
