@@ -344,6 +344,46 @@ export function DashboardOverview({ loans, sales, payments, expenses, onDeletePa
         </div>
       </div>
 
+      {/* Portfolio metrics */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+        <Card>
+          <CardContent className="p-4">
+            <p className="text-xs text-muted-foreground">Capital na Rua</p>
+            <p className="text-lg font-bold text-foreground">{formatCurrency(portfolio.capitalOnStreet)}</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4">
+            <p className="text-xs text-muted-foreground">Total a Receber</p>
+            <p className="text-lg font-bold text-foreground">{formatCurrency(portfolio.totalToReceive)}</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4">
+            <p className="text-xs text-muted-foreground">Principal Recebido</p>
+            <p className="text-lg font-bold text-success">{formatCurrency(portfolio.principalReceived)}</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4">
+            <p className="text-xs text-muted-foreground">Juros Recebido</p>
+            <p className="text-lg font-bold text-success">{formatCurrency(portfolio.interestReceived)}</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4">
+            <p className="text-xs text-muted-foreground">Principal a Receber</p>
+            <p className="text-lg font-bold text-warning">{formatCurrency(portfolio.principalToReceive)}</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4">
+            <p className="text-xs text-muted-foreground">Juros a Receber</p>
+            <p className="text-lg font-bold text-warning">{formatCurrency(portfolio.interestToReceive)}</p>
+          </CardContent>
+        </Card>
+      </div>
+
       {/* Health Score Gauge */}
       <Card>
         <CardContent className="p-6">
