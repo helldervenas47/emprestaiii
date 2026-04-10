@@ -207,12 +207,12 @@ export function BillingCalendar({ loans, payments }: Props) {
               <p className="text-sm text-muted-foreground">Nenhuma cobrança para este dia.</p>
             ) : (
               <div className="space-y-2">
-                {unpaidSelected.length > 0 && (
+                {overdueSelected.length > 0 && (
                   <>
                     <p className="text-xs font-medium text-destructive mb-1">
-                      A cobrar ({unpaidSelected.length})
+                      Atrasado ({overdueSelected.length})
                     </p>
-                    {unpaidSelected.map((item) => (
+                    {overdueSelected.map((item) => (
                       <div
                         key={`${item.loanId}-${item.installmentNumber}`}
                         className="flex items-center justify-between p-3 rounded-lg bg-destructive/5 border border-destructive/20"
@@ -230,26 +230,26 @@ export function BillingCalendar({ loans, payments }: Props) {
                         </div>
                         <div className="text-right">
                           <p className="text-sm font-bold text-destructive">{formatCurrency(item.amount)}</p>
-                          <Badge variant="destructive" className="text-[10px]">Pendente</Badge>
+                          <Badge variant="destructive" className="text-[10px]">Atrasado</Badge>
                         </div>
                       </div>
                     ))}
                   </>
                 )}
 
-                {paidSelected.length > 0 && (
+                {upcomingSelected.length > 0 && (
                   <>
-                    <p className="text-xs font-medium text-success mt-3 mb-1">
-                      Recebido ({paidSelected.length})
+                    <p className="text-xs font-medium text-warning mt-3 mb-1">
+                      A vencer ({upcomingSelected.length})
                     </p>
-                    {paidSelected.map((item) => (
+                    {upcomingSelected.map((item) => (
                       <div
                         key={`${item.loanId}-${item.installmentNumber}`}
-                        className="flex items-center justify-between p-3 rounded-lg bg-success/5 border border-success/20"
+                        className="flex items-center justify-between p-3 rounded-lg bg-warning/5 border border-warning/20"
                       >
                         <div className="flex items-center gap-3">
-                          <div className="h-8 w-8 rounded-full bg-success/10 flex items-center justify-center">
-                            <User className="h-4 w-4 text-success" />
+                          <div className="h-8 w-8 rounded-full bg-warning/10 flex items-center justify-center">
+                            <User className="h-4 w-4 text-warning" />
                           </div>
                           <div>
                             <p className="text-sm font-medium text-foreground">{item.borrowerName}</p>
@@ -259,8 +259,8 @@ export function BillingCalendar({ loans, payments }: Props) {
                           </div>
                         </div>
                         <div className="text-right">
-                          <p className="text-sm font-bold text-success">{formatCurrency(item.amount)}</p>
-                          <Badge variant="outline" className="text-[10px] text-success border-success">Pago</Badge>
+                          <p className="text-sm font-bold text-warning">{formatCurrency(item.amount)}</p>
+                          <Badge variant="outline" className="text-[10px] text-warning border-warning">A vencer</Badge>
                         </div>
                       </div>
                     ))}
@@ -268,16 +268,14 @@ export function BillingCalendar({ loans, payments }: Props) {
                 )}
 
                 {/* Total */}
-                {unpaidSelected.length > 0 && (
-                  <div className="flex items-center justify-between pt-2 border-t mt-2">
-                    <div className="flex items-center gap-2 text-sm font-medium text-foreground">
-                      <DollarSign className="h-4 w-4" /> Total a cobrar
-                    </div>
-                    <p className="text-sm font-bold text-destructive">
-                      {formatCurrency(unpaidSelected.reduce((s, i) => s + i.amount, 0))}
-                    </p>
+                <div className="flex items-center justify-between pt-2 border-t mt-2">
+                  <div className="flex items-center gap-2 text-sm font-medium text-foreground">
+                    <DollarSign className="h-4 w-4" /> Total a cobrar
                   </div>
-                )}
+                  <p className="text-sm font-bold text-foreground">
+                    {formatCurrency(selectedItems.reduce((s, i) => s + i.amount, 0))}
+                  </p>
+                </div>
               </div>
             )}
           </CardContent>
