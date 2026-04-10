@@ -647,7 +647,7 @@ export function LoanList({ loans, payments, onPayment, onPartialPayment, onInter
               view === "cards" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
             }`}
           >
-            <LayoutGrid className="h-3.5 w-3.5" />Caixas
+            <LayoutGrid className="h-3.5 w-3.5" />Cards
           </button>
           <button onClick={() => setView("rows")}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
