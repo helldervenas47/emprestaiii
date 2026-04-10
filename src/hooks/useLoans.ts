@@ -68,6 +68,46 @@ export function useLoans() {
     }
   }, [loans]);
 
+  const addInterestOnlyPayment = useCallback((loanId: string) => {
+    const loan = loans.find((l) => l.id === loanId);
+    if (!loan) return;
+
+    const interestAmount = loan.amount * (loan.interestRate / 100);
+
+    // Record the interest-only payment
+    const newPayment: Payment = {
+      id: crypto.randomUUID(),
+      loanId,
+      amount: interestAmount,
+      date: new Date().toISOString().split("T")[0],
+      installmentNumber: 0, // 0 indicates interest-only
+    };
+    setPayments((prev) => {
+      const updated = [...prev, newPayment];
+      saveToStorage(PAYMENTS_KEY, updated);
+      return updated;
+    });
+
+    // Recalculate: extend startDate by 1 month, recalculate dueDate
+    setLoans((prev) => {
+      const updated = prev.map((l) => {
+        if (l.id !== loanId) return l;
+        const newStart = new Date(l.startDate + "T00:00:00");
+        newStart.setMonth(newStart.getMonth() + 1);
+        const newDue = new Date(newStart);
+        const remainingInstallments = l.installments - l.paidInstallments;
+        newDue.setMonth(newDue.getMonth() + remainingInstallments);
+        return {
+          ...l,
+          startDate: newStart.toISOString().split("T")[0],
+          dueDate: newDue.toISOString().split("T")[0],
+        };
+      });
+      saveToStorage(LOANS_KEY, updated);
+      return updated;
+    });
+  }, [loans]);
+
   const deleteLoan = useCallback((id: string) => {
     setLoans((prev) => {
       const updated = prev.filter((l) => l.id !== id);
@@ -81,7 +121,7 @@ export function useLoans() {
     });
   }, []);
 
-  return { loans, payments, addLoan, addPayment, deleteLoan };
+  return { loans, payments, addLoan, addPayment, addInterestOnlyPayment, deleteLoan };
 }
 
 export function calculateInstallment(principal: number, monthlyRate: number, months: number): number {
