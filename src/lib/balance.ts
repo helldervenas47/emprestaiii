@@ -1,23 +1,36 @@
-const BALANCE_KEY = "hvcred_account_balance";
+import { supabase } from "@/integrations/supabase/client";
 
-export function getBalance(): number {
-  try {
-    const v = localStorage.getItem(BALANCE_KEY);
-    return v ? JSON.parse(v) : 0;
-  } catch {
-    return 0;
+export async function getBalance(): Promise<number> {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return 0;
+
+  const { data } = await supabase
+    .from("balance")
+    .select("amount")
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  return data?.amount ?? 0;
+}
+
+export async function setBalance(value: number) {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return;
+
+  const { data: existing } = await supabase
+    .from("balance")
+    .select("id")
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  if (existing) {
+    await supabase.from("balance").update({ amount: value, updated_at: new Date().toISOString() }).eq("user_id", user.id);
+  } else {
+    await supabase.from("balance").insert({ user_id: user.id, amount: value });
   }
 }
 
-export function setBalance(value: number) {
-  localStorage.setItem(BALANCE_KEY, JSON.stringify(value));
-}
-
-/**
- * Adjust the account balance by a delta.
- * Positive = money in, Negative = money out.
- */
-export function adjustBalance(delta: number) {
-  const current = getBalance();
-  setBalance(current + delta);
+export async function adjustBalance(delta: number) {
+  const current = await getBalance();
+  await setBalance(current + delta);
 }
