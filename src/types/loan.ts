@@ -61,3 +61,16 @@ export interface Sale {
   date: string;
   notes?: string;
 }
+
+export interface Expense {
+  id: string;
+  description: string;
+  amount: number;
+  type: "fixa" | "recorrente";
+  category: string;
+  dueDate: string;
+  paid: boolean;
+  paidDate?: string;
+  notes?: string;
+  createdAt: string;
+}
