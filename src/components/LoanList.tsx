@@ -408,9 +408,7 @@ export function LoanList({ loans, payments, onPayment, onInterestPayment, onUpda
             key={cat.id}
             onClick={() => setCategory(cat.id)}
             className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors border ${
-              category === cat.id
-                ? "bg-primary text-primary-foreground border-primary"
-                : "bg-card text-muted-foreground border-border hover:text-foreground hover:border-foreground/30"
+              category === cat.id ? cat.activeColor : `bg-card ${cat.color} hover:opacity-80`
             }`}
           >
             {cat.label} ({counts[cat.id]})
