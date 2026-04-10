@@ -213,6 +213,25 @@ export function DashboardOverview({ loans, sales, payments, expenses, onDeletePa
     };
   }, [loans, payments]);
 
+  // Last 12 months chart data
+  const monthlyChart = useMemo(() => {
+    const now = new Date();
+    const months: { month: string; emprestado: number; recebido: number }[] = [];
+    for (let i = 11; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const end = new Date(d.getFullYear(), d.getMonth() + 1, 0, 23, 59, 59, 999);
+      const label = `${monthNames[d.getMonth()].slice(0, 3)}/${String(d.getFullYear()).slice(2)}`;
+      const lent = loans
+        .filter((l) => { const ld = new Date(l.startDate + "T00:00:00"); return ld >= d && ld <= end; })
+        .reduce((s, l) => s + l.amount, 0);
+      const received = payments
+        .filter((p) => { const pd = new Date(p.date + "T00:00:00"); return pd >= d && pd <= end; })
+        .reduce((s, p) => s + p.amount, 0);
+      months.push({ month: label, emprestado: lent, recebido: received });
+    }
+    return months;
+  }, [loans, payments]);
+
   const handleChangePeriod = (p: Period) => { setPeriod(p); setOffset(0); };
 
   const startEditBalance = () => { setTempBalance(String(accountBalance)); setEditingBalance(true); };
