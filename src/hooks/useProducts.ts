@@ -112,7 +112,7 @@ export function useProducts() {
         await supabase.from("products").update({ stock: newStock }).eq("id", s.productId);
         setProducts((prev) => prev.map((p) => (p.id === s.productId ? { ...p, stock: newStock } : p)));
       }
-      adjustBalance(s.total);
+      await adjustBalance(s.total);
     }
   }, [user, products]);
 
@@ -120,7 +120,7 @@ export function useProducts() {
     if (!user) return;
     const sale = sales.find((s) => s.id === id);
     if (sale) {
-      adjustBalance(-sale.total);
+      await adjustBalance(-sale.total);
       const product = products.find((p) => p.id === sale.productId);
       if (product) {
         const newStock = product.stock + sale.quantity;
