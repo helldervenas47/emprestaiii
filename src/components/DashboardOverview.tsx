@@ -309,6 +309,61 @@ export function DashboardOverview({ loans, sales, payments, expenses, onDeletePa
         </div>
       </div>
 
+      {/* Health Score Gauge */}
+      <Card>
+        <CardContent className="p-6">
+          <h3 className="text-sm font-semibold text-foreground mb-4">Saúde da Operação</h3>
+          <div className="flex flex-col sm:flex-row items-center gap-6">
+            {/* Gauge */}
+            <div className="relative w-40 h-40 shrink-0">
+              <svg viewBox="0 0 120 120" className="w-full h-full -rotate-90">
+                <circle cx="60" cy="60" r="52" fill="none" stroke="currentColor" strokeWidth="10" className="text-muted/30" />
+                <circle
+                  cx="60" cy="60" r="52" fill="none" strokeWidth="10" strokeLinecap="round"
+                  className={healthStroke}
+                  strokeDasharray={`${(health.score / 100) * 326.7} 326.7`}
+                />
+              </svg>
+              <div className="absolute inset-0 flex flex-col items-center justify-center">
+                <span className={`text-3xl font-bold ${healthColor}`}>{health.score}</span>
+                <span className="text-xs text-muted-foreground">de 100</span>
+              </div>
+            </div>
+            {/* Metrics */}
+            <div className="flex-1 grid grid-cols-2 gap-4 w-full">
+              <Card className={`bg-gradient-to-br ${healthBg} border-0`}>
+                <CardContent className="p-4">
+                  <p className="text-xs text-muted-foreground">Taxa de Recebimento</p>
+                  <p className={`text-xl font-bold ${health.receivingRate >= 70 ? "text-success" : health.receivingRate >= 40 ? "text-warning" : "text-destructive"}`}>
+                    {health.receivingRate.toFixed(1)}%
+                  </p>
+                </CardContent>
+              </Card>
+              <Card className={`bg-gradient-to-br ${health.defaultRate <= 20 ? "from-success/20 to-success/5" : health.defaultRate <= 50 ? "from-warning/20 to-warning/5" : "from-destructive/20 to-destructive/5"} border-0`}>
+                <CardContent className="p-4">
+                  <p className="text-xs text-muted-foreground">Inadimplência</p>
+                  <p className={`text-xl font-bold ${health.defaultRate <= 20 ? "text-success" : health.defaultRate <= 50 ? "text-warning" : "text-destructive"}`}>
+                    {health.defaultRate.toFixed(1)}%
+                  </p>
+                </CardContent>
+              </Card>
+              <Card className="border-0 bg-gradient-to-br from-success/10 to-success/5">
+                <CardContent className="p-4">
+                  <p className="text-xs text-muted-foreground">Recebido</p>
+                  <p className="text-xl font-bold text-success">{formatCurrency(health.totalReceived)}</p>
+                </CardContent>
+              </Card>
+              <Card className="border-0 bg-gradient-to-br from-destructive/10 to-destructive/5">
+                <CardContent className="p-4">
+                  <p className="text-xs text-muted-foreground">Atrasado</p>
+                  <p className="text-xl font-bold text-destructive">{formatCurrency(health.overdueAmount)}</p>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Breakdown */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <Card>
