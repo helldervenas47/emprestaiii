@@ -6,53 +6,53 @@
 
 @layer base {
   :root {
-    --background: 220 20% 97%;
-    --foreground: 220 25% 10%;
+    --background: 220 15% 96%;
+    --foreground: 222 30% 12%;
 
     --card: 0 0% 100%;
-    --card-foreground: 220 25% 10%;
+    --card-foreground: 222 30% 12%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 220 25% 10%;
+    --popover-foreground: 222 30% 12%;
 
-    --primary: 195 90% 42%;
+    --primary: 200 85% 38%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 220 14% 92%;
-    --secondary-foreground: 220 25% 20%;
+    --secondary: 220 16% 90%;
+    --secondary-foreground: 222 25% 22%;
 
-    --muted: 220 14% 95%;
-    --muted-foreground: 220 10% 46%;
+    --muted: 220 12% 93%;
+    --muted-foreground: 220 10% 40%;
 
-    --accent: 160 65% 40%;
+    --accent: 162 55% 35%;
     --accent-foreground: 0 0% 100%;
 
-    --destructive: 0 70% 55%;
+    --destructive: 0 72% 48%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 220 14% 88%;
-    --input: 220 14% 88%;
-    --ring: 195 90% 42%;
+    --border: 220 16% 85%;
+    --input: 220 16% 85%;
+    --ring: 200 85% 38%;
 
     --radius: 0.625rem;
 
-    --warning: 38 90% 50%;
+    --warning: 36 92% 48%;
     --warning-foreground: 0 0% 100%;
 
-    --success: 160 65% 40%;
+    --success: 162 55% 35%;
     --success-foreground: 0 0% 100%;
 
-    --purple: 270 60% 55%;
+    --purple: 268 55% 50%;
     --purple-foreground: 0 0% 100%;
 
-    --sidebar-background: 0 0% 98%;
-    --sidebar-foreground: 240 5.3% 26.1%;
-    --sidebar-primary: 195 90% 42%;
+    --sidebar-background: 220 15% 97%;
+    --sidebar-foreground: 222 25% 22%;
+    --sidebar-primary: 200 85% 38%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 4.8% 95.9%;
-    --sidebar-accent-foreground: 240 5.9% 10%;
-    --sidebar-border: 220 13% 91%;
-    --sidebar-ring: 195 90% 42%;
+    --sidebar-accent: 220 12% 93%;
+    --sidebar-accent-foreground: 222 30% 12%;
+    --sidebar-border: 220 16% 88%;
+    --sidebar-ring: 200 85% 38%;
   }
 
   .dark {
