@@ -47,7 +47,8 @@ export function useLoans() {
     }
   }, []);
 
-  const addPayment = useCallback((loanId: string) => {
+  const addPayment = useCallback((loanId: string, paymentDate?: string) => {
+    const dateStr = paymentDate || new Date().toISOString().split("T")[0];
     setLoans((prev) => {
       const updated = prev.map((loan) => {
         if (loan.id !== loanId) return loan;
@@ -69,7 +70,7 @@ export function useLoans() {
         id: crypto.randomUUID(),
         loanId,
         amount: installmentAmount,
-        date: new Date().toISOString().split("T")[0],
+        date: dateStr,
         installmentNumber: loan.paidInstallments + 1,
       };
       setPayments((prev) => {
@@ -81,16 +82,16 @@ export function useLoans() {
       adjustBalance(installmentAmount);
     }
   }, [loans]);
-
-  const addPartialPayment = useCallback((loanId: string, amount: number) => {
+  const addPartialPayment = useCallback((loanId: string, amount: number, paymentDate?: string) => {
     const loan = loans.find((l) => l.id === loanId);
     if (!loan || amount <= 0) return;
+    const dateStr = paymentDate || new Date().toISOString().split("T")[0];
 
     const newPayment: Payment = {
       id: crypto.randomUUID(),
       loanId,
       amount,
-      date: new Date().toISOString().split("T")[0],
+      date: dateStr,
       installmentNumber: -1, // marks as partial
     };
     setPayments((prev) => {
@@ -101,9 +102,10 @@ export function useLoans() {
     adjustBalance(amount);
   }, [loans]);
 
-  const addInterestOnlyPayment = useCallback((loanId: string) => {
+  const addInterestOnlyPayment = useCallback((loanId: string, paymentDate?: string) => {
     const loan = loans.find((l) => l.id === loanId);
     if (!loan) return;
+    const dateStr = paymentDate || new Date().toISOString().split("T")[0];
 
     const interestAmount = loan.amount * (loan.interestRate / 100);
 
@@ -111,7 +113,7 @@ export function useLoans() {
       id: crypto.randomUUID(),
       loanId,
       amount: interestAmount,
-      date: new Date().toISOString().split("T")[0],
+      date: dateStr,
       installmentNumber: 0,
       previousDueDate: loan.dueDate,
     };
