@@ -113,6 +113,8 @@ function LoanCardView({
   const [showPartial, setShowPartial] = useState(false);
   const [partialAmount, setPartialAmount] = useState("");
   const [expanded, setExpanded] = useState(false);
+  const [paymentDialog, setPaymentDialog] = useState<{ type: "installment" | "interest" | "partial"; amount?: number } | null>(null);
+  const [paymentDate, setPaymentDate] = useState<Date>(new Date());
 
   const installment = calculateInstallment(loan.amount, loan.interestRate, loan.installments);
   const total = calculateTotalWithInterest(loan.amount, loan.interestRate, loan.installments);
@@ -154,10 +156,24 @@ function LoanCardView({
     setEditing(false);
   };
 
+  const openPaymentDialog = (type: "installment" | "interest" | "partial", amount?: number) => {
+    setPaymentDate(new Date());
+    setPaymentDialog({ type, amount });
+  };
+
+  const confirmPayment = () => {
+    if (!paymentDialog) return;
+    const dateStr = paymentDate.toISOString().split("T")[0];
+    if (paymentDialog.type === "installment") onPayment(dateStr);
+    else if (paymentDialog.type === "interest") onInterestPayment(dateStr);
+    else if (paymentDialog.type === "partial" && paymentDialog.amount) onPartialPayment(paymentDialog.amount, dateStr);
+    setPaymentDialog(null);
+  };
+
   const handlePartialSubmit = () => {
     const val = parseFloat(partialAmount);
     if (val > 0) {
-      onPartialPayment(val);
+      openPaymentDialog("partial", val);
       setPartialAmount("");
       setShowPartial(false);
     }
