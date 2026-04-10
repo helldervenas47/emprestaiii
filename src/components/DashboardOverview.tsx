@@ -306,31 +306,15 @@ export function DashboardOverview({ loans, sales, payments, expenses, onDeletePa
         </Card>
 
         <Card>
-          <CardContent className="p-4 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-full bg-warning/10 flex items-center justify-center">
-                <Percent className="h-5 w-5 text-warning" />
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground">Taxa de Juros Mensal</p>
-                {editingRate ? (
-                  <div className="flex items-center gap-1 mt-0.5">
-                    <Input type="number" value={tempRate} onChange={(e) => setTempRate(e.target.value)}
-                      className="h-7 w-24 text-sm" onKeyDown={(e) => e.key === "Enter" && saveRate()} autoFocus />
-                    <span className="text-sm text-muted-foreground">%</span>
-                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={saveRate}><Check className="h-3.5 w-3.5 text-success" /></Button>
-                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={cancelEditRate}><X className="h-3.5 w-3.5 text-destructive" /></Button>
-                  </div>
-                ) : (
-                  <p className="text-lg font-bold text-foreground">{interestRate}%</p>
-                )}
-              </div>
+          <CardContent className="p-4 flex items-center gap-3">
+            <div className="h-10 w-10 rounded-full bg-warning/10 flex items-center justify-center">
+              <Percent className="h-5 w-5 text-warning" />
             </div>
-            {!editingRate && (
-              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={startEditRate}>
-                <Pencil className="h-4 w-4 text-muted-foreground" />
-              </Button>
-            )}
+            <div>
+              <p className="text-xs text-muted-foreground">Taxa de Juros Mensal (Média)</p>
+              <p className="text-lg font-bold text-foreground">{data.avgInterestRate.toFixed(1)}%</p>
+              <p className="text-xs text-muted-foreground">{data.loanCount} empréstimo(s) no período</p>
+            </div>
           </CardContent>
         </Card>
       </div>
