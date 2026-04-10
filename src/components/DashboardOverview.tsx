@@ -78,13 +78,12 @@ function useLocalStorage<T>(key: string, initial: T): [T, (v: T) => void] {
 
 // Subscribe to balance changes via storage events + polling
 function useAccountBalance(): [number, (v: number) => void] {
-  const [bal, setBal] = useState(getBalance);
+  const [bal, setBal] = useState(0);
   useEffect(() => {
-    const onStorage = () => setBal(getBalance());
-    window.addEventListener("storage", onStorage);
-    // Poll to catch same-tab localStorage writes from other hooks
-    const interval = setInterval(() => setBal(getBalance()), 500);
-    return () => { window.removeEventListener("storage", onStorage); clearInterval(interval); };
+    const load = () => { getBalance().then(setBal); };
+    load();
+    const interval = setInterval(load, 2000);
+    return () => clearInterval(interval);
   }, []);
   const update = (v: number) => { setBalance(v); setBal(v); };
   return [bal, update];
