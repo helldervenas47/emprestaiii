@@ -31,7 +31,7 @@ const tabConfig = [
 ];
 
 const Index = () => {
-  const { loans, payments, addLoan, addPayment, addInterestOnlyPayment, updateLoan, deleteLoan } = useLoans();
+  const { loans, payments, addLoan, addPayment, addInterestOnlyPayment, updateLoan, deleteLoan, deletePayment } = useLoans();
   const { clients, addClient, deleteClient, updateClient } = useClients();
   const { products, sales, addProduct, updateProduct, deleteProduct, addSale, deleteSale } = useProducts();
   const [showLoanForm, setShowLoanForm] = useState(false);
@@ -141,7 +141,7 @@ const Index = () => {
 
       <main className="container mx-auto px-4 py-6 space-y-6">
         {tab === "overview" && (
-          <DashboardOverview loans={loans} sales={sales} payments={payments} />
+          <DashboardOverview loans={loans} sales={sales} payments={payments} onDeletePayment={deletePayment} onDeleteSale={deleteSale} onDeleteLoan={deleteLoan} />
         )}
         {tab === "dashboard" && (
           <>

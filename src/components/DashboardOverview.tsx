@@ -5,13 +5,16 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
   TrendingUp, TrendingDown, DollarSign, ArrowUpRight, ArrowDownRight,
-  ChevronLeft, ChevronRight, Percent, Wallet, Pencil, Check, X,
+  ChevronLeft, ChevronRight, Percent, Wallet, Pencil, Check, X, Trash2,
 } from "lucide-react";
 
 interface Props {
   loans: Loan[];
   sales: Sale[];
   payments: Payment[];
+  onDeletePayment?: (id: string) => void;
+  onDeleteSale?: (id: string) => void;
+  onDeleteLoan?: (id: string) => void;
 }
 
 type Period = "day" | "week" | "month";
@@ -68,7 +71,7 @@ function useLocalStorage<T>(key: string, initial: T): [T, (v: T) => void] {
   return [value, setValue];
 }
 
-export function DashboardOverview({ loans, sales, payments }: Props) {
+export function DashboardOverview({ loans, sales, payments, onDeletePayment, onDeleteSale, onDeleteLoan }: Props) {
   const [period, setPeriod] = useState<Period>("month");
   const [offset, setOffset] = useState(0);
   const [interestRate, setInterestRate] = useLocalStorage("hvcred_interest_rate", 10);
@@ -91,17 +94,17 @@ export function DashboardOverview({ loans, sales, payments }: Props) {
     const totalOutgoing = filteredLoans.reduce((s, l) => s + l.amount, 0);
     const balance = totalIncome - totalOutgoing;
 
-    const transactions: { id: string; type: "in" | "out"; description: string; amount: number; date: string }[] = [];
+    const transactions: { id: string; type: "in" | "out"; source: "payment" | "sale" | "loan"; description: string; amount: number; date: string }[] = [];
 
     filteredPayments.forEach((p) => {
       const loan = loans.find((l) => l.id === p.loanId);
-      transactions.push({ id: p.id, type: "in", description: `Parcela ${p.installmentNumber} — ${loan?.borrowerName || "Empréstimo"}`, amount: p.amount, date: p.date });
+      transactions.push({ id: p.id, type: "in", source: "payment", description: `Parcela ${p.installmentNumber} — ${loan?.borrowerName || "Empréstimo"}`, amount: p.amount, date: p.date });
     });
     filteredSales.forEach((s) => {
-      transactions.push({ id: s.id, type: "in", description: `Venda: ${s.productName}${s.customerName ? ` — ${s.customerName}` : ""}`, amount: s.total, date: s.date });
+      transactions.push({ id: s.id, type: "in", source: "sale", description: `Venda: ${s.productName}${s.customerName ? ` — ${s.customerName}` : ""}`, amount: s.total, date: s.date });
     });
     filteredLoans.forEach((l) => {
-      transactions.push({ id: l.id, type: "out", description: `Empréstimo para ${l.borrowerName}`, amount: l.amount, date: l.startDate });
+      transactions.push({ id: l.id, type: "out", source: "loan", description: `Empréstimo para ${l.borrowerName}`, amount: l.amount, date: l.startDate });
     });
     transactions.sort((a, b) => b.date.localeCompare(a.date));
 
@@ -294,6 +297,19 @@ export function DashboardOverview({ loans, sales, payments }: Props) {
                   <span className={`text-sm font-semibold shrink-0 ${t.type === "in" ? "text-success" : "text-destructive"}`}>
                     {t.type === "in" ? "+" : "−"}{formatCurrency(t.amount)}
                   </span>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="h-7 w-7 shrink-0 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                    onClick={() => {
+                      if (t.source === "payment" && onDeletePayment) onDeletePayment(t.id);
+                      else if (t.source === "sale" && onDeleteSale) onDeleteSale(t.id);
+                      else if (t.source === "loan" && onDeleteLoan) onDeleteLoan(t.id);
+                    }}
+                    title="Excluir lançamento"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </Button>
                 </div>
               ))}
             </div>
