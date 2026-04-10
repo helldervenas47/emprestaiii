@@ -1,0 +1,68 @@
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Textarea } from "@/components/ui/textarea";
+import { Plus, X } from "lucide-react";
+import { Product } from "@/types/loan";
+
+interface Props {
+  onAdd: (product: Omit<Product, "id" | "createdAt">) => void;
+  onClose: () => void;
+}
+
+export function ProductForm({ onAdd, onClose }: Props) {
+  const [form, setForm] = useState({ name: "", description: "", price: "", stock: "" });
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!form.name || !form.price) return;
+    onAdd({
+      name: form.name,
+      description: form.description,
+      price: parseFloat(form.price) || 0,
+      stock: parseInt(form.stock) || 0,
+      active: true,
+    });
+    onClose();
+  };
+
+  const update = (f: string, v: string) => setForm((p) => ({ ...p, [f]: v }));
+
+  return (
+    <div className="fixed inset-0 bg-foreground/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+      <Card className="w-full max-w-md">
+        <CardHeader className="flex flex-row items-center justify-between">
+          <CardTitle className="text-xl">Novo Produto</CardTitle>
+          <Button variant="ghost" size="icon" onClick={onClose}><X className="h-5 w-5" /></Button>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <Label>Nome do Produto</Label>
+              <Input value={form.name} onChange={(e) => update("name", e.target.value)} placeholder="Ex: Celular Samsung" required />
+            </div>
+            <div>
+              <Label>Descrição</Label>
+              <Textarea value={form.description} onChange={(e) => update("description", e.target.value)} placeholder="Descrição do produto..." rows={2} />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label>Preço (R$)</Label>
+                <Input type="number" step="0.01" value={form.price} onChange={(e) => update("price", e.target.value)} placeholder="199.90" required />
+              </div>
+              <div>
+                <Label>Estoque</Label>
+                <Input type="number" value={form.stock} onChange={(e) => update("stock", e.target.value)} placeholder="10" />
+              </div>
+            </div>
+            <Button type="submit" className="w-full">
+              <Plus className="h-4 w-4 mr-2" /> Cadastrar Produto
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
