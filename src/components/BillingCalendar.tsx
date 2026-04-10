@@ -146,12 +146,11 @@ export function BillingCalendar({ loans, payments }: Props) {
               if (day === null) return <div key={`empty-${idx}`} />;
               const dateStr = `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
               const items = dueMap[dateStr] || [];
-              const unpaid = items.filter((i) => !i.paid);
               const isToday = dateStr === todayStr;
               const isSelected = dateStr === selectedDate;
               const hasDue = items.length > 0;
-              const hasUnpaid = unpaid.length > 0;
-              const isPast = dateStr < todayStr && hasUnpaid;
+              const isOverdue = dateStr < todayStr && hasDue;
+              const isUpcoming = dateStr >= todayStr && hasDue;
 
               return (
                 <button
@@ -160,21 +159,18 @@ export function BillingCalendar({ loans, payments }: Props) {
                   className={`relative flex flex-col items-center justify-center rounded-lg p-1.5 min-h-[48px] text-sm transition-colors
                     ${isSelected ? "bg-primary text-primary-foreground ring-2 ring-primary" : ""}
                     ${isToday && !isSelected ? "bg-accent font-bold" : ""}
-                    ${isPast && !isSelected ? "bg-destructive/10" : ""}
-                    ${!isSelected && !isToday && !isPast ? "hover:bg-muted" : ""}
+                    ${isOverdue && !isSelected ? "bg-destructive/10" : ""}
+                    ${!isSelected && !isToday && !isOverdue ? "hover:bg-muted" : ""}
                   `}
                 >
-                  <span className={isSelected ? "text-primary-foreground" : isToday ? "text-foreground" : "text-foreground"}>
+                  <span className={isSelected ? "text-primary-foreground" : "text-foreground"}>
                     {day}
                   </span>
                   {hasDue && (
                     <div className="flex gap-0.5 mt-0.5">
-                      {hasUnpaid && (
-                        <span className={`inline-block h-1.5 w-1.5 rounded-full ${isSelected ? "bg-primary-foreground" : "bg-destructive"}`} />
-                      )}
-                      {items.some((i) => i.paid) && (
-                        <span className={`inline-block h-1.5 w-1.5 rounded-full ${isSelected ? "bg-primary-foreground/60" : "bg-success"}`} />
-                      )}
+                      <span className={`inline-block h-1.5 w-1.5 rounded-full ${
+                        isSelected ? "bg-primary-foreground" : isOverdue ? "bg-destructive" : "bg-warning"
+                      }`} />
                     </div>
                   )}
                 </button>
@@ -185,10 +181,10 @@ export function BillingCalendar({ loans, payments }: Props) {
           {/* Legend */}
           <div className="flex items-center gap-4 mt-3 text-xs text-muted-foreground">
             <div className="flex items-center gap-1">
-              <span className="h-2 w-2 rounded-full bg-destructive" /> A cobrar
+              <span className="h-2 w-2 rounded-full bg-destructive" /> Atrasado
             </div>
             <div className="flex items-center gap-1">
-              <span className="h-2 w-2 rounded-full bg-success" /> Pago
+              <span className="h-2 w-2 rounded-full bg-warning" /> A vencer
             </div>
           </div>
         </CardContent>
