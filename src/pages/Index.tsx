@@ -106,15 +106,15 @@ const Index = () => {
     <div className="min-h-screen bg-background">
       <input type="file" ref={fileInputRef} accept=".csv" className="hidden" onChange={handleFileChange} />
 
-      <header className="border-b bg-card sticky top-0 z-40">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
+      <header className="border-b border-border/50 bg-background/80 backdrop-blur-xl sticky top-0 z-40">
+        <div className="container mx-auto px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="h-9 w-9 rounded-lg gradient-primary flex items-center justify-center">
+            <div className="h-9 w-9 rounded-lg gradient-primary glow-primary flex items-center justify-center">
               <HandCoins className="h-5 w-5 text-primary-foreground" />
             </div>
             <div>
-              <h1 className="text-lg font-bold text-foreground">HVCred</h1>
-              <p className="text-xs text-muted-foreground">Controle de empréstimos</p>
+              <h1 className="text-lg font-bold text-foreground tracking-tight">HVCred</h1>
+              <p className="text-[10px] text-muted-foreground uppercase tracking-widest">Controle de empréstimos</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -143,11 +143,11 @@ const Index = () => {
               <button
                 key={t.id}
                 onClick={() => setTab(t.id)}
-                className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
+                className={`flex items-center gap-2 px-4 py-2.5 text-xs font-medium border-b-2 transition-all whitespace-nowrap uppercase tracking-wide ${
                   tab === t.id ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"
                 }`}
               >
-                <t.icon className="h-4 w-4" />{t.label}
+                <t.icon className="h-3.5 w-3.5" />{t.label}
               </button>
             ))}
           </nav>
