@@ -258,9 +258,10 @@ function LoanCardView({
 }
 
 function LoanRowView({
-  loan, onPayment, onInterestPayment, onUpdate, onDelete,
+  loan, payments: loanPayments, onPayment, onInterestPayment, onUpdate, onDelete,
 }: {
   loan: Loan;
+  payments: Payment[];
   onPayment: () => void;
   onInterestPayment: () => void;
   onUpdate: (data: Partial<Omit<Loan, "id">>) => void;
@@ -274,7 +275,7 @@ function LoanRowView({
   const paid = loan.paidInstallments * installment;
   const remaining = total - paid;
   const progress = loan.installments > 0 ? (loan.paidInstallments / loan.installments) * 100 : 0;
-  const category = getLoanCategory(loan);
+  const category = getLoanCategory(loan, loanPayments);
   const badge = statusMap[category];
 
   const startEdit = () => { setForm(loanToForm(loan)); setEditing(true); };
@@ -363,7 +364,7 @@ function LoanRowView({
   );
 }
 
-export function LoanList({ loans, onPayment, onInterestPayment, onUpdate, onDelete }: Props) {
+export function LoanList({ loans, payments, onPayment, onInterestPayment, onUpdate, onDelete }: Props) {
   const [view, setView] = useState<"cards" | "rows">("cards");
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState<Category>("all");
@@ -371,25 +372,21 @@ export function LoanList({ loans, onPayment, onInterestPayment, onUpdate, onDele
   const categorized = useMemo(() => {
     const withSearch = loans.filter((l) => l.borrowerName.toLowerCase().includes(search.toLowerCase()));
     if (category === "all") return withSearch;
-    if (category === "open") return withSearch.filter((l) => l.status !== "paid");
-    const cat = withSearch.map((l) => ({ loan: l, cat: getLoanCategory(l) }));
-    if (category === "overdue") return cat.filter((c) => c.cat === "overdue").map((c) => c.loan);
-    if (category === "due_today") return cat.filter((c) => c.cat === "due_today").map((c) => c.loan);
-    if (category === "on_track") return cat.filter((c) => c.cat === "on_track").map((c) => c.loan);
-    return withSearch;
-  }, [loans, search, category]);
+    const cat = withSearch.map((l) => ({ loan: l, cat: getLoanCategory(l, payments) }));
+    return cat.filter((c) => c.cat === category).map((c) => c.loan);
+  }, [loans, payments, search, category]);
 
   const counts = useMemo(() => {
-    const active = loans.filter((l) => l.status !== "paid");
-    const cats = active.map((l) => getLoanCategory(l));
+    const cats = loans.map((l) => getLoanCategory(l, payments));
     return {
       all: loans.length,
-      open: active.length,
       overdue: cats.filter((c) => c === "overdue").length,
+      paid_interest: cats.filter((c) => c === "paid_interest").length,
+      paid: cats.filter((c) => c === "paid").length,
       due_today: cats.filter((c) => c === "due_today").length,
       on_track: cats.filter((c) => c === "on_track").length,
     };
-  }, [loans]);
+  }, [loans, payments]);
 
   if (loans.length === 0) {
     return (
