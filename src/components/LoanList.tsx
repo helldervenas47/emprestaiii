@@ -283,79 +283,69 @@ function LoanCardView({
         {/* Expandable details */}
         <button
           onClick={() => setExpanded(!expanded)}
-          className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors mb-2"
+          className="flex items-center gap-1 text-[10px] text-muted-foreground hover:text-foreground transition-colors mb-2"
         >
-          {expanded ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
+          {expanded ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
           Mais detalhes
         </button>
 
         {expanded && (
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mb-3 animate-in fade-in slide-in-from-top-1 duration-200">
-            <div className="bg-muted/30 rounded-lg px-3 py-2">
-              <p className="text-[10px] text-muted-foreground">Total c/ Juros</p>
-              <p className="text-sm font-semibold text-foreground">{formatCurrency(total)}</p>
+          <div className="grid grid-cols-2 gap-1.5 mb-2 animate-in fade-in slide-in-from-top-1 duration-200">
+            <div className="bg-muted/30 rounded-md px-2 py-1.5">
+              <p className="text-[9px] text-muted-foreground">Total Juros</p>
+              <p className="text-xs font-semibold text-accent">{formatCurrency(totalInterest)}</p>
             </div>
-            <div className="bg-muted/30 rounded-lg px-3 py-2">
-              <p className="text-[10px] text-muted-foreground">Total Juros</p>
-              <p className="text-sm font-semibold text-accent">{formatCurrency(totalInterest)}</p>
+            <div className="bg-muted/30 rounded-md px-2 py-1.5">
+              <p className="text-[9px] text-muted-foreground">Juros/Mês</p>
+              <p className="text-xs font-semibold text-warning">{formatCurrency(interestOnly)}</p>
             </div>
-            <div className="bg-muted/30 rounded-lg px-3 py-2">
-              <p className="text-[10px] text-muted-foreground">Juros Mensal (R$)</p>
-              <p className="text-sm font-semibold text-warning">{formatCurrency(interestOnly)}</p>
+            <div className="bg-muted/30 rounded-md px-2 py-1.5">
+              <p className="text-[9px] text-muted-foreground">Lucro Atual</p>
+              <p className={`text-xs font-semibold ${profit >= 0 ? "text-success" : "text-destructive"}`}>{formatCurrency(profit)}</p>
             </div>
-            <div className="bg-muted/30 rounded-lg px-3 py-2">
-              <p className="text-[10px] text-muted-foreground">Lucro Atual</p>
-              <p className={`text-sm font-semibold ${profit >= 0 ? "text-success" : "text-destructive"}`}>{formatCurrency(profit)}</p>
-            </div>
-            {nextInstallmentDate && (
-              <div className="bg-muted/30 rounded-lg px-3 py-2">
-                <p className="text-[10px] text-muted-foreground">Próx. Parcela</p>
-                <p className="text-sm font-semibold text-foreground">{nextInstallmentDate}</p>
-              </div>
-            )}
-            <div className="bg-muted/30 rounded-lg px-3 py-2">
-              <p className="text-[10px] text-muted-foreground">Tipo</p>
-              <p className="text-sm font-semibold text-foreground">{loan.paymentType}</p>
+            <div className="bg-muted/30 rounded-md px-2 py-1.5">
+              <p className="text-[9px] text-muted-foreground">Tipo</p>
+              <p className="text-xs font-semibold text-foreground">{loan.paymentType}</p>
             </div>
           </div>
         )}
 
-        {loan.notes && <p className="text-xs text-muted-foreground mb-3 italic bg-muted/30 rounded-lg px-3 py-2">📝 {loan.notes}</p>}
+        {loan.notes && <p className="text-[10px] text-muted-foreground mb-2 italic bg-muted/30 rounded-md px-2 py-1.5">📝 {loan.notes}</p>}
 
         {/* Partial payment input */}
         {showPartial && (
-          <div className="flex items-center gap-2 mb-3 p-3 rounded-lg bg-muted">
+          <div className="flex items-center gap-1.5 mb-2 p-2 rounded-md bg-muted">
             <Input
-              type="number" step="0.01" placeholder="Valor parcial (R$)"
+              type="number" step="0.01" placeholder="R$"
               value={partialAmount} onChange={(e) => setPartialAmount(e.target.value)}
-              className="h-8 text-sm flex-1" autoFocus
+              className="h-7 text-xs flex-1" autoFocus
               onKeyDown={(e) => e.key === "Enter" && handlePartialSubmit()}
             />
-            <Button size="sm" onClick={handlePartialSubmit}><Check className="h-4 w-4 mr-1" />OK</Button>
-            <Button size="sm" variant="ghost" onClick={() => setShowPartial(false)}><X className="h-4 w-4" /></Button>
+            <Button size="sm" className="h-7 text-xs px-2" onClick={handlePartialSubmit}><Check className="h-3.5 w-3.5" /></Button>
+            <Button size="sm" variant="ghost" className="h-7 text-xs px-2" onClick={() => setShowPartial(false)}><X className="h-3.5 w-3.5" /></Button>
           </div>
         )}
 
-        {/* Actions */}
-        <div className="flex flex-wrap gap-2 justify-end pt-2 border-t">
+        {/* Actions - pushed to bottom */}
+        <div className="flex flex-wrap gap-1.5 justify-end pt-2 border-t mt-auto">
           {loan.status !== "paid" && (
             <>
-              <Button size="sm" variant="outline" className="text-xs" onClick={() => setShowPartial(!showPartial)}>
-                <HandCoins className="h-3.5 w-3.5 mr-1" /> Parcial
+              <Button size="sm" variant="outline" className="h-7 text-[10px] px-2" onClick={() => setShowPartial(!showPartial)}>
+                <HandCoins className="h-3 w-3 mr-0.5" /> Parcial
               </Button>
-              <Button size="sm" variant="outline" className="text-xs" onClick={onInterestPayment}>
-                <Percent className="h-3.5 w-3.5 mr-1" /> Juros
+              <Button size="sm" variant="outline" className="h-7 text-[10px] px-2" onClick={onInterestPayment}>
+                <Percent className="h-3 w-3 mr-0.5" /> Juros
               </Button>
-              <Button size="sm" className="text-xs" onClick={onPayment}>
-                <CheckCircle className="h-3.5 w-3.5 mr-1" /> Receber
+              <Button size="sm" className="h-7 text-[10px] px-2" onClick={onPayment}>
+                <CheckCircle className="h-3 w-3 mr-0.5" /> Receber
               </Button>
             </>
           )}
-          <Button size="icon" variant="ghost" className="h-8 w-8" onClick={startEdit} title="Editar">
-            <Pencil className="h-3.5 w-3.5 text-muted-foreground" />
+          <Button size="icon" variant="ghost" className="h-7 w-7" onClick={startEdit} title="Editar">
+            <Pencil className="h-3 w-3 text-muted-foreground" />
           </Button>
-          <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive hover:bg-destructive hover:text-destructive-foreground" onClick={onDelete} title="Excluir">
-            <Trash2 className="h-3.5 w-3.5" />
+          <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive hover:bg-destructive hover:text-destructive-foreground" onClick={onDelete} title="Excluir">
+            <Trash2 className="h-3 w-3" />
           </Button>
         </div>
       </CardContent>
