@@ -14,17 +14,28 @@ interface Props {
   onUpdate: (id: string, data: Partial<Omit<Client, "id" | "createdAt">>) => void;
 }
 
+type StatusFilter = "all" | "active" | "inactive";
+
 export function ClientList({ clients, onDelete, onUpdate }: Props) {
   const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState({ name: "", phone: "", email: "", cpf: "", cnpj: "", rg: "", address: "", city: "", state: "", score: "", notes: "" });
 
-  const filtered = clients.filter(
-    (c) =>
+  const filtered = clients.filter((c) => {
+    const matchesSearch =
       c.name.toLowerCase().includes(search.toLowerCase()) ||
       c.cpf.includes(search) ||
-      c.phone.includes(search)
-  );
+      c.phone.includes(search);
+    const matchesStatus =
+      statusFilter === "all" ||
+      (statusFilter === "active" && c.active !== false) ||
+      (statusFilter === "inactive" && c.active === false);
+    return matchesSearch && matchesStatus;
+  });
+
+  const activeCount = clients.filter((c) => c.active !== false).length;
+  const inactiveCount = clients.filter((c) => c.active === false).length;
 
   const startEdit = (client: Client) => {
     setEditingId(client.id);
@@ -40,6 +51,25 @@ export function ClientList({ clients, onDelete, onUpdate }: Props) {
 
   return (
     <div className="space-y-4">
+      <div className="flex flex-wrap gap-2">
+        {([
+          { id: "all" as StatusFilter, label: "Todos", count: clients.length },
+          { id: "active" as StatusFilter, label: "Ativos", count: activeCount },
+          { id: "inactive" as StatusFilter, label: "Inativos", count: inactiveCount },
+        ]).map((opt) => (
+          <button
+            key={opt.id}
+            onClick={() => setStatusFilter(opt.id)}
+            className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors border ${
+              statusFilter === opt.id
+                ? "bg-primary text-primary-foreground border-primary"
+                : "bg-card border-border text-muted-foreground hover:opacity-80"
+            }`}
+          >
+            {opt.label} ({opt.count})
+          </button>
+        ))}
+      </div>
       <div className="relative">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
         <Input placeholder="Buscar por nome, CPF ou telefone..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-10" />
