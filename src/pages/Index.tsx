@@ -29,7 +29,7 @@ const tabConfig = [
 ];
 
 const Index = () => {
-  const { loans, addLoan, addPayment, deleteLoan } = useLoans();
+  const { loans, payments, addLoan, addPayment, deleteLoan } = useLoans();
   const { clients, addClient, deleteClient, updateClient } = useClients();
   const { products, sales, addProduct, updateProduct, deleteProduct, addSale, deleteSale } = useProducts();
   const [showLoanForm, setShowLoanForm] = useState(false);
