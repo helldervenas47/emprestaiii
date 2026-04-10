@@ -198,7 +198,7 @@ export function LoanList({ loans, onPayment, onDelete }: Props) {
         </div>
       ) : (
         <div className="space-y-2">
-          {loans.map((loan) => (
+          {filtered.map((loan) => (
             <LoanRowView key={loan.id} loan={loan} onPayment={() => onPayment(loan.id)} onDelete={() => onDelete(loan.id)} />
           ))}
         </div>
