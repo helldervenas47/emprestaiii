@@ -4,16 +4,19 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus, X } from "lucide-react";
 import { calculateInstallment, calculateTotalWithInterest } from "@/hooks/useLoans";
-import { Loan } from "@/types/loan";
+import { Loan, Client } from "@/types/loan";
 
 interface Props {
   onAdd: (loan: Omit<Loan, "id" | "status" | "paidInstallments">) => void;
   onClose: () => void;
+  clients: Client[];
 }
 
-export function LoanForm({ onAdd, onClose }: Props) {
+export function LoanForm({ onAdd, onClose, clients }: Props) {
+  const activeClients = clients.filter((c) => c.active);
   const getDefaultDueDate = (start: string) => {
     const d = new Date(start + "T00:00:00");
     d.setMonth(d.getMonth() + 1);
@@ -41,10 +44,12 @@ export function LoanForm({ onAdd, onClose }: Props) {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.borrowerName || !amount || !rate || !installments) return;
+    const selectedClient = activeClients.find((c) => c.id === form.borrowerName);
+    if (!selectedClient || !amount || !rate || !installments) return;
 
     onAdd({
-      borrowerName: form.borrowerName,
+      borrowerName: selectedClient.name,
+      borrowerId: selectedClient.id,
       amount,
       interestRate: rate,
       installments,
@@ -76,14 +81,21 @@ export function LoanForm({ onAdd, onClose }: Props) {
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <Label htmlFor="borrowerName">Nome do Devedor</Label>
-              <Input
-                id="borrowerName"
-                value={form.borrowerName}
-                onChange={(e) => update("borrowerName", e.target.value)}
-                placeholder="Ex: João Silva"
-                required
-              />
+              <Label>Cliente</Label>
+              {activeClients.length === 0 ? (
+                <p className="text-sm text-destructive mt-1">Nenhum cliente ativo cadastrado. Cadastre um cliente primeiro.</p>
+              ) : (
+                <Select value={form.borrowerName} onValueChange={(v) => update("borrowerName", v)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione um cliente" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {activeClients.map((c) => (
+                      <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>

@@ -172,7 +172,7 @@ const Index = () => {
         )}
       </main>
 
-      {showLoanForm && <LoanForm onAdd={addLoan} onClose={() => setShowLoanForm(false)} />}
+      {showLoanForm && <LoanForm onAdd={addLoan} onClose={() => setShowLoanForm(false)} clients={clients} />}
       {showClientForm && <ClientForm onAdd={addClient} onClose={() => setShowClientForm(false)} />}
       {showProductForm && <ProductForm onAdd={addProduct} onClose={() => setShowProductForm(false)} />}
       {showSaleForm && <SaleForm products={products} onAdd={addSale} onClose={() => setShowSaleForm(false)} />}
