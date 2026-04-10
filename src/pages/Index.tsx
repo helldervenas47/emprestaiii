@@ -35,7 +35,7 @@ const tabConfig = [
 ];
 
 const Index = () => {
-  const { loans, payments, addLoan, addPayment, addInterestOnlyPayment, updateLoan, deleteLoan, deletePayment } = useLoans();
+  const { loans, payments, addLoan, addPayment, addPartialPayment, addInterestOnlyPayment, updateLoan, deleteLoan, deletePayment } = useLoans();
   const { clients, addClient, deleteClient, updateClient } = useClients();
   const { products, sales, addProduct, updateProduct, deleteProduct, addSale, deleteSale } = useProducts();
   const { expenses, addExpense, payExpense, deleteExpense } = useExpenses();
@@ -161,7 +161,7 @@ const Index = () => {
             <DashboardCards loans={loans} />
             <div>
               <h2 className="text-lg font-semibold text-foreground mb-4">Empréstimos</h2>
-              <LoanList loans={loans} payments={payments} onPayment={addPayment} onInterestPayment={addInterestOnlyPayment} onUpdate={updateLoan} onDelete={deleteLoan} />
+              <LoanList loans={loans} payments={payments} onPayment={addPayment} onPartialPayment={addPartialPayment} onInterestPayment={addInterestOnlyPayment} onUpdate={updateLoan} onDelete={deleteLoan} />
             </div>
           </>
         )}

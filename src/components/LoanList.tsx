@@ -10,13 +10,14 @@ import { Progress } from "@/components/ui/progress";
 import { calculateInstallment, calculateTotalWithInterest } from "@/hooks/useLoans";
 import {
   CheckCircle, Trash2, DollarSign, User, Calendar, LayoutGrid, List,
-  Search, Percent, Pencil, Check, X,
+  Search, Percent, Pencil, Check, X, ChevronDown, ChevronRight, FolderOpen, Folder, HandCoins,
 } from "lucide-react";
 
 interface Props {
   loans: Loan[];
   payments: Payment[];
   onPayment: (loanId: string) => void;
+  onPartialPayment: (loanId: string, amount: number) => void;
   onInterestPayment: (loanId: string) => void;
   onUpdate: (id: string, data: Partial<Omit<Loan, "id">>) => void;
   onDelete: (loanId: string) => void;
@@ -45,12 +46,9 @@ function getNextDueDate(loan: Loan): Date {
 
 function getLoanCategory(loan: Loan, payments: Payment[]): "paid" | "paid_interest" | "overdue" | "due_today" | "on_track" {
   if (loan.status === "paid") return "paid";
-  
-  // Check if the most recent payment was interest-only (installmentNumber === 0)
   const loanPayments = payments.filter((p) => p.loanId === loan.id);
   const lastPayment = loanPayments.sort((a, b) => b.date.localeCompare(a.date))[0];
   if (lastPayment && lastPayment.installmentNumber === 0) return "paid_interest";
-
   const now = new Date();
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   const nextDue = getNextDueDate(loan);
@@ -92,26 +90,33 @@ function loanToForm(loan: Loan): EditForm {
   };
 }
 
+function getTotalPaid(loan: Loan, payments: Payment[]): number {
+  return payments.filter((p) => p.loanId === loan.id).reduce((s, p) => s + p.amount, 0);
+}
+
 function LoanCardView({
-  loan, payments: loanPayments, onPayment, onInterestPayment, onUpdate, onDelete,
+  loan, payments: allPayments, onPayment, onPartialPayment, onInterestPayment, onUpdate, onDelete,
 }: {
   loan: Loan;
   payments: Payment[];
   onPayment: () => void;
+  onPartialPayment: (amount: number) => void;
   onInterestPayment: () => void;
   onUpdate: (data: Partial<Omit<Loan, "id">>) => void;
   onDelete: () => void;
 }) {
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState<EditForm>(loanToForm(loan));
+  const [showPartial, setShowPartial] = useState(false);
+  const [partialAmount, setPartialAmount] = useState("");
 
   const installment = calculateInstallment(loan.amount, loan.interestRate, loan.installments);
   const total = calculateTotalWithInterest(loan.amount, loan.interestRate, loan.installments);
-  const paid = loan.paidInstallments * installment;
-  const remaining = total - paid;
+  const totalPaid = getTotalPaid(loan, allPayments);
+  const remaining = Math.max(0, total - totalPaid);
   const progress = loan.installments > 0 ? (loan.paidInstallments / loan.installments) * 100 : 0;
   const interestOnly = loan.amount * (loan.interestRate / 100);
-  const category = getLoanCategory(loan, loanPayments);
+  const category = getLoanCategory(loan, allPayments);
   const nextDue = getNextDueDate(loan);
   const badge = statusMap[category];
 
@@ -131,6 +136,15 @@ function LoanCardView({
     setEditing(false);
   };
 
+  const handlePartialSubmit = () => {
+    const val = parseFloat(partialAmount);
+    if (val > 0) {
+      onPartialPayment(val);
+      setPartialAmount("");
+      setShowPartial(false);
+    }
+  };
+
   const update = (field: keyof EditForm, value: string) => setForm((p) => ({ ...p, [field]: value }));
 
   if (editing) {
@@ -145,39 +159,15 @@ function LoanCardView({
             </div>
           </div>
           <div className="grid grid-cols-2 gap-3">
-            <div>
-              <Label className="text-xs">Nome do Devedor</Label>
-              <Input value={form.borrowerName} onChange={(e) => update("borrowerName", e.target.value)} className="h-8 text-sm" />
-            </div>
-            <div>
-              <Label className="text-xs">Valor (R$)</Label>
-              <Input type="number" step="0.01" value={form.amount} onChange={(e) => update("amount", e.target.value)} className="h-8 text-sm" />
-            </div>
-            <div>
-              <Label className="text-xs">Juros Mensal (%)</Label>
-              <Input type="number" step="0.1" value={form.interestRate} onChange={(e) => update("interestRate", e.target.value)} className="h-8 text-sm" />
-            </div>
-            <div>
-              <Label className="text-xs">Parcelas</Label>
-              <Input type="number" value={form.installments} onChange={(e) => update("installments", e.target.value)} className="h-8 text-sm" />
-            </div>
-            <div>
-              <Label className="text-xs">Parcelas Pagas</Label>
-              <Input type="number" value={form.paidInstallments} onChange={(e) => update("paidInstallments", e.target.value)} className="h-8 text-sm" />
-            </div>
-            <div>
-              <Label className="text-xs">Data Início</Label>
-              <Input type="date" value={form.startDate} onChange={(e) => update("startDate", e.target.value)} className="h-8 text-sm" />
-            </div>
-            <div>
-              <Label className="text-xs">Data Fim</Label>
-              <Input type="date" value={form.dueDate} onChange={(e) => update("dueDate", e.target.value)} className="h-8 text-sm" />
-            </div>
+            <div><Label className="text-xs">Nome do Devedor</Label><Input value={form.borrowerName} onChange={(e) => update("borrowerName", e.target.value)} className="h-8 text-sm" /></div>
+            <div><Label className="text-xs">Valor (R$)</Label><Input type="number" step="0.01" value={form.amount} onChange={(e) => update("amount", e.target.value)} className="h-8 text-sm" /></div>
+            <div><Label className="text-xs">Juros Mensal (%)</Label><Input type="number" step="0.1" value={form.interestRate} onChange={(e) => update("interestRate", e.target.value)} className="h-8 text-sm" /></div>
+            <div><Label className="text-xs">Parcelas</Label><Input type="number" value={form.installments} onChange={(e) => update("installments", e.target.value)} className="h-8 text-sm" /></div>
+            <div><Label className="text-xs">Parcelas Pagas</Label><Input type="number" value={form.paidInstallments} onChange={(e) => update("paidInstallments", e.target.value)} className="h-8 text-sm" /></div>
+            <div><Label className="text-xs">Data Início</Label><Input type="date" value={form.startDate} onChange={(e) => update("startDate", e.target.value)} className="h-8 text-sm" /></div>
+            <div><Label className="text-xs">Data Fim</Label><Input type="date" value={form.dueDate} onChange={(e) => update("dueDate", e.target.value)} className="h-8 text-sm" /></div>
           </div>
-          <div>
-            <Label className="text-xs">Observações</Label>
-            <Textarea value={form.notes} onChange={(e) => update("notes", e.target.value)} rows={2} className="text-sm" />
-          </div>
+          <div><Label className="text-xs">Observações</Label><Textarea value={form.notes} onChange={(e) => update("notes", e.target.value)} rows={2} className="text-sm" /></div>
         </CardContent>
       </Card>
     );
@@ -197,7 +187,7 @@ function LoanCardView({
                 <Calendar className="h-3 w-3" />
                 {new Date(loan.startDate).toLocaleDateString("pt-BR")}
                 {loan.status !== "paid" && (
-                  <span>→ Próx. venc.: {nextDue.toLocaleDateString("pt-BR")}</span>
+                  <span>→ Venc.: {new Date(loan.dueDate + "T00:00:00").toLocaleDateString("pt-BR")}</span>
                 )}
               </div>
             </div>
@@ -209,7 +199,7 @@ function LoanCardView({
             </Button>
           </div>
         </div>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-3 text-sm">
+        <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 mb-3 text-sm">
           <div>
             <p className="text-muted-foreground text-xs">Valor</p>
             <p className="font-semibold">{formatCurrency(loan.amount)}</p>
@@ -223,8 +213,12 @@ function LoanCardView({
             <p className="font-semibold text-accent">{loan.interestRate}% a.m.</p>
           </div>
           <div>
+            <p className="text-muted-foreground text-xs">Total Pago</p>
+            <p className="font-semibold text-success">{formatCurrency(totalPaid)}</p>
+          </div>
+          <div>
             <p className="text-muted-foreground text-xs">Restante</p>
-            <p className="font-semibold">{formatCurrency(remaining > 0 ? remaining : 0)}</p>
+            <p className="font-semibold">{formatCurrency(remaining)}</p>
           </div>
         </div>
         <div className="mb-3">
@@ -235,9 +229,31 @@ function LoanCardView({
           <Progress value={progress} className="h-2" />
         </div>
         {loan.notes && <p className="text-xs text-muted-foreground mb-3 italic">"{loan.notes}"</p>}
+
+        {showPartial && (
+          <div className="flex items-center gap-2 mb-3 p-3 rounded-lg bg-muted">
+            <Input
+              type="number"
+              step="0.01"
+              placeholder="Valor parcial (R$)"
+              value={partialAmount}
+              onChange={(e) => setPartialAmount(e.target.value)}
+              className="h-8 text-sm flex-1"
+              autoFocus
+              onKeyDown={(e) => e.key === "Enter" && handlePartialSubmit()}
+            />
+            <Button size="sm" onClick={handlePartialSubmit}><Check className="h-4 w-4 mr-1" />Confirmar</Button>
+            <Button size="sm" variant="ghost" onClick={() => setShowPartial(false)}><X className="h-4 w-4" /></Button>
+          </div>
+        )}
+
         <div className="flex flex-wrap gap-2 justify-end">
           {loan.status !== "paid" && (
             <>
+              <Button size="sm" variant="outline" onClick={() => setShowPartial(!showPartial)}>
+                <HandCoins className="h-4 w-4 mr-1" />
+                Pagamento Parcial
+              </Button>
               <Button size="sm" variant="outline" onClick={onInterestPayment} title={`Pagar apenas juros: ${formatCurrency(interestOnly)}`}>
                 <Percent className="h-4 w-4 mr-1" />
                 Pagar Juros ({formatCurrency(interestOnly)})
@@ -258,24 +274,27 @@ function LoanCardView({
 }
 
 function LoanRowView({
-  loan, payments: loanPayments, onPayment, onInterestPayment, onUpdate, onDelete,
+  loan, payments: allPayments, onPayment, onPartialPayment, onInterestPayment, onUpdate, onDelete,
 }: {
   loan: Loan;
   payments: Payment[];
   onPayment: () => void;
+  onPartialPayment: (amount: number) => void;
   onInterestPayment: () => void;
   onUpdate: (data: Partial<Omit<Loan, "id">>) => void;
   onDelete: () => void;
 }) {
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState<EditForm>(loanToForm(loan));
+  const [showPartial, setShowPartial] = useState(false);
+  const [partialAmount, setPartialAmount] = useState("");
 
   const installment = calculateInstallment(loan.amount, loan.interestRate, loan.installments);
   const total = calculateTotalWithInterest(loan.amount, loan.interestRate, loan.installments);
-  const paid = loan.paidInstallments * installment;
-  const remaining = total - paid;
+  const totalPaid = getTotalPaid(loan, allPayments);
+  const remaining = Math.max(0, total - totalPaid);
   const progress = loan.installments > 0 ? (loan.paidInstallments / loan.installments) * 100 : 0;
-  const category = getLoanCategory(loan, loanPayments);
+  const category = getLoanCategory(loan, allPayments);
   const badge = statusMap[category];
 
   const startEdit = () => { setForm(loanToForm(loan)); setEditing(true); };
@@ -292,6 +311,15 @@ function LoanRowView({
       notes: form.notes,
     });
     setEditing(false);
+  };
+
+  const handlePartialSubmit = () => {
+    const val = parseFloat(partialAmount);
+    if (val > 0) {
+      onPartialPayment(val);
+      setPartialAmount("");
+      setShowPartial(false);
+    }
   };
 
   const update = (field: keyof EditForm, value: string) => setForm((p) => ({ ...p, [field]: value }));
@@ -313,58 +341,141 @@ function LoanRowView({
   }
 
   return (
-    <div className={`flex items-center gap-4 px-4 py-3 bg-card rounded-lg border hover:shadow-sm transition-shadow ${category === "overdue" ? "border-destructive/30" : category === "due_today" ? "border-warning/30" : ""}`}>
-      <div className="h-8 w-8 rounded-full gradient-primary flex items-center justify-center shrink-0">
-        <User className="h-4 w-4 text-primary-foreground" />
+    <div className="space-y-0">
+      <div className={`flex items-center gap-4 px-4 py-3 bg-card rounded-lg border hover:shadow-sm transition-shadow ${category === "overdue" ? "border-destructive/30" : category === "due_today" ? "border-warning/30" : ""}`}>
+        <div className="h-8 w-8 rounded-full gradient-primary flex items-center justify-center shrink-0">
+          <User className="h-4 w-4 text-primary-foreground" />
+        </div>
+        <div className="min-w-[120px]">
+          <p className="font-medium text-sm text-foreground truncate">{loan.borrowerName}</p>
+          <p className="text-xs text-muted-foreground">{new Date(loan.startDate).toLocaleDateString("pt-BR")}</p>
+        </div>
+        <div className="hidden sm:block min-w-[90px]">
+          <p className="text-xs text-muted-foreground">Valor</p>
+          <p className="text-sm font-semibold">{formatCurrency(loan.amount)}</p>
+        </div>
+        <div className="hidden md:block min-w-[90px]">
+          <p className="text-xs text-muted-foreground">Total Pago</p>
+          <p className="text-sm font-semibold text-success">{formatCurrency(totalPaid)}</p>
+        </div>
+        <div className="hidden md:block min-w-[70px]">
+          <p className="text-xs text-muted-foreground">Juros</p>
+          <p className="text-sm font-semibold text-accent">{loan.interestRate}%</p>
+        </div>
+        <div className="hidden lg:block min-w-[90px]">
+          <p className="text-xs text-muted-foreground">Restante</p>
+          <p className="text-sm font-semibold">{formatCurrency(remaining)}</p>
+        </div>
+        <div className="hidden sm:flex flex-col min-w-[100px] gap-1">
+          <span className="text-xs text-muted-foreground">{loan.paidInstallments}/{loan.installments}</span>
+          <Progress value={progress} className="h-1.5" />
+        </div>
+        <Badge variant="outline" className={`${badge.className} shrink-0 text-xs`}>{badge.label}</Badge>
+        <div className="flex gap-1 ml-auto shrink-0">
+          <Button size="icon" variant="ghost" className="h-8 w-8" onClick={startEdit} title="Editar">
+            <Pencil className="h-4 w-4 text-muted-foreground" />
+          </Button>
+          {loan.status !== "paid" && (
+            <>
+              <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => setShowPartial(!showPartial)} title="Pagamento Parcial">
+                <HandCoins className="h-4 w-4 text-muted-foreground" />
+              </Button>
+              <Button size="icon" variant="ghost" className="h-8 w-8" onClick={onInterestPayment} title="Pagar apenas juros">
+                <Percent className="h-4 w-4 text-warning" />
+              </Button>
+              <Button size="icon" variant="ghost" className="h-8 w-8" onClick={onPayment} title="Receber Parcela">
+                <CheckCircle className="h-4 w-4 text-primary" />
+              </Button>
+            </>
+          )}
+          <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive hover:bg-destructive hover:text-destructive-foreground" onClick={onDelete} title="Excluir">
+            <Trash2 className="h-4 w-4" />
+          </Button>
+        </div>
       </div>
-      <div className="min-w-[120px]">
-        <p className="font-medium text-sm text-foreground truncate">{loan.borrowerName}</p>
-        <p className="text-xs text-muted-foreground">{new Date(loan.startDate).toLocaleDateString("pt-BR")}</p>
-      </div>
-      <div className="hidden sm:block min-w-[90px]">
-        <p className="text-xs text-muted-foreground">Valor</p>
-        <p className="text-sm font-semibold">{formatCurrency(loan.amount)}</p>
-      </div>
-      <div className="hidden md:block min-w-[90px]">
-        <p className="text-xs text-muted-foreground">Parcela</p>
-        <p className="text-sm font-semibold">{formatCurrency(installment)}</p>
-      </div>
-      <div className="hidden md:block min-w-[70px]">
-        <p className="text-xs text-muted-foreground">Juros</p>
-        <p className="text-sm font-semibold text-accent">{loan.interestRate}%</p>
-      </div>
-      <div className="hidden lg:block min-w-[90px]">
-        <p className="text-xs text-muted-foreground">Restante</p>
-        <p className="text-sm font-semibold">{formatCurrency(remaining > 0 ? remaining : 0)}</p>
-      </div>
-      <div className="hidden sm:flex flex-col min-w-[100px] gap-1">
-        <span className="text-xs text-muted-foreground">{loan.paidInstallments}/{loan.installments}</span>
-        <Progress value={progress} className="h-1.5" />
-      </div>
-      <Badge variant="outline" className={`${badge.className} shrink-0 text-xs`}>{badge.label}</Badge>
-      <div className="flex gap-1 ml-auto shrink-0">
-        <Button size="icon" variant="ghost" className="h-8 w-8" onClick={startEdit} title="Editar">
-          <Pencil className="h-4 w-4 text-muted-foreground" />
-        </Button>
-        {loan.status !== "paid" && (
-          <>
-            <Button size="icon" variant="ghost" className="h-8 w-8" onClick={onInterestPayment} title="Pagar apenas juros">
-              <Percent className="h-4 w-4 text-warning" />
-            </Button>
-            <Button size="icon" variant="ghost" className="h-8 w-8" onClick={onPayment} title="Receber Parcela">
-              <CheckCircle className="h-4 w-4 text-primary" />
-            </Button>
-          </>
-        )}
-        <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive hover:bg-destructive hover:text-destructive-foreground" onClick={onDelete} title="Excluir">
-          <Trash2 className="h-4 w-4" />
-        </Button>
-      </div>
+      {showPartial && (
+        <div className="flex items-center gap-2 px-4 py-2 bg-muted rounded-b-lg border border-t-0">
+          <Input
+            type="number" step="0.01" placeholder="Valor parcial (R$)"
+            value={partialAmount} onChange={(e) => setPartialAmount(e.target.value)}
+            className="h-7 text-xs w-40" autoFocus
+            onKeyDown={(e) => e.key === "Enter" && handlePartialSubmit()}
+          />
+          <Button size="sm" className="h-7 text-xs" onClick={handlePartialSubmit}><Check className="h-3.5 w-3.5 mr-1" />Confirmar</Button>
+          <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setShowPartial(false)}><X className="h-3.5 w-3.5" /></Button>
+        </div>
+      )}
     </div>
   );
 }
 
-export function LoanList({ loans, payments, onPayment, onInterestPayment, onUpdate, onDelete }: Props) {
+// Client folder grouping
+interface ClientGroup {
+  name: string;
+  loans: Loan[];
+  totalAmount: number;
+  totalPaid: number;
+}
+
+function ClientFolder({
+  group, payments, view, onPayment, onPartialPayment, onInterestPayment, onUpdate, onDelete,
+}: {
+  group: ClientGroup;
+  payments: Payment[];
+  view: "cards" | "rows";
+  onPayment: (id: string) => void;
+  onPartialPayment: (id: string, amount: number) => void;
+  onInterestPayment: (id: string) => void;
+  onUpdate: (id: string, data: Partial<Omit<Loan, "id">>) => void;
+  onDelete: (id: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <div className="border rounded-lg overflow-hidden">
+      <button
+        onClick={() => setOpen(!open)}
+        className="w-full flex items-center gap-3 px-4 py-3 bg-muted/50 hover:bg-muted transition-colors text-left"
+      >
+        {open ? <FolderOpen className="h-5 w-5 text-primary shrink-0" /> : <Folder className="h-5 w-5 text-muted-foreground shrink-0" />}
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2">
+            <h3 className="font-semibold text-foreground">{group.name}</h3>
+            <Badge variant="outline" className="text-xs">{group.loans.length} contratos</Badge>
+          </div>
+        </div>
+        <div className="flex items-center gap-6 text-sm shrink-0">
+          <div className="text-right">
+            <p className="text-xs text-muted-foreground">Total Emprestado</p>
+            <p className="font-semibold">{formatCurrency(group.totalAmount)}</p>
+          </div>
+          <div className="text-right">
+            <p className="text-xs text-muted-foreground">Total Pago</p>
+            <p className="font-semibold text-success">{formatCurrency(group.totalPaid)}</p>
+          </div>
+        </div>
+        {open ? <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0" /> : <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />}
+      </button>
+      {open && (
+        <div className={`p-3 space-y-${view === "cards" ? "3" : "2"}`}>
+          {group.loans.map((loan) =>
+            view === "cards" ? (
+              <LoanCardView key={loan.id} loan={loan} payments={payments}
+                onPayment={() => onPayment(loan.id)} onPartialPayment={(amt) => onPartialPayment(loan.id, amt)}
+                onInterestPayment={() => onInterestPayment(loan.id)} onUpdate={(d) => onUpdate(loan.id, d)} onDelete={() => onDelete(loan.id)} />
+            ) : (
+              <LoanRowView key={loan.id} loan={loan} payments={payments}
+                onPayment={() => onPayment(loan.id)} onPartialPayment={(amt) => onPartialPayment(loan.id, amt)}
+                onInterestPayment={() => onInterestPayment(loan.id)} onUpdate={(d) => onUpdate(loan.id, d)} onDelete={() => onDelete(loan.id)} />
+            )
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+export function LoanList({ loans, payments, onPayment, onPartialPayment, onInterestPayment, onUpdate, onDelete }: Props) {
   const [view, setView] = useState<"cards" | "rows">("cards");
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState<Category>("all");
@@ -388,6 +499,26 @@ export function LoanList({ loans, payments, onPayment, onInterestPayment, onUpda
     };
   }, [loans, payments]);
 
+  // Group by borrower name
+  const { grouped, singles } = useMemo(() => {
+    const byName: Record<string, Loan[]> = {};
+    categorized.forEach((l) => {
+      (byName[l.borrowerName] ??= []).push(l);
+    });
+    const grouped: ClientGroup[] = [];
+    const singles: Loan[] = [];
+    Object.entries(byName).forEach(([name, loans]) => {
+      if (loans.length > 1) {
+        const totalPaid = loans.reduce((s, l) => s + getTotalPaid(l, payments), 0);
+        grouped.push({ name, loans, totalAmount: loans.reduce((s, l) => s + l.amount, 0), totalPaid });
+      } else {
+        singles.push(loans[0]);
+      }
+    });
+    grouped.sort((a, b) => a.name.localeCompare(b.name));
+    return { grouped, singles };
+  }, [categorized, payments]);
+
   if (loans.length === 0) {
     return (
       <Card>
@@ -404,9 +535,7 @@ export function LoanList({ loans, payments, onPayment, onInterestPayment, onUpda
     <div className="space-y-3">
       <div className="flex flex-wrap gap-2">
         {categoryConfig.map((cat) => (
-          <button
-            key={cat.id}
-            onClick={() => setCategory(cat.id)}
+          <button key={cat.id} onClick={() => setCategory(cat.id)}
             className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors border ${
               category === cat.id ? cat.activeColor : `bg-card ${cat.color} hover:opacity-80`
             }`}
@@ -422,16 +551,14 @@ export function LoanList({ loans, payments, onPayment, onInterestPayment, onUpda
           <Input placeholder="Buscar por nome do cliente..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-10" />
         </div>
         <div className="flex bg-muted rounded-lg p-0.5">
-          <button
-            onClick={() => setView("cards")}
+          <button onClick={() => setView("cards")}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
               view === "cards" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
             }`}
           >
             <LayoutGrid className="h-3.5 w-3.5" />Caixas
           </button>
-          <button
-            onClick={() => setView("rows")}
+          <button onClick={() => setView("rows")}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
               view === "rows" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
             }`}
@@ -447,17 +574,28 @@ export function LoanList({ loans, payments, onPayment, onInterestPayment, onUpda
             <p className="text-sm text-muted-foreground">Nenhum empréstimo encontrado nesta categoria</p>
           </CardContent>
         </Card>
-      ) : view === "cards" ? (
-        <div className="space-y-3">
-          {categorized.map((loan) => (
-            <LoanCardView key={loan.id} loan={loan} payments={payments} onPayment={() => onPayment(loan.id)} onInterestPayment={() => onInterestPayment(loan.id)} onUpdate={(data) => onUpdate(loan.id, data)} onDelete={() => onDelete(loan.id)} />
-          ))}
-        </div>
       ) : (
-        <div className="space-y-2">
-          {categorized.map((loan) => (
-            <LoanRowView key={loan.id} loan={loan} payments={payments} onPayment={() => onPayment(loan.id)} onInterestPayment={() => onInterestPayment(loan.id)} onUpdate={(data) => onUpdate(loan.id, data)} onDelete={() => onDelete(loan.id)} />
+        <div className="space-y-3">
+          {/* Grouped folders */}
+          {grouped.map((g) => (
+            <ClientFolder key={g.name} group={g} payments={payments} view={view}
+              onPayment={onPayment} onPartialPayment={onPartialPayment}
+              onInterestPayment={onInterestPayment} onUpdate={onUpdate} onDelete={onDelete} />
           ))}
+          {/* Single loans */}
+          {view === "cards" ? (
+            singles.map((loan) => (
+              <LoanCardView key={loan.id} loan={loan} payments={payments}
+                onPayment={() => onPayment(loan.id)} onPartialPayment={(amt) => onPartialPayment(loan.id, amt)}
+                onInterestPayment={() => onInterestPayment(loan.id)} onUpdate={(d) => onUpdate(loan.id, d)} onDelete={() => onDelete(loan.id)} />
+            ))
+          ) : (
+            singles.map((loan) => (
+              <LoanRowView key={loan.id} loan={loan} payments={payments}
+                onPayment={() => onPayment(loan.id)} onPartialPayment={(amt) => onPartialPayment(loan.id, amt)}
+                onInterestPayment={() => onInterestPayment(loan.id)} onUpdate={(d) => onUpdate(loan.id, d)} onDelete={() => onDelete(loan.id)} />
+            ))
+          )}
         </div>
       )}
     </div>

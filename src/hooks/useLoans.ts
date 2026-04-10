@@ -76,6 +76,25 @@ export function useLoans() {
     }
   }, [loans]);
 
+  const addPartialPayment = useCallback((loanId: string, amount: number) => {
+    const loan = loans.find((l) => l.id === loanId);
+    if (!loan || amount <= 0) return;
+
+    const newPayment: Payment = {
+      id: crypto.randomUUID(),
+      loanId,
+      amount,
+      date: new Date().toISOString().split("T")[0],
+      installmentNumber: -1, // marks as partial
+    };
+    setPayments((prev) => {
+      const updated = [...prev, newPayment];
+      saveToStorage(PAYMENTS_KEY, updated);
+      return updated;
+    });
+    adjustBalance(amount);
+  }, [loans]);
+
   const addInterestOnlyPayment = useCallback((loanId: string) => {
     const loan = loans.find((l) => l.id === loanId);
     if (!loan) return;
@@ -188,7 +207,7 @@ export function useLoans() {
     });
   }, [payments]);
 
-  return { loans, payments, addLoan, addPayment, addInterestOnlyPayment, updateLoan, deleteLoan, deletePayment };
+  return { loans, payments, addLoan, addPayment, addPartialPayment, addInterestOnlyPayment, updateLoan, deleteLoan, deletePayment };
 }
 
 export function calculateInstallment(principal: number, monthlyRate: number, months: number): number {
