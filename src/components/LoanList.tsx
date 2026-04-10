@@ -362,10 +362,10 @@ function LoanCardView({
               <Button size="sm" variant="outline" className="h-7 text-[10px] px-2" onClick={() => setShowPartial(!showPartial)}>
                 <HandCoins className="h-3 w-3 mr-0.5" /> Parcial
               </Button>
-              <Button size="sm" variant="outline" className="h-7 text-[10px] px-2" onClick={onInterestPayment}>
+              <Button size="sm" variant="outline" className="h-7 text-[10px] px-2" onClick={() => openPaymentDialog("interest")}>
                 <Percent className="h-3 w-3 mr-0.5" /> Juros
               </Button>
-              <Button size="sm" className="h-7 text-[10px] px-2" onClick={onPayment}>
+              <Button size="sm" className="h-7 text-[10px] px-2" onClick={() => openPaymentDialog("installment")}>
                 <CheckCircle className="h-3 w-3 mr-0.5" /> Receber
               </Button>
             </>
