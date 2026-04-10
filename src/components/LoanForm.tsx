@@ -97,7 +97,7 @@ export function LoanForm({ onAdd, onClose }: Props) {
                 />
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-3 gap-4">
               <div>
                 <Label htmlFor="installments">Parcelas</Label>
                 <Input
@@ -116,6 +116,15 @@ export function LoanForm({ onAdd, onClose }: Props) {
                   type="date"
                   value={form.startDate}
                   onChange={(e) => update("startDate", e.target.value)}
+                />
+              </div>
+              <div>
+                <Label htmlFor="dueDate">Data Fim</Label>
+                <Input
+                  id="dueDate"
+                  type="date"
+                  value={form.dueDate}
+                  onChange={(e) => update("dueDate", e.target.value)}
                 />
               </div>
             </div>
