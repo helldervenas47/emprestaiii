@@ -8,10 +8,10 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Progress } from "@/components/ui/progress";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Calendar } from "@/components/ui/calendar";
+import { Calendar as CalendarUI } from "@/components/ui/calendar";
 import { calculateInstallment, calculateTotalWithInterest } from "@/hooks/useLoans";
 import {
-  CheckCircle, Trash2, DollarSign, User, Calendar, LayoutGrid, List,
+  CheckCircle, Trash2, DollarSign, User, Calendar as CalendarIcon, LayoutGrid, List,
   Search, Percent, Pencil, Check, X, ChevronDown, ChevronRight, FolderOpen, Folder, HandCoins, Tag,
 } from "lucide-react";
 
