@@ -4,13 +4,15 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus, X } from "lucide-react";
 import { calculateInstallment, calculateTotalWithInterest } from "@/hooks/useLoans";
-import { Loan } from "@/types/loan";
+import { Loan, Client } from "@/types/loan";
 
 interface Props {
   onAdd: (loan: Omit<Loan, "id" | "status" | "paidInstallments">) => void;
   onClose: () => void;
+  clients: Client[];
 }
 
 export function LoanForm({ onAdd, onClose }: Props) {
