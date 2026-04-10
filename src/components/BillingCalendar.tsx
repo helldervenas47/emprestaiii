@@ -52,6 +52,7 @@ export function BillingCalendar({ loans, payments }: Props) {
       const start = new Date(loan.startDate + "T00:00:00");
 
       for (let i = 1; i <= loan.installments; i++) {
+        if (paidInstallmentNumbers.has(i)) continue; // Skip paid installments
         const dueDate = new Date(start.getFullYear(), start.getMonth() + i, start.getDate());
         const dateStr = dueDate.toISOString().split("T")[0];
 
@@ -62,7 +63,7 @@ export function BillingCalendar({ loans, payments }: Props) {
           installmentNumber: i,
           totalInstallments: loan.installments,
           amount: installmentAmount,
-          paid: paidInstallmentNumbers.has(i),
+          paid: false,
           date: dateStr,
         });
       }
@@ -105,8 +106,8 @@ export function BillingCalendar({ loans, payments }: Props) {
   };
 
   const selectedItems = selectedDate ? (dueMap[selectedDate] || []) : [];
-  const unpaidSelected = selectedItems.filter((i) => !i.paid);
-  const paidSelected = selectedItems.filter((i) => i.paid);
+  const overdueSelected = selectedItems.filter((i) => i.date < todayStr);
+  const upcomingSelected = selectedItems.filter((i) => i.date >= todayStr);
 
   return (
     <div className="space-y-4">
@@ -145,12 +146,11 @@ export function BillingCalendar({ loans, payments }: Props) {
               if (day === null) return <div key={`empty-${idx}`} />;
               const dateStr = `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
               const items = dueMap[dateStr] || [];
-              const unpaid = items.filter((i) => !i.paid);
               const isToday = dateStr === todayStr;
               const isSelected = dateStr === selectedDate;
               const hasDue = items.length > 0;
-              const hasUnpaid = unpaid.length > 0;
-              const isPast = dateStr < todayStr && hasUnpaid;
+              const isOverdue = dateStr < todayStr && hasDue;
+              const isUpcoming = dateStr >= todayStr && hasDue;
 
               return (
                 <button
@@ -159,21 +159,18 @@ export function BillingCalendar({ loans, payments }: Props) {
                   className={`relative flex flex-col items-center justify-center rounded-lg p-1.5 min-h-[48px] text-sm transition-colors
                     ${isSelected ? "bg-primary text-primary-foreground ring-2 ring-primary" : ""}
                     ${isToday && !isSelected ? "bg-accent font-bold" : ""}
-                    ${isPast && !isSelected ? "bg-destructive/10" : ""}
-                    ${!isSelected && !isToday && !isPast ? "hover:bg-muted" : ""}
+                    ${isOverdue && !isSelected ? "bg-destructive/10" : ""}
+                    ${!isSelected && !isToday && !isOverdue ? "hover:bg-muted" : ""}
                   `}
                 >
-                  <span className={isSelected ? "text-primary-foreground" : isToday ? "text-foreground" : "text-foreground"}>
+                  <span className={isSelected ? "text-primary-foreground" : "text-foreground"}>
                     {day}
                   </span>
                   {hasDue && (
                     <div className="flex gap-0.5 mt-0.5">
-                      {hasUnpaid && (
-                        <span className={`inline-block h-1.5 w-1.5 rounded-full ${isSelected ? "bg-primary-foreground" : "bg-destructive"}`} />
-                      )}
-                      {items.some((i) => i.paid) && (
-                        <span className={`inline-block h-1.5 w-1.5 rounded-full ${isSelected ? "bg-primary-foreground/60" : "bg-success"}`} />
-                      )}
+                      <span className={`inline-block h-1.5 w-1.5 rounded-full ${
+                        isSelected ? "bg-primary-foreground" : isOverdue ? "bg-destructive" : "bg-warning"
+                      }`} />
                     </div>
                   )}
                 </button>
@@ -184,10 +181,10 @@ export function BillingCalendar({ loans, payments }: Props) {
           {/* Legend */}
           <div className="flex items-center gap-4 mt-3 text-xs text-muted-foreground">
             <div className="flex items-center gap-1">
-              <span className="h-2 w-2 rounded-full bg-destructive" /> A cobrar
+              <span className="h-2 w-2 rounded-full bg-destructive" /> Atrasado
             </div>
             <div className="flex items-center gap-1">
-              <span className="h-2 w-2 rounded-full bg-success" /> Pago
+              <span className="h-2 w-2 rounded-full bg-warning" /> A vencer
             </div>
           </div>
         </CardContent>
@@ -210,12 +207,12 @@ export function BillingCalendar({ loans, payments }: Props) {
               <p className="text-sm text-muted-foreground">Nenhuma cobrança para este dia.</p>
             ) : (
               <div className="space-y-2">
-                {unpaidSelected.length > 0 && (
+                {overdueSelected.length > 0 && (
                   <>
                     <p className="text-xs font-medium text-destructive mb-1">
-                      A cobrar ({unpaidSelected.length})
+                      Atrasado ({overdueSelected.length})
                     </p>
-                    {unpaidSelected.map((item) => (
+                    {overdueSelected.map((item) => (
                       <div
                         key={`${item.loanId}-${item.installmentNumber}`}
                         className="flex items-center justify-between p-3 rounded-lg bg-destructive/5 border border-destructive/20"
@@ -233,26 +230,26 @@ export function BillingCalendar({ loans, payments }: Props) {
                         </div>
                         <div className="text-right">
                           <p className="text-sm font-bold text-destructive">{formatCurrency(item.amount)}</p>
-                          <Badge variant="destructive" className="text-[10px]">Pendente</Badge>
+                          <Badge variant="destructive" className="text-[10px]">Atrasado</Badge>
                         </div>
                       </div>
                     ))}
                   </>
                 )}
 
-                {paidSelected.length > 0 && (
+                {upcomingSelected.length > 0 && (
                   <>
-                    <p className="text-xs font-medium text-success mt-3 mb-1">
-                      Recebido ({paidSelected.length})
+                    <p className="text-xs font-medium text-warning mt-3 mb-1">
+                      A vencer ({upcomingSelected.length})
                     </p>
-                    {paidSelected.map((item) => (
+                    {upcomingSelected.map((item) => (
                       <div
                         key={`${item.loanId}-${item.installmentNumber}`}
-                        className="flex items-center justify-between p-3 rounded-lg bg-success/5 border border-success/20"
+                        className="flex items-center justify-between p-3 rounded-lg bg-warning/5 border border-warning/20"
                       >
                         <div className="flex items-center gap-3">
-                          <div className="h-8 w-8 rounded-full bg-success/10 flex items-center justify-center">
-                            <User className="h-4 w-4 text-success" />
+                          <div className="h-8 w-8 rounded-full bg-warning/10 flex items-center justify-center">
+                            <User className="h-4 w-4 text-warning" />
                           </div>
                           <div>
                             <p className="text-sm font-medium text-foreground">{item.borrowerName}</p>
@@ -262,8 +259,8 @@ export function BillingCalendar({ loans, payments }: Props) {
                           </div>
                         </div>
                         <div className="text-right">
-                          <p className="text-sm font-bold text-success">{formatCurrency(item.amount)}</p>
-                          <Badge variant="outline" className="text-[10px] text-success border-success">Pago</Badge>
+                          <p className="text-sm font-bold text-warning">{formatCurrency(item.amount)}</p>
+                          <Badge variant="outline" className="text-[10px] text-warning border-warning">A vencer</Badge>
                         </div>
                       </div>
                     ))}
@@ -271,16 +268,14 @@ export function BillingCalendar({ loans, payments }: Props) {
                 )}
 
                 {/* Total */}
-                {unpaidSelected.length > 0 && (
-                  <div className="flex items-center justify-between pt-2 border-t mt-2">
-                    <div className="flex items-center gap-2 text-sm font-medium text-foreground">
-                      <DollarSign className="h-4 w-4" /> Total a cobrar
-                    </div>
-                    <p className="text-sm font-bold text-destructive">
-                      {formatCurrency(unpaidSelected.reduce((s, i) => s + i.amount, 0))}
-                    </p>
+                <div className="flex items-center justify-between pt-2 border-t mt-2">
+                  <div className="flex items-center gap-2 text-sm font-medium text-foreground">
+                    <DollarSign className="h-4 w-4" /> Total a cobrar
                   </div>
-                )}
+                  <p className="text-sm font-bold text-foreground">
+                    {formatCurrency(selectedItems.reduce((s, i) => s + i.amount, 0))}
+                  </p>
+                </div>
               </div>
             )}
           </CardContent>
