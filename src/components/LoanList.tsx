@@ -469,6 +469,11 @@ function LoanRowView({
           <Progress value={progress} className="h-1.5" />
         </div>
         <Badge variant="outline" className={`${badge.className} shrink-0 text-xs`}>{badge.label}</Badge>
+        {loan.tags && loan.tags.length > 0 && loan.tags.map((tag) => (
+          <Badge key={tag} variant="outline" className="bg-primary/10 text-primary border-primary/20 text-xs shrink-0">
+            <Tag className="h-2.5 w-2.5 mr-0.5" />{tag}
+          </Badge>
+        ))}
         <div className="flex gap-1 ml-auto shrink-0">
           <Button size="icon" variant="ghost" className="h-8 w-8" onClick={startEdit} title="Editar">
             <Pencil className="h-4 w-4 text-muted-foreground" />
