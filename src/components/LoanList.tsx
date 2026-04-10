@@ -411,9 +411,9 @@ function LoanRowView({
 }: {
   loan: Loan;
   payments: Payment[];
-  onPayment: () => void;
-  onPartialPayment: (amount: number) => void;
-  onInterestPayment: () => void;
+  onPayment: (date?: string) => void;
+  onPartialPayment: (amount: number, date?: string) => void;
+  onInterestPayment: (date?: string) => void;
   onUpdate: (data: Partial<Omit<Loan, "id">>) => void;
   onDelete: () => void;
 }) {
@@ -421,6 +421,8 @@ function LoanRowView({
   const [form, setForm] = useState<EditForm>(loanToForm(loan));
   const [showPartial, setShowPartial] = useState(false);
   const [partialAmount, setPartialAmount] = useState("");
+  const [paymentDialog, setPaymentDialog] = useState<{ type: "installment" | "interest" | "partial"; amount?: number } | null>(null);
+  const [paymentDate, setPaymentDate] = useState<Date>(new Date());
 
   const installment = calculateInstallment(loan.amount, loan.interestRate, loan.installments);
   const total = calculateTotalWithInterest(loan.amount, loan.interestRate, loan.installments);
@@ -449,10 +451,24 @@ function LoanRowView({
     setEditing(false);
   };
 
+  const openPaymentDialog = (type: "installment" | "interest" | "partial", amount?: number) => {
+    setPaymentDate(new Date());
+    setPaymentDialog({ type, amount });
+  };
+
+  const confirmPayment = () => {
+    if (!paymentDialog) return;
+    const dateStr = paymentDate.toISOString().split("T")[0];
+    if (paymentDialog.type === "installment") onPayment(dateStr);
+    else if (paymentDialog.type === "interest") onInterestPayment(dateStr);
+    else if (paymentDialog.type === "partial" && paymentDialog.amount) onPartialPayment(paymentDialog.amount, dateStr);
+    setPaymentDialog(null);
+  };
+
   const handlePartialSubmit = () => {
     const val = parseFloat(partialAmount);
     if (val > 0) {
-      onPartialPayment(val);
+      openPaymentDialog("partial", val);
       setPartialAmount("");
       setShowPartial(false);
     }
