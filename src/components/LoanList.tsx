@@ -39,10 +39,12 @@ function formatCurrency(value: number): string {
   return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value);
 }
 
-function getNextDueDate(loan: Loan): Date {
-  const start = new Date(loan.startDate + "T00:00:00");
-  start.setMonth(start.getMonth() + loan.paidInstallments + 1);
-  return start;
+function getDaysOverdue(loan: Loan): number {
+  const today = new Date();
+  const todayNorm = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  const due = new Date(loan.dueDate + "T00:00:00");
+  const diff = Math.floor((todayNorm.getTime() - due.getTime()) / (1000 * 60 * 60 * 24));
+  return diff;
 }
 
 function getLoanCategory(loan: Loan, payments: Payment[]): "paid" | "paid_interest" | "overdue" | "due_today" | "on_track" {
@@ -50,12 +52,9 @@ function getLoanCategory(loan: Loan, payments: Payment[]): "paid" | "paid_intere
   const loanPayments = payments.filter((p) => p.loanId === loan.id);
   const lastPayment = loanPayments.sort((a, b) => b.date.localeCompare(a.date))[0];
   if (lastPayment && lastPayment.installmentNumber === 0) return "paid_interest";
-  const now = new Date();
-  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const nextDue = getNextDueDate(loan);
-  const nextDueDay = new Date(nextDue.getFullYear(), nextDue.getMonth(), nextDue.getDate());
-  if (nextDueDay.getTime() === today.getTime()) return "due_today";
-  if (nextDueDay < today) return "overdue";
+  const days = getDaysOverdue(loan);
+  if (days === 0) return "due_today";
+  if (days > 0) return "overdue";
   return "on_track";
 }
 
@@ -118,7 +117,7 @@ function LoanCardView({
   const progress = loan.installments > 0 ? (loan.paidInstallments / loan.installments) * 100 : 0;
   const interestOnly = loan.amount * (loan.interestRate / 100);
   const category = getLoanCategory(loan, allPayments);
-  const nextDue = getNextDueDate(loan);
+  const daysOverdue = getDaysOverdue(loan);
   const badge = statusMap[category];
 
   const startEdit = () => { setForm(loanToForm(loan)); setEditing(true); };
@@ -189,6 +188,11 @@ function LoanCardView({
                 {new Date(loan.startDate).toLocaleDateString("pt-BR")}
                 {loan.status !== "paid" && (
                   <span>→ Venc.: {new Date(loan.dueDate + "T00:00:00").toLocaleDateString("pt-BR")}</span>
+                )}
+                {daysOverdue > 0 && loan.status !== "paid" && (
+                  <Badge variant="outline" className="bg-destructive/10 text-destructive border-destructive/20 text-xs ml-1">
+                    {daysOverdue} dia{daysOverdue > 1 ? "s" : ""} atrasado
+                  </Badge>
                 )}
               </div>
             </div>
@@ -296,6 +300,7 @@ function LoanRowView({
   const remaining = Math.max(0, total - totalPaid);
   const progress = loan.installments > 0 ? (loan.paidInstallments / loan.installments) * 100 : 0;
   const category = getLoanCategory(loan, allPayments);
+  const daysOverdue = getDaysOverdue(loan);
   const badge = statusMap[category];
 
   const startEdit = () => { setForm(loanToForm(loan)); setEditing(true); };
@@ -349,7 +354,12 @@ function LoanRowView({
         </div>
         <div className="min-w-[120px]">
           <p className="font-medium text-sm text-foreground truncate">{loan.borrowerName}</p>
-          <p className="text-xs text-muted-foreground">{new Date(loan.startDate).toLocaleDateString("pt-BR")}</p>
+          <p className="text-xs text-muted-foreground">
+            Venc.: {new Date(loan.dueDate + "T00:00:00").toLocaleDateString("pt-BR")}
+            {daysOverdue > 0 && loan.status !== "paid" && (
+              <span className="text-destructive ml-1">({daysOverdue}d atraso)</span>
+            )}
+          </p>
         </div>
         <div className="hidden sm:block min-w-[90px]">
           <p className="text-xs text-muted-foreground">Valor</p>
@@ -483,9 +493,11 @@ export function LoanList({ loans, payments, onPayment, onPartialPayment, onInter
 
   const categorized = useMemo(() => {
     const withSearch = loans.filter((l) => l.borrowerName.toLowerCase().includes(search.toLowerCase()));
-    if (category === "all" || category === "folders") return withSearch;
-    const cat = withSearch.map((l) => ({ loan: l, cat: getLoanCategory(l, payments) }));
-    return cat.filter((c) => c.cat === category).map((c) => c.loan);
+    const filtered = category === "all" || category === "folders"
+      ? withSearch
+      : withSearch.filter((l) => getLoanCategory(l, payments) === category);
+    // Sort by dueDate ascending (most urgent first)
+    return [...filtered].sort((a, b) => a.dueDate.localeCompare(b.dueDate));
   }, [loans, payments, search, category]);
 
   const folderCount = useMemo(() => {
