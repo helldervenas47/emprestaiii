@@ -542,10 +542,10 @@ function LoanRowView({
               <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => setShowPartial(!showPartial)} title="Pagamento Parcial">
                 <HandCoins className="h-4 w-4 text-muted-foreground" />
               </Button>
-              <Button size="icon" variant="ghost" className="h-8 w-8" onClick={onInterestPayment} title="Pagar apenas juros">
+              <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => openPaymentDialog("interest")} title="Pagar apenas juros">
                 <Percent className="h-4 w-4 text-warning" />
               </Button>
-              <Button size="icon" variant="ghost" className="h-8 w-8" onClick={onPayment} title="Receber Parcela">
+              <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => openPaymentDialog("installment")} title="Receber Parcela">
                 <CheckCircle className="h-4 w-4 text-primary" />
               </Button>
             </>
