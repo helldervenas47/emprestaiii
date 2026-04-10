@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import { Plus, HandCoins, Users, LayoutDashboard, Download, Upload, ShoppingBag, BarChart3, AlertTriangle, Receipt, CalendarDays } from "lucide-react";
+import { Plus, HandCoins, Users, LayoutDashboard, Download, Upload, ShoppingBag, BarChart3, AlertTriangle, Receipt, CalendarDays, Sun, Moon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DashboardCards } from "@/components/DashboardCards";
 import { LoanForm } from "@/components/LoanForm";
@@ -47,7 +47,27 @@ const Index = () => {
   const [showSaleForm, setShowSaleForm] = useState(false);
   const [showExpenseForm, setShowExpenseForm] = useState(false);
   const [tab, setTab] = useState<Tab>("overview");
+  const [dark, setDark] = useState(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("hvcred-theme");
+      if (saved) return saved === "dark";
+      return window.matchMedia("(prefers-color-scheme: dark)").matches;
+    }
+    return true;
+  });
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Apply dark class to html element
+  useState(() => {
+    document.documentElement.classList.toggle("dark", dark);
+  });
+
+  const toggleTheme = () => {
+    const next = !dark;
+    setDark(next);
+    document.documentElement.classList.toggle("dark", next);
+    localStorage.setItem("hvcred-theme", next ? "dark" : "light");
+  };
 
   const handleExport = () => {
     if (tab === "dashboard") {
@@ -118,6 +138,9 @@ const Index = () => {
             </div>
           </div>
           <div className="flex items-center gap-2">
+            <Button variant="ghost" size="icon" onClick={toggleTheme} className="h-9 w-9" title={dark ? "Modo claro" : "Modo escuro"}>
+              {dark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+            </Button>
             {(tab === "dashboard" || tab === "clients") && (
               <>
                 <Button variant="outline" size="sm" onClick={handleImport}><Upload className="h-4 w-4 mr-1" />Importar</Button>
