@@ -3,7 +3,8 @@ import { Loan } from "@/types/loan";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle, Trash2, DollarSign, User, Calendar, LayoutGrid, List } from "lucide-react";
+import { CheckCircle, Trash2, DollarSign, User, Calendar, LayoutGrid, List, Search } from "lucide-react";
+import { Input } from "@/components/ui/input";
 import { calculateInstallment, calculateTotalWithInterest } from "@/hooks/useLoans";
 import { Progress } from "@/components/ui/progress";
 
@@ -145,7 +146,9 @@ function LoanRowView({ loan, onPayment, onDelete }: { loan: Loan; onPayment: () 
 
 export function LoanList({ loans, onPayment, onDelete }: Props) {
   const [view, setView] = useState<"cards" | "rows">("cards");
+  const [search, setSearch] = useState("");
 
+  const filtered = loans.filter((l) => l.borrowerName.toLowerCase().includes(search.toLowerCase()));
   if (loans.length === 0) {
     return (
       <Card>
@@ -160,7 +163,11 @@ export function LoanList({ loans, onPayment, onDelete }: Props) {
 
   return (
     <div className="space-y-3">
-      <div className="flex justify-end">
+      <div className="flex items-center gap-4">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input placeholder="Buscar por nome do cliente..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-10" />
+        </div>
         <div className="flex bg-muted rounded-lg p-0.5">
           <button
             onClick={() => setView("cards")}
@@ -185,13 +192,13 @@ export function LoanList({ loans, onPayment, onDelete }: Props) {
 
       {view === "cards" ? (
         <div className="space-y-3">
-          {loans.map((loan) => (
+          {filtered.map((loan) => (
             <LoanCardView key={loan.id} loan={loan} onPayment={() => onPayment(loan.id)} onDelete={() => onDelete(loan.id)} />
           ))}
         </div>
       ) : (
         <div className="space-y-2">
-          {loans.map((loan) => (
+          {filtered.map((loan) => (
             <LoanRowView key={loan.id} loan={loan} onPayment={() => onPayment(loan.id)} onDelete={() => onDelete(loan.id)} />
           ))}
         </div>
