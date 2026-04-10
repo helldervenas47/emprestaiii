@@ -150,6 +150,11 @@ export function ExpenseList({ expenses, onPay, onDelete }: Props) {
                       <Badge variant="outline" className="text-xs shrink-0">
                         {expense.type === "fixa" ? "Fixa" : "Recorrente"}
                       </Badge>
+                      {expense.type === "recorrente" && expense.installments && expense.installments > 1 && !expense.paid && (
+                        <Badge variant="outline" className="text-xs shrink-0">
+                          {expense.paidInstallments || 0}/{expense.installments} parcelas
+                        </Badge>
+                      )}
                       {expense.paid && (
                         <Badge className="bg-success/10 text-success border-success/20 text-xs shrink-0">Paga</Badge>
                       )}
@@ -172,11 +177,17 @@ export function ExpenseList({ expenses, onPay, onDelete }: Props) {
                     </div>
                     {expense.notes && <p className="text-xs text-muted-foreground mt-1 italic">"{expense.notes}"</p>}
                   </div>
-                  <p className="text-lg font-bold text-foreground shrink-0">{formatCurrency(expense.amount)}</p>
+                  <div className="text-right shrink-0">
+                    <p className="text-lg font-bold text-foreground">{formatCurrency(expense.amount)}</p>
+                    {expense.type === "recorrente" && expense.installments && expense.installments > 1 && (
+                      <p className="text-xs text-muted-foreground">{formatCurrency(expense.amount / expense.installments)}/parcela</p>
+                    )}
+                  </div>
                   <div className="flex gap-1 shrink-0">
                     {!expense.paid && (
                       <Button size="sm" variant="outline" className="text-success border-success/30 hover:bg-success hover:text-success-foreground" onClick={() => onPay(expense.id)}>
-                        <CheckCircle className="h-4 w-4 mr-1" />Pagar
+                        <CheckCircle className="h-4 w-4 mr-1" />
+                        {expense.type === "recorrente" && expense.installments && expense.installments > 1 ? "Pagar Parcela" : "Pagar"}
                       </Button>
                     )}
                     <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive hover:bg-destructive hover:text-destructive-foreground" onClick={() => onDelete(expense.id)}>
