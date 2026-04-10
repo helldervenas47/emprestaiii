@@ -140,7 +140,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, onDeletePa
       : 0;
 
     return { totalIncome, incomeFromPayments, incomeFromSales, totalOutgoing, totalLoanOutgoing, totalExpenses, balance, transactions, loanCount: filteredLoans.length, saleCount: filteredSales.length, paymentCount: filteredPayments.length, expenseCount: filteredExpenses.length, avgInterestRate };
-  }, [loans, sales, payments, expenses, range]);
+  }, [loans, sales, payments, expenses, range, includeSales]);
 
   // Portfolio metrics (global)
   const portfolio = useMemo(() => {
@@ -486,9 +486,12 @@ export function DashboardOverview({ loans, sales, payments, expenses, onDeletePa
                 <span className="text-muted-foreground">Parcelas recebidas</span>
                 <span className="font-medium">{formatCurrency(data.incomeFromPayments)}</span>
               </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Vendas de produtos</span>
-                <span className="font-medium">{formatCurrency(data.incomeFromSales)}</span>
+              <div className="flex justify-between items-center text-sm">
+                <div className="flex items-center gap-2">
+                  <span className={`text-muted-foreground ${!includeSales ? "line-through opacity-50" : ""}`}>Vendas de produtos</span>
+                  <Switch checked={includeSales} onCheckedChange={setIncludeSales} className="scale-75" />
+                </div>
+                <span className={`font-medium ${!includeSales ? "opacity-50" : ""}`}>{formatCurrency(data.incomeFromSales)}</span>
               </div>
               <div className="border-t pt-2 flex justify-between text-sm font-semibold">
                 <span>Total</span>
