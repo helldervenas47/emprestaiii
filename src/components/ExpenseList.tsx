@@ -150,6 +150,11 @@ export function ExpenseList({ expenses, onPay, onDelete }: Props) {
                       <Badge variant="outline" className="text-xs shrink-0">
                         {expense.type === "fixa" ? "Fixa" : "Recorrente"}
                       </Badge>
+                      {expense.type === "recorrente" && expense.installments && expense.installments > 1 && !expense.paid && (
+                        <Badge variant="outline" className="text-xs shrink-0">
+                          {expense.paidInstallments || 0}/{expense.installments} parcelas
+                        </Badge>
+                      )}
                       {expense.paid && (
                         <Badge className="bg-success/10 text-success border-success/20 text-xs shrink-0">Paga</Badge>
                       )}

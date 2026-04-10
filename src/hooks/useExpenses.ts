@@ -38,6 +38,21 @@ export function useExpenses() {
     setExpenses((prev) => {
       const expense = prev.find((e) => e.id === id);
       if (!expense || expense.paid) return prev;
+
+      // For recorrente with installments, pay one installment at a time
+      if (expense.type === "recorrente" && expense.installments && expense.installments > 1) {
+        const installmentAmount = expense.amount / expense.installments;
+        adjustBalance(-installmentAmount);
+        const newPaid = (expense.paidInstallments || 0) + 1;
+        const fullyPaid = newPaid >= expense.installments;
+        const updated = prev.map((e) =>
+          e.id === id ? { ...e, paidInstallments: newPaid, paid: fullyPaid, paidDate: fullyPaid ? new Date().toISOString().split("T")[0] : e.paidDate } : e
+        );
+        saveToStorage(EXPENSES_KEY, updated);
+        return updated;
+      }
+
+      // Fixed or single payment
       adjustBalance(-expense.amount);
       const updated = prev.map((e) =>
         e.id === id ? { ...e, paid: true, paidDate: new Date().toISOString().split("T")[0] } : e
