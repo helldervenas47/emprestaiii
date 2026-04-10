@@ -666,21 +666,29 @@ export function LoanList({ loans, payments, onPayment, onPartialPayment, onInter
           </CardContent>
         </Card>
       ) : (
-        <div className="space-y-3">
+        <div>
           {view === "cards" ? (
             <>
               {/* Grouped folders (only in cards view) */}
-              {grouped.map((g) => (
-                <ClientFolder key={g.name} group={g} payments={payments} view={view}
-                  onPayment={onPayment} onPartialPayment={onPartialPayment}
-                  onInterestPayment={onInterestPayment} onUpdate={onUpdate} onDelete={onDelete} />
-              ))}
-              {/* Single loans (hide when folders filter is active) */}
-              {category !== "folders" && singles.map((loan) => (
-                <LoanCardView key={loan.id} loan={loan} payments={payments}
-                  onPayment={() => onPayment(loan.id)} onPartialPayment={(amt) => onPartialPayment(loan.id, amt)}
-                  onInterestPayment={() => onInterestPayment(loan.id)} onUpdate={(d) => onUpdate(loan.id, d)} onDelete={() => onDelete(loan.id)} />
-              ))}
+              {grouped.length > 0 && (
+                <div className="space-y-3 mb-4">
+                  {grouped.map((g) => (
+                    <ClientFolder key={g.name} group={g} payments={payments} view={view}
+                      onPayment={onPayment} onPartialPayment={onPartialPayment}
+                      onInterestPayment={onInterestPayment} onUpdate={onUpdate} onDelete={onDelete} />
+                  ))}
+                </div>
+              )}
+              {/* Single loans in 3-column grid */}
+              {category !== "folders" && singles.length > 0 && (
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                  {singles.map((loan) => (
+                    <LoanCardView key={loan.id} loan={loan} payments={payments}
+                      onPayment={() => onPayment(loan.id)} onPartialPayment={(amt) => onPartialPayment(loan.id, amt)}
+                      onInterestPayment={() => onInterestPayment(loan.id)} onUpdate={(d) => onUpdate(loan.id, d)} onDelete={() => onDelete(loan.id)} />
+                  ))}
+                </div>
+              )}
               {category === "folders" && grouped.length === 0 && (
                 <Card>
                   <CardContent className="py-8 text-center">
