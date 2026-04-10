@@ -9,6 +9,7 @@ import {
   TrendingUp, TrendingDown, DollarSign, ArrowUpRight, ArrowDownRight,
   ChevronLeft, ChevronRight, Percent, Wallet, Pencil, Check, X, Trash2,
 } from "lucide-react";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
 
 interface Props {
   loans: Loan[];
@@ -210,6 +211,25 @@ export function DashboardOverview({ loans, sales, payments, expenses, onDeletePa
       principalToReceive,
       interestToReceive,
     };
+  }, [loans, payments]);
+
+  // Last 12 months chart data
+  const monthlyChart = useMemo(() => {
+    const now = new Date();
+    const months: { month: string; emprestado: number; recebido: number }[] = [];
+    for (let i = 11; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const end = new Date(d.getFullYear(), d.getMonth() + 1, 0, 23, 59, 59, 999);
+      const label = `${monthNames[d.getMonth()].slice(0, 3)}/${String(d.getFullYear()).slice(2)}`;
+      const lent = loans
+        .filter((l) => { const ld = new Date(l.startDate + "T00:00:00"); return ld >= d && ld <= end; })
+        .reduce((s, l) => s + l.amount, 0);
+      const received = payments
+        .filter((p) => { const pd = new Date(p.date + "T00:00:00"); return pd >= d && pd <= end; })
+        .reduce((s, p) => s + p.amount, 0);
+      months.push({ month: label, emprestado: lent, recebido: received });
+    }
+    return months;
   }, [loans, payments]);
 
   const handleChangePeriod = (p: Period) => { setPeriod(p); setOffset(0); };
@@ -439,6 +459,29 @@ export function DashboardOverview({ loans, sales, payments, expenses, onDeletePa
         </CardContent>
       </Card>
 
+      {/* Monthly Bar Chart - Last 12 months */}
+      <Card>
+        <CardContent className="p-6">
+          <h3 className="text-sm font-semibold text-foreground mb-4">Histórico Mensal (Últimos 12 Meses)</h3>
+          <div className="h-72">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={monthlyChart} margin={{ top: 5, right: 10, left: 10, bottom: 5 }}>
+                <CartesianGrid strokeDasharray="3 3" className="stroke-muted/30" />
+                <XAxis dataKey="month" tick={{ fontSize: 11 }} className="text-muted-foreground" />
+                <YAxis tick={{ fontSize: 11 }} tickFormatter={(v) => `R$${(v / 1000).toFixed(0)}k`} className="text-muted-foreground" />
+                <Tooltip
+                  formatter={(value: number, name: string) => [formatCurrency(value), name === "emprestado" ? "Emprestado" : "Recebido"]}
+                  labelFormatter={(label) => label}
+                  contentStyle={{ borderRadius: "8px", border: "1px solid hsl(var(--border))", backgroundColor: "hsl(var(--card))" }}
+                />
+                <Legend formatter={(value) => value === "emprestado" ? "Emprestado" : "Recebido"} />
+                <Bar dataKey="emprestado" fill="hsl(var(--warning))" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="recebido" fill="hsl(var(--success))" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </CardContent>
+      </Card>
 
 
       {/* Breakdown */}
