@@ -146,7 +146,9 @@ function LoanRowView({ loan, onPayment, onDelete }: { loan: Loan; onPayment: () 
 
 export function LoanList({ loans, onPayment, onDelete }: Props) {
   const [view, setView] = useState<"cards" | "rows">("cards");
+  const [search, setSearch] = useState("");
 
+  const filtered = loans.filter((l) => l.borrowerName.toLowerCase().includes(search.toLowerCase()));
   if (loans.length === 0) {
     return (
       <Card>
