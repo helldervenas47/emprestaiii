@@ -134,7 +134,12 @@ export function DashboardOverview({ loans, sales, payments, expenses, onDeletePa
     });
     transactions.sort((a, b) => b.date.localeCompare(a.date));
 
-    return { totalIncome, incomeFromPayments, incomeFromSales, totalOutgoing, totalLoanOutgoing, totalExpenses, balance, transactions, loanCount: filteredLoans.length, saleCount: filteredSales.length, paymentCount: filteredPayments.length, expenseCount: filteredExpenses.length };
+    // Average interest rate of loans in the period
+    const avgInterestRate = filteredLoans.length > 0
+      ? filteredLoans.reduce((s, l) => s + l.interestRate, 0) / filteredLoans.length
+      : 0;
+
+    return { totalIncome, incomeFromPayments, incomeFromSales, totalOutgoing, totalLoanOutgoing, totalExpenses, balance, transactions, loanCount: filteredLoans.length, saleCount: filteredSales.length, paymentCount: filteredPayments.length, expenseCount: filteredExpenses.length, avgInterestRate };
   }, [loans, sales, payments, expenses, range]);
 
   // Portfolio metrics (global)
