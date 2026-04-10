@@ -43,8 +43,14 @@ function getNextDueDate(loan: Loan): Date {
   return start;
 }
 
-function getLoanCategory(loan: Loan): "paid" | "overdue" | "due_today" | "on_track" {
+function getLoanCategory(loan: Loan, payments: Payment[]): "paid" | "paid_interest" | "overdue" | "due_today" | "on_track" {
   if (loan.status === "paid") return "paid";
+  
+  // Check if the most recent payment was interest-only (installmentNumber === 0)
+  const loanPayments = payments.filter((p) => p.loanId === loan.id);
+  const lastPayment = loanPayments.sort((a, b) => b.date.localeCompare(a.date))[0];
+  if (lastPayment && lastPayment.installmentNumber === 0) return "paid_interest";
+
   const now = new Date();
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   const nextDue = getNextDueDate(loan);
@@ -55,10 +61,11 @@ function getLoanCategory(loan: Loan): "paid" | "overdue" | "due_today" | "on_tra
 }
 
 const statusMap = {
-  paid: { label: "Quitado", className: "bg-success/10 text-success border-success/20" },
+  paid: { label: "Pagou Total", className: "bg-success/10 text-success border-success/20" },
+  paid_interest: { label: "Pagou Juros", className: "bg-purple/10 text-purple border-purple/20" },
   overdue: { label: "Atrasado", className: "bg-destructive/10 text-destructive border-destructive/20" },
   due_today: { label: "Vence Hoje", className: "bg-warning/10 text-warning border-warning/20" },
-  on_track: { label: "Em Dia", className: "bg-success/10 text-success border-success/20" },
+  on_track: { label: "Em Dia", className: "bg-primary/10 text-primary border-primary/20" },
 };
 
 interface EditForm {
