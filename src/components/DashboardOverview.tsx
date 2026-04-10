@@ -459,6 +459,29 @@ export function DashboardOverview({ loans, sales, payments, expenses, onDeletePa
         </CardContent>
       </Card>
 
+      {/* Monthly Bar Chart - Last 12 months */}
+      <Card>
+        <CardContent className="p-6">
+          <h3 className="text-sm font-semibold text-foreground mb-4">Histórico Mensal (Últimos 12 Meses)</h3>
+          <div className="h-72">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={monthlyChart} margin={{ top: 5, right: 10, left: 10, bottom: 5 }}>
+                <CartesianGrid strokeDasharray="3 3" className="stroke-muted/30" />
+                <XAxis dataKey="month" tick={{ fontSize: 11 }} className="text-muted-foreground" />
+                <YAxis tick={{ fontSize: 11 }} tickFormatter={(v) => `R$${(v / 1000).toFixed(0)}k`} className="text-muted-foreground" />
+                <Tooltip
+                  formatter={(value: number, name: string) => [formatCurrency(value), name === "emprestado" ? "Emprestado" : "Recebido"]}
+                  labelFormatter={(label) => label}
+                  contentStyle={{ borderRadius: "8px", border: "1px solid hsl(var(--border))", backgroundColor: "hsl(var(--card))" }}
+                />
+                <Legend formatter={(value) => value === "emprestado" ? "Emprestado" : "Recebido"} />
+                <Bar dataKey="emprestado" fill="hsl(var(--warning))" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="recebido" fill="hsl(var(--success))" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </CardContent>
+      </Card>
 
 
       {/* Breakdown */}
