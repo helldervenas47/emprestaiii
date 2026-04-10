@@ -249,7 +249,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, onDeletePa
           </div>
           <p className="text-2xl font-bold">{formatCurrency(data.totalOutgoing)}</p>
           <div className="flex gap-3 mt-2 text-xs opacity-80">
-            <span>{data.loanCount} empréstimo(s)</span>
+            <span>{data.loanCount} empréstimo(s)</span><span>·</span><span>{data.expenseCount} despesa(s)</span>
           </div>
         </div>
 
@@ -290,7 +290,11 @@ export function DashboardOverview({ loans, sales, payments, expenses, onDeletePa
             <div className="space-y-2">
               <div className="flex justify-between text-sm">
                 <span className="text-muted-foreground">Empréstimos concedidos</span>
-                <span className="font-medium">{formatCurrency(data.totalOutgoing)}</span>
+                <span className="font-medium">{formatCurrency(data.totalLoanOutgoing)}</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">Despesas pagas</span>
+                <span className="font-medium">{formatCurrency(data.totalExpenses)}</span>
               </div>
               <div className="border-t pt-2 flex justify-between text-sm font-semibold">
                 <span>Total</span>
