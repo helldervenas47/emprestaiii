@@ -1,5 +1,5 @@
 import { useMemo, useState, useEffect, useSyncExternalStore } from "react";
-import { Loan, Sale, Payment } from "@/types/loan";
+import { Loan, Sale, Payment, Expense } from "@/types/loan";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -13,6 +13,7 @@ interface Props {
   loans: Loan[];
   sales: Sale[];
   payments: Payment[];
+  expenses: Expense[];
   onDeletePayment?: (id: string) => void;
   onDeleteSale?: (id: string) => void;
   onDeleteLoan?: (id: string) => void;
@@ -86,7 +87,7 @@ function useAccountBalance(): [number, (v: number) => void] {
   return [bal, update];
 }
 
-export function DashboardOverview({ loans, sales, payments, onDeletePayment, onDeleteSale, onDeleteLoan }: Props) {
+export function DashboardOverview({ loans, sales, payments, expenses, onDeletePayment, onDeleteSale, onDeleteLoan }: Props) {
   const [period, setPeriod] = useState<Period>("month");
   const [offset, setOffset] = useState(0);
   const [interestRate, setInterestRate] = useLocalStorage("hvcred_interest_rate", 10);
@@ -106,10 +107,15 @@ export function DashboardOverview({ loans, sales, payments, onDeletePayment, onD
     const totalIncome = incomeFromPayments + incomeFromSales;
 
     const filteredLoans = loans.filter((l) => isInRange(l.startDate, range.start, range.end));
-    const totalOutgoing = filteredLoans.reduce((s, l) => s + l.amount, 0);
+    const totalLoanOutgoing = filteredLoans.reduce((s, l) => s + l.amount, 0);
+
+    const filteredExpenses = expenses.filter((e) => e.paid && e.paidDate && isInRange(e.paidDate, range.start, range.end));
+    const totalExpenses = filteredExpenses.reduce((s, e) => s + e.amount, 0);
+
+    const totalOutgoing = totalLoanOutgoing + totalExpenses;
     const balance = totalIncome - totalOutgoing;
 
-    const transactions: { id: string; type: "in" | "out"; source: "payment" | "sale" | "loan"; description: string; amount: number; date: string }[] = [];
+    const transactions: { id: string; type: "in" | "out"; source: "payment" | "sale" | "loan" | "expense"; description: string; amount: number; date: string }[] = [];
 
     filteredPayments.forEach((p) => {
       const loan = loans.find((l) => l.id === p.loanId);
@@ -121,10 +127,13 @@ export function DashboardOverview({ loans, sales, payments, onDeletePayment, onD
     filteredLoans.forEach((l) => {
       transactions.push({ id: l.id, type: "out", source: "loan", description: `Empréstimo para ${l.borrowerName}`, amount: l.amount, date: l.startDate });
     });
+    filteredExpenses.forEach((e) => {
+      transactions.push({ id: e.id, type: "out", source: "expense", description: `Despesa: ${e.description}`, amount: e.amount, date: e.paidDate! });
+    });
     transactions.sort((a, b) => b.date.localeCompare(a.date));
 
-    return { totalIncome, incomeFromPayments, incomeFromSales, totalOutgoing, balance, transactions, loanCount: filteredLoans.length, saleCount: filteredSales.length, paymentCount: filteredPayments.length };
-  }, [loans, sales, payments, range]);
+    return { totalIncome, incomeFromPayments, incomeFromSales, totalOutgoing, totalLoanOutgoing, totalExpenses, balance, transactions, loanCount: filteredLoans.length, saleCount: filteredSales.length, paymentCount: filteredPayments.length, expenseCount: filteredExpenses.length };
+  }, [loans, sales, payments, expenses, range]);
 
   const handleChangePeriod = (p: Period) => { setPeriod(p); setOffset(0); };
 
