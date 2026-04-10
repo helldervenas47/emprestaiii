@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { Loan } from "@/types/loan";
+import { Loan, Payment } from "@/types/loan";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -15,20 +15,22 @@ import {
 
 interface Props {
   loans: Loan[];
+  payments: Payment[];
   onPayment: (loanId: string) => void;
   onInterestPayment: (loanId: string) => void;
   onUpdate: (id: string, data: Partial<Omit<Loan, "id">>) => void;
   onDelete: (loanId: string) => void;
 }
 
-type Category = "all" | "open" | "overdue" | "due_today" | "on_track";
+type Category = "all" | "overdue" | "paid_interest" | "paid" | "due_today" | "on_track";
 
-const categoryConfig: { id: Category; label: string }[] = [
-  { id: "all", label: "Todos" },
-  { id: "open", label: "Em Aberto" },
-  { id: "overdue", label: "Atrasados" },
-  { id: "due_today", label: "Vence Hoje" },
-  { id: "on_track", label: "Em Dia" },
+const categoryConfig: { id: Category; label: string; color: string; activeColor: string }[] = [
+  { id: "all", label: "Todos", color: "border-border text-muted-foreground", activeColor: "bg-primary text-primary-foreground border-primary" },
+  { id: "overdue", label: "Atrasados", color: "border-destructive/30 text-destructive", activeColor: "bg-destructive text-destructive-foreground border-destructive" },
+  { id: "paid_interest", label: "Pagou Juros", color: "border-purple/30 text-purple", activeColor: "bg-purple text-purple-foreground border-purple" },
+  { id: "paid", label: "Pagou Total", color: "border-success/30 text-success", activeColor: "bg-success text-success-foreground border-success" },
+  { id: "due_today", label: "Vence Hoje", color: "border-warning/30 text-warning", activeColor: "bg-warning text-warning-foreground border-warning" },
+  { id: "on_track", label: "Em Dia", color: "border-primary/30 text-primary", activeColor: "bg-primary text-primary-foreground border-primary" },
 ];
 
 function formatCurrency(value: number): string {
@@ -41,8 +43,14 @@ function getNextDueDate(loan: Loan): Date {
   return start;
 }
 
-function getLoanCategory(loan: Loan): "paid" | "overdue" | "due_today" | "on_track" {
+function getLoanCategory(loan: Loan, payments: Payment[]): "paid" | "paid_interest" | "overdue" | "due_today" | "on_track" {
   if (loan.status === "paid") return "paid";
+  
+  // Check if the most recent payment was interest-only (installmentNumber === 0)
+  const loanPayments = payments.filter((p) => p.loanId === loan.id);
+  const lastPayment = loanPayments.sort((a, b) => b.date.localeCompare(a.date))[0];
+  if (lastPayment && lastPayment.installmentNumber === 0) return "paid_interest";
+
   const now = new Date();
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   const nextDue = getNextDueDate(loan);
@@ -53,10 +61,11 @@ function getLoanCategory(loan: Loan): "paid" | "overdue" | "due_today" | "on_tra
 }
 
 const statusMap = {
-  paid: { label: "Quitado", className: "bg-success/10 text-success border-success/20" },
+  paid: { label: "Pagou Total", className: "bg-success/10 text-success border-success/20" },
+  paid_interest: { label: "Pagou Juros", className: "bg-purple/10 text-purple border-purple/20" },
   overdue: { label: "Atrasado", className: "bg-destructive/10 text-destructive border-destructive/20" },
   due_today: { label: "Vence Hoje", className: "bg-warning/10 text-warning border-warning/20" },
-  on_track: { label: "Em Dia", className: "bg-success/10 text-success border-success/20" },
+  on_track: { label: "Em Dia", className: "bg-primary/10 text-primary border-primary/20" },
 };
 
 interface EditForm {
@@ -84,9 +93,10 @@ function loanToForm(loan: Loan): EditForm {
 }
 
 function LoanCardView({
-  loan, onPayment, onInterestPayment, onUpdate, onDelete,
+  loan, payments: loanPayments, onPayment, onInterestPayment, onUpdate, onDelete,
 }: {
   loan: Loan;
+  payments: Payment[];
   onPayment: () => void;
   onInterestPayment: () => void;
   onUpdate: (data: Partial<Omit<Loan, "id">>) => void;
@@ -101,7 +111,7 @@ function LoanCardView({
   const remaining = total - paid;
   const progress = loan.installments > 0 ? (loan.paidInstallments / loan.installments) * 100 : 0;
   const interestOnly = loan.amount * (loan.interestRate / 100);
-  const category = getLoanCategory(loan);
+  const category = getLoanCategory(loan, loanPayments);
   const nextDue = getNextDueDate(loan);
   const badge = statusMap[category];
 
@@ -248,9 +258,10 @@ function LoanCardView({
 }
 
 function LoanRowView({
-  loan, onPayment, onInterestPayment, onUpdate, onDelete,
+  loan, payments: loanPayments, onPayment, onInterestPayment, onUpdate, onDelete,
 }: {
   loan: Loan;
+  payments: Payment[];
   onPayment: () => void;
   onInterestPayment: () => void;
   onUpdate: (data: Partial<Omit<Loan, "id">>) => void;
@@ -264,7 +275,7 @@ function LoanRowView({
   const paid = loan.paidInstallments * installment;
   const remaining = total - paid;
   const progress = loan.installments > 0 ? (loan.paidInstallments / loan.installments) * 100 : 0;
-  const category = getLoanCategory(loan);
+  const category = getLoanCategory(loan, loanPayments);
   const badge = statusMap[category];
 
   const startEdit = () => { setForm(loanToForm(loan)); setEditing(true); };
@@ -353,7 +364,7 @@ function LoanRowView({
   );
 }
 
-export function LoanList({ loans, onPayment, onInterestPayment, onUpdate, onDelete }: Props) {
+export function LoanList({ loans, payments, onPayment, onInterestPayment, onUpdate, onDelete }: Props) {
   const [view, setView] = useState<"cards" | "rows">("cards");
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState<Category>("all");
@@ -361,25 +372,21 @@ export function LoanList({ loans, onPayment, onInterestPayment, onUpdate, onDele
   const categorized = useMemo(() => {
     const withSearch = loans.filter((l) => l.borrowerName.toLowerCase().includes(search.toLowerCase()));
     if (category === "all") return withSearch;
-    if (category === "open") return withSearch.filter((l) => l.status !== "paid");
-    const cat = withSearch.map((l) => ({ loan: l, cat: getLoanCategory(l) }));
-    if (category === "overdue") return cat.filter((c) => c.cat === "overdue").map((c) => c.loan);
-    if (category === "due_today") return cat.filter((c) => c.cat === "due_today").map((c) => c.loan);
-    if (category === "on_track") return cat.filter((c) => c.cat === "on_track").map((c) => c.loan);
-    return withSearch;
-  }, [loans, search, category]);
+    const cat = withSearch.map((l) => ({ loan: l, cat: getLoanCategory(l, payments) }));
+    return cat.filter((c) => c.cat === category).map((c) => c.loan);
+  }, [loans, payments, search, category]);
 
   const counts = useMemo(() => {
-    const active = loans.filter((l) => l.status !== "paid");
-    const cats = active.map((l) => getLoanCategory(l));
+    const cats = loans.map((l) => getLoanCategory(l, payments));
     return {
       all: loans.length,
-      open: active.length,
       overdue: cats.filter((c) => c === "overdue").length,
+      paid_interest: cats.filter((c) => c === "paid_interest").length,
+      paid: cats.filter((c) => c === "paid").length,
       due_today: cats.filter((c) => c === "due_today").length,
       on_track: cats.filter((c) => c === "on_track").length,
     };
-  }, [loans]);
+  }, [loans, payments]);
 
   if (loans.length === 0) {
     return (
@@ -401,9 +408,7 @@ export function LoanList({ loans, onPayment, onInterestPayment, onUpdate, onDele
             key={cat.id}
             onClick={() => setCategory(cat.id)}
             className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors border ${
-              category === cat.id
-                ? "bg-primary text-primary-foreground border-primary"
-                : "bg-card text-muted-foreground border-border hover:text-foreground hover:border-foreground/30"
+              category === cat.id ? cat.activeColor : `bg-card ${cat.color} hover:opacity-80`
             }`}
           >
             {cat.label} ({counts[cat.id]})
@@ -445,13 +450,13 @@ export function LoanList({ loans, onPayment, onInterestPayment, onUpdate, onDele
       ) : view === "cards" ? (
         <div className="space-y-3">
           {categorized.map((loan) => (
-            <LoanCardView key={loan.id} loan={loan} onPayment={() => onPayment(loan.id)} onInterestPayment={() => onInterestPayment(loan.id)} onUpdate={(data) => onUpdate(loan.id, data)} onDelete={() => onDelete(loan.id)} />
+            <LoanCardView key={loan.id} loan={loan} payments={payments} onPayment={() => onPayment(loan.id)} onInterestPayment={() => onInterestPayment(loan.id)} onUpdate={(data) => onUpdate(loan.id, data)} onDelete={() => onDelete(loan.id)} />
           ))}
         </div>
       ) : (
         <div className="space-y-2">
           {categorized.map((loan) => (
-            <LoanRowView key={loan.id} loan={loan} onPayment={() => onPayment(loan.id)} onInterestPayment={() => onInterestPayment(loan.id)} onUpdate={(data) => onUpdate(loan.id, data)} onDelete={() => onDelete(loan.id)} />
+            <LoanRowView key={loan.id} loan={loan} payments={payments} onPayment={() => onPayment(loan.id)} onInterestPayment={() => onInterestPayment(loan.id)} onUpdate={(data) => onUpdate(loan.id, data)} onDelete={() => onDelete(loan.id)} />
           ))}
         </div>
       )}
