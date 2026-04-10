@@ -160,7 +160,6 @@ const Index = () => {
         )}
         {tab === "dashboard" && (
           <>
-            <DashboardCards loans={loans} />
             <div>
               <h2 className="text-lg font-semibold text-foreground mb-4">Empréstimos</h2>
               <LoanList loans={loans} payments={payments} onPayment={addPayment} onPartialPayment={addPartialPayment} onInterestPayment={addInterestOnlyPayment} onUpdate={updateLoan} onDelete={deleteLoan} />
