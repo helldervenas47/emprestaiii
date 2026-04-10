@@ -92,12 +92,10 @@ function useAccountBalance(): [number, (v: number) => void] {
 export function DashboardOverview({ loans, sales, payments, expenses, onDeletePayment, onDeleteSale, onDeleteLoan }: Props) {
   const [period, setPeriod] = useState<Period>("month");
   const [offset, setOffset] = useState(0);
-  const [interestRate, setInterestRate] = useLocalStorage("hvcred_interest_rate", 10);
+  
   const [accountBalance, setAccountBalance] = useAccountBalance();
   const [editingBalance, setEditingBalance] = useState(false);
-  const [editingRate, setEditingRate] = useState(false);
   const [tempBalance, setTempBalance] = useState("");
-  const [tempRate, setTempRate] = useState("");
 
   const range = useMemo(() => getRange(period, offset), [period, offset]);
 
@@ -134,7 +132,12 @@ export function DashboardOverview({ loans, sales, payments, expenses, onDeletePa
     });
     transactions.sort((a, b) => b.date.localeCompare(a.date));
 
-    return { totalIncome, incomeFromPayments, incomeFromSales, totalOutgoing, totalLoanOutgoing, totalExpenses, balance, transactions, loanCount: filteredLoans.length, saleCount: filteredSales.length, paymentCount: filteredPayments.length, expenseCount: filteredExpenses.length };
+    // Average interest rate of loans in the period
+    const avgInterestRate = filteredLoans.length > 0
+      ? filteredLoans.reduce((s, l) => s + l.interestRate, 0) / filteredLoans.length
+      : 0;
+
+    return { totalIncome, incomeFromPayments, incomeFromSales, totalOutgoing, totalLoanOutgoing, totalExpenses, balance, transactions, loanCount: filteredLoans.length, saleCount: filteredSales.length, paymentCount: filteredPayments.length, expenseCount: filteredExpenses.length, avgInterestRate };
   }, [loans, sales, payments, expenses, range]);
 
   // Portfolio metrics (global)
@@ -238,9 +241,6 @@ export function DashboardOverview({ loans, sales, payments, expenses, onDeletePa
   const saveBalance = () => { setAccountBalance(parseFloat(tempBalance) || 0); setEditingBalance(false); };
   const cancelEditBalance = () => setEditingBalance(false);
 
-  const startEditRate = () => { setTempRate(String(interestRate)); setEditingRate(true); };
-  const saveRate = () => { setInterestRate(parseFloat(tempRate) || 0); setEditingRate(false); };
-  const cancelEditRate = () => setEditingRate(false);
 
   const healthColor = portfolio.score >= 70 ? "text-success" : portfolio.score >= 40 ? "text-warning" : "text-destructive";
   const healthBg = portfolio.score >= 70 ? "from-success/20 to-success/5" : portfolio.score >= 40 ? "from-warning/20 to-warning/5" : "from-destructive/20 to-destructive/5";
@@ -301,31 +301,15 @@ export function DashboardOverview({ loans, sales, payments, expenses, onDeletePa
         </Card>
 
         <Card>
-          <CardContent className="p-4 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-full bg-warning/10 flex items-center justify-center">
-                <Percent className="h-5 w-5 text-warning" />
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground">Taxa de Juros Mensal</p>
-                {editingRate ? (
-                  <div className="flex items-center gap-1 mt-0.5">
-                    <Input type="number" value={tempRate} onChange={(e) => setTempRate(e.target.value)}
-                      className="h-7 w-24 text-sm" onKeyDown={(e) => e.key === "Enter" && saveRate()} autoFocus />
-                    <span className="text-sm text-muted-foreground">%</span>
-                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={saveRate}><Check className="h-3.5 w-3.5 text-success" /></Button>
-                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={cancelEditRate}><X className="h-3.5 w-3.5 text-destructive" /></Button>
-                  </div>
-                ) : (
-                  <p className="text-lg font-bold text-foreground">{interestRate}%</p>
-                )}
-              </div>
+          <CardContent className="p-4 flex items-center gap-3">
+            <div className="h-10 w-10 rounded-full bg-warning/10 flex items-center justify-center">
+              <Percent className="h-5 w-5 text-warning" />
             </div>
-            {!editingRate && (
-              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={startEditRate}>
-                <Pencil className="h-4 w-4 text-muted-foreground" />
-              </Button>
-            )}
+            <div>
+              <p className="text-xs text-muted-foreground">Taxa de Juros Mensal (Média)</p>
+              <p className="text-lg font-bold text-foreground">{data.avgInterestRate.toFixed(1)}%</p>
+              <p className="text-xs text-muted-foreground">{data.loanCount} empréstimo(s) no período</p>
+            </div>
           </CardContent>
         </Card>
       </div>
