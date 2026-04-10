@@ -1,219 +1,229 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { Loan, Payment } from "@/types/loan";
 import { adjustBalance } from "@/lib/balance";
-
-const LOANS_KEY = "loans_data";
-const PAYMENTS_KEY = "payments_data";
-
-function loadFromStorage<T>(key: string, fallback: T[]): T[] {
-  try {
-    const data = localStorage.getItem(key);
-    return data ? JSON.parse(data) : fallback;
-  } catch {
-    return fallback;
-  }
-}
-
-function saveToStorage<T>(key: string, data: T[]) {
-  localStorage.setItem(key, JSON.stringify(data));
-}
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "./useAuth";
 
 export function useLoans() {
-  const [loans, setLoans] = useState<Loan[]>(() => loadFromStorage<Loan>(LOANS_KEY, []));
-  const [payments, setPayments] = useState<Payment[]>(() => loadFromStorage<Payment>(PAYMENTS_KEY, []));
+  const { user } = useAuth();
+  const [loans, setLoans] = useState<Loan[]>([]);
+  const [payments, setPayments] = useState<Payment[]>([]);
 
-  const addLoan = useCallback((loan: Omit<Loan, "id"> & { status?: string; paidInstallments?: number }) => {
-    const newLoan: Loan = {
-      ...loan,
-      id: crypto.randomUUID(),
-      status: (loan.status as Loan["status"]) || "active",
-      paidInstallments: loan.paidInstallments ?? 0,
-      interestType: loan.interestType || "Mensal",
-      paymentType: loan.paymentType || "Parcelado",
-      createdAt: loan.createdAt || new Date().toISOString(),
-    };
-    setLoans((prev) => {
-      const updated = [...prev, newLoan];
-      saveToStorage(LOANS_KEY, updated);
-      return updated;
-    });
-    // Loan given = money out (only for active loans)
-    // For paid loans (e.g. imported), credit the total with interest as income
-    if (newLoan.status === "paid") {
-      const totalReceived = calculateTotalWithInterest(newLoan.amount, newLoan.interestRate, newLoan.installments);
-      adjustBalance(totalReceived - newLoan.amount);
-    } else {
-      adjustBalance(-loan.amount);
+  const fetchLoans = useCallback(async () => {
+    if (!user) return;
+    const { data } = await supabase
+      .from("loans")
+      .select("*")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false });
+
+    if (data) {
+      setLoans(data.map((l: any) => ({
+        id: l.id,
+        borrowerName: l.borrower_name,
+        borrowerId: l.borrower_id,
+        amount: Number(l.amount),
+        interestRate: Number(l.interest_rate),
+        interestType: l.interest_type,
+        paymentType: l.payment_type,
+        startDate: l.start_date,
+        dueDate: l.due_date,
+        installments: l.installments,
+        paidInstallments: l.paid_installments,
+        status: l.status as Loan["status"],
+        tags: l.tags,
+        notes: l.notes,
+        createdAt: l.created_at,
+      })));
     }
-  }, []);
+  }, [user]);
 
-  const addPayment = useCallback((loanId: string, paymentDate?: string) => {
+  const fetchPayments = useCallback(async () => {
+    if (!user) return;
+    const { data } = await supabase
+      .from("payments")
+      .select("*")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false });
+
+    if (data) {
+      setPayments(data.map((p: any) => ({
+        id: p.id,
+        loanId: p.loan_id,
+        amount: Number(p.amount),
+        date: p.date,
+        installmentNumber: p.installment_number,
+        previousDueDate: p.previous_due_date,
+      })));
+    }
+  }, [user]);
+
+  useEffect(() => { fetchLoans(); fetchPayments(); }, [fetchLoans, fetchPayments]);
+
+  const addLoan = useCallback(async (loan: Omit<Loan, "id"> & { status?: string; paidInstallments?: number }) => {
+    if (!user) return;
+    const status = (loan.status as Loan["status"]) || "active";
+    const { data, error } = await supabase.from("loans").insert({
+      user_id: user.id,
+      borrower_name: loan.borrowerName,
+      borrower_id: loan.borrowerId,
+      amount: loan.amount,
+      interest_rate: loan.interestRate,
+      interest_type: loan.interestType || "Mensal",
+      payment_type: loan.paymentType || "Parcelado",
+      start_date: loan.startDate,
+      due_date: loan.dueDate,
+      installments: loan.installments,
+      paid_installments: loan.paidInstallments ?? 0,
+      status,
+      tags: loan.tags,
+      notes: loan.notes,
+    }).select().single();
+
+    if (!error && data) {
+      if (status === "paid") {
+        const totalReceived = calculateTotalWithInterest(loan.amount, loan.interestRate, loan.installments);
+        await adjustBalance(totalReceived - loan.amount);
+      } else {
+        await adjustBalance(-loan.amount);
+      }
+      fetchLoans();
+    }
+  }, [user, fetchLoans]);
+
+  const addPayment = useCallback(async (loanId: string, paymentDate?: string) => {
+    if (!user) return;
     const dateStr = paymentDate || new Date().toISOString().split("T")[0];
-    setLoans((prev) => {
-      const updated = prev.map((loan) => {
-        if (loan.id !== loanId) return loan;
-        const newPaid = loan.paidInstallments + 1;
-        return {
-          ...loan,
-          paidInstallments: newPaid,
-          status: newPaid >= loan.installments ? "paid" as const : loan.status,
-        };
-      });
-      saveToStorage(LOANS_KEY, updated);
-      return updated;
+    const loan = loans.find((l) => l.id === loanId);
+    if (!loan) return;
+
+    const installmentAmount = calculateInstallment(loan.amount, loan.interestRate, loan.installments);
+    const newPaid = loan.paidInstallments + 1;
+
+    await supabase.from("payments").insert({
+      user_id: user.id,
+      loan_id: loanId,
+      amount: installmentAmount,
+      date: dateStr,
+      installment_number: newPaid,
     });
 
-    const loan = loans.find((l) => l.id === loanId);
-    if (loan) {
-      const installmentAmount = calculateInstallment(loan.amount, loan.interestRate, loan.installments);
-      const newPayment: Payment = {
-        id: crypto.randomUUID(),
-        loanId,
-        amount: installmentAmount,
-        date: dateStr,
-        installmentNumber: loan.paidInstallments + 1,
-      };
-      setPayments((prev) => {
-        const updated = [...prev, newPayment];
-        saveToStorage(PAYMENTS_KEY, updated);
-        return updated;
-      });
-      // Payment received = money in
-      adjustBalance(installmentAmount);
-    }
-  }, [loans]);
-  const addPartialPayment = useCallback((loanId: string, amount: number, paymentDate?: string) => {
-    const loan = loans.find((l) => l.id === loanId);
-    if (!loan || amount <= 0) return;
+    await supabase.from("loans").update({
+      paid_installments: newPaid,
+      status: newPaid >= loan.installments ? "paid" : loan.status,
+    }).eq("id", loanId);
+
+    await adjustBalance(installmentAmount);
+    fetchLoans();
+    fetchPayments();
+  }, [user, loans, fetchLoans, fetchPayments]);
+
+  const addPartialPayment = useCallback(async (loanId: string, amount: number, paymentDate?: string) => {
+    if (!user || amount <= 0) return;
     const dateStr = paymentDate || new Date().toISOString().split("T")[0];
 
-    const newPayment: Payment = {
-      id: crypto.randomUUID(),
-      loanId,
+    await supabase.from("payments").insert({
+      user_id: user.id,
+      loan_id: loanId,
       amount,
       date: dateStr,
-      installmentNumber: -1, // marks as partial
-    };
-    setPayments((prev) => {
-      const updated = [...prev, newPayment];
-      saveToStorage(PAYMENTS_KEY, updated);
-      return updated;
+      installment_number: -1,
     });
-    adjustBalance(amount);
-  }, [loans]);
 
-  const addInterestOnlyPayment = useCallback((loanId: string, paymentDate?: string) => {
+    await adjustBalance(amount);
+    fetchPayments();
+  }, [user, fetchPayments]);
+
+  const addInterestOnlyPayment = useCallback(async (loanId: string, paymentDate?: string) => {
+    if (!user) return;
     const loan = loans.find((l) => l.id === loanId);
     if (!loan) return;
     const dateStr = paymentDate || new Date().toISOString().split("T")[0];
-
     const interestAmount = loan.amount * (loan.interestRate / 100);
 
-    const newPayment: Payment = {
-      id: crypto.randomUUID(),
-      loanId,
+    await supabase.from("payments").insert({
+      user_id: user.id,
+      loan_id: loanId,
       amount: interestAmount,
       date: dateStr,
-      installmentNumber: 0,
-      previousDueDate: loan.dueDate,
-    };
-    setPayments((prev) => {
-      const updated = [...prev, newPayment];
-      saveToStorage(PAYMENTS_KEY, updated);
-      return updated;
+      installment_number: 0,
+      previous_due_date: loan.dueDate,
     });
 
-    // Extend dueDate by 1 month (never change startDate)
-    setLoans((prev) => {
-      const updated = prev.map((l) => {
-        if (l.id !== loanId) return l;
-        const currentDue = new Date(l.dueDate + "T00:00:00");
-        currentDue.setMonth(currentDue.getMonth() + 1);
-        return {
-          ...l,
-          dueDate: currentDue.toISOString().split("T")[0],
-        };
-      });
-      saveToStorage(LOANS_KEY, updated);
-      return updated;
-    });
+    const currentDue = new Date(loan.dueDate + "T00:00:00");
+    currentDue.setMonth(currentDue.getMonth() + 1);
 
-    // Interest received = money in
-    adjustBalance(interestAmount);
-  }, [loans]);
+    await supabase.from("loans").update({
+      due_date: currentDue.toISOString().split("T")[0],
+    }).eq("id", loanId);
 
-  const updateLoan = useCallback((id: string, data: Partial<Omit<Loan, "id">>) => {
-    setLoans((prev) => {
-      const updated = prev.map((l) => (l.id === id ? { ...l, ...data } : l));
-      saveToStorage(LOANS_KEY, updated);
-      return updated;
-    });
-  }, []);
+    await adjustBalance(interestAmount);
+    fetchLoans();
+    fetchPayments();
+  }, [user, loans, fetchLoans, fetchPayments]);
 
-  const deleteLoan = useCallback((id: string) => {
-    // Reverse the balance impact: loan amount was subtracted, add it back
+  const updateLoan = useCallback(async (id: string, data: Partial<Omit<Loan, "id">>) => {
+    const updateData: any = {};
+    if (data.borrowerName !== undefined) updateData.borrower_name = data.borrowerName;
+    if (data.borrowerId !== undefined) updateData.borrower_id = data.borrowerId;
+    if (data.amount !== undefined) updateData.amount = data.amount;
+    if (data.interestRate !== undefined) updateData.interest_rate = data.interestRate;
+    if (data.interestType !== undefined) updateData.interest_type = data.interestType;
+    if (data.paymentType !== undefined) updateData.payment_type = data.paymentType;
+    if (data.startDate !== undefined) updateData.start_date = data.startDate;
+    if (data.dueDate !== undefined) updateData.due_date = data.dueDate;
+    if (data.installments !== undefined) updateData.installments = data.installments;
+    if (data.paidInstallments !== undefined) updateData.paid_installments = data.paidInstallments;
+    if (data.status !== undefined) updateData.status = data.status;
+    if (data.tags !== undefined) updateData.tags = data.tags;
+    if (data.notes !== undefined) updateData.notes = data.notes;
+
+    await supabase.from("loans").update(updateData).eq("id", id);
+    fetchLoans();
+  }, [fetchLoans]);
+
+  const deleteLoan = useCallback(async (id: string) => {
     const loan = loans.find((l) => l.id === id);
     if (loan) {
-      adjustBalance(loan.amount);
+      await adjustBalance(loan.amount);
     }
-    // Also reverse all payments for this loan
     const loanPayments = payments.filter((p) => p.loanId === id);
-    loanPayments.forEach((p) => adjustBalance(-p.amount));
+    for (const p of loanPayments) {
+      await adjustBalance(-p.amount);
+    }
 
-    setLoans((prev) => {
-      const updated = prev.filter((l) => l.id !== id);
-      saveToStorage(LOANS_KEY, updated);
-      return updated;
-    });
-    setPayments((prev) => {
-      const updated = prev.filter((p) => p.loanId !== id);
-      saveToStorage(PAYMENTS_KEY, updated);
-      return updated;
-    });
-  }, [loans, payments]);
+    await supabase.from("loans").delete().eq("id", id);
+    fetchLoans();
+    fetchPayments();
+  }, [loans, payments, fetchLoans, fetchPayments]);
 
-  const deletePayment = useCallback((id: string) => {
+  const deletePayment = useCallback(async (id: string) => {
     const payment = payments.find((p) => p.id === id);
     if (!payment) return;
 
-    // Reverse balance
-    adjustBalance(-payment.amount);
+    await adjustBalance(-payment.amount);
 
-    // If it was a regular installment payment (not interest-only), decrement paidInstallments
     if (payment.installmentNumber > 0) {
-      setLoans((prev) => {
-        const updated = prev.map((l) => {
-          if (l.id !== payment.loanId) return l;
-          const newPaid = Math.max(0, l.paidInstallments - 1);
-          return {
-            ...l,
-            paidInstallments: newPaid,
-            status: newPaid < l.installments ? "active" as const : l.status,
-          };
-        });
-        saveToStorage(LOANS_KEY, updated);
-        return updated;
-      });
+      const loan = loans.find((l) => l.id === payment.loanId);
+      if (loan) {
+        const newPaid = Math.max(0, loan.paidInstallments - 1);
+        await supabase.from("loans").update({
+          paid_installments: newPaid,
+          status: newPaid < loan.installments ? "active" : loan.status,
+        }).eq("id", payment.loanId);
+      }
     }
 
-    // If it was an interest-only payment, revert dueDate
     if (payment.installmentNumber === 0 && payment.previousDueDate) {
-      setLoans((prev) => {
-        const updated = prev.map((l) => {
-          if (l.id !== payment.loanId) return l;
-          return { ...l, dueDate: payment.previousDueDate! };
-        });
-        saveToStorage(LOANS_KEY, updated);
-        return updated;
-      });
+      await supabase.from("loans").update({
+        due_date: payment.previousDueDate,
+      }).eq("id", payment.loanId);
     }
 
-    setPayments((prev) => {
-      const updated = prev.filter((p) => p.id !== id);
-      saveToStorage(PAYMENTS_KEY, updated);
-      return updated;
-    });
-  }, [payments]);
+    await supabase.from("payments").delete().eq("id", id);
+    fetchLoans();
+    fetchPayments();
+  }, [payments, loans, fetchLoans, fetchPayments]);
 
   return { loans, payments, addLoan, addPayment, addPartialPayment, addInterestOnlyPayment, updateLoan, deleteLoan, deletePayment };
 }

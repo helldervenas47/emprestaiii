@@ -1,52 +1,84 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { Client } from "@/types/loan";
-
-const CLIENTS_KEY = "clients_data";
-
-function loadFromStorage<T>(key: string, fallback: T[]): T[] {
-  try {
-    const data = localStorage.getItem(key);
-    return data ? JSON.parse(data) : fallback;
-  } catch {
-    return fallback;
-  }
-}
-
-function saveToStorage<T>(key: string, data: T[]) {
-  localStorage.setItem(key, JSON.stringify(data));
-}
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "./useAuth";
 
 export function useClients() {
-  const [clients, setClients] = useState<Client[]>(() => loadFromStorage<Client>(CLIENTS_KEY, []));
+  const { user } = useAuth();
+  const [clients, setClients] = useState<Client[]>([]);
 
-  const addClient = useCallback((client: Omit<Client, "id" | "createdAt">) => {
-    const newClient: Client = {
-      ...client,
-      id: crypto.randomUUID(),
-      createdAt: new Date().toISOString(),
-    };
-    setClients((prev) => {
-      const updated = [...prev, newClient];
-      saveToStorage(CLIENTS_KEY, updated);
-      return updated;
-    });
-  }, []);
+  const fetchClients = useCallback(async () => {
+    if (!user) return;
+    const { data } = await supabase
+      .from("clients")
+      .select("*")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false });
 
-  const deleteClient = useCallback((id: string) => {
-    setClients((prev) => {
-      const updated = prev.filter((c) => c.id !== id);
-      saveToStorage(CLIENTS_KEY, updated);
-      return updated;
-    });
-  }, []);
+    if (data) {
+      setClients(data.map((c: any) => ({
+        id: c.id,
+        name: c.name,
+        phone: c.phone,
+        email: c.email,
+        cpf: c.cpf,
+        cnpj: c.cnpj,
+        rg: c.rg,
+        address: c.address,
+        city: c.city,
+        state: c.state,
+        score: c.score,
+        notes: c.notes,
+        active: c.active,
+        createdAt: c.created_at,
+      })));
+    }
+  }, [user]);
 
-  const updateClient = useCallback((id: string, data: Partial<Omit<Client, "id" | "createdAt">>) => {
-    setClients((prev) => {
-      const updated = prev.map((c) => (c.id === id ? { ...c, ...data } : c));
-      saveToStorage(CLIENTS_KEY, updated);
-      return updated;
+  useEffect(() => { fetchClients(); }, [fetchClients]);
+
+  const addClient = useCallback(async (client: Omit<Client, "id" | "createdAt">) => {
+    if (!user) return;
+    const { error } = await supabase.from("clients").insert({
+      user_id: user.id,
+      name: client.name,
+      phone: client.phone,
+      email: client.email,
+      cpf: client.cpf,
+      cnpj: client.cnpj,
+      rg: client.rg,
+      address: client.address,
+      city: client.city,
+      state: client.state,
+      score: client.score,
+      notes: client.notes,
+      active: client.active,
     });
-  }, []);
+    if (!error) fetchClients();
+  }, [user, fetchClients]);
+
+  const deleteClient = useCallback(async (id: string) => {
+    await supabase.from("clients").delete().eq("id", id);
+    fetchClients();
+  }, [fetchClients]);
+
+  const updateClient = useCallback(async (id: string, data: Partial<Omit<Client, "id" | "createdAt">>) => {
+    await supabase.from("clients").update({
+      name: data.name,
+      phone: data.phone,
+      email: data.email,
+      cpf: data.cpf,
+      cnpj: data.cnpj,
+      rg: data.rg,
+      address: data.address,
+      city: data.city,
+      state: data.state,
+      score: data.score,
+      notes: data.notes,
+      active: data.active,
+    }).eq("id", id);
+    fetchClients();
+  }, [fetchClients]);
 
   return { clients, addClient, deleteClient, updateClient };
 }
