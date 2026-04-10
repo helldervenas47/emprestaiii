@@ -24,6 +24,7 @@ export function ExpenseForm({ onAdd, onClose }: Props) {
     amount: "",
     type: "fixa" as "fixa" | "recorrente",
     category: "",
+    installments: "1",
     dueDate: new Date().toISOString().split("T")[0],
     notes: "",
   });
@@ -36,6 +37,8 @@ export function ExpenseForm({ onAdd, onClose }: Props) {
       amount: parseFloat(form.amount) || 0,
       type: form.type,
       category: form.category,
+      installments: form.type === "recorrente" ? parseInt(form.installments) || 1 : undefined,
+      paidInstallments: form.type === "recorrente" ? 0 : undefined,
       dueDate: form.dueDate,
       notes: form.notes,
     });
@@ -92,6 +95,19 @@ export function ExpenseForm({ onAdd, onClose }: Props) {
                 </Select>
               </div>
             </div>
+            {form.type === "recorrente" && (
+              <div>
+                <Label htmlFor="installments">Parcelas</Label>
+                <Input
+                  id="installments"
+                  type="number"
+                  min="1"
+                  value={form.installments}
+                  onChange={(e) => update("installments", e.target.value)}
+                  placeholder="12"
+                />
+              </div>
+            )}
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label>Categoria</Label>

@@ -68,6 +68,8 @@ export interface Expense {
   amount: number;
   type: "fixa" | "recorrente";
   category: string;
+  installments?: number;
+  paidInstallments?: number;
   dueDate: string;
   paid: boolean;
   paidDate?: string;
