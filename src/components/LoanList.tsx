@@ -189,6 +189,11 @@ function LoanCardView({
                 {loan.status !== "paid" && (
                   <span>→ Venc.: {new Date(loan.dueDate + "T00:00:00").toLocaleDateString("pt-BR")}</span>
                 )}
+                {daysOverdue > 0 && loan.status !== "paid" && (
+                  <Badge variant="outline" className="bg-destructive/10 text-destructive border-destructive/20 text-xs ml-1">
+                    {daysOverdue} dia{daysOverdue > 1 ? "s" : ""} atrasado
+                  </Badge>
+                )}
               </div>
             </div>
           </div>
