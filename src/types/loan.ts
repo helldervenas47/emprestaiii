@@ -21,6 +21,7 @@ export interface Payment {
   amount: number;
   date: string;
   installmentNumber: number;
+  previousDueDate?: string;
 }
 
 export interface Client {

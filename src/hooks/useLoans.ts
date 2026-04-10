@@ -88,6 +88,7 @@ export function useLoans() {
       amount: interestAmount,
       date: new Date().toISOString().split("T")[0],
       installmentNumber: 0,
+      previousDueDate: loan.dueDate,
     };
     setPayments((prev) => {
       const updated = [...prev, newPayment];
@@ -162,6 +163,18 @@ export function useLoans() {
             paidInstallments: newPaid,
             status: newPaid < l.installments ? "active" as const : l.status,
           };
+        });
+        saveToStorage(LOANS_KEY, updated);
+        return updated;
+      });
+    }
+
+    // If it was an interest-only payment, revert dueDate
+    if (payment.installmentNumber === 0 && payment.previousDueDate) {
+      setLoans((prev) => {
+        const updated = prev.map((l) => {
+          if (l.id !== payment.loanId) return l;
+          return { ...l, dueDate: payment.previousDueDate! };
         });
         saveToStorage(LOANS_KEY, updated);
         return updated;
