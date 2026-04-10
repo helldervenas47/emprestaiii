@@ -25,7 +25,7 @@ export function ClientForm({ onAdd, onClose }: Props) {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.name) return;
-    onAdd(form);
+    onAdd({ ...form, active: true });
     onClose();
   };
 

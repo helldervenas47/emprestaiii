@@ -21,7 +21,7 @@ type Tab = "dashboard" | "clients";
 
 const Index = () => {
   const { loans, addLoan, addPayment, deleteLoan } = useLoans();
-  const { clients, addClient, deleteClient } = useClients();
+  const { clients, addClient, deleteClient, updateClient } = useClients();
   const [showLoanForm, setShowLoanForm] = useState(false);
   const [showClientForm, setShowClientForm] = useState(false);
   const [tab, setTab] = useState<Tab>("dashboard");
@@ -148,7 +148,7 @@ const Index = () => {
             <h2 className="text-lg font-semibold text-foreground mb-4">
               Clientes ({clients.length})
             </h2>
-            <ClientList clients={clients} onDelete={deleteClient} />
+            <ClientList clients={clients} onDelete={deleteClient} onUpdate={updateClient} />
           </div>
         )}
       </main>
