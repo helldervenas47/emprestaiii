@@ -1,4 +1,5 @@
 import { useMemo, useState, useEffect } from "react";
+import { Switch } from "@/components/ui/switch";
 import { Loan, Sale, Payment, Expense } from "@/types/loan";
 import { calculateInstallment, calculateTotalWithInterest } from "@/hooks/useLoans";
 import { Card, CardContent } from "@/components/ui/card";
@@ -96,6 +97,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, onDeletePa
   const [accountBalance, setAccountBalance] = useAccountBalance();
   const [editingBalance, setEditingBalance] = useState(false);
   const [tempBalance, setTempBalance] = useState("");
+  const [includeSales, setIncludeSales] = useState(false);
 
   const range = useMemo(() => getRange(period, offset), [period, offset]);
 
