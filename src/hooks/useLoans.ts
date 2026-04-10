@@ -22,12 +22,12 @@ export function useLoans() {
   const [loans, setLoans] = useState<Loan[]>(() => loadFromStorage<Loan>(LOANS_KEY, []));
   const [payments, setPayments] = useState<Payment[]>(() => loadFromStorage<Payment>(PAYMENTS_KEY, []));
 
-  const addLoan = useCallback((loan: Omit<Loan, "id" | "status" | "paidInstallments">) => {
+  const addLoan = useCallback((loan: Omit<Loan, "id"> & { status?: string; paidInstallments?: number }) => {
     const newLoan: Loan = {
       ...loan,
       id: crypto.randomUUID(),
-      status: "active",
-      paidInstallments: 0,
+      status: (loan.status as Loan["status"]) || "active",
+      paidInstallments: loan.paidInstallments ?? 0,
       interestType: loan.interestType || "Mensal",
       paymentType: loan.paymentType || "Parcelado",
       createdAt: loan.createdAt || new Date().toISOString(),
@@ -37,8 +37,10 @@ export function useLoans() {
       saveToStorage(LOANS_KEY, updated);
       return updated;
     });
-    // Loan given = money out
-    adjustBalance(-loan.amount);
+    // Loan given = money out (only for active loans)
+    if (newLoan.status !== "paid") {
+      adjustBalance(-loan.amount);
+    }
   }, []);
 
   const addPayment = useCallback((loanId: string) => {
