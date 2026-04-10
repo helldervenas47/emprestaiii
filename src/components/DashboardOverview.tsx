@@ -136,17 +136,48 @@ export function DashboardOverview({ loans, sales, payments, expenses, onDeletePa
     return { totalIncome, incomeFromPayments, incomeFromSales, totalOutgoing, totalLoanOutgoing, totalExpenses, balance, transactions, loanCount: filteredLoans.length, saleCount: filteredSales.length, paymentCount: filteredPayments.length, expenseCount: filteredExpenses.length };
   }, [loans, sales, payments, expenses, range]);
 
-  // Health score computation (global, not period-filtered)
-  const health = useMemo(() => {
+  // Portfolio metrics (global)
+  const portfolio = useMemo(() => {
     const activeLoans = loans.filter((l) => l.status !== "paid");
-    const paidLoans = loans.filter((l) => l.status === "paid");
     const totalLoans = loans.length;
 
-    // Total expected from all loans
+    // Total principal lent (capital na rua = principal of active loans)
+    const capitalOnStreet = activeLoans.reduce((s, l) => s + l.amount, 0);
+    // Total expected (principal + interest) from all loans
     const totalExpected = loans.reduce((s, l) => s + calculateTotalWithInterest(l.amount, l.interestRate, l.installments), 0);
+    const totalPrincipal = loans.reduce((s, l) => s + l.amount, 0);
+    const totalInterestExpected = totalExpected - totalPrincipal;
+
     // Total received
     const totalReceived = payments.reduce((s, p) => s + p.amount, 0);
-    // Overdue loans
+
+    // Split received into principal vs interest per loan
+    let principalReceived = 0;
+    let interestReceived = 0;
+    loans.forEach((l) => {
+      const loanPayments = payments.filter((p) => p.loanId === l.id);
+      const installmentAmount = calculateInstallment(l.amount, l.interestRate, l.installments);
+      const principalPerInstallment = l.installments > 0 ? l.amount / l.installments : 0;
+      loanPayments.forEach((p) => {
+        if (p.installmentNumber === 0) {
+          // Interest-only payment
+          interestReceived += p.amount;
+        } else if (p.installmentNumber > 0) {
+          // Regular installment: split into principal and interest
+          principalReceived += principalPerInstallment;
+          interestReceived += installmentAmount - principalPerInstallment;
+        } else {
+          // Partial payment (-1): count as principal
+          principalReceived += p.amount;
+        }
+      });
+    });
+
+    const principalToReceive = Math.max(0, totalPrincipal - principalReceived);
+    const interestToReceive = Math.max(0, totalInterestExpected - interestReceived);
+    const totalToReceive = Math.max(0, totalExpected - totalReceived);
+
+    // Overdue
     const today = new Date().toISOString().split("T")[0];
     const overdueLoans = activeLoans.filter((l) => l.dueDate < today);
     const overdueAmount = overdueLoans.reduce((s, l) => {
@@ -154,15 +185,13 @@ export function DashboardOverview({ loans, sales, payments, expenses, onDeletePa
       const paid = payments.filter((p) => p.loanId === l.id).reduce((ss, p) => ss + p.amount, 0);
       return s + Math.max(0, expected - paid);
     }, 0);
-    // Total lent
-    const totalLent = loans.reduce((s, l) => s + l.amount, 0);
 
     // Rates
     const receivingRate = totalExpected > 0 ? (totalReceived / totalExpected) * 100 : 0;
     const defaultRate = totalLoans > 0 ? (overdueLoans.length / totalLoans) * 100 : 0;
-    const profitMargin = totalLent > 0 ? ((totalReceived - totalLent) / totalLent) * 100 : 0;
+    const profitMargin = totalPrincipal > 0 ? ((totalReceived - totalPrincipal) / totalPrincipal) * 100 : 0;
 
-    // Health score: weighted average
+    // Health score
     const receivingScore = Math.min(100, receivingRate);
     const defaultScore = Math.max(0, 100 - defaultRate * 2);
     const profitScore = Math.min(100, Math.max(0, 50 + profitMargin));
@@ -174,6 +203,12 @@ export function DashboardOverview({ loans, sales, payments, expenses, onDeletePa
       defaultRate,
       totalReceived,
       overdueAmount,
+      capitalOnStreet,
+      totalToReceive,
+      principalReceived,
+      interestReceived,
+      principalToReceive,
+      interestToReceive,
     };
   }, [loans, payments]);
 
