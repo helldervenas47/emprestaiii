@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { Loan } from "@/types/loan";
+import { Loan, Payment } from "@/types/loan";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -15,20 +15,22 @@ import {
 
 interface Props {
   loans: Loan[];
+  payments: Payment[];
   onPayment: (loanId: string) => void;
   onInterestPayment: (loanId: string) => void;
   onUpdate: (id: string, data: Partial<Omit<Loan, "id">>) => void;
   onDelete: (loanId: string) => void;
 }
 
-type Category = "all" | "open" | "overdue" | "due_today" | "on_track";
+type Category = "all" | "overdue" | "paid_interest" | "paid" | "due_today" | "on_track";
 
-const categoryConfig: { id: Category; label: string }[] = [
-  { id: "all", label: "Todos" },
-  { id: "open", label: "Em Aberto" },
-  { id: "overdue", label: "Atrasados" },
-  { id: "due_today", label: "Vence Hoje" },
-  { id: "on_track", label: "Em Dia" },
+const categoryConfig: { id: Category; label: string; color: string; activeColor: string }[] = [
+  { id: "all", label: "Todos", color: "border-border text-muted-foreground", activeColor: "bg-primary text-primary-foreground border-primary" },
+  { id: "overdue", label: "Atrasados", color: "border-destructive/30 text-destructive", activeColor: "bg-destructive text-destructive-foreground border-destructive" },
+  { id: "paid_interest", label: "Pagou Juros", color: "border-purple/30 text-purple", activeColor: "bg-purple text-purple-foreground border-purple" },
+  { id: "paid", label: "Pagou Total", color: "border-success/30 text-success", activeColor: "bg-success text-success-foreground border-success" },
+  { id: "due_today", label: "Vence Hoje", color: "border-warning/30 text-warning", activeColor: "bg-warning text-warning-foreground border-warning" },
+  { id: "on_track", label: "Em Dia", color: "border-primary/30 text-primary", activeColor: "bg-primary text-primary-foreground border-primary" },
 ];
 
 function formatCurrency(value: number): string {
