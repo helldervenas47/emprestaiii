@@ -1,5 +1,6 @@
 import { useState, useCallback } from "react";
 import { Loan, Payment } from "@/types/loan";
+import { adjustBalance } from "@/lib/balance";
 
 const LOANS_KEY = "loans_data";
 const PAYMENTS_KEY = "payments_data";
@@ -33,6 +34,8 @@ export function useLoans() {
       saveToStorage(LOANS_KEY, updated);
       return updated;
     });
+    // Loan given = money out
+    adjustBalance(-loan.amount);
   }, []);
 
   const addPayment = useCallback((loanId: string) => {
@@ -65,6 +68,8 @@ export function useLoans() {
         saveToStorage(PAYMENTS_KEY, updated);
         return updated;
       });
+      // Payment received = money in
+      adjustBalance(installmentAmount);
     }
   }, [loans]);
 
@@ -74,13 +79,12 @@ export function useLoans() {
 
     const interestAmount = loan.amount * (loan.interestRate / 100);
 
-    // Record the interest-only payment
     const newPayment: Payment = {
       id: crypto.randomUUID(),
       loanId,
       amount: interestAmount,
       date: new Date().toISOString().split("T")[0],
-      installmentNumber: 0, // 0 indicates interest-only
+      installmentNumber: 0,
     };
     setPayments((prev) => {
       const updated = [...prev, newPayment];
@@ -88,7 +92,6 @@ export function useLoans() {
       return updated;
     });
 
-    // Recalculate: extend startDate by 1 month, recalculate dueDate
     setLoans((prev) => {
       const updated = prev.map((l) => {
         if (l.id !== loanId) return l;
@@ -106,6 +109,9 @@ export function useLoans() {
       saveToStorage(LOANS_KEY, updated);
       return updated;
     });
+
+    // Interest received = money in
+    adjustBalance(interestAmount);
   }, [loans]);
 
   const updateLoan = useCallback((id: string, data: Partial<Omit<Loan, "id">>) => {
@@ -117,6 +123,15 @@ export function useLoans() {
   }, []);
 
   const deleteLoan = useCallback((id: string) => {
+    // Reverse the balance impact: loan amount was subtracted, add it back
+    const loan = loans.find((l) => l.id === id);
+    if (loan) {
+      adjustBalance(loan.amount);
+    }
+    // Also reverse all payments for this loan
+    const loanPayments = payments.filter((p) => p.loanId === id);
+    loanPayments.forEach((p) => adjustBalance(-p.amount));
+
     setLoans((prev) => {
       const updated = prev.filter((l) => l.id !== id);
       saveToStorage(LOANS_KEY, updated);
@@ -127,15 +142,38 @@ export function useLoans() {
       saveToStorage(PAYMENTS_KEY, updated);
       return updated;
     });
-  }, []);
+  }, [loans, payments]);
 
   const deletePayment = useCallback((id: string) => {
+    const payment = payments.find((p) => p.id === id);
+    if (!payment) return;
+
+    // Reverse balance
+    adjustBalance(-payment.amount);
+
+    // If it was a regular installment payment (not interest-only), decrement paidInstallments
+    if (payment.installmentNumber > 0) {
+      setLoans((prev) => {
+        const updated = prev.map((l) => {
+          if (l.id !== payment.loanId) return l;
+          const newPaid = Math.max(0, l.paidInstallments - 1);
+          return {
+            ...l,
+            paidInstallments: newPaid,
+            status: newPaid < l.installments ? "active" as const : l.status,
+          };
+        });
+        saveToStorage(LOANS_KEY, updated);
+        return updated;
+      });
+    }
+
     setPayments((prev) => {
       const updated = prev.filter((p) => p.id !== id);
       saveToStorage(PAYMENTS_KEY, updated);
       return updated;
     });
-  }, []);
+  }, [payments]);
 
   return { loans, payments, addLoan, addPayment, addInterestOnlyPayment, updateLoan, deleteLoan, deletePayment };
 }
