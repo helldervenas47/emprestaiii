@@ -241,9 +241,6 @@ export function DashboardOverview({ loans, sales, payments, expenses, onDeletePa
   const saveBalance = () => { setAccountBalance(parseFloat(tempBalance) || 0); setEditingBalance(false); };
   const cancelEditBalance = () => setEditingBalance(false);
 
-  const startEditRate = () => { setTempRate(String(interestRate)); setEditingRate(true); };
-  const saveRate = () => { setInterestRate(parseFloat(tempRate) || 0); setEditingRate(false); };
-  const cancelEditRate = () => setEditingRate(false);
 
   const healthColor = portfolio.score >= 70 ? "text-success" : portfolio.score >= 40 ? "text-warning" : "text-destructive";
   const healthBg = portfolio.score >= 70 ? "from-success/20 to-success/5" : portfolio.score >= 40 ? "from-warning/20 to-warning/5" : "from-destructive/20 to-destructive/5";
