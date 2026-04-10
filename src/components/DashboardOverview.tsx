@@ -95,9 +95,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, onDeletePa
   
   const [accountBalance, setAccountBalance] = useAccountBalance();
   const [editingBalance, setEditingBalance] = useState(false);
-  const [editingRate, setEditingRate] = useState(false);
   const [tempBalance, setTempBalance] = useState("");
-  const [tempRate, setTempRate] = useState("");
 
   const range = useMemo(() => getRange(period, offset), [period, offset]);
 
