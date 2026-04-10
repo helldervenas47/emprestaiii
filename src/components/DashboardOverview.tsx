@@ -316,35 +316,41 @@ export function DashboardOverview({ loans, sales, payments, expenses, onDeletePa
 
       {/* Summary cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="gradient-success rounded-xl p-5 text-primary-foreground shadow-lg">
+        <div className="rounded-xl p-5 bg-card border border-success/20 glow-success">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-medium opacity-90">Entradas</span>
-            <TrendingUp className="h-5 w-5 opacity-80" />
+            <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Entradas</span>
+            <div className="h-8 w-8 rounded-lg bg-success/10 flex items-center justify-center">
+              <TrendingUp className="h-4 w-4 text-success" />
+            </div>
           </div>
-          <p className="text-2xl font-bold">{formatCurrency(data.totalIncome)}</p>
-          <div className="flex gap-3 mt-2 text-xs opacity-80">
+          <p className="text-2xl font-bold text-success">{formatCurrency(data.totalIncome)}</p>
+          <div className="flex gap-3 mt-2 text-xs text-muted-foreground">
             <span>{data.paymentCount} parcela(s)</span><span>·</span><span>{data.saleCount} venda(s)</span>
           </div>
         </div>
 
-        <div className="gradient-warning rounded-xl p-5 text-primary-foreground shadow-lg">
+        <div className="rounded-xl p-5 bg-card border border-warning/20">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-medium opacity-90">Saídas</span>
-            <TrendingDown className="h-5 w-5 opacity-80" />
+            <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Saídas</span>
+            <div className="h-8 w-8 rounded-lg bg-warning/10 flex items-center justify-center">
+              <TrendingDown className="h-4 w-4 text-warning" />
+            </div>
           </div>
-          <p className="text-2xl font-bold">{formatCurrency(data.totalOutgoing)}</p>
-          <div className="flex gap-3 mt-2 text-xs opacity-80">
+          <p className="text-2xl font-bold text-warning">{formatCurrency(data.totalOutgoing)}</p>
+          <div className="flex gap-3 mt-2 text-xs text-muted-foreground">
             <span>{data.loanCount} empréstimo(s)</span><span>·</span><span>{data.expenseCount} despesa(s)</span>
           </div>
         </div>
 
-        <div className={`${data.balance >= 0 ? "gradient-primary" : "bg-destructive"} rounded-xl p-5 text-primary-foreground shadow-lg`}>
+        <div className={`rounded-xl p-5 bg-card border ${data.balance >= 0 ? "border-primary/20 glow-primary" : "border-destructive/20"}`}>
           <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-medium opacity-90">Saldo do Período</span>
-            <DollarSign className="h-5 w-5 opacity-80" />
+            <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Saldo do Período</span>
+            <div className={`h-8 w-8 rounded-lg ${data.balance >= 0 ? "bg-primary/10" : "bg-destructive/10"} flex items-center justify-center`}>
+              <DollarSign className={`h-4 w-4 ${data.balance >= 0 ? "text-primary" : "text-destructive"}`} />
+            </div>
           </div>
-          <p className="text-2xl font-bold">{formatCurrency(data.balance)}</p>
-          <p className="text-xs mt-2 opacity-80">{range.label}</p>
+          <p className={`text-2xl font-bold ${data.balance >= 0 ? "text-primary" : "text-destructive"}`}>{formatCurrency(data.balance)}</p>
+          <p className="text-xs mt-2 text-muted-foreground">{range.label}</p>
         </div>
       </div>
 
