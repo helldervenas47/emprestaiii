@@ -109,6 +109,7 @@ function LoanCardView({
   const [form, setForm] = useState<EditForm>(loanToForm(loan));
   const [showPartial, setShowPartial] = useState(false);
   const [partialAmount, setPartialAmount] = useState("");
+  const [expanded, setExpanded] = useState(false);
 
   const installment = calculateInstallment(loan.amount, loan.interestRate, loan.installments);
   const total = calculateTotalWithInterest(loan.amount, loan.interestRate, loan.installments);
@@ -116,9 +117,21 @@ function LoanCardView({
   const remaining = Math.max(0, total - totalPaid);
   const progress = loan.installments > 0 ? (loan.paidInstallments / loan.installments) * 100 : 0;
   const interestOnly = loan.amount * (loan.interestRate / 100);
+  const totalInterest = total - loan.amount;
+  const profit = totalPaid - loan.amount;
   const category = getLoanCategory(loan, allPayments);
   const daysOverdue = getDaysOverdue(loan);
   const badge = statusMap[category];
+
+  // Next installment due date
+  const nextInstallmentDate = useMemo(() => {
+    if (loan.status === "paid") return null;
+    const start = new Date(loan.startDate + "T00:00:00");
+    const nextNum = loan.paidInstallments + 1;
+    if (nextNum > loan.installments) return null;
+    const next = new Date(start.getFullYear(), start.getMonth() + nextNum, start.getDate());
+    return next.toLocaleDateString("pt-BR");
+  }, [loan]);
 
   const startEdit = () => { setForm(loanToForm(loan)); setEditing(true); };
   const cancelEdit = () => setEditing(false);
@@ -173,104 +186,162 @@ function LoanCardView({
     );
   }
 
+  const borderColor =
+    category === "overdue" ? "border-l-destructive" :
+    category === "due_today" ? "border-l-warning" :
+    category === "paid" ? "border-l-success" :
+    category === "paid_interest" ? "border-l-purple" :
+    "border-l-primary";
+
   return (
-    <Card className={`overflow-hidden hover:shadow-md transition-shadow ${category === "overdue" ? "border-destructive/30" : category === "due_today" ? "border-warning/30" : ""}`}>
-      <CardContent className="p-5">
-        <div className="flex items-start justify-between mb-3">
+    <Card className={`overflow-hidden hover:shadow-lg transition-all border-l-4 ${borderColor}`}>
+      {/* Header */}
+      <div className="p-4 pb-0">
+        <div className="flex items-start justify-between">
           <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-full gradient-primary flex items-center justify-center">
-              <User className="h-5 w-5 text-primary-foreground" />
+            <div className={`h-11 w-11 rounded-full flex items-center justify-center text-primary-foreground font-bold text-sm ${
+              category === "overdue" ? "bg-destructive" :
+              category === "due_today" ? "bg-warning" :
+              category === "paid" ? "bg-success" :
+              "gradient-primary"
+            }`}>
+              {loan.borrowerName.charAt(0).toUpperCase()}
             </div>
             <div>
-              <h3 className="font-semibold text-foreground">{loan.borrowerName}</h3>
-              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <h3 className="font-bold text-foreground text-base">{loan.borrowerName}</h3>
+              <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
                 <Calendar className="h-3 w-3" />
-                {new Date(loan.startDate).toLocaleDateString("pt-BR")}
-                {loan.status !== "paid" && (
-                  <span>→ Venc.: {new Date(loan.dueDate + "T00:00:00").toLocaleDateString("pt-BR")}</span>
-                )}
-                {daysOverdue > 0 && loan.status !== "paid" && (
-                  <Badge variant="outline" className="bg-destructive/10 text-destructive border-destructive/20 text-xs ml-1">
-                    {daysOverdue} dia{daysOverdue > 1 ? "s" : ""} atrasado
-                  </Badge>
-                )}
+                <span>{new Date(loan.startDate + "T00:00:00").toLocaleDateString("pt-BR")}</span>
+                <span className="text-muted-foreground/40">→</span>
+                <span>{new Date(loan.dueDate + "T00:00:00").toLocaleDateString("pt-BR")}</span>
               </div>
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            <Badge variant="outline" className={badge.className}>{badge.label}</Badge>
-            <Button size="icon" variant="ghost" className="h-8 w-8" onClick={startEdit} title="Editar">
-              <Pencil className="h-4 w-4 text-muted-foreground" />
-            </Button>
+          <div className="flex items-center gap-1.5">
+            <Badge variant="outline" className={`${badge.className} text-[11px]`}>{badge.label}</Badge>
+            {daysOverdue > 0 && loan.status !== "paid" && (
+              <Badge variant="outline" className="bg-destructive/10 text-destructive border-destructive/20 text-[11px]">
+                {daysOverdue}d
+              </Badge>
+            )}
           </div>
         </div>
-        <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 mb-3 text-sm">
-          <div>
-            <p className="text-muted-foreground text-xs">Valor</p>
-            <p className="font-semibold">{formatCurrency(loan.amount)}</p>
-          </div>
-          <div>
-            <p className="text-muted-foreground text-xs">Parcela</p>
-            <p className="font-semibold">{formatCurrency(installment)}</p>
-          </div>
-          <div>
-            <p className="text-muted-foreground text-xs">Juros</p>
-            <p className="font-semibold text-accent">{loan.interestRate}% a.m.</p>
-          </div>
-          <div>
-            <p className="text-muted-foreground text-xs">Total Pago</p>
-            <p className="font-semibold text-success">{formatCurrency(totalPaid)}</p>
-          </div>
-          <div>
-            <p className="text-muted-foreground text-xs">Restante</p>
-            <p className="font-semibold">{formatCurrency(remaining)}</p>
-          </div>
-        </div>
-        <div className="mb-3">
-          <div className="flex justify-between text-xs text-muted-foreground mb-1">
-            <span>{loan.paidInstallments}/{loan.installments} parcelas</span>
-            <span>{Math.round(progress)}%</span>
-          </div>
-          <Progress value={progress} className="h-2" />
-        </div>
-        {loan.notes && <p className="text-xs text-muted-foreground mb-3 italic">"{loan.notes}"</p>}
+      </div>
 
+      <CardContent className="p-4 pt-3">
+        {/* Main financial info */}
+        <div className="grid grid-cols-3 gap-3 mb-3">
+          <div className="bg-muted/50 rounded-lg p-2.5 text-center">
+            <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Capital</p>
+            <p className="text-sm font-bold text-foreground">{formatCurrency(loan.amount)}</p>
+          </div>
+          <div className="bg-muted/50 rounded-lg p-2.5 text-center">
+            <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Parcela</p>
+            <p className="text-sm font-bold text-foreground">{formatCurrency(installment)}</p>
+          </div>
+          <div className="bg-muted/50 rounded-lg p-2.5 text-center">
+            <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Juros</p>
+            <p className="text-sm font-bold text-accent">{loan.interestRate}% a.m.</p>
+          </div>
+        </div>
+
+        {/* Progress */}
+        <div className="mb-3">
+          <div className="flex justify-between text-xs mb-1">
+            <span className="text-muted-foreground">{loan.paidInstallments}/{loan.installments} parcelas</span>
+            <span className="font-medium text-foreground">{Math.round(progress)}%</span>
+          </div>
+          <Progress value={progress} className="h-2.5" />
+        </div>
+
+        {/* Secondary info row */}
+        <div className="grid grid-cols-2 gap-2 mb-3">
+          <div className="flex items-center justify-between bg-success/5 rounded-lg px-3 py-2">
+            <span className="text-xs text-muted-foreground">Recebido</span>
+            <span className="text-sm font-bold text-success">{formatCurrency(totalPaid)}</span>
+          </div>
+          <div className="flex items-center justify-between bg-destructive/5 rounded-lg px-3 py-2">
+            <span className="text-xs text-muted-foreground">Restante</span>
+            <span className="text-sm font-bold text-destructive">{formatCurrency(remaining)}</span>
+          </div>
+        </div>
+
+        {/* Expandable details */}
+        <button
+          onClick={() => setExpanded(!expanded)}
+          className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors mb-2"
+        >
+          {expanded ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
+          Mais detalhes
+        </button>
+
+        {expanded && (
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mb-3 animate-in fade-in slide-in-from-top-1 duration-200">
+            <div className="bg-muted/30 rounded-lg px-3 py-2">
+              <p className="text-[10px] text-muted-foreground">Total c/ Juros</p>
+              <p className="text-sm font-semibold text-foreground">{formatCurrency(total)}</p>
+            </div>
+            <div className="bg-muted/30 rounded-lg px-3 py-2">
+              <p className="text-[10px] text-muted-foreground">Total Juros</p>
+              <p className="text-sm font-semibold text-accent">{formatCurrency(totalInterest)}</p>
+            </div>
+            <div className="bg-muted/30 rounded-lg px-3 py-2">
+              <p className="text-[10px] text-muted-foreground">Juros Mensal (R$)</p>
+              <p className="text-sm font-semibold text-warning">{formatCurrency(interestOnly)}</p>
+            </div>
+            <div className="bg-muted/30 rounded-lg px-3 py-2">
+              <p className="text-[10px] text-muted-foreground">Lucro Atual</p>
+              <p className={`text-sm font-semibold ${profit >= 0 ? "text-success" : "text-destructive"}`}>{formatCurrency(profit)}</p>
+            </div>
+            {nextInstallmentDate && (
+              <div className="bg-muted/30 rounded-lg px-3 py-2">
+                <p className="text-[10px] text-muted-foreground">Próx. Parcela</p>
+                <p className="text-sm font-semibold text-foreground">{nextInstallmentDate}</p>
+              </div>
+            )}
+            <div className="bg-muted/30 rounded-lg px-3 py-2">
+              <p className="text-[10px] text-muted-foreground">Tipo</p>
+              <p className="text-sm font-semibold text-foreground">{loan.paymentType}</p>
+            </div>
+          </div>
+        )}
+
+        {loan.notes && <p className="text-xs text-muted-foreground mb-3 italic bg-muted/30 rounded-lg px-3 py-2">📝 {loan.notes}</p>}
+
+        {/* Partial payment input */}
         {showPartial && (
           <div className="flex items-center gap-2 mb-3 p-3 rounded-lg bg-muted">
             <Input
-              type="number"
-              step="0.01"
-              placeholder="Valor parcial (R$)"
-              value={partialAmount}
-              onChange={(e) => setPartialAmount(e.target.value)}
-              className="h-8 text-sm flex-1"
-              autoFocus
+              type="number" step="0.01" placeholder="Valor parcial (R$)"
+              value={partialAmount} onChange={(e) => setPartialAmount(e.target.value)}
+              className="h-8 text-sm flex-1" autoFocus
               onKeyDown={(e) => e.key === "Enter" && handlePartialSubmit()}
             />
-            <Button size="sm" onClick={handlePartialSubmit}><Check className="h-4 w-4 mr-1" />Confirmar</Button>
+            <Button size="sm" onClick={handlePartialSubmit}><Check className="h-4 w-4 mr-1" />OK</Button>
             <Button size="sm" variant="ghost" onClick={() => setShowPartial(false)}><X className="h-4 w-4" /></Button>
           </div>
         )}
 
-        <div className="flex flex-wrap gap-2 justify-end">
+        {/* Actions */}
+        <div className="flex flex-wrap gap-2 justify-end pt-2 border-t">
           {loan.status !== "paid" && (
             <>
-              <Button size="sm" variant="outline" onClick={() => setShowPartial(!showPartial)}>
-                <HandCoins className="h-4 w-4 mr-1" />
-                Pagamento Parcial
+              <Button size="sm" variant="outline" className="text-xs" onClick={() => setShowPartial(!showPartial)}>
+                <HandCoins className="h-3.5 w-3.5 mr-1" /> Parcial
               </Button>
-              <Button size="sm" variant="outline" onClick={onInterestPayment} title={`Pagar apenas juros: ${formatCurrency(interestOnly)}`}>
-                <Percent className="h-4 w-4 mr-1" />
-                Pagar Juros ({formatCurrency(interestOnly)})
+              <Button size="sm" variant="outline" className="text-xs" onClick={onInterestPayment}>
+                <Percent className="h-3.5 w-3.5 mr-1" /> Juros
               </Button>
-              <Button size="sm" onClick={onPayment}>
-                <CheckCircle className="h-4 w-4 mr-1" />
-                Receber Parcela
+              <Button size="sm" className="text-xs" onClick={onPayment}>
+                <CheckCircle className="h-3.5 w-3.5 mr-1" /> Receber
               </Button>
             </>
           )}
-          <Button size="sm" variant="outline" className="text-destructive hover:bg-destructive hover:text-destructive-foreground" onClick={onDelete}>
-            <Trash2 className="h-4 w-4" />
+          <Button size="icon" variant="ghost" className="h-8 w-8" onClick={startEdit} title="Editar">
+            <Pencil className="h-3.5 w-3.5 text-muted-foreground" />
+          </Button>
+          <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive hover:bg-destructive hover:text-destructive-foreground" onClick={onDelete} title="Excluir">
+            <Trash2 className="h-3.5 w-3.5" />
           </Button>
         </div>
       </CardContent>
