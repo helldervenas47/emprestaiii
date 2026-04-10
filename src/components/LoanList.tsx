@@ -10,7 +10,7 @@ import { Progress } from "@/components/ui/progress";
 import { calculateInstallment, calculateTotalWithInterest } from "@/hooks/useLoans";
 import {
   CheckCircle, Trash2, DollarSign, User, Calendar, LayoutGrid, List,
-  Search, Percent, Pencil, Check, X, ChevronDown, ChevronRight, FolderOpen, Folder, HandCoins,
+  Search, Percent, Pencil, Check, X, ChevronDown, ChevronRight, FolderOpen, Folder, HandCoins, Tag,
 } from "lucide-react";
 
 interface Props {
