@@ -129,7 +129,15 @@ export function useLoans() {
     });
   }, []);
 
-  return { loans, payments, addLoan, addPayment, addInterestOnlyPayment, updateLoan, deleteLoan };
+  const deletePayment = useCallback((id: string) => {
+    setPayments((prev) => {
+      const updated = prev.filter((p) => p.id !== id);
+      saveToStorage(PAYMENTS_KEY, updated);
+      return updated;
+    });
+  }, []);
+
+  return { loans, payments, addLoan, addPayment, addInterestOnlyPayment, updateLoan, deleteLoan, deletePayment };
 }
 
 export function calculateInstallment(principal: number, monthlyRate: number, months: number): number {
