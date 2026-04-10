@@ -23,7 +23,7 @@ interface Props {
   onDelete: (loanId: string) => void;
 }
 
-type Category = "all" | "overdue" | "paid_interest" | "paid" | "due_today" | "on_track" | "folders";
+type Category = "all" | "overdue" | "paid_interest" | "paid" | "due_today" | "on_track";
 
 const categoryConfig: { id: Category; label: string; color: string; activeColor: string }[] = [
   { id: "all", label: "Todos", color: "border-border text-muted-foreground", activeColor: "bg-primary text-primary-foreground border-primary" },
@@ -32,7 +32,6 @@ const categoryConfig: { id: Category; label: string; color: string; activeColor:
   { id: "paid", label: "Pagou Total", color: "border-success/30 text-success", activeColor: "bg-success text-success-foreground border-success" },
   { id: "due_today", label: "Vence Hoje", color: "border-warning/30 text-warning", activeColor: "bg-warning text-warning-foreground border-warning" },
   { id: "on_track", label: "Em Dia", color: "border-primary/30 text-primary", activeColor: "bg-primary text-primary-foreground border-primary" },
-  { id: "folders", label: "Pastas", color: "border-border text-muted-foreground", activeColor: "bg-primary text-primary-foreground border-primary" },
 ];
 
 function formatCurrency(value: number): string {
@@ -581,14 +580,14 @@ function ClientFolder({
 }
 
 export function LoanList({ loans, payments, onPayment, onPartialPayment, onInterestPayment, onUpdate, onDelete }: Props) {
-  const [view, setView] = useState<"cards" | "rows">("cards");
+  const [view, setView] = useState<"cards" | "rows" | "folders">("cards");
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState<Category>("all");
 
   const categorized = useMemo(() => {
     const withSearch = loans.filter((l) => l.borrowerName.toLowerCase().includes(search.toLowerCase()));
-    const filtered = category === "all" || category === "folders"
-      ? withSearch
+    const filtered = category === "all"
+      ? withSearch.filter((l) => getLoanCategory(l, payments) !== "paid")
       : withSearch.filter((l) => getLoanCategory(l, payments) === category);
     // Sort by dueDate ascending (most urgent first)
     return [...filtered].sort((a, b) => a.dueDate.localeCompare(b.dueDate));
@@ -603,13 +602,12 @@ export function LoanList({ loans, payments, onPayment, onPartialPayment, onInter
   const counts = useMemo(() => {
     const cats = loans.map((l) => getLoanCategory(l, payments));
     return {
-      all: loans.length,
+      all: cats.filter((c) => c !== "paid").length,
       overdue: cats.filter((c) => c === "overdue").length,
       paid_interest: cats.filter((c) => c === "paid_interest").length,
       paid: cats.filter((c) => c === "paid").length,
       due_today: cats.filter((c) => c === "due_today").length,
       on_track: cats.filter((c) => c === "on_track").length,
-      folders: folderCount,
     };
   }, [loans, payments, folderCount]);
 
@@ -728,6 +726,13 @@ export function LoanList({ loans, payments, onPayment, onPartialPayment, onInter
           >
             <List className="h-3.5 w-3.5" />Linhas
           </button>
+          <button onClick={() => setView("folders")}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
+              view === "folders" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            <Folder className="h-3.5 w-3.5" />Pastas
+          </button>
         </div>
       </div>
 
@@ -740,19 +745,25 @@ export function LoanList({ loans, payments, onPayment, onPartialPayment, onInter
       ) : (
         <div>
           {view === "cards" ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+              {categorized.map((loan) => (
+                <LoanCardView key={loan.id} loan={loan} payments={payments}
+                  onPayment={() => onPayment(loan.id)} onPartialPayment={(amt) => onPartialPayment(loan.id, amt)}
+                  onInterestPayment={() => onInterestPayment(loan.id)} onUpdate={(d) => onUpdate(loan.id, d)} onDelete={() => onDelete(loan.id)} />
+              ))}
+            </div>
+          ) : view === "folders" ? (
             <>
-              {/* Grouped folders (only in cards view) */}
               {grouped.length > 0 && (
                 <div className="space-y-3 mb-4">
                   {grouped.map((g) => (
-                    <ClientFolder key={g.name} group={g} payments={payments} view={view}
+                    <ClientFolder key={g.name} group={g} payments={payments} view="cards"
                       onPayment={onPayment} onPartialPayment={onPartialPayment}
                       onInterestPayment={onInterestPayment} onUpdate={onUpdate} onDelete={onDelete} />
                   ))}
                 </div>
               )}
-              {/* Single loans in 3-column grid */}
-              {category !== "folders" && singles.length > 0 && (
+              {singles.length > 0 && (
                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
                   {singles.map((loan) => (
                     <LoanCardView key={loan.id} loan={loan} payments={payments}
@@ -761,7 +772,7 @@ export function LoanList({ loans, payments, onPayment, onPartialPayment, onInter
                   ))}
                 </div>
               )}
-              {category === "folders" && grouped.length === 0 && (
+              {grouped.length === 0 && singles.length === 0 && (
                 <Card>
                   <CardContent className="py-8 text-center">
                     <p className="text-sm text-muted-foreground">Nenhum cliente com múltiplos empréstimos</p>
@@ -770,7 +781,6 @@ export function LoanList({ loans, payments, onPayment, onPartialPayment, onInter
               )}
             </>
           ) : (
-            /* Rows view: all loans flat, no folders */
             categorized.map((loan) => (
               <LoanRowView key={loan.id} loan={loan} payments={payments}
                 onPayment={() => onPayment(loan.id)} onPartialPayment={(amt) => onPartialPayment(loan.id, amt)}
