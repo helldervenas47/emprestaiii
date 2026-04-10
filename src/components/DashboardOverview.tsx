@@ -9,6 +9,7 @@ import {
   TrendingUp, TrendingDown, DollarSign, ArrowUpRight, ArrowDownRight,
   ChevronLeft, ChevronRight, Percent, Wallet, Pencil, Check, X, Trash2,
 } from "lucide-react";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
 
 interface Props {
   loans: Loan[];
