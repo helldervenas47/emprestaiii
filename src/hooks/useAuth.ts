@@ -22,7 +22,26 @@ export function useAuth() {
       setLoading(false);
     });
 
-    return () => subscription.unsubscribe();
+    // Sign out when tab/window is closed (not on refresh)
+    const handleBeforeUnload = () => {
+      // Mark that we're navigating away
+      sessionStorage.setItem("hvcred_active", "1");
+    };
+    const handleLoad = () => {
+      // If the flag is not set, it means the tab was closed and reopened — sign out
+      if (!sessionStorage.getItem("hvcred_active")) {
+        supabase.auth.signOut();
+      }
+    };
+
+    // Set flag on current session
+    sessionStorage.setItem("hvcred_active", "1");
+    window.addEventListener("beforeunload", handleBeforeUnload);
+
+    return () => {
+      subscription.unsubscribe();
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+    };
   }, []);
 
   const signOut = async () => {
