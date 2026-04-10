@@ -10,7 +10,7 @@ import { Progress } from "@/components/ui/progress";
 import { calculateInstallment, calculateTotalWithInterest } from "@/hooks/useLoans";
 import {
   CheckCircle, Trash2, DollarSign, User, Calendar, LayoutGrid, List,
-  Search, Percent, Pencil, Check, X, ChevronDown, ChevronRight, FolderOpen, Folder, HandCoins,
+  Search, Percent, Pencil, Check, X, ChevronDown, ChevronRight, FolderOpen, Folder, HandCoins, Tag,
 } from "lucide-react";
 
 interface Props {
@@ -75,6 +75,7 @@ interface EditForm {
   startDate: string;
   dueDate: string;
   notes: string;
+  tags: string;
 }
 
 function loanToForm(loan: Loan): EditForm {
@@ -87,6 +88,7 @@ function loanToForm(loan: Loan): EditForm {
     startDate: loan.startDate,
     dueDate: loan.dueDate,
     notes: loan.notes || "",
+    tags: (loan.tags || []).join(", "),
   };
 }
 
@@ -136,6 +138,7 @@ function LoanCardView({
   const startEdit = () => { setForm(loanToForm(loan)); setEditing(true); };
   const cancelEdit = () => setEditing(false);
   const saveEdit = () => {
+    const parsedTags = form.tags.split(",").map((t) => t.trim()).filter(Boolean);
     onUpdate({
       borrowerName: form.borrowerName,
       amount: parseFloat(form.amount) || loan.amount,
@@ -145,6 +148,7 @@ function LoanCardView({
       startDate: form.startDate || loan.startDate,
       dueDate: form.dueDate || loan.dueDate,
       notes: form.notes,
+      tags: parsedTags,
     });
     setEditing(false);
   };
@@ -179,6 +183,9 @@ function LoanCardView({
             <div><Label className="text-xs">Parcelas Pagas</Label><Input type="number" value={form.paidInstallments} onChange={(e) => update("paidInstallments", e.target.value)} className="h-8 text-sm" /></div>
             <div><Label className="text-xs">Data Início</Label><Input type="date" value={form.startDate} onChange={(e) => update("startDate", e.target.value)} className="h-8 text-sm" /></div>
             <div><Label className="text-xs">Data Fim</Label><Input type="date" value={form.dueDate} onChange={(e) => update("dueDate", e.target.value)} className="h-8 text-sm" /></div>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div><Label className="text-xs">Etiquetas (separar por vírgula)</Label><Input value={form.tags} onChange={(e) => update("tags", e.target.value)} className="h-8 text-sm" placeholder="Ex: VIP, Renovação, Garantia" /></div>
           </div>
           <div><Label className="text-xs">Observações</Label><Textarea value={form.notes} onChange={(e) => update("notes", e.target.value)} rows={2} className="text-sm" /></div>
         </CardContent>
@@ -217,13 +224,18 @@ function LoanCardView({
               </div>
             </div>
           </div>
-          <div className="flex flex-col items-end gap-1 shrink-0">
+          <div className="flex flex-wrap items-end justify-end gap-1 shrink-0 max-w-[50%]">
             <Badge variant="outline" className={`${badge.className} text-[10px]`}>{badge.label}</Badge>
             {daysOverdue > 0 && loan.status !== "paid" && (
               <Badge variant="outline" className="bg-destructive/10 text-destructive border-destructive/20 text-[10px]">
                 {daysOverdue}d
               </Badge>
             )}
+            {loan.tags && loan.tags.length > 0 && loan.tags.map((tag) => (
+              <Badge key={tag} variant="outline" className="bg-primary/10 text-primary border-primary/20 text-[10px]">
+                <Tag className="h-2 w-2 mr-0.5" />{tag}
+              </Badge>
+            ))}
           </div>
         </div>
       </div>
