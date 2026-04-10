@@ -93,9 +93,10 @@ function loanToForm(loan: Loan): EditForm {
 }
 
 function LoanCardView({
-  loan, onPayment, onInterestPayment, onUpdate, onDelete,
+  loan, payments: loanPayments, onPayment, onInterestPayment, onUpdate, onDelete,
 }: {
   loan: Loan;
+  payments: Payment[];
   onPayment: () => void;
   onInterestPayment: () => void;
   onUpdate: (data: Partial<Omit<Loan, "id">>) => void;
@@ -110,7 +111,7 @@ function LoanCardView({
   const remaining = total - paid;
   const progress = loan.installments > 0 ? (loan.paidInstallments / loan.installments) * 100 : 0;
   const interestOnly = loan.amount * (loan.interestRate / 100);
-  const category = getLoanCategory(loan);
+  const category = getLoanCategory(loan, loanPayments);
   const nextDue = getNextDueDate(loan);
   const badge = statusMap[category];
 
