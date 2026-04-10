@@ -1,4 +1,5 @@
 import { useMemo, useState, useEffect } from "react";
+import { Switch } from "@/components/ui/switch";
 import { Loan, Sale, Payment, Expense } from "@/types/loan";
 import { calculateInstallment, calculateTotalWithInterest } from "@/hooks/useLoans";
 import { Card, CardContent } from "@/components/ui/card";
@@ -96,6 +97,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, onDeletePa
   const [accountBalance, setAccountBalance] = useAccountBalance();
   const [editingBalance, setEditingBalance] = useState(false);
   const [tempBalance, setTempBalance] = useState("");
+  const [includeSales, setIncludeSales] = useState(false);
 
   const range = useMemo(() => getRange(period, offset), [period, offset]);
 
@@ -104,7 +106,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, onDeletePa
     const filteredSales = sales.filter((s) => isInRange(s.date, range.start, range.end));
     const incomeFromPayments = filteredPayments.reduce((s, p) => s + p.amount, 0);
     const incomeFromSales = filteredSales.reduce((s, sale) => s + sale.total, 0);
-    const totalIncome = incomeFromPayments + incomeFromSales;
+    const totalIncome = incomeFromPayments + (includeSales ? incomeFromSales : 0);
 
     const filteredLoans = loans.filter((l) => isInRange(l.startDate, range.start, range.end));
     const totalLoanOutgoing = filteredLoans.reduce((s, l) => s + l.amount, 0);
@@ -138,7 +140,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, onDeletePa
       : 0;
 
     return { totalIncome, incomeFromPayments, incomeFromSales, totalOutgoing, totalLoanOutgoing, totalExpenses, balance, transactions, loanCount: filteredLoans.length, saleCount: filteredSales.length, paymentCount: filteredPayments.length, expenseCount: filteredExpenses.length, avgInterestRate };
-  }, [loans, sales, payments, expenses, range]);
+  }, [loans, sales, payments, expenses, range, includeSales]);
 
   // Portfolio metrics (global)
   const portfolio = useMemo(() => {
@@ -484,9 +486,12 @@ export function DashboardOverview({ loans, sales, payments, expenses, onDeletePa
                 <span className="text-muted-foreground">Parcelas recebidas</span>
                 <span className="font-medium">{formatCurrency(data.incomeFromPayments)}</span>
               </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Vendas de produtos</span>
-                <span className="font-medium">{formatCurrency(data.incomeFromSales)}</span>
+              <div className="flex justify-between items-center text-sm">
+                <div className="flex items-center gap-2">
+                  <span className={`text-muted-foreground ${!includeSales ? "line-through opacity-50" : ""}`}>Vendas de produtos</span>
+                  <Switch checked={includeSales} onCheckedChange={setIncludeSales} className="scale-75" />
+                </div>
+                <span className={`font-medium ${!includeSales ? "opacity-50" : ""}`}>{formatCurrency(data.incomeFromSales)}</span>
               </div>
               <div className="border-t pt-2 flex justify-between text-sm font-semibold">
                 <span>Total</span>
