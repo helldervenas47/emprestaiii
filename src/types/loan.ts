@@ -28,5 +28,6 @@ export interface Client {
   cpf: string;
   address: string;
   notes?: string;
+  active: boolean;
   createdAt: string;
 }
