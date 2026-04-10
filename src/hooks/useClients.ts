@@ -17,20 +17,10 @@ export function useClients() {
 
     if (data) {
       setClients(data.map((c: any) => ({
-        id: c.id,
-        name: c.name,
-        phone: c.phone,
-        email: c.email,
-        cpf: c.cpf,
-        cnpj: c.cnpj,
-        rg: c.rg,
-        address: c.address,
-        city: c.city,
-        state: c.state,
-        score: c.score,
-        notes: c.notes,
-        active: c.active,
-        createdAt: c.created_at,
+        id: c.id, name: c.name, phone: c.phone, email: c.email,
+        cpf: c.cpf, cnpj: c.cnpj, rg: c.rg, address: c.address,
+        city: c.city, state: c.state, score: c.score, notes: c.notes,
+        active: c.active, createdAt: c.created_at,
       })));
     }
   }, [user]);
@@ -39,45 +29,38 @@ export function useClients() {
 
   const addClient = useCallback(async (client: Omit<Client, "id" | "createdAt">) => {
     if (!user) return;
-    const { error } = await supabase.from("clients").insert({
-      user_id: user.id,
-      name: client.name,
-      phone: client.phone,
-      email: client.email,
-      cpf: client.cpf,
-      cnpj: client.cnpj,
-      rg: client.rg,
-      address: client.address,
-      city: client.city,
-      state: client.state,
-      score: client.score,
-      notes: client.notes,
+    const tempId = crypto.randomUUID();
+    const optimistic: Client = { ...client, id: tempId, createdAt: new Date().toISOString() };
+    setClients((prev) => [optimistic, ...prev]);
+
+    const { data, error } = await supabase.from("clients").insert({
+      user_id: user.id, name: client.name, phone: client.phone, email: client.email,
+      cpf: client.cpf, cnpj: client.cnpj, rg: client.rg, address: client.address,
+      city: client.city, state: client.state, score: client.score, notes: client.notes,
       active: client.active,
-    });
-    if (!error) fetchClients();
-  }, [user, fetchClients]);
+    }).select().single();
+
+    if (error) {
+      setClients((prev) => prev.filter((c) => c.id !== tempId));
+    } else if (data) {
+      setClients((prev) => prev.map((c) => c.id === tempId ? { ...c, id: data.id, createdAt: data.created_at } : c));
+    }
+  }, [user]);
 
   const deleteClient = useCallback(async (id: string) => {
-    await supabase.from("clients").delete().eq("id", id);
-    fetchClients();
+    setClients((prev) => prev.filter((c) => c.id !== id));
+    const { error } = await supabase.from("clients").delete().eq("id", id);
+    if (error) fetchClients();
   }, [fetchClients]);
 
   const updateClient = useCallback(async (id: string, data: Partial<Omit<Client, "id" | "createdAt">>) => {
-    await supabase.from("clients").update({
-      name: data.name,
-      phone: data.phone,
-      email: data.email,
-      cpf: data.cpf,
-      cnpj: data.cnpj,
-      rg: data.rg,
-      address: data.address,
-      city: data.city,
-      state: data.state,
-      score: data.score,
-      notes: data.notes,
-      active: data.active,
+    setClients((prev) => prev.map((c) => c.id === id ? { ...c, ...data } : c));
+    const { error } = await supabase.from("clients").update({
+      name: data.name, phone: data.phone, email: data.email, cpf: data.cpf,
+      cnpj: data.cnpj, rg: data.rg, address: data.address, city: data.city,
+      state: data.state, score: data.score, notes: data.notes, active: data.active,
     }).eq("id", id);
-    fetchClients();
+    if (error) fetchClients();
   }, [fetchClients]);
 
   return { clients, addClient, deleteClient, updateClient };
