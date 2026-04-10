@@ -7,6 +7,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Progress } from "@/components/ui/progress";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Calendar } from "@/components/ui/calendar";
 import { calculateInstallment, calculateTotalWithInterest } from "@/hooks/useLoans";
 import {
   CheckCircle, Trash2, DollarSign, User, Calendar, LayoutGrid, List,
