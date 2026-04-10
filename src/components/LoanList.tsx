@@ -300,6 +300,7 @@ function LoanRowView({
   const remaining = Math.max(0, total - totalPaid);
   const progress = loan.installments > 0 ? (loan.paidInstallments / loan.installments) * 100 : 0;
   const category = getLoanCategory(loan, allPayments);
+  const daysOverdue = getDaysOverdue(loan);
   const badge = statusMap[category];
 
   const startEdit = () => { setForm(loanToForm(loan)); setEditing(true); };
