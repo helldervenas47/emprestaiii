@@ -224,13 +224,18 @@ function LoanCardView({
               </div>
             </div>
           </div>
-          <div className="flex flex-col items-end gap-1 shrink-0">
+          <div className="flex flex-wrap items-end justify-end gap-1 shrink-0 max-w-[50%]">
             <Badge variant="outline" className={`${badge.className} text-[10px]`}>{badge.label}</Badge>
             {daysOverdue > 0 && loan.status !== "paid" && (
               <Badge variant="outline" className="bg-destructive/10 text-destructive border-destructive/20 text-[10px]">
                 {daysOverdue}d
               </Badge>
             )}
+            {loan.tags && loan.tags.length > 0 && loan.tags.map((tag) => (
+              <Badge key={tag} variant="outline" className="bg-primary/10 text-primary border-primary/20 text-[10px]">
+                <Tag className="h-2 w-2 mr-0.5" />{tag}
+              </Badge>
+            ))}
           </div>
         </div>
       </div>
