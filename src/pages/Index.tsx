@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import { Plus, HandCoins, Users, LayoutDashboard, Download, Upload, ShoppingBag, BarChart3, AlertTriangle, Receipt } from "lucide-react";
+import { Plus, HandCoins, Users, LayoutDashboard, Download, Upload, ShoppingBag, BarChart3, AlertTriangle, Receipt, CalendarDays } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DashboardCards } from "@/components/DashboardCards";
 import { LoanForm } from "@/components/LoanForm";
@@ -11,6 +11,7 @@ import { SaleForm } from "@/components/SaleForm";
 import { ProductSalesView } from "@/components/ProductSalesView";
 import { DashboardOverview } from "@/components/DashboardOverview";
 import { OverdueLoans } from "@/components/OverdueLoans";
+import { BillingCalendar } from "@/components/BillingCalendar";
 import { ExpenseForm } from "@/components/ExpenseForm";
 import { ExpenseList } from "@/components/ExpenseList";
 import { useLoans } from "@/hooks/useLoans";
@@ -23,11 +24,12 @@ import {
 } from "@/lib/csv";
 import { toast } from "sonner";
 
-type Tab = "overview" | "dashboard" | "clients" | "products" | "overdue" | "expenses";
+type Tab = "overview" | "dashboard" | "clients" | "products" | "overdue" | "expenses" | "calendar";
 
 const tabConfig = [
   { id: "overview" as Tab, label: "Dashboard", icon: BarChart3 },
   { id: "dashboard" as Tab, label: "Empréstimos", icon: LayoutDashboard },
+  { id: "calendar" as Tab, label: "Cobrança", icon: CalendarDays },
   { id: "clients" as Tab, label: "Clientes", icon: Users },
   { id: "products" as Tab, label: "Vendas", icon: ShoppingBag },
   { id: "expenses" as Tab, label: "Despesas", icon: Receipt },
@@ -127,7 +129,7 @@ const Index = () => {
                 <ShoppingBag className="h-4 w-4 mr-1" /> Nova Venda
               </Button>
             )}
-            {tab !== "overview" && tab !== "overdue" && (
+            {tab !== "overview" && tab !== "overdue" && tab !== "calendar" && (
               <Button onClick={handlePrimaryAction}>
                 <Plus className="h-4 w-4 mr-2" />{primaryLabel}
               </Button>
@@ -179,6 +181,9 @@ const Index = () => {
         )}
         {tab === "overdue" && (
           <OverdueLoans loans={loans} clients={clients} />
+        )}
+        {tab === "calendar" && (
+          <BillingCalendar loans={loans} payments={payments} />
         )}
         {tab === "products" && (
           <ProductSalesView
