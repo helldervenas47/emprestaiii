@@ -129,7 +129,7 @@ const Index = () => {
                 <ShoppingBag className="h-4 w-4 mr-1" /> Nova Venda
               </Button>
             )}
-            {tab !== "overview" && tab !== "overdue" && (
+            {tab !== "overview" && tab !== "overdue" && tab !== "calendar" && (
               <Button onClick={handlePrimaryAction}>
                 <Plus className="h-4 w-4 mr-2" />{primaryLabel}
               </Button>
