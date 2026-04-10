@@ -14,17 +14,28 @@ interface Props {
   onUpdate: (id: string, data: Partial<Omit<Client, "id" | "createdAt">>) => void;
 }
 
+type StatusFilter = "all" | "active" | "inactive";
+
 export function ClientList({ clients, onDelete, onUpdate }: Props) {
   const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState({ name: "", phone: "", email: "", cpf: "", cnpj: "", rg: "", address: "", city: "", state: "", score: "", notes: "" });
 
-  const filtered = clients.filter(
-    (c) =>
+  const filtered = clients.filter((c) => {
+    const matchesSearch =
       c.name.toLowerCase().includes(search.toLowerCase()) ||
       c.cpf.includes(search) ||
-      c.phone.includes(search)
-  );
+      c.phone.includes(search);
+    const matchesStatus =
+      statusFilter === "all" ||
+      (statusFilter === "active" && c.active !== false) ||
+      (statusFilter === "inactive" && c.active === false);
+    return matchesSearch && matchesStatus;
+  });
+
+  const activeCount = clients.filter((c) => c.active !== false).length;
+  const inactiveCount = clients.filter((c) => c.active === false).length;
 
   const startEdit = (client: Client) => {
     setEditingId(client.id);
