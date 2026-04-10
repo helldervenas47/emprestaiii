@@ -354,7 +354,12 @@ function LoanRowView({
         </div>
         <div className="min-w-[120px]">
           <p className="font-medium text-sm text-foreground truncate">{loan.borrowerName}</p>
-          <p className="text-xs text-muted-foreground">{new Date(loan.startDate).toLocaleDateString("pt-BR")}</p>
+          <p className="text-xs text-muted-foreground">
+            Venc.: {new Date(loan.dueDate + "T00:00:00").toLocaleDateString("pt-BR")}
+            {daysOverdue > 0 && loan.status !== "paid" && (
+              <span className="text-destructive ml-1">({daysOverdue}d atraso)</span>
+            )}
+          </p>
         </div>
         <div className="hidden sm:block min-w-[90px]">
           <p className="text-xs text-muted-foreground">Valor</p>
