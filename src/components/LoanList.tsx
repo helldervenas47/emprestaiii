@@ -3,15 +3,21 @@ import { Loan } from "@/types/loan";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle, Trash2, DollarSign, User, Calendar, LayoutGrid, List, Search, Percent } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import { calculateInstallment, calculateTotalWithInterest } from "@/hooks/useLoans";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Progress } from "@/components/ui/progress";
+import { calculateInstallment, calculateTotalWithInterest } from "@/hooks/useLoans";
+import {
+  CheckCircle, Trash2, DollarSign, User, Calendar, LayoutGrid, List,
+  Search, Percent, Pencil, Check, X,
+} from "lucide-react";
 
 interface Props {
   loans: Loan[];
   onPayment: (loanId: string) => void;
   onInterestPayment: (loanId: string) => void;
+  onUpdate: (id: string, data: Partial<Omit<Loan, "id">>) => void;
   onDelete: (loanId: string) => void;
 }
 
@@ -24,12 +30,6 @@ const categoryConfig: { id: Category; label: string }[] = [
   { id: "due_today", label: "Vence Hoje" },
   { id: "on_track", label: "Em Dia" },
 ];
-
-const statusMap = {
-  active: { label: "Ativo", className: "bg-primary/10 text-primary border-primary/20" },
-  paid: { label: "Quitado", className: "bg-success/10 text-success border-success/20" },
-  overdue: { label: "Atrasado", className: "bg-destructive/10 text-destructive border-destructive/20" },
-};
 
 function formatCurrency(value: number): string {
   return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value);
@@ -47,13 +47,54 @@ function getLoanCategory(loan: Loan): "paid" | "overdue" | "due_today" | "on_tra
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   const nextDue = getNextDueDate(loan);
   const nextDueDay = new Date(nextDue.getFullYear(), nextDue.getMonth(), nextDue.getDate());
-
   if (nextDueDay.getTime() === today.getTime()) return "due_today";
   if (nextDueDay < today) return "overdue";
   return "on_track";
 }
 
-function LoanCardView({ loan, onPayment, onInterestPayment, onDelete }: { loan: Loan; onPayment: () => void; onInterestPayment: () => void; onDelete: () => void }) {
+const statusMap = {
+  paid: { label: "Quitado", className: "bg-success/10 text-success border-success/20" },
+  overdue: { label: "Atrasado", className: "bg-destructive/10 text-destructive border-destructive/20" },
+  due_today: { label: "Vence Hoje", className: "bg-warning/10 text-warning border-warning/20" },
+  on_track: { label: "Em Dia", className: "bg-success/10 text-success border-success/20" },
+};
+
+interface EditForm {
+  borrowerName: string;
+  amount: string;
+  interestRate: string;
+  installments: string;
+  paidInstallments: string;
+  startDate: string;
+  dueDate: string;
+  notes: string;
+}
+
+function loanToForm(loan: Loan): EditForm {
+  return {
+    borrowerName: loan.borrowerName,
+    amount: String(loan.amount),
+    interestRate: String(loan.interestRate),
+    installments: String(loan.installments),
+    paidInstallments: String(loan.paidInstallments),
+    startDate: loan.startDate,
+    dueDate: loan.dueDate,
+    notes: loan.notes || "",
+  };
+}
+
+function LoanCardView({
+  loan, onPayment, onInterestPayment, onUpdate, onDelete,
+}: {
+  loan: Loan;
+  onPayment: () => void;
+  onInterestPayment: () => void;
+  onUpdate: (data: Partial<Omit<Loan, "id">>) => void;
+  onDelete: () => void;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [form, setForm] = useState<EditForm>(loanToForm(loan));
+
   const installment = calculateInstallment(loan.amount, loan.interestRate, loan.installments);
   const total = calculateTotalWithInterest(loan.amount, loan.interestRate, loan.installments);
   const paid = loan.paidInstallments * installment;
@@ -62,13 +103,75 @@ function LoanCardView({ loan, onPayment, onInterestPayment, onDelete }: { loan: 
   const interestOnly = loan.amount * (loan.interestRate / 100);
   const category = getLoanCategory(loan);
   const nextDue = getNextDueDate(loan);
+  const badge = statusMap[category];
 
-  const categoryBadge = {
-    paid: statusMap.paid,
-    overdue: { label: "Atrasado", className: "bg-destructive/10 text-destructive border-destructive/20" },
-    due_today: { label: "Vence Hoje", className: "bg-warning/10 text-warning border-warning/20" },
-    on_track: { label: "Em Dia", className: "bg-success/10 text-success border-success/20" },
-  }[category];
+  const startEdit = () => { setForm(loanToForm(loan)); setEditing(true); };
+  const cancelEdit = () => setEditing(false);
+  const saveEdit = () => {
+    onUpdate({
+      borrowerName: form.borrowerName,
+      amount: parseFloat(form.amount) || loan.amount,
+      interestRate: parseFloat(form.interestRate) || loan.interestRate,
+      installments: parseInt(form.installments) || loan.installments,
+      paidInstallments: parseInt(form.paidInstallments) || 0,
+      startDate: form.startDate || loan.startDate,
+      dueDate: form.dueDate || loan.dueDate,
+      notes: form.notes,
+    });
+    setEditing(false);
+  };
+
+  const update = (field: keyof EditForm, value: string) => setForm((p) => ({ ...p, [field]: value }));
+
+  if (editing) {
+    return (
+      <Card className="overflow-hidden border-primary/30">
+        <CardContent className="p-5 space-y-3">
+          <div className="flex items-center justify-between">
+            <h3 className="font-semibold text-foreground">Editar Empréstimo</h3>
+            <div className="flex gap-1">
+              <Button size="icon" variant="ghost" className="h-8 w-8" onClick={saveEdit}><Check className="h-4 w-4 text-success" /></Button>
+              <Button size="icon" variant="ghost" className="h-8 w-8" onClick={cancelEdit}><X className="h-4 w-4 text-destructive" /></Button>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label className="text-xs">Nome do Devedor</Label>
+              <Input value={form.borrowerName} onChange={(e) => update("borrowerName", e.target.value)} className="h-8 text-sm" />
+            </div>
+            <div>
+              <Label className="text-xs">Valor (R$)</Label>
+              <Input type="number" step="0.01" value={form.amount} onChange={(e) => update("amount", e.target.value)} className="h-8 text-sm" />
+            </div>
+            <div>
+              <Label className="text-xs">Juros Mensal (%)</Label>
+              <Input type="number" step="0.1" value={form.interestRate} onChange={(e) => update("interestRate", e.target.value)} className="h-8 text-sm" />
+            </div>
+            <div>
+              <Label className="text-xs">Parcelas</Label>
+              <Input type="number" value={form.installments} onChange={(e) => update("installments", e.target.value)} className="h-8 text-sm" />
+            </div>
+            <div>
+              <Label className="text-xs">Parcelas Pagas</Label>
+              <Input type="number" value={form.paidInstallments} onChange={(e) => update("paidInstallments", e.target.value)} className="h-8 text-sm" />
+            </div>
+            <div>
+              <Label className="text-xs">Data Início</Label>
+              <Input type="date" value={form.startDate} onChange={(e) => update("startDate", e.target.value)} className="h-8 text-sm" />
+            </div>
+            <div>
+              <Label className="text-xs">Data Fim</Label>
+              <Input type="date" value={form.dueDate} onChange={(e) => update("dueDate", e.target.value)} className="h-8 text-sm" />
+            </div>
+          </div>
+          <div>
+            <Label className="text-xs">Observações</Label>
+            <Textarea value={form.notes} onChange={(e) => update("notes", e.target.value)} rows={2} className="text-sm" />
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <Card className={`overflow-hidden hover:shadow-md transition-shadow ${category === "overdue" ? "border-destructive/30" : category === "due_today" ? "border-warning/30" : ""}`}>
@@ -84,14 +187,17 @@ function LoanCardView({ loan, onPayment, onInterestPayment, onDelete }: { loan: 
                 <Calendar className="h-3 w-3" />
                 {new Date(loan.startDate).toLocaleDateString("pt-BR")}
                 {loan.status !== "paid" && (
-                  <span className="text-muted-foreground">
-                    → Próx. venc.: {nextDue.toLocaleDateString("pt-BR")}
-                  </span>
+                  <span>→ Próx. venc.: {nextDue.toLocaleDateString("pt-BR")}</span>
                 )}
               </div>
             </div>
           </div>
-          <Badge variant="outline" className={categoryBadge.className}>{categoryBadge.label}</Badge>
+          <div className="flex items-center gap-2">
+            <Badge variant="outline" className={badge.className}>{badge.label}</Badge>
+            <Button size="icon" variant="ghost" className="h-8 w-8" onClick={startEdit} title="Editar">
+              <Pencil className="h-4 w-4 text-muted-foreground" />
+            </Button>
+          </div>
         </div>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-3 text-sm">
           <div>
@@ -141,20 +247,59 @@ function LoanCardView({ loan, onPayment, onInterestPayment, onDelete }: { loan: 
   );
 }
 
-function LoanRowView({ loan, onPayment, onInterestPayment, onDelete }: { loan: Loan; onPayment: () => void; onInterestPayment: () => void; onDelete: () => void }) {
+function LoanRowView({
+  loan, onPayment, onInterestPayment, onUpdate, onDelete,
+}: {
+  loan: Loan;
+  onPayment: () => void;
+  onInterestPayment: () => void;
+  onUpdate: (data: Partial<Omit<Loan, "id">>) => void;
+  onDelete: () => void;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [form, setForm] = useState<EditForm>(loanToForm(loan));
+
   const installment = calculateInstallment(loan.amount, loan.interestRate, loan.installments);
   const total = calculateTotalWithInterest(loan.amount, loan.interestRate, loan.installments);
   const paid = loan.paidInstallments * installment;
   const remaining = total - paid;
   const progress = loan.installments > 0 ? (loan.paidInstallments / loan.installments) * 100 : 0;
   const category = getLoanCategory(loan);
+  const badge = statusMap[category];
 
-  const categoryBadge = {
-    paid: statusMap.paid,
-    overdue: { label: "Atrasado", className: "bg-destructive/10 text-destructive border-destructive/20" },
-    due_today: { label: "Vence Hoje", className: "bg-warning/10 text-warning border-warning/20" },
-    on_track: { label: "Em Dia", className: "bg-success/10 text-success border-success/20" },
-  }[category];
+  const startEdit = () => { setForm(loanToForm(loan)); setEditing(true); };
+  const cancelEdit = () => setEditing(false);
+  const saveEdit = () => {
+    onUpdate({
+      borrowerName: form.borrowerName,
+      amount: parseFloat(form.amount) || loan.amount,
+      interestRate: parseFloat(form.interestRate) || loan.interestRate,
+      installments: parseInt(form.installments) || loan.installments,
+      paidInstallments: parseInt(form.paidInstallments) || 0,
+      startDate: form.startDate || loan.startDate,
+      dueDate: form.dueDate || loan.dueDate,
+      notes: form.notes,
+    });
+    setEditing(false);
+  };
+
+  const update = (field: keyof EditForm, value: string) => setForm((p) => ({ ...p, [field]: value }));
+
+  if (editing) {
+    return (
+      <div className="flex flex-wrap items-center gap-2 px-4 py-3 bg-card rounded-lg border border-primary/30">
+        <Input value={form.borrowerName} onChange={(e) => update("borrowerName", e.target.value)} className="h-7 w-28 text-xs" placeholder="Nome" />
+        <Input type="number" value={form.amount} onChange={(e) => update("amount", e.target.value)} className="h-7 w-20 text-xs" placeholder="Valor" />
+        <Input type="number" value={form.interestRate} onChange={(e) => update("interestRate", e.target.value)} className="h-7 w-16 text-xs" placeholder="Juros%" />
+        <Input type="number" value={form.installments} onChange={(e) => update("installments", e.target.value)} className="h-7 w-14 text-xs" placeholder="Parc." />
+        <Input type="number" value={form.paidInstallments} onChange={(e) => update("paidInstallments", e.target.value)} className="h-7 w-14 text-xs" placeholder="Pagas" />
+        <Input type="date" value={form.startDate} onChange={(e) => update("startDate", e.target.value)} className="h-7 w-32 text-xs" />
+        <Input type="date" value={form.dueDate} onChange={(e) => update("dueDate", e.target.value)} className="h-7 w-32 text-xs" />
+        <Button size="icon" variant="ghost" className="h-7 w-7" onClick={saveEdit}><Check className="h-3.5 w-3.5 text-success" /></Button>
+        <Button size="icon" variant="ghost" className="h-7 w-7" onClick={cancelEdit}><X className="h-3.5 w-3.5 text-destructive" /></Button>
+      </div>
+    );
+  }
 
   return (
     <div className={`flex items-center gap-4 px-4 py-3 bg-card rounded-lg border hover:shadow-sm transition-shadow ${category === "overdue" ? "border-destructive/30" : category === "due_today" ? "border-warning/30" : ""}`}>
@@ -185,8 +330,11 @@ function LoanRowView({ loan, onPayment, onInterestPayment, onDelete }: { loan: L
         <span className="text-xs text-muted-foreground">{loan.paidInstallments}/{loan.installments}</span>
         <Progress value={progress} className="h-1.5" />
       </div>
-      <Badge variant="outline" className={`${categoryBadge.className} shrink-0 text-xs`}>{categoryBadge.label}</Badge>
+      <Badge variant="outline" className={`${badge.className} shrink-0 text-xs`}>{badge.label}</Badge>
       <div className="flex gap-1 ml-auto shrink-0">
+        <Button size="icon" variant="ghost" className="h-8 w-8" onClick={startEdit} title="Editar">
+          <Pencil className="h-4 w-4 text-muted-foreground" />
+        </Button>
         {loan.status !== "paid" && (
           <>
             <Button size="icon" variant="ghost" className="h-8 w-8" onClick={onInterestPayment} title="Pagar apenas juros">
@@ -205,7 +353,7 @@ function LoanRowView({ loan, onPayment, onInterestPayment, onDelete }: { loan: L
   );
 }
 
-export function LoanList({ loans, onPayment, onInterestPayment, onDelete }: Props) {
+export function LoanList({ loans, onPayment, onInterestPayment, onUpdate, onDelete }: Props) {
   const [view, setView] = useState<"cards" | "rows">("cards");
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState<Category>("all");
@@ -247,7 +395,6 @@ export function LoanList({ loans, onPayment, onInterestPayment, onDelete }: Prop
 
   return (
     <div className="space-y-3">
-      {/* Category filters */}
       <div className="flex flex-wrap gap-2">
         {categoryConfig.map((cat) => (
           <button
@@ -276,8 +423,7 @@ export function LoanList({ loans, onPayment, onInterestPayment, onDelete }: Prop
               view === "cards" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
             }`}
           >
-            <LayoutGrid className="h-3.5 w-3.5" />
-            Caixas
+            <LayoutGrid className="h-3.5 w-3.5" />Caixas
           </button>
           <button
             onClick={() => setView("rows")}
@@ -285,8 +431,7 @@ export function LoanList({ loans, onPayment, onInterestPayment, onDelete }: Prop
               view === "rows" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
             }`}
           >
-            <List className="h-3.5 w-3.5" />
-            Linhas
+            <List className="h-3.5 w-3.5" />Linhas
           </button>
         </div>
       </div>
@@ -300,13 +445,13 @@ export function LoanList({ loans, onPayment, onInterestPayment, onDelete }: Prop
       ) : view === "cards" ? (
         <div className="space-y-3">
           {categorized.map((loan) => (
-            <LoanCardView key={loan.id} loan={loan} onPayment={() => onPayment(loan.id)} onInterestPayment={() => onInterestPayment(loan.id)} onDelete={() => onDelete(loan.id)} />
+            <LoanCardView key={loan.id} loan={loan} onPayment={() => onPayment(loan.id)} onInterestPayment={() => onInterestPayment(loan.id)} onUpdate={(data) => onUpdate(loan.id, data)} onDelete={() => onDelete(loan.id)} />
           ))}
         </div>
       ) : (
         <div className="space-y-2">
           {categorized.map((loan) => (
-            <LoanRowView key={loan.id} loan={loan} onPayment={() => onPayment(loan.id)} onInterestPayment={() => onInterestPayment(loan.id)} onDelete={() => onDelete(loan.id)} />
+            <LoanRowView key={loan.id} loan={loan} onPayment={() => onPayment(loan.id)} onInterestPayment={() => onInterestPayment(loan.id)} onUpdate={(data) => onUpdate(loan.id, data)} onDelete={() => onDelete(loan.id)} />
           ))}
         </div>
       )}
