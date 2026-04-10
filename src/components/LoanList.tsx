@@ -487,9 +487,11 @@ export function LoanList({ loans, payments, onPayment, onPartialPayment, onInter
 
   const categorized = useMemo(() => {
     const withSearch = loans.filter((l) => l.borrowerName.toLowerCase().includes(search.toLowerCase()));
-    if (category === "all" || category === "folders") return withSearch;
-    const cat = withSearch.map((l) => ({ loan: l, cat: getLoanCategory(l, payments) }));
-    return cat.filter((c) => c.cat === category).map((c) => c.loan);
+    const filtered = category === "all" || category === "folders"
+      ? withSearch
+      : withSearch.filter((l) => getLoanCategory(l, payments) === category);
+    // Sort by dueDate ascending (most urgent first)
+    return [...filtered].sort((a, b) => a.dueDate.localeCompare(b.dueDate));
   }, [loans, payments, search, category]);
 
   const folderCount = useMemo(() => {
