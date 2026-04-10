@@ -117,7 +117,7 @@ function LoanCardView({
   const progress = loan.installments > 0 ? (loan.paidInstallments / loan.installments) * 100 : 0;
   const interestOnly = loan.amount * (loan.interestRate / 100);
   const category = getLoanCategory(loan, allPayments);
-  const nextDue = getNextDueDate(loan);
+  const daysOverdue = getDaysOverdue(loan);
   const badge = statusMap[category];
 
   const startEdit = () => { setForm(loanToForm(loan)); setEditing(true); };
