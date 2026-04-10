@@ -1,8 +1,9 @@
-import { useMemo, useState, useEffect } from "react";
+import { useMemo, useState, useEffect, useSyncExternalStore } from "react";
 import { Loan, Sale, Payment } from "@/types/loan";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { getBalance, setBalance } from "@/lib/balance";
 import {
   TrendingUp, TrendingDown, DollarSign, ArrowUpRight, ArrowDownRight,
   ChevronLeft, ChevronRight, Percent, Wallet, Pencil, Check, X, Trash2,
@@ -71,11 +72,25 @@ function useLocalStorage<T>(key: string, initial: T): [T, (v: T) => void] {
   return [value, setValue];
 }
 
+// Subscribe to balance changes via storage events + polling
+function useAccountBalance(): [number, (v: number) => void] {
+  const [bal, setBal] = useState(getBalance);
+  useEffect(() => {
+    const onStorage = () => setBal(getBalance());
+    window.addEventListener("storage", onStorage);
+    // Poll to catch same-tab localStorage writes from other hooks
+    const interval = setInterval(() => setBal(getBalance()), 500);
+    return () => { window.removeEventListener("storage", onStorage); clearInterval(interval); };
+  }, []);
+  const update = (v: number) => { setBalance(v); setBal(v); };
+  return [bal, update];
+}
+
 export function DashboardOverview({ loans, sales, payments, onDeletePayment, onDeleteSale, onDeleteLoan }: Props) {
   const [period, setPeriod] = useState<Period>("month");
   const [offset, setOffset] = useState(0);
   const [interestRate, setInterestRate] = useLocalStorage("hvcred_interest_rate", 10);
-  const [accountBalance, setAccountBalance] = useLocalStorage("hvcred_account_balance", 0);
+  const [accountBalance, setAccountBalance] = useAccountBalance();
   const [editingBalance, setEditingBalance] = useState(false);
   const [editingRate, setEditingRate] = useState(false);
   const [tempBalance, setTempBalance] = useState("");
