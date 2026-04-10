@@ -55,7 +55,14 @@ export function LoanForm({ onAdd, onClose }: Props) {
     onClose();
   };
 
-  const update = (field: string, value: string) => setForm((prev) => ({ ...prev, [field]: value }));
+  const update = (field: string, value: string) =>
+    setForm((prev) => {
+      const next = { ...prev, [field]: value };
+      if (field === "startDate" && value) {
+        next.dueDate = getDefaultDueDate(value);
+      }
+      return next;
+    });
 
   return (
     <div className="fixed inset-0 bg-foreground/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
