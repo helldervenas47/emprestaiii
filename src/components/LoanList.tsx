@@ -452,13 +452,13 @@ export function LoanList({ loans, payments, onPayment, onInterestPayment, onUpda
       ) : view === "cards" ? (
         <div className="space-y-3">
           {categorized.map((loan) => (
-            <LoanCardView key={loan.id} loan={loan} onPayment={() => onPayment(loan.id)} onInterestPayment={() => onInterestPayment(loan.id)} onUpdate={(data) => onUpdate(loan.id, data)} onDelete={() => onDelete(loan.id)} />
+            <LoanCardView key={loan.id} loan={loan} payments={payments} onPayment={() => onPayment(loan.id)} onInterestPayment={() => onInterestPayment(loan.id)} onUpdate={(data) => onUpdate(loan.id, data)} onDelete={() => onDelete(loan.id)} />
           ))}
         </div>
       ) : (
         <div className="space-y-2">
           {categorized.map((loan) => (
-            <LoanRowView key={loan.id} loan={loan} onPayment={() => onPayment(loan.id)} onInterestPayment={() => onInterestPayment(loan.id)} onUpdate={(data) => onUpdate(loan.id, data)} onDelete={() => onDelete(loan.id)} />
+            <LoanRowView key={loan.id} loan={loan} payments={payments} onPayment={() => onPayment(loan.id)} onInterestPayment={() => onInterestPayment(loan.id)} onUpdate={(data) => onUpdate(loan.id, data)} onDelete={() => onDelete(loan.id)} />
           ))}
         </div>
       )}
