@@ -393,6 +393,7 @@ function LoanRowView({
   const startEdit = () => { setForm(loanToForm(loan)); setEditing(true); };
   const cancelEdit = () => setEditing(false);
   const saveEdit = () => {
+    const parsedTags = form.tags.split(",").map((t) => t.trim()).filter(Boolean);
     onUpdate({
       borrowerName: form.borrowerName,
       amount: parseFloat(form.amount) || loan.amount,
@@ -402,6 +403,7 @@ function LoanRowView({
       startDate: form.startDate || loan.startDate,
       dueDate: form.dueDate || loan.dueDate,
       notes: form.notes,
+      tags: parsedTags,
     });
     setEditing(false);
   };
