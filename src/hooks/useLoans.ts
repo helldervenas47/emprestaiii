@@ -207,7 +207,7 @@ export function useLoans() {
     });
   }, [payments]);
 
-  return { loans, payments, addLoan, addPayment, addInterestOnlyPayment, updateLoan, deleteLoan, deletePayment };
+  return { loans, payments, addLoan, addPayment, addPartialPayment, addInterestOnlyPayment, updateLoan, deleteLoan, deletePayment };
 }
 
 export function calculateInstallment(principal: number, monthlyRate: number, months: number): number {
