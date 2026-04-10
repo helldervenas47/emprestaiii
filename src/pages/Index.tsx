@@ -148,7 +148,7 @@ const Index = () => {
             <h2 className="text-lg font-semibold text-foreground mb-4">
               Clientes ({clients.length})
             </h2>
-            <ClientList clients={clients} onDelete={deleteClient} />
+            <ClientList clients={clients} onDelete={deleteClient} onUpdate={updateClient} />
           </div>
         )}
       </main>
