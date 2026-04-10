@@ -182,6 +182,9 @@ const Index = () => {
         {tab === "overdue" && (
           <OverdueLoans loans={loans} clients={clients} />
         )}
+        {tab === "calendar" && (
+          <BillingCalendar loans={loans} payments={payments} />
+        )}
         {tab === "products" && (
           <ProductSalesView
             products={products}
