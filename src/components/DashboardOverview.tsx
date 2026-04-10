@@ -1,5 +1,6 @@
-import { useMemo, useState, useEffect, useSyncExternalStore } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { Loan, Sale, Payment, Expense } from "@/types/loan";
+import { calculateInstallment, calculateTotalWithInterest } from "@/hooks/useLoans";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -135,6 +136,47 @@ export function DashboardOverview({ loans, sales, payments, expenses, onDeletePa
     return { totalIncome, incomeFromPayments, incomeFromSales, totalOutgoing, totalLoanOutgoing, totalExpenses, balance, transactions, loanCount: filteredLoans.length, saleCount: filteredSales.length, paymentCount: filteredPayments.length, expenseCount: filteredExpenses.length };
   }, [loans, sales, payments, expenses, range]);
 
+  // Health score computation (global, not period-filtered)
+  const health = useMemo(() => {
+    const activeLoans = loans.filter((l) => l.status !== "paid");
+    const paidLoans = loans.filter((l) => l.status === "paid");
+    const totalLoans = loans.length;
+
+    // Total expected from all loans
+    const totalExpected = loans.reduce((s, l) => s + calculateTotalWithInterest(l.amount, l.interestRate, l.installments), 0);
+    // Total received
+    const totalReceived = payments.reduce((s, p) => s + p.amount, 0);
+    // Overdue loans
+    const today = new Date().toISOString().split("T")[0];
+    const overdueLoans = activeLoans.filter((l) => l.dueDate < today);
+    const overdueAmount = overdueLoans.reduce((s, l) => {
+      const expected = calculateTotalWithInterest(l.amount, l.interestRate, l.installments);
+      const paid = payments.filter((p) => p.loanId === l.id).reduce((ss, p) => ss + p.amount, 0);
+      return s + Math.max(0, expected - paid);
+    }, 0);
+    // Total lent
+    const totalLent = loans.reduce((s, l) => s + l.amount, 0);
+
+    // Rates
+    const receivingRate = totalExpected > 0 ? (totalReceived / totalExpected) * 100 : 0;
+    const defaultRate = totalLoans > 0 ? (overdueLoans.length / totalLoans) * 100 : 0;
+    const profitMargin = totalLent > 0 ? ((totalReceived - totalLent) / totalLent) * 100 : 0;
+
+    // Health score: weighted average
+    const receivingScore = Math.min(100, receivingRate);
+    const defaultScore = Math.max(0, 100 - defaultRate * 2);
+    const profitScore = Math.min(100, Math.max(0, 50 + profitMargin));
+    const score = Math.round(receivingScore * 0.4 + defaultScore * 0.35 + profitScore * 0.25);
+
+    return {
+      score: Math.max(0, Math.min(100, score)),
+      receivingRate: Math.min(100, receivingRate),
+      defaultRate,
+      totalReceived,
+      overdueAmount,
+    };
+  }, [loans, payments]);
+
   const handleChangePeriod = (p: Period) => { setPeriod(p); setOffset(0); };
 
   const startEditBalance = () => { setTempBalance(String(accountBalance)); setEditingBalance(true); };
@@ -144,6 +186,10 @@ export function DashboardOverview({ loans, sales, payments, expenses, onDeletePa
   const startEditRate = () => { setTempRate(String(interestRate)); setEditingRate(true); };
   const saveRate = () => { setInterestRate(parseFloat(tempRate) || 0); setEditingRate(false); };
   const cancelEditRate = () => setEditingRate(false);
+
+  const healthColor = health.score >= 70 ? "text-success" : health.score >= 40 ? "text-warning" : "text-destructive";
+  const healthBg = health.score >= 70 ? "from-success/20 to-success/5" : health.score >= 40 ? "from-warning/20 to-warning/5" : "from-destructive/20 to-destructive/5";
+  const healthStroke = health.score >= 70 ? "stroke-success" : health.score >= 40 ? "stroke-warning" : "stroke-destructive";
 
   return (
     <div className="space-y-6">
@@ -262,6 +308,61 @@ export function DashboardOverview({ loans, sales, payments, expenses, onDeletePa
           <p className="text-xs mt-2 opacity-80">{range.label}</p>
         </div>
       </div>
+
+      {/* Health Score Gauge */}
+      <Card>
+        <CardContent className="p-6">
+          <h3 className="text-sm font-semibold text-foreground mb-4">Saúde da Operação</h3>
+          <div className="flex flex-col sm:flex-row items-center gap-6">
+            {/* Gauge */}
+            <div className="relative w-40 h-40 shrink-0">
+              <svg viewBox="0 0 120 120" className="w-full h-full -rotate-90">
+                <circle cx="60" cy="60" r="52" fill="none" stroke="currentColor" strokeWidth="10" className="text-muted/30" />
+                <circle
+                  cx="60" cy="60" r="52" fill="none" strokeWidth="10" strokeLinecap="round"
+                  className={healthStroke}
+                  strokeDasharray={`${(health.score / 100) * 326.7} 326.7`}
+                />
+              </svg>
+              <div className="absolute inset-0 flex flex-col items-center justify-center">
+                <span className={`text-3xl font-bold ${healthColor}`}>{health.score}</span>
+                <span className="text-xs text-muted-foreground">de 100</span>
+              </div>
+            </div>
+            {/* Metrics */}
+            <div className="flex-1 grid grid-cols-2 gap-4 w-full">
+              <Card className={`bg-gradient-to-br ${healthBg} border-0`}>
+                <CardContent className="p-4">
+                  <p className="text-xs text-muted-foreground">Taxa de Recebimento</p>
+                  <p className={`text-xl font-bold ${health.receivingRate >= 70 ? "text-success" : health.receivingRate >= 40 ? "text-warning" : "text-destructive"}`}>
+                    {health.receivingRate.toFixed(1)}%
+                  </p>
+                </CardContent>
+              </Card>
+              <Card className={`bg-gradient-to-br ${health.defaultRate <= 20 ? "from-success/20 to-success/5" : health.defaultRate <= 50 ? "from-warning/20 to-warning/5" : "from-destructive/20 to-destructive/5"} border-0`}>
+                <CardContent className="p-4">
+                  <p className="text-xs text-muted-foreground">Inadimplência</p>
+                  <p className={`text-xl font-bold ${health.defaultRate <= 20 ? "text-success" : health.defaultRate <= 50 ? "text-warning" : "text-destructive"}`}>
+                    {health.defaultRate.toFixed(1)}%
+                  </p>
+                </CardContent>
+              </Card>
+              <Card className="border-0 bg-gradient-to-br from-success/10 to-success/5">
+                <CardContent className="p-4">
+                  <p className="text-xs text-muted-foreground">Recebido</p>
+                  <p className="text-xl font-bold text-success">{formatCurrency(health.totalReceived)}</p>
+                </CardContent>
+              </Card>
+              <Card className="border-0 bg-gradient-to-br from-destructive/10 to-destructive/5">
+                <CardContent className="p-4">
+                  <p className="text-xs text-muted-foreground">Atrasado</p>
+                  <p className="text-xl font-bold text-destructive">{formatCurrency(health.overdueAmount)}</p>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Breakdown */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
