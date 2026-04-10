@@ -23,7 +23,7 @@ interface Props {
   onDelete: (loanId: string) => void;
 }
 
-type Category = "all" | "overdue" | "paid_interest" | "paid" | "due_today" | "on_track";
+type Category = "all" | "overdue" | "paid_interest" | "paid" | "due_today" | "on_track" | "folders";
 
 const categoryConfig: { id: Category; label: string; color: string; activeColor: string }[] = [
   { id: "all", label: "Todos", color: "border-border text-muted-foreground", activeColor: "bg-primary text-primary-foreground border-primary" },
@@ -32,6 +32,7 @@ const categoryConfig: { id: Category; label: string; color: string; activeColor:
   { id: "paid", label: "Pagou Total", color: "border-success/30 text-success", activeColor: "bg-success text-success-foreground border-success" },
   { id: "due_today", label: "Vence Hoje", color: "border-warning/30 text-warning", activeColor: "bg-warning text-warning-foreground border-warning" },
   { id: "on_track", label: "Em Dia", color: "border-primary/30 text-primary", activeColor: "bg-primary text-primary-foreground border-primary" },
+  { id: "folders", label: "Pastas", color: "border-border text-muted-foreground", activeColor: "bg-primary text-primary-foreground border-primary" },
 ];
 
 function formatCurrency(value: number): string {
