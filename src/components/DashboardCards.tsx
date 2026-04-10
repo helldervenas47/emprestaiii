@@ -23,19 +23,25 @@ export function DashboardCards({ loans }: Props) {
       title: "Total Emprestado",
       value: formatCurrency(totalLent),
       icon: DollarSign,
-      gradient: "gradient-primary",
+      accentClass: "text-primary",
+      bgClass: "bg-primary/10",
+      glowClass: "glow-primary",
     },
     {
       title: "Total a Receber",
       value: formatCurrency(totalToReceive),
       icon: TrendingUp,
-      gradient: "gradient-success",
+      accentClass: "text-success",
+      bgClass: "bg-success/10",
+      glowClass: "glow-success",
     },
     {
       title: "Lucro em Juros",
       value: formatCurrency(totalInterest),
       icon: TrendingUp,
-      gradient: "gradient-warning",
+      accentClass: "text-warning",
+      bgClass: "bg-warning/10",
+      glowClass: "",
     },
     {
       title: "Empréstimos Ativos",
@@ -43,7 +49,9 @@ export function DashboardCards({ loans }: Props) {
       subtitle: overdueLoans > 0 ? `${overdueLoans} em atraso` : undefined,
       icon: Users,
       subtitleIcon: overdueLoans > 0 ? AlertTriangle : undefined,
-      gradient: "gradient-primary",
+      accentClass: "text-primary",
+      bgClass: "bg-primary/10",
+      glowClass: "",
     },
   ];
 
@@ -52,16 +60,18 @@ export function DashboardCards({ loans }: Props) {
       {cards.map((card) => (
         <div
           key={card.title}
-          className={`${card.gradient} rounded-xl p-5 text-primary-foreground shadow-lg`}
+          className={`rounded-xl p-5 bg-card border border-border/50 ${card.glowClass} transition-all hover:border-border`}
         >
-          <div className="flex items-center justify-between mb-3">
-            <span className="text-sm font-medium opacity-90">{card.title}</span>
-            <card.icon className="h-5 w-5 opacity-80" />
+          <div className="flex items-center justify-between mb-4">
+            <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">{card.title}</span>
+            <div className={`h-8 w-8 rounded-lg ${card.bgClass} flex items-center justify-center`}>
+              <card.icon className={`h-4 w-4 ${card.accentClass}`} />
+            </div>
           </div>
-          <p className="text-2xl font-bold">{card.value}</p>
+          <p className={`text-2xl font-bold ${card.accentClass}`}>{card.value}</p>
           {card.subtitle && (
-            <p className="text-xs mt-1 opacity-80 flex items-center gap-1">
-              {card.subtitleIcon && <card.subtitleIcon className="h-3 w-3" />}
+            <p className="text-xs mt-2 text-muted-foreground flex items-center gap-1">
+              {card.subtitleIcon && <card.subtitleIcon className="h-3 w-3 text-destructive" />}
               {card.subtitle}
             </p>
           )}
