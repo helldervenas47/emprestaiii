@@ -106,7 +106,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, onDeletePa
     const filteredSales = sales.filter((s) => isInRange(s.date, range.start, range.end));
     const incomeFromPayments = filteredPayments.reduce((s, p) => s + p.amount, 0);
     const incomeFromSales = filteredSales.reduce((s, sale) => s + sale.total, 0);
-    const totalIncome = incomeFromPayments + incomeFromSales;
+    const totalIncome = incomeFromPayments + (includeSales ? incomeFromSales : 0);
 
     const filteredLoans = loans.filter((l) => isInRange(l.startDate, range.start, range.end));
     const totalLoanOutgoing = filteredLoans.reduce((s, l) => s + l.amount, 0);
