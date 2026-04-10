@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import { Plus, HandCoins, Users, LayoutDashboard, Download, Upload, ShoppingBag, BarChart3, AlertTriangle } from "lucide-react";
+import { Plus, HandCoins, Users, LayoutDashboard, Download, Upload, ShoppingBag, BarChart3, AlertTriangle, Receipt } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DashboardCards } from "@/components/DashboardCards";
 import { LoanForm } from "@/components/LoanForm";
@@ -11,22 +11,26 @@ import { SaleForm } from "@/components/SaleForm";
 import { ProductSalesView } from "@/components/ProductSalesView";
 import { DashboardOverview } from "@/components/DashboardOverview";
 import { OverdueLoans } from "@/components/OverdueLoans";
+import { ExpenseForm } from "@/components/ExpenseForm";
+import { ExpenseList } from "@/components/ExpenseList";
 import { useLoans } from "@/hooks/useLoans";
 import { useClients } from "@/hooks/useClients";
 import { useProducts } from "@/hooks/useProducts";
+import { useExpenses } from "@/hooks/useExpenses";
 import {
   exportLoansToCSV, exportClientsToCSV,
   importLoansFromCSV, importClientsFromCSV, downloadCSV,
 } from "@/lib/csv";
 import { toast } from "sonner";
 
-type Tab = "overview" | "dashboard" | "clients" | "products" | "overdue";
+type Tab = "overview" | "dashboard" | "clients" | "products" | "overdue" | "expenses";
 
 const tabConfig = [
   { id: "overview" as Tab, label: "Dashboard", icon: BarChart3 },
   { id: "dashboard" as Tab, label: "Empréstimos", icon: LayoutDashboard },
   { id: "clients" as Tab, label: "Clientes", icon: Users },
   { id: "products" as Tab, label: "Vendas", icon: ShoppingBag },
+  { id: "expenses" as Tab, label: "Despesas", icon: Receipt },
   { id: "overdue" as Tab, label: "Inadimplentes", icon: AlertTriangle },
 ];
 
@@ -34,10 +38,12 @@ const Index = () => {
   const { loans, payments, addLoan, addPayment, addInterestOnlyPayment, updateLoan, deleteLoan, deletePayment } = useLoans();
   const { clients, addClient, deleteClient, updateClient } = useClients();
   const { products, sales, addProduct, updateProduct, deleteProduct, addSale, deleteSale } = useProducts();
+  const { expenses, addExpense, payExpense, deleteExpense } = useExpenses();
   const [showLoanForm, setShowLoanForm] = useState(false);
   const [showClientForm, setShowClientForm] = useState(false);
   const [showProductForm, setShowProductForm] = useState(false);
   const [showSaleForm, setShowSaleForm] = useState(false);
+  const [showExpenseForm, setShowExpenseForm] = useState(false);
   const [tab, setTab] = useState<Tab>("overview");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -84,10 +90,15 @@ const Index = () => {
   const handlePrimaryAction = () => {
     if (tab === "dashboard") setShowLoanForm(true);
     else if (tab === "clients") setShowClientForm(true);
+    else if (tab === "expenses") setShowExpenseForm(true);
     else setShowProductForm(true);
   };
 
-  const primaryLabel = tab === "dashboard" ? "Novo Empréstimo" : tab === "clients" ? "Novo Cliente" : "Novo Produto";
+  const primaryLabel =
+    tab === "dashboard" ? "Novo Empréstimo" :
+    tab === "clients" ? "Novo Cliente" :
+    tab === "expenses" ? "Nova Despesa" :
+    "Novo Produto";
 
   return (
     <div className="min-h-screen bg-background">
@@ -105,7 +116,7 @@ const Index = () => {
             </div>
           </div>
           <div className="flex items-center gap-2">
-            {tab !== "products" && (
+            {(tab === "dashboard" || tab === "clients") && (
               <>
                 <Button variant="outline" size="sm" onClick={handleImport}><Upload className="h-4 w-4 mr-1" />Importar</Button>
                 <Button variant="outline" size="sm" onClick={handleExport}><Download className="h-4 w-4 mr-1" />Exportar</Button>
@@ -116,19 +127,21 @@ const Index = () => {
                 <ShoppingBag className="h-4 w-4 mr-1" /> Nova Venda
               </Button>
             )}
-            <Button onClick={handlePrimaryAction}>
-              <Plus className="h-4 w-4 mr-2" />{primaryLabel}
-            </Button>
+            {tab !== "overview" && tab !== "overdue" && (
+              <Button onClick={handlePrimaryAction}>
+                <Plus className="h-4 w-4 mr-2" />{primaryLabel}
+              </Button>
+            )}
           </div>
         </div>
 
         <div className="container mx-auto px-4">
-          <nav className="flex gap-1 -mb-px">
+          <nav className="flex gap-1 -mb-px overflow-x-auto">
             {tabConfig.map((t) => (
               <button
                 key={t.id}
                 onClick={() => setTab(t.id)}
-                className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors ${
+                className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
                   tab === t.id ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"
                 }`}
               >
@@ -141,7 +154,7 @@ const Index = () => {
 
       <main className="container mx-auto px-4 py-6 space-y-6">
         {tab === "overview" && (
-          <DashboardOverview loans={loans} sales={sales} payments={payments} onDeletePayment={deletePayment} onDeleteSale={deleteSale} onDeleteLoan={deleteLoan} />
+          <DashboardOverview loans={loans} sales={sales} payments={payments} expenses={expenses} onDeletePayment={deletePayment} onDeleteSale={deleteSale} onDeleteLoan={deleteLoan} />
         )}
         {tab === "dashboard" && (
           <>
@@ -156,6 +169,12 @@ const Index = () => {
           <div>
             <h2 className="text-lg font-semibold text-foreground mb-4">Clientes ({clients.length})</h2>
             <ClientList clients={clients} onDelete={deleteClient} onUpdate={updateClient} />
+          </div>
+        )}
+        {tab === "expenses" && (
+          <div>
+            <h2 className="text-lg font-semibold text-foreground mb-4">Despesas ({expenses.length})</h2>
+            <ExpenseList expenses={expenses} onPay={payExpense} onDelete={deleteExpense} />
           </div>
         )}
         {tab === "overdue" && (
@@ -176,6 +195,7 @@ const Index = () => {
       {showClientForm && <ClientForm onAdd={addClient} onClose={() => setShowClientForm(false)} />}
       {showProductForm && <ProductForm onAdd={addProduct} onClose={() => setShowProductForm(false)} />}
       {showSaleForm && <SaleForm products={products} onAdd={addSale} onClose={() => setShowSaleForm(false)} />}
+      {showExpenseForm && <ExpenseForm onAdd={addExpense} onClose={() => setShowExpenseForm(false)} />}
     </div>
   );
 };
