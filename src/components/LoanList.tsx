@@ -1377,7 +1377,7 @@ export function LoanList({ loans, payments, onPayment, onPartialPayment, onInter
                   {categorized.map((loan) => (
                     <LoanRowView key={loan.id} loan={loan} payments={payments}
                       onPayment={(date) => onPayment(loan.id, date)} onPartialPayment={(amt, date) => onPartialPayment(loan.id, amt, date)}
-                      onInterestPayment={(date) => onInterestPayment(loan.id, date)} onUpdate={(d) => onUpdate(loan.id, d)} onDelete={() => onDelete(loan.id)} />
+                      onInterestPayment={(date) => onInterestPayment(loan.id, date)} onUpdate={(d) => onUpdate(loan.id, d)} onDelete={() => onDelete(loan.id)} onDeletePayment={onDeletePayment} />
                   ))}
                 </tbody>
               </table>
