@@ -39,6 +39,9 @@ export function useProducts() {
           customerName: "",
           date: s.sale_date,
           businessType: (s.business_type as BusinessType) || "venda",
+          paymentMode: ((s as any).payment_mode || "fixa") as "fixa" | "recorrente",
+          installments: (s as any).installments || 1,
+          paidInstallments: (s as any).paid_installments || 0,
         })));
       }
       setLoading(false);
