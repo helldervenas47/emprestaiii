@@ -26,12 +26,11 @@ import {
 } from "@/lib/csv";
 import { toast } from "sonner";
 
-type Tab = "overview" | "dashboard" | "installments" | "clients" | "products" | "overdue" | "expenses" | "calendar";
+type Tab = "overview" | "dashboard" | "clients" | "products" | "overdue" | "expenses" | "calendar";
 
 const tabConfig = [
   { id: "overview" as Tab, label: "Dashboard", icon: BarChart3 },
-  { id: "dashboard" as Tab, label: "Linhas", icon: LayoutDashboard },
-  { id: "installments" as Tab, label: "Parcelados", icon: HandCoins },
+  { id: "dashboard" as Tab, label: "Empréstimos", icon: LayoutDashboard },
   { id: "calendar" as Tab, label: "Cobrança", icon: CalendarDays },
   { id: "clients" as Tab, label: "Clientes", icon: Users },
   { id: "products" as Tab, label: "Vendas", icon: ShoppingBag },
@@ -50,19 +49,13 @@ const tabHelp: Record<Tab, { title: string; items: string[] }> = {
     ],
   },
   dashboard: {
-    title: "Linhas",
+    title: "Empréstimos",
     items: [
-      "Empréstimos com parcela única (1 parcela).",
-      "Registre pagamentos de juros ou pagamento total.",
-      "Use os filtros e etiquetas para organizar seus contratos.",
-    ],
-  },
-  installments: {
-    title: "Parcelados",
-    items: [
-      "Empréstimos com 2 ou mais parcelas.",
+      "Cadastre novos empréstimos clicando em 'Novo Empréstimo'.",
+      "Escolha o tipo de contrato: Semanal, Quinzenal ou Mensal.",
       "Registre pagamentos de parcela, juros ou pagamentos parciais.",
-      "Clique em 'Mais detalhes' para ver o cronograma completo.",
+      "Clique em 'Mais detalhes' para ver o cronograma completo de parcelas.",
+      "Use os filtros e etiquetas para organizar seus contratos.",
       "Importe/Exporte dados via CSV.",
     ],
   },
@@ -145,7 +138,7 @@ const Index = () => {
   };
 
   const handleExport = () => {
-    if (tab === "dashboard" || tab === "installments") {
+    if (tab === "dashboard") {
       if (loans.length === 0) return toast.error("Nenhum empréstimo para exportar");
       downloadCSV(exportLoansToCSV(loans, payments), "emprestimos.csv");
       toast.success("Empréstimos exportados com sucesso!");
@@ -165,7 +158,7 @@ const Index = () => {
     reader.onload = async (evt) => {
       const csv = evt.target?.result as string;
       try {
-        if (tab === "dashboard" || tab === "installments") {
+        if (tab === "dashboard") {
           const imported = importLoansFromCSV(csv);
           if (imported.length === 0) throw new Error();
           const BATCH = 5;
@@ -195,14 +188,14 @@ const Index = () => {
   };
 
   const handlePrimaryAction = () => {
-    if (tab === "dashboard" || tab === "installments") setShowLoanForm(true);
+    if (tab === "dashboard") setShowLoanForm(true);
     else if (tab === "clients") setShowClientForm(true);
     else if (tab === "expenses") setShowExpenseForm(true);
     else if (tab === "products") setShowSaleForm(true);
   };
 
   const primaryLabel =
-    tab === "dashboard" || tab === "installments" ? "Novo Empréstimo" :
+    tab === "dashboard" ? "Novo Empréstimo" :
     tab === "clients" ? "Novo Cliente" :
     tab === "expenses" ? "Nova Despesa" :
     tab === "products" ? "Novo Lançamento" : "";
@@ -249,12 +242,13 @@ const Index = () => {
             <Button variant="ghost" size="icon" onClick={signOut} className="h-9 w-9" title="Sair">
               <LogOut className="h-4 w-4" />
             </Button>
-            {(tab === "dashboard" || tab === "installments" || tab === "clients") && (
+            {(tab === "dashboard" || tab === "clients") && (
               <>
                 <Button variant="outline" size="sm" onClick={handleImport}><Upload className="h-4 w-4 mr-1" />Importar</Button>
                 <Button variant="outline" size="sm" onClick={handleExport}><Download className="h-4 w-4 mr-1" />Exportar</Button>
               </>
             )}
+            {/* Removed separate Nova Venda button - now handled by primary action */}
             {tab !== "overview" && tab !== "overdue" && tab !== "calendar" && (
               <Button onClick={handlePrimaryAction}>
                 <Plus className="h-4 w-4 mr-2" />{primaryLabel}
@@ -285,16 +279,12 @@ const Index = () => {
           <DashboardOverview loans={loans} sales={sales} payments={payments} expenses={expenses} onDeletePayment={deletePayment} onDeleteSale={deleteSale} onDeleteLoan={deleteLoan} />
         )}
         {tab === "dashboard" && (
-          <div>
-            <h2 className="text-lg font-semibold text-foreground mb-4">Linhas</h2>
-            <LoanList loans={loans.filter(l => l.installments <= 1)} payments={payments} onPayment={addPayment} onPartialPayment={addPartialPayment} onInterestPayment={addInterestOnlyPayment} onUpdate={updateLoan} onDelete={deleteLoan} onDeletePayment={deletePayment} />
-          </div>
-        )}
-        {tab === "installments" && (
-          <div>
-            <h2 className="text-lg font-semibold text-foreground mb-4">Parcelados</h2>
-            <LoanList loans={loans.filter(l => l.installments >= 2)} payments={payments} onPayment={addPayment} onPartialPayment={addPartialPayment} onInterestPayment={addInterestOnlyPayment} onUpdate={updateLoan} onDelete={deleteLoan} onDeletePayment={deletePayment} />
-          </div>
+          <>
+            <div>
+              <h2 className="text-lg font-semibold text-foreground mb-4">Empréstimos</h2>
+              <LoanList loans={loans} payments={payments} onPayment={addPayment} onPartialPayment={addPartialPayment} onInterestPayment={addInterestOnlyPayment} onUpdate={updateLoan} onDelete={deleteLoan} onDeletePayment={deletePayment} />
+            </div>
+          </>
         )}
         {tab === "clients" && (
           <div>
