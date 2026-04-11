@@ -50,13 +50,19 @@ const tabHelp: Record<Tab, { title: string; items: string[] }> = {
     ],
   },
   dashboard: {
-    title: "Empréstimos",
+    title: "Linhas",
     items: [
-      "Cadastre novos empréstimos clicando em 'Novo Empréstimo'.",
-      "Escolha o tipo de contrato: Semanal, Quinzenal ou Mensal.",
-      "Registre pagamentos de parcela, juros ou pagamentos parciais.",
-      "Clique em 'Mais detalhes' para ver o cronograma completo de parcelas.",
+      "Empréstimos com parcela única (1 parcela).",
+      "Registre pagamentos de juros ou pagamento total.",
       "Use os filtros e etiquetas para organizar seus contratos.",
+    ],
+  },
+  installments: {
+    title: "Parcelados",
+    items: [
+      "Empréstimos com 2 ou mais parcelas.",
+      "Registre pagamentos de parcela, juros ou pagamentos parciais.",
+      "Clique em 'Mais detalhes' para ver o cronograma completo.",
       "Importe/Exporte dados via CSV.",
     ],
   },
