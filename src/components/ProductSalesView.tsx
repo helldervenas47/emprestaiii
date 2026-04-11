@@ -200,13 +200,36 @@ function SaleCard({ sale, onDelete, onEdit, onUpdate, formatCurrency }: { sale: 
                 </div>
               ) : (
                 <div className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    className="flex-1 h-9 text-xs border-primary/30 text-primary hover:bg-primary hover:text-primary-foreground"
-                    onClick={() => onUpdate({ paidInstallments: Math.min(sale.installments, sale.paidInstallments + 1) })}
-                  >
-                    <CheckCircle className="h-3.5 w-3.5 mr-1" /> Pagar Parcela
-                  </Button>
+                  <Popover open={showPayDatePicker} onOpenChange={setShowPayDatePicker}>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className="flex-1 h-9 text-xs border-primary/30 text-primary hover:bg-primary hover:text-primary-foreground"
+                      >
+                        <CheckCircle className="h-3.5 w-3.5 mr-1" /> Pagar Parcela
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <div className="p-3 border-b border-border">
+                        <p className="text-sm font-medium text-foreground">Selecione a data do pagamento</p>
+                      </div>
+                      <Calendar
+                        mode="single"
+                        selected={new Date()}
+                        onSelect={(date) => {
+                          if (date) {
+                            onUpdate({
+                              paidInstallments: Math.min(sale.installments, sale.paidInstallments + 1),
+                              date: format(date, "yyyy-MM-dd"),
+                            });
+                            setShowPayDatePicker(false);
+                          }
+                        }}
+                        initialFocus
+                        className={cn("p-3 pointer-events-auto")}
+                      />
+                    </PopoverContent>
+                  </Popover>
                   <Button
                     variant="outline"
                     className="flex-1 h-9 text-xs border-warning/30 text-warning hover:bg-warning hover:text-warning-foreground"
