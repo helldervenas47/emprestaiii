@@ -30,12 +30,14 @@ function getOverdueInstallments(loan: Loan): { number: number; dueDate: string; 
   const now = new Date();
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   const overdue: { number: number; dueDate: string; amount: number }[] = [];
+  const addedNumbers = new Set<number>();
 
   for (let i = loan.paidInstallments; i < loan.installments; i++) {
     const dueDate = new Date(startDate);
     dueDate.setMonth(dueDate.getMonth() + i + 1);
     const dueDateNorm = new Date(dueDate.getFullYear(), dueDate.getMonth(), dueDate.getDate());
     if (dueDateNorm < today) {
+      addedNumbers.add(i + 1);
       overdue.push({
         number: i + 1,
         dueDate: dueDate.toISOString().split("T")[0],
@@ -43,6 +45,23 @@ function getOverdueInstallments(loan: Loan): { number: number; dueDate: string; 
       });
     }
   }
+
+  // Also check loan.dueDate directly
+  if (loan.dueDate) {
+    const loanDue = new Date(loan.dueDate + "T00:00:00");
+    const loanDueNorm = new Date(loanDue.getFullYear(), loanDue.getMonth(), loanDue.getDate());
+    if (loanDueNorm < today) {
+      const nextInstallment = loan.paidInstallments + 1;
+      if (!addedNumbers.has(nextInstallment) && nextInstallment <= loan.installments) {
+        overdue.push({
+          number: nextInstallment,
+          dueDate: loan.dueDate,
+          amount: installmentAmount,
+        });
+      }
+    }
+  }
+
   return overdue;
 }
 
@@ -52,12 +71,14 @@ function getDueTodayInstallments(loan: Loan): { number: number; dueDate: string;
   const now = new Date();
   const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
   const dueToday: { number: number; dueDate: string; amount: number }[] = [];
+  const addedNumbers = new Set<number>();
 
   for (let i = loan.paidInstallments; i < loan.installments; i++) {
     const dueDate = new Date(startDate);
     dueDate.setMonth(dueDate.getMonth() + i + 1);
     const dueDateStr = dueDate.toISOString().split("T")[0];
     if (dueDateStr === todayStr) {
+      addedNumbers.add(i + 1);
       dueToday.push({
         number: i + 1,
         dueDate: dueDateStr,
@@ -65,6 +86,19 @@ function getDueTodayInstallments(loan: Loan): { number: number; dueDate: string;
       });
     }
   }
+
+  // Also check loan.dueDate directly
+  if (loan.dueDate === todayStr) {
+    const nextInstallment = loan.paidInstallments + 1;
+    if (!addedNumbers.has(nextInstallment) && nextInstallment <= loan.installments) {
+      dueToday.push({
+        number: nextInstallment,
+        dueDate: todayStr,
+        amount: installmentAmount,
+      });
+    }
+  }
+
   return dueToday;
 }
 
