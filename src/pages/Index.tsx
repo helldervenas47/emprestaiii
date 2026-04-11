@@ -95,7 +95,25 @@ const Index = () => {
         if (tab === "dashboard") {
           const imported = importLoansFromCSV(csv);
           if (imported.length === 0) throw new Error();
-          imported.forEach((loan) => addLoan(loan));
+          for (const loan of imported) {
+            const { totalPaid, ...loanData } = loan;
+            await addLoan(loanData);
+            if (totalPaid && totalPaid > 0) {
+              // Wait briefly for optimistic update to settle, then find the loan
+              await new Promise((r) => setTimeout(r, 300));
+            }
+          }
+          // Create partial payments for imported totalPaid values
+          setTimeout(async () => {
+            for (const loan of imported) {
+              if (loan.totalPaid && loan.totalPaid > 0) {
+                const found = loans.find((l) => l.borrowerName === loan.borrowerName && l.amount === loan.amount);
+                if (found) {
+                  await addPartialPayment(found.id, loan.totalPaid, loan.startDate);
+                }
+              }
+            }
+          }, 1000);
           toast.success(`${imported.length} empréstimo(s) importado(s)!`);
         } else if (tab === "clients") {
           const imported = importClientsFromCSV(csv);
