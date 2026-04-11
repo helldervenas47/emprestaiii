@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import React, { useState, useMemo } from "react";
 import { Loan, Payment } from "@/types/loan";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -126,6 +126,7 @@ function LoanCardView({
   const [newTag, setNewTag] = useState("");
   const [paymentDialog, setPaymentDialog] = useState<{ type: "installment" | "interest" | "partial"; amount?: number } | null>(null);
   const [paymentDate, setPaymentDate] = useState<Date>(new Date());
+  const [showDetails, setShowDetails] = useState(false);
 
   const installment = calculateInstallment(loan.amount, loan.interestRate, loan.installments);
   const total = calculateTotalWithInterest(loan.amount, loan.interestRate, loan.installments);
@@ -415,6 +416,84 @@ function LoanCardView({
           </div>
           <Progress value={progress} className="h-2.5" />
         </div>
+
+        {/* Mais Detalhes - Installment Schedule */}
+        <button
+          onClick={() => setShowDetails(!showDetails)}
+          className="flex items-center gap-1 text-xs text-primary hover:underline w-full justify-center py-1"
+        >
+          {showDetails ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
+          {showDetails ? "Ocultar detalhes" : "Mais detalhes"}
+        </button>
+
+        {showDetails && (
+          <div className="space-y-2 bg-muted/30 rounded-lg p-3 border border-border/50">
+            <p className="text-xs font-semibold text-foreground mb-2">Cronograma de Parcelas</p>
+            <div className="grid grid-cols-[auto_1fr_1fr_1fr] gap-x-3 gap-y-1 text-xs">
+              <span className="font-medium text-muted-foreground">#</span>
+              <span className="font-medium text-muted-foreground">Vencimento</span>
+              <span className="font-medium text-muted-foreground">Valor</span>
+              <span className="font-medium text-muted-foreground">Status</span>
+              {Array.from({ length: loan.installments }, (_, idx) => {
+                const i = idx + 1;
+                const dueBase = new Date(loan.dueDate + "T00:00:00");
+                const nextInst = loan.paidInstallments + 1;
+                const monthsFromNext = i - nextInst;
+                const instDate = i <= loan.paidInstallments
+                  ? (() => {
+                      const loanPayment = allPayments.find((p) => p.loanId === loan.id && p.installmentNumber === i);
+                      return loanPayment ? new Date(loanPayment.date + "T00:00:00") : new Date(loan.startDate + "T00:00:00");
+                    })()
+                  : new Date(dueBase.getFullYear(), dueBase.getMonth() + monthsFromNext, dueBase.getDate());
+                const instDateStr = instDate.toLocaleDateString("pt-BR");
+                const isPaid = i <= loan.paidInstallments;
+                const todayNorm = new Date();
+                const todayStr = `${todayNorm.getFullYear()}-${String(todayNorm.getMonth() + 1).padStart(2, "0")}-${String(todayNorm.getDate()).padStart(2, "0")}`;
+                const instIso = instDate.toISOString().split("T")[0];
+                const isOverdue = !isPaid && instIso < todayStr;
+                const isDueToday = !isPaid && instIso === todayStr;
+                return (
+                  <React.Fragment key={i}>
+                    <span className="text-muted-foreground">{i}</span>
+                    <span className="text-foreground">{instDateStr}</span>
+                    <span className="text-foreground font-medium">{formatCurrency(installment)}</span>
+                    <span>
+                      {isPaid ? (
+                        <Badge className="bg-success/20 text-success border-success/30 text-[10px]">Pago</Badge>
+                      ) : isOverdue ? (
+                        <Badge className="bg-destructive/20 text-destructive border-destructive/30 text-[10px]">Atrasado</Badge>
+                      ) : isDueToday ? (
+                        <Badge className="bg-warning/20 text-warning border-warning/30 text-[10px]">Hoje</Badge>
+                      ) : (
+                        <Badge variant="outline" className="text-[10px]">Pendente</Badge>
+                      )}
+                    </span>
+                  </React.Fragment>
+                );
+              })}
+            </div>
+
+            {/* Summary */}
+            <div className="grid grid-cols-2 gap-2 pt-2 mt-2 border-t border-border/30 text-xs">
+              <div>
+                <p className="text-muted-foreground">Valor da Parcela</p>
+                <p className="font-semibold text-foreground">{formatCurrency(installment)}</p>
+              </div>
+              <div>
+                <p className="text-muted-foreground">Juros por Parcela</p>
+                <p className="font-semibold text-foreground">{formatCurrency(installment - (loan.amount / loan.installments))}</p>
+              </div>
+              <div>
+                <p className="text-muted-foreground">Total de Juros</p>
+                <p className="font-semibold text-foreground">{formatCurrency(totalInterest)}</p>
+              </div>
+              <div>
+                <p className="text-muted-foreground">Já Recebido</p>
+                <p className="font-semibold text-success">{formatCurrency(totalPaid)}</p>
+              </div>
+            </div>
+          </div>
+        )}
 
         {loan.notes && (
           <p className="text-xs text-muted-foreground italic bg-muted/30 rounded-lg px-3 py-2">📝 {loan.notes}</p>
