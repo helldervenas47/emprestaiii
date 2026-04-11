@@ -182,7 +182,7 @@ export function useLoans() {
     if (data.notes !== undefined) updateData.notes = data.notes;
     if (data.remainingAmount !== undefined) updateData.remaining_amount = data.remainingAmount;
     await supabase.from("loans").update(updateData).eq("id", id);
-  }, []);
+  }, [loans]);
 
   const deleteLoan = useCallback(async (id: string) => {
     const loan = loans.find((l) => l.id === id);
