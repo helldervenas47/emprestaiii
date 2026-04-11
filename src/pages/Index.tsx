@@ -32,7 +32,7 @@ type Tab = "overview" | "dashboard" | "clients" | "products" | "overdue" | "expe
 const tabConfig = [
   { id: "overview" as Tab, label: "Dashboard", icon: BarChart3 },
   { id: "dashboard" as Tab, label: "Empréstimos", icon: LayoutDashboard },
-  { id: "calendar" as Tab, label: "Cobrança", icon: CalendarDays },
+  { id: "calendar" as Tab, label: "Calendário", icon: CalendarDays },
   { id: "clients" as Tab, label: "Clientes", icon: Users },
   { id: "products" as Tab, label: "Vendas", icon: ShoppingBag },
   { id: "expenses" as Tab, label: "Despesas", icon: Receipt },
