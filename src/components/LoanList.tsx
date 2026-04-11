@@ -798,7 +798,7 @@ function LoanRowView({
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={() => openPaymentDialog("installment")}>
+                <DropdownMenuItem onClick={() => openPaymentDialog("full")}>
                   <CheckCircle className="h-4 w-4 mr-2" /> Pagamento Total
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => setShowPartial(!showPartial)}>
