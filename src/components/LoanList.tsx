@@ -932,11 +932,17 @@ export function LoanList({ loans, payments, onPayment, onPartialPayment, onInter
         ))}
       </div>
 
-      <div className="flex items-center gap-4">
-        <div className="relative flex-1">
+      <div className="flex items-center gap-2 flex-wrap">
+        <div className="relative flex-1 min-w-[200px]">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input placeholder="Buscar por nome do cliente..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-10" />
         </div>
+        <Button variant={showFilters ? "default" : "outline"} size="sm" onClick={() => setShowFilters(!showFilters)} className="gap-1.5">
+          <SlidersHorizontal className="h-3.5 w-3.5" />Filtros
+          {(dateFrom || dateTo || amountMin || amountMax || tagFilter) && (
+            <Badge className="bg-destructive text-destructive-foreground h-4 w-4 p-0 flex items-center justify-center text-[10px] rounded-full">!</Badge>
+          )}
+        </Button>
         <div className="flex bg-muted rounded-lg p-0.5">
           <button onClick={() => setView("cards")}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
@@ -961,6 +967,55 @@ export function LoanList({ loans, payments, onPayment, onPartialPayment, onInter
           </button>
         </div>
       </div>
+
+      {/* Advanced filters panel */}
+      {showFilters && (
+        <Card>
+          <CardContent className="p-4">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+              <div>
+                <Label className="text-xs text-muted-foreground">Data Saída (De)</Label>
+                <Input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} className="h-8 text-sm" />
+              </div>
+              <div>
+                <Label className="text-xs text-muted-foreground">Data Saída (Até)</Label>
+                <Input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} className="h-8 text-sm" />
+              </div>
+              <div>
+                <Label className="text-xs text-muted-foreground">Valor Mínimo (R$)</Label>
+                <Input type="number" step="0.01" placeholder="0" value={amountMin} onChange={(e) => setAmountMin(e.target.value)} className="h-8 text-sm" />
+              </div>
+              <div>
+                <Label className="text-xs text-muted-foreground">Valor Máximo (R$)</Label>
+                <Input type="number" step="0.01" placeholder="∞" value={amountMax} onChange={(e) => setAmountMax(e.target.value)} className="h-8 text-sm" />
+              </div>
+              <div>
+                <Label className="text-xs text-muted-foreground">Etiqueta</Label>
+                <select value={tagFilter} onChange={(e) => setTagFilter(e.target.value)}
+                  className="flex h-8 w-full rounded-md border border-input bg-background px-3 py-1 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                  <option value="">Todas</option>
+                  {allTags.map((t) => <option key={t} value={t}>{t}</option>)}
+                </select>
+              </div>
+              <div>
+                <Label className="text-xs text-muted-foreground">Ordenar por</Label>
+                <select value={sortBy} onChange={(e) => setSortBy(e.target.value as any)}
+                  className="flex h-8 w-full rounded-md border border-input bg-background px-3 py-1 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                  <option value="dueDate">Vencimento</option>
+                  <option value="startDate">Data de Saída</option>
+                  <option value="amount">Valor</option>
+                  <option value="name">Nome</option>
+                </select>
+              </div>
+            </div>
+            <div className="flex justify-end mt-3">
+              <Button variant="ghost" size="sm" className="text-xs" onClick={() => { setDateFrom(""); setDateTo(""); setAmountMin(""); setAmountMax(""); setTagFilter(""); setSortBy("dueDate"); }}>
+                <X className="h-3 w-3 mr-1" />Limpar filtros
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {categorized.length === 0 ? (
         <Card>
