@@ -26,7 +26,9 @@ const businessTabs: { type: BusinessType; label: string; icon: React.ElementType
   { type: "aluguel_veiculo", label: "Aluguel de Veículos", icon: Car },
 ];
 
-function SaleCard({ sale, onDelete, onEdit, formatCurrency }: { sale: Sale; onDelete: () => void; onEdit: () => void; formatCurrency: (v: number) => string }) {
+function SaleCard({ sale, onDelete, onEdit, onUpdate, formatCurrency }: { sale: Sale; onDelete: () => void; onEdit: () => void; onUpdate: (data: Partial<Omit<Sale, "id">>) => void; formatCurrency: (v: number) => string }) {
+  const [showPartial, setShowPartial] = useState(false);
+  const [partialAmount, setPartialAmount] = useState("");
   const [showParcelas, setShowParcelas] = useState(false);
   const TabIcon = businessTabs.find((t) => t.type === sale.businessType)?.icon || ShoppingCart;
   const isRecorrente = sale.paymentMode === "recorrente" && sale.installments > 1;
