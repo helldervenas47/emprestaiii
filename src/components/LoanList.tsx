@@ -917,7 +917,7 @@ export function LoanList({ loans, payments, onPayment, onPartialPayment, onInter
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="gradient-primary rounded-xl p-5 text-primary-foreground shadow-lg">
           <div className="flex items-center justify-between mb-3">
-            <span className="text-sm font-medium opacity-90">Total Emprestado</span>
+            <span className="text-sm font-medium opacity-90">Capital na Rua</span>
             <DollarSign className="h-5 w-5 opacity-80" />
           </div>
           <p className="text-2xl font-bold">{formatCurrency(summaryData.totalLent)}</p>
