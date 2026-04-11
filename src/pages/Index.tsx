@@ -121,14 +121,14 @@ const Index = () => {
     if (tab === "dashboard") setShowLoanForm(true);
     else if (tab === "clients") setShowClientForm(true);
     else if (tab === "expenses") setShowExpenseForm(true);
-    else setShowProductForm(true);
+    else if (tab === "products") setShowSaleForm(true);
   };
 
   const primaryLabel =
     tab === "dashboard" ? "Novo Empréstimo" :
     tab === "clients" ? "Novo Cliente" :
     tab === "expenses" ? "Nova Despesa" :
-    "Novo Produto";
+    tab === "products" ? "Novo Lançamento" : "";
 
   return (
     <div className="min-h-screen bg-background">
