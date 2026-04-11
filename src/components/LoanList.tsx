@@ -130,7 +130,7 @@ function LoanCardView({
   const [partialAmount, setPartialAmount] = useState("");
   const [showTagInput, setShowTagInput] = useState(false);
   const [newTag, setNewTag] = useState("");
-  const [paymentDialog, setPaymentDialog] = useState<{ type: "installment" | "interest" | "partial"; amount?: number } | null>(null);
+  const [paymentDialog, setPaymentDialog] = useState<{ type: "installment" | "interest" | "partial" | "full"; amount?: number } | null>(null);
   const [paymentDate, setPaymentDate] = useState<Date>(new Date());
   const [showDetails, setShowDetails] = useState(false);
 
@@ -173,7 +173,7 @@ function LoanCardView({
     setEditing(false);
   };
 
-  const openPaymentDialog = (type: "installment" | "interest" | "partial", amount?: number) => {
+  const openPaymentDialog = (type: "installment" | "interest" | "partial" | "full", amount?: number) => {
     setPaymentDate(new Date());
     setPaymentDialog({ type, amount });
   };
@@ -181,7 +181,10 @@ function LoanCardView({
   const confirmPayment = () => {
     if (!paymentDialog) return;
     const dateStr = paymentDate.toISOString().split("T")[0];
-    if (paymentDialog.type === "installment") onPayment(dateStr);
+    if (paymentDialog.type === "full") {
+      onPartialPayment(remaining, dateStr);
+      onUpdate({ paidInstallments: loan.installments, status: "paid" });
+    } else if (paymentDialog.type === "installment") onPayment(dateStr);
     else if (paymentDialog.type === "interest") onInterestPayment(dateStr);
     else if (paymentDialog.type === "partial" && paymentDialog.amount) onPartialPayment(paymentDialog.amount, dateStr);
     setPaymentDialog(null);
@@ -554,8 +557,8 @@ function LoanCardView({
         <div className="flex flex-col gap-2 pt-2 border-t border-border/50 mt-auto">
           {loan.status !== "paid" && (
             <div className="flex gap-2">
-              <Button variant="outline" className="flex-1 h-9 text-xs" onClick={() => openPaymentDialog("installment")}>
-                <CheckCircle className="h-3.5 w-3.5 mr-1" /> Pagar
+              <Button variant="outline" className="flex-1 h-9 text-xs" onClick={() => openPaymentDialog("full")}>
+                <CheckCircle className="h-3.5 w-3.5 mr-1" /> Pagar Total
               </Button>
               <Button variant="outline" className="flex-1 h-9 text-xs" onClick={() => openPaymentDialog("interest")}>
                 <DollarSign className="h-3.5 w-3.5 mr-1" /> Pagar Juros
@@ -582,10 +585,16 @@ function LoanCardView({
       <DialogContent className="sm:max-w-[340px]">
         <DialogHeader>
           <DialogTitle>
-            {paymentDialog?.type === "installment" ? "Receber Parcela" : paymentDialog?.type === "interest" ? "Pagar Juros" : "Pagamento Parcial"}
+            {paymentDialog?.type === "full" ? "Pagamento Total" : paymentDialog?.type === "installment" ? "Receber Parcela" : paymentDialog?.type === "interest" ? "Pagar Juros" : "Pagamento Parcial"}
           </DialogTitle>
         </DialogHeader>
         <div className="flex flex-col items-center gap-2">
+          {paymentDialog?.type === "full" && (
+            <div className="text-center p-3 bg-muted/50 rounded-lg w-full">
+              <p className="text-xs text-muted-foreground">Valor restante a receber</p>
+              <p className="text-2xl font-bold text-primary">{formatCurrency(remaining)}</p>
+            </div>
+          )}
           <Label className="text-sm text-muted-foreground">Selecione a data do pagamento</Label>
           <CalendarUI
             mode="single"
@@ -619,7 +628,7 @@ function LoanRowView({
   const [form, setForm] = useState<EditForm>(loanToForm(loan));
   const [showPartial, setShowPartial] = useState(false);
   const [partialAmount, setPartialAmount] = useState("");
-  const [paymentDialog, setPaymentDialog] = useState<{ type: "installment" | "interest" | "partial"; amount?: number } | null>(null);
+  const [paymentDialog, setPaymentDialog] = useState<{ type: "installment" | "interest" | "partial" | "full"; amount?: number } | null>(null);
   const [paymentDate, setPaymentDate] = useState<Date>(new Date());
 
   const total = calculateTotalWithInterest(loan.amount, loan.interestRate, loan.installments);
@@ -648,7 +657,7 @@ function LoanRowView({
     setEditing(false);
   };
 
-  const openPaymentDialog = (type: "installment" | "interest" | "partial", amount?: number) => {
+  const openPaymentDialog = (type: "installment" | "interest" | "partial" | "full", amount?: number) => {
     setPaymentDate(new Date());
     setPaymentDialog({ type, amount });
   };
@@ -656,7 +665,10 @@ function LoanRowView({
   const confirmPayment = () => {
     if (!paymentDialog) return;
     const dateStr = paymentDate.toISOString().split("T")[0];
-    if (paymentDialog.type === "installment") onPayment(dateStr);
+    if (paymentDialog.type === "full") {
+      onPartialPayment(remaining, dateStr);
+      onUpdate({ paidInstallments: loan.installments, status: "paid" });
+    } else if (paymentDialog.type === "installment") onPayment(dateStr);
     else if (paymentDialog.type === "interest") onInterestPayment(dateStr);
     else if (paymentDialog.type === "partial" && paymentDialog.amount) onPartialPayment(paymentDialog.amount, dateStr);
     setPaymentDialog(null);
@@ -786,7 +798,7 @@ function LoanRowView({
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={() => openPaymentDialog("installment")}>
+                <DropdownMenuItem onClick={() => openPaymentDialog("full")}>
                   <CheckCircle className="h-4 w-4 mr-2" /> Pagamento Total
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => setShowPartial(!showPartial)}>
@@ -849,10 +861,16 @@ function LoanRowView({
       <DialogContent className="sm:max-w-[340px]">
         <DialogHeader>
           <DialogTitle>
-            {paymentDialog?.type === "installment" ? "Receber Parcela" : paymentDialog?.type === "interest" ? "Pagar Juros" : "Pagamento Parcial"}
+            {paymentDialog?.type === "full" ? "Pagamento Total" : paymentDialog?.type === "installment" ? "Receber Parcela" : paymentDialog?.type === "interest" ? "Pagar Juros" : "Pagamento Parcial"}
           </DialogTitle>
         </DialogHeader>
         <div className="flex flex-col items-center gap-2">
+          {paymentDialog?.type === "full" && (
+            <div className="text-center p-3 bg-muted/50 rounded-lg w-full">
+              <p className="text-xs text-muted-foreground">Valor restante a receber</p>
+              <p className="text-2xl font-bold text-primary">{formatCurrency(remaining)}</p>
+            </div>
+          )}
           <Label className="text-sm text-muted-foreground">Selecione a data do pagamento</Label>
           <CalendarUI
             mode="single"
