@@ -264,6 +264,7 @@ function SalesList({ sales, onDeleteSale, onUpdateSale }: { sales: Sale[]; onDel
               sale={sale}
               onDelete={() => onDeleteSale(sale.id)}
               onEdit={() => setEditingSale(sale)}
+              onUpdate={(data) => onUpdateSale(sale.id, data)}
               formatCurrency={formatCurrency}
             />
           ))}
