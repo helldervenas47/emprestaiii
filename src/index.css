@@ -135,26 +135,26 @@
 
 @layer utilities {
   .gradient-primary {
-    background: linear-gradient(135deg, hsl(195 90% 50%), hsl(210 80% 55%));
+    background: linear-gradient(135deg, hsl(200 65% 55%), hsl(215 55% 52%));
   }
   .gradient-success {
-    background: linear-gradient(135deg, hsl(160 65% 45%), hsl(175 60% 40%));
+    background: linear-gradient(135deg, hsl(162 40% 42%), hsl(175 38% 38%));
   }
   .gradient-warning {
-    background: linear-gradient(135deg, hsl(38 90% 50%), hsl(25 85% 55%));
+    background: linear-gradient(135deg, hsl(38 65% 50%), hsl(28 60% 48%));
   }
   .gradient-card {
-    background: linear-gradient(135deg, hsl(225 20% 12%), hsl(225 20% 10%));
+    background: linear-gradient(135deg, hsl(226 16% 15%), hsl(226 16% 13%));
   }
   .glass {
-    background: hsl(225 20% 10% / 0.7);
+    background: hsl(226 16% 13% / 0.7);
     backdrop-filter: blur(12px);
-    border: 1px solid hsl(225 15% 20% / 0.5);
+    border: 1px solid hsl(224 12% 22% / 0.5);
   }
   .glow-primary {
-    box-shadow: 0 0 20px -5px hsl(195 90% 50% / 0.25);
+    box-shadow: 0 0 20px -5px hsl(200 65% 55% / 0.2);
   }
   .glow-success {
-    box-shadow: 0 0 20px -5px hsl(160 65% 45% / 0.25);
+    box-shadow: 0 0 20px -5px hsl(162 40% 42% / 0.2);
   }
 }
