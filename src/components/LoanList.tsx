@@ -835,21 +835,30 @@ export function LoanList({ loans, payments, onPayment, onPartialPayment, onInter
             </div>
           ) : view === "folders" ? (
             <>
-              {grouped.length > 0 ? (
-                <div className="space-y-3">
-                  {grouped.map((g) => (
-                    <ClientFolder key={g.name} group={g} payments={payments} view="cards"
-                      onPayment={onPayment} onPartialPayment={onPartialPayment}
-                      onInterestPayment={onInterestPayment} onUpdate={onUpdate} onDelete={onDelete} />
-                  ))}
-                </div>
-              ) : (
+            <div className="grid grid-cols-1 gap-4">
+              {grouped.map((g) => (
+                <ClientFolder key={g.name} group={g} payments={payments}
+                  onPayment={onPayment} onPartialPayment={onPartialPayment}
+                  onInterestPayment={onInterestPayment} onUpdate={onUpdate} onDelete={onDelete} />
+              ))}
+              {singles.map((loan) => (
+                <ClientFolder key={loan.borrowerName} group={{
+                  name: loan.borrowerName,
+                  loans: [loan],
+                  totalAmount: loan.amount,
+                  totalPaid: getTotalPaid(loan, payments),
+                }} payments={payments}
+                  onPayment={onPayment} onPartialPayment={onPartialPayment}
+                  onInterestPayment={onInterestPayment} onUpdate={onUpdate} onDelete={onDelete} />
+              ))}
+              {grouped.length === 0 && singles.length === 0 && (
                 <Card>
                   <CardContent className="py-8 text-center">
-                    <p className="text-sm text-muted-foreground">Nenhum cliente com múltiplos empréstimos</p>
+                    <p className="text-sm text-muted-foreground">Nenhum empréstimo encontrado</p>
                   </CardContent>
                 </Card>
               )}
+            </div>
             </>
           ) : (
             categorized.map((loan) => (
