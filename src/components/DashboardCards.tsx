@@ -30,7 +30,7 @@ export function DashboardCards({ loans, payments }: Props) {
 
   const cards = [
     {
-      title: "Total Emprestado",
+      title: "Capital na Rua",
       value: formatCurrency(totalLent),
       icon: DollarSign,
       accentClass: "text-primary",
