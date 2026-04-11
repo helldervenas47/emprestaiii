@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Trash2, Search, ShoppingCart, Tv, Car, Calendar, User, Pencil, ChevronDown, ChevronUp } from "lucide-react";
+import { Trash2, Search, ShoppingCart, Tv, Car, Calendar, User, Pencil, ChevronDown, ChevronUp, CheckCircle, HandCoins, Check, X as XIcon } from "lucide-react";
 import { addMonths, format } from "date-fns";
 import { useHideValues } from "@/contexts/HideValuesContext";
 import { SaleEditForm } from "@/components/SaleEditForm";
@@ -26,7 +26,9 @@ const businessTabs: { type: BusinessType; label: string; icon: React.ElementType
   { type: "aluguel_veiculo", label: "Aluguel de Veículos", icon: Car },
 ];
 
-function SaleCard({ sale, onDelete, onEdit, formatCurrency }: { sale: Sale; onDelete: () => void; onEdit: () => void; formatCurrency: (v: number) => string }) {
+function SaleCard({ sale, onDelete, onEdit, onUpdate, formatCurrency }: { sale: Sale; onDelete: () => void; onEdit: () => void; onUpdate: (data: Partial<Omit<Sale, "id">>) => void; formatCurrency: (v: number) => string }) {
+  const [showPartial, setShowPartial] = useState(false);
+  const [partialAmount, setPartialAmount] = useState("");
   const [showParcelas, setShowParcelas] = useState(false);
   const TabIcon = businessTabs.find((t) => t.type === sale.businessType)?.icon || ShoppingCart;
   const isRecorrente = sale.paymentMode === "recorrente" && sale.installments > 1;
@@ -140,6 +142,60 @@ function SaleCard({ sale, onDelete, onEdit, formatCurrency }: { sale: Sale; onDe
           </div>
         )}
 
+        {/* Payment buttons */}
+        {isRecorrente && !isPaid && (
+          <>
+            {showPartial ? (
+              <div className="flex items-center gap-2 p-3 rounded-lg bg-muted border border-border/50">
+                <Input
+                  type="number" step="0.01" placeholder="Valor (R$)"
+                  value={partialAmount} onChange={(e) => setPartialAmount(e.target.value)}
+                  className="h-8 text-sm flex-1" autoFocus
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      const val = parseFloat(partialAmount);
+                      if (val > 0) {
+                        // partial: just increase paidInstallments proportionally
+                        const parcelasAPagar = Math.floor(val / valorParcela);
+                        if (parcelasAPagar > 0) {
+                          onUpdate({ paidInstallments: Math.min(sale.installments, sale.paidInstallments + parcelasAPagar) });
+                        }
+                        setPartialAmount(""); setShowPartial(false);
+                      }
+                    }
+                  }}
+                />
+                <Button size="sm" className="h-8" onClick={() => {
+                  const val = parseFloat(partialAmount);
+                  if (val > 0) {
+                    const parcelasAPagar = Math.max(1, Math.floor(val / valorParcela));
+                    onUpdate({ paidInstallments: Math.min(sale.installments, sale.paidInstallments + parcelasAPagar) });
+                    setPartialAmount(""); setShowPartial(false);
+                  }
+                }}><Check className="h-4 w-4" /></Button>
+                <Button size="sm" variant="ghost" className="h-8" onClick={() => setShowPartial(false)}><XIcon className="h-4 w-4" /></Button>
+              </div>
+            ) : (
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  className="flex-1 h-9 text-xs border-primary/30 text-primary hover:bg-primary hover:text-primary-foreground"
+                  onClick={() => onUpdate({ paidInstallments: Math.min(sale.installments, sale.paidInstallments + 1) })}
+                >
+                  <CheckCircle className="h-3.5 w-3.5 mr-1" /> Pagar Parcela
+                </Button>
+                <Button
+                  variant="outline"
+                  className="flex-1 h-9 text-xs border-warning/30 text-warning hover:bg-warning hover:text-warning-foreground"
+                  onClick={() => setShowPartial(true)}
+                >
+                  <HandCoins className="h-3.5 w-3.5 mr-1" /> Pagar Parcial
+                </Button>
+              </div>
+            )}
+          </>
+        )}
+
         {/* Notes */}
         {sale.notes && (
           <div className="bg-muted/20 border border-border/30 rounded-lg px-3 py-2">
@@ -208,6 +264,7 @@ function SalesList({ sales, onDeleteSale, onUpdateSale }: { sales: Sale[]; onDel
               sale={sale}
               onDelete={() => onDeleteSale(sale.id)}
               onEdit={() => setEditingSale(sale)}
+              onUpdate={(data) => onUpdateSale(sale.id, data)}
               formatCurrency={formatCurrency}
             />
           ))}
