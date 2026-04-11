@@ -13,13 +13,14 @@ export function DashboardCards({ loans, payments }: Props) {
   // Capital na rua = principal dos empréstimos ativos
   const totalLent = activeLoansData.reduce((sum, l) => sum + l.amount, 0);
   
-  // Total a receber = total esperado (com juros) - pagamentos já recebidos dos empréstimos ativos
-  const totalExpected = activeLoansData.reduce((sum, l) => sum + calculateTotalWithInterest(l.amount, l.interestRate, l.installments), 0);
-  const totalPaid = activeLoansData.reduce((sum, l) => {
+  // Total a receber = usa remainingAmount quando disponível, senão calcula
+  const totalToReceive = activeLoansData.reduce((sum, l) => {
+    if (l.remainingAmount != null && l.remainingAmount > 0) return sum + l.remainingAmount;
+    const expected = calculateTotalWithInterest(l.amount, l.interestRate, l.installments);
     const loanPayments = payments.filter((p) => p.loanId === l.id);
-    return sum + loanPayments.reduce((s, p) => s + p.amount, 0);
+    const paid = loanPayments.reduce((s, p) => s + p.amount, 0);
+    return sum + Math.max(0, expected - paid);
   }, 0);
-  const totalToReceive = Math.max(0, totalExpected - totalPaid);
   
   // Capital na rua = soma do principal de todos os empréstimos ativos
   const capitalNaRua = totalLent;
