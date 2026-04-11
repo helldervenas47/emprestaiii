@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import React, { useState, useMemo } from "react";
 import { Loan, Payment } from "@/types/loan";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
