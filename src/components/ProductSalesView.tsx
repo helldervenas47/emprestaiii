@@ -65,18 +65,17 @@ function SaleCard({ sale, onDelete, onEdit, onUpdate, formatCurrency }: { sale: 
   const catStyle = saleCategoryConfig[category];
 
   // Generate installment rows with estimated dates
-  const parcelas = isRecorrente
-    ? Array.from({ length: sale.installments }, (_, i) => {
-        const baseDate = new Date(sale.date + "T00:00:00");
-        const dueDate = addMonths(baseDate, i);
-        return {
-          number: i + 1,
-          date: format(dueDate, "dd/MM/yyyy"),
-          value: valorParcela,
-          paid: i < sale.paidInstallments,
-        };
-      })
-    : [];
+  const totalParcelas = isRecorrente ? sale.installments : 1;
+  const parcelas = Array.from({ length: totalParcelas }, (_, i) => {
+    const baseDate = new Date(sale.date + "T00:00:00");
+    const dueDate = isRecorrente ? addMonths(baseDate, i) : baseDate;
+    return {
+      number: i + 1,
+      date: format(dueDate, "dd/MM/yyyy"),
+      value: valorParcela,
+      paid: i < sale.paidInstallments,
+    };
+  });
 
   return (
     <Card className={`overflow-hidden hover:shadow-lg transition-all border ${catStyle.border} ${catStyle.bg} h-full flex flex-col`}>
@@ -131,15 +130,14 @@ function SaleCard({ sale, onDelete, onEdit, onUpdate, formatCurrency }: { sale: 
         </div>
 
         {/* Row 4: Parcelas expandable - conditional but fixed position */}
-        {isRecorrente && (
-          <div className="border border-border/50 rounded-lg overflow-hidden">
+        <div className="border border-border/50 rounded-lg overflow-hidden">
             <button
               onClick={() => setShowParcelas(!showParcelas)}
               className="w-full flex items-center justify-between px-3 py-2.5 bg-muted/20 hover:bg-muted/30 transition-colors"
             >
               <div className="flex items-center gap-2 text-sm">
                 <Calendar className="h-4 w-4 text-muted-foreground" />
-                <span className="font-medium text-foreground">Parcelas ({sale.installments})</span>
+                <span className="font-medium text-foreground">Parcelas ({totalParcelas})</span>
               </div>
               <div className="flex items-center gap-2">
                 {showParcelas ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
@@ -164,7 +162,6 @@ function SaleCard({ sale, onDelete, onEdit, onUpdate, formatCurrency }: { sale: 
               </div>
             )}
           </div>
-        )}
 
         {/* Row 5: Payment buttons - fixed position via mt-auto */}
         <div className="mt-auto space-y-2">
