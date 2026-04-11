@@ -620,34 +620,34 @@ function ClientFolder({
     <Card className={`overflow-hidden transition-shadow hover:shadow-lg ${open ? "ring-1 ring-primary/20" : ""}`}>
       <button
         onClick={() => setOpen(!open)}
-        className="w-full flex items-center gap-3 px-5 py-4 text-left"
+        className="w-full flex items-center gap-3 px-4 py-3 text-left"
       >
-        <div className="h-11 w-11 rounded-xl gradient-primary flex items-center justify-center text-primary-foreground font-bold text-lg shrink-0 shadow-md">
+        <div className="h-10 w-10 rounded-lg gradient-primary flex items-center justify-center text-primary-foreground font-bold text-sm shrink-0 shadow-md">
           {group.name.charAt(0).toUpperCase()}
         </div>
         <div className="flex-1 min-w-0">
-          <h3 className="font-bold text-foreground text-base">{group.name}</h3>
-          <div className="flex items-center gap-2 mt-0.5">
-            <Badge variant="outline" className="text-[10px]">{group.loans.length} contratos</Badge>
+          <h3 className="font-bold text-foreground text-sm truncate">{group.name}</h3>
+          <div className="flex items-center gap-1.5 mt-0.5">
+            <Badge variant="outline" className="text-[10px]">{group.loans.length}</Badge>
             {activeCount > 0 && <Badge variant="outline" className="text-[10px] bg-primary/10 text-primary border-primary/20">{activeCount} ativos</Badge>}
             {paidCount > 0 && <Badge variant="outline" className="text-[10px] bg-success/10 text-success border-success/20">{paidCount} pagos</Badge>}
           </div>
         </div>
-        <div className="flex items-center gap-6 text-sm shrink-0">
+        <div className="hidden sm:flex items-center gap-4 text-xs shrink-0">
           <div className="text-right">
-            <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Emprestado</p>
+            <p className="text-[9px] text-muted-foreground uppercase">Emprestado</p>
             <p className="font-bold text-foreground">{formatCurrency(group.totalAmount)}</p>
           </div>
           <div className="text-right">
-            <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Recebido</p>
+            <p className="text-[9px] text-muted-foreground uppercase">Recebido</p>
             <p className="font-bold text-success">{formatCurrency(group.totalPaid)}</p>
           </div>
         </div>
-        {open ? <ChevronDown className="h-5 w-5 text-muted-foreground shrink-0" /> : <ChevronRight className="h-5 w-5 text-muted-foreground shrink-0" />}
+        {open ? <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0" /> : <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />}
       </button>
       {open && (
-        <CardContent className="pt-0 pb-4 px-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <CardContent className="pt-0 pb-3 px-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
             {group.loans.map((loan) => (
               <LoanCardView key={loan.id} loan={loan} payments={payments}
                 onPayment={(date) => onPayment(loan.id, date)} onPartialPayment={(amt, date) => onPartialPayment(loan.id, amt, date)}
@@ -835,7 +835,7 @@ export function LoanList({ loans, payments, onPayment, onPartialPayment, onInter
             </div>
           ) : view === "folders" ? (
             <>
-            <div className="grid grid-cols-1 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
               {grouped.map((g) => (
                 <ClientFolder key={g.name} group={g} payments={payments}
                   onPayment={onPayment} onPartialPayment={onPartialPayment}
