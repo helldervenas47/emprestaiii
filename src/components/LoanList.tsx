@@ -946,6 +946,46 @@ function LoanRowView({
         </DialogFooter>
       </DialogContent>
     </Dialog>
+    <Dialog open={showHistory} onOpenChange={setShowHistory}>
+      <DialogContent className="sm:max-w-[440px]">
+        <DialogHeader>
+          <DialogTitle>Histórico de Pagamentos — {loan.borrowerName}</DialogTitle>
+        </DialogHeader>
+        <div className="max-h-[400px] overflow-y-auto">
+          {(() => {
+            const loanPayments = allPayments.filter((p) => p.loanId === loan.id).sort((a, b) => b.date.localeCompare(a.date));
+            if (loanPayments.length === 0) return <p className="text-sm text-muted-foreground text-center py-4">Nenhum pagamento registrado</p>;
+            return (
+              <div className="space-y-2">
+                {loanPayments.map((p) => (
+                  <div key={p.id} className="flex items-center justify-between p-3 rounded-lg border border-border/50 bg-muted/30">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2">
+                        <Badge variant="outline" className={`text-[10px] ${
+                          p.installmentNumber > 0 ? "bg-success/10 text-success border-success/20" :
+                          p.installmentNumber === 0 ? "bg-purple/10 text-purple border-purple/20" :
+                          "bg-primary/10 text-primary border-primary/20"
+                        }`}>
+                          {p.installmentNumber > 0 ? `Parcela ${p.installmentNumber}` : p.installmentNumber === 0 ? "Juros" : "Pagamento"}
+                        </Badge>
+                        <span className="text-xs text-muted-foreground">{new Date(p.date + "T00:00:00").toLocaleDateString("pt-BR")}</span>
+                      </div>
+                      <p className="text-sm font-bold text-foreground mt-1">{formatCurrency(p.amount)}</p>
+                    </div>
+                    <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive hover:bg-destructive hover:text-destructive-foreground" onClick={() => onDeletePayment(p.id)} title="Excluir pagamento">
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            );
+          })()}
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => setShowHistory(false)}>Fechar</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
     </>
   );
 }
