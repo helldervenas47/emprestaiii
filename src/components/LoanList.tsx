@@ -665,7 +665,10 @@ function LoanRowView({
   const confirmPayment = () => {
     if (!paymentDialog) return;
     const dateStr = paymentDate.toISOString().split("T")[0];
-    if (paymentDialog.type === "installment") onPayment(dateStr);
+    if (paymentDialog.type === "full") {
+      onPartialPayment(remaining, dateStr);
+      onUpdate({ paidInstallments: loan.installments, status: "paid" });
+    } else if (paymentDialog.type === "installment") onPayment(dateStr);
     else if (paymentDialog.type === "interest") onInterestPayment(dateStr);
     else if (paymentDialog.type === "partial" && paymentDialog.amount) onPartialPayment(paymentDialog.amount, dateStr);
     setPaymentDialog(null);
