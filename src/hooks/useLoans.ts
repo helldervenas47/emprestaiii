@@ -203,30 +203,36 @@ export function useLoans() {
 
     const loan = loans.find((l) => l.id === payment.loanId);
 
-    if (payment.installmentNumber > 0 && loan) {
-      const newPaid = Math.max(0, loan.paidInstallments - 1);
-      const newStatus = newPaid < loan.installments ? "active" : loan.status;
-      setLoans((prev) => prev.map((l) => l.id === payment.loanId ? {
-        ...l, paidInstallments: newPaid, status: newStatus,
-      } : l));
-      await supabase.from("loans").update({
-        paid_installments: newPaid, status: newStatus,
-      }).eq("id", payment.loanId);
-    }
+    // Update remainingAmount: add the payment amount back
+    if (loan) {
+      const newRemaining = (loan.remainingAmount ?? 0) + payment.amount;
+      const loanUpdates: any = { remaining_amount: newRemaining };
 
-    // Partial/full payments (installmentNumber === -1): revert to active if loan was paid
-    if (payment.installmentNumber === -1 && loan && loan.status === "paid") {
-      setLoans((prev) => prev.map((l) => l.id === payment.loanId ? {
-        ...l, status: "active",
-      } : l));
-      await supabase.from("loans").update({ status: "active" }).eq("id", payment.loanId);
-    }
+      if (payment.installmentNumber > 0) {
+        const newPaid = Math.max(0, loan.paidInstallments - 1);
+        const newStatus = newPaid < loan.installments ? "active" : loan.status;
+        loanUpdates.paid_installments = newPaid;
+        loanUpdates.status = newStatus;
+        setLoans((prev) => prev.map((l) => l.id === payment.loanId ? {
+          ...l, paidInstallments: newPaid, status: newStatus, remainingAmount: newRemaining,
+        } : l));
+      } else if (payment.installmentNumber === -1 && loan.status === "paid") {
+        loanUpdates.status = "active";
+        setLoans((prev) => prev.map((l) => l.id === payment.loanId ? {
+          ...l, status: "active", remainingAmount: newRemaining,
+        } : l));
+      } else if (payment.installmentNumber === 0 && payment.previousDueDate) {
+        loanUpdates.due_date = payment.previousDueDate;
+        setLoans((prev) => prev.map((l) => l.id === payment.loanId ? {
+          ...l, dueDate: payment.previousDueDate!, remainingAmount: newRemaining,
+        } : l));
+      } else {
+        setLoans((prev) => prev.map((l) => l.id === payment.loanId ? {
+          ...l, remainingAmount: newRemaining,
+        } : l));
+      }
 
-    if (payment.installmentNumber === 0 && payment.previousDueDate) {
-      setLoans((prev) => prev.map((l) => l.id === payment.loanId ? {
-        ...l, dueDate: payment.previousDueDate!,
-      } : l));
-      await supabase.from("loans").update({ due_date: payment.previousDueDate }).eq("id", payment.loanId);
+      await supabase.from("loans").update(loanUpdates).eq("id", payment.loanId);
     }
 
     await adjustBalance(-payment.amount);
