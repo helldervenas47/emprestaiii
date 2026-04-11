@@ -765,15 +765,59 @@ export function LoanList({ loans, payments, onPayment, onPartialPayment, onInter
   const [view, setView] = useState<"cards" | "rows" | "folders">("cards");
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState<Category>("all");
+  const [showFilters, setShowFilters] = useState(false);
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
+  const [amountMin, setAmountMin] = useState("");
+  const [amountMax, setAmountMax] = useState("");
+  const [tagFilter, setTagFilter] = useState("");
+  const [sortBy, setSortBy] = useState<"dueDate" | "startDate" | "amount" | "name">("dueDate");
+
+  const allTags = useMemo(() => {
+    const tags = new Set<string>();
+    loans.forEach((l) => l.tags?.forEach((t) => tags.add(t)));
+    return Array.from(tags).sort();
+  }, [loans]);
 
   const categorized = useMemo(() => {
-    const withSearch = loans.filter((l) => l.borrowerName.toLowerCase().includes(search.toLowerCase()));
-    const filtered = category === "all"
-      ? withSearch.filter((l) => getLoanCategory(l, payments) !== "paid")
-      : withSearch.filter((l) => getLoanCategory(l, payments) === category);
-    // Sort by dueDate ascending (most urgent first)
-    return [...filtered].sort((a, b) => a.dueDate.localeCompare(b.dueDate));
-  }, [loans, payments, search, category]);
+    let filtered = loans.filter((l) => l.borrowerName.toLowerCase().includes(search.toLowerCase()));
+
+    // Category filter
+    filtered = category === "all"
+      ? filtered.filter((l) => getLoanCategory(l, payments) !== "paid")
+      : filtered.filter((l) => getLoanCategory(l, payments) === category);
+
+    // Date range filter (startDate = data de saída)
+    if (dateFrom) {
+      filtered = filtered.filter((l) => l.startDate >= dateFrom);
+    }
+    if (dateTo) {
+      filtered = filtered.filter((l) => l.startDate <= dateTo);
+    }
+
+    // Amount range filter
+    const minAmt = parseFloat(amountMin);
+    const maxAmt = parseFloat(amountMax);
+    if (!isNaN(minAmt) && minAmt > 0) {
+      filtered = filtered.filter((l) => l.amount >= minAmt);
+    }
+    if (!isNaN(maxAmt) && maxAmt > 0) {
+      filtered = filtered.filter((l) => l.amount <= maxAmt);
+    }
+
+    // Tag filter
+    if (tagFilter) {
+      filtered = filtered.filter((l) => l.tags?.includes(tagFilter));
+    }
+
+    // Sort
+    return [...filtered].sort((a, b) => {
+      if (sortBy === "dueDate") return a.dueDate.localeCompare(b.dueDate);
+      if (sortBy === "startDate") return b.startDate.localeCompare(a.startDate);
+      if (sortBy === "amount") return b.amount - a.amount;
+      return a.borrowerName.localeCompare(b.borrowerName);
+    });
+  }, [loans, payments, search, category, dateFrom, dateTo, amountMin, amountMax, tagFilter, sortBy]);
 
   const folderCount = useMemo(() => {
     const byName: Record<string, number> = {};
