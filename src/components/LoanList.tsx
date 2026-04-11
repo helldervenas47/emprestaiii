@@ -568,7 +568,7 @@ function LoanCardView({
           <div className="flex items-center justify-center gap-1">
             <Button
               size="icon" variant="ghost" className={`h-8 w-8 ${loan.status === "paid" ? "text-success" : "text-muted-foreground"}`}
-              onClick={() => onUpdate({ status: loan.status === "paid" ? "active" : "paid", paidInstallments: loan.status === "paid" ? 0 : loan.installments })}
+              onClick={() => loan.status === "paid" ? onUpdate({ status: "active", paidInstallments: 0 }) : openPaymentDialog("full")}
               title={loan.status === "paid" ? "Marcar como não pago" : "Marcar como pago"}
             >
               <CheckCircle className="h-4 w-4" />
