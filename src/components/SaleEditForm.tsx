@@ -40,6 +40,19 @@ export function SaleEditForm({ sale, onSave, onClose }: Props) {
     notes: sale.notes || "",
   });
 
+  // Generate initial installment rows
+  const initRows = () => {
+    const count = sale.installments || 1;
+    const baseDate = new Date(sale.date + "T00:00:00");
+    const down = sale.downPayment || 0;
+    const baseValue = count > 0 ? Math.max(0, sale.total - down) / count : 0;
+    return Array.from({ length: count }, (_, i) => ({
+      date: addMonths(baseDate, i).toISOString().split("T")[0],
+      value: baseValue.toFixed(2),
+    }));
+  };
+  const [installmentRows, setInstallmentRows] = useState(initRows);
+
   const totalNum = parseFloat(form.total) || 0;
   const costNum = parseFloat(form.cost) || 0;
   const downPaymentNum = parseFloat(form.downPayment) || 0;
