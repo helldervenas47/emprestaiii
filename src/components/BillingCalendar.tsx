@@ -54,7 +54,8 @@ export function BillingCalendar({ loans, payments }: Props) {
       const addedDates = new Set<string>();
 
       for (let i = 1; i <= loan.installments; i++) {
-        if (paidInstallmentNumbers.has(i)) continue;
+        // Skip if this installment is paid (either by explicit payment record or by paidInstallments count)
+        if (paidInstallmentNumbers.has(i) || i <= loan.paidInstallments) continue;
         const dueDate = new Date(start.getFullYear(), start.getMonth() + i, start.getDate());
         const dateStr = dueDate.toISOString().split("T")[0];
         addedDates.add(dateStr);
