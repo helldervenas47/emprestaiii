@@ -252,7 +252,7 @@ function LoanCardView({
           </div>
           <div className="ml-auto flex items-center gap-1 flex-wrap">
             {loan.tags && loan.tags.length > 0 && loan.tags.map((tag) => (
-              <Badge key={tag} variant="outline" className="bg-accent/10 text-accent border-accent/20 text-xs gap-0.5 pr-1">
+              <Badge key={tag} className="bg-primary text-primary-foreground text-xs gap-0.5 pr-1">
                 <Tag className="h-2.5 w-2.5" />{tag}
                 <button onClick={() => { const updated = (loan.tags || []).filter(t => t !== tag); onUpdate({ tags: updated }); }} className="ml-0.5 hover:text-destructive">
                   <X className="h-2.5 w-2.5" />
@@ -566,7 +566,7 @@ function LoanRowView({
       <td className="px-4 py-3">
         <div className="flex flex-wrap gap-1">
           {loan.tags && loan.tags.length > 0 ? loan.tags.map((tag) => (
-            <Badge key={tag} className="bg-accent/20 text-accent border-accent/30 text-[10px]">{tag}</Badge>
+            <Badge key={tag} className="bg-primary text-primary-foreground text-[10px]">{tag}</Badge>
           )) : <span className="text-xs text-muted-foreground">—</span>}
         </div>
       </td>
