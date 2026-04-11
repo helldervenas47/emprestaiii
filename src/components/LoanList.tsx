@@ -188,7 +188,39 @@ function LoanCardView({
     }
   };
 
-  const update = (field: keyof EditForm, value: string) => setForm((p) => ({ ...p, [field]: value }));
+  const updateField = (field: keyof EditForm, value: string) => {
+    setForm((prev) => {
+      const next = { ...prev, [field]: value };
+      const amt = parseFloat(next.amount) || 0;
+      const months = parseInt(next.installments) || 1;
+
+      if (field === "amount" || field === "interestRate" || field === "installments") {
+        const rate = parseFloat(next.interestRate) || 0;
+        next.interestValue = (amt * (rate / 100)).toFixed(2);
+        next.installmentValue = calculateInstallment(amt, rate, months).toFixed(2);
+      } else if (field === "interestValue") {
+        const iv = parseFloat(value) || 0;
+        const newRate = amt > 0 ? (iv / amt) * 100 : 0;
+        next.interestRate = newRate.toFixed(2);
+        next.installmentValue = calculateInstallment(amt, newRate, months).toFixed(2);
+      } else if (field === "installmentValue") {
+        // Back-calculate interest rate from installment value using bisection
+        const target = parseFloat(value) || 0;
+        if (amt > 0 && target > 0) {
+          let lo = 0, hi = 100;
+          for (let i = 0; i < 50; i++) {
+            const mid = (lo + hi) / 2;
+            const calc = calculateInstallment(amt, mid, months);
+            if (calc < target) lo = mid; else hi = mid;
+          }
+          const newRate = (lo + hi) / 2;
+          next.interestRate = newRate.toFixed(2);
+          next.interestValue = (amt * (newRate / 100)).toFixed(2);
+        }
+      }
+      return next;
+    });
+  };
 
   if (editing) {
     return (
@@ -202,18 +234,20 @@ function LoanCardView({
             </div>
           </div>
           <div className="grid grid-cols-2 gap-3">
-            <div><Label className="text-xs">Nome do Devedor</Label><Input value={form.borrowerName} onChange={(e) => update("borrowerName", e.target.value)} className="h-8 text-sm" /></div>
-            <div><Label className="text-xs">Valor (R$)</Label><Input type="number" step="0.01" value={form.amount} onChange={(e) => update("amount", e.target.value)} className="h-8 text-sm" /></div>
-            <div><Label className="text-xs">Juros Mensal (%)</Label><Input type="number" step="0.1" value={form.interestRate} onChange={(e) => update("interestRate", e.target.value)} className="h-8 text-sm" /></div>
-            <div><Label className="text-xs">Parcelas</Label><Input type="number" value={form.installments} onChange={(e) => update("installments", e.target.value)} className="h-8 text-sm" /></div>
-            <div><Label className="text-xs">Parcelas Pagas</Label><Input type="number" value={form.paidInstallments} onChange={(e) => update("paidInstallments", e.target.value)} className="h-8 text-sm" /></div>
-            <div><Label className="text-xs">Data Início</Label><Input type="date" value={form.startDate} onChange={(e) => update("startDate", e.target.value)} className="h-8 text-sm" /></div>
-            <div><Label className="text-xs">Data Fim</Label><Input type="date" value={form.dueDate} onChange={(e) => update("dueDate", e.target.value)} className="h-8 text-sm" /></div>
+            <div><Label className="text-xs">Nome do Devedor</Label><Input value={form.borrowerName} onChange={(e) => updateField("borrowerName", e.target.value)} className="h-8 text-sm" /></div>
+            <div><Label className="text-xs">Valor (R$)</Label><Input type="number" step="0.01" value={form.amount} onChange={(e) => updateField("amount", e.target.value)} className="h-8 text-sm" /></div>
+            <div><Label className="text-xs">Juros Mensal (%)</Label><Input type="number" step="0.1" value={form.interestRate} onChange={(e) => updateField("interestRate", e.target.value)} className="h-8 text-sm" /></div>
+            <div><Label className="text-xs">Valor do Juros (R$)</Label><Input type="number" step="0.01" value={form.interestValue} onChange={(e) => updateField("interestValue", e.target.value)} className="h-8 text-sm" /></div>
+            <div><Label className="text-xs">Valor da Parcela (R$)</Label><Input type="number" step="0.01" value={form.installmentValue} onChange={(e) => updateField("installmentValue", e.target.value)} className="h-8 text-sm" /></div>
+            <div><Label className="text-xs">Parcelas</Label><Input type="number" value={form.installments} onChange={(e) => updateField("installments", e.target.value)} className="h-8 text-sm" /></div>
+            <div><Label className="text-xs">Parcelas Pagas</Label><Input type="number" value={form.paidInstallments} onChange={(e) => updateField("paidInstallments", e.target.value)} className="h-8 text-sm" /></div>
+            <div><Label className="text-xs">Data Início</Label><Input type="date" value={form.startDate} onChange={(e) => updateField("startDate", e.target.value)} className="h-8 text-sm" /></div>
+            <div><Label className="text-xs">Data Fim</Label><Input type="date" value={form.dueDate} onChange={(e) => updateField("dueDate", e.target.value)} className="h-8 text-sm" /></div>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div><Label className="text-xs">Etiquetas (separar por vírgula)</Label><Input value={form.tags} onChange={(e) => update("tags", e.target.value)} className="h-8 text-sm" placeholder="Ex: VIP, Renovação, Garantia" /></div>
+            <div><Label className="text-xs">Etiquetas (separar por vírgula)</Label><Input value={form.tags} onChange={(e) => updateField("tags", e.target.value)} className="h-8 text-sm" placeholder="Ex: VIP, Renovação, Garantia" /></div>
           </div>
-          <div><Label className="text-xs">Observações</Label><Textarea value={form.notes} onChange={(e) => update("notes", e.target.value)} rows={2} className="text-sm" /></div>
+          <div><Label className="text-xs">Observações</Label><Textarea value={form.notes} onChange={(e) => updateField("notes", e.target.value)} rows={2} className="text-sm" /></div>
         </CardContent>
       </Card>
     );
