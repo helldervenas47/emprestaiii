@@ -999,7 +999,7 @@ interface ClientGroup {
 }
 
 function ClientFolder({
-  group, payments, onPayment, onPartialPayment, onInterestPayment, onUpdate, onDelete,
+  group, payments, onPayment, onPartialPayment, onInterestPayment, onUpdate, onDelete, onDeletePayment,
 }: {
   group: ClientGroup;
   payments: Payment[];
@@ -1008,6 +1008,7 @@ function ClientFolder({
   onInterestPayment: (id: string, date?: string) => void;
   onUpdate: (id: string, data: Partial<Omit<Loan, "id">>) => void;
   onDelete: (id: string) => void;
+  onDeletePayment: (paymentId: string) => void;
 }) {
   const [open, setOpen] = useState(false);
   const activeCount = group.loans.filter((l) => l.status !== "paid").length;
