@@ -5,10 +5,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Trash2, Search, ShoppingCart, Tv, Car, Calendar, User, Pencil, ChevronDown, ChevronUp, CheckCircle, HandCoins, Check, X as XIcon, DollarSign, AlertTriangle, Clock, CircleCheck } from "lucide-react";
+import { Trash2, Search, ShoppingCart, Tv, Car, Calendar as CalendarIcon, User, Pencil, ChevronDown, ChevronUp, CheckCircle, HandCoins, Check, X as XIcon, DollarSign, AlertTriangle, Clock, CircleCheck } from "lucide-react";
 import { addMonths, format } from "date-fns";
 import { useHideValues } from "@/contexts/HideValuesContext";
 import { SaleEditForm } from "@/components/SaleEditForm";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { cn } from "@/lib/utils";
 
 interface Props {
   sales: Sale[];
@@ -56,6 +59,7 @@ function SaleCard({ sale, onDelete, onEdit, onUpdate, formatCurrency }: { sale: 
   const [showPartial, setShowPartial] = useState(false);
   const [partialAmount, setPartialAmount] = useState("");
   const [showParcelas, setShowParcelas] = useState(false);
+  const [showPayDatePicker, setShowPayDatePicker] = useState(false);
   const TabIcon = businessTabs.find((t) => t.type === sale.businessType)?.icon || ShoppingCart;
   const isRecorrente = sale.paymentMode === "recorrente" && sale.installments > 1;
   const valorParcela = sale.installments > 0 ? sale.total / sale.installments : sale.total;
@@ -136,7 +140,7 @@ function SaleCard({ sale, onDelete, onEdit, onUpdate, formatCurrency }: { sale: 
               className="w-full flex items-center justify-between px-3 py-2.5 bg-muted/20 hover:bg-muted/30 transition-colors"
             >
               <div className="flex items-center gap-2 text-sm">
-                <Calendar className="h-4 w-4 text-muted-foreground" />
+                <CalendarIcon className="h-4 w-4 text-muted-foreground" />
                 <span className="font-medium text-foreground">Parcelas ({totalParcelas})</span>
               </div>
               <div className="flex items-center gap-2">
@@ -196,13 +200,36 @@ function SaleCard({ sale, onDelete, onEdit, onUpdate, formatCurrency }: { sale: 
                 </div>
               ) : (
                 <div className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    className="flex-1 h-9 text-xs border-primary/30 text-primary hover:bg-primary hover:text-primary-foreground"
-                    onClick={() => onUpdate({ paidInstallments: Math.min(sale.installments, sale.paidInstallments + 1) })}
-                  >
-                    <CheckCircle className="h-3.5 w-3.5 mr-1" /> Pagar Parcela
-                  </Button>
+                  <Popover open={showPayDatePicker} onOpenChange={setShowPayDatePicker}>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className="flex-1 h-9 text-xs border-primary/30 text-primary hover:bg-primary hover:text-primary-foreground"
+                      >
+                        <CheckCircle className="h-3.5 w-3.5 mr-1" /> Pagar Parcela
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <div className="p-3 border-b border-border">
+                        <p className="text-sm font-medium text-foreground">Selecione a data do pagamento</p>
+                      </div>
+                      <Calendar
+                        mode="single"
+                        selected={new Date()}
+                        onSelect={(date) => {
+                          if (date) {
+                            onUpdate({
+                              paidInstallments: Math.min(sale.installments, sale.paidInstallments + 1),
+                              date: format(date, "yyyy-MM-dd"),
+                            });
+                            setShowPayDatePicker(false);
+                          }
+                        }}
+                        initialFocus
+                        className={cn("p-3 pointer-events-auto")}
+                      />
+                    </PopoverContent>
+                  </Popover>
                   <Button
                     variant="outline"
                     className="flex-1 h-9 text-xs border-warning/30 text-warning hover:bg-warning hover:text-warning-foreground"
@@ -225,7 +252,7 @@ function SaleCard({ sale, onDelete, onEdit, onUpdate, formatCurrency }: { sale: 
           {/* Footer: date + actions - always at bottom */}
           <div className="flex items-center justify-between pt-1 border-t border-border/50">
             <p className="text-xs text-muted-foreground flex items-center gap-1">
-              <Calendar className="h-3 w-3" />
+              <CalendarIcon className="h-3 w-3" />
               {new Date(sale.date + "T00:00:00").toLocaleDateString("pt-BR")}
             </p>
             <div className="flex items-center gap-1">
