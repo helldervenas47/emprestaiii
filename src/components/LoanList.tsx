@@ -176,6 +176,7 @@ function LoanCardView({
       interestType: form.interestType,
       notes: form.notes,
       tags: parsedTags,
+      remainingAmount: parseFloat(form.remainingAmount) || 0,
     });
     setEditing(false);
   };
