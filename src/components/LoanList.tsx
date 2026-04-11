@@ -219,10 +219,10 @@ function LoanCardView({
     <>
     <Card className={`overflow-hidden hover:shadow-lg transition-all border-l-4 ${borderColor} h-full flex flex-col`}>
       {/* Header */}
-      <div className="p-3 pb-0">
+      <div className="p-4 pb-0">
         <div className="flex items-start justify-between gap-2">
-          <div className="flex items-center gap-2 min-w-0">
-            <div className={`h-9 w-9 rounded-full flex items-center justify-center text-primary-foreground font-bold text-xs shrink-0 ${
+          <div className="flex items-center gap-3 min-w-0">
+            <div className={`h-11 w-11 rounded-full flex items-center justify-center text-primary-foreground font-bold text-sm shrink-0 ${
               category === "overdue" ? "bg-destructive" :
               category === "due_today" ? "bg-warning" :
               category === "paid" ? "bg-success" :
@@ -231,114 +231,92 @@ function LoanCardView({
               {loan.borrowerName.charAt(0).toUpperCase()}
             </div>
             <div className="min-w-0">
-              <h3 className="font-bold text-foreground text-sm truncate">{loan.borrowerName}</h3>
-              <div className="flex items-center gap-1 text-[10px] text-muted-foreground mt-0.5">
-                <CalendarIcon className="h-2.5 w-2.5 shrink-0" />
+              <h3 className="font-bold text-foreground text-base truncate">{loan.borrowerName}</h3>
+              <div className="flex items-center gap-1.5 text-xs text-muted-foreground mt-0.5">
+                <CalendarIcon className="h-3 w-3 shrink-0" />
                 <span>{new Date(loan.startDate + "T00:00:00").toLocaleDateString("pt-BR")}</span>
                 <span>→</span>
                 <span>{new Date(loan.dueDate + "T00:00:00").toLocaleDateString("pt-BR")}</span>
               </div>
             </div>
           </div>
-          <div className="flex flex-wrap items-end justify-end gap-1 shrink-0 max-w-[50%]">
-            <Badge variant="outline" className={`${badge.className} text-[10px]`}>{badge.label}</Badge>
+          <div className="flex flex-wrap items-end justify-end gap-1.5 shrink-0 max-w-[50%]">
+            <Badge variant="outline" className={`${badge.className} text-xs`}>{badge.label}</Badge>
             {daysOverdue > 0 && loan.status !== "paid" && (
-              <Badge variant="outline" className="bg-destructive/10 text-destructive border-destructive/20 text-[10px]">
-                {daysOverdue}d
+              <Badge variant="outline" className="bg-destructive/10 text-destructive border-destructive/20 text-xs">
+                {daysOverdue}d atraso
               </Badge>
             )}
             {loan.tags && loan.tags.length > 0 && loan.tags.map((tag) => (
-              <Badge key={tag} variant="outline" className="bg-primary/10 text-primary border-primary/20 text-[10px]">
-                <Tag className="h-2 w-2 mr-0.5" />{tag}
+              <Badge key={tag} variant="outline" className="bg-primary/10 text-primary border-primary/20 text-xs">
+                <Tag className="h-2.5 w-2.5 mr-0.5" />{tag}
               </Badge>
             ))}
           </div>
         </div>
       </div>
 
-      <CardContent className="p-3 pt-2 flex-1 flex flex-col">
+      <CardContent className="p-4 pt-3 flex-1 flex flex-col">
         {/* Main financial info */}
-        <div className="grid grid-cols-3 gap-1.5 mb-2">
-          <div className="bg-muted/50 rounded-md p-2 text-center">
-            <p className="text-[9px] text-muted-foreground uppercase tracking-wide">Capital</p>
-            <p className="text-xs font-bold text-foreground">{formatCurrency(loan.amount)}</p>
+        <div className="grid grid-cols-4 gap-2 mb-3">
+          <div className="bg-muted/50 rounded-lg p-3 text-center">
+            <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Capital</p>
+            <p className="text-sm font-bold text-foreground mt-0.5">{formatCurrency(loan.amount)}</p>
           </div>
-          <div className="bg-muted/50 rounded-md p-2 text-center">
-            <p className="text-[9px] text-muted-foreground uppercase tracking-wide">Parcela</p>
-            <p className="text-xs font-bold text-foreground">{formatCurrency(installment)}</p>
+          <div className="bg-muted/50 rounded-lg p-3 text-center">
+            <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Parcela</p>
+            <p className="text-sm font-bold text-foreground mt-0.5">{formatCurrency(installment)}</p>
           </div>
-          <div className="bg-muted/50 rounded-md p-2 text-center">
-            <p className="text-[9px] text-muted-foreground uppercase tracking-wide">Juros</p>
-            <p className="text-xs font-bold text-accent">{loan.interestRate}%</p>
+          <div className="bg-muted/50 rounded-lg p-3 text-center">
+            <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Juros</p>
+            <p className="text-sm font-bold text-accent mt-0.5">{loan.interestRate}%</p>
+          </div>
+          <div className="bg-muted/50 rounded-lg p-3 text-center">
+            <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Total c/ Juros</p>
+            <p className="text-sm font-bold text-foreground mt-0.5">{formatCurrency(total)}</p>
           </div>
         </div>
 
         {/* Progress */}
-        <div className="mb-2">
-          <div className="flex justify-between text-[10px] mb-0.5">
+        <div className="mb-3">
+          <div className="flex justify-between text-xs mb-1">
             <span className="text-muted-foreground">{loan.paidInstallments}/{loan.installments} parcelas</span>
             <span className="font-medium text-foreground">{Math.round(progress)}%</span>
           </div>
-          <Progress value={progress} className="h-2" />
+          <Progress value={progress} className="h-2.5" />
         </div>
 
-        {/* Received / Remaining */}
-        <div className="grid grid-cols-2 gap-1.5 mb-2">
-          <div className="flex items-center justify-between bg-success/5 rounded-md px-2 py-1.5">
-            <span className="text-[10px] text-muted-foreground">Recebido</span>
-            <span className="text-xs font-bold text-success">{formatCurrency(totalPaid)}</span>
+        {/* Financial details grid */}
+        <div className="grid grid-cols-2 gap-2 mb-3">
+          <div className="flex items-center justify-between bg-success/5 rounded-lg px-3 py-2">
+            <span className="text-xs text-muted-foreground">Recebido</span>
+            <span className="text-sm font-bold text-success">{formatCurrency(totalPaid)}</span>
           </div>
-          <div className="flex items-center justify-between bg-destructive/5 rounded-md px-2 py-1.5">
-            <span className="text-[10px] text-muted-foreground">Restante</span>
-            <span className="text-xs font-bold text-destructive">{formatCurrency(remaining)}</span>
+          <div className="flex items-center justify-between bg-destructive/5 rounded-lg px-3 py-2">
+            <span className="text-xs text-muted-foreground">Restante</span>
+            <span className="text-sm font-bold text-destructive">{formatCurrency(remaining)}</span>
           </div>
-        </div>
-
-        {/* Next due + total */}
-        <div className="grid grid-cols-2 gap-1.5 mb-2">
+          <div className="flex items-center justify-between bg-muted/30 rounded-lg px-3 py-2">
+            <span className="text-xs text-muted-foreground">Total Juros</span>
+            <span className="text-sm font-bold text-accent">{formatCurrency(totalInterest)}</span>
+          </div>
+          <div className="flex items-center justify-between bg-muted/30 rounded-lg px-3 py-2">
+            <span className="text-xs text-muted-foreground">Juros/Mês</span>
+            <span className="text-sm font-bold text-warning">{formatCurrency(interestOnly)}</span>
+          </div>
+          <div className="flex items-center justify-between bg-muted/30 rounded-lg px-3 py-2">
+            <span className="text-xs text-muted-foreground">Lucro Atual</span>
+            <span className={`text-sm font-bold ${profit >= 0 ? "text-success" : "text-destructive"}`}>{formatCurrency(profit)}</span>
+          </div>
           {nextInstallmentDate && (
-            <div className="bg-muted/30 rounded-md px-2 py-1.5">
-              <p className="text-[9px] text-muted-foreground">Próx. Parcela</p>
-              <p className="text-xs font-semibold text-foreground">{nextInstallmentDate}</p>
+            <div className="flex items-center justify-between bg-muted/30 rounded-lg px-3 py-2">
+              <span className="text-xs text-muted-foreground">Próx. Parcela</span>
+              <span className="text-sm font-semibold text-foreground">{nextInstallmentDate}</span>
             </div>
           )}
-          <div className="bg-muted/30 rounded-md px-2 py-1.5">
-            <p className="text-[9px] text-muted-foreground">Total c/ Juros</p>
-            <p className="text-xs font-semibold text-foreground">{formatCurrency(total)}</p>
-          </div>
         </div>
 
-        {/* Expandable details */}
-        <button
-          onClick={() => setExpanded(!expanded)}
-          className="flex items-center gap-1 text-[10px] text-muted-foreground hover:text-foreground transition-colors mb-2"
-        >
-          {expanded ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
-          Mais detalhes
-        </button>
-
-        {expanded && (
-          <div className="grid grid-cols-2 gap-1.5 mb-2 animate-in fade-in slide-in-from-top-1 duration-200">
-            <div className="bg-muted/30 rounded-md px-2 py-1.5">
-              <p className="text-[9px] text-muted-foreground">Total Juros</p>
-              <p className="text-xs font-semibold text-accent">{formatCurrency(totalInterest)}</p>
-            </div>
-            <div className="bg-muted/30 rounded-md px-2 py-1.5">
-              <p className="text-[9px] text-muted-foreground">Juros/Mês</p>
-              <p className="text-xs font-semibold text-warning">{formatCurrency(interestOnly)}</p>
-            </div>
-            <div className="bg-muted/30 rounded-md px-2 py-1.5">
-              <p className="text-[9px] text-muted-foreground">Lucro Atual</p>
-              <p className={`text-xs font-semibold ${profit >= 0 ? "text-success" : "text-destructive"}`}>{formatCurrency(profit)}</p>
-            </div>
-            <div className="bg-muted/30 rounded-md px-2 py-1.5">
-              <p className="text-[9px] text-muted-foreground">Tipo</p>
-              <p className="text-xs font-semibold text-foreground">{loan.paymentType}</p>
-            </div>
-          </div>
-        )}
-
-        {loan.notes && <p className="text-[10px] text-muted-foreground mb-2 italic bg-muted/30 rounded-md px-2 py-1.5">📝 {loan.notes}</p>}
+        {loan.notes && <p className="text-xs text-muted-foreground mb-3 italic bg-muted/30 rounded-lg px-3 py-2">📝 {loan.notes}</p>}
 
         {/* Partial payment input */}
         {showPartial && (
