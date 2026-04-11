@@ -250,12 +250,38 @@ function LoanCardView({
               </Badge>
             )}
           </div>
-          <div className="ml-auto flex items-center gap-1">
+          <div className="ml-auto flex items-center gap-1 flex-wrap">
             {loan.tags && loan.tags.length > 0 && loan.tags.map((tag) => (
-              <Badge key={tag} variant="outline" className="bg-accent/10 text-accent border-accent/20 text-xs">
-                <Tag className="h-2.5 w-2.5 mr-0.5" />{tag}
+              <Badge key={tag} variant="outline" className="bg-accent/10 text-accent border-accent/20 text-xs gap-0.5 pr-1">
+                <Tag className="h-2.5 w-2.5" />{tag}
+                <button onClick={() => { const updated = (loan.tags || []).filter(t => t !== tag); onUpdate({ tags: updated }); }} className="ml-0.5 hover:text-destructive">
+                  <X className="h-2.5 w-2.5" />
+                </button>
               </Badge>
             ))}
+            {showTagInput ? (
+              <div className="flex items-center gap-1">
+                <Input
+                  value={newTag} onChange={(e) => setNewTag(e.target.value)}
+                  placeholder="Etiqueta" className="h-6 w-24 text-xs" autoFocus
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && newTag.trim()) {
+                      onUpdate({ tags: [...(loan.tags || []), newTag.trim()] });
+                      setNewTag(""); setShowTagInput(false);
+                    }
+                    if (e.key === "Escape") { setNewTag(""); setShowTagInput(false); }
+                  }}
+                />
+                <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => {
+                  if (newTag.trim()) { onUpdate({ tags: [...(loan.tags || []), newTag.trim()] }); }
+                  setNewTag(""); setShowTagInput(false);
+                }}><Check className="h-3 w-3 text-success" /></Button>
+              </div>
+            ) : (
+              <button onClick={() => setShowTagInput(true)} className="h-6 w-6 rounded-md border border-dashed border-muted-foreground/40 flex items-center justify-center hover:border-primary hover:text-primary transition-colors" title="Adicionar etiqueta">
+                <Tag className="h-3 w-3 text-muted-foreground" />
+              </button>
+            )}
           </div>
         </div>
 
