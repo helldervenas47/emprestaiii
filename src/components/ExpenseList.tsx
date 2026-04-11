@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
+import { useHideValues } from "@/contexts/HideValuesContext";
 import { Expense } from "@/types/loan";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -17,7 +18,7 @@ interface Props {
 
 type Filter = "all" | "pending" | "paid" | "overdue";
 
-function formatCurrency(v: number) {
+function rawFormatCurrency(v: number) {
   return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v);
 }
 
@@ -28,6 +29,8 @@ function isOverdue(expense: Expense): boolean {
 }
 
 export function ExpenseList({ expenses, onPay, onDelete }: Props) {
+  const { mask } = useHideValues();
+  const formatCurrency = useCallback((v: number) => mask(rawFormatCurrency(v)), [mask]);
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<Filter>("all");
 

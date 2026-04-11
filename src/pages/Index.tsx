@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import { Plus, HandCoins, Users, LayoutDashboard, Download, Upload, ShoppingBag, BarChart3, AlertTriangle, Receipt, CalendarDays, Sun, Moon, LogOut, Info, X } from "lucide-react";
+import { Plus, HandCoins, Users, LayoutDashboard, Download, Upload, ShoppingBag, BarChart3, AlertTriangle, Receipt, CalendarDays, Sun, Moon, LogOut, Info, X, Eye, EyeOff } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
@@ -25,6 +25,7 @@ import {
   importLoansFromCSV, importClientsFromCSV, importSalesFromCSV, downloadCSV,
 } from "@/lib/csv";
 import { toast } from "sonner";
+import { HideValuesProvider, useHideValues } from "@/contexts/HideValuesContext";
 
 type Tab = "overview" | "dashboard" | "clients" | "products" | "overdue" | "expenses" | "calendar";
 
@@ -102,6 +103,14 @@ const tabHelp: Record<Tab, { title: string; items: string[] }> = {
     ],
   },
 };
+function HideValuesToggle() {
+  const { hidden, toggle } = useHideValues();
+  return (
+    <Button variant="ghost" size="icon" onClick={toggle} className="h-9 w-9" title={hidden ? "Mostrar valores" : "Ocultar valores"}>
+      {hidden ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+    </Button>
+  );
+}
 
 const Index = () => {
   const { signOut } = useAuth();
@@ -210,6 +219,7 @@ const Index = () => {
     tab === "products" ? "Novo Lançamento" : "";
 
   return (
+    <HideValuesProvider>
     <div className="min-h-screen bg-background">
       <input type="file" ref={fileInputRef} accept=".csv" className="hidden" onChange={handleFileChange} />
 
@@ -245,6 +255,7 @@ const Index = () => {
                 </div>
               </PopoverContent>
             </Popover>
+            <HideValuesToggle />
             <Button variant="ghost" size="icon" onClick={toggleTheme} className="h-9 w-9" title={dark ? "Modo claro" : "Modo escuro"}>
               {dark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
             </Button>
@@ -327,6 +338,7 @@ const Index = () => {
       {showSaleForm && <SaleForm onAdd={addSale} onClose={() => setShowSaleForm(false)} />}
       {showExpenseForm && <ExpenseForm onAdd={addExpense} onClose={() => setShowExpenseForm(false)} />}
     </div>
+    </HideValuesProvider>
   );
 };
 

@@ -1,4 +1,5 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useCallback } from "react";
+import { useHideValues } from "@/contexts/HideValuesContext";
 import { format } from "date-fns";
 import { Loan, Payment } from "@/types/loan";
 import { Card, CardContent } from "@/components/ui/card";
@@ -42,7 +43,7 @@ const categoryConfig: { id: Category; label: string; color: string; activeColor:
   { id: "on_track", label: "Em Dia", color: "border-primary/30 text-primary", activeColor: "bg-primary text-primary-foreground border-primary" },
 ];
 
-function formatCurrency(value: number): string {
+function rawFormatCurrency(value: number): string {
   return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value);
 }
 
@@ -130,6 +131,8 @@ function LoanCardView({
   onDelete: () => void;
   onDeletePayment: (paymentId: string) => void;
 }) {
+  const { mask } = useHideValues();
+  const formatCurrency = useCallback((v: number) => mask(rawFormatCurrency(v)), [mask]);
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState<EditForm>(loanToForm(loan));
   const [showPartial, setShowPartial] = useState(false);
@@ -686,6 +689,8 @@ function LoanRowView({
 }) {
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState<EditForm>(loanToForm(loan));
+  const { mask } = useHideValues();
+  const formatCurrency = useCallback((v: number) => mask(rawFormatCurrency(v)), [mask]);
   const [showPartial, setShowPartial] = useState(false);
   const [partialAmount, setPartialAmount] = useState("");
   const [paymentDialog, setPaymentDialog] = useState<{ type: "installment" | "interest" | "partial" | "full"; amount?: number } | null>(null);
@@ -1016,6 +1021,8 @@ function ClientFolder({
   onDelete: (id: string) => void;
   onDeletePayment: (paymentId: string) => void;
 }) {
+  const { mask } = useHideValues();
+  const formatCurrency = useCallback((v: number) => mask(rawFormatCurrency(v)), [mask]);
   const [open, setOpen] = useState(false);
   const activeCount = group.loans.filter((l) => l.status !== "paid").length;
   const paidCount = group.loans.filter((l) => l.status === "paid").length;
@@ -1065,6 +1072,8 @@ function ClientFolder({
 }
 
 export function LoanList({ loans, payments, onPayment, onPartialPayment, onInterestPayment, onUpdate, onDelete, onDeletePayment }: Props) {
+  const { mask } = useHideValues();
+  const formatCurrency = useCallback((v: number) => mask(rawFormatCurrency(v)), [mask]);
   const [view, setView] = useState<"cards" | "rows" | "folders">("cards");
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState<Category>("all");

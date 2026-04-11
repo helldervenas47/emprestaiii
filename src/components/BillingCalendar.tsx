@@ -1,4 +1,5 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
+import { useHideValues } from "@/contexts/HideValuesContext";
 import { Loan, Payment } from "@/types/loan";
 import { calculateInstallment } from "@/hooks/useLoans";
 import { Card, CardContent } from "@/components/ui/card";
@@ -17,7 +18,7 @@ const monthNames = [
   "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro",
 ];
 
-function formatCurrency(v: number) {
+function rawFormatCurrency(v: number) {
   return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v);
 }
 
@@ -32,6 +33,8 @@ interface DueItem {
 }
 
 export function BillingCalendar({ loans, payments }: Props) {
+  const { mask } = useHideValues();
+  const formatCurrency = useCallback((v: number) => mask(rawFormatCurrency(v)), [mask]);
   const today = new Date();
   const [year, setYear] = useState(today.getFullYear());
   const [month, setMonth] = useState(today.getMonth());

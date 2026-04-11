@@ -1,5 +1,6 @@
-import { useMemo, useState, useEffect } from "react";
+import { useMemo, useState, useEffect, useCallback } from "react";
 import { Switch } from "@/components/ui/switch";
+import { useHideValues } from "@/contexts/HideValuesContext";
 import { Loan, Sale, Payment, Expense } from "@/types/loan";
 import { calculateInstallment, calculateTotalWithInterest } from "@/hooks/useLoans";
 import { Card, CardContent } from "@/components/ui/card";
@@ -61,7 +62,7 @@ function getRange(period: Period, offset: number): { start: Date; end: Date; lab
   return { start: m, end: mEnd, label: `${monthNames[m.getMonth()]} ${m.getFullYear()}` };
 }
 
-function formatCurrency(v: number) {
+function rawFormatCurrency(v: number) {
   return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v);
 }
 
@@ -90,6 +91,8 @@ function useAccountBalance(): [number, (v: number) => void] {
 }
 
 export function DashboardOverview({ loans, sales, payments, expenses, onDeletePayment, onDeleteSale, onDeleteLoan }: Props) {
+  const { mask } = useHideValues();
+  const formatCurrency = useCallback((v: number) => mask(rawFormatCurrency(v)), [mask]);
   const [period, setPeriod] = useState<Period>("month");
   const [offset, setOffset] = useState(0);
   const [txFilter, setTxFilter] = useState<"all" | "in" | "out">("all");

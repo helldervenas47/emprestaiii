@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Trash2, Search, ShoppingCart, Tv, Car } from "lucide-react";
+import { useHideValues } from "@/contexts/HideValuesContext";
 
 interface Props {
   sales: Sale[];
@@ -23,6 +24,7 @@ const businessTabs: { type: BusinessType; label: string; icon: React.ElementType
 
 function SalesList({ sales, onDeleteSale }: { sales: Sale[]; onDeleteSale: (id: string) => void }) {
   const [search, setSearch] = useState("");
+  const { mask } = useHideValues();
 
   const filtered = sales.filter((s) => {
     const q = search.toLowerCase();
@@ -42,7 +44,7 @@ function SalesList({ sales, onDeleteSale }: { sales: Sale[]; onDeleteSale: (id: 
         </div>
         <div className="text-right shrink-0">
           <p className="text-xs text-muted-foreground">{sales.length} lançamento(s)</p>
-          <p className="text-lg font-bold">{formatCurrency(total)}</p>
+          <p className="text-lg font-bold">{mask(formatCurrency(total))}</p>
         </div>
       </div>
 
@@ -81,7 +83,7 @@ function SalesList({ sales, onDeleteSale }: { sales: Sale[]; onDeleteSale: (id: 
                 </div>
                 <div className="min-w-[80px]">
                   <p className="text-xs text-muted-foreground">Total</p>
-                  <p className="text-sm font-semibold">{formatCurrency(sale.total)}</p>
+                  <p className="text-sm font-semibold">{mask(formatCurrency(sale.total))}</p>
                 </div>
                 <Button size="icon" variant="ghost" className="h-8 w-8 ml-auto text-destructive hover:bg-destructive hover:text-destructive-foreground" onClick={() => onDeleteSale(sale.id)}>
                   <Trash2 className="h-4 w-4" />
