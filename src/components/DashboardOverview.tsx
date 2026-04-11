@@ -92,6 +92,8 @@ function useAccountBalance(): [number, (v: number) => void] {
 export function DashboardOverview({ loans, sales, payments, expenses, onDeletePayment, onDeleteSale, onDeleteLoan }: Props) {
   const [period, setPeriod] = useState<Period>("month");
   const [offset, setOffset] = useState(0);
+  const [txFilter, setTxFilter] = useState<"all" | "in" | "out">("all");
+  const [showAllTx, setShowAllTx] = useState(false);
   
   const [accountBalance, setAccountBalance] = useAccountBalance();
   const [editingBalance, setEditingBalance] = useState(false);
