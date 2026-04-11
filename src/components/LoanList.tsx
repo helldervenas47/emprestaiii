@@ -131,6 +131,8 @@ function LoanCardView({
   onDelete: () => void;
   onDeletePayment: (paymentId: string) => void;
 }) {
+  const { mask } = useHideValues();
+  const formatCurrency = useCallback((v: number) => mask(rawFormatCurrency(v)), [mask]);
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState<EditForm>(loanToForm(loan));
   const [showPartial, setShowPartial] = useState(false);
