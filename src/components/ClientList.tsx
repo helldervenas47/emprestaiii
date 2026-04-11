@@ -6,7 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { Trash2, User, Phone, Mail, MapPin, Search, Users, Pencil, X, Check, ToggleLeft, ToggleRight } from "lucide-react";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Trash2, User, Phone, Mail, MapPin, Search, Users, Pencil, X, Check, ToggleLeft, ToggleRight, ArrowUpDown, ArrowDownAZ, ArrowUpAZ, Clock, CalendarDays } from "lucide-react";
 
 interface Props {
   clients: Client[];
@@ -15,24 +16,43 @@ interface Props {
 }
 
 type StatusFilter = "all" | "active" | "inactive";
+type SortOption = "name-asc" | "name-desc" | "newest" | "oldest";
+
+const sortLabels: Record<SortOption, string> = {
+  "name-asc": "A → Z",
+  "name-desc": "Z → A",
+  "newest": "Mais recentes",
+  "oldest": "Mais antigos",
+};
 
 export function ClientList({ clients, onDelete, onUpdate }: Props) {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
+  const [sortOption, setSortOption] = useState<SortOption>("name-asc");
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState({ name: "", phone: "", email: "", cpf: "", cnpj: "", rg: "", address: "", city: "", state: "", score: "", notes: "" });
 
-  const filtered = clients.filter((c) => {
-    const matchesSearch =
-      c.name.toLowerCase().includes(search.toLowerCase()) ||
-      c.cpf.includes(search) ||
-      c.phone.includes(search);
-    const matchesStatus =
-      statusFilter === "all" ||
-      (statusFilter === "active" && c.active !== false) ||
-      (statusFilter === "inactive" && c.active === false);
-    return matchesSearch && matchesStatus;
-  });
+  const filtered = clients
+    .filter((c) => {
+      const matchesSearch =
+        c.name.toLowerCase().includes(search.toLowerCase()) ||
+        c.cpf.includes(search) ||
+        c.phone.includes(search);
+      const matchesStatus =
+        statusFilter === "all" ||
+        (statusFilter === "active" && c.active !== false) ||
+        (statusFilter === "inactive" && c.active === false);
+      return matchesSearch && matchesStatus;
+    })
+    .sort((a, b) => {
+      switch (sortOption) {
+        case "name-asc": return a.name.localeCompare(b.name, "pt-BR");
+        case "name-desc": return b.name.localeCompare(a.name, "pt-BR");
+        case "newest": return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+        case "oldest": return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+        default: return 0;
+      }
+    });
 
   const activeCount = clients.filter((c) => c.active !== false).length;
   const inactiveCount = clients.filter((c) => c.active === false).length;
@@ -70,9 +90,33 @@ export function ClientList({ clients, onDelete, onUpdate }: Props) {
           </button>
         ))}
       </div>
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <Input placeholder="Buscar por nome, CPF ou telefone..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-10" />
+      <div className="flex gap-2">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input placeholder="Buscar por nome, CPF ou telefone..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-10" />
+        </div>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" size="sm" className="h-10 gap-1.5 whitespace-nowrap">
+              <ArrowUpDown className="h-4 w-4" />
+              <span className="hidden sm:inline">{sortLabels[sortOption]}</span>
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={() => setSortOption("name-asc")} className="gap-2">
+              <ArrowDownAZ className="h-4 w-4" /> A → Z
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setSortOption("name-desc")} className="gap-2">
+              <ArrowUpAZ className="h-4 w-4" /> Z → A
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setSortOption("newest")} className="gap-2">
+              <Clock className="h-4 w-4" /> Mais recentes
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setSortOption("oldest")} className="gap-2">
+              <CalendarDays className="h-4 w-4" /> Mais antigos
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
 
       {filtered.length === 0 ? (
