@@ -173,10 +173,13 @@ export function DashboardOverview({ loans, sales, payments, expenses, onDeletePa
     const totalPrincipal = loans.reduce((s, l) => s + l.amount, 0);
     const totalInterestExpected = totalExpected - totalPrincipal;
 
-    // Total a receber = expected from ACTIVE loans minus ALL payments already made on those loans
-    const totalExpectedActive = activeLoans.reduce((s, l) => s + calculateTotalWithInterest(l.amount, l.interestRate, l.installments), 0);
-    const totalAlreadyPaid = allPaymentsForActive.reduce((s, p) => s + p.amount, 0);
-    const totalToReceive = Math.max(0, totalExpectedActive - totalAlreadyPaid);
+    // Total a receber = sum of remainingAmount for active loans (uses manual value when set)
+    const totalToReceive = activeLoans.reduce((s, l) => {
+      if (l.remainingAmount != null && l.remainingAmount > 0) return s + l.remainingAmount;
+      const expected = calculateTotalWithInterest(l.amount, l.interestRate, l.installments);
+      const paid = allPaymentsForActive.filter((p) => p.loanId === l.id).reduce((ss, p) => ss + p.amount, 0);
+      return s + Math.max(0, expected - paid);
+    }, 0);
 
     // Total received globally
     const totalReceived = payments.reduce((s, p) => s + p.amount, 0);
