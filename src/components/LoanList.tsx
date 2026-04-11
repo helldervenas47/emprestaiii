@@ -663,6 +663,14 @@ function LoanRowView({
             <Input type="number" value={form.installments} onChange={(e) => update("installments", e.target.value)} className="h-7 w-14 text-xs" placeholder="Parc." />
             <Input type="number" value={form.paidInstallments} onChange={(e) => update("paidInstallments", e.target.value)} className="h-7 w-14 text-xs" placeholder="Pagas" />
             <Input type="date" value={form.dueDate} onChange={(e) => update("dueDate", e.target.value)} className="h-7 w-32 text-xs" />
+            <Select value={form.interestType} onValueChange={(v) => update("interestType", v)}>
+              <SelectTrigger className="h-7 w-24 text-xs"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="Semanal">Semanal</SelectItem>
+                <SelectItem value="Quinzenal">Quinzenal</SelectItem>
+                <SelectItem value="Mensal">Mensal</SelectItem>
+              </SelectContent>
+            </Select>
             <Input value={form.tags} onChange={(e) => update("tags", e.target.value)} className="h-7 w-28 text-xs" placeholder="Etiquetas" />
             <Button size="icon" variant="ghost" className="h-7 w-7" onClick={saveEdit}><Check className="h-3.5 w-3.5 text-success" /></Button>
             <Button size="icon" variant="ghost" className="h-7 w-7" onClick={cancelEdit}><X className="h-3.5 w-3.5 text-destructive" /></Button>
