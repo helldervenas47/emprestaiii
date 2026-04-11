@@ -190,11 +190,13 @@ export function importSalesFromCSV(csv: string): Omit<Sale, "id">[] {
       customerName: cols[1] || "",
       quantity: 1,
       unitPrice: 0,
+      cost: 0,
       total,
       businessType: "venda" as Sale["businessType"],
       paymentMode: (installments > 1 ? "recorrente" : "fixa") as Sale["paymentMode"],
       installments,
       paidInstallments,
+      downPayment: 0,
       date: parseDateBR(cols[10]),
     };
   });
