@@ -882,11 +882,32 @@ export function LoanList({ loans, payments, onPayment, onPartialPayment, onInter
             </div>
             </>
           ) : (
-            categorized.map((loan) => (
-              <LoanRowView key={loan.id} loan={loan} payments={payments}
-                onPayment={(date) => onPayment(loan.id, date)} onPartialPayment={(amt, date) => onPartialPayment(loan.id, amt, date)}
-                onInterestPayment={(date) => onInterestPayment(loan.id, date)} onUpdate={(d) => onUpdate(loan.id, d)} onDelete={() => onDelete(loan.id)} />
-            ))
+            <div className="rounded-lg border border-border/50 overflow-hidden">
+              <div className="px-4 py-2 flex items-center justify-between border-b border-border/30 bg-muted/30">
+                <span className="text-sm text-muted-foreground">{categorized.length} empréstimos</span>
+              </div>
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b border-border/30">
+                    <th className="px-4 py-2.5 text-left text-xs font-medium text-muted-foreground">Cliente</th>
+                    <th className="px-4 py-2.5 text-left text-xs font-medium text-muted-foreground">Status</th>
+                    <th className="px-4 py-2.5 text-left text-xs font-medium text-muted-foreground">Emprestado</th>
+                    <th className="px-4 py-2.5 text-left text-xs font-medium text-muted-foreground">Restante</th>
+                    <th className="px-4 py-2.5 text-left text-xs font-medium text-muted-foreground">Parcelas</th>
+                    <th className="px-4 py-2.5 text-left text-xs font-medium text-muted-foreground">Vencimento</th>
+                    <th className="px-4 py-2.5 text-left text-xs font-medium text-muted-foreground">Etiquetas</th>
+                    <th className="px-4 py-2.5 text-right text-xs font-medium text-muted-foreground">Ações</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {categorized.map((loan) => (
+                    <LoanRowView key={loan.id} loan={loan} payments={payments}
+                      onPayment={(date) => onPayment(loan.id, date)} onPartialPayment={(amt, date) => onPartialPayment(loan.id, amt, date)}
+                      onInterestPayment={(date) => onInterestPayment(loan.id, date)} onUpdate={(d) => onUpdate(loan.id, d)} onDelete={() => onDelete(loan.id)} />
+                  ))}
+                </tbody>
+              </table>
+            </div>
           )}
         </div>
       )}
