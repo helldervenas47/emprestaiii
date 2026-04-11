@@ -585,7 +585,7 @@ function LoanCardView({
       <DialogContent className="sm:max-w-[340px]">
         <DialogHeader>
           <DialogTitle>
-            {paymentDialog?.type === "installment" ? "Receber Parcela" : paymentDialog?.type === "interest" ? "Pagar Juros" : "Pagamento Parcial"}
+            {paymentDialog?.type === "full" ? "Pagamento Total" : paymentDialog?.type === "installment" ? "Receber Parcela" : paymentDialog?.type === "interest" ? "Pagar Juros" : "Pagamento Parcial"}
           </DialogTitle>
         </DialogHeader>
         <div className="flex flex-col items-center gap-2">
