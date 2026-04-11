@@ -105,7 +105,6 @@ export function useLoans() {
   const addPartialPayment = useCallback(async (loanId: string, amount: number, paymentDate?: string) => {
     if (!user || amount <= 0) return;
     const dateStr = paymentDate || new Date().toISOString().split("T")[0];
-    const tempId = crypto.randomUUID();
 
     await Promise.all([
       supabase.from("payments").insert({
