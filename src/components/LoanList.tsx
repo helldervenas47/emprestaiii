@@ -113,7 +113,8 @@ function LoanCardView({
   const [form, setForm] = useState<EditForm>(loanToForm(loan));
   const [showPartial, setShowPartial] = useState(false);
   const [partialAmount, setPartialAmount] = useState("");
-  const [_expanded, _setExpanded] = useState(false);
+  const [showTagInput, setShowTagInput] = useState(false);
+  const [newTag, setNewTag] = useState("");
   const [paymentDialog, setPaymentDialog] = useState<{ type: "installment" | "interest" | "partial"; amount?: number } | null>(null);
   const [paymentDate, setPaymentDate] = useState<Date>(new Date());
 
