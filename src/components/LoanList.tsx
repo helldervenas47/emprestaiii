@@ -1344,7 +1344,7 @@ export function LoanList({ loans, payments, onPayment, onPartialPayment, onInter
               {grouped.map((g) => (
                 <ClientFolder key={g.name} group={g} payments={payments}
                   onPayment={onPayment} onPartialPayment={onPartialPayment}
-                  onInterestPayment={onInterestPayment} onUpdate={onUpdate} onDelete={onDelete} />
+                  onInterestPayment={onInterestPayment} onUpdate={onUpdate} onDelete={onDelete} onDeletePayment={onDeletePayment} />
               ))}
               {grouped.length === 0 && (
                 <Card>
