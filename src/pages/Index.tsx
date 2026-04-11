@@ -21,8 +21,8 @@ import { useClients } from "@/hooks/useClients";
 import { useProducts } from "@/hooks/useProducts";
 import { useExpenses } from "@/hooks/useExpenses";
 import {
-  exportLoansToCSV, exportClientsToCSV,
-  importLoansFromCSV, importClientsFromCSV, downloadCSV,
+  exportLoansToCSV, exportClientsToCSV, exportSalesToCSV,
+  importLoansFromCSV, importClientsFromCSV, importSalesFromCSV, downloadCSV,
 } from "@/lib/csv";
 import { toast } from "sonner";
 
@@ -146,6 +146,10 @@ const Index = () => {
       if (clients.length === 0) return toast.error("Nenhum cliente para exportar");
       downloadCSV(exportClientsToCSV(clients), "clientes.csv");
       toast.success("Clientes exportados com sucesso!");
+    } else if (tab === "products") {
+      if (sales.length === 0) return toast.error("Nenhuma venda para exportar");
+      downloadCSV(exportSalesToCSV(sales), "vendas.csv");
+      toast.success("Vendas exportadas com sucesso!");
     }
   };
 
@@ -178,6 +182,11 @@ const Index = () => {
           if (imported.length === 0) throw new Error();
           await Promise.all(imported.map((client) => addClient(client)));
           toast.success(`${imported.length} cliente(s) importado(s)!`);
+        } else if (tab === "products") {
+          const imported = importSalesFromCSV(csv);
+          if (imported.length === 0) throw new Error();
+          await Promise.all(imported.map((sale) => addSale(sale)));
+          toast.success(`${imported.length} venda(s) importada(s)!`);
         }
       } catch {
         toast.error("Erro ao importar CSV.");
@@ -242,7 +251,7 @@ const Index = () => {
             <Button variant="ghost" size="icon" onClick={signOut} className="h-9 w-9" title="Sair">
               <LogOut className="h-4 w-4" />
             </Button>
-            {(tab === "dashboard" || tab === "clients") && (
+            {(tab === "dashboard" || tab === "clients" || tab === "products") && (
               <>
                 <Button variant="outline" size="sm" onClick={handleImport}><Upload className="h-4 w-4 mr-1" />Importar</Button>
                 <Button variant="outline" size="sm" onClick={handleExport}><Download className="h-4 w-4 mr-1" />Exportar</Button>
