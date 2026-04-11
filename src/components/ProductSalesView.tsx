@@ -246,30 +246,70 @@ function SaleCard({ sale, onDelete, onEdit, onUpdate, formatCurrency }: { sale: 
   );
 }
 
+type SaleCategory = "all" | "overdue" | "due_today" | "paid" | "on_track";
+
+const saleCategoryFilters: { id: SaleCategory; label: string; color: string; activeColor: string }[] = [
+  { id: "all", label: "Todos", color: "border-border text-muted-foreground", activeColor: "bg-primary text-primary-foreground border-primary" },
+  { id: "overdue", label: "Atrasados", color: "border-destructive/30 text-destructive", activeColor: "bg-destructive text-destructive-foreground border-destructive" },
+  { id: "paid", label: "Pagos", color: "border-success/30 text-success", activeColor: "bg-success text-success-foreground border-success" },
+  { id: "due_today", label: "Vence Hoje", color: "border-warning/30 text-warning", activeColor: "bg-warning text-warning-foreground border-warning" },
+  { id: "on_track", label: "Em Dia", color: "border-primary/30 text-primary", activeColor: "bg-primary text-primary-foreground border-primary" },
+];
+
 function SalesList({ sales, onDeleteSale, onUpdateSale }: { sales: Sale[]; onDeleteSale: (id: string) => void; onUpdateSale: (id: string, data: Partial<Omit<Sale, "id">>) => void }) {
   const [editingSale, setEditingSale] = useState<Sale | null>(null);
   const [search, setSearch] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState<SaleCategory>("all");
   const { mask } = useHideValues();
   const formatCurrency = useCallback((v: number) => mask(rawFormatCurrency(v)), [mask]);
 
+  // Count per category
+  const counts = sales.reduce((acc, s) => {
+    const cat = getSaleCategory(s);
+    acc[cat] = (acc[cat] || 0) + 1;
+    return acc;
+  }, {} as Record<string, number>);
+
   const filtered = sales.filter((s) => {
     const q = search.toLowerCase();
-    return s.description.toLowerCase().includes(q) ||
+    const matchesSearch = s.description.toLowerCase().includes(q) ||
       s.customerName.toLowerCase().includes(q) ||
       s.productName.toLowerCase().includes(q);
+    if (!matchesSearch) return false;
+    if (categoryFilter === "all") return true;
+    return getSaleCategory(s) === categoryFilter;
   });
 
-  const total = sales.reduce((acc, s) => acc + s.total, 0);
+  const total = filtered.reduce((acc, s) => acc + s.total, 0);
 
   return (
     <div className="space-y-4">
+      {/* Category filter pills */}
+      <div className="flex flex-wrap gap-2">
+        {saleCategoryFilters.map((cat) => {
+          const count = cat.id === "all" ? sales.length : (counts[cat.id] || 0);
+          const isActive = categoryFilter === cat.id;
+          return (
+            <button
+              key={cat.id}
+              onClick={() => setCategoryFilter(cat.id)}
+              className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-all ${
+                isActive ? cat.activeColor : cat.color
+              }`}
+            >
+              {cat.label} ({count})
+            </button>
+          );
+        })}
+      </div>
+
       <div className="flex items-center justify-between gap-4">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input placeholder="Buscar..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-10" />
         </div>
         <div className="text-right shrink-0">
-          <p className="text-xs text-muted-foreground">{sales.length} lançamento(s)</p>
+          <p className="text-xs text-muted-foreground">{filtered.length} lançamento(s)</p>
           <p className="text-lg font-bold">{formatCurrency(total)}</p>
         </div>
       </div>
