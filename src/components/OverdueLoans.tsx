@@ -113,12 +113,12 @@ function buildWhatsAppMessage(loan: Loan, installments: { number: number; dueDat
       : `Gostaria de lembrar que você possui *${installments.length} parcela(s) vencendo hoje* referente ao seu empréstimo.`,
     ``,
     ...installments.map(
-      (inst) => `• Parcela ${inst.number} — Vencimento: ${new Date(inst.dueDate).toLocaleDateString("pt-BR")} — Valor: ${formatCurrency(inst.amount)}`
+      (inst) => `• Parcela ${inst.number} — Vencimento: ${new Date(inst.dueDate).toLocaleDateString("pt-BR")} — Valor: ${rawFormatCurrency(inst.amount)}`
     ),
     ``,
     isOverdue
-      ? `*Total em atraso: ${formatCurrency(total)}*`
-      : `*Total a pagar: ${formatCurrency(total)}*`,
+      ? `*Total em atraso: ${rawFormatCurrency(total)}*`
+      : `*Total a pagar: ${rawFormatCurrency(total)}*`,
     ``,
     isOverdue
       ? `Por favor, entre em contato para regularizar sua situação.`
@@ -142,6 +142,8 @@ interface LoanItem {
 }
 
 function LoanItemCard({ item, isOverdue, onSendWhatsApp }: { item: LoanItem; isOverdue: boolean; onSendWhatsApp: () => void }) {
+  const { mask } = useHideValues();
+  const formatCurrency = useCallback((v: number) => mask(rawFormatCurrency(v)), [mask]);
   return (
     <Card className={isOverdue ? "border-destructive/20" : "border-warning/20"}>
       <CardContent className="p-4">
