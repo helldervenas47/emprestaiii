@@ -44,21 +44,18 @@ export function BillingCalendar({ loans, payments }: Props) {
     loans.forEach((loan) => {
       if (loan.status === "paid") return;
       if (loan.installments <= 0) return;
+      if (loan.paidInstallments >= loan.installments) return;
       const installmentAmount = calculateInstallment(loan.amount, loan.interestRate, loan.installments);
-      const loanPayments = payments.filter((p) => p.loanId === loan.id);
-      const paidInstallmentNumbers = new Set(
-        loanPayments.filter((p) => p.installmentNumber > 0).map((p) => p.installmentNumber)
-      );
 
-      const start = new Date(loan.startDate + "T00:00:00");
-      const addedDates = new Set<string>();
+      // Use loan.dueDate as the anchor for the next unpaid installment
+      // Then project remaining installments forward from there
+      const nextInstallment = loan.paidInstallments + 1;
+      const dueBase = new Date(loan.dueDate + "T00:00:00");
 
-      for (let i = 1; i <= loan.installments; i++) {
-        // Skip if this installment is paid (either by explicit payment record or by paidInstallments count)
-        if (paidInstallmentNumbers.has(i) || i <= loan.paidInstallments) continue;
-        const dueDate = new Date(start.getFullYear(), start.getMonth() + i, start.getDate());
+      for (let i = nextInstallment; i <= loan.installments; i++) {
+        const monthsFromNext = i - nextInstallment;
+        const dueDate = new Date(dueBase.getFullYear(), dueBase.getMonth() + monthsFromNext, dueBase.getDate());
         const dateStr = dueDate.toISOString().split("T")[0];
-        addedDates.add(dateStr);
 
         if (!map[dateStr]) map[dateStr] = [];
         map[dateStr].push({
@@ -70,23 +67,6 @@ export function BillingCalendar({ loans, payments }: Props) {
           paid: false,
           date: dateStr,
         });
-      }
-
-      // Also add using loan.dueDate if not already covered
-      if (loan.dueDate && !addedDates.has(loan.dueDate) && loan.paidInstallments < loan.installments) {
-        const nextInstallment = loan.paidInstallments + 1;
-        if (!paidInstallmentNumbers.has(nextInstallment)) {
-          if (!map[loan.dueDate]) map[loan.dueDate] = [];
-          map[loan.dueDate].push({
-            loanId: loan.id,
-            borrowerName: loan.borrowerName,
-            installmentNumber: nextInstallment,
-            totalInstallments: loan.installments,
-            amount: installmentAmount,
-            paid: false,
-            date: loan.dueDate,
-          });
-        }
       }
     });
 
