@@ -271,17 +271,17 @@ function LoanCardView({
     "border-primary/50";
 
   const cardBg =
-    category === "overdue" ? "bg-destructive/8" :
-    category === "due_today" ? "bg-warning/8" :
-    category === "paid" ? "bg-success/8" :
-    category === "paid_interest" ? "bg-purple/8" :
+    category === "overdue" ? "bg-destructive/[0.22]" :
+    category === "due_today" ? "bg-warning/[0.22]" :
+    category === "paid" ? "bg-success/[0.22]" :
+    category === "paid_interest" ? "bg-purple/[0.22]" :
     "bg-card";
 
   const headerBg =
-    category === "overdue" ? "bg-destructive/15 border-destructive/30" :
-    category === "due_today" ? "bg-warning/15 border-warning/30" :
-    category === "paid" ? "bg-success/15 border-success/30" :
-    category === "paid_interest" ? "bg-purple/15 border-purple/30" :
+    category === "overdue" ? "bg-destructive/[0.45] border-destructive/30" :
+    category === "due_today" ? "bg-warning/[0.45] border-warning/30" :
+    category === "paid" ? "bg-success/[0.45] border-success/30" :
+    category === "paid_interest" ? "bg-purple/[0.45] border-purple/30" :
     "bg-primary/8 border-border/50";
 
   return (
