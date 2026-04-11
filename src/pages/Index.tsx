@@ -285,12 +285,16 @@ const Index = () => {
           <DashboardOverview loans={loans} sales={sales} payments={payments} expenses={expenses} onDeletePayment={deletePayment} onDeleteSale={deleteSale} onDeleteLoan={deleteLoan} />
         )}
         {tab === "dashboard" && (
-          <>
-            <div>
-              <h2 className="text-lg font-semibold text-foreground mb-4">Empréstimos</h2>
-              <LoanList loans={loans} payments={payments} onPayment={addPayment} onPartialPayment={addPartialPayment} onInterestPayment={addInterestOnlyPayment} onUpdate={updateLoan} onDelete={deleteLoan} onDeletePayment={deletePayment} />
-            </div>
-          </>
+          <div>
+            <h2 className="text-lg font-semibold text-foreground mb-4">Linhas</h2>
+            <LoanList loans={loans.filter(l => l.installments <= 1)} payments={payments} onPayment={addPayment} onPartialPayment={addPartialPayment} onInterestPayment={addInterestOnlyPayment} onUpdate={updateLoan} onDelete={deleteLoan} onDeletePayment={deletePayment} />
+          </div>
+        )}
+        {tab === "installments" && (
+          <div>
+            <h2 className="text-lg font-semibold text-foreground mb-4">Parcelados</h2>
+            <LoanList loans={loans.filter(l => l.installments >= 2)} payments={payments} onPayment={addPayment} onPartialPayment={addPartialPayment} onInterestPayment={addInterestOnlyPayment} onUpdate={updateLoan} onDelete={deleteLoan} onDeletePayment={deletePayment} />
+          </div>
         )}
         {tab === "clients" && (
           <div>
