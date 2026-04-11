@@ -15,6 +15,7 @@ import {
   Search, Percent, Pencil, Check, X, ChevronDown, ChevronRight, FolderOpen, Folder, HandCoins, Tag, MoreHorizontal, MessageCircle, Filter, SlidersHorizontal,
 } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface Props {
   loans: Loan[];
@@ -80,6 +81,7 @@ interface EditForm {
   dueDate: string;
   notes: string;
   tags: string;
+  interestType: string;
 }
 
 function loanToForm(loan: Loan): EditForm {
@@ -100,6 +102,7 @@ function loanToForm(loan: Loan): EditForm {
     dueDate: loan.dueDate,
     notes: loan.notes || "",
     tags: (loan.tags || []).join(", "),
+    interestType: loan.interestType || "Mensal",
   };
 }
 
@@ -160,6 +163,7 @@ function LoanCardView({
       paidInstallments: parseInt(form.paidInstallments) || 0,
       startDate: form.startDate || loan.startDate,
       dueDate: form.dueDate || loan.dueDate,
+      interestType: form.interestType,
       notes: form.notes,
       tags: parsedTags,
     });
@@ -244,6 +248,17 @@ function LoanCardView({
             <div><Label className="text-xs">Parcelas Pagas</Label><Input type="number" value={form.paidInstallments} onChange={(e) => updateField("paidInstallments", e.target.value)} className="h-8 text-sm" /></div>
             <div><Label className="text-xs">Data Início</Label><Input type="date" value={form.startDate} onChange={(e) => updateField("startDate", e.target.value)} className="h-8 text-sm" /></div>
             <div><Label className="text-xs">Data Fim</Label><Input type="date" value={form.dueDate} onChange={(e) => updateField("dueDate", e.target.value)} className="h-8 text-sm" /></div>
+            <div>
+              <Label className="text-xs">Tipo Contrato</Label>
+              <Select value={form.interestType} onValueChange={(v) => updateField("interestType", v)}>
+                <SelectTrigger className="h-8 text-sm"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Semanal">Semanal</SelectItem>
+                  <SelectItem value="Quinzenal">Quinzenal</SelectItem>
+                  <SelectItem value="Mensal">Mensal</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div><Label className="text-xs">Etiquetas (separar por vírgula)</Label><Input value={form.tags} onChange={(e) => updateField("tags", e.target.value)} className="h-8 text-sm" placeholder="Ex: VIP, Renovação, Garantia" /></div>
@@ -604,6 +619,7 @@ function LoanRowView({
       paidInstallments: parseInt(form.paidInstallments) || 0,
       startDate: form.startDate || loan.startDate,
       dueDate: form.dueDate || loan.dueDate,
+      interestType: form.interestType,
       notes: form.notes,
       tags: parsedTags,
     });
@@ -647,6 +663,14 @@ function LoanRowView({
             <Input type="number" value={form.installments} onChange={(e) => update("installments", e.target.value)} className="h-7 w-14 text-xs" placeholder="Parc." />
             <Input type="number" value={form.paidInstallments} onChange={(e) => update("paidInstallments", e.target.value)} className="h-7 w-14 text-xs" placeholder="Pagas" />
             <Input type="date" value={form.dueDate} onChange={(e) => update("dueDate", e.target.value)} className="h-7 w-32 text-xs" />
+            <Select value={form.interestType} onValueChange={(v) => update("interestType", v)}>
+              <SelectTrigger className="h-7 w-24 text-xs"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="Semanal">Semanal</SelectItem>
+                <SelectItem value="Quinzenal">Quinzenal</SelectItem>
+                <SelectItem value="Mensal">Mensal</SelectItem>
+              </SelectContent>
+            </Select>
             <Input value={form.tags} onChange={(e) => update("tags", e.target.value)} className="h-7 w-28 text-xs" placeholder="Etiquetas" />
             <Button size="icon" variant="ghost" className="h-7 w-7" onClick={saveEdit}><Check className="h-3.5 w-3.5 text-success" /></Button>
             <Button size="icon" variant="ghost" className="h-7 w-7" onClick={cancelEdit}><X className="h-3.5 w-3.5 text-destructive" /></Button>

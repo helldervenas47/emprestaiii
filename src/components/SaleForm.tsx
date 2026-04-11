@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus, X } from "lucide-react";
 import { Sale, BusinessType, PaymentMode } from "@/types/loan";
 
@@ -28,6 +29,7 @@ export function SaleForm({ onAdd, onClose, defaultBusinessType = "venda" }: Prop
     businessType: defaultBusinessType,
     paymentMode: "fixa" as PaymentMode,
     installments: "1",
+    frequency: "Mensal",
   });
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -102,10 +104,25 @@ export function SaleForm({ onAdd, onClose, defaultBusinessType = "venda" }: Prop
             </div>
 
             {form.paymentMode === "recorrente" && (
-              <div>
-                <Label>Quantidade de Parcelas</Label>
-                <Input type="number" min="2" value={form.installments} onChange={(e) => update("installments", e.target.value)} required />
-              </div>
+              <>
+                <div>
+                  <Label>Frequência</Label>
+                  <Select value={form.frequency} onValueChange={(v) => update("frequency", v)}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Semanal">Semanal</SelectItem>
+                      <SelectItem value="Quinzenal">Quinzenal</SelectItem>
+                      <SelectItem value="Mensal">Mensal</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label>Quantidade de Parcelas</Label>
+                  <Input type="number" min="2" value={form.installments} onChange={(e) => update("installments", e.target.value)} required />
+                </div>
+              </>
             )}
 
             <div>
