@@ -694,7 +694,7 @@ function LoanRowView({
 
   const total = calculateTotalWithInterest(loan.amount, loan.interestRate, loan.installments);
   const totalPaid = getTotalPaid(loan, allPayments);
-  const remaining = Math.max(0, total - totalPaid);
+  const remaining = loan.remainingAmount != null && loan.remainingAmount > 0 ? loan.remainingAmount : Math.max(0, total - totalPaid);
   const category = getLoanCategory(loan, allPayments);
   const daysOverdue = getDaysOverdue(loan);
   const badge = statusMap[category];
