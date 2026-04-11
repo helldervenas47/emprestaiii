@@ -6,7 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { Trash2, User, Phone, Mail, MapPin, Search, Users, Pencil, X, Check, ToggleLeft, ToggleRight } from "lucide-react";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Trash2, User, Phone, Mail, MapPin, Search, Users, Pencil, X, Check, ToggleLeft, ToggleRight, ArrowUpDown, ArrowDownAZ, ArrowUpAZ, Clock, CalendarDays } from "lucide-react";
 
 interface Props {
   clients: Client[];
@@ -15,6 +16,14 @@ interface Props {
 }
 
 type StatusFilter = "all" | "active" | "inactive";
+type SortOption = "name-asc" | "name-desc" | "newest" | "oldest";
+
+const sortLabels: Record<SortOption, string> = {
+  "name-asc": "A → Z",
+  "name-desc": "Z → A",
+  "newest": "Mais recentes",
+  "oldest": "Mais antigos",
+};
 
 export function ClientList({ clients, onDelete, onUpdate }: Props) {
   const [search, setSearch] = useState("");
