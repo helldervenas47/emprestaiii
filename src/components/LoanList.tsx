@@ -215,70 +215,108 @@ function LoanCardView({
     category === "paid_interest" ? "border-l-purple" :
     "border-l-primary";
 
+  const realizedProfit = Math.max(0, totalPaid - loan.amount);
+  const realizedProfitPct = loan.amount > 0 ? Math.round((realizedProfit / loan.amount) * 100) : 0;
+
   return (
     <>
-    <Card className={`overflow-hidden hover:shadow-lg transition-all border-l-4 ${borderColor} h-full flex flex-col`}>
-      {/* Header */}
-      <div className="p-4 pb-0">
-        <div className="flex items-start justify-between gap-2">
-          <div className="flex items-center gap-3 min-w-0">
-            <div className={`h-11 w-11 rounded-full flex items-center justify-center text-primary-foreground font-bold text-sm shrink-0 ${
-              category === "overdue" ? "bg-destructive" :
-              category === "due_today" ? "bg-warning" :
-              category === "paid" ? "bg-success" :
-              "gradient-primary"
-            }`}>
-              {loan.borrowerName.charAt(0).toUpperCase()}
-            </div>
-            <div className="min-w-0">
-              <h3 className="font-bold text-foreground text-base truncate">{loan.borrowerName}</h3>
-              <div className="flex items-center gap-1.5 text-xs text-muted-foreground mt-0.5">
-                <CalendarIcon className="h-3 w-3 shrink-0" />
-                <span>{new Date(loan.startDate + "T00:00:00").toLocaleDateString("pt-BR")}</span>
-                <span>→</span>
-                <span>{new Date(loan.dueDate + "T00:00:00").toLocaleDateString("pt-BR")}</span>
-              </div>
-            </div>
+    <Card className="overflow-hidden hover:shadow-lg transition-all h-full flex flex-col border-border/50">
+      {/* Client Name Header */}
+      <div className="border-b border-border/50 px-4 py-3 text-center">
+        <h3 className="font-bold text-foreground text-lg">{loan.borrowerName}</h3>
+      </div>
+
+      <CardContent className="p-4 flex-1 flex flex-col gap-3">
+        {/* Avatar + Badges + Actions Row */}
+        <div className="flex items-center gap-3">
+          <div className={`h-12 w-12 rounded-full flex items-center justify-center text-primary-foreground font-bold text-sm shrink-0 ${
+            category === "overdue" ? "bg-destructive" :
+            category === "due_today" ? "bg-warning" :
+            category === "paid" ? "bg-success" :
+            "gradient-primary"
+          }`}>
+            {loan.borrowerName.split(" ").map(w => w[0]).join("").substring(0, 2).toUpperCase()}
           </div>
-          <div className="flex flex-wrap items-end justify-end gap-1.5 shrink-0 max-w-[50%]">
-            <Badge variant="outline" className={`${badge.className} text-xs`}>{badge.label}</Badge>
+          <div className="flex flex-wrap items-center gap-1.5">
+            <Badge className={`${badge.className} text-xs font-semibold`}>{badge.label}</Badge>
+            <Badge variant="outline" className="text-xs bg-primary/10 text-primary border-primary/20 uppercase">
+              {loan.interestType}
+            </Badge>
             {daysOverdue > 0 && loan.status !== "paid" && (
               <Badge variant="outline" className="bg-destructive/10 text-destructive border-destructive/20 text-xs">
                 {daysOverdue}d atraso
               </Badge>
             )}
+          </div>
+          <div className="ml-auto flex items-center gap-1">
             {loan.tags && loan.tags.length > 0 && loan.tags.map((tag) => (
-              <Badge key={tag} variant="outline" className="bg-primary/10 text-primary border-primary/20 text-xs">
+              <Badge key={tag} variant="outline" className="bg-accent/10 text-accent border-accent/20 text-xs">
                 <Tag className="h-2.5 w-2.5 mr-0.5" />{tag}
               </Badge>
             ))}
           </div>
         </div>
-      </div>
 
-      <CardContent className="p-4 pt-3 flex-1 flex flex-col">
-        {/* Main financial info */}
-        <div className="grid grid-cols-4 gap-2 mb-3">
-          <div className="bg-muted/50 rounded-lg p-3 text-center">
-            <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Capital</p>
-            <p className="text-sm font-bold text-foreground mt-0.5">{formatCurrency(loan.amount)}</p>
+        {/* Large remaining amount */}
+        <div className="text-center py-2">
+          <p className={`text-3xl font-bold ${remaining > 0 ? "text-primary" : "text-success"}`}>
+            {formatCurrency(remaining)}
+          </p>
+          <p className="text-xs text-muted-foreground mt-1">restante a receber</p>
+        </div>
+
+        {/* Emprestado / Total a Receber */}
+        <div className="grid grid-cols-2 gap-3 border border-border/50 rounded-lg p-3">
+          <div>
+            <p className="text-xs text-muted-foreground">Emprestado</p>
+            <p className="text-base font-bold text-foreground">{formatCurrency(loan.amount)}</p>
           </div>
-          <div className="bg-muted/50 rounded-lg p-3 text-center">
-            <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Parcela</p>
-            <p className="text-sm font-bold text-foreground mt-0.5">{formatCurrency(installment)}</p>
-          </div>
-          <div className="bg-muted/50 rounded-lg p-3 text-center">
-            <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Juros</p>
-            <p className="text-sm font-bold text-accent mt-0.5">{loan.interestRate}%</p>
-          </div>
-          <div className="bg-muted/50 rounded-lg p-3 text-center">
-            <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Total c/ Juros</p>
-            <p className="text-sm font-bold text-foreground mt-0.5">{formatCurrency(total)}</p>
+          <div>
+            <p className="text-xs text-muted-foreground">Total a Receber</p>
+            <p className="text-base font-bold text-foreground">{formatCurrency(total)}</p>
           </div>
         </div>
 
+        {/* Lucro Previsto / Lucro Realizado */}
+        <div className="grid grid-cols-2 gap-3">
+          <div className="bg-success/5 border border-success/20 rounded-lg px-3 py-2">
+            <p className="text-xs text-muted-foreground flex items-center gap-1">💰 Lucro Previsto</p>
+            <p className="text-sm font-bold text-success">{formatCurrency(totalInterest)}</p>
+          </div>
+          <div className="bg-muted/30 border border-border/50 rounded-lg px-3 py-2">
+            <p className="text-xs text-muted-foreground flex items-center gap-1">✅ Lucro Realizado</p>
+            <p className="text-sm font-bold text-foreground">
+              {formatCurrency(realizedProfit)} <span className="text-xs text-muted-foreground">{realizedProfitPct}%</span>
+            </p>
+          </div>
+        </div>
+
+        {/* Vencimento / Pago */}
+        <div className="grid grid-cols-2 gap-3">
+          <div className="flex items-center gap-2 bg-muted/30 rounded-lg px-3 py-2">
+            <CalendarIcon className="h-4 w-4 text-muted-foreground shrink-0" />
+            <div>
+              <p className="text-[10px] text-muted-foreground">Venc:</p>
+              <p className="text-sm font-semibold text-foreground">{new Date(loan.dueDate + "T00:00:00").toLocaleDateString("pt-BR")}</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 bg-success/5 border border-success/20 rounded-lg px-3 py-2">
+            <DollarSign className="h-4 w-4 text-success shrink-0" />
+            <div>
+              <p className="text-[10px] text-muted-foreground">Pago:</p>
+              <p className="text-sm font-bold text-success">{formatCurrency(totalPaid)}</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Só Juros (por parcela) */}
+        <div className="flex items-center justify-between bg-muted/50 rounded-lg px-4 py-3 border border-border/50">
+          <span className="text-sm text-muted-foreground">Só Juros (por parcela):</span>
+          <span className="text-sm font-bold text-foreground">{formatCurrency(interestOnly)}</span>
+        </div>
+
         {/* Progress */}
-        <div className="mb-3">
+        <div>
           <div className="flex justify-between text-xs mb-1">
             <span className="text-muted-foreground">{loan.paidInstallments}/{loan.installments} parcelas</span>
             <span className="font-medium text-foreground">{Math.round(progress)}%</span>
@@ -286,73 +324,49 @@ function LoanCardView({
           <Progress value={progress} className="h-2.5" />
         </div>
 
-        {/* Financial details grid */}
-        <div className="grid grid-cols-2 gap-2 mb-3">
-          <div className="flex items-center justify-between bg-success/5 rounded-lg px-3 py-2">
-            <span className="text-xs text-muted-foreground">Recebido</span>
-            <span className="text-sm font-bold text-success">{formatCurrency(totalPaid)}</span>
-          </div>
-          <div className="flex items-center justify-between bg-destructive/5 rounded-lg px-3 py-2">
-            <span className="text-xs text-muted-foreground">Restante</span>
-            <span className="text-sm font-bold text-destructive">{formatCurrency(remaining)}</span>
-          </div>
-          <div className="flex items-center justify-between bg-muted/30 rounded-lg px-3 py-2">
-            <span className="text-xs text-muted-foreground">Total Juros</span>
-            <span className="text-sm font-bold text-accent">{formatCurrency(totalInterest)}</span>
-          </div>
-          <div className="flex items-center justify-between bg-muted/30 rounded-lg px-3 py-2">
-            <span className="text-xs text-muted-foreground">Juros/Mês</span>
-            <span className="text-sm font-bold text-warning">{formatCurrency(interestOnly)}</span>
-          </div>
-          <div className="flex items-center justify-between bg-muted/30 rounded-lg px-3 py-2">
-            <span className="text-xs text-muted-foreground">Lucro Atual</span>
-            <span className={`text-sm font-bold ${profit >= 0 ? "text-success" : "text-destructive"}`}>{formatCurrency(profit)}</span>
-          </div>
-          {nextInstallmentDate && (
-            <div className="flex items-center justify-between bg-muted/30 rounded-lg px-3 py-2">
-              <span className="text-xs text-muted-foreground">Próx. Parcela</span>
-              <span className="text-sm font-semibold text-foreground">{nextInstallmentDate}</span>
-            </div>
-          )}
-        </div>
-
-        {loan.notes && <p className="text-xs text-muted-foreground mb-3 italic bg-muted/30 rounded-lg px-3 py-2">📝 {loan.notes}</p>}
+        {loan.notes && (
+          <p className="text-xs text-muted-foreground italic bg-muted/30 rounded-lg px-3 py-2">📝 {loan.notes}</p>
+        )}
 
         {/* Partial payment input */}
         {showPartial && (
-          <div className="flex items-center gap-1.5 mb-2 p-2 rounded-md bg-muted">
+          <div className="flex items-center gap-2 p-3 rounded-lg bg-muted border border-border/50">
             <Input
-              type="number" step="0.01" placeholder="R$"
+              type="number" step="0.01" placeholder="Valor (R$)"
               value={partialAmount} onChange={(e) => setPartialAmount(e.target.value)}
-              className="h-7 text-xs flex-1" autoFocus
+              className="h-8 text-sm flex-1" autoFocus
               onKeyDown={(e) => e.key === "Enter" && handlePartialSubmit()}
             />
-            <Button size="sm" className="h-7 text-xs px-2" onClick={handlePartialSubmit}><Check className="h-3.5 w-3.5" /></Button>
-            <Button size="sm" variant="ghost" className="h-7 text-xs px-2" onClick={() => setShowPartial(false)}><X className="h-3.5 w-3.5" /></Button>
+            <Button size="sm" className="h-8" onClick={handlePartialSubmit}><Check className="h-4 w-4" /></Button>
+            <Button size="sm" variant="ghost" className="h-8" onClick={() => setShowPartial(false)}><X className="h-4 w-4" /></Button>
           </div>
         )}
 
-        {/* Actions - pushed to bottom */}
-        <div className="flex flex-wrap gap-1.5 justify-end pt-2 border-t mt-auto">
+        {/* Action Buttons */}
+        <div className="flex flex-col gap-2 pt-2 border-t border-border/50 mt-auto">
           {loan.status !== "paid" && (
-            <>
-              <Button size="sm" variant="outline" className="h-7 text-[10px] px-2" onClick={() => setShowPartial(!showPartial)}>
-                <HandCoins className="h-3 w-3 mr-0.5" /> Parcial
+            <div className="flex gap-2">
+              <Button variant="outline" className="flex-1 h-9 text-xs" onClick={() => openPaymentDialog("installment")}>
+                <CheckCircle className="h-3.5 w-3.5 mr-1" /> Pagar
               </Button>
-              <Button size="sm" variant="outline" className="h-7 text-[10px] px-2" onClick={() => openPaymentDialog("interest")}>
-                <Percent className="h-3 w-3 mr-0.5" /> Juros
+              <Button variant="outline" className="flex-1 h-9 text-xs" onClick={() => openPaymentDialog("interest")}>
+                <DollarSign className="h-3.5 w-3.5 mr-1" /> Pagar Juros
               </Button>
-              <Button size="sm" className="h-7 text-[10px] px-2" onClick={() => openPaymentDialog("installment")}>
-                <CheckCircle className="h-3 w-3 mr-0.5" /> Receber
-              </Button>
-            </>
+            </div>
           )}
-          <Button size="icon" variant="ghost" className="h-7 w-7" onClick={startEdit} title="Editar">
-            <Pencil className="h-3 w-3 text-muted-foreground" />
-          </Button>
-          <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive hover:bg-destructive hover:text-destructive-foreground" onClick={onDelete} title="Excluir">
-            <Trash2 className="h-3 w-3" />
-          </Button>
+          <div className="flex items-center justify-center gap-1">
+            {loan.status !== "paid" && (
+              <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => setShowPartial(!showPartial)} title="Pagamento Parcial">
+                <HandCoins className="h-4 w-4 text-muted-foreground" />
+              </Button>
+            )}
+            <Button size="icon" variant="ghost" className="h-8 w-8" onClick={startEdit} title="Editar">
+              <Pencil className="h-4 w-4 text-muted-foreground" />
+            </Button>
+            <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive hover:bg-destructive hover:text-destructive-foreground" onClick={onDelete} title="Excluir">
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
       </CardContent>
     </Card>
