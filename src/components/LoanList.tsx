@@ -1021,6 +1021,8 @@ function ClientFolder({
   onDelete: (id: string) => void;
   onDeletePayment: (paymentId: string) => void;
 }) {
+  const { mask } = useHideValues();
+  const formatCurrency = useCallback((v: number) => mask(rawFormatCurrency(v)), [mask]);
   const [open, setOpen] = useState(false);
   const activeCount = group.loans.filter((l) => l.status !== "paid").length;
   const paidCount = group.loans.filter((l) => l.status === "paid").length;

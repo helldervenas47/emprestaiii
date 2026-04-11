@@ -33,6 +33,8 @@ interface DueItem {
 }
 
 export function BillingCalendar({ loans, payments }: Props) {
+  const { mask } = useHideValues();
+  const formatCurrency = useCallback((v: number) => mask(rawFormatCurrency(v)), [mask]);
   const today = new Date();
   const [year, setYear] = useState(today.getFullYear());
   const [month, setMonth] = useState(today.getMonth());
