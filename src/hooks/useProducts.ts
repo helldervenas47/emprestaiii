@@ -35,13 +35,16 @@ export function useProducts() {
           description: s.description || "",
           quantity: s.quantity,
           unitPrice: 0,
+          cost: 0,
           total: Number(s.total),
           customerName: s.customer_name || "",
           date: s.sale_date,
+          notes: (s as any).notes || "",
           businessType: (s.business_type as BusinessType) || "venda",
           paymentMode: ((s as any).payment_mode || "fixa") as "fixa" | "recorrente",
           installments: (s as any).installments || 1,
           paidInstallments: (s as any).paid_installments || 0,
+          downPayment: 0,
         })));
       }
       setLoading(false);
@@ -131,6 +134,22 @@ export function useProducts() {
     }
   }, [user, products]);
 
+  const updateSale = useCallback(async (id: string, data: Partial<Omit<Sale, "id">>) => {
+    if (!user) return;
+    setSales((prev) => prev.map((s) => (s.id === id ? { ...s, ...data } : s)));
+    const updateData: Record<string, any> = {};
+    if (data.description !== undefined) updateData.description = data.description;
+    if (data.customerName !== undefined) updateData.customer_name = data.customerName;
+    if (data.total !== undefined) updateData.total = data.total;
+    if (data.quantity !== undefined) updateData.quantity = data.quantity;
+    if (data.installments !== undefined) updateData.installments = data.installments;
+    if (data.paidInstallments !== undefined) updateData.paid_installments = data.paidInstallments;
+    if (data.paymentMode !== undefined) updateData.payment_mode = data.paymentMode;
+    if (data.businessType !== undefined) updateData.business_type = data.businessType;
+    if (data.notes !== undefined) updateData.notes = data.notes || "";
+    await supabase.from("sales").update(updateData as any).eq("id", id);
+  }, [user]);
+
   const deleteSale = useCallback(async (id: string) => {
     if (!user) return;
     const sale = sales.find((s) => s.id === id);
@@ -150,5 +169,5 @@ export function useProducts() {
     await supabase.from("sales").delete().eq("id", id);
   }, [user, sales, products]);
 
-  return { products, sales, loading, addProduct, updateProduct, deleteProduct, addSale, deleteSale };
+  return { products, sales, loading, addProduct, updateProduct, deleteProduct, addSale, updateSale, deleteSale };
 }

@@ -64,6 +64,7 @@ export interface Sale {
   description: string;
   quantity: number;
   unitPrice: number;
+  cost: number;
   total: number;
   customerName: string;
   date: string;
@@ -72,6 +73,7 @@ export interface Sale {
   paymentMode: PaymentMode;
   installments: number;
   paidInstallments: number;
+  downPayment: number;
 }
 
 export interface Expense {
