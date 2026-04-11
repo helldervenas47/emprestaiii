@@ -35,13 +35,16 @@ export function useProducts() {
           description: s.description || "",
           quantity: s.quantity,
           unitPrice: 0,
+          cost: 0,
           total: Number(s.total),
           customerName: s.customer_name || "",
           date: s.sale_date,
+          notes: (s as any).notes || "",
           businessType: (s.business_type as BusinessType) || "venda",
           paymentMode: ((s as any).payment_mode || "fixa") as "fixa" | "recorrente",
           installments: (s as any).installments || 1,
           paidInstallments: (s as any).paid_installments || 0,
+          downPayment: 0,
         })));
       }
       setLoading(false);

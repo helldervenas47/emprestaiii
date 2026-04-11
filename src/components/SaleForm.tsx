@@ -41,6 +41,7 @@ export function SaleForm({ onAdd, onClose, defaultBusinessType = "venda" }: Prop
       description: form.description,
       quantity: parseInt(form.quantity) || 1,
       unitPrice: total,
+      cost: 0,
       total,
       customerName: form.customerName,
       date: new Date().toISOString().split("T")[0],
@@ -49,6 +50,7 @@ export function SaleForm({ onAdd, onClose, defaultBusinessType = "venda" }: Prop
       paymentMode: form.paymentMode,
       installments: form.paymentMode === "recorrente" ? (parseInt(form.installments) || 1) : 1,
       paidInstallments: 0,
+      downPayment: 0,
     });
     onClose();
   };
