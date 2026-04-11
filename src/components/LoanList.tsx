@@ -881,7 +881,7 @@ export function LoanList({ loans, payments, onPayment, onPartialPayment, onInter
   const summaryData = useMemo(() => {
     const source = categorized;
     const activeSource = source.filter((l) => l.status !== "paid");
-    const totalLent = activeSource.reduce((s, l) => s + l.amount, 0);
+    const totalLentRaw = activeSource.reduce((s, l) => s + l.amount, 0);
     
     // Total a receber = total esperado com juros - pagamentos já recebidos
     const totalExpected = activeSource.reduce((s, l) => s + calculateTotalWithInterest(l.amount, l.interestRate, l.installments), 0);

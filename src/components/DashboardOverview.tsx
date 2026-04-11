@@ -188,6 +188,8 @@ export function DashboardOverview({ loans, sales, payments, expenses, onDeletePa
     const totalExpectedActive = activeLoansInPeriod.reduce((s, l) => s + calculateTotalWithInterest(l.amount, l.interestRate, l.installments), 0);
     const totalAlreadyPaid = allPaymentsForActiveLoans.reduce((s, p) => s + p.amount, 0);
     const totalToReceive = Math.max(0, totalExpectedActive - totalAlreadyPaid);
+    const capitalOnStreetRaw = activeLoansInPeriod.reduce((s, l) => s + l.amount, 0);
+    const capitalOnStreet = Math.min(capitalOnStreetRaw, totalToReceive);
 
     // Split received into principal vs interest per loan (only payments in period)
     let principalReceived = 0;
