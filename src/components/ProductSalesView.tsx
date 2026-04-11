@@ -161,6 +161,19 @@ function SaleCard({ sale, onDelete, onEdit, onUpdate, formatCurrency }: { sale: 
                     <span className={`text-xs font-medium w-16 text-right ${p.paid ? "text-success" : "text-muted-foreground"}`}>
                       {p.paid ? "Paga" : "Pendente"}
                     </span>
+                    {p.paid && (
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="h-6 w-6 text-destructive hover:bg-destructive/10 shrink-0"
+                        onClick={() => {
+                          // Set paidInstallments to this installment's index (removing this and all after)
+                          onUpdate({ paidInstallments: p.number - 1 });
+                        }}
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    )}
                   </div>
                 ))}
               </div>
