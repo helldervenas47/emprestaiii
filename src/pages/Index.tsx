@@ -195,14 +195,14 @@ const Index = () => {
   };
 
   const handlePrimaryAction = () => {
-    if (tab === "dashboard") setShowLoanForm(true);
+    if (tab === "dashboard" || tab === "installments") setShowLoanForm(true);
     else if (tab === "clients") setShowClientForm(true);
     else if (tab === "expenses") setShowExpenseForm(true);
     else if (tab === "products") setShowSaleForm(true);
   };
 
   const primaryLabel =
-    tab === "dashboard" ? "Novo Empréstimo" :
+    tab === "dashboard" || tab === "installments" ? "Novo Empréstimo" :
     tab === "clients" ? "Novo Cliente" :
     tab === "expenses" ? "Nova Despesa" :
     tab === "products" ? "Novo Lançamento" : "";
