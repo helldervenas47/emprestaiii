@@ -41,8 +41,8 @@ export function useLoans() {
 
   useEffect(() => { fetchLoans(); fetchPayments(); }, [fetchLoans, fetchPayments]);
 
-  const addLoan = useCallback(async (loan: Omit<Loan, "id"> & { status?: string; paidInstallments?: number }) => {
-    if (!user) return;
+  const addLoan = useCallback(async (loan: Omit<Loan, "id"> & { status?: string; paidInstallments?: number }): Promise<string | null> => {
+    if (!user) return null;
     const status = (loan.status as Loan["status"]) || "active";
     const tempId = crypto.randomUUID();
     const optimistic: Loan = {
@@ -61,6 +61,7 @@ export function useLoans() {
 
     if (error) {
       setLoans((prev) => prev.filter((l) => l.id !== tempId));
+      return null;
     } else if (data) {
       setLoans((prev) => prev.map((l) => l.id === tempId ? { ...l, id: data.id, createdAt: data.created_at } : l));
       if (status === "paid") {
@@ -69,7 +70,9 @@ export function useLoans() {
       } else {
         await adjustBalance(-loan.amount);
       }
+      return data.id;
     }
+    return null;
   }, [user]);
 
   const addPayment = useCallback(async (loanId: string, paymentDate?: string) => {
