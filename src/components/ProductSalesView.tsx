@@ -33,8 +33,8 @@ function SaleCard({ sale, onDelete, onEdit, onUpdate, formatCurrency }: { sale: 
   const TabIcon = businessTabs.find((t) => t.type === sale.businessType)?.icon || ShoppingCart;
   const isRecorrente = sale.paymentMode === "recorrente" && sale.installments > 1;
   const valorParcela = sale.installments > 0 ? sale.total / sale.installments : sale.total;
-  const isPaid = isRecorrente ? sale.paidInstallments >= sale.installments : true;
-  const pendentes = isRecorrente ? sale.installments - sale.paidInstallments : 0;
+  const isPaid = isRecorrente ? sale.paidInstallments >= sale.installments : sale.paidInstallments >= 1;
+  const pendentes = isRecorrente ? sale.installments - sale.paidInstallments : (sale.paidInstallments >= 1 ? 0 : 1);
 
   // Generate installment rows with estimated dates
   const parcelas = isRecorrente
@@ -143,7 +143,7 @@ function SaleCard({ sale, onDelete, onEdit, onUpdate, formatCurrency }: { sale: 
         )}
 
         {/* Payment buttons */}
-        {isRecorrente && !isPaid && (
+        {!isPaid && (
           <>
             {showPartial ? (
               <div className="flex items-center gap-2 p-3 rounded-lg bg-muted border border-border/50">
@@ -155,11 +155,8 @@ function SaleCard({ sale, onDelete, onEdit, onUpdate, formatCurrency }: { sale: 
                     if (e.key === "Enter") {
                       const val = parseFloat(partialAmount);
                       if (val > 0) {
-                        // partial: just increase paidInstallments proportionally
-                        const parcelasAPagar = Math.floor(val / valorParcela);
-                        if (parcelasAPagar > 0) {
-                          onUpdate({ paidInstallments: Math.min(sale.installments, sale.paidInstallments + parcelasAPagar) });
-                        }
+                        const parcelasAPagar = isRecorrente ? Math.max(1, Math.floor(val / valorParcela)) : 1;
+                        onUpdate({ paidInstallments: Math.min(sale.installments, sale.paidInstallments + parcelasAPagar) });
                         setPartialAmount(""); setShowPartial(false);
                       }
                     }
@@ -168,7 +165,7 @@ function SaleCard({ sale, onDelete, onEdit, onUpdate, formatCurrency }: { sale: 
                 <Button size="sm" className="h-8" onClick={() => {
                   const val = parseFloat(partialAmount);
                   if (val > 0) {
-                    const parcelasAPagar = Math.max(1, Math.floor(val / valorParcela));
+                    const parcelasAPagar = isRecorrente ? Math.max(1, Math.floor(val / valorParcela)) : 1;
                     onUpdate({ paidInstallments: Math.min(sale.installments, sale.paidInstallments + parcelasAPagar) });
                     setPartialAmount(""); setShowPartial(false);
                   }
