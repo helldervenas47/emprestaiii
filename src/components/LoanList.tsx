@@ -861,10 +861,16 @@ function LoanRowView({
       <DialogContent className="sm:max-w-[340px]">
         <DialogHeader>
           <DialogTitle>
-            {paymentDialog?.type === "installment" ? "Receber Parcela" : paymentDialog?.type === "interest" ? "Pagar Juros" : "Pagamento Parcial"}
+            {paymentDialog?.type === "full" ? "Pagamento Total" : paymentDialog?.type === "installment" ? "Receber Parcela" : paymentDialog?.type === "interest" ? "Pagar Juros" : "Pagamento Parcial"}
           </DialogTitle>
         </DialogHeader>
         <div className="flex flex-col items-center gap-2">
+          {paymentDialog?.type === "full" && (
+            <div className="text-center p-3 bg-muted/50 rounded-lg w-full">
+              <p className="text-xs text-muted-foreground">Valor restante a receber</p>
+              <p className="text-2xl font-bold text-primary">{formatCurrency(remaining)}</p>
+            </div>
+          )}
           <Label className="text-sm text-muted-foreground">Selecione a data do pagamento</Label>
           <CalendarUI
             mode="single"
