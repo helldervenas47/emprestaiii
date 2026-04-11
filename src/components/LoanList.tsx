@@ -566,6 +566,13 @@ function LoanCardView({
             </div>
           )}
           <div className="flex items-center justify-center gap-1">
+            <Button
+              size="icon" variant="ghost" className={`h-8 w-8 ${loan.status === "paid" ? "text-success" : "text-muted-foreground"}`}
+              onClick={() => onUpdate({ status: loan.status === "paid" ? "active" : "paid", paidInstallments: loan.status === "paid" ? 0 : loan.installments })}
+              title={loan.status === "paid" ? "Marcar como não pago" : "Marcar como pago"}
+            >
+              <CheckCircle className="h-4 w-4" />
+            </Button>
             {loan.status !== "paid" && (
               <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => setShowPartial(!showPartial)} title="Pagamento Parcial">
                 <HandCoins className="h-4 w-4 text-muted-foreground" />
@@ -830,6 +837,9 @@ function LoanRowView({
                   </DropdownMenuItem>
                 </>
               )}
+              <DropdownMenuItem onClick={() => onUpdate({ status: loan.status === "paid" ? "active" : "paid", paidInstallments: loan.status === "paid" ? 0 : loan.installments })}>
+                <CheckCircle className="h-4 w-4 mr-2" /> {loan.status === "paid" ? "Marcar como não pago" : "Marcar como pago"}
+              </DropdownMenuItem>
               <DropdownMenuItem onClick={startEdit}>
                 <Pencil className="h-4 w-4 mr-2" /> Editar
               </DropdownMenuItem>

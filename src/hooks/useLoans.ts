@@ -188,18 +188,25 @@ export function useLoans() {
 
     setPayments((prev) => prev.filter((p) => p.id !== id));
 
-    if (payment.installmentNumber > 0) {
-      const loan = loans.find((l) => l.id === payment.loanId);
-      if (loan) {
-        const newPaid = Math.max(0, loan.paidInstallments - 1);
-        setLoans((prev) => prev.map((l) => l.id === payment.loanId ? {
-          ...l, paidInstallments: newPaid, status: newPaid < l.installments ? "active" : l.status,
-        } : l));
-        await supabase.from("loans").update({
-          paid_installments: newPaid,
-          status: newPaid < loan.installments ? "active" : loan.status,
-        }).eq("id", payment.loanId);
-      }
+    const loan = loans.find((l) => l.id === payment.loanId);
+
+    if (payment.installmentNumber > 0 && loan) {
+      const newPaid = Math.max(0, loan.paidInstallments - 1);
+      const newStatus = newPaid < loan.installments ? "active" : loan.status;
+      setLoans((prev) => prev.map((l) => l.id === payment.loanId ? {
+        ...l, paidInstallments: newPaid, status: newStatus,
+      } : l));
+      await supabase.from("loans").update({
+        paid_installments: newPaid, status: newStatus,
+      }).eq("id", payment.loanId);
+    }
+
+    // Partial/full payments (installmentNumber === -1): revert to active if loan was paid
+    if (payment.installmentNumber === -1 && loan && loan.status === "paid") {
+      setLoans((prev) => prev.map((l) => l.id === payment.loanId ? {
+        ...l, status: "active",
+      } : l));
+      await supabase.from("loans").update({ status: "active" }).eq("id", payment.loanId);
     }
 
     if (payment.installmentNumber === 0 && payment.previousDueDate) {
