@@ -21,6 +21,9 @@ export function DashboardCards({ loans, payments }: Props) {
   }, 0);
   const totalToReceive = Math.max(0, totalExpected - totalPaid);
   
+  // Capital na rua não pode ser maior que total a receber
+  const capitalNaRua = Math.min(totalLent, totalToReceive);
+
   const totalInterest = loans.reduce(
     (sum, l) => sum + (calculateTotalWithInterest(l.amount, l.interestRate, l.installments) - l.amount),
     0
