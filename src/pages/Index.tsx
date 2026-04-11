@@ -165,7 +165,7 @@ const Index = () => {
     reader.onload = async (evt) => {
       const csv = evt.target?.result as string;
       try {
-        if (tab === "dashboard") {
+        if (tab === "dashboard" || tab === "installments") {
           const imported = importLoansFromCSV(csv);
           if (imported.length === 0) throw new Error();
           const BATCH = 5;
