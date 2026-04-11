@@ -107,17 +107,13 @@ export function useLoans() {
     const dateStr = paymentDate || new Date().toISOString().split("T")[0];
     const tempId = crypto.randomUUID();
 
-    setPayments((prev) => [{
-      id: tempId, loanId, amount, date: dateStr, installmentNumber: -1,
-    }, ...prev]);
-
     await Promise.all([
       supabase.from("payments").insert({
         user_id: user.id, loan_id: loanId, amount, date: dateStr, installment_number: -1,
       }),
       adjustBalance(amount),
     ]);
-    fetchPayments();
+    await fetchPayments();
   }, [user, fetchPayments]);
 
   const addInterestOnlyPayment = useCallback(async (loanId: string, paymentDate?: string) => {
