@@ -228,7 +228,7 @@ function SaleCard({ sale, onDelete, onEdit, onUpdate, formatCurrency }: { sale: 
                       </div>
                       <Calendar
                         mode="single"
-                        selected={new Date()}
+                        selected={undefined}
                         onSelect={(date) => {
                           if (date) {
                             onUpdate({
