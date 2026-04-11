@@ -86,6 +86,7 @@ interface EditForm {
   notes: string;
   tags: string;
   interestType: string;
+  remainingAmount: string;
 }
 
 function loanToForm(loan: Loan): EditForm {
@@ -94,6 +95,8 @@ function loanToForm(loan: Loan): EditForm {
   const months = loan.installments;
   const interestValue = amt * (rate / 100);
   const installmentValue = calculateInstallment(amt, rate, months);
+  const total = calculateTotalWithInterest(amt, rate, months);
+  const totalPaidCalc = loan.remainingAmount != null ? loan.remainingAmount : total;
   return {
     borrowerName: loan.borrowerName,
     amount: String(amt),
@@ -107,6 +110,7 @@ function loanToForm(loan: Loan): EditForm {
     notes: loan.notes || "",
     tags: (loan.tags || []).join(", "),
     interestType: loan.interestType || "Mensal",
+    remainingAmount: String(totalPaidCalc),
   };
 }
 
