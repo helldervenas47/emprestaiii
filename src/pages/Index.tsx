@@ -219,6 +219,7 @@ const Index = () => {
     tab === "products" ? "Novo Lançamento" : "";
 
   return (
+    <HideValuesProvider>
     <div className="min-h-screen bg-background">
       <input type="file" ref={fileInputRef} accept=".csv" className="hidden" onChange={handleFileChange} />
 
@@ -337,6 +338,7 @@ const Index = () => {
       {showSaleForm && <SaleForm onAdd={addSale} onClose={() => setShowSaleForm(false)} />}
       {showExpenseForm && <ExpenseForm onAdd={addExpense} onClose={() => setShowExpenseForm(false)} />}
     </div>
+    </HideValuesProvider>
   );
 };
 
