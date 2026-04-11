@@ -126,12 +126,6 @@ export function useLoans() {
     currentDue.setMonth(currentDue.getMonth() + 1);
     const newDueDate = currentDue.toISOString().split("T")[0];
 
-    setLoans((prev) => prev.map((l) => l.id === loanId ? { ...l, dueDate: newDueDate } : l));
-    setPayments((prev) => [{
-      id: crypto.randomUUID(), loanId, amount: interestAmount, date: dateStr,
-      installmentNumber: 0, previousDueDate: loan.dueDate,
-    }, ...prev]);
-
     await Promise.all([
       supabase.from("payments").insert({
         user_id: user.id, loan_id: loanId, amount: interestAmount,
@@ -140,8 +134,8 @@ export function useLoans() {
       supabase.from("loans").update({ due_date: newDueDate }).eq("id", loanId),
       adjustBalance(interestAmount),
     ]);
-    fetchLoans();
-    fetchPayments();
+    await fetchLoans();
+    await fetchPayments();
   }, [user, loans, fetchLoans, fetchPayments]);
 
   const updateLoan = useCallback(async (id: string, data: Partial<Omit<Loan, "id">>) => {
