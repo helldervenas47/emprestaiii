@@ -26,6 +26,32 @@ const businessTabs: { type: BusinessType; label: string; icon: React.ElementType
   { type: "aluguel_veiculo", label: "Aluguel de Veículos", icon: Car },
 ];
 
+function getSaleCategory(sale: Sale): "paid" | "overdue" | "due_today" | "on_track" {
+  const isRecorrente = sale.paymentMode === "recorrente" && sale.installments > 1;
+  const isPaid = isRecorrente ? sale.paidInstallments >= sale.installments : sale.paidInstallments >= 1;
+  if (isPaid) return "paid";
+
+  // Find next unpaid installment due date
+  const baseDate = new Date(sale.date + "T00:00:00");
+  const nextInstIdx = sale.paidInstallments;
+  const dueDate = isRecorrente ? addMonths(baseDate, nextInstIdx) : baseDate;
+  const today = new Date();
+  const todayNorm = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  const dueNorm = new Date(dueDate.getFullYear(), dueDate.getMonth(), dueDate.getDate());
+  const diff = Math.floor((todayNorm.getTime() - dueNorm.getTime()) / (1000 * 60 * 60 * 24));
+
+  if (diff > 0) return "overdue";
+  if (diff === 0) return "due_today";
+  return "on_track";
+}
+
+const saleCategoryConfig = {
+  paid: { label: "Pago", badge: "bg-success/20 text-success border-success/30", border: "border-success/50", bg: "bg-success/[0.22]", header: "bg-success/[0.45] border-success/30" },
+  overdue: { label: "Vencida", badge: "bg-destructive/20 text-destructive border-destructive/30", border: "border-destructive/50", bg: "bg-destructive/[0.22]", header: "bg-destructive/[0.45] border-destructive/30" },
+  due_today: { label: "Vence Hoje", badge: "bg-warning/20 text-warning border-warning/30", border: "border-warning/50", bg: "bg-warning/[0.22]", header: "bg-warning/[0.45] border-warning/30" },
+  on_track: { label: "Em Dia", badge: "bg-primary/20 text-primary border-primary/30", border: "border-primary/50", bg: "bg-card", header: "bg-primary/8 border-border/50" },
+};
+
 function SaleCard({ sale, onDelete, onEdit, onUpdate, formatCurrency }: { sale: Sale; onDelete: () => void; onEdit: () => void; onUpdate: (data: Partial<Omit<Sale, "id">>) => void; formatCurrency: (v: number) => string }) {
   const [showPartial, setShowPartial] = useState(false);
   const [partialAmount, setPartialAmount] = useState("");
@@ -35,6 +61,8 @@ function SaleCard({ sale, onDelete, onEdit, onUpdate, formatCurrency }: { sale: 
   const valorParcela = sale.installments > 0 ? sale.total / sale.installments : sale.total;
   const isPaid = isRecorrente ? sale.paidInstallments >= sale.installments : sale.paidInstallments >= 1;
   const pendentes = isRecorrente ? sale.installments - sale.paidInstallments : (sale.paidInstallments >= 1 ? 0 : 1);
+  const category = getSaleCategory(sale);
+  const catStyle = saleCategoryConfig[category];
 
   // Generate installment rows with estimated dates
   const parcelas = isRecorrente
@@ -51,12 +79,16 @@ function SaleCard({ sale, onDelete, onEdit, onUpdate, formatCurrency }: { sale: 
     : [];
 
   return (
-    <Card className="overflow-hidden border-border/50 hover:border-border transition-all">
+    <Card className={`overflow-hidden hover:shadow-lg transition-all border ${catStyle.border} ${catStyle.bg}`}>
+      {/* Customer header */}
+      <div className={`border-b px-4 py-2.5 text-center ${catStyle.header}`}>
+        <h3 className="font-bold text-foreground text-sm">{sale.customerName || sale.description || sale.productName}</h3>
+      </div>
       <CardContent className="p-4 space-y-3">
         {/* Header */}
         <div className="flex items-center gap-3">
           <div className={`h-10 w-10 rounded-full flex items-center justify-center text-primary-foreground font-bold text-xs shrink-0 ${
-            isPaid && isRecorrente ? "bg-success" : "gradient-primary"
+            isPaid ? "bg-success" : "gradient-primary"
           }`}>
             <TabIcon className="h-5 w-5" />
           </div>
@@ -68,15 +100,7 @@ function SaleCard({ sale, onDelete, onEdit, onUpdate, formatCurrency }: { sale: 
               </p>
             )}
           </div>
-          <div className="flex items-center gap-1.5">
-            {isPaid && isRecorrente ? (
-              <Badge className="bg-success/20 text-success border-success/30 text-xs">Pago</Badge>
-            ) : isRecorrente ? (
-              <Badge className="bg-warning/20 text-warning border-warning/30 text-xs">Pendente</Badge>
-            ) : (
-              <Badge className="bg-primary/20 text-primary border-primary/30 text-xs">Fixa</Badge>
-            )}
-          </div>
+          <Badge className={`${catStyle.badge} text-xs`}>{catStyle.label}</Badge>
         </div>
 
         {/* Info grid */}
