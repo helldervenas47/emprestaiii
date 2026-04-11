@@ -147,7 +147,7 @@ export function useProducts() {
     if (data.paymentMode !== undefined) updateData.payment_mode = data.paymentMode;
     if (data.businessType !== undefined) updateData.business_type = data.businessType;
     if (data.notes !== undefined) updateData.notes = data.notes || "";
-    await supabase.from("sales").update(updateData).eq("id", id);
+    await supabase.from("sales").update(updateData as any).eq("id", id);
   }, [user]);
 
   const deleteSale = useCallback(async (id: string) => {
