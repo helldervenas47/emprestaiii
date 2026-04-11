@@ -880,17 +880,24 @@ export function LoanList({ loans, payments, onPayment, onPartialPayment, onInter
 
   const summaryData = useMemo(() => {
     const source = categorized;
-    const totalLent = source.reduce((s, l) => s + l.amount, 0);
-    const totalToReceive = source
-      .filter((l) => l.status !== "paid")
-      .reduce((s, l) => s + calculateTotalWithInterest(l.amount, l.interestRate, l.installments), 0);
+    const activeSource = source.filter((l) => l.status !== "paid");
+    const totalLent = activeSource.reduce((s, l) => s + l.amount, 0);
+    
+    // Total a receber = total esperado com juros - pagamentos já recebidos
+    const totalExpected = activeSource.reduce((s, l) => s + calculateTotalWithInterest(l.amount, l.interestRate, l.installments), 0);
+    const totalPaidAmount = activeSource.reduce((s, l) => {
+      const loanPayments = payments.filter((p) => p.loanId === l.id);
+      return s + loanPayments.reduce((ss, p) => ss + p.amount, 0);
+    }, 0);
+    const totalToReceive = Math.max(0, totalExpected - totalPaidAmount);
+    
     const totalInterest = source.reduce(
       (s, l) => s + (calculateTotalWithInterest(l.amount, l.interestRate, l.installments) - l.amount), 0
     );
     const activeCount = source.filter((l) => l.status === "active").length;
     const overdueCount = source.filter((l) => getDaysOverdue(l) > 0 && l.status !== "paid").length;
     return { totalLent, totalToReceive, totalInterest, activeCount, overdueCount };
-  }, [categorized]);
+  }, [categorized, payments]);
 
   if (loans.length === 0) {
     return (
