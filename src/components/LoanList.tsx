@@ -569,14 +569,14 @@ function LoanCardView({
         <div className="flex flex-col gap-2 pt-2 border-t border-border/50 mt-auto">
           {loan.status !== "paid" && (
            <div className="flex gap-2">
-                <Button variant="outline" className="flex-1 h-9 text-xs border-warning/30 text-warning hover:bg-warning hover:text-warning-foreground" onClick={() => setShowPartial(!showPartial)}>
-                  <HandCoins className="h-3.5 w-3.5 mr-1" /> Parcial
-                </Button>
                 <Button variant="outline" className="flex-1 h-9 text-xs" onClick={() => openPaymentDialog("full")}>
                   <DollarSign className="h-3.5 w-3.5 mr-1" /> Total
                 </Button>
                 <Button variant="outline" className="flex-1 h-9 text-xs" onClick={() => openPaymentDialog("interest")}>
                   <Percent className="h-3.5 w-3.5 mr-1" /> Juros
+                </Button>
+                <Button variant="outline" className="flex-1 h-9 text-xs border-warning/30 text-warning hover:bg-warning hover:text-warning-foreground" onClick={() => setShowPartial(!showPartial)}>
+                  <HandCoins className="h-3.5 w-3.5 mr-1" /> Parcial
                 </Button>
               </div>
           )}
