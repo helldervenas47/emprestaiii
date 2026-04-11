@@ -248,6 +248,17 @@ function LoanCardView({
             <div><Label className="text-xs">Parcelas Pagas</Label><Input type="number" value={form.paidInstallments} onChange={(e) => updateField("paidInstallments", e.target.value)} className="h-8 text-sm" /></div>
             <div><Label className="text-xs">Data Início</Label><Input type="date" value={form.startDate} onChange={(e) => updateField("startDate", e.target.value)} className="h-8 text-sm" /></div>
             <div><Label className="text-xs">Data Fim</Label><Input type="date" value={form.dueDate} onChange={(e) => updateField("dueDate", e.target.value)} className="h-8 text-sm" /></div>
+            <div>
+              <Label className="text-xs">Tipo Contrato</Label>
+              <Select value={form.interestType} onValueChange={(v) => updateField("interestType", v)}>
+                <SelectTrigger className="h-8 text-sm"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Semanal">Semanal</SelectItem>
+                  <SelectItem value="Quinzenal">Quinzenal</SelectItem>
+                  <SelectItem value="Mensal">Mensal</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div><Label className="text-xs">Etiquetas (separar por vírgula)</Label><Input value={form.tags} onChange={(e) => updateField("tags", e.target.value)} className="h-8 text-sm" placeholder="Ex: VIP, Renovação, Garantia" /></div>
@@ -608,6 +619,7 @@ function LoanRowView({
       paidInstallments: parseInt(form.paidInstallments) || 0,
       startDate: form.startDate || loan.startDate,
       dueDate: form.dueDate || loan.dueDate,
+      interestType: form.interestType,
       notes: form.notes,
       tags: parsedTags,
     });
