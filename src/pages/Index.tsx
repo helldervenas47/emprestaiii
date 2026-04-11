@@ -1,5 +1,6 @@
 import { useRef, useState } from "react";
-import { Plus, HandCoins, Users, LayoutDashboard, Download, Upload, ShoppingBag, BarChart3, AlertTriangle, Receipt, CalendarDays, Sun, Moon, LogOut } from "lucide-react";
+import { Plus, HandCoins, Users, LayoutDashboard, Download, Upload, ShoppingBag, BarChart3, AlertTriangle, Receipt, CalendarDays, Sun, Moon, LogOut, Info, X } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { DashboardCards } from "@/components/DashboardCards";
@@ -36,6 +37,71 @@ const tabConfig = [
   { id: "expenses" as Tab, label: "Despesas", icon: Receipt },
   { id: "overdue" as Tab, label: "Inadimplentes", icon: AlertTriangle },
 ];
+
+const tabHelp: Record<Tab, { title: string; items: string[] }> = {
+  overview: {
+    title: "Dashboard Geral",
+    items: [
+      "Visão consolidada do seu negócio: receitas, despesas e saldo.",
+      "Capital na Rua, Total a Receber e Saúde da Operação são valores globais (não mudam por período).",
+      "Use o seletor de período (Dia/Semana/Mês) para filtrar entradas e saídas.",
+      "O gráfico mostra o histórico dos últimos 12 meses.",
+    ],
+  },
+  dashboard: {
+    title: "Empréstimos",
+    items: [
+      "Cadastre novos empréstimos clicando em 'Novo Empréstimo'.",
+      "Escolha o tipo de contrato: Semanal, Quinzenal ou Mensal.",
+      "Registre pagamentos de parcela, juros ou pagamentos parciais.",
+      "Clique em 'Mais detalhes' para ver o cronograma completo de parcelas.",
+      "Use os filtros e etiquetas para organizar seus contratos.",
+      "Importe/Exporte dados via CSV.",
+    ],
+  },
+  calendar: {
+    title: "Calendário de Cobrança",
+    items: [
+      "Visualize todas as parcelas a vencer no calendário.",
+      "Dias com bolinha vermelha = parcelas atrasadas.",
+      "Dias com bolinha amarela = parcelas a vencer.",
+      "Clique em um dia para ver os detalhes das cobranças.",
+    ],
+  },
+  clients: {
+    title: "Clientes",
+    items: [
+      "Cadastre seus clientes com nome, CPF/CNPJ, telefone e endereço.",
+      "Use o score para classificar a confiabilidade do cliente.",
+      "Clientes inativos não aparecem na lista de novos empréstimos.",
+      "Importe/Exporte clientes via CSV.",
+    ],
+  },
+  products: {
+    title: "Vendas",
+    items: [
+      "Registre vendas avulsas, streaming ou aluguel de veículos.",
+      "Escolha entre pagamento fixo (único) ou recorrente (parcelado).",
+      "Para vendas recorrentes, defina a frequência: Semanal, Quinzenal ou Mensal.",
+    ],
+  },
+  expenses: {
+    title: "Despesas",
+    items: [
+      "Registre despesas fixas ou recorrentes do seu negócio.",
+      "Marque despesas como pagas para controlar o fluxo de caixa.",
+      "Categorize suas despesas para melhor organização.",
+    ],
+  },
+  overdue: {
+    title: "Inadimplentes",
+    items: [
+      "Lista todos os empréstimos com parcelas em atraso.",
+      "Também mostra empréstimos que vencem hoje.",
+      "Use para priorizar suas cobranças diárias.",
+    ],
+  },
+};
 
 const Index = () => {
   const { signOut } = useAuth();
@@ -150,6 +216,26 @@ const Index = () => {
             </div>
           </div>
           <div className="flex items-center gap-2">
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-9 w-9" title="Ajuda">
+                  <Info className="h-4 w-4" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-80" align="end">
+                <div className="space-y-2">
+                  <h3 className="font-semibold text-sm text-foreground">{tabHelp[tab].title}</h3>
+                  <ul className="space-y-1.5">
+                    {tabHelp[tab].items.map((item, i) => (
+                      <li key={i} className="text-xs text-muted-foreground flex gap-2">
+                        <span className="text-primary mt-0.5">•</span>
+                        <span>{item}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </PopoverContent>
+            </Popover>
             <Button variant="ghost" size="icon" onClick={toggleTheme} className="h-9 w-9" title={dark ? "Modo claro" : "Modo escuro"}>
               {dark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
             </Button>
