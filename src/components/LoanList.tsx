@@ -1165,13 +1165,14 @@ export function LoanList({ loans, payments, onPayment, onPartialPayment, onInter
     const activeSource = source.filter((l) => l.status !== "paid");
     const totalLentRaw = activeSource.reduce((s, l) => s + l.amount, 0);
     
-    // Total a receber = total esperado com juros - pagamentos já recebidos
-    const totalExpected = activeSource.reduce((s, l) => s + calculateTotalWithInterest(l.amount, l.interestRate, l.installments), 0);
-    const totalPaidAmount = activeSource.reduce((s, l) => {
+    // Total a receber = usa remainingAmount quando disponível
+    const totalToReceive = activeSource.reduce((s, l) => {
+      if (l.remainingAmount != null && l.remainingAmount > 0) return s + l.remainingAmount;
+      const expected = calculateTotalWithInterest(l.amount, l.interestRate, l.installments);
       const loanPayments = payments.filter((p) => p.loanId === l.id);
-      return s + loanPayments.reduce((ss, p) => ss + p.amount, 0);
+      const paid = loanPayments.reduce((ss, p) => ss + p.amount, 0);
+      return s + Math.max(0, expected - paid);
     }, 0);
-    const totalToReceive = Math.max(0, totalExpected - totalPaidAmount);
     const totalLent = totalLentRaw;
     
     const totalInterest = source.reduce(
