@@ -111,6 +111,8 @@ export function LoanForm({ onAdd, onClose, clients }: Props) {
     const selectedClient = activeClients.find((c) => c.id === form.borrowerName);
     if (!selectedClient || !amount || !rate || !installments) return;
 
+    const totalWithInterest = calculateTotalWithInterest(amount, rate, installments);
+
     onAdd({
       borrowerName: selectedClient.name,
       borrowerId: selectedClient.id,
@@ -122,6 +124,7 @@ export function LoanForm({ onAdd, onClose, clients }: Props) {
       startDate: form.startDate,
       dueDate: firstDueDate.toISOString().split("T")[0],
       notes: form.notes,
+      remainingAmount: totalWithInterest,
       createdAt: new Date().toISOString(),
     });
     onClose();
