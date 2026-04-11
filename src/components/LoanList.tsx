@@ -173,7 +173,7 @@ function LoanCardView({
     setEditing(false);
   };
 
-  const openPaymentDialog = (type: "installment" | "interest" | "partial", amount?: number) => {
+  const openPaymentDialog = (type: "installment" | "interest" | "partial" | "full", amount?: number) => {
     setPaymentDate(new Date());
     setPaymentDialog({ type, amount });
   };
