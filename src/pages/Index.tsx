@@ -158,11 +158,7 @@ const Index = () => {
                 <Button variant="outline" size="sm" onClick={handleExport}><Download className="h-4 w-4 mr-1" />Exportar</Button>
               </>
             )}
-            {tab === "products" && (
-              <Button variant="outline" onClick={() => setShowSaleForm(true)}>
-                <ShoppingBag className="h-4 w-4 mr-1" /> Nova Venda
-              </Button>
-            )}
+            {/* Removed separate Nova Venda button - now handled by primary action */}
             {tab !== "overview" && tab !== "overdue" && tab !== "calendar" && (
               <Button onClick={handlePrimaryAction}>
                 <Plus className="h-4 w-4 mr-2" />{primaryLabel}
