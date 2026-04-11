@@ -888,6 +888,9 @@ function LoanRowView({
               <DropdownMenuItem onClick={() => loan.status === "paid" ? onUpdate({ status: "active", paidInstallments: 0 }) : openPaymentDialog("full")}>
                 <CheckCircle className="h-4 w-4 mr-2" /> {loan.status === "paid" ? "Marcar como não pago" : "Marcar como pago"}
               </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setShowHistory(true)}>
+                <History className="h-4 w-4 mr-2" /> Histórico
+              </DropdownMenuItem>
               <DropdownMenuItem onClick={startEdit}>
                 <Pencil className="h-4 w-4 mr-2" /> Editar
               </DropdownMenuItem>
