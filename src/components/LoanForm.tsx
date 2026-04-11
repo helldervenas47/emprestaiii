@@ -162,6 +162,19 @@ export function LoanForm({ onAdd, onClose, clients }: Props) {
                 />
               </div>
             </div>
+            <div>
+              <Label>Tipo de Contrato</Label>
+              <Select value={form.interestType} onValueChange={(v) => update("interestType", v)}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Semanal">Semanal</SelectItem>
+                  <SelectItem value="Quinzenal">Quinzenal</SelectItem>
+                  <SelectItem value="Mensal">Mensal</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
             <div className="grid grid-cols-3 gap-4">
               <div>
                 <Label htmlFor="installments">Parcelas</Label>
