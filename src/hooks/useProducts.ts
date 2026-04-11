@@ -39,6 +39,9 @@ export function useProducts() {
           customerName: "",
           date: s.sale_date,
           businessType: (s.business_type as BusinessType) || "venda",
+          paymentMode: ((s as any).payment_mode || "fixa") as "fixa" | "recorrente",
+          installments: (s as any).installments || 1,
+          paidInstallments: (s as any).paid_installments || 0,
         })));
       }
       setLoading(false);
@@ -101,7 +104,10 @@ export function useProducts() {
       sale_date: s.date,
       description: s.description,
       business_type: s.businessType,
-    }).select().single();
+      payment_mode: s.paymentMode || "fixa",
+      installments: s.installments || 1,
+      paid_installments: s.paidInstallments || 0,
+    } as any).select().single();
 
     if (error) {
       setSales((prev) => prev.filter((x) => x.id !== tempId));

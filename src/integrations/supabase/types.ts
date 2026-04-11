@@ -304,6 +304,9 @@ export type Database = {
           created_at: string
           description: string
           id: string
+          installments: number
+          paid_installments: number
+          payment_mode: string
           product_id: string | null
           quantity: number
           sale_date: string
@@ -315,6 +318,9 @@ export type Database = {
           created_at?: string
           description?: string
           id?: string
+          installments?: number
+          paid_installments?: number
+          payment_mode?: string
           product_id?: string | null
           quantity?: number
           sale_date?: string
@@ -326,6 +332,9 @@ export type Database = {
           created_at?: string
           description?: string
           id?: string
+          installments?: number
+          paid_installments?: number
+          payment_mode?: string
           product_id?: string | null
           quantity?: number
           sale_date?: string
