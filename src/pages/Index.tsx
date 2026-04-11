@@ -89,13 +89,19 @@ const Index = () => {
     const file = e.target.files?.[0];
     if (!file) return;
     const reader = new FileReader();
-    reader.onload = (evt) => {
+    reader.onload = async (evt) => {
       const csv = evt.target?.result as string;
       try {
         if (tab === "dashboard") {
           const imported = importLoansFromCSV(csv);
           if (imported.length === 0) throw new Error();
-          imported.forEach((loan) => addLoan(loan));
+          for (const loan of imported) {
+            const { totalPaid, ...loanData } = loan;
+            const loanId = await addLoan(loanData);
+            if (loanId && totalPaid && totalPaid > 0) {
+              await addPartialPayment(loanId, totalPaid, loan.startDate);
+            }
+          }
           toast.success(`${imported.length} empréstimo(s) importado(s)!`);
         } else if (tab === "clients") {
           const imported = importClientsFromCSV(csv);
