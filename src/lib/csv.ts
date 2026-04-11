@@ -1,4 +1,4 @@
-import { Loan, Payment } from "@/types/loan";
+import { Loan, Payment, Sale } from "@/types/loan";
 import { Client } from "@/types/loan";
 import { calculateInstallment, calculateTotalWithInterest } from "@/hooks/useLoans";
 
