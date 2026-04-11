@@ -890,7 +890,7 @@ export function LoanList({ loans, payments, onPayment, onPartialPayment, onInter
       return s + loanPayments.reduce((ss, p) => ss + p.amount, 0);
     }, 0);
     const totalToReceive = Math.max(0, totalExpected - totalPaidAmount);
-    const totalLent = Math.min(totalLentRaw, totalToReceive);
+    const totalLent = totalLentRaw;
     
     const totalInterest = source.reduce(
       (s, l) => s + (calculateTotalWithInterest(l.amount, l.interestRate, l.installments) - l.amount), 0
