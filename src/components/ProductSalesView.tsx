@@ -130,7 +130,7 @@ function SaleCard({ sale, onDelete, onEdit, onUpdate, formatCurrency }: { sale: 
         </div>
 
         {/* Row 4: Parcelas expandable - conditional but fixed position */}
-        {isRecorrente && (
+        {(
           <div className="border border-border/50 rounded-lg overflow-hidden">
             <button
               onClick={() => setShowParcelas(!showParcelas)}
