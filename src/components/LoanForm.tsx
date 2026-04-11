@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -38,9 +38,39 @@ export function LoanForm({ onAdd, onClose, clients }: Props) {
   const rate = parseFloat(form.interestRate) || 0;
   const installments = parseInt(form.installments) || 0;
 
-  const monthlyPayment = installments > 0 ? calculateInstallment(amount, rate, installments) : 0;
-  const totalAmount = installments > 0 ? calculateTotalWithInterest(amount, rate, installments) : 0;
-  const totalInterest = totalAmount - amount;
+  const calcMonthly = installments > 0 ? calculateInstallment(amount, rate, installments) : 0;
+  const calcTotal = installments > 0 ? calculateTotalWithInterest(amount, rate, installments) : 0;
+  const calcInterest = calcTotal - amount;
+
+  const [monthlyOverride, setMonthlyOverride] = useState("");
+  const [interestOverride, setInterestOverride] = useState("");
+
+  // Reset overrides when inputs change
+  useEffect(() => {
+    setMonthlyOverride("");
+    setInterestOverride("");
+  }, [form.amount, form.interestRate, form.installments]);
+
+  const monthlyPayment = monthlyOverride !== "" ? parseFloat(monthlyOverride) || 0 : calcMonthly;
+  const totalInterest = interestOverride !== "" ? parseFloat(interestOverride) || 0 : calcInterest;
+  const totalAmount = amount + totalInterest;
+
+  const handleMonthlyChange = (val: string) => {
+    setMonthlyOverride(val);
+    const mp = parseFloat(val) || 0;
+    if (mp > 0 && installments > 0) {
+      const newTotal = mp * installments;
+      setInterestOverride((newTotal - amount).toFixed(2));
+    }
+  };
+
+  const handleInterestChange = (val: string) => {
+    setInterestOverride(val);
+    const ti = parseFloat(val) || 0;
+    if (installments > 0) {
+      setMonthlyOverride(((amount + ti) / installments).toFixed(2));
+    }
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -169,26 +199,34 @@ export function LoanForm({ onAdd, onClose, clients }: Props) {
             </div>
 
             {amount > 0 && installments > 0 && (
-              <div className="rounded-lg bg-muted p-4 space-y-1">
-                <p className="text-sm font-medium text-foreground">Simulação</p>
-                <div className="grid grid-cols-3 gap-2 text-sm text-muted-foreground">
+              <div className="rounded-lg bg-muted p-4 space-y-3">
+                <p className="text-sm font-medium text-foreground">Simulação (editável)</p>
+                <div className="grid grid-cols-3 gap-3">
                   <div>
-                    <p className="font-medium text-foreground">
-                      {formatCurrency(monthlyPayment)}
-                    </p>
-                    <p className="text-xs">Parcela</p>
+                    <Label className="text-xs text-muted-foreground">Parcela (R$)</Label>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      value={monthlyOverride !== "" ? monthlyOverride : calcMonthly.toFixed(2)}
+                      onChange={(e) => handleMonthlyChange(e.target.value)}
+                      className="h-8 text-sm"
+                    />
                   </div>
                   <div>
-                    <p className="font-medium text-foreground">
+                    <Label className="text-xs text-muted-foreground">Total (R$)</Label>
+                    <p className="h-8 flex items-center text-sm font-medium text-foreground">
                       {formatCurrency(totalAmount)}
                     </p>
-                    <p className="text-xs">Total</p>
                   </div>
                   <div>
-                    <p className="font-medium text-accent">
-                      {formatCurrency(totalInterest)}
-                    </p>
-                    <p className="text-xs">Juros</p>
+                    <Label className="text-xs text-muted-foreground">Juros Total (R$)</Label>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      value={interestOverride !== "" ? interestOverride : calcInterest.toFixed(2)}
+                      onChange={(e) => handleInterestChange(e.target.value)}
+                      className="h-8 text-sm"
+                    />
                   </div>
                 </div>
               </div>
