@@ -647,7 +647,7 @@ function ClientFolder({
       </button>
       {open && (
         <CardContent className="pt-0 pb-4 px-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
             {group.loans.map((loan) => (
               <LoanCardView key={loan.id} loan={loan} payments={payments}
                 onPayment={(date) => onPayment(loan.id, date)} onPartialPayment={(amt, date) => onPartialPayment(loan.id, amt, date)}
@@ -835,7 +835,7 @@ export function LoanList({ loans, payments, onPayment, onPartialPayment, onInter
             </div>
           ) : view === "folders" ? (
             <>
-            <div className="grid grid-cols-1 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
               {grouped.map((g) => (
                 <ClientFolder key={g.name} group={g} payments={payments}
                   onPayment={onPayment} onPartialPayment={onPartialPayment}
