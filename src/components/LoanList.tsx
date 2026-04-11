@@ -134,6 +134,7 @@ function LoanCardView({
   const [newTag, setNewTag] = useState("");
   const [paymentDialog, setPaymentDialog] = useState<{ type: "installment" | "interest" | "partial" | "full"; amount?: number } | null>(null);
   const [paymentDate, setPaymentDate] = useState<Date>(new Date());
+  const [showHistory, setShowHistory] = useState(false);
   const [showDetails, setShowDetails] = useState(false);
 
   const installment = calculateInstallment(loan.amount, loan.interestRate, loan.installments);
