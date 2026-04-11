@@ -85,7 +85,6 @@ export function useLoans() {
 
     const installmentAmount = calculateInstallment(loan.amount, loan.interestRate, loan.installments);
     const newPaid = loan.paidInstallments + 1;
-    const tempId = crypto.randomUUID();
 
     await Promise.all([
       supabase.from("payments").insert({
