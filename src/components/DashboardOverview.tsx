@@ -217,8 +217,13 @@ export function DashboardOverview({ loans, sales, payments, expenses, onDeletePa
     };
   }, [loans, payments]);
 
-  // Last 12 months chart data
-  const monthlyChart = useMemo(() => {
+  // Manual overrides for monthly chart values
+  const [chartOverrides, setChartOverrides] = useLocalStorage<Record<string, { emprestado?: number; recebido?: number }>>("hvcred-chart-overrides", {});
+  const [editingChart, setEditingChart] = useState(false);
+  const [tempOverrides, setTempOverrides] = useState<Record<string, { emprestado: string; recebido: string }>>({});
+
+  // Last 12 months chart data (calculated)
+  const monthlyChartBase = useMemo(() => {
     const now = new Date();
     const months: { month: string; emprestado: number; recebido: number }[] = [];
     for (let i = 11; i >= 0; i--) {
@@ -235,6 +240,50 @@ export function DashboardOverview({ loans, sales, payments, expenses, onDeletePa
     }
     return months;
   }, [loans, payments]);
+
+  // Apply overrides
+  const monthlyChart = useMemo(() => {
+    return monthlyChartBase.map((m) => {
+      const override = chartOverrides[m.month];
+      return {
+        month: m.month,
+        emprestado: override?.emprestado ?? m.emprestado,
+        recebido: override?.recebido ?? m.recebido,
+      };
+    });
+  }, [monthlyChartBase, chartOverrides]);
+
+  const startEditChart = () => {
+    const temp: Record<string, { emprestado: string; recebido: string }> = {};
+    monthlyChart.forEach((m) => {
+      temp[m.month] = { emprestado: String(m.emprestado), recebido: String(m.recebido) };
+    });
+    setTempOverrides(temp);
+    setEditingChart(true);
+  };
+
+  const saveChartOverrides = () => {
+    const newOverrides: Record<string, { emprestado?: number; recebido?: number }> = {};
+    monthlyChartBase.forEach((m) => {
+      const temp = tempOverrides[m.month];
+      if (!temp) return;
+      const emprestado = parseFloat(temp.emprestado) || 0;
+      const recebido = parseFloat(temp.recebido) || 0;
+      if (emprestado !== m.emprestado || recebido !== m.recebido) {
+        newOverrides[m.month] = {
+          ...(emprestado !== m.emprestado ? { emprestado } : {}),
+          ...(recebido !== m.recebido ? { recebido } : {}),
+        };
+      }
+    });
+    setChartOverrides(newOverrides);
+    setEditingChart(false);
+  };
+
+  const resetChartOverrides = () => {
+    setChartOverrides({});
+    setEditingChart(false);
+  };
 
   const handleChangePeriod = (p: Period) => { setPeriod(p); setOffset(0); };
 
