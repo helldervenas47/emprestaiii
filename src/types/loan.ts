@@ -54,6 +54,8 @@ export interface Product {
 
 export type BusinessType = "venda" | "streaming" | "aluguel_veiculo";
 
+export type PaymentMode = "fixa" | "recorrente";
+
 export interface Sale {
   id: string;
   productId?: string;
@@ -66,6 +68,9 @@ export interface Sale {
   date: string;
   notes?: string;
   businessType: BusinessType;
+  paymentMode: PaymentMode;
+  installments: number;
+  paidInstallments: number;
 }
 
 export interface Expense {

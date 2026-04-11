@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Plus, X } from "lucide-react";
-import { Sale, BusinessType } from "@/types/loan";
+import { Sale, BusinessType, PaymentMode } from "@/types/loan";
 
 const businessTypeLabels: Record<BusinessType, string> = {
   venda: "Venda",
@@ -26,6 +26,8 @@ export function SaleForm({ onAdd, onClose, defaultBusinessType = "venda" }: Prop
     customerName: "",
     notes: "",
     businessType: defaultBusinessType,
+    paymentMode: "fixa" as PaymentMode,
+    installments: "1",
   });
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -42,6 +44,9 @@ export function SaleForm({ onAdd, onClose, defaultBusinessType = "venda" }: Prop
       date: new Date().toISOString().split("T")[0],
       notes: form.notes || undefined,
       businessType: form.businessType as BusinessType,
+      paymentMode: form.paymentMode,
+      installments: form.paymentMode === "recorrente" ? (parseInt(form.installments) || 1) : 1,
+      paidInstallments: 0,
     });
     onClose();
   };
@@ -83,6 +88,26 @@ export function SaleForm({ onAdd, onClose, defaultBusinessType = "venda" }: Prop
                 <Input type="number" step="0.01" min="0.01" value={form.total} onChange={(e) => update("total", e.target.value)} placeholder="0,00" required />
               </div>
             </div>
+
+            <div>
+              <Label>Tipo de Pagamento</Label>
+              <select
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                value={form.paymentMode}
+                onChange={(e) => update("paymentMode", e.target.value)}
+              >
+                <option value="fixa">Fixa (pagamento único)</option>
+                <option value="recorrente">Recorrente (parcelado)</option>
+              </select>
+            </div>
+
+            {form.paymentMode === "recorrente" && (
+              <div>
+                <Label>Quantidade de Parcelas</Label>
+                <Input type="number" min="2" value={form.installments} onChange={(e) => update("installments", e.target.value)} required />
+              </div>
+            )}
+
             <div>
               <Label>Cliente</Label>
               <Input value={form.customerName} onChange={(e) => update("customerName", e.target.value)} placeholder="Nome do cliente (opcional)" />
