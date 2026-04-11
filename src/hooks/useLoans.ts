@@ -155,6 +155,16 @@ export function useLoans() {
   }, [user, loans, fetchLoans, fetchPayments]);
 
   const updateLoan = useCallback(async (id: string, data: Partial<Omit<Loan, "id">>) => {
+    // If remainingAmount changed, adjust balance by the difference
+    if (data.remainingAmount !== undefined) {
+      const oldLoan = loans.find((l) => l.id === id);
+      if (oldLoan) {
+        const oldRemaining = oldLoan.remainingAmount ?? 0;
+        const newRemaining = data.remainingAmount ?? 0;
+        const diff = newRemaining - oldRemaining;
+        if (diff !== 0) await adjustBalance(-diff);
+      }
+    }
     setLoans((prev) => prev.map((l) => l.id === id ? { ...l, ...data } : l));
     const updateData: any = {};
     if (data.borrowerName !== undefined) updateData.borrower_name = data.borrowerName;
@@ -172,7 +182,7 @@ export function useLoans() {
     if (data.notes !== undefined) updateData.notes = data.notes;
     if (data.remainingAmount !== undefined) updateData.remaining_amount = data.remainingAmount;
     await supabase.from("loans").update(updateData).eq("id", id);
-  }, []);
+  }, [loans]);
 
   const deleteLoan = useCallback(async (id: string) => {
     const loan = loans.find((l) => l.id === id);
