@@ -79,14 +79,15 @@ function SaleCard({ sale, onDelete, onEdit, onUpdate, formatCurrency }: { sale: 
     : [];
 
   return (
-    <Card className={`overflow-hidden hover:shadow-lg transition-all border ${catStyle.border} ${catStyle.bg}`}>
-      {/* Customer header */}
+    <Card className={`overflow-hidden hover:shadow-lg transition-all border ${catStyle.border} ${catStyle.bg} h-full flex flex-col`}>
+      {/* Customer header - fixed */}
       <div className={`border-b px-4 py-2.5 text-center ${catStyle.header}`}>
-        <h3 className="font-bold text-foreground text-sm">{sale.customerName || sale.description || sale.productName}</h3>
+        <h3 className="font-bold text-foreground text-sm truncate">{sale.customerName || sale.description || sale.productName}</h3>
       </div>
-      <CardContent className="p-4 space-y-3">
-        {/* Header */}
-        <div className="flex items-center gap-3">
+
+      <CardContent className="p-4 flex-1 flex flex-col gap-3">
+        {/* Row 1: Icon + Description + Badge - fixed height */}
+        <div className="flex items-center gap-3 h-10">
           <div className={`h-10 w-10 rounded-full flex items-center justify-center text-primary-foreground font-bold text-xs shrink-0 ${
             isPaid ? "bg-success" : "gradient-primary"
           }`}>
@@ -94,38 +95,44 @@ function SaleCard({ sale, onDelete, onEdit, onUpdate, formatCurrency }: { sale: 
           </div>
           <div className="flex-1 min-w-0">
             <p className="font-semibold text-sm text-foreground truncate">{sale.description || sale.productName}</p>
-            {sale.customerName && (
+            {sale.customerName ? (
               <p className="text-xs text-muted-foreground flex items-center gap-1 truncate">
                 <User className="h-3 w-3 shrink-0" />{sale.customerName}
               </p>
+            ) : (
+              <p className="text-xs text-muted-foreground">&nbsp;</p>
             )}
           </div>
-          <Badge className={`${catStyle.badge} text-xs`}>{catStyle.label}</Badge>
+          <Badge className={`${catStyle.badge} text-xs shrink-0`}>{catStyle.label}</Badge>
         </div>
 
-        {/* Info grid */}
-        <div className="grid grid-cols-2 gap-3 border border-border/50 rounded-lg p-3">
+        {/* Row 2: Info grid - always 2 cols, fixed height */}
+        <div className="grid grid-cols-2 gap-3 border border-border/50 rounded-lg p-3 h-[60px]">
           <div>
             <p className="text-xs text-muted-foreground">Valor Total</p>
             <p className="text-sm font-bold text-foreground">{formatCurrency(sale.total)}</p>
           </div>
-          {isRecorrente ? (
-            <div>
-              <p className="text-xs text-muted-foreground">Valor Parcela</p>
-              <p className="text-sm font-bold text-foreground">{formatCurrency(valorParcela)}</p>
-            </div>
-          ) : (
-            <div>
-              <p className="text-xs text-muted-foreground">Quantidade</p>
-              <p className="text-sm font-bold text-foreground">{sale.quantity}</p>
-            </div>
-          )}
+          <div>
+            <p className="text-xs text-muted-foreground">{isRecorrente ? "Valor Parcela" : "Quantidade"}</p>
+            <p className="text-sm font-bold text-foreground">{isRecorrente ? formatCurrency(valorParcela) : sale.quantity}</p>
+          </div>
         </div>
 
-        {/* Parcelas section */}
+        {/* Row 3: Parcelas / Status info - fixed height */}
+        <div className="grid grid-cols-2 gap-3 h-[52px]">
+          <div className="bg-success/5 border border-success/20 rounded-lg px-3 py-2">
+            <p className="text-xs text-muted-foreground">Pagas</p>
+            <p className="text-sm font-bold text-success">{sale.paidInstallments}/{sale.installments}</p>
+          </div>
+          <div className="bg-muted/30 border border-border/50 rounded-lg px-3 py-2">
+            <p className="text-xs text-muted-foreground">Pendentes</p>
+            <p className="text-sm font-bold text-foreground">{pendentes}</p>
+          </div>
+        </div>
+
+        {/* Row 4: Parcelas expandable - conditional but fixed position */}
         {isRecorrente && (
           <div className="border border-border/50 rounded-lg overflow-hidden">
-            {/* Parcelas header */}
             <button
               onClick={() => setShowParcelas(!showParcelas)}
               className="w-full flex items-center justify-between px-3 py-2.5 bg-muted/20 hover:bg-muted/30 transition-colors"
@@ -134,16 +141,12 @@ function SaleCard({ sale, onDelete, onEdit, onUpdate, formatCurrency }: { sale: 
                 <Calendar className="h-4 w-4 text-muted-foreground" />
                 <span className="font-medium text-foreground">Parcelas ({sale.installments})</span>
               </div>
-              <div className="flex items-center gap-3">
-                <span className="text-xs font-medium text-success">{sale.paidInstallments} pagas</span>
-                <span className="text-xs font-medium text-warning">{pendentes} pendentes</span>
+              <div className="flex items-center gap-2">
                 {showParcelas ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
               </div>
             </button>
-
-            {/* Parcelas list */}
             {showParcelas && (
-              <div className="divide-y divide-border/30">
+              <div className="divide-y divide-border/30 max-h-48 overflow-y-auto">
                 {parcelas.map((p) => (
                   <div key={p.number} className="flex items-center gap-3 px-3 py-2.5">
                     <span className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${
@@ -151,10 +154,7 @@ function SaleCard({ sale, onDelete, onEdit, onUpdate, formatCurrency }: { sale: 
                     }`}>
                       {p.number}ª
                     </span>
-                    <div className="flex items-center gap-2 flex-1 min-w-0">
-                      <span className="text-sm text-foreground">{p.date}</span>
-                      <Calendar className="h-3.5 w-3.5 text-success shrink-0" />
-                    </div>
+                    <span className="text-sm text-foreground flex-1">{p.date}</span>
                     <span className="text-sm font-medium text-foreground tabular-nums">{formatCurrency(p.value)}</span>
                     <span className={`text-xs font-medium w-16 text-right ${p.paid ? "text-success" : "text-muted-foreground"}`}>
                       {p.paid ? "Paga" : "Pendente"}
@@ -166,77 +166,79 @@ function SaleCard({ sale, onDelete, onEdit, onUpdate, formatCurrency }: { sale: 
           </div>
         )}
 
-        {/* Payment buttons */}
-        {!isPaid && (
-          <>
-            {showPartial ? (
-              <div className="flex items-center gap-2 p-3 rounded-lg bg-muted border border-border/50">
-                <Input
-                  type="number" step="0.01" placeholder="Valor (R$)"
-                  value={partialAmount} onChange={(e) => setPartialAmount(e.target.value)}
-                  className="h-8 text-sm flex-1" autoFocus
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      const val = parseFloat(partialAmount);
-                      if (val > 0) {
-                        const parcelasAPagar = isRecorrente ? Math.max(1, Math.floor(val / valorParcela)) : 1;
-                        onUpdate({ paidInstallments: Math.min(sale.installments, sale.paidInstallments + parcelasAPagar) });
-                        setPartialAmount(""); setShowPartial(false);
+        {/* Row 5: Payment buttons - fixed position via mt-auto */}
+        <div className="mt-auto space-y-2">
+          {!isPaid && (
+            <>
+              {showPartial ? (
+                <div className="flex items-center gap-2 p-3 rounded-lg bg-muted border border-border/50">
+                  <Input
+                    type="number" step="0.01" placeholder="Valor (R$)"
+                    value={partialAmount} onChange={(e) => setPartialAmount(e.target.value)}
+                    className="h-8 text-sm flex-1" autoFocus
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        const val = parseFloat(partialAmount);
+                        if (val > 0) {
+                          const parcelasAPagar = isRecorrente ? Math.max(1, Math.floor(val / valorParcela)) : 1;
+                          onUpdate({ paidInstallments: Math.min(sale.installments, sale.paidInstallments + parcelasAPagar) });
+                          setPartialAmount(""); setShowPartial(false);
+                        }
                       }
+                    }}
+                  />
+                  <Button size="sm" className="h-8" onClick={() => {
+                    const val = parseFloat(partialAmount);
+                    if (val > 0) {
+                      const parcelasAPagar = isRecorrente ? Math.max(1, Math.floor(val / valorParcela)) : 1;
+                      onUpdate({ paidInstallments: Math.min(sale.installments, sale.paidInstallments + parcelasAPagar) });
+                      setPartialAmount(""); setShowPartial(false);
                     }
-                  }}
-                />
-                <Button size="sm" className="h-8" onClick={() => {
-                  const val = parseFloat(partialAmount);
-                  if (val > 0) {
-                    const parcelasAPagar = isRecorrente ? Math.max(1, Math.floor(val / valorParcela)) : 1;
-                    onUpdate({ paidInstallments: Math.min(sale.installments, sale.paidInstallments + parcelasAPagar) });
-                    setPartialAmount(""); setShowPartial(false);
-                  }
-                }}><Check className="h-4 w-4" /></Button>
-                <Button size="sm" variant="ghost" className="h-8" onClick={() => setShowPartial(false)}><XIcon className="h-4 w-4" /></Button>
-              </div>
-            ) : (
-              <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  className="flex-1 h-9 text-xs border-primary/30 text-primary hover:bg-primary hover:text-primary-foreground"
-                  onClick={() => onUpdate({ paidInstallments: Math.min(sale.installments, sale.paidInstallments + 1) })}
-                >
-                  <CheckCircle className="h-3.5 w-3.5 mr-1" /> Pagar Parcela
-                </Button>
-                <Button
-                  variant="outline"
-                  className="flex-1 h-9 text-xs border-warning/30 text-warning hover:bg-warning hover:text-warning-foreground"
-                  onClick={() => setShowPartial(true)}
-                >
-                  <HandCoins className="h-3.5 w-3.5 mr-1" /> Pagar Parcial
-                </Button>
-              </div>
-            )}
-          </>
-        )}
+                  }}><Check className="h-4 w-4" /></Button>
+                  <Button size="sm" variant="ghost" className="h-8" onClick={() => setShowPartial(false)}><XIcon className="h-4 w-4" /></Button>
+                </div>
+              ) : (
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    className="flex-1 h-9 text-xs border-primary/30 text-primary hover:bg-primary hover:text-primary-foreground"
+                    onClick={() => onUpdate({ paidInstallments: Math.min(sale.installments, sale.paidInstallments + 1) })}
+                  >
+                    <CheckCircle className="h-3.5 w-3.5 mr-1" /> Pagar Parcela
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="flex-1 h-9 text-xs border-warning/30 text-warning hover:bg-warning hover:text-warning-foreground"
+                    onClick={() => setShowPartial(true)}
+                  >
+                    <HandCoins className="h-3.5 w-3.5 mr-1" /> Pagar Parcial
+                  </Button>
+                </div>
+              )}
+            </>
+          )}
 
-        {/* Notes */}
-        {sale.notes && (
-          <div className="bg-muted/20 border border-border/30 rounded-lg px-3 py-2">
-            <p className="text-xs text-muted-foreground italic">{sale.notes}</p>
-          </div>
-        )}
+          {/* Notes */}
+          {sale.notes && (
+            <div className="bg-muted/20 border border-border/30 rounded-lg px-3 py-2">
+              <p className="text-xs text-muted-foreground italic truncate">{sale.notes}</p>
+            </div>
+          )}
 
-        {/* Footer: date + actions */}
-        <div className="flex items-center justify-between pt-1">
-          <p className="text-xs text-muted-foreground flex items-center gap-1">
-            <Calendar className="h-3 w-3" />
-            {new Date(sale.date + "T00:00:00").toLocaleDateString("pt-BR")}
-          </p>
-          <div className="flex items-center gap-1">
-            <Button size="icon" variant="ghost" className="h-8 w-8 text-muted-foreground hover:bg-accent hover:text-foreground" onClick={onEdit}>
-              <Pencil className="h-4 w-4" />
-            </Button>
-            <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive hover:bg-destructive hover:text-destructive-foreground" onClick={onDelete}>
-              <Trash2 className="h-4 w-4" />
-            </Button>
+          {/* Footer: date + actions - always at bottom */}
+          <div className="flex items-center justify-between pt-1 border-t border-border/50">
+            <p className="text-xs text-muted-foreground flex items-center gap-1">
+              <Calendar className="h-3 w-3" />
+              {new Date(sale.date + "T00:00:00").toLocaleDateString("pt-BR")}
+            </p>
+            <div className="flex items-center gap-1">
+              <Button size="icon" variant="ghost" className="h-8 w-8 text-muted-foreground hover:bg-accent hover:text-foreground" onClick={onEdit}>
+                <Pencil className="h-4 w-4" />
+              </Button>
+              <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive hover:bg-destructive hover:text-destructive-foreground" onClick={onDelete}>
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
         </div>
       </CardContent>
