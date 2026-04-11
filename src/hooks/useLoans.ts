@@ -85,14 +85,6 @@ export function useLoans() {
 
     const installmentAmount = calculateInstallment(loan.amount, loan.interestRate, loan.installments);
     const newPaid = loan.paidInstallments + 1;
-    const tempId = crypto.randomUUID();
-
-    setLoans((prev) => prev.map((l) => l.id === loanId ? {
-      ...l, paidInstallments: newPaid, status: newPaid >= l.installments ? "paid" : l.status,
-    } : l));
-    setPayments((prev) => [{
-      id: tempId, loanId, amount: installmentAmount, date: dateStr, installmentNumber: newPaid,
-    }, ...prev]);
 
     await Promise.all([
       supabase.from("payments").insert({
@@ -105,17 +97,13 @@ export function useLoans() {
       }).eq("id", loanId),
       adjustBalance(installmentAmount),
     ]);
-    fetchPayments();
+    await fetchPayments();
+    await fetchLoans();
   }, [user, loans, fetchPayments]);
 
   const addPartialPayment = useCallback(async (loanId: string, amount: number, paymentDate?: string) => {
     if (!user || amount <= 0) return;
     const dateStr = paymentDate || new Date().toISOString().split("T")[0];
-    const tempId = crypto.randomUUID();
-
-    setPayments((prev) => [{
-      id: tempId, loanId, amount, date: dateStr, installmentNumber: -1,
-    }, ...prev]);
 
     await Promise.all([
       supabase.from("payments").insert({
@@ -123,7 +111,7 @@ export function useLoans() {
       }),
       adjustBalance(amount),
     ]);
-    fetchPayments();
+    await fetchPayments();
   }, [user, fetchPayments]);
 
   const addInterestOnlyPayment = useCallback(async (loanId: string, paymentDate?: string) => {
@@ -136,12 +124,6 @@ export function useLoans() {
     currentDue.setMonth(currentDue.getMonth() + 1);
     const newDueDate = currentDue.toISOString().split("T")[0];
 
-    setLoans((prev) => prev.map((l) => l.id === loanId ? { ...l, dueDate: newDueDate } : l));
-    setPayments((prev) => [{
-      id: crypto.randomUUID(), loanId, amount: interestAmount, date: dateStr,
-      installmentNumber: 0, previousDueDate: loan.dueDate,
-    }, ...prev]);
-
     await Promise.all([
       supabase.from("payments").insert({
         user_id: user.id, loan_id: loanId, amount: interestAmount,
@@ -150,8 +132,8 @@ export function useLoans() {
       supabase.from("loans").update({ due_date: newDueDate }).eq("id", loanId),
       adjustBalance(interestAmount),
     ]);
-    fetchLoans();
-    fetchPayments();
+    await fetchLoans();
+    await fetchPayments();
   }, [user, loans, fetchLoans, fetchPayments]);
 
   const updateLoan = useCallback(async (id: string, data: Partial<Omit<Loan, "id">>) => {
