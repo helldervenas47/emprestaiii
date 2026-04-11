@@ -250,7 +250,26 @@ function LoanCardView({
             <div><Label className="text-xs">Parcelas</Label><Input type="number" value={form.installments} onChange={(e) => updateField("installments", e.target.value)} className="h-8 text-sm" /></div>
             <div><Label className="text-xs">Parcelas Pagas</Label><Input type="number" value={form.paidInstallments} onChange={(e) => updateField("paidInstallments", e.target.value)} className="h-8 text-sm" /></div>
             <div><Label className="text-xs">Data Início</Label><Input type="date" value={form.startDate} onChange={(e) => updateField("startDate", e.target.value)} className="h-8 text-sm" /></div>
-            <div><Label className="text-xs">Data Fim</Label><Input type="date" value={form.dueDate} onChange={(e) => updateField("dueDate", e.target.value)} className="h-8 text-sm" /></div>
+            <div>
+              <Label className="text-xs">Data 1ª Parcela</Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" className={cn("w-full justify-start text-left font-normal h-8 text-sm")}>
+                    <CalendarIcon className="mr-2 h-3.5 w-3.5" />
+                    {form.dueDate ? format(new Date(form.dueDate + "T00:00:00"), "dd/MM/yyyy") : "Selecione"}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <CalendarUI
+                    mode="single"
+                    selected={form.dueDate ? new Date(form.dueDate + "T00:00:00") : undefined}
+                    onSelect={(d) => d && updateField("dueDate", d.toISOString().split("T")[0])}
+                    initialFocus
+                    className={cn("p-3 pointer-events-auto")}
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
             <div>
               <Label className="text-xs">Tipo Contrato</Label>
               <Select value={form.interestType} onValueChange={(v) => updateField("interestType", v)}>
