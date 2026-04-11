@@ -29,7 +29,7 @@ function getNextDate(base: Date, frequency: string, periods: number): Date {
 }
 
 export function LoanForm({ onAdd, onClose, clients }: Props) {
-  const activeClients = clients.filter((c) => c.active);
+  const activeClients = clients.filter((c) => c.active).sort((a, b) => a.name.localeCompare(b.name, "pt-BR"));
 
   const defaultStart = new Date().toISOString().split("T")[0];
   const defaultFirstDue = new Date();
