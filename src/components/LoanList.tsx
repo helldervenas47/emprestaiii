@@ -128,14 +128,12 @@ function LoanCardView({
   const daysOverdue = getDaysOverdue(loan);
   const badge = statusMap[category];
 
-  // Next installment due date
+  // Next installment due date = due date (end of contract)
   const nextInstallmentDate = useMemo(() => {
     if (loan.status === "paid") return null;
-    const start = new Date(loan.startDate + "T00:00:00");
-    const nextNum = loan.paidInstallments + 1;
-    if (nextNum > loan.installments) return null;
-    const next = new Date(start.getFullYear(), start.getMonth() + nextNum, start.getDate());
-    return next.toLocaleDateString("pt-BR");
+    if (loan.paidInstallments >= loan.installments) return null;
+    const due = new Date(loan.dueDate + "T00:00:00");
+    return due.toLocaleDateString("pt-BR");
   }, [loan]);
 
   const startEdit = () => { setForm(loanToForm(loan)); setEditing(true); };
