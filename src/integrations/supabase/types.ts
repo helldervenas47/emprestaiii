@@ -300,27 +300,33 @@ export type Database = {
       }
       sales: {
         Row: {
+          business_type: string
           created_at: string
+          description: string
           id: string
-          product_id: string
+          product_id: string | null
           quantity: number
           sale_date: string
           total: number
           user_id: string
         }
         Insert: {
+          business_type?: string
           created_at?: string
+          description?: string
           id?: string
-          product_id: string
+          product_id?: string | null
           quantity?: number
           sale_date?: string
           total?: number
           user_id: string
         }
         Update: {
+          business_type?: string
           created_at?: string
+          description?: string
           id?: string
-          product_id?: string
+          product_id?: string | null
           quantity?: number
           sale_date?: string
           total?: number
