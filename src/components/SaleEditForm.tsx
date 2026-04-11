@@ -5,8 +5,12 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Save, X } from "lucide-react";
+import { Calendar as CalendarUI } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Save, X, Calendar as CalendarIcon } from "lucide-react";
 import { Sale, BusinessType, PaymentMode } from "@/types/loan";
+import { format } from "date-fns";
+import { cn } from "@/lib/utils";
 
 const businessTypeLabels: Record<BusinessType, string> = {
   venda: "Venda",
@@ -32,14 +36,17 @@ export function SaleEditForm({ sale, onSave, onClose }: Props) {
     downPayment: String(sale.downPayment || 0),
     paymentMode: sale.paymentMode,
     businessType: sale.businessType,
+    date: sale.date,
     notes: sale.notes || "",
   });
 
   const totalNum = parseFloat(form.total) || 0;
+  const costNum = parseFloat(form.cost) || 0;
   const downPaymentNum = parseFloat(form.downPayment) || 0;
   const installmentsNum = parseInt(form.installments) || 1;
   const remainingForInstallments = Math.max(0, totalNum - downPaymentNum);
   const installmentValue = installmentsNum > 0 ? remainingForInstallments / installmentsNum : 0;
+  const lucro = totalNum - costNum;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -47,7 +54,7 @@ export function SaleEditForm({ sale, onSave, onClose }: Props) {
       description: form.description,
       productName: form.description,
       customerName: form.customerName,
-      cost: parseFloat(form.cost) || 0,
+      cost: costNum,
       total: totalNum,
       quantity: parseInt(form.quantity) || 1,
       installments: form.paymentMode === "recorrente" ? installmentsNum : 1,
@@ -55,12 +62,15 @@ export function SaleEditForm({ sale, onSave, onClose }: Props) {
       downPayment: downPaymentNum,
       paymentMode: form.paymentMode as PaymentMode,
       businessType: form.businessType as BusinessType,
+      date: form.date,
       notes: form.notes || undefined,
     });
     onClose();
   };
 
   const update = (f: string, v: string) => setForm((p) => ({ ...p, [f]: v }));
+
+  const fmt = (v: number) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v);
 
   return (
     <div className="fixed inset-0 bg-foreground/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
@@ -94,6 +104,27 @@ export function SaleEditForm({ sale, onSave, onClose }: Props) {
               <Input value={form.description} onChange={(e) => update("description", e.target.value)} required />
             </div>
 
+            <div>
+              <Label>Data da Venda</Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" className={cn("w-full justify-start text-left font-normal")}>
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {form.date ? format(new Date(form.date + "T00:00:00"), "dd/MM/yyyy") : "Selecione"}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <CalendarUI
+                    mode="single"
+                    selected={form.date ? new Date(form.date + "T00:00:00") : undefined}
+                    onSelect={(d) => d && update("date", d.toISOString().split("T")[0])}
+                    initialFocus
+                    className="p-3 pointer-events-auto"
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
+
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label>Valor Custo (R$)</Label>
@@ -103,6 +134,12 @@ export function SaleEditForm({ sale, onSave, onClose }: Props) {
                 <Label>Valor Venda (R$)</Label>
                 <Input type="number" step="0.01" min="0.01" value={form.total} onChange={(e) => update("total", e.target.value)} required />
               </div>
+            </div>
+
+            {/* Lucro calculado */}
+            <div className={`rounded-lg px-3 py-2 border ${lucro >= 0 ? "bg-success/5 border-success/20" : "bg-destructive/5 border-destructive/20"}`}>
+              <p className="text-xs text-muted-foreground">Lucro estimado</p>
+              <p className={`text-sm font-bold ${lucro >= 0 ? "text-success" : "text-destructive"}`}>{fmt(lucro)}</p>
             </div>
 
             <div>
@@ -139,10 +176,16 @@ export function SaleEditForm({ sale, onSave, onClose }: Props) {
                   </div>
                 </div>
                 <div className="bg-muted/30 border border-border/50 rounded-lg p-3">
-                  <p className="text-xs text-muted-foreground">Valor por parcela</p>
-                  <p className="text-lg font-bold text-foreground">
-                    {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(installmentValue)}
-                  </p>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <p className="text-xs text-muted-foreground">Valor por parcela</p>
+                      <p className="text-sm font-bold text-foreground">{fmt(installmentValue)}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground">Total restante</p>
+                      <p className="text-sm font-bold text-foreground">{fmt(remainingForInstallments - (installmentValue * (parseInt(form.paidInstallments) || 0)))}</p>
+                    </div>
+                  </div>
                 </div>
               </>
             )}
