@@ -322,7 +322,7 @@ export function ClientList({ clients, loans, payments, onDelete, onUpdate }: Pro
                           <Badge className={`${cs.bgColor} text-white text-[10px] border-0`}>{cs.label}</Badge>
                         </div>
                       </div>
-                      <Progress value={cs.score / 10} className="h-1.5" />
+                      <Progress value={(cs.score / 150) * 100} className="h-1.5" />
                       <div className="grid grid-cols-3 gap-2 text-[10px] text-muted-foreground">
                         <div className="flex items-center gap-1">
                           <CheckCircle className="h-3 w-3 text-success" />
