@@ -220,10 +220,7 @@ const Index = () => {
         )}
         {tab === "products" && (
           <ProductSalesView
-            products={products}
             sales={sales}
-            onDeleteProduct={deleteProduct}
-            onUpdateProduct={updateProduct}
             onDeleteSale={deleteSale}
           />
         )}
