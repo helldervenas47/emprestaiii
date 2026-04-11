@@ -264,25 +264,25 @@ function LoanCardView({
   const realizedProfitPct = loan.amount > 0 ? Math.round((realizedProfit / loan.amount) * 100) : 0;
 
   const cardBorder =
-    category === "overdue" ? "border-destructive/40" :
-    category === "due_today" ? "border-warning/40" :
-    category === "paid" ? "border-success/40" :
-    category === "paid_interest" ? "border-purple/40" :
-    "border-primary/40";
+    category === "overdue" ? "border-destructive/50" :
+    category === "due_today" ? "border-warning/50" :
+    category === "paid" ? "border-success/50" :
+    category === "paid_interest" ? "border-purple/50" :
+    "border-primary/50";
 
   const cardBg =
-    category === "overdue" ? "bg-destructive/5" :
-    category === "due_today" ? "bg-warning/5" :
-    category === "paid" ? "bg-success/5" :
-    category === "paid_interest" ? "bg-purple/5" :
+    category === "overdue" ? "bg-destructive/8" :
+    category === "due_today" ? "bg-warning/8" :
+    category === "paid" ? "bg-success/8" :
+    category === "paid_interest" ? "bg-purple/8" :
     "bg-card";
 
   const headerBg =
-    category === "overdue" ? "bg-destructive/10 border-destructive/20" :
-    category === "due_today" ? "bg-warning/10 border-warning/20" :
-    category === "paid" ? "bg-success/10 border-success/20" :
-    category === "paid_interest" ? "bg-purple/10 border-purple/20" :
-    "bg-primary/5 border-border/50";
+    category === "overdue" ? "bg-destructive/15 border-destructive/30" :
+    category === "due_today" ? "bg-warning/15 border-warning/30" :
+    category === "paid" ? "bg-success/15 border-success/30" :
+    category === "paid_interest" ? "bg-purple/15 border-purple/30" :
+    "bg-primary/8 border-border/50";
 
   return (
     <>
