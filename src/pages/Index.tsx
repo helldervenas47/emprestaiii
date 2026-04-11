@@ -95,18 +95,22 @@ const Index = () => {
         if (tab === "dashboard") {
           const imported = importLoansFromCSV(csv);
           if (imported.length === 0) throw new Error();
-          for (const loan of imported) {
-            const { totalPaid, ...loanData } = loan;
-            const loanId = await addLoan(loanData);
-            if (loanId && totalPaid && totalPaid > 0) {
-              await addPartialPayment(loanId, totalPaid, loan.startDate);
-            }
+          const BATCH = 5;
+          for (let i = 0; i < imported.length; i += BATCH) {
+            const batch = imported.slice(i, i + BATCH);
+            await Promise.all(batch.map(async (loan) => {
+              const { totalPaid, ...loanData } = loan;
+              const loanId = await addLoan(loanData);
+              if (loanId && totalPaid && totalPaid > 0) {
+                await addPartialPayment(loanId, totalPaid, loan.startDate);
+              }
+            }));
           }
           toast.success(`${imported.length} empréstimo(s) importado(s)!`);
         } else if (tab === "clients") {
           const imported = importClientsFromCSV(csv);
           if (imported.length === 0) throw new Error();
-          imported.forEach((client) => addClient(client));
+          await Promise.all(imported.map((client) => addClient(client)));
           toast.success(`${imported.length} cliente(s) importado(s)!`);
         }
       } catch {
