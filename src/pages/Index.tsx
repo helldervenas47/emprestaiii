@@ -249,13 +249,12 @@ const Index = () => {
             <Button variant="ghost" size="icon" onClick={signOut} className="h-9 w-9" title="Sair">
               <LogOut className="h-4 w-4" />
             </Button>
-            {(tab === "dashboard" || tab === "clients") && (
+            {(tab === "dashboard" || tab === "installments" || tab === "clients") && (
               <>
                 <Button variant="outline" size="sm" onClick={handleImport}><Upload className="h-4 w-4 mr-1" />Importar</Button>
                 <Button variant="outline" size="sm" onClick={handleExport}><Download className="h-4 w-4 mr-1" />Exportar</Button>
               </>
             )}
-            {/* Removed separate Nova Venda button - now handled by primary action */}
             {tab !== "overview" && tab !== "overdue" && tab !== "calendar" && (
               <Button onClick={handlePrimaryAction}>
                 <Plus className="h-4 w-4 mr-2" />{primaryLabel}
