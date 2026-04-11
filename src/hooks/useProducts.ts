@@ -104,7 +104,10 @@ export function useProducts() {
       sale_date: s.date,
       description: s.description,
       business_type: s.businessType,
-    }).select().single();
+      payment_mode: s.paymentMode || "fixa",
+      installments: s.installments || 1,
+      paid_installments: s.paidInstallments || 0,
+    } as any).select().single();
 
     if (error) {
       setSales((prev) => prev.filter((x) => x.id !== tempId));
