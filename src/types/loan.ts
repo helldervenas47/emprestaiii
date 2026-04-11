@@ -52,16 +52,20 @@ export interface Product {
   createdAt: string;
 }
 
+export type BusinessType = "venda" | "streaming" | "aluguel_veiculo";
+
 export interface Sale {
   id: string;
-  productId: string;
+  productId?: string;
   productName: string;
+  description: string;
   quantity: number;
   unitPrice: number;
   total: number;
   customerName: string;
   date: string;
   notes?: string;
+  businessType: BusinessType;
 }
 
 export interface Expense {

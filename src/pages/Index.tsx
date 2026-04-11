@@ -121,14 +121,14 @@ const Index = () => {
     if (tab === "dashboard") setShowLoanForm(true);
     else if (tab === "clients") setShowClientForm(true);
     else if (tab === "expenses") setShowExpenseForm(true);
-    else setShowProductForm(true);
+    else if (tab === "products") setShowSaleForm(true);
   };
 
   const primaryLabel =
     tab === "dashboard" ? "Novo Empréstimo" :
     tab === "clients" ? "Novo Cliente" :
     tab === "expenses" ? "Nova Despesa" :
-    "Novo Produto";
+    tab === "products" ? "Novo Lançamento" : "";
 
   return (
     <div className="min-h-screen bg-background">
@@ -158,11 +158,7 @@ const Index = () => {
                 <Button variant="outline" size="sm" onClick={handleExport}><Download className="h-4 w-4 mr-1" />Exportar</Button>
               </>
             )}
-            {tab === "products" && (
-              <Button variant="outline" onClick={() => setShowSaleForm(true)}>
-                <ShoppingBag className="h-4 w-4 mr-1" /> Nova Venda
-              </Button>
-            )}
+            {/* Removed separate Nova Venda button - now handled by primary action */}
             {tab !== "overview" && tab !== "overdue" && tab !== "calendar" && (
               <Button onClick={handlePrimaryAction}>
                 <Plus className="h-4 w-4 mr-2" />{primaryLabel}
@@ -220,10 +216,7 @@ const Index = () => {
         )}
         {tab === "products" && (
           <ProductSalesView
-            products={products}
             sales={sales}
-            onDeleteProduct={deleteProduct}
-            onUpdateProduct={updateProduct}
             onDeleteSale={deleteSale}
           />
         )}
@@ -232,7 +225,7 @@ const Index = () => {
       {showLoanForm && <LoanForm onAdd={addLoan} onClose={() => setShowLoanForm(false)} clients={clients} />}
       {showClientForm && <ClientForm onAdd={addClient} onClose={() => setShowClientForm(false)} />}
       {showProductForm && <ProductForm onAdd={addProduct} onClose={() => setShowProductForm(false)} />}
-      {showSaleForm && <SaleForm products={products} onAdd={addSale} onClose={() => setShowSaleForm(false)} />}
+      {showSaleForm && <SaleForm onAdd={addSale} onClose={() => setShowSaleForm(false)} />}
       {showExpenseForm && <ExpenseForm onAdd={addExpense} onClose={() => setShowExpenseForm(false)} />}
     </div>
   );

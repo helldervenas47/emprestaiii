@@ -4,34 +4,44 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Plus, X } from "lucide-react";
-import { Product } from "@/types/loan";
+import { Sale, BusinessType } from "@/types/loan";
+
+const businessTypeLabels: Record<BusinessType, string> = {
+  venda: "Venda",
+  streaming: "Streaming",
+  aluguel_veiculo: "Aluguel de Veículo",
+};
 
 interface Props {
-  products: Product[];
-  onAdd: (sale: { productId: string; productName: string; quantity: number; unitPrice: number; total: number; customerName: string; date: string; notes?: string }) => void;
+  onAdd: (sale: Omit<Sale, "id">) => void;
   onClose: () => void;
+  defaultBusinessType?: BusinessType;
 }
 
-export function SaleForm({ products, onAdd, onClose }: Props) {
-  const activeProducts = products.filter((p) => p.active && p.stock > 0);
-  const [form, setForm] = useState({ productId: "", quantity: "1", customerName: "", notes: "" });
-
-  const selectedProduct = activeProducts.find((p) => p.id === form.productId);
-  const quantity = parseInt(form.quantity) || 0;
-  const total = selectedProduct ? selectedProduct.price * quantity : 0;
+export function SaleForm({ onAdd, onClose, defaultBusinessType = "venda" }: Props) {
+  const [form, setForm] = useState({
+    description: "",
+    quantity: "1",
+    total: "",
+    customerName: "",
+    notes: "",
+    businessType: defaultBusinessType,
+  });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedProduct || quantity <= 0) return;
+    const total = parseFloat(form.total) || 0;
+    if (!form.description || total <= 0) return;
     onAdd({
-      productId: selectedProduct.id,
-      productName: selectedProduct.name,
-      quantity,
-      unitPrice: selectedProduct.price,
+      productName: form.description,
+      description: form.description,
+      quantity: parseInt(form.quantity) || 1,
+      unitPrice: total,
       total,
       customerName: form.customerName,
       date: new Date().toISOString().split("T")[0],
       notes: form.notes || undefined,
+      businessType: form.businessType as BusinessType,
     });
     onClose();
   };
@@ -42,68 +52,52 @@ export function SaleForm({ products, onAdd, onClose }: Props) {
     <div className="fixed inset-0 bg-foreground/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
       <Card className="w-full max-w-md">
         <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle className="text-xl">Nova Venda</CardTitle>
+          <CardTitle className="text-xl">Novo Lançamento</CardTitle>
           <Button variant="ghost" size="icon" onClick={onClose}><X className="h-5 w-5" /></Button>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <Label>Produto</Label>
+              <Label>Tipo de Negócio</Label>
               <select
                 className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                value={form.productId}
-                onChange={(e) => update("productId", e.target.value)}
-                required
+                value={form.businessType}
+                onChange={(e) => update("businessType", e.target.value)}
               >
-                <option value="">Selecione um produto</option>
-                {activeProducts.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.name} — {formatCurrency(p.price)} (estoque: {p.stock})
-                  </option>
+                {Object.entries(businessTypeLabels).map(([key, label]) => (
+                  <option key={key} value={key}>{label}</option>
                 ))}
               </select>
+            </div>
+            <div>
+              <Label>Descrição</Label>
+              <Input value={form.description} onChange={(e) => update("description", e.target.value)} placeholder="Descreva o produto ou serviço" required />
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label>Quantidade</Label>
-                <Input
-                  type="number"
-                  min="1"
-                  max={selectedProduct?.stock || 999}
-                  value={form.quantity}
-                  onChange={(e) => update("quantity", e.target.value)}
-                  required
-                />
+                <Input type="number" min="1" value={form.quantity} onChange={(e) => update("quantity", e.target.value)} required />
               </div>
               <div>
-                <Label>Cliente</Label>
-                <Input value={form.customerName} onChange={(e) => update("customerName", e.target.value)} placeholder="Nome do cliente" />
+                <Label>Valor Total (R$)</Label>
+                <Input type="number" step="0.01" min="0.01" value={form.total} onChange={(e) => update("total", e.target.value)} placeholder="0,00" required />
               </div>
+            </div>
+            <div>
+              <Label>Cliente</Label>
+              <Input value={form.customerName} onChange={(e) => update("customerName", e.target.value)} placeholder="Nome do cliente (opcional)" />
             </div>
             <div>
               <Label>Observações</Label>
               <Input value={form.notes} onChange={(e) => update("notes", e.target.value)} placeholder="Notas..." />
             </div>
 
-            {selectedProduct && quantity > 0 && (
-              <div className="rounded-lg bg-muted p-4">
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Total da venda</span>
-                  <span className="font-bold text-foreground text-lg">{formatCurrency(total)}</span>
-                </div>
-              </div>
-            )}
-
-            <Button type="submit" className="w-full" disabled={!selectedProduct || quantity <= 0}>
-              <Plus className="h-4 w-4 mr-2" /> Registrar Venda
+            <Button type="submit" className="w-full">
+              <Plus className="h-4 w-4 mr-2" /> Registrar Lançamento
             </Button>
           </form>
         </CardContent>
       </Card>
     </div>
   );
-}
-
-function formatCurrency(v: number) {
-  return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v);
 }
