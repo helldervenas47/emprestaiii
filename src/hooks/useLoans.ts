@@ -87,13 +87,6 @@ export function useLoans() {
     const newPaid = loan.paidInstallments + 1;
     const tempId = crypto.randomUUID();
 
-    setLoans((prev) => prev.map((l) => l.id === loanId ? {
-      ...l, paidInstallments: newPaid, status: newPaid >= l.installments ? "paid" : l.status,
-    } : l));
-    setPayments((prev) => [{
-      id: tempId, loanId, amount: installmentAmount, date: dateStr, installmentNumber: newPaid,
-    }, ...prev]);
-
     await Promise.all([
       supabase.from("payments").insert({
         user_id: user.id, loan_id: loanId, amount: installmentAmount,
@@ -105,7 +98,8 @@ export function useLoans() {
       }).eq("id", loanId),
       adjustBalance(installmentAmount),
     ]);
-    fetchPayments();
+    await fetchPayments();
+    await fetchLoans();
   }, [user, loans, fetchPayments]);
 
   const addPartialPayment = useCallback(async (loanId: string, amount: number, paymentDate?: string) => {
