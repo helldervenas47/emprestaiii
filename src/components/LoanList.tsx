@@ -72,6 +72,8 @@ interface EditForm {
   borrowerName: string;
   amount: string;
   interestRate: string;
+  interestValue: string;
+  installmentValue: string;
   installments: string;
   paidInstallments: string;
   startDate: string;
@@ -81,11 +83,18 @@ interface EditForm {
 }
 
 function loanToForm(loan: Loan): EditForm {
+  const amt = loan.amount;
+  const rate = loan.interestRate;
+  const months = loan.installments;
+  const interestValue = amt * (rate / 100);
+  const installmentValue = calculateInstallment(amt, rate, months);
   return {
     borrowerName: loan.borrowerName,
-    amount: String(loan.amount),
-    interestRate: String(loan.interestRate),
-    installments: String(loan.installments),
+    amount: String(amt),
+    interestRate: String(rate),
+    interestValue: interestValue.toFixed(2),
+    installmentValue: installmentValue.toFixed(2),
+    installments: String(months),
     paidInstallments: String(loan.paidInstallments),
     startDate: loan.startDate,
     dueDate: loan.dueDate,
