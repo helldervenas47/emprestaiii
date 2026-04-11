@@ -837,7 +837,7 @@ function LoanRowView({
                   </DropdownMenuItem>
                 </>
               )}
-              <DropdownMenuItem onClick={() => onUpdate({ status: loan.status === "paid" ? "active" : "paid", paidInstallments: loan.status === "paid" ? 0 : loan.installments })}>
+              <DropdownMenuItem onClick={() => loan.status === "paid" ? onUpdate({ status: "active", paidInstallments: 0 }) : openPaymentDialog("full")}>
                 <CheckCircle className="h-4 w-4 mr-2" /> {loan.status === "paid" ? "Marcar como não pago" : "Marcar como pago"}
               </DropdownMenuItem>
               <DropdownMenuItem onClick={startEdit}>
