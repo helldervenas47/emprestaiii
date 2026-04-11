@@ -28,20 +28,31 @@ const sortLabels: Record<SortOption, string> = {
 export function ClientList({ clients, onDelete, onUpdate }: Props) {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
+  const [sortOption, setSortOption] = useState<SortOption>("name-asc");
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState({ name: "", phone: "", email: "", cpf: "", cnpj: "", rg: "", address: "", city: "", state: "", score: "", notes: "" });
 
-  const filtered = clients.filter((c) => {
-    const matchesSearch =
-      c.name.toLowerCase().includes(search.toLowerCase()) ||
-      c.cpf.includes(search) ||
-      c.phone.includes(search);
-    const matchesStatus =
-      statusFilter === "all" ||
-      (statusFilter === "active" && c.active !== false) ||
-      (statusFilter === "inactive" && c.active === false);
-    return matchesSearch && matchesStatus;
-  });
+  const filtered = clients
+    .filter((c) => {
+      const matchesSearch =
+        c.name.toLowerCase().includes(search.toLowerCase()) ||
+        c.cpf.includes(search) ||
+        c.phone.includes(search);
+      const matchesStatus =
+        statusFilter === "all" ||
+        (statusFilter === "active" && c.active !== false) ||
+        (statusFilter === "inactive" && c.active === false);
+      return matchesSearch && matchesStatus;
+    })
+    .sort((a, b) => {
+      switch (sortOption) {
+        case "name-asc": return a.name.localeCompare(b.name, "pt-BR");
+        case "name-desc": return b.name.localeCompare(a.name, "pt-BR");
+        case "newest": return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+        case "oldest": return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+        default: return 0;
+      }
+    });
 
   const activeCount = clients.filter((c) => c.active !== false).length;
   const inactiveCount = clients.filter((c) => c.active === false).length;
