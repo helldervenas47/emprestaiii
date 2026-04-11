@@ -6,12 +6,14 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Trash2, Search, ShoppingCart, Tv, Car, Calendar, DollarSign, User } from "lucide-react";
+import { Trash2, Search, ShoppingCart, Tv, Car, Calendar, DollarSign, User, Pencil } from "lucide-react";
 import { useHideValues } from "@/contexts/HideValuesContext";
+import { SaleEditForm } from "@/components/SaleEditForm";
 
 interface Props {
   sales: Sale[];
   onDeleteSale: (id: string) => void;
+  onUpdateSale: (id: string, data: Partial<Omit<Sale, "id">>) => void;
 }
 
 function rawFormatCurrency(v: number) {
@@ -24,7 +26,7 @@ const businessTabs: { type: BusinessType; label: string; icon: React.ElementType
   { type: "aluguel_veiculo", label: "Aluguel de Veículos", icon: Car },
 ];
 
-function SaleCard({ sale, onDelete, formatCurrency }: { sale: Sale; onDelete: () => void; formatCurrency: (v: number) => string }) {
+function SaleCard({ sale, onDelete, onEdit, formatCurrency }: { sale: Sale; onDelete: () => void; onEdit: () => void; formatCurrency: (v: number) => string }) {
   const TabIcon = businessTabs.find((t) => t.type === sale.businessType)?.icon || ShoppingCart;
   const isRecorrente = sale.paymentMode === "recorrente" && sale.installments > 1;
   const valorParcela = sale.installments > 0 ? sale.total / sale.installments : sale.total;
@@ -115,22 +117,35 @@ function SaleCard({ sale, onDelete, formatCurrency }: { sale: Sale; onDelete: ()
           </>
         )}
 
-        {/* Footer: date + delete */}
+        {/* Notes */}
+        {sale.notes && (
+          <div className="bg-muted/20 border border-border/30 rounded-lg px-3 py-2">
+            <p className="text-xs text-muted-foreground italic">{sale.notes}</p>
+          </div>
+        )}
+
+        {/* Footer: date + actions */}
         <div className="flex items-center justify-between pt-1">
           <p className="text-xs text-muted-foreground flex items-center gap-1">
             <Calendar className="h-3 w-3" />
             {new Date(sale.date + "T00:00:00").toLocaleDateString("pt-BR")}
           </p>
-          <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive hover:bg-destructive hover:text-destructive-foreground" onClick={onDelete}>
-            <Trash2 className="h-4 w-4" />
-          </Button>
+          <div className="flex items-center gap-1">
+            <Button size="icon" variant="ghost" className="h-8 w-8 text-muted-foreground hover:bg-accent hover:text-foreground" onClick={onEdit}>
+              <Pencil className="h-4 w-4" />
+            </Button>
+            <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive hover:bg-destructive hover:text-destructive-foreground" onClick={onDelete}>
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
       </CardContent>
     </Card>
   );
 }
 
-function SalesList({ sales, onDeleteSale }: { sales: Sale[]; onDeleteSale: (id: string) => void }) {
+function SalesList({ sales, onDeleteSale, onUpdateSale }: { sales: Sale[]; onDeleteSale: (id: string) => void; onUpdateSale: (id: string, data: Partial<Omit<Sale, "id">>) => void }) {
+  const [editingSale, setEditingSale] = useState<Sale | null>(null);
   const [search, setSearch] = useState("");
   const { mask } = useHideValues();
   const formatCurrency = useCallback((v: number) => mask(rawFormatCurrency(v)), [mask]);
@@ -169,16 +184,28 @@ function SalesList({ sales, onDeleteSale }: { sales: Sale[]; onDeleteSale: (id: 
               key={sale.id}
               sale={sale}
               onDelete={() => onDeleteSale(sale.id)}
+              onEdit={() => setEditingSale(sale)}
               formatCurrency={formatCurrency}
             />
           ))}
         </div>
       )}
+
+      {editingSale && (
+        <SaleEditForm
+          sale={editingSale}
+          onSave={(id, data) => {
+            onUpdateSale(id, data);
+            setEditingSale(null);
+          }}
+          onClose={() => setEditingSale(null)}
+        />
+      )}
     </div>
   );
 }
 
-export function ProductSalesView({ sales, onDeleteSale }: Props) {
+export function ProductSalesView({ sales, onDeleteSale, onUpdateSale }: Props) {
   return (
     <Tabs defaultValue="venda" className="space-y-4">
       <TabsList className="w-full grid grid-cols-3">
@@ -195,6 +222,7 @@ export function ProductSalesView({ sales, onDeleteSale }: Props) {
           <SalesList
             sales={sales.filter((s) => s.businessType === tab.type)}
             onDeleteSale={onDeleteSale}
+            onUpdateSale={onUpdateSale}
           />
         </TabsContent>
       ))}
