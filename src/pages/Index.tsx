@@ -145,7 +145,7 @@ const Index = () => {
   };
 
   const handleExport = () => {
-    if (tab === "dashboard") {
+    if (tab === "dashboard" || tab === "installments") {
       if (loans.length === 0) return toast.error("Nenhum empréstimo para exportar");
       downloadCSV(exportLoansToCSV(loans, payments), "emprestimos.csv");
       toast.success("Empréstimos exportados com sucesso!");
