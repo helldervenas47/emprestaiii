@@ -1,5 +1,5 @@
 import { DollarSign, TrendingUp, Users, AlertTriangle } from "lucide-react";
-import { Loan } from "@/types/loan";
+import { Loan, Payment } from "@/types/loan";
 import { calculateTotalWithInterest } from "@/hooks/useLoans";
 
 interface Props {
