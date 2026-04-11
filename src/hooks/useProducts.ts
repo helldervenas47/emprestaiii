@@ -36,7 +36,7 @@ export function useProducts() {
           quantity: s.quantity,
           unitPrice: 0,
           total: Number(s.total),
-          customerName: "",
+          customerName: s.customer_name || "",
           date: s.sale_date,
           businessType: (s.business_type as BusinessType) || "venda",
           paymentMode: ((s as any).payment_mode || "fixa") as "fixa" | "recorrente",
@@ -107,6 +107,7 @@ export function useProducts() {
       payment_mode: s.paymentMode || "fixa",
       installments: s.installments || 1,
       paid_installments: s.paidInstallments || 0,
+      customer_name: s.customerName || "",
     } as any).select().single();
 
     if (error) {
