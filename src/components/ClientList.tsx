@@ -78,43 +78,36 @@ function calculateCreditScore(clientId: string, loans: Loan[], payments: Payment
 
   const totalPayments = onTimePayments + latePayments;
 
-  // Calculate score (0-1000)
+  // Calculate score (0-150, starts at 100)
   if (totalLoans === 0) {
-    return { score: 500, label: "Sem Histórico", color: "text-muted-foreground", bgColor: "bg-muted", totalLoans, paidLoans, activeLoans, overdueLoans: totalOverdue, onTimePayments, latePayments, totalPayments };
+    return { score: 100, label: "Sem Histórico", color: "text-muted-foreground", bgColor: "bg-muted", totalLoans, paidLoans, activeLoans, overdueLoans: totalOverdue, onTimePayments, latePayments, totalPayments };
   }
 
-  let score = 500; // Base
+  let score = 100; // Base
 
-  // Payment history (40% weight) - up to 400 points
-  if (totalPayments > 0) {
-    const onTimeRate = onTimePayments / totalPayments;
-    score += Math.round(onTimeRate * 300 - (1 - onTimeRate) * 100);
-  }
+  // Each on-time payment adds points
+  score += onTimePayments * 3;
 
-  // Completion rate (30% weight) - up to 200 points
-  if (totalLoans > 0) {
-    const completionRate = paidLoans / totalLoans;
-    score += Math.round(completionRate * 200);
-  }
+  // Each late payment subtracts points
+  score -= latePayments * 5;
 
-  // No overdue bonus (30% weight) - up to 100 points
-  if (totalOverdue === 0) {
-    score += 100;
-  } else {
-    score -= totalOverdue * 50;
-  }
+  // Each paid (completed) loan adds points
+  score += paidLoans * 5;
 
-  // Clamp
-  score = Math.max(0, Math.min(1000, score));
+  // Each currently overdue loan subtracts points
+  score -= totalOverdue * 10;
+
+  // Clamp 0-150
+  score = Math.max(0, Math.min(150, score));
 
   let label: string;
   let color: string;
   let bgColor: string;
 
-  if (score >= 800) { label = "Excelente"; color = "text-success"; bgColor = "bg-success"; }
-  else if (score >= 600) { label = "Bom"; color = "text-primary"; bgColor = "bg-primary"; }
-  else if (score >= 400) { label = "Regular"; color = "text-warning"; bgColor = "bg-warning"; }
-  else if (score >= 200) { label = "Ruim"; color = "text-orange-500"; bgColor = "bg-orange-500"; }
+  if (score >= 130) { label = "Excelente"; color = "text-success"; bgColor = "bg-success"; }
+  else if (score >= 110) { label = "Bom"; color = "text-primary"; bgColor = "bg-primary"; }
+  else if (score >= 90) { label = "Regular"; color = "text-warning"; bgColor = "bg-warning"; }
+  else if (score >= 60) { label = "Ruim"; color = "text-orange-500"; bgColor = "bg-orange-500"; }
   else { label = "Crítico"; color = "text-destructive"; bgColor = "bg-destructive"; }
 
   return { score, label, color, bgColor, totalLoans, paidLoans, activeLoans, overdueLoans: totalOverdue, onTimePayments, latePayments, totalPayments };
@@ -329,7 +322,7 @@ export function ClientList({ clients, loans, payments, onDelete, onUpdate }: Pro
                           <Badge className={`${cs.bgColor} text-white text-[10px] border-0`}>{cs.label}</Badge>
                         </div>
                       </div>
-                      <Progress value={cs.score / 10} className="h-1.5" />
+                      <Progress value={(cs.score / 150) * 100} className="h-1.5" />
                       <div className="grid grid-cols-3 gap-2 text-[10px] text-muted-foreground">
                         <div className="flex items-center gap-1">
                           <CheckCircle className="h-3 w-3 text-success" />
