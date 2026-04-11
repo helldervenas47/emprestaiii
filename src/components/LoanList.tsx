@@ -144,7 +144,7 @@ function LoanCardView({
   const installment = calculateInstallment(loan.amount, loan.interestRate, loan.installments);
   const total = calculateTotalWithInterest(loan.amount, loan.interestRate, loan.installments);
   const totalPaid = getTotalPaid(loan, allPayments);
-  const remaining = Math.max(0, total - totalPaid);
+  const remaining = loan.remainingAmount != null && loan.remainingAmount > 0 ? loan.remainingAmount : Math.max(0, total - totalPaid);
   const progress = loan.installments > 0 ? (loan.paidInstallments / loan.installments) * 100 : 0;
   const interestOnly = loan.amount * (loan.interestRate / 100);
   const totalInterest = total - loan.amount;
