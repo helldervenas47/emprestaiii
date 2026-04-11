@@ -168,22 +168,107 @@ export function SaleEditForm({ sale, onSave, onClose }: Props) {
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <Label>Qtd. Parcelas</Label>
-                    <Input type="number" min="1" value={form.installments} onChange={(e) => update("installments", e.target.value)} />
+                    <Input type="number" min="1" value={form.installments} onChange={(e) => {
+                      const newCount = parseInt(e.target.value) || 1;
+                      update("installments", e.target.value);
+                      // Resize installmentRows
+                      setInstallmentRows((prev) => {
+                        const rows = [...prev];
+                        const baseDate = new Date(form.date + "T00:00:00");
+                        const baseValue = (Math.max(0, totalNum - downPaymentNum)) / newCount;
+                        while (rows.length < newCount) {
+                          const d = addMonths(baseDate, rows.length);
+                          rows.push({ date: d.toISOString().split("T")[0], value: String(baseValue.toFixed(2)) });
+                        }
+                        while (rows.length > newCount) rows.pop();
+                        return rows;
+                      });
+                    }} />
                   </div>
                   <div>
                     <Label>Parcelas Pagas</Label>
                     <Input type="number" min="0" max={form.installments} value={form.paidInstallments} onChange={(e) => update("paidInstallments", e.target.value)} />
                   </div>
                 </div>
+
+                {/* Individual installments */}
+                <div className="border border-border/50 rounded-lg overflow-hidden">
+                  <div className="flex items-center justify-between px-3 py-2 bg-muted/20">
+                    <span className="text-sm font-medium text-foreground">Parcelas ({installmentRows.length})</span>
+                    <div className="flex gap-3">
+                      <span className="text-xs font-medium text-success">{parseInt(form.paidInstallments) || 0} pagas</span>
+                      <span className="text-xs font-medium text-warning">{Math.max(0, installmentRows.length - (parseInt(form.paidInstallments) || 0))} pendentes</span>
+                    </div>
+                  </div>
+                  <div className="divide-y divide-border/30 max-h-64 overflow-y-auto">
+                    {installmentRows.map((row, idx) => {
+                      const isPaid = idx < (parseInt(form.paidInstallments) || 0);
+                      return (
+                        <div key={idx} className="flex items-center gap-2 px-3 py-2.5">
+                          <span className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${
+                            isPaid ? "bg-success/20 text-success" : "bg-muted/40 text-muted-foreground"
+                          }`}>
+                            {idx + 1}ª
+                          </span>
+                          <Popover>
+                            <PopoverTrigger asChild>
+                              <Button variant="outline" size="sm" className="h-8 text-xs flex-1 justify-start">
+                                <CalendarIcon className="h-3.5 w-3.5 mr-1.5 text-success" />
+                                {format(new Date(row.date + "T00:00:00"), "dd/MM/yyyy")}
+                              </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0" align="start">
+                              <CalendarUI
+                                mode="single"
+                                selected={new Date(row.date + "T00:00:00")}
+                                onSelect={(d) => {
+                                  if (d) {
+                                    setInstallmentRows((prev) => {
+                                      const rows = [...prev];
+                                      rows[idx] = { ...rows[idx], date: d.toISOString().split("T")[0] };
+                                      return rows;
+                                    });
+                                  }
+                                }}
+                                initialFocus
+                                className="p-3 pointer-events-auto"
+                              />
+                            </PopoverContent>
+                          </Popover>
+                          <Input
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            value={row.value}
+                            onChange={(e) => {
+                              setInstallmentRows((prev) => {
+                                const rows = [...prev];
+                                rows[idx] = { ...rows[idx], value: e.target.value };
+                                return rows;
+                              });
+                            }}
+                            className="h-8 w-24 text-xs text-right"
+                          />
+                          <span className={`text-xs font-medium w-16 text-right shrink-0 ${isPaid ? "text-success" : "text-muted-foreground"}`}>
+                            {isPaid ? "Paga" : "Pendente"}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
                 <div className="bg-muted/30 border border-border/50 rounded-lg p-3">
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <p className="text-xs text-muted-foreground">Valor por parcela</p>
-                      <p className="text-sm font-bold text-foreground">{fmt(installmentValue)}</p>
+                      <p className="text-xs text-muted-foreground">Total das parcelas</p>
+                      <p className="text-sm font-bold text-foreground">{fmt(installmentRows.reduce((s, r) => s + (parseFloat(r.value) || 0), 0))}</p>
                     </div>
                     <div>
                       <p className="text-xs text-muted-foreground">Total restante</p>
-                      <p className="text-sm font-bold text-foreground">{fmt(remainingForInstallments - (installmentValue * (parseInt(form.paidInstallments) || 0)))}</p>
+                      <p className="text-sm font-bold text-foreground">{fmt(
+                        installmentRows.reduce((s, r, i) => i >= (parseInt(form.paidInstallments) || 0) ? s + (parseFloat(r.value) || 0) : s, 0)
+                      )}</p>
                     </div>
                   </div>
                 </div>
