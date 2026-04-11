@@ -140,7 +140,7 @@ function SaleCard({ sale, onDelete, onEdit, onUpdate, formatCurrency }: { sale: 
               className="w-full flex items-center justify-between px-3 py-2.5 bg-muted/20 hover:bg-muted/30 transition-colors"
             >
               <div className="flex items-center gap-2 text-sm">
-                <Calendar className="h-4 w-4 text-muted-foreground" />
+                <CalendarIcon className="h-4 w-4 text-muted-foreground" />
                 <span className="font-medium text-foreground">Parcelas ({totalParcelas})</span>
               </div>
               <div className="flex items-center gap-2">
@@ -252,7 +252,7 @@ function SaleCard({ sale, onDelete, onEdit, onUpdate, formatCurrency }: { sale: 
           {/* Footer: date + actions - always at bottom */}
           <div className="flex items-center justify-between pt-1 border-t border-border/50">
             <p className="text-xs text-muted-foreground flex items-center gap-1">
-              <Calendar className="h-3 w-3" />
+              <CalendarIcon className="h-3 w-3" />
               {new Date(sale.date + "T00:00:00").toLocaleDateString("pt-BR")}
             </p>
             <div className="flex items-center gap-1">
