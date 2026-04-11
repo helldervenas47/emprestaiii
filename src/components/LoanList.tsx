@@ -263,11 +263,32 @@ function LoanCardView({
   const realizedProfit = Math.max(0, totalPaid - loan.amount);
   const realizedProfitPct = loan.amount > 0 ? Math.round((realizedProfit / loan.amount) * 100) : 0;
 
+  const cardBorder =
+    category === "overdue" ? "border-destructive/40" :
+    category === "due_today" ? "border-warning/40" :
+    category === "paid" ? "border-success/40" :
+    category === "paid_interest" ? "border-purple/40" :
+    "border-primary/40";
+
+  const cardBg =
+    category === "overdue" ? "bg-destructive/5" :
+    category === "due_today" ? "bg-warning/5" :
+    category === "paid" ? "bg-success/5" :
+    category === "paid_interest" ? "bg-purple/5" :
+    "bg-card";
+
+  const headerBg =
+    category === "overdue" ? "bg-destructive/10 border-destructive/20" :
+    category === "due_today" ? "bg-warning/10 border-warning/20" :
+    category === "paid" ? "bg-success/10 border-success/20" :
+    category === "paid_interest" ? "bg-purple/10 border-purple/20" :
+    "bg-primary/5 border-border/50";
+
   return (
     <>
-    <Card className="overflow-hidden hover:shadow-lg transition-all h-full flex flex-col border-border/50">
+    <Card className={`overflow-hidden hover:shadow-lg transition-all h-full flex flex-col border ${cardBorder} ${cardBg}`}>
       {/* Client Name Header */}
-      <div className="border-b border-border/50 px-4 py-3 text-center">
+      <div className={`border-b px-4 py-3 text-center ${headerBg}`}>
         <h3 className="font-bold text-foreground text-lg">{loan.borrowerName}</h3>
       </div>
 
