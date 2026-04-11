@@ -1058,7 +1058,7 @@ function ClientFolder({
   );
 }
 
-export function LoanList({ loans, payments, onPayment, onPartialPayment, onInterestPayment, onUpdate, onDelete }: Props) {
+export function LoanList({ loans, payments, onPayment, onPartialPayment, onInterestPayment, onUpdate, onDelete, onDeletePayment }: Props) {
   const [view, setView] = useState<"cards" | "rows" | "folders">("cards");
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState<Category>("all");
