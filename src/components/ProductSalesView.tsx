@@ -65,18 +65,17 @@ function SaleCard({ sale, onDelete, onEdit, onUpdate, formatCurrency }: { sale: 
   const catStyle = saleCategoryConfig[category];
 
   // Generate installment rows with estimated dates
-  const parcelas = isRecorrente
-    ? Array.from({ length: sale.installments }, (_, i) => {
-        const baseDate = new Date(sale.date + "T00:00:00");
-        const dueDate = addMonths(baseDate, i);
-        return {
-          number: i + 1,
-          date: format(dueDate, "dd/MM/yyyy"),
-          value: valorParcela,
-          paid: i < sale.paidInstallments,
-        };
-      })
-    : [];
+  const totalParcelas = isRecorrente ? sale.installments : 1;
+  const parcelas = Array.from({ length: totalParcelas }, (_, i) => {
+    const baseDate = new Date(sale.date + "T00:00:00");
+    const dueDate = isRecorrente ? addMonths(baseDate, i) : baseDate;
+    return {
+      number: i + 1,
+      date: format(dueDate, "dd/MM/yyyy"),
+      value: valorParcela,
+      paid: i < sale.paidInstallments,
+    };
+  });
 
   return (
     <Card className={`overflow-hidden hover:shadow-lg transition-all border ${catStyle.border} ${catStyle.bg} h-full flex flex-col`}>
