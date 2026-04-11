@@ -17,9 +17,11 @@ interface Props {
 
 export function LoanForm({ onAdd, onClose, clients }: Props) {
   const activeClients = clients.filter((c) => c.active);
-  const getDefaultDueDate = (start: string) => {
+  const getDefaultDueDate = (start: string, frequency: string) => {
     const d = new Date(start + "T00:00:00");
-    d.setMonth(d.getMonth() + 1);
+    if (frequency === "Semanal") d.setDate(d.getDate() + 7);
+    else if (frequency === "Quinzenal") d.setDate(d.getDate() + 15);
+    else d.setMonth(d.getMonth() + 1);
     return d.toISOString().split("T")[0];
   };
 
@@ -30,8 +32,9 @@ export function LoanForm({ onAdd, onClose, clients }: Props) {
     interestRate: "30",
     installments: "1",
     startDate: defaultStart,
-    dueDate: getDefaultDueDate(defaultStart),
+    dueDate: getDefaultDueDate(defaultStart, "Mensal"),
     notes: "",
+    interestType: "Mensal",
   });
 
   const amount = parseFloat(form.amount) || 0;
@@ -82,7 +85,7 @@ export function LoanForm({ onAdd, onClose, clients }: Props) {
       borrowerId: selectedClient.id,
       amount,
       interestRate: rate,
-      interestType: "Mensal",
+      interestType: form.interestType,
       paymentType: "Parcelado",
       installments,
       startDate: form.startDate,
@@ -97,7 +100,10 @@ export function LoanForm({ onAdd, onClose, clients }: Props) {
     setForm((prev) => {
       const next = { ...prev, [field]: value };
       if (field === "startDate" && value) {
-        next.dueDate = getDefaultDueDate(value);
+        next.dueDate = getDefaultDueDate(value, next.interestType);
+      }
+      if (field === "interestType" && next.startDate) {
+        next.dueDate = getDefaultDueDate(next.startDate, value);
       }
       return next;
     });
