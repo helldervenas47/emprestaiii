@@ -85,6 +85,7 @@ export function useLoans() {
 
     const installmentAmount = calculateInstallment(loan.amount, loan.interestRate, loan.installments);
     const newPaid = loan.paidInstallments + 1;
+    const newRemaining = Math.max(0, getLoanRemainingAmount(loan, payments) - installmentAmount);
 
     await Promise.all([
       supabase.from("payments").insert({
@@ -94,25 +95,33 @@ export function useLoans() {
       supabase.from("loans").update({
         paid_installments: newPaid,
         status: newPaid >= loan.installments ? "paid" : loan.status,
+        remaining_amount: newRemaining,
       }).eq("id", loanId),
       adjustBalance(installmentAmount),
     ]);
     await fetchPayments();
     await fetchLoans();
-  }, [user, loans, fetchPayments]);
+  }, [user, loans, payments, fetchLoans, fetchPayments]);
 
   const addPartialPayment = useCallback(async (loanId: string, amount: number, paymentDate?: string) => {
     if (!user || amount <= 0) return;
     const dateStr = paymentDate || new Date().toISOString().split("T")[0];
+    const loan = loans.find((l) => l.id === loanId);
+    if (!loan) return;
+    const newRemaining = Math.max(0, getLoanRemainingAmount(loan, payments) - amount);
 
     await Promise.all([
       supabase.from("payments").insert({
         user_id: user.id, loan_id: loanId, amount, date: dateStr, installment_number: -1,
       }),
+      supabase.from("loans").update({
+        remaining_amount: newRemaining,
+      }).eq("id", loanId),
       adjustBalance(amount),
     ]);
     await fetchPayments();
-  }, [user, fetchPayments]);
+    await fetchLoans();
+  }, [user, loans, payments, fetchLoans, fetchPayments]);
 
   const addInterestOnlyPayment = useCallback(async (loanId: string, paymentDate?: string) => {
     if (!user) return;
@@ -123,21 +132,21 @@ export function useLoans() {
     const currentDue = new Date(loan.dueDate + "T00:00:00");
     currentDue.setMonth(currentDue.getMonth() + 1);
     const newDueDate = currentDue.toISOString().split("T")[0];
+    const newRemaining = Math.max(0, getLoanRemainingAmount(loan, payments) - interestAmount);
 
     await Promise.all([
       supabase.from("payments").insert({
         user_id: user.id, loan_id: loanId, amount: interestAmount,
         date: dateStr, installment_number: 0, previous_due_date: loan.dueDate,
       }),
-      supabase.from("loans").update({ due_date: newDueDate }).eq("id", loanId),
+      supabase.from("loans").update({ due_date: newDueDate, remaining_amount: newRemaining }).eq("id", loanId),
       adjustBalance(interestAmount),
     ]);
     await fetchLoans();
     await fetchPayments();
-  }, [user, loans, fetchLoans, fetchPayments]);
+  }, [user, loans, payments, fetchLoans, fetchPayments]);
 
   const updateLoan = useCallback(async (id: string, data: Partial<Omit<Loan, "id">>) => {
-    // If remainingAmount changed, adjust balance by the difference
     if (data.remainingAmount !== undefined) {
       const oldLoan = loans.find((l) => l.id === id);
       if (oldLoan) {
@@ -185,7 +194,6 @@ export function useLoans() {
 
     const loan = loans.find((l) => l.id === payment.loanId);
 
-    // Update remainingAmount: add the payment amount back
     if (loan) {
       const newRemaining = (loan.remainingAmount ?? 0) + payment.amount;
       const loanUpdates: any = { remaining_amount: newRemaining };
@@ -232,4 +240,20 @@ export function calculateInstallment(principal: number, monthlyRate: number, mon
 
 export function calculateTotalWithInterest(principal: number, monthlyRate: number, months: number): number {
   return calculateInstallment(principal, monthlyRate, months) * months;
+}
+
+export function getLoanRemainingAmount(loan: Loan, payments: Payment[]): number {
+  const totalExpected = calculateTotalWithInterest(loan.amount, loan.interestRate, loan.installments);
+  const totalPaid = payments.filter((p) => p.loanId === loan.id).reduce((sum, p) => sum + p.amount, 0);
+
+  if (loan.remainingAmount == null) {
+    return Math.max(0, totalExpected - totalPaid);
+  }
+
+  const isLegacyDefaultRemaining = Math.abs(loan.remainingAmount - totalExpected) < 0.01;
+  if (isLegacyDefaultRemaining) {
+    return Math.max(0, totalExpected - totalPaid);
+  }
+
+  return Math.max(0, loan.remainingAmount);
 }

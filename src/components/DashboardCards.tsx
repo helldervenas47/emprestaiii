@@ -1,6 +1,6 @@
 import { DollarSign, TrendingUp, Users, AlertTriangle } from "lucide-react";
 import { Loan, Payment } from "@/types/loan";
-import { calculateTotalWithInterest } from "@/hooks/useLoans";
+import { calculateTotalWithInterest, getLoanRemainingAmount } from "@/hooks/useLoans";
 
 interface Props {
   loans: Loan[];
@@ -10,19 +10,8 @@ interface Props {
 export function DashboardCards({ loans, payments }: Props) {
   const activeLoansData = loans.filter((l) => l.status !== "paid");
   
-  // Capital na rua = principal dos empréstimos ativos
   const totalLent = activeLoansData.reduce((sum, l) => sum + l.amount, 0);
-  
-  // Total a receber = usa remainingAmount quando disponível, senão calcula
-  const totalToReceive = activeLoansData.reduce((sum, l) => {
-    if (l.remainingAmount != null && l.remainingAmount > 0) return sum + l.remainingAmount;
-    const expected = calculateTotalWithInterest(l.amount, l.interestRate, l.installments);
-    const loanPayments = payments.filter((p) => p.loanId === l.id);
-    const paid = loanPayments.reduce((s, p) => s + p.amount, 0);
-    return sum + Math.max(0, expected - paid);
-  }, 0);
-  
-  // Capital na rua = soma do principal de todos os empréstimos ativos
+  const totalToReceive = activeLoansData.reduce((sum, l) => sum + getLoanRemainingAmount(l, payments), 0);
   const capitalNaRua = totalLent;
 
   const totalInterest = loans.reduce(
