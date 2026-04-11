@@ -568,14 +568,24 @@ function LoanCardView({
         {/* Action Buttons */}
         <div className="flex flex-col gap-2 pt-2 border-t border-border/50 mt-auto">
           {loan.status !== "paid" && (
-            <div className="flex gap-2">
-              <Button variant="outline" className="flex-1 h-9 text-xs" onClick={() => openPaymentDialog("full")}>
-                <CheckCircle className="h-3.5 w-3.5 mr-1" /> Pagar Total
-              </Button>
-              <Button variant="outline" className="flex-1 h-9 text-xs" onClick={() => openPaymentDialog("interest")}>
-                <DollarSign className="h-3.5 w-3.5 mr-1" /> Pagar Juros
-              </Button>
-            </div>
+            <>
+              <div className="flex gap-2">
+                <Button variant="outline" className="flex-1 h-9 text-xs border-primary/30 text-primary hover:bg-primary hover:text-primary-foreground" onClick={() => openPaymentDialog("installment")}>
+                  <CheckCircle className="h-3.5 w-3.5 mr-1" /> Pagar Parcela
+                </Button>
+                <Button variant="outline" className="flex-1 h-9 text-xs border-warning/30 text-warning hover:bg-warning hover:text-warning-foreground" onClick={() => setShowPartial(!showPartial)}>
+                  <HandCoins className="h-3.5 w-3.5 mr-1" /> Pagar Parcial
+                </Button>
+              </div>
+              <div className="flex gap-2">
+                <Button variant="outline" className="flex-1 h-9 text-xs" onClick={() => openPaymentDialog("full")}>
+                  <DollarSign className="h-3.5 w-3.5 mr-1" /> Pagar Total
+                </Button>
+                <Button variant="outline" className="flex-1 h-9 text-xs" onClick={() => openPaymentDialog("interest")}>
+                  <Percent className="h-3.5 w-3.5 mr-1" /> Pagar Juros
+                </Button>
+              </div>
+            </>
           )}
           <div className="flex items-center justify-center gap-1">
             <Button
@@ -585,11 +595,6 @@ function LoanCardView({
             >
               <CheckCircle className="h-4 w-4" />
             </Button>
-            {loan.status !== "paid" && (
-              <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => setShowPartial(!showPartial)} title="Pagamento Parcial">
-                <HandCoins className="h-4 w-4 text-muted-foreground" />
-              </Button>
-            )}
             <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => setShowHistory(true)} title="Histórico de Pagamentos">
               <History className="h-4 w-4 text-muted-foreground" />
             </Button>
