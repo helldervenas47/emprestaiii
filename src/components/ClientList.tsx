@@ -1,36 +1,139 @@
-import { useState } from "react";
-import { Client } from "@/types/loan";
+import { useState, useMemo } from "react";
+import { Client, Loan, Payment } from "@/types/loan";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Trash2, User, Phone, Mail, MapPin, Search, Users, Pencil, X, Check, ToggleLeft, ToggleRight, ArrowUpDown, ArrowDownAZ, ArrowUpAZ, Clock, CalendarDays } from "lucide-react";
+import { Trash2, User, Phone, Mail, MapPin, Search, Users, Pencil, X, Check, ToggleLeft, ToggleRight, ArrowUpDown, ArrowDownAZ, ArrowUpAZ, Clock, CalendarDays, TrendingUp, AlertTriangle, CheckCircle, ShieldCheck } from "lucide-react";
 
 interface Props {
   clients: Client[];
+  loans: Loan[];
+  payments: Payment[];
   onDelete: (id: string) => void;
   onUpdate: (id: string, data: Partial<Omit<Client, "id" | "createdAt">>) => void;
 }
 
 type StatusFilter = "all" | "active" | "inactive";
-type SortOption = "name-asc" | "name-desc" | "newest" | "oldest";
+type SortOption = "name-asc" | "name-desc" | "newest" | "oldest" | "score-desc" | "score-asc";
 
 const sortLabels: Record<SortOption, string> = {
   "name-asc": "A → Z",
   "name-desc": "Z → A",
   "newest": "Mais recentes",
   "oldest": "Mais antigos",
+  "score-desc": "Melhor score",
+  "score-asc": "Pior score",
 };
 
-export function ClientList({ clients, onDelete, onUpdate }: Props) {
+interface CreditScore {
+  score: number;
+  label: string;
+  color: string;
+  bgColor: string;
+  totalLoans: number;
+  paidLoans: number;
+  activeLoans: number;
+  overdueLoans: number;
+  onTimePayments: number;
+  latePayments: number;
+  totalPayments: number;
+}
+
+function calculateCreditScore(clientId: string, loans: Loan[], payments: Payment[]): CreditScore {
+  const clientLoans = loans.filter((l) => l.borrowerId === clientId);
+  const totalLoans = clientLoans.length;
+  const paidLoans = clientLoans.filter((l) => l.status === "paid").length;
+  const activeLoans = clientLoans.filter((l) => l.status === "active").length;
+  const overdueLoans = clientLoans.filter((l) => l.status === "overdue").length;
+
+  // Check overdue by dueDate for active loans
+  const todayStr = new Date().toISOString().split("T")[0];
+  const actualOverdue = clientLoans.filter((l) => l.status !== "paid" && l.dueDate < todayStr).length;
+  const totalOverdue = Math.max(overdueLoans, actualOverdue);
+
+  // Analyze payments timing
+  let onTimePayments = 0;
+  let latePayments = 0;
+
+  clientLoans.forEach((loan) => {
+    const loanPayments = payments.filter((p) => p.loanId === loan.id && p.installmentNumber > 0);
+    loanPayments.forEach((p) => {
+      // Calculate expected due date for this installment
+      const start = new Date(loan.startDate + "T00:00:00");
+      const expectedDue = new Date(start.getFullYear(), start.getMonth() + p.installmentNumber, start.getDate());
+      const paymentDate = new Date(p.date + "T00:00:00");
+
+      if (paymentDate <= expectedDue) {
+        onTimePayments++;
+      } else {
+        latePayments++;
+      }
+    });
+  });
+
+  const totalPayments = onTimePayments + latePayments;
+
+  // Calculate score (0-1000)
+  if (totalLoans === 0) {
+    return { score: 500, label: "Sem Histórico", color: "text-muted-foreground", bgColor: "bg-muted", totalLoans, paidLoans, activeLoans, overdueLoans: totalOverdue, onTimePayments, latePayments, totalPayments };
+  }
+
+  let score = 500; // Base
+
+  // Payment history (40% weight) - up to 400 points
+  if (totalPayments > 0) {
+    const onTimeRate = onTimePayments / totalPayments;
+    score += Math.round(onTimeRate * 300 - (1 - onTimeRate) * 100);
+  }
+
+  // Completion rate (30% weight) - up to 200 points
+  if (totalLoans > 0) {
+    const completionRate = paidLoans / totalLoans;
+    score += Math.round(completionRate * 200);
+  }
+
+  // No overdue bonus (30% weight) - up to 100 points
+  if (totalOverdue === 0) {
+    score += 100;
+  } else {
+    score -= totalOverdue * 50;
+  }
+
+  // Clamp
+  score = Math.max(0, Math.min(1000, score));
+
+  let label: string;
+  let color: string;
+  let bgColor: string;
+
+  if (score >= 800) { label = "Excelente"; color = "text-success"; bgColor = "bg-success"; }
+  else if (score >= 600) { label = "Bom"; color = "text-primary"; bgColor = "bg-primary"; }
+  else if (score >= 400) { label = "Regular"; color = "text-warning"; bgColor = "bg-warning"; }
+  else if (score >= 200) { label = "Ruim"; color = "text-orange-500"; bgColor = "bg-orange-500"; }
+  else { label = "Crítico"; color = "text-destructive"; bgColor = "bg-destructive"; }
+
+  return { score, label, color, bgColor, totalLoans, paidLoans, activeLoans, overdueLoans: totalOverdue, onTimePayments, latePayments, totalPayments };
+}
+
+export function ClientList({ clients, loans, payments, onDelete, onUpdate }: Props) {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [sortOption, setSortOption] = useState<SortOption>("name-asc");
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState({ name: "", phone: "", email: "", cpf: "", cnpj: "", rg: "", address: "", city: "", state: "", score: "", notes: "" });
+
+  const creditScores = useMemo(() => {
+    const map: Record<string, CreditScore> = {};
+    clients.forEach((c) => {
+      map[c.id] = calculateCreditScore(c.id, loans, payments);
+    });
+    return map;
+  }, [clients, loans, payments]);
 
   const filtered = clients
     .filter((c) => {
@@ -50,6 +153,8 @@ export function ClientList({ clients, onDelete, onUpdate }: Props) {
         case "name-desc": return b.name.localeCompare(a.name, "pt-BR");
         case "newest": return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
         case "oldest": return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+        case "score-desc": return (creditScores[b.id]?.score || 0) - (creditScores[a.id]?.score || 0);
+        case "score-asc": return (creditScores[a.id]?.score || 0) - (creditScores[b.id]?.score || 0);
         default: return 0;
       }
     });
@@ -109,6 +214,12 @@ export function ClientList({ clients, onDelete, onUpdate }: Props) {
             <DropdownMenuItem onClick={() => setSortOption("name-desc")} className="gap-2">
               <ArrowUpAZ className="h-4 w-4" /> Z → A
             </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setSortOption("score-desc")} className="gap-2">
+              <TrendingUp className="h-4 w-4" /> Melhor score
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setSortOption("score-asc")} className="gap-2">
+              <AlertTriangle className="h-4 w-4" /> Pior score
+            </DropdownMenuItem>
             <DropdownMenuItem onClick={() => setSortOption("newest")} className="gap-2">
               <Clock className="h-4 w-4" /> Mais recentes
             </DropdownMenuItem>
@@ -128,7 +239,9 @@ export function ClientList({ clients, onDelete, onUpdate }: Props) {
         </Card>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          {filtered.map((client) => (
+          {filtered.map((client) => {
+            const cs = creditScores[client.id];
+            return (
             <Card key={client.id} className={`hover:shadow-md transition-shadow ${!client.active ? "opacity-60" : ""}`}>
               <CardContent className="p-5">
                 {editingId === client.id ? (
@@ -203,6 +316,36 @@ export function ClientList({ clients, onDelete, onUpdate }: Props) {
                         </Button>
                       </div>
                     </div>
+
+                    {/* Credit Score */}
+                    <div className="rounded-lg border border-border/50 p-3 mb-3 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <ShieldCheck className={`h-4 w-4 ${cs.color}`} />
+                          <span className="text-xs font-medium text-muted-foreground">Score de Crédito</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className={`text-lg font-bold ${cs.color}`}>{cs.score}</span>
+                          <Badge className={`${cs.bgColor} text-white text-[10px] border-0`}>{cs.label}</Badge>
+                        </div>
+                      </div>
+                      <Progress value={cs.score / 10} className="h-1.5" />
+                      <div className="grid grid-cols-3 gap-2 text-[10px] text-muted-foreground">
+                        <div className="flex items-center gap-1">
+                          <CheckCircle className="h-3 w-3 text-success" />
+                          <span>{cs.onTimePayments} em dia</span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <AlertTriangle className="h-3 w-3 text-destructive" />
+                          <span>{cs.latePayments} atraso(s)</span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <TrendingUp className="h-3 w-3 text-primary" />
+                          <span>{cs.paidLoans}/{cs.totalLoans} quitado(s)</span>
+                        </div>
+                      </div>
+                    </div>
+
                     <div className="space-y-1.5 text-sm text-muted-foreground">
                       {client.phone && <div className="flex items-center gap-2"><Phone className="h-3.5 w-3.5" /><span>{client.phone}</span></div>}
                       {client.email && <div className="flex items-center gap-2"><Mail className="h-3.5 w-3.5" /><span>{client.email}</span></div>}
@@ -213,7 +356,8 @@ export function ClientList({ clients, onDelete, onUpdate }: Props) {
                 )}
               </CardContent>
             </Card>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>
