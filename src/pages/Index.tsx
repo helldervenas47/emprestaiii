@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import { Plus, HandCoins, Users, LayoutDashboard, Download, Upload, ShoppingBag, BarChart3, AlertTriangle, Receipt, CalendarDays, Sun, Moon, LogOut, Info, X } from "lucide-react";
+import { Plus, HandCoins, Users, LayoutDashboard, Download, Upload, ShoppingBag, BarChart3, AlertTriangle, Receipt, CalendarDays, Sun, Moon, LogOut, Info, X, Eye, EyeOff } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
@@ -25,6 +25,7 @@ import {
   importLoansFromCSV, importClientsFromCSV, importSalesFromCSV, downloadCSV,
 } from "@/lib/csv";
 import { toast } from "sonner";
+import { HideValuesProvider, useHideValues } from "@/contexts/HideValuesContext";
 
 type Tab = "overview" | "dashboard" | "clients" | "products" | "overdue" | "expenses" | "calendar";
 
@@ -245,6 +246,7 @@ const Index = () => {
                 </div>
               </PopoverContent>
             </Popover>
+            <HideValuesToggle />
             <Button variant="ghost" size="icon" onClick={toggleTheme} className="h-9 w-9" title={dark ? "Modo claro" : "Modo escuro"}>
               {dark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
             </Button>
