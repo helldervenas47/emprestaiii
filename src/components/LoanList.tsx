@@ -684,7 +684,23 @@ function LoanRowView({
             <Input type="number" value={form.interestRate} onChange={(e) => update("interestRate", e.target.value)} className="h-7 w-16 text-xs" placeholder="Juros%" />
             <Input type="number" value={form.installments} onChange={(e) => update("installments", e.target.value)} className="h-7 w-14 text-xs" placeholder="Parc." />
             <Input type="number" value={form.paidInstallments} onChange={(e) => update("paidInstallments", e.target.value)} className="h-7 w-14 text-xs" placeholder="Pagas" />
-            <Input type="date" value={form.dueDate} onChange={(e) => update("dueDate", e.target.value)} className="h-7 w-32 text-xs" />
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" className="h-7 w-32 justify-start text-left text-xs font-normal">
+                  <CalendarIcon className="mr-1 h-3 w-3" />
+                  {form.dueDate ? format(new Date(form.dueDate + "T00:00:00"), "dd/MM/yy") : "1ª Parcela"}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <CalendarUI
+                  mode="single"
+                  selected={form.dueDate ? new Date(form.dueDate + "T00:00:00") : undefined}
+                  onSelect={(d) => d && update("dueDate", d.toISOString().split("T")[0])}
+                  initialFocus
+                  className={cn("p-3 pointer-events-auto")}
+                />
+              </PopoverContent>
+            </Popover>
             <Select value={form.interestType} onValueChange={(v) => update("interestType", v)}>
               <SelectTrigger className="h-7 w-24 text-xs"><SelectValue /></SelectTrigger>
               <SelectContent>
