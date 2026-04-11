@@ -307,6 +307,68 @@ export function DashboardOverview({ loans, sales, payments, expenses, onDeletePa
     setEditingChart(false);
   };
 
+  // Interest chart - monthly interest received (last 12 months)
+  const [interestOverrides, setInterestOverrides] = useLocalStorage<Record<string, number>>("hvcred-interest-overrides", {});
+  const [editingInterest, setEditingInterest] = useState(false);
+  const [tempInterestOverrides, setTempInterestOverrides] = useState<Record<string, string>>({});
+
+  const interestChartBase = useMemo(() => {
+    const now = new Date();
+    const months: { month: string; juros: number }[] = [];
+    for (let i = 11; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const end = new Date(d.getFullYear(), d.getMonth() + 1, 0, 23, 59, 59, 999);
+      const label = `${monthNames[d.getMonth()].slice(0, 3)}/${String(d.getFullYear()).slice(2)}`;
+      let interestInMonth = 0;
+      loans.forEach((l) => {
+        const loanPayments = payments.filter((p) => {
+          const pd = new Date(p.date + "T00:00:00");
+          return p.loanId === l.id && pd >= d && pd <= end;
+        });
+        const installmentAmount = calculateInstallment(l.amount, l.interestRate, l.installments);
+        const principalPerInstallment = l.installments > 0 ? l.amount / l.installments : 0;
+        loanPayments.forEach((p) => {
+          if (p.installmentNumber === 0) {
+            interestInMonth += p.amount;
+          } else if (p.installmentNumber > 0) {
+            interestInMonth += installmentAmount - principalPerInstallment;
+          }
+        });
+      });
+      months.push({ month: label, juros: interestInMonth });
+    }
+    return months;
+  }, [loans, payments]);
+
+  const interestChart = useMemo(() => {
+    return interestChartBase.map((m) => ({
+      month: m.month,
+      juros: interestOverrides[m.month] ?? m.juros,
+    }));
+  }, [interestChartBase, interestOverrides]);
+
+  const startEditInterest = () => {
+    const temp: Record<string, string> = {};
+    interestChart.forEach((m) => { temp[m.month] = String(m.juros); });
+    setTempInterestOverrides(temp);
+    setEditingInterest(true);
+  };
+
+  const saveInterestOverrides = () => {
+    const newOverrides: Record<string, number> = {};
+    interestChartBase.forEach((m) => {
+      const val = parseFloat(tempInterestOverrides[m.month]) || 0;
+      if (val !== m.juros) newOverrides[m.month] = val;
+    });
+    setInterestOverrides(newOverrides);
+    setEditingInterest(false);
+  };
+
+  const resetInterestOverrides = () => {
+    setInterestOverrides({});
+    setEditingInterest(false);
+  };
+
   const handleChangePeriod = (p: Period) => { setPeriod(p); setOffset(0); };
 
   const startEditBalance = () => { setTempBalance(String(accountBalance)); setEditingBalance(true); };
