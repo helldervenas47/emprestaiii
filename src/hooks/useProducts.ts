@@ -147,6 +147,7 @@ export function useProducts() {
     if (data.paymentMode !== undefined) updateData.payment_mode = data.paymentMode;
     if (data.businessType !== undefined) updateData.business_type = data.businessType;
     if (data.notes !== undefined) updateData.notes = data.notes || "";
+    if (data.date !== undefined) updateData.sale_date = data.date;
     await supabase.from("sales").update(updateData as any).eq("id", id);
   }, [user]);
 
