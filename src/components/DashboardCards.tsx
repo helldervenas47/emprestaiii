@@ -1,6 +1,7 @@
 import { DollarSign, TrendingUp, Users, AlertTriangle } from "lucide-react";
 import { Loan, Payment } from "@/types/loan";
 import { calculateTotalWithInterest, getLoanRemainingAmount } from "@/hooks/useLoans";
+import { useHideValues } from "@/contexts/HideValuesContext";
 
 interface Props {
   loans: Loan[];
@@ -8,7 +9,7 @@ interface Props {
 }
 
 export function DashboardCards({ loans, payments }: Props) {
-  const activeLoansData = loans.filter((l) => l.status !== "paid");
+  const { mask } = useHideValues();
   
   const totalLent = activeLoansData.reduce((sum, l) => sum + l.amount, 0);
   const totalToReceive = activeLoansData.reduce((sum, l) => sum + getLoanRemainingAmount(l, payments), 0);
@@ -71,7 +72,7 @@ export function DashboardCards({ loans, payments }: Props) {
               <card.icon className={`h-4 w-4 ${card.accentClass}`} />
             </div>
           </div>
-          <p className={`text-2xl font-bold ${card.accentClass}`}>{card.value}</p>
+          <p className={`text-2xl font-bold ${card.accentClass}`}>{card.isCurrency ? mask(card.value) : card.value}</p>
           {card.subtitle && (
             <p className="text-xs mt-2 text-muted-foreground flex items-center gap-1">
               {card.subtitleIcon && <card.subtitleIcon className="h-3 w-3 text-destructive" />}
