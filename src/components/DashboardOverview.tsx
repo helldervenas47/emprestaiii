@@ -233,7 +233,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, onDeletePa
   }, [loans, payments]);
 
   // Manual overrides for monthly chart values
-  const [chartOverrides, setChartOverrides] = useLocalStorage<Record<string, { emprestado?: number; recebido?: number }>>("hvcred-chart-overrides", {});
+  // chartOverrides already declared above
   const [editingChart, setEditingChart] = useState(false);
   const [tempOverrides, setTempOverrides] = useState<Record<string, { emprestado: string; recebido: string }>>({});
 
