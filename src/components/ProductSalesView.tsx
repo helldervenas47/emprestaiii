@@ -1,10 +1,12 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { Sale, BusinessType } from "@/types/loan";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Trash2, Search, ShoppingCart, Tv, Car } from "lucide-react";
+import { Trash2, Search, ShoppingCart, Tv, Car, Calendar, DollarSign, User } from "lucide-react";
 import { useHideValues } from "@/contexts/HideValuesContext";
 
 interface Props {
@@ -12,7 +14,7 @@ interface Props {
   onDeleteSale: (id: string) => void;
 }
 
-function formatCurrency(v: number) {
+function rawFormatCurrency(v: number) {
   return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v);
 }
 
@@ -22,9 +24,116 @@ const businessTabs: { type: BusinessType; label: string; icon: React.ElementType
   { type: "aluguel_veiculo", label: "Aluguel de Veículos", icon: Car },
 ];
 
+function SaleCard({ sale, onDelete, formatCurrency }: { sale: Sale; onDelete: () => void; formatCurrency: (v: number) => string }) {
+  const TabIcon = businessTabs.find((t) => t.type === sale.businessType)?.icon || ShoppingCart;
+  const isRecorrente = sale.paymentMode === "recorrente" && sale.installments > 1;
+  const valorParcela = sale.installments > 0 ? sale.total / sale.installments : sale.total;
+  const totalPago = isRecorrente ? valorParcela * sale.paidInstallments : 0;
+  const saldo = Math.max(0, sale.total - totalPago);
+  const progress = isRecorrente && sale.installments > 0 ? (sale.paidInstallments / sale.installments) * 100 : 0;
+  const isPaid = isRecorrente ? sale.paidInstallments >= sale.installments : true;
+
+  return (
+    <Card className="overflow-hidden border-border/50 hover:border-border transition-all">
+      <CardContent className="p-4 space-y-3">
+        {/* Header */}
+        <div className="flex items-center gap-3">
+          <div className={`h-10 w-10 rounded-full flex items-center justify-center text-primary-foreground font-bold text-xs shrink-0 ${
+            isPaid && isRecorrente ? "bg-success" : "gradient-primary"
+          }`}>
+            <TabIcon className="h-5 w-5" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="font-semibold text-sm text-foreground truncate">{sale.description || sale.productName}</p>
+            {sale.customerName && (
+              <p className="text-xs text-muted-foreground flex items-center gap-1 truncate">
+                <User className="h-3 w-3 shrink-0" />{sale.customerName}
+              </p>
+            )}
+          </div>
+          <div className="flex items-center gap-1.5">
+            {isPaid && isRecorrente ? (
+              <Badge className="bg-success/20 text-success border-success/30 text-xs">Pago</Badge>
+            ) : isRecorrente ? (
+              <Badge className="bg-warning/20 text-warning border-warning/30 text-xs">Pendente</Badge>
+            ) : (
+              <Badge className="bg-primary/20 text-primary border-primary/30 text-xs">Fixa</Badge>
+            )}
+          </div>
+        </div>
+
+        {/* Valor central */}
+        <div className="text-center py-1">
+          <p className={`text-2xl font-bold ${isRecorrente && saldo > 0 ? "text-primary" : "text-success"}`}>
+            {formatCurrency(isRecorrente ? saldo : sale.total)}
+          </p>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            {isRecorrente ? "saldo restante" : "valor total"}
+          </p>
+        </div>
+
+        {/* Info grid */}
+        <div className="grid grid-cols-2 gap-3 border border-border/50 rounded-lg p-3">
+          <div>
+            <p className="text-xs text-muted-foreground">Valor Total</p>
+            <p className="text-sm font-bold text-foreground">{formatCurrency(sale.total)}</p>
+          </div>
+          {isRecorrente ? (
+            <div>
+              <p className="text-xs text-muted-foreground">Valor Parcela</p>
+              <p className="text-sm font-bold text-foreground">{formatCurrency(valorParcela)}</p>
+            </div>
+          ) : (
+            <div>
+              <p className="text-xs text-muted-foreground">Quantidade</p>
+              <p className="text-sm font-bold text-foreground">{sale.quantity}</p>
+            </div>
+          )}
+        </div>
+
+        {isRecorrente && (
+          <>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="bg-success/5 border border-success/20 rounded-lg px-3 py-2">
+                <p className="text-xs text-muted-foreground">💰 Pago</p>
+                <p className="text-sm font-bold text-success">{formatCurrency(totalPago)}</p>
+              </div>
+              <div className="bg-muted/30 border border-border/50 rounded-lg px-3 py-2">
+                <p className="text-xs text-muted-foreground">📋 Parcelas</p>
+                <p className="text-sm font-bold text-foreground">{sale.paidInstallments}/{sale.installments}</p>
+              </div>
+            </div>
+
+            {/* Progress */}
+            <div>
+              <div className="flex justify-between text-xs mb-1">
+                <span className="text-muted-foreground">{sale.paidInstallments}/{sale.installments} parcelas</span>
+                <span className="font-medium text-foreground">{Math.round(progress)}%</span>
+              </div>
+              <Progress value={progress} className="h-2.5" />
+            </div>
+          </>
+        )}
+
+        {/* Footer: date + delete */}
+        <div className="flex items-center justify-between pt-1">
+          <p className="text-xs text-muted-foreground flex items-center gap-1">
+            <Calendar className="h-3 w-3" />
+            {new Date(sale.date + "T00:00:00").toLocaleDateString("pt-BR")}
+          </p>
+          <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive hover:bg-destructive hover:text-destructive-foreground" onClick={onDelete}>
+            <Trash2 className="h-4 w-4" />
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
 function SalesList({ sales, onDeleteSale }: { sales: Sale[]; onDeleteSale: (id: string) => void }) {
   const [search, setSearch] = useState("");
   const { mask } = useHideValues();
+  const formatCurrency = useCallback((v: number) => mask(rawFormatCurrency(v)), [mask]);
 
   const filtered = sales.filter((s) => {
     const q = search.toLowerCase();
@@ -44,7 +153,7 @@ function SalesList({ sales, onDeleteSale }: { sales: Sale[]; onDeleteSale: (id: 
         </div>
         <div className="text-right shrink-0">
           <p className="text-xs text-muted-foreground">{sales.length} lançamento(s)</p>
-          <p className="text-lg font-bold">{mask(formatCurrency(total))}</p>
+          <p className="text-lg font-bold">{formatCurrency(total)}</p>
         </div>
       </div>
 
@@ -54,43 +163,15 @@ function SalesList({ sales, onDeleteSale }: { sales: Sale[]; onDeleteSale: (id: 
           <p className="text-muted-foreground">Nenhum lançamento encontrado</p>
         </CardContent></Card>
       ) : (
-        <div className="space-y-2">
-          {filtered.map((sale) => {
-            const TabIcon = businessTabs.find((t) => t.type === sale.businessType)?.icon || ShoppingCart;
-            const isRecorrente = sale.paymentMode === "recorrente" && sale.installments > 1;
-            return (
-              <div key={sale.id} className="flex items-center gap-4 px-4 py-3 bg-card rounded-lg border hover:shadow-sm transition-shadow">
-                <div className="h-8 w-8 rounded-full gradient-success flex items-center justify-center shrink-0">
-                  <TabIcon className="h-4 w-4 text-primary-foreground" />
-                </div>
-                <div className="min-w-[120px] flex-1">
-                  <p className="font-medium text-sm">{sale.description || sale.productName}</p>
-                  <p className="text-xs text-muted-foreground">{new Date(sale.date).toLocaleDateString("pt-BR")}</p>
-                </div>
-                <div className="hidden sm:block min-w-[80px]">
-                  <p className="text-xs text-muted-foreground">Cliente</p>
-                  <p className="text-sm">{sale.customerName || "—"}</p>
-                </div>
-                {isRecorrente && (
-                  <div className="min-w-[70px]">
-                    <p className="text-xs text-muted-foreground">Parcelas</p>
-                    <p className="text-sm font-semibold">{sale.paidInstallments}/{sale.installments}</p>
-                  </div>
-                )}
-                <div className="min-w-[50px]">
-                  <p className="text-xs text-muted-foreground">Qtd</p>
-                  <p className="text-sm font-semibold">{sale.quantity}</p>
-                </div>
-                <div className="min-w-[80px]">
-                  <p className="text-xs text-muted-foreground">Total</p>
-                  <p className="text-sm font-semibold">{mask(formatCurrency(sale.total))}</p>
-                </div>
-                <Button size="icon" variant="ghost" className="h-8 w-8 ml-auto text-destructive hover:bg-destructive hover:text-destructive-foreground" onClick={() => onDeleteSale(sale.id)}>
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              </div>
-            );
-          })}
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+          {filtered.map((sale) => (
+            <SaleCard
+              key={sale.id}
+              sale={sale}
+              onDelete={() => onDeleteSale(sale.id)}
+              formatCurrency={formatCurrency}
+            />
+          ))}
         </div>
       )}
     </div>
