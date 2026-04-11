@@ -628,7 +628,7 @@ function LoanRowView({
   const [form, setForm] = useState<EditForm>(loanToForm(loan));
   const [showPartial, setShowPartial] = useState(false);
   const [partialAmount, setPartialAmount] = useState("");
-  const [paymentDialog, setPaymentDialog] = useState<{ type: "installment" | "interest" | "partial"; amount?: number } | null>(null);
+  const [paymentDialog, setPaymentDialog] = useState<{ type: "installment" | "interest" | "partial" | "full"; amount?: number } | null>(null);
   const [paymentDate, setPaymentDate] = useState<Date>(new Date());
 
   const total = calculateTotalWithInterest(loan.amount, loan.interestRate, loan.installments);
