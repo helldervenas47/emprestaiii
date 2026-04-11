@@ -150,45 +150,52 @@ export function importClientsFromCSV(csv: string): Omit<Client, "id" | "createdA
 }
 
 export function exportSalesToCSV(sales: Sale[]): string {
-  const headers = ["Descrição", "Produto", "Cliente", "Quantidade", "Total", "Tipo Negócio", "Modo Pagamento", "Parcelas", "Parcelas Pagas", "Data"];
-  const typeMap: Record<string, string> = { venda: "Venda", streaming: "Streaming", aluguel_veiculo: "Aluguel de Veículos" };
-  const rows = sales.map((s) => [
-    s.description,
-    s.productName,
-    s.customerName,
-    s.quantity.toString(),
-    s.total.toFixed(2),
-    typeMap[s.businessType] || s.businessType,
-    s.paymentMode === "recorrente" ? "Recorrente" : "Fixa",
-    s.installments.toString(),
-    s.paidInstallments.toString(),
-    formatDateBR(s.date),
-  ]);
+  const headers = ["Produto", "Cliente", "Telefone", "Valor Total", "Entrada", "Parcelas", "Valor Parcela", "Total Pago", "Saldo", "Status", "Data Venda", "Criado em"];
+  const rows = sales.map((s) => {
+    const valorParcela = s.installments > 0 ? (s.total / s.installments) : s.total;
+    const totalPago = s.installments > 0 ? valorParcela * s.paidInstallments : (s.paidInstallments > 0 ? s.total : 0);
+    const saldo = Math.max(0, s.total - totalPago);
+    const status = saldo <= 0 ? "Pago" : "Pendente";
+    return [
+      s.productName || s.description,
+      s.customerName,
+      "",
+      s.total.toFixed(2),
+      "0",
+      s.installments.toString(),
+      valorParcela.toFixed(2),
+      totalPago.toFixed(2),
+      saldo.toFixed(2),
+      status,
+      formatDateBR(s.date),
+      formatDateBR(s.date),
+    ];
+  });
   return [headers, ...rows].map((r) => r.map((c) => `"${c.replace(/"/g, '""')}"`).join(",")).join("\n");
 }
 
 export function importSalesFromCSV(csv: string): Omit<Sale, "id">[] {
   const lines = csv.split("\n").filter((l) => l.trim());
   if (lines.length < 2) return [];
-  const typeReverseMap: Record<string, string> = { venda: "venda", streaming: "streaming", "aluguel de veículos": "aluguel_veiculo" };
   return lines.slice(1).map((line) => {
     const cols = parseCSVLine(line);
-    const businessTypeRaw = (cols[5] || "").toLowerCase();
-    const businessType = (typeReverseMap[businessTypeRaw] || "venda") as Sale["businessType"];
-    const paymentModeRaw = (cols[6] || "").toLowerCase();
-    const paymentMode = paymentModeRaw === "recorrente" ? "recorrente" : "fixa" as Sale["paymentMode"];
+    const total = parseFloat(cols[3]) || 0;
+    const installments = parseInt(cols[5]) || 1;
+    const totalPago = parseFloat(cols[7]) || 0;
+    const valorParcela = parseFloat(cols[6]) || (installments > 0 ? total / installments : total);
+    const paidInstallments = valorParcela > 0 ? Math.round(totalPago / valorParcela) : 0;
     return {
       description: cols[0] || "",
-      productName: cols[1] || "",
-      customerName: cols[2] || "",
-      quantity: parseInt(cols[3]) || 1,
+      productName: cols[0] || "",
+      customerName: cols[1] || "",
+      quantity: 1,
       unitPrice: 0,
-      total: parseFloat(cols[4]) || 0,
-      businessType,
-      paymentMode,
-      installments: parseInt(cols[7]) || 1,
-      paidInstallments: parseInt(cols[8]) || 0,
-      date: parseDateBR(cols[9]),
+      total,
+      businessType: "venda" as Sale["businessType"],
+      paymentMode: (installments > 1 ? "recorrente" : "fixa") as Sale["paymentMode"],
+      installments,
+      paidInstallments,
+      date: parseDateBR(cols[10]),
     };
   });
 }
