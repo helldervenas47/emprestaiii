@@ -668,6 +668,72 @@ export function DashboardOverview({ loans, sales, payments, expenses, onDeletePa
         </CardContent>
       </Card>
 
+      {/* Interest Received Monthly Chart */}
+      <Card>
+        <CardContent className="p-6">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-sm font-semibold text-foreground">Juros Recebidos por Mês (Últimos 12 Meses)</h3>
+            <div className="flex items-center gap-1">
+              {editingInterest ? (
+                <>
+                  <Button variant="ghost" size="sm" onClick={resetInterestOverrides} className="text-xs text-muted-foreground">Resetar</Button>
+                  <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setEditingInterest(false)}><X className="h-3.5 w-3.5 text-destructive" /></Button>
+                  <Button variant="ghost" size="icon" className="h-7 w-7" onClick={saveInterestOverrides}><Check className="h-3.5 w-3.5 text-success" /></Button>
+                </>
+              ) : (
+                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={startEditInterest} title="Ajustar valores manualmente">
+                  <Pencil className="h-4 w-4 text-muted-foreground" />
+                </Button>
+              )}
+            </div>
+          </div>
+
+          {editingInterest && (
+            <div className="mb-4 max-h-60 overflow-y-auto border rounded-lg">
+              <table className="w-full text-xs">
+                <thead className="bg-muted/50 sticky top-0">
+                  <tr>
+                    <th className="text-left p-2 font-medium text-muted-foreground">Mês</th>
+                    <th className="text-right p-2 font-medium text-primary">Juros Recebido</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {interestChart.map((m) => (
+                    <tr key={m.month} className="border-t border-border/50">
+                      <td className="p-2 font-medium">{m.month}</td>
+                      <td className="p-2">
+                        <Input
+                          type="number" step="0.01"
+                          value={tempInterestOverrides[m.month] ?? ""}
+                          onChange={(e) => setTempInterestOverrides((prev) => ({ ...prev, [m.month]: e.target.value }))}
+                          className="h-7 w-28 text-xs text-right ml-auto"
+                        />
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          <div className="h-72">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={interestChart} margin={{ top: 5, right: 10, left: 10, bottom: 5 }}>
+                <CartesianGrid strokeDasharray="3 3" className="stroke-muted/30" />
+                <XAxis dataKey="month" tick={{ fontSize: 11 }} className="text-muted-foreground" />
+                <YAxis tick={{ fontSize: 11 }} tickFormatter={(v) => `R$${(v / 1000).toFixed(0)}k`} className="text-muted-foreground" />
+                <Tooltip
+                  formatter={(value: number) => [formatCurrency(value), "Juros Recebido"]}
+                  contentStyle={{ borderRadius: "8px", border: "1px solid hsl(var(--border))", backgroundColor: "hsl(var(--card))" }}
+                />
+                <Legend formatter={() => "Juros Recebido"} />
+                <Bar dataKey="juros" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </CardContent>
+      </Card>
+
 
       {/* Breakdown */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
