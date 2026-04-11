@@ -11,6 +11,7 @@ export interface Loan {
   installments: number;
   paidInstallments: number;
   status: "active" | "paid" | "overdue";
+  remainingAmount?: number;
   tags?: string[];
   notes?: string;
   createdAt: string;
