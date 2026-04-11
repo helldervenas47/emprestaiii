@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Trash2, Search, ShoppingCart, Tv, Car, Calendar, User, Pencil, ChevronDown, ChevronUp, CheckCircle, HandCoins, Check, X as XIcon } from "lucide-react";
+import { Trash2, Search, ShoppingCart, Tv, Car, Calendar, User, Pencil, ChevronDown, ChevronUp, CheckCircle, HandCoins, Check, X as XIcon, DollarSign, AlertTriangle, Clock, CircleCheck } from "lucide-react";
 import { addMonths, format } from "date-fns";
 import { useHideValues } from "@/contexts/HideValuesContext";
 import { SaleEditForm } from "@/components/SaleEditForm";
@@ -282,8 +282,62 @@ function SalesList({ sales, onDeleteSale, onUpdateSale }: { sales: Sale[]; onDel
 
   const total = filtered.reduce((acc, s) => acc + s.total, 0);
 
+  // Calculate receivables per category
+  const getRemaining = (s: Sale) => {
+    const valorParcela = s.installments > 0 ? s.total / s.installments : s.total;
+    const paid = valorParcela * s.paidInstallments;
+    return Math.max(0, s.total - paid);
+  };
+
+  const overdueSales = sales.filter((s) => getSaleCategory(s) === "overdue");
+  const onTrackSales = sales.filter((s) => getSaleCategory(s) === "on_track");
+  const dueTodaySales = sales.filter((s) => getSaleCategory(s) === "due_today");
+  const paidSales = sales.filter((s) => getSaleCategory(s) === "paid");
+
+  const totalOverdue = overdueSales.reduce((acc, s) => acc + getRemaining(s), 0);
+  const totalOnTrack = onTrackSales.reduce((acc, s) => acc + getRemaining(s), 0);
+  const totalDueToday = dueTodaySales.reduce((acc, s) => acc + getRemaining(s), 0);
+  const totalPaid = paidSales.reduce((acc, s) => acc + s.total, 0);
+  const totalAReceber = totalOverdue + totalOnTrack + totalDueToday;
+
   return (
     <div className="space-y-4">
+      {/* Dashboard cards */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <div className="rounded-xl p-4 bg-gradient-to-br from-destructive/80 to-destructive text-destructive-foreground">
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-xs font-medium opacity-90">Vencidos</p>
+            <AlertTriangle className="h-4 w-4 opacity-70" />
+          </div>
+          <p className="text-xl font-bold">{formatCurrency(totalOverdue)}</p>
+          <p className="text-xs opacity-75 mt-1">{overdueSales.length} contratos</p>
+        </div>
+        <div className="rounded-xl p-4 bg-gradient-to-br from-primary/80 to-primary text-primary-foreground">
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-xs font-medium opacity-90">No Prazo</p>
+            <Clock className="h-4 w-4 opacity-70" />
+          </div>
+          <p className="text-xl font-bold">{formatCurrency(totalOnTrack + totalDueToday)}</p>
+          <p className="text-xs opacity-75 mt-1">{onTrackSales.length + dueTodaySales.length} contratos</p>
+        </div>
+        <div className="rounded-xl p-4 bg-gradient-to-br from-success/80 to-success text-success-foreground">
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-xs font-medium opacity-90">Pagos</p>
+            <CircleCheck className="h-4 w-4 opacity-70" />
+          </div>
+          <p className="text-xl font-bold">{formatCurrency(totalPaid)}</p>
+          <p className="text-xs opacity-75 mt-1">{paidSales.length} contratos</p>
+        </div>
+        <div className="rounded-xl p-4 bg-gradient-to-br from-warning/80 to-warning text-warning-foreground">
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-xs font-medium opacity-90">Total a Receber</p>
+            <DollarSign className="h-4 w-4 opacity-70" />
+          </div>
+          <p className="text-xl font-bold">{formatCurrency(totalAReceber)}</p>
+          <p className="text-xs opacity-75 mt-1">{overdueSales.length + onTrackSales.length + dueTodaySales.length} contratos</p>
+        </div>
+      </div>
+
       {/* Category filter pills */}
       <div className="flex flex-wrap gap-2">
         {saleCategoryFilters.map((cat) => {
