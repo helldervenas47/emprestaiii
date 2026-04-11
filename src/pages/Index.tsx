@@ -328,6 +328,7 @@ const Index = () => {
           <ProductSalesView
             sales={sales}
             onDeleteSale={deleteSale}
+            onUpdateSale={updateSale}
           />
         )}
       </main>
