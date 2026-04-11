@@ -880,17 +880,24 @@ export function LoanList({ loans, payments, onPayment, onPartialPayment, onInter
 
   const summaryData = useMemo(() => {
     const source = categorized;
-    const totalLent = source.reduce((s, l) => s + l.amount, 0);
-    const totalToReceive = source
-      .filter((l) => l.status !== "paid")
-      .reduce((s, l) => s + calculateTotalWithInterest(l.amount, l.interestRate, l.installments), 0);
+    const activeSource = source.filter((l) => l.status !== "paid");
+    const totalLent = activeSource.reduce((s, l) => s + l.amount, 0);
+    
+    // Total a receber = total esperado com juros - pagamentos já recebidos
+    const totalExpected = activeSource.reduce((s, l) => s + calculateTotalWithInterest(l.amount, l.interestRate, l.installments), 0);
+    const totalPaidAmount = activeSource.reduce((s, l) => {
+      const loanPayments = payments.filter((p) => p.loanId === l.id);
+      return s + loanPayments.reduce((ss, p) => ss + p.amount, 0);
+    }, 0);
+    const totalToReceive = Math.max(0, totalExpected - totalPaidAmount);
+    
     const totalInterest = source.reduce(
       (s, l) => s + (calculateTotalWithInterest(l.amount, l.interestRate, l.installments) - l.amount), 0
     );
     const activeCount = source.filter((l) => l.status === "active").length;
     const overdueCount = source.filter((l) => getDaysOverdue(l) > 0 && l.status !== "paid").length;
     return { totalLent, totalToReceive, totalInterest, activeCount, overdueCount };
-  }, [categorized]);
+  }, [categorized, payments]);
 
   if (loans.length === 0) {
     return (
@@ -910,7 +917,7 @@ export function LoanList({ loans, payments, onPayment, onPartialPayment, onInter
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="gradient-primary rounded-xl p-5 text-primary-foreground shadow-lg">
           <div className="flex items-center justify-between mb-3">
-            <span className="text-sm font-medium opacity-90">Total Emprestado</span>
+            <span className="text-sm font-medium opacity-90">Capital na Rua</span>
             <DollarSign className="h-5 w-5 opacity-80" />
           </div>
           <p className="text-2xl font-bold">{formatCurrency(summaryData.totalLent)}</p>

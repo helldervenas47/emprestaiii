@@ -158,7 +158,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, onDeletePa
     return { totalIncome, incomeFromPayments, incomeFromSales, totalOutgoing, totalLoanOutgoing, totalExpenses, balance, transactions, loanCount: filteredLoans.length, saleCount: filteredSales.length, paymentCount: filteredPayments.length, expenseCount: filteredExpenses.length, avgInterestRate };
   }, [loans, sales, payments, expenses, range, includeSales, period, chartOverrides]);
 
-  // Portfolio metrics (filtered by period)
+  // Portfolio metrics
   const portfolio = useMemo(() => {
     // Filter loans that were active/created within or before the period
     const loansInPeriod = loans.filter((l) => {
@@ -168,18 +168,27 @@ export function DashboardOverview({ loans, sales, payments, expenses, onDeletePa
     const activeLoansInPeriod = loansInPeriod.filter((l) => l.status !== "paid");
     const totalLoans = loansInPeriod.length;
 
-    // Payments within period
+    // Payments within period (for period-specific metrics)
     const paymentsInPeriod = payments.filter((p) => isInRange(p.date, range.start, range.end));
 
-    // Capital na rua = principal of active loans started up to end of period
+    // ALL payments for active loans (for capital/total a receber - global accuracy)
+    const allPaymentsForActiveLoans = payments.filter((p) => activeLoansInPeriod.some((l) => l.id === p.loanId));
+
+    // Capital na rua = principal of active loans
     const capitalOnStreet = activeLoansInPeriod.reduce((s, l) => s + l.amount, 0);
-    // Total expected from loans in period
+    
+    // Total expected from ALL loans in period
     const totalExpected = loansInPeriod.reduce((s, l) => s + calculateTotalWithInterest(l.amount, l.interestRate, l.installments), 0);
     const totalPrincipal = loansInPeriod.reduce((s, l) => s + l.amount, 0);
     const totalInterestExpected = totalExpected - totalPrincipal;
 
-    // Total received in period
+    // Total received in period (for period display)
     const totalReceived = paymentsInPeriod.reduce((s, p) => s + p.amount, 0);
+
+    // Total a receber = expected from ACTIVE loans minus ALL payments already made on those loans
+    const totalExpectedActive = activeLoansInPeriod.reduce((s, l) => s + calculateTotalWithInterest(l.amount, l.interestRate, l.installments), 0);
+    const totalAlreadyPaid = allPaymentsForActiveLoans.reduce((s, p) => s + p.amount, 0);
+    const totalToReceive = Math.max(0, totalExpectedActive - totalAlreadyPaid);
 
     // Split received into principal vs interest per loan (only payments in period)
     let principalReceived = 0;
@@ -202,14 +211,13 @@ export function DashboardOverview({ loans, sales, payments, expenses, onDeletePa
 
     const principalToReceive = Math.max(0, totalPrincipal - principalReceived);
     const interestToReceive = Math.max(0, totalInterestExpected - interestReceived);
-    const totalToReceive = Math.max(0, totalExpected - totalReceived);
 
     // Overdue within period
     const endStr = range.end.toISOString().split("T")[0];
     const overdueLoans = activeLoansInPeriod.filter((l) => l.dueDate <= endStr);
     const overdueAmount = overdueLoans.reduce((s, l) => {
       const expected = calculateTotalWithInterest(l.amount, l.interestRate, l.installments);
-      const paid = paymentsInPeriod.filter((p) => p.loanId === l.id).reduce((ss, p) => ss + p.amount, 0);
+      const paid = payments.filter((p) => p.loanId === l.id).reduce((ss, p) => ss + p.amount, 0);
       return s + Math.max(0, expected - paid);
     }, 0);
 

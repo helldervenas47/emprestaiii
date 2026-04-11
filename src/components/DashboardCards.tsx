@@ -1,26 +1,36 @@
 import { DollarSign, TrendingUp, Users, AlertTriangle } from "lucide-react";
-import { Loan } from "@/types/loan";
+import { Loan, Payment } from "@/types/loan";
 import { calculateTotalWithInterest } from "@/hooks/useLoans";
 
 interface Props {
   loans: Loan[];
+  payments: Payment[];
 }
 
-export function DashboardCards({ loans }: Props) {
-  const totalLent = loans.reduce((sum, l) => sum + l.amount, 0);
-  const totalToReceive = loans
-    .filter((l) => l.status !== "paid")
-    .reduce((sum, l) => sum + calculateTotalWithInterest(l.amount, l.interestRate, l.installments), 0);
+export function DashboardCards({ loans, payments }: Props) {
+  const activeLoansData = loans.filter((l) => l.status !== "paid");
+  
+  // Capital na rua = principal dos empréstimos ativos
+  const totalLent = activeLoansData.reduce((sum, l) => sum + l.amount, 0);
+  
+  // Total a receber = total esperado (com juros) - pagamentos já recebidos dos empréstimos ativos
+  const totalExpected = activeLoansData.reduce((sum, l) => sum + calculateTotalWithInterest(l.amount, l.interestRate, l.installments), 0);
+  const totalPaid = activeLoansData.reduce((sum, l) => {
+    const loanPayments = payments.filter((p) => p.loanId === l.id);
+    return sum + loanPayments.reduce((s, p) => s + p.amount, 0);
+  }, 0);
+  const totalToReceive = Math.max(0, totalExpected - totalPaid);
+  
   const totalInterest = loans.reduce(
     (sum, l) => sum + (calculateTotalWithInterest(l.amount, l.interestRate, l.installments) - l.amount),
     0
   );
-  const activeLoans = loans.filter((l) => l.status === "active").length;
+  const activeLoans = activeLoansData.length;
   const overdueLoans = loans.filter((l) => l.status === "overdue").length;
 
   const cards = [
     {
-      title: "Total Emprestado",
+      title: "Capital na Rua",
       value: formatCurrency(totalLent),
       icon: DollarSign,
       accentClass: "text-primary",
