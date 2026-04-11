@@ -42,6 +42,7 @@ export function BillingCalendar({ loans, payments }: Props) {
     const map: Record<string, DueItem[]> = {};
 
     loans.forEach((loan) => {
+      if (loan.status === "paid") return;
       if (loan.installments <= 0) return;
       const installmentAmount = calculateInstallment(loan.amount, loan.interestRate, loan.installments);
       const loanPayments = payments.filter((p) => p.loanId === loan.id);
@@ -50,11 +51,13 @@ export function BillingCalendar({ loans, payments }: Props) {
       );
 
       const start = new Date(loan.startDate + "T00:00:00");
+      const addedDates = new Set<string>();
 
       for (let i = 1; i <= loan.installments; i++) {
-        if (paidInstallmentNumbers.has(i)) continue; // Skip paid installments
+        if (paidInstallmentNumbers.has(i)) continue;
         const dueDate = new Date(start.getFullYear(), start.getMonth() + i, start.getDate());
         const dateStr = dueDate.toISOString().split("T")[0];
+        addedDates.add(dateStr);
 
         if (!map[dateStr]) map[dateStr] = [];
         map[dateStr].push({
@@ -66,6 +69,23 @@ export function BillingCalendar({ loans, payments }: Props) {
           paid: false,
           date: dateStr,
         });
+      }
+
+      // Also add using loan.dueDate if not already covered
+      if (loan.dueDate && !addedDates.has(loan.dueDate) && loan.paidInstallments < loan.installments) {
+        const nextInstallment = loan.paidInstallments + 1;
+        if (!paidInstallmentNumbers.has(nextInstallment)) {
+          if (!map[loan.dueDate]) map[loan.dueDate] = [];
+          map[loan.dueDate].push({
+            loanId: loan.id,
+            borrowerName: loan.borrowerName,
+            installmentNumber: nextInstallment,
+            totalInstallments: loan.installments,
+            amount: installmentAmount,
+            paid: false,
+            date: loan.dueDate,
+          });
+        }
       }
     });
 
