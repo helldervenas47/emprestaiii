@@ -100,19 +100,34 @@ export function DashboardOverview({ loans, sales, payments, expenses, onDeletePa
 
   const range = useMemo(() => getRange(period, offset), [period, offset]);
 
+  // Helper to get chart month label from a date range
+  const getChartLabel = (start: Date) => {
+    return `${monthNames[start.getMonth()].slice(0, 3)}/${String(start.getFullYear()).slice(2)}`;
+  };
+
   const data = useMemo(() => {
     const filteredPayments = payments.filter((p) => isInRange(p.date, range.start, range.end));
     const filteredSales = sales.filter((s) => isInRange(s.date, range.start, range.end));
-    const incomeFromPayments = filteredPayments.reduce((s, p) => s + p.amount, 0);
+    let incomeFromPayments = filteredPayments.reduce((s, p) => s + p.amount, 0);
     const incomeFromSales = filteredSales.reduce((s, sale) => s + sale.total, 0);
-    const totalIncome = incomeFromPayments + (includeSales ? incomeFromSales : 0);
 
     const filteredLoans = loans.filter((l) => isInRange(l.startDate, range.start, range.end));
-    const totalLoanOutgoing = filteredLoans.reduce((s, l) => s + l.amount, 0);
+    let totalLoanOutgoing = filteredLoans.reduce((s, l) => s + l.amount, 0);
 
     const filteredExpenses = expenses.filter((e) => e.paid && e.paidDate && isInRange(e.paidDate, range.start, range.end));
     const totalExpenses = filteredExpenses.reduce((s, e) => s + e.amount, 0);
 
+    // Apply chart overrides when viewing a month period
+    if (period === "month") {
+      const label = getChartLabel(range.start);
+      const override = chartOverrides[label];
+      if (override) {
+        if (override.emprestado !== undefined) totalLoanOutgoing = override.emprestado;
+        if (override.recebido !== undefined) incomeFromPayments = override.recebido;
+      }
+    }
+
+    const totalIncome = incomeFromPayments + (includeSales ? incomeFromSales : 0);
     const totalOutgoing = totalLoanOutgoing + totalExpenses;
     const balance = totalIncome - totalOutgoing;
 
@@ -133,13 +148,12 @@ export function DashboardOverview({ loans, sales, payments, expenses, onDeletePa
     });
     transactions.sort((a, b) => b.date.localeCompare(a.date));
 
-    // Average interest rate of loans in the period
     const avgInterestRate = filteredLoans.length > 0
       ? filteredLoans.reduce((s, l) => s + l.interestRate, 0) / filteredLoans.length
       : 0;
 
     return { totalIncome, incomeFromPayments, incomeFromSales, totalOutgoing, totalLoanOutgoing, totalExpenses, balance, transactions, loanCount: filteredLoans.length, saleCount: filteredSales.length, paymentCount: filteredPayments.length, expenseCount: filteredExpenses.length, avgInterestRate };
-  }, [loans, sales, payments, expenses, range, includeSales]);
+  }, [loans, sales, payments, expenses, range, includeSales, period, chartOverrides]);
 
   // Portfolio metrics (global)
   const portfolio = useMemo(() => {
