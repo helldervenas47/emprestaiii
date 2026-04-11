@@ -21,6 +21,7 @@ export function useLoans() {
         interestType: l.interest_type, paymentType: l.payment_type,
         startDate: l.start_date, dueDate: l.due_date, installments: l.installments,
         paidInstallments: l.paid_installments, status: l.status as Loan["status"],
+        remainingAmount: l.remaining_amount != null ? Number(l.remaining_amount) : undefined,
         tags: l.tags, notes: l.notes, createdAt: l.created_at,
       })));
     }
@@ -57,6 +58,7 @@ export function useLoans() {
       interest_type: loan.interestType || "Mensal", payment_type: loan.paymentType || "Parcelado",
       start_date: loan.startDate, due_date: loan.dueDate, installments: loan.installments,
       paid_installments: loan.paidInstallments ?? 0, status, tags: loan.tags, notes: loan.notes,
+      remaining_amount: loan.remainingAmount ?? 0,
     }).select().single();
 
     if (error) {
@@ -168,6 +170,7 @@ export function useLoans() {
     if (data.status !== undefined) updateData.status = data.status;
     if (data.tags !== undefined) updateData.tags = data.tags;
     if (data.notes !== undefined) updateData.notes = data.notes;
+    if (data.remainingAmount !== undefined) updateData.remaining_amount = data.remainingAmount;
     await supabase.from("loans").update(updateData).eq("id", id);
   }, []);
 

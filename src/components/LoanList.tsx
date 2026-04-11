@@ -86,6 +86,7 @@ interface EditForm {
   notes: string;
   tags: string;
   interestType: string;
+  remainingAmount: string;
 }
 
 function loanToForm(loan: Loan): EditForm {
@@ -94,6 +95,8 @@ function loanToForm(loan: Loan): EditForm {
   const months = loan.installments;
   const interestValue = amt * (rate / 100);
   const installmentValue = calculateInstallment(amt, rate, months);
+  const total = calculateTotalWithInterest(amt, rate, months);
+  const totalPaidCalc = loan.remainingAmount != null ? loan.remainingAmount : total;
   return {
     borrowerName: loan.borrowerName,
     amount: String(amt),
@@ -107,6 +110,7 @@ function loanToForm(loan: Loan): EditForm {
     notes: loan.notes || "",
     tags: (loan.tags || []).join(", "),
     interestType: loan.interestType || "Mensal",
+    remainingAmount: String(totalPaidCalc),
   };
 }
 
@@ -140,7 +144,7 @@ function LoanCardView({
   const installment = calculateInstallment(loan.amount, loan.interestRate, loan.installments);
   const total = calculateTotalWithInterest(loan.amount, loan.interestRate, loan.installments);
   const totalPaid = getTotalPaid(loan, allPayments);
-  const remaining = Math.max(0, total - totalPaid);
+  const remaining = loan.remainingAmount != null && loan.remainingAmount > 0 ? loan.remainingAmount : Math.max(0, total - totalPaid);
   const progress = loan.installments > 0 ? (loan.paidInstallments / loan.installments) * 100 : 0;
   const interestOnly = loan.amount * (loan.interestRate / 100);
   const totalInterest = total - loan.amount;
@@ -172,6 +176,7 @@ function LoanCardView({
       interestType: form.interestType,
       notes: form.notes,
       tags: parsedTags,
+      remainingAmount: parseFloat(form.remainingAmount) || 0,
     });
     setEditing(false);
   };
@@ -255,6 +260,7 @@ function LoanCardView({
             <div><Label className="text-xs">Valor da Parcela (R$)</Label><Input type="number" step="0.01" value={form.installmentValue} onChange={(e) => updateField("installmentValue", e.target.value)} className="h-8 text-sm" /></div>
             <div><Label className="text-xs">Parcelas</Label><Input type="number" value={form.installments} onChange={(e) => updateField("installments", e.target.value)} className="h-8 text-sm" /></div>
             <div><Label className="text-xs">Parcelas Pagas</Label><Input type="number" value={form.paidInstallments} onChange={(e) => updateField("paidInstallments", e.target.value)} className="h-8 text-sm" /></div>
+            <div><Label className="text-xs">Restante a Receber (R$)</Label><Input type="number" step="0.01" value={form.remainingAmount} onChange={(e) => updateField("remainingAmount", e.target.value)} className="h-8 text-sm" /></div>
             <div><Label className="text-xs">Data Início</Label><Input type="date" value={form.startDate} onChange={(e) => updateField("startDate", e.target.value)} className="h-8 text-sm" /></div>
             <div>
               <Label className="text-xs">Data 1ª Parcela</Label>
@@ -688,7 +694,7 @@ function LoanRowView({
 
   const total = calculateTotalWithInterest(loan.amount, loan.interestRate, loan.installments);
   const totalPaid = getTotalPaid(loan, allPayments);
-  const remaining = Math.max(0, total - totalPaid);
+  const remaining = loan.remainingAmount != null && loan.remainingAmount > 0 ? loan.remainingAmount : Math.max(0, total - totalPaid);
   const category = getLoanCategory(loan, allPayments);
   const daysOverdue = getDaysOverdue(loan);
   const badge = statusMap[category];
