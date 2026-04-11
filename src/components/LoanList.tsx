@@ -557,8 +557,8 @@ function LoanCardView({
         <div className="flex flex-col gap-2 pt-2 border-t border-border/50 mt-auto">
           {loan.status !== "paid" && (
             <div className="flex gap-2">
-              <Button variant="outline" className="flex-1 h-9 text-xs" onClick={() => openPaymentDialog("installment")}>
-                <CheckCircle className="h-3.5 w-3.5 mr-1" /> Pagar
+              <Button variant="outline" className="flex-1 h-9 text-xs" onClick={() => openPaymentDialog("full")}>
+                <CheckCircle className="h-3.5 w-3.5 mr-1" /> Pagar Total
               </Button>
               <Button variant="outline" className="flex-1 h-9 text-xs" onClick={() => openPaymentDialog("interest")}>
                 <DollarSign className="h-3.5 w-3.5 mr-1" /> Pagar Juros
