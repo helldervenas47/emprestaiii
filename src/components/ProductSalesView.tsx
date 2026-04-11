@@ -4,9 +4,9 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Trash2, Search, ShoppingCart, Tv, Car, Calendar, DollarSign, User, Pencil } from "lucide-react";
+import { Trash2, Search, ShoppingCart, Tv, Car, Calendar, User, Pencil, ChevronDown, ChevronUp } from "lucide-react";
+import { addMonths, format } from "date-fns";
 import { useHideValues } from "@/contexts/HideValuesContext";
 import { SaleEditForm } from "@/components/SaleEditForm";
 
@@ -27,13 +27,26 @@ const businessTabs: { type: BusinessType; label: string; icon: React.ElementType
 ];
 
 function SaleCard({ sale, onDelete, onEdit, formatCurrency }: { sale: Sale; onDelete: () => void; onEdit: () => void; formatCurrency: (v: number) => string }) {
+  const [showParcelas, setShowParcelas] = useState(false);
   const TabIcon = businessTabs.find((t) => t.type === sale.businessType)?.icon || ShoppingCart;
   const isRecorrente = sale.paymentMode === "recorrente" && sale.installments > 1;
   const valorParcela = sale.installments > 0 ? sale.total / sale.installments : sale.total;
-  const totalPago = isRecorrente ? valorParcela * sale.paidInstallments : 0;
-  const saldo = Math.max(0, sale.total - totalPago);
-  const progress = isRecorrente && sale.installments > 0 ? (sale.paidInstallments / sale.installments) * 100 : 0;
   const isPaid = isRecorrente ? sale.paidInstallments >= sale.installments : true;
+  const pendentes = isRecorrente ? sale.installments - sale.paidInstallments : 0;
+
+  // Generate installment rows with estimated dates
+  const parcelas = isRecorrente
+    ? Array.from({ length: sale.installments }, (_, i) => {
+        const baseDate = new Date(sale.date + "T00:00:00");
+        const dueDate = addMonths(baseDate, i);
+        return {
+          number: i + 1,
+          date: format(dueDate, "dd/MM/yyyy"),
+          value: valorParcela,
+          paid: i < sale.paidInstallments,
+        };
+      })
+    : [];
 
   return (
     <Card className="overflow-hidden border-border/50 hover:border-border transition-all">
@@ -64,16 +77,6 @@ function SaleCard({ sale, onDelete, onEdit, formatCurrency }: { sale: Sale; onDe
           </div>
         </div>
 
-        {/* Valor central */}
-        <div className="text-center py-1">
-          <p className={`text-2xl font-bold ${isRecorrente && saldo > 0 ? "text-primary" : "text-success"}`}>
-            {formatCurrency(isRecorrente ? saldo : sale.total)}
-          </p>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            {isRecorrente ? "saldo restante" : "valor total"}
-          </p>
-        </div>
-
         {/* Info grid */}
         <div className="grid grid-cols-2 gap-3 border border-border/50 rounded-lg p-3">
           <div>
@@ -93,28 +96,48 @@ function SaleCard({ sale, onDelete, onEdit, formatCurrency }: { sale: Sale; onDe
           )}
         </div>
 
+        {/* Parcelas section */}
         {isRecorrente && (
-          <>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="bg-success/5 border border-success/20 rounded-lg px-3 py-2">
-                <p className="text-xs text-muted-foreground">💰 Pago</p>
-                <p className="text-sm font-bold text-success">{formatCurrency(totalPago)}</p>
+          <div className="border border-border/50 rounded-lg overflow-hidden">
+            {/* Parcelas header */}
+            <button
+              onClick={() => setShowParcelas(!showParcelas)}
+              className="w-full flex items-center justify-between px-3 py-2.5 bg-muted/20 hover:bg-muted/30 transition-colors"
+            >
+              <div className="flex items-center gap-2 text-sm">
+                <Calendar className="h-4 w-4 text-muted-foreground" />
+                <span className="font-medium text-foreground">Parcelas ({sale.installments})</span>
               </div>
-              <div className="bg-muted/30 border border-border/50 rounded-lg px-3 py-2">
-                <p className="text-xs text-muted-foreground">📋 Parcelas</p>
-                <p className="text-sm font-bold text-foreground">{sale.paidInstallments}/{sale.installments}</p>
+              <div className="flex items-center gap-3">
+                <span className="text-xs font-medium text-success">{sale.paidInstallments} pagas</span>
+                <span className="text-xs font-medium text-warning">{pendentes} pendentes</span>
+                {showParcelas ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
               </div>
-            </div>
+            </button>
 
-            {/* Progress */}
-            <div>
-              <div className="flex justify-between text-xs mb-1">
-                <span className="text-muted-foreground">{sale.paidInstallments}/{sale.installments} parcelas</span>
-                <span className="font-medium text-foreground">{Math.round(progress)}%</span>
+            {/* Parcelas list */}
+            {showParcelas && (
+              <div className="divide-y divide-border/30">
+                {parcelas.map((p) => (
+                  <div key={p.number} className="flex items-center gap-3 px-3 py-2.5">
+                    <span className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${
+                      p.paid ? "bg-success/20 text-success" : "bg-muted/40 text-muted-foreground"
+                    }`}>
+                      {p.number}ª
+                    </span>
+                    <div className="flex items-center gap-2 flex-1 min-w-0">
+                      <span className="text-sm text-foreground">{p.date}</span>
+                      <Calendar className="h-3.5 w-3.5 text-success shrink-0" />
+                    </div>
+                    <span className="text-sm font-medium text-foreground tabular-nums">{formatCurrency(p.value)}</span>
+                    <span className={`text-xs font-medium w-16 text-right ${p.paid ? "text-success" : "text-muted-foreground"}`}>
+                      {p.paid ? "Paga" : "Pendente"}
+                    </span>
+                  </div>
+                ))}
               </div>
-              <Progress value={progress} className="h-2.5" />
-            </div>
-          </>
+            )}
+          </div>
         )}
 
         {/* Notes */}
