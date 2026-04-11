@@ -15,7 +15,7 @@ import { calculateInstallment, calculateTotalWithInterest } from "@/hooks/useLoa
 import { cn } from "@/lib/utils";
 import {
   CheckCircle, Trash2, DollarSign, User, Calendar as CalendarIcon, LayoutGrid, List,
-  Search, Percent, Pencil, Check, X, ChevronDown, ChevronRight, FolderOpen, Folder, HandCoins, Tag, MoreHorizontal, MessageCircle, Filter, SlidersHorizontal,
+  Search, Percent, Pencil, Check, X, ChevronDown, ChevronRight, FolderOpen, Folder, HandCoins, Tag, MoreHorizontal, MessageCircle, Filter, SlidersHorizontal, History,
 } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -28,6 +28,7 @@ interface Props {
   onInterestPayment: (loanId: string, paymentDate?: string) => void;
   onUpdate: (id: string, data: Partial<Omit<Loan, "id">>) => void;
   onDelete: (loanId: string) => void;
+  onDeletePayment: (paymentId: string) => void;
 }
 
 type Category = "all" | "overdue" | "paid_interest" | "paid" | "due_today" | "on_track";
@@ -114,7 +115,7 @@ function getTotalPaid(loan: Loan, payments: Payment[]): number {
 }
 
 function LoanCardView({
-  loan, payments: allPayments, onPayment, onPartialPayment, onInterestPayment, onUpdate, onDelete,
+  loan, payments: allPayments, onPayment, onPartialPayment, onInterestPayment, onUpdate, onDelete, onDeletePayment,
 }: {
   loan: Loan;
   payments: Payment[];
@@ -123,6 +124,7 @@ function LoanCardView({
   onInterestPayment: (date?: string) => void;
   onUpdate: (data: Partial<Omit<Loan, "id">>) => void;
   onDelete: () => void;
+  onDeletePayment: (paymentId: string) => void;
 }) {
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState<EditForm>(loanToForm(loan));
@@ -132,6 +134,7 @@ function LoanCardView({
   const [newTag, setNewTag] = useState("");
   const [paymentDialog, setPaymentDialog] = useState<{ type: "installment" | "interest" | "partial" | "full"; amount?: number } | null>(null);
   const [paymentDate, setPaymentDate] = useState<Date>(new Date());
+  const [showHistory, setShowHistory] = useState(false);
   const [showDetails, setShowDetails] = useState(false);
 
   const installment = calculateInstallment(loan.amount, loan.interestRate, loan.installments);
@@ -578,6 +581,9 @@ function LoanCardView({
                 <HandCoins className="h-4 w-4 text-muted-foreground" />
               </Button>
             )}
+            <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => setShowHistory(true)} title="Histórico de Pagamentos">
+              <History className="h-4 w-4 text-muted-foreground" />
+            </Button>
             <Button size="icon" variant="ghost" className="h-8 w-8" onClick={startEdit} title="Editar">
               <Pencil className="h-4 w-4 text-muted-foreground" />
             </Button>
@@ -616,12 +622,52 @@ function LoanCardView({
         </DialogFooter>
       </DialogContent>
     </Dialog>
+    <Dialog open={showHistory} onOpenChange={setShowHistory}>
+      <DialogContent className="sm:max-w-[440px]">
+        <DialogHeader>
+          <DialogTitle>Histórico de Pagamentos — {loan.borrowerName}</DialogTitle>
+        </DialogHeader>
+        <div className="max-h-[400px] overflow-y-auto">
+          {(() => {
+            const loanPayments = allPayments.filter((p) => p.loanId === loan.id).sort((a, b) => b.date.localeCompare(a.date));
+            if (loanPayments.length === 0) return <p className="text-sm text-muted-foreground text-center py-4">Nenhum pagamento registrado</p>;
+            return (
+              <div className="space-y-2">
+                {loanPayments.map((p) => (
+                  <div key={p.id} className="flex items-center justify-between p-3 rounded-lg border border-border/50 bg-muted/30">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2">
+                        <Badge variant="outline" className={`text-[10px] ${
+                          p.installmentNumber > 0 ? "bg-success/10 text-success border-success/20" :
+                          p.installmentNumber === 0 ? "bg-purple/10 text-purple border-purple/20" :
+                          "bg-primary/10 text-primary border-primary/20"
+                        }`}>
+                          {p.installmentNumber > 0 ? `Parcela ${p.installmentNumber}` : p.installmentNumber === 0 ? "Juros" : "Pagamento"}
+                        </Badge>
+                        <span className="text-xs text-muted-foreground">{new Date(p.date + "T00:00:00").toLocaleDateString("pt-BR")}</span>
+                      </div>
+                      <p className="text-sm font-bold text-foreground mt-1">{formatCurrency(p.amount)}</p>
+                    </div>
+                    <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive hover:bg-destructive hover:text-destructive-foreground" onClick={() => onDeletePayment(p.id)} title="Excluir pagamento">
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            );
+          })()}
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => setShowHistory(false)}>Fechar</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
     </>
   );
 }
 
 function LoanRowView({
-  loan, payments: allPayments, onPayment, onPartialPayment, onInterestPayment, onUpdate, onDelete,
+  loan, payments: allPayments, onPayment, onPartialPayment, onInterestPayment, onUpdate, onDelete, onDeletePayment,
 }: {
   loan: Loan;
   payments: Payment[];
@@ -630,12 +676,14 @@ function LoanRowView({
   onInterestPayment: (date?: string) => void;
   onUpdate: (data: Partial<Omit<Loan, "id">>) => void;
   onDelete: () => void;
+  onDeletePayment: (paymentId: string) => void;
 }) {
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState<EditForm>(loanToForm(loan));
   const [showPartial, setShowPartial] = useState(false);
   const [partialAmount, setPartialAmount] = useState("");
   const [paymentDialog, setPaymentDialog] = useState<{ type: "installment" | "interest" | "partial" | "full"; amount?: number } | null>(null);
+  const [showHistory, setShowHistory] = useState(false);
   const [paymentDate, setPaymentDate] = useState<Date>(new Date());
 
   const total = calculateTotalWithInterest(loan.amount, loan.interestRate, loan.installments);
@@ -840,6 +888,9 @@ function LoanRowView({
               <DropdownMenuItem onClick={() => loan.status === "paid" ? onUpdate({ status: "active", paidInstallments: 0 }) : openPaymentDialog("full")}>
                 <CheckCircle className="h-4 w-4 mr-2" /> {loan.status === "paid" ? "Marcar como não pago" : "Marcar como pago"}
               </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setShowHistory(true)}>
+                <History className="h-4 w-4 mr-2" /> Histórico
+              </DropdownMenuItem>
               <DropdownMenuItem onClick={startEdit}>
                 <Pencil className="h-4 w-4 mr-2" /> Editar
               </DropdownMenuItem>
@@ -895,6 +946,46 @@ function LoanRowView({
         </DialogFooter>
       </DialogContent>
     </Dialog>
+    <Dialog open={showHistory} onOpenChange={setShowHistory}>
+      <DialogContent className="sm:max-w-[440px]">
+        <DialogHeader>
+          <DialogTitle>Histórico de Pagamentos — {loan.borrowerName}</DialogTitle>
+        </DialogHeader>
+        <div className="max-h-[400px] overflow-y-auto">
+          {(() => {
+            const loanPayments = allPayments.filter((p) => p.loanId === loan.id).sort((a, b) => b.date.localeCompare(a.date));
+            if (loanPayments.length === 0) return <p className="text-sm text-muted-foreground text-center py-4">Nenhum pagamento registrado</p>;
+            return (
+              <div className="space-y-2">
+                {loanPayments.map((p) => (
+                  <div key={p.id} className="flex items-center justify-between p-3 rounded-lg border border-border/50 bg-muted/30">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2">
+                        <Badge variant="outline" className={`text-[10px] ${
+                          p.installmentNumber > 0 ? "bg-success/10 text-success border-success/20" :
+                          p.installmentNumber === 0 ? "bg-purple/10 text-purple border-purple/20" :
+                          "bg-primary/10 text-primary border-primary/20"
+                        }`}>
+                          {p.installmentNumber > 0 ? `Parcela ${p.installmentNumber}` : p.installmentNumber === 0 ? "Juros" : "Pagamento"}
+                        </Badge>
+                        <span className="text-xs text-muted-foreground">{new Date(p.date + "T00:00:00").toLocaleDateString("pt-BR")}</span>
+                      </div>
+                      <p className="text-sm font-bold text-foreground mt-1">{formatCurrency(p.amount)}</p>
+                    </div>
+                    <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive hover:bg-destructive hover:text-destructive-foreground" onClick={() => onDeletePayment(p.id)} title="Excluir pagamento">
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            );
+          })()}
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => setShowHistory(false)}>Fechar</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
     </>
   );
 }
@@ -908,7 +999,7 @@ interface ClientGroup {
 }
 
 function ClientFolder({
-  group, payments, onPayment, onPartialPayment, onInterestPayment, onUpdate, onDelete,
+  group, payments, onPayment, onPartialPayment, onInterestPayment, onUpdate, onDelete, onDeletePayment,
 }: {
   group: ClientGroup;
   payments: Payment[];
@@ -917,6 +1008,7 @@ function ClientFolder({
   onInterestPayment: (id: string, date?: string) => void;
   onUpdate: (id: string, data: Partial<Omit<Loan, "id">>) => void;
   onDelete: (id: string) => void;
+  onDeletePayment: (paymentId: string) => void;
 }) {
   const [open, setOpen] = useState(false);
   const activeCount = group.loans.filter((l) => l.status !== "paid").length;
@@ -957,7 +1049,7 @@ function ClientFolder({
             {group.loans.map((loan) => (
               <LoanCardView key={loan.id} loan={loan} payments={payments}
                 onPayment={(date) => onPayment(loan.id, date)} onPartialPayment={(amt, date) => onPartialPayment(loan.id, amt, date)}
-                onInterestPayment={(date) => onInterestPayment(loan.id, date)} onUpdate={(d) => onUpdate(loan.id, d)} onDelete={() => onDelete(loan.id)} />
+                onInterestPayment={(date) => onInterestPayment(loan.id, date)} onUpdate={(d) => onUpdate(loan.id, d)} onDelete={() => onDelete(loan.id)} onDeletePayment={onDeletePayment} />
             ))}
           </div>
         </CardContent>
@@ -966,7 +1058,7 @@ function ClientFolder({
   );
 }
 
-export function LoanList({ loans, payments, onPayment, onPartialPayment, onInterestPayment, onUpdate, onDelete }: Props) {
+export function LoanList({ loans, payments, onPayment, onPartialPayment, onInterestPayment, onUpdate, onDelete, onDeletePayment }: Props) {
   const [view, setView] = useState<"cards" | "rows" | "folders">("cards");
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState<Category>("all");
@@ -1243,7 +1335,7 @@ export function LoanList({ loans, payments, onPayment, onPartialPayment, onInter
               {categorized.map((loan) => (
                 <LoanCardView key={loan.id} loan={loan} payments={payments}
                   onPayment={(date) => onPayment(loan.id, date)} onPartialPayment={(amt, date) => onPartialPayment(loan.id, amt, date)}
-                  onInterestPayment={(date) => onInterestPayment(loan.id, date)} onUpdate={(d) => onUpdate(loan.id, d)} onDelete={() => onDelete(loan.id)} />
+                  onInterestPayment={(date) => onInterestPayment(loan.id, date)} onUpdate={(d) => onUpdate(loan.id, d)} onDelete={() => onDelete(loan.id)} onDeletePayment={onDeletePayment} />
               ))}
             </div>
           ) : view === "folders" ? (
@@ -1252,7 +1344,7 @@ export function LoanList({ loans, payments, onPayment, onPartialPayment, onInter
               {grouped.map((g) => (
                 <ClientFolder key={g.name} group={g} payments={payments}
                   onPayment={onPayment} onPartialPayment={onPartialPayment}
-                  onInterestPayment={onInterestPayment} onUpdate={onUpdate} onDelete={onDelete} />
+                  onInterestPayment={onInterestPayment} onUpdate={onUpdate} onDelete={onDelete} onDeletePayment={onDeletePayment} />
               ))}
               {grouped.length === 0 && (
                 <Card>
@@ -1285,7 +1377,7 @@ export function LoanList({ loans, payments, onPayment, onPartialPayment, onInter
                   {categorized.map((loan) => (
                     <LoanRowView key={loan.id} loan={loan} payments={payments}
                       onPayment={(date) => onPayment(loan.id, date)} onPartialPayment={(amt, date) => onPartialPayment(loan.id, amt, date)}
-                      onInterestPayment={(date) => onInterestPayment(loan.id, date)} onUpdate={(d) => onUpdate(loan.id, d)} onDelete={() => onDelete(loan.id)} />
+                      onInterestPayment={(date) => onInterestPayment(loan.id, date)} onUpdate={(d) => onUpdate(loan.id, d)} onDelete={() => onDelete(loan.id)} onDeletePayment={onDeletePayment} />
                   ))}
                 </tbody>
               </table>
