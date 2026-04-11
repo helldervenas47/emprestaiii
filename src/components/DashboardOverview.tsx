@@ -97,6 +97,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, onDeletePa
   const [editingBalance, setEditingBalance] = useState(false);
   const [tempBalance, setTempBalance] = useState("");
   const [includeSales, setIncludeSales] = useState(false);
+  const [chartOverrides, setChartOverrides] = useLocalStorage<Record<string, { emprestado?: number; recebido?: number }>>("hvcred-chart-overrides", {});
 
   const range = useMemo(() => getRange(period, offset), [period, offset]);
 
