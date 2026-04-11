@@ -89,7 +89,7 @@ const Index = () => {
     const file = e.target.files?.[0];
     if (!file) return;
     const reader = new FileReader();
-    reader.onload = (evt) => {
+    reader.onload = async (evt) => {
       const csv = evt.target?.result as string;
       try {
         if (tab === "dashboard") {
