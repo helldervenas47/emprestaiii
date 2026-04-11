@@ -103,6 +103,14 @@ const tabHelp: Record<Tab, { title: string; items: string[] }> = {
     ],
   },
 };
+function HideValuesToggle() {
+  const { hidden, toggle } = useHideValues();
+  return (
+    <Button variant="ghost" size="icon" onClick={toggle} className="h-9 w-9" title={hidden ? "Mostrar valores" : "Ocultar valores"}>
+      {hidden ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+    </Button>
+  );
+}
 
 const Index = () => {
   const { signOut } = useAuth();
