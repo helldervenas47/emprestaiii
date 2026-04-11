@@ -667,7 +667,7 @@ function LoanCardView({
 }
 
 function LoanRowView({
-  loan, payments: allPayments, onPayment, onPartialPayment, onInterestPayment, onUpdate, onDelete,
+  loan, payments: allPayments, onPayment, onPartialPayment, onInterestPayment, onUpdate, onDelete, onDeletePayment,
 }: {
   loan: Loan;
   payments: Payment[];
@@ -676,6 +676,7 @@ function LoanRowView({
   onInterestPayment: (date?: string) => void;
   onUpdate: (data: Partial<Omit<Loan, "id">>) => void;
   onDelete: () => void;
+  onDeletePayment: (paymentId: string) => void;
 }) {
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState<EditForm>(loanToForm(loan));
