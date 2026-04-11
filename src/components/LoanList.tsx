@@ -12,8 +12,9 @@ import { Calendar as CalendarUI } from "@/components/ui/calendar";
 import { calculateInstallment, calculateTotalWithInterest } from "@/hooks/useLoans";
 import {
   CheckCircle, Trash2, DollarSign, User, Calendar as CalendarIcon, LayoutGrid, List,
-  Search, Percent, Pencil, Check, X, ChevronDown, ChevronRight, FolderOpen, Folder, HandCoins, Tag,
+  Search, Percent, Pencil, Check, X, ChevronDown, ChevronRight, FolderOpen, Folder, HandCoins, Tag, MoreHorizontal, MessageCircle,
 } from "lucide-react";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
 interface Props {
   loans: Loan[];
@@ -414,11 +415,9 @@ function LoanRowView({
   const [paymentDialog, setPaymentDialog] = useState<{ type: "installment" | "interest" | "partial"; amount?: number } | null>(null);
   const [paymentDate, setPaymentDate] = useState<Date>(new Date());
 
-  const installment = calculateInstallment(loan.amount, loan.interestRate, loan.installments);
   const total = calculateTotalWithInterest(loan.amount, loan.interestRate, loan.installments);
   const totalPaid = getTotalPaid(loan, allPayments);
   const remaining = Math.max(0, total - totalPaid);
-  const progress = loan.installments > 0 ? (loan.paidInstallments / loan.installments) * 100 : 0;
   const category = getLoanCategory(loan, allPayments);
   const daysOverdue = getDaysOverdue(loan);
   const badge = statusMap[category];
@@ -468,97 +467,137 @@ function LoanRowView({
 
   if (editing) {
     return (
-      <div className="flex flex-wrap items-center gap-2 px-4 py-3 bg-card rounded-lg border border-primary/30">
-        <Input value={form.borrowerName} onChange={(e) => update("borrowerName", e.target.value)} className="h-7 w-28 text-xs" placeholder="Nome" />
-        <Input type="number" value={form.amount} onChange={(e) => update("amount", e.target.value)} className="h-7 w-20 text-xs" placeholder="Valor" />
-        <Input type="number" value={form.interestRate} onChange={(e) => update("interestRate", e.target.value)} className="h-7 w-16 text-xs" placeholder="Juros%" />
-        <Input type="number" value={form.installments} onChange={(e) => update("installments", e.target.value)} className="h-7 w-14 text-xs" placeholder="Parc." />
-        <Input type="number" value={form.paidInstallments} onChange={(e) => update("paidInstallments", e.target.value)} className="h-7 w-14 text-xs" placeholder="Pagas" />
-        <Input type="date" value={form.startDate} onChange={(e) => update("startDate", e.target.value)} className="h-7 w-32 text-xs" />
-        <Input type="date" value={form.dueDate} onChange={(e) => update("dueDate", e.target.value)} className="h-7 w-32 text-xs" />
-        <Button size="icon" variant="ghost" className="h-7 w-7" onClick={saveEdit}><Check className="h-3.5 w-3.5 text-success" /></Button>
-        <Button size="icon" variant="ghost" className="h-7 w-7" onClick={cancelEdit}><X className="h-3.5 w-3.5 text-destructive" /></Button>
-      </div>
+      <>
+      <tr className="border-b border-border/30 bg-primary/5">
+        <td colSpan={7} className="px-4 py-3">
+          <div className="flex flex-wrap items-center gap-2">
+            <Input value={form.borrowerName} onChange={(e) => update("borrowerName", e.target.value)} className="h-7 w-28 text-xs" placeholder="Nome" />
+            <Input type="number" value={form.amount} onChange={(e) => update("amount", e.target.value)} className="h-7 w-24 text-xs" placeholder="Valor" />
+            <Input type="number" value={form.interestRate} onChange={(e) => update("interestRate", e.target.value)} className="h-7 w-16 text-xs" placeholder="Juros%" />
+            <Input type="number" value={form.installments} onChange={(e) => update("installments", e.target.value)} className="h-7 w-14 text-xs" placeholder="Parc." />
+            <Input type="number" value={form.paidInstallments} onChange={(e) => update("paidInstallments", e.target.value)} className="h-7 w-14 text-xs" placeholder="Pagas" />
+            <Input type="date" value={form.dueDate} onChange={(e) => update("dueDate", e.target.value)} className="h-7 w-32 text-xs" />
+            <Input value={form.tags} onChange={(e) => update("tags", e.target.value)} className="h-7 w-28 text-xs" placeholder="Etiquetas" />
+            <Button size="icon" variant="ghost" className="h-7 w-7" onClick={saveEdit}><Check className="h-3.5 w-3.5 text-success" /></Button>
+            <Button size="icon" variant="ghost" className="h-7 w-7" onClick={cancelEdit}><X className="h-3.5 w-3.5 text-destructive" /></Button>
+          </div>
+        </td>
+      </tr>
+      </>
     );
   }
 
   return (
     <>
-    <div className="space-y-0">
-      <div className={`flex items-center gap-4 px-4 py-3 bg-card rounded-lg border hover:shadow-sm transition-shadow ${category === "overdue" ? "border-destructive/30" : category === "due_today" ? "border-warning/30" : ""}`}>
-        <div className="h-8 w-8 rounded-full gradient-primary flex items-center justify-center shrink-0">
-          <User className="h-4 w-4 text-primary-foreground" />
+    <tr className="border-b border-border/30 hover:bg-muted/30 transition-colors group">
+      {/* Cliente */}
+      <td className="px-4 py-3">
+        <div className="flex items-center gap-3">
+          <div className={`h-8 w-8 rounded-full flex items-center justify-center text-primary-foreground font-bold text-xs shrink-0 ${
+            category === "overdue" ? "bg-destructive" :
+            category === "due_today" ? "bg-warning" :
+            category === "paid" ? "bg-success" :
+            "gradient-primary"
+          }`}>
+            {loan.borrowerName.split(" ").map(w => w[0]).join("").substring(0, 2).toUpperCase()}
+          </div>
+          <span className="font-medium text-sm text-foreground">{loan.borrowerName}</span>
         </div>
-        <div className="min-w-[120px]">
-          <p className="font-medium text-sm text-foreground truncate">{loan.borrowerName}</p>
-          <p className="text-xs text-muted-foreground">
-            Venc.: {new Date(loan.dueDate + "T00:00:00").toLocaleDateString("pt-BR")}
-            {daysOverdue > 0 && loan.status !== "paid" && (
-              <span className="text-destructive ml-1">({daysOverdue}d atraso)</span>
-            )}
-          </p>
+      </td>
+      {/* Status */}
+      <td className="px-4 py-3">
+        <Badge variant="outline" className={`${badge.className} text-xs`}>{badge.label}</Badge>
+      </td>
+      {/* Emprestado */}
+      <td className="px-4 py-3">
+        <span className="text-sm font-medium text-foreground">{formatCurrency(loan.amount)}</span>
+      </td>
+      {/* Restante */}
+      <td className="px-4 py-3">
+        <span className="text-sm font-medium text-destructive">{formatCurrency(remaining)}</span>
+      </td>
+      {/* Parcelas */}
+      <td className="px-4 py-3">
+        <div className="flex items-center gap-1.5">
+          <CheckCircle className="h-4 w-4 text-primary" />
+          <span className="text-sm font-medium">{loan.paidInstallments}/{loan.installments}</span>
         </div>
-        <div className="hidden sm:block min-w-[90px]">
-          <p className="text-xs text-muted-foreground">Valor</p>
-          <p className="text-sm font-semibold">{formatCurrency(loan.amount)}</p>
+        {daysOverdue > 0 && loan.status !== "paid" && (
+          <div className="flex items-center gap-1 mt-0.5">
+            <span className="h-2 w-2 rounded-full bg-destructive inline-block"></span>
+            <span className="text-[10px] text-destructive">{daysOverdue > 30 ? `${Math.floor(daysOverdue / 30)} em atraso` : `${daysOverdue}d atraso`}</span>
+          </div>
+        )}
+      </td>
+      {/* Vencimento */}
+      <td className="px-4 py-3">
+        <span className={`text-sm ${category === "overdue" ? "text-warning" : "text-foreground"}`}>
+          {new Date(loan.dueDate + "T00:00:00").toLocaleDateString("pt-BR")}
+        </span>
+      </td>
+      {/* Etiquetas */}
+      <td className="px-4 py-3">
+        <div className="flex flex-wrap gap-1">
+          {loan.tags && loan.tags.length > 0 ? loan.tags.map((tag) => (
+            <Badge key={tag} className="bg-accent/20 text-accent border-accent/30 text-[10px]">{tag}</Badge>
+          )) : <span className="text-xs text-muted-foreground">—</span>}
         </div>
-        <div className="hidden md:block min-w-[90px]">
-          <p className="text-xs text-muted-foreground">Total Pago</p>
-          <p className="text-sm font-semibold text-success">{formatCurrency(totalPaid)}</p>
-        </div>
-        <div className="hidden md:block min-w-[70px]">
-          <p className="text-xs text-muted-foreground">Juros</p>
-          <p className="text-sm font-semibold text-accent">{loan.interestRate}%</p>
-        </div>
-        <div className="hidden lg:block min-w-[90px]">
-          <p className="text-xs text-muted-foreground">Restante</p>
-          <p className="text-sm font-semibold">{formatCurrency(remaining)}</p>
-        </div>
-        <div className="hidden sm:flex flex-col min-w-[100px] gap-1">
-          <span className="text-xs text-muted-foreground">{loan.paidInstallments}/{loan.installments}</span>
-          <Progress value={progress} className="h-1.5" />
-        </div>
-        <Badge variant="outline" className={`${badge.className} shrink-0 text-xs`}>{badge.label}</Badge>
-        {loan.tags && loan.tags.length > 0 && loan.tags.map((tag) => (
-          <Badge key={tag} variant="outline" className="bg-primary/10 text-primary border-primary/20 text-xs shrink-0">
-            <Tag className="h-2.5 w-2.5 mr-0.5" />{tag}
-          </Badge>
-        ))}
-        <div className="flex gap-1 ml-auto shrink-0">
-          <Button size="icon" variant="ghost" className="h-8 w-8" onClick={startEdit} title="Editar">
-            <Pencil className="h-4 w-4 text-muted-foreground" />
-          </Button>
+      </td>
+      {/* Ações */}
+      <td className="px-4 py-3">
+        <div className="flex items-center gap-1 justify-end">
           {loan.status !== "paid" && (
-            <>
-              <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => setShowPartial(!showPartial)} title="Pagamento Parcial">
-                <HandCoins className="h-4 w-4 text-muted-foreground" />
-              </Button>
-              <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => openPaymentDialog("interest")} title="Pagar apenas juros">
-                <Percent className="h-4 w-4 text-warning" />
-              </Button>
-              <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => openPaymentDialog("installment")} title="Receber Parcela">
-                <CheckCircle className="h-4 w-4 text-primary" />
-              </Button>
-            </>
+            <Button variant="ghost" size="sm" className="h-7 text-xs text-muted-foreground hover:text-foreground gap-1" onClick={() => openPaymentDialog("installment")}>
+              <MessageCircle className="h-3.5 w-3.5" /> Cobrar
+            </Button>
           )}
-          <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive hover:bg-destructive hover:text-destructive-foreground" onClick={onDelete} title="Excluir">
-            <Trash2 className="h-4 w-4" />
-          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon" className="h-7 w-7">
+                <MoreHorizontal className="h-4 w-4 text-muted-foreground" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              {loan.status !== "paid" && (
+                <>
+                  <DropdownMenuItem onClick={() => openPaymentDialog("installment")}>
+                    <CheckCircle className="h-4 w-4 mr-2" /> Receber Parcela
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => openPaymentDialog("interest")}>
+                    <Percent className="h-4 w-4 mr-2" /> Pagar Juros
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setShowPartial(!showPartial)}>
+                    <HandCoins className="h-4 w-4 mr-2" /> Pagamento Parcial
+                  </DropdownMenuItem>
+                </>
+              )}
+              <DropdownMenuItem onClick={startEdit}>
+                <Pencil className="h-4 w-4 mr-2" /> Editar
+              </DropdownMenuItem>
+              <DropdownMenuItem className="text-destructive" onClick={onDelete}>
+                <Trash2 className="h-4 w-4 mr-2" /> Excluir
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
-      </div>
-      {showPartial && (
-        <div className="flex items-center gap-2 px-4 py-2 bg-muted rounded-b-lg border border-t-0">
-          <Input
-            type="number" step="0.01" placeholder="Valor parcial (R$)"
-            value={partialAmount} onChange={(e) => setPartialAmount(e.target.value)}
-            className="h-7 text-xs w-40" autoFocus
-            onKeyDown={(e) => e.key === "Enter" && handlePartialSubmit()}
-          />
-          <Button size="sm" className="h-7 text-xs" onClick={handlePartialSubmit}><Check className="h-3.5 w-3.5 mr-1" />Confirmar</Button>
-          <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setShowPartial(false)}><X className="h-3.5 w-3.5" /></Button>
-        </div>
-      )}
-    </div>
+      </td>
+    </tr>
+    {showPartial && (
+      <tr className="border-b border-border/30 bg-muted/30">
+        <td colSpan={8} className="px-4 py-2">
+          <div className="flex items-center gap-2">
+            <Input
+              type="number" step="0.01" placeholder="Valor parcial (R$)"
+              value={partialAmount} onChange={(e) => setPartialAmount(e.target.value)}
+              className="h-7 text-xs w-40" autoFocus
+              onKeyDown={(e) => e.key === "Enter" && handlePartialSubmit()}
+            />
+            <Button size="sm" className="h-7 text-xs" onClick={handlePartialSubmit}><Check className="h-3.5 w-3.5 mr-1" />Confirmar</Button>
+            <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setShowPartial(false)}><X className="h-3.5 w-3.5" /></Button>
+          </div>
+        </td>
+      </tr>
+    )}
     <Dialog open={!!paymentDialog} onOpenChange={(open) => !open && setPaymentDialog(null)}>
       <DialogContent className="sm:max-w-[340px]">
         <DialogHeader>
@@ -843,11 +882,32 @@ export function LoanList({ loans, payments, onPayment, onPartialPayment, onInter
             </div>
             </>
           ) : (
-            categorized.map((loan) => (
-              <LoanRowView key={loan.id} loan={loan} payments={payments}
-                onPayment={(date) => onPayment(loan.id, date)} onPartialPayment={(amt, date) => onPartialPayment(loan.id, amt, date)}
-                onInterestPayment={(date) => onInterestPayment(loan.id, date)} onUpdate={(d) => onUpdate(loan.id, d)} onDelete={() => onDelete(loan.id)} />
-            ))
+            <div className="rounded-lg border border-border/50 overflow-hidden">
+              <div className="px-4 py-2 flex items-center justify-between border-b border-border/30 bg-muted/30">
+                <span className="text-sm text-muted-foreground">{categorized.length} empréstimos</span>
+              </div>
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b border-border/30">
+                    <th className="px-4 py-2.5 text-left text-xs font-medium text-muted-foreground">Cliente</th>
+                    <th className="px-4 py-2.5 text-left text-xs font-medium text-muted-foreground">Status</th>
+                    <th className="px-4 py-2.5 text-left text-xs font-medium text-muted-foreground">Emprestado</th>
+                    <th className="px-4 py-2.5 text-left text-xs font-medium text-muted-foreground">Restante</th>
+                    <th className="px-4 py-2.5 text-left text-xs font-medium text-muted-foreground">Parcelas</th>
+                    <th className="px-4 py-2.5 text-left text-xs font-medium text-muted-foreground">Vencimento</th>
+                    <th className="px-4 py-2.5 text-left text-xs font-medium text-muted-foreground">Etiquetas</th>
+                    <th className="px-4 py-2.5 text-right text-xs font-medium text-muted-foreground">Ações</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {categorized.map((loan) => (
+                    <LoanRowView key={loan.id} loan={loan} payments={payments}
+                      onPayment={(date) => onPayment(loan.id, date)} onPartialPayment={(amt, date) => onPartialPayment(loan.id, amt, date)}
+                      onInterestPayment={(date) => onInterestPayment(loan.id, date)} onUpdate={(d) => onUpdate(loan.id, d)} onDelete={() => onDelete(loan.id)} />
+                  ))}
+                </tbody>
+              </table>
+            </div>
           )}
         </div>
       )}
