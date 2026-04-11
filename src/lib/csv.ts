@@ -1,4 +1,4 @@
-import { Loan, Payment } from "@/types/loan";
+import { Loan, Payment, Sale } from "@/types/loan";
 import { Client } from "@/types/loan";
 import { calculateInstallment, calculateTotalWithInterest } from "@/hooks/useLoans";
 
@@ -145,6 +145,50 @@ export function importClientsFromCSV(csv: string): Omit<Client, "id" | "createdA
       score: cols[9] || "",
       active: (cols[10] || "Sim").toLowerCase() !== "não",
       notes: "",
+    };
+  });
+}
+
+export function exportSalesToCSV(sales: Sale[]): string {
+  const headers = ["Descrição", "Produto", "Cliente", "Quantidade", "Total", "Tipo Negócio", "Modo Pagamento", "Parcelas", "Parcelas Pagas", "Data"];
+  const typeMap: Record<string, string> = { venda: "Venda", streaming: "Streaming", aluguel_veiculo: "Aluguel de Veículos" };
+  const rows = sales.map((s) => [
+    s.description,
+    s.productName,
+    s.customerName,
+    s.quantity.toString(),
+    s.total.toFixed(2),
+    typeMap[s.businessType] || s.businessType,
+    s.paymentMode === "recorrente" ? "Recorrente" : "Fixa",
+    s.installments.toString(),
+    s.paidInstallments.toString(),
+    formatDateBR(s.date),
+  ]);
+  return [headers, ...rows].map((r) => r.map((c) => `"${c.replace(/"/g, '""')}"`).join(",")).join("\n");
+}
+
+export function importSalesFromCSV(csv: string): Omit<Sale, "id">[] {
+  const lines = csv.split("\n").filter((l) => l.trim());
+  if (lines.length < 2) return [];
+  const typeReverseMap: Record<string, string> = { venda: "venda", streaming: "streaming", "aluguel de veículos": "aluguel_veiculo" };
+  return lines.slice(1).map((line) => {
+    const cols = parseCSVLine(line);
+    const businessTypeRaw = (cols[5] || "").toLowerCase();
+    const businessType = (typeReverseMap[businessTypeRaw] || "venda") as Sale["businessType"];
+    const paymentModeRaw = (cols[6] || "").toLowerCase();
+    const paymentMode = paymentModeRaw === "recorrente" ? "recorrente" : "fixa" as Sale["paymentMode"];
+    return {
+      description: cols[0] || "",
+      productName: cols[1] || "",
+      customerName: cols[2] || "",
+      quantity: parseInt(cols[3]) || 1,
+      unitPrice: 0,
+      total: parseFloat(cols[4]) || 0,
+      businessType,
+      paymentMode,
+      installments: parseInt(cols[7]) || 1,
+      paidInstallments: parseInt(cols[8]) || 0,
+      date: parseDateBR(cols[9]),
     };
   });
 }
