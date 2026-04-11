@@ -217,8 +217,13 @@ export function DashboardOverview({ loans, sales, payments, expenses, onDeletePa
     };
   }, [loans, payments]);
 
-  // Last 12 months chart data
-  const monthlyChart = useMemo(() => {
+  // Manual overrides for monthly chart values
+  const [chartOverrides, setChartOverrides] = useLocalStorage<Record<string, { emprestado?: number; recebido?: number }>>("hvcred-chart-overrides", {});
+  const [editingChart, setEditingChart] = useState(false);
+  const [tempOverrides, setTempOverrides] = useState<Record<string, { emprestado: string; recebido: string }>>({});
+
+  // Last 12 months chart data (calculated)
+  const monthlyChartBase = useMemo(() => {
     const now = new Date();
     const months: { month: string; emprestado: number; recebido: number }[] = [];
     for (let i = 11; i >= 0; i--) {
@@ -235,6 +240,50 @@ export function DashboardOverview({ loans, sales, payments, expenses, onDeletePa
     }
     return months;
   }, [loans, payments]);
+
+  // Apply overrides
+  const monthlyChart = useMemo(() => {
+    return monthlyChartBase.map((m) => {
+      const override = chartOverrides[m.month];
+      return {
+        month: m.month,
+        emprestado: override?.emprestado ?? m.emprestado,
+        recebido: override?.recebido ?? m.recebido,
+      };
+    });
+  }, [monthlyChartBase, chartOverrides]);
+
+  const startEditChart = () => {
+    const temp: Record<string, { emprestado: string; recebido: string }> = {};
+    monthlyChart.forEach((m) => {
+      temp[m.month] = { emprestado: String(m.emprestado), recebido: String(m.recebido) };
+    });
+    setTempOverrides(temp);
+    setEditingChart(true);
+  };
+
+  const saveChartOverrides = () => {
+    const newOverrides: Record<string, { emprestado?: number; recebido?: number }> = {};
+    monthlyChartBase.forEach((m) => {
+      const temp = tempOverrides[m.month];
+      if (!temp) return;
+      const emprestado = parseFloat(temp.emprestado) || 0;
+      const recebido = parseFloat(temp.recebido) || 0;
+      if (emprestado !== m.emprestado || recebido !== m.recebido) {
+        newOverrides[m.month] = {
+          ...(emprestado !== m.emprestado ? { emprestado } : {}),
+          ...(recebido !== m.recebido ? { recebido } : {}),
+        };
+      }
+    });
+    setChartOverrides(newOverrides);
+    setEditingChart(false);
+  };
+
+  const resetChartOverrides = () => {
+    setChartOverrides({});
+    setEditingChart(false);
+  };
 
   const handleChangePeriod = (p: Period) => { setPeriod(p); setOffset(0); };
 
@@ -453,7 +502,68 @@ export function DashboardOverview({ loans, sales, payments, expenses, onDeletePa
       {/* Monthly Bar Chart - Last 12 months */}
       <Card>
         <CardContent className="p-6">
-          <h3 className="text-sm font-semibold text-foreground mb-4">Histórico Mensal (Últimos 12 Meses)</h3>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-sm font-semibold text-foreground">Histórico Mensal (Últimos 12 Meses)</h3>
+            <div className="flex items-center gap-1">
+              {editingChart ? (
+                <>
+                  <Button variant="ghost" size="sm" onClick={resetChartOverrides} className="text-xs text-muted-foreground">
+                    Resetar
+                  </Button>
+                  <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setEditingChart(false)}>
+                    <X className="h-3.5 w-3.5 text-destructive" />
+                  </Button>
+                  <Button variant="ghost" size="icon" className="h-7 w-7" onClick={saveChartOverrides}>
+                    <Check className="h-3.5 w-3.5 text-success" />
+                  </Button>
+                </>
+              ) : (
+                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={startEditChart} title="Ajustar valores manualmente">
+                  <Pencil className="h-4 w-4 text-muted-foreground" />
+                </Button>
+              )}
+            </div>
+          </div>
+
+          {editingChart && (
+            <div className="mb-4 max-h-60 overflow-y-auto border rounded-lg">
+              <table className="w-full text-xs">
+                <thead className="bg-muted/50 sticky top-0">
+                  <tr>
+                    <th className="text-left p-2 font-medium text-muted-foreground">Mês</th>
+                    <th className="text-right p-2 font-medium text-warning">Emprestado</th>
+                    <th className="text-right p-2 font-medium text-success">Recebido</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {monthlyChart.map((m) => (
+                    <tr key={m.month} className="border-t border-border/50">
+                      <td className="p-2 font-medium">{m.month}</td>
+                      <td className="p-2">
+                        <Input
+                          type="number"
+                          step="0.01"
+                          value={tempOverrides[m.month]?.emprestado ?? ""}
+                          onChange={(e) => setTempOverrides((prev) => ({ ...prev, [m.month]: { ...prev[m.month], emprestado: e.target.value } }))}
+                          className="h-7 w-28 text-xs text-right ml-auto"
+                        />
+                      </td>
+                      <td className="p-2">
+                        <Input
+                          type="number"
+                          step="0.01"
+                          value={tempOverrides[m.month]?.recebido ?? ""}
+                          onChange={(e) => setTempOverrides((prev) => ({ ...prev, [m.month]: { ...prev[m.month], recebido: e.target.value } }))}
+                          className="h-7 w-28 text-xs text-right ml-auto"
+                        />
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+
           <div className="h-72">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={monthlyChart} margin={{ top: 5, right: 10, left: 10, bottom: 5 }}>
