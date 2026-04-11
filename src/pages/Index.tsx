@@ -116,7 +116,7 @@ const Index = () => {
   const { signOut } = useAuth();
   const { loans, payments, addLoan, addPayment, addPartialPayment, addInterestOnlyPayment, updateLoan, deleteLoan, deletePayment } = useLoans();
   const { clients, addClient, deleteClient, updateClient } = useClients();
-  const { products, sales, addProduct, updateProduct, deleteProduct, addSale, deleteSale } = useProducts();
+  const { products, sales, addProduct, updateProduct, deleteProduct, addSale, updateSale, deleteSale } = useProducts();
   const { expenses, addExpense, payExpense, deleteExpense } = useExpenses();
   const [showLoanForm, setShowLoanForm] = useState(false);
   const [showClientForm, setShowClientForm] = useState(false);
