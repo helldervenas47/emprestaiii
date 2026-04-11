@@ -90,9 +90,33 @@ export function ClientList({ clients, onDelete, onUpdate }: Props) {
           </button>
         ))}
       </div>
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <Input placeholder="Buscar por nome, CPF ou telefone..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-10" />
+      <div className="flex gap-2">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input placeholder="Buscar por nome, CPF ou telefone..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-10" />
+        </div>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" size="sm" className="h-10 gap-1.5 whitespace-nowrap">
+              <ArrowUpDown className="h-4 w-4" />
+              <span className="hidden sm:inline">{sortLabels[sortOption]}</span>
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={() => setSortOption("name-asc")} className="gap-2">
+              <ArrowDownAZ className="h-4 w-4" /> A → Z
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setSortOption("name-desc")} className="gap-2">
+              <ArrowUpAZ className="h-4 w-4" /> Z → A
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setSortOption("newest")} className="gap-2">
+              <Clock className="h-4 w-4" /> Mais recentes
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setSortOption("oldest")} className="gap-2">
+              <CalendarDays className="h-4 w-4" /> Mais antigos
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
 
       {filtered.length === 0 ? (
