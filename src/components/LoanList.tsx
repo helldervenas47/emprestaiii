@@ -779,9 +779,24 @@ function LoanRowView({
       <td className="px-4 py-3">
         <div className="flex items-center gap-1 justify-end">
           {loan.status !== "paid" && (
-            <Button variant="ghost" size="sm" className="h-7 text-xs text-muted-foreground hover:text-foreground gap-1" onClick={() => openPaymentDialog("installment")}>
-              <MessageCircle className="h-3.5 w-3.5" /> Cobrar
-            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="sm" className="h-7 text-xs text-muted-foreground hover:text-foreground gap-1">
+                  <DollarSign className="h-3.5 w-3.5" /> Pagar
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => openPaymentDialog("installment")}>
+                  <CheckCircle className="h-4 w-4 mr-2" /> Pagamento Total
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setShowPartial(!showPartial)}>
+                  <HandCoins className="h-4 w-4 mr-2" /> Pagamento Parcial
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => openPaymentDialog("interest")}>
+                  <Percent className="h-4 w-4 mr-2" /> Pagar Juros
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           )}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
