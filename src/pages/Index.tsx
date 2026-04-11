@@ -38,6 +38,71 @@ const tabConfig = [
   { id: "overdue" as Tab, label: "Inadimplentes", icon: AlertTriangle },
 ];
 
+const tabHelp: Record<Tab, { title: string; items: string[] }> = {
+  overview: {
+    title: "Dashboard Geral",
+    items: [
+      "Visão consolidada do seu negócio: receitas, despesas e saldo.",
+      "Capital na Rua, Total a Receber e Saúde da Operação são valores globais (não mudam por período).",
+      "Use o seletor de período (Dia/Semana/Mês) para filtrar entradas e saídas.",
+      "O gráfico mostra o histórico dos últimos 12 meses.",
+    ],
+  },
+  dashboard: {
+    title: "Empréstimos",
+    items: [
+      "Cadastre novos empréstimos clicando em 'Novo Empréstimo'.",
+      "Escolha o tipo de contrato: Semanal, Quinzenal ou Mensal.",
+      "Registre pagamentos de parcela, juros ou pagamentos parciais.",
+      "Clique em 'Mais detalhes' para ver o cronograma completo de parcelas.",
+      "Use os filtros e etiquetas para organizar seus contratos.",
+      "Importe/Exporte dados via CSV.",
+    ],
+  },
+  calendar: {
+    title: "Calendário de Cobrança",
+    items: [
+      "Visualize todas as parcelas a vencer no calendário.",
+      "Dias com bolinha vermelha = parcelas atrasadas.",
+      "Dias com bolinha amarela = parcelas a vencer.",
+      "Clique em um dia para ver os detalhes das cobranças.",
+    ],
+  },
+  clients: {
+    title: "Clientes",
+    items: [
+      "Cadastre seus clientes com nome, CPF/CNPJ, telefone e endereço.",
+      "Use o score para classificar a confiabilidade do cliente.",
+      "Clientes inativos não aparecem na lista de novos empréstimos.",
+      "Importe/Exporte clientes via CSV.",
+    ],
+  },
+  products: {
+    title: "Vendas",
+    items: [
+      "Registre vendas avulsas, streaming ou aluguel de veículos.",
+      "Escolha entre pagamento fixo (único) ou recorrente (parcelado).",
+      "Para vendas recorrentes, defina a frequência: Semanal, Quinzenal ou Mensal.",
+    ],
+  },
+  expenses: {
+    title: "Despesas",
+    items: [
+      "Registre despesas fixas ou recorrentes do seu negócio.",
+      "Marque despesas como pagas para controlar o fluxo de caixa.",
+      "Categorize suas despesas para melhor organização.",
+    ],
+  },
+  overdue: {
+    title: "Inadimplentes",
+    items: [
+      "Lista todos os empréstimos com parcelas em atraso.",
+      "Também mostra empréstimos que vencem hoje.",
+      "Use para priorizar suas cobranças diárias.",
+    ],
+  },
+};
+
 const Index = () => {
   const { signOut } = useAuth();
   const { loans, payments, addLoan, addPayment, addPartialPayment, addInterestOnlyPayment, updateLoan, deleteLoan, deletePayment } = useLoans();
