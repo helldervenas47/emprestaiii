@@ -26,11 +26,12 @@ import {
 } from "@/lib/csv";
 import { toast } from "sonner";
 
-type Tab = "overview" | "dashboard" | "clients" | "products" | "overdue" | "expenses" | "calendar";
+type Tab = "overview" | "dashboard" | "installments" | "clients" | "products" | "overdue" | "expenses" | "calendar";
 
 const tabConfig = [
   { id: "overview" as Tab, label: "Dashboard", icon: BarChart3 },
-  { id: "dashboard" as Tab, label: "Empréstimos", icon: LayoutDashboard },
+  { id: "dashboard" as Tab, label: "Linhas", icon: LayoutDashboard },
+  { id: "installments" as Tab, label: "Parcelados", icon: HandCoins },
   { id: "calendar" as Tab, label: "Cobrança", icon: CalendarDays },
   { id: "clients" as Tab, label: "Clientes", icon: Users },
   { id: "products" as Tab, label: "Vendas", icon: ShoppingBag },
