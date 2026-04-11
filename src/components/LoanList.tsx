@@ -163,6 +163,7 @@ function LoanCardView({
       paidInstallments: parseInt(form.paidInstallments) || 0,
       startDate: form.startDate || loan.startDate,
       dueDate: form.dueDate || loan.dueDate,
+      interestType: form.interestType,
       notes: form.notes,
       tags: parsedTags,
     });
