@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Product, Sale } from "@/types/loan";
+import { Product, Sale, BusinessType } from "@/types/loan";
 import { useAuth } from "@/hooks/useAuth";
 import { adjustBalance } from "@/lib/balance";
 
@@ -29,9 +29,16 @@ export function useProducts() {
       if (salesRes.data) {
         const prodMap = new Map((prodRes.data || []).map((p) => [p.id, p.name]));
         setSales(salesRes.data.map((s) => ({
-          id: s.id, productId: s.product_id, productName: prodMap.get(s.product_id) || "Produto removido",
-          quantity: s.quantity, unitPrice: 0, total: Number(s.total),
-          customerName: "", date: s.sale_date,
+          id: s.id,
+          productId: s.product_id || undefined,
+          productName: s.product_id ? (prodMap.get(s.product_id) || "Produto removido") : (s.description || ""),
+          description: s.description || "",
+          quantity: s.quantity,
+          unitPrice: 0,
+          total: Number(s.total),
+          customerName: "",
+          date: s.sale_date,
+          businessType: (s.business_type as BusinessType) || "venda",
         })));
       }
       setLoading(false);
@@ -78,26 +85,40 @@ export function useProducts() {
     const tempId = crypto.randomUUID();
     setSales((prev) => [{ ...s, id: tempId }, ...prev]);
 
-    const product = products.find((p) => p.id === s.productId);
-    if (product) {
-      const newStock = Math.max(0, product.stock - s.quantity);
-      setProducts((prev) => prev.map((p) => (p.id === s.productId ? { ...p, stock: newStock } : p)));
+    if (s.productId) {
+      const product = products.find((p) => p.id === s.productId);
+      if (product) {
+        const newStock = Math.max(0, product.stock - s.quantity);
+        setProducts((prev) => prev.map((p) => (p.id === s.productId ? { ...p, stock: newStock } : p)));
+      }
     }
 
     const { data, error } = await supabase.from("sales").insert({
-      user_id: user.id, product_id: s.productId, quantity: s.quantity, total: s.total, sale_date: s.date,
+      user_id: user.id,
+      product_id: s.productId || null,
+      quantity: s.quantity,
+      total: s.total,
+      sale_date: s.date,
+      description: s.description,
+      business_type: s.businessType,
     }).select().single();
 
     if (error) {
       setSales((prev) => prev.filter((x) => x.id !== tempId));
-      if (product) {
-        setProducts((prev) => prev.map((p) => (p.id === s.productId ? { ...p, stock: product.stock } : p)));
+      if (s.productId) {
+        const product = products.find((p) => p.id === s.productId);
+        if (product) {
+          setProducts((prev) => prev.map((p) => (p.id === s.productId ? { ...p, stock: product.stock } : p)));
+        }
       }
     } else if (data) {
       setSales((prev) => prev.map((x) => x.id === tempId ? { ...x, id: data.id } : x));
-      if (product) {
-        const newStock = Math.max(0, product.stock - s.quantity);
-        await supabase.from("products").update({ stock: newStock }).eq("id", s.productId);
+      if (s.productId) {
+        const product = products.find((p) => p.id === s.productId);
+        if (product) {
+          const newStock = Math.max(0, product.stock - s.quantity);
+          await supabase.from("products").update({ stock: newStock }).eq("id", s.productId);
+        }
       }
       await adjustBalance(s.total);
     }
@@ -109,11 +130,13 @@ export function useProducts() {
     setSales((prev) => prev.filter((s) => s.id !== id));
 
     if (sale) {
-      const product = products.find((p) => p.id === sale.productId);
-      if (product) {
-        const newStock = product.stock + sale.quantity;
-        setProducts((prev) => prev.map((p) => (p.id === sale.productId ? { ...p, stock: newStock } : p)));
-        await supabase.from("products").update({ stock: newStock }).eq("id", sale.productId);
+      if (sale.productId) {
+        const product = products.find((p) => p.id === sale.productId);
+        if (product) {
+          const newStock = product.stock + sale.quantity;
+          setProducts((prev) => prev.map((p) => (p.id === sale.productId ? { ...p, stock: newStock } : p)));
+          await supabase.from("products").update({ stock: newStock }).eq("id", sale.productId);
+        }
       }
       await adjustBalance(-sale.total);
     }
