@@ -9,7 +9,7 @@ import { Calendar as CalendarUI } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Save, X, Calendar as CalendarIcon } from "lucide-react";
 import { Sale, BusinessType, PaymentMode } from "@/types/loan";
-import { format } from "date-fns";
+import { format, addMonths } from "date-fns";
 import { cn } from "@/lib/utils";
 
 const businessTypeLabels: Record<BusinessType, string> = {
