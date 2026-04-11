@@ -92,6 +92,8 @@ function useAccountBalance(): [number, (v: number) => void] {
 export function DashboardOverview({ loans, sales, payments, expenses, onDeletePayment, onDeleteSale, onDeleteLoan }: Props) {
   const [period, setPeriod] = useState<Period>("month");
   const [offset, setOffset] = useState(0);
+  const [txFilter, setTxFilter] = useState<"all" | "in" | "out">("all");
+  const [showAllTx, setShowAllTx] = useState(false);
   
   const [accountBalance, setAccountBalance] = useAccountBalance();
   const [editingBalance, setEditingBalance] = useState(false);
@@ -645,43 +647,89 @@ export function DashboardOverview({ loans, sales, payments, expenses, onDeletePa
         </Card>
       </div>
 
-      {/* Recent transactions */}
+      {/* Monthly transactions */}
       <Card>
         <CardContent className="p-5">
-          <h3 className="text-sm font-semibold text-foreground mb-4">Movimentações — {range.label}</h3>
-          {data.transactions.length === 0 ? (
-            <p className="text-sm text-muted-foreground text-center py-6">Nenhuma movimentação no período</p>
-          ) : (
-            <div className="space-y-2 max-h-[400px] overflow-y-auto">
-              {data.transactions.map((t) => (
-                <div key={t.id} className="flex items-center gap-3 py-2 border-b last:border-0">
-                  <div className={`h-8 w-8 rounded-full flex items-center justify-center shrink-0 ${t.type === "in" ? "bg-success/10" : "bg-destructive/10"}`}>
-                    {t.type === "in" ? <ArrowUpRight className="h-4 w-4 text-success" /> : <ArrowDownRight className="h-4 w-4 text-destructive" />}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-foreground truncate">{t.description}</p>
-                    <p className="text-xs text-muted-foreground">{new Date(t.date).toLocaleDateString("pt-BR")}</p>
-                  </div>
-                  <span className={`text-sm font-semibold shrink-0 ${t.type === "in" ? "text-success" : "text-destructive"}`}>
-                    {t.type === "in" ? "+" : "−"}{formatCurrency(t.amount)}
-                  </span>
-                  <Button
-                    size="icon"
-                    variant="ghost"
-                    className="h-7 w-7 shrink-0 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
-                    onClick={() => {
-                      if (t.source === "payment" && onDeletePayment) onDeletePayment(t.id);
-                      else if (t.source === "sale" && onDeleteSale) onDeleteSale(t.id);
-                      else if (t.source === "loan" && onDeleteLoan) onDeleteLoan(t.id);
-                    }}
-                    title="Excluir lançamento"
-                  >
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </Button>
-                </div>
-              ))}
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-4">
+            <h3 className="text-sm font-semibold text-foreground">Movimentações — {range.label}</h3>
+            <div className="flex items-center gap-2">
+              <div className="flex bg-muted rounded-lg p-0.5">
+                {([
+                  { id: "all" as const, label: "Todas" },
+                  { id: "in" as const, label: "Entradas" },
+                  { id: "out" as const, label: "Saídas" },
+                ]).map((f) => (
+                  <button key={f.id} onClick={() => setTxFilter(f.id)}
+                    className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${txFilter === f.id ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>
+                    {f.label}
+                  </button>
+                ))}
+              </div>
+              {!showAllTx && data.transactions.length > 10 && (
+                <Button variant="outline" size="sm" className="text-xs" onClick={() => setShowAllTx(true)}>
+                  Ver todas ({data.transactions.length})
+                </Button>
+              )}
+              {showAllTx && (
+                <Button variant="outline" size="sm" className="text-xs" onClick={() => setShowAllTx(false)}>
+                  Resumir
+                </Button>
+              )}
             </div>
-          )}
+          </div>
+
+          {(() => {
+            const filtered = data.transactions.filter((t) => txFilter === "all" ? true : t.type === txFilter);
+            const displayed = showAllTx ? filtered : filtered.slice(0, 10);
+            const totalIn = filtered.filter(t => t.type === "in").reduce((s, t) => s + t.amount, 0);
+            const totalOut = filtered.filter(t => t.type === "out").reduce((s, t) => s + t.amount, 0);
+
+            if (filtered.length === 0) {
+              return <p className="text-sm text-muted-foreground text-center py-6">Nenhuma movimentação no período</p>;
+            }
+
+            return (
+              <>
+                {/* Summary bar */}
+                <div className="flex gap-4 mb-3 text-xs">
+                  {(txFilter === "all" || txFilter === "in") && (
+                    <span className="text-success font-medium">↑ Entradas: {formatCurrency(totalIn)} ({filtered.filter(t => t.type === "in").length})</span>
+                  )}
+                  {(txFilter === "all" || txFilter === "out") && (
+                    <span className="text-destructive font-medium">↓ Saídas: {formatCurrency(totalOut)} ({filtered.filter(t => t.type === "out").length})</span>
+                  )}
+                </div>
+                <div className={`space-y-2 ${showAllTx ? "max-h-[600px]" : "max-h-[400px]"} overflow-y-auto`}>
+                  {displayed.map((t) => (
+                    <div key={t.id} className="flex items-center gap-3 py-2 border-b last:border-0">
+                      <div className={`h-8 w-8 rounded-full flex items-center justify-center shrink-0 ${t.type === "in" ? "bg-success/10" : "bg-destructive/10"}`}>
+                        {t.type === "in" ? <ArrowUpRight className="h-4 w-4 text-success" /> : <ArrowDownRight className="h-4 w-4 text-destructive" />}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-foreground truncate">{t.description}</p>
+                        <p className="text-xs text-muted-foreground">{new Date(t.date).toLocaleDateString("pt-BR")}</p>
+                      </div>
+                      <span className={`text-sm font-semibold shrink-0 ${t.type === "in" ? "text-success" : "text-destructive"}`}>
+                        {t.type === "in" ? "+" : "−"}{formatCurrency(t.amount)}
+                      </span>
+                      <Button
+                        size="icon" variant="ghost"
+                        className="h-7 w-7 shrink-0 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                        onClick={() => {
+                          if (t.source === "payment" && onDeletePayment) onDeletePayment(t.id);
+                          else if (t.source === "sale" && onDeleteSale) onDeleteSale(t.id);
+                          else if (t.source === "loan" && onDeleteLoan) onDeleteLoan(t.id);
+                        }}
+                        title="Excluir lançamento"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              </>
+            );
+          })()}
         </CardContent>
       </Card>
     </div>
