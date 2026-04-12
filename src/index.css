@@ -158,3 +158,13 @@
     box-shadow: 0 0 20px -5px hsl(162 40% 42% / 0.2);
   }
 }
+
+@layer utilities {
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+}
