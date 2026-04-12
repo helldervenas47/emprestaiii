@@ -44,7 +44,8 @@ function getSaleCategory(sale: Sale): "paid" | "overdue" | "due_today" | "on_tra
   // Find next unpaid installment due date
   const baseDate = new Date(sale.date + "T00:00:00");
   const nextInstIdx = sale.paidInstallments;
-  const dueDate = isRecorrente ? addByFrequency(baseDate, sale.frequency || "Mensal", nextInstIdx) : baseDate;
+  const customDate = sale.installmentDates && sale.installmentDates[nextInstIdx];
+  const dueDate = customDate ? new Date(customDate + "T00:00:00") : (isRecorrente ? addByFrequency(baseDate, sale.frequency || "Mensal", nextInstIdx) : baseDate);
   const today = new Date();
   const todayNorm = new Date(today.getFullYear(), today.getMonth(), today.getDate());
   const dueNorm = new Date(dueDate.getFullYear(), dueDate.getMonth(), dueDate.getDate());
