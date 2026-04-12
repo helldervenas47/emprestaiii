@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Calendar as CalendarUI } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Save, X, Calendar as CalendarIcon } from "lucide-react";
-import { Sale, BusinessType, PaymentMode } from "@/types/loan";
+import { Sale, BusinessType, PaymentMode, Client } from "@/types/loan";
 import { format, addMonths, addWeeks, addDays } from "date-fns";
 
 function addByFrequency(date: Date, frequency: string, n: number): Date {
@@ -28,9 +28,10 @@ interface Props {
   sale: Sale;
   onSave: (id: string, data: Partial<Omit<Sale, "id">>) => void;
   onClose: () => void;
+  clients?: Client[];
 }
 
-export function SaleEditForm({ sale, onSave, onClose }: Props) {
+export function SaleEditForm({ sale, onSave, onClose, clients = [] }: Props) {
   const initInstVal = () => {
     const count = sale.installments || 1;
     const down = sale.downPayment || 0;
@@ -127,7 +128,16 @@ export function SaleEditForm({ sale, onSave, onClose }: Props) {
 
             <div>
               <Label>Cliente</Label>
-              <Input value={form.customerName} onChange={(e) => update("customerName", e.target.value)} placeholder="Nome do cliente" />
+              <Select value={form.customerName} onValueChange={(v) => update("customerName", v)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione um cliente" />
+                </SelectTrigger>
+                <SelectContent>
+                  {clients.filter(c => c.active).map((client) => (
+                    <SelectItem key={client.id} value={client.name}>{client.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             <div>

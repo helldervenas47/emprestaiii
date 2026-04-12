@@ -1,5 +1,5 @@
 import { useState, useCallback } from "react";
-import { Sale, BusinessType } from "@/types/loan";
+import { Sale, BusinessType, Client } from "@/types/loan";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -23,6 +23,7 @@ interface Props {
   sales: Sale[];
   onDeleteSale: (id: string) => void;
   onUpdateSale: (id: string, data: Partial<Omit<Sale, "id">>) => void;
+  clients?: Client[];
 }
 
 function rawFormatCurrency(v: number) {
