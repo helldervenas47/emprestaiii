@@ -690,10 +690,6 @@ export function ProductSalesView({ sales, onDeleteSale, onUpdateSale, clients = 
                 <Receipt className="h-5 w-5" />
                 Despesas de Veículos ({vehicleExpenses.length})
               </h3>
-              <Button onClick={() => setShowVehicleExpenseForm(true)} size="sm">
-                <Plus className="h-4 w-4 mr-2" />
-                Registrar Despesa
-              </Button>
             </div>
 
             {vehicleExpenses.length === 0 ? (
