@@ -26,8 +26,9 @@ import {
 } from "@/lib/csv";
 import { toast } from "sonner";
 import { HideValuesProvider, useHideValues } from "@/contexts/HideValuesContext";
+import { UserManagement } from "@/components/UserManagement";
 
-type Tab = "overview" | "dashboard" | "clients" | "products" | "overdue" | "expenses" | "calendar";
+type Tab = "overview" | "dashboard" | "clients" | "products" | "overdue" | "expenses" | "calendar" | "users";
 
 const tabConfig = [
   { id: "overview" as Tab, label: "Dashboard", icon: BarChart3 },
@@ -37,6 +38,7 @@ const tabConfig = [
   { id: "products" as Tab, label: "Vendas", icon: ShoppingBag },
   { id: "expenses" as Tab, label: "Despesas", icon: Receipt },
   { id: "overdue" as Tab, label: "Inadimplentes", icon: AlertTriangle },
+  { id: "users" as Tab, label: "Usuários", icon: Users },
 ];
 
 const tabHelp: Record<Tab, { title: string; items: string[] }> = {
@@ -100,6 +102,15 @@ const tabHelp: Record<Tab, { title: string; items: string[] }> = {
       "Lista todos os empréstimos com parcelas em atraso.",
       "Também mostra empréstimos que vencem hoje.",
       "Use para priorizar suas cobranças diárias.",
+    ],
+  },
+  users: {
+    title: "Gerenciamento de Usuários",
+    items: [
+      "Crie novos usuários com email, nome de usuário e senha.",
+      "Defina papéis: Admin, Operador ou Visualizador.",
+      "Apenas administradores podem acessar esta aba.",
+      "Gerencie permissões de acesso dos usuários.",
     ],
   },
 };
@@ -331,6 +342,7 @@ const Index = () => {
             onUpdateSale={updateSale}
           />
         )}
+        {tab === "users" && <UserManagement />}
       </main>
 
       {showLoanForm && <LoanForm onAdd={addLoan} onClose={() => setShowLoanForm(false)} clients={clients} />}
