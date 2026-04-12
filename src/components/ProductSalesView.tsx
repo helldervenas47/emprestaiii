@@ -37,6 +37,12 @@ const businessTabs: { type: BusinessType; label: string; icon: React.ElementType
   { type: "aluguel_veiculo", label: "Aluguel de Veículos", icon: Car },
 ];
 
+// Tabs shown inside ProductSalesView (vehicles removed - now separate page)
+const salesSubTabs: { type: BusinessType; label: string; icon: React.ElementType }[] = [
+  { type: "venda", label: "Vendas", icon: ShoppingCart },
+  { type: "streaming", label: "Streaming", icon: Tv },
+];
+
 function getSaleCategory(sale: Sale): "paid" | "overdue" | "due_today" | "on_track" {
   const isRecorrente = sale.paymentMode === "recorrente" && sale.installments > 1;
   const isPaid = isRecorrente ? sale.paidInstallments >= sale.installments : sale.paidInstallments >= 1;
