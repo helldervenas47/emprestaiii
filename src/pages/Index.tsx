@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useRef, useState, useEffect } from "react";
 import { Plus, HandCoins, Users, LayoutDashboard, Download, Upload, ShoppingBag, BarChart3, AlertTriangle, Receipt, CalendarDays, Sun, Moon, LogOut, Info, X, Eye, EyeOff } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useAuth } from "@/hooks/useAuth";
@@ -124,7 +124,7 @@ function HideValuesToggle() {
 }
 
 const Index = () => {
-  const { signOut } = useAuth();
+  const { signOut, role } = useAuth();
   const { loans, payments, addLoan, addPayment, addPartialPayment, addInterestOnlyPayment, updateLoan, deleteLoan, deletePayment } = useLoans();
   const { clients, addClient, deleteClient, updateClient } = useClients();
   const { products, sales, addProduct, updateProduct, deleteProduct, addSale, updateSale, deleteSale } = useProducts();
@@ -135,6 +135,23 @@ const Index = () => {
   const [showSaleForm, setShowSaleForm] = useState(false);
   const [showExpenseForm, setShowExpenseForm] = useState(false);
   const [tab, setTab] = useState<Tab>("overview");
+
+  const isReadOnly = role === "visualizador";
+
+  // Filter tabs based on role
+  const visibleTabs = tabConfig.filter((t) => {
+    if (role === "admin" || !role) return true;
+    if (role === "operador") return ["overview", "dashboard", "calendar", "clients", "overdue"].includes(t.id);
+    if (role === "visualizador") return ["dashboard"].includes(t.id);
+    return false;
+  });
+
+  // Reset tab if not visible for current role
+  useEffect(() => {
+    if (visibleTabs.length > 0 && !visibleTabs.find(t => t.id === tab)) {
+      setTab(visibleTabs[0].id);
+    }
+  }, [role]);
   const [dark, setDark] = useState(() => {
     if (typeof window !== "undefined") {
       const saved = localStorage.getItem("hvcred-theme");
@@ -273,14 +290,14 @@ const Index = () => {
             <Button variant="ghost" size="icon" onClick={signOut} className="h-9 w-9" title="Sair">
               <LogOut className="h-4 w-4" />
             </Button>
-            {(tab === "dashboard" || tab === "clients" || tab === "products") && (
+            {!isReadOnly && (tab === "dashboard" || tab === "clients" || tab === "products") && (
               <>
                 <Button variant="outline" size="sm" onClick={handleImport}><Upload className="h-4 w-4 mr-1" />Importar</Button>
                 <Button variant="outline" size="sm" onClick={handleExport}><Download className="h-4 w-4 mr-1" />Exportar</Button>
               </>
             )}
             {/* Removed separate Nova Venda button - now handled by primary action */}
-            {tab !== "overview" && tab !== "overdue" && tab !== "calendar" && (
+            {!isReadOnly && tab !== "overview" && tab !== "overdue" && tab !== "calendar" && tab !== "users" && (
               <Button onClick={handlePrimaryAction}>
                 <Plus className="h-4 w-4 mr-2" />{primaryLabel}
               </Button>
@@ -290,7 +307,7 @@ const Index = () => {
 
         <div className="container mx-auto px-4">
           <nav className="flex gap-1 -mb-px overflow-x-auto">
-            {tabConfig.map((t) => (
+            {visibleTabs.map((t) => (
               <button
                 key={t.id}
                 onClick={() => setTab(t.id)}
@@ -313,7 +330,7 @@ const Index = () => {
           <>
             <div>
               <h2 className="text-lg font-semibold text-foreground mb-4">Empréstimos</h2>
-              <LoanList loans={loans} payments={payments} onPayment={addPayment} onPartialPayment={addPartialPayment} onInterestPayment={addInterestOnlyPayment} onUpdate={updateLoan} onDelete={deleteLoan} onDeletePayment={deletePayment} />
+              <LoanList loans={loans} payments={payments} onPayment={addPayment} onPartialPayment={addPartialPayment} onInterestPayment={addInterestOnlyPayment} onUpdate={updateLoan} onDelete={deleteLoan} onDeletePayment={deletePayment} readOnly={isReadOnly} />
             </div>
           </>
         )}

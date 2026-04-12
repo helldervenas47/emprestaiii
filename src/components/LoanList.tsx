@@ -30,6 +30,7 @@ interface Props {
   onUpdate: (id: string, data: Partial<Omit<Loan, "id">>) => void;
   onDelete: (loanId: string) => void;
   onDeletePayment: (paymentId: string) => void;
+  readOnly?: boolean;
 }
 
 type Category = "all" | "overdue" | "paid_interest" | "paid" | "due_today" | "on_track";
@@ -120,7 +121,7 @@ function getTotalPaid(loan: Loan, payments: Payment[]): number {
 }
 
 function LoanCardView({
-  loan, payments: allPayments, onPayment, onPartialPayment, onInterestPayment, onUpdate, onDelete, onDeletePayment,
+  loan, payments: allPayments, onPayment, onPartialPayment, onInterestPayment, onUpdate, onDelete, onDeletePayment, readOnly = false,
 }: {
   loan: Loan;
   payments: Payment[];
@@ -130,6 +131,7 @@ function LoanCardView({
   onUpdate: (data: Partial<Omit<Loan, "id">>) => void;
   onDelete: () => void;
   onDeletePayment: (paymentId: string) => void;
+  readOnly?: boolean;
 }) {
   const { mask } = useHideValues();
   const formatCurrency = useCallback((v: number) => mask(rawFormatCurrency(v)), [mask]);
@@ -566,6 +568,7 @@ function LoanCardView({
         )}
 
         {/* Action Buttons */}
+        {!readOnly && (
         <div className="flex flex-col gap-2 pt-2 border-t border-border/50 mt-auto">
           {loan.status !== "paid" && (
            <div className="flex gap-2">
@@ -599,6 +602,7 @@ function LoanCardView({
             </Button>
           </div>
         </div>
+        )}
       </CardContent>
     </Card>
     <Dialog open={!!paymentDialog} onOpenChange={(open) => !open && setPaymentDialog(null)}>
@@ -674,7 +678,7 @@ function LoanCardView({
 }
 
 function LoanRowView({
-  loan, payments: allPayments, onPayment, onPartialPayment, onInterestPayment, onUpdate, onDelete, onDeletePayment,
+  loan, payments: allPayments, onPayment, onPartialPayment, onInterestPayment, onUpdate, onDelete, onDeletePayment, readOnly = false,
 }: {
   loan: Loan;
   payments: Payment[];
@@ -684,6 +688,7 @@ function LoanRowView({
   onUpdate: (data: Partial<Omit<Loan, "id">>) => void;
   onDelete: () => void;
   onDeletePayment: (paymentId: string) => void;
+  readOnly?: boolean;
 }) {
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState<EditForm>(loanToForm(loan));
@@ -854,7 +859,7 @@ function LoanRowView({
       {/* Ações */}
       <td className="px-4 py-3">
         <div className="flex items-center gap-1 justify-end">
-          {loan.status !== "paid" && (
+          {!readOnly && loan.status !== "paid" && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="sm" className="h-7 text-xs text-muted-foreground hover:text-foreground gap-1">
@@ -881,7 +886,7 @@ function LoanRowView({
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              {loan.status !== "paid" && (
+              {!readOnly && loan.status !== "paid" && (
                 <>
                   <DropdownMenuItem onClick={() => openPaymentDialog("installment")}>
                     <CheckCircle className="h-4 w-4 mr-2" /> Receber Parcela
@@ -894,18 +899,24 @@ function LoanRowView({
                   </DropdownMenuItem>
                 </>
               )}
-              <DropdownMenuItem onClick={() => loan.status === "paid" ? onUpdate({ status: "active", paidInstallments: 0 }) : openPaymentDialog("full")}>
-                <CheckCircle className="h-4 w-4 mr-2" /> {loan.status === "paid" ? "Marcar como não pago" : "Marcar como pago"}
-              </DropdownMenuItem>
+              {!readOnly && (
+                <DropdownMenuItem onClick={() => loan.status === "paid" ? onUpdate({ status: "active", paidInstallments: 0 }) : openPaymentDialog("full")}>
+                  <CheckCircle className="h-4 w-4 mr-2" /> {loan.status === "paid" ? "Marcar como não pago" : "Marcar como pago"}
+                </DropdownMenuItem>
+              )}
               <DropdownMenuItem onClick={() => setShowHistory(true)}>
                 <History className="h-4 w-4 mr-2" /> Histórico
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={startEdit}>
-                <Pencil className="h-4 w-4 mr-2" /> Editar
-              </DropdownMenuItem>
-              <DropdownMenuItem className="text-destructive" onClick={onDelete}>
-                <Trash2 className="h-4 w-4 mr-2" /> Excluir
-              </DropdownMenuItem>
+              {!readOnly && (
+                <>
+                  <DropdownMenuItem onClick={startEdit}>
+                    <Pencil className="h-4 w-4 mr-2" /> Editar
+                  </DropdownMenuItem>
+                  <DropdownMenuItem className="text-destructive" onClick={onDelete}>
+                    <Trash2 className="h-4 w-4 mr-2" /> Excluir
+                  </DropdownMenuItem>
+                </>
+              )}
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
@@ -1008,7 +1019,7 @@ interface ClientGroup {
 }
 
 function ClientFolder({
-  group, payments, onPayment, onPartialPayment, onInterestPayment, onUpdate, onDelete, onDeletePayment,
+  group, payments, onPayment, onPartialPayment, onInterestPayment, onUpdate, onDelete, onDeletePayment, readOnly = false,
 }: {
   group: ClientGroup;
   payments: Payment[];
@@ -1018,6 +1029,7 @@ function ClientFolder({
   onUpdate: (id: string, data: Partial<Omit<Loan, "id">>) => void;
   onDelete: (id: string) => void;
   onDeletePayment: (paymentId: string) => void;
+  readOnly?: boolean;
 }) {
   const { mask } = useHideValues();
   const formatCurrency = useCallback((v: number) => mask(rawFormatCurrency(v)), [mask]);
@@ -1058,7 +1070,7 @@ function ClientFolder({
         <CardContent className="pt-0 pb-3 px-3">
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
             {group.loans.map((loan) => (
-              <LoanCardView key={loan.id} loan={loan} payments={payments}
+              <LoanCardView key={loan.id} loan={loan} payments={payments} readOnly={readOnly}
                 onPayment={(date) => onPayment(loan.id, date)} onPartialPayment={(amt, date) => onPartialPayment(loan.id, amt, date)}
                 onInterestPayment={(date) => onInterestPayment(loan.id, date)} onUpdate={(d) => onUpdate(loan.id, d)} onDelete={() => onDelete(loan.id)} onDeletePayment={onDeletePayment} />
             ))}
@@ -1069,7 +1081,7 @@ function ClientFolder({
   );
 }
 
-export function LoanList({ loans, payments, onPayment, onPartialPayment, onInterestPayment, onUpdate, onDelete, onDeletePayment }: Props) {
+export function LoanList({ loans, payments, onPayment, onPartialPayment, onInterestPayment, onUpdate, onDelete, onDeletePayment, readOnly = false }: Props) {
   const { mask } = useHideValues();
   const formatCurrency = useCallback((v: number) => mask(rawFormatCurrency(v)), [mask]);
   const [view, setView] = useState<"cards" | "rows" | "folders">("cards");
@@ -1347,7 +1359,7 @@ export function LoanList({ loans, payments, onPayment, onPartialPayment, onInter
           {view === "cards" ? (
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
               {categorized.map((loan) => (
-                <LoanCardView key={loan.id} loan={loan} payments={payments}
+                <LoanCardView key={loan.id} loan={loan} payments={payments} readOnly={readOnly}
                   onPayment={(date) => onPayment(loan.id, date)} onPartialPayment={(amt, date) => onPartialPayment(loan.id, amt, date)}
                   onInterestPayment={(date) => onInterestPayment(loan.id, date)} onUpdate={(d) => onUpdate(loan.id, d)} onDelete={() => onDelete(loan.id)} onDeletePayment={onDeletePayment} />
               ))}
@@ -1356,7 +1368,7 @@ export function LoanList({ loans, payments, onPayment, onPartialPayment, onInter
             <>
             <div className="space-y-4">
               {grouped.map((g) => (
-                <ClientFolder key={g.name} group={g} payments={payments}
+                <ClientFolder key={g.name} group={g} payments={payments} readOnly={readOnly}
                   onPayment={onPayment} onPartialPayment={onPartialPayment}
                   onInterestPayment={onInterestPayment} onUpdate={onUpdate} onDelete={onDelete} onDeletePayment={onDeletePayment} />
               ))}
@@ -1389,7 +1401,7 @@ export function LoanList({ loans, payments, onPayment, onPartialPayment, onInter
                 </thead>
                 <tbody>
                   {categorized.map((loan) => (
-                    <LoanRowView key={loan.id} loan={loan} payments={payments}
+                    <LoanRowView key={loan.id} loan={loan} payments={payments} readOnly={readOnly}
                       onPayment={(date) => onPayment(loan.id, date)} onPartialPayment={(amt, date) => onPartialPayment(loan.id, amt, date)}
                       onInterestPayment={(date) => onInterestPayment(loan.id, date)} onUpdate={(d) => onUpdate(loan.id, d)} onDelete={() => onDelete(loan.id)} onDeletePayment={onDeletePayment} />
                   ))}
