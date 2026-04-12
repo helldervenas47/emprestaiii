@@ -199,22 +199,32 @@ function LoanCardView({
     setForm(loanToForm(loan));
     setEditing(true);
     setShowEditSchedule(false);
-    // Build schedule rows
     const totalInst = loan.installments;
     const paidInst = loan.paidInstallments || 0;
     const rem = loan.remainingAmount != null && loan.remainingAmount > 0 ? loan.remainingAmount : total;
     const remInst = Math.max(1, totalInst - paidInst);
     const instVal = (rem / remInst).toFixed(2);
-    const firstDue = new Date(loan.dueDate + "T00:00:00");
     const freq = loan.interestType || "Mensal";
-    setEditScheduleRows(
-      Array.from({ length: remInst }, (_, i) => ({
-        date: i === 0 ? firstDue : getNextDate(firstDue, freq, i),
-        value: loan.customInstallmentValue != null && loan.customInstallmentValue > 0
-          ? loan.customInstallmentValue.toFixed(2)
-          : instVal,
-      }))
-    );
+    // Use saved schedules if available
+    const savedSchedules = installmentSchedules
+      .filter((s) => s.loanId === loan.id && s.installmentNumber > paidInst)
+      .sort((a, b) => a.installmentNumber - b.installmentNumber);
+    if (savedSchedules.length > 0) {
+      setEditScheduleRows(savedSchedules.map((s) => ({
+        date: new Date(s.dueDate + "T00:00:00"),
+        value: s.amount.toFixed(2),
+      })));
+    } else {
+      const firstDue = new Date(loan.dueDate + "T00:00:00");
+      setEditScheduleRows(
+        Array.from({ length: remInst }, (_, i) => ({
+          date: i === 0 ? firstDue : getNextDate(firstDue, freq, i),
+          value: loan.customInstallmentValue != null && loan.customInstallmentValue > 0
+            ? loan.customInstallmentValue.toFixed(2)
+            : instVal,
+        }))
+      );
+    }
   };
   const cancelEdit = () => setEditing(false);
   const saveEdit = async () => {
