@@ -1,12 +1,12 @@
 import { useState, useCallback } from "react";
-import { Sale, BusinessType, Client } from "@/types/loan";
+import { Sale, BusinessType, Client, Expense } from "@/types/loan";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
-import { Trash2, Search, ShoppingCart, Tv, Car, Calendar as CalendarIcon, User, Pencil, ChevronDown, ChevronUp, CheckCircle, HandCoins, Check, X as XIcon, DollarSign, AlertTriangle, Clock, CircleCheck } from "lucide-react";
+import { Trash2, Search, ShoppingCart, Tv, Car, Calendar as CalendarIcon, User, Pencil, ChevronDown, ChevronUp, CheckCircle, HandCoins, Check, X as XIcon, DollarSign, AlertTriangle, Clock, CircleCheck, Receipt, Plus } from "lucide-react";
 import { addMonths, addWeeks, addDays, format } from "date-fns";
 
 function addByFrequency(date: Date, frequency: string, n: number): Date {
@@ -20,11 +20,17 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
 
+import { VehicleExpenseForm, vehicleExpenseCategories } from "@/components/VehicleExpenseForm";
+
 interface Props {
   sales: Sale[];
   onDeleteSale: (id: string) => void;
   onUpdateSale: (id: string, data: Partial<Omit<Sale, "id">>) => void;
   clients?: Client[];
+  expenses?: Expense[];
+  onAddExpense?: (expense: Omit<Expense, "id" | "paid" | "paidDate" | "createdAt">) => void;
+  onPayExpense?: (id: string) => void;
+  onDeleteExpense?: (id: string) => void;
 }
 
 function rawFormatCurrency(v: number) {
