@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect } from "react";
-import { Loan, Payment } from "@/types/loan";
+import { Loan, Payment, InstallmentSchedule } from "@/types/loan";
 import { adjustBalance } from "@/lib/balance";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
@@ -8,6 +8,7 @@ export function useLoans() {
   const { user } = useAuth();
   const [loans, setLoans] = useState<Loan[]>([]);
   const [payments, setPayments] = useState<Payment[]>([]);
+  const [installmentSchedules, setInstallmentSchedules] = useState<InstallmentSchedule[]>([]);
 
   const fetchLoans = useCallback(async () => {
     if (!user) return;
