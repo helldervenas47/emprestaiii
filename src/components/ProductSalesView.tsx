@@ -420,6 +420,11 @@ function SaleCard({ sale, onDelete, onEdit, onUpdate, formatCurrency }: { sale: 
               {new Date(sale.date + "T00:00:00").toLocaleDateString("pt-BR")}
             </p>
             <div className="flex items-center gap-1">
+              {(sale.paidInstallments > 0 || (sale.partialPaid || 0) > 0) && (
+                <Button size="icon" variant="ghost" className="h-8 w-8 text-success hover:bg-success/10" onClick={() => setShowPayments(true)}>
+                  <CircleCheck className="h-4 w-4" />
+                </Button>
+              )}
               <Button size="icon" variant="ghost" className="h-8 w-8 text-muted-foreground hover:bg-accent hover:text-foreground" onClick={onEdit}>
                 <Pencil className="h-4 w-4" />
               </Button>
