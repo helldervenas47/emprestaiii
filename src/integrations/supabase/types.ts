@@ -365,6 +365,7 @@ export type Database = {
           description: string
           frequency: string
           id: string
+          installment_amounts: Json | null
           installment_value: number | null
           installments: number
           notes: string | null
@@ -383,6 +384,7 @@ export type Database = {
           description?: string
           frequency?: string
           id?: string
+          installment_amounts?: Json | null
           installment_value?: number | null
           installments?: number
           notes?: string | null
@@ -401,6 +403,7 @@ export type Database = {
           description?: string
           frequency?: string
           id?: string
+          installment_amounts?: Json | null
           installment_value?: number | null
           installments?: number
           notes?: string | null
