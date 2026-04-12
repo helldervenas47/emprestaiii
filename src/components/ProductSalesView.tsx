@@ -347,7 +347,13 @@ function SalesList({ sales, onDeleteSale, onUpdateSale }: { sales: Sale[]; onDel
   const totalOverdue = overdueSales.reduce((acc, s) => acc + getRemaining(s), 0);
   const totalOnTrack = onTrackSales.reduce((acc, s) => acc + getRemaining(s), 0);
   const totalDueToday = dueTodaySales.reduce((acc, s) => acc + getRemaining(s), 0);
-  const totalPaid = paidSales.reduce((acc, s) => acc + s.total, 0);
+  // Valor pago = soma de todas as parcelas pagas de todos os contratos
+  const totalPaid = sales.reduce((acc, s) => {
+    const valorParcela = s.installments > 0 ? s.total / s.installments : s.total;
+    return acc + valorParcela * s.paidInstallments;
+  }, 0);
+  // Quantidade de contratos = somente os quitados
+  const paidContractsCount = paidSales.length;
   const totalAReceber = totalOverdue + totalOnTrack + totalDueToday;
 
   return (
@@ -376,7 +382,7 @@ function SalesList({ sales, onDeleteSale, onUpdateSale }: { sales: Sale[]; onDel
             <CircleCheck className="h-4 w-4 opacity-70" />
           </div>
           <p className="text-xl font-bold">{formatCurrency(totalPaid)}</p>
-          <p className="text-xs opacity-75 mt-1">{paidSales.length} contratos</p>
+          <p className="text-xs opacity-75 mt-1">{paidContractsCount} contratos quitados</p>
         </div>
         <div className="rounded-xl p-4 bg-gradient-to-br from-warning/80 to-warning text-warning-foreground">
           <div className="flex items-center justify-between mb-2">
