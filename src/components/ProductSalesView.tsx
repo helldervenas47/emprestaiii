@@ -6,7 +6,13 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Trash2, Search, ShoppingCart, Tv, Car, Calendar as CalendarIcon, User, Pencil, ChevronDown, ChevronUp, CheckCircle, HandCoins, Check, X as XIcon, DollarSign, AlertTriangle, Clock, CircleCheck } from "lucide-react";
-import { addMonths, format } from "date-fns";
+import { addMonths, addWeeks, addDays, format } from "date-fns";
+
+function addByFrequency(date: Date, frequency: string, n: number): Date {
+  if (frequency === "Semanal") return addWeeks(date, n);
+  if (frequency === "Quinzenal") return addDays(date, n * 15);
+  return addMonths(date, n);
+}
 import { useHideValues } from "@/contexts/HideValuesContext";
 import { SaleEditForm } from "@/components/SaleEditForm";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
