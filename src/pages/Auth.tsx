@@ -10,19 +10,38 @@ import { toast } from "sonner";
 const Auth = () => {
   const [isLogin, setIsLogin] = useState(true);
   const [isForgot, setIsForgot] = useState(false);
+  const [loginId, setLoginId] = useState(""); // email or username
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [displayName, setDisplayName] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
 
+  const isEmail = (value: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+
+    let emailToUse = loginId;
+
+    // If it's not an email, look up by username
+    if (!isEmail(loginId)) {
+      const { data, error } = await supabase.functions.invoke("login-with-username", {
+        body: { username: loginId, password },
+      });
+      if (error || data?.error) {
+        setLoading(false);
+        toast.error(data?.error || "Usuário não encontrado");
+        return;
+      }
+      emailToUse = data.email;
+    }
+
+    const { error } = await supabase.auth.signInWithPassword({ email: emailToUse, password });
     setLoading(false);
     if (error) {
-      toast.error(error.message === "Invalid login credentials" ? "Email ou senha incorretos" : error.message);
+      toast.error(error.message === "Invalid login credentials" ? "Email/usuário ou senha incorretos" : error.message);
     }
   };
 
@@ -126,10 +145,14 @@ const Auth = () => {
               </div>
             )}
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="loginId">{isLogin ? "Email ou Usuário" : "Email"}</Label>
               <div className="relative">
                 <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                <Input id="email" type="email" placeholder="seu@email.com" value={email} onChange={(e) => setEmail(e.target.value)} className="pl-9" required />
+                {isLogin ? (
+                  <Input id="loginId" type="text" placeholder="email ou nome de usuário" value={loginId} onChange={(e) => setLoginId(e.target.value)} className="pl-9" required />
+                ) : (
+                  <Input id="email" type="email" placeholder="seu@email.com" value={email} onChange={(e) => setEmail(e.target.value)} className="pl-9" required />
+                )}
               </div>
             </div>
             <div className="space-y-2">
