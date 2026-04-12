@@ -145,6 +145,13 @@ const Index = () => {
     if (role === "visualizador") return ["dashboard"].includes(t.id);
     return false;
   });
+
+  // Reset tab if not visible for current role
+  useState(() => {
+    if (visibleTabs.length > 0 && !visibleTabs.find(t => t.id === tab)) {
+      setTab(visibleTabs[0].id);
+    }
+  });
   const [dark, setDark] = useState(() => {
     if (typeof window !== "undefined") {
       const saved = localStorage.getItem("hvcred-theme");
