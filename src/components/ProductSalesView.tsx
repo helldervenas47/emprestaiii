@@ -247,7 +247,6 @@ function SaleCard({ sale, onDelete, onEdit, onUpdate, formatCurrency }: { sale: 
                           if (date) {
                             onUpdate({
                               paidInstallments: Math.min(sale.installments, sale.paidInstallments + 1),
-                              date: format(date, "yyyy-MM-dd"),
                             });
                             setShowPayDatePicker(false);
                           }
