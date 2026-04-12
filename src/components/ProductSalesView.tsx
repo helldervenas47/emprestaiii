@@ -109,11 +109,15 @@ function SaleCard({ sale, onDelete, onEdit, onUpdate, formatCurrency }: { sale: 
           <Badge className={`${catStyle.badge} text-xs shrink-0`}>{catStyle.label}</Badge>
         </div>
 
-        {/* Row 2: Info grid - always 2 cols, fixed height */}
-        <div className="grid grid-cols-2 gap-3 border border-border/50 rounded-lg p-3 h-[60px]">
+        {/* Row 2: Info grid */}
+        <div className="grid grid-cols-3 gap-3 border border-border/50 rounded-lg p-3 h-[60px]">
           <div>
             <p className="text-xs text-muted-foreground">Valor Total</p>
             <p className="text-sm font-bold text-foreground">{formatCurrency(sale.total)}</p>
+          </div>
+          <div>
+            <p className="text-xs text-muted-foreground">Restante</p>
+            <p className="text-sm font-bold text-warning">{formatCurrency(Math.max(0, sale.total - valorParcela * sale.paidInstallments))}</p>
           </div>
           <div>
             <p className="text-xs text-muted-foreground">{isRecorrente ? "Valor Parcela" : "Quantidade"}</p>

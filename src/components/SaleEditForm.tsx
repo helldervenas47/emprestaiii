@@ -256,7 +256,18 @@ export function SaleEditForm({ sale, onSave, onClose }: Props) {
                             onChange={(e) => {
                               setInstallmentRows((prev) => {
                                 const rows = [...prev];
-                                rows[idx] = { ...rows[idx], value: e.target.value };
+                                const newVal = e.target.value;
+                                rows[idx] = { ...rows[idx], value: newVal };
+                                // Auto-adjust: when changing first installment, redistribute remaining across others
+                                if (idx === 0 && rows.length > 1) {
+                                  const firstVal = parseFloat(newVal) || 0;
+                                  const remaining = Math.max(0, remainingForInstallments - firstVal);
+                                  const otherCount = rows.length - 1;
+                                  const otherVal = (remaining / otherCount).toFixed(2);
+                                  for (let i = 1; i < rows.length; i++) {
+                                    rows[i] = { ...rows[i], value: otherVal };
+                                  }
+                                }
                                 return rows;
                               });
                             }}
