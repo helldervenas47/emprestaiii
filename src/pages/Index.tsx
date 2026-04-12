@@ -364,7 +364,15 @@ const Index = () => {
         )}
         {tab === "products" && (
           <ProductSalesView
-            sales={sales}
+            sales={sales.filter(s => s.businessType !== "aluguel_veiculo")}
+            onDeleteSale={deleteSale}
+            onUpdateSale={updateSale}
+            clients={clients}
+          />
+        )}
+        {tab === "vehicles" && (
+          <ProductSalesView
+            sales={sales.filter(s => s.businessType === "aluguel_veiculo")}
             onDeleteSale={deleteSale}
             onUpdateSale={updateSale}
             clients={clients}
