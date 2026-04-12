@@ -836,14 +836,33 @@ export function ProductSalesView({ sales, onDeleteSale, onUpdateSale, clients = 
   // Filter vehicle-related expenses
   const vehicleExpenses = expenses.filter(e => vehicleExpenseCategories.includes(e.category));
 
-  // Monthly vehicle expenses
+  // Monthly vehicle expenses - consider installment due dates
   const [selYear, selMonthNum] = selectedMonth.split("-").map(Number);
   const monthStart = new Date(selYear, selMonthNum - 1, 1);
   const monthEnd = endOfMonth(monthStart);
   const monthStartStr = format(monthStart, "yyyy-MM-dd");
   const monthEndStr = format(monthEnd, "yyyy-MM-dd");
-  const monthlyVehicleExpenses = vehicleExpenses.filter(e => e.dueDate >= monthStartStr && e.dueDate <= monthEndStr);
-  const monthlyTotal = monthlyVehicleExpenses.reduce((acc, e) => acc + e.amount, 0);
+
+  // For recurring expenses, calculate which installments fall in the selected month
+  let monthlyTotal = 0;
+  vehicleExpenses.forEach(exp => {
+    const isRecorrente = exp.type === "recorrente" && exp.installments && exp.installments > 1;
+    if (isRecorrente) {
+      const baseDate = new Date(exp.dueDate + "T00:00:00");
+      const installmentAmount = exp.amount / exp.installments!;
+      for (let i = 0; i < exp.installments!; i++) {
+        const instDate = addMonths(baseDate, i);
+        const instDateStr = format(instDate, "yyyy-MM-dd");
+        if (instDateStr >= monthStartStr && instDateStr <= monthEndStr) {
+          monthlyTotal += installmentAmount;
+        }
+      }
+    } else {
+      if (exp.dueDate >= monthStartStr && exp.dueDate <= monthEndStr) {
+        monthlyTotal += exp.amount;
+      }
+    }
+  });
 
   // Generate month options (last 12 months + current)
   const monthOptions: { value: string; label: string }[] = [];
