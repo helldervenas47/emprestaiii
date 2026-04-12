@@ -69,9 +69,10 @@ function SaleCard({ sale, onDelete, onEdit, onUpdate, formatCurrency }: { sale: 
   const [showPayDatePicker, setShowPayDatePicker] = useState(false);
   const TabIcon = businessTabs.find((t) => t.type === sale.businessType)?.icon || ShoppingCart;
   const isRecorrente = sale.paymentMode === "recorrente" && sale.installments > 1;
-  const valorParcela = sale.installmentValue != null && sale.installmentValue > 0
-    ? sale.installmentValue
-    : (sale.installments > 0 ? Math.max(0, sale.total - (sale.downPayment || 0)) / sale.installments : sale.total);
+  const amounts = sale.installmentAmounts;
+  const defaultValorParcela = sale.installments > 0 ? Math.max(0, sale.total - (sale.downPayment || 0)) / sale.installments : sale.total;
+  const getParcelaValue = (idx: number) => amounts && amounts[idx] != null ? amounts[idx] : defaultValorParcela;
+  const valorParcela = defaultValorParcela; // used for summary fallback
   const isPaid = isRecorrente ? sale.paidInstallments >= sale.installments : sale.paidInstallments >= 1;
   const pendentes = isRecorrente ? sale.installments - sale.paidInstallments : (sale.paidInstallments >= 1 ? 0 : 1);
   const category = getSaleCategory(sale);
@@ -85,7 +86,7 @@ function SaleCard({ sale, onDelete, onEdit, onUpdate, formatCurrency }: { sale: 
     return {
       number: i + 1,
       date: format(dueDate, "dd/MM/yyyy"),
-      value: valorParcela,
+      value: getParcelaValue(i),
       paid: i < sale.paidInstallments,
     };
   });
@@ -154,15 +155,15 @@ function SaleCard({ sale, onDelete, onEdit, onUpdate, formatCurrency }: { sale: 
           </div>
           <div>
             <p className="text-xs text-muted-foreground">{isRecorrente ? "Valor Parcela" : "Quantidade"}</p>
-            <p className="text-sm font-bold text-foreground">{isRecorrente ? formatCurrency(valorParcela) : sale.quantity}</p>
+            <p className="text-sm font-bold text-foreground">{isRecorrente ? (amounts ? "Variável" : formatCurrency(valorParcela)) : sale.quantity}</p>
           </div>
           <div>
             <p className="text-xs text-muted-foreground">Valor Pago</p>
-            <p className="text-sm font-bold text-success">{formatCurrency(valorParcela * sale.paidInstallments + (sale.downPayment || 0))}</p>
+            <p className="text-sm font-bold text-success">{formatCurrency(parcelas.filter(p => p.paid).reduce((s, p) => s + p.value, 0) + (sale.downPayment || 0))}</p>
           </div>
           <div>
             <p className="text-xs text-muted-foreground">Restante</p>
-            <p className="text-sm font-bold text-warning">{formatCurrency(Math.max(0, sale.total - valorParcela * sale.paidInstallments - (sale.downPayment || 0)))}</p>
+            <p className="text-sm font-bold text-warning">{formatCurrency(parcelas.filter(p => !p.paid).reduce((s, p) => s + p.value, 0))}</p>
           </div>
         </div>
 
@@ -381,13 +382,20 @@ function SalesList({ sales, onDeleteSale, onUpdateSale, clients = [] }: { sales:
   const total = filtered.reduce((acc, s) => acc + s.total, 0);
 
   // Calculate receivables per category
-  const getRemaining = (s: Sale) => {
-    const valorParcela = s.installmentValue != null && s.installmentValue > 0
-      ? s.installmentValue
-      : (s.installments > 0 ? Math.max(0, s.total - (s.downPayment || 0)) / s.installments : s.total);
-    const paid = valorParcela * s.paidInstallments + (s.downPayment || 0);
-    return Math.max(0, s.total - paid);
+  const getSalePaidAmount = (s: Sale) => {
+    const amounts = s.installmentAmounts;
+    if (amounts && amounts.length > 0) {
+      let paid = s.downPayment || 0;
+      for (let i = 0; i < s.paidInstallments && i < amounts.length; i++) {
+        paid += amounts[i] || 0;
+      }
+      return paid;
+    }
+    const vp = s.installments > 0 ? Math.max(0, s.total - (s.downPayment || 0)) / s.installments : s.total;
+    return vp * s.paidInstallments + (s.downPayment || 0);
   };
+
+  const getRemaining = (s: Sale) => Math.max(0, s.total - getSalePaidAmount(s));
 
   const overdueSales = sales.filter((s) => getSaleCategory(s) === "overdue");
   const onTrackSales = sales.filter((s) => getSaleCategory(s) === "on_track");
@@ -397,13 +405,7 @@ function SalesList({ sales, onDeleteSale, onUpdateSale, clients = [] }: { sales:
   const totalOverdue = overdueSales.reduce((acc, s) => acc + getRemaining(s), 0);
   const totalOnTrack = onTrackSales.reduce((acc, s) => acc + getRemaining(s), 0);
   const totalDueToday = dueTodaySales.reduce((acc, s) => acc + getRemaining(s), 0);
-  // Valor pago = soma de todas as parcelas pagas de todos os contratos
-  const totalPaid = sales.reduce((acc, s) => {
-    const valorParcela = s.installmentValue != null && s.installmentValue > 0
-      ? s.installmentValue
-      : (s.installments > 0 ? Math.max(0, s.total - (s.downPayment || 0)) / s.installments : s.total);
-    return acc + valorParcela * s.paidInstallments + (s.downPayment || 0);
-  }, 0);
+  const totalPaid = sales.reduce((acc, s) => acc + getSalePaidAmount(s), 0);
   // Quantidade de contratos = somente os quitados
   const paidContractsCount = paidSales.length;
   const totalAReceber = totalOverdue + totalOnTrack + totalDueToday;

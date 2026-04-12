@@ -77,6 +77,9 @@ export function SaleForm({ onAdd, onClose, defaultBusinessType = "venda", client
     const total = parseFloat(form.total) || 0;
     if (!form.description || total <= 0 || !form.customerName) return;
     const isRecorrente = form.paymentMode === "recorrente";
+    const amounts = isRecorrente && installmentRows.length > 0
+      ? installmentRows.map(r => parseFloat(r.value) || 0)
+      : null;
     onAdd({
       productName: form.description,
       description: form.description,
@@ -94,6 +97,7 @@ export function SaleForm({ onAdd, onClose, defaultBusinessType = "venda", client
       downPayment: 0,
       frequency: isRecorrente ? form.frequency : "Mensal",
       installmentValue: null,
+      installmentAmounts: amounts,
     });
     onClose();
   };
