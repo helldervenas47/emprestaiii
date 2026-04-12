@@ -1,6 +1,6 @@
 import { useState, useMemo, useCallback } from "react";
 import { useHideValues } from "@/contexts/HideValuesContext";
-import { Loan, Payment } from "@/types/loan";
+import { Loan, Payment, InstallmentSchedule } from "@/types/loan";
 import { calculateInstallment } from "@/hooks/useLoans";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 interface Props {
   loans: Loan[];
   payments: Payment[];
+  installmentSchedules: InstallmentSchedule[];
 }
 
 const dayNames = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];

@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useCallback } from "react";
 import { useHideValues } from "@/contexts/HideValuesContext";
 import { format } from "date-fns";
-import { Loan, Payment } from "@/types/loan";
+import { Loan, Payment, InstallmentSchedule } from "@/types/loan";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -24,12 +24,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 interface Props {
   loans: Loan[];
   payments: Payment[];
+  installmentSchedules: InstallmentSchedule[];
   onPayment: (loanId: string, paymentDate?: string) => void;
   onPartialPayment: (loanId: string, amount: number, paymentDate?: string) => void;
   onInterestPayment: (loanId: string, paymentDate?: string) => void;
   onUpdate: (id: string, data: Partial<Omit<Loan, "id">>) => void;
   onDelete: (loanId: string) => void;
   onDeletePayment: (paymentId: string) => void;
+  onSaveSchedule: (loanId: string, rows: { installmentNumber: number; dueDate: string; amount: number }[]) => Promise<void>;
   readOnly?: boolean;
 }
 
