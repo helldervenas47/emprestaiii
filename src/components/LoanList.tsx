@@ -56,10 +56,15 @@ function getNextDate(base: Date, frequency: string, periods: number): Date {
   return d;
 }
 
+function getFirstPendingDate(loan: Loan): Date {
+  const firstDue = new Date(loan.dueDate + "T00:00:00");
+  return getNextDate(firstDue, loan.interestType || "Mensal", loan.paidInstallments);
+}
+
 function getDaysOverdue(loan: Loan): number {
   const today = new Date();
   const todayNorm = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-  const due = new Date(loan.dueDate + "T00:00:00");
+  const due = getFirstPendingDate(loan);
   const diff = Math.floor((todayNorm.getTime() - due.getTime()) / (1000 * 60 * 60 * 24));
   return diff;
 }
@@ -179,8 +184,7 @@ function LoanCardView({
   const nextInstallmentDate = useMemo(() => {
     if (loan.status === "paid") return null;
     if (loan.paidInstallments >= loan.installments) return null;
-    const due = new Date(loan.dueDate + "T00:00:00");
-    return due.toLocaleDateString("pt-BR");
+    return getFirstPendingDate(loan).toLocaleDateString("pt-BR");
   }, [loan]);
 
   const startEdit = () => {
@@ -645,14 +649,14 @@ function LoanCardView({
                 <CalendarIcon className="h-4 w-4 text-muted-foreground shrink-0" />
                 <div>
                   <p className="text-[10px] text-muted-foreground">Venc: <Pencil className="inline h-2.5 w-2.5 ml-0.5" /></p>
-                  <p className="text-sm font-semibold text-foreground">{new Date(loan.dueDate + "T00:00:00").toLocaleDateString("pt-BR")}</p>
+                  <p className="text-sm font-semibold text-foreground">{getFirstPendingDate(loan).toLocaleDateString("pt-BR")}</p>
                 </div>
               </button>
             </PopoverTrigger>
             <PopoverContent className="w-auto p-0" align="start">
               <CalendarUI
                 mode="single"
-                selected={new Date(loan.dueDate + "T00:00:00")}
+                selected={getFirstPendingDate(loan)}
                 onSelect={(d) => { if (d) onUpdate({ dueDate: d.toISOString().split("T")[0] }); }}
                 initialFocus
                 className="p-3 pointer-events-auto"
