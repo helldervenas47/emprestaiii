@@ -665,7 +665,7 @@ function SalesList({ sales, onDeleteSale, onUpdateSale, clients = [], hideOnTrac
   );
 }
 
-export function ProductSalesView({ sales, onDeleteSale, onUpdateSale, clients = [], expenses = [], onAddExpense, onPayExpense, onDeleteExpense }: Props) {
+export function ProductSalesView({ sales, onDeleteSale, onUpdateSale, clients = [], expenses = [], onAddExpense, onPayExpense, onDeleteExpense, onUpdateExpense }: Props) {
   const [showVehicleExpenseForm, setShowVehicleExpenseForm] = useState(false);
   const { mask } = useHideValues();
   const formatCurrency = useCallback((v: number) => mask(rawFormatCurrency(v)), [mask]);
