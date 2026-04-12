@@ -174,7 +174,10 @@ export function useLoans() {
       ? loan.customInterestValue
       : loan.amount * (loan.interestRate / 100);
     const currentDue = new Date(loan.dueDate + "T00:00:00");
-    currentDue.setMonth(currentDue.getMonth() + 1);
+    const freq = loan.interestType || "Mensal";
+    if (freq === "Semanal") currentDue.setDate(currentDue.getDate() + 7);
+    else if (freq === "Quinzenal") currentDue.setDate(currentDue.getDate() + 15);
+    else currentDue.setMonth(currentDue.getMonth() + 1);
     const newDueDate = currentDue.toISOString().split("T")[0];
     const newRemaining = Math.max(0, getLoanRemainingAmount(loan, payments) - interestAmount);
 
