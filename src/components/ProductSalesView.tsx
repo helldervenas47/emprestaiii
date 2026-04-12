@@ -1122,7 +1122,7 @@ export function ProductSalesView({ sales, onDeleteSale, onUpdateSale, clients = 
                               </Button>
                             )}
                             {onDeleteExpense && (
-                              <Button size="sm" variant="ghost" onClick={() => onDeleteExpense(exp.id)} className="h-8 w-8 p-0 text-destructive hover:text-destructive">
+                              <Button size="sm" variant="ghost" onClick={() => onDeleteExpense(exp.id, true)} className="h-8 w-8 p-0 text-destructive hover:text-destructive">
                                 <Trash2 className="h-3.5 w-3.5" />
                               </Button>
                             )}
