@@ -25,6 +25,12 @@ interface Props {
 }
 
 export function SaleEditForm({ sale, onSave, onClose }: Props) {
+  const initInstVal = () => {
+    const count = sale.installments || 1;
+    const down = sale.downPayment || 0;
+    return count > 0 ? ((sale.total - down) / count).toFixed(2) : "0";
+  };
+
   const [form, setForm] = useState({
     description: sale.description || sale.productName,
     customerName: sale.customerName,
@@ -34,6 +40,7 @@ export function SaleEditForm({ sale, onSave, onClose }: Props) {
     installments: String(sale.installments),
     paidInstallments: String(sale.paidInstallments),
     downPayment: String(sale.downPayment || 0),
+    installmentValue: initInstVal(),
     paymentMode: sale.paymentMode,
     businessType: sale.businessType,
     date: sale.date,
@@ -145,7 +152,16 @@ export function SaleEditForm({ sale, onSave, onClose }: Props) {
               </div>
               <div>
                 <Label>Valor Venda (R$)</Label>
-                <Input type="number" step="0.01" min="0.01" value={form.total} onChange={(e) => update("total", e.target.value)} required />
+                <Input type="number" step="0.01" min="0.01" value={form.total} onChange={(e) => {
+                  update("total", e.target.value);
+                  const totalVal = parseFloat(e.target.value) || 0;
+                  const down = parseFloat(form.downPayment) || 0;
+                  const count = parseInt(form.installments) || 1;
+                  if (form.paymentMode === "recorrente" && count > 0) {
+                    const newInstVal = ((totalVal - down) / count).toFixed(2);
+                    update("installmentValue", newInstVal);
+                  }
+                }} required />
               </div>
             </div>
 
