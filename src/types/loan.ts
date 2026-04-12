@@ -90,6 +90,7 @@ export interface Sale {
   frequency: string;
   installmentValue?: number | null;
   installmentAmounts?: number[] | null;
+  installmentDates?: string[] | null;
 }
 
 export interface Expense {
