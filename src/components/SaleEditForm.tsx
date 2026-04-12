@@ -33,6 +33,7 @@ interface Props {
 
 export function SaleEditForm({ sale, onSave, onClose, clients = [] }: Props) {
   const initInstVal = () => {
+    if (sale.installmentValue != null && sale.installmentValue > 0) return sale.installmentValue.toFixed(2);
     const count = sale.installments || 1;
     const down = sale.downPayment || 0;
     return count > 0 ? ((sale.total - down) / count).toFixed(2) : "0";
@@ -81,6 +82,9 @@ export function SaleEditForm({ sale, onSave, onClose, clients = [] }: Props) {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    const manualInstValue = parseFloat(form.installmentValue) || 0;
+    const autoInstValue = installmentsNum > 0 ? remainingForInstallments / installmentsNum : 0;
+    const hasManualValue = form.paymentMode === "recorrente" && manualInstValue > 0 && Math.abs(manualInstValue - autoInstValue) > 0.01;
     onSave(sale.id, {
       description: form.description,
       productName: form.description,
@@ -96,6 +100,7 @@ export function SaleEditForm({ sale, onSave, onClose, clients = [] }: Props) {
       date: form.date,
       notes: form.notes || undefined,
       frequency: form.paymentMode === "recorrente" ? form.frequency : "Mensal",
+      installmentValue: hasManualValue ? manualInstValue : null,
     });
     onClose();
   };
