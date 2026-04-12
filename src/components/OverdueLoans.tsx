@@ -11,6 +11,7 @@ import { AlertTriangle, MessageCircle, Search, Phone, Calendar, DollarSign, Cloc
 interface Props {
   loans: Loan[];
   clients: Client[];
+  installmentSchedules: InstallmentSchedule[];
 }
 
 function rawFormatCurrency(v: number) {
