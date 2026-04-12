@@ -411,7 +411,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, onDeletePa
 
       {/* Account balance + Interest rate */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <Card>
+        <Card className="animate-fade-in" style={{ animationDelay: '80ms', animationFillMode: 'backwards' }}>
           <CardContent className="p-4 flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
@@ -439,7 +439,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, onDeletePa
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="animate-fade-in" style={{ animationDelay: '160ms', animationFillMode: 'backwards' }}>
           <CardContent className="p-4 flex items-center gap-3">
             <div className="h-10 w-10 rounded-full bg-warning/10 flex items-center justify-center">
               <Percent className="h-5 w-5 text-warning" />
@@ -455,7 +455,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, onDeletePa
 
       {/* Summary cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
-        <div className="rounded-2xl p-5 bg-card border border-success/20 shadow-[0_2px_12px_-4px_hsl(0_0%_0%/0.08)] hover:shadow-[0_8px_24px_-6px_hsl(0_0%_0%/0.15)] hover:-translate-y-0.5 transition-all duration-300">
+        <div className="rounded-2xl p-5 bg-card border border-success/20 shadow-[0_2px_12px_-4px_hsl(0_0%_0%/0.08)] hover:shadow-[0_8px_24px_-6px_hsl(0_0%_0%/0.15)] hover:-translate-y-0.5 transition-all duration-300 animate-fade-in" style={{ animationDelay: '200ms', animationFillMode: 'backwards' }}>
           <div className="flex items-center justify-between mb-2">
             <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Entradas</span>
             <div className="h-8 w-8 rounded-xl bg-success/15 flex items-center justify-center">
@@ -468,7 +468,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, onDeletePa
           </div>
         </div>
 
-        <div className="rounded-2xl p-5 bg-card border border-warning/20 shadow-[0_2px_12px_-4px_hsl(0_0%_0%/0.08)] hover:shadow-[0_8px_24px_-6px_hsl(0_0%_0%/0.15)] hover:-translate-y-0.5 transition-all duration-300">
+        <div className="rounded-2xl p-5 bg-card border border-warning/20 shadow-[0_2px_12px_-4px_hsl(0_0%_0%/0.08)] hover:shadow-[0_8px_24px_-6px_hsl(0_0%_0%/0.15)] hover:-translate-y-0.5 transition-all duration-300 animate-fade-in" style={{ animationDelay: '280ms', animationFillMode: 'backwards' }}>
           <div className="flex items-center justify-between mb-2">
             <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Saídas</span>
             <div className="h-8 w-8 rounded-xl bg-warning/15 flex items-center justify-center">
@@ -481,7 +481,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, onDeletePa
           </div>
         </div>
 
-        <div className={`rounded-2xl p-5 bg-card border shadow-[0_2px_12px_-4px_hsl(0_0%_0%/0.08)] hover:shadow-[0_8px_24px_-6px_hsl(0_0%_0%/0.15)] hover:-translate-y-0.5 transition-all duration-300 ${data.balance >= 0 ? "border-primary/20" : "border-destructive/20"}`}>
+        <div className={`rounded-2xl p-5 bg-card border shadow-[0_2px_12px_-4px_hsl(0_0%_0%/0.08)] hover:shadow-[0_8px_24px_-6px_hsl(0_0%_0%/0.15)] hover:-translate-y-0.5 transition-all duration-300 animate-fade-in ${data.balance >= 0 ? "border-primary/20" : "border-destructive/20"}`} style={{ animationDelay: '360ms', animationFillMode: 'backwards' }}>
           <div className="flex items-center justify-between mb-2">
             <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Saldo do Período</span>
             <div className={`h-8 w-8 rounded-xl ${data.balance >= 0 ? "bg-primary/15" : "bg-destructive/15"} flex items-center justify-center`}>
