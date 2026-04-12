@@ -96,8 +96,11 @@ function loanToForm(loan: Loan): EditForm {
   const rate = loan.interestRate;
   const months = loan.installments;
   const interestValue = amt * (rate / 100);
-  const installmentValue = calculateInstallment(amt, rate, months);
   const total = calculateTotalWithInterest(amt, rate, months);
+  const remainingForCalc = loan.remainingAmount != null && loan.remainingAmount > 0 ? loan.remainingAmount : total;
+  const paidCount = loan.paidInstallments || 0;
+  const remainingInst = Math.max(1, months - paidCount);
+  const installmentValue = remainingForCalc / remainingInst;
   const totalPaidCalc = loan.remainingAmount != null ? loan.remainingAmount : total;
   return {
     borrowerName: loan.borrowerName,
@@ -222,29 +225,25 @@ function LoanCardView({
       const amt = parseFloat(next.amount) || 0;
       const months = parseInt(next.installments) || 1;
 
-      if (field === "amount" || field === "interestRate" || field === "installments") {
+      if (field === "amount" || field === "interestRate" || field === "installments" || field === "remainingAmount" || field === "paidInstallments") {
         const rate = parseFloat(next.interestRate) || 0;
         next.interestValue = (amt * (rate / 100)).toFixed(2);
-        next.installmentValue = calculateInstallment(amt, rate, months).toFixed(2);
+        const totalCalc = calculateTotalWithInterest(amt, rate, months);
+        const rem = parseFloat(next.remainingAmount) || totalCalc;
+        const paidInst = parseInt(next.paidInstallments) || 0;
+        const remInst = Math.max(1, months - paidInst);
+        next.installmentValue = (rem / remInst).toFixed(2);
       } else if (field === "interestValue") {
         const iv = parseFloat(value) || 0;
         const newRate = amt > 0 ? (iv / amt) * 100 : 0;
         next.interestRate = newRate.toFixed(2);
-        next.installmentValue = calculateInstallment(amt, newRate, months).toFixed(2);
+        const totalCalc = calculateTotalWithInterest(amt, newRate, months);
+        const rem = parseFloat(next.remainingAmount) || totalCalc;
+        const paidInst = parseInt(next.paidInstallments) || 0;
+        const remInst = Math.max(1, months - paidInst);
+        next.installmentValue = (rem / remInst).toFixed(2);
       } else if (field === "installmentValue") {
-        // Back-calculate interest rate from installment value using bisection
-        const target = parseFloat(value) || 0;
-        if (amt > 0 && target > 0) {
-          let lo = 0, hi = 100;
-          for (let i = 0; i < 50; i++) {
-            const mid = (lo + hi) / 2;
-            const calc = calculateInstallment(amt, mid, months);
-            if (calc < target) lo = mid; else hi = mid;
-          }
-          const newRate = (lo + hi) / 2;
-          next.interestRate = newRate.toFixed(2);
-          next.interestValue = (amt * (newRate / 100)).toFixed(2);
-        }
+        // Manual override — no back-calculation needed
       }
       return next;
     });

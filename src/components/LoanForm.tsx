@@ -52,8 +52,8 @@ export function LoanForm({ onAdd, onClose, clients }: Props) {
   const rate = parseFloat(form.interestRate) || 0;
   const installments = parseInt(form.installments) || 0;
 
-  const calcMonthly = installments > 0 ? calculateInstallment(amount, rate, installments) : 0;
   const calcTotal = installments > 0 ? calculateTotalWithInterest(amount, rate, installments) : 0;
+  const calcMonthly = installments > 0 ? calcTotal / installments : 0;
   const calcInterest = calcTotal - amount;
 
   const [monthlyOverride, setMonthlyOverride] = useState("");
