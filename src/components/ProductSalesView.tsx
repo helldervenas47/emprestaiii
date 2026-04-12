@@ -236,73 +236,114 @@ function SaleCard({ sale, onDelete, onEdit, onUpdate, formatCurrency }: { sale: 
         <div className="mt-auto space-y-2">
           {!isPaid && (
             <>
-              {showPartial ? (
-                <div className="flex items-center gap-2 p-3 rounded-lg bg-muted border border-border/50">
-                  <Input
-                    type="number" step="0.01" placeholder="Valor (R$)"
-                    value={partialAmount} onChange={(e) => setPartialAmount(e.target.value)}
-                    className="h-8 text-sm flex-1" autoFocus
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") {
-                        const val = parseFloat(partialAmount);
-                        if (val > 0) {
-                          const parcelasAPagar = isRecorrente ? Math.max(1, Math.floor(val / valorParcela)) : 1;
-                          onUpdate({ paidInstallments: Math.min(sale.installments, sale.paidInstallments + parcelasAPagar) });
-                          setPartialAmount(""); setShowPartial(false);
-                        }
-                      }
-                    }}
-                  />
-                  <Button size="sm" className="h-8" onClick={() => {
-                    const val = parseFloat(partialAmount);
-                    if (val > 0) {
-                      const parcelasAPagar = isRecorrente ? Math.max(1, Math.floor(val / valorParcela)) : 1;
-                      onUpdate({ paidInstallments: Math.min(sale.installments, sale.paidInstallments + parcelasAPagar) });
-                      setPartialAmount(""); setShowPartial(false);
-                    }
-                  }}><Check className="h-4 w-4" /></Button>
-                  <Button size="sm" variant="ghost" className="h-8" onClick={() => setShowPartial(false)}><XIcon className="h-4 w-4" /></Button>
-                </div>
-              ) : (
-                <div className="flex gap-2">
-                  <Popover open={showPayDatePicker} onOpenChange={setShowPayDatePicker}>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        className="flex-1 h-9 text-xs border-primary/30 text-primary hover:bg-primary hover:text-primary-foreground"
-                      >
-                        <CheckCircle className="h-3.5 w-3.5 mr-1" /> Pagar Parcela
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <div className="p-3 border-b border-border">
-                        <p className="text-sm font-medium text-foreground">Selecione a data do pagamento</p>
-                      </div>
-                      <Calendar
-                        mode="single"
-                        selected={undefined}
-                        onSelect={(date) => {
-                          if (date) {
-                            onUpdate({
-                              paidInstallments: Math.min(sale.installments, sale.paidInstallments + 1),
-                            });
-                            setShowPayDatePicker(false);
-                          }
-                        }}
-                        initialFocus
-                        className={cn("p-3 pointer-events-auto")}
+              {/* Partial payment dialog */}
+              <Dialog open={showPartial} onOpenChange={(open) => {
+                setShowPartial(open);
+                if (!open) { setPartialAmount(""); setPartialDate(undefined); }
+              }}>
+                <DialogContent className="sm:max-w-md">
+                  <DialogHeader>
+                    <DialogTitle>Pagamento Parcial</DialogTitle>
+                    <DialogDescription>
+                      Informe o valor e a data do pagamento. O valor será abatido da {sale.paidInstallments + 1}ª parcela pendente ({formatCurrency(getParcelaValue(sale.paidInstallments))}).
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="space-y-4 py-2">
+                    <div>
+                      <label className="text-sm font-medium text-foreground mb-1 block">Valor do Pagamento (R$)</label>
+                      <Input
+                        type="number" step="0.01" placeholder="0,00"
+                        value={partialAmount} onChange={(e) => setPartialAmount(e.target.value)}
+                        autoFocus
                       />
-                    </PopoverContent>
-                  </Popover>
-                  <Button
-                    variant="outline"
-                    className="flex-1 h-9 text-xs border-warning/30 text-warning hover:bg-warning hover:text-warning-foreground"
-                    onClick={() => setShowPartial(true)}
-                  >
-                    <HandCoins className="h-3.5 w-3.5 mr-1" /> Pagar Parcial
-                  </Button>
-                </div>
-              )}
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-foreground mb-1 block">Data do Pagamento</label>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button variant="outline" className={cn("w-full justify-start text-left font-normal", !partialDate && "text-muted-foreground")}>
+                            <CalendarIcon className="mr-2 h-4 w-4" />
+                            {partialDate ? format(partialDate, "dd/MM/yyyy") : "Selecione a data"}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <Calendar
+                            mode="single"
+                            selected={partialDate}
+                            onSelect={setPartialDate}
+                            initialFocus
+                            className={cn("p-3 pointer-events-auto")}
+                          />
+                        </PopoverContent>
+                      </Popover>
+                    </div>
+                  </div>
+                  <DialogFooter>
+                    <Button variant="ghost" onClick={() => { setShowPartial(false); setPartialAmount(""); setPartialDate(undefined); }}>Cancelar</Button>
+                    <Button onClick={() => {
+                      const val = parseFloat(partialAmount);
+                      if (val > 0 && partialDate) {
+                        const nextIdx = sale.paidInstallments;
+                        const currentValue = getParcelaValue(nextIdx);
+                        const remaining = currentValue - val;
+                        const newAmounts = [...(amounts || Array.from({ length: sale.installments }, (_, i) => getParcelaValue(i)))];
+                        if (remaining > 0.01) {
+                          newAmounts[nextIdx] = remaining;
+                          onUpdate({ installmentAmounts: newAmounts });
+                        } else {
+                          newAmounts[nextIdx] = currentValue;
+                          onUpdate({
+                            paidInstallments: Math.min(sale.installments, sale.paidInstallments + 1),
+                            installmentAmounts: newAmounts,
+                          });
+                        }
+                        setPartialAmount(""); setPartialDate(undefined); setShowPartial(false);
+                      }
+                    }} disabled={!partialAmount || parseFloat(partialAmount) <= 0 || !partialDate}>
+                      Confirmar
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
+
+              <div className="flex gap-2">
+                <Popover open={showPayDatePicker} onOpenChange={setShowPayDatePicker}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className="flex-1 h-9 text-xs border-primary/30 text-primary hover:bg-primary hover:text-primary-foreground"
+                    >
+                      <CheckCircle className="h-3.5 w-3.5 mr-1" /> Pagar Parcela
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <div className="p-3 border-b border-border">
+                      <p className="text-sm font-medium text-foreground">Selecione a data do pagamento</p>
+                    </div>
+                    <Calendar
+                      mode="single"
+                      selected={undefined}
+                      onSelect={(date) => {
+                        if (date) {
+                          onUpdate({
+                            paidInstallments: Math.min(sale.installments, sale.paidInstallments + 1),
+                          });
+                          setShowPayDatePicker(false);
+                        }
+                      }}
+                      initialFocus
+                      className={cn("p-3 pointer-events-auto")}
+                    />
+                  </PopoverContent>
+                </Popover>
+                <Button
+                  variant="outline"
+                  className="flex-1 h-9 text-xs border-warning/30 text-warning hover:bg-warning hover:text-warning-foreground"
+                  onClick={() => setShowPartial(true)}
+                >
+                  <HandCoins className="h-3.5 w-3.5 mr-1" /> Pagar Parcial
+                </Button>
+              </div>
             </>
           )}
 
