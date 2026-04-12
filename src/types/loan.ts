@@ -16,6 +16,9 @@ export interface Loan {
   customInterestValue?: number | null;
   tags?: string[];
   notes?: string;
+  lateInterestType?: string | null;
+  lateInterestValue?: number | null;
+  penaltyValue?: number | null;
   createdAt: string;
 }
 
