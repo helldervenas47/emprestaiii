@@ -77,12 +77,16 @@ function getDaysOverdue(loan: Loan, schedules: InstallmentSchedule[] = []): numb
   return diff;
 }
 
-function getLoanCategory(loan: Loan, payments: Payment[]): "paid" | "paid_interest" | "overdue" | "due_today" | "on_track" {
+function getLoanCategory(loan: Loan, payments: Payment[], schedules: InstallmentSchedule[] = []): "paid" | "paid_interest" | "overdue" | "due_today" | "on_track" {
   if (loan.status === "paid") return "paid";
+  const days = getDaysOverdue(loan, schedules);
   const loanPayments = payments.filter((p) => p.loanId === loan.id);
   const lastPayment = loanPayments.sort((a, b) => b.date.localeCompare(a.date))[0];
-  if (lastPayment && lastPayment.installmentNumber === 0) return "paid_interest";
-  const days = getDaysOverdue(loan);
+  // If due date is in the future, it's on_track regardless of interest payments
+  if (days < 0) {
+    if (lastPayment && lastPayment.installmentNumber === 0) return "paid_interest";
+    return "on_track";
+  }
   if (days === 0) return "due_today";
   if (days > 0) return "overdue";
   return "on_track";
