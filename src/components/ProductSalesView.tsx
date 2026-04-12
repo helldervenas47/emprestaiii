@@ -551,7 +551,7 @@ function SalesList({ sales, onDeleteSale, onUpdateSale, clients = [], hideOnTrac
   return (
     <div className="space-y-4">
       {/* Dashboard cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+      <div className={`grid ${hideOnTrackCard ? 'grid-cols-3' : 'grid-cols-2 lg:grid-cols-4'} gap-3`}>
         <div className="rounded-xl p-4 bg-gradient-to-br from-destructive/80 to-destructive text-destructive-foreground">
           <div className="flex items-center justify-between mb-2">
             <p className="text-xs font-medium opacity-90">Vencidos</p>
@@ -560,14 +560,16 @@ function SalesList({ sales, onDeleteSale, onUpdateSale, clients = [], hideOnTrac
           <p className="text-xl font-bold">{formatCurrency(totalOverdue)}</p>
           <p className="text-xs opacity-75 mt-1">{overdueSales.length} contratos</p>
         </div>
-        <div className="rounded-xl p-4 bg-gradient-to-br from-primary/80 to-primary text-primary-foreground">
-          <div className="flex items-center justify-between mb-2">
-            <p className="text-xs font-medium opacity-90">No Prazo</p>
-            <Clock className="h-4 w-4 opacity-70" />
+        {!hideOnTrackCard && (
+          <div className="rounded-xl p-4 bg-gradient-to-br from-primary/80 to-primary text-primary-foreground">
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-xs font-medium opacity-90">No Prazo</p>
+              <Clock className="h-4 w-4 opacity-70" />
+            </div>
+            <p className="text-xl font-bold">{formatCurrency(totalOnTrack + totalDueToday)}</p>
+            <p className="text-xs opacity-75 mt-1">{onTrackSales.length + dueTodaySales.length} contratos</p>
           </div>
-          <p className="text-xl font-bold">{formatCurrency(totalOnTrack + totalDueToday)}</p>
-          <p className="text-xs opacity-75 mt-1">{onTrackSales.length + dueTodaySales.length} contratos</p>
-        </div>
+        )}
         <div className="rounded-xl p-4 bg-gradient-to-br from-success/80 to-success text-success-foreground">
           <div className="flex items-center justify-between mb-2">
             <p className="text-xs font-medium opacity-90">Pagos</p>
