@@ -15,7 +15,8 @@ import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 
 interface Props {
-  onAdd: (loan: Omit<Loan, "id" | "status" | "paidInstallments">) => void;
+  onAdd: (loan: Omit<Loan, "id" | "status" | "paidInstallments">) => Promise<string | null>;
+  onSaveSchedule: (loanId: string, rows: { installmentNumber: number; dueDate: string; amount: number }[]) => Promise<void>;
   onClose: () => void;
   clients: Client[];
 }
@@ -28,7 +29,7 @@ function getNextDate(base: Date, frequency: string, periods: number): Date {
   return d;
 }
 
-export function LoanForm({ onAdd, onClose, clients }: Props) {
+export function LoanForm({ onAdd, onSaveSchedule, onClose, clients }: Props) {
   const activeClients = clients.filter((c) => c.active).sort((a, b) => a.name.localeCompare(b.name, "pt-BR"));
 
   const defaultStart = new Date().toISOString().split("T")[0];
