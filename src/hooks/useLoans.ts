@@ -277,6 +277,12 @@ export function useLoans() {
         setLoans((prev) => prev.map((l) => l.id === payment.loanId ? {
           ...l, dueDate: payment.previousDueDate!, remainingAmount: newRemaining,
         } : l));
+        // Also restore the installment schedule date
+        const nextNum = loan.paidInstallments + 1;
+        await supabase.from("loan_installments")
+          .update({ due_date: payment.previousDueDate })
+          .eq("loan_id", payment.loanId)
+          .eq("installment_number", nextNum);
       } else {
         setLoans((prev) => prev.map((l) => l.id === payment.loanId ? {
           ...l, remainingAmount: newRemaining,
