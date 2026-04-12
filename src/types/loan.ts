@@ -12,6 +12,7 @@ export interface Loan {
   paidInstallments: number;
   status: "active" | "paid" | "overdue";
   remainingAmount?: number;
+  customInstallmentValue?: number | null;
   tags?: string[];
   notes?: string;
   createdAt: string;

@@ -145,8 +145,11 @@ function LoanCardView({
   const [paymentDate, setPaymentDate] = useState<Date>(new Date());
   const [showHistory, setShowHistory] = useState(false);
   const [showDetails, setShowDetails] = useState(false);
+  const [editingInstallment, setEditingInstallment] = useState(false);
+  const [installmentInput, setInstallmentInput] = useState("");
 
-  const installment = calculateInstallment(loan.amount, loan.interestRate, loan.installments);
+  const calculatedInstallment = calculateInstallment(loan.amount, loan.interestRate, loan.installments);
+  const installment = loan.customInstallmentValue != null && loan.customInstallmentValue > 0 ? loan.customInstallmentValue : calculatedInstallment;
   const total = calculateTotalWithInterest(loan.amount, loan.interestRate, loan.installments);
   const totalPaid = getTotalPaid(loan, allPayments);
   const remaining = loan.remainingAmount != null && loan.remainingAmount > 0 ? loan.remainingAmount : Math.max(0, total - totalPaid);
@@ -406,12 +409,57 @@ function LoanCardView({
 
         {/* Large remaining amount */}
         <div className="text-center py-2">
-          <p className={`text-3xl font-bold ${remaining > 0 ? "text-primary" : "text-success"}`}>
-            {formatCurrency(loan.installments >= 2 && loan.status !== "paid" && loan.paidInstallments < loan.installments ? installment : remaining)}
-          </p>
+          {loan.installments >= 2 && loan.status !== "paid" && loan.paidInstallments < loan.installments ? (
+            editingInstallment ? (
+              <div className="flex items-center justify-center gap-2">
+                <Input
+                  type="number" step="0.01" value={installmentInput}
+                  onChange={(e) => setInstallmentInput(e.target.value)}
+                  className="h-10 w-40 text-center text-lg font-bold" autoFocus
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      const val = parseFloat(installmentInput);
+                      if (val > 0) onUpdate({ customInstallmentValue: val });
+                      setEditingInstallment(false);
+                    }
+                    if (e.key === "Escape") setEditingInstallment(false);
+                  }}
+                />
+                <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => {
+                  const val = parseFloat(installmentInput);
+                  if (val > 0) onUpdate({ customInstallmentValue: val });
+                  setEditingInstallment(false);
+                }}><Check className="h-4 w-4 text-success" /></Button>
+                <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => setEditingInstallment(false)}>
+                  <X className="h-4 w-4 text-destructive" />
+                </Button>
+                {loan.customInstallmentValue != null && (
+                  <Button size="sm" variant="ghost" className="h-8 text-xs text-muted-foreground" onClick={() => {
+                    onUpdate({ customInstallmentValue: null });
+                    setEditingInstallment(false);
+                  }}>Resetar</Button>
+                )}
+              </div>
+            ) : (
+              <button
+                onClick={() => { setInstallmentInput(installment.toFixed(2)); setEditingInstallment(true); }}
+                className="group cursor-pointer"
+                title="Clique para alterar o valor da parcela"
+              >
+                <p className={`text-3xl font-bold ${remaining > 0 ? "text-primary" : "text-success"} group-hover:underline decoration-dotted underline-offset-4`}>
+                  {formatCurrency(installment)}
+                  <Pencil className="inline h-3.5 w-3.5 ml-1.5 opacity-0 group-hover:opacity-60 transition-opacity" />
+                </p>
+              </button>
+            )
+          ) : (
+            <p className={`text-3xl font-bold ${remaining > 0 ? "text-primary" : "text-success"}`}>
+              {formatCurrency(remaining)}
+            </p>
+          )}
           <p className="text-xs text-muted-foreground mt-1">
             {loan.installments >= 2 && loan.status !== "paid" && loan.paidInstallments < loan.installments
-              ? `parcela pendente (${loan.paidInstallments + 1}ª de ${loan.installments})`
+              ? `parcela pendente (${loan.paidInstallments + 1}ª de ${loan.installments})${loan.customInstallmentValue != null ? " • manual" : ""}`
               : "restante a receber"}
           </p>
           {loan.installments >= 2 && loan.status !== "paid" && loan.paidInstallments < loan.installments && (

@@ -22,6 +22,7 @@ export function useLoans() {
         startDate: l.start_date, dueDate: l.due_date, installments: l.installments,
         paidInstallments: l.paid_installments, status: l.status as Loan["status"],
         remainingAmount: l.remaining_amount != null ? Number(l.remaining_amount) : undefined,
+        customInstallmentValue: l.custom_installment_value != null ? Number(l.custom_installment_value) : null,
         tags: l.tags, notes: l.notes, createdAt: l.created_at,
       })));
     }
@@ -172,6 +173,7 @@ export function useLoans() {
     if (data.tags !== undefined) updateData.tags = data.tags;
     if (data.notes !== undefined) updateData.notes = data.notes;
     if (data.remainingAmount !== undefined) updateData.remaining_amount = data.remainingAmount;
+    if (data.customInstallmentValue !== undefined) updateData.custom_installment_value = data.customInstallmentValue;
     await supabase.from("loans").update(updateData).eq("id", id);
   }, [loans]);
 
