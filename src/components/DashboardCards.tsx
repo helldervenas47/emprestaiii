@@ -32,16 +32,16 @@ export function DashboardCards({ loans, payments }: Props) {
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
       {cards.map((card) => (
-        <div key={card.title} className={`rounded-xl p-5 bg-card border border-border/50 ${card.glowClass} transition-all hover:border-border`}>
-          <div className="flex items-center justify-between mb-4">
-            <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">{card.title}</span>
+        <div key={card.title} className={`rounded-xl p-5 bg-card border border-border/50 ${card.glowClass} transition-all hover:border-border text-center`}>
+          <div className="flex items-center justify-center mb-3">
             <div className={`h-8 w-8 rounded-lg ${card.bgClass} flex items-center justify-center`}>
               <card.icon className={`h-4 w-4 ${card.accentClass}`} />
             </div>
           </div>
-          <p className={`text-2xl font-bold ${card.accentClass}`}>{card.isCurrency ? mask(card.value) : card.value}</p>
+          <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">{card.title}</span>
+          <p className={`text-2xl font-bold ${card.accentClass} mt-1`}>{card.isCurrency ? mask(card.value) : card.value}</p>
           {card.subtitle && (
-            <p className="text-xs mt-2 text-muted-foreground flex items-center gap-1">
+            <p className="text-xs mt-2 text-muted-foreground flex items-center justify-center gap-1">
               {card.subtitleIcon && <card.subtitleIcon className="h-3 w-3 text-destructive" />}
               {card.subtitle}
             </p>
