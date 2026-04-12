@@ -18,6 +18,14 @@ export interface Loan {
   createdAt: string;
 }
 
+export interface InstallmentSchedule {
+  id?: string;
+  loanId: string;
+  installmentNumber: number;
+  dueDate: string;
+  amount: number;
+}
+
 export interface Payment {
   id: string;
   loanId: string;
