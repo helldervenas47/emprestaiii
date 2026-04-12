@@ -69,9 +69,10 @@ function SaleCard({ sale, onDelete, onEdit, onUpdate, formatCurrency }: { sale: 
   const [showPayDatePicker, setShowPayDatePicker] = useState(false);
   const TabIcon = businessTabs.find((t) => t.type === sale.businessType)?.icon || ShoppingCart;
   const isRecorrente = sale.paymentMode === "recorrente" && sale.installments > 1;
-  const valorParcela = sale.installmentValue != null && sale.installmentValue > 0
-    ? sale.installmentValue
-    : (sale.installments > 0 ? Math.max(0, sale.total - (sale.downPayment || 0)) / sale.installments : sale.total);
+  const amounts = sale.installmentAmounts;
+  const defaultValorParcela = sale.installments > 0 ? Math.max(0, sale.total - (sale.downPayment || 0)) / sale.installments : sale.total;
+  const getParcelaValue = (idx: number) => amounts && amounts[idx] != null ? amounts[idx] : defaultValorParcela;
+  const valorParcela = defaultValorParcela; // used for summary fallback
   const isPaid = isRecorrente ? sale.paidInstallments >= sale.installments : sale.paidInstallments >= 1;
   const pendentes = isRecorrente ? sale.installments - sale.paidInstallments : (sale.paidInstallments >= 1 ? 0 : 1);
   const category = getSaleCategory(sale);
@@ -85,7 +86,7 @@ function SaleCard({ sale, onDelete, onEdit, onUpdate, formatCurrency }: { sale: 
     return {
       number: i + 1,
       date: format(dueDate, "dd/MM/yyyy"),
-      value: valorParcela,
+      value: getParcelaValue(i),
       paid: i < sale.paidInstallments,
     };
   });
