@@ -398,10 +398,10 @@ export function DashboardOverview({ loans, sales, payments, expenses, onDeletePa
           <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setOffset(offset + 1)} disabled={offset >= 0}>
             <ChevronRight className="h-4 w-4" />
           </Button>
-          <div className="flex bg-muted rounded-lg p-0.5 ml-auto sm:ml-2">
+          <div className="flex bg-muted/60 rounded-xl p-0.5 ml-auto sm:ml-2 backdrop-blur-sm border border-border/30">
             {(["day", "week", "month"] as Period[]).map((p) => (
               <button key={p} onClick={() => handleChangePeriod(p)}
-                className={`px-2 sm:px-3 py-1.5 rounded-md text-[10px] sm:text-xs font-medium transition-colors ${period === p ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>
+                className={`px-2 sm:px-3 py-1.5 rounded-lg text-[10px] sm:text-xs font-medium transition-all duration-200 ${period === p ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>
                 {periodLabels[p]}
               </button>
             ))}
