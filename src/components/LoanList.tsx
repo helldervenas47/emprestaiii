@@ -48,6 +48,14 @@ function rawFormatCurrency(value: number): string {
   return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value);
 }
 
+function getNextDate(base: Date, frequency: string, periods: number): Date {
+  const d = new Date(base);
+  if (frequency === "Semanal") d.setDate(d.getDate() + 7 * periods);
+  else if (frequency === "Quinzenal") d.setDate(d.getDate() + 15 * periods);
+  else d.setMonth(d.getMonth() + periods);
+  return d;
+}
+
 function getDaysOverdue(loan: Loan): number {
   const today = new Date();
   const todayNorm = new Date(today.getFullYear(), today.getMonth(), today.getDate());
