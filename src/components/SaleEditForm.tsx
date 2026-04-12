@@ -63,11 +63,12 @@ export function SaleEditForm({ sale, onSave, onClose, clients = [] }: Props) {
     const down = sale.downPayment || 0;
     const freq = sale.frequency || "Mensal";
     const baseValue = count > 0 ? Math.max(0, sale.total - down) / count : 0;
+    const amounts = sale.installmentAmounts;
     return Array.from({ length: count }, (_, i) => ({
       date: addByFrequency(baseDate, freq, i).toISOString().split("T")[0],
-      value: baseValue.toFixed(2),
+      value: amounts && amounts[i] != null ? amounts[i].toFixed(2) : baseValue.toFixed(2),
       manualDate: false,
-      manualValue: false,
+      manualValue: amounts && amounts[i] != null ? true : false,
     }));
   };
   const [installmentRows, setInstallmentRows] = useState(initRows);
