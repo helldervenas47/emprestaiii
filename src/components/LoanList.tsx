@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useCallback } from "react";
 import { useHideValues } from "@/contexts/HideValuesContext";
 import { format } from "date-fns";
-import { Loan, Payment } from "@/types/loan";
+import { Loan, Payment, InstallmentSchedule } from "@/types/loan";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -24,12 +24,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 interface Props {
   loans: Loan[];
   payments: Payment[];
+  installmentSchedules: InstallmentSchedule[];
   onPayment: (loanId: string, paymentDate?: string) => void;
   onPartialPayment: (loanId: string, amount: number, paymentDate?: string) => void;
   onInterestPayment: (loanId: string, paymentDate?: string) => void;
   onUpdate: (id: string, data: Partial<Omit<Loan, "id">>) => void;
   onDelete: (loanId: string) => void;
   onDeletePayment: (paymentId: string) => void;
+  onSaveSchedule: (loanId: string, rows: { installmentNumber: number; dueDate: string; amount: number }[]) => Promise<void>;
   readOnly?: boolean;
 }
 
@@ -56,14 +58,19 @@ function getNextDate(base: Date, frequency: string, periods: number): Date {
   return d;
 }
 
-function getFirstPendingDate(loan: Loan): Date {
+function getFirstPendingDate(loan: Loan, schedules: InstallmentSchedule[]): Date {
+  const loanSchedules = schedules.filter((s) => s.loanId === loan.id).sort((a, b) => a.installmentNumber - b.installmentNumber);
+  const nextNum = loan.paidInstallments + 1;
+  const saved = loanSchedules.find((s) => s.installmentNumber === nextNum);
+  if (saved) return new Date(saved.dueDate + "T00:00:00");
+  // Fallback to dueDate
   return new Date(loan.dueDate + "T00:00:00");
 }
 
-function getDaysOverdue(loan: Loan): number {
+function getDaysOverdue(loan: Loan, schedules: InstallmentSchedule[] = []): number {
   const today = new Date();
   const todayNorm = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-  const due = getFirstPendingDate(loan);
+  const due = getFirstPendingDate(loan, schedules);
   const diff = Math.floor((todayNorm.getTime() - due.getTime()) / (1000 * 60 * 60 * 24));
   return diff;
 }
@@ -136,16 +143,18 @@ function getTotalPaid(loan: Loan, payments: Payment[]): number {
 }
 
 function LoanCardView({
-  loan, payments: allPayments, onPayment, onPartialPayment, onInterestPayment, onUpdate, onDelete, onDeletePayment, readOnly = false,
+  loan, payments: allPayments, installmentSchedules, onPayment, onPartialPayment, onInterestPayment, onUpdate, onDelete, onDeletePayment, onSaveSchedule, readOnly = false,
 }: {
   loan: Loan;
   payments: Payment[];
+  installmentSchedules: InstallmentSchedule[];
   onPayment: (date?: string) => void;
   onPartialPayment: (amount: number, date?: string) => void;
   onInterestPayment: (date?: string) => void;
   onUpdate: (data: Partial<Omit<Loan, "id">>) => void;
   onDelete: () => void;
   onDeletePayment: (paymentId: string) => void;
+  onSaveSchedule: (loanId: string, rows: { installmentNumber: number; dueDate: string; amount: number }[]) => Promise<void>;
   readOnly?: boolean;
 }) {
   const { mask } = useHideValues();
@@ -183,34 +192,43 @@ function LoanCardView({
   const nextInstallmentDate = useMemo(() => {
     if (loan.status === "paid") return null;
     if (loan.paidInstallments >= loan.installments) return null;
-    return getFirstPendingDate(loan).toLocaleDateString("pt-BR");
+    return getFirstPendingDate(loan, installmentSchedules).toLocaleDateString("pt-BR");
   }, [loan]);
 
   const startEdit = () => {
     setForm(loanToForm(loan));
     setEditing(true);
     setShowEditSchedule(false);
-    // Build schedule rows
     const totalInst = loan.installments;
     const paidInst = loan.paidInstallments || 0;
     const rem = loan.remainingAmount != null && loan.remainingAmount > 0 ? loan.remainingAmount : total;
     const remInst = Math.max(1, totalInst - paidInst);
     const instVal = (rem / remInst).toFixed(2);
-    const firstDue = new Date(loan.dueDate + "T00:00:00");
     const freq = loan.interestType || "Mensal";
-    setEditScheduleRows(
-      Array.from({ length: remInst }, (_, i) => ({
-        date: i === 0 ? firstDue : getNextDate(firstDue, freq, i),
-        value: loan.customInstallmentValue != null && loan.customInstallmentValue > 0
-          ? loan.customInstallmentValue.toFixed(2)
-          : instVal,
-      }))
-    );
+    // Use saved schedules if available
+    const savedSchedules = installmentSchedules
+      .filter((s) => s.loanId === loan.id && s.installmentNumber > paidInst)
+      .sort((a, b) => a.installmentNumber - b.installmentNumber);
+    if (savedSchedules.length > 0) {
+      setEditScheduleRows(savedSchedules.map((s) => ({
+        date: new Date(s.dueDate + "T00:00:00"),
+        value: s.amount.toFixed(2),
+      })));
+    } else {
+      const firstDue = new Date(loan.dueDate + "T00:00:00");
+      setEditScheduleRows(
+        Array.from({ length: remInst }, (_, i) => ({
+          date: i === 0 ? firstDue : getNextDate(firstDue, freq, i),
+          value: loan.customInstallmentValue != null && loan.customInstallmentValue > 0
+            ? loan.customInstallmentValue.toFixed(2)
+            : instVal,
+        }))
+      );
+    }
   };
   const cancelEdit = () => setEditing(false);
-  const saveEdit = () => {
+  const saveEdit = async () => {
     const parsedTags = form.tags.split(",").map((t) => t.trim()).filter(Boolean);
-    // Use first schedule row for dueDate and custom value
     const firstRow = editScheduleRows[0];
     const dueDate = firstRow ? firstRow.date.toISOString().split("T")[0] : form.dueDate || loan.dueDate;
     const firstVal = firstRow ? parseFloat(firstRow.value) || 0 : 0;
@@ -232,6 +250,17 @@ function LoanCardView({
       remainingAmount: parseFloat(form.remainingAmount) || 0,
       customInstallmentValue: hasCustom ? firstVal : null,
     });
+
+    // Save installment schedule
+    const paidCount = parseInt(form.paidInstallments) || 0;
+    if (editScheduleRows.length > 0) {
+      await onSaveSchedule(loan.id, editScheduleRows.map((row, idx) => ({
+        installmentNumber: paidCount + idx + 1,
+        dueDate: row.date.toISOString().split("T")[0],
+        amount: parseFloat(row.value) || 0,
+      })));
+    }
+
     setEditing(false);
   };
 
@@ -648,14 +677,14 @@ function LoanCardView({
                 <CalendarIcon className="h-4 w-4 text-muted-foreground shrink-0" />
                 <div>
                   <p className="text-[10px] text-muted-foreground">Venc: <Pencil className="inline h-2.5 w-2.5 ml-0.5" /></p>
-                  <p className="text-sm font-semibold text-foreground">{getFirstPendingDate(loan).toLocaleDateString("pt-BR")}</p>
+                  <p className="text-sm font-semibold text-foreground">{getFirstPendingDate(loan, installmentSchedules).toLocaleDateString("pt-BR")}</p>
                 </div>
               </button>
             </PopoverTrigger>
             <PopoverContent className="w-auto p-0" align="start">
               <CalendarUI
                 mode="single"
-                selected={getFirstPendingDate(loan)}
+                selected={getFirstPendingDate(loan, installmentSchedules)}
                 onSelect={(d) => { if (d) onUpdate({ dueDate: d.toISOString().split("T")[0] }); }}
                 initialFocus
                 className="p-3 pointer-events-auto"
@@ -1281,16 +1310,18 @@ interface ClientGroup {
 }
 
 function ClientFolder({
-  group, payments, onPayment, onPartialPayment, onInterestPayment, onUpdate, onDelete, onDeletePayment, readOnly = false,
+  group, payments, installmentSchedules, onPayment, onPartialPayment, onInterestPayment, onUpdate, onDelete, onDeletePayment, onSaveSchedule, readOnly = false,
 }: {
   group: ClientGroup;
   payments: Payment[];
+  installmentSchedules: InstallmentSchedule[];
   onPayment: (id: string, date?: string) => void;
   onPartialPayment: (id: string, amount: number, date?: string) => void;
   onInterestPayment: (id: string, date?: string) => void;
   onUpdate: (id: string, data: Partial<Omit<Loan, "id">>) => void;
   onDelete: (id: string) => void;
   onDeletePayment: (paymentId: string) => void;
+  onSaveSchedule: (loanId: string, rows: { installmentNumber: number; dueDate: string; amount: number }[]) => Promise<void>;
   readOnly?: boolean;
 }) {
   const { mask } = useHideValues();
@@ -1332,9 +1363,9 @@ function ClientFolder({
         <CardContent className="pt-0 pb-3 px-3">
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
             {group.loans.map((loan) => (
-              <LoanCardView key={loan.id} loan={loan} payments={payments} readOnly={readOnly}
+              <LoanCardView key={loan.id} loan={loan} payments={payments} installmentSchedules={installmentSchedules} readOnly={readOnly}
                 onPayment={(date) => onPayment(loan.id, date)} onPartialPayment={(amt, date) => onPartialPayment(loan.id, amt, date)}
-                onInterestPayment={(date) => onInterestPayment(loan.id, date)} onUpdate={(d) => onUpdate(loan.id, d)} onDelete={() => onDelete(loan.id)} onDeletePayment={onDeletePayment} />
+                onInterestPayment={(date) => onInterestPayment(loan.id, date)} onUpdate={(d) => onUpdate(loan.id, d)} onDelete={() => onDelete(loan.id)} onDeletePayment={onDeletePayment} onSaveSchedule={onSaveSchedule} />
             ))}
           </div>
         </CardContent>
@@ -1343,7 +1374,7 @@ function ClientFolder({
   );
 }
 
-export function LoanList({ loans, payments, onPayment, onPartialPayment, onInterestPayment, onUpdate, onDelete, onDeletePayment, readOnly = false }: Props) {
+export function LoanList({ loans, payments, installmentSchedules, onPayment, onPartialPayment, onInterestPayment, onUpdate, onDelete, onDeletePayment, onSaveSchedule, readOnly = false }: Props) {
   const { mask } = useHideValues();
   const formatCurrency = useCallback((v: number) => mask(rawFormatCurrency(v)), [mask]);
   const [view, setView] = useState<"cards" | "rows" | "folders">("cards");
@@ -1621,18 +1652,18 @@ export function LoanList({ loans, payments, onPayment, onPartialPayment, onInter
           {view === "cards" ? (
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
               {categorized.map((loan) => (
-                <LoanCardView key={loan.id} loan={loan} payments={payments} readOnly={readOnly}
+                <LoanCardView key={loan.id} loan={loan} payments={payments} installmentSchedules={installmentSchedules} readOnly={readOnly}
                   onPayment={(date) => onPayment(loan.id, date)} onPartialPayment={(amt, date) => onPartialPayment(loan.id, amt, date)}
-                  onInterestPayment={(date) => onInterestPayment(loan.id, date)} onUpdate={(d) => onUpdate(loan.id, d)} onDelete={() => onDelete(loan.id)} onDeletePayment={onDeletePayment} />
+                  onInterestPayment={(date) => onInterestPayment(loan.id, date)} onUpdate={(d) => onUpdate(loan.id, d)} onDelete={() => onDelete(loan.id)} onDeletePayment={onDeletePayment} onSaveSchedule={onSaveSchedule} />
               ))}
             </div>
           ) : view === "folders" ? (
             <>
             <div className="space-y-4">
               {grouped.map((g) => (
-                <ClientFolder key={g.name} group={g} payments={payments} readOnly={readOnly}
+                <ClientFolder key={g.name} group={g} payments={payments} installmentSchedules={installmentSchedules} readOnly={readOnly}
                   onPayment={onPayment} onPartialPayment={onPartialPayment}
-                  onInterestPayment={onInterestPayment} onUpdate={onUpdate} onDelete={onDelete} onDeletePayment={onDeletePayment} />
+                  onInterestPayment={onInterestPayment} onUpdate={onUpdate} onDelete={onDelete} onDeletePayment={onDeletePayment} onSaveSchedule={onSaveSchedule} />
               ))}
               {grouped.length === 0 && (
                 <Card>

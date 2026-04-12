@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect } from "react";
-import { Loan, Payment } from "@/types/loan";
+import { Loan, Payment, InstallmentSchedule } from "@/types/loan";
 import { adjustBalance } from "@/lib/balance";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
@@ -8,6 +8,7 @@ export function useLoans() {
   const { user } = useAuth();
   const [loans, setLoans] = useState<Loan[]>([]);
   const [payments, setPayments] = useState<Payment[]>([]);
+  const [installmentSchedules, setInstallmentSchedules] = useState<InstallmentSchedule[]>([]);
 
   const fetchLoans = useCallback(async () => {
     if (!user) return;
@@ -41,7 +42,38 @@ export function useLoans() {
     }
   }, [user]);
 
-  useEffect(() => { fetchLoans(); fetchPayments(); }, [fetchLoans, fetchPayments]);
+  const fetchSchedules = useCallback(async () => {
+    if (!user) return;
+    const { data } = await supabase
+      .from("loan_installments").select("*").eq("user_id", user.id)
+      .order("installment_number", { ascending: true });
+    if (data) {
+      setInstallmentSchedules(data.map((s: any) => ({
+        id: s.id, loanId: s.loan_id, installmentNumber: s.installment_number,
+        dueDate: s.due_date, amount: Number(s.amount),
+      })));
+    }
+  }, [user]);
+
+  useEffect(() => { fetchLoans(); fetchPayments(); fetchSchedules(); }, [fetchLoans, fetchPayments, fetchSchedules]);
+
+  const saveSchedule = useCallback(async (loanId: string, rows: { installmentNumber: number; dueDate: string; amount: number }[]) => {
+    if (!user) return;
+    // Delete existing schedule for this loan then insert new
+    await supabase.from("loan_installments").delete().eq("loan_id", loanId);
+    if (rows.length > 0) {
+      await supabase.from("loan_installments").insert(
+        rows.map((r) => ({
+          user_id: user.id,
+          loan_id: loanId,
+          installment_number: r.installmentNumber,
+          due_date: r.dueDate,
+          amount: r.amount,
+        }))
+      );
+    }
+    await fetchSchedules();
+  }, [user, fetchSchedules]);
 
   const addLoan = useCallback(async (loan: Omit<Loan, "id"> & { status?: string; paidInstallments?: number }): Promise<string | null> => {
     if (!user) return null;
@@ -236,7 +268,7 @@ export function useLoans() {
     await supabase.from("payments").delete().eq("id", id);
   }, [payments, loans]);
 
-  return { loans, payments, addLoan, addPayment, addPartialPayment, addInterestOnlyPayment, updateLoan, deleteLoan, deletePayment };
+  return { loans, payments, installmentSchedules, addLoan, addPayment, addPartialPayment, addInterestOnlyPayment, updateLoan, deleteLoan, deletePayment, saveSchedule };
 }
 
 export function calculateInstallment(principal: number, monthlyRate: number, months: number): number {
