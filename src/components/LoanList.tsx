@@ -1154,6 +1154,7 @@ function LoanRowView({
   const [paymentDialog, setPaymentDialog] = useState<{ type: "installment" | "interest" | "partial" | "full"; amount?: number } | null>(null);
   const [showHistory, setShowHistory] = useState(false);
   const [paymentDate, setPaymentDate] = useState<Date>(new Date());
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   const total = calculateTotalWithInterest(loan.amount, loan.interestRate, loan.installments);
   const totalPaid = getTotalPaid(loan, allPayments);
