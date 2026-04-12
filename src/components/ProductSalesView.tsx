@@ -675,6 +675,7 @@ export function ProductSalesView({ sales, onDeleteSale, onUpdateSale, clients = 
   const [editingBalance, setEditingBalance] = useState(false);
   const [balanceInput, setBalanceInput] = useState("");
   const [showDeleteAllExpenses, setShowDeleteAllExpenses] = useState(false);
+  const [viewPaymentsExpenseId, setViewPaymentsExpenseId] = useState<string | null>(null);
 
   useEffect(() => {
     (async () => {
@@ -914,6 +915,10 @@ export function ProductSalesView({ sales, onDeleteSale, onUpdateSale, clients = 
               <div className="grid gap-3">
                 {vehicleExpenses.map((exp) => {
                   const isOverdue = !exp.paid && exp.dueDate < new Date().toISOString().split("T")[0];
+                  const hasPaidSomething = exp.paid || (exp.paidInstallments && exp.paidInstallments > 0);
+                  const isRecorrente = exp.type === "recorrente" && exp.installments && exp.installments > 1;
+                  const installmentAmount = isRecorrente ? exp.amount / exp.installments! : exp.amount;
+
                   return (
                     <Card key={exp.id} className={`${exp.paid ? "opacity-60" : ""}`}>
                       <CardContent className="p-4">
@@ -928,13 +933,24 @@ export function ProductSalesView({ sales, onDeleteSale, onUpdateSale, clients = 
                             <div className="flex items-center gap-3 text-xs text-muted-foreground">
                               <span>{exp.category}</span>
                               <span>Venc: {new Date(exp.dueDate + "T00:00:00").toLocaleDateString("pt-BR")}</span>
-                              {exp.type === "recorrente" && exp.installments && (
+                              {isRecorrente && (
                                 <span>{exp.paidInstallments || 0}/{exp.installments} parcelas</span>
                               )}
                             </div>
                           </div>
                           <div className="flex items-center gap-2">
                             <p className="font-bold text-sm whitespace-nowrap">{formatCurrency(exp.amount)}</p>
+                            {hasPaidSomething && onUpdateExpense && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => setViewPaymentsExpenseId(exp.id)}
+                                className="h-8 text-xs"
+                              >
+                                <Receipt className="h-3.5 w-3.5 mr-1" />
+                                Pagamentos
+                              </Button>
+                            )}
                             {!exp.paid && onPayExpense && (
                               <Button size="sm" variant="outline" onClick={() => onPayExpense(exp.id)} className="h-8 text-xs">
                                 <CheckCircle className="h-3.5 w-3.5 mr-1" />
@@ -949,6 +965,72 @@ export function ProductSalesView({ sales, onDeleteSale, onUpdateSale, clients = 
                           </div>
                         </div>
                       </CardContent>
+
+                      {/* Dialog de pagamentos individuais */}
+                      <Dialog open={viewPaymentsExpenseId === exp.id} onOpenChange={(open) => { if (!open) setViewPaymentsExpenseId(null); }}>
+                        <DialogContent className="sm:max-w-md">
+                          <DialogHeader>
+                            <DialogTitle>Pagamentos - {exp.description}</DialogTitle>
+                            <DialogDescription>Gerencie os pagamentos desta despesa.</DialogDescription>
+                          </DialogHeader>
+                          <div className="divide-y divide-border/30 max-h-64 overflow-y-auto">
+                            {isRecorrente ? (
+                              Array.from({ length: exp.paidInstallments || 0 }, (_, i) => (
+                                <div key={i} className="flex items-center gap-3 py-3">
+                                  <span className="w-7 h-7 rounded-full bg-success/20 text-success flex items-center justify-center text-xs font-bold shrink-0">
+                                    {i + 1}ª
+                                  </span>
+                                  <div className="flex-1 min-w-0">
+                                    <p className="text-sm font-medium text-foreground">{formatCurrency(installmentAmount)}</p>
+                                    <p className="text-xs text-muted-foreground">Parcela {i + 1} de {exp.installments}</p>
+                                  </div>
+                                  <Badge className="bg-success/20 text-success border-success/30 text-xs">Paga</Badge>
+                                  <Button
+                                    size="icon"
+                                    variant="ghost"
+                                    className="h-7 w-7 text-destructive hover:bg-destructive/10 shrink-0"
+                                    onClick={() => {
+                                      const newPaid = i;
+                                      const fullyPaid = false;
+                                      onUpdateExpense!(exp.id, { paidInstallments: newPaid, paid: fullyPaid, paidDate: undefined });
+                                      if (newPaid === 0) setViewPaymentsExpenseId(null);
+                                    }}
+                                  >
+                                    <Trash2 className="h-3.5 w-3.5" />
+                                  </Button>
+                                </div>
+                              ))
+                            ) : (
+                              exp.paid && (
+                                <div className="flex items-center gap-3 py-3">
+                                  <span className="w-7 h-7 rounded-full bg-success/20 text-success flex items-center justify-center text-xs font-bold shrink-0">
+                                    <Check className="h-4 w-4" />
+                                  </span>
+                                  <div className="flex-1 min-w-0">
+                                    <p className="text-sm font-medium text-foreground">{formatCurrency(exp.amount)}</p>
+                                    {exp.paidDate && <p className="text-xs text-muted-foreground">{new Date(exp.paidDate + "T00:00:00").toLocaleDateString("pt-BR")}</p>}
+                                  </div>
+                                  <Badge className="bg-success/20 text-success border-success/30 text-xs">Paga</Badge>
+                                  <Button
+                                    size="icon"
+                                    variant="ghost"
+                                    className="h-7 w-7 text-destructive hover:bg-destructive/10 shrink-0"
+                                    onClick={() => {
+                                      onUpdateExpense!(exp.id, { paid: false, paidDate: undefined, paidInstallments: 0 });
+                                      setViewPaymentsExpenseId(null);
+                                    }}
+                                  >
+                                    <Trash2 className="h-3.5 w-3.5" />
+                                  </Button>
+                                </div>
+                              )
+                            )}
+                            {(!isRecorrente && !exp.paid && !(exp.paidInstallments && exp.paidInstallments > 0)) && (
+                              <div className="py-4 text-center text-sm text-muted-foreground">Nenhum pagamento registrado.</div>
+                            )}
+                          </div>
+                        </DialogContent>
+                      </Dialog>
                     </Card>
                   );
                 })}
