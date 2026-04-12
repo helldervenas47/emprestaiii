@@ -1,5 +1,5 @@
 import { useRef, useState, useEffect } from "react";
-import { Plus, HandCoins, Users, LayoutDashboard, Download, Upload, ShoppingBag, BarChart3, AlertTriangle, Receipt, CalendarDays, Sun, Moon, LogOut, Info, X, Eye, EyeOff } from "lucide-react";
+import { Plus, HandCoins, Users, LayoutDashboard, Download, Upload, ShoppingBag, BarChart3, AlertTriangle, Receipt, CalendarDays, Sun, Moon, LogOut, Info, X, Eye, EyeOff, Car } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
@@ -28,7 +28,7 @@ import { toast } from "sonner";
 import { HideValuesProvider, useHideValues } from "@/contexts/HideValuesContext";
 import { UserManagement } from "@/components/UserManagement";
 
-type Tab = "overview" | "dashboard" | "clients" | "products" | "overdue" | "expenses" | "calendar" | "users";
+type Tab = "overview" | "dashboard" | "clients" | "products" | "vehicles" | "overdue" | "expenses" | "calendar" | "users";
 
 const tabConfig = [
   { id: "overview" as Tab, label: "Dashboard", icon: BarChart3 },
@@ -36,6 +36,7 @@ const tabConfig = [
   { id: "calendar" as Tab, label: "Calendário", icon: CalendarDays },
   { id: "clients" as Tab, label: "Clientes", icon: Users },
   { id: "products" as Tab, label: "Vendas", icon: ShoppingBag },
+  { id: "vehicles" as Tab, label: "Veículos", icon: Car },
   { id: "expenses" as Tab, label: "Despesas", icon: Receipt },
   { id: "overdue" as Tab, label: "Inadimplentes", icon: AlertTriangle },
   { id: "users" as Tab, label: "Usuários", icon: Users },
@@ -83,9 +84,17 @@ const tabHelp: Record<Tab, { title: string; items: string[] }> = {
   products: {
     title: "Vendas",
     items: [
-      "Registre vendas avulsas, streaming ou aluguel de veículos.",
+      "Registre vendas avulsas ou streaming.",
       "Escolha entre pagamento fixo (único) ou recorrente (parcelado).",
       "Para vendas recorrentes, defina a frequência: Semanal, Quinzenal ou Mensal.",
+    ],
+  },
+  vehicles: {
+    title: "Aluguel de Veículos",
+    items: [
+      "Registre contratos de aluguel de veículos.",
+      "Controle parcelas e pagamentos recorrentes.",
+      "Acompanhe vencimentos e inadimplência.",
     ],
   },
   expenses: {
