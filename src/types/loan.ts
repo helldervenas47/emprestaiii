@@ -91,6 +91,7 @@ export interface Sale {
   installmentValue?: number | null;
   installmentAmounts?: number[] | null;
   installmentDates?: string[] | null;
+  partialPaid: number;
 }
 
 export interface Expense {

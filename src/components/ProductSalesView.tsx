@@ -165,11 +165,11 @@ function SaleCard({ sale, onDelete, onEdit, onUpdate, formatCurrency }: { sale: 
           </div>
           <div>
             <p className="text-xs text-muted-foreground">Valor Pago</p>
-            <p className="text-sm font-bold text-success">{formatCurrency(parcelas.filter(p => p.paid).reduce((s, p) => s + p.value, 0) + (sale.downPayment || 0))}</p>
+            <p className="text-sm font-bold text-success">{formatCurrency(parcelas.filter(p => p.paid).reduce((s, p) => s + p.value, 0) + (sale.downPayment || 0) + (sale.partialPaid || 0))}</p>
           </div>
           <div>
             <p className="text-xs text-muted-foreground">Restante</p>
-            <p className="text-sm font-bold text-warning">{formatCurrency(parcelas.filter(p => !p.paid).reduce((s, p) => s + p.value, 0))}</p>
+            <p className="text-sm font-bold text-warning">{formatCurrency(Math.max(0, parcelas.filter(p => !p.paid).reduce((s, p) => s + p.value, 0) - (sale.partialPaid || 0)))}</p>
           </div>
         </div>
 
@@ -246,6 +246,7 @@ function SaleCard({ sale, onDelete, onEdit, onUpdate, formatCurrency }: { sale: 
                     <DialogTitle>Pagamento Parcial</DialogTitle>
                     <DialogDescription>
                       Informe o valor e a data do pagamento. O valor será abatido da {sale.paidInstallments + 1}ª parcela pendente ({formatCurrency(getParcelaValue(sale.paidInstallments))}).
+                      {(sale.partialPaid || 0) > 0 && ` Já pago parcialmente: ${formatCurrency(sale.partialPaid)}. Falta: ${formatCurrency(getParcelaValue(sale.paidInstallments) - (sale.partialPaid || 0))}.`}
                     </DialogDescription>
                   </DialogHeader>
                   <div className="space-y-4 py-2">
@@ -285,17 +286,17 @@ function SaleCard({ sale, onDelete, onEdit, onUpdate, formatCurrency }: { sale: 
                       if (val > 0 && partialDate) {
                         const nextIdx = sale.paidInstallments;
                         const currentValue = getParcelaValue(nextIdx);
-                        const remaining = currentValue - val;
-                        const newAmounts = [...(amounts || Array.from({ length: sale.installments }, (_, i) => getParcelaValue(i)))];
-                        if (remaining > 0.01) {
-                          newAmounts[nextIdx] = remaining;
-                          onUpdate({ installmentAmounts: newAmounts });
-                        } else {
-                          newAmounts[nextIdx] = currentValue;
+                        const currentPartial = sale.partialPaid || 0;
+                        const newPartialTotal = currentPartial + val;
+                        if (newPartialTotal >= currentValue - 0.01) {
+                          // Partial payments cover the full installment - mark as paid, carry remainder
+                          const remainder = newPartialTotal - currentValue;
                           onUpdate({
                             paidInstallments: Math.min(sale.installments, sale.paidInstallments + 1),
-                            installmentAmounts: newAmounts,
+                            partialPaid: remainder > 0.01 ? remainder : 0,
                           });
+                        } else {
+                          onUpdate({ partialPaid: newPartialTotal });
                         }
                         setPartialAmount(""); setPartialDate(undefined); setShowPartial(false);
                       }

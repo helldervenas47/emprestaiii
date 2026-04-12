@@ -49,6 +49,7 @@ export function useProducts() {
           installmentValue: (s as any).installment_value != null ? Number((s as any).installment_value) : null,
           installmentAmounts: (s as any).installment_amounts || null,
           installmentDates: (s as any).installment_dates || null,
+          partialPaid: Number((s as any).partial_paid) || 0,
         })));
       }
       setLoading(false);
@@ -160,6 +161,7 @@ export function useProducts() {
     if (data.installmentValue !== undefined) updateData.installment_value = data.installmentValue;
     if (data.installmentAmounts !== undefined) updateData.installment_amounts = data.installmentAmounts;
     if (data.installmentDates !== undefined) updateData.installment_dates = data.installmentDates;
+    if (data.partialPaid !== undefined) updateData.partial_paid = data.partialPaid;
     await supabase.from("sales").update(updateData as any).eq("id", id);
   }, [user]);
 
