@@ -193,9 +193,15 @@ const Index = () => {
       downloadCSV(exportClientsToCSV(clients), "clientes.csv");
       toast.success("Clientes exportados com sucesso!");
     } else if (tab === "products") {
-      if (sales.length === 0) return toast.error("Nenhuma venda para exportar");
-      downloadCSV(exportSalesToCSV(sales), "vendas.csv");
+      const filtered = sales.filter(s => s.businessType !== "aluguel_veiculo");
+      if (filtered.length === 0) return toast.error("Nenhuma venda para exportar");
+      downloadCSV(exportSalesToCSV(filtered), "vendas.csv");
       toast.success("Vendas exportadas com sucesso!");
+    } else if (tab === "vehicles") {
+      const filtered = sales.filter(s => s.businessType === "aluguel_veiculo");
+      if (filtered.length === 0) return toast.error("Nenhum aluguel para exportar");
+      downloadCSV(exportSalesToCSV(filtered), "alugueis_veiculos.csv");
+      toast.success("Aluguéis exportados com sucesso!");
     }
   };
 
