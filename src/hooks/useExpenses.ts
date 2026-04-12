@@ -51,7 +51,7 @@ export function useExpenses() {
     }
   }, [user]);
 
-  const payExpense = useCallback(async (id: string) => {
+  const payExpense = useCallback(async (id: string, skipBalanceAdjust = false) => {
     const expense = expenses.find((e) => e.id === id);
     if (!expense || expense.paid) return;
 
@@ -63,30 +63,26 @@ export function useExpenses() {
         ...e, paidInstallments: newPaid, paid: fullyPaid,
         paidDate: fullyPaid ? new Date().toISOString().split("T")[0] : undefined,
       } : e));
-      await Promise.all([
-        adjustBalance(-installmentAmount),
-        supabase.from("expenses").update({
-          paid_installments: newPaid, paid: fullyPaid,
-          paid_date: fullyPaid ? new Date().toISOString().split("T")[0] : null,
-        }).eq("id", id),
-      ]);
+      if (!skipBalanceAdjust) await adjustBalance(-installmentAmount);
+      await supabase.from("expenses").update({
+        paid_installments: newPaid, paid: fullyPaid,
+        paid_date: fullyPaid ? new Date().toISOString().split("T")[0] : null,
+      }).eq("id", id);
     } else {
       setExpenses((prev) => prev.map((e) => e.id === id ? {
         ...e, paid: true, paidDate: new Date().toISOString().split("T")[0],
       } : e));
-      await Promise.all([
-        adjustBalance(-expense.amount),
-        supabase.from("expenses").update({
-          paid: true, paid_date: new Date().toISOString().split("T")[0],
-        }).eq("id", id),
-      ]);
+      if (!skipBalanceAdjust) await adjustBalance(-expense.amount);
+      await supabase.from("expenses").update({
+        paid: true, paid_date: new Date().toISOString().split("T")[0],
+      }).eq("id", id);
     }
   }, [expenses]);
 
-  const deleteExpense = useCallback(async (id: string) => {
+  const deleteExpense = useCallback(async (id: string, skipBalanceAdjust = false) => {
     const expense = expenses.find((e) => e.id === id);
     setExpenses((prev) => prev.filter((e) => e.id !== id));
-    if (expense?.paid) {
+    if (expense?.paid && !skipBalanceAdjust) {
       await adjustBalance(expense.amount);
     }
     await supabase.from("expenses").delete().eq("id", id);

@@ -34,8 +34,8 @@ interface Props {
   clients?: Client[];
   expenses?: Expense[];
   onAddExpense?: (expense: Omit<Expense, "id" | "paid" | "paidDate" | "createdAt">) => void;
-  onPayExpense?: (id: string) => void;
-  onDeleteExpense?: (id: string) => void;
+  onPayExpense?: (id: string, skipBalanceAdjust?: boolean) => void;
+  onDeleteExpense?: (id: string, skipBalanceAdjust?: boolean) => void;
   onUpdateExpense?: (id: string, data: Partial<Omit<Expense, "id" | "createdAt">>) => void;
 }
 
@@ -977,11 +977,11 @@ export function ProductSalesView({ sales, onDeleteSale, onUpdateSale, clients = 
   // Wrap onPayExpense to debit vehicle balance
   const handleVehiclePayExpense = useCallback((id: string) => {
     const exp = expenses.find(e => e.id === id);
-    if (!exp || exp.paid) { onPayExpense?.(id); return; }
+    if (!exp || exp.paid) { onPayExpense?.(id, true); return; }
     const isRecorrente = exp.type === "recorrente" && exp.installments && exp.installments > 1;
     const debitAmount = isRecorrente ? exp.amount / exp.installments! : exp.amount;
     updateVehicleBalance(-debitAmount);
-    onPayExpense?.(id);
+    onPayExpense?.(id, true);
   }, [expenses, onPayExpense, updateVehicleBalance]);
 
   // Wrap onUpdateExpense to restore vehicle balance when payments are removed
@@ -1122,7 +1122,7 @@ export function ProductSalesView({ sales, onDeleteSale, onUpdateSale, clients = 
                               </Button>
                             )}
                             {onDeleteExpense && (
-                              <Button size="sm" variant="ghost" onClick={() => onDeleteExpense(exp.id)} className="h-8 w-8 p-0 text-destructive hover:text-destructive">
+                              <Button size="sm" variant="ghost" onClick={() => onDeleteExpense(exp.id, true)} className="h-8 w-8 p-0 text-destructive hover:text-destructive">
                                 <Trash2 className="h-3.5 w-3.5" />
                               </Button>
                             )}
