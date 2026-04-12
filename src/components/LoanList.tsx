@@ -67,10 +67,10 @@ function getFirstPendingDate(loan: Loan, schedules: InstallmentSchedule[]): Date
   return new Date(loan.dueDate + "T00:00:00");
 }
 
-function getDaysOverdue(loan: Loan): number {
+function getDaysOverdue(loan: Loan, schedules: InstallmentSchedule[] = []): number {
   const today = new Date();
   const todayNorm = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-  const due = getFirstPendingDate(loan);
+  const due = getFirstPendingDate(loan, schedules);
   const diff = Math.floor((todayNorm.getTime() - due.getTime()) / (1000 * 60 * 60 * 24));
   return diff;
 }
