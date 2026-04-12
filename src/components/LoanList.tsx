@@ -702,15 +702,14 @@ function LoanCardView({
               <span className="font-medium text-muted-foreground">Status</span>
               {Array.from({ length: loan.installments }, (_, idx) => {
                 const i = idx + 1;
-                const dueBase = new Date(loan.dueDate + "T00:00:00");
-                const nextInst = loan.paidInstallments + 1;
-                const monthsFromNext = i - nextInst;
+                const firstDueDate = new Date(loan.dueDate + "T00:00:00");
+                const scheduledDate = getNextDate(firstDueDate, loan.interestType || "Mensal", i - 1);
                 const instDate = i <= loan.paidInstallments
                   ? (() => {
                       const loanPayment = allPayments.find((p) => p.loanId === loan.id && p.installmentNumber === i);
-                      return loanPayment ? new Date(loanPayment.date + "T00:00:00") : new Date(loan.startDate + "T00:00:00");
+                      return loanPayment ? new Date(loanPayment.date + "T00:00:00") : scheduledDate;
                     })()
-                  : new Date(dueBase.getFullYear(), dueBase.getMonth() + monthsFromNext, dueBase.getDate());
+                  : scheduledDate;
                 const instDateStr = instDate.toLocaleDateString("pt-BR");
                 const isPaid = i <= loan.paidInstallments;
                 const todayNorm = new Date();
