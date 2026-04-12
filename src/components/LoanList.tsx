@@ -184,7 +184,26 @@ function LoanCardView({
 
   const total = calculateTotalWithInterest(loan.amount, loan.interestRate, loan.installments);
   const totalPaid = getTotalPaid(loan, allPayments);
-  const remaining = loan.remainingAmount != null && loan.remainingAmount > 0 ? loan.remainingAmount : Math.max(0, total - totalPaid);
+  const baseRemaining = loan.remainingAmount != null && loan.remainingAmount > 0 ? loan.remainingAmount : Math.max(0, total - totalPaid);
+  const category = getLoanCategory(loan, allPayments);
+  const daysOverdue = getDaysOverdue(loan, installmentSchedules);
+
+  // Calculate late fees
+  const effectiveDaysLate = Math.max(0, daysOverdue);
+  let lateInterestTotal = 0;
+  if (loan.lateInterestValue != null && loan.lateInterestValue > 0 && effectiveDaysLate > 0 && loan.status !== "paid") {
+    if (loan.lateInterestType === "fixed") {
+      lateInterestTotal = loan.lateInterestValue * effectiveDaysLate;
+    } else {
+      lateInterestTotal = baseRemaining * (loan.lateInterestValue / 100) * effectiveDaysLate;
+    }
+  }
+  const penaltyTotal = (loan.penaltyValue != null && loan.penaltyValue > 0 && effectiveDaysLate > 0 && loan.status !== "paid")
+    ? loan.penaltyValue
+    : 0;
+  const lateFees = lateInterestTotal + penaltyTotal;
+  const remaining = baseRemaining + lateFees;
+
   const remainingInstallments = Math.max(1, loan.installments - loan.paidInstallments);
   const calculatedInstallment = remaining / remainingInstallments;
   const installment = loan.customInstallmentValue != null && loan.customInstallmentValue > 0 ? loan.customInstallmentValue : calculatedInstallment;
@@ -194,8 +213,6 @@ function LoanCardView({
     : loan.amount * (loan.interestRate / 100);
   const totalInterest = total - loan.amount;
   const profit = totalPaid - loan.amount;
-  const category = getLoanCategory(loan, allPayments);
-  const daysOverdue = getDaysOverdue(loan);
   const badge = statusMap[category];
 
   // Next installment due date = due date (end of contract)
@@ -655,6 +672,16 @@ function LoanCardView({
           </p>
           {(loan.paymentType === "Parcelado" || loan.installments >= 2) && loan.status !== "paid" && loan.paidInstallments < loan.installments && (
             <p className="text-xs text-muted-foreground mt-0.5">Total restante: {formatCurrency(remaining)}</p>
+          )}
+          {lateFees > 0 && (
+            <div className="text-xs text-destructive mt-1 space-y-0.5">
+              {lateInterestTotal > 0 && (
+                <p>+ Juros atraso ({effectiveDaysLate}d): {rawFormatCurrency(lateInterestTotal)}</p>
+              )}
+              {penaltyTotal > 0 && (
+                <p>+ Multa: {rawFormatCurrency(penaltyTotal)}</p>
+              )}
+            </div>
           )}
         </div>
 
