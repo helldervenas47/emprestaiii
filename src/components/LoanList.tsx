@@ -239,6 +239,10 @@ function LoanCardView({
     const defaultCalc = (parseFloat(form.remainingAmount) || 0) / remInst;
     const hasCustom = firstVal > 0 && Math.abs(firstVal - defaultCalc) > 0.01;
 
+    const manualInterest = parseFloat(form.interestValue) || 0;
+    const calcInterest = (parseFloat(form.amount) || 0) * ((parseFloat(form.interestRate) || 0) / 100);
+    const hasCustomInterest = manualInterest > 0 && Math.abs(manualInterest - calcInterest) > 0.01;
+
     onUpdate({
       borrowerName: form.borrowerName,
       amount: parseFloat(form.amount) || loan.amount,
@@ -252,6 +256,7 @@ function LoanCardView({
       tags: parsedTags,
       remainingAmount: parseFloat(form.remainingAmount) || 0,
       customInstallmentValue: hasCustom ? firstVal : null,
+      customInterestValue: hasCustomInterest ? manualInterest : null,
     });
 
     // Save installment schedule
