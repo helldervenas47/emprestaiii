@@ -34,6 +34,7 @@ interface Props {
   onAddExpense?: (expense: Omit<Expense, "id" | "paid" | "paidDate" | "createdAt">) => void;
   onPayExpense?: (id: string) => void;
   onDeleteExpense?: (id: string) => void;
+  onUpdateExpense?: (id: string, data: Partial<Omit<Expense, "id" | "createdAt">>) => void;
 }
 
 function rawFormatCurrency(v: number) {

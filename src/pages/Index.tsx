@@ -393,6 +393,7 @@ const Index = () => {
             onAddExpense={addExpense}
             onPayExpense={payExpense}
             onDeleteExpense={deleteExpense}
+            onUpdateExpense={updateExpense}
           />
         )}
         {tab === "users" && <UserManagement />}
