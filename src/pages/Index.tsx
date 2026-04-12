@@ -300,7 +300,7 @@ const Index = () => {
 
         <div className="container mx-auto px-4">
           <nav className="flex gap-1 -mb-px overflow-x-auto">
-            {tabConfig.map((t) => (
+            {visibleTabs.map((t) => (
               <button
                 key={t.id}
                 onClick={() => setTab(t.id)}
