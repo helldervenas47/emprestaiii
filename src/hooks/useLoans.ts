@@ -179,7 +179,7 @@ export function useLoans() {
     else if (freq === "Quinzenal") currentDue.setDate(currentDue.getDate() + 15);
     else currentDue.setMonth(currentDue.getMonth() + 1);
     const newDueDate = currentDue.toISOString().split("T")[0];
-    const newRemaining = Math.max(0, getLoanRemainingAmount(loan, payments) - interestAmount);
+    
 
     // Also update any saved installment schedule for the next pending installment
     const nextNum = loan.paidInstallments + 1;
