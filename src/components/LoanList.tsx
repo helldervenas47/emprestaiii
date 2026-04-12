@@ -121,7 +121,7 @@ function getTotalPaid(loan: Loan, payments: Payment[]): number {
 }
 
 function LoanCardView({
-  loan, payments: allPayments, onPayment, onPartialPayment, onInterestPayment, onUpdate, onDelete, onDeletePayment,
+  loan, payments: allPayments, onPayment, onPartialPayment, onInterestPayment, onUpdate, onDelete, onDeletePayment, readOnly = false,
 }: {
   loan: Loan;
   payments: Payment[];
@@ -131,6 +131,7 @@ function LoanCardView({
   onUpdate: (data: Partial<Omit<Loan, "id">>) => void;
   onDelete: () => void;
   onDeletePayment: (paymentId: string) => void;
+  readOnly?: boolean;
 }) {
   const { mask } = useHideValues();
   const formatCurrency = useCallback((v: number) => mask(rawFormatCurrency(v)), [mask]);
@@ -567,6 +568,7 @@ function LoanCardView({
         )}
 
         {/* Action Buttons */}
+        {!readOnly && (
         <div className="flex flex-col gap-2 pt-2 border-t border-border/50 mt-auto">
           {loan.status !== "paid" && (
            <div className="flex gap-2">
@@ -600,6 +602,7 @@ function LoanCardView({
             </Button>
           </div>
         </div>
+        )}
       </CardContent>
     </Card>
     <Dialog open={!!paymentDialog} onOpenChange={(open) => !open && setPaymentDialog(null)}>
