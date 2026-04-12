@@ -102,6 +102,7 @@ export function SaleForm({ onAdd, onClose, defaultBusinessType = "venda", client
       installmentValue: null,
       installmentAmounts: amounts,
       installmentDates: dates,
+      partialPaid: 0,
     });
     onClose();
   };

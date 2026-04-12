@@ -199,6 +199,7 @@ export function importSalesFromCSV(csv: string): Omit<Sale, "id">[] {
       downPayment: 0,
       frequency: "Mensal",
       date: parseDateBR(cols[10]),
+      partialPaid: 0,
     };
   });
 }
