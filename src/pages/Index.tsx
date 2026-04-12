@@ -125,7 +125,7 @@ function HideValuesToggle() {
 
 const Index = () => {
   const { signOut, role } = useAuth();
-  const { loans, payments, addLoan, addPayment, addPartialPayment, addInterestOnlyPayment, updateLoan, deleteLoan, deletePayment } = useLoans();
+  const { loans, payments, installmentSchedules, addLoan, addPayment, addPartialPayment, addInterestOnlyPayment, updateLoan, deleteLoan, deletePayment, saveSchedule } = useLoans();
   const { clients, addClient, deleteClient, updateClient } = useClients();
   const { products, sales, addProduct, updateProduct, deleteProduct, addSale, updateSale, deleteSale } = useProducts();
   const { expenses, addExpense, payExpense, deleteExpense } = useExpenses();
@@ -330,7 +330,7 @@ const Index = () => {
           <>
             <div>
               <h2 className="text-lg font-semibold text-foreground mb-4">Empréstimos</h2>
-              <LoanList loans={loans} payments={payments} onPayment={addPayment} onPartialPayment={addPartialPayment} onInterestPayment={addInterestOnlyPayment} onUpdate={updateLoan} onDelete={deleteLoan} onDeletePayment={deletePayment} readOnly={isReadOnly} />
+              <LoanList loans={loans} payments={payments} installmentSchedules={installmentSchedules} onPayment={addPayment} onPartialPayment={addPartialPayment} onInterestPayment={addInterestOnlyPayment} onUpdate={updateLoan} onDelete={deleteLoan} onDeletePayment={deletePayment} onSaveSchedule={saveSchedule} readOnly={isReadOnly} />
             </div>
           </>
         )}
@@ -350,7 +350,7 @@ const Index = () => {
           <OverdueLoans loans={loans} clients={clients} />
         )}
         {tab === "calendar" && (
-          <BillingCalendar loans={loans} payments={payments} />
+          <BillingCalendar loans={loans} payments={payments} installmentSchedules={installmentSchedules} />
         )}
         {tab === "products" && (
           <ProductSalesView
@@ -363,7 +363,7 @@ const Index = () => {
         {tab === "users" && <UserManagement />}
       </main>
 
-      {showLoanForm && <LoanForm onAdd={addLoan} onClose={() => setShowLoanForm(false)} clients={clients} />}
+      {showLoanForm && <LoanForm onAdd={addLoan} onSaveSchedule={saveSchedule} onClose={() => setShowLoanForm(false)} clients={clients} />}
       {showClientForm && <ClientForm onAdd={addClient} onClose={() => setShowClientForm(false)} />}
       {showProductForm && <ProductForm onAdd={addProduct} onClose={() => setShowProductForm(false)} />}
       {showSaleForm && <SaleForm onAdd={addSale} onClose={() => setShowSaleForm(false)} clients={clients} />}
