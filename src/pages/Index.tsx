@@ -357,6 +357,7 @@ const Index = () => {
             sales={sales}
             onDeleteSale={deleteSale}
             onUpdateSale={updateSale}
+            clients={clients}
           />
         )}
         {tab === "users" && <UserManagement />}
@@ -365,7 +366,7 @@ const Index = () => {
       {showLoanForm && <LoanForm onAdd={addLoan} onClose={() => setShowLoanForm(false)} clients={clients} />}
       {showClientForm && <ClientForm onAdd={addClient} onClose={() => setShowClientForm(false)} />}
       {showProductForm && <ProductForm onAdd={addProduct} onClose={() => setShowProductForm(false)} />}
-      {showSaleForm && <SaleForm onAdd={addSale} onClose={() => setShowSaleForm(false)} />}
+      {showSaleForm && <SaleForm onAdd={addSale} onClose={() => setShowSaleForm(false)} clients={clients} />}
       {showExpenseForm && <ExpenseForm onAdd={addExpense} onClose={() => setShowExpenseForm(false)} />}
     </div>
     </HideValuesProvider>

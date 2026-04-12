@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Calendar as CalendarUI } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Plus, X, Calendar as CalendarIcon } from "lucide-react";
-import { Sale, BusinessType, PaymentMode } from "@/types/loan";
+import { Sale, BusinessType, PaymentMode, Client } from "@/types/loan";
 import { format, addMonths, addWeeks, addDays } from "date-fns";
 import { cn } from "@/lib/utils";
 
@@ -27,9 +27,10 @@ interface Props {
   onAdd: (sale: Omit<Sale, "id">) => void;
   onClose: () => void;
   defaultBusinessType?: BusinessType;
+  clients?: Client[];
 }
 
-export function SaleForm({ onAdd, onClose, defaultBusinessType = "venda" }: Props) {
+export function SaleForm({ onAdd, onClose, defaultBusinessType = "venda", clients = [] }: Props) {
   const [form, setForm] = useState({
     description: "",
     quantity: "1",
@@ -73,7 +74,7 @@ export function SaleForm({ onAdd, onClose, defaultBusinessType = "venda" }: Prop
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const total = parseFloat(form.total) || 0;
-    if (!form.description || total <= 0) return;
+    if (!form.description || total <= 0 || !form.customerName) return;
     onAdd({
       productName: form.description,
       description: form.description,
@@ -302,7 +303,16 @@ export function SaleForm({ onAdd, onClose, defaultBusinessType = "venda" }: Prop
 
             <div>
               <Label>Cliente</Label>
-              <Input value={form.customerName} onChange={(e) => update("customerName", e.target.value)} placeholder="Nome do cliente (opcional)" />
+              <Select value={form.customerName} onValueChange={(v) => update("customerName", v)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione um cliente" />
+                </SelectTrigger>
+                <SelectContent>
+                  {clients.filter(c => c.active).map((client) => (
+                    <SelectItem key={client.id} value={client.name}>{client.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div>
               <Label>Observações</Label>

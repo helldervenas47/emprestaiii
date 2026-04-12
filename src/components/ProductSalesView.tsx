@@ -1,5 +1,5 @@
 import { useState, useCallback } from "react";
-import { Sale, BusinessType } from "@/types/loan";
+import { Sale, BusinessType, Client } from "@/types/loan";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -23,6 +23,7 @@ interface Props {
   sales: Sale[];
   onDeleteSale: (id: string) => void;
   onUpdateSale: (id: string, data: Partial<Omit<Sale, "id">>) => void;
+  clients?: Client[];
 }
 
 function rawFormatCurrency(v: number) {
@@ -306,7 +307,7 @@ const saleCategoryFilters: { id: SaleCategory; label: string; color: string; act
   { id: "on_track", label: "Em Dia", color: "border-primary/30 text-primary", activeColor: "bg-primary text-primary-foreground border-primary" },
 ];
 
-function SalesList({ sales, onDeleteSale, onUpdateSale }: { sales: Sale[]; onDeleteSale: (id: string) => void; onUpdateSale: (id: string, data: Partial<Omit<Sale, "id">>) => void }) {
+function SalesList({ sales, onDeleteSale, onUpdateSale, clients = [] }: { sales: Sale[]; onDeleteSale: (id: string) => void; onUpdateSale: (id: string, data: Partial<Omit<Sale, "id">>) => void; clients?: Client[] }) {
   const [editingSale, setEditingSale] = useState<Sale | null>(null);
   const [search, setSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState<SaleCategory>("all");
@@ -452,13 +453,14 @@ function SalesList({ sales, onDeleteSale, onUpdateSale }: { sales: Sale[]; onDel
             setEditingSale(null);
           }}
           onClose={() => setEditingSale(null)}
+          clients={clients}
         />
       )}
     </div>
   );
 }
 
-export function ProductSalesView({ sales, onDeleteSale, onUpdateSale }: Props) {
+export function ProductSalesView({ sales, onDeleteSale, onUpdateSale, clients = [] }: Props) {
   return (
     <Tabs defaultValue="venda" className="space-y-4">
       <TabsList className="w-full grid grid-cols-3">
@@ -476,6 +478,7 @@ export function ProductSalesView({ sales, onDeleteSale, onUpdateSale }: Props) {
             sales={sales.filter((s) => s.businessType === tab.type)}
             onDeleteSale={onDeleteSale}
             onUpdateSale={onUpdateSale}
+            clients={clients}
           />
         </TabsContent>
       ))}
