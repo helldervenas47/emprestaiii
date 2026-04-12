@@ -15,7 +15,7 @@ import { DashboardOverview } from "@/components/DashboardOverview";
 import { OverdueLoans } from "@/components/OverdueLoans";
 import { BillingCalendar } from "@/components/BillingCalendar";
 import { ExpenseForm } from "@/components/ExpenseForm";
-import { VehicleExpenseForm } from "@/components/VehicleExpenseForm";
+import { VehicleExpenseForm, vehicleExpenseCategories } from "@/components/VehicleExpenseForm";
 import { ExpenseList } from "@/components/ExpenseList";
 import { useLoans } from "@/hooks/useLoans";
 import { useClients } from "@/hooks/useClients";
@@ -139,6 +139,7 @@ const Index = () => {
   const { clients, addClient, deleteClient, updateClient } = useClients();
   const { products, sales, addProduct, updateProduct, deleteProduct, addSale, updateSale, deleteSale } = useProducts();
   const { expenses, addExpense, payExpense, deleteExpense, updateExpense } = useExpenses();
+  const nonVehicleExpenses = expenses.filter(e => !vehicleExpenseCategories.includes(e.category));
   const [showLoanForm, setShowLoanForm] = useState(false);
   const [showClientForm, setShowClientForm] = useState(false);
   const [showProductForm, setShowProductForm] = useState(false);
@@ -365,8 +366,8 @@ const Index = () => {
         )}
         {tab === "expenses" && (
           <div>
-            <h2 className="text-lg font-semibold text-foreground mb-4">Despesas ({expenses.length})</h2>
-            <ExpenseList expenses={expenses} onPay={payExpense} onDelete={deleteExpense} />
+            <h2 className="text-lg font-semibold text-foreground mb-4">Despesas ({nonVehicleExpenses.length})</h2>
+            <ExpenseList expenses={nonVehicleExpenses} onPay={payExpense} onDelete={deleteExpense} />
           </div>
         )}
         {tab === "overdue" && (
