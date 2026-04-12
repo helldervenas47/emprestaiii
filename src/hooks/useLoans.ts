@@ -268,7 +268,7 @@ export function useLoans() {
     await supabase.from("payments").delete().eq("id", id);
   }, [payments, loans]);
 
-  return { loans, payments, addLoan, addPayment, addPartialPayment, addInterestOnlyPayment, updateLoan, deleteLoan, deletePayment };
+  return { loans, payments, installmentSchedules, addLoan, addPayment, addPartialPayment, addInterestOnlyPayment, updateLoan, deleteLoan, deletePayment, saveSchedule };
 }
 
 export function calculateInstallment(principal: number, monthlyRate: number, months: number): number {
