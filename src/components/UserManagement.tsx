@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Trash2, Shield, UserPlus } from "lucide-react";
+import { Plus, Trash2, Shield, UserPlus, Pencil } from "lucide-react";
 import { toast } from "sonner";
 
 interface ManagedUser {
@@ -25,13 +25,21 @@ export function UserManagement() {
   const [users, setUsers] = useState<ManagedUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreateForm, setShowCreateForm] = useState(false);
+  const [editingUser, setEditingUser] = useState<ManagedUser | null>(null);
   const [creating, setCreating] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [formData, setFormData] = useState({
     email: "",
     password: "",
     username: "",
     display_name: "",
     role: "visualizador" as string,
+  });
+  const [editData, setEditData] = useState({
+    email: "",
+    password: "",
+    username: "",
+    display_name: "",
   });
 
   const fetchUsers = async () => {
@@ -85,13 +93,46 @@ export function UserManagement() {
     const { data, error } = await supabase.functions.invoke("admin-manage-user", {
       body: { action: "update_role", user_id: userId, role },
     });
-
     if (error || data?.error) {
       toast.error(data?.error || "Erro ao atualizar papel");
     } else {
       toast.success("Papel atualizado!");
       fetchUsers();
     }
+  };
+
+  const openEdit = (user: ManagedUser) => {
+    setEditingUser(user);
+    setEditData({
+      email: user.email,
+      password: "",
+      username: user.username || "",
+      display_name: user.display_name,
+    });
+  };
+
+  const handleEditSave = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingUser) return;
+    setSaving(true);
+    const body: Record<string, unknown> = {
+      action: "update_user",
+      user_id: editingUser.id,
+      display_name: editData.display_name,
+      username: editData.username,
+    };
+    if (editData.email !== editingUser.email) body.email = editData.email;
+    if (editData.password) body.password = editData.password;
+
+    const { data, error } = await supabase.functions.invoke("admin-manage-user", { body });
+    if (error || data?.error) {
+      toast.error(data?.error || "Erro ao atualizar usuário");
+    } else {
+      toast.success("Usuário atualizado!");
+      setEditingUser(null);
+      fetchUsers();
+    }
+    setSaving(false);
   };
 
   const handleDelete = async (userId: string, name: string) => {
@@ -187,14 +228,24 @@ export function UserManagement() {
                       </Select>
                     </TableCell>
                     <TableCell>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => handleDelete(user.id, user.display_name)}
-                        className="h-8 w-8 text-destructive hover:text-destructive"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                      <div className="flex gap-1">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => openEdit(user)}
+                          className="h-8 w-8"
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleDelete(user.id, user.display_name)}
+                          className="h-8 w-8 text-destructive hover:text-destructive"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}
