@@ -1482,6 +1482,7 @@ export function LoanList({ loans, payments, installmentSchedules, onPayment, onP
     const cats = loans.map((l) => getLoanCategory(l, payments));
     return {
       all: cats.filter((c) => c !== "paid").length,
+      parcelado: loans.filter((l) => l.installments >= 2 && l.status !== "paid").length,
       overdue: cats.filter((c) => c === "overdue").length,
       paid_interest: cats.filter((c) => c === "paid_interest").length,
       paid: cats.filter((c) => c === "paid").length,
