@@ -26,6 +26,8 @@ export function useLoans() {
         customInstallmentValue: l.custom_installment_value != null ? Number(l.custom_installment_value) : null,
         customInterestValue: l.custom_interest_value != null ? Number(l.custom_interest_value) : null,
         tags: l.tags, notes: l.notes, createdAt: l.created_at,
+        lateInterestType: l.late_interest_type, lateInterestValue: l.late_interest_value != null ? Number(l.late_interest_value) : null,
+        penaltyValue: l.penalty_value != null ? Number(l.penalty_value) : null,
       })));
     }
   }, [user]);
