@@ -118,24 +118,22 @@ export function LoanForm({ onAdd, onSaveSchedule, onClose, clients }: Props) {
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const selectedClient = activeClients.find((c) => c.id === form.borrowerName);
     if (!selectedClient || !amount || !rate || !installments) return;
 
     const totalWithInterest = calculateTotalWithInterest(amount, rate, installments);
 
-    // Use the first row value as custom installment if user edited it
     const firstRowVal = installmentRows.length > 0 ? parseFloat(installmentRows[0].value) || 0 : 0;
     const defaultCalc = calcMonthly;
     const hasCustomValue = firstRowVal > 0 && Math.abs(firstRowVal - defaultCalc) > 0.01;
 
-    // Use the first row date as dueDate
     const dueDate = installmentRows.length > 0
       ? installmentRows[0].date.toISOString().split("T")[0]
       : firstDueDate.toISOString().split("T")[0];
 
-    onAdd({
+    const loanId = await onAdd({
       borrowerName: selectedClient.name,
       borrowerId: selectedClient.id,
       amount,
@@ -150,6 +148,15 @@ export function LoanForm({ onAdd, onSaveSchedule, onClose, clients }: Props) {
       customInstallmentValue: hasCustomValue ? firstRowVal : null,
       createdAt: new Date().toISOString(),
     });
+
+    if (loanId && installmentRows.length > 0) {
+      await onSaveSchedule(loanId, installmentRows.map((row, idx) => ({
+        installmentNumber: idx + 1,
+        dueDate: row.date.toISOString().split("T")[0],
+        amount: parseFloat(row.value) || 0,
+      })));
+    }
+
     onClose();
   };
 
