@@ -182,7 +182,9 @@ function LoanCardView({
   const calculatedInstallment = remaining / remainingInstallments;
   const installment = loan.customInstallmentValue != null && loan.customInstallmentValue > 0 ? loan.customInstallmentValue : calculatedInstallment;
   const progress = loan.installments > 0 ? (loan.paidInstallments / loan.installments) * 100 : 0;
-  const interestOnly = loan.amount * (loan.interestRate / 100);
+  const interestOnly = loan.customInterestValue != null && loan.customInterestValue > 0
+    ? loan.customInterestValue
+    : loan.amount * (loan.interestRate / 100);
   const totalInterest = total - loan.amount;
   const profit = totalPaid - loan.amount;
   const category = getLoanCategory(loan, allPayments);
