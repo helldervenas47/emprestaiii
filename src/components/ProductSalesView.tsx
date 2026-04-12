@@ -70,6 +70,7 @@ function SaleCard({ sale, onDelete, onEdit, onUpdate, formatCurrency }: { sale: 
   const [partialDate, setPartialDate] = useState<Date | undefined>(undefined);
   const [showParcelas, setShowParcelas] = useState(false);
   const [showPayDatePicker, setShowPayDatePicker] = useState(false);
+  const [showPayments, setShowPayments] = useState(false);
   const TabIcon = businessTabs.find((t) => t.type === sale.businessType)?.icon || ShoppingCart;
   const isRecorrente = sale.paymentMode === "recorrente" && sale.installments > 1;
   const amounts = sale.installmentAmounts;
@@ -221,27 +222,84 @@ function SaleCard({ sale, onDelete, onEdit, onUpdate, formatCurrency }: { sale: 
                           : "Pendente"
                       )}
                     </span>
-                    {(p.paid || (!p.paid && p.number === sale.paidInstallments + 1 && (sale.partialPaid || 0) > 0)) && (
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        className="h-6 w-6 text-destructive hover:bg-destructive/10 shrink-0"
-                        onClick={() => {
-                          if (p.paid) {
-                            onUpdate({ paidInstallments: p.number - 1, partialPaid: 0 });
-                          } else {
-                            onUpdate({ partialPaid: 0 });
-                          }
-                        }}
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </Button>
-                    )}
                   </div>
                 ))}
               </div>
             )}
           </div>
+
+        {/* Payments view button */}
+        {(sale.paidInstallments > 0 || (sale.partialPaid || 0) > 0) && (
+          <>
+            <Button
+              variant="outline"
+              className="w-full h-9 text-xs border-success/30 text-success hover:bg-success/10"
+              onClick={() => setShowPayments(true)}
+            >
+              <CircleCheck className="h-3.5 w-3.5 mr-1" /> Ver Pagamentos ({sale.paidInstallments}{(sale.partialPaid || 0) > 0 ? "+parcial" : ""})
+            </Button>
+            <Dialog open={showPayments} onOpenChange={setShowPayments}>
+              <DialogContent className="sm:max-w-md">
+                <DialogHeader>
+                  <DialogTitle>Pagamentos Realizados</DialogTitle>
+                  <DialogDescription>Gerencie os pagamentos desta venda.</DialogDescription>
+                </DialogHeader>
+                <div className="divide-y divide-border/30 max-h-64 overflow-y-auto">
+                  {Array.from({ length: sale.paidInstallments }, (_, i) => {
+                    const instBaseDate = new Date(sale.date + "T00:00:00");
+                    const customDate = sale.installmentDates && sale.installmentDates[i];
+                    const dueDate = customDate ? new Date(customDate + "T00:00:00") : (isRecorrente ? addByFrequency(instBaseDate, sale.frequency || "Mensal", i) : instBaseDate);
+                    return (
+                      <div key={i} className="flex items-center gap-3 py-3">
+                        <span className="w-7 h-7 rounded-full bg-success/20 text-success flex items-center justify-center text-xs font-bold shrink-0">
+                          {i + 1}ª
+                        </span>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-foreground">{formatCurrency(getParcelaValue(i))}</p>
+                          <p className="text-xs text-muted-foreground">{format(dueDate, "dd/MM/yyyy")}</p>
+                        </div>
+                        <Badge className="bg-success/20 text-success border-success/30 text-xs">Paga</Badge>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="h-7 w-7 text-destructive hover:bg-destructive/10 shrink-0"
+                          onClick={() => {
+                            onUpdate({ paidInstallments: i, partialPaid: 0 });
+                            if (i === 0) setShowPayments(false);
+                          }}
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
+                    );
+                  })}
+                  {(sale.partialPaid || 0) > 0 && (
+                    <div className="flex items-center gap-3 py-3">
+                      <span className="w-7 h-7 rounded-full bg-warning/20 text-warning flex items-center justify-center text-xs font-bold shrink-0">
+                        {sale.paidInstallments + 1}ª
+                      </span>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-foreground">{formatCurrency(sale.partialPaid)}</p>
+                        <p className="text-xs text-muted-foreground">Pagamento parcial</p>
+                      </div>
+                      <Badge className="bg-warning/20 text-warning border-warning/30 text-xs">Parcial</Badge>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="h-7 w-7 text-destructive hover:bg-destructive/10 shrink-0"
+                        onClick={() => {
+                          onUpdate({ partialPaid: 0 });
+                        }}
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              </DialogContent>
+            </Dialog>
+          </>
+        )}
 
         {/* Row 5: Payment buttons - fixed position via mt-auto */}
         <div className="mt-auto space-y-2">
