@@ -21,13 +21,12 @@ Deno.serve(async (req) => {
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const anonKey = req.headers.get("apikey") || Deno.env.get("SUPABASE_PUBLISHABLE_KEY")!;
 
-    // Verify the caller is an admin
-    const callerClient = createClient(supabaseUrl, anonKey, {
-      global: { headers: { Authorization: authHeader } },
-    });
-    const { data: { user: caller } } = await callerClient.auth.getUser();
+    const adminClient = createClient(supabaseUrl, serviceRoleKey);
+
+    // Get caller from token
+    const token = authHeader.replace("Bearer ", "");
+    const { data: { user: caller } } = await adminClient.auth.getUser(token);
     if (!caller) {
       return new Response(JSON.stringify({ error: "Não autorizado" }), {
         status: 401,
