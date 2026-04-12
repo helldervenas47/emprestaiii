@@ -983,7 +983,7 @@ export function ProductSalesView({ sales, onDeleteSale, onUpdateSale, clients = 
                               </Button>
                             )}
                             {!exp.paid && onPayExpense && (
-                              <Button size="sm" variant="outline" onClick={() => onPayExpense(exp.id)} className="h-8 text-xs">
+                              <Button size="sm" variant="outline" onClick={() => handleVehiclePayExpense(exp.id)} className="h-8 text-xs">
                                 <CheckCircle className="h-3.5 w-3.5 mr-1" />
                                 Pagar
                               </Button>
@@ -1023,7 +1023,7 @@ export function ProductSalesView({ sales, onDeleteSale, onUpdateSale, clients = 
                                     onClick={() => {
                                       const newPaid = i;
                                       const fullyPaid = false;
-                                      onUpdateExpense!(exp.id, { paidInstallments: newPaid, paid: fullyPaid, paidDate: undefined });
+                                      handleVehicleUpdateExpense(exp.id, { paidInstallments: newPaid, paid: fullyPaid, paidDate: undefined });
                                       if (newPaid === 0) setViewPaymentsExpenseId(null);
                                     }}
                                   >
@@ -1047,7 +1047,7 @@ export function ProductSalesView({ sales, onDeleteSale, onUpdateSale, clients = 
                                     variant="ghost"
                                     className="h-7 w-7 text-destructive hover:bg-destructive/10 shrink-0"
                                     onClick={() => {
-                                      onUpdateExpense!(exp.id, { paid: false, paidDate: undefined, paidInstallments: 0 });
+                                      handleVehicleUpdateExpense(exp.id, { paid: false, paidDate: undefined, paidInstallments: 0 });
                                       setViewPaymentsExpenseId(null);
                                     }}
                                   >
