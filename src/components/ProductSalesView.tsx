@@ -925,7 +925,7 @@ export function ProductSalesView({ sales, onDeleteSale, onUpdateSale, clients = 
                   <Button variant="destructive" onClick={() => {
                     vehicleExpenses.forEach(exp => {
                       if (exp.paid || (exp.paidInstallments && exp.paidInstallments > 0)) {
-                        onUpdateExpense!(exp.id, { paid: false, paidDate: undefined, paidInstallments: 0 });
+                        handleVehicleUpdateExpense(exp.id, { paid: false, paidDate: undefined, paidInstallments: 0 });
                       }
                     });
                     setShowDeleteAllExpenses(false);
