@@ -1,6 +1,6 @@
 import { useMemo, useState, useCallback } from "react";
 import { useHideValues } from "@/contexts/HideValuesContext";
-import { Loan, Client } from "@/types/loan";
+import { Loan, Client, InstallmentSchedule } from "@/types/loan";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,10 +11,16 @@ import { AlertTriangle, MessageCircle, Search, Phone, Calendar, DollarSign, Cloc
 interface Props {
   loans: Loan[];
   clients: Client[];
+  installmentSchedules: InstallmentSchedule[];
 }
 
 function rawFormatCurrency(v: number) {
   return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v);
+}
+
+function getTodayStr(): string {
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
 }
 
 function getDaysOverdue(dueDate: string): number {
@@ -25,82 +31,10 @@ function getDaysOverdue(dueDate: string): number {
   return Math.max(0, Math.floor(diff / (1000 * 60 * 60 * 24)));
 }
 
-function getOverdueInstallments(loan: Loan): { number: number; dueDate: string; amount: number }[] {
-  const installmentAmount = calculateInstallment(loan.amount, loan.interestRate, loan.installments);
-  const startDate = new Date(loan.startDate + "T00:00:00");
-  const now = new Date();
-  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const overdue: { number: number; dueDate: string; amount: number }[] = [];
-  const addedNumbers = new Set<number>();
-
-  for (let i = loan.paidInstallments; i < loan.installments; i++) {
-    const dueDate = new Date(startDate);
-    dueDate.setMonth(dueDate.getMonth() + i + 1);
-    const dueDateNorm = new Date(dueDate.getFullYear(), dueDate.getMonth(), dueDate.getDate());
-    if (dueDateNorm < today) {
-      addedNumbers.add(i + 1);
-      overdue.push({
-        number: i + 1,
-        dueDate: dueDate.toISOString().split("T")[0],
-        amount: installmentAmount,
-      });
-    }
-  }
-
-  // Also check loan.dueDate directly
-  if (loan.dueDate) {
-    const loanDue = new Date(loan.dueDate + "T00:00:00");
-    const loanDueNorm = new Date(loanDue.getFullYear(), loanDue.getMonth(), loanDue.getDate());
-    if (loanDueNorm < today) {
-      const nextInstallment = loan.paidInstallments + 1;
-      if (!addedNumbers.has(nextInstallment) && nextInstallment <= loan.installments) {
-        overdue.push({
-          number: nextInstallment,
-          dueDate: loan.dueDate,
-          amount: installmentAmount,
-        });
-      }
-    }
-  }
-
-  return overdue;
-}
-
-function getDueTodayInstallments(loan: Loan): { number: number; dueDate: string; amount: number }[] {
-  const installmentAmount = calculateInstallment(loan.amount, loan.interestRate, loan.installments);
-  const startDate = new Date(loan.startDate + "T00:00:00");
-  const now = new Date();
-  const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
-  const dueToday: { number: number; dueDate: string; amount: number }[] = [];
-  const addedNumbers = new Set<number>();
-
-  for (let i = loan.paidInstallments; i < loan.installments; i++) {
-    const dueDate = new Date(startDate);
-    dueDate.setMonth(dueDate.getMonth() + i + 1);
-    const dueDateStr = dueDate.toISOString().split("T")[0];
-    if (dueDateStr === todayStr) {
-      addedNumbers.add(i + 1);
-      dueToday.push({
-        number: i + 1,
-        dueDate: dueDateStr,
-        amount: installmentAmount,
-      });
-    }
-  }
-
-  // Also check loan.dueDate directly
-  if (loan.dueDate === todayStr) {
-    const nextInstallment = loan.paidInstallments + 1;
-    if (!addedNumbers.has(nextInstallment) && nextInstallment <= loan.installments) {
-      dueToday.push({
-        number: nextInstallment,
-        dueDate: todayStr,
-        amount: installmentAmount,
-      });
-    }
-  }
-
-  return dueToday;
+function getInstallmentAmount(loan: Loan, schedules: InstallmentSchedule[]): number {
+  const schedule = schedules.find(s => s.loanId === loan.id && s.installmentNumber === loan.paidInstallments + 1);
+  if (schedule) return schedule.amount;
+  return loan.customInstallmentValue || calculateInstallment(loan.amount, loan.interestRate, loan.installments);
 }
 
 function buildWhatsAppMessage(loan: Loan, installments: { number: number; dueDate: string; amount: number }[], isOverdue: boolean): string {
@@ -199,48 +133,61 @@ function LoanItemCard({ item, isOverdue, onSendWhatsApp }: { item: LoanItem; isO
   );
 }
 
-export function OverdueLoans({ loans, clients }: Props) {
+export function OverdueLoans({ loans, clients, installmentSchedules }: Props) {
   const { mask } = useHideValues();
   const formatCurrency = useCallback((v: number) => mask(rawFormatCurrency(v)), [mask]);
   const [search, setSearch] = useState("");
+  const todayStr = getTodayStr();
 
   const activeLoans = useMemo(() =>
-    loans.filter((l) => l.status !== "paid" && l.borrowerName.toLowerCase().includes(search.toLowerCase())),
+    loans.filter((l) => l.status !== "paid" && l.paidInstallments < l.installments && l.borrowerName.toLowerCase().includes(search.toLowerCase())),
     [loans, search]
   );
 
   const overdueData = useMemo<LoanItem[]>(() => {
     return activeLoans
       .map((loan) => {
-        const installments = getOverdueInstallments(loan);
-        if (installments.length === 0) return null;
+        if (loan.dueDate >= todayStr) return null;
+        const amount = getInstallmentAmount(loan, installmentSchedules);
+        const nextInst = loan.paidInstallments + 1;
+        const installments = [{
+          number: nextInst,
+          dueDate: loan.dueDate,
+          amount,
+        }];
         const client = clients.find((c) => c.id === loan.borrowerId);
         return {
           loan, client, phone: client?.phone || "",
           installments,
-          daysOverdue: getDaysOverdue(installments[0].dueDate),
-          totalAmount: installments.reduce((s, i) => s + i.amount, 0),
+          daysOverdue: getDaysOverdue(loan.dueDate),
+          totalAmount: amount,
         };
       })
       .filter(Boolean)
       .sort((a, b) => b!.daysOverdue - a!.daysOverdue) as LoanItem[];
-  }, [activeLoans, clients]);
+  }, [activeLoans, clients, installmentSchedules, todayStr]);
 
   const dueTodayData = useMemo<LoanItem[]>(() => {
     return activeLoans
       .map((loan) => {
-        const installments = getDueTodayInstallments(loan);
-        if (installments.length === 0) return null;
+        if (loan.dueDate !== todayStr) return null;
+        const amount = getInstallmentAmount(loan, installmentSchedules);
+        const nextInst = loan.paidInstallments + 1;
+        const installments = [{
+          number: nextInst,
+          dueDate: loan.dueDate,
+          amount,
+        }];
         const client = clients.find((c) => c.id === loan.borrowerId);
         return {
           loan, client, phone: client?.phone || "",
           installments,
           daysOverdue: 0,
-          totalAmount: installments.reduce((s, i) => s + i.amount, 0),
+          totalAmount: amount,
         };
       })
       .filter(Boolean) as LoanItem[];
-  }, [activeLoans, clients]);
+  }, [activeLoans, clients, installmentSchedules, todayStr]);
 
   const totalOverdueAmount = overdueData.reduce((s, d) => s + d.totalAmount, 0);
   const totalDueTodayAmount = dueTodayData.reduce((s, d) => s + d.totalAmount, 0);
