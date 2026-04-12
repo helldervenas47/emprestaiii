@@ -585,7 +585,7 @@ function LoanCardView({
 
         {/* Large remaining amount */}
         <div className="text-center py-2">
-          {loan.installments >= 2 && loan.status !== "paid" && loan.paidInstallments < loan.installments ? (
+          {loan.paymentType === "Parcelado" && loan.status !== "paid" && loan.paidInstallments < loan.installments ? (
             editingInstallment ? (
               <div className="flex items-center justify-center gap-2">
                 <Input
