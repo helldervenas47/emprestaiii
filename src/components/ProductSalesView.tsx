@@ -866,7 +866,7 @@ export function ProductSalesView({ sales, onDeleteSale, onUpdateSale, clients = 
                 <Receipt className="h-5 w-5" />
                 Despesas de Veículos ({vehicleExpenses.length})
               </h3>
-              {vehicleExpenses.length > 0 && onDeleteExpense && (
+              {vehicleExpenses.some(e => e.paid || (e.paidInstallments && e.paidInstallments > 0)) && onUpdateExpense && (
                 <Button
                   size="sm"
                   variant="ghost"
@@ -874,28 +874,32 @@ export function ProductSalesView({ sales, onDeleteSale, onUpdateSale, clients = 
                   onClick={() => setShowDeleteAllExpenses(true)}
                 >
                   <Trash2 className="h-3.5 w-3.5" />
-                  Apagar Todas
+                  Limpar Pagamentos
                 </Button>
               )}
             </div>
 
-            {/* Dialog de confirmação para apagar todas as despesas */}
+            {/* Dialog de confirmação para limpar pagamentos */}
             <Dialog open={showDeleteAllExpenses} onOpenChange={setShowDeleteAllExpenses}>
               <DialogContent className="sm:max-w-md">
                 <DialogHeader>
-                  <DialogTitle>Apagar Todas as Despesas</DialogTitle>
+                  <DialogTitle>Limpar Pagamentos</DialogTitle>
                   <DialogDescription>
-                    Tem certeza que deseja apagar todas as {vehicleExpenses.length} despesas de veículos? Esta ação não pode ser desfeita.
+                    Tem certeza que deseja limpar todos os dados de pagamento das despesas de veículos? As despesas serão mantidas, mas marcadas como não pagas.
                   </DialogDescription>
                 </DialogHeader>
                 <DialogFooter>
                   <Button variant="outline" onClick={() => setShowDeleteAllExpenses(false)}>Cancelar</Button>
                   <Button variant="destructive" onClick={() => {
-                    vehicleExpenses.forEach(exp => onDeleteExpense!(exp.id));
+                    vehicleExpenses.forEach(exp => {
+                      if (exp.paid || (exp.paidInstallments && exp.paidInstallments > 0)) {
+                        onUpdateExpense!(exp.id, { paid: false, paidDate: undefined, paidInstallments: 0 });
+                      }
+                    });
                     setShowDeleteAllExpenses(false);
                   }}>
                     <Trash2 className="h-4 w-4 mr-1" />
-                    Apagar Todas
+                    Limpar Pagamentos
                   </Button>
                 </DialogFooter>
               </DialogContent>
