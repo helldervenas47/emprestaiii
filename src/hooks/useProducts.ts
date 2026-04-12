@@ -49,6 +49,7 @@ export function useProducts() {
           installmentValue: (s as any).installment_value != null ? Number((s as any).installment_value) : null,
           installmentAmounts: (s as any).installment_amounts || null,
           installmentDates: (s as any).installment_dates || null,
+          partialPaid: Number((s as any).partial_paid) || 0,
         })));
       }
       setLoading(false);
