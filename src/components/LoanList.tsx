@@ -1012,7 +1012,7 @@ interface ClientGroup {
 }
 
 function ClientFolder({
-  group, payments, onPayment, onPartialPayment, onInterestPayment, onUpdate, onDelete, onDeletePayment,
+  group, payments, onPayment, onPartialPayment, onInterestPayment, onUpdate, onDelete, onDeletePayment, readOnly = false,
 }: {
   group: ClientGroup;
   payments: Payment[];
@@ -1022,6 +1022,7 @@ function ClientFolder({
   onUpdate: (id: string, data: Partial<Omit<Loan, "id">>) => void;
   onDelete: (id: string) => void;
   onDeletePayment: (paymentId: string) => void;
+  readOnly?: boolean;
 }) {
   const { mask } = useHideValues();
   const formatCurrency = useCallback((v: number) => mask(rawFormatCurrency(v)), [mask]);
