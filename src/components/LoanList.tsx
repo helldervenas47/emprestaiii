@@ -35,10 +35,11 @@ interface Props {
   readOnly?: boolean;
 }
 
-type Category = "all" | "overdue" | "paid_interest" | "paid" | "due_today" | "on_track";
+type Category = "all" | "overdue" | "paid_interest" | "paid" | "due_today" | "on_track" | "parcelado";
 
 const categoryConfig: { id: Category; label: string; color: string; activeColor: string }[] = [
   { id: "all", label: "Todos", color: "border-border text-muted-foreground", activeColor: "bg-primary text-primary-foreground border-primary" },
+  { id: "parcelado", label: "Parcelados", color: "border-blue-400/30 text-blue-400", activeColor: "bg-blue-500 text-white border-blue-500" },
   { id: "overdue", label: "Atrasados", color: "border-destructive/30 text-destructive", activeColor: "bg-destructive text-destructive-foreground border-destructive" },
   { id: "paid_interest", label: "Pagou Juros", color: "border-purple/30 text-purple", activeColor: "bg-purple text-purple-foreground border-purple" },
   { id: "paid", label: "Pagou Total", color: "border-success/30 text-success", activeColor: "bg-success text-success-foreground border-success" },
@@ -1422,9 +1423,13 @@ export function LoanList({ loans, payments, installmentSchedules, onPayment, onP
     let filtered = loans.filter((l) => l.borrowerName.toLowerCase().includes(search.toLowerCase()));
 
     // Category filter
-    filtered = category === "all"
-      ? filtered.filter((l) => getLoanCategory(l, payments) !== "paid")
-      : filtered.filter((l) => getLoanCategory(l, payments) === category);
+    if (category === "all") {
+      filtered = filtered.filter((l) => getLoanCategory(l, payments) !== "paid");
+    } else if (category === "parcelado") {
+      filtered = filtered.filter((l) => l.paymentType === "Parcelado" || l.installments >= 2);
+    } else {
+      filtered = filtered.filter((l) => getLoanCategory(l, payments) === category);
+    }
 
     // Date range filter (startDate = data de saída)
     if (dateFrom) {
