@@ -380,8 +380,8 @@ function SalesList({ sales, onDeleteSale, onUpdateSale, clients = [] }: { sales:
 
   // Calculate receivables per category
   const getRemaining = (s: Sale) => {
-    const valorParcela = s.installments > 0 ? s.total / s.installments : s.total;
-    const paid = valorParcela * s.paidInstallments;
+    const valorParcela = s.installments > 0 ? Math.max(0, s.total - (s.downPayment || 0)) / s.installments : s.total;
+    const paid = valorParcela * s.paidInstallments + (s.downPayment || 0);
     return Math.max(0, s.total - paid);
   };
 
