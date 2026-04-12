@@ -156,11 +156,11 @@ function SaleCard({ sale, onDelete, onEdit, onUpdate, formatCurrency }: { sale: 
           </div>
           <div>
             <p className="text-xs text-muted-foreground">Valor Pago</p>
-            <p className="text-sm font-bold text-success">{formatCurrency(valorParcela * sale.paidInstallments)}</p>
+            <p className="text-sm font-bold text-success">{formatCurrency(valorParcela * sale.paidInstallments + (sale.downPayment || 0))}</p>
           </div>
           <div>
             <p className="text-xs text-muted-foreground">Restante</p>
-            <p className="text-sm font-bold text-warning">{formatCurrency(Math.max(0, sale.total - valorParcela * sale.paidInstallments))}</p>
+            <p className="text-sm font-bold text-warning">{formatCurrency(Math.max(0, sale.total - valorParcela * sale.paidInstallments - (sale.downPayment || 0)))}</p>
           </div>
         </div>
 
