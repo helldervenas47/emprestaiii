@@ -270,7 +270,7 @@ const Index = () => {
     <div className="min-h-screen bg-background">
       <input type="file" ref={fileInputRef} accept=".csv" className="hidden" onChange={handleFileChange} />
 
-      <header className="border-b border-border/50 bg-background/80 backdrop-blur-xl sticky top-0 z-40">
+      <header className="border-b border-border/30 glass sticky top-0 z-40">
         <div className="container mx-auto px-3 sm:px-4 py-2 sm:py-3 flex items-center justify-between gap-2">
           <div className="flex items-center gap-2 sm:gap-3 shrink-0">
             <div className="h-8 w-8 sm:h-9 sm:w-9 rounded-lg gradient-primary glow-primary flex items-center justify-center">
