@@ -193,7 +193,7 @@ export function useLoans() {
         user_id: user.id, loan_id: loanId, amount: interestAmount,
         date: dateStr, installment_number: 0, previous_due_date: loan.dueDate,
       }),
-      supabase.from("loans").update({ due_date: newDueDate, remaining_amount: newRemaining }).eq("id", loanId),
+      supabase.from("loans").update({ due_date: newDueDate }).eq("id", loanId),
       scheduleUpdate,
       adjustBalance(interestAmount),
     ]);
