@@ -274,8 +274,9 @@ export function useLoans() {
         } : l));
       } else if (payment.installmentNumber === 0 && payment.previousDueDate) {
         loanUpdates.due_date = payment.previousDueDate;
+        delete loanUpdates.remaining_amount;
         setLoans((prev) => prev.map((l) => l.id === payment.loanId ? {
-          ...l, dueDate: payment.previousDueDate!, remainingAmount: newRemaining,
+          ...l, dueDate: payment.previousDueDate!,
         } : l));
         // Also restore the installment schedule date
         const nextNum = loan.paidInstallments + 1;
