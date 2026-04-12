@@ -44,23 +44,29 @@ export function SaleForm({ onAdd, onClose, defaultBusinessType = "venda" }: Prop
     firstInstallmentDate: new Date().toISOString().split("T")[0],
   });
 
-  const [installmentRows, setInstallmentRows] = useState<{ date: string; value: string }[]>([]);
+  const [installmentRows, setInstallmentRows] = useState<{ date: string; value: string; manualDate?: boolean; manualValue?: boolean }[]>([]);
 
   const installmentsNum = parseInt(form.installments) || 1;
   const firstDate = new Date(form.firstInstallmentDate + "T00:00:00");
   const totalNum = parseFloat(form.total) || 0;
 
-  // Rebuild rows when installments/date/frequency/total changes
+  // Rebuild rows preserving manually edited dates/values
   const rebuildRows = (count: number, baseDate: Date, freq: string, total: number) => {
-    const val = count > 0 ? (total / count).toFixed(2) : "0";
-    setInstallmentRows(
-      Array.from({ length: count }, (_, i) => ({
-        date: addByFrequency(baseDate, freq, i).toISOString().split("T")[0],
-        value: val,
-      }))
-    );
+    const defaultVal = count > 0 ? (total / count).toFixed(2) : "0";
+    setInstallmentRows((prev) => {
+      return Array.from({ length: count }, (_, i) => {
+        const existing = prev[i];
+        const autoDate = addByFrequency(baseDate, freq, i).toISOString().split("T")[0];
+        return {
+          date: existing?.manualDate ? existing.date : autoDate,
+          value: existing?.manualValue ? existing.value : defaultVal,
+          manualDate: existing?.manualDate || false,
+          manualValue: existing?.manualValue || false,
+        };
+      });
+    });
     if (count > 0) {
-      setForm((p) => ({ ...p, installmentValue: val }));
+      setForm((p) => ({ ...p, installmentValue: defaultVal }));
     }
   };
 
@@ -240,7 +246,7 @@ export function SaleForm({ onAdd, onClose, defaultBusinessType = "venda" }: Prop
                                   if (d) {
                                     setInstallmentRows((prev) => {
                                       const rows = [...prev];
-                                      rows[idx] = { ...rows[idx], date: d.toISOString().split("T")[0] };
+                                      rows[idx] = { ...rows[idx], date: d.toISOString().split("T")[0], manualDate: true };
                                       return rows;
                                     });
                                   }
@@ -259,13 +265,16 @@ export function SaleForm({ onAdd, onClose, defaultBusinessType = "venda" }: Prop
                               setInstallmentRows((prev) => {
                                 const rows = [...prev];
                                 const newVal = e.target.value;
-                                rows[idx] = { ...rows[idx], value: newVal };
-                                // Auto-adjust: first installment redistributes across others
-                                if (idx === 0 && rows.length > 1) {
-                                  const firstVal = parseFloat(newVal) || 0;
-                                  const remaining = Math.max(0, totalNum - firstVal);
-                                  const otherVal = (remaining / (rows.length - 1)).toFixed(2);
-                                  for (let i = 1; i < rows.length; i++) {
+                                rows[idx] = { ...rows[idx], value: newVal, manualValue: true };
+                                // Auto-adjust: redistribute across non-manual rows
+                                const manualTotal = rows.reduce((s, r, i) => r.manualValue && i !== idx ? s : s, 0);
+                                const firstVal = parseFloat(newVal) || 0;
+                                const nonManualIndexes = rows.map((r, i) => i).filter(i => i !== idx && !rows[i].manualValue);
+                                if (nonManualIndexes.length > 0) {
+                                  const manualSum = rows.reduce((s, r, i) => (i === idx || r.manualValue) ? s + (parseFloat(r.value) || 0) : s, 0);
+                                  const remaining = Math.max(0, totalNum - manualSum);
+                                  const otherVal = (remaining / nonManualIndexes.length).toFixed(2);
+                                  for (const i of nonManualIndexes) {
                                     rows[i] = { ...rows[i], value: otherVal };
                                   }
                                 }

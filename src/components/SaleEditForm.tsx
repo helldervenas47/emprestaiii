@@ -55,7 +55,7 @@ export function SaleEditForm({ sale, onSave, onClose }: Props) {
   });
 
   // Generate initial installment rows
-  const initRows = () => {
+  const initRows = (): { date: string; value: string; manualDate?: boolean; manualValue?: boolean }[] => {
     const count = sale.installments || 1;
     const baseDate = new Date(sale.date + "T00:00:00");
     const down = sale.downPayment || 0;
@@ -64,6 +64,8 @@ export function SaleEditForm({ sale, onSave, onClose }: Props) {
     return Array.from({ length: count }, (_, i) => ({
       date: addByFrequency(baseDate, freq, i).toISOString().split("T")[0],
       value: baseValue.toFixed(2),
+      manualDate: false,
+      manualValue: false,
     }));
   };
   const [installmentRows, setInstallmentRows] = useState(initRows);
@@ -203,12 +205,12 @@ export function SaleEditForm({ sale, onSave, onClose }: Props) {
                   <Label>Frequência</Label>
                   <Select value={form.frequency} onValueChange={(v) => {
                     update("frequency", v);
-                    // Recalculate installment dates
+                    // Recalculate only non-manual dates
                     setInstallmentRows((prev) => {
                       const baseDate = new Date(form.date + "T00:00:00");
                       return prev.map((r, i) => ({
                         ...r,
-                        date: addByFrequency(baseDate, v, i).toISOString().split("T")[0],
+                        date: r.manualDate ? r.date : addByFrequency(baseDate, v, i).toISOString().split("T")[0],
                       }));
                     });
                   }}>
@@ -251,10 +253,10 @@ export function SaleEditForm({ sale, onSave, onClose }: Props) {
                         const baseDate = new Date(form.date + "T00:00:00");
                         while (rows.length < newCount) {
                           const d = addByFrequency(baseDate, form.frequency, rows.length);
-                          rows.push({ date: d.toISOString().split("T")[0], value: instVal.toFixed(2) });
+                          rows.push({ date: d.toISOString().split("T")[0], value: instVal.toFixed(2), manualDate: false, manualValue: false });
                         }
                         while (rows.length > newCount) rows.pop();
-                        return rows.map((r) => ({ ...r, value: instVal.toFixed(2) }));
+                        return rows.map((r) => ({ ...r, value: r.manualValue ? r.value : instVal.toFixed(2) }));
                       });
                     }} />
                   </div>
@@ -298,7 +300,7 @@ export function SaleEditForm({ sale, onSave, onClose }: Props) {
                                   if (d) {
                                     setInstallmentRows((prev) => {
                                       const rows = [...prev];
-                                      rows[idx] = { ...rows[idx], date: d.toISOString().split("T")[0] };
+                                      rows[idx] = { ...rows[idx], date: d.toISOString().split("T")[0], manualDate: true };
                                       return rows;
                                     });
                                   }
@@ -317,14 +319,14 @@ export function SaleEditForm({ sale, onSave, onClose }: Props) {
                               setInstallmentRows((prev) => {
                                 const rows = [...prev];
                                 const newVal = e.target.value;
-                                rows[idx] = { ...rows[idx], value: newVal };
-                                // Auto-adjust: when changing first installment, redistribute remaining across others
-                                if (idx === 0 && rows.length > 1) {
-                                  const firstVal = parseFloat(newVal) || 0;
-                                  const remaining = Math.max(0, remainingForInstallments - firstVal);
-                                  const otherCount = rows.length - 1;
-                                  const otherVal = (remaining / otherCount).toFixed(2);
-                                  for (let i = 1; i < rows.length; i++) {
+                                rows[idx] = { ...rows[idx], value: newVal, manualValue: true };
+                                // Auto-adjust: redistribute across non-manual rows
+                                const nonManualIndexes = rows.map((r, i) => i).filter(i => i !== idx && !rows[i].manualValue);
+                                if (nonManualIndexes.length > 0) {
+                                  const manualSum = rows.reduce((s, r, i) => (i === idx || r.manualValue) ? s + (parseFloat(r.value) || 0) : s, 0);
+                                  const remaining = Math.max(0, remainingForInstallments - manualSum);
+                                  const otherVal = (remaining / nonManualIndexes.length).toFixed(2);
+                                  for (const i of nonManualIndexes) {
                                     rows[i] = { ...rows[i], value: otherVal };
                                   }
                                 }
