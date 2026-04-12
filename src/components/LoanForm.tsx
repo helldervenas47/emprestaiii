@@ -278,11 +278,17 @@ export function LoanForm({ onAdd, onClose, clients }: Props) {
                             <Calendar
                               mode="single"
                               selected={row.date}
-                              onSelect={(d) => {
+                             onSelect={(d) => {
                                 if (d) {
                                   setInstallmentRows((prev) => {
                                     const rows = [...prev];
                                     rows[idx] = { ...rows[idx], date: d };
+                                    // Cascade subsequent dates from this one
+                                    for (let i = idx + 1; i < rows.length; i++) {
+                                      rows[i] = { ...rows[i], date: getNextDate(d, form.interestType, i - idx) };
+                                    }
+                                    // If first row changed, also update firstDueDate
+                                    if (idx === 0) setFirstDueDate(d);
                                     return rows;
                                   });
                                 }
