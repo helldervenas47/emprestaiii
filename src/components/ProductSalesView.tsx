@@ -116,6 +116,34 @@ function SaleCard({ sale, onDelete, onEdit, onUpdate, formatCurrency }: { sale: 
           <Badge className={`${catStyle.badge} text-xs shrink-0`}>{catStyle.label}</Badge>
         </div>
 
+        {/* Due date highlight */}
+        {!isPaid && (() => {
+          const baseDate = new Date(sale.date + "T00:00:00");
+          const nextIdx = sale.paidInstallments;
+          const dueDate = isRecorrente ? addByFrequency(baseDate, sale.frequency || "Mensal", nextIdx) : baseDate;
+          const today = new Date();
+          const todayNorm = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+          const dueNorm = new Date(dueDate.getFullYear(), dueDate.getMonth(), dueDate.getDate());
+          const diff = Math.floor((todayNorm.getTime() - dueNorm.getTime()) / (1000 * 60 * 60 * 24));
+          const isOverdue = diff > 0;
+          const isToday = diff === 0;
+          return (
+            <div className={`flex items-center gap-2 rounded-lg px-3 py-2 border ${
+              isOverdue ? "bg-destructive/10 border-destructive/30" : isToday ? "bg-warning/10 border-warning/30" : "bg-primary/10 border-primary/30"
+            }`}>
+              <Clock className={`h-4 w-4 shrink-0 ${isOverdue ? "text-destructive" : isToday ? "text-warning" : "text-primary"}`} />
+              <div className="flex-1 min-w-0">
+                <p className="text-xs text-muted-foreground">Vencimento ({nextIdx + 1}ª parcela)</p>
+                <p className={`text-sm font-bold ${isOverdue ? "text-destructive" : isToday ? "text-warning" : "text-primary"}`}>
+                  {format(dueDate, "dd/MM/yyyy")}
+                  {isOverdue && <span className="text-xs font-normal ml-1">({diff} dias atrás)</span>}
+                  {isToday && <span className="text-xs font-normal ml-1">(hoje)</span>}
+                </p>
+              </div>
+            </div>
+          );
+        })()}
+
         {/* Row 2: Info grid */}
         <div className="grid grid-cols-2 gap-3 border border-border/50 rounded-lg p-3">
           <div>
