@@ -744,9 +744,6 @@ export function ProductSalesView({ sales, onDeleteSale, onUpdateSale, clients = 
           </div>
         )}
 
-        {showVehicleExpenseForm && onAddExpense && (
-          <VehicleExpenseForm onAdd={onAddExpense} onClose={() => setShowVehicleExpenseForm(false)} />
-        )}
       </div>
     );
   }
