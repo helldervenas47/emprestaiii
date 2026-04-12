@@ -395,8 +395,8 @@ function SalesList({ sales, onDeleteSale, onUpdateSale, clients = [] }: { sales:
   const totalDueToday = dueTodaySales.reduce((acc, s) => acc + getRemaining(s), 0);
   // Valor pago = soma de todas as parcelas pagas de todos os contratos
   const totalPaid = sales.reduce((acc, s) => {
-    const valorParcela = s.installments > 0 ? s.total / s.installments : s.total;
-    return acc + valorParcela * s.paidInstallments;
+    const valorParcela = s.installments > 0 ? Math.max(0, s.total - (s.downPayment || 0)) / s.installments : s.total;
+    return acc + valorParcela * s.paidInstallments + (s.downPayment || 0);
   }, 0);
   // Quantidade de contratos = somente os quitados
   const paidContractsCount = paidSales.length;
