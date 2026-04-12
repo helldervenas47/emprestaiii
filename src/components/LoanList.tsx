@@ -1426,7 +1426,7 @@ export function LoanList({ loans, payments, installmentSchedules, onPayment, onP
     if (category === "all") {
       filtered = filtered.filter((l) => getLoanCategory(l, payments) !== "paid");
     } else if (category === "parcelado") {
-      filtered = filtered.filter((l) => (l.paymentType === "Parcelado" || l.installments >= 2) && l.status !== "paid");
+      filtered = filtered.filter((l) => l.installments >= 2 && l.status !== "paid");
     } else {
       filtered = filtered.filter((l) => getLoanCategory(l, payments) === category);
     }
