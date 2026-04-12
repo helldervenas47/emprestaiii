@@ -2,15 +2,25 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { User, Session } from "@supabase/supabase-js";
 
+export type AppRole = "admin" | "operador" | "visualizador" | null;
+
 export function useAuth() {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const [role, setRole] = useState<AppRole>(null);
+
+  const fetchRole = async (userId: string) => {
+    const { data } = await supabase
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", userId)
+      .maybeSingle();
+    setRole((data?.role as AppRole) || null);
+  };
 
   useEffect(() => {
-    // If sessionStorage flag is missing, user closed the tab — force sign out
     if (!sessionStorage.getItem("hvcred_session")) {
-      // Clear persisted session so user must log in again
       supabase.auth.signOut().then(() => {
         setLoading(false);
       });
@@ -21,19 +31,21 @@ export function useAuth() {
         setSession(session);
         setUser(session?.user ?? null);
         setLoading(false);
-        if (session) {
+        if (session?.user) {
           sessionStorage.setItem("hvcred_session", "1");
+          fetchRole(session.user.id);
         } else {
           sessionStorage.removeItem("hvcred_session");
+          setRole(null);
         }
       }
     );
 
     supabase.auth.getSession().then(({ data: { session } }) => {
-      // Only use session if sessionStorage flag exists (tab wasn't closed)
       if (session && sessionStorage.getItem("hvcred_session")) {
         setSession(session);
         setUser(session?.user ?? null);
+        fetchRole(session.user.id);
       }
       setLoading(false);
     });
@@ -46,5 +58,5 @@ export function useAuth() {
     await supabase.auth.signOut();
   };
 
-  return { user, session, loading, signOut };
+  return { user, session, loading, signOut, role };
 }
