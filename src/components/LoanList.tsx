@@ -669,7 +669,7 @@ function LoanCardView({
         <div className="grid grid-cols-2 gap-3">
           <div className="bg-success/5 border border-success/20 rounded-lg px-3 py-2">
             <p className="text-xs text-muted-foreground flex items-center gap-1">💰 Lucro Previsto</p>
-            <p className="text-sm font-bold text-success">{formatCurrency(totalInterest)}</p>
+            <p className="text-sm font-bold text-success">{formatCurrency(totalInterest + totalPaid)}</p>
           </div>
           <div className="bg-muted/30 border border-border/50 rounded-lg px-3 py-2">
             <p className="text-xs text-muted-foreground flex items-center gap-1">✅ Lucro Realizado</p>
