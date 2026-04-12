@@ -76,18 +76,29 @@ export function LoanForm({ onAdd, onClose, clients }: Props) {
     }
   }, [form.startDate, form.interestType]);
 
-  // Generate schedule preview
-  const schedule = useMemo(() => {
-    if (installments <= 0) return [];
-    return Array.from({ length: installments }, (_, i) => {
-      const date = i === 0 ? firstDueDate : getNextDate(firstDueDate, form.interestType, i);
-      return {
-        number: i + 1,
-        date,
-        dateStr: date.toISOString().split("T")[0],
-      };
-    });
+  // Generate schedule rows with editable values
+  const [installmentRows, setInstallmentRows] = useState<{ date: Date; value: string }[]>([]);
+
+  // Rebuild rows when installments/firstDueDate/frequency changes
+  useEffect(() => {
+    if (installments <= 0) {
+      setInstallmentRows([]);
+      return;
+    }
+    const baseValue = monthlyPayment > 0 ? monthlyPayment.toFixed(2) : calcMonthly.toFixed(2);
+    setInstallmentRows(
+      Array.from({ length: installments }, (_, i) => ({
+        date: i === 0 ? firstDueDate : getNextDate(firstDueDate, form.interestType, i),
+        value: baseValue,
+      }))
+    );
   }, [installments, firstDueDate, form.interestType]);
+
+  // Sync row values when calcMonthly changes (amount/rate change)
+  useEffect(() => {
+    if (monthlyOverride !== "" || installmentRows.length === 0) return;
+    setInstallmentRows((prev) => prev.map((r) => ({ ...r, value: calcMonthly.toFixed(2) })));
+  }, [calcMonthly]);
 
   const handleMonthlyChange = (val: string) => {
     setMonthlyOverride(val);
