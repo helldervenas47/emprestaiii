@@ -20,6 +20,7 @@ const businessTypeLabels: Record<BusinessType, string> = {
 function addByFrequency(date: Date, frequency: string, n: number): Date {
   if (frequency === "Semanal") return addWeeks(date, n);
   if (frequency === "Quinzenal") return addDays(date, n * 15);
+  if (frequency === "Diário") return addDays(date, n);
   return addMonths(date, n);
 }
 
@@ -39,19 +40,19 @@ export function SaleForm({ onAdd, onClose, defaultBusinessType = "venda", client
     customerName: "",
     notes: "",
     businessType: defaultBusinessType,
-    paymentMode: "fixa" as PaymentMode,
-    installments: "1",
-    frequency: "Mensal",
+    paymentMode: (defaultBusinessType === "aluguel_veiculo" ? "recorrente" : "fixa") as PaymentMode,
+    installments: defaultBusinessType === "aluguel_veiculo" ? "1" : "1",
+    frequency: defaultBusinessType === "aluguel_veiculo" ? "Mensal" : "Mensal",
     firstInstallmentDate: new Date().toISOString().split("T")[0],
   });
 
   const [installmentRows, setInstallmentRows] = useState<{ date: string; value: string; manualDate?: boolean; manualValue?: boolean }[]>([]);
 
+  const isVehicleRental = form.businessType === "aluguel_veiculo";
   const installmentsNum = parseInt(form.installments) || 1;
   const firstDate = new Date(form.firstInstallmentDate + "T00:00:00");
   const totalNum = parseFloat(form.total) || 0;
 
-  // Rebuild rows preserving manually edited dates/values
   const rebuildRows = (count: number, baseDate: Date, freq: string, total: number) => {
     const defaultVal = count > 0 ? (total / count).toFixed(2) : "0";
     setInstallmentRows((prev) => {
@@ -75,6 +76,7 @@ export function SaleForm({ onAdd, onClose, defaultBusinessType = "venda", client
     e.preventDefault();
     const total = parseFloat(form.total) || 0;
     if (!form.description || total <= 0 || !form.customerName) return;
+    const isRecorrente = form.paymentMode === "recorrente";
     onAdd({
       productName: form.description,
       description: form.description,
@@ -87,21 +89,47 @@ export function SaleForm({ onAdd, onClose, defaultBusinessType = "venda", client
       notes: form.notes || undefined,
       businessType: form.businessType as BusinessType,
       paymentMode: form.paymentMode,
-      installments: form.paymentMode === "recorrente" ? installmentsNum : 1,
+      installments: isRecorrente ? installmentsNum : 1,
       paidInstallments: 0,
       downPayment: 0,
-      frequency: form.paymentMode === "recorrente" ? form.frequency : "Mensal",
+      frequency: isRecorrente ? form.frequency : "Mensal",
     });
     onClose();
   };
 
   const update = (f: string, v: string) => setForm((p) => ({ ...p, [f]: v }));
 
+  const handleBusinessTypeChange = (value: string) => {
+    update("businessType", value);
+    if (value === "aluguel_veiculo") {
+      setForm((p) => ({ ...p, businessType: value, paymentMode: "recorrente" as PaymentMode }));
+    }
+  };
+
+  // Labels adaptados por tipo
+  const descriptionLabel = isVehicleRental ? "Veículo / Descrição" : "Descrição";
+  const descriptionPlaceholder = isVehicleRental ? "Ex: Fiat Uno 2020 - Placa ABC1234" : "Descreva o produto ou serviço";
+  const totalLabel = isVehicleRental ? "Valor Total do Contrato (R$)" : "Valor Total (R$)";
+  const formTitle = isVehicleRental ? "Novo Aluguel de Veículo" : "Novo Lançamento";
+
+  const frequencyOptions = isVehicleRental
+    ? [
+        { value: "Diário", label: "Diário" },
+        { value: "Semanal", label: "Semanal" },
+        { value: "Quinzenal", label: "Quinzenal" },
+        { value: "Mensal", label: "Mensal" },
+      ]
+    : [
+        { value: "Semanal", label: "Semanal" },
+        { value: "Quinzenal", label: "Quinzenal" },
+        { value: "Mensal", label: "Mensal" },
+      ];
+
   return (
     <div className="fixed inset-0 bg-foreground/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
       <Card className="w-full max-w-md max-h-[90vh] overflow-y-auto">
         <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle className="text-xl">Novo Lançamento</CardTitle>
+          <CardTitle className="text-xl">{formTitle}</CardTitle>
           <Button variant="ghost" size="icon" onClick={onClose}><X className="h-5 w-5" /></Button>
         </CardHeader>
         <CardContent>
@@ -111,54 +139,78 @@ export function SaleForm({ onAdd, onClose, defaultBusinessType = "venda", client
               <select
                 className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 value={form.businessType}
-                onChange={(e) => update("businessType", e.target.value)}
+                onChange={(e) => handleBusinessTypeChange(e.target.value)}
               >
                 {Object.entries(businessTypeLabels).map(([key, label]) => (
                   <option key={key} value={key}>{label}</option>
                 ))}
               </select>
             </div>
+
             <div>
-              <Label>Descrição</Label>
-              <Input value={form.description} onChange={(e) => update("description", e.target.value)} placeholder="Descreva o produto ou serviço" required />
+              <Label>{descriptionLabel}</Label>
+              <Input value={form.description} onChange={(e) => update("description", e.target.value)} placeholder={descriptionPlaceholder} required />
             </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label>Quantidade</Label>
-                <Input type="number" min="1" value={form.quantity} onChange={(e) => update("quantity", e.target.value)} required />
+
+            {!isVehicleRental && (
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label>Quantidade</Label>
+                  <Input type="number" min="1" value={form.quantity} onChange={(e) => update("quantity", e.target.value)} required />
+                </div>
+                <div>
+                  <Label>{totalLabel}</Label>
+                  <Input type="number" step="0.01" min="0.01" value={form.total} onChange={(e) => {
+                    update("total", e.target.value);
+                    const totalVal = parseFloat(e.target.value) || 0;
+                    const count = parseInt(form.installments) || 1;
+                    if (form.paymentMode === "recorrente" && totalVal > 0 && count > 0) {
+                      const newInstVal = (totalVal / count).toFixed(2);
+                      update("installmentValue", newInstVal);
+                      setInstallmentRows((prev) => prev.map((r) => r.manualValue ? r : { ...r, value: newInstVal }));
+                    }
+                  }} placeholder="0,00" required />
+                </div>
               </div>
+            )}
+
+            {isVehicleRental && (
               <div>
-                <Label>Valor Total (R$)</Label>
+                <Label>{totalLabel}</Label>
                 <Input type="number" step="0.01" min="0.01" value={form.total} onChange={(e) => {
                   update("total", e.target.value);
                   const totalVal = parseFloat(e.target.value) || 0;
                   const count = parseInt(form.installments) || 1;
-                  if (form.paymentMode === "recorrente" && totalVal > 0 && count > 0) {
+                  if (totalVal > 0 && count > 0) {
                     const newInstVal = (totalVal / count).toFixed(2);
                     update("installmentValue", newInstVal);
-                    setInstallmentRows((prev) => prev.map((r) => ({ ...r, value: newInstVal })));
+                    setInstallmentRows((prev) => prev.map((r) => r.manualValue ? r : { ...r, value: newInstVal }));
                   }
                 }} placeholder="0,00" required />
               </div>
-            </div>
+            )}
 
-            <div>
-              <Label>Tipo de Pagamento</Label>
-              <select
-                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                value={form.paymentMode}
-                onChange={(e) => update("paymentMode", e.target.value)}
-              >
-                <option value="fixa">Fixa (pagamento único)</option>
-                <option value="recorrente">Recorrente (parcelado)</option>
-              </select>
-            </div>
+            {/* Tipo de pagamento - para venda e streaming */}
+            {!isVehicleRental && (
+              <div>
+                <Label>Tipo de Pagamento</Label>
+                <select
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  value={form.paymentMode}
+                  onChange={(e) => update("paymentMode", e.target.value)}
+                >
+                  <option value="fixa">À vista (pagamento único)</option>
+                  <option value="recorrente">Parcelado</option>
+                </select>
+              </div>
+            )}
 
-            {form.paymentMode === "recorrente" && (
+            {/* Campos de parcelamento/recorrência */}
+            {(form.paymentMode === "recorrente" || isVehicleRental) && (
               <>
                 <div>
-                  <Label>Frequência</Label>
-                   <Select value={form.frequency} onValueChange={(v) => {
+                  <Label>{isVehicleRental ? "Período de Cobrança" : "Frequência"}</Label>
+                  <Select value={form.frequency} onValueChange={(v) => {
                     update("frequency", v);
                     rebuildRows(installmentsNum, firstDate, v, totalNum);
                   }}>
@@ -166,14 +218,14 @@ export function SaleForm({ onAdd, onClose, defaultBusinessType = "venda", client
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="Semanal">Semanal</SelectItem>
-                      <SelectItem value="Quinzenal">Quinzenal</SelectItem>
-                      <SelectItem value="Mensal">Mensal</SelectItem>
+                      {frequencyOptions.map((opt) => (
+                        <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
                 <div>
-                  <Label>Data da 1ª Parcela</Label>
+                  <Label>{isVehicleRental ? "Data de Início" : "Data da 1ª Parcela"}</Label>
                   <Popover>
                     <PopoverTrigger asChild>
                       <Button variant="outline" className={cn("w-full justify-start text-left font-normal")}>
@@ -199,22 +251,22 @@ export function SaleForm({ onAdd, onClose, defaultBusinessType = "venda", client
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <Label>Quantidade de Parcelas</Label>
-                    <Input type="number" min="2" value={form.installments} onChange={(e) => {
+                    <Label>{isVehicleRental ? "Quantidade de Períodos" : "Quantidade de Parcelas"}</Label>
+                    <Input type="number" min="1" value={form.installments} onChange={(e) => {
                       const newCount = parseInt(e.target.value) || 1;
                       update("installments", e.target.value);
                       rebuildRows(newCount, firstDate, form.frequency, totalNum);
                     }} required />
                   </div>
                   <div>
-                    <Label>Valor da Parcela (R$)</Label>
+                    <Label>{isVehicleRental ? "Valor por Período (R$)" : "Valor da Parcela (R$)"}</Label>
                     <Input type="number" step="0.01" min="0.01" value={form.installmentValue} onChange={(e) => {
                       const parcVal = parseFloat(e.target.value) || 0;
                       const count = parseInt(form.installments) || 1;
                       update("installmentValue", e.target.value);
                       if (parcVal > 0) {
                         update("total", (parcVal * count).toFixed(2));
-                        setInstallmentRows((prev) => prev.map((r) => ({ ...r, value: parcVal.toFixed(2) })));
+                        setInstallmentRows((prev) => prev.map((r) => r.manualValue ? r : { ...r, value: parcVal.toFixed(2) }));
                       }
                     }} placeholder="0,00" />
                   </div>
@@ -224,7 +276,9 @@ export function SaleForm({ onAdd, onClose, defaultBusinessType = "venda", client
                 {installmentsNum >= 2 && installmentRows.length > 0 && (
                   <div className="border border-border/50 rounded-lg overflow-hidden">
                     <div className="px-3 py-2 bg-muted/20">
-                      <span className="text-sm font-medium text-foreground">Parcelas ({installmentRows.length})</span>
+                      <span className="text-sm font-medium text-foreground">
+                        {isVehicleRental ? `Cobranças (${installmentRows.length})` : `Parcelas (${installmentRows.length})`}
+                      </span>
                     </div>
                     <div className="divide-y divide-border/30 max-h-48 overflow-y-auto">
                       {installmentRows.map((row, idx) => (
@@ -267,9 +321,6 @@ export function SaleForm({ onAdd, onClose, defaultBusinessType = "venda", client
                                 const rows = [...prev];
                                 const newVal = e.target.value;
                                 rows[idx] = { ...rows[idx], value: newVal, manualValue: true };
-                                // Auto-adjust: redistribute across non-manual rows
-                                const manualTotal = rows.reduce((s, r, i) => r.manualValue && i !== idx ? s : s, 0);
-                                const firstVal = parseFloat(newVal) || 0;
                                 const nonManualIndexes = rows.map((r, i) => i).filter(i => i !== idx && !rows[i].manualValue);
                                 if (nonManualIndexes.length > 0) {
                                   const manualSum = rows.reduce((s, r, i) => (i === idx || r.manualValue) ? s + (parseFloat(r.value) || 0) : s, 0);
@@ -320,7 +371,7 @@ export function SaleForm({ onAdd, onClose, defaultBusinessType = "venda", client
             </div>
 
             <Button type="submit" className="w-full">
-              <Plus className="h-4 w-4 mr-2" /> Registrar Lançamento
+              <Plus className="h-4 w-4 mr-2" /> {isVehicleRental ? "Registrar Aluguel" : "Registrar Lançamento"}
             </Button>
           </form>
         </CardContent>
