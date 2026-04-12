@@ -685,7 +685,25 @@ function LoanCardView({
               <CalendarUI
                 mode="single"
                 selected={getFirstPendingDate(loan, installmentSchedules)}
-                onSelect={(d) => { if (d) onUpdate({ dueDate: d.toISOString().split("T")[0] }); }}
+                onSelect={async (d) => {
+                  if (d) {
+                    const newDateStr = d.toISOString().split("T")[0];
+                    onUpdate({ dueDate: newDateStr });
+                    // Also persist to loan_installments for the next pending installment
+                    const nextNum = loan.paidInstallments + 1;
+                    const loanSchedules = installmentSchedules
+                      .filter((s) => s.loanId === loan.id)
+                      .sort((a, b) => a.installmentNumber - b.installmentNumber);
+                    const updatedRows = loanSchedules.length > 0
+                      ? loanSchedules.map((s) =>
+                          s.installmentNumber === nextNum
+                            ? { installmentNumber: s.installmentNumber, dueDate: newDateStr, amount: s.amount }
+                            : { installmentNumber: s.installmentNumber, dueDate: s.dueDate, amount: s.amount }
+                        )
+                      : [{ installmentNumber: nextNum, dueDate: newDateStr, amount: calculateInstallment(loan.amount, loan.interestRate, loan.installments) }];
+                    await onSaveSchedule(loan.id, updatedRows);
+                  }
+                }}
                 initialFocus
                 className="p-3 pointer-events-auto"
               />
