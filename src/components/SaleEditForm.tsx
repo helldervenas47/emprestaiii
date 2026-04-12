@@ -64,10 +64,11 @@ export function SaleEditForm({ sale, onSave, onClose, clients = [] }: Props) {
     const freq = sale.frequency || "Mensal";
     const baseValue = count > 0 ? Math.max(0, sale.total - down) / count : 0;
     const amounts = sale.installmentAmounts;
+    const dates = sale.installmentDates;
     return Array.from({ length: count }, (_, i) => ({
-      date: addByFrequency(baseDate, freq, i).toISOString().split("T")[0],
+      date: dates && dates[i] ? dates[i] : addByFrequency(baseDate, freq, i).toISOString().split("T")[0],
       value: amounts && amounts[i] != null ? amounts[i].toFixed(2) : baseValue.toFixed(2),
-      manualDate: false,
+      manualDate: dates && dates[i] ? true : false,
       manualValue: amounts && amounts[i] != null ? true : false,
     }));
   };
