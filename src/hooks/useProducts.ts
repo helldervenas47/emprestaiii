@@ -46,6 +46,7 @@ export function useProducts() {
           paidInstallments: (s as any).paid_installments || 0,
           downPayment: 0,
           frequency: (s as any).frequency || "Mensal",
+          installmentValue: (s as any).installment_value != null ? Number((s as any).installment_value) : null,
         })));
       }
       setLoading(false);
@@ -113,6 +114,7 @@ export function useProducts() {
       paid_installments: s.paidInstallments || 0,
       customer_name: s.customerName || "",
       frequency: s.frequency || "Mensal",
+      installment_value: s.installmentValue || null,
     } as any).select().single();
 
     if (error) {
@@ -151,6 +153,7 @@ export function useProducts() {
     if (data.notes !== undefined) updateData.notes = data.notes || "";
     if (data.date !== undefined) updateData.sale_date = data.date;
     if (data.frequency !== undefined) updateData.frequency = data.frequency;
+    if (data.installmentValue !== undefined) updateData.installment_value = data.installmentValue;
     await supabase.from("sales").update(updateData as any).eq("id", id);
   }, [user]);
 
