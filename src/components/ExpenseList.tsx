@@ -62,7 +62,7 @@ export function ExpenseList({ expenses, onPay, onDelete }: Props) {
     <div className="space-y-4">
       {/* Summary cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        <Card>
+        <Card className="animate-fade-in" style={{ animationDelay: '0ms', animationFillMode: 'backwards' }}>
           <CardContent className="p-4 flex items-center gap-3">
             <div className="h-10 w-10 rounded-full bg-warning/10 flex items-center justify-center">
               <CircleDollarSign className="h-5 w-5 text-warning" />
@@ -73,7 +73,7 @@ export function ExpenseList({ expenses, onPay, onDelete }: Props) {
             </div>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="animate-fade-in" style={{ animationDelay: '80ms', animationFillMode: 'backwards' }}>
           <CardContent className="p-4 flex items-center gap-3">
             <div className="h-10 w-10 rounded-full bg-destructive/10 flex items-center justify-center">
               <CircleDollarSign className="h-5 w-5 text-destructive" />
@@ -84,7 +84,7 @@ export function ExpenseList({ expenses, onPay, onDelete }: Props) {
             </div>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="animate-fade-in" style={{ animationDelay: '160ms', animationFillMode: 'backwards' }}>
           <CardContent className="p-4 flex items-center gap-3">
             <div className="h-10 w-10 rounded-full bg-success/10 flex items-center justify-center">
               <CheckCircle className="h-5 w-5 text-success" />
@@ -110,7 +110,7 @@ export function ExpenseList({ expenses, onPay, onDelete }: Props) {
               variant="outline"
               size="sm"
               onClick={() => setFilter(f.id)}
-              className={filter === f.id ? "bg-primary text-primary-foreground border-primary" : ""}
+              className={`rounded-xl transition-all duration-200 ${filter === f.id ? "bg-primary text-primary-foreground border-primary" : ""}`}
             >
               {f.label} ({f.count})
             </Button>
@@ -130,13 +130,13 @@ export function ExpenseList({ expenses, onPay, onDelete }: Props) {
         </Card>
       ) : (
         <div className="space-y-2">
-          {filtered.map((expense) => {
+          {filtered.map((expense, i) => {
             const overdue = isOverdue(expense);
             return (
+              <div key={expense.id} className="animate-fade-in" style={{ animationDelay: `${i * 50}ms`, animationFillMode: 'backwards' }}>
               <Card
-                key={expense.id}
-                className={`transition-shadow hover:shadow-md ${
-                  expense.paid ? "opacity-60" : overdue ? "border-destructive/40" : ""
+                className={`transition-all duration-300 hover:shadow-[0_8px_24px_-6px_hsl(0_0%_0%/0.15)] hover:-translate-y-0.5 ${
+                  expense.paid ? "opacity-60" : overdue ? "border-destructive/30" : ""
                 }`}
               >
                 <CardContent className="p-4 flex items-center gap-4">
@@ -199,6 +199,7 @@ export function ExpenseList({ expenses, onPay, onDelete }: Props) {
                   </div>
                 </CardContent>
               </Card>
+              </div>
             );
           })}
         </div>
