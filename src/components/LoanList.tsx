@@ -407,9 +407,16 @@ function LoanCardView({
         {/* Large remaining amount */}
         <div className="text-center py-2">
           <p className={`text-3xl font-bold ${remaining > 0 ? "text-primary" : "text-success"}`}>
-            {formatCurrency(remaining)}
+            {formatCurrency(loan.installments >= 2 && loan.status !== "paid" && loan.paidInstallments < loan.installments ? installment : remaining)}
           </p>
-          <p className="text-xs text-muted-foreground mt-1">restante a receber</p>
+          <p className="text-xs text-muted-foreground mt-1">
+            {loan.installments >= 2 && loan.status !== "paid" && loan.paidInstallments < loan.installments
+              ? `parcela pendente (${loan.paidInstallments + 1}ª de ${loan.installments})`
+              : "restante a receber"}
+          </p>
+          {loan.installments >= 2 && loan.status !== "paid" && loan.paidInstallments < loan.installments && (
+            <p className="text-xs text-muted-foreground mt-0.5">Total restante: {formatCurrency(remaining)}</p>
+          )}
         </div>
 
         {/* Emprestado / Total a Receber */}
@@ -571,26 +578,38 @@ function LoanCardView({
         {!readOnly && (
         <div className="flex flex-col gap-2 pt-2 border-t border-border/50 mt-auto">
           {loan.status !== "paid" && (
-           <div className="flex gap-2">
-                <Button variant="outline" className="flex-1 h-9 text-xs" onClick={() => openPaymentDialog("full")}>
-                  <DollarSign className="h-3.5 w-3.5 mr-1" /> Total
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button className="w-full h-10 text-sm font-semibold">
+                  <DollarSign className="h-4 w-4 mr-2" /> Pagar
                 </Button>
-                <Button variant="outline" className="flex-1 h-9 text-xs" onClick={() => openPaymentDialog("interest")}>
-                  <Percent className="h-3.5 w-3.5 mr-1" /> Juros
-                </Button>
-                <Button variant="outline" className="flex-1 h-9 text-xs border-warning/30 text-warning hover:bg-warning hover:text-warning-foreground" onClick={() => setShowPartial(!showPartial)}>
-                  <HandCoins className="h-3.5 w-3.5 mr-1" /> Parcial
-                </Button>
-              </div>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="center" className="w-48">
+                <DropdownMenuItem onClick={() => openPaymentDialog("full")}>
+                  <DollarSign className="h-4 w-4 mr-2" /> Total
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => openPaymentDialog("interest")}>
+                  <Percent className="h-4 w-4 mr-2" /> Juros
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setShowPartial(!showPartial)}>
+                  <HandCoins className="h-4 w-4 mr-2" /> Parcial
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => openPaymentDialog("installment")}>
+                  <CheckCircle className="h-4 w-4 mr-2" /> Parcela
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           )}
           <div className="flex items-center justify-center gap-1">
-            <Button
-              size="icon" variant="ghost" className={`h-8 w-8 ${loan.status === "paid" ? "text-success" : "text-muted-foreground"}`}
-              onClick={() => loan.status === "paid" ? onUpdate({ status: "active", paidInstallments: 0 }) : openPaymentDialog("full")}
-              title={loan.status === "paid" ? "Marcar como não pago" : "Marcar como pago"}
-            >
-              <CheckCircle className="h-4 w-4" />
-            </Button>
+            {loan.status === "paid" && (
+              <Button
+                size="icon" variant="ghost" className="h-8 w-8 text-success"
+                onClick={() => onUpdate({ status: "active", paidInstallments: 0 })}
+                title="Marcar como não pago"
+              >
+                <CheckCircle className="h-4 w-4" />
+              </Button>
+            )}
             <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => setShowHistory(true)} title="Histórico de Pagamentos">
               <History className="h-4 w-4 text-muted-foreground" />
             </Button>
