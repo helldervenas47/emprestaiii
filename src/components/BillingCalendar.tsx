@@ -50,7 +50,6 @@ export function BillingCalendar({ loans, payments, installmentSchedules }: Props
       if (loan.installments <= 0) return;
       if (loan.paidInstallments >= loan.installments) return;
       const installmentAmount = calculateInstallment(loan.amount, loan.interestRate, loan.installments);
-      const isParcelado = loan.paymentType === "Parcelado";
 
       // Use loan.dueDate as the anchor for the next unpaid installment
       // Then project remaining installments forward from there
@@ -62,16 +61,13 @@ export function BillingCalendar({ loans, payments, installmentSchedules }: Props
         const dueDate = new Date(dueBase.getFullYear(), dueBase.getMonth() + monthsFromNext, dueBase.getDate());
         const dateStr = dueDate.toISOString().split("T")[0];
 
-        // Parcelado: valor da parcela | Outros: saldo restante a receber
-        const displayAmount = isParcelado ? installmentAmount : loan.remainingAmount;
-
         if (!map[dateStr]) map[dateStr] = [];
         map[dateStr].push({
           loanId: loan.id,
           borrowerName: loan.borrowerName,
           installmentNumber: i,
           totalInstallments: loan.installments,
-          amount: displayAmount,
+          amount: installmentAmount,
           paid: false,
           date: dateStr,
         });
