@@ -1423,9 +1423,13 @@ export function LoanList({ loans, payments, installmentSchedules, onPayment, onP
     let filtered = loans.filter((l) => l.borrowerName.toLowerCase().includes(search.toLowerCase()));
 
     // Category filter
-    filtered = category === "all"
-      ? filtered.filter((l) => getLoanCategory(l, payments) !== "paid")
-      : filtered.filter((l) => getLoanCategory(l, payments) === category);
+    if (category === "all") {
+      filtered = filtered.filter((l) => getLoanCategory(l, payments) !== "paid");
+    } else if (category === "parcelado") {
+      filtered = filtered.filter((l) => l.paymentType === "Parcelado" || l.installments >= 2);
+    } else {
+      filtered = filtered.filter((l) => getLoanCategory(l, payments) === category);
+    }
 
     // Date range filter (startDate = data de saída)
     if (dateFrom) {
