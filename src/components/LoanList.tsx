@@ -1368,7 +1368,7 @@ function LoanRowView({
                   <DropdownMenuItem onClick={startEdit}>
                     <Pencil className="h-4 w-4 mr-2" /> Editar
                   </DropdownMenuItem>
-                  <DropdownMenuItem className="text-destructive" onClick={onDelete}>
+                  <DropdownMenuItem className="text-destructive" onClick={() => setConfirmDelete(true)}>
                     <Trash2 className="h-4 w-4 mr-2" /> Excluir
                   </DropdownMenuItem>
                 </>
