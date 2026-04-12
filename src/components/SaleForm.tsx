@@ -74,7 +74,7 @@ export function SaleForm({ onAdd, onClose, defaultBusinessType = "venda", client
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const total = parseFloat(form.total) || 0;
-    if (!form.description || total <= 0) return;
+    if (!form.description || total <= 0 || !form.customerName) return;
     onAdd({
       productName: form.description,
       description: form.description,
