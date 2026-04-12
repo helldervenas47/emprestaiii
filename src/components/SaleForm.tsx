@@ -359,7 +359,7 @@ export function SaleForm({ onAdd, onClose, defaultBusinessType = "venda", client
                   <SelectValue placeholder="Selecione um cliente" />
                 </SelectTrigger>
                 <SelectContent>
-                  {clients.filter(c => c.active).map((client) => (
+                  {clients.filter(c => c.active).sort((a, b) => a.name.localeCompare(b.name)).map((client) => (
                     <SelectItem key={client.id} value={client.name}>{client.name}</SelectItem>
                   ))}
                 </SelectContent>
