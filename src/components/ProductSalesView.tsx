@@ -669,8 +669,107 @@ export function ProductSalesView({ sales, onDeleteSale, onUpdateSale, clients = 
   const { mask } = useHideValues();
   const formatCurrency = useCallback((v: number) => mask(rawFormatCurrency(v)), [mask]);
 
+  // Balance state
+  const [balance, setBalanceState] = useState<number>(0);
+  const [editingBalance, setEditingBalance] = useState(false);
+  const [balanceInput, setBalanceInput] = useState("");
+
+  useEffect(() => {
+    getBalance().then(setBalanceState);
+  }, []);
+
+  const handleSaveBalance = async () => {
+    const val = parseFloat(balanceInput);
+    if (isNaN(val)) return;
+    await setBalance(val);
+    setBalanceState(val);
+    setEditingBalance(false);
+  };
+
+  // Month filter for expenses
+  const now = new Date();
+  const [selectedMonth, setSelectedMonth] = useState(`${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`);
+
   // Filter vehicle-related expenses
   const vehicleExpenses = expenses.filter(e => vehicleExpenseCategories.includes(e.category));
+
+  // Monthly vehicle expenses
+  const [selYear, selMonthNum] = selectedMonth.split("-").map(Number);
+  const monthStart = new Date(selYear, selMonthNum - 1, 1);
+  const monthEnd = endOfMonth(monthStart);
+  const monthStartStr = format(monthStart, "yyyy-MM-dd");
+  const monthEndStr = format(monthEnd, "yyyy-MM-dd");
+  const monthlyVehicleExpenses = vehicleExpenses.filter(e => e.dueDate >= monthStartStr && e.dueDate <= monthEndStr);
+  const monthlyTotal = monthlyVehicleExpenses.reduce((acc, e) => acc + e.amount, 0);
+
+  // Generate month options (last 12 months + current)
+  const monthOptions: { value: string; label: string }[] = [];
+  for (let i = -1; i < 12; i++) {
+    const d = addMonths(now, -i);
+    const val = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+    const label = format(d, "MMMM yyyy", { locale: ptBR });
+    monthOptions.push({ value: val, label: label.charAt(0).toUpperCase() + label.slice(1) });
+  }
+
+  const secondaryCards = (
+    <div className="grid grid-cols-2 gap-3">
+      {/* Saldo em Conta */}
+      <div className="rounded-xl border p-4 bg-card">
+        <div className="flex items-center justify-between mb-2">
+          <p className="text-xs font-medium text-muted-foreground">Saldo em Conta</p>
+          <Wallet className="h-4 w-4 text-muted-foreground" />
+        </div>
+        {editingBalance ? (
+          <div className="flex items-center gap-2">
+            <Input
+              type="number"
+              step="0.01"
+              value={balanceInput}
+              onChange={(e) => setBalanceInput(e.target.value)}
+              className="h-8 text-sm"
+              autoFocus
+              onKeyDown={(e) => { if (e.key === "Enter") handleSaveBalance(); if (e.key === "Escape") setEditingBalance(false); }}
+            />
+            <Button size="sm" variant="ghost" className="h-8 w-8 p-0" onClick={handleSaveBalance}>
+              <Check className="h-4 w-4" />
+            </Button>
+            <Button size="sm" variant="ghost" className="h-8 w-8 p-0" onClick={() => setEditingBalance(false)}>
+              <XIcon className="h-4 w-4" />
+            </Button>
+          </div>
+        ) : (
+          <p
+            className="text-xl font-bold cursor-pointer hover:opacity-70 transition-opacity"
+            onClick={() => { setBalanceInput(String(balance)); setEditingBalance(true); }}
+            title="Clique para editar"
+          >
+            {formatCurrency(balance)}
+          </p>
+        )}
+      </div>
+
+      {/* Despesas Mensais */}
+      <div className="rounded-xl border p-4 bg-card">
+        <div className="flex items-center justify-between mb-2">
+          <p className="text-xs font-medium text-muted-foreground">Despesas Mensais</p>
+          <Receipt className="h-4 w-4 text-muted-foreground" />
+        </div>
+        <p className="text-xl font-bold text-destructive">{formatCurrency(monthlyTotal)}</p>
+        <div className="mt-2">
+          <Select value={selectedMonth} onValueChange={setSelectedMonth}>
+            <SelectTrigger className="h-7 text-xs w-full">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {monthOptions.map(opt => (
+                <SelectItem key={opt.value} value={opt.value} className="text-xs">{opt.label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+    </div>
+  );
 
   // Check if this is the vehicles-only view
   const hasSalesOrStreaming = sales.some(s => s.businessType === "venda" || s.businessType === "streaming");
@@ -685,6 +784,7 @@ export function ProductSalesView({ sales, onDeleteSale, onUpdateSale, clients = 
           onUpdateSale={onUpdateSale}
           clients={clients}
           hideOnTrackCard
+          renderAfterCards={secondaryCards}
         />
 
         {/* Vehicle Expenses Section */}
