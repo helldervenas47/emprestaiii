@@ -321,6 +321,58 @@ export function UserManagement() {
           </form>
         </DialogContent>
       </Dialog>
+
+      <Dialog open={!!editingUser} onOpenChange={(open) => !open && setEditingUser(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Editar Usuário</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleEditSave} className="space-y-4">
+            <div className="space-y-2">
+              <Label>Nome</Label>
+              <Input
+                placeholder="Nome completo"
+                value={editData.display_name}
+                onChange={(e) => setEditData({ ...editData, display_name: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Nome de usuário</Label>
+              <Input
+                placeholder="usuario123"
+                value={editData.username}
+                onChange={(e) => setEditData({ ...editData, username: e.target.value.toLowerCase().replace(/\s/g, "") })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Email</Label>
+              <Input
+                type="email"
+                placeholder="email@exemplo.com"
+                value={editData.email}
+                onChange={(e) => setEditData({ ...editData, email: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Nova Senha (deixe vazio para manter)</Label>
+              <Input
+                type="password"
+                placeholder="Nova senha"
+                value={editData.password}
+                onChange={(e) => setEditData({ ...editData, password: e.target.value })}
+              />
+            </div>
+            <div className="flex gap-2 justify-end">
+              <Button type="button" variant="outline" onClick={() => setEditingUser(null)}>
+                Cancelar
+              </Button>
+              <Button type="submit" disabled={saving}>
+                {saving ? "Salvando..." : "Salvar"}
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
