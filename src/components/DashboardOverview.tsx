@@ -455,7 +455,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, onDeletePa
 
       {/* Summary cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
-        <div className="rounded-xl p-5 bg-card border border-success/20 glow-success">
+        <div className="rounded-2xl p-5 bg-card border border-success/15 shadow-sm hover:shadow-md transition-all">
           <div className="flex items-center justify-between mb-2">
             <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Entradas</span>
             <div className="h-8 w-8 rounded-lg bg-success/10 flex items-center justify-center">
@@ -468,7 +468,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, onDeletePa
           </div>
         </div>
 
-        <div className="rounded-xl p-5 bg-card border border-warning/20">
+        <div className="rounded-2xl p-5 bg-card border border-warning/15 shadow-sm hover:shadow-md transition-all">
           <div className="flex items-center justify-between mb-2">
             <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Saídas</span>
             <div className="h-8 w-8 rounded-lg bg-warning/10 flex items-center justify-center">
@@ -481,7 +481,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, onDeletePa
           </div>
         </div>
 
-        <div className={`rounded-xl p-5 bg-card border ${data.balance >= 0 ? "border-primary/20 glow-primary" : "border-destructive/20"}`}>
+        <div className={`rounded-2xl p-5 bg-card border shadow-sm hover:shadow-md transition-all ${data.balance >= 0 ? "border-primary/15" : "border-destructive/15"}`}>
           <div className="flex items-center justify-between mb-2">
             <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Saldo do Período</span>
             <div className={`h-8 w-8 rounded-lg ${data.balance >= 0 ? "bg-primary/10" : "bg-destructive/10"} flex items-center justify-center`}>
