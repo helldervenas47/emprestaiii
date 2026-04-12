@@ -673,6 +673,7 @@ export function ProductSalesView({ sales, onDeleteSale, onUpdateSale, clients = 
   const [balance, setBalanceState] = useState<number>(0);
   const [editingBalance, setEditingBalance] = useState(false);
   const [balanceInput, setBalanceInput] = useState("");
+  const [showDeleteAllExpenses, setShowDeleteAllExpenses] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -864,7 +865,40 @@ export function ProductSalesView({ sales, onDeleteSale, onUpdateSale, clients = 
                 <Receipt className="h-5 w-5" />
                 Despesas de Veículos ({vehicleExpenses.length})
               </h3>
+              {vehicleExpenses.length > 0 && onDeleteExpense && (
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="h-8 text-destructive hover:text-destructive hover:bg-destructive/10 text-xs gap-1"
+                  onClick={() => setShowDeleteAllExpenses(true)}
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                  Apagar Todas
+                </Button>
+              )}
             </div>
+
+            {/* Dialog de confirmação para apagar todas as despesas */}
+            <Dialog open={showDeleteAllExpenses} onOpenChange={setShowDeleteAllExpenses}>
+              <DialogContent className="sm:max-w-md">
+                <DialogHeader>
+                  <DialogTitle>Apagar Todas as Despesas</DialogTitle>
+                  <DialogDescription>
+                    Tem certeza que deseja apagar todas as {vehicleExpenses.length} despesas de veículos? Esta ação não pode ser desfeita.
+                  </DialogDescription>
+                </DialogHeader>
+                <DialogFooter>
+                  <Button variant="outline" onClick={() => setShowDeleteAllExpenses(false)}>Cancelar</Button>
+                  <Button variant="destructive" onClick={() => {
+                    vehicleExpenses.forEach(exp => onDeleteExpense!(exp.id));
+                    setShowDeleteAllExpenses(false);
+                  }}>
+                    <Trash2 className="h-4 w-4 mr-1" />
+                    Apagar Todas
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
 
             {vehicleExpenses.length === 0 ? (
               <div className="rounded-xl border border-dashed p-8 text-center text-muted-foreground">
