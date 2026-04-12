@@ -59,9 +59,10 @@ export function SaleEditForm({ sale, onSave, onClose }: Props) {
     const count = sale.installments || 1;
     const baseDate = new Date(sale.date + "T00:00:00");
     const down = sale.downPayment || 0;
+    const freq = sale.frequency || "Mensal";
     const baseValue = count > 0 ? Math.max(0, sale.total - down) / count : 0;
     return Array.from({ length: count }, (_, i) => ({
-      date: addMonths(baseDate, i).toISOString().split("T")[0],
+      date: addByFrequency(baseDate, freq, i).toISOString().split("T")[0],
       value: baseValue.toFixed(2),
     }));
   };
@@ -91,6 +92,7 @@ export function SaleEditForm({ sale, onSave, onClose }: Props) {
       businessType: form.businessType as BusinessType,
       date: form.date,
       notes: form.notes || undefined,
+      frequency: form.paymentMode === "recorrente" ? form.frequency : "Mensal",
     });
     onClose();
   };
