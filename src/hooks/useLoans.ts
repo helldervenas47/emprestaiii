@@ -84,9 +84,14 @@ export function useLoans() {
     const loan = loans.find((l) => l.id === loanId);
     if (!loan) return;
 
-    const installmentAmount = calculateInstallment(loan.amount, loan.interestRate, loan.installments);
+    const remaining = getLoanRemainingAmount(loan, payments);
+    const remainingInstallments = Math.max(1, loan.installments - loan.paidInstallments);
+    const calculatedInstallment = remaining / remainingInstallments;
+    const installmentAmount = loan.customInstallmentValue != null && loan.customInstallmentValue > 0
+      ? loan.customInstallmentValue
+      : calculatedInstallment;
     const newPaid = loan.paidInstallments + 1;
-    const newRemaining = Math.max(0, getLoanRemainingAmount(loan, payments) - installmentAmount);
+    const newRemaining = Math.max(0, remaining - installmentAmount);
 
     await Promise.all([
       supabase.from("payments").insert({
