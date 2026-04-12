@@ -165,11 +165,11 @@ function SaleCard({ sale, onDelete, onEdit, onUpdate, formatCurrency }: { sale: 
           </div>
           <div>
             <p className="text-xs text-muted-foreground">Valor Pago</p>
-            <p className="text-sm font-bold text-success">{formatCurrency(parcelas.filter(p => p.paid).reduce((s, p) => s + p.value, 0) + (sale.downPayment || 0))}</p>
+            <p className="text-sm font-bold text-success">{formatCurrency(parcelas.filter(p => p.paid).reduce((s, p) => s + p.value, 0) + (sale.downPayment || 0) + (sale.partialPaid || 0))}</p>
           </div>
           <div>
             <p className="text-xs text-muted-foreground">Restante</p>
-            <p className="text-sm font-bold text-warning">{formatCurrency(parcelas.filter(p => !p.paid).reduce((s, p) => s + p.value, 0))}</p>
+            <p className="text-sm font-bold text-warning">{formatCurrency(Math.max(0, parcelas.filter(p => !p.paid).reduce((s, p) => s + p.value, 0) - (sale.partialPaid || 0)))}</p>
           </div>
         </div>
 
