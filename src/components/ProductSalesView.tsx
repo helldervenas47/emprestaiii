@@ -285,17 +285,17 @@ function SaleCard({ sale, onDelete, onEdit, onUpdate, formatCurrency }: { sale: 
                       if (val > 0 && partialDate) {
                         const nextIdx = sale.paidInstallments;
                         const currentValue = getParcelaValue(nextIdx);
-                        const remaining = currentValue - val;
-                        const newAmounts = [...(amounts || Array.from({ length: sale.installments }, (_, i) => getParcelaValue(i)))];
-                        if (remaining > 0.01) {
-                          newAmounts[nextIdx] = remaining;
-                          onUpdate({ installmentAmounts: newAmounts });
-                        } else {
-                          newAmounts[nextIdx] = currentValue;
+                        const currentPartial = sale.partialPaid || 0;
+                        const newPartialTotal = currentPartial + val;
+                        if (newPartialTotal >= currentValue - 0.01) {
+                          // Partial payments cover the full installment - mark as paid, carry remainder
+                          const remainder = newPartialTotal - currentValue;
                           onUpdate({
                             paidInstallments: Math.min(sale.installments, sale.paidInstallments + 1),
-                            installmentAmounts: newAmounts,
+                            partialPaid: remainder > 0.01 ? remainder : 0,
                           });
+                        } else {
+                          onUpdate({ partialPaid: newPartialTotal });
                         }
                         setPartialAmount(""); setPartialDate(undefined); setShowPartial(false);
                       }
