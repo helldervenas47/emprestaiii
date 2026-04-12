@@ -67,7 +67,7 @@ export function useExpenses() {
         supabase.from("expenses").update({
           paid_installments: newPaid, paid: fullyPaid,
           paid_date: fullyPaid ? new Date().toISOString().split("T")[0] : null,
-        }).eq("id", id),
+        }).eq("id", id).then(),
       ];
       if (!skipBalanceAdjust) promises.push(adjustBalance(-installmentAmount));
       await Promise.all(promises);
@@ -78,7 +78,7 @@ export function useExpenses() {
       const promises: Promise<any>[] = [
         supabase.from("expenses").update({
           paid: true, paid_date: new Date().toISOString().split("T")[0],
-        }).eq("id", id),
+        }).eq("id", id).then(),
       ];
       if (!skipBalanceAdjust) promises.push(adjustBalance(-expense.amount));
       await Promise.all(promises);
