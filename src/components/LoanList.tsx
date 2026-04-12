@@ -237,21 +237,13 @@ function LoanCardView({
         const iv = parseFloat(value) || 0;
         const newRate = amt > 0 ? (iv / amt) * 100 : 0;
         next.interestRate = newRate.toFixed(2);
-        next.installmentValue = calculateInstallment(amt, newRate, months).toFixed(2);
+        const totalCalc = calculateTotalWithInterest(amt, newRate, months);
+        const rem = parseFloat(next.remainingAmount) || totalCalc;
+        const paidInst = parseInt(next.paidInstallments) || 0;
+        const remInst = Math.max(1, months - paidInst);
+        next.installmentValue = (rem / remInst).toFixed(2);
       } else if (field === "installmentValue") {
-        // Back-calculate interest rate from installment value using bisection
-        const target = parseFloat(value) || 0;
-        if (amt > 0 && target > 0) {
-          let lo = 0, hi = 100;
-          for (let i = 0; i < 50; i++) {
-            const mid = (lo + hi) / 2;
-            const calc = calculateInstallment(amt, mid, months);
-            if (calc < target) lo = mid; else hi = mid;
-          }
-          const newRate = (lo + hi) / 2;
-          next.interestRate = newRate.toFixed(2);
-          next.interestValue = (amt * (newRate / 100)).toFixed(2);
-        }
+        // Manual override — no back-calculation needed
       }
       return next;
     });
