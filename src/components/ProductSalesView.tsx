@@ -120,7 +120,7 @@ function SaleCard({ sale, onDelete, onEdit, onUpdate, formatCurrency }: { sale: 
   });
 
   return (
-    <Card className={`overflow-hidden hover:shadow-lg transition-all border ${catStyle.border} ${catStyle.bg} h-full flex flex-col`}>
+    <Card className={`overflow-hidden hover:shadow-[0_8px_24px_-6px_hsl(0_0%_0%/0.15)] hover:-translate-y-0.5 transition-all duration-300 border ${catStyle.border} ${catStyle.bg} h-full flex flex-col`}>
       {/* Customer header - fixed */}
       <div className={`border-b px-4 py-2.5 text-center ${catStyle.header}`}>
         <h3 className="font-bold text-foreground text-sm truncate">{sale.customerName || sale.description || sale.productName}</h3>
@@ -160,7 +160,7 @@ function SaleCard({ sale, onDelete, onEdit, onUpdate, formatCurrency }: { sale: 
           const isOverdue = diff > 0;
           const isToday = diff === 0;
           return (
-            <div className={`flex items-center gap-2 rounded-lg px-3 py-2 border ${
+            <div className={`flex items-center gap-2 rounded-xl px-3 py-2 border ${
               isOverdue ? "bg-destructive/10 border-destructive/30" : isToday ? "bg-warning/10 border-warning/30" : "bg-primary/10 border-primary/30"
             }`}>
               <Clock className={`h-4 w-4 shrink-0 ${isOverdue ? "text-destructive" : isToday ? "text-warning" : "text-primary"}`} />
@@ -177,7 +177,7 @@ function SaleCard({ sale, onDelete, onEdit, onUpdate, formatCurrency }: { sale: 
         })()}
 
         {/* Row 2: Info grid */}
-        <div className="grid grid-cols-2 gap-3 border border-border/50 rounded-lg p-3">
+        <div className="grid grid-cols-2 gap-3 border border-border/30 rounded-xl p-3">
           <div>
             <p className="text-xs text-muted-foreground">Valor Total</p>
             <p className="text-sm font-bold text-foreground">{formatCurrency(sale.total)}</p>
@@ -564,7 +564,7 @@ function SalesList({ sales, onDeleteSale, onUpdateSale, clients = [], hideOnTrac
     <div className="space-y-4">
       {/* Dashboard cards */}
       <div className={`grid ${hideOnTrackCard ? 'grid-cols-3' : 'grid-cols-2 lg:grid-cols-4'} gap-3`}>
-        <div className="rounded-xl p-4 bg-gradient-to-br from-destructive/80 to-destructive text-destructive-foreground">
+        <div className="rounded-2xl p-4 bg-gradient-to-br from-destructive/80 to-destructive text-destructive-foreground animate-fade-in shadow-[0_2px_12px_-4px_hsl(0_0%_0%/0.08)]" style={{ animationDelay: '0ms', animationFillMode: 'backwards' }}>
           <div className="flex items-center justify-between mb-2">
             <p className="text-xs font-medium opacity-90">Vencidos</p>
             <AlertTriangle className="h-4 w-4 opacity-70" />
@@ -573,7 +573,7 @@ function SalesList({ sales, onDeleteSale, onUpdateSale, clients = [], hideOnTrac
           <p className="text-xs opacity-75 mt-1">{overdueSales.length} contratos</p>
         </div>
         {!hideOnTrackCard && (
-          <div className="rounded-xl p-4 bg-gradient-to-br from-primary/80 to-primary text-primary-foreground">
+          <div className="rounded-2xl p-4 bg-gradient-to-br from-primary/80 to-primary text-primary-foreground animate-fade-in shadow-[0_2px_12px_-4px_hsl(0_0%_0%/0.08)]" style={{ animationDelay: '80ms', animationFillMode: 'backwards' }}>
             <div className="flex items-center justify-between mb-2">
               <p className="text-xs font-medium opacity-90">No Prazo</p>
               <Clock className="h-4 w-4 opacity-70" />
@@ -582,7 +582,7 @@ function SalesList({ sales, onDeleteSale, onUpdateSale, clients = [], hideOnTrac
             <p className="text-xs opacity-75 mt-1">{onTrackSales.length + dueTodaySales.length} contratos</p>
           </div>
         )}
-        <div className="rounded-xl p-4 bg-gradient-to-br from-success/80 to-success text-success-foreground">
+        <div className="rounded-2xl p-4 bg-gradient-to-br from-success/80 to-success text-success-foreground animate-fade-in shadow-[0_2px_12px_-4px_hsl(0_0%_0%/0.08)]" style={{ animationDelay: '160ms', animationFillMode: 'backwards' }}>
           <div className="flex items-center justify-between mb-2">
             <p className="text-xs font-medium opacity-90">Pagos</p>
             <CircleCheck className="h-4 w-4 opacity-70" />
@@ -590,7 +590,7 @@ function SalesList({ sales, onDeleteSale, onUpdateSale, clients = [], hideOnTrac
           <p className="text-xl font-bold">{formatCurrency(totalPaid)}</p>
           <p className="text-xs opacity-75 mt-1">{paidContractsCount} contratos quitados</p>
         </div>
-        <div className="rounded-xl p-4 bg-gradient-to-br from-warning/80 to-warning text-warning-foreground">
+        <div className="rounded-2xl p-4 bg-gradient-to-br from-warning/80 to-warning text-warning-foreground animate-fade-in shadow-[0_2px_12px_-4px_hsl(0_0%_0%/0.08)]" style={{ animationDelay: '240ms', animationFillMode: 'backwards' }}>
           <div className="flex items-center justify-between mb-2">
             <p className="text-xs font-medium opacity-90">Total a Receber</p>
             <DollarSign className="h-4 w-4 opacity-70" />
@@ -611,7 +611,7 @@ function SalesList({ sales, onDeleteSale, onUpdateSale, clients = [], hideOnTrac
             <button
               key={cat.id}
               onClick={() => setCategoryFilter(cat.id)}
-              className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-all ${
+              className={`px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all duration-200 ${
                 isActive ? cat.activeColor : cat.color
               }`}
             >
@@ -639,15 +639,16 @@ function SalesList({ sales, onDeleteSale, onUpdateSale, clients = [], hideOnTrac
         </CardContent></Card>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-          {filtered.map((sale) => (
+          {filtered.map((sale, i) => (
+            <div key={sale.id} className="animate-fade-in" style={{ animationDelay: `${i * 60}ms`, animationFillMode: 'backwards' }}>
             <SaleCard
-              key={sale.id}
               sale={sale}
               onDelete={() => onDeleteSale(sale.id)}
               onEdit={() => setEditingSale(sale)}
               onUpdate={(data) => onUpdateSale(sale.id, data)}
               formatCurrency={formatCurrency}
             />
+            </div>
           ))}
         </div>
       )}
@@ -1091,14 +1092,14 @@ export function ProductSalesView({ sales, onDeleteSale, onUpdateSale, clients = 
               </div>
             ) : (
               <div className="grid gap-3">
-                {vehicleExpenses.map((exp) => {
+                {vehicleExpenses.map((exp, idx) => {
                   const isOverdue = !exp.paid && exp.dueDate < new Date().toISOString().split("T")[0];
                   const hasPaidSomething = exp.paid || (exp.paidInstallments && exp.paidInstallments > 0);
                   const isRecorrente = exp.type === "recorrente" && exp.installments && exp.installments > 1;
                   const installmentAmount = isRecorrente ? exp.amount / exp.installments! : exp.amount;
 
                   return (
-                    <Card key={exp.id} className={`${exp.paid ? "opacity-60" : ""}`}>
+                    <Card key={exp.id} className={`${exp.paid ? "opacity-60" : ""} hover:shadow-[0_8px_24px_-6px_hsl(0_0%_0%/0.15)] hover:-translate-y-0.5 transition-all duration-300 animate-fade-in`} style={{ animationDelay: `${idx * 50}ms`, animationFillMode: 'backwards' }}>
                       <CardContent className="p-4">
                         <div className="flex items-center justify-between gap-4">
                           <div className="flex-1 min-w-0">
