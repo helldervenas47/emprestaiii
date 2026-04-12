@@ -629,18 +629,42 @@ function SalesList({ sales, onDeleteSale, onUpdateSale, clients = [] }: { sales:
 }
 
 export function ProductSalesView({ sales, onDeleteSale, onUpdateSale, clients = [] }: Props) {
-  return (
-    <Tabs defaultValue="venda" className="space-y-4">
-      <TabsList className="w-full grid grid-cols-3">
-        {businessTabs.map((tab) => (
-          <TabsTrigger key={tab.type} value={tab.type} className="flex items-center gap-2">
-            <tab.icon className="h-4 w-4" />
-            <span className="hidden sm:inline">{tab.label}</span>
-          </TabsTrigger>
-        ))}
-      </TabsList>
+  // If all sales are the same type (e.g. vehicles page), render directly without sub-tabs
+  const uniqueTypes = new Set(sales.map(s => s.businessType));
+  const isVehiclesOnly = uniqueTypes.size <= 1 && (uniqueTypes.has("aluguel_veiculo") || sales.length === 0 && !sales.some(s => s.businessType !== "aluguel_veiculo"));
+  
+  // Check if this is the vehicles-only view
+  const hasSalesOrStreaming = sales.some(s => s.businessType === "venda" || s.businessType === "streaming");
+  
+  if (!hasSalesOrStreaming) {
+    // Vehicles page or empty - render without sub-tabs
+    return (
+      <SalesList
+        sales={sales}
+        onDeleteSale={onDeleteSale}
+        onUpdateSale={onUpdateSale}
+        clients={clients}
+      />
+    );
+  }
 
-      {businessTabs.map((tab) => (
+  // Sales page - show sub-tabs for venda/streaming
+  const activeTabs = salesSubTabs.filter(tab => sales.some(s => s.businessType === tab.type) || tab.type === "venda");
+  
+  return (
+    <Tabs defaultValue={activeTabs[0]?.type || "venda"} className="space-y-4">
+      {activeTabs.length > 1 && (
+        <TabsList className={`w-full grid grid-cols-${activeTabs.length}`}>
+          {activeTabs.map((tab) => (
+            <TabsTrigger key={tab.type} value={tab.type} className="flex items-center gap-2">
+              <tab.icon className="h-4 w-4" />
+              <span className="hidden sm:inline">{tab.label}</span>
+            </TabsTrigger>
+          ))}
+        </TabsList>
+      )}
+
+      {activeTabs.map((tab) => (
         <TabsContent key={tab.type} value={tab.type}>
           <SalesList
             sales={sales.filter((s) => s.businessType === tab.type)}
