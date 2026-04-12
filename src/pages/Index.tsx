@@ -300,7 +300,7 @@ const Index = () => {
             <Button variant="ghost" size="icon" onClick={signOut} className="h-9 w-9" title="Sair">
               <LogOut className="h-4 w-4" />
             </Button>
-            {!isReadOnly && (tab === "dashboard" || tab === "clients" || tab === "products") && (
+            {!isReadOnly && (tab === "dashboard" || tab === "clients" || tab === "products" || tab === "vehicles") && (
               <>
                 <Button variant="outline" size="sm" onClick={handleImport}><Upload className="h-4 w-4 mr-1" />Importar</Button>
                 <Button variant="outline" size="sm" onClick={handleExport}><Download className="h-4 w-4 mr-1" />Exportar</Button>
