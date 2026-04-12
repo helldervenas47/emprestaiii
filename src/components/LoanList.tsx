@@ -217,9 +217,8 @@ function LoanCardView({
     );
   };
   const cancelEdit = () => setEditing(false);
-  const saveEdit = () => {
+  const saveEdit = async () => {
     const parsedTags = form.tags.split(",").map((t) => t.trim()).filter(Boolean);
-    // Use first schedule row for dueDate and custom value
     const firstRow = editScheduleRows[0];
     const dueDate = firstRow ? firstRow.date.toISOString().split("T")[0] : form.dueDate || loan.dueDate;
     const firstVal = firstRow ? parseFloat(firstRow.value) || 0 : 0;
@@ -241,6 +240,17 @@ function LoanCardView({
       remainingAmount: parseFloat(form.remainingAmount) || 0,
       customInstallmentValue: hasCustom ? firstVal : null,
     });
+
+    // Save installment schedule
+    const paidCount = parseInt(form.paidInstallments) || 0;
+    if (editScheduleRows.length > 0) {
+      await onSaveSchedule(loan.id, editScheduleRows.map((row, idx) => ({
+        installmentNumber: paidCount + idx + 1,
+        dueDate: row.date.toISOString().split("T")[0],
+        amount: parseFloat(row.value) || 0,
+      })));
+    }
+
     setEditing(false);
   };
 
