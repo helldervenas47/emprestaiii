@@ -44,8 +44,25 @@ export function SaleForm({ onAdd, onClose, defaultBusinessType = "venda" }: Prop
     firstInstallmentDate: new Date().toISOString().split("T")[0],
   });
 
+  const [installmentRows, setInstallmentRows] = useState<{ date: string; value: string }[]>([]);
+
   const installmentsNum = parseInt(form.installments) || 1;
   const firstDate = new Date(form.firstInstallmentDate + "T00:00:00");
+  const totalNum = parseFloat(form.total) || 0;
+
+  // Rebuild rows when installments/date/frequency/total changes
+  const rebuildRows = (count: number, baseDate: Date, freq: string, total: number) => {
+    const val = count > 0 ? (total / count).toFixed(2) : "0";
+    setInstallmentRows(
+      Array.from({ length: count }, (_, i) => ({
+        date: addByFrequency(baseDate, freq, i).toISOString().split("T")[0],
+        value: val,
+      }))
+    );
+    if (count > 0) {
+      setForm((p) => ({ ...p, installmentValue: val }));
+    }
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -110,7 +127,9 @@ export function SaleForm({ onAdd, onClose, defaultBusinessType = "venda" }: Prop
                   const totalVal = parseFloat(e.target.value) || 0;
                   const count = parseInt(form.installments) || 1;
                   if (form.paymentMode === "recorrente" && totalVal > 0 && count > 0) {
-                    update("installmentValue", (totalVal / count).toFixed(2));
+                    const newInstVal = (totalVal / count).toFixed(2);
+                    update("installmentValue", newInstVal);
+                    setInstallmentRows((prev) => prev.map((r) => ({ ...r, value: newInstVal })));
                   }
                 }} placeholder="0,00" required />
               </div>
@@ -132,7 +151,10 @@ export function SaleForm({ onAdd, onClose, defaultBusinessType = "venda" }: Prop
               <>
                 <div>
                   <Label>Frequência</Label>
-                  <Select value={form.frequency} onValueChange={(v) => update("frequency", v)}>
+                   <Select value={form.frequency} onValueChange={(v) => {
+                    update("frequency", v);
+                    rebuildRows(installmentsNum, firstDate, v, totalNum);
+                  }}>
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
@@ -156,7 +178,12 @@ export function SaleForm({ onAdd, onClose, defaultBusinessType = "venda" }: Prop
                       <CalendarUI
                         mode="single"
                         selected={firstDate}
-                        onSelect={(d) => d && update("firstInstallmentDate", d.toISOString().split("T")[0])}
+                        onSelect={(d) => {
+                          if (d) {
+                            update("firstInstallmentDate", d.toISOString().split("T")[0]);
+                            rebuildRows(installmentsNum, d, form.frequency, totalNum);
+                          }
+                        }}
                         initialFocus
                         className="p-3 pointer-events-auto"
                       />
@@ -169,10 +196,7 @@ export function SaleForm({ onAdd, onClose, defaultBusinessType = "venda" }: Prop
                     <Input type="number" min="2" value={form.installments} onChange={(e) => {
                       const newCount = parseInt(e.target.value) || 1;
                       update("installments", e.target.value);
-                      const totalVal = parseFloat(form.total) || 0;
-                      if (totalVal > 0 && newCount > 0) {
-                        update("installmentValue", (totalVal / newCount).toFixed(2));
-                      }
+                      rebuildRows(newCount, firstDate, form.frequency, totalNum);
                     }} required />
                   </div>
                   <div>
@@ -183,33 +207,84 @@ export function SaleForm({ onAdd, onClose, defaultBusinessType = "venda" }: Prop
                       update("installmentValue", e.target.value);
                       if (parcVal > 0) {
                         update("total", (parcVal * count).toFixed(2));
+                        setInstallmentRows((prev) => prev.map((r) => ({ ...r, value: parcVal.toFixed(2) })));
                       }
                     }} placeholder="0,00" />
                   </div>
                 </div>
 
-                {/* Preview das parcelas */}
-                {installmentsNum >= 2 && (
+                {/* Editable installment rows */}
+                {installmentsNum >= 2 && installmentRows.length > 0 && (
                   <div className="border border-border/50 rounded-lg overflow-hidden">
                     <div className="px-3 py-2 bg-muted/20">
-                      <span className="text-sm font-medium text-foreground">Parcelas ({installmentsNum})</span>
+                      <span className="text-sm font-medium text-foreground">Parcelas ({installmentRows.length})</span>
                     </div>
                     <div className="divide-y divide-border/30 max-h-48 overflow-y-auto">
-                      {Array.from({ length: installmentsNum }, (_, i) => {
-                        const dueDate = addByFrequency(firstDate, form.frequency, i);
-                        const parcVal = parseFloat(form.installmentValue) || 0;
-                        return (
-                          <div key={i} className="flex items-center gap-3 px-3 py-2">
-                            <span className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold bg-muted/40 text-muted-foreground shrink-0">
-                              {i + 1}ª
-                            </span>
-                            <span className="text-sm text-foreground flex-1">{format(dueDate, "dd/MM/yyyy")}</span>
-                            <span className="text-sm font-medium text-foreground tabular-nums">
-                              {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(parcVal)}
-                            </span>
-                          </div>
-                        );
-                      })}
+                      {installmentRows.map((row, idx) => (
+                        <div key={idx} className="flex items-center gap-2 px-3 py-2">
+                          <span className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold bg-muted/40 text-muted-foreground shrink-0">
+                            {idx + 1}ª
+                          </span>
+                          <Popover>
+                            <PopoverTrigger asChild>
+                              <Button variant="outline" size="sm" className="h-8 text-xs flex-1 justify-start">
+                                <CalendarIcon className="h-3.5 w-3.5 mr-1.5 text-primary" />
+                                {format(new Date(row.date + "T00:00:00"), "dd/MM/yyyy")}
+                              </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0" align="start">
+                              <CalendarUI
+                                mode="single"
+                                selected={new Date(row.date + "T00:00:00")}
+                                onSelect={(d) => {
+                                  if (d) {
+                                    setInstallmentRows((prev) => {
+                                      const rows = [...prev];
+                                      rows[idx] = { ...rows[idx], date: d.toISOString().split("T")[0] };
+                                      return rows;
+                                    });
+                                  }
+                                }}
+                                initialFocus
+                                className="p-3 pointer-events-auto"
+                              />
+                            </PopoverContent>
+                          </Popover>
+                          <Input
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            value={row.value}
+                            onChange={(e) => {
+                              setInstallmentRows((prev) => {
+                                const rows = [...prev];
+                                const newVal = e.target.value;
+                                rows[idx] = { ...rows[idx], value: newVal };
+                                // Auto-adjust: first installment redistributes across others
+                                if (idx === 0 && rows.length > 1) {
+                                  const firstVal = parseFloat(newVal) || 0;
+                                  const remaining = Math.max(0, totalNum - firstVal);
+                                  const otherVal = (remaining / (rows.length - 1)).toFixed(2);
+                                  for (let i = 1; i < rows.length; i++) {
+                                    rows[i] = { ...rows[i], value: otherVal };
+                                  }
+                                }
+                                return rows;
+                              });
+                            }}
+                            className="h-8 w-24 text-xs text-right"
+                          />
+                        </div>
+                      ))}
+                    </div>
+                    <div className="px-3 py-2 bg-muted/20">
+                      <p className="text-xs text-muted-foreground">
+                        Total: <span className="font-bold text-foreground">
+                          {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(
+                            installmentRows.reduce((s, r) => s + (parseFloat(r.value) || 0), 0)
+                          )}
+                        </span>
+                      </p>
                     </div>
                   </div>
                 )}
