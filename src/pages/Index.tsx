@@ -124,7 +124,7 @@ function HideValuesToggle() {
 }
 
 const Index = () => {
-  const { signOut } = useAuth();
+  const { signOut, role } = useAuth();
   const { loans, payments, addLoan, addPayment, addPartialPayment, addInterestOnlyPayment, updateLoan, deleteLoan, deletePayment } = useLoans();
   const { clients, addClient, deleteClient, updateClient } = useClients();
   const { products, sales, addProduct, updateProduct, deleteProduct, addSale, updateSale, deleteSale } = useProducts();
@@ -135,6 +135,16 @@ const Index = () => {
   const [showSaleForm, setShowSaleForm] = useState(false);
   const [showExpenseForm, setShowExpenseForm] = useState(false);
   const [tab, setTab] = useState<Tab>("overview");
+
+  const isReadOnly = role === "visualizador";
+
+  // Filter tabs based on role
+  const visibleTabs = tabConfig.filter((t) => {
+    if (role === "admin" || !role) return true;
+    if (role === "operador") return ["overview", "dashboard", "calendar", "clients", "overdue"].includes(t.id);
+    if (role === "visualizador") return ["dashboard"].includes(t.id);
+    return false;
+  });
   const [dark, setDark] = useState(() => {
     if (typeof window !== "undefined") {
       const saved = localStorage.getItem("hvcred-theme");
