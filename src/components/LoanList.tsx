@@ -673,6 +673,16 @@ function LoanCardView({
           {(loan.paymentType === "Parcelado" || loan.installments >= 2) && loan.status !== "paid" && loan.paidInstallments < loan.installments && (
             <p className="text-xs text-muted-foreground mt-0.5">Total restante: {formatCurrency(remaining)}</p>
           )}
+          {lateFees > 0 && (
+            <div className="text-xs text-destructive mt-1 space-y-0.5">
+              {lateInterestTotal > 0 && (
+                <p>+ Juros atraso ({effectiveDaysLate}d): {rawFormatCurrency(lateInterestTotal)}</p>
+              )}
+              {penaltyTotal > 0 && (
+                <p>+ Multa: {rawFormatCurrency(penaltyTotal)}</p>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Emprestado / Total a Receber */}
