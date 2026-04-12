@@ -349,6 +349,13 @@ function SalesList({ sales, onDeleteSale, onUpdateSale, clients = [] }: { sales:
     return acc;
   }, {} as Record<string, number>);
 
+  const getNextDueDate = (s: Sale): Date => {
+    const isRecorrente = s.paymentMode === "recorrente" && s.installments > 1;
+    const baseDate = new Date(s.date + "T00:00:00");
+    const nextInstIdx = s.paidInstallments;
+    return isRecorrente ? addByFrequency(baseDate, s.frequency || "Mensal", nextInstIdx) : baseDate;
+  };
+
   const filtered = sales.filter((s) => {
     const q = search.toLowerCase();
     const matchesSearch = s.description.toLowerCase().includes(q) ||
@@ -357,6 +364,16 @@ function SalesList({ sales, onDeleteSale, onUpdateSale, clients = [] }: { sales:
     if (!matchesSearch) return false;
     if (categoryFilter === "all") return true;
     return getSaleCategory(s) === categoryFilter;
+  }).sort((a, b) => {
+    const catA = getSaleCategory(a);
+    const catB = getSaleCategory(b);
+    const isPaidA = catA === "paid";
+    const isPaidB = catB === "paid";
+    // Pagos vão pro final
+    if (isPaidA && !isPaidB) return 1;
+    if (!isPaidA && isPaidB) return -1;
+    // Entre não-pagos, ordena por data de vencimento (mais próximo primeiro)
+    return getNextDueDate(a).getTime() - getNextDueDate(b).getTime();
   });
 
   const total = filtered.reduce((acc, s) => acc + s.total, 0);
