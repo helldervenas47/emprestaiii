@@ -1285,16 +1285,18 @@ interface ClientGroup {
 }
 
 function ClientFolder({
-  group, payments, onPayment, onPartialPayment, onInterestPayment, onUpdate, onDelete, onDeletePayment, readOnly = false,
+  group, payments, installmentSchedules, onPayment, onPartialPayment, onInterestPayment, onUpdate, onDelete, onDeletePayment, onSaveSchedule, readOnly = false,
 }: {
   group: ClientGroup;
   payments: Payment[];
+  installmentSchedules: InstallmentSchedule[];
   onPayment: (id: string, date?: string) => void;
   onPartialPayment: (id: string, amount: number, date?: string) => void;
   onInterestPayment: (id: string, date?: string) => void;
   onUpdate: (id: string, data: Partial<Omit<Loan, "id">>) => void;
   onDelete: (id: string) => void;
   onDeletePayment: (paymentId: string) => void;
+  onSaveSchedule: (loanId: string, rows: { installmentNumber: number; dueDate: string; amount: number }[]) => Promise<void>;
   readOnly?: boolean;
 }) {
   const { mask } = useHideValues();
