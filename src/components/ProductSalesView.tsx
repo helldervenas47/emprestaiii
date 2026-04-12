@@ -1068,6 +1068,18 @@ export function ProductSalesView({ sales, onDeleteSale, onUpdateSale, clients = 
                           </div>
                         </DialogContent>
                       </Dialog>
+
+                      {/* Dialog de edição */}
+                      <VehicleExpenseEditDialog
+                        expense={exp}
+                        open={editingExpenseId === exp.id}
+                        onOpenChange={(open) => { if (!open) setEditingExpenseId(null); }}
+                        onSave={(data) => {
+                          onUpdateExpense!(exp.id, data);
+                          setEditingExpenseId(null);
+                        }}
+                        formatCurrency={formatCurrency}
+                      />
                     </Card>
                   );
                 })}
