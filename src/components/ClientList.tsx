@@ -178,7 +178,7 @@ export function ClientList({ clients, loans, payments, onDelete, onUpdate }: Pro
           <button
             key={opt.id}
             onClick={() => setStatusFilter(opt.id)}
-            className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors border ${
+            className={`px-3 py-1.5 rounded-xl text-xs font-medium transition-all duration-200 border ${
               statusFilter === opt.id
                 ? "bg-primary text-primary-foreground border-primary"
                 : "bg-card border-border text-muted-foreground hover:opacity-80"
@@ -232,10 +232,11 @@ export function ClientList({ clients, loans, payments, onDelete, onUpdate }: Pro
         </Card>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          {filtered.map((client) => {
+          {filtered.map((client, i) => {
             const cs = creditScores[client.id];
             return (
-            <Card key={client.id} className={`hover:shadow-md transition-shadow ${!client.active ? "opacity-60" : ""}`}>
+            <div key={client.id} className="animate-fade-in" style={{ animationDelay: `${i * 60}ms`, animationFillMode: 'backwards' }}>
+            <Card className={`hover:shadow-[0_8px_24px_-6px_hsl(0_0%_0%/0.15)] hover:-translate-y-0.5 transition-all duration-300 ${!client.active ? "opacity-60" : ""}`}>
               <CardContent className="p-5">
                 {editingId === client.id ? (
                   <div className="space-y-3">
@@ -311,7 +312,7 @@ export function ClientList({ clients, loans, payments, onDelete, onUpdate }: Pro
                     </div>
 
                     {/* Credit Score */}
-                    <div className="rounded-lg border border-border/50 p-3 mb-3 space-y-2">
+                    <div className="rounded-xl border border-border/30 p-3 mb-3 space-y-2">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
                           <ShieldCheck className={`h-4 w-4 ${cs.color}`} />
@@ -349,6 +350,7 @@ export function ClientList({ clients, loans, payments, onDelete, onUpdate }: Pro
                 )}
               </CardContent>
             </Card>
+            </div>
             );
           })}
         </div>

@@ -558,7 +558,7 @@ function LoanCardView({
 
   return (
     <>
-    <Card className={`overflow-hidden hover:shadow-lg transition-all h-full flex flex-col border ${cardBorder} ${cardBg}`}>
+    <Card className={`overflow-hidden hover:shadow-[0_8px_24px_-6px_hsl(0_0%_0%/0.15)] hover:-translate-y-0.5 transition-all duration-300 h-full flex flex-col border ${cardBorder} ${cardBg}`}>
       {/* Client Name Header */}
       <div className={`border-b px-4 py-3 text-center ${headerBg}`}>
         <h3 className="font-bold text-foreground text-lg">{loan.borrowerName}</h3>
@@ -692,7 +692,7 @@ function LoanCardView({
         </div>
 
         {/* Emprestado / Total a Receber */}
-        <div className="grid grid-cols-2 gap-3 border border-border/50 rounded-lg p-3">
+        <div className="grid grid-cols-2 gap-3 border border-border/30 rounded-xl p-3">
           <div>
             <p className="text-xs text-muted-foreground">Emprestado</p>
             <p className="text-base font-bold text-foreground">{formatCurrency(loan.amount)}</p>
@@ -1755,23 +1755,23 @@ export function LoanList({ loans, payments, installmentSchedules, onPayment, onP
             <Badge className="bg-destructive text-destructive-foreground h-4 w-4 p-0 flex items-center justify-center text-[10px] rounded-full">!</Badge>
           )}
         </Button>
-        <div className="flex bg-muted rounded-lg p-0.5">
+        <div className="flex bg-muted/60 rounded-xl p-0.5 backdrop-blur-sm border border-border/30">
           <button onClick={() => setView("cards")}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 ${
               view === "cards" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
             }`}
           >
             <LayoutGrid className="h-3.5 w-3.5" />Cards
           </button>
           <button onClick={() => setView("rows")}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 ${
               view === "rows" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
             }`}
           >
             <List className="h-3.5 w-3.5" />Linhas
           </button>
           <button onClick={() => setView("folders")}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 ${
               view === "folders" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
             }`}
           >
@@ -1839,10 +1839,12 @@ export function LoanList({ loans, payments, installmentSchedules, onPayment, onP
         <div>
           {view === "cards" ? (
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-              {categorized.map((loan) => (
-                <LoanCardView key={loan.id} loan={loan} payments={payments} installmentSchedules={installmentSchedules} readOnly={readOnly}
+              {categorized.map((loan, i) => (
+                <div key={loan.id} className="animate-fade-in" style={{ animationDelay: `${i * 60}ms`, animationFillMode: 'backwards' }}>
+                <LoanCardView loan={loan} payments={payments} installmentSchedules={installmentSchedules} readOnly={readOnly}
                   onPayment={(date) => onPayment(loan.id, date)} onPartialPayment={(amt, date) => onPartialPayment(loan.id, amt, date)}
                   onInterestPayment={(date) => onInterestPayment(loan.id, date)} onUpdate={(d) => onUpdate(loan.id, d)} onDelete={() => onDelete(loan.id)} onDeletePayment={onDeletePayment} onSaveSchedule={onSaveSchedule} />
+                </div>
               ))}
             </div>
           ) : view === "folders" ? (
@@ -1863,7 +1865,7 @@ export function LoanList({ loans, payments, installmentSchedules, onPayment, onP
             </div>
             </>
           ) : (
-            <div className="rounded-lg border border-border/50 overflow-hidden">
+            <div className="rounded-2xl border border-border/30 overflow-hidden shadow-[0_2px_12px_-4px_hsl(0_0%_0%/0.08)]">
               <div className="px-4 py-2 flex items-center justify-between border-b border-border/30 bg-muted/30">
                 <span className="text-sm text-muted-foreground">{categorized.length} empréstimos</span>
               </div>
