@@ -1,5 +1,5 @@
 import { useRef, useState, useEffect } from "react";
-import { Plus, HandCoins, Users, LayoutDashboard, Download, Upload, ShoppingBag, BarChart3, AlertTriangle, Receipt, CalendarDays, Sun, Moon, LogOut, Info, X, Eye, EyeOff, Car } from "lucide-react";
+import { Plus, HandCoins, Users, LayoutDashboard, Download, Upload, ShoppingBag, BarChart3, AlertTriangle, Receipt, CalendarDays, Sun, Moon, LogOut, Info, X, Eye, EyeOff, Car, Menu } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
@@ -262,30 +262,66 @@ const Index = () => {
     tab === "products" ? "Novo Lançamento" :
     tab === "vehicles" ? "Novo Aluguel" : "";
 
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
   return (
     <HideValuesProvider>
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background flex">
       <input type="file" ref={fileInputRef} accept=".csv" className="hidden" onChange={handleFileChange} />
 
-      <header className="border-b border-border/50 bg-background/80 backdrop-blur-xl sticky top-0 z-40">
-        <div className="container mx-auto px-4 py-3 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="h-9 w-9 rounded-lg gradient-primary glow-primary flex items-center justify-center">
-              <HandCoins className="h-5 w-5 text-primary-foreground" />
-            </div>
-            <div>
-              <h1 className="text-lg font-bold text-foreground tracking-tight">HVCred</h1>
-              <p className="text-[10px] text-muted-foreground uppercase tracking-widest">Controle de empréstimos</p>
-            </div>
+      {/* Sidebar overlay for mobile */}
+      {sidebarOpen && (
+        <div className="fixed inset-0 bg-black/50 z-40 lg:hidden" onClick={() => setSidebarOpen(false)} />
+      )}
+
+      {/* Sidebar */}
+      <aside className={`fixed top-0 left-0 z-50 h-full w-56 bg-background border-r border-border/50 flex flex-col transition-transform duration-300 lg:translate-x-0 lg:static lg:z-auto ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}`}>
+        {/* Logo */}
+        <div className="p-4 border-b border-border/50 flex items-center gap-3">
+          <div className="h-9 w-9 rounded-lg gradient-primary glow-primary flex items-center justify-center shrink-0">
+            <HandCoins className="h-5 w-5 text-primary-foreground" />
           </div>
-          <div className="flex items-center gap-2">
+          <div className="min-w-0">
+            <h1 className="text-lg font-bold text-foreground tracking-tight">HVCred</h1>
+            <p className="text-[10px] text-muted-foreground uppercase tracking-widest truncate">Controle de empréstimos</p>
+          </div>
+          <Button variant="ghost" size="icon" className="h-8 w-8 ml-auto lg:hidden shrink-0" onClick={() => setSidebarOpen(false)}>
+            <X className="h-4 w-4" />
+          </Button>
+        </div>
+
+        {/* Nav items */}
+        <nav className="flex-1 overflow-y-auto py-2 px-2 space-y-0.5">
+          {visibleTabs.map((t) => (
+            <button
+              key={t.id}
+              onClick={() => { setTab(t.id); setSidebarOpen(false); }}
+              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${
+                tab === t.id
+                  ? "bg-primary/10 text-primary border border-primary/20"
+                  : "text-muted-foreground hover:text-foreground hover:bg-muted/50 border border-transparent"
+              }`}
+            >
+              <t.icon className="h-4 w-4 shrink-0" />
+              <span className="truncate">{t.label}</span>
+            </button>
+          ))}
+        </nav>
+
+        {/* Bottom actions */}
+        <div className="p-3 border-t border-border/50 space-y-1">
+          <div className="flex items-center justify-between">
+            <HideValuesToggle />
+            <Button variant="ghost" size="icon" onClick={toggleTheme} className="h-9 w-9" title={dark ? "Modo claro" : "Modo escuro"}>
+              {dark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+            </Button>
             <Popover>
               <PopoverTrigger asChild>
                 <Button variant="ghost" size="icon" className="h-9 w-9" title="Ajuda">
                   <Info className="h-4 w-4" />
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-80" align="end">
+              <PopoverContent className="w-72" align="start" side="right">
                 <div className="space-y-2">
                   <h3 className="font-semibold text-sm text-foreground">{tabHelp[tab].title}</h3>
                   <ul className="space-y-1.5">
@@ -299,93 +335,78 @@ const Index = () => {
                 </div>
               </PopoverContent>
             </Popover>
-            <HideValuesToggle />
-            <Button variant="ghost" size="icon" onClick={toggleTheme} className="h-9 w-9" title={dark ? "Modo claro" : "Modo escuro"}>
-              {dark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-            </Button>
             <Button variant="ghost" size="icon" onClick={signOut} className="h-9 w-9" title="Sair">
               <LogOut className="h-4 w-4" />
             </Button>
-            {!isReadOnly && (tab === "dashboard" || tab === "clients" || tab === "products" || tab === "vehicles") && (
-              <>
-                <Button variant="outline" size="sm" onClick={handleImport}><Upload className="h-4 w-4 mr-1" />Importar</Button>
-                <Button variant="outline" size="sm" onClick={handleExport}><Download className="h-4 w-4 mr-1" />Exportar</Button>
-              </>
-            )}
-            {/* Removed separate Nova Venda button - now handled by primary action */}
-            {!isReadOnly && tab !== "overview" && tab !== "overdue" && tab !== "calendar" && tab !== "users" && (
-              <Button onClick={handlePrimaryAction}>
-                <Plus className="h-4 w-4 mr-2" />{primaryLabel}
+          </div>
+        </div>
+      </aside>
+
+      {/* Main content */}
+      <div className="flex-1 min-w-0 flex flex-col">
+        {/* Top bar */}
+        <header className="border-b border-border/50 bg-background/80 backdrop-blur-xl sticky top-0 z-30">
+          <div className="px-4 py-3 flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <Button variant="ghost" size="icon" className="h-9 w-9 lg:hidden" onClick={() => setSidebarOpen(true)}>
+                <Menu className="h-5 w-5" />
               </Button>
-            )}
-          </div>
-        </div>
-
-        <div className="container mx-auto px-4">
-          <nav className="flex gap-1 -mb-px overflow-x-auto">
-            {visibleTabs.map((t) => (
-              <button
-                key={t.id}
-                onClick={() => setTab(t.id)}
-                className={`flex items-center gap-2 px-4 py-2.5 text-xs font-medium border-b-2 transition-all whitespace-nowrap uppercase tracking-wide ${
-                  tab === t.id ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                <t.icon className="h-3.5 w-3.5" />{t.label}
-              </button>
-            ))}
-          </nav>
-        </div>
-      </header>
-
-      <main className="container mx-auto px-4 py-6 space-y-6">
-        {tab === "overview" && (
-          <DashboardOverview loans={loans} sales={sales} payments={payments} expenses={expenses} onDeletePayment={deletePayment} onDeleteSale={deleteSale} onDeleteLoan={deleteLoan} />
-        )}
-        {tab === "dashboard" && (
-          <>
-            <div>
-              <h2 className="text-lg font-semibold text-foreground mb-4">Empréstimos</h2>
-              <LoanList loans={loans} payments={payments} installmentSchedules={installmentSchedules} onPayment={addPayment} onPartialPayment={addPartialPayment} onInterestPayment={addInterestOnlyPayment} onUpdate={updateLoan} onDelete={deleteLoan} onDeletePayment={deletePayment} onSaveSchedule={saveSchedule} readOnly={isReadOnly} />
+              <h2 className="text-lg font-semibold text-foreground">{tabConfig.find(t => t.id === tab)?.label}</h2>
             </div>
-          </>
-        )}
-        {tab === "clients" && (
-          <div>
-            <h2 className="text-lg font-semibold text-foreground mb-4">Clientes ({clients.length})</h2>
+            <div className="flex items-center gap-2">
+              {!isReadOnly && (tab === "dashboard" || tab === "clients" || tab === "products" || tab === "vehicles") && (
+                <>
+                  <Button variant="outline" size="sm" onClick={handleImport}><Upload className="h-4 w-4 mr-1" /><span className="hidden sm:inline">Importar</span></Button>
+                  <Button variant="outline" size="sm" onClick={handleExport}><Download className="h-4 w-4 mr-1" /><span className="hidden sm:inline">Exportar</span></Button>
+                </>
+              )}
+              {!isReadOnly && tab !== "overview" && tab !== "overdue" && tab !== "calendar" && tab !== "users" && (
+                <Button onClick={handlePrimaryAction}>
+                  <Plus className="h-4 w-4 mr-2" />{primaryLabel}
+                </Button>
+              )}
+            </div>
+          </div>
+        </header>
+
+        <main className="flex-1 px-4 py-6 space-y-6 overflow-y-auto">
+          {tab === "overview" && (
+            <DashboardOverview loans={loans} sales={sales} payments={payments} expenses={expenses} onDeletePayment={deletePayment} onDeleteSale={deleteSale} onDeleteLoan={deleteLoan} />
+          )}
+          {tab === "dashboard" && (
+            <LoanList loans={loans} payments={payments} installmentSchedules={installmentSchedules} onPayment={addPayment} onPartialPayment={addPartialPayment} onInterestPayment={addInterestOnlyPayment} onUpdate={updateLoan} onDelete={deleteLoan} onDeletePayment={deletePayment} onSaveSchedule={saveSchedule} readOnly={isReadOnly} />
+          )}
+          {tab === "clients" && (
             <ClientList clients={clients} loans={loans} payments={payments} onDelete={deleteClient} onUpdate={updateClient} />
-          </div>
-        )}
-        {tab === "expenses" && (
-          <div>
-            <h2 className="text-lg font-semibold text-foreground mb-4">Despesas ({expenses.length})</h2>
+          )}
+          {tab === "expenses" && (
             <ExpenseList expenses={expenses} onPay={payExpense} onDelete={deleteExpense} />
-          </div>
-        )}
-        {tab === "overdue" && (
-          <OverdueLoans loans={loans} clients={clients} installmentSchedules={installmentSchedules} />
-        )}
-        {tab === "calendar" && (
-          <BillingCalendar loans={loans} payments={payments} installmentSchedules={installmentSchedules} />
-        )}
-        {tab === "products" && (
-          <ProductSalesView
-            sales={sales.filter(s => s.businessType !== "aluguel_veiculo")}
-            onDeleteSale={deleteSale}
-            onUpdateSale={updateSale}
-            clients={clients}
-          />
-        )}
-        {tab === "vehicles" && (
-          <ProductSalesView
-            sales={sales.filter(s => s.businessType === "aluguel_veiculo")}
-            onDeleteSale={deleteSale}
-            onUpdateSale={updateSale}
-            clients={clients}
-          />
-        )}
-        {tab === "users" && <UserManagement />}
-      </main>
+          )}
+          {tab === "overdue" && (
+            <OverdueLoans loans={loans} clients={clients} installmentSchedules={installmentSchedules} />
+          )}
+          {tab === "calendar" && (
+            <BillingCalendar loans={loans} payments={payments} installmentSchedules={installmentSchedules} />
+          )}
+          {tab === "products" && (
+            <ProductSalesView
+              sales={sales.filter(s => s.businessType !== "aluguel_veiculo")}
+              onDeleteSale={deleteSale}
+              onUpdateSale={updateSale}
+              clients={clients}
+            />
+          )}
+          {tab === "vehicles" && (
+            <ProductSalesView
+              sales={sales.filter(s => s.businessType === "aluguel_veiculo")}
+              onDeleteSale={deleteSale}
+              onUpdateSale={updateSale}
+              clients={clients}
+            />
+          )}
+          {tab === "users" && <UserManagement />}
+        </main>
+      </div>
 
       {showLoanForm && <LoanForm onAdd={addLoan} onSaveSchedule={saveSchedule} onClose={() => setShowLoanForm(false)} clients={clients} />}
       {showClientForm && <ClientForm onAdd={addClient} onClose={() => setShowClientForm(false)} />}
