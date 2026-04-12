@@ -145,8 +145,11 @@ function LoanCardView({
   const [paymentDate, setPaymentDate] = useState<Date>(new Date());
   const [showHistory, setShowHistory] = useState(false);
   const [showDetails, setShowDetails] = useState(false);
+  const [editingInstallment, setEditingInstallment] = useState(false);
+  const [installmentInput, setInstallmentInput] = useState("");
 
-  const installment = calculateInstallment(loan.amount, loan.interestRate, loan.installments);
+  const calculatedInstallment = calculateInstallment(loan.amount, loan.interestRate, loan.installments);
+  const installment = loan.customInstallmentValue != null && loan.customInstallmentValue > 0 ? loan.customInstallmentValue : calculatedInstallment;
   const total = calculateTotalWithInterest(loan.amount, loan.interestRate, loan.installments);
   const totalPaid = getTotalPaid(loan, allPayments);
   const remaining = loan.remainingAmount != null && loan.remainingAmount > 0 ? loan.remainingAmount : Math.max(0, total - totalPaid);
