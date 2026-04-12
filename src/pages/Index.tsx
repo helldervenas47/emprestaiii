@@ -15,6 +15,7 @@ import { DashboardOverview } from "@/components/DashboardOverview";
 import { OverdueLoans } from "@/components/OverdueLoans";
 import { BillingCalendar } from "@/components/BillingCalendar";
 import { ExpenseForm } from "@/components/ExpenseForm";
+import { VehicleExpenseForm } from "@/components/VehicleExpenseForm";
 import { ExpenseList } from "@/components/ExpenseList";
 import { useLoans } from "@/hooks/useLoans";
 import { useClients } from "@/hooks/useClients";
