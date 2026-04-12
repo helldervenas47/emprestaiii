@@ -557,7 +557,7 @@ function SalesList({ sales, onDeleteSale, onUpdateSale, clients = [], hideOnTrac
   return (
     <div className="space-y-4">
       {/* Dashboard cards */}
-      <div className={`grid grid-cols-2 ${hideOnTrackCard ? 'lg:grid-cols-3' : 'lg:grid-cols-4'} gap-3`}>
+      <div className={`grid ${hideOnTrackCard ? 'grid-cols-3' : 'grid-cols-2 lg:grid-cols-4'} gap-3`}>
         <div className="rounded-xl p-4 bg-gradient-to-br from-destructive/80 to-destructive text-destructive-foreground">
           <div className="flex items-center justify-between mb-2">
             <p className="text-xs font-medium opacity-90">Vencidos</p>
