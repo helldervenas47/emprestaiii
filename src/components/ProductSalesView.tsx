@@ -659,24 +659,99 @@ function SalesList({ sales, onDeleteSale, onUpdateSale, clients = [], hideOnTrac
   );
 }
 
-export function ProductSalesView({ sales, onDeleteSale, onUpdateSale, clients = [] }: Props) {
-  // If all sales are the same type (e.g. vehicles page), render directly without sub-tabs
-  const uniqueTypes = new Set(sales.map(s => s.businessType));
-  const isVehiclesOnly = uniqueTypes.size <= 1 && (uniqueTypes.has("aluguel_veiculo") || sales.length === 0 && !sales.some(s => s.businessType !== "aluguel_veiculo"));
-  
+export function ProductSalesView({ sales, onDeleteSale, onUpdateSale, clients = [], expenses = [], onAddExpense, onPayExpense, onDeleteExpense }: Props) {
+  const [showVehicleExpenseForm, setShowVehicleExpenseForm] = useState(false);
+  const { mask } = useHideValues();
+  const formatCurrency = useCallback((v: number) => mask(rawFormatCurrency(v)), [mask]);
+
+  // Filter vehicle-related expenses
+  const vehicleExpenses = expenses.filter(e => vehicleExpenseCategories.includes(e.category));
+
   // Check if this is the vehicles-only view
   const hasSalesOrStreaming = sales.some(s => s.businessType === "venda" || s.businessType === "streaming");
   
   if (!hasSalesOrStreaming) {
-    // Vehicles page or empty - render without sub-tabs
+    // Vehicles page - render without sub-tabs + vehicle expenses
     return (
-      <SalesList
-        sales={sales}
-        onDeleteSale={onDeleteSale}
-        onUpdateSale={onUpdateSale}
-        clients={clients}
-        hideOnTrackCard
-      />
+      <div className="space-y-6">
+        <SalesList
+          sales={sales}
+          onDeleteSale={onDeleteSale}
+          onUpdateSale={onUpdateSale}
+          clients={clients}
+          hideOnTrackCard
+        />
+
+        {/* Vehicle Expenses Section */}
+        {onAddExpense && (
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-semibold text-foreground flex items-center gap-2">
+                <Receipt className="h-5 w-5" />
+                Despesas de Veículos ({vehicleExpenses.length})
+              </h3>
+              <Button onClick={() => setShowVehicleExpenseForm(true)} size="sm">
+                <Plus className="h-4 w-4 mr-2" />
+                Registrar Despesa
+              </Button>
+            </div>
+
+            {vehicleExpenses.length === 0 ? (
+              <div className="rounded-xl border border-dashed p-8 text-center text-muted-foreground">
+                <Receipt className="h-10 w-10 mx-auto mb-2 opacity-40" />
+                <p className="text-sm">Nenhuma despesa de veículo registrada.</p>
+              </div>
+            ) : (
+              <div className="grid gap-3">
+                {vehicleExpenses.map((exp) => {
+                  const isOverdue = !exp.paid && exp.dueDate < new Date().toISOString().split("T")[0];
+                  return (
+                    <Card key={exp.id} className={`${exp.paid ? "opacity-60" : ""}`}>
+                      <CardContent className="p-4">
+                        <div className="flex items-center justify-between gap-4">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-1">
+                              <p className="font-medium text-sm truncate">{exp.description}</p>
+                              <Badge variant={exp.paid ? "secondary" : isOverdue ? "destructive" : "outline"} className="text-[10px] shrink-0">
+                                {exp.paid ? "Pago" : isOverdue ? "Vencido" : "Pendente"}
+                              </Badge>
+                            </div>
+                            <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                              <span>{exp.category}</span>
+                              <span>Venc: {new Date(exp.dueDate + "T00:00:00").toLocaleDateString("pt-BR")}</span>
+                              {exp.type === "recorrente" && exp.installments && (
+                                <span>{exp.paidInstallments || 0}/{exp.installments} parcelas</span>
+                              )}
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <p className="font-bold text-sm whitespace-nowrap">{formatCurrency(exp.amount)}</p>
+                            {!exp.paid && onPayExpense && (
+                              <Button size="sm" variant="outline" onClick={() => onPayExpense(exp.id)} className="h-8 text-xs">
+                                <CheckCircle className="h-3.5 w-3.5 mr-1" />
+                                Pagar
+                              </Button>
+                            )}
+                            {onDeleteExpense && (
+                              <Button size="sm" variant="ghost" onClick={() => onDeleteExpense(exp.id)} className="h-8 w-8 p-0 text-destructive hover:text-destructive">
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </Button>
+                            )}
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
+
+        {showVehicleExpenseForm && onAddExpense && (
+          <VehicleExpenseForm onAdd={onAddExpense} onClose={() => setShowVehicleExpenseForm(false)} />
+        )}
+      </div>
     );
   }
 
