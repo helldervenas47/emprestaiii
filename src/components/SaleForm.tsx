@@ -44,8 +44,25 @@ export function SaleForm({ onAdd, onClose, defaultBusinessType = "venda" }: Prop
     firstInstallmentDate: new Date().toISOString().split("T")[0],
   });
 
+  const [installmentRows, setInstallmentRows] = useState<{ date: string; value: string }[]>([]);
+
   const installmentsNum = parseInt(form.installments) || 1;
   const firstDate = new Date(form.firstInstallmentDate + "T00:00:00");
+  const totalNum = parseFloat(form.total) || 0;
+
+  // Rebuild rows when installments/date/frequency/total changes
+  const rebuildRows = (count: number, baseDate: Date, freq: string, total: number) => {
+    const val = count > 0 ? (total / count).toFixed(2) : "0";
+    setInstallmentRows(
+      Array.from({ length: count }, (_, i) => ({
+        date: addByFrequency(baseDate, freq, i).toISOString().split("T")[0],
+        value: val,
+      }))
+    );
+    if (count > 0) {
+      setForm((p) => ({ ...p, installmentValue: val }));
+    }
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
