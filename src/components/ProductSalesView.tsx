@@ -3,6 +3,8 @@ import { Sale, BusinessType, Client, Expense } from "@/types/loan";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
@@ -665,6 +667,131 @@ function SalesList({ sales, onDeleteSale, onUpdateSale, clients = [], hideOnTrac
   );
 }
 
+function VehicleExpenseEditDialog({ expense, open, onOpenChange, onSave, formatCurrency }: {
+  expense: Expense;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onSave: (data: Partial<Omit<Expense, "id" | "createdAt">>) => void;
+  formatCurrency: (v: number) => string;
+}) {
+  const isRecorrente = expense.type === "recorrente" && expense.installments && expense.installments > 1;
+  const installmentVal = isRecorrente ? expense.amount / expense.installments! : expense.amount;
+  const [form, setForm] = useState({
+    description: expense.description,
+    amount: String(installmentVal),
+    type: expense.type as "fixa" | "recorrente",
+    category: expense.category,
+    installments: String(expense.installments || 1),
+    dueDate: expense.dueDate,
+    notes: expense.notes || "",
+  });
+
+  useEffect(() => {
+    if (open) {
+      const isRec = expense.type === "recorrente" && expense.installments && expense.installments > 1;
+      const instVal = isRec ? expense.amount / expense.installments! : expense.amount;
+      setForm({
+        description: expense.description,
+        amount: String(instVal),
+        type: expense.type as "fixa" | "recorrente",
+        category: expense.category,
+        installments: String(expense.installments || 1),
+        dueDate: expense.dueDate,
+        notes: expense.notes || "",
+      });
+    }
+  }, [open, expense]);
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const parsedAmount = parseFloat(form.amount) || 0;
+    const installments = form.type === "recorrente" ? parseInt(form.installments) || 1 : 1;
+    const totalAmount = form.type === "recorrente" ? parsedAmount * installments : parsedAmount;
+    onSave({
+      description: form.description,
+      amount: totalAmount,
+      type: form.type,
+      category: form.category,
+      installments: form.type === "recorrente" ? installments : undefined,
+      dueDate: form.dueDate,
+      notes: form.notes || undefined,
+    });
+  };
+
+  const update = (field: string, value: string) => setForm(prev => ({ ...prev, [field]: value }));
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-lg">
+        <DialogHeader>
+          <DialogTitle>Editar Despesa</DialogTitle>
+          <DialogDescription>Altere os dados da despesa de veículo.</DialogDescription>
+        </DialogHeader>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <Label htmlFor="edit-desc">Descrição</Label>
+            <Input id="edit-desc" value={form.description} onChange={e => update("description", e.target.value)} required />
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="edit-amount">{form.type === "recorrente" ? "Valor da Parcela (R$)" : "Valor (R$)"}</Label>
+              <Input id="edit-amount" type="number" step="0.01" value={form.amount} onChange={e => update("amount", e.target.value)} required />
+            </div>
+            <div>
+              <Label>Tipo</Label>
+              <Select value={form.type} onValueChange={v => update("type", v)}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="fixa">Fixa</SelectItem>
+                  <SelectItem value="recorrente">Recorrente</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          {form.type === "recorrente" && (
+            <div>
+              <Label htmlFor="edit-inst">Parcelas</Label>
+              <Input id="edit-inst" type="number" min="1" value={form.installments} onChange={e => update("installments", e.target.value)} />
+            </div>
+          )}
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <Label>Categoria</Label>
+              <Select value={form.category} onValueChange={v => update("category", v)}>
+                <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                <SelectContent>
+                  {vehicleExpenseCategories.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label htmlFor="edit-due">Data de Pagamento</Label>
+              <Input id="edit-due" type="date" value={form.dueDate} onChange={e => update("dueDate", e.target.value)} />
+            </div>
+          </div>
+          <div>
+            <Label htmlFor="edit-notes">Observações</Label>
+            <Textarea id="edit-notes" value={form.notes} onChange={e => update("notes", e.target.value)} rows={2} />
+          </div>
+          {parseFloat(form.amount) > 0 && form.type === "recorrente" && parseInt(form.installments) > 1 && (
+            <div className="rounded-lg bg-muted p-3">
+              <p className="text-sm text-muted-foreground">
+                Valor total: <span className="font-semibold text-foreground">
+                  {formatCurrency(parseFloat(form.amount) * (parseInt(form.installments) || 1))}
+                </span> ({form.installments}x de {formatCurrency(parseFloat(form.amount))})
+              </p>
+            </div>
+          )}
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
+            <Button type="submit">Salvar</Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 export function ProductSalesView({ sales, onDeleteSale, onUpdateSale, clients = [], expenses = [], onAddExpense, onPayExpense, onDeleteExpense, onUpdateExpense }: Props) {
   const [showVehicleExpenseForm, setShowVehicleExpenseForm] = useState(false);
   const { mask } = useHideValues();
@@ -676,6 +803,7 @@ export function ProductSalesView({ sales, onDeleteSale, onUpdateSale, clients = 
   const [balanceInput, setBalanceInput] = useState("");
   const [showDeleteAllExpenses, setShowDeleteAllExpenses] = useState(false);
   const [viewPaymentsExpenseId, setViewPaymentsExpenseId] = useState<string | null>(null);
+  const [editingExpenseId, setEditingExpenseId] = useState<string | null>(null);
 
   useEffect(() => {
     (async () => {
@@ -988,6 +1116,11 @@ export function ProductSalesView({ sales, onDeleteSale, onUpdateSale, clients = 
                                 Pagar
                               </Button>
                             )}
+                            {onUpdateExpense && (
+                              <Button size="sm" variant="ghost" onClick={() => setEditingExpenseId(exp.id)} className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground">
+                                <Pencil className="h-3.5 w-3.5" />
+                              </Button>
+                            )}
                             {onDeleteExpense && (
                               <Button size="sm" variant="ghost" onClick={() => onDeleteExpense(exp.id)} className="h-8 w-8 p-0 text-destructive hover:text-destructive">
                                 <Trash2 className="h-3.5 w-3.5" />
@@ -1062,6 +1195,18 @@ export function ProductSalesView({ sales, onDeleteSale, onUpdateSale, clients = 
                           </div>
                         </DialogContent>
                       </Dialog>
+
+                      {/* Dialog de edição */}
+                      <VehicleExpenseEditDialog
+                        expense={exp}
+                        open={editingExpenseId === exp.id}
+                        onOpenChange={(open) => { if (!open) setEditingExpenseId(null); }}
+                        onSave={(data) => {
+                          onUpdateExpense!(exp.id, data);
+                          setEditingExpenseId(null);
+                        }}
+                        formatCurrency={formatCurrency}
+                      />
                     </Card>
                   );
                 })}
