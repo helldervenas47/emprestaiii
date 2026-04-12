@@ -133,48 +133,61 @@ function LoanItemCard({ item, isOverdue, onSendWhatsApp }: { item: LoanItem; isO
   );
 }
 
-export function OverdueLoans({ loans, clients }: Props) {
+export function OverdueLoans({ loans, clients, installmentSchedules }: Props) {
   const { mask } = useHideValues();
   const formatCurrency = useCallback((v: number) => mask(rawFormatCurrency(v)), [mask]);
   const [search, setSearch] = useState("");
+  const todayStr = getTodayStr();
 
   const activeLoans = useMemo(() =>
-    loans.filter((l) => l.status !== "paid" && l.borrowerName.toLowerCase().includes(search.toLowerCase())),
+    loans.filter((l) => l.status !== "paid" && l.paidInstallments < l.installments && l.borrowerName.toLowerCase().includes(search.toLowerCase())),
     [loans, search]
   );
 
   const overdueData = useMemo<LoanItem[]>(() => {
     return activeLoans
       .map((loan) => {
-        const installments = getOverdueInstallments(loan);
-        if (installments.length === 0) return null;
+        if (loan.dueDate >= todayStr) return null;
+        const amount = getInstallmentAmount(loan, installmentSchedules);
+        const nextInst = loan.paidInstallments + 1;
+        const installments = [{
+          number: nextInst,
+          dueDate: loan.dueDate,
+          amount,
+        }];
         const client = clients.find((c) => c.id === loan.borrowerId);
         return {
           loan, client, phone: client?.phone || "",
           installments,
-          daysOverdue: getDaysOverdue(installments[0].dueDate),
-          totalAmount: installments.reduce((s, i) => s + i.amount, 0),
+          daysOverdue: getDaysOverdue(loan.dueDate),
+          totalAmount: amount,
         };
       })
       .filter(Boolean)
       .sort((a, b) => b!.daysOverdue - a!.daysOverdue) as LoanItem[];
-  }, [activeLoans, clients]);
+  }, [activeLoans, clients, installmentSchedules, todayStr]);
 
   const dueTodayData = useMemo<LoanItem[]>(() => {
     return activeLoans
       .map((loan) => {
-        const installments = getDueTodayInstallments(loan);
-        if (installments.length === 0) return null;
+        if (loan.dueDate !== todayStr) return null;
+        const amount = getInstallmentAmount(loan, installmentSchedules);
+        const nextInst = loan.paidInstallments + 1;
+        const installments = [{
+          number: nextInst,
+          dueDate: loan.dueDate,
+          amount,
+        }];
         const client = clients.find((c) => c.id === loan.borrowerId);
         return {
           loan, client, phone: client?.phone || "",
           installments,
           daysOverdue: 0,
-          totalAmount: installments.reduce((s, i) => s + i.amount, 0),
+          totalAmount: amount,
         };
       })
       .filter(Boolean) as LoanItem[];
-  }, [activeLoans, clients]);
+  }, [activeLoans, clients, installmentSchedules, todayStr]);
 
   const totalOverdueAmount = overdueData.reduce((s, d) => s + d.totalAmount, 0);
   const totalDueTodayAmount = dueTodayData.reduce((s, d) => s + d.totalAmount, 0);
