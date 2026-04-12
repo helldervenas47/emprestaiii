@@ -179,7 +179,7 @@ export function useLoans() {
     else if (freq === "Quinzenal") currentDue.setDate(currentDue.getDate() + 15);
     else currentDue.setMonth(currentDue.getMonth() + 1);
     const newDueDate = currentDue.toISOString().split("T")[0];
-    const newRemaining = Math.max(0, getLoanRemainingAmount(loan, payments) - interestAmount);
+    
 
     // Also update any saved installment schedule for the next pending installment
     const nextNum = loan.paidInstallments + 1;
@@ -193,7 +193,7 @@ export function useLoans() {
         user_id: user.id, loan_id: loanId, amount: interestAmount,
         date: dateStr, installment_number: 0, previous_due_date: loan.dueDate,
       }),
-      supabase.from("loans").update({ due_date: newDueDate, remaining_amount: newRemaining }).eq("id", loanId),
+      supabase.from("loans").update({ due_date: newDueDate }).eq("id", loanId),
       scheduleUpdate,
       adjustBalance(interestAmount),
     ]);
