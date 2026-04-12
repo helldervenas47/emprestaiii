@@ -67,6 +67,7 @@ const saleCategoryConfig = {
 function SaleCard({ sale, onDelete, onEdit, onUpdate, formatCurrency }: { sale: Sale; onDelete: () => void; onEdit: () => void; onUpdate: (data: Partial<Omit<Sale, "id">>) => void; formatCurrency: (v: number) => string }) {
   const [showPartial, setShowPartial] = useState(false);
   const [partialAmount, setPartialAmount] = useState("");
+  const [partialDate, setPartialDate] = useState<Date | undefined>(undefined);
   const [showParcelas, setShowParcelas] = useState(false);
   const [showPayDatePicker, setShowPayDatePicker] = useState(false);
   const TabIcon = businessTabs.find((t) => t.type === sale.businessType)?.icon || ShoppingCart;
