@@ -184,8 +184,7 @@ function LoanCardView({
   const nextInstallmentDate = useMemo(() => {
     if (loan.status === "paid") return null;
     if (loan.paidInstallments >= loan.installments) return null;
-    const due = new Date(loan.dueDate + "T00:00:00");
-    return due.toLocaleDateString("pt-BR");
+    return getFirstPendingDate(loan).toLocaleDateString("pt-BR");
   }, [loan]);
 
   const startEdit = () => {
