@@ -58,7 +58,12 @@ function getNextDate(base: Date, frequency: string, periods: number): Date {
   return d;
 }
 
-function getFirstPendingDate(loan: Loan): Date {
+function getFirstPendingDate(loan: Loan, schedules: InstallmentSchedule[]): Date {
+  const loanSchedules = schedules.filter((s) => s.loanId === loan.id).sort((a, b) => a.installmentNumber - b.installmentNumber);
+  const nextNum = loan.paidInstallments + 1;
+  const saved = loanSchedules.find((s) => s.installmentNumber === nextNum);
+  if (saved) return new Date(saved.dueDate + "T00:00:00");
+  // Fallback to dueDate
   return new Date(loan.dueDate + "T00:00:00");
 }
 
