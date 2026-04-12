@@ -649,7 +649,7 @@ export function ProductSalesView({ sales, onDeleteSale, onUpdateSale, clients = 
   }
 
   // Sales page - show sub-tabs for venda/streaming
-  const activeTabs = salesSubTabs.filter(tab => sales.some(s => s.businessType === tab.type) || tab.type === "venda");
+  const activeTabs = salesSubTabs;
   
   return (
     <Tabs defaultValue={activeTabs[0]?.type || "venda"} className="space-y-4">
