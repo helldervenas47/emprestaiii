@@ -459,7 +459,7 @@ function SalesList({ sales, onDeleteSale, onUpdateSale }: { sales: Sale[]; onDel
   );
 }
 
-export function ProductSalesView({ sales, onDeleteSale, onUpdateSale }: Props) {
+export function ProductSalesView({ sales, onDeleteSale, onUpdateSale, clients = [] }: Props) {
   return (
     <Tabs defaultValue="venda" className="space-y-4">
       <TabsList className="w-full grid grid-cols-3">
