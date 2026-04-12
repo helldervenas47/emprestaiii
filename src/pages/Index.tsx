@@ -1,5 +1,5 @@
 import { useRef, useState, useEffect } from "react";
-import { Plus, HandCoins, Users, LayoutDashboard, Download, Upload, ShoppingBag, BarChart3, AlertTriangle, Receipt, CalendarDays, Sun, Moon, LogOut, Info, X, Eye, EyeOff } from "lucide-react";
+import { Plus, HandCoins, Users, LayoutDashboard, Download, Upload, ShoppingBag, BarChart3, AlertTriangle, Receipt, CalendarDays, Sun, Moon, LogOut, Info, X, Eye, EyeOff, Car } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
@@ -28,7 +28,7 @@ import { toast } from "sonner";
 import { HideValuesProvider, useHideValues } from "@/contexts/HideValuesContext";
 import { UserManagement } from "@/components/UserManagement";
 
-type Tab = "overview" | "dashboard" | "clients" | "products" | "overdue" | "expenses" | "calendar" | "users";
+type Tab = "overview" | "dashboard" | "clients" | "products" | "vehicles" | "overdue" | "expenses" | "calendar" | "users";
 
 const tabConfig = [
   { id: "overview" as Tab, label: "Dashboard", icon: BarChart3 },
@@ -36,6 +36,7 @@ const tabConfig = [
   { id: "calendar" as Tab, label: "Calendário", icon: CalendarDays },
   { id: "clients" as Tab, label: "Clientes", icon: Users },
   { id: "products" as Tab, label: "Vendas", icon: ShoppingBag },
+  { id: "vehicles" as Tab, label: "Veículos", icon: Car },
   { id: "expenses" as Tab, label: "Despesas", icon: Receipt },
   { id: "overdue" as Tab, label: "Inadimplentes", icon: AlertTriangle },
   { id: "users" as Tab, label: "Usuários", icon: Users },
@@ -83,9 +84,17 @@ const tabHelp: Record<Tab, { title: string; items: string[] }> = {
   products: {
     title: "Vendas",
     items: [
-      "Registre vendas avulsas, streaming ou aluguel de veículos.",
+      "Registre vendas avulsas ou streaming.",
       "Escolha entre pagamento fixo (único) ou recorrente (parcelado).",
       "Para vendas recorrentes, defina a frequência: Semanal, Quinzenal ou Mensal.",
+    ],
+  },
+  vehicles: {
+    title: "Aluguel de Veículos",
+    items: [
+      "Registre contratos de aluguel de veículos.",
+      "Controle parcelas e pagamentos recorrentes.",
+      "Acompanhe vencimentos e inadimplência.",
     ],
   },
   expenses: {
@@ -184,9 +193,15 @@ const Index = () => {
       downloadCSV(exportClientsToCSV(clients), "clientes.csv");
       toast.success("Clientes exportados com sucesso!");
     } else if (tab === "products") {
-      if (sales.length === 0) return toast.error("Nenhuma venda para exportar");
-      downloadCSV(exportSalesToCSV(sales), "vendas.csv");
+      const filtered = sales.filter(s => s.businessType !== "aluguel_veiculo");
+      if (filtered.length === 0) return toast.error("Nenhuma venda para exportar");
+      downloadCSV(exportSalesToCSV(filtered), "vendas.csv");
       toast.success("Vendas exportadas com sucesso!");
+    } else if (tab === "vehicles") {
+      const filtered = sales.filter(s => s.businessType === "aluguel_veiculo");
+      if (filtered.length === 0) return toast.error("Nenhum aluguel para exportar");
+      downloadCSV(exportSalesToCSV(filtered), "alugueis_veiculos.csv");
+      toast.success("Aluguéis exportados com sucesso!");
     }
   };
 
@@ -237,14 +252,15 @@ const Index = () => {
     if (tab === "dashboard") setShowLoanForm(true);
     else if (tab === "clients") setShowClientForm(true);
     else if (tab === "expenses") setShowExpenseForm(true);
-    else if (tab === "products") setShowSaleForm(true);
+    else if (tab === "products" || tab === "vehicles") setShowSaleForm(true);
   };
 
   const primaryLabel =
     tab === "dashboard" ? "Novo Empréstimo" :
     tab === "clients" ? "Novo Cliente" :
     tab === "expenses" ? "Nova Despesa" :
-    tab === "products" ? "Novo Lançamento" : "";
+    tab === "products" ? "Novo Lançamento" :
+    tab === "vehicles" ? "Novo Aluguel" : "";
 
   return (
     <HideValuesProvider>
@@ -290,7 +306,7 @@ const Index = () => {
             <Button variant="ghost" size="icon" onClick={signOut} className="h-9 w-9" title="Sair">
               <LogOut className="h-4 w-4" />
             </Button>
-            {!isReadOnly && (tab === "dashboard" || tab === "clients" || tab === "products") && (
+            {!isReadOnly && (tab === "dashboard" || tab === "clients" || tab === "products" || tab === "vehicles") && (
               <>
                 <Button variant="outline" size="sm" onClick={handleImport}><Upload className="h-4 w-4 mr-1" />Importar</Button>
                 <Button variant="outline" size="sm" onClick={handleExport}><Download className="h-4 w-4 mr-1" />Exportar</Button>
@@ -354,7 +370,15 @@ const Index = () => {
         )}
         {tab === "products" && (
           <ProductSalesView
-            sales={sales}
+            sales={sales.filter(s => s.businessType !== "aluguel_veiculo")}
+            onDeleteSale={deleteSale}
+            onUpdateSale={updateSale}
+            clients={clients}
+          />
+        )}
+        {tab === "vehicles" && (
+          <ProductSalesView
+            sales={sales.filter(s => s.businessType === "aluguel_veiculo")}
             onDeleteSale={deleteSale}
             onUpdateSale={updateSale}
             clients={clients}
@@ -366,7 +390,7 @@ const Index = () => {
       {showLoanForm && <LoanForm onAdd={addLoan} onSaveSchedule={saveSchedule} onClose={() => setShowLoanForm(false)} clients={clients} />}
       {showClientForm && <ClientForm onAdd={addClient} onClose={() => setShowClientForm(false)} />}
       {showProductForm && <ProductForm onAdd={addProduct} onClose={() => setShowProductForm(false)} />}
-      {showSaleForm && <SaleForm onAdd={addSale} onClose={() => setShowSaleForm(false)} clients={clients} />}
+      {showSaleForm && <SaleForm onAdd={addSale} onClose={() => setShowSaleForm(false)} clients={clients} defaultBusinessType={tab === "vehicles" ? "aluguel_veiculo" : undefined} />}
       {showExpenseForm && <ExpenseForm onAdd={addExpense} onClose={() => setShowExpenseForm(false)} />}
     </div>
     </HideValuesProvider>
