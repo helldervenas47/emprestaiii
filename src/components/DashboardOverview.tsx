@@ -653,7 +653,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, onDeletePa
             </div>
           )}
 
-          <div className="h-72">
+          <div className="h-56 sm:h-72">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={monthlyChart} margin={{ top: 5, right: 10, left: 10, bottom: 5 }}>
                 <CartesianGrid strokeDasharray="3 3" className="stroke-muted/30" />
@@ -721,7 +721,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, onDeletePa
             </div>
           )}
 
-          <div className="h-72">
+          <div className="h-56 sm:h-72">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={interestChart} margin={{ top: 5, right: 10, left: 10, bottom: 5 }}>
                 <CartesianGrid strokeDasharray="3 3" className="stroke-muted/30" />
