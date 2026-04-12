@@ -347,7 +347,13 @@ function SalesList({ sales, onDeleteSale, onUpdateSale }: { sales: Sale[]; onDel
   const totalOverdue = overdueSales.reduce((acc, s) => acc + getRemaining(s), 0);
   const totalOnTrack = onTrackSales.reduce((acc, s) => acc + getRemaining(s), 0);
   const totalDueToday = dueTodaySales.reduce((acc, s) => acc + getRemaining(s), 0);
-  const totalPaid = paidSales.reduce((acc, s) => acc + s.total, 0);
+  // Valor pago = soma de todas as parcelas pagas de todos os contratos
+  const totalPaid = sales.reduce((acc, s) => {
+    const valorParcela = s.installments > 0 ? s.total / s.installments : s.total;
+    return acc + valorParcela * s.paidInstallments;
+  }, 0);
+  // Quantidade de contratos = somente os quitados
+  const paidContractsCount = paidSales.length;
   const totalAReceber = totalOverdue + totalOnTrack + totalDueToday;
 
   return (
