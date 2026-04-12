@@ -143,6 +143,7 @@ export type Database = {
           borrower_id: string | null
           borrower_name: string
           created_at: string
+          custom_installment_value: number | null
           due_date: string
           id: string
           installments: number
@@ -162,6 +163,7 @@ export type Database = {
           borrower_id?: string | null
           borrower_name: string
           created_at?: string
+          custom_installment_value?: number | null
           due_date: string
           id?: string
           installments?: number
@@ -181,6 +183,7 @@ export type Database = {
           borrower_id?: string | null
           borrower_name?: string
           created_at?: string
+          custom_installment_value?: number | null
           due_date?: string
           id?: string
           installments?: number
