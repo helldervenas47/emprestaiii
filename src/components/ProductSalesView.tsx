@@ -211,16 +211,23 @@ function SaleCard({ sale, onDelete, onEdit, onUpdate, formatCurrency }: { sale: 
                     <span className="text-sm text-foreground flex-1">{p.date}</span>
                     <span className="text-sm font-medium text-foreground tabular-nums">{formatCurrency(p.value)}</span>
                     <span className={`text-xs font-medium w-16 text-right ${p.paid ? "text-success" : "text-muted-foreground"}`}>
-                      {p.paid ? "Paga" : "Pendente"}
+                      {p.paid ? "Paga" : (
+                        !p.paid && p.number === sale.paidInstallments + 1 && (sale.partialPaid || 0) > 0
+                          ? `${formatCurrency(sale.partialPaid)} pago`
+                          : "Pendente"
+                      )}
                     </span>
-                    {p.paid && (
+                    {(p.paid || (!p.paid && p.number === sale.paidInstallments + 1 && (sale.partialPaid || 0) > 0)) && (
                       <Button
                         size="icon"
                         variant="ghost"
                         className="h-6 w-6 text-destructive hover:bg-destructive/10 shrink-0"
                         onClick={() => {
-                          // Set paidInstallments to this installment's index (removing this and all after)
-                          onUpdate({ paidInstallments: p.number - 1 });
+                          if (p.paid) {
+                            onUpdate({ paidInstallments: p.number - 1, partialPaid: 0 });
+                          } else {
+                            onUpdate({ partialPaid: 0 });
+                          }
                         }}
                       >
                         <Trash2 className="h-3.5 w-3.5" />
