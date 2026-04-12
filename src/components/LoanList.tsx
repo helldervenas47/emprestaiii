@@ -855,6 +855,7 @@ function LoanCardView({
                     <p className="text-[11px] text-muted-foreground">{formatCurrency(installment)}</p>
                   </div>
                 </DropdownMenuItem>
+                {loan.paymentType !== "Parcelado" && (
                 <DropdownMenuItem
                   onClick={() => openPaymentDialog("interest")}
                   className="flex items-center gap-3 px-3 py-2.5 rounded-lg cursor-pointer hover:bg-purple/10 focus:bg-purple/10"
@@ -867,6 +868,7 @@ function LoanCardView({
                     <p className="text-[11px] text-muted-foreground">{formatCurrency(interestOnly)}</p>
                   </div>
                 </DropdownMenuItem>
+                )}
                 <DropdownMenuItem
                   onClick={() => setShowPartial(!showPartial)}
                   className="flex items-center gap-3 px-3 py-2.5 rounded-lg cursor-pointer hover:bg-warning/10 focus:bg-warning/10"
