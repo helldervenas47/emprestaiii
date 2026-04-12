@@ -307,7 +307,7 @@ const saleCategoryFilters: { id: SaleCategory; label: string; color: string; act
   { id: "on_track", label: "Em Dia", color: "border-primary/30 text-primary", activeColor: "bg-primary text-primary-foreground border-primary" },
 ];
 
-function SalesList({ sales, onDeleteSale, onUpdateSale }: { sales: Sale[]; onDeleteSale: (id: string) => void; onUpdateSale: (id: string, data: Partial<Omit<Sale, "id">>) => void }) {
+function SalesList({ sales, onDeleteSale, onUpdateSale, clients = [] }: { sales: Sale[]; onDeleteSale: (id: string) => void; onUpdateSale: (id: string, data: Partial<Omit<Sale, "id">>) => void; clients?: Client[] }) {
   const [editingSale, setEditingSale] = useState<Sale | null>(null);
   const [search, setSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState<SaleCategory>("all");
@@ -453,6 +453,7 @@ function SalesList({ sales, onDeleteSale, onUpdateSale }: { sales: Sale[]; onDel
             setEditingSale(null);
           }}
           onClose={() => setEditingSale(null)}
+          clients={clients}
         />
       )}
     </div>
@@ -477,6 +478,7 @@ export function ProductSalesView({ sales, onDeleteSale, onUpdateSale, clients = 
             sales={sales.filter((s) => s.businessType === tab.type)}
             onDeleteSale={onDeleteSale}
             onUpdateSale={onUpdateSale}
+            clients={clients}
           />
         </TabsContent>
       ))}
