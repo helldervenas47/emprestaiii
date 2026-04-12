@@ -403,6 +403,7 @@ const Index = () => {
       {showProductForm && <ProductForm onAdd={addProduct} onClose={() => setShowProductForm(false)} />}
       {showSaleForm && <SaleForm onAdd={addSale} onClose={() => setShowSaleForm(false)} clients={clients} defaultBusinessType={tab === "vehicles" ? "aluguel_veiculo" : undefined} />}
       {showExpenseForm && <ExpenseForm onAdd={addExpense} onClose={() => setShowExpenseForm(false)} />}
+      {showVehicleExpenseForm && <VehicleExpenseForm onAdd={addExpense} onClose={() => setShowVehicleExpenseForm(false)} />}
     </div>
     </HideValuesProvider>
   );
