@@ -89,8 +89,8 @@ function getLoanCategory(loan: Loan, payments: Payment[]): "paid" | "paid_intere
 }
 
 const statusMap = {
-  paid: { label: "Pagou Total", className: "bg-success/10 text-success border-success/20" },
-  paid_interest: { label: "Pagou Juros", className: "bg-purple/10 text-purple border-purple/20" },
+  paid: { label: "Quitado", className: "bg-success/10 text-success border-success/20" },
+  paid_interest: { label: "Juros", className: "bg-purple/10 text-purple border-purple/20" },
   overdue: { label: "Atrasado", className: "bg-destructive/10 text-destructive border-destructive/20" },
   due_today: { label: "Vence Hoje", className: "bg-warning/10 text-warning border-warning/20" },
   on_track: { label: "Em Dia", className: "bg-primary/10 text-primary border-primary/20" },
