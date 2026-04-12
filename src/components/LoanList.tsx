@@ -183,10 +183,38 @@ function LoanCardView({
     return due.toLocaleDateString("pt-BR");
   }, [loan]);
 
-  const startEdit = () => { setForm(loanToForm(loan)); setEditing(true); };
+  const startEdit = () => {
+    setForm(loanToForm(loan));
+    setEditing(true);
+    setShowEditSchedule(false);
+    // Build schedule rows
+    const totalInst = loan.installments;
+    const paidInst = loan.paidInstallments || 0;
+    const rem = loan.remainingAmount != null && loan.remainingAmount > 0 ? loan.remainingAmount : total;
+    const remInst = Math.max(1, totalInst - paidInst);
+    const instVal = (rem / remInst).toFixed(2);
+    const firstDue = new Date(loan.dueDate + "T00:00:00");
+    const freq = loan.interestType || "Mensal";
+    setEditScheduleRows(
+      Array.from({ length: remInst }, (_, i) => ({
+        date: i === 0 ? firstDue : getNextDate(firstDue, freq, i),
+        value: loan.customInstallmentValue != null && loan.customInstallmentValue > 0
+          ? loan.customInstallmentValue.toFixed(2)
+          : instVal,
+      }))
+    );
+  };
   const cancelEdit = () => setEditing(false);
   const saveEdit = () => {
     const parsedTags = form.tags.split(",").map((t) => t.trim()).filter(Boolean);
+    // Use first schedule row for dueDate and custom value
+    const firstRow = editScheduleRows[0];
+    const dueDate = firstRow ? firstRow.date.toISOString().split("T")[0] : form.dueDate || loan.dueDate;
+    const firstVal = firstRow ? parseFloat(firstRow.value) || 0 : 0;
+    const remInst = Math.max(1, (parseInt(form.installments) || loan.installments) - (parseInt(form.paidInstallments) || 0));
+    const defaultCalc = (parseFloat(form.remainingAmount) || 0) / remInst;
+    const hasCustom = firstVal > 0 && Math.abs(firstVal - defaultCalc) > 0.01;
+
     onUpdate({
       borrowerName: form.borrowerName,
       amount: parseFloat(form.amount) || loan.amount,
@@ -194,11 +222,12 @@ function LoanCardView({
       installments: parseInt(form.installments) || loan.installments,
       paidInstallments: parseInt(form.paidInstallments) || 0,
       startDate: form.startDate || loan.startDate,
-      dueDate: form.dueDate || loan.dueDate,
+      dueDate,
       interestType: form.interestType,
       notes: form.notes,
       tags: parsedTags,
       remainingAmount: parseFloat(form.remainingAmount) || 0,
+      customInstallmentValue: hasCustom ? firstVal : null,
     });
     setEditing(false);
   };
