@@ -140,7 +140,7 @@ export function OverdueLoans({ loans, clients, installmentSchedules }: Props) {
   const todayStr = getTodayStr();
 
   const activeLoans = useMemo(() =>
-    loans.filter((l) => l.status !== "paid" && l.paidInstallments < l.installments && l.borrowerName.toLowerCase().includes(search.toLowerCase())),
+    loans.filter((l) => l.status !== "paid" && l.borrowerName.toLowerCase().includes(search.toLowerCase())),
     [loans, search]
   );
 
