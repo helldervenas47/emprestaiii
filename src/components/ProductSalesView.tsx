@@ -69,7 +69,7 @@ function SaleCard({ sale, onDelete, onEdit, onUpdate, formatCurrency }: { sale: 
   const [showPayDatePicker, setShowPayDatePicker] = useState(false);
   const TabIcon = businessTabs.find((t) => t.type === sale.businessType)?.icon || ShoppingCart;
   const isRecorrente = sale.paymentMode === "recorrente" && sale.installments > 1;
-  const valorParcela = sale.installments > 0 ? sale.total / sale.installments : sale.total;
+  const valorParcela = sale.installments > 0 ? Math.max(0, sale.total - (sale.downPayment || 0)) / sale.installments : sale.total;
   const isPaid = isRecorrente ? sale.paidInstallments >= sale.installments : sale.paidInstallments >= 1;
   const pendentes = isRecorrente ? sale.installments - sale.paidInstallments : (sale.paidInstallments >= 1 ? 0 : 1);
   const category = getSaleCategory(sale);
@@ -156,11 +156,11 @@ function SaleCard({ sale, onDelete, onEdit, onUpdate, formatCurrency }: { sale: 
           </div>
           <div>
             <p className="text-xs text-muted-foreground">Valor Pago</p>
-            <p className="text-sm font-bold text-success">{formatCurrency(valorParcela * sale.paidInstallments)}</p>
+            <p className="text-sm font-bold text-success">{formatCurrency(valorParcela * sale.paidInstallments + (sale.downPayment || 0))}</p>
           </div>
           <div>
             <p className="text-xs text-muted-foreground">Restante</p>
-            <p className="text-sm font-bold text-warning">{formatCurrency(Math.max(0, sale.total - valorParcela * sale.paidInstallments))}</p>
+            <p className="text-sm font-bold text-warning">{formatCurrency(Math.max(0, sale.total - valorParcela * sale.paidInstallments - (sale.downPayment || 0)))}</p>
           </div>
         </div>
 
@@ -380,8 +380,8 @@ function SalesList({ sales, onDeleteSale, onUpdateSale, clients = [] }: { sales:
 
   // Calculate receivables per category
   const getRemaining = (s: Sale) => {
-    const valorParcela = s.installments > 0 ? s.total / s.installments : s.total;
-    const paid = valorParcela * s.paidInstallments;
+    const valorParcela = s.installments > 0 ? Math.max(0, s.total - (s.downPayment || 0)) / s.installments : s.total;
+    const paid = valorParcela * s.paidInstallments + (s.downPayment || 0);
     return Math.max(0, s.total - paid);
   };
 
@@ -395,8 +395,8 @@ function SalesList({ sales, onDeleteSale, onUpdateSale, clients = [] }: { sales:
   const totalDueToday = dueTodaySales.reduce((acc, s) => acc + getRemaining(s), 0);
   // Valor pago = soma de todas as parcelas pagas de todos os contratos
   const totalPaid = sales.reduce((acc, s) => {
-    const valorParcela = s.installments > 0 ? s.total / s.installments : s.total;
-    return acc + valorParcela * s.paidInstallments;
+    const valorParcela = s.installments > 0 ? Math.max(0, s.total - (s.downPayment || 0)) / s.installments : s.total;
+    return acc + valorParcela * s.paidInstallments + (s.downPayment || 0);
   }, 0);
   // Quantidade de contratos = somente os quitados
   const paidContractsCount = paidSales.length;
