@@ -56,10 +56,15 @@ function getNextDate(base: Date, frequency: string, periods: number): Date {
   return d;
 }
 
+function getFirstPendingDate(loan: Loan): Date {
+  const firstDue = new Date(loan.dueDate + "T00:00:00");
+  return getNextDate(firstDue, loan.interestType || "Mensal", loan.paidInstallments);
+}
+
 function getDaysOverdue(loan: Loan): number {
   const today = new Date();
   const todayNorm = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-  const due = new Date(loan.dueDate + "T00:00:00");
+  const due = getFirstPendingDate(loan);
   const diff = Math.floor((todayNorm.getTime() - due.getTime()) / (1000 * 60 * 60 * 24));
   return diff;
 }
