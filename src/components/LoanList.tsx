@@ -1038,10 +1038,10 @@ function LoanCardView({
             <Button size="icon" variant="ghost" className="h-8 w-8" onClick={startEdit} title="Editar">
               <Pencil className="h-4 w-4 text-muted-foreground" />
             </Button>
-            <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive hover:bg-destructive hover:text-destructive-foreground" onClick={onDelete} title="Excluir">
-              <Trash2 className="h-4 w-4" />
-            </Button>
-          </div>
+             <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive hover:bg-destructive hover:text-destructive-foreground" onClick={() => setConfirmDelete(true)} title="Excluir">
+               <Trash2 className="h-4 w-4" />
+             </Button>
+           </div>
         </div>
         )}
       </CardContent>
