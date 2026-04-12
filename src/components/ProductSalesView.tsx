@@ -594,6 +594,8 @@ function SalesList({ sales, onDeleteSale, onUpdateSale, clients = [], hideOnTrac
         </div>
       </div>
 
+      {renderAfterCards}
+
       {/* Category filter pills */}
       <div className="flex flex-wrap gap-2">
         {saleCategoryFilters.map((cat) => {
