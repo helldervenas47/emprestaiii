@@ -42,6 +42,7 @@ function getSaleCategory(sale: Sale): "paid" | "overdue" | "due_today" | "on_tra
 
   // Find next unpaid installment due date
   const baseDate = new Date(sale.date + "T00:00:00");
+  const nextInstIdx = sale.paidInstallments;
   const dueDate = isRecorrente ? addByFrequency(baseDate, sale.frequency || "Mensal", nextInstIdx) : baseDate;
   const today = new Date();
   const todayNorm = new Date(today.getFullYear(), today.getMonth(), today.getDate());
@@ -76,7 +77,8 @@ function SaleCard({ sale, onDelete, onEdit, onUpdate, formatCurrency }: { sale: 
   // Generate installment rows with estimated dates
   const totalParcelas = isRecorrente ? sale.installments : 1;
   const parcelas = Array.from({ length: totalParcelas }, (_, i) => {
-    const dueDate = isRecorrente ? addByFrequency(baseDate, sale.frequency || "Mensal", i) : baseDate;
+    const instBaseDate = new Date(sale.date + "T00:00:00");
+    const dueDate = isRecorrente ? addByFrequency(instBaseDate, sale.frequency || "Mensal", i) : instBaseDate;
     return {
       number: i + 1,
       date: format(dueDate, "dd/MM/yyyy"),
