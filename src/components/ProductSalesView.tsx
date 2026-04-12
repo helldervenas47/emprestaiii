@@ -762,23 +762,30 @@ export function ProductSalesView({ sales, onDeleteSale, onUpdateSale, clients = 
 
       {/* Despesas Mensais */}
       <div className="rounded-xl border p-4 bg-card">
+        <div className="flex items-center justify-center gap-2 mb-1">
+          <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => {
+            const [y, m] = selectedMonth.split("-").map(Number);
+            const prev = new Date(y, m - 2, 1);
+            setSelectedMonth(`${prev.getFullYear()}-${String(prev.getMonth() + 1).padStart(2, "0")}`);
+          }}>
+            <ChevronLeft className="h-4 w-4" />
+          </Button>
+          <p className="text-xs font-medium text-muted-foreground capitalize">
+            {format(new Date(selYear, selMonthNum - 1, 1), "MMMM yyyy", { locale: ptBR })}
+          </p>
+          <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => {
+            const [y, m] = selectedMonth.split("-").map(Number);
+            const next = new Date(y, m, 1);
+            setSelectedMonth(`${next.getFullYear()}-${String(next.getMonth() + 1).padStart(2, "0")}`);
+          }}>
+            <ChevronRight className="h-4 w-4" />
+          </Button>
+        </div>
         <div className="flex items-center justify-between mb-2">
           <p className="text-xs font-medium text-muted-foreground">Despesas Mensais</p>
           <Receipt className="h-4 w-4 text-muted-foreground" />
         </div>
         <p className="text-xl font-bold text-destructive">{formatCurrency(monthlyTotal)}</p>
-        <div className="mt-2">
-          <Select value={selectedMonth} onValueChange={setSelectedMonth}>
-            <SelectTrigger className="h-7 text-xs w-full">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {monthOptions.map(opt => (
-                <SelectItem key={opt.value} value={opt.value} className="text-xs">{opt.label}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
       </div>
     </div>
   );
