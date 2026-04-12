@@ -685,7 +685,25 @@ function LoanCardView({
               <CalendarUI
                 mode="single"
                 selected={getFirstPendingDate(loan, installmentSchedules)}
-                onSelect={(d) => { if (d) onUpdate({ dueDate: d.toISOString().split("T")[0] }); }}
+                onSelect={async (d) => {
+                  if (d) {
+                    const newDateStr = d.toISOString().split("T")[0];
+                    onUpdate({ dueDate: newDateStr });
+                    // Also persist to loan_installments for the next pending installment
+                    const nextNum = loan.paidInstallments + 1;
+                    const loanSchedules = installmentSchedules
+                      .filter((s) => s.loanId === loan.id)
+                      .sort((a, b) => a.installmentNumber - b.installmentNumber);
+                    const updatedRows = loanSchedules.length > 0
+                      ? loanSchedules.map((s) =>
+                          s.installmentNumber === nextNum
+                            ? { installmentNumber: s.installmentNumber, dueDate: newDateStr, amount: s.amount }
+                            : { installmentNumber: s.installmentNumber, dueDate: s.dueDate, amount: s.amount }
+                        )
+                      : [{ installmentNumber: nextNum, dueDate: newDateStr, amount: calculateInstallment(loan.amount, loan.interestRate, loan.installments) }];
+                    await onSaveSchedule(loan.id, updatedRows);
+                  }
+                }}
                 initialFocus
                 className="p-3 pointer-events-auto"
               />
@@ -734,14 +752,18 @@ function LoanCardView({
               <span className="font-medium text-muted-foreground">Status</span>
               {Array.from({ length: loan.installments }, (_, idx) => {
                 const i = idx + 1;
+                // Priority: 1) saved schedule, 2) payment date, 3) calculated fallback
+                const savedSchedule = installmentSchedules.find((s) => s.loanId === loan.id && s.installmentNumber === i);
                 const firstDueDate = new Date(loan.dueDate + "T00:00:00");
-                const scheduledDate = getNextDate(firstDueDate, loan.interestType || "Mensal", i - 1);
-                const instDate = i <= loan.paidInstallments
-                  ? (() => {
-                      const loanPayment = allPayments.find((p) => p.loanId === loan.id && p.installmentNumber === i);
-                      return loanPayment ? new Date(loanPayment.date + "T00:00:00") : scheduledDate;
-                    })()
-                  : scheduledDate;
+                const fallbackDate = getNextDate(firstDueDate, loan.interestType || "Mensal", i - 1);
+                const instDate = savedSchedule
+                  ? new Date(savedSchedule.dueDate + "T00:00:00")
+                  : i <= loan.paidInstallments
+                    ? (() => {
+                        const loanPayment = allPayments.find((p) => p.loanId === loan.id && p.installmentNumber === i);
+                        return loanPayment ? new Date(loanPayment.date + "T00:00:00") : fallbackDate;
+                      })()
+                    : fallbackDate;
                 const instDateStr = instDate.toLocaleDateString("pt-BR");
                 const isPaid = i <= loan.paidInstallments;
                 const todayNorm = new Date();
