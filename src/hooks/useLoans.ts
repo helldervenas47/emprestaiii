@@ -294,7 +294,8 @@ export function useLoans() {
 
     await adjustBalance(-payment.amount);
     await supabase.from("payments").delete().eq("id", id);
-  }, [payments, loans]);
+    await fetchSchedules();
+  }, [payments, loans, fetchSchedules]);
 
   return { loans, payments, installmentSchedules, addLoan, addPayment, addPartialPayment, addInterestOnlyPayment, updateLoan, deleteLoan, deletePayment, saveSchedule };
 }
