@@ -70,6 +70,7 @@ function SaleCard({ sale, onDelete, onEdit, onUpdate, formatCurrency }: { sale: 
   const [partialDate, setPartialDate] = useState<Date | undefined>(undefined);
   const [showParcelas, setShowParcelas] = useState(false);
   const [showPayDatePicker, setShowPayDatePicker] = useState(false);
+  const [showPayments, setShowPayments] = useState(false);
   const TabIcon = businessTabs.find((t) => t.type === sale.businessType)?.icon || ShoppingCart;
   const isRecorrente = sale.paymentMode === "recorrente" && sale.installments > 1;
   const amounts = sale.installmentAmounts;
