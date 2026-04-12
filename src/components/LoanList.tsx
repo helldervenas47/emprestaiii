@@ -593,22 +593,58 @@ function LoanCardView({
           {loan.status !== "paid" && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button className="w-full h-10 text-sm font-semibold">
-                  <DollarSign className="h-4 w-4 mr-2" /> Pagar
+                <Button className="w-full h-10 text-sm font-semibold gap-2">
+                  <DollarSign className="h-4 w-4" /> Pagar
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="center" className="w-48">
-                <DropdownMenuItem onClick={() => openPaymentDialog("full")}>
-                  <DollarSign className="h-4 w-4 mr-2" /> Total
+              <DropdownMenuContent align="center" className="w-56 p-2 space-y-1">
+                <DropdownMenuItem
+                  onClick={() => openPaymentDialog("installment")}
+                  className="flex items-center gap-3 px-3 py-2.5 rounded-lg cursor-pointer hover:bg-primary/10 focus:bg-primary/10"
+                >
+                  <div className="h-8 w-8 rounded-full bg-primary/15 flex items-center justify-center shrink-0">
+                    <CheckCircle className="h-4 w-4 text-primary" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-foreground">Parcela</p>
+                    <p className="text-[11px] text-muted-foreground">{formatCurrency(installment)}</p>
+                  </div>
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => openPaymentDialog("interest")}>
-                  <Percent className="h-4 w-4 mr-2" /> Juros
+                <DropdownMenuItem
+                  onClick={() => openPaymentDialog("interest")}
+                  className="flex items-center gap-3 px-3 py-2.5 rounded-lg cursor-pointer hover:bg-purple/10 focus:bg-purple/10"
+                >
+                  <div className="h-8 w-8 rounded-full bg-purple/15 flex items-center justify-center shrink-0">
+                    <Percent className="h-4 w-4 text-purple" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-foreground">Juros</p>
+                    <p className="text-[11px] text-muted-foreground">{formatCurrency(interestOnly)}</p>
+                  </div>
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setShowPartial(!showPartial)}>
-                  <HandCoins className="h-4 w-4 mr-2" /> Parcial
+                <DropdownMenuItem
+                  onClick={() => setShowPartial(!showPartial)}
+                  className="flex items-center gap-3 px-3 py-2.5 rounded-lg cursor-pointer hover:bg-warning/10 focus:bg-warning/10"
+                >
+                  <div className="h-8 w-8 rounded-full bg-warning/15 flex items-center justify-center shrink-0">
+                    <HandCoins className="h-4 w-4 text-warning" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-foreground">Parcial</p>
+                    <p className="text-[11px] text-muted-foreground">Valor personalizado</p>
+                  </div>
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => openPaymentDialog("installment")}>
-                  <CheckCircle className="h-4 w-4 mr-2" /> Parcela
+                <DropdownMenuItem
+                  onClick={() => openPaymentDialog("full")}
+                  className="flex items-center gap-3 px-3 py-2.5 rounded-lg cursor-pointer hover:bg-success/10 focus:bg-success/10"
+                >
+                  <div className="h-8 w-8 rounded-full bg-success/15 flex items-center justify-center shrink-0">
+                    <DollarSign className="h-4 w-4 text-success" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-foreground">Total</p>
+                    <p className="text-[11px] text-muted-foreground">{formatCurrency(remaining)}</p>
+                  </div>
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
