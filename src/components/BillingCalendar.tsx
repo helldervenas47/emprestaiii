@@ -33,7 +33,7 @@ interface DueItem {
   date: string;
 }
 
-export function BillingCalendar({ loans, payments }: Props) {
+export function BillingCalendar({ loans, payments, installmentSchedules }: Props) {
   const { mask } = useHideValues();
   const formatCurrency = useCallback((v: number) => mask(rawFormatCurrency(v)), [mask]);
   const today = new Date();
