@@ -138,7 +138,7 @@ const Index = () => {
   const { loans, payments, installmentSchedules, addLoan, addPayment, addPartialPayment, addInterestOnlyPayment, updateLoan, deleteLoan, deletePayment, saveSchedule } = useLoans();
   const { clients, addClient, deleteClient, updateClient } = useClients();
   const { products, sales, addProduct, updateProduct, deleteProduct, addSale, updateSale, deleteSale } = useProducts();
-  const { expenses, addExpense, payExpense, deleteExpense } = useExpenses();
+  const { expenses, addExpense, payExpense, deleteExpense, updateExpense } = useExpenses();
   const [showLoanForm, setShowLoanForm] = useState(false);
   const [showClientForm, setShowClientForm] = useState(false);
   const [showProductForm, setShowProductForm] = useState(false);
@@ -393,6 +393,7 @@ const Index = () => {
             onAddExpense={addExpense}
             onPayExpense={payExpense}
             onDeleteExpense={deleteExpense}
+            onUpdateExpense={updateExpense}
           />
         )}
         {tab === "users" && <UserManagement />}
