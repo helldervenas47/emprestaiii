@@ -1092,7 +1092,7 @@ export function ProductSalesView({ sales, onDeleteSale, onUpdateSale, clients = 
               </div>
             ) : (
               <div className="grid gap-3">
-                {vehicleExpenses.map((exp) => {
+                {vehicleExpenses.map((exp, idx) => {
                   const isOverdue = !exp.paid && exp.dueDate < new Date().toISOString().split("T")[0];
                   const hasPaidSomething = exp.paid || (exp.paidInstallments && exp.paidInstallments > 0);
                   const isRecorrente = exp.type === "recorrente" && exp.installments && exp.installments > 1;
