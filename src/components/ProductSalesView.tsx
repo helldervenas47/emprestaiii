@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogD
 import { Trash2, Search, ShoppingCart, Tv, Car, Calendar as CalendarIcon, User, Pencil, ChevronDown, ChevronUp, CheckCircle, HandCoins, Check, X as XIcon, DollarSign, AlertTriangle, Clock, CircleCheck, Receipt, Plus, Wallet, ChevronLeft, ChevronRight } from "lucide-react";
 import { addMonths, addWeeks, addDays, format, startOfMonth, endOfMonth } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { getBalance, setBalance } from "@/lib/balance";
+import { supabase } from "@/integrations/supabase/client";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 function addByFrequency(date: Date, frequency: string, n: number): Date {
@@ -675,13 +675,25 @@ export function ProductSalesView({ sales, onDeleteSale, onUpdateSale, clients = 
   const [balanceInput, setBalanceInput] = useState("");
 
   useEffect(() => {
-    getBalance().then(setBalanceState);
+    (async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      const { data } = await supabase.from("vehicle_balance").select("amount").eq("user_id", user.id).maybeSingle();
+      setBalanceState(data?.amount ?? 0);
+    })();
   }, []);
 
   const handleSaveBalance = async () => {
     const val = parseFloat(balanceInput);
     if (isNaN(val)) return;
-    await setBalance(val);
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+    const { data: existing } = await supabase.from("vehicle_balance").select("id").eq("user_id", user.id).maybeSingle();
+    if (existing) {
+      await supabase.from("vehicle_balance").update({ amount: val, updated_at: new Date().toISOString() }).eq("user_id", user.id);
+    } else {
+      await supabase.from("vehicle_balance").insert({ user_id: user.id, amount: val });
+    }
     setBalanceState(val);
     setEditingBalance(false);
   };
