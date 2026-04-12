@@ -49,7 +49,8 @@ Deno.serve(async (req) => {
       });
     }
 
-    const { action, user_id, role } = await req.json();
+    const body = await req.json();
+    const { action, user_id, role, display_name, username, email, password } = body;
 
     if (action === "list") {
       // List all users with their roles and profiles
@@ -98,7 +99,6 @@ Deno.serve(async (req) => {
     }
 
     if (action === "update_user") {
-      const { display_name, username, email, password } = await req.json().catch(() => ({}));
       if (!user_id) {
         return new Response(JSON.stringify({ error: "user_id é obrigatório" }), {
           status: 400,
