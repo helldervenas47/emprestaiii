@@ -634,11 +634,11 @@ function LoanCardView({
             </p>
           )}
           <p className="text-xs text-muted-foreground mt-1">
-            {loan.paymentType === "Parcelado" && loan.status !== "paid" && loan.paidInstallments < loan.installments
+            {(loan.paymentType === "Parcelado" || loan.installments >= 2) && loan.status !== "paid" && loan.paidInstallments < loan.installments
               ? `parcela pendente (${loan.paidInstallments + 1}ª de ${loan.installments})${loan.customInstallmentValue != null ? " • manual" : ""}`
               : "restante a receber"}
           </p>
-          {loan.paymentType === "Parcelado" && loan.status !== "paid" && loan.paidInstallments < loan.installments && (
+          {(loan.paymentType === "Parcelado" || loan.installments >= 2) && loan.status !== "paid" && loan.paidInstallments < loan.installments && (
             <p className="text-xs text-muted-foreground mt-0.5">Total restante: {formatCurrency(remaining)}</p>
           )}
         </div>
