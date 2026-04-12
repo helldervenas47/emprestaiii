@@ -24,6 +24,7 @@ export function SaleForm({ onAdd, onClose, defaultBusinessType = "venda" }: Prop
     description: "",
     quantity: "1",
     total: "",
+    installmentValue: "",
     customerName: "",
     notes: "",
     businessType: defaultBusinessType,
@@ -89,7 +90,14 @@ export function SaleForm({ onAdd, onClose, defaultBusinessType = "venda" }: Prop
               </div>
               <div>
                 <Label>Valor Total (R$)</Label>
-                <Input type="number" step="0.01" min="0.01" value={form.total} onChange={(e) => update("total", e.target.value)} placeholder="0,00" required />
+                <Input type="number" step="0.01" min="0.01" value={form.total} onChange={(e) => {
+                  update("total", e.target.value);
+                  const totalVal = parseFloat(e.target.value) || 0;
+                  const count = parseInt(form.installments) || 1;
+                  if (form.paymentMode === "recorrente" && totalVal > 0 && count > 0) {
+                    update("installmentValue", (totalVal / count).toFixed(2));
+                  }
+                }} placeholder="0,00" required />
               </div>
             </div>
 
@@ -120,9 +128,29 @@ export function SaleForm({ onAdd, onClose, defaultBusinessType = "venda" }: Prop
                     </SelectContent>
                   </Select>
                 </div>
-                <div>
-                  <Label>Quantidade de Parcelas</Label>
-                  <Input type="number" min="2" value={form.installments} onChange={(e) => update("installments", e.target.value)} required />
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label>Quantidade de Parcelas</Label>
+                    <Input type="number" min="2" value={form.installments} onChange={(e) => {
+                      const newCount = parseInt(e.target.value) || 1;
+                      update("installments", e.target.value);
+                      const totalVal = parseFloat(form.total) || 0;
+                      if (totalVal > 0 && newCount > 0) {
+                        update("installmentValue", (totalVal / newCount).toFixed(2));
+                      }
+                    }} required />
+                  </div>
+                  <div>
+                    <Label>Valor da Parcela (R$)</Label>
+                    <Input type="number" step="0.01" min="0.01" value={form.installmentValue} onChange={(e) => {
+                      const parcVal = parseFloat(e.target.value) || 0;
+                      const count = parseInt(form.installments) || 1;
+                      update("installmentValue", e.target.value);
+                      if (parcVal > 0) {
+                        update("total", (parcVal * count).toFixed(2));
+                      }
+                    }} placeholder="0,00" />
+                  </div>
                 </div>
               </>
             )}
