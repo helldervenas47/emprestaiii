@@ -86,6 +86,9 @@ export function SaleEditForm({ sale, onSave, onClose, clients = [] }: Props) {
     const amounts = form.paymentMode === "recorrente" && installmentRows.length > 0
       ? installmentRows.map(r => parseFloat(r.value) || 0)
       : null;
+    const dates = form.paymentMode === "recorrente" && installmentRows.length > 0
+      ? installmentRows.map(r => r.date)
+      : null;
     onSave(sale.id, {
       description: form.description,
       productName: form.description,
@@ -103,6 +106,7 @@ export function SaleEditForm({ sale, onSave, onClose, clients = [] }: Props) {
       frequency: form.paymentMode === "recorrente" ? form.frequency : "Mensal",
       installmentValue: null,
       installmentAmounts: amounts,
+      installmentDates: dates,
     });
     onClose();
   };

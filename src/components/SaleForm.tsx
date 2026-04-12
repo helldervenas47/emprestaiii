@@ -80,6 +80,9 @@ export function SaleForm({ onAdd, onClose, defaultBusinessType = "venda", client
     const amounts = isRecorrente && installmentRows.length > 0
       ? installmentRows.map(r => parseFloat(r.value) || 0)
       : null;
+    const dates = isRecorrente && installmentRows.length > 0
+      ? installmentRows.map(r => r.date)
+      : null;
     onAdd({
       productName: form.description,
       description: form.description,
@@ -98,6 +101,7 @@ export function SaleForm({ onAdd, onClose, defaultBusinessType = "venda", client
       frequency: isRecorrente ? form.frequency : "Mensal",
       installmentValue: null,
       installmentAmounts: amounts,
+      installmentDates: dates,
     });
     onClose();
   };
