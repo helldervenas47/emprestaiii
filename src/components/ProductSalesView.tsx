@@ -382,7 +382,7 @@ function SalesList({ sales, onDeleteSale, onUpdateSale }: { sales: Sale[]; onDel
             <CircleCheck className="h-4 w-4 opacity-70" />
           </div>
           <p className="text-xl font-bold">{formatCurrency(totalPaid)}</p>
-          <p className="text-xs opacity-75 mt-1">{paidSales.length} contratos</p>
+          <p className="text-xs opacity-75 mt-1">{paidContractsCount} contratos quitados</p>
         </div>
         <div className="rounded-xl p-4 bg-gradient-to-br from-warning/80 to-warning text-warning-foreground">
           <div className="flex items-center justify-between mb-2">
