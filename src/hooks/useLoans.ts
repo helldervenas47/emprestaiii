@@ -24,6 +24,7 @@ export function useLoans() {
         paidInstallments: l.paid_installments, status: l.status as Loan["status"],
         remainingAmount: l.remaining_amount != null ? Number(l.remaining_amount) : undefined,
         customInstallmentValue: l.custom_installment_value != null ? Number(l.custom_installment_value) : null,
+        customInterestValue: l.custom_interest_value != null ? Number(l.custom_interest_value) : null,
         tags: l.tags, notes: l.notes, createdAt: l.created_at,
       })));
     }
@@ -92,6 +93,7 @@ export function useLoans() {
       start_date: loan.startDate, due_date: loan.dueDate, installments: loan.installments,
       paid_installments: loan.paidInstallments ?? 0, status, tags: loan.tags, notes: loan.notes,
       remaining_amount: loan.remainingAmount ?? 0,
+      custom_interest_value: loan.customInterestValue ?? null,
     }).select().single();
 
     if (error) {
@@ -166,7 +168,9 @@ export function useLoans() {
     const loan = loans.find((l) => l.id === loanId);
     if (!loan) return;
     const dateStr = paymentDate || new Date().toISOString().split("T")[0];
-    const interestAmount = loan.amount * (loan.interestRate / 100);
+    const interestAmount = loan.customInterestValue != null && loan.customInterestValue > 0
+      ? loan.customInterestValue
+      : loan.amount * (loan.interestRate / 100);
     const currentDue = new Date(loan.dueDate + "T00:00:00");
     currentDue.setMonth(currentDue.getMonth() + 1);
     const newDueDate = currentDue.toISOString().split("T")[0];
@@ -211,6 +215,7 @@ export function useLoans() {
     if (data.notes !== undefined) updateData.notes = data.notes;
     if (data.remainingAmount !== undefined) updateData.remaining_amount = data.remainingAmount;
     if (data.customInstallmentValue !== undefined) updateData.custom_installment_value = data.customInstallmentValue;
+    if (data.customInterestValue !== undefined) updateData.custom_interest_value = data.customInterestValue;
     await supabase.from("loans").update(updateData).eq("id", id);
   }, [loans]);
 

@@ -115,7 +115,9 @@ function loanToForm(loan: Loan): EditForm {
   const amt = loan.amount;
   const rate = loan.interestRate;
   const months = loan.installments;
-  const interestValue = amt * (rate / 100);
+  const interestValue = loan.customInterestValue != null && loan.customInterestValue > 0
+    ? loan.customInterestValue
+    : amt * (rate / 100);
   const total = calculateTotalWithInterest(amt, rate, months);
   const remainingForCalc = loan.remainingAmount != null && loan.remainingAmount > 0 ? loan.remainingAmount : total;
   const paidCount = loan.paidInstallments || 0;
@@ -182,7 +184,9 @@ function LoanCardView({
   const calculatedInstallment = remaining / remainingInstallments;
   const installment = loan.customInstallmentValue != null && loan.customInstallmentValue > 0 ? loan.customInstallmentValue : calculatedInstallment;
   const progress = loan.installments > 0 ? (loan.paidInstallments / loan.installments) * 100 : 0;
-  const interestOnly = loan.amount * (loan.interestRate / 100);
+  const interestOnly = loan.customInterestValue != null && loan.customInterestValue > 0
+    ? loan.customInterestValue
+    : loan.amount * (loan.interestRate / 100);
   const totalInterest = total - loan.amount;
   const profit = totalPaid - loan.amount;
   const category = getLoanCategory(loan, allPayments);
@@ -237,6 +241,10 @@ function LoanCardView({
     const defaultCalc = (parseFloat(form.remainingAmount) || 0) / remInst;
     const hasCustom = firstVal > 0 && Math.abs(firstVal - defaultCalc) > 0.01;
 
+    const manualInterest = parseFloat(form.interestValue) || 0;
+    const calcInterest = (parseFloat(form.amount) || 0) * ((parseFloat(form.interestRate) || 0) / 100);
+    const hasCustomInterest = manualInterest > 0 && Math.abs(manualInterest - calcInterest) > 0.01;
+
     onUpdate({
       borrowerName: form.borrowerName,
       amount: parseFloat(form.amount) || loan.amount,
@@ -250,6 +258,7 @@ function LoanCardView({
       tags: parsedTags,
       remainingAmount: parseFloat(form.remainingAmount) || 0,
       customInstallmentValue: hasCustom ? firstVal : null,
+      customInterestValue: hasCustomInterest ? manualInterest : null,
     });
 
     // Save installment schedule
