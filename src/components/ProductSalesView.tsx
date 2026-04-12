@@ -517,7 +517,30 @@ function SalesList({ sales, onDeleteSale, onUpdateSale, clients = [] }: { sales:
   const dueTodaySales = sales.filter((s) => getSaleCategory(s) === "due_today");
   const paidSales = sales.filter((s) => getSaleCategory(s) === "paid");
 
-  const totalOverdue = overdueSales.reduce((acc, s) => acc + getRemaining(s), 0);
+  // Calculate only the value of overdue installments (not all remaining)
+  const getOverdueInstallmentsValue = (s: Sale): number => {
+    const isRecorrente = s.paymentMode === "recorrente" && s.installments > 1;
+    if (!isRecorrente) return getRemaining(s);
+    const baseDate = new Date(s.date + "T00:00:00");
+    const today = new Date();
+    const todayNorm = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    let overdueValue = 0;
+    for (let i = s.paidInstallments; i < s.installments; i++) {
+      const customDate = s.installmentDates && s.installmentDates[i];
+      const dueDate = customDate ? new Date(customDate + "T00:00:00") : addByFrequency(baseDate, s.frequency || "Mensal", i);
+      const dueNorm = new Date(dueDate.getFullYear(), dueDate.getMonth(), dueDate.getDate());
+      if (todayNorm.getTime() > dueNorm.getTime()) {
+        if (s.installmentAmounts && s.installmentAmounts[i] != null) {
+          overdueValue += s.installmentAmounts[i] || 0;
+        } else {
+          overdueValue += s.installments > 0 ? Math.max(0, s.total - (s.downPayment || 0)) / s.installments : 0;
+        }
+      }
+    }
+    return Math.max(0, overdueValue - (s.partialPaid || 0));
+  };
+
+  const totalOverdue = overdueSales.reduce((acc, s) => acc + getOverdueInstallmentsValue(s), 0);
   const totalOnTrack = onTrackSales.reduce((acc, s) => acc + getRemaining(s), 0);
   const totalDueToday = dueTodaySales.reduce((acc, s) => acc + getRemaining(s), 0);
   const totalPaid = sales.reduce((acc, s) => acc + getSalePaidAmount(s), 0);
