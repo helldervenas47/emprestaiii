@@ -676,6 +676,7 @@ export function ProductSalesView({ sales, onDeleteSale, onUpdateSale, clients = 
   const [balanceInput, setBalanceInput] = useState("");
   const [showDeleteAllExpenses, setShowDeleteAllExpenses] = useState(false);
   const [viewPaymentsExpenseId, setViewPaymentsExpenseId] = useState<string | null>(null);
+  const [editingExpenseId, setEditingExpenseId] = useState<string | null>(null);
 
   useEffect(() => {
     (async () => {
