@@ -977,11 +977,11 @@ export function ProductSalesView({ sales, onDeleteSale, onUpdateSale, clients = 
   // Wrap onPayExpense to debit vehicle balance
   const handleVehiclePayExpense = useCallback((id: string) => {
     const exp = expenses.find(e => e.id === id);
-    if (!exp || exp.paid) { onPayExpense?.(id); return; }
+    if (!exp || exp.paid) { onPayExpense?.(id, true); return; }
     const isRecorrente = exp.type === "recorrente" && exp.installments && exp.installments > 1;
     const debitAmount = isRecorrente ? exp.amount / exp.installments! : exp.amount;
     updateVehicleBalance(-debitAmount);
-    onPayExpense?.(id);
+    onPayExpense?.(id, true);
   }, [expenses, onPayExpense, updateVehicleBalance]);
 
   // Wrap onUpdateExpense to restore vehicle balance when payments are removed
