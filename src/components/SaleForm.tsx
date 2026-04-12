@@ -127,7 +127,9 @@ export function SaleForm({ onAdd, onClose, defaultBusinessType = "venda" }: Prop
                   const totalVal = parseFloat(e.target.value) || 0;
                   const count = parseInt(form.installments) || 1;
                   if (form.paymentMode === "recorrente" && totalVal > 0 && count > 0) {
-                    update("installmentValue", (totalVal / count).toFixed(2));
+                    const newInstVal = (totalVal / count).toFixed(2);
+                    update("installmentValue", newInstVal);
+                    setInstallmentRows((prev) => prev.map((r) => ({ ...r, value: newInstVal })));
                   }
                 }} placeholder="0,00" required />
               </div>
