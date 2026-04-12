@@ -859,7 +859,7 @@ function LoanRowView({
       {/* Ações */}
       <td className="px-4 py-3">
         <div className="flex items-center gap-1 justify-end">
-          {loan.status !== "paid" && (
+          {!readOnly && loan.status !== "paid" && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="sm" className="h-7 text-xs text-muted-foreground hover:text-foreground gap-1">
@@ -886,7 +886,7 @@ function LoanRowView({
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              {loan.status !== "paid" && (
+              {!readOnly && loan.status !== "paid" && (
                 <>
                   <DropdownMenuItem onClick={() => openPaymentDialog("installment")}>
                     <CheckCircle className="h-4 w-4 mr-2" /> Receber Parcela
@@ -899,18 +899,24 @@ function LoanRowView({
                   </DropdownMenuItem>
                 </>
               )}
-              <DropdownMenuItem onClick={() => loan.status === "paid" ? onUpdate({ status: "active", paidInstallments: 0 }) : openPaymentDialog("full")}>
-                <CheckCircle className="h-4 w-4 mr-2" /> {loan.status === "paid" ? "Marcar como não pago" : "Marcar como pago"}
-              </DropdownMenuItem>
+              {!readOnly && (
+                <DropdownMenuItem onClick={() => loan.status === "paid" ? onUpdate({ status: "active", paidInstallments: 0 }) : openPaymentDialog("full")}>
+                  <CheckCircle className="h-4 w-4 mr-2" /> {loan.status === "paid" ? "Marcar como não pago" : "Marcar como pago"}
+                </DropdownMenuItem>
+              )}
               <DropdownMenuItem onClick={() => setShowHistory(true)}>
                 <History className="h-4 w-4 mr-2" /> Histórico
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={startEdit}>
-                <Pencil className="h-4 w-4 mr-2" /> Editar
-              </DropdownMenuItem>
-              <DropdownMenuItem className="text-destructive" onClick={onDelete}>
-                <Trash2 className="h-4 w-4 mr-2" /> Excluir
-              </DropdownMenuItem>
+              {!readOnly && (
+                <>
+                  <DropdownMenuItem onClick={startEdit}>
+                    <Pencil className="h-4 w-4 mr-2" /> Editar
+                  </DropdownMenuItem>
+                  <DropdownMenuItem className="text-destructive" onClick={onDelete}>
+                    <Trash2 className="h-4 w-4 mr-2" /> Excluir
+                  </DropdownMenuItem>
+                </>
+              )}
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
