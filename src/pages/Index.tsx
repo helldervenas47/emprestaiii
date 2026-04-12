@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useRef, useState, useEffect } from "react";
 import { Plus, HandCoins, Users, LayoutDashboard, Download, Upload, ShoppingBag, BarChart3, AlertTriangle, Receipt, CalendarDays, Sun, Moon, LogOut, Info, X, Eye, EyeOff } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useAuth } from "@/hooks/useAuth";
@@ -147,11 +147,11 @@ const Index = () => {
   });
 
   // Reset tab if not visible for current role
-  useState(() => {
+  useEffect(() => {
     if (visibleTabs.length > 0 && !visibleTabs.find(t => t.id === tab)) {
       setTab(visibleTabs[0].id);
     }
-  });
+  }, [role]);
   const [dark, setDark] = useState(() => {
     if (typeof window !== "undefined") {
       const saved = localStorage.getItem("hvcred-theme");
