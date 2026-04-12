@@ -148,7 +148,8 @@ function LoanCardView({
   const [editingInstallment, setEditingInstallment] = useState(false);
   const [installmentInput, setInstallmentInput] = useState("");
 
-  const calculatedInstallment = calculateInstallment(loan.amount, loan.interestRate, loan.installments);
+  const remainingInstallments = Math.max(1, loan.installments - loan.paidInstallments);
+  const calculatedInstallment = remaining / remainingInstallments;
   const installment = loan.customInstallmentValue != null && loan.customInstallmentValue > 0 ? loan.customInstallmentValue : calculatedInstallment;
   const total = calculateTotalWithInterest(loan.amount, loan.interestRate, loan.installments);
   const totalPaid = getTotalPaid(loan, allPayments);
