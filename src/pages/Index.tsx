@@ -1,5 +1,5 @@
 import { useRef, useState, useEffect } from "react";
-import { Plus, HandCoins, Users, LayoutDashboard, Download, Upload, ShoppingBag, BarChart3, AlertTriangle, Receipt, CalendarDays, Sun, Moon, LogOut, Info, X, Eye, EyeOff, Car } from "lucide-react";
+import { Plus, HandCoins, Users, LayoutDashboard, Download, Upload, ShoppingBag, BarChart3, AlertTriangle, Receipt, CalendarDays, Sun, Moon, LogOut, Info, X, Eye, EyeOff, Car, Wrench } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
@@ -143,6 +143,7 @@ const Index = () => {
   const [showProductForm, setShowProductForm] = useState(false);
   const [showSaleForm, setShowSaleForm] = useState(false);
   const [showExpenseForm, setShowExpenseForm] = useState(false);
+  const [showVehicleExpenseForm, setShowVehicleExpenseForm] = useState(false);
   const [tab, setTab] = useState<Tab>("overview");
 
   const isReadOnly = role === "visualizador";
@@ -313,6 +314,11 @@ const Index = () => {
               </>
             )}
             {/* Removed separate Nova Venda button - now handled by primary action */}
+            {!isReadOnly && tab === "vehicles" && (
+              <Button variant="outline" onClick={() => setShowVehicleExpenseForm(true)}>
+                <Receipt className="h-4 w-4 mr-2" />Registrar Despesa
+              </Button>
+            )}
             {!isReadOnly && tab !== "overview" && tab !== "overdue" && tab !== "calendar" && tab !== "users" && (
               <Button onClick={handlePrimaryAction}>
                 <Plus className="h-4 w-4 mr-2" />{primaryLabel}
