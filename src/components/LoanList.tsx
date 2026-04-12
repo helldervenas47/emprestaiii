@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Progress } from "@/components/ui/progress";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Calendar as CalendarUI } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { calculateInstallment, calculateTotalWithInterest } from "@/hooks/useLoans";
@@ -181,6 +182,7 @@ function LoanCardView({
   const [lateInterestValue, setLateInterestValue] = useState<string>(loan.lateInterestValue != null ? String(loan.lateInterestValue) : "");
   const [showPenalty, setShowPenalty] = useState(false);
   const [penaltyValue, setPenaltyValue] = useState<string>(loan.penaltyValue != null ? String(loan.penaltyValue) : "");
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   const total = calculateTotalWithInterest(loan.amount, loan.interestRate, loan.installments);
   const totalPaid = getTotalPaid(loan, allPayments);
@@ -1036,10 +1038,10 @@ function LoanCardView({
             <Button size="icon" variant="ghost" className="h-8 w-8" onClick={startEdit} title="Editar">
               <Pencil className="h-4 w-4 text-muted-foreground" />
             </Button>
-            <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive hover:bg-destructive hover:text-destructive-foreground" onClick={onDelete} title="Excluir">
-              <Trash2 className="h-4 w-4" />
-            </Button>
-          </div>
+             <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive hover:bg-destructive hover:text-destructive-foreground" onClick={() => setConfirmDelete(true)} title="Excluir">
+               <Trash2 className="h-4 w-4" />
+             </Button>
+           </div>
         </div>
         )}
       </CardContent>
@@ -1112,6 +1114,20 @@ function LoanCardView({
         </DialogFooter>
       </DialogContent>
     </Dialog>
+    <AlertDialog open={confirmDelete} onOpenChange={setConfirmDelete}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Excluir empréstimo</AlertDialogTitle>
+          <AlertDialogDescription>
+            Tem certeza que deseja excluir o empréstimo de <strong>{loan.borrowerName}</strong>? Esta ação não pode ser desfeita.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Cancelar</AlertDialogCancel>
+          <AlertDialogAction onClick={onDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Excluir</AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
     </>
   );
 }
@@ -1138,6 +1154,7 @@ function LoanRowView({
   const [paymentDialog, setPaymentDialog] = useState<{ type: "installment" | "interest" | "partial" | "full"; amount?: number } | null>(null);
   const [showHistory, setShowHistory] = useState(false);
   const [paymentDate, setPaymentDate] = useState<Date>(new Date());
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   const total = calculateTotalWithInterest(loan.amount, loan.interestRate, loan.installments);
   const totalPaid = getTotalPaid(loan, allPayments);
@@ -1351,7 +1368,7 @@ function LoanRowView({
                   <DropdownMenuItem onClick={startEdit}>
                     <Pencil className="h-4 w-4 mr-2" /> Editar
                   </DropdownMenuItem>
-                  <DropdownMenuItem className="text-destructive" onClick={onDelete}>
+                  <DropdownMenuItem className="text-destructive" onClick={() => setConfirmDelete(true)}>
                     <Trash2 className="h-4 w-4 mr-2" /> Excluir
                   </DropdownMenuItem>
                 </>
@@ -1445,6 +1462,20 @@ function LoanRowView({
         </DialogFooter>
       </DialogContent>
     </Dialog>
+    <AlertDialog open={confirmDelete} onOpenChange={setConfirmDelete}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Excluir empréstimo</AlertDialogTitle>
+          <AlertDialogDescription>
+            Tem certeza que deseja excluir o empréstimo de <strong>{loan.borrowerName}</strong>? Esta ação não pode ser desfeita.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Cancelar</AlertDialogCancel>
+          <AlertDialogAction onClick={onDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Excluir</AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
     </>
   );
 }
