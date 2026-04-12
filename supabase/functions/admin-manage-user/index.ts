@@ -97,6 +97,42 @@ Deno.serve(async (req) => {
       });
     }
 
+    if (action === "update_user") {
+      const { display_name, username, email, password } = await req.json().catch(() => ({}));
+      if (!user_id) {
+        return new Response(JSON.stringify({ error: "user_id é obrigatório" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      // Update auth user (email/password)
+      const updateData: Record<string, unknown> = {};
+      if (email) updateData.email = email;
+      if (password) updateData.password = password;
+      if (Object.keys(updateData).length > 0) {
+        const { error: authErr } = await adminClient.auth.admin.updateUserById(user_id, updateData);
+        if (authErr) {
+          return new Response(JSON.stringify({ error: authErr.message }), {
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+      }
+
+      // Update profile
+      const profileUpdate: Record<string, unknown> = {};
+      if (display_name !== undefined) profileUpdate.display_name = display_name;
+      if (username !== undefined) profileUpdate.username = username || null;
+      if (Object.keys(profileUpdate).length > 0) {
+        await adminClient.from("profiles").update(profileUpdate).eq("user_id", user_id);
+      }
+
+      return new Response(JSON.stringify({ success: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     if (action === "delete") {
       if (!user_id) {
         return new Response(JSON.stringify({ error: "user_id é obrigatório" }), {
@@ -104,7 +140,6 @@ Deno.serve(async (req) => {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      // Prevent self-delete
       if (user_id === caller.id) {
         return new Response(JSON.stringify({ error: "Não é possível excluir seu próprio usuário" }), {
           status: 400,
