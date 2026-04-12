@@ -63,25 +63,19 @@ export function useExpenses() {
         ...e, paidInstallments: newPaid, paid: fullyPaid,
         paidDate: fullyPaid ? new Date().toISOString().split("T")[0] : undefined,
       } : e));
-      const promises: Promise<any>[] = [
-        supabase.from("expenses").update({
-          paid_installments: newPaid, paid: fullyPaid,
-          paid_date: fullyPaid ? new Date().toISOString().split("T")[0] : null,
-        }).eq("id", id).then(),
-      ];
-      if (!skipBalanceAdjust) promises.push(adjustBalance(-installmentAmount));
-      await Promise.all(promises);
+      if (!skipBalanceAdjust) await adjustBalance(-installmentAmount);
+      await supabase.from("expenses").update({
+        paid_installments: newPaid, paid: fullyPaid,
+        paid_date: fullyPaid ? new Date().toISOString().split("T")[0] : null,
+      }).eq("id", id);
     } else {
       setExpenses((prev) => prev.map((e) => e.id === id ? {
         ...e, paid: true, paidDate: new Date().toISOString().split("T")[0],
       } : e));
-      const promises: Promise<any>[] = [
-        supabase.from("expenses").update({
-          paid: true, paid_date: new Date().toISOString().split("T")[0],
-        }).eq("id", id).then(),
-      ];
-      if (!skipBalanceAdjust) promises.push(adjustBalance(-expense.amount));
-      await Promise.all(promises);
+      if (!skipBalanceAdjust) await adjustBalance(-expense.amount);
+      await supabase.from("expenses").update({
+        paid: true, paid_date: new Date().toISOString().split("T")[0],
+      }).eq("id", id);
     }
   }, [expenses]);
 
