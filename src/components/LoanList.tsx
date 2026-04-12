@@ -182,6 +182,7 @@ function LoanCardView({
   const [lateInterestValue, setLateInterestValue] = useState<string>(loan.lateInterestValue != null ? String(loan.lateInterestValue) : "");
   const [showPenalty, setShowPenalty] = useState(false);
   const [penaltyValue, setPenaltyValue] = useState<string>(loan.penaltyValue != null ? String(loan.penaltyValue) : "");
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   const total = calculateTotalWithInterest(loan.amount, loan.interestRate, loan.installments);
   const totalPaid = getTotalPaid(loan, allPayments);
