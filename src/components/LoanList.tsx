@@ -910,7 +910,89 @@ function LoanCardView({
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
+           )}
+          {loan.status !== "paid" && (
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm" className="flex-1 h-9 text-xs gap-1.5" onClick={() => setShowLateInterest(!showLateInterest)}>
+                <Percent className="h-3.5 w-3.5" /> Juros por Atraso
+                {loan.lateInterestValue != null && loan.lateInterestValue > 0 && (
+                  <Badge className="ml-1 text-[9px] bg-warning/20 text-warning border-warning/30">
+                    {loan.lateInterestType === "fixed" ? rawFormatCurrency(loan.lateInterestValue) + "/dia" : loan.lateInterestValue + "%/dia"}
+                  </Badge>
+                )}
+              </Button>
+              <Button variant="outline" size="sm" className="flex-1 h-9 text-xs gap-1.5" onClick={() => setShowPenalty(!showPenalty)}>
+                <DollarSign className="h-3.5 w-3.5" /> Aplicar Multa
+                {loan.penaltyValue != null && loan.penaltyValue > 0 && (
+                  <Badge className="ml-1 text-[9px] bg-destructive/20 text-destructive border-destructive/30">
+                    {rawFormatCurrency(loan.penaltyValue)}
+                  </Badge>
+                )}
+              </Button>
+            </div>
           )}
+          {showLateInterest && (
+            <div className="p-3 rounded-lg bg-muted border border-border/50 space-y-2">
+              <p className="text-xs font-semibold text-foreground">Juros por Atraso</p>
+              <div className="flex gap-2">
+                <Button size="sm" variant={lateInterestType === "percentage" ? "default" : "outline"} className="flex-1 h-8 text-xs" onClick={() => setLateInterestType("percentage")}>
+                  % por dia
+                </Button>
+                <Button size="sm" variant={lateInterestType === "fixed" ? "default" : "outline"} className="flex-1 h-8 text-xs" onClick={() => setLateInterestType("fixed")}>
+                  R$ por dia
+                </Button>
+              </div>
+              <Input
+                type="number" step="0.01" min="0"
+                placeholder={lateInterestType === "percentage" ? "Ex: 0.5 (%)" : "Ex: 5.00 (R$)"}
+                value={lateInterestValue}
+                onChange={(e) => setLateInterestValue(e.target.value)}
+                className="h-8 text-sm"
+              />
+              <div className="flex gap-2">
+                <Button size="sm" className="flex-1 h-8 text-xs" onClick={() => {
+                  const val = parseFloat(lateInterestValue) || 0;
+                  onUpdate({ lateInterestType, lateInterestValue: val > 0 ? val : null });
+                  setShowLateInterest(false);
+                }}>Salvar</Button>
+                {loan.lateInterestValue != null && (
+                  <Button size="sm" variant="ghost" className="h-8 text-xs text-destructive" onClick={() => {
+                    onUpdate({ lateInterestType: null, lateInterestValue: null });
+                    setLateInterestValue("");
+                    setShowLateInterest(false);
+                  }}>Remover</Button>
+                )}
+                <Button size="sm" variant="outline" className="h-8 text-xs" onClick={() => setShowLateInterest(false)}>Cancelar</Button>
+              </div>
+            </div>
+          )}
+          {showPenalty && (
+            <div className="p-3 rounded-lg bg-muted border border-border/50 space-y-2">
+              <p className="text-xs font-semibold text-foreground">Multa por Parcela (valor fixo único)</p>
+              <Input
+                type="number" step="0.01" min="0"
+                placeholder="Ex: 50.00 (R$)"
+                value={penaltyValue}
+                onChange={(e) => setPenaltyValue(e.target.value)}
+                className="h-8 text-sm"
+              />
+              <div className="flex gap-2">
+                <Button size="sm" className="flex-1 h-8 text-xs" onClick={() => {
+                  const val = parseFloat(penaltyValue) || 0;
+                  onUpdate({ penaltyValue: val > 0 ? val : null });
+                  setShowPenalty(false);
+                }}>Salvar</Button>
+                {loan.penaltyValue != null && (
+                  <Button size="sm" variant="ghost" className="h-8 text-xs text-destructive" onClick={() => {
+                    onUpdate({ penaltyValue: null });
+                    setPenaltyValue("");
+                    setShowPenalty(false);
+                  }}>Remover</Button>
+                )}
+                <Button size="sm" variant="outline" className="h-8 text-xs" onClick={() => setShowPenalty(false)}>Cancelar</Button>
+              </div>
+            </div>
+          )
           <div className="flex items-center justify-center gap-1">
             {loan.status === "paid" && (
               <Button
