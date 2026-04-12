@@ -649,14 +649,14 @@ function LoanCardView({
                 <CalendarIcon className="h-4 w-4 text-muted-foreground shrink-0" />
                 <div>
                   <p className="text-[10px] text-muted-foreground">Venc: <Pencil className="inline h-2.5 w-2.5 ml-0.5" /></p>
-                  <p className="text-sm font-semibold text-foreground">{new Date(loan.dueDate + "T00:00:00").toLocaleDateString("pt-BR")}</p>
+                  <p className="text-sm font-semibold text-foreground">{getFirstPendingDate(loan).toLocaleDateString("pt-BR")}</p>
                 </div>
               </button>
             </PopoverTrigger>
             <PopoverContent className="w-auto p-0" align="start">
               <CalendarUI
                 mode="single"
-                selected={new Date(loan.dueDate + "T00:00:00")}
+                selected={getFirstPendingDate(loan)}
                 onSelect={(d) => { if (d) onUpdate({ dueDate: d.toISOString().split("T")[0] }); }}
                 initialFocus
                 className="p-3 pointer-events-auto"
