@@ -49,17 +49,24 @@ export function BillingCalendar({ loans, payments, installmentSchedules }: Props
       if (loan.status === "paid") return;
       if (loan.installments <= 0) return;
       if (loan.paidInstallments >= loan.installments) return;
-      const installmentAmount = calculateInstallment(loan.amount, loan.interestRate, loan.installments);
+      const defaultInstallmentAmount = loan.customInstallmentValue || calculateInstallment(loan.amount, loan.interestRate, loan.installments);
 
       // Use loan.dueDate as the anchor for the next unpaid installment
       // Then project remaining installments forward from there
       const nextInstallment = loan.paidInstallments + 1;
       const dueBase = new Date(loan.dueDate + "T00:00:00");
 
+      // Get schedules for this loan
+      const loanSchedules = installmentSchedules.filter(s => s.loanId === loan.id);
+
       for (let i = nextInstallment; i <= loan.installments; i++) {
         const monthsFromNext = i - nextInstallment;
         const dueDate = new Date(dueBase.getFullYear(), dueBase.getMonth() + monthsFromNext, dueBase.getDate());
         const dateStr = dueDate.toISOString().split("T")[0];
+
+        // Use schedule amount if available, otherwise default
+        const schedule = loanSchedules.find(s => s.installmentNumber === i);
+        const amount = schedule ? schedule.amount : defaultInstallmentAmount;
 
         if (!map[dateStr]) map[dateStr] = [];
         map[dateStr].push({
@@ -67,7 +74,7 @@ export function BillingCalendar({ loans, payments, installmentSchedules }: Props
           borrowerName: loan.borrowerName,
           installmentNumber: i,
           totalInstallments: loan.installments,
-          amount: installmentAmount,
+          amount,
           paid: false,
           date: dateStr,
         });
@@ -75,7 +82,7 @@ export function BillingCalendar({ loans, payments, installmentSchedules }: Props
     });
 
     return map;
-  }, [loans, payments]);
+  }, [loans, payments, installmentSchedules]);
 
   // Calendar grid
   const firstDay = new Date(year, month, 1);
