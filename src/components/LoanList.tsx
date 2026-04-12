@@ -115,7 +115,9 @@ function loanToForm(loan: Loan): EditForm {
   const amt = loan.amount;
   const rate = loan.interestRate;
   const months = loan.installments;
-  const interestValue = amt * (rate / 100);
+  const interestValue = loan.customInterestValue != null && loan.customInterestValue > 0
+    ? loan.customInterestValue
+    : amt * (rate / 100);
   const total = calculateTotalWithInterest(amt, rate, months);
   const remainingForCalc = loan.remainingAmount != null && loan.remainingAmount > 0 ? loan.remainingAmount : total;
   const paidCount = loan.paidInstallments || 0;
