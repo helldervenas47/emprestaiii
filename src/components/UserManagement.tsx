@@ -69,8 +69,15 @@ export function UserManagement() {
       toast.error("Preencha todos os campos obrigatórios");
       return;
     }
-    if (formData.password.length < 6) {
-      toast.error("A senha deve ter pelo menos 6 caracteres");
+    if (formData.password.length < 8) {
+      toast.error("A senha deve ter pelo menos 8 caracteres");
+      return;
+    }
+    const hasUpper = /[A-Z]/.test(formData.password);
+    const hasLower = /[a-z]/.test(formData.password);
+    const hasNumber = /[0-9]/.test(formData.password);
+    if (!hasUpper || !hasLower || !hasNumber) {
+      toast.error("A senha deve conter letras maiúsculas, minúsculas e números");
       return;
     }
     setCreating(true);
