@@ -9,7 +9,13 @@ import { Calendar as CalendarUI } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Save, X, Calendar as CalendarIcon } from "lucide-react";
 import { Sale, BusinessType, PaymentMode } from "@/types/loan";
-import { format, addMonths } from "date-fns";
+import { format, addMonths, addWeeks, addDays } from "date-fns";
+
+function addByFrequency(date: Date, frequency: string, n: number): Date {
+  if (frequency === "Semanal") return addWeeks(date, n);
+  if (frequency === "Quinzenal") return addDays(date, n * 15);
+  return addMonths(date, n);
+}
 import { cn } from "@/lib/utils";
 
 const businessTypeLabels: Record<BusinessType, string> = {
@@ -45,6 +51,7 @@ export function SaleEditForm({ sale, onSave, onClose }: Props) {
     businessType: sale.businessType,
     date: sale.date,
     notes: sale.notes || "",
+    frequency: sale.frequency || "Mensal",
   });
 
   // Generate initial installment rows

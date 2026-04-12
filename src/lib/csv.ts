@@ -197,6 +197,7 @@ export function importSalesFromCSV(csv: string): Omit<Sale, "id">[] {
       installments,
       paidInstallments,
       downPayment: 0,
+      frequency: "Mensal",
       date: parseDateBR(cols[10]),
     };
   });
