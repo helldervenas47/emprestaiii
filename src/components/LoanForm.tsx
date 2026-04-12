@@ -124,6 +124,16 @@ export function LoanForm({ onAdd, onClose, clients }: Props) {
 
     const totalWithInterest = calculateTotalWithInterest(amount, rate, installments);
 
+    // Use the first row value as custom installment if user edited it
+    const firstRowVal = installmentRows.length > 0 ? parseFloat(installmentRows[0].value) || 0 : 0;
+    const defaultCalc = calcMonthly;
+    const hasCustomValue = firstRowVal > 0 && Math.abs(firstRowVal - defaultCalc) > 0.01;
+
+    // Use the first row date as dueDate
+    const dueDate = installmentRows.length > 0
+      ? installmentRows[0].date.toISOString().split("T")[0]
+      : firstDueDate.toISOString().split("T")[0];
+
     onAdd({
       borrowerName: selectedClient.name,
       borrowerId: selectedClient.id,
@@ -133,9 +143,10 @@ export function LoanForm({ onAdd, onClose, clients }: Props) {
       paymentType: "Parcelado",
       installments,
       startDate: form.startDate,
-      dueDate: firstDueDate.toISOString().split("T")[0],
+      dueDate,
       notes: form.notes,
       remainingAmount: totalWithInterest,
+      customInstallmentValue: hasCustomValue ? firstRowVal : null,
       createdAt: new Date().toISOString(),
     });
     onClose();
@@ -278,11 +289,17 @@ export function LoanForm({ onAdd, onClose, clients }: Props) {
                             <Calendar
                               mode="single"
                               selected={row.date}
-                              onSelect={(d) => {
+                             onSelect={(d) => {
                                 if (d) {
                                   setInstallmentRows((prev) => {
                                     const rows = [...prev];
                                     rows[idx] = { ...rows[idx], date: d };
+                                    // Cascade subsequent dates from this one
+                                    for (let i = idx + 1; i < rows.length; i++) {
+                                      rows[i] = { ...rows[i], date: getNextDate(d, form.interestType, i - idx) };
+                                    }
+                                    // If first row changed, also update firstDueDate
+                                    if (idx === 0) setFirstDueDate(d);
                                     return rows;
                                   });
                                 }

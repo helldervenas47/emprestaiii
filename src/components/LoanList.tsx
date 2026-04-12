@@ -48,6 +48,14 @@ function rawFormatCurrency(value: number): string {
   return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value);
 }
 
+function getNextDate(base: Date, frequency: string, periods: number): Date {
+  const d = new Date(base);
+  if (frequency === "Semanal") d.setDate(d.getDate() + 7 * periods);
+  else if (frequency === "Quinzenal") d.setDate(d.getDate() + 15 * periods);
+  else d.setMonth(d.getMonth() + periods);
+  return d;
+}
+
 function getDaysOverdue(loan: Loan): number {
   const today = new Date();
   const todayNorm = new Date(today.getFullYear(), today.getMonth(), today.getDate());
@@ -150,6 +158,8 @@ function LoanCardView({
   const [showDetails, setShowDetails] = useState(false);
   const [editingInstallment, setEditingInstallment] = useState(false);
   const [installmentInput, setInstallmentInput] = useState("");
+  const [showEditSchedule, setShowEditSchedule] = useState(false);
+  const [editScheduleRows, setEditScheduleRows] = useState<{ date: Date; value: string }[]>([]);
 
   const total = calculateTotalWithInterest(loan.amount, loan.interestRate, loan.installments);
   const totalPaid = getTotalPaid(loan, allPayments);
@@ -173,10 +183,38 @@ function LoanCardView({
     return due.toLocaleDateString("pt-BR");
   }, [loan]);
 
-  const startEdit = () => { setForm(loanToForm(loan)); setEditing(true); };
+  const startEdit = () => {
+    setForm(loanToForm(loan));
+    setEditing(true);
+    setShowEditSchedule(false);
+    // Build schedule rows
+    const totalInst = loan.installments;
+    const paidInst = loan.paidInstallments || 0;
+    const rem = loan.remainingAmount != null && loan.remainingAmount > 0 ? loan.remainingAmount : total;
+    const remInst = Math.max(1, totalInst - paidInst);
+    const instVal = (rem / remInst).toFixed(2);
+    const firstDue = new Date(loan.dueDate + "T00:00:00");
+    const freq = loan.interestType || "Mensal";
+    setEditScheduleRows(
+      Array.from({ length: remInst }, (_, i) => ({
+        date: i === 0 ? firstDue : getNextDate(firstDue, freq, i),
+        value: loan.customInstallmentValue != null && loan.customInstallmentValue > 0
+          ? loan.customInstallmentValue.toFixed(2)
+          : instVal,
+      }))
+    );
+  };
   const cancelEdit = () => setEditing(false);
   const saveEdit = () => {
     const parsedTags = form.tags.split(",").map((t) => t.trim()).filter(Boolean);
+    // Use first schedule row for dueDate and custom value
+    const firstRow = editScheduleRows[0];
+    const dueDate = firstRow ? firstRow.date.toISOString().split("T")[0] : form.dueDate || loan.dueDate;
+    const firstVal = firstRow ? parseFloat(firstRow.value) || 0 : 0;
+    const remInst = Math.max(1, (parseInt(form.installments) || loan.installments) - (parseInt(form.paidInstallments) || 0));
+    const defaultCalc = (parseFloat(form.remainingAmount) || 0) / remInst;
+    const hasCustom = firstVal > 0 && Math.abs(firstVal - defaultCalc) > 0.01;
+
     onUpdate({
       borrowerName: form.borrowerName,
       amount: parseFloat(form.amount) || loan.amount,
@@ -184,11 +222,12 @@ function LoanCardView({
       installments: parseInt(form.installments) || loan.installments,
       paidInstallments: parseInt(form.paidInstallments) || 0,
       startDate: form.startDate || loan.startDate,
-      dueDate: form.dueDate || loan.dueDate,
+      dueDate,
       interestType: form.interestType,
       notes: form.notes,
       tags: parsedTags,
       remainingAmount: parseFloat(form.remainingAmount) || 0,
+      customInstallmentValue: hasCustom ? firstVal : null,
     });
     setEditing(false);
   };
@@ -233,6 +272,14 @@ function LoanCardView({
         const paidInst = parseInt(next.paidInstallments) || 0;
         const remInst = Math.max(1, months - paidInst);
         next.installmentValue = (rem / remInst).toFixed(2);
+        // Rebuild schedule rows
+        const firstDue = next.dueDate ? new Date(next.dueDate + "T00:00:00") : new Date();
+        setEditScheduleRows(
+          Array.from({ length: remInst }, (_, i) => ({
+            date: i === 0 ? firstDue : getNextDate(firstDue, next.interestType, i),
+            value: next.installmentValue,
+          }))
+        );
       } else if (field === "interestValue") {
         const iv = parseFloat(value) || 0;
         const newRate = amt > 0 ? (iv / amt) * 100 : 0;
@@ -244,6 +291,17 @@ function LoanCardView({
         next.installmentValue = (rem / remInst).toFixed(2);
       } else if (field === "installmentValue") {
         // Manual override — no back-calculation needed
+      } else if (field === "interestType" || field === "dueDate") {
+        // Rebuild dates when contract type or due date changes
+        const paidInst = parseInt(next.paidInstallments) || 0;
+        const remInst = Math.max(1, months - paidInst);
+        const firstDue = next.dueDate ? new Date(next.dueDate + "T00:00:00") : new Date();
+        setEditScheduleRows((prev) =>
+          Array.from({ length: remInst }, (_, i) => ({
+            date: i === 0 ? firstDue : getNextDate(firstDue, next.interestType, i),
+            value: prev[i]?.value || next.installmentValue,
+          }))
+        );
       }
       return next;
     });
@@ -302,6 +360,92 @@ function LoanCardView({
               </Select>
             </div>
           </div>
+
+          {/* Installment Schedule */}
+          {(parseInt(form.installments) || 0) >= 2 && editScheduleRows.length > 0 && (
+            <div className="rounded-lg border border-border/50 overflow-hidden">
+              <button
+                type="button"
+                onClick={() => setShowEditSchedule(!showEditSchedule)}
+                className="flex items-center gap-2 w-full px-4 py-2.5 text-sm font-medium text-foreground hover:bg-muted/50 transition-colors"
+              >
+                {showEditSchedule ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                Parcelas Pendentes ({editScheduleRows.length}x)
+                <Badge variant="outline" className="ml-auto text-xs">
+                  {form.interestType}
+                </Badge>
+              </button>
+              {showEditSchedule && (
+                <div className="divide-y divide-border/30 max-h-64 overflow-y-auto">
+                  {editScheduleRows.map((row, idx) => (
+                    <div key={idx} className="flex items-center gap-2 px-3 py-2.5">
+                      <span className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold shrink-0 bg-muted/40 text-muted-foreground">
+                        {(parseInt(form.paidInstallments) || 0) + idx + 1}ª
+                      </span>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button variant="outline" size="sm" className="h-8 text-xs flex-1 justify-start">
+                            <CalendarIcon className="h-3.5 w-3.5 mr-1.5 text-primary" />
+                            {format(row.date, "dd/MM/yyyy")}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <CalendarUI
+                            mode="single"
+                            selected={row.date}
+                            onSelect={(d) => {
+                              if (d) {
+                                setEditScheduleRows((prev) => {
+                                  const rows = [...prev];
+                                  rows[idx] = { ...rows[idx], date: d };
+                                  for (let i = idx + 1; i < rows.length; i++) {
+                                    rows[i] = { ...rows[i], date: getNextDate(d, form.interestType, i - idx) };
+                                  }
+                                  return rows;
+                                });
+                              }
+                            }}
+                            initialFocus
+                            className={cn("p-3 pointer-events-auto")}
+                          />
+                        </PopoverContent>
+                      </Popover>
+                      <Input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        value={row.value}
+                        onChange={(e) => {
+                          setEditScheduleRows((prev) => {
+                            const rows = [...prev];
+                            const newVal = e.target.value;
+                            rows[idx] = { ...rows[idx], value: newVal };
+                            if (idx === 0 && rows.length > 1) {
+                              const firstVal = parseFloat(newVal) || 0;
+                              const totalRem = parseFloat(form.remainingAmount) || 0;
+                              const otherCount = rows.length - 1;
+                              const otherVal = (Math.max(0, totalRem - firstVal) / otherCount).toFixed(2);
+                              for (let i = 1; i < rows.length; i++) {
+                                rows[i] = { ...rows[i], value: otherVal };
+                              }
+                            }
+                            return rows;
+                          });
+                        }}
+                        className="h-8 w-24 text-xs text-right"
+                      />
+                    </div>
+                  ))}
+                  <div className="px-3 py-2 bg-muted/20">
+                    <p className="text-xs text-muted-foreground">
+                      Total: <span className="font-bold text-foreground">{rawFormatCurrency(editScheduleRows.reduce((s, r) => s + (parseFloat(r.value) || 0), 0))}</span>
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div><Label className="text-xs">Etiquetas (separar por vírgula)</Label><Input value={form.tags} onChange={(e) => updateField("tags", e.target.value)} className="h-8 text-sm" placeholder="Ex: VIP, Renovação, Garantia" /></div>
           </div>
