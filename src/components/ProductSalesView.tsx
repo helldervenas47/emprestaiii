@@ -696,6 +696,7 @@ export function ProductSalesView({ sales, onDeleteSale, onUpdateSale, clients = 
             onDeleteSale={onDeleteSale}
             onUpdateSale={onUpdateSale}
             clients={clients}
+            hideOnTrackCard
           />
         </TabsContent>
       ))}
