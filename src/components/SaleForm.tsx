@@ -77,9 +77,6 @@ export function SaleForm({ onAdd, onClose, defaultBusinessType = "venda", client
     const total = parseFloat(form.total) || 0;
     if (!form.description || total <= 0 || !form.customerName) return;
     const isRecorrente = form.paymentMode === "recorrente";
-    const manualInstValue = parseFloat(form.installmentValue) || 0;
-    const autoInstValue = isRecorrente && installmentsNum > 0 ? total / installmentsNum : total;
-    const hasManualValue = isRecorrente && manualInstValue > 0 && Math.abs(manualInstValue - autoInstValue) > 0.01;
     onAdd({
       productName: form.description,
       description: form.description,
@@ -96,7 +93,7 @@ export function SaleForm({ onAdd, onClose, defaultBusinessType = "venda", client
       paidInstallments: 0,
       downPayment: 0,
       frequency: isRecorrente ? form.frequency : "Mensal",
-      installmentValue: hasManualValue ? manualInstValue : null,
+      installmentValue: null,
     });
     onClose();
   };
