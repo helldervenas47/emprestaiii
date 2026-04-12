@@ -74,6 +74,7 @@ export interface Sale {
   installments: number;
   paidInstallments: number;
   downPayment: number;
+  frequency: string;
 }
 
 export interface Expense {
