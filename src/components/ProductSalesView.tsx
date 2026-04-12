@@ -69,7 +69,9 @@ function SaleCard({ sale, onDelete, onEdit, onUpdate, formatCurrency }: { sale: 
   const [showPayDatePicker, setShowPayDatePicker] = useState(false);
   const TabIcon = businessTabs.find((t) => t.type === sale.businessType)?.icon || ShoppingCart;
   const isRecorrente = sale.paymentMode === "recorrente" && sale.installments > 1;
-  const valorParcela = sale.installments > 0 ? Math.max(0, sale.total - (sale.downPayment || 0)) / sale.installments : sale.total;
+  const valorParcela = sale.installmentValue != null && sale.installmentValue > 0
+    ? sale.installmentValue
+    : (sale.installments > 0 ? Math.max(0, sale.total - (sale.downPayment || 0)) / sale.installments : sale.total);
   const isPaid = isRecorrente ? sale.paidInstallments >= sale.installments : sale.paidInstallments >= 1;
   const pendentes = isRecorrente ? sale.installments - sale.paidInstallments : (sale.paidInstallments >= 1 ? 0 : 1);
   const category = getSaleCategory(sale);
@@ -380,7 +382,9 @@ function SalesList({ sales, onDeleteSale, onUpdateSale, clients = [] }: { sales:
 
   // Calculate receivables per category
   const getRemaining = (s: Sale) => {
-    const valorParcela = s.installments > 0 ? Math.max(0, s.total - (s.downPayment || 0)) / s.installments : s.total;
+    const valorParcela = s.installmentValue != null && s.installmentValue > 0
+      ? s.installmentValue
+      : (s.installments > 0 ? Math.max(0, s.total - (s.downPayment || 0)) / s.installments : s.total);
     const paid = valorParcela * s.paidInstallments + (s.downPayment || 0);
     return Math.max(0, s.total - paid);
   };
@@ -395,7 +399,9 @@ function SalesList({ sales, onDeleteSale, onUpdateSale, clients = [] }: { sales:
   const totalDueToday = dueTodaySales.reduce((acc, s) => acc + getRemaining(s), 0);
   // Valor pago = soma de todas as parcelas pagas de todos os contratos
   const totalPaid = sales.reduce((acc, s) => {
-    const valorParcela = s.installments > 0 ? Math.max(0, s.total - (s.downPayment || 0)) / s.installments : s.total;
+    const valorParcela = s.installmentValue != null && s.installmentValue > 0
+      ? s.installmentValue
+      : (s.installments > 0 ? Math.max(0, s.total - (s.downPayment || 0)) / s.installments : s.total);
     return acc + valorParcela * s.paidInstallments + (s.downPayment || 0);
   }, 0);
   // Quantidade de contratos = somente os quitados
