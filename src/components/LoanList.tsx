@@ -176,6 +176,11 @@ function LoanCardView({
   const [installmentInput, setInstallmentInput] = useState("");
   const [showEditSchedule, setShowEditSchedule] = useState(false);
   const [editScheduleRows, setEditScheduleRows] = useState<{ date: Date; value: string }[]>([]);
+  const [showLateInterest, setShowLateInterest] = useState(false);
+  const [lateInterestType, setLateInterestType] = useState<string>(loan.lateInterestType || "percentage");
+  const [lateInterestValue, setLateInterestValue] = useState<string>(loan.lateInterestValue != null ? String(loan.lateInterestValue) : "");
+  const [showPenalty, setShowPenalty] = useState(false);
+  const [penaltyValue, setPenaltyValue] = useState<string>(loan.penaltyValue != null ? String(loan.penaltyValue) : "");
 
   const total = calculateTotalWithInterest(loan.amount, loan.interestRate, loan.installments);
   const totalPaid = getTotalPaid(loan, allPayments);
