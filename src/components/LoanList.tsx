@@ -447,13 +447,26 @@ function LoanCardView({
 
         {/* Vencimento / Pago */}
         <div className="grid grid-cols-2 gap-3">
-          <div className="flex items-center gap-2 bg-muted/30 rounded-lg px-3 py-2">
-            <CalendarIcon className="h-4 w-4 text-muted-foreground shrink-0" />
-            <div>
-              <p className="text-[10px] text-muted-foreground">Venc:</p>
-              <p className="text-sm font-semibold text-foreground">{new Date(loan.dueDate + "T00:00:00").toLocaleDateString("pt-BR")}</p>
-            </div>
-          </div>
+          <Popover>
+            <PopoverTrigger asChild>
+              <button className="flex items-center gap-2 bg-muted/30 rounded-lg px-3 py-2 hover:bg-muted/50 transition-colors cursor-pointer text-left w-full">
+                <CalendarIcon className="h-4 w-4 text-muted-foreground shrink-0" />
+                <div>
+                  <p className="text-[10px] text-muted-foreground">Venc: <Pencil className="inline h-2.5 w-2.5 ml-0.5" /></p>
+                  <p className="text-sm font-semibold text-foreground">{new Date(loan.dueDate + "T00:00:00").toLocaleDateString("pt-BR")}</p>
+                </div>
+              </button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+              <CalendarUI
+                mode="single"
+                selected={new Date(loan.dueDate + "T00:00:00")}
+                onSelect={(d) => { if (d) onUpdate({ dueDate: d.toISOString().split("T")[0] }); }}
+                initialFocus
+                className="p-3 pointer-events-auto"
+              />
+            </PopoverContent>
+          </Popover>
           <div className="flex items-center gap-2 bg-success/5 border border-success/20 rounded-lg px-3 py-2">
             <DollarSign className="h-4 w-4 text-success shrink-0" />
             <div>
