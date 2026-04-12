@@ -398,10 +398,10 @@ export function DashboardOverview({ loans, sales, payments, expenses, onDeletePa
           <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setOffset(offset + 1)} disabled={offset >= 0}>
             <ChevronRight className="h-4 w-4" />
           </Button>
-          <div className="flex bg-muted rounded-lg p-0.5 ml-auto sm:ml-2">
+          <div className="flex bg-muted/60 rounded-xl p-0.5 ml-auto sm:ml-2 backdrop-blur-sm border border-border/30">
             {(["day", "week", "month"] as Period[]).map((p) => (
               <button key={p} onClick={() => handleChangePeriod(p)}
-                className={`px-2 sm:px-3 py-1.5 rounded-md text-[10px] sm:text-xs font-medium transition-colors ${period === p ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>
+                className={`px-2 sm:px-3 py-1.5 rounded-lg text-[10px] sm:text-xs font-medium transition-all duration-200 ${period === p ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>
                 {periodLabels[p]}
               </button>
             ))}
@@ -455,10 +455,10 @@ export function DashboardOverview({ loans, sales, payments, expenses, onDeletePa
 
       {/* Summary cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
-        <div className="rounded-2xl p-5 bg-card border border-success/15 shadow-sm hover:shadow-md transition-all">
+        <div className="rounded-2xl p-5 bg-card border border-success/20 shadow-[0_2px_12px_-4px_hsl(0_0%_0%/0.08)] hover:shadow-[0_8px_24px_-6px_hsl(0_0%_0%/0.15)] hover:-translate-y-0.5 transition-all duration-300">
           <div className="flex items-center justify-between mb-2">
             <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Entradas</span>
-            <div className="h-8 w-8 rounded-lg bg-success/10 flex items-center justify-center">
+            <div className="h-8 w-8 rounded-xl bg-success/15 flex items-center justify-center">
               <TrendingUp className="h-4 w-4 text-success" />
             </div>
           </div>
@@ -468,10 +468,10 @@ export function DashboardOverview({ loans, sales, payments, expenses, onDeletePa
           </div>
         </div>
 
-        <div className="rounded-2xl p-5 bg-card border border-warning/15 shadow-sm hover:shadow-md transition-all">
+        <div className="rounded-2xl p-5 bg-card border border-warning/20 shadow-[0_2px_12px_-4px_hsl(0_0%_0%/0.08)] hover:shadow-[0_8px_24px_-6px_hsl(0_0%_0%/0.15)] hover:-translate-y-0.5 transition-all duration-300">
           <div className="flex items-center justify-between mb-2">
             <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Saídas</span>
-            <div className="h-8 w-8 rounded-lg bg-warning/10 flex items-center justify-center">
+            <div className="h-8 w-8 rounded-xl bg-warning/15 flex items-center justify-center">
               <TrendingDown className="h-4 w-4 text-warning" />
             </div>
           </div>
@@ -481,10 +481,10 @@ export function DashboardOverview({ loans, sales, payments, expenses, onDeletePa
           </div>
         </div>
 
-        <div className={`rounded-2xl p-5 bg-card border shadow-sm hover:shadow-md transition-all ${data.balance >= 0 ? "border-primary/15" : "border-destructive/15"}`}>
+        <div className={`rounded-2xl p-5 bg-card border shadow-[0_2px_12px_-4px_hsl(0_0%_0%/0.08)] hover:shadow-[0_8px_24px_-6px_hsl(0_0%_0%/0.15)] hover:-translate-y-0.5 transition-all duration-300 ${data.balance >= 0 ? "border-primary/20" : "border-destructive/20"}`}>
           <div className="flex items-center justify-between mb-2">
             <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Saldo do Período</span>
-            <div className={`h-8 w-8 rounded-lg ${data.balance >= 0 ? "bg-primary/10" : "bg-destructive/10"} flex items-center justify-center`}>
+            <div className={`h-8 w-8 rounded-xl ${data.balance >= 0 ? "bg-primary/15" : "bg-destructive/15"} flex items-center justify-center`}>
               <DollarSign className={`h-4 w-4 ${data.balance >= 0 ? "text-primary" : "text-destructive"}`} />
             </div>
           </div>
