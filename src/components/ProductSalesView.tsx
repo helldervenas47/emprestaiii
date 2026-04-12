@@ -246,6 +246,7 @@ function SaleCard({ sale, onDelete, onEdit, onUpdate, formatCurrency }: { sale: 
                     <DialogTitle>Pagamento Parcial</DialogTitle>
                     <DialogDescription>
                       Informe o valor e a data do pagamento. O valor será abatido da {sale.paidInstallments + 1}ª parcela pendente ({formatCurrency(getParcelaValue(sale.paidInstallments))}).
+                      {(sale.partialPaid || 0) > 0 && ` Já pago parcialmente: ${formatCurrency(sale.partialPaid)}. Falta: ${formatCurrency(getParcelaValue(sale.paidInstallments) - (sale.partialPaid || 0))}.`}
                     </DialogDescription>
                   </DialogHeader>
                   <div className="space-y-4 py-2">
