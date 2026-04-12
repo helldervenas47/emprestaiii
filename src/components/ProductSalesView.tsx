@@ -82,10 +82,12 @@ function SaleCard({ sale, onDelete, onEdit, onUpdate, formatCurrency }: { sale: 
   const totalParcelas = isRecorrente ? sale.installments : 1;
   const parcelas = Array.from({ length: totalParcelas }, (_, i) => {
     const instBaseDate = new Date(sale.date + "T00:00:00");
-    const dueDate = isRecorrente ? addByFrequency(instBaseDate, sale.frequency || "Mensal", i) : instBaseDate;
+    const customDate = sale.installmentDates && sale.installmentDates[i];
+    const dueDate = customDate ? new Date(customDate + "T00:00:00") : (isRecorrente ? addByFrequency(instBaseDate, sale.frequency || "Mensal", i) : instBaseDate);
     return {
       number: i + 1,
       date: format(dueDate, "dd/MM/yyyy"),
+      rawDate: dueDate,
       value: getParcelaValue(i),
       paid: i < sale.paidInstallments,
     };
@@ -121,9 +123,10 @@ function SaleCard({ sale, onDelete, onEdit, onUpdate, formatCurrency }: { sale: 
 
         {/* Due date highlight */}
         {!isPaid && (() => {
-          const baseDate = new Date(sale.date + "T00:00:00");
           const nextIdx = sale.paidInstallments;
-          const dueDate = isRecorrente ? addByFrequency(baseDate, sale.frequency || "Mensal", nextIdx) : baseDate;
+          const nextParcela = parcelas[nextIdx];
+          if (!nextParcela) return null;
+          const dueDate = nextParcela.rawDate;
           const today = new Date();
           const todayNorm = new Date(today.getFullYear(), today.getMonth(), today.getDate());
           const dueNorm = new Date(dueDate.getFullYear(), dueDate.getMonth(), dueDate.getDate());
