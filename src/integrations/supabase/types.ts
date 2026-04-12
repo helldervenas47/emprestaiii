@@ -188,9 +188,12 @@ export type Database = {
           installments: number
           interest_rate: number
           interest_type: string
+          late_interest_type: string | null
+          late_interest_value: number | null
           notes: string | null
           paid_installments: number
           payment_type: string
+          penalty_value: number | null
           remaining_amount: number
           start_date: string
           status: string
@@ -209,9 +212,12 @@ export type Database = {
           installments?: number
           interest_rate?: number
           interest_type?: string
+          late_interest_type?: string | null
+          late_interest_value?: number | null
           notes?: string | null
           paid_installments?: number
           payment_type?: string
+          penalty_value?: number | null
           remaining_amount?: number
           start_date: string
           status?: string
@@ -230,9 +236,12 @@ export type Database = {
           installments?: number
           interest_rate?: number
           interest_type?: string
+          late_interest_type?: string | null
+          late_interest_value?: number | null
           notes?: string | null
           paid_installments?: number
           payment_type?: string
+          penalty_value?: number | null
           remaining_amount?: number
           start_date?: string
           status?: string

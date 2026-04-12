@@ -26,6 +26,8 @@ export function useLoans() {
         customInstallmentValue: l.custom_installment_value != null ? Number(l.custom_installment_value) : null,
         customInterestValue: l.custom_interest_value != null ? Number(l.custom_interest_value) : null,
         tags: l.tags, notes: l.notes, createdAt: l.created_at,
+        lateInterestType: l.late_interest_type, lateInterestValue: l.late_interest_value != null ? Number(l.late_interest_value) : null,
+        penaltyValue: l.penalty_value != null ? Number(l.penalty_value) : null,
       })));
     }
   }, [user]);
@@ -216,6 +218,9 @@ export function useLoans() {
     if (data.remainingAmount !== undefined) updateData.remaining_amount = data.remainingAmount;
     if (data.customInstallmentValue !== undefined) updateData.custom_installment_value = data.customInstallmentValue;
     if (data.customInterestValue !== undefined) updateData.custom_interest_value = data.customInterestValue;
+    if (data.lateInterestType !== undefined) updateData.late_interest_type = data.lateInterestType;
+    if (data.lateInterestValue !== undefined) updateData.late_interest_value = data.lateInterestValue;
+    if (data.penaltyValue !== undefined) updateData.penalty_value = data.penaltyValue;
     await supabase.from("loans").update(updateData).eq("id", id);
   }, [loans]);
 
