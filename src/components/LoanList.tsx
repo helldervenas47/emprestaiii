@@ -191,7 +191,7 @@ function LoanCardView({
   const total = calculateTotalWithInterest(loan.amount, loan.interestRate, loan.installments);
   const totalPaid = getTotalPaid(loan, allPayments);
   const baseRemaining = loan.remainingAmount != null && loan.remainingAmount > 0 ? loan.remainingAmount : Math.max(0, total - totalPaid);
-  const category = getLoanCategory(loan, allPayments);
+  const category = getLoanCategory(loan, allPayments, installmentSchedules);
   const daysOverdue = getDaysOverdue(loan, installmentSchedules);
 
   // Calculate late fees
@@ -1163,7 +1163,7 @@ function LoanRowView({
   const total = calculateTotalWithInterest(loan.amount, loan.interestRate, loan.installments);
   const totalPaid = getTotalPaid(loan, allPayments);
   const remaining = loan.remainingAmount != null && loan.remainingAmount > 0 ? loan.remainingAmount : Math.max(0, total - totalPaid);
-  const category = getLoanCategory(loan, allPayments);
+  const category = getLoanCategory(loan, allPayments, []);
   const daysOverdue = getDaysOverdue(loan);
   const badge = statusMap[category];
 
@@ -1582,11 +1582,11 @@ export function LoanList({ loans, payments, installmentSchedules, onPayment, onP
 
     // Category filter
     if (category === "all") {
-      filtered = filtered.filter((l) => getLoanCategory(l, payments) !== "paid");
+      filtered = filtered.filter((l) => getLoanCategory(l, payments, installmentSchedules) !== "paid");
     } else if (category === "parcelado") {
       filtered = filtered.filter((l) => l.installments >= 2 && l.status !== "paid");
     } else {
-      filtered = filtered.filter((l) => getLoanCategory(l, payments) === category);
+      filtered = filtered.filter((l) => getLoanCategory(l, payments, installmentSchedules) === category);
     }
 
     // Date range filter (startDate = data de saída)
@@ -1628,7 +1628,7 @@ export function LoanList({ loans, payments, installmentSchedules, onPayment, onP
   }, [loans]);
 
   const counts = useMemo(() => {
-    const cats = loans.map((l) => getLoanCategory(l, payments));
+    const cats = loans.map((l) => getLoanCategory(l, payments, installmentSchedules));
     return {
       all: cats.filter((c) => c !== "paid").length,
       parcelado: loans.filter((l) => l.installments >= 2 && l.status !== "paid").length,
