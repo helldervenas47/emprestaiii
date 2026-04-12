@@ -181,16 +181,25 @@ export function useLoans() {
     const newDueDate = currentDue.toISOString().split("T")[0];
     const newRemaining = Math.max(0, getLoanRemainingAmount(loan, payments) - interestAmount);
 
+    // Also update any saved installment schedule for the next pending installment
+    const nextNum = loan.paidInstallments + 1;
+    const scheduleUpdate = supabase.from("loan_installments")
+      .update({ due_date: newDueDate })
+      .eq("loan_id", loanId)
+      .eq("installment_number", nextNum);
+
     await Promise.all([
       supabase.from("payments").insert({
         user_id: user.id, loan_id: loanId, amount: interestAmount,
         date: dateStr, installment_number: 0, previous_due_date: loan.dueDate,
       }),
       supabase.from("loans").update({ due_date: newDueDate, remaining_amount: newRemaining }).eq("id", loanId),
+      scheduleUpdate,
       adjustBalance(interestAmount),
     ]);
     await fetchLoans();
     await fetchPayments();
+    await fetchSchedules();
   }, [user, loans, payments, fetchLoans, fetchPayments]);
 
   const updateLoan = useCallback(async (id: string, data: Partial<Omit<Loan, "id">>) => {
