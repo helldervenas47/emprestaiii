@@ -4,14 +4,24 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, X } from "lucide-react";
+import { Calendar as CalendarUI } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Plus, X, Calendar as CalendarIcon } from "lucide-react";
 import { Sale, BusinessType, PaymentMode } from "@/types/loan";
+import { format, addMonths, addWeeks, addDays } from "date-fns";
+import { cn } from "@/lib/utils";
 
 const businessTypeLabels: Record<BusinessType, string> = {
   venda: "Venda",
   streaming: "Streaming",
   aluguel_veiculo: "Aluguel de Veículo",
 };
+
+function addByFrequency(date: Date, frequency: string, n: number): Date {
+  if (frequency === "Semanal") return addWeeks(date, n);
+  if (frequency === "Quinzenal") return addDays(date, n * 15);
+  return addMonths(date, n);
+}
 
 interface Props {
   onAdd: (sale: Omit<Sale, "id">) => void;
@@ -31,7 +41,11 @@ export function SaleForm({ onAdd, onClose, defaultBusinessType = "venda" }: Prop
     paymentMode: "fixa" as PaymentMode,
     installments: "1",
     frequency: "Mensal",
+    firstInstallmentDate: new Date().toISOString().split("T")[0],
   });
+
+  const installmentsNum = parseInt(form.installments) || 1;
+  const firstDate = new Date(form.firstInstallmentDate + "T00:00:00");
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -45,13 +59,14 @@ export function SaleForm({ onAdd, onClose, defaultBusinessType = "venda" }: Prop
       cost: 0,
       total,
       customerName: form.customerName,
-      date: new Date().toISOString().split("T")[0],
+      date: form.firstInstallmentDate,
       notes: form.notes || undefined,
       businessType: form.businessType as BusinessType,
       paymentMode: form.paymentMode,
-      installments: form.paymentMode === "recorrente" ? (parseInt(form.installments) || 1) : 1,
+      installments: form.paymentMode === "recorrente" ? installmentsNum : 1,
       paidInstallments: 0,
       downPayment: 0,
+      frequency: form.paymentMode === "recorrente" ? form.frequency : "Mensal",
     });
     onClose();
   };
@@ -60,7 +75,7 @@ export function SaleForm({ onAdd, onClose, defaultBusinessType = "venda" }: Prop
 
   return (
     <div className="fixed inset-0 bg-foreground/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <Card className="w-full max-w-md">
+      <Card className="w-full max-w-md max-h-[90vh] overflow-y-auto">
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle className="text-xl">Novo Lançamento</CardTitle>
           <Button variant="ghost" size="icon" onClick={onClose}><X className="h-5 w-5" /></Button>
@@ -128,6 +143,26 @@ export function SaleForm({ onAdd, onClose, defaultBusinessType = "venda" }: Prop
                     </SelectContent>
                   </Select>
                 </div>
+                <div>
+                  <Label>Data da 1ª Parcela</Label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline" className={cn("w-full justify-start text-left font-normal")}>
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {format(firstDate, "dd/MM/yyyy")}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <CalendarUI
+                        mode="single"
+                        selected={firstDate}
+                        onSelect={(d) => d && update("firstInstallmentDate", d.toISOString().split("T")[0])}
+                        initialFocus
+                        className="p-3 pointer-events-auto"
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <Label>Quantidade de Parcelas</Label>
@@ -152,6 +187,32 @@ export function SaleForm({ onAdd, onClose, defaultBusinessType = "venda" }: Prop
                     }} placeholder="0,00" />
                   </div>
                 </div>
+
+                {/* Preview das parcelas */}
+                {installmentsNum >= 2 && (
+                  <div className="border border-border/50 rounded-lg overflow-hidden">
+                    <div className="px-3 py-2 bg-muted/20">
+                      <span className="text-sm font-medium text-foreground">Parcelas ({installmentsNum})</span>
+                    </div>
+                    <div className="divide-y divide-border/30 max-h-48 overflow-y-auto">
+                      {Array.from({ length: installmentsNum }, (_, i) => {
+                        const dueDate = addByFrequency(firstDate, form.frequency, i);
+                        const parcVal = parseFloat(form.installmentValue) || 0;
+                        return (
+                          <div key={i} className="flex items-center gap-3 px-3 py-2">
+                            <span className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold bg-muted/40 text-muted-foreground shrink-0">
+                              {i + 1}ª
+                            </span>
+                            <span className="text-sm text-foreground flex-1">{format(dueDate, "dd/MM/yyyy")}</span>
+                            <span className="text-sm font-medium text-foreground tabular-nums">
+                              {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(parcVal)}
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
               </>
             )}
 

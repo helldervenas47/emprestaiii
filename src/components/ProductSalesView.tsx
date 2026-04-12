@@ -6,7 +6,13 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Trash2, Search, ShoppingCart, Tv, Car, Calendar as CalendarIcon, User, Pencil, ChevronDown, ChevronUp, CheckCircle, HandCoins, Check, X as XIcon, DollarSign, AlertTriangle, Clock, CircleCheck } from "lucide-react";
-import { addMonths, format } from "date-fns";
+import { addMonths, addWeeks, addDays, format } from "date-fns";
+
+function addByFrequency(date: Date, frequency: string, n: number): Date {
+  if (frequency === "Semanal") return addWeeks(date, n);
+  if (frequency === "Quinzenal") return addDays(date, n * 15);
+  return addMonths(date, n);
+}
 import { useHideValues } from "@/contexts/HideValuesContext";
 import { SaleEditForm } from "@/components/SaleEditForm";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -37,7 +43,7 @@ function getSaleCategory(sale: Sale): "paid" | "overdue" | "due_today" | "on_tra
   // Find next unpaid installment due date
   const baseDate = new Date(sale.date + "T00:00:00");
   const nextInstIdx = sale.paidInstallments;
-  const dueDate = isRecorrente ? addMonths(baseDate, nextInstIdx) : baseDate;
+  const dueDate = isRecorrente ? addByFrequency(baseDate, sale.frequency || "Mensal", nextInstIdx) : baseDate;
   const today = new Date();
   const todayNorm = new Date(today.getFullYear(), today.getMonth(), today.getDate());
   const dueNorm = new Date(dueDate.getFullYear(), dueDate.getMonth(), dueDate.getDate());
@@ -71,8 +77,8 @@ function SaleCard({ sale, onDelete, onEdit, onUpdate, formatCurrency }: { sale: 
   // Generate installment rows with estimated dates
   const totalParcelas = isRecorrente ? sale.installments : 1;
   const parcelas = Array.from({ length: totalParcelas }, (_, i) => {
-    const baseDate = new Date(sale.date + "T00:00:00");
-    const dueDate = isRecorrente ? addMonths(baseDate, i) : baseDate;
+    const instBaseDate = new Date(sale.date + "T00:00:00");
+    const dueDate = isRecorrente ? addByFrequency(instBaseDate, sale.frequency || "Mensal", i) : instBaseDate;
     return {
       number: i + 1,
       date: format(dueDate, "dd/MM/yyyy"),
