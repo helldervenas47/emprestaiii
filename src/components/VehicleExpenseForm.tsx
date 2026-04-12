@@ -33,9 +33,12 @@ export function VehicleExpenseForm({ onAdd, onClose }: Props) {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.description || !form.amount || !form.category) return;
+    const parsedAmount = parseFloat(form.amount) || 0;
+    const installments = form.type === "recorrente" ? parseInt(form.installments) || 1 : 1;
+    const totalAmount = form.type === "recorrente" ? parsedAmount * installments : parsedAmount;
     onAdd({
       description: form.description,
-      amount: parseFloat(form.amount) || 0,
+      amount: totalAmount,
       type: form.type,
       category: form.category,
       installments: form.type === "recorrente" ? parseInt(form.installments) || 1 : undefined,
@@ -72,7 +75,7 @@ export function VehicleExpenseForm({ onAdd, onClose }: Props) {
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label htmlFor="amount">Valor (R$)</Label>
+                <Label htmlFor="amount">{form.type === "recorrente" ? "Valor da Parcela (R$)" : "Valor (R$)"}</Label>
                 <Input
                   id="amount"
                   type="number"
@@ -145,7 +148,14 @@ export function VehicleExpenseForm({ onAdd, onClose }: Props) {
             </div>
 
             {parseFloat(form.amount) > 0 && (
-              <div className="rounded-lg bg-muted p-4">
+              <div className="rounded-lg bg-muted p-4 space-y-1">
+                {form.type === "recorrente" && parseInt(form.installments) > 1 && (
+                  <p className="text-sm text-muted-foreground">
+                    Valor total: <span className="font-semibold text-foreground">
+                      {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(parseFloat(form.amount) * (parseInt(form.installments) || 1))}
+                    </span> ({form.installments}x de {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(parseFloat(form.amount))})
+                  </p>
+                )}
                 <p className="text-sm text-muted-foreground">
                   Ao pagar, <span className="font-semibold text-destructive">
                     {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(parseFloat(form.amount))}
