@@ -87,11 +87,15 @@ function SaleCard({ sale, onDelete, onEdit, onUpdate, formatCurrency }: { sale: 
     const instBaseDate = new Date(sale.date + "T00:00:00");
     const customDate = sale.installmentDates && sale.installmentDates[i];
     const dueDate = customDate ? new Date(customDate + "T00:00:00") : (isRecorrente ? addByFrequency(instBaseDate, sale.frequency || "Mensal", i) : instBaseDate);
+    const baseValue = getParcelaValue(i);
+    const isNextPending = i === sale.paidInstallments;
+    const displayValue = isNextPending && (sale.partialPaid || 0) > 0 ? Math.max(0, baseValue - (sale.partialPaid || 0)) : baseValue;
     return {
       number: i + 1,
       date: format(dueDate, "dd/MM/yyyy"),
       rawDate: dueDate,
-      value: getParcelaValue(i),
+      value: displayValue,
+      fullValue: baseValue,
       paid: i < sale.paidInstallments,
     };
   });
