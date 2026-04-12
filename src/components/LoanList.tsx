@@ -856,7 +856,7 @@ function LoanCardView({
                     <p className="text-[11px] text-muted-foreground">{formatCurrency(installment)}</p>
                   </div>
                 </DropdownMenuItem>
-                {loan.paymentType !== "Parcelado" && (
+                {loan.paymentType !== "Parcelado" && loan.installments < 2 && (
                 <DropdownMenuItem
                   onClick={() => openPaymentDialog("interest")}
                   className="flex items-center gap-3 px-3 py-2.5 rounded-lg cursor-pointer hover:bg-purple/10 focus:bg-purple/10"
