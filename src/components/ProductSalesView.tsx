@@ -793,59 +793,55 @@ export function ProductSalesView({ sales, onDeleteSale, onUpdateSale, clients = 
   // Check if this is the vehicles-only view
   const hasSalesOrStreaming = sales.some(s => s.businessType === "venda" || s.businessType === "streaming");
   
-  // Wrap onUpdateSale to update vehicle balance when installments are paid
+  const updateVehicleBalance = useCallback(async (delta: number) => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+    const { data: existing } = await supabase.from("vehicle_balance").select("amount").eq("user_id", user.id).maybeSingle();
+    const currentBalance = existing?.amount ?? 0;
+    const newBalance = currentBalance + delta;
+    if (existing) {
+      await supabase.from("vehicle_balance").update({ amount: newBalance, updated_at: new Date().toISOString() }).eq("user_id", user.id);
+    } else {
+      await supabase.from("vehicle_balance").insert({ user_id: user.id, amount: newBalance });
+    }
+    setBalanceState(newBalance);
+  }, []);
+
+  // Wrap onUpdateSale to update vehicle balance when installments are paid or deleted
   const handleVehicleUpdateSale = useCallback((id: string, data: Partial<Omit<Sale, "id">>) => {
-    // Check if paidInstallments increased (payment happened)
+    const sale = sales.find(s => s.id === id);
+    if (!sale) { onUpdateSale(id, data); return; }
+
     if (data.paidInstallments !== undefined) {
-      const sale = sales.find(s => s.id === id);
-      if (sale && data.paidInstallments > sale.paidInstallments) {
-        // Calculate the installment value that was paid
-        const amounts = sale.installmentAmounts;
+      const amounts = sale.installmentAmounts;
+      const defaultVal = sale.installments > 0 ? Math.max(0, sale.total - (sale.downPayment || 0)) / sale.installments : sale.total;
+
+      if (data.paidInstallments > sale.paidInstallments) {
+        // Payment: add installment value to balance
         const paidIdx = sale.paidInstallments;
-        const defaultVal = sale.installments > 0 ? Math.max(0, sale.total - (sale.downPayment || 0)) / sale.installments : sale.total;
         const paidValue = amounts && amounts[paidIdx] != null ? amounts[paidIdx] : defaultVal;
-        // Subtract partial already paid from the installment
         const actualPaid = Math.max(0, paidValue - (data.partialPaid !== undefined ? 0 : (sale.partialPaid || 0)));
-        // Update vehicle balance
-        (async () => {
-          const { data: { user } } = await supabase.auth.getUser();
-          if (!user) return;
-          const { data: existing } = await supabase.from("vehicle_balance").select("amount").eq("user_id", user.id).maybeSingle();
-          const currentBalance = existing?.amount ?? 0;
-          const newBalance = currentBalance + actualPaid;
-          if (existing) {
-            await supabase.from("vehicle_balance").update({ amount: newBalance, updated_at: new Date().toISOString() }).eq("user_id", user.id);
-          } else {
-            await supabase.from("vehicle_balance").insert({ user_id: user.id, amount: newBalance });
-          }
-          setBalanceState(newBalance);
-        })();
-      }
-    }
-    // Also handle partial payments adding to balance
-    if (data.partialPaid !== undefined && data.paidInstallments === undefined) {
-      const sale = sales.find(s => s.id === id);
-      if (sale) {
-        const addedPartial = (data.partialPaid || 0) - (sale.partialPaid || 0);
-        if (addedPartial > 0) {
-          (async () => {
-            const { data: { user } } = await supabase.auth.getUser();
-            if (!user) return;
-            const { data: existing } = await supabase.from("vehicle_balance").select("amount").eq("user_id", user.id).maybeSingle();
-            const currentBalance = existing?.amount ?? 0;
-            const newBalance = currentBalance + addedPartial;
-            if (existing) {
-              await supabase.from("vehicle_balance").update({ amount: newBalance, updated_at: new Date().toISOString() }).eq("user_id", user.id);
-            } else {
-              await supabase.from("vehicle_balance").insert({ user_id: user.id, amount: newBalance });
-            }
-            setBalanceState(newBalance);
-          })();
+        updateVehicleBalance(actualPaid);
+      } else if (data.paidInstallments < sale.paidInstallments) {
+        // Undo payment: subtract deleted installments from balance
+        let refundTotal = 0;
+        for (let i = data.paidInstallments; i < sale.paidInstallments; i++) {
+          refundTotal += amounts && amounts[i] != null ? amounts[i] : defaultVal;
         }
+        updateVehicleBalance(-refundTotal);
       }
     }
+
+    // Handle partial payments
+    if (data.partialPaid !== undefined && data.paidInstallments === undefined) {
+      const addedPartial = (data.partialPaid || 0) - (sale.partialPaid || 0);
+      if (addedPartial !== 0) {
+        updateVehicleBalance(addedPartial);
+      }
+    }
+
     onUpdateSale(id, data);
-  }, [sales, onUpdateSale]);
+  }, [sales, onUpdateSale, updateVehicleBalance]);
 
   if (!hasSalesOrStreaming) {
     // Vehicles page - render without sub-tabs + vehicle expenses
