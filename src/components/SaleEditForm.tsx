@@ -200,6 +200,29 @@ export function SaleEditForm({ sale, onSave, onClose }: Props) {
             {form.paymentMode === "recorrente" && (
               <>
                 <div>
+                  <Label>Frequência</Label>
+                  <Select value={form.frequency} onValueChange={(v) => {
+                    update("frequency", v);
+                    // Recalculate installment dates
+                    setInstallmentRows((prev) => {
+                      const baseDate = new Date(form.date + "T00:00:00");
+                      return prev.map((r, i) => ({
+                        ...r,
+                        date: addByFrequency(baseDate, v, i).toISOString().split("T")[0],
+                      }));
+                    });
+                  }}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Semanal">Semanal</SelectItem>
+                      <SelectItem value="Quinzenal">Quinzenal</SelectItem>
+                      <SelectItem value="Mensal">Mensal</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
                   <Label>Entrada (R$)</Label>
                   <Input type="number" step="0.01" min="0" value={form.downPayment} onChange={(e) => update("downPayment", e.target.value)} placeholder="0,00" />
                 </div>
@@ -212,7 +235,6 @@ export function SaleEditForm({ sale, onSave, onClose }: Props) {
                     update("installmentValue", e.target.value);
                     const newTotal = parcVal * count + down;
                     update("total", newTotal.toFixed(2));
-                    // Update all installment rows
                     setInstallmentRows((prev) => prev.map((r) => ({ ...r, value: parcVal.toFixed(2) })));
                   }} placeholder="0,00" />
                 </div>
@@ -224,12 +246,11 @@ export function SaleEditForm({ sale, onSave, onClose }: Props) {
                       update("installments", e.target.value);
                       const instVal = parseFloat(form.installmentValue) || (remainingForInstallments / newCount);
                       update("installmentValue", instVal.toFixed(2));
-                      // Resize installmentRows
                       setInstallmentRows((prev) => {
                         const rows = [...prev];
                         const baseDate = new Date(form.date + "T00:00:00");
                         while (rows.length < newCount) {
-                          const d = addMonths(baseDate, rows.length);
+                          const d = addByFrequency(baseDate, form.frequency, rows.length);
                           rows.push({ date: d.toISOString().split("T")[0], value: instVal.toFixed(2) });
                         }
                         while (rows.length > newCount) rows.pop();
