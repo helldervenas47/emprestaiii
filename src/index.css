@@ -175,4 +175,17 @@
   .scrollbar-hide::-webkit-scrollbar {
     display: none;
   }
+  .card-3d {
+    perspective: 800px;
+  }
+  .card-3d-inner {
+    transition: transform 0.3s ease-out, box-shadow 0.3s ease-out;
+    transform-style: preserve-3d;
+  }
+  .card-3d-inner:hover {
+    transform: rotateX(-2deg) rotateY(3deg) scale(1.02);
+    box-shadow: 
+      -6px 8px 24px -8px hsl(0 0% 0% / 0.2),
+      0 0 20px -4px hsl(var(--primary) / 0.15);
+  }
 }
