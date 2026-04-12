@@ -82,7 +82,7 @@ export function BillingCalendar({ loans, payments, installmentSchedules }: Props
     });
 
     return map;
-  }, [loans, payments]);
+  }, [loans, payments, installmentSchedules]);
 
   // Calendar grid
   const firstDay = new Date(year, month, 1);
