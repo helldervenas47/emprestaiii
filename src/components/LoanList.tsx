@@ -992,7 +992,7 @@ function LoanCardView({
                 <Button size="sm" variant="outline" className="h-8 text-xs" onClick={() => setShowPenalty(false)}>Cancelar</Button>
               </div>
             </div>
-          )
+          )}
           <div className="flex items-center justify-center gap-1">
             {loan.status === "paid" && (
               <Button
