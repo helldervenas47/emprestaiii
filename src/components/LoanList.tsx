@@ -57,8 +57,7 @@ function getNextDate(base: Date, frequency: string, periods: number): Date {
 }
 
 function getFirstPendingDate(loan: Loan): Date {
-  const firstDue = new Date(loan.dueDate + "T00:00:00");
-  return getNextDate(firstDue, loan.interestType || "Mensal", loan.paidInstallments);
+  return new Date(loan.dueDate + "T00:00:00");
 }
 
 function getDaysOverdue(loan: Loan): number {
