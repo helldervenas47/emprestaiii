@@ -388,20 +388,20 @@ export function DashboardOverview({ loans, sales, payments, expenses, onDeletePa
   return (
     <div className="space-y-6">
       {/* Period filter + navigation */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+      <div className="flex flex-col gap-3">
         <h2 className="text-lg font-semibold text-foreground">Visão Geral</h2>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1 sm:gap-2 flex-wrap">
           <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setOffset(offset - 1)}>
             <ChevronLeft className="h-4 w-4" />
           </Button>
-          <span className="text-sm font-medium text-foreground min-w-[160px] text-center">{range.label}</span>
+          <span className="text-xs sm:text-sm font-medium text-foreground min-w-[120px] sm:min-w-[160px] text-center">{range.label}</span>
           <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setOffset(offset + 1)} disabled={offset >= 0}>
             <ChevronRight className="h-4 w-4" />
           </Button>
-          <div className="flex bg-muted rounded-lg p-0.5 ml-2">
+          <div className="flex bg-muted rounded-lg p-0.5 ml-auto sm:ml-2">
             {(["day", "week", "month"] as Period[]).map((p) => (
               <button key={p} onClick={() => handleChangePeriod(p)}
-                className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${period === p ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>
+                className={`px-2 sm:px-3 py-1.5 rounded-md text-[10px] sm:text-xs font-medium transition-colors ${period === p ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>
                 {periodLabels[p]}
               </button>
             ))}
@@ -454,7 +454,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, onDeletePa
       </div>
 
       {/* Summary cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
         <div className="rounded-xl p-5 bg-card border border-success/20 glow-success">
           <div className="flex items-center justify-between mb-2">
             <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Entradas</span>
@@ -494,52 +494,52 @@ export function DashboardOverview({ loans, sales, payments, expenses, onDeletePa
       </div>
 
       {/* Portfolio metrics */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 sm:gap-3">
         <Card>
-          <CardContent className="p-4">
-            <p className="text-xs text-muted-foreground">Capital na Rua</p>
-            <p className="text-lg font-bold text-foreground">{formatCurrency(portfolio.capitalOnStreet)}</p>
+          <CardContent className="p-3 sm:p-4">
+            <p className="text-[10px] sm:text-xs text-muted-foreground">Capital na Rua</p>
+            <p className="text-sm sm:text-lg font-bold text-foreground">{formatCurrency(portfolio.capitalOnStreet)}</p>
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="p-4">
-            <p className="text-xs text-muted-foreground">Total a Receber</p>
-            <p className="text-lg font-bold text-foreground">{formatCurrency(portfolio.totalToReceive)}</p>
+          <CardContent className="p-3 sm:p-4">
+            <p className="text-[10px] sm:text-xs text-muted-foreground">Total a Receber</p>
+            <p className="text-sm sm:text-lg font-bold text-foreground">{formatCurrency(portfolio.totalToReceive)}</p>
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="p-4">
-            <p className="text-xs text-muted-foreground">Principal Recebido</p>
-            <p className="text-lg font-bold text-success">{formatCurrency(portfolio.principalReceived)}</p>
+          <CardContent className="p-3 sm:p-4">
+            <p className="text-[10px] sm:text-xs text-muted-foreground">Principal Recebido</p>
+            <p className="text-sm sm:text-lg font-bold text-success">{formatCurrency(portfolio.principalReceived)}</p>
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="p-4">
-            <p className="text-xs text-muted-foreground">Juros Recebido</p>
-            <p className="text-lg font-bold text-success">{formatCurrency(portfolio.interestReceived)}</p>
+          <CardContent className="p-3 sm:p-4">
+            <p className="text-[10px] sm:text-xs text-muted-foreground">Juros Recebido</p>
+            <p className="text-sm sm:text-lg font-bold text-success">{formatCurrency(portfolio.interestReceived)}</p>
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="p-4">
-            <p className="text-xs text-muted-foreground">Principal a Receber</p>
-            <p className="text-lg font-bold text-warning">{formatCurrency(portfolio.principalToReceive)}</p>
+          <CardContent className="p-3 sm:p-4">
+            <p className="text-[10px] sm:text-xs text-muted-foreground">Principal a Receber</p>
+            <p className="text-sm sm:text-lg font-bold text-warning">{formatCurrency(portfolio.principalToReceive)}</p>
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="p-4">
-            <p className="text-xs text-muted-foreground">Juros a Receber</p>
-            <p className="text-lg font-bold text-warning">{formatCurrency(portfolio.interestToReceive)}</p>
+          <CardContent className="p-3 sm:p-4">
+            <p className="text-[10px] sm:text-xs text-muted-foreground">Juros a Receber</p>
+            <p className="text-sm sm:text-lg font-bold text-warning">{formatCurrency(portfolio.interestToReceive)}</p>
           </CardContent>
         </Card>
       </div>
 
       {/* Health Score Gauge */}
       <Card>
-        <CardContent className="p-6">
+        <CardContent className="p-4 sm:p-6">
           <h3 className="text-sm font-semibold text-foreground mb-4">Saúde da Operação</h3>
-          <div className="flex flex-col sm:flex-row items-center gap-6">
+          <div className="flex flex-col items-center gap-4 sm:flex-row sm:gap-6">
             {/* Gauge */}
-            <div className="relative w-40 h-40 shrink-0">
+            <div className="relative w-28 h-28 sm:w-40 sm:h-40 shrink-0">
               <svg viewBox="0 0 120 120" className="w-full h-full -rotate-90">
                 <circle cx="60" cy="60" r="52" fill="none" stroke="currentColor" strokeWidth="10" className="text-muted/30" />
                 <circle
@@ -549,38 +549,38 @@ export function DashboardOverview({ loans, sales, payments, expenses, onDeletePa
                 />
               </svg>
               <div className="absolute inset-0 flex flex-col items-center justify-center">
-                <span className={`text-3xl font-bold ${healthColor}`}>{portfolio.score}</span>
-                <span className="text-xs text-muted-foreground">de 100</span>
+                <span className={`text-2xl sm:text-3xl font-bold ${healthColor}`}>{portfolio.score}</span>
+                <span className="text-[10px] sm:text-xs text-muted-foreground">de 100</span>
               </div>
             </div>
             {/* Metrics */}
-            <div className="flex-1 grid grid-cols-2 gap-4 w-full">
+            <div className="flex-1 grid grid-cols-2 gap-2 sm:gap-4 w-full">
               <Card className={`bg-gradient-to-br ${healthBg} border-0`}>
-                <CardContent className="p-4">
-                  <p className="text-xs text-muted-foreground">Taxa de Recebimento</p>
-                  <p className={`text-xl font-bold ${portfolio.receivingRate >= 70 ? "text-success" : portfolio.receivingRate >= 40 ? "text-warning" : "text-destructive"}`}>
+                <CardContent className="p-3 sm:p-4">
+                  <p className="text-[10px] sm:text-xs text-muted-foreground">Taxa de Recebimento</p>
+                  <p className={`text-base sm:text-xl font-bold ${portfolio.receivingRate >= 70 ? "text-success" : portfolio.receivingRate >= 40 ? "text-warning" : "text-destructive"}`}>
                     {portfolio.receivingRate.toFixed(1)}%
                   </p>
                 </CardContent>
               </Card>
               <Card className={`bg-gradient-to-br ${portfolio.defaultRate <= 20 ? "from-success/20 to-success/5" : portfolio.defaultRate <= 50 ? "from-warning/20 to-warning/5" : "from-destructive/20 to-destructive/5"} border-0`}>
-                <CardContent className="p-4">
-                  <p className="text-xs text-muted-foreground">Inadimplência</p>
-                  <p className={`text-xl font-bold ${portfolio.defaultRate <= 20 ? "text-success" : portfolio.defaultRate <= 50 ? "text-warning" : "text-destructive"}`}>
+                <CardContent className="p-3 sm:p-4">
+                  <p className="text-[10px] sm:text-xs text-muted-foreground">Inadimplência</p>
+                  <p className={`text-base sm:text-xl font-bold ${portfolio.defaultRate <= 20 ? "text-success" : portfolio.defaultRate <= 50 ? "text-warning" : "text-destructive"}`}>
                     {portfolio.defaultRate.toFixed(1)}%
                   </p>
                 </CardContent>
               </Card>
               <Card className="border-0 bg-gradient-to-br from-success/10 to-success/5">
-                <CardContent className="p-4">
-                  <p className="text-xs text-muted-foreground">Recebido</p>
-                  <p className="text-xl font-bold text-success">{formatCurrency(portfolio.totalReceived)}</p>
+                <CardContent className="p-3 sm:p-4">
+                  <p className="text-[10px] sm:text-xs text-muted-foreground">Recebido</p>
+                  <p className="text-base sm:text-xl font-bold text-success">{formatCurrency(portfolio.totalReceived)}</p>
                 </CardContent>
               </Card>
               <Card className="border-0 bg-gradient-to-br from-destructive/10 to-destructive/5">
-                <CardContent className="p-4">
-                  <p className="text-xs text-muted-foreground">Atrasado</p>
-                  <p className="text-xl font-bold text-destructive">{formatCurrency(portfolio.overdueAmount)}</p>
+                <CardContent className="p-3 sm:p-4">
+                  <p className="text-[10px] sm:text-xs text-muted-foreground">Atrasado</p>
+                  <p className="text-base sm:text-xl font-bold text-destructive">{formatCurrency(portfolio.overdueAmount)}</p>
                 </CardContent>
               </Card>
             </div>
