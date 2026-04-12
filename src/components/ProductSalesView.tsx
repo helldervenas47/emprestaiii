@@ -846,6 +846,37 @@ export function ProductSalesView({ sales, onDeleteSale, onUpdateSale, clients = 
     onUpdateSale(id, data);
   }, [sales, onUpdateSale, updateVehicleBalance]);
 
+  // Wrap onPayExpense to debit vehicle balance
+  const handleVehiclePayExpense = useCallback((id: string) => {
+    const exp = expenses.find(e => e.id === id);
+    if (!exp || exp.paid) { onPayExpense?.(id); return; }
+    const isRecorrente = exp.type === "recorrente" && exp.installments && exp.installments > 1;
+    const debitAmount = isRecorrente ? exp.amount / exp.installments! : exp.amount;
+    updateVehicleBalance(-debitAmount);
+    onPayExpense?.(id);
+  }, [expenses, onPayExpense, updateVehicleBalance]);
+
+  // Wrap onUpdateExpense to restore vehicle balance when payments are removed
+  const handleVehicleUpdateExpense = useCallback((id: string, data: Partial<Omit<Expense, "id" | "createdAt">>) => {
+    const exp = expenses.find(e => e.id === id);
+    if (exp) {
+      const isRecorrente = exp.type === "recorrente" && exp.installments && exp.installments > 1;
+      const installmentAmount = isRecorrente ? exp.amount / exp.installments! : exp.amount;
+
+      if (data.paidInstallments !== undefined && isRecorrente) {
+        const diff = (exp.paidInstallments || 0) - data.paidInstallments;
+        if (diff > 0) {
+          // Payments removed — restore balance
+          updateVehicleBalance(installmentAmount * diff);
+        }
+      } else if (data.paid === false && exp.paid) {
+        // Single expense payment removed — restore balance
+        updateVehicleBalance(exp.amount);
+      }
+    }
+    onUpdateExpense?.(id, data);
+  }, [expenses, onUpdateExpense, updateVehicleBalance]);
+
   if (!hasSalesOrStreaming) {
     // Vehicles page - render without sub-tabs + vehicle expenses
     return (
@@ -894,7 +925,7 @@ export function ProductSalesView({ sales, onDeleteSale, onUpdateSale, clients = 
                   <Button variant="destructive" onClick={() => {
                     vehicleExpenses.forEach(exp => {
                       if (exp.paid || (exp.paidInstallments && exp.paidInstallments > 0)) {
-                        onUpdateExpense!(exp.id, { paid: false, paidDate: undefined, paidInstallments: 0 });
+                        handleVehicleUpdateExpense(exp.id, { paid: false, paidDate: undefined, paidInstallments: 0 });
                       }
                     });
                     setShowDeleteAllExpenses(false);
@@ -952,7 +983,7 @@ export function ProductSalesView({ sales, onDeleteSale, onUpdateSale, clients = 
                               </Button>
                             )}
                             {!exp.paid && onPayExpense && (
-                              <Button size="sm" variant="outline" onClick={() => onPayExpense(exp.id)} className="h-8 text-xs">
+                              <Button size="sm" variant="outline" onClick={() => handleVehiclePayExpense(exp.id)} className="h-8 text-xs">
                                 <CheckCircle className="h-3.5 w-3.5 mr-1" />
                                 Pagar
                               </Button>
@@ -992,7 +1023,7 @@ export function ProductSalesView({ sales, onDeleteSale, onUpdateSale, clients = 
                                     onClick={() => {
                                       const newPaid = i;
                                       const fullyPaid = false;
-                                      onUpdateExpense!(exp.id, { paidInstallments: newPaid, paid: fullyPaid, paidDate: undefined });
+                                      handleVehicleUpdateExpense(exp.id, { paidInstallments: newPaid, paid: fullyPaid, paidDate: undefined });
                                       if (newPaid === 0) setViewPaymentsExpenseId(null);
                                     }}
                                   >
@@ -1016,7 +1047,7 @@ export function ProductSalesView({ sales, onDeleteSale, onUpdateSale, clients = 
                                     variant="ghost"
                                     className="h-7 w-7 text-destructive hover:bg-destructive/10 shrink-0"
                                     onClick={() => {
-                                      onUpdateExpense!(exp.id, { paid: false, paidDate: undefined, paidInstallments: 0 });
+                                      handleVehicleUpdateExpense(exp.id, { paid: false, paidDate: undefined, paidInstallments: 0 });
                                       setViewPaymentsExpenseId(null);
                                     }}
                                   >
