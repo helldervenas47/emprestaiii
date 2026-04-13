@@ -380,7 +380,7 @@ const Index = () => {
         {tab === "expenses" && (
           <div>
             <h2 className="text-lg font-semibold text-foreground mb-4">Despesas ({nonVehicleExpenses.length})</h2>
-            <ExpenseList expenses={nonVehicleExpenses} onPay={payExpense} onUnpay={unpayExpense} onDelete={deleteExpense} />
+            <ExpenseList expenses={nonVehicleExpenses} onPay={payExpense} onUnpay={unpayExpense} onDelete={deleteExpense} readOnly={isReadOnly} />
           </div>
         )}
         {tab === "overdue" && (
