@@ -386,29 +386,16 @@ export function UserManagement() {
                     </TableCell>
                     <TableCell>
                       <div className="flex gap-1">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => openPermissions(user)}
-                          className="h-8 w-8"
-                          title="Permissões de abas"
-                        >
+                        <Button variant="ghost" size="icon" onClick={() => openPermissions(user)} className="h-8 w-8" title="Permissões de abas">
                           <Settings2 className="h-4 w-4" />
                         </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => openEdit(user)}
-                          className="h-8 w-8"
-                        >
+                        <Button variant="ghost" size="icon" onClick={() => openClientLinks(user)} className="h-8 w-8" title="Vincular clientes">
+                          <Link2 className="h-4 w-4" />
+                        </Button>
+                        <Button variant="ghost" size="icon" onClick={() => openEdit(user)} className="h-8 w-8">
                           <Pencil className="h-4 w-4" />
                         </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleDelete(user.id, user.display_name)}
-                          className="h-8 w-8 text-destructive hover:text-destructive"
-                        >
+                        <Button variant="ghost" size="icon" onClick={() => handleDelete(user.id, user.display_name)} className="h-8 w-8 text-destructive hover:text-destructive">
                           <Trash2 className="h-4 w-4" />
                         </Button>
                       </div>
