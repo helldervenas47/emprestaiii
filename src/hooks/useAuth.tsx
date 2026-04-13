@@ -11,6 +11,7 @@ interface AuthContextType {
   role: AppRole;
   dataOwnerId: string | null;
   allowedTabs: string[] | null;
+  linkedClientIds: string[] | null;
   signOut: () => Promise<void>;
 }
 
