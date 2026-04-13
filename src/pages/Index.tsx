@@ -144,11 +144,29 @@ function HideValuesToggle() {
 }
 
 const Index = () => {
-  const { signOut, role, allowedTabs, loading, user } = useAuth();
+  const { signOut, role, allowedTabs, linkedClientIds, loading, user } = useAuth();
   const { loans, payments, installmentSchedules, addLoan, addPayment, addPartialPayment, addInterestOnlyPayment, updateLoan, deleteLoan, deletePayment, saveSchedule } = useLoans();
   const { clients, addClient, deleteClient, updateClient } = useClients();
   const { products, sales, addProduct, updateProduct, deleteProduct, addSale, updateSale, deleteSale } = useProducts();
   const { expenses, addExpense, payExpense, unpayExpense, deleteExpense, updateExpense } = useExpenses();
+
+  // Filter data by linked clients if user has client restrictions
+  const hasClientFilter = Array.isArray(linkedClientIds) && linkedClientIds.length > 0;
+  const filteredClients = hasClientFilter ? clients.filter(c => linkedClientIds.includes(c.id)) : clients;
+  const filteredLoans = hasClientFilter ? loans.filter(l => l.borrowerId && linkedClientIds.includes(l.borrowerId)) : loans;
+  const filteredPayments = hasClientFilter
+    ? payments.filter(p => filteredLoans.some(l => l.id === p.loanId))
+    : payments;
+  const filteredInstallments = hasClientFilter
+    ? installmentSchedules.filter(s => filteredLoans.some(l => l.id === s.loanId))
+    : installmentSchedules;
+  const filteredSales = hasClientFilter
+    ? sales.filter(s => {
+        const clientNames = filteredClients.map(c => c.name.toLowerCase());
+        return clientNames.includes((s.customerName || "").toLowerCase());
+      })
+    : sales;
+
   const nonVehicleExpenses = expenses.filter(e => !vehicleExpenseCategories.includes(e.category));
   const [showLoanForm, setShowLoanForm] = useState(false);
   const [showClientForm, setShowClientForm] = useState(false);
