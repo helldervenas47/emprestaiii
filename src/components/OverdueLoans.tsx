@@ -1,6 +1,6 @@
 import { useMemo, useState, useCallback } from "react";
 import { useHideValues } from "@/contexts/HideValuesContext";
-import { Loan, Client, InstallmentSchedule } from "@/types/loan";
+import { Loan, Client, Payment, InstallmentSchedule } from "@/types/loan";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,6 +11,7 @@ import { WhatsAppReport } from "@/components/WhatsAppReport";
 
 interface Props {
   loans: Loan[];
+  payments: Payment[];
   clients: Client[];
   installmentSchedules: InstallmentSchedule[];
 }
@@ -134,7 +135,7 @@ function LoanItemCard({ item, isOverdue, onSendWhatsApp }: { item: LoanItem; isO
   );
 }
 
-export function OverdueLoans({ loans, clients, installmentSchedules }: Props) {
+export function OverdueLoans({ loans, payments, clients, installmentSchedules }: Props) {
   const { mask } = useHideValues();
   const formatCurrency = useCallback((v: number) => mask(rawFormatCurrency(v)), [mask]);
   const [search, setSearch] = useState("");
@@ -253,7 +254,7 @@ export function OverdueLoans({ loans, clients, installmentSchedules }: Props) {
       </div>
 
       {/* WhatsApp Report */}
-      <WhatsAppReport loans={loans} clients={clients} installmentSchedules={installmentSchedules} />
+      <WhatsAppReport loans={loans} payments={payments} clients={clients} installmentSchedules={installmentSchedules} />
 
       {/* Info */}
       <Card no3d>

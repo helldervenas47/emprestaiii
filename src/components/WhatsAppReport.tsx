@@ -1,12 +1,13 @@
 import { useMemo, useCallback } from "react";
-import { Loan, Client, InstallmentSchedule } from "@/types/loan";
+import { Loan, Client, Payment, InstallmentSchedule } from "@/types/loan";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { calculateInstallment } from "@/hooks/useLoans";
+import { calculateInstallment, calculateTotalWithInterest } from "@/hooks/useLoans";
 import { FileText, Send } from "lucide-react";
 
 interface Props {
   loans: Loan[];
+  payments: Payment[];
   clients: Client[];
   installmentSchedules: InstallmentSchedule[];
 }
@@ -20,10 +21,24 @@ function getTodayStr(): string {
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
 }
 
-function getInstallmentAmount(loan: Loan, schedules: InstallmentSchedule[]): number {
-  const schedule = schedules.find(s => s.loanId === loan.id && s.installmentNumber === loan.paidInstallments + 1);
-  if (schedule) return schedule.amount;
-  return loan.customInstallmentValue || calculateInstallment(loan.amount, loan.interestRate, loan.installments);
+/** Same "Restante" logic as LoanList line view */
+function getLoanRemaining(loan: Loan, payments: Payment[], installmentSchedules: InstallmentSchedule[], todayStr: string): number {
+  const total = calculateTotalWithInterest(loan.amount, loan.interestRate, loan.installments);
+  const totalPaid = payments.filter((p) => p.loanId === loan.id).reduce((s, p) => s + p.amount, 0);
+
+  // For installment loans, sum overdue installments from schedule
+  if (loan.installments >= 2) {
+    const overdueSum = installmentSchedules
+      .filter((s) => s.loanId === loan.id && s.installmentNumber > loan.paidInstallments && s.dueDate <= todayStr)
+      .reduce((sum, s) => sum + s.amount, 0);
+    if (overdueSum > 0) return overdueSum;
+  }
+
+  if (loan.remainingAmount != null && loan.remainingAmount > 0) {
+    return loan.remainingAmount;
+  }
+
+  return Math.max(0, total - totalPaid);
 }
 
 function getDaysOverdue(dueDate: string): number {
@@ -70,7 +85,7 @@ function getDayOfWeek(dateStr: string): string {
   return days[d.getDay()];
 }
 
-export function WhatsAppReport({ loans, clients, installmentSchedules }: Props) {
+export function WhatsAppReport({ loans, payments, clients, installmentSchedules }: Props) {
   const todayStr = getTodayStr();
 
   const activeLoans = useMemo(() =>
@@ -82,21 +97,21 @@ export function WhatsAppReport({ loans, clients, installmentSchedules }: Props) 
     return activeLoans
       .filter((loan) => loan.dueDate === todayStr)
       .map((loan) => {
-        const base = getInstallmentAmount(loan, installmentSchedules);
+        const base = getLoanRemaining(loan, payments, installmentSchedules, todayStr);
         return { loan, amount: base };
       });
-  }, [activeLoans, installmentSchedules, todayStr]);
+  }, [activeLoans, payments, installmentSchedules, todayStr]);
 
   const overdueLoans = useMemo(() => {
     return activeLoans
       .filter((loan) => loan.dueDate < todayStr)
       .map((loan) => {
-        const base = getInstallmentAmount(loan, installmentSchedules);
+        const base = getLoanRemaining(loan, payments, installmentSchedules, todayStr);
         const lateFees = calcLateFees(loan, base);
         return { loan, amount: base + lateFees, baseAmount: base, lateFees };
       })
       .sort((a, b) => a.loan.dueDate.localeCompare(b.loan.dueDate));
-  }, [activeLoans, installmentSchedules, todayStr]);
+  }, [activeLoans, payments, installmentSchedules, todayStr]);
 
   const totalDueToday = dueTodayLoans.reduce((s, d) => s + d.amount, 0);
   const totalOverdue = overdueLoans.reduce((s, d) => s + d.amount, 0);
