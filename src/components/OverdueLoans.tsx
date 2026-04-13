@@ -135,7 +135,7 @@ function LoanItemCard({ item, isOverdue, onSendWhatsApp }: { item: LoanItem; isO
   );
 }
 
-export function OverdueLoans({ loans, clients, installmentSchedules }: Props) {
+export function OverdueLoans({ loans, payments, clients, installmentSchedules }: Props) {
   const { mask } = useHideValues();
   const formatCurrency = useCallback((v: number) => mask(rawFormatCurrency(v)), [mask]);
   const [search, setSearch] = useState("");
@@ -254,7 +254,7 @@ export function OverdueLoans({ loans, clients, installmentSchedules }: Props) {
       </div>
 
       {/* WhatsApp Report */}
-      <WhatsAppReport loans={loans} clients={clients} installmentSchedules={installmentSchedules} />
+      <WhatsAppReport loans={loans} payments={payments} clients={clients} installmentSchedules={installmentSchedules} />
 
       {/* Info */}
       <Card no3d>
