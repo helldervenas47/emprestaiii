@@ -1554,7 +1554,7 @@ export function ProductSalesView({ sales, onDeleteSale, onUpdateSale, clients = 
                                     Pagamentos
                                   </Button>
                                 )}
-                                {!exp.paid && onPayExpense && (
+                                {!readOnly && !exp.paid && onPayExpense && (
                                   <Button size="sm" variant="outline" onClick={() => handleVehiclePayExpense(exp.id)} className="h-7 text-xs">
                                     <CheckCircle className="h-3.5 w-3.5 mr-1" />
                                     Pagar
