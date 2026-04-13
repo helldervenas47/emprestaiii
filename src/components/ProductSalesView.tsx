@@ -39,6 +39,7 @@ interface Props {
   onPayExpense?: (id: string, skipBalanceAdjust?: boolean) => void;
   onDeleteExpense?: (id: string, skipBalanceAdjust?: boolean) => void;
   onUpdateExpense?: (id: string, data: Partial<Omit<Expense, "id" | "createdAt">>) => void;
+  readOnly?: boolean;
 }
 
 function rawFormatCurrency(v: number) {

@@ -17,6 +17,7 @@ interface Props {
   onPay: (id: string) => void;
   onUnpay?: (id: string) => void;
   onDelete: (id: string) => void;
+  readOnly?: boolean;
 }
 
 type Filter = "all" | "pending" | "paid" | "overdue";
@@ -31,7 +32,7 @@ function isOverdue(expense: Expense): boolean {
   return expense.dueDate < today;
 }
 
-export function ExpenseList({ expenses, onPay, onUnpay, onDelete }: Props) {
+export function ExpenseList({ expenses, onPay, onUnpay, onDelete, readOnly = false }: Props) {
   const { mask } = useHideValues();
   const formatCurrency = useCallback((v: number) => mask(rawFormatCurrency(v)), [mask]);
   const [search, setSearch] = useState("");
