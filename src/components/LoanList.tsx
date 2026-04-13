@@ -1728,7 +1728,7 @@ export function LoanList({ loans, payments, installmentSchedules, onPayment, onP
 
   return (
     <div className="space-y-3">
-      <div className="flex flex-wrap gap-2">
+      <div className="flex flex-wrap gap-2 justify-center sm:justify-start">
         {categoryConfig.map((cat) => (
           <button key={cat.id} onClick={() => setCategory(cat.id)}
             className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors border ${
