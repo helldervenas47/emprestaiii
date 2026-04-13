@@ -609,14 +609,17 @@ function SaleListRow({ sale, onEdit, onUpdate, formatCurrency }: {
                     const currentValue = nextInstValue;
                     const currentPartial = sale.partialPaid || 0;
                     const newPartialTotal = currentPartial + val;
+                    const newRecord: SalePaymentRecord = { amount: val, date: format(partialDate, "yyyy-MM-dd"), type: "partial" };
+                    const history = [...(sale.paymentHistory || []), newRecord];
                     if (newPartialTotal >= currentValue - 0.01) {
                       const remainder = newPartialTotal - currentValue;
                       onUpdate({
                         paidInstallments: Math.min(sale.installments, sale.paidInstallments + 1),
                         partialPaid: remainder > 0.01 ? remainder : 0,
+                        paymentHistory: history,
                       });
                     } else {
-                      onUpdate({ partialPaid: newPartialTotal });
+                      onUpdate({ partialPaid: newPartialTotal, paymentHistory: history });
                     }
                     setPartialAmount(""); setPartialDate(undefined); setShowPartial(false);
                   }
