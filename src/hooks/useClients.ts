@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
 
 export function useClients() {
-  const { user } = useAuth();
+  const { user, dataOwnerId } = useAuth();
   const [clients, setClients] = useState<Client[]>([]);
 
   const fetchClients = useCallback(async () => {
@@ -12,7 +12,6 @@ export function useClients() {
     const { data } = await supabase
       .from("clients")
       .select("*")
-      .eq("user_id", user.id)
       .order("created_at", { ascending: false });
 
     if (data) {
@@ -28,13 +27,13 @@ export function useClients() {
   useEffect(() => { fetchClients(); }, [fetchClients]);
 
   const addClient = useCallback(async (client: Omit<Client, "id" | "createdAt">) => {
-    if (!user) return;
+    if (!user || !dataOwnerId) return;
     const tempId = crypto.randomUUID();
     const optimistic: Client = { ...client, id: tempId, createdAt: new Date().toISOString() };
     setClients((prev) => [optimistic, ...prev]);
 
     const { data, error } = await supabase.from("clients").insert({
-      user_id: user.id, name: client.name, phone: client.phone, email: client.email,
+      user_id: dataOwnerId, name: client.name, phone: client.phone, email: client.email,
       cpf: client.cpf, cnpj: client.cnpj, rg: client.rg, address: client.address,
       city: client.city, state: client.state, score: client.score, notes: client.notes,
       active: client.active,
@@ -45,7 +44,7 @@ export function useClients() {
     } else if (data) {
       setClients((prev) => prev.map((c) => c.id === tempId ? { ...c, id: data.id, createdAt: data.created_at } : c));
     }
-  }, [user]);
+  }, [user, dataOwnerId]);
 
   const deleteClient = useCallback(async (id: string) => {
     setClients((prev) => prev.filter((c) => c.id !== id));

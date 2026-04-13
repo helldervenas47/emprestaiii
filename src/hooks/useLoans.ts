@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
 
 export function useLoans() {
-  const { user } = useAuth();
+  const { user, dataOwnerId } = useAuth();
   const [loans, setLoans] = useState<Loan[]>([]);
   const [payments, setPayments] = useState<Payment[]>([]);
   const [installmentSchedules, setInstallmentSchedules] = useState<InstallmentSchedule[]>([]);
@@ -13,7 +13,7 @@ export function useLoans() {
   const fetchLoans = useCallback(async () => {
     if (!user) return;
     const { data } = await supabase
-      .from("loans").select("*").eq("user_id", user.id)
+      .from("loans").select("*")
       .order("created_at", { ascending: false });
     if (data) {
       setLoans(data.map((l: any) => ({
@@ -35,7 +35,7 @@ export function useLoans() {
   const fetchPayments = useCallback(async () => {
     if (!user) return;
     const { data } = await supabase
-      .from("payments").select("*").eq("user_id", user.id)
+      .from("payments").select("*")
       .order("created_at", { ascending: false });
     if (data) {
       setPayments(data.map((p: any) => ({
@@ -48,7 +48,7 @@ export function useLoans() {
   const fetchSchedules = useCallback(async () => {
     if (!user) return;
     const { data } = await supabase
-      .from("loan_installments").select("*").eq("user_id", user.id)
+      .from("loan_installments").select("*")
       .order("installment_number", { ascending: true });
     if (data) {
       setInstallmentSchedules(data.map((s: any) => ({
@@ -61,13 +61,12 @@ export function useLoans() {
   useEffect(() => { fetchLoans(); fetchPayments(); fetchSchedules(); }, [fetchLoans, fetchPayments, fetchSchedules]);
 
   const saveSchedule = useCallback(async (loanId: string, rows: { installmentNumber: number; dueDate: string; amount: number }[]) => {
-    if (!user) return;
-    // Delete existing schedule for this loan then insert new
+    if (!user || !dataOwnerId) return;
     await supabase.from("loan_installments").delete().eq("loan_id", loanId);
     if (rows.length > 0) {
       await supabase.from("loan_installments").insert(
         rows.map((r) => ({
-          user_id: user.id,
+          user_id: dataOwnerId,
           loan_id: loanId,
           installment_number: r.installmentNumber,
           due_date: r.dueDate,
@@ -76,10 +75,10 @@ export function useLoans() {
       );
     }
     await fetchSchedules();
-  }, [user, fetchSchedules]);
+  }, [user, dataOwnerId, fetchSchedules]);
 
   const addLoan = useCallback(async (loan: Omit<Loan, "id"> & { status?: string; paidInstallments?: number }): Promise<string | null> => {
-    if (!user) return null;
+    if (!user || !dataOwnerId) return null;
     const status = (loan.status as Loan["status"]) || "active";
     const tempId = crypto.randomUUID();
     const optimistic: Loan = {
@@ -89,7 +88,7 @@ export function useLoans() {
     setLoans((prev) => [optimistic, ...prev]);
 
     const { data, error } = await supabase.from("loans").insert({
-      user_id: user.id, borrower_name: loan.borrowerName, borrower_id: loan.borrowerId,
+      user_id: dataOwnerId, borrower_name: loan.borrowerName, borrower_id: loan.borrowerId,
       amount: loan.amount, interest_rate: loan.interestRate,
       interest_type: loan.interestType || "Mensal", payment_type: loan.paymentType || "Parcelado",
       start_date: loan.startDate, due_date: loan.dueDate, installments: loan.installments,
@@ -112,10 +111,10 @@ export function useLoans() {
       return data.id;
     }
     return null;
-  }, [user]);
+  }, [user, dataOwnerId]);
 
   const addPayment = useCallback(async (loanId: string, paymentDate?: string) => {
-    if (!user) return;
+    if (!user || !dataOwnerId) return;
     const dateStr = paymentDate || new Date().toISOString().split("T")[0];
     const loan = loans.find((l) => l.id === loanId);
     if (!loan) return;
@@ -131,7 +130,7 @@ export function useLoans() {
 
     await Promise.all([
       supabase.from("payments").insert({
-        user_id: user.id, loan_id: loanId, amount: installmentAmount,
+        user_id: dataOwnerId, loan_id: loanId, amount: installmentAmount,
         date: dateStr, installment_number: newPaid,
       }),
       supabase.from("loans").update({
@@ -143,10 +142,10 @@ export function useLoans() {
     ]);
     await fetchPayments();
     await fetchLoans();
-  }, [user, loans, payments, fetchLoans, fetchPayments]);
+  }, [user, dataOwnerId, loans, payments, fetchLoans, fetchPayments]);
 
   const addPartialPayment = useCallback(async (loanId: string, amount: number, paymentDate?: string) => {
-    if (!user || amount <= 0) return;
+    if (!user || !dataOwnerId || amount <= 0) return;
     const dateStr = paymentDate || new Date().toISOString().split("T")[0];
     const loan = loans.find((l) => l.id === loanId);
     if (!loan) return;
@@ -154,7 +153,7 @@ export function useLoans() {
 
     await Promise.all([
       supabase.from("payments").insert({
-        user_id: user.id, loan_id: loanId, amount, date: dateStr, installment_number: -1,
+        user_id: dataOwnerId, loan_id: loanId, amount, date: dateStr, installment_number: -1,
       }),
       supabase.from("loans").update({
         remaining_amount: newRemaining,
@@ -163,10 +162,10 @@ export function useLoans() {
     ]);
     await fetchPayments();
     await fetchLoans();
-  }, [user, loans, payments, fetchLoans, fetchPayments]);
+  }, [user, dataOwnerId, loans, payments, fetchLoans, fetchPayments]);
 
   const addInterestOnlyPayment = useCallback(async (loanId: string, paymentDate?: string) => {
-    if (!user) return;
+    if (!user || !dataOwnerId) return;
     const loan = loans.find((l) => l.id === loanId);
     if (!loan) return;
     const dateStr = paymentDate || new Date().toISOString().split("T")[0];
@@ -181,7 +180,6 @@ export function useLoans() {
     const newDueDate = currentDue.toISOString().split("T")[0];
     
 
-    // Also update any saved installment schedule for the next pending installment
     const nextNum = loan.paidInstallments + 1;
     const scheduleUpdate = supabase.from("loan_installments")
       .update({ due_date: newDueDate })
@@ -190,7 +188,7 @@ export function useLoans() {
 
     await Promise.all([
       supabase.from("payments").insert({
-        user_id: user.id, loan_id: loanId, amount: interestAmount,
+        user_id: dataOwnerId, loan_id: loanId, amount: interestAmount,
         date: dateStr, installment_number: 0, previous_due_date: loan.dueDate,
       }),
       supabase.from("loans").update({ due_date: newDueDate }).eq("id", loanId),
@@ -200,7 +198,7 @@ export function useLoans() {
     await fetchLoans();
     await fetchPayments();
     await fetchSchedules();
-  }, [user, loans, payments, fetchLoans, fetchPayments]);
+  }, [user, dataOwnerId, loans, payments, fetchLoans, fetchPayments]);
 
   const updateLoan = useCallback(async (id: string, data: Partial<Omit<Loan, "id">>) => {
     if (data.remainingAmount !== undefined) {
@@ -278,7 +276,6 @@ export function useLoans() {
         setLoans((prev) => prev.map((l) => l.id === payment.loanId ? {
           ...l, dueDate: payment.previousDueDate!,
         } : l));
-        // Also restore the installment schedule date
         const nextNum = loan.paidInstallments + 1;
         await supabase.from("loan_installments")
           .update({ due_date: payment.previousDueDate })

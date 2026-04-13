@@ -5,7 +5,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { adjustBalance } from "@/lib/balance";
 
 export function useProducts() {
-  const { user } = useAuth();
+  const { user, dataOwnerId } = useAuth();
   const [products, setProducts] = useState<Product[]>([]);
   const [sales, setSales] = useState<Sale[]>([]);
   const [loading, setLoading] = useState(true);
@@ -59,12 +59,12 @@ export function useProducts() {
   }, [user]);
 
   const addProduct = useCallback(async (p: Omit<Product, "id" | "createdAt">) => {
-    if (!user) return;
+    if (!user || !dataOwnerId) return;
     const tempId = crypto.randomUUID();
     setProducts((prev) => [{ ...p, id: tempId, createdAt: new Date().toISOString() }, ...prev]);
 
     const { data, error } = await supabase.from("products").insert({
-      user_id: user.id, name: p.name, description: p.description, price: p.price, cost: 0, stock: p.stock,
+      user_id: dataOwnerId, name: p.name, description: p.description, price: p.price, cost: 0, stock: p.stock,
     }).select().single();
 
     if (error) {
@@ -72,7 +72,7 @@ export function useProducts() {
     } else if (data) {
       setProducts((prev) => prev.map((x) => x.id === tempId ? { ...x, id: data.id, createdAt: data.created_at } : x));
     }
-  }, [user]);
+  }, [user, dataOwnerId]);
 
   const updateProduct = useCallback(async (id: string, data: Partial<Omit<Product, "id" | "createdAt">>) => {
     if (!user) return;
@@ -93,7 +93,7 @@ export function useProducts() {
   }, [user]);
 
   const addSale = useCallback(async (s: Omit<Sale, "id">) => {
-    if (!user) return;
+    if (!user || !dataOwnerId) return;
     const tempId = crypto.randomUUID();
     setSales((prev) => [{ ...s, id: tempId }, ...prev]);
 
@@ -106,7 +106,7 @@ export function useProducts() {
     }
 
     const { data, error } = await supabase.from("sales").insert({
-      user_id: user.id,
+      user_id: dataOwnerId,
       product_id: s.productId || null,
       quantity: s.quantity,
       total: s.total,
@@ -142,7 +142,7 @@ export function useProducts() {
       }
       await adjustBalance(s.total);
     }
-  }, [user, products]);
+  }, [user, dataOwnerId, products]);
 
   const updateSale = useCallback(async (id: string, data: Partial<Omit<Sale, "id">>) => {
     if (!user) return;
