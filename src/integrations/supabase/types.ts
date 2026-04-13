@@ -39,15 +39,20 @@ export type Database = {
         Row: {
           active: boolean
           address: string
+          bairro: string
           city: string
           cnpj: string
           cpf: string
           created_at: string
           email: string
+          estado_civil: string
           id: string
+          is_vehicle_rental: boolean
+          nacionalidade: string
           name: string
           notes: string | null
           phone: string
+          profissao: string
           rg: string
           score: string
           state: string
@@ -56,15 +61,20 @@ export type Database = {
         Insert: {
           active?: boolean
           address?: string
+          bairro?: string
           city?: string
           cnpj?: string
           cpf?: string
           created_at?: string
           email?: string
+          estado_civil?: string
           id?: string
+          is_vehicle_rental?: boolean
+          nacionalidade?: string
           name: string
           notes?: string | null
           phone?: string
+          profissao?: string
           rg?: string
           score?: string
           state?: string
@@ -73,15 +83,20 @@ export type Database = {
         Update: {
           active?: boolean
           address?: string
+          bairro?: string
           city?: string
           cnpj?: string
           cpf?: string
           created_at?: string
           email?: string
+          estado_civil?: string
           id?: string
+          is_vehicle_rental?: boolean
+          nacionalidade?: string
           name?: string
           notes?: string | null
           phone?: string
+          profissao?: string
           rg?: string
           score?: string
           state?: string
