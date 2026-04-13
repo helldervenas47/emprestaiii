@@ -468,13 +468,6 @@ function SaleCard({ sale, onDelete, onEdit, onUpdate, formatCurrency, readOnly =
               {new Date(sale.date + "T00:00:00").toLocaleDateString("pt-BR")}
             </p>
             <div className="flex items-center gap-1">
-              <Button size="icon" variant="ghost" className="h-8 w-8 text-primary hover:bg-primary/10" onClick={() => {
-                const descNorm = (sale.description || sale.productName || "").toLowerCase().trim();
-                const matchedVehicle = registeredVehicles.find(v => v.marcaModelo.toLowerCase().trim() === descNorm);
-                generateContract(sale, matchedClient, locadorInfo, matchedVehicle);
-              }} title="Gerar Contrato">
-                <FileText className="h-4 w-4" />
-              </Button>
               <Button size="icon" variant="ghost" className="h-8 w-8 text-success hover:bg-success/10" onClick={() => setShowPayments(true)} title="Ver Pagamentos">
                 <CircleCheck className="h-4 w-4" />
               </Button>
