@@ -112,6 +112,7 @@ export function useExpenses() {
         paid: false, paid_date: null,
       }).eq("id", id);
     }
+  }, [expenses]);
 
   const deleteExpense = useCallback(async (id: string, skipBalanceAdjust = false) => {
     const expense = expenses.find((e) => e.id === id);
@@ -132,5 +133,5 @@ export function useExpenses() {
     }).eq("id", id);
   }, []);
 
-  return { expenses, addExpense, payExpense, deleteExpense, updateExpense };
+  return { expenses, addExpense, payExpense, unpayExpense, deleteExpense, updateExpense };
 }
