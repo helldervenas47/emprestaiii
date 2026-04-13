@@ -1372,38 +1372,45 @@ function LoanRowView({
               <p className="text-[10px] text-muted-foreground mt-1">{Math.round(loan.installments > 0 ? (loan.paidInstallments / loan.installments) * 100 : 0)}% concluído</p>
             </div>
             {/* Actions */}
-            <div className="flex flex-wrap items-center gap-2 pt-1 border-t border-border/30">
+            <div className="flex items-center gap-2 pt-1 border-t border-border/30">
               {!readOnly && loan.status !== "paid" && (
-                <>
-                  <Button size="sm" variant="outline" className="h-8 text-xs gap-1.5" onClick={(e) => { e.stopPropagation(); openPaymentDialog("installment"); }}>
-                    <CheckCircle className="h-3.5 w-3.5" /> Receber Parcela
-                  </Button>
-                  <Button size="sm" variant="outline" className="h-8 text-xs gap-1.5" onClick={(e) => { e.stopPropagation(); openPaymentDialog("interest"); }}>
-                    <Percent className="h-3.5 w-3.5" /> Pagar Juros
-                  </Button>
-                  <Button size="sm" variant="outline" className="h-8 text-xs gap-1.5" onClick={(e) => { e.stopPropagation(); setShowPartial(!showPartial); }}>
-                    <HandCoins className="h-3.5 w-3.5" /> Pagamento Parcial
-                  </Button>
-                  <Button size="sm" variant="default" className="h-8 text-xs gap-1.5" onClick={(e) => { e.stopPropagation(); openPaymentDialog("full"); }}>
-                    <DollarSign className="h-3.5 w-3.5" /> Pagamento Total
-                  </Button>
-                </>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button size="sm" variant="default" className="h-8 text-xs gap-1.5" onClick={(e) => e.stopPropagation()}>
+                      <DollarSign className="h-3.5 w-3.5" /> Pagar
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="start" onClick={(e) => e.stopPropagation()}>
+                    <DropdownMenuItem onClick={() => openPaymentDialog("installment")}>
+                      <CheckCircle className="h-4 w-4 mr-2" /> Receber Parcela
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => openPaymentDialog("interest")}>
+                      <Percent className="h-4 w-4 mr-2" /> Pagar Juros
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => setShowPartial(true)}>
+                      <HandCoins className="h-4 w-4 mr-2" /> Pagamento Parcial
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => openPaymentDialog("full")}>
+                      <DollarSign className="h-4 w-4 mr-2" /> Pagamento Total
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               )}
               {!readOnly && loan.status === "paid" && (
                 <Button size="sm" variant="outline" className="h-8 text-xs gap-1.5" onClick={(e) => { e.stopPropagation(); onUpdate({ status: "active", paidInstallments: 0 }); }}>
                   <X className="h-3.5 w-3.5" /> Marcar como não pago
                 </Button>
               )}
-              <Button size="sm" variant="ghost" className="h-8 text-xs gap-1.5" onClick={(e) => { e.stopPropagation(); setShowHistory(true); }}>
-                <History className="h-3.5 w-3.5" /> Histórico
+              <Button size="icon" variant="ghost" className="h-8 w-8" onClick={(e) => { e.stopPropagation(); setShowHistory(true); }} title="Histórico">
+                <History className="h-4 w-4 text-muted-foreground" />
               </Button>
               {!readOnly && (
                 <>
-                  <Button size="sm" variant="ghost" className="h-8 text-xs gap-1.5" onClick={(e) => { e.stopPropagation(); startEdit(); }}>
-                    <Pencil className="h-3.5 w-3.5" /> Editar
+                  <Button size="icon" variant="ghost" className="h-8 w-8" onClick={(e) => { e.stopPropagation(); startEdit(); }} title="Editar">
+                    <Pencil className="h-4 w-4 text-muted-foreground" />
                   </Button>
-                  <Button size="sm" variant="ghost" className="h-8 text-xs gap-1.5 text-destructive hover:text-destructive" onClick={(e) => { e.stopPropagation(); setConfirmDelete(true); }}>
-                    <Trash2 className="h-3.5 w-3.5" /> Excluir
+                  <Button size="icon" variant="ghost" className="h-8 w-8" onClick={(e) => { e.stopPropagation(); setConfirmDelete(true); }} title="Excluir">
+                    <Trash2 className="h-4 w-4 text-destructive" />
                   </Button>
                 </>
               )}
