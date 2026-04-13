@@ -1420,8 +1420,11 @@ export function ProductSalesView({ sales, onDeleteSale, onUpdateSale, clients = 
       if (data.paidInstallments !== undefined && isRecorrente) {
         const diff = (exp.paidInstallments || 0) - data.paidInstallments;
         if (diff > 0) {
-          // Payments removed — restore balance
+          // Payments removed — restore balance and roll back due date
           updateVehicleBalance(installmentAmount * diff);
+          const currentDue = new Date(exp.dueDate + "T00:00:00");
+          currentDue.setMonth(currentDue.getMonth() - diff);
+          data = { ...data, dueDate: currentDue.toISOString().split("T")[0] };
         }
       } else if (data.paid === false && exp.paid) {
         // Single expense payment removed — restore balance
