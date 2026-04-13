@@ -9,7 +9,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Trash2, Shield, UserPlus, Pencil, ChevronDown } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import { Plus, Trash2, Shield, UserPlus, Pencil, ChevronDown, Settings2 } from "lucide-react";
 import { toast } from "sonner";
 
 interface ManagedUser {
@@ -20,13 +21,28 @@ interface ManagedUser {
   role: string | null;
   created_at: string;
   last_sign_in_at: string | null;
+  allowed_tabs: string[] | null;
 }
+
+const ALL_TABS = [
+  { id: "overview", label: "Dashboard" },
+  { id: "dashboard", label: "Empréstimos" },
+  { id: "calendar", label: "Calendário" },
+  { id: "clients", label: "Clientes" },
+  { id: "products", label: "Vendas" },
+  { id: "vehicles", label: "Veículos" },
+  { id: "expenses", label: "Despesas" },
+  { id: "overdue", label: "Relatório" },
+];
 
 export function UserManagement() {
   const [users, setUsers] = useState<ManagedUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [editingUser, setEditingUser] = useState<ManagedUser | null>(null);
+  const [permissionsUser, setPermissionsUser] = useState<ManagedUser | null>(null);
+  const [permTabs, setPermTabs] = useState<string[]>([]);
+  const [savingPerms, setSavingPerms] = useState(false);
   const [creating, setCreating] = useState(false);
   const [expandedUserId, setExpandedUserId] = useState<string | null>(null);
   const isMobile = useIsMobile();
@@ -128,6 +144,33 @@ export function UserManagement() {
       username: user.username || "",
       display_name: user.display_name,
     });
+  };
+
+  const openPermissions = (user: ManagedUser) => {
+    setPermissionsUser(user);
+    setPermTabs(user.allowed_tabs || ALL_TABS.map(t => t.id));
+  };
+
+  const handleToggleTab = (tabId: string) => {
+    setPermTabs(prev =>
+      prev.includes(tabId) ? prev.filter(t => t !== tabId) : [...prev, tabId]
+    );
+  };
+
+  const handleSavePermissions = async () => {
+    if (!permissionsUser) return;
+    setSavingPerms(true);
+    const { data, error } = await supabase.functions.invoke("admin-manage-user", {
+      body: { action: "update_permissions", user_id: permissionsUser.id, allowed_tabs: permTabs },
+    });
+    if (error || data?.error) {
+      toast.error(data?.error || "Erro ao salvar permissões");
+    } else {
+      toast.success("Permissões atualizadas!");
+      setPermissionsUser(null);
+      fetchUsers();
+    }
+    setSavingPerms(false);
   };
 
   const handleEditSave = async (e: React.FormEvent) => {
@@ -242,11 +285,14 @@ export function UserManagement() {
                         </div>
                       </div>
                       <div className="flex gap-2">
+                        <Button variant="outline" size="sm" className="flex-1 gap-1" onClick={() => openPermissions(user)}>
+                          <Settings2 className="h-3.5 w-3.5" /> Abas
+                        </Button>
                         <Button variant="outline" size="sm" className="flex-1 gap-1" onClick={() => openEdit(user)}>
                           <Pencil className="h-3.5 w-3.5" /> Editar
                         </Button>
                         <Button variant="outline" size="sm" className="gap-1 text-destructive hover:text-destructive" onClick={() => handleDelete(user.id, user.display_name)}>
-                          <Trash2 className="h-3.5 w-3.5" /> Excluir
+                          <Trash2 className="h-3.5 w-3.5" />
                         </Button>
                       </div>
                     </div>
@@ -265,7 +311,7 @@ export function UserManagement() {
                   <TableHead>Usuário</TableHead>
                   <TableHead>Email</TableHead>
                   <TableHead>Papel</TableHead>
-                  <TableHead className="w-[80px]">Ações</TableHead>
+                  <TableHead className="w-[120px]">Ações</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -302,6 +348,15 @@ export function UserManagement() {
                         <Button
                           variant="ghost"
                           size="icon"
+                          onClick={() => openPermissions(user)}
+                          className="h-8 w-8"
+                          title="Permissões de abas"
+                        >
+                          <Settings2 className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
                           onClick={() => openEdit(user)}
                           className="h-8 w-8"
                         >
@@ -326,6 +381,7 @@ export function UserManagement() {
         )
       )}
 
+      {/* Create user dialog */}
       <Dialog open={showCreateForm} onOpenChange={setShowCreateForm}>
         <DialogContent>
           <DialogHeader>
@@ -362,7 +418,7 @@ export function UserManagement() {
               <Label>Senha *</Label>
               <Input
                 type="password"
-                placeholder="Mínimo 6 caracteres"
+                placeholder="Mínimo 8 caracteres"
                 value={formData.password}
                 onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                 required
@@ -393,6 +449,7 @@ export function UserManagement() {
         </DialogContent>
       </Dialog>
 
+      {/* Edit user dialog */}
       <Dialog open={!!editingUser} onOpenChange={(open) => !open && setEditingUser(null)}>
         <DialogContent>
           <DialogHeader>
@@ -442,6 +499,39 @@ export function UserManagement() {
               </Button>
             </div>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Tab permissions dialog */}
+      <Dialog open={!!permissionsUser} onOpenChange={(open) => !open && setPermissionsUser(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Permissões de Abas — {permissionsUser?.display_name}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Ative ou desative as abas que este usuário pode visualizar.
+            </p>
+            <div className="space-y-3">
+              {ALL_TABS.map((tab) => (
+                <div key={tab.id} className="flex items-center justify-between py-1">
+                  <Label className="text-sm font-medium">{tab.label}</Label>
+                  <Switch
+                    checked={permTabs.includes(tab.id)}
+                    onCheckedChange={() => handleToggleTab(tab.id)}
+                  />
+                </div>
+              ))}
+            </div>
+            <div className="flex gap-2 justify-end pt-2">
+              <Button variant="outline" onClick={() => setPermissionsUser(null)}>
+                Cancelar
+              </Button>
+              <Button onClick={handleSavePermissions} disabled={savingPerms}>
+                {savingPerms ? "Salvando..." : "Salvar Permissões"}
+              </Button>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
     </div>

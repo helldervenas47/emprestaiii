@@ -65,10 +65,10 @@ Deno.serve(async (req) => {
     const { action, user_id, role, display_name, username, email, password } = body;
 
     if (action === "list") {
-      // List all users with their roles and profiles
       const { data: users } = await adminClient.auth.admin.listUsers();
       const { data: roles } = await adminClient.from("user_roles").select("*");
       const { data: profiles } = await adminClient.from("profiles").select("*");
+      const { data: tabPerms } = await adminClient.from("user_tab_permissions").select("*");
 
       const enriched = users.users.map((u) => ({
         id: u.id,
@@ -78,6 +78,7 @@ Deno.serve(async (req) => {
         role: roles?.find((r) => r.user_id === u.id)?.role || null,
         created_at: u.created_at,
         last_sign_in_at: u.last_sign_in_at,
+        allowed_tabs: tabPerms?.find((t) => t.user_id === u.id)?.allowed_tabs || null,
       }));
 
       return new Response(JSON.stringify({ users: enriched }), {
@@ -145,6 +146,30 @@ Deno.serve(async (req) => {
       });
     }
 
+    if (action === "update_permissions") {
+      if (!user_id || !body.allowed_tabs) {
+        return new Response(JSON.stringify({ error: "user_id e allowed_tabs são obrigatórios" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      const { data: existing } = await adminClient
+        .from("user_tab_permissions")
+        .select("id")
+        .eq("user_id", user_id)
+        .maybeSingle();
+
+      if (existing) {
+        await adminClient.from("user_tab_permissions").update({ allowed_tabs: body.allowed_tabs }).eq("user_id", user_id);
+      } else {
+        await adminClient.from("user_tab_permissions").insert({ user_id, allowed_tabs: body.allowed_tabs });
+      }
+
+      return new Response(JSON.stringify({ success: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     if (action === "delete") {
       if (!user_id) {
         return new Response(JSON.stringify({ error: "user_id é obrigatório" }), {
@@ -158,6 +183,7 @@ Deno.serve(async (req) => {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
+      await adminClient.from("user_tab_permissions").delete().eq("user_id", user_id);
       await adminClient.from("user_owner").delete().eq("user_id", user_id);
       await adminClient.from("user_roles").delete().eq("user_id", user_id);
       await adminClient.auth.admin.deleteUser(user_id);
