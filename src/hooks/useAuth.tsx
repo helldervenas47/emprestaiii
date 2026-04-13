@@ -10,6 +10,7 @@ interface AuthContextType {
   loading: boolean;
   role: AppRole;
   dataOwnerId: string | null;
+  allowedTabs: string[] | null;
   signOut: () => Promise<void>;
 }
 
@@ -21,6 +22,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [role, setRole] = useState<AppRole>(null);
   const [dataOwnerId, setDataOwnerId] = useState<string | null>(null);
+  const [allowedTabs, setAllowedTabs] = useState<string[] | null>(null);
 
   const fetchRole = async (userId: string) => {
     const { data } = await supabase
@@ -40,6 +42,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setDataOwnerId((data as any)?.owner_id || userId);
   };
 
+  const fetchTabPermissions = async (userId: string) => {
+    const { data } = await supabase
+      .from("user_tab_permissions" as any)
+      .select("allowed_tabs")
+      .eq("user_id", userId)
+      .maybeSingle();
+    setAllowedTabs((data as any)?.allowed_tabs || null);
+  };
+
   useEffect(() => {
     let mounted = true;
 
@@ -52,16 +63,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (session?.user) {
           sessionStorage.setItem("hvcred_session", "1");
           // Use setTimeout to avoid blocking the auth state change callback
-          setTimeout(() => {
+           setTimeout(() => {
             if (mounted) {
               fetchRole(session.user.id);
               fetchDataOwner(session.user.id);
+              fetchTabPermissions(session.user.id);
             }
           }, 0);
         } else {
           sessionStorage.removeItem("hvcred_session");
           setRole(null);
           setDataOwnerId(null);
+          setAllowedTabs(null);
         }
       }
     );
@@ -74,6 +87,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(session.user);
         fetchRole(session.user.id);
         fetchDataOwner(session.user.id);
+        fetchTabPermissions(session.user.id);
       } else if (!sessionStorage.getItem("hvcred_session")) {
         // No stored session marker - sign out quietly
         supabase.auth.signOut();
@@ -93,7 +107,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, session, loading, role, dataOwnerId, signOut }}>
+    <AuthContext.Provider value={{ user, session, loading, role, dataOwnerId, allowedTabs, signOut }}>
       {children}
     </AuthContext.Provider>
   );
