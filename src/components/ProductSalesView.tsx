@@ -1108,7 +1108,7 @@ export function ProductSalesView({ sales, onDeleteSale, onUpdateSale, clients = 
                   return (
                     <Card key={exp.id} className={`${exp.paid ? "opacity-60" : ""} hover:shadow-[0_8px_24px_-6px_hsl(0_0%_0%/0.15)] hover:-translate-y-0.5 transition-all duration-300 animate-fade-in`} style={{ animationDelay: `${idx * 50}ms`, animationFillMode: 'backwards' }}>
                       <CardContent className="p-4">
-                        <div className="flex items-center justify-between gap-4">
+                        <div className="flex items-start gap-3">
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 mb-1">
                               <p className="font-medium text-sm truncate">{exp.description}</p>
@@ -1116,43 +1116,40 @@ export function ProductSalesView({ sales, onDeleteSale, onUpdateSale, clients = 
                                 {exp.paid ? "Pago" : isOverdue ? "Vencido" : "Pendente"}
                               </Badge>
                             </div>
-                            <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                            <div className="flex flex-wrap items-center gap-2 sm:gap-3 text-xs text-muted-foreground">
                               <span>{exp.category}</span>
                               <span>Venc: {new Date(exp.dueDate + "T00:00:00").toLocaleDateString("pt-BR")}</span>
                               {isRecorrente && (
                                 <span>{exp.paidInstallments || 0}/{exp.installments} parcelas</span>
                               )}
                             </div>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <p className="font-bold text-sm whitespace-nowrap">{formatCurrency(exp.amount)}</p>
-                            {hasPaidSomething && onUpdateExpense && (
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => setViewPaymentsExpenseId(exp.id)}
-                                className="h-8 text-xs"
-                              >
-                                <Receipt className="h-3.5 w-3.5 mr-1" />
-                                Pagamentos
-                              </Button>
-                            )}
-                            {!exp.paid && onPayExpense && (
-                              <Button size="sm" variant="outline" onClick={() => handleVehiclePayExpense(exp.id)} className="h-8 text-xs">
-                                <CheckCircle className="h-3.5 w-3.5 mr-1" />
-                                Pagar
-                              </Button>
-                            )}
-                            {onUpdateExpense && (
-                              <Button size="sm" variant="ghost" onClick={() => setEditingExpenseId(exp.id)} className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground">
-                                <Pencil className="h-3.5 w-3.5" />
-                              </Button>
-                            )}
-                            {onDeleteExpense && (
-                              <Button size="sm" variant="ghost" onClick={() => onDeleteExpense(exp.id, true)} className="h-8 w-8 p-0 text-destructive hover:text-destructive">
-                                <Trash2 className="h-3.5 w-3.5" />
-                              </Button>
-                            )}
+                            <div className="flex items-center justify-between mt-2 pt-2 border-t border-border/40">
+                              <p className="font-bold text-sm">{formatCurrency(exp.amount)}</p>
+                              <div className="flex items-center gap-1">
+                                {hasPaidSomething && onUpdateExpense && (
+                                  <Button size="sm" variant="outline" onClick={() => setViewPaymentsExpenseId(exp.id)} className="h-7 text-xs">
+                                    <Receipt className="h-3.5 w-3.5 mr-1" />
+                                    Pagamentos
+                                  </Button>
+                                )}
+                                {!exp.paid && onPayExpense && (
+                                  <Button size="sm" variant="outline" onClick={() => handleVehiclePayExpense(exp.id)} className="h-7 text-xs">
+                                    <CheckCircle className="h-3.5 w-3.5 mr-1" />
+                                    Pagar
+                                  </Button>
+                                )}
+                                {onUpdateExpense && (
+                                  <Button size="sm" variant="ghost" onClick={() => setEditingExpenseId(exp.id)} className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground">
+                                    <Pencil className="h-3.5 w-3.5" />
+                                  </Button>
+                                )}
+                                {onDeleteExpense && (
+                                  <Button size="sm" variant="ghost" onClick={() => onDeleteExpense(exp.id, true)} className="h-7 w-7 p-0 text-destructive hover:text-destructive">
+                                    <Trash2 className="h-3.5 w-3.5" />
+                                  </Button>
+                                )}
+                              </div>
+                            </div>
                           </div>
                         </div>
                       </CardContent>
