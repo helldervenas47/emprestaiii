@@ -169,7 +169,23 @@ export function DashboardOverview({ loans, sales, payments, expenses, onDeletePa
       ? filteredLoans.reduce((s, l) => s + l.interestRate, 0) / filteredLoans.length
       : 0;
 
-    return { totalIncome, incomeFromPayments, incomeFromSales, totalOutgoing, totalLoanOutgoing, totalExpenses, balance, transactions, loanCount: filteredLoans.length, saleCount: filteredSales.length, paymentCount: filteredPayments.length, expenseCount: filteredExpenses.length, avgInterestRate };
+    // Build sales with received amounts for breakdown
+    const salesWithReceived = filteredSales.map(sale => {
+      let received = 0;
+      if (sale.installmentAmounts && sale.installmentAmounts.length > 0) {
+        for (let i = 0; i < sale.paidInstallments; i++) {
+          received += sale.installmentAmounts[i] || 0;
+        }
+      } else if (sale.installmentValue) {
+        received = sale.paidInstallments * sale.installmentValue;
+      } else if (sale.installments > 0) {
+        received = sale.paidInstallments * (sale.total / sale.installments);
+      }
+      received += sale.partialPaid || 0;
+      return { ...sale, received };
+    });
+
+    return { totalIncome, incomeFromPayments, incomeFromSales, totalOutgoing, totalLoanOutgoing, totalExpenses, balance, transactions, loanCount: filteredLoans.length, saleCount: filteredSales.length, paymentCount: filteredPayments.length, expenseCount: filteredExpenses.length, avgInterestRate, filteredPayments, filteredLoans, filteredExpenses, salesWithReceived };
   }, [loans, sales, payments, expenses, range, includeSales, period, chartOverrides]);
 
   // Portfolio metrics — global (not filtered by period)
