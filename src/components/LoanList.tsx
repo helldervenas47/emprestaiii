@@ -1070,9 +1070,11 @@ function LoanCardView({
                       </div>
                       <p className="text-sm font-bold text-foreground mt-1">{formatCurrency(p.amount)}</p>
                     </div>
+                    {!readOnly && (
                     <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive hover:bg-destructive hover:text-destructive-foreground" onClick={() => onDeletePayment(p.id)} title="Excluir pagamento">
                       <Trash2 className="h-3.5 w-3.5" />
                     </Button>
+                    )}
                   </div>
                 ))}
               </div>
@@ -1555,9 +1557,11 @@ function LoanRowView({
                       </div>
                       <p className="text-sm font-bold text-foreground mt-1">{formatCurrency(p.amount)}</p>
                     </div>
+                    {!readOnly && (
                     <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive hover:bg-destructive hover:text-destructive-foreground" onClick={() => onDeletePayment(p.id)} title="Excluir pagamento">
                       <Trash2 className="h-3.5 w-3.5" />
                     </Button>
+                    )}
                   </div>
                 ))}
               </div>
