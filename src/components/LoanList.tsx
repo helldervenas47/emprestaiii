@@ -1615,8 +1615,8 @@ export function LoanList({ loans, payments, installmentSchedules, onPayment, onP
       filtered = filtered.filter((l) => l.tags?.includes(tagFilter));
     }
 
-    // Quick due date filter
-    if (dueDateQuick) {
+    // Quick due date filter (only applies to rows view)
+    if (dueDateQuick && view === "rows") {
       const today = new Date();
       today.setHours(0, 0, 0, 0);
       const target = new Date(today);
