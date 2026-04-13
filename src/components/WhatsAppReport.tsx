@@ -128,7 +128,7 @@ export function WhatsAppReport({ loans, clients, installmentSchedules }: Props) 
     } else {
       lines.push(`💵 Empréstimos (${dueTodayLoans.length})`);
       dueTodayLoans.forEach(({ loan, amount }) => {
-        lines.push(`• ${loan.borrowerName}  — ${rawFormatCurrency(amount)}`);
+        lines.push(`• *${loan.borrowerName}*  — ${rawFormatCurrency(amount)}`);
         lines.push(`  └ ${getPaymentType(loan)}`);
       });
     }
@@ -146,7 +146,7 @@ export function WhatsAppReport({ loans, clients, installmentSchedules }: Props) 
       lines.push(`💵 Empréstimos (${overdueLoans.length})`);
       overdueLoans.forEach(({ loan, amount, lateFees }) => {
         const feesInfo = lateFees > 0 ? ` (inclui ${rawFormatCurrency(lateFees)} juros/multa)` : "";
-        lines.push(`• ${loan.borrowerName}  — ${rawFormatCurrency(amount)}${feesInfo}`);
+        lines.push(`• *${loan.borrowerName}*  — ${rawFormatCurrency(amount)}${feesInfo}`);
         lines.push(`  └ ${getPaymentType(loan)} • Venc. ${formatDateBR(loan.dueDate)}`);
       });
     }
