@@ -91,7 +91,7 @@ function useAccountBalance(): [number, (v: number) => void] {
   return [bal, update];
 }
 
-export function DashboardOverview({ loans, sales, payments, expenses, onDeletePayment, onDeleteSale, onDeleteLoan }: Props) {
+export function DashboardOverview({ loans, sales, payments, expenses, installmentSchedules = [], onDeletePayment, onDeleteSale, onDeleteLoan }: Props) {
   const { mask } = useHideValues();
   const formatCurrency = useCallback((v: number) => mask(rawFormatCurrency(v)), [mask]);
   const [period, setPeriod] = useState<Period>("month");
