@@ -1527,27 +1527,29 @@ export function ProductSalesView({ sales, onDeleteSale, onUpdateSale, clients = 
                             </div>
                             <div className="flex items-center justify-between mt-2 pt-2 border-t border-border/40">
                               <p className="font-bold text-sm">{formatCurrency(exp.amount)}</p>
-                              <div className="flex items-center gap-1">
+                              <div className="flex items-center gap-1 flex-nowrap">
                                 {hasPaidSomething && onUpdateExpense && (
-                                  <Button size="sm" variant="outline" onClick={() => setViewPaymentsExpenseId(exp.id)} className="h-7 text-xs">
+                                  <Button size="sm" variant="outline" onClick={() => setViewPaymentsExpenseId(exp.id)} className="h-7 text-xs whitespace-nowrap">
                                     <Receipt className="h-3.5 w-3.5 mr-1" />
                                     Pagamentos
                                   </Button>
                                 )}
                                 {!exp.paid && onPayExpense && (
-                                  <Button size="sm" variant="outline" onClick={() => handleVehiclePayExpense(exp.id)} className="h-7 text-xs">
+                                  <Button size="sm" variant="outline" onClick={() => handleVehiclePayExpense(exp.id)} className="h-7 text-xs whitespace-nowrap">
                                     <CheckCircle className="h-3.5 w-3.5 mr-1" />
                                     Pagar
                                   </Button>
                                 )}
                                 {onUpdateExpense && (
-                                  <Button size="sm" variant="ghost" onClick={() => setEditingExpenseId(exp.id)} className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground">
-                                    <Pencil className="h-3.5 w-3.5" />
+                                  <Button size="sm" variant="ghost" onClick={() => setEditingExpenseId(exp.id)} className="h-7 text-xs whitespace-nowrap text-muted-foreground hover:text-foreground">
+                                    <Pencil className="h-3.5 w-3.5 mr-1" />
+                                    Editar
                                   </Button>
                                 )}
                                 {onDeleteExpense && (
-                                  <Button size="sm" variant="ghost" onClick={() => onDeleteExpense(exp.id, true)} className="h-7 w-7 p-0 text-destructive hover:text-destructive">
-                                    <Trash2 className="h-3.5 w-3.5" />
+                                  <Button size="sm" variant="ghost" onClick={() => onDeleteExpense(exp.id, true)} className="h-7 text-xs whitespace-nowrap text-destructive hover:text-destructive">
+                                    <Trash2 className="h-3.5 w-3.5 mr-1" />
+                                    Excluir
                                   </Button>
                                 )}
                               </div>
