@@ -159,10 +159,28 @@ export function SaleForm({ onAdd, onClose, defaultBusinessType = "venda", client
               </select>
             </div>
 
-            <div>
-              <Label>{descriptionLabel}</Label>
-              <Input value={form.description} onChange={(e) => update("description", e.target.value)} placeholder={descriptionPlaceholder} required />
-            </div>
+            {isVehicleRental ? (
+              <div>
+                <Label>Veículo</Label>
+                <Select value={form.description} onValueChange={(v) => update("description", v)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione um veículo cadastrado" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {registeredVehicles.map((v) => (
+                      <SelectItem key={v.id} value={v.marcaModelo}>
+                        {v.marcaModelo}{v.placa ? ` - ${v.placa}` : ""}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            ) : (
+              <div>
+                <Label>{descriptionLabel}</Label>
+                <Input value={form.description} onChange={(e) => update("description", e.target.value)} placeholder={descriptionPlaceholder} required />
+              </div>
+            )}
 
             {!isVehicleRental && (
               <div className="grid grid-cols-2 gap-4">
