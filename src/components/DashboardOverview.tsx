@@ -908,7 +908,6 @@ export function DashboardOverview({ loans, sales, payments, expenses, onDeletePa
             <div className="flex items-center gap-2">
               <div className="flex bg-muted rounded-lg p-0.5">
                 {([
-                  { id: "all" as const, label: "Todas" },
                   { id: "in" as const, label: "Entradas" },
                   { id: "out" as const, label: "Saídas" },
                 ]).map((f) => (
