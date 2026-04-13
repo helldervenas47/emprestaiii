@@ -542,8 +542,6 @@ export function DashboardOverview({ loans, sales, payments, expenses, onDeletePa
             </CardContent>
           </Card>
         ))}
-          </CardContent>
-        </Card>
       </div>
 
       {/* Health Score Gauge */}
