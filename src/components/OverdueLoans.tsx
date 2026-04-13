@@ -11,6 +11,7 @@ import { WhatsAppReport } from "@/components/WhatsAppReport";
 
 interface Props {
   loans: Loan[];
+  payments: Payment[];
   clients: Client[];
   installmentSchedules: InstallmentSchedule[];
 }
