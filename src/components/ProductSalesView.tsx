@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect, useMemo } from "react";
+import { SalePaymentRecord } from "@/types/loan";
 import { DatePickerField } from "@/components/ui/date-picker-field";
 import { Sale, BusinessType, Client, Expense } from "@/types/loan";
 import { Card, CardContent } from "@/components/ui/card";
