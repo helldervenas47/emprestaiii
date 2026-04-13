@@ -115,7 +115,20 @@ export function DashboardOverview({ loans, sales, payments, expenses, onDeletePa
     const filteredPayments = payments.filter((p) => isInRange(p.date, range.start, range.end));
     const filteredSales = sales.filter((s) => isInRange(s.date, range.start, range.end));
     let incomeFromPayments = filteredPayments.reduce((s, p) => s + p.amount, 0);
-    const incomeFromSales = filteredSales.reduce((s, sale) => s + sale.total, 0);
+    const incomeFromSales = filteredSales.reduce((s, sale) => {
+      let received = 0;
+      if (sale.installmentAmounts && sale.installmentAmounts.length > 0) {
+        for (let i = 0; i < sale.paidInstallments; i++) {
+          received += sale.installmentAmounts[i] || 0;
+        }
+      } else if (sale.installmentValue) {
+        received = sale.paidInstallments * sale.installmentValue;
+      } else if (sale.installments > 0) {
+        received = sale.paidInstallments * (sale.total / sale.installments);
+      }
+      received += sale.partialPaid || 0;
+      return s + received;
+    }, 0);
 
     const filteredLoans = loans.filter((l) => isInRange(l.startDate, range.start, range.end));
     let totalLoanOutgoing = filteredLoans.reduce((s, l) => s + l.amount, 0);
@@ -144,7 +157,18 @@ export function DashboardOverview({ loans, sales, payments, expenses, onDeletePa
       transactions.push({ id: p.id, type: "in", source: "payment", description: `Parcela ${p.installmentNumber} — ${loan?.borrowerName || "Empréstimo"}`, amount: p.amount, date: p.date });
     });
     filteredSales.forEach((s) => {
-      transactions.push({ id: s.id, type: "in", source: "sale", description: `Venda: ${s.productName}${s.customerName ? ` — ${s.customerName}` : ""}`, amount: s.total, date: s.date });
+      let received = 0;
+      if (s.installmentAmounts && s.installmentAmounts.length > 0) {
+        for (let i = 0; i < s.paidInstallments; i++) {
+          received += s.installmentAmounts[i] || 0;
+        }
+      } else if (s.installmentValue) {
+        received = s.paidInstallments * s.installmentValue;
+      } else if (s.installments > 0) {
+        received = s.paidInstallments * (s.total / s.installments);
+      }
+      received += s.partialPaid || 0;
+      transactions.push({ id: s.id, type: "in", source: "sale", description: `Venda: ${s.productName}${s.customerName ? ` — ${s.customerName}` : ""}`, amount: received, date: s.date });
     });
     filteredLoans.forEach((l) => {
       transactions.push({ id: l.id, type: "out", source: "loan", description: `Empréstimo para ${l.borrowerName}`, amount: l.amount, date: l.startDate });
