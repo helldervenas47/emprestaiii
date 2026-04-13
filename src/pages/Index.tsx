@@ -28,6 +28,7 @@ import { HideValuesProvider, useHideValues } from "@/contexts/HideValuesContext"
 import { UserManagement } from "@/components/UserManagement";
 import { BackupExport } from "@/components/BackupExport";
 import { Badge } from "@/components/ui/badge";
+import { useVehicleRegistry } from "@/hooks/useVehicleRegistry";
 
 type Tab = "overview" | "dashboard" | "clients" | "products" | "vehicles" | "overdue" | "expenses" | "calendar" | "users" | "backup";
 
