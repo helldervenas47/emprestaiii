@@ -48,14 +48,23 @@ export function UserManagement() {
   const fetchUsers = async () => {
     setLoading(true);
     const { data: { session } } = await supabase.auth.getSession();
-    if (!session) return;
+    if (!session) {
+      setLoading(false);
+      return;
+    }
 
     const { data, error } = await supabase.functions.invoke("admin-manage-user", {
       body: { action: "list" },
     });
 
     if (error || data?.error) {
-      toast.error(data?.error || "Erro ao carregar usuários");
+      const errMsg = data?.error || "Erro ao carregar usuários";
+      if (errMsg === "Não autorizado") {
+        toast.error("Sessão expirada. Faça login novamente.");
+        await supabase.auth.signOut();
+      } else {
+        toast.error(errMsg);
+      }
     } else {
       setUsers(data.users || []);
     }
