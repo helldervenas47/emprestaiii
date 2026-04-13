@@ -29,6 +29,9 @@ import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
 
 import { VehicleExpenseForm, vehicleExpenseCategories } from "@/components/VehicleExpenseForm";
+import { VehicleLocadorManager } from "@/components/VehicleLocadorManager";
+import { useLocadorInfo, LocadorInfo } from "@/hooks/useLocadorInfo";
+import { useVehicleRegistry, VehicleInfo } from "@/hooks/useVehicleRegistry";
 
 interface Props {
   sales: Sale[];
@@ -86,7 +89,7 @@ const saleCategoryConfig = {
   on_track: { label: "Em Dia", badge: "bg-primary/20 text-primary border-primary/30", border: "border-primary/50", bg: "bg-card", header: "bg-primary/8 border-border/50" },
 };
 
-function SaleCard({ sale, onDelete, onEdit, onUpdate, formatCurrency, readOnly = false, clients = [] }: { sale: Sale; onDelete: () => void; onEdit: () => void; onUpdate: (data: Partial<Omit<Sale, "id">>) => void; formatCurrency: (v: number) => string; readOnly?: boolean; clients?: Client[] }) {
+function SaleCard({ sale, onDelete, onEdit, onUpdate, formatCurrency, readOnly = false, clients = [], locadorInfo, registeredVehicles = [] }: { sale: Sale; onDelete: () => void; onEdit: () => void; onUpdate: (data: Partial<Omit<Sale, "id">>) => void; formatCurrency: (v: number) => string; readOnly?: boolean; clients?: Client[]; locadorInfo?: LocadorInfo; registeredVehicles?: VehicleInfo[] }) {
   const [showPartial, setShowPartial] = useState(false);
   const [partialAmount, setPartialAmount] = useState("");
   const [partialDate, setPartialDate] = useState<Date | undefined>(undefined);
@@ -465,7 +468,11 @@ function SaleCard({ sale, onDelete, onEdit, onUpdate, formatCurrency, readOnly =
               {new Date(sale.date + "T00:00:00").toLocaleDateString("pt-BR")}
             </p>
             <div className="flex items-center gap-1">
-              <Button size="icon" variant="ghost" className="h-8 w-8 text-primary hover:bg-primary/10" onClick={() => generateContract(sale, matchedClient)} title="Gerar Contrato">
+              <Button size="icon" variant="ghost" className="h-8 w-8 text-primary hover:bg-primary/10" onClick={() => {
+                const descNorm = (sale.description || sale.productName || "").toLowerCase().trim();
+                const matchedVehicle = registeredVehicles.find(v => v.marcaModelo.toLowerCase().trim() === descNorm);
+                generateContract(sale, matchedClient, locadorInfo, matchedVehicle);
+              }} title="Gerar Contrato">
                 <FileText className="h-4 w-4" />
               </Button>
               <Button size="icon" variant="ghost" className="h-8 w-8 text-success hover:bg-success/10" onClick={() => setShowPayments(true)} title="Ver Pagamentos">
@@ -694,7 +701,7 @@ function getSalePaidAmountHelper(s: Sale): number {
 }
 
 function SaleClientFolder({
-  group, onDeleteSale, onUpdateSale, formatCurrency, onEdit, readOnly = false, clients = [],
+  group, onDeleteSale, onUpdateSale, formatCurrency, onEdit, readOnly = false, clients = [], locadorInfo, registeredVehicles = [],
 }: {
   group: SaleClientGroup;
   onDeleteSale: (id: string) => void;
@@ -703,6 +710,8 @@ function SaleClientFolder({
   onEdit: (sale: Sale) => void;
   readOnly?: boolean;
   clients?: Client[];
+  locadorInfo?: LocadorInfo;
+  registeredVehicles?: VehicleInfo[];
 }) {
   const [open, setOpen] = useState(false);
   const activeCount = group.sales.filter((s) => getSaleCategory(s) !== "paid").length;
@@ -772,6 +781,8 @@ function SaleClientFolder({
                 formatCurrency={formatCurrency}
                 readOnly={readOnly}
                 clients={clients}
+                locadorInfo={locadorInfo}
+                registeredVehicles={registeredVehicles}
               />
             ))}
           </div>
@@ -781,7 +792,7 @@ function SaleClientFolder({
   );
 }
 
-function SalesList({ sales, onDeleteSale, onUpdateSale, clients = [], hideOnTrackCard = false, renderAfterCards, readOnly = false }: { sales: Sale[]; onDeleteSale: (id: string) => void; onUpdateSale: (id: string, data: Partial<Omit<Sale, "id">>) => void; clients?: Client[]; hideOnTrackCard?: boolean; renderAfterCards?: React.ReactNode; readOnly?: boolean }) {
+function SalesList({ sales, onDeleteSale, onUpdateSale, clients = [], hideOnTrackCard = false, renderAfterCards, readOnly = false, locadorInfo, registeredVehicles = [] }: { sales: Sale[]; onDeleteSale: (id: string) => void; onUpdateSale: (id: string, data: Partial<Omit<Sale, "id">>) => void; clients?: Client[]; hideOnTrackCard?: boolean; renderAfterCards?: React.ReactNode; readOnly?: boolean; locadorInfo?: LocadorInfo; registeredVehicles?: VehicleInfo[] }) {
   const [editingSale, setEditingSale] = useState<Sale | null>(null);
   const [search, setSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState<SaleCategory>("all");
@@ -1041,6 +1052,8 @@ function SalesList({ sales, onDeleteSale, onUpdateSale, clients = [], hideOnTrac
                 onEdit={setEditingSale}
                 readOnly={readOnly}
                 clients={clients}
+                locadorInfo={locadorInfo}
+                registeredVehicles={registeredVehicles}
               />
             ))}
           </div>
@@ -1077,6 +1090,8 @@ function SalesList({ sales, onDeleteSale, onUpdateSale, clients = [], hideOnTrac
               formatCurrency={formatCurrency}
               readOnly={readOnly}
               clients={clients}
+              locadorInfo={locadorInfo}
+              registeredVehicles={registeredVehicles}
             />
             </div>
           ))}
@@ -1226,6 +1241,10 @@ export function ProductSalesView({ sales, onDeleteSale, onUpdateSale, clients = 
   const [showVehicleExpenseForm, setShowVehicleExpenseForm] = useState(false);
   const { mask } = useHideValues();
   const formatCurrency = useCallback((v: number) => mask(rawFormatCurrency(v)), [mask]);
+
+  // Locador & Vehicle Registry hooks
+  const { locador, save: saveLocador } = useLocadorInfo();
+  const { vehicles: registeredVehicles, add: addVehicle, update: updateVehicle, remove: removeVehicle } = useVehicleRegistry();
 
   // Balance state
   const [balance, setBalanceState] = useState<number>(0);
@@ -1479,6 +1498,17 @@ export function ProductSalesView({ sales, onDeleteSale, onUpdateSale, clients = 
     // Vehicles page - render without sub-tabs + vehicle expenses
     return (
       <div className="space-y-6">
+        {/* Locador & Vehicle Registry */}
+        <VehicleLocadorManager
+          locador={locador}
+          onSaveLocador={saveLocador}
+          vehicles={registeredVehicles}
+          onAddVehicle={addVehicle}
+          onUpdateVehicle={updateVehicle}
+          onDeleteVehicle={removeVehicle}
+          readOnly={readOnly}
+        />
+
         <SalesList
           sales={sales}
           onDeleteSale={onDeleteSale}
@@ -1487,6 +1517,8 @@ export function ProductSalesView({ sales, onDeleteSale, onUpdateSale, clients = 
           hideOnTrackCard
           renderAfterCards={secondaryCards}
           readOnly={readOnly}
+          locadorInfo={locador}
+          registeredVehicles={registeredVehicles}
         />
 
         {/* Vehicle Expenses Section */}
