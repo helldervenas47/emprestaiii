@@ -1187,6 +1187,7 @@ function LoanRowView({
     }
   };
 
+  const updateField = (field: keyof EditForm, value: string) => {
     setForm((prev) => {
       const next = { ...prev, [field]: value };
       const amt = parseFloat(next.amount) || 0;
