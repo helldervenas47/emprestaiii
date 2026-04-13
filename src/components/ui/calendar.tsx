@@ -88,6 +88,7 @@ function Calendar({ className, classNames, showOutsideDays = true, ...props }: C
           setDisplayMonth(m);
           (props as any).onMonthChange?.(m);
         }}
+        locale={ptBR}
         className={cn("p-3 pointer-events-auto", className)}
         classNames={{
           months: "flex flex-col sm:flex-row space-y-4 sm:space-x-4 sm:space-y-0",
