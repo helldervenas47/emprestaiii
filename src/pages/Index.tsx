@@ -219,6 +219,42 @@ const Index = () => {
       <header className="border-b border-border/30 glass sticky top-0 z-40">
         <div className="container mx-auto px-3 sm:px-4 py-2 sm:py-3 flex items-center justify-between gap-2">
           <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+            {isMobile && (
+              <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
+                <SheetTrigger asChild>
+                  <Button variant="ghost" size="icon" className="h-8 w-8">
+                    <Menu className="h-5 w-5" />
+                  </Button>
+                </SheetTrigger>
+                <SheetContent side="left" className="w-64 p-0">
+                  <div className="flex flex-col h-full">
+                    <div className="p-4 border-b border-border/30 flex items-center gap-3">
+                      <div className="h-9 w-9 rounded-xl gradient-primary glow-primary flex items-center justify-center">
+                        <HandCoins className="h-5 w-5 text-primary-foreground" />
+                      </div>
+                      <div>
+                        <h1 className="text-lg font-bold text-foreground tracking-tight">HVCred</h1>
+                        <p className="text-[10px] text-muted-foreground uppercase tracking-widest">Controle de empréstimos</p>
+                      </div>
+                    </div>
+                    <nav className="flex-1 overflow-y-auto py-2">
+                      {visibleTabs.map((t) => (
+                        <button
+                          key={t.id}
+                          onClick={() => { setTab(t.id); setSidebarOpen(false); }}
+                          className={`flex items-center gap-3 w-full px-4 py-3 text-sm font-medium transition-colors ${
+                            tab === t.id ? "bg-primary/10 text-primary border-l-2 border-primary" : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                          }`}
+                        >
+                          <t.icon className="h-4 w-4" />
+                          <span>{t.label}</span>
+                        </button>
+                      ))}
+                    </nav>
+                  </div>
+                </SheetContent>
+              </Sheet>
+            )}
             <div className="h-8 w-8 sm:h-9 sm:w-9 rounded-xl gradient-primary glow-primary flex items-center justify-center">
               <HandCoins className="h-4 w-4 sm:h-5 sm:w-5 text-primary-foreground" />
             </div>
