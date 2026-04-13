@@ -217,7 +217,7 @@ const Index = () => {
       
 
       <header className="border-b border-border/30 glass sticky top-0 z-40">
-        <div className="container mx-auto px-3 sm:px-4 py-2 sm:py-3 flex items-center justify-between gap-2">
+        <div className="max-w-[1920px] mx-auto px-3 sm:px-4 lg:px-8 py-2 sm:py-3 flex items-center justify-between gap-2">
           <div className="flex items-center gap-2 sm:gap-3 shrink-0">
             {isMobile && (
               <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
@@ -305,7 +305,7 @@ const Index = () => {
         </div>
 
         {!isMobile && (
-          <div className="container mx-auto px-2 sm:px-4">
+          <div className="max-w-[1920px] mx-auto px-2 sm:px-4 lg:px-8">
             <nav className="flex gap-0.5 -mb-px overflow-x-auto scrollbar-hide pb-0">
               {visibleTabs.map((t) => (
                 <button
@@ -323,7 +323,7 @@ const Index = () => {
         )}
       </header>
 
-      <main className="container mx-auto px-3 sm:px-4 py-4 sm:py-6 space-y-4 sm:space-y-6">
+      <main className="max-w-[1920px] mx-auto px-3 sm:px-4 lg:px-8 py-4 sm:py-6 space-y-4 sm:space-y-6">
         {tab === "overview" && (
           <DashboardOverview loans={loans} sales={sales} payments={payments} expenses={expenses} installmentSchedules={installmentSchedules} onDeletePayment={deletePayment} onDeleteSale={deleteSale} onDeleteLoan={deleteLoan} />
         )}
