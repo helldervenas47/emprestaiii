@@ -1566,6 +1566,7 @@ export function LoanList({ loans, payments, installmentSchedules, onPayment, onP
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState<Category>("all");
   const [showFilters, setShowFilters] = useState(false);
+  const [dueDateQuick, setDueDateQuick] = useState<"yesterday" | "today" | "tomorrow" | null>(null);
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
   const [amountMin, setAmountMin] = useState("");
