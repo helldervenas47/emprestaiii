@@ -489,11 +489,12 @@ function getNextInstallmentValueHelper(s: Sale): number {
   return s.installments > 0 ? Math.max(0, s.total - (s.downPayment || 0)) / s.installments : s.total;
 }
 
-function SaleListRow({ sale, onEdit, onUpdate, formatCurrency }: {
+function SaleListRow({ sale, onEdit, onUpdate, formatCurrency, readOnly = false }: {
   sale: Sale;
   onEdit: () => void;
   onUpdate: (data: Partial<Omit<Sale, "id">>) => void;
   formatCurrency: (v: number) => string;
+  readOnly?: boolean;
 }) {
   const [showPartial, setShowPartial] = useState(false);
   const [partialAmount, setPartialAmount] = useState("");
