@@ -1505,7 +1505,22 @@ function ClientFolder({
         {open ? <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0" /> : <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />}
       </button>
       {open && (
-        <CardContent className="pt-0 pb-3 px-3">
+        <CardContent className="pt-0 pb-3 px-3 space-y-3">
+          {/* Mobile summary */}
+          <div className="flex sm:hidden items-center justify-between text-xs border-b border-border/30 pb-3">
+            <div className="text-center flex-1">
+              <p className="text-[9px] text-muted-foreground uppercase">Emprestado</p>
+              <p className="font-bold text-foreground">{formatCurrency(group.totalAmount)}</p>
+            </div>
+            <div className="text-center flex-1">
+              <p className="text-[9px] text-muted-foreground uppercase">Recebido</p>
+              <p className="font-bold text-success">{formatCurrency(group.totalPaid)}</p>
+            </div>
+            <div className="text-center flex-1">
+              <p className="text-[9px] text-muted-foreground uppercase">A Receber</p>
+              <p className={`font-bold ${group.hasOverdue ? "text-destructive" : "text-warning"}`}>{formatCurrency(group.totalReceivable)}</p>
+            </div>
+          </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {group.loans.map((loan) => (
               <LoanCardView key={loan.id} loan={loan} payments={payments} installmentSchedules={installmentSchedules} readOnly={readOnly} no3d
