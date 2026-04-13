@@ -2,11 +2,22 @@ import * as React from "react";
 
 import { cn } from "@/lib/utils";
 
-const Card = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(({ className, ...props }, ref) => (
-  <div className="card-3d h-full">
-    <div ref={ref} className={cn("card-3d-inner rounded-2xl border border-border/30 bg-card text-card-foreground shadow-[0_2px_12px_-4px_hsl(0_0%_0%/0.08)] backdrop-blur-sm h-full", className)} {...props} />
-  </div>
-));
+interface CardProps extends React.HTMLAttributes<HTMLDivElement> {
+  no3d?: boolean;
+}
+
+const Card = React.forwardRef<HTMLDivElement, CardProps>(({ className, no3d, ...props }, ref) => {
+  if (no3d) {
+    return (
+      <div ref={ref} className={cn("rounded-2xl border border-border/30 bg-card text-card-foreground shadow-[0_2px_12px_-4px_hsl(0_0%_0%/0.08)] backdrop-blur-sm h-full", className)} {...props} />
+    );
+  }
+  return (
+    <div className="card-3d h-full">
+      <div ref={ref} className={cn("card-3d-inner rounded-2xl border border-border/30 bg-card text-card-foreground shadow-[0_2px_12px_-4px_hsl(0_0%_0%/0.08)] backdrop-blur-sm h-full", className)} {...props} />
+    </div>
+  );
+});
 Card.displayName = "Card";
 
 const CardHeader = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
