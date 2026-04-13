@@ -758,6 +758,7 @@ function SaleClientFolder({
                 onUpdate={(data) => onUpdateSale(sale.id, data)}
                 formatCurrency={formatCurrency}
                 readOnly={readOnly}
+                clients={clients}
               />
             ))}
           </div>
@@ -1061,6 +1062,7 @@ function SalesList({ sales, onDeleteSale, onUpdateSale, clients = [], hideOnTrac
               onUpdate={(data) => onUpdateSale(sale.id, data)}
               formatCurrency={formatCurrency}
               readOnly={readOnly}
+              clients={clients}
             />
             </div>
           ))}
