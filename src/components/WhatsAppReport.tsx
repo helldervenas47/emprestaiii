@@ -98,7 +98,8 @@ export function WhatsAppReport({ loans, payments, clients, installmentSchedules 
       .filter((loan) => loan.dueDate === todayStr)
       .map((loan) => {
         const base = getLoanRemaining(loan, payments, installmentSchedules, todayStr);
-        return { loan, amount: base };
+        const lateFees = calcLateFees(loan, base);
+        return { loan, amount: base + lateFees, baseAmount: base, lateFees };
       });
   }, [activeLoans, payments, installmentSchedules, todayStr]);
 
@@ -142,8 +143,9 @@ export function WhatsAppReport({ loans, payments, clients, installmentSchedules 
       lines.push(`Nenhum empréstimo vencendo hoje.`);
     } else {
       lines.push(`💵 Empréstimos (${dueTodayLoans.length})`);
-      dueTodayLoans.forEach(({ loan, amount }) => {
-        lines.push(`• *${loan.borrowerName}*  — ${rawFormatCurrency(amount)}`);
+      dueTodayLoans.forEach(({ loan, amount, lateFees }) => {
+        const feesInfo = lateFees > 0 ? ` (inclui ${rawFormatCurrency(lateFees)} juros/multa)` : "";
+        lines.push(`• *${loan.borrowerName}*  — ${rawFormatCurrency(amount)}${feesInfo}`);
         lines.push(`  └ ${getPaymentType(loan)}`);
       });
     }
@@ -159,9 +161,9 @@ export function WhatsAppReport({ loans, payments, clients, installmentSchedules 
       lines.push(`Nenhum empréstimo em atraso!`);
     } else {
       lines.push(`💵 Empréstimos (${overdueLoans.length})`);
-      overdueLoans.forEach(({ loan, amount, baseAmount, lateFees }) => {
-        const feesInfo = lateFees > 0 ? ` (+${rawFormatCurrency(lateFees)} juros/multa)` : "";
-        lines.push(`• *${loan.borrowerName}*  — ${rawFormatCurrency(baseAmount)}${feesInfo}`);
+      overdueLoans.forEach(({ loan, amount, lateFees }) => {
+        const feesInfo = lateFees > 0 ? ` (inclui ${rawFormatCurrency(lateFees)} juros/multa)` : "";
+        lines.push(`• *${loan.borrowerName}*  — ${rawFormatCurrency(amount)}${feesInfo}`);
         lines.push(`  └ ${getPaymentType(loan)} • Venc. ${formatDateBR(loan.dueDate)}`);
       });
     }
@@ -218,9 +220,11 @@ export function WhatsAppReport({ loans, payments, clients, installmentSchedules 
             ) : (
               <div className="mt-1">
                 <p>💵 Empréstimos ({dueTodayLoans.length})</p>
-                {dueTodayLoans.map(({ loan, amount }) => (
+                {dueTodayLoans.map(({ loan, amount, lateFees }) => (
                   <div key={loan.id} className="ml-2">
-                    <p>• <strong>{loan.borrowerName}</strong> — {rawFormatCurrency(amount)}</p>
+                    <p>• <strong>{loan.borrowerName}</strong> — {rawFormatCurrency(amount)}
+                      {lateFees > 0 && <span className="text-destructive"> (inclui {rawFormatCurrency(lateFees)} juros/multa)</span>}
+                    </p>
                     <p className="text-muted-foreground ml-3">└ {getPaymentType(loan)}</p>
                   </div>
                 ))}
@@ -237,10 +241,10 @@ export function WhatsAppReport({ loans, payments, clients, installmentSchedules 
             ) : (
               <div className="mt-1">
                 <p>💵 Empréstimos ({overdueLoans.length})</p>
-                {overdueLoans.map(({ loan, amount, baseAmount, lateFees }) => (
+                {overdueLoans.map(({ loan, amount, lateFees }) => (
                   <div key={loan.id} className="ml-2">
-                    <p>• <strong>{loan.borrowerName}</strong> — {rawFormatCurrency(baseAmount)}
-                      {lateFees > 0 && <span className="text-destructive"> (+{rawFormatCurrency(lateFees)} juros/multa)</span>}
+                    <p>• <strong>{loan.borrowerName}</strong> — {rawFormatCurrency(amount)}
+                      {lateFees > 0 && <span className="text-destructive"> (inclui {rawFormatCurrency(lateFees)} juros/multa)</span>}
                     </p>
                     <p className="text-muted-foreground ml-3">└ {getPaymentType(loan)} • Venc. {formatDateBR(loan.dueDate)}</p>
                   </div>
