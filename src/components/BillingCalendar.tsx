@@ -73,11 +73,19 @@ export function BillingCalendar({ loans, payments, installmentSchedules, onPayme
       const loanSchedules = installmentSchedules.filter(s => s.loanId === loan.id);
 
       for (let i = nextInstallment; i <= loan.installments; i++) {
-        const monthsFromNext = i - nextInstallment;
-        const dueDate = new Date(dueBase.getFullYear(), dueBase.getMonth() + monthsFromNext, dueBase.getDate());
-        const dateStr = dueDate.toISOString().split("T")[0];
-
         const schedule = loanSchedules.find(s => s.installmentNumber === i);
+        let dateStr: string;
+        if (schedule) {
+          dateStr = schedule.dueDate;
+        } else {
+          const offsetFromNext = i - nextInstallment;
+          const freq = loan.interestType || "Mensal";
+          const d = new Date(dueBase.getFullYear(), dueBase.getMonth(), dueBase.getDate());
+          if (freq === "Semanal") d.setDate(d.getDate() + offsetFromNext * 7);
+          else if (freq === "Quinzenal") d.setDate(d.getDate() + offsetFromNext * 15);
+          else d.setMonth(d.getMonth() + offsetFromNext);
+          dateStr = d.toISOString().split("T")[0];
+        }
         const amount = schedule ? schedule.amount : defaultInstallmentAmount;
 
         if (!map[dateStr]) map[dateStr] = [];
