@@ -35,8 +35,15 @@ export function ExpenseList({ expenses, onPay, onDelete }: Props) {
   const formatCurrency = useCallback((v: number) => mask(rawFormatCurrency(v)), [mask]);
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<Filter>("all");
+  const now = new Date();
+  const [selectedMonth, setSelectedMonth] = useState(`${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`);
 
-  const filtered = expenses
+  const monthFiltered = useMemo(() => {
+    if (!selectedMonth) return expenses;
+    return expenses.filter((e) => e.dueDate.startsWith(selectedMonth));
+  }, [expenses, selectedMonth]);
+
+  const filtered = monthFiltered
     .filter((e) => e.description.toLowerCase().includes(search.toLowerCase()) || e.category.toLowerCase().includes(search.toLowerCase()))
     .filter((e) => {
       if (filter === "pending") return !e.paid && !isOverdue(e);
