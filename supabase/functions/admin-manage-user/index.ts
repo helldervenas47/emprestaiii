@@ -146,6 +146,30 @@ Deno.serve(async (req) => {
       });
     }
 
+    if (action === "update_permissions") {
+      if (!user_id || !body.allowed_tabs) {
+        return new Response(JSON.stringify({ error: "user_id e allowed_tabs são obrigatórios" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      const { data: existing } = await adminClient
+        .from("user_tab_permissions")
+        .select("id")
+        .eq("user_id", user_id)
+        .maybeSingle();
+
+      if (existing) {
+        await adminClient.from("user_tab_permissions").update({ allowed_tabs: body.allowed_tabs }).eq("user_id", user_id);
+      } else {
+        await adminClient.from("user_tab_permissions").insert({ user_id, allowed_tabs: body.allowed_tabs });
+      }
+
+      return new Response(JSON.stringify({ success: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     if (action === "delete") {
       if (!user_id) {
         return new Response(JSON.stringify({ error: "user_id é obrigatório" }), {
