@@ -304,6 +304,9 @@ export function OverdueLoans({ loans, clients, installmentSchedules }: Props) {
         )}
       </div>
 
+      {/* WhatsApp Report */}
+      <WhatsAppReport loans={loans} clients={clients} installmentSchedules={installmentSchedules} />
+
       {/* Info */}
       <Card>
         <CardContent className="p-4">
