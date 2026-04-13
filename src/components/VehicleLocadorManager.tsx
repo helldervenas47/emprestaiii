@@ -63,7 +63,7 @@ export function VehicleLocadorManager({
   const hasLocadorData = locador.nome || locador.cpf || locador.rg;
 
   return (
-    <div className="space-y-3">
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
       {/* Locador Section */}
       <div className="rounded-xl border border-border overflow-hidden">
         <button
