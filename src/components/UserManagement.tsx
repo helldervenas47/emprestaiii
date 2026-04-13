@@ -155,6 +155,33 @@ export function UserManagement() {
     });
   };
 
+  const openClientLinks = (user: ManagedUser) => {
+    setClientLinkUser(user);
+    setSelectedClientIds(user.linked_client_ids || []);
+    setClientSearch("");
+  };
+
+  const handleToggleClient = (clientId: string) => {
+    setSelectedClientIds(prev =>
+      prev.includes(clientId) ? prev.filter(c => c !== clientId) : [...prev, clientId]
+    );
+  };
+
+  const handleSaveClientLinks = async () => {
+    if (!clientLinkUser) return;
+    setSavingClientLinks(true);
+    const { data, error } = await supabase.functions.invoke("admin-manage-user", {
+      body: { action: "update_client_links", user_id: clientLinkUser.id, client_ids: selectedClientIds },
+    });
+    if (error || data?.error) {
+      toast.error(data?.error || "Erro ao salvar vínculos");
+    } else {
+      toast.success("Vínculos de clientes atualizados!");
+      setClientLinkUser(null);
+      fetchUsers();
+    }
+    setSavingClientLinks(false);
+
   const openPermissions = (user: ManagedUser) => {
     setPermissionsUser(user);
     setPermTabs(user.allowed_tabs || ALL_TABS.map(t => t.id));
