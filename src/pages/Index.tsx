@@ -412,6 +412,7 @@ const Index = () => {
           />
         )}
         {tab === "users" && <UserManagement />}
+        {tab === "backup" && <BackupExport loans={loans} payments={payments} clients={clients} sales={sales} expenses={expenses} />}
       </main>
 
       {showLoanForm && <LoanForm onAdd={addLoan} onSaveSchedule={saveSchedule} onClose={() => setShowLoanForm(false)} clients={clients} />}
