@@ -181,6 +181,7 @@ export function UserManagement() {
       fetchUsers();
     }
     setSavingClientLinks(false);
+  };
 
   const openPermissions = (user: ManagedUser) => {
     setPermissionsUser(user);
