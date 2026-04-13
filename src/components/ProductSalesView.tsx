@@ -814,6 +814,17 @@ function SalesList({ sales, onDeleteSale, onUpdateSale, clients = [], hideOnTrac
     return { saleGroups, saleSingles };
   }, [filtered, folderEligibleNames]);
 
+  // Sorted list for list view (by due date)
+  const listSorted = useMemo(() => {
+    return [...filtered].sort((a, b) => {
+      const catA = getSaleCategory(a);
+      const catB = getSaleCategory(b);
+      if (catA === "paid" && catB !== "paid") return 1;
+      if (catA !== "paid" && catB === "paid") return -1;
+      return getNextDueDateHelper(a).getTime() - getNextDueDateHelper(b).getTime();
+    });
+  }, [filtered]);
+
   // Calculate receivables per category
   const getSalePaidAmount = (s: Sale) => {
     const amounts = s.installmentAmounts;
