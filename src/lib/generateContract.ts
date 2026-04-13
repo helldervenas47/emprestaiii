@@ -160,7 +160,7 @@ export function generateContract(sale: Sale, client?: Client, locador?: LocadorI
 
 <p class="intro">Pelo presente instrumento particular, de um lado:</p>
 
-<p class="party"><strong>LOCADOR:</strong> ${locador?.nome || "____________________________________________"}, ${locador?.nacionalidade || "Brasileiro(a)"}, portador(a) do RG nº ${locador?.rg || "__________________"}, CPF nº ${locador?.cpf || "__________________"}, residente e domiciliado(a) à ${locador?.endereco ? `${locador.endereco}${locador.bairro ? `, ${locador.bairro}` : ""}${locador.cidade ? `, ${locador.cidade}` : ""}${locador.estado ? ` - ${locador.estado}` : ""}` : "____________________________________________"}.</p>
+<p class="party"><strong>LOCADOR:</strong> ${locador?.nome || "____________________________________________"}, ${locador?.nacionalidade || "Brasileiro(a)"}, ${locador?.profissao || "________________"}, portador(a) do RG nº ${locador?.rg || "__________________"}, CPF nº ${locador?.cpf || "__________________"}, residente e domiciliado(a) à ${locador?.endereco ? `${locador.endereco}${locador.cidade ? `, ${locador.cidade}` : ""}` : "____________________________________________"}.</p>
 
 <p class="party"><strong>LOCATÁRIO:</strong> ${sale.customerName || "____________________________________________"}, ${client?.nacionalidade || "Brasileiro(a)"}, ${client?.estadoCivil || "________________"}, ${client?.profissao || "________________"}, portador(a) do RG nº ${client?.rg || "__________________"}, CPF nº ${client?.cpf || "__________________"}, residente e domiciliado(a) à ${client?.address ? `${client.address}${client.bairro ? `, ${client.bairro}` : ""}${client.city ? `, ${client.city}` : ""}` : "____________________________________________"}.</p>
 
