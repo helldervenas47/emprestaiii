@@ -1728,7 +1728,7 @@ export function LoanList({ loans, payments, installmentSchedules, onPayment, onP
 
   return (
     <div className="space-y-3">
-      <div className="flex gap-2 w-full overflow-x-auto pb-1 sm:grid sm:grid-cols-7 sm:overflow-visible">
+      <div className="grid grid-cols-4 sm:grid-cols-7 gap-2 w-full">
         {categoryConfig.map((cat) => (
           <button key={cat.id} onClick={() => setCategory(cat.id)}
             className={`px-2 py-1.5 rounded-full text-[10px] sm:text-xs font-medium transition-colors border whitespace-nowrap ${
