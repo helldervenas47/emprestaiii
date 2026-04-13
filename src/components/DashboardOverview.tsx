@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { getBalance, setBalance } from "@/lib/balance";
 import {
   TrendingUp, TrendingDown, DollarSign, ArrowUpRight, ArrowDownRight,
-  ChevronLeft, ChevronRight, Percent, Wallet, Pencil, Check, X, Trash2,
+  ChevronLeft, ChevronRight, ChevronDown, Percent, Wallet, Pencil, Check, X, Trash2,
 } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
 
@@ -97,6 +97,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, onDeletePa
   const [offset, setOffset] = useState(0);
   const [txFilter, setTxFilter] = useState<"all" | "in" | "out">("all");
   const [showAllTx, setShowAllTx] = useState(false);
+  const [expandedBreakdown, setExpandedBreakdown] = useState<string | null>(null);
   
   const [accountBalance, setAccountBalance] = useAccountBalance();
   const [editingBalance, setEditingBalance] = useState(false);
@@ -168,7 +169,23 @@ export function DashboardOverview({ loans, sales, payments, expenses, onDeletePa
       ? filteredLoans.reduce((s, l) => s + l.interestRate, 0) / filteredLoans.length
       : 0;
 
-    return { totalIncome, incomeFromPayments, incomeFromSales, totalOutgoing, totalLoanOutgoing, totalExpenses, balance, transactions, loanCount: filteredLoans.length, saleCount: filteredSales.length, paymentCount: filteredPayments.length, expenseCount: filteredExpenses.length, avgInterestRate };
+    // Build sales with received amounts for breakdown
+    const salesWithReceived = filteredSales.map(sale => {
+      let received = 0;
+      if (sale.installmentAmounts && sale.installmentAmounts.length > 0) {
+        for (let i = 0; i < sale.paidInstallments; i++) {
+          received += sale.installmentAmounts[i] || 0;
+        }
+      } else if (sale.installmentValue) {
+        received = sale.paidInstallments * sale.installmentValue;
+      } else if (sale.installments > 0) {
+        received = sale.paidInstallments * (sale.total / sale.installments);
+      }
+      received += sale.partialPaid || 0;
+      return { ...sale, received };
+    });
+
+    return { totalIncome, incomeFromPayments, incomeFromSales, totalOutgoing, totalLoanOutgoing, totalExpenses, balance, transactions, loanCount: filteredLoans.length, saleCount: filteredSales.length, paymentCount: filteredPayments.length, expenseCount: filteredExpenses.length, avgInterestRate, filteredPayments, filteredLoans, filteredExpenses, salesWithReceived };
   }, [loans, sales, payments, expenses, range, includeSales, period, chartOverrides]);
 
   // Portfolio metrics — global (not filtered by period)
@@ -757,19 +774,56 @@ export function DashboardOverview({ loans, sales, payments, expenses, onDeletePa
         <Card>
           <CardContent className="p-5">
             <h3 className="text-sm font-semibold text-foreground mb-3">Detalhamento de Entradas</h3>
-            <div className="space-y-2">
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Parcelas recebidas</span>
+            <div className="space-y-1">
+              <button
+                className="flex justify-between text-sm w-full py-1.5 px-2 rounded-md hover:bg-muted/50 transition-colors cursor-pointer"
+                onClick={() => setExpandedBreakdown(expandedBreakdown === "payments" ? null : "payments")}
+              >
+                <span className="text-muted-foreground flex items-center gap-1">
+                  <ChevronDown className={`h-3.5 w-3.5 transition-transform ${expandedBreakdown === "payments" ? "rotate-0" : "-rotate-90"}`} />
+                  Parcelas recebidas ({data.filteredPayments.length})
+                </span>
                 <span className="font-medium">{formatCurrency(data.incomeFromPayments)}</span>
-              </div>
-              <div className="flex justify-between items-center text-sm">
-                <div className="flex items-center gap-2">
-                  <span className={`text-muted-foreground ${!includeSales ? "line-through opacity-50" : ""}`}>Vendas de produtos</span>
-                  <Switch checked={includeSales} onCheckedChange={setIncludeSales} className="scale-75" />
+              </button>
+              {expandedBreakdown === "payments" && (
+                <div className="ml-5 space-y-1 max-h-[200px] overflow-y-auto">
+                  {data.filteredPayments.map((p) => {
+                    const loan = loans.find((l) => l.id === p.loanId);
+                    return (
+                      <div key={p.id} className="flex justify-between text-xs py-1 border-b border-border/20 last:border-0">
+                        <span className="text-muted-foreground truncate mr-2">Parcela {p.installmentNumber} — {loan?.borrowerName || "Empréstimo"}</span>
+                        <span className="font-medium shrink-0 text-success">{formatCurrency(p.amount)}</span>
+                      </div>
+                    );
+                  })}
+                  {data.filteredPayments.length === 0 && <p className="text-xs text-muted-foreground py-1">Nenhuma parcela no período</p>}
                 </div>
-                <span className={`font-medium ${!includeSales ? "opacity-50" : ""}`}>{formatCurrency(data.incomeFromSales)}</span>
-              </div>
-              <div className="border-t pt-2 flex justify-between text-sm font-semibold">
+              )}
+              <button
+                className="flex justify-between items-center text-sm w-full py-1.5 px-2 rounded-md hover:bg-muted/50 transition-colors cursor-pointer"
+                onClick={() => setExpandedBreakdown(expandedBreakdown === "sales" ? null : "sales")}
+              >
+                <span className={`text-muted-foreground flex items-center gap-1 ${!includeSales ? "line-through opacity-50" : ""}`}>
+                  <ChevronDown className={`h-3.5 w-3.5 transition-transform ${expandedBreakdown === "sales" ? "rotate-0" : "-rotate-90"}`} />
+                  Vendas de produtos ({data.salesWithReceived.length})
+                </span>
+                <span className="flex items-center gap-2">
+                  <Switch checked={includeSales} onCheckedChange={setIncludeSales} className="scale-75" onClick={(e) => e.stopPropagation()} />
+                  <span className={`font-medium ${!includeSales ? "opacity-50" : ""}`}>{formatCurrency(data.incomeFromSales)}</span>
+                </span>
+              </button>
+              {expandedBreakdown === "sales" && (
+                <div className="ml-5 space-y-1 max-h-[200px] overflow-y-auto">
+                  {data.salesWithReceived.map((s) => (
+                    <div key={s.id} className="flex justify-between text-xs py-1 border-b border-border/20 last:border-0">
+                      <span className="text-muted-foreground truncate mr-2">{s.productName}{s.customerName ? ` — ${s.customerName}` : ""}</span>
+                      <span className="font-medium shrink-0 text-success">{formatCurrency(s.received)}</span>
+                    </div>
+                  ))}
+                  {data.salesWithReceived.length === 0 && <p className="text-xs text-muted-foreground py-1">Nenhuma venda no período</p>}
+                </div>
+              )}
+              <div className="border-t pt-2 flex justify-between text-sm font-semibold px-2">
                 <span>Total</span>
                 <span className="text-accent">{formatCurrency(data.totalIncome)}</span>
               </div>
@@ -779,16 +833,50 @@ export function DashboardOverview({ loans, sales, payments, expenses, onDeletePa
         <Card>
           <CardContent className="p-5">
             <h3 className="text-sm font-semibold text-foreground mb-3">Detalhamento de Saídas</h3>
-            <div className="space-y-2">
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Empréstimos concedidos</span>
+            <div className="space-y-1">
+              <button
+                className="flex justify-between text-sm w-full py-1.5 px-2 rounded-md hover:bg-muted/50 transition-colors cursor-pointer"
+                onClick={() => setExpandedBreakdown(expandedBreakdown === "loans" ? null : "loans")}
+              >
+                <span className="text-muted-foreground flex items-center gap-1">
+                  <ChevronDown className={`h-3.5 w-3.5 transition-transform ${expandedBreakdown === "loans" ? "rotate-0" : "-rotate-90"}`} />
+                  Empréstimos concedidos ({data.filteredLoans.length})
+                </span>
                 <span className="font-medium">{formatCurrency(data.totalLoanOutgoing)}</span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Despesas pagas</span>
+              </button>
+              {expandedBreakdown === "loans" && (
+                <div className="ml-5 space-y-1 max-h-[200px] overflow-y-auto">
+                  {data.filteredLoans.map((l) => (
+                    <div key={l.id} className="flex justify-between text-xs py-1 border-b border-border/20 last:border-0">
+                      <span className="text-muted-foreground truncate mr-2">{l.borrowerName}</span>
+                      <span className="font-medium shrink-0 text-destructive">{formatCurrency(l.amount)}</span>
+                    </div>
+                  ))}
+                  {data.filteredLoans.length === 0 && <p className="text-xs text-muted-foreground py-1">Nenhum empréstimo no período</p>}
+                </div>
+              )}
+              <button
+                className="flex justify-between text-sm w-full py-1.5 px-2 rounded-md hover:bg-muted/50 transition-colors cursor-pointer"
+                onClick={() => setExpandedBreakdown(expandedBreakdown === "expenses" ? null : "expenses")}
+              >
+                <span className="text-muted-foreground flex items-center gap-1">
+                  <ChevronDown className={`h-3.5 w-3.5 transition-transform ${expandedBreakdown === "expenses" ? "rotate-0" : "-rotate-90"}`} />
+                  Despesas pagas ({data.filteredExpenses.length})
+                </span>
                 <span className="font-medium">{formatCurrency(data.totalExpenses)}</span>
-              </div>
-              <div className="border-t pt-2 flex justify-between text-sm font-semibold">
+              </button>
+              {expandedBreakdown === "expenses" && (
+                <div className="ml-5 space-y-1 max-h-[200px] overflow-y-auto">
+                  {data.filteredExpenses.map((e) => (
+                    <div key={e.id} className="flex justify-between text-xs py-1 border-b border-border/20 last:border-0">
+                      <span className="text-muted-foreground truncate mr-2">{e.description}</span>
+                      <span className="font-medium shrink-0 text-destructive">{formatCurrency(e.amount)}</span>
+                    </div>
+                  ))}
+                  {data.filteredExpenses.length === 0 && <p className="text-xs text-muted-foreground py-1">Nenhuma despesa no período</p>}
+                </div>
+              )}
+              <div className="border-t pt-2 flex justify-between text-sm font-semibold px-2">
                 <span>Total</span>
                 <span className="text-destructive">{formatCurrency(data.totalOutgoing)}</span>
               </div>
