@@ -4,6 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Plus, X } from "lucide-react";
 import { Client } from "@/types/loan";
 
@@ -25,6 +26,11 @@ export function ClientForm({ onAdd, onClose }: Props) {
     state: "",
     score: "",
     notes: "",
+    isVehicleRental: false,
+    nacionalidade: "",
+    estadoCivil: "",
+    profissao: "",
+    bairro: "",
   });
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -34,7 +40,7 @@ export function ClientForm({ onAdd, onClose }: Props) {
     onClose();
   };
 
-  const update = (field: string, value: string) =>
+  const update = (field: string, value: string | boolean) =>
     setForm((prev) => ({ ...prev, [field]: value }));
 
   return (
@@ -98,6 +104,44 @@ export function ClientForm({ onAdd, onClose }: Props) {
               <Label htmlFor="notes">Observações</Label>
               <Textarea id="notes" value={form.notes} onChange={(e) => update("notes", e.target.value)} placeholder="Notas sobre o cliente..." rows={2} />
             </div>
+
+            {/* Vehicle Rental Section */}
+            <div className="border border-border rounded-lg p-4 space-y-4">
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="isVehicleRental"
+                  checked={form.isVehicleRental}
+                  onCheckedChange={(checked) => update("isVehicleRental", !!checked)}
+                />
+                <Label htmlFor="isVehicleRental" className="font-medium cursor-pointer">
+                  Aluguel de Veículos
+                </Label>
+              </div>
+
+              {form.isVehicleRental && (
+                <div className="space-y-3 pt-2 border-t border-border/50">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="nacionalidade">Nacionalidade</Label>
+                      <Input id="nacionalidade" value={form.nacionalidade} onChange={(e) => update("nacionalidade", e.target.value)} placeholder="Brasileiro(a)" />
+                    </div>
+                    <div>
+                      <Label htmlFor="estadoCivil">Estado Civil</Label>
+                      <Input id="estadoCivil" value={form.estadoCivil} onChange={(e) => update("estadoCivil", e.target.value)} placeholder="Solteiro(a)" />
+                    </div>
+                  </div>
+                  <div>
+                    <Label htmlFor="profissao">Profissão</Label>
+                    <Input id="profissao" value={form.profissao} onChange={(e) => update("profissao", e.target.value)} placeholder="Ex: Motorista" />
+                  </div>
+                  <div>
+                    <Label htmlFor="bairro">Bairro</Label>
+                    <Input id="bairro" value={form.bairro} onChange={(e) => update("bairro", e.target.value)} placeholder="Centro" />
+                  </div>
+                </div>
+              )}
+            </div>
+
             <Button type="submit" className="w-full">
               <Plus className="h-4 w-4 mr-2" />
               Cadastrar Cliente

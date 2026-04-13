@@ -20,6 +20,8 @@ export function useClients() {
         cpf: c.cpf, cnpj: c.cnpj, rg: c.rg, address: c.address,
         city: c.city, state: c.state, score: c.score, notes: c.notes,
         active: c.active, createdAt: c.created_at,
+        isVehicleRental: c.is_vehicle_rental, nacionalidade: c.nacionalidade,
+        estadoCivil: c.estado_civil, profissao: c.profissao, bairro: c.bairro,
       })));
     }
   }, [user]);
@@ -36,7 +38,9 @@ export function useClients() {
       user_id: dataOwnerId, name: client.name, phone: client.phone, email: client.email,
       cpf: client.cpf, cnpj: client.cnpj, rg: client.rg, address: client.address,
       city: client.city, state: client.state, score: client.score, notes: client.notes,
-      active: client.active,
+      active: client.active, is_vehicle_rental: client.isVehicleRental || false,
+      nacionalidade: client.nacionalidade || '', estado_civil: client.estadoCivil || '',
+      profissao: client.profissao || '', bairro: client.bairro || '',
     }).select().single();
 
     if (error) {
@@ -58,6 +62,8 @@ export function useClients() {
       name: data.name, phone: data.phone, email: data.email, cpf: data.cpf,
       cnpj: data.cnpj, rg: data.rg, address: data.address, city: data.city,
       state: data.state, score: data.score, notes: data.notes, active: data.active,
+      is_vehicle_rental: data.isVehicleRental, nacionalidade: data.nacionalidade,
+      estado_civil: data.estadoCivil, profissao: data.profissao, bairro: data.bairro,
     }).eq("id", id);
     if (error) fetchClients();
   }, [fetchClients]);

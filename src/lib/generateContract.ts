@@ -1,4 +1,4 @@
-import { Sale } from "@/types/loan";
+import { Sale, Client } from "@/types/loan";
 import { format, addMonths, addWeeks, addDays } from "date-fns";
 
 function addByFrequency(date: Date, frequency: string, n: number): Date {
@@ -57,7 +57,7 @@ function numberToWords(n: number): string {
   return result;
 }
 
-export function generateContract(sale: Sale) {
+export function generateContract(sale: Sale, client?: Client) {
   const isRecorrente = sale.paymentMode === "recorrente" && sale.installments > 1;
   const defaultValorParcela = sale.installments > 0
     ? Math.max(0, sale.total - (sale.downPayment || 0)) / sale.installments
@@ -160,7 +160,7 @@ export function generateContract(sale: Sale) {
 
 <p class="party"><strong>LOCADOR:</strong> ____________________________________________, Brasileiro(a), portador(a) do RG nº __________________, CPF nº __________________, residente e domiciliado(a) à ____________________________________________.</p>
 
-<p class="party"><strong>LOCATÁRIO:</strong> ${sale.customerName || "____________________________________________"}, Brasileiro(a), portador(a) do RG nº __________________, CPF nº __________________, residente e domiciliado(a) à ____________________________________________.</p>
+<p class="party"><strong>LOCATÁRIO:</strong> ${sale.customerName || "____________________________________________"}, ${client?.nacionalidade || "Brasileiro(a)"}, ${client?.estadoCivil || "________________"}, ${client?.profissao || "________________"}, portador(a) do RG nº ${client?.rg || "__________________"}, CPF nº ${client?.cpf || "__________________"}, residente e domiciliado(a) à ${client?.address ? `${client.address}${client.bairro ? `, ${client.bairro}` : ""}${client.city ? `, ${client.city}` : ""}` : "____________________________________________"}.</p>
 
 <p>As partes acima identificadas têm, entre si, justo e acertado o presente Contrato de Locação de Motocicleta, que será regido pelas cláusulas seguintes:</p>
 

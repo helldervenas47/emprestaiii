@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Client, Loan, Payment } from "@/types/loan";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -118,7 +119,7 @@ export function ClientList({ clients, loans, payments, onDelete, onUpdate, readO
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [sortOption, setSortOption] = useState<SortOption>("name-asc");
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [editForm, setEditForm] = useState({ name: "", phone: "", email: "", cpf: "", cnpj: "", rg: "", address: "", city: "", state: "", score: "", notes: "" });
+  const [editForm, setEditForm] = useState<Record<string, any>>({ name: "", phone: "", email: "", cpf: "", cnpj: "", rg: "", address: "", city: "", state: "", score: "", notes: "", isVehicleRental: false, nacionalidade: "", estadoCivil: "", profissao: "", bairro: "" });
 
   const creditScores = useMemo(() => {
     const map: Record<string, CreditScore> = {};
@@ -157,7 +158,7 @@ export function ClientList({ clients, loans, payments, onDelete, onUpdate, readO
 
   const startEdit = (client: Client) => {
     setEditingId(client.id);
-    setEditForm({ name: client.name, phone: client.phone, email: client.email, cpf: client.cpf, cnpj: client.cnpj || "", rg: client.rg || "", address: client.address, city: client.city || "", state: client.state || "", score: client.score || "", notes: client.notes || "" });
+    setEditForm({ name: client.name, phone: client.phone, email: client.email, cpf: client.cpf, cnpj: client.cnpj || "", rg: client.rg || "", address: client.address, city: client.city || "", state: client.state || "", score: client.score || "", notes: client.notes || "", isVehicleRental: client.isVehicleRental || false, nacionalidade: client.nacionalidade || "", estadoCivil: client.estadoCivil || "", profissao: client.profissao || "", bairro: client.bairro || "" });
   };
 
   const saveEdit = (id: string) => {
@@ -165,7 +166,7 @@ export function ClientList({ clients, loans, payments, onDelete, onUpdate, readO
     setEditingId(null);
   };
 
-  const updateField = (field: string, value: string) => setEditForm((prev) => ({ ...prev, [field]: value }));
+  const updateField = (field: string, value: string | boolean) => setEditForm((prev) => ({ ...prev, [field]: value }));
 
   return (
     <div className="space-y-4">
@@ -265,6 +266,40 @@ export function ClientList({ clients, loans, payments, onDelete, onUpdate, readO
                     <div>
                       <Label className="text-xs">Observações</Label>
                       <Textarea value={editForm.notes} onChange={(e) => updateField("notes", e.target.value)} rows={2} />
+                    </div>
+                    <div className="border border-border rounded-lg p-3 space-y-3">
+                      <div className="flex items-center space-x-2">
+                        <Checkbox
+                          id={`edit-vehicle-${client.id}`}
+                          checked={editForm.isVehicleRental}
+                          onCheckedChange={(checked) => updateField("isVehicleRental", !!checked)}
+                        />
+                        <Label htmlFor={`edit-vehicle-${client.id}`} className="text-xs font-medium cursor-pointer">
+                          Aluguel de Veículos
+                        </Label>
+                      </div>
+                      {editForm.isVehicleRental && (
+                        <div className="space-y-2 pt-2 border-t border-border/50">
+                          <div className="grid grid-cols-2 gap-2">
+                            <div>
+                              <Label className="text-xs">Nacionalidade</Label>
+                              <Input value={editForm.nacionalidade} onChange={(e) => updateField("nacionalidade", e.target.value)} placeholder="Brasileiro(a)" />
+                            </div>
+                            <div>
+                              <Label className="text-xs">Estado Civil</Label>
+                              <Input value={editForm.estadoCivil} onChange={(e) => updateField("estadoCivil", e.target.value)} placeholder="Solteiro(a)" />
+                            </div>
+                          </div>
+                          <div>
+                            <Label className="text-xs">Profissão</Label>
+                            <Input value={editForm.profissao} onChange={(e) => updateField("profissao", e.target.value)} placeholder="Motorista" />
+                          </div>
+                          <div>
+                            <Label className="text-xs">Bairro</Label>
+                            <Input value={editForm.bairro} onChange={(e) => updateField("bairro", e.target.value)} placeholder="Centro" />
+                          </div>
+                        </div>
+                      )}
                     </div>
                     <div className="flex gap-2 justify-end">
                       <Button size="sm" variant="ghost" onClick={() => setEditingId(null)}>

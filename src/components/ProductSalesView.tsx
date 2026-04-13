@@ -86,7 +86,7 @@ const saleCategoryConfig = {
   on_track: { label: "Em Dia", badge: "bg-primary/20 text-primary border-primary/30", border: "border-primary/50", bg: "bg-card", header: "bg-primary/8 border-border/50" },
 };
 
-function SaleCard({ sale, onDelete, onEdit, onUpdate, formatCurrency, readOnly = false }: { sale: Sale; onDelete: () => void; onEdit: () => void; onUpdate: (data: Partial<Omit<Sale, "id">>) => void; formatCurrency: (v: number) => string; readOnly?: boolean }) {
+function SaleCard({ sale, onDelete, onEdit, onUpdate, formatCurrency, readOnly = false, clients = [] }: { sale: Sale; onDelete: () => void; onEdit: () => void; onUpdate: (data: Partial<Omit<Sale, "id">>) => void; formatCurrency: (v: number) => string; readOnly?: boolean; clients?: Client[] }) {
   const [showPartial, setShowPartial] = useState(false);
   const [partialAmount, setPartialAmount] = useState("");
   const [partialDate, setPartialDate] = useState<Date | undefined>(undefined);
@@ -453,7 +453,7 @@ function SaleCard({ sale, onDelete, onEdit, onUpdate, formatCurrency, readOnly =
               {new Date(sale.date + "T00:00:00").toLocaleDateString("pt-BR")}
             </p>
             <div className="flex items-center gap-1">
-              <Button size="icon" variant="ghost" className="h-8 w-8 text-primary hover:bg-primary/10" onClick={() => generateContract(sale)} title="Gerar Contrato">
+              <Button size="icon" variant="ghost" className="h-8 w-8 text-primary hover:bg-primary/10" onClick={() => { const matchedClient = clients.find(c => c.name.toLowerCase() === (sale.customerName || '').toLowerCase()); generateContract(sale, matchedClient); }} title="Gerar Contrato">
                 <FileText className="h-4 w-4" />
               </Button>
               <Button size="icon" variant="ghost" className="h-8 w-8 text-success hover:bg-success/10" onClick={() => setShowPayments(true)} title="Ver Pagamentos">
@@ -682,7 +682,7 @@ function getSalePaidAmountHelper(s: Sale): number {
 }
 
 function SaleClientFolder({
-  group, onDeleteSale, onUpdateSale, formatCurrency, onEdit, readOnly = false,
+  group, onDeleteSale, onUpdateSale, formatCurrency, onEdit, readOnly = false, clients = [],
 }: {
   group: SaleClientGroup;
   onDeleteSale: (id: string) => void;
@@ -690,6 +690,7 @@ function SaleClientFolder({
   formatCurrency: (v: number) => string;
   onEdit: (sale: Sale) => void;
   readOnly?: boolean;
+  clients?: Client[];
 }) {
   const [open, setOpen] = useState(false);
   const activeCount = group.sales.filter((s) => getSaleCategory(s) !== "paid").length;
@@ -758,6 +759,7 @@ function SaleClientFolder({
                 onUpdate={(data) => onUpdateSale(sale.id, data)}
                 formatCurrency={formatCurrency}
                 readOnly={readOnly}
+                clients={clients}
               />
             ))}
           </div>
@@ -1026,6 +1028,7 @@ function SalesList({ sales, onDeleteSale, onUpdateSale, clients = [], hideOnTrac
                 formatCurrency={formatCurrency}
                 onEdit={setEditingSale}
                 readOnly={readOnly}
+                clients={clients}
               />
             ))}
           </div>
@@ -1061,6 +1064,7 @@ function SalesList({ sales, onDeleteSale, onUpdateSale, clients = [], hideOnTrac
               onUpdate={(data) => onUpdateSale(sale.id, data)}
               formatCurrency={formatCurrency}
               readOnly={readOnly}
+              clients={clients}
             />
             </div>
           ))}

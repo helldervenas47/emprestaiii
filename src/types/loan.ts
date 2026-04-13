@@ -54,6 +54,11 @@ export interface Client {
   notes?: string;
   active: boolean;
   createdAt: string;
+  isVehicleRental?: boolean;
+  nacionalidade?: string;
+  estadoCivil?: string;
+  profissao?: string;
+  bairro?: string;
 }
 
 export interface Product {
