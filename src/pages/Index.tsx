@@ -251,6 +251,13 @@ const Index = () => {
                         </button>
                       ))}
                     </nav>
+                    <div className="p-3 border-t border-border/30 flex items-center gap-2">
+                      <User className="h-4 w-4 text-muted-foreground shrink-0" />
+                      <div className="min-w-0">
+                        <p className="text-xs font-medium text-foreground truncate">{user?.user_metadata?.display_name || user?.email || "—"}</p>
+                        {role && <p className="text-[10px] text-muted-foreground">{role === "admin" ? "Administrador" : role === "operador" ? "Operador" : "Visualizador"}</p>}
+                      </div>
+                    </div>
                   </div>
                 </SheetContent>
               </Sheet>
