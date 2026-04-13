@@ -1560,12 +1560,12 @@ export function ProductSalesView({ sales, onDeleteSale, onUpdateSale, clients = 
                                     Pagar
                                   </Button>
                                 )}
-                                {onUpdateExpense && (
+                                {!readOnly && onUpdateExpense && (
                                   <Button size="sm" variant="ghost" onClick={() => setEditingExpenseId(exp.id)} className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground">
                                     <Pencil className="h-3.5 w-3.5" />
                                   </Button>
                                 )}
-                                {onDeleteExpense && (
+                                {!readOnly && onDeleteExpense && (
                                   <Button size="sm" variant="ghost" onClick={() => onDeleteExpense(exp.id, true)} className="h-7 w-7 p-0 text-destructive hover:text-destructive">
                                     <Trash2 className="h-3.5 w-3.5" />
                                   </Button>
