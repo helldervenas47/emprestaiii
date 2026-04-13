@@ -435,6 +435,8 @@ function SaleCard({ sale, onDelete, onEdit, onUpdate, formatCurrency, readOnly =
                 </Button>
               </div>
               )}
+            </>
+          )}
 
           {/* Notes */}
           {sale.notes && (
