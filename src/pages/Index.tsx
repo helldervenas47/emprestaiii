@@ -395,6 +395,7 @@ const Index = () => {
             onDeleteSale={deleteSale}
             onUpdateSale={updateSale}
             clients={filteredClients}
+            readOnly={isReadOnly}
           />
         )}
         {tab === "vehicles" && (
@@ -408,6 +409,7 @@ const Index = () => {
             onPayExpense={payExpense}
             onDeleteExpense={deleteExpense}
             onUpdateExpense={updateExpense}
+            readOnly={isReadOnly}
           />
         )}
         {tab === "users" && <UserManagement />}
