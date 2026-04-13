@@ -473,16 +473,44 @@ export function DashboardOverview({ loans, sales, payments, expenses, onDeletePa
           </CardContent>
         </Card>
 
-        <Card className="animate-fade-in" style={{ animationDelay: '160ms', animationFillMode: 'backwards' }}>
-          <CardContent className="p-4 flex items-center gap-3">
-            <div className="h-10 w-10 rounded-full bg-warning/10 flex items-center justify-center">
-              <Percent className="h-5 w-5 text-warning" />
+        <Card className="animate-fade-in cursor-pointer" style={{ animationDelay: '160ms', animationFillMode: 'backwards' }} onClick={() => setExpandedBreakdown(expandedBreakdown === "interest-rate" ? null : "interest-rate")}>
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3">
+              <div className="h-10 w-10 rounded-full bg-warning/10 flex items-center justify-center">
+                <Percent className="h-5 w-5 text-warning" />
+              </div>
+              <div className="flex-1">
+                <p className="text-xs text-muted-foreground">Taxa de Juros Mensal</p>
+                <p className="text-lg font-bold text-foreground">{data.avgInterestRate.toFixed(1)}%</p>
+                <p className="text-xs text-muted-foreground">{data.loanCount} empréstimo(s) no período</p>
+              </div>
+              <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform ${expandedBreakdown === "interest-rate" ? "rotate-180" : ""}`} />
             </div>
-            <div>
-              <p className="text-xs text-muted-foreground">Taxa de Juros Mensal (Média)</p>
-              <p className="text-lg font-bold text-foreground">{data.avgInterestRate.toFixed(1)}%</p>
-              <p className="text-xs text-muted-foreground">{data.loanCount} empréstimo(s) no período</p>
-            </div>
+            {expandedBreakdown === "interest-rate" && data.filteredLoans.length > 0 && (
+              <div className="mt-3 border-t border-border pt-3 space-y-2">
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">Empréstimos considerados</p>
+                {data.filteredLoans.map((l) => {
+                  const totalToReceive = calculateTotalWithInterest(l.amount, l.interestRate, l.installments);
+                  const interestPct = l.amount > 0 ? ((totalToReceive - l.amount) / l.amount) * 100 : 0;
+                  return (
+                    <div key={l.id} className="flex items-center justify-between text-xs bg-muted/30 rounded-lg p-2">
+                      <div>
+                        <p className="font-medium text-foreground">{l.borrowerName}</p>
+                        <p className="text-muted-foreground">
+                          Emprestado: {rawFormatCurrency(l.amount)} → Receber: {rawFormatCurrency(totalToReceive)}
+                        </p>
+                      </div>
+                      <span className="font-bold text-warning">{interestPct.toFixed(1)}%</span>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+            {expandedBreakdown === "interest-rate" && data.filteredLoans.length === 0 && (
+              <div className="mt-3 border-t border-border pt-3">
+                <p className="text-xs text-muted-foreground text-center">Nenhum empréstimo no período</p>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
