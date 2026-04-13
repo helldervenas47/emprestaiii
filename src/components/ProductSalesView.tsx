@@ -545,21 +545,17 @@ function SaleListRow({ sale, onEdit, onUpdate, formatCurrency, readOnly = false 
           {(sale.customerName || sale.description || "?").charAt(0).toUpperCase()}
         </div>
         <div className="flex-1 min-w-0">
-          <p className="text-[9px] sm:text-[10px] text-muted-foreground uppercase tracking-wide leading-tight">Cliente</p>
           <p className="text-xs sm:text-sm font-semibold text-foreground truncate">{sale.customerName || "—"}</p>
         </div>
         <div className="hidden md:block flex-1 min-w-0 max-w-[200px]">
-          <p className="text-[10px] text-muted-foreground uppercase tracking-wide leading-tight">Descrição</p>
           <p className="text-sm font-bold text-foreground truncate">{sale.description || sale.productName || "—"}</p>
         </div>
         <div className="shrink-0 min-w-[70px] sm:min-w-[90px]">
-          <p className="text-[9px] sm:text-[10px] text-muted-foreground uppercase tracking-wide leading-tight">Vencimento</p>
           <p className="text-[11px] sm:text-xs text-foreground truncate">
             {!isPaid ? format(nextDue, "dd/MM/yyyy") : "Quitado"}{isRecorrente && ` • ${sale.paidInstallments}/${sale.installments}`}
           </p>
         </div>
         <div className="text-right shrink-0 min-w-[60px] sm:min-w-[80px]">
-          <p className="text-[9px] sm:text-[10px] text-muted-foreground uppercase tracking-wide leading-tight">Valor</p>
           {isPaid ? (
             <p className="text-xs sm:text-sm font-bold text-success">{formatCurrency(sale.total)}</p>
           ) : (
@@ -1076,6 +1072,17 @@ function SalesList({ sales, onDeleteSale, onUpdateSale, clients = [], hideOnTrac
         )
       ) : view === "list" ? (
         <Card no3d className="overflow-hidden">
+          {/* Header row */}
+          <div className="flex items-center gap-2 px-2 sm:px-3 py-2 border-b border-border/50 bg-muted/40">
+            <div className="w-8 sm:w-9 shrink-0" />
+            <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
+              <p className="flex-1 min-w-0 text-[9px] sm:text-[10px] text-muted-foreground uppercase tracking-wide font-medium">Cliente</p>
+              <p className="hidden md:block flex-1 min-w-0 max-w-[200px] text-[10px] text-muted-foreground uppercase tracking-wide font-medium">Descrição</p>
+              <p className="shrink-0 min-w-[70px] sm:min-w-[90px] text-[9px] sm:text-[10px] text-muted-foreground uppercase tracking-wide font-medium">Vencimento</p>
+              <p className="text-right shrink-0 min-w-[60px] sm:min-w-[80px] text-[9px] sm:text-[10px] text-muted-foreground uppercase tracking-wide font-medium">Valor</p>
+            </div>
+            <div className="w-[68px] shrink-0" />
+          </div>
           <div className="divide-y divide-border/30">
             {listSorted.map((sale) => (
               <SaleListRow
