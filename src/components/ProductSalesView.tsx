@@ -548,6 +548,9 @@ function SaleListRow({ sale, onEdit, onUpdate, formatCurrency, readOnly = false 
             {!isPaid ? format(nextDue, "dd/MM/yyyy") : "Quitado"}{isRecorrente && ` • ${sale.paidInstallments}/${sale.installments}`}
           </p>
         </div>
+        <div className="hidden md:block flex-1 min-w-0 max-w-[200px]">
+          <p className="text-xs text-muted-foreground truncate">{sale.description || sale.productName || "—"}</p>
+        </div>
         <div className="text-right shrink-0">
           {isPaid ? (
             <p className="text-sm font-bold text-success">{formatCurrency(sale.total)}</p>
@@ -1734,7 +1737,7 @@ export function ProductSalesView({ sales, onDeleteSale, onUpdateSale, clients = 
           {activeTabs.map((tab) => (
             <TabsTrigger key={tab.type} value={tab.type} className="flex items-center gap-2">
               <tab.icon className="h-4 w-4" />
-              <span className="hidden sm:inline">{tab.label}</span>
+              <span>{tab.label}</span>
             </TabsTrigger>
           ))}
         </TabsList>
