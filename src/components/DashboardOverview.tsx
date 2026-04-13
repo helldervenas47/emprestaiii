@@ -242,12 +242,12 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
 
     // Overdue (global) — uses same "Restante" logic as LoanList line view
     const todayStr = new Date().toISOString().split("T")[0];
-    const overdueLoans = activeLoans.filter((l) => l.dueDate <= todayStr);
+    const overdueLoans = activeLoans.filter((l) => l.dueDate < todayStr);
     const overdueAmount = overdueLoans.reduce((s, l) => {
       // For installment loans, sum overdue installments from schedule
       if (l.installments >= 2) {
         const overdueSum = installmentSchedules
-          .filter((sc) => sc.loanId === l.id && sc.installmentNumber > l.paidInstallments && sc.dueDate <= todayStr)
+          .filter((sc) => sc.loanId === l.id && sc.installmentNumber > l.paidInstallments && sc.dueDate < todayStr)
           .reduce((sum, sc) => sum + sc.amount, 0);
         if (overdueSum > 0) return s + overdueSum;
       }
