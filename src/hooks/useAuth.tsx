@@ -68,11 +68,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setAllowedTabs((data as any)?.allowed_tabs || null);
   };
 
+  const fetchLinkedClients = async (userId: string) => {
+    const { data } = await supabase
+      .from("user_client_permissions" as any)
+      .select("client_id")
+      .eq("user_id", userId);
+
+    if (data && (data as any[]).length > 0) {
+      setLinkedClientIds((data as any[]).map((d: any) => d.client_id));
+    } else {
+      setLinkedClientIds(null);
+    }
+  };
+
   const hydrateUserState = async (userId: string) => {
     await Promise.all([
       fetchRole(userId),
       fetchDataOwner(userId),
       fetchTabPermissions(userId),
+      fetchLinkedClients(userId),
     ]);
   };
 
