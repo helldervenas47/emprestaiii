@@ -832,71 +832,15 @@ function SalesList({ sales, onDeleteSale, onUpdateSale, clients = [], hideOnTrac
       ) : view === "list" ? (
         <Card no3d className="overflow-hidden">
           <div className="divide-y divide-border/30">
-            {(() => {
-              // Sort by next due date for list view
-              const getNextDueDateForSort = (s: Sale): Date => {
-                const isRec = s.paymentMode === "recorrente" && s.installments > 1;
-                const baseDate = new Date(s.date + "T00:00:00");
-                const nextIdx = s.paidInstallments;
-                const customDate = s.installmentDates && s.installmentDates[nextIdx];
-                if (customDate) return new Date(customDate + "T00:00:00");
-                return isRec ? addByFrequency(baseDate, s.frequency || "Mensal", nextIdx) : baseDate;
-              };
-              const getNextInstallmentValue = (s: Sale): number => {
-                const nextIdx = s.paidInstallments;
-                const amounts = s.installmentAmounts;
-                if (amounts && amounts[nextIdx] != null) return amounts[nextIdx];
-                return s.installments > 0 ? Math.max(0, s.total - (s.downPayment || 0)) / s.installments : s.total;
-              };
-              const sorted = [...filtered].sort((a, b) => {
-                const catA = getSaleCategory(a);
-                const catB = getSaleCategory(b);
-                if (catA === "paid" && catB !== "paid") return 1;
-                if (catA !== "paid" && catB === "paid") return -1;
-                return getNextDueDateForSort(a).getTime() - getNextDueDateForSort(b).getTime();
-              });
-              return sorted.map((sale) => {
-                const category = getSaleCategory(sale);
-                const catStyle = saleCategoryConfig[category];
-                const isRecorrente = sale.paymentMode === "recorrente" && sale.installments > 1;
-                const paidAmount = getSalePaidAmountHelper(sale);
-                const remaining = Math.max(0, sale.total - paidAmount - (sale.partialPaid || 0));
-                const isPaid = category === "paid";
-                const nextDue = getNextDueDateForSort(sale);
-                const nextInstValue = getNextInstallmentValue(sale);
-                const partialOnNext = (sale.partialPaid || 0) > 0 ? Math.max(0, nextInstValue - (sale.partialPaid || 0)) : nextInstValue;
-                return (
-                  <button
-                    key={sale.id}
-                    onClick={() => setEditingSale(sale)}
-                    className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-muted/30 transition-colors"
-                  >
-                    <div className={`h-9 w-9 rounded-full flex items-center justify-center text-primary-foreground font-bold text-xs shrink-0 ${
-                      category === "paid" ? "bg-success" : category === "overdue" ? "bg-destructive" : category === "due_today" ? "bg-warning" : "gradient-primary"
-                    }`}>
-                      {(sale.customerName || sale.description || "?").charAt(0).toUpperCase()}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold text-foreground truncate">{sale.customerName || sale.description}</p>
-                      <p className="text-xs text-muted-foreground truncate">
-                        {!isPaid ? format(nextDue, "dd/MM/yyyy") : "Quitado"}{isRecorrente && ` • ${sale.paidInstallments}/${sale.installments}`}
-                      </p>
-                    </div>
-                    <div className="text-right shrink-0">
-                      {isPaid ? (
-                        <p className="text-sm font-bold text-success">{formatCurrency(sale.total)}</p>
-                      ) : (
-                        <>
-                          <p className="text-sm font-bold text-foreground">{formatCurrency(partialOnNext)}</p>
-                          <p className="text-[11px] text-muted-foreground">Rest. {formatCurrency(remaining)}</p>
-                        </>
-                      )}
-                    </div>
-                    <Badge className={`${catStyle.badge} text-[10px] shrink-0 hidden sm:flex`}>{catStyle.label}</Badge>
-                  </button>
-                );
-              });
-            })()}
+            {listSorted.map((sale) => (
+              <SaleListRow
+                key={sale.id}
+                sale={sale}
+                onEdit={() => setEditingSale(sale)}
+                onUpdate={(data) => onUpdateSale(sale.id, data)}
+                formatCurrency={formatCurrency}
+              />
+            ))}
           </div>
         </Card>
       ) : (
