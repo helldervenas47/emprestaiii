@@ -34,32 +34,36 @@ function isInRange(dateStr: string, start: Date, end: Date): boolean {
   return date >= start && date <= end;
 }
 
-function getRange(period: Period, offset: number): { start: Date; end: Date; label: string } {
+function getMonthRange(monthOffset: number): { start: Date; end: Date; label: string } {
+  const now = new Date();
+  const m = new Date(now.getFullYear(), now.getMonth() + monthOffset, 1);
+  const mEnd = new Date(m.getFullYear(), m.getMonth() + 1, 0, 23, 59, 59, 999);
+  return { start: m, end: mEnd, label: `${monthNames[m.getMonth()]} ${m.getFullYear()}` };
+}
+
+function getFilteredRange(period: Period, monthStart: Date, monthEnd: Date): { start: Date; end: Date } {
   const now = new Date();
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
   if (period === "day") {
-    const d = new Date(today);
-    d.setDate(d.getDate() + offset);
+    // If current month, use today; otherwise use first day of month
+    const d = (today >= monthStart && today <= monthEnd) ? new Date(today) : new Date(monthStart);
     const end = new Date(d);
     end.setHours(23, 59, 59, 999);
-    return { start: d, end, label: d.toLocaleDateString("pt-BR", { day: "2-digit", month: "long", year: "numeric" }) };
+    return { start: d, end };
   }
   if (period === "week") {
-    const weekStart = new Date(today);
-    weekStart.setDate(today.getDate() - today.getDay() + offset * 7);
+    // If current month, use current week; otherwise use first week of month
+    const refDay = (today >= monthStart && today <= monthEnd) ? new Date(today) : new Date(monthStart);
+    const weekStart = new Date(refDay);
+    weekStart.setDate(refDay.getDate() - refDay.getDay());
     const weekEnd = new Date(weekStart);
     weekEnd.setDate(weekStart.getDate() + 6);
     weekEnd.setHours(23, 59, 59, 999);
-    return {
-      start: weekStart, end: weekEnd,
-      label: `${weekStart.toLocaleDateString("pt-BR", { day: "2-digit", month: "short" })} — ${weekEnd.toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric" })}`,
-    };
+    return { start: weekStart, end: weekEnd };
   }
-  // month
-  const m = new Date(today.getFullYear(), today.getMonth() + offset, 1);
-  const mEnd = new Date(m.getFullYear(), m.getMonth() + 1, 0, 23, 59, 59, 999);
-  return { start: m, end: mEnd, label: `${monthNames[m.getMonth()]} ${m.getFullYear()}` };
+  // month — full month
+  return { start: monthStart, end: monthEnd };
 }
 
 function rawFormatCurrency(v: number) {
@@ -94,7 +98,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, onDeletePa
   const { mask } = useHideValues();
   const formatCurrency = useCallback((v: number) => mask(rawFormatCurrency(v)), [mask]);
   const [period, setPeriod] = useState<Period>("month");
-  const [offset, setOffset] = useState(0);
+  const [monthOffset, setMonthOffset] = useState(0);
   const [txFilter, setTxFilter] = useState<"all" | "in" | "out">("all");
   const [showAllTx, setShowAllTx] = useState(false);
   const [expandedBreakdown, setExpandedBreakdown] = useState<string | null>(null);
@@ -105,7 +109,11 @@ export function DashboardOverview({ loans, sales, payments, expenses, onDeletePa
   const [includeSales, setIncludeSales] = useState(false);
   const [chartOverrides, setChartOverrides] = useLocalStorage<Record<string, { emprestado?: number; recebido?: number }>>("hvcred-chart-overrides", {});
 
-  const range = useMemo(() => getRange(period, offset), [period, offset]);
+  const monthRange = useMemo(() => getMonthRange(monthOffset), [monthOffset]);
+  const range = useMemo(() => {
+    const filtered = getFilteredRange(period, monthRange.start, monthRange.end);
+    return { ...filtered, label: monthRange.label };
+  }, [period, monthRange]);
 
   // Helper to get chart month label from a date range
   const getChartLabel = (start: Date) => {
@@ -404,7 +412,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, onDeletePa
     setEditingInterest(false);
   };
 
-  const handleChangePeriod = (p: Period) => { setPeriod(p); setOffset(0); };
+  const handleChangePeriod = (p: Period) => { setPeriod(p); };
 
   const startEditBalance = () => { setTempBalance(String(accountBalance)); setEditingBalance(true); };
   const saveBalance = () => { setAccountBalance(parseFloat(tempBalance) || 0); setEditingBalance(false); };
@@ -421,22 +429,22 @@ export function DashboardOverview({ loans, sales, payments, expenses, onDeletePa
       <div className="flex flex-col gap-3">
         <h2 className="text-lg font-semibold text-foreground">Visão Geral</h2>
         <div className="flex items-center gap-1 sm:gap-2 flex-wrap">
-          <div className="flex items-center gap-1 sm:gap-2">
-            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setOffset(offset - 1)}>
-              <ChevronLeft className="h-4 w-4" />
-            </Button>
-            <span className="text-xs sm:text-sm font-medium text-foreground min-w-[120px] sm:min-w-[160px] text-center">{range.label}</span>
-            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setOffset(offset + 1)} disabled={offset >= 0}>
-              <ChevronRight className="h-4 w-4" />
-            </Button>
-          </div>
-          <div className="flex bg-muted/60 rounded-xl p-0.5 ml-auto backdrop-blur-sm border border-border/30">
+          <div className="flex bg-muted/60 rounded-xl p-0.5 backdrop-blur-sm border border-border/30">
             {(["day", "week", "month"] as Period[]).map((p) => (
               <button key={p} onClick={() => handleChangePeriod(p)}
                 className={`px-2 sm:px-3 py-1.5 rounded-lg text-[10px] sm:text-xs font-medium transition-all duration-200 ${period === p ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>
                 {periodLabels[p]}
               </button>
             ))}
+          </div>
+          <div className="flex items-center gap-1 sm:gap-2 ml-auto">
+            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setMonthOffset(monthOffset - 1)}>
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <span className="text-xs sm:text-sm font-medium text-foreground min-w-[120px] sm:min-w-[160px] text-center">{monthRange.label}</span>
+            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setMonthOffset(monthOffset + 1)} disabled={monthOffset >= 0}>
+              <ChevronRight className="h-4 w-4" />
+            </Button>
           </div>
         </div>
       </div>
