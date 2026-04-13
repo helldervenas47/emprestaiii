@@ -1729,7 +1729,7 @@ export function LoanList({ loans, payments, installmentSchedules, onPayment, onP
 
   return (
     <div className="space-y-3">
-      <div className="flex flex-wrap gap-2 justify-center sm:justify-start">
+      <div className="flex flex-wrap gap-2 items-center justify-center sm:justify-start">
         {categoryConfig.map((cat) => (
           <button key={cat.id} onClick={() => setCategory(cat.id)}
             className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors border ${
@@ -1739,6 +1739,14 @@ export function LoanList({ loans, payments, installmentSchedules, onPayment, onP
             {cat.label} ({counts[cat.id]})
           </button>
         ))}
+        {onNewLoan && !readOnly && (
+          <button
+            onClick={onNewLoan}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-colors border border-primary/30 text-primary bg-card hover:bg-primary hover:text-primary-foreground"
+          >
+            <Plus className="h-3.5 w-3.5" />Novo Empréstimo
+          </button>
+        )}
       </div>
 
       <div className="flex items-center gap-2 flex-wrap">
