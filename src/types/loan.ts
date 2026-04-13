@@ -70,13 +70,6 @@ export type BusinessType = "venda" | "streaming" | "aluguel_veiculo";
 
 export type PaymentMode = "fixa" | "recorrente";
 
-export interface SalePaymentRecord {
-  date: string;
-  amount: number;
-  type: "parcela" | "parcial";
-  installmentNumber: number;
-}
-
 export interface Sale {
   id: string;
   productId?: string;
@@ -99,7 +92,6 @@ export interface Sale {
   installmentAmounts?: number[] | null;
   installmentDates?: string[] | null;
   partialPaid: number;
-  paymentHistory?: SalePaymentRecord[];
 }
 
 export interface Expense {

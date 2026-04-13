@@ -1,1 +1,0 @@
-ALTER TABLE public.sales ADD COLUMN payment_history jsonb DEFAULT '[]'::jsonb;
