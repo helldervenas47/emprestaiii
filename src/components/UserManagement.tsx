@@ -28,6 +28,8 @@ export function UserManagement() {
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [editingUser, setEditingUser] = useState<ManagedUser | null>(null);
   const [creating, setCreating] = useState(false);
+  const [expandedUserId, setExpandedUserId] = useState<string | null>(null);
+  const isMobile = useIsMobile();
   const [saving, setSaving] = useState(false);
   const [formData, setFormData] = useState({
     email: "",
