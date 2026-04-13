@@ -922,9 +922,15 @@ export function ProductSalesView({ sales, onDeleteSale, onUpdateSale, clients = 
           }}>
             <ChevronLeft className="h-4 w-4" />
           </Button>
-          <p className="text-xs font-medium text-muted-foreground capitalize">
+          <button
+            className="text-xs font-medium text-muted-foreground capitalize hover:text-primary transition-colors"
+            onClick={() => {
+              const n = new Date();
+              setSelectedMonth(`${n.getFullYear()}-${String(n.getMonth() + 1).padStart(2, "0")}`);
+            }}
+          >
             {format(new Date(selYear, selMonthNum - 1, 1), "MMMM yyyy", { locale: ptBR })}
-          </p>
+          </button>
           <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => {
             const [y, m] = selectedMonth.split("-").map(Number);
             const next = new Date(y, m, 1);
