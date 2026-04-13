@@ -1372,15 +1372,15 @@ function LoanRowView({
               <p className="text-[10px] text-muted-foreground mt-1">{Math.round(loan.installments > 0 ? (loan.paidInstallments / loan.installments) * 100 : 0)}% concluído</p>
             </div>
             {/* Actions */}
-            <div className="flex items-center gap-2 pt-1 border-t border-border/30">
+            <div className="flex flex-col gap-2 pt-2 border-t border-border/30 w-full">
               {!readOnly && loan.status !== "paid" && (
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button size="sm" variant="default" className="h-8 text-xs gap-1.5" onClick={(e) => e.stopPropagation()}>
-                      <DollarSign className="h-3.5 w-3.5" /> Pagar
+                    <Button variant="default" className="w-full h-10 text-sm gap-2" onClick={(e) => e.stopPropagation()}>
+                      <DollarSign className="h-4 w-4" /> Pagar
                     </Button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="start" onClick={(e) => e.stopPropagation()}>
+                  <DropdownMenuContent align="start" className="w-[var(--radix-dropdown-menu-trigger-width)]" onClick={(e) => e.stopPropagation()}>
                     <DropdownMenuItem onClick={() => openPaymentDialog("installment")}>
                       <CheckCircle className="h-4 w-4 mr-2" /> Receber Parcela
                     </DropdownMenuItem>
@@ -1397,23 +1397,25 @@ function LoanRowView({
                 </DropdownMenu>
               )}
               {!readOnly && loan.status === "paid" && (
-                <Button size="sm" variant="outline" className="h-8 text-xs gap-1.5" onClick={(e) => { e.stopPropagation(); onUpdate({ status: "active", paidInstallments: 0 }); }}>
-                  <X className="h-3.5 w-3.5" /> Marcar como não pago
+                <Button variant="outline" className="w-full h-10 text-sm gap-2" onClick={(e) => { e.stopPropagation(); onUpdate({ status: "active", paidInstallments: 0 }); }}>
+                  <X className="h-4 w-4" /> Marcar como não pago
                 </Button>
               )}
-              <Button size="icon" variant="ghost" className="h-8 w-8" onClick={(e) => { e.stopPropagation(); setShowHistory(true); }} title="Histórico">
-                <History className="h-4 w-4 text-muted-foreground" />
-              </Button>
-              {!readOnly && (
-                <>
-                  <Button size="icon" variant="ghost" className="h-8 w-8" onClick={(e) => { e.stopPropagation(); startEdit(); }} title="Editar">
-                    <Pencil className="h-4 w-4 text-muted-foreground" />
-                  </Button>
-                  <Button size="icon" variant="ghost" className="h-8 w-8" onClick={(e) => { e.stopPropagation(); setConfirmDelete(true); }} title="Excluir">
-                    <Trash2 className="h-4 w-4 text-destructive" />
-                  </Button>
-                </>
-              )}
+              <div className="flex gap-2 w-full">
+                <Button variant="ghost" className="flex-1 h-9 text-xs gap-1.5" onClick={(e) => { e.stopPropagation(); setShowHistory(true); }}>
+                  <History className="h-3.5 w-3.5" /> Histórico
+                </Button>
+                {!readOnly && (
+                  <>
+                    <Button variant="ghost" className="flex-1 h-9 text-xs gap-1.5" onClick={(e) => { e.stopPropagation(); startEdit(); }}>
+                      <Pencil className="h-3.5 w-3.5" /> Editar
+                    </Button>
+                    <Button variant="ghost" className="flex-1 h-9 text-xs gap-1.5 text-destructive hover:text-destructive" onClick={(e) => { e.stopPropagation(); setConfirmDelete(true); }}>
+                      <Trash2 className="h-3.5 w-3.5" /> Excluir
+                    </Button>
+                  </>
+                )}
+              </div>
             </div>
             {showPartial && (
               <div className="flex items-center gap-2 pt-2" onClick={(e) => e.stopPropagation()}>
