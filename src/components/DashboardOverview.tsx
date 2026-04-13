@@ -165,8 +165,21 @@ export function DashboardOverview({ loans, sales, payments, expenses, onDeletePa
     });
     transactions.sort((a, b) => b.date.localeCompare(a.date));
 
+    const getLoanTotalToReceive = (l: Loan) => {
+      let total = calculateTotalWithInterest(l.amount, l.interestRate, l.installments);
+      if (l.customInterestValue && l.customInterestValue > 0) {
+        total += l.customInterestValue * l.installments;
+      }
+      if (l.lateInterestValue && l.lateInterestValue > 0) {
+        total += l.lateInterestValue * l.installments;
+      }
+      if (l.penaltyValue && l.penaltyValue > 0) {
+        total += l.penaltyValue;
+      }
+      return total;
+    };
     const totalLentInPeriod = filteredLoans.reduce((s, l) => s + l.amount, 0);
-    const totalToReceiveInPeriod = filteredLoans.reduce((s, l) => s + calculateTotalWithInterest(l.amount, l.interestRate, l.installments), 0);
+    const totalToReceiveInPeriod = filteredLoans.reduce((s, l) => s + getLoanTotalToReceive(l), 0);
     const avgInterestRate = totalLentInPeriod > 0
       ? ((totalToReceiveInPeriod - totalLentInPeriod) / totalLentInPeriod) * 100
       : 0;
@@ -187,7 +200,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, onDeletePa
       return { ...sale, received };
     });
 
-    return { totalIncome, incomeFromPayments, incomeFromSales, totalOutgoing, totalLoanOutgoing, totalExpenses, balance, transactions, loanCount: filteredLoans.length, saleCount: filteredSales.length, paymentCount: filteredPayments.length, expenseCount: filteredExpenses.length, avgInterestRate, filteredPayments, filteredLoans, filteredExpenses, salesWithReceived };
+    return { totalIncome, incomeFromPayments, incomeFromSales, totalOutgoing, totalLoanOutgoing, totalExpenses, balance, transactions, loanCount: filteredLoans.length, saleCount: filteredSales.length, paymentCount: filteredPayments.length, expenseCount: filteredExpenses.length, avgInterestRate, filteredPayments, filteredLoans, filteredExpenses, salesWithReceived, getLoanTotalToReceive };
   }, [loans, sales, payments, expenses, range, includeSales, period, chartOverrides]);
 
   // Portfolio metrics — global (not filtered by period)
@@ -490,7 +503,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, onDeletePa
               <div className="mt-3 border-t border-border pt-3 space-y-2">
                 <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">Empréstimos considerados</p>
                 {data.filteredLoans.map((l) => {
-                  const totalToReceive = calculateTotalWithInterest(l.amount, l.interestRate, l.installments);
+                  const totalToReceive = data.getLoanTotalToReceive(l);
                   const interestPct = l.amount > 0 ? ((totalToReceive - l.amount) / l.amount) * 100 : 0;
                   return (
                     <div key={l.id} className="flex items-center justify-between text-xs bg-muted/30 rounded-lg p-2">
