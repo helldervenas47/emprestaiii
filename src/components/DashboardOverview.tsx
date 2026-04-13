@@ -808,7 +808,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, onDeletePa
                   Vendas de produtos ({data.salesWithReceived.length})
                 </span>
                 <span className="flex items-center gap-2">
-                  <Switch checked={includeSales} onCheckedChange={(e) => { e.stopPropagation?.(); setIncludeSales(!includeSales); }} className="scale-75" onClick={(e) => e.stopPropagation()} />
+                  <Switch checked={includeSales} onCheckedChange={setIncludeSales} className="scale-75" onClick={(e) => e.stopPropagation()} />
                   <span className={`font-medium ${!includeSales ? "opacity-50" : ""}`}>{formatCurrency(data.incomeFromSales)}</span>
                 </span>
               </button>
