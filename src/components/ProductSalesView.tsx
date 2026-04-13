@@ -829,6 +829,44 @@ function SalesList({ sales, onDeleteSale, onUpdateSale, clients = [], hideOnTrac
             <p className="text-muted-foreground">Nenhuma pasta encontrada</p>
           </CardContent></Card>
         )
+      ) : view === "list" ? (
+        <Card no3d className="overflow-hidden">
+          <div className="divide-y divide-border/30">
+            {filtered.map((sale) => {
+              const category = getSaleCategory(sale);
+              const catStyle = saleCategoryConfig[category];
+              const isRecorrente = sale.paymentMode === "recorrente" && sale.installments > 1;
+              const paidAmount = getSalePaidAmountHelper(sale);
+              const remaining = Math.max(0, sale.total - paidAmount);
+              return (
+                <button
+                  key={sale.id}
+                  onClick={() => setEditingSale(sale)}
+                  className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-muted/30 transition-colors"
+                >
+                  <div className={`h-9 w-9 rounded-full flex items-center justify-center text-primary-foreground font-bold text-xs shrink-0 ${
+                    category === "paid" ? "bg-success" : category === "overdue" ? "bg-destructive" : "gradient-primary"
+                  }`}>
+                    {(sale.customerName || sale.description || "?").charAt(0).toUpperCase()}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-foreground truncate">{sale.customerName || sale.description}</p>
+                    <p className="text-xs text-muted-foreground truncate">
+                      {sale.description}{isRecorrente && ` • ${sale.paidInstallments}/${sale.installments}`}
+                    </p>
+                  </div>
+                  <div className="text-right shrink-0">
+                    <p className="text-sm font-bold text-foreground">{formatCurrency(sale.total)}</p>
+                    <p className={`text-xs font-medium ${category === "paid" ? "text-success" : category === "overdue" ? "text-destructive" : "text-muted-foreground"}`}>
+                      {category === "paid" ? "Quitado" : `Rest. ${formatCurrency(remaining)}`}
+                    </p>
+                  </div>
+                  <Badge className={`${catStyle.badge} text-[10px] shrink-0 hidden sm:flex`}>{catStyle.label}</Badge>
+                </button>
+              );
+            })}
+          </div>
+        </Card>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {filtered.map((sale, i) => (
