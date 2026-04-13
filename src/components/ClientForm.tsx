@@ -68,15 +68,9 @@ export function ClientForm({ onAdd, onClose }: Props) {
                 <Input id="cnpj" value={form.cnpj} onChange={(e) => update("cnpj", e.target.value)} placeholder="00.000.000/0000-00" />
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="rg">RG</Label>
-                <Input id="rg" value={form.rg} onChange={(e) => update("rg", e.target.value)} placeholder="00.000.000-0" />
-              </div>
-              <div>
-                <Label htmlFor="phone">Telefone</Label>
-                <Input id="phone" value={form.phone} onChange={(e) => update("phone", e.target.value)} placeholder="(00) 00000-0000" />
-              </div>
+            <div>
+              <Label htmlFor="phone">Telefone</Label>
+              <Input id="phone" value={form.phone} onChange={(e) => update("phone", e.target.value)} placeholder="(00) 00000-0000" />
             </div>
             <div>
               <Label htmlFor="email">E-mail</Label>
@@ -86,11 +80,7 @@ export function ClientForm({ onAdd, onClose }: Props) {
               <Label htmlFor="address">Endereço</Label>
               <Input id="address" value={form.address} onChange={(e) => update("address", e.target.value)} placeholder="Rua, número, bairro" />
             </div>
-            <div className="grid grid-cols-3 gap-4">
-              <div>
-                <Label htmlFor="city">Cidade</Label>
-                <Input id="city" value={form.city} onChange={(e) => update("city", e.target.value)} placeholder="São Paulo" />
-              </div>
+            <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="state">Estado</Label>
                 <Input id="state" value={form.state} onChange={(e) => update("state", e.target.value)} placeholder="SP" />
@@ -120,6 +110,16 @@ export function ClientForm({ onAdd, onClose }: Props) {
 
               {form.isVehicleRental && (
                 <div className="space-y-3 pt-2 border-t border-border/50">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="rg">RG</Label>
+                      <Input id="rg" value={form.rg} onChange={(e) => update("rg", e.target.value)} placeholder="00.000.000-0" />
+                    </div>
+                    <div>
+                      <Label htmlFor="city">Cidade</Label>
+                      <Input id="city" value={form.city} onChange={(e) => update("city", e.target.value)} placeholder="São Paulo" />
+                    </div>
+                  </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <Label htmlFor="nacionalidade">Nacionalidade</Label>
