@@ -184,11 +184,32 @@ export function BillingCalendar({ loans, payments, installmentSchedules, onPayme
     const itemKey = `${item.loanId}-${item.installmentNumber}`;
     const isExpanded = expandedItem === itemKey;
     const loan = item.loan;
-    const installment = item.amount;
-    const interestOnly = loan.amount * (loan.interestRate / 100);
     const total = calculateTotalWithInterest(loan.amount, loan.interestRate, loan.installments);
     const totalPaid = payments.filter(p => p.loanId === loan.id).reduce((s, p) => s + p.amount, 0);
-    const remaining = loan.remainingAmount != null && loan.remainingAmount > 0 ? loan.remainingAmount : Math.max(0, total - totalPaid);
+    const baseRemaining = loan.remainingAmount != null && loan.remainingAmount > 0 ? loan.remainingAmount : Math.max(0, total - totalPaid);
+
+    // Calculate late fees (same as LoanCardView)
+    const dueDate = new Date(loan.dueDate + "T00:00:00");
+    const todayNorm = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    const daysOverdue = Math.max(0, Math.floor((todayNorm.getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24)));
+    let lateInterestTotal = 0;
+    if (loan.lateInterestValue != null && loan.lateInterestValue > 0 && daysOverdue > 0 && loan.status !== "paid") {
+      if (loan.lateInterestType === "fixed") {
+        lateInterestTotal = loan.lateInterestValue * daysOverdue;
+      } else {
+        lateInterestTotal = baseRemaining * (loan.lateInterestValue / 100) * daysOverdue;
+      }
+    }
+    const penaltyTotal = (loan.penaltyValue != null && loan.penaltyValue > 0 && daysOverdue > 0 && loan.status !== "paid") ? loan.penaltyValue : 0;
+    const lateFees = lateInterestTotal + penaltyTotal;
+    const remaining = baseRemaining + lateFees;
+
+    const remainingInstallments = Math.max(1, loan.installments - loan.paidInstallments);
+    const calculatedInstallment = remaining / remainingInstallments;
+    const installment = loan.customInstallmentValue != null && loan.customInstallmentValue > 0 ? loan.customInstallmentValue : calculatedInstallment;
+    const interestOnly = loan.customInterestValue != null && loan.customInterestValue > 0
+      ? loan.customInterestValue
+      : loan.amount * (loan.interestRate / 100);
 
     const colorClass = isOverdue ? "destructive" : "warning";
     const bgClass = isOverdue ? "bg-destructive/5 border-destructive/20" : "bg-warning/5 border-warning/20";
