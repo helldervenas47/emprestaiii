@@ -192,14 +192,15 @@ function LoanCardView({
 
   const total = calculateTotalWithInterest(loan.amount, loan.interestRate, loan.installments);
   const totalPaid = getTotalPaid(loan, allPayments);
-  // For installment loans, use sum of pending installment amounts from schedule
-  const pendingScheduleSum = loan.installments >= 2
+  // For installment loans, use sum of overdue (unpaid) installment amounts from schedule
+  const todayIso = new Date().toISOString().split("T")[0];
+  const overdueScheduleSum = loan.installments >= 2
     ? installmentSchedules
-        .filter((s) => s.loanId === loan.id && s.installmentNumber > loan.paidInstallments)
+        .filter((s) => s.loanId === loan.id && s.installmentNumber > loan.paidInstallments && s.dueDate <= todayIso)
         .reduce((sum, s) => sum + s.amount, 0)
     : 0;
-  const baseRemaining = loan.installments >= 2 && pendingScheduleSum > 0
-    ? pendingScheduleSum
+  const baseRemaining = loan.installments >= 2 && overdueScheduleSum > 0
+    ? overdueScheduleSum
     : loan.remainingAmount != null && loan.remainingAmount > 0
       ? loan.remainingAmount
       : Math.max(0, total - totalPaid);
@@ -1127,14 +1128,15 @@ function LoanRowView({
 
   const total = calculateTotalWithInterest(loan.amount, loan.interestRate, loan.installments);
   const totalPaid = getTotalPaid(loan, allPayments);
-  // For installment loans, use sum of pending installment amounts from schedule
-  const pendingScheduleSum = loan.installments >= 2
+  // For installment loans, use sum of overdue (unpaid) installment amounts from schedule
+  const todayIso = new Date().toISOString().split("T")[0];
+  const overdueScheduleSum = loan.installments >= 2
     ? installmentSchedules
-        .filter((s) => s.loanId === loan.id && s.installmentNumber > loan.paidInstallments)
+        .filter((s) => s.loanId === loan.id && s.installmentNumber > loan.paidInstallments && s.dueDate <= todayIso)
         .reduce((sum, s) => sum + s.amount, 0)
     : 0;
-  const baseRemaining = loan.installments >= 2 && pendingScheduleSum > 0
-    ? pendingScheduleSum
+  const baseRemaining = loan.installments >= 2 && overdueScheduleSum > 0
+    ? overdueScheduleSum
     : loan.remainingAmount != null && loan.remainingAmount > 0
       ? loan.remainingAmount
       : Math.max(0, total - totalPaid);
