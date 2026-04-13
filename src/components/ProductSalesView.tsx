@@ -803,33 +803,25 @@ function SalesList({ sales, onDeleteSale, onUpdateSale, clients = [], hideOnTrac
           <p className="text-muted-foreground">Nenhum lançamento encontrado</p>
         </CardContent></Card>
       ) : view === "folders" ? (
-        <div className="space-y-4">
-          {saleGroups.map((g) => (
-            <SaleClientFolder
-              key={g.name}
-              group={g}
-              onDeleteSale={onDeleteSale}
-              onUpdateSale={onUpdateSale}
-              formatCurrency={formatCurrency}
-              onEdit={setEditingSale}
-            />
-          ))}
-          {saleSingles.length > 0 && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {saleSingles.map((sale, i) => (
-                <div key={sale.id} className="animate-fade-in" style={{ animationDelay: `${i * 60}ms`, animationFillMode: 'backwards' }}>
-                  <SaleCard
-                    sale={sale}
-                    onDelete={() => onDeleteSale(sale.id)}
-                    onEdit={() => setEditingSale(sale)}
-                    onUpdate={(data) => onUpdateSale(sale.id, data)}
-                    formatCurrency={formatCurrency}
-                  />
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
+        saleGroups.length > 0 ? (
+          <div className="space-y-4">
+            {saleGroups.map((g) => (
+              <SaleClientFolder
+                key={g.name}
+                group={g}
+                onDeleteSale={onDeleteSale}
+                onUpdateSale={onUpdateSale}
+                formatCurrency={formatCurrency}
+                onEdit={setEditingSale}
+              />
+            ))}
+          </div>
+        ) : (
+          <Card no3d><CardContent className="py-12 text-center">
+            <Folder className="h-12 w-12 mx-auto text-muted-foreground/40 mb-3" />
+            <p className="text-muted-foreground">Nenhuma pasta encontrada</p>
+          </CardContent></Card>
+        )
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {filtered.map((sale, i) => (
