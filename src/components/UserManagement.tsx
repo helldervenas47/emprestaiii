@@ -24,6 +24,7 @@ interface ManagedUser {
   role: string | null;
   created_at: string;
   last_sign_in_at: string | null;
+  is_active: boolean;
   allowed_tabs: string[] | null;
   linked_client_ids: string[];
 }
@@ -238,6 +239,18 @@ export function UserManagement() {
       toast.error(data?.error || "Erro ao excluir usuário");
     } else {
       toast.success("Usuário excluído!");
+      fetchUsers();
+    }
+  };
+
+  const handleToggleActive = async (userId: string, active: boolean) => {
+    const { data, error } = await supabase.functions.invoke("admin-manage-user", {
+      body: { action: "toggle_active", user_id: userId, active },
+    });
+    if (error || data?.error) {
+      toast.error(data?.error || "Erro ao alterar status");
+    } else {
+      toast.success(active ? "Usuário ativado!" : "Usuário desativado!");
       fetchUsers();
     }
   };
