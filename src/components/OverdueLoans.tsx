@@ -1,6 +1,6 @@
 import { useMemo, useState, useCallback } from "react";
 import { useHideValues } from "@/contexts/HideValuesContext";
-import { Loan, Client, InstallmentSchedule } from "@/types/loan";
+import { Loan, Client, InstallmentSchedule, Payment } from "@/types/loan";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,6 +12,7 @@ interface Props {
   loans: Loan[];
   clients: Client[];
   installmentSchedules: InstallmentSchedule[];
+  payments: Payment[];
 }
 
 function rawFormatCurrency(v: number) {
@@ -31,10 +32,13 @@ function getDaysOverdue(dueDate: string): number {
   return Math.max(0, Math.floor(diff / (1000 * 60 * 60 * 24)));
 }
 
-function getInstallmentAmount(loan: Loan, schedules: InstallmentSchedule[]): number {
+function getInstallmentAmount(loan: Loan, schedules: InstallmentSchedule[], payments: Payment[]): number {
   const schedule = schedules.find(s => s.loanId === loan.id && s.installmentNumber === loan.paidInstallments + 1);
   if (schedule) return schedule.amount;
-  return loan.customInstallmentValue || calculateInstallment(loan.amount, loan.interestRate, loan.installments);
+  if (loan.customInstallmentValue != null && loan.customInstallmentValue > 0) return loan.customInstallmentValue;
+  const remaining = getLoanRemainingAmount(loan, payments);
+  const remainingInstallments = Math.max(1, loan.installments - loan.paidInstallments);
+  return remaining / remainingInstallments;
 }
 
 function buildWhatsAppMessage(loan: Loan, installments: { number: number; dueDate: string; amount: number }[], isOverdue: boolean): string {
@@ -133,7 +137,7 @@ function LoanItemCard({ item, isOverdue, onSendWhatsApp }: { item: LoanItem; isO
   );
 }
 
-export function OverdueLoans({ loans, clients, installmentSchedules }: Props) {
+export function OverdueLoans({ loans, clients, installmentSchedules, payments }: Props) {
   const { mask } = useHideValues();
   const formatCurrency = useCallback((v: number) => mask(rawFormatCurrency(v)), [mask]);
   const [search, setSearch] = useState("");
