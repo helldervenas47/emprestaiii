@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Plus, HandCoins, Users, LayoutDashboard, ShoppingBag, BarChart3, AlertTriangle, Receipt, CalendarDays, Sun, Moon, LogOut, Info, X, Eye, EyeOff, Car, Wrench, DatabaseBackup, Menu } from "lucide-react";
+import { Plus, HandCoins, Users, LayoutDashboard, ShoppingBag, BarChart3, AlertTriangle, Receipt, CalendarDays, Sun, Moon, LogOut, Info, X, Eye, EyeOff, Car, Wrench, DatabaseBackup, Menu, User } from "lucide-react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -27,6 +27,7 @@ import { toast } from "sonner";
 import { HideValuesProvider, useHideValues } from "@/contexts/HideValuesContext";
 import { UserManagement } from "@/components/UserManagement";
 import { BackupExport } from "@/components/BackupExport";
+import { Badge } from "@/components/ui/badge";
 
 type Tab = "overview" | "dashboard" | "clients" | "products" | "vehicles" | "overdue" | "expenses" | "calendar" | "users" | "backup";
 
@@ -143,7 +144,7 @@ function HideValuesToggle() {
 }
 
 const Index = () => {
-  const { signOut, role, allowedTabs, loading } = useAuth();
+  const { signOut, role, allowedTabs, loading, user } = useAuth();
   const { loans, payments, installmentSchedules, addLoan, addPayment, addPartialPayment, addInterestOnlyPayment, updateLoan, deleteLoan, deletePayment, saveSchedule } = useLoans();
   const { clients, addClient, deleteClient, updateClient } = useClients();
   const { products, sales, addProduct, updateProduct, deleteProduct, addSale, updateSale, deleteSale } = useProducts();
@@ -250,6 +251,13 @@ const Index = () => {
                         </button>
                       ))}
                     </nav>
+                    <div className="p-3 border-t border-border/30 flex items-center gap-2">
+                      <User className="h-4 w-4 text-muted-foreground shrink-0" />
+                      <div className="min-w-0">
+                        <p className="text-xs font-medium text-foreground truncate">{user?.user_metadata?.display_name || user?.email || "—"}</p>
+                        {role && <p className="text-[10px] text-muted-foreground">{role === "admin" ? "Administrador" : role === "operador" ? "Operador" : "Visualizador"}</p>}
+                      </div>
+                    </div>
                   </div>
                 </SheetContent>
               </Sheet>
@@ -263,6 +271,11 @@ const Index = () => {
             </div>
           </div>
           <div className="flex items-center gap-1 sm:gap-2 flex-wrap justify-end">
+            <div className="hidden sm:flex items-center gap-1.5 px-2 py-1 rounded-md bg-muted/50 text-xs text-muted-foreground mr-1">
+              <User className="h-3 w-3" />
+              <span className="max-w-[120px] truncate">{user?.user_metadata?.display_name || user?.email || "—"}</span>
+              {role && <Badge variant={role === "admin" ? "default" : role === "operador" ? "secondary" : "outline"} className="text-[10px] px-1.5 py-0">{role === "admin" ? "Admin" : role === "operador" ? "Op." : "Vis."}</Badge>}
+            </div>
             <Popover>
               <PopoverTrigger asChild>
                 <Button variant="ghost" size="icon" className="h-8 w-8 sm:h-9 sm:w-9" title="Ajuda">
