@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
-import { Trash2, Search, ShoppingCart, Tv, Car, Calendar as CalendarIcon, User, Pencil, ChevronDown, ChevronUp, CheckCircle, HandCoins, Check, X as XIcon, DollarSign, AlertTriangle, Clock, CircleCheck, Receipt, Plus, Wallet, ChevronLeft, ChevronRight, LayoutGrid, Folder } from "lucide-react";
+import { Trash2, Search, ShoppingCart, Tv, Car, Calendar as CalendarIcon, User, Pencil, ChevronDown, ChevronUp, CheckCircle, HandCoins, Check, X as XIcon, DollarSign, AlertTriangle, Clock, CircleCheck, Receipt, Plus, Wallet, ChevronLeft, ChevronRight, LayoutGrid, Folder, List } from "lucide-react";
 import { addMonths, addWeeks, addDays, format, startOfMonth, endOfMonth } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
@@ -577,7 +577,7 @@ function SalesList({ sales, onDeleteSale, onUpdateSale, clients = [], hideOnTrac
   const [editingSale, setEditingSale] = useState<Sale | null>(null);
   const [search, setSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState<SaleCategory>("all");
-  const [view, setView] = useState<"cards" | "folders">("cards");
+  const [view, setView] = useState<"cards" | "list" | "folders">("cards");
   const { mask } = useHideValues();
   const formatCurrency = useCallback((v: number) => mask(rawFormatCurrency(v)), [mask]);
 
@@ -776,6 +776,13 @@ function SalesList({ sales, onDeleteSale, onUpdateSale, clients = [], hideOnTrac
           >
             <LayoutGrid className="h-3.5 w-3.5" />Cards
           </button>
+          <button onClick={() => setView("list")}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 ${
+              view === "list" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            <List className="h-3.5 w-3.5" />Lista
+          </button>
           <button onClick={() => setView("folders")}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 ${
               view === "folders" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
@@ -822,6 +829,44 @@ function SalesList({ sales, onDeleteSale, onUpdateSale, clients = [], hideOnTrac
             <p className="text-muted-foreground">Nenhuma pasta encontrada</p>
           </CardContent></Card>
         )
+      ) : view === "list" ? (
+        <Card no3d className="overflow-hidden">
+          <div className="divide-y divide-border/30">
+            {filtered.map((sale) => {
+              const category = getSaleCategory(sale);
+              const catStyle = saleCategoryConfig[category];
+              const isRecorrente = sale.paymentMode === "recorrente" && sale.installments > 1;
+              const paidAmount = getSalePaidAmountHelper(sale);
+              const remaining = Math.max(0, sale.total - paidAmount);
+              return (
+                <button
+                  key={sale.id}
+                  onClick={() => setEditingSale(sale)}
+                  className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-muted/30 transition-colors"
+                >
+                  <div className={`h-9 w-9 rounded-full flex items-center justify-center text-primary-foreground font-bold text-xs shrink-0 ${
+                    category === "paid" ? "bg-success" : category === "overdue" ? "bg-destructive" : "gradient-primary"
+                  }`}>
+                    {(sale.customerName || sale.description || "?").charAt(0).toUpperCase()}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-foreground truncate">{sale.customerName || sale.description}</p>
+                    <p className="text-xs text-muted-foreground truncate">
+                      {sale.description}{isRecorrente && ` • ${sale.paidInstallments}/${sale.installments}`}
+                    </p>
+                  </div>
+                  <div className="text-right shrink-0">
+                    <p className="text-sm font-bold text-foreground">{formatCurrency(sale.total)}</p>
+                    <p className={`text-xs font-medium ${category === "paid" ? "text-success" : category === "overdue" ? "text-destructive" : "text-muted-foreground"}`}>
+                      {category === "paid" ? "Quitado" : `Rest. ${formatCurrency(remaining)}`}
+                    </p>
+                  </div>
+                  <Badge className={`${catStyle.badge} text-[10px] shrink-0 hidden sm:flex`}>{catStyle.label}</Badge>
+                </button>
+              );
+            })}
+          </div>
+        </Card>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {filtered.map((sale, i) => (
