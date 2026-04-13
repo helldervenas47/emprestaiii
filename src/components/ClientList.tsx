@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Client, Loan, Payment } from "@/types/loan";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -118,7 +119,7 @@ export function ClientList({ clients, loans, payments, onDelete, onUpdate, readO
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [sortOption, setSortOption] = useState<SortOption>("name-asc");
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [editForm, setEditForm] = useState({ name: "", phone: "", email: "", cpf: "", cnpj: "", rg: "", address: "", city: "", state: "", score: "", notes: "" });
+  const [editForm, setEditForm] = useState<Record<string, any>>({ name: "", phone: "", email: "", cpf: "", cnpj: "", rg: "", address: "", city: "", state: "", score: "", notes: "", isVehicleRental: false, nacionalidade: "", estadoCivil: "", profissao: "", bairro: "" });
 
   const creditScores = useMemo(() => {
     const map: Record<string, CreditScore> = {};
@@ -157,7 +158,7 @@ export function ClientList({ clients, loans, payments, onDelete, onUpdate, readO
 
   const startEdit = (client: Client) => {
     setEditingId(client.id);
-    setEditForm({ name: client.name, phone: client.phone, email: client.email, cpf: client.cpf, cnpj: client.cnpj || "", rg: client.rg || "", address: client.address, city: client.city || "", state: client.state || "", score: client.score || "", notes: client.notes || "" });
+    setEditForm({ name: client.name, phone: client.phone, email: client.email, cpf: client.cpf, cnpj: client.cnpj || "", rg: client.rg || "", address: client.address, city: client.city || "", state: client.state || "", score: client.score || "", notes: client.notes || "", isVehicleRental: client.isVehicleRental || false, nacionalidade: client.nacionalidade || "", estadoCivil: client.estadoCivil || "", profissao: client.profissao || "", bairro: client.bairro || "" });
   };
 
   const saveEdit = (id: string) => {
@@ -165,7 +166,7 @@ export function ClientList({ clients, loans, payments, onDelete, onUpdate, readO
     setEditingId(null);
   };
 
-  const updateField = (field: string, value: string) => setEditForm((prev) => ({ ...prev, [field]: value }));
+  const updateField = (field: string, value: string | boolean) => setEditForm((prev) => ({ ...prev, [field]: value }));
 
   return (
     <div className="space-y-4">
