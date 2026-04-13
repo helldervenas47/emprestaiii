@@ -537,7 +537,6 @@ function SaleListRow({ sale, onEdit, onUpdate, formatCurrency, readOnly = false 
         </div>
         <div className="flex-1 min-w-0">
           <p className="text-sm font-semibold text-foreground truncate">{sale.customerName || sale.description}</p>
-          <p className="text-xs text-muted-foreground truncate hidden sm:block">{sale.description}</p>
           <p className="text-xs text-muted-foreground truncate">
             {!isPaid ? format(nextDue, "dd/MM/yyyy") : "Quitado"}{isRecorrente && ` • ${sale.paidInstallments}/${sale.installments}`}
           </p>
@@ -1728,7 +1727,7 @@ export function ProductSalesView({ sales, onDeleteSale, onUpdateSale, clients = 
           {activeTabs.map((tab) => (
             <TabsTrigger key={tab.type} value={tab.type} className="flex items-center gap-2">
               <tab.icon className="h-4 w-4" />
-              <span>{tab.label}</span>
+              <span className="hidden sm:inline">{tab.label}</span>
             </TabsTrigger>
           ))}
         </TabsList>
