@@ -114,6 +114,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setRole(null);
         setDataOwnerId(null);
         setAllowedTabs(null);
+        setLinkedClientIds(null);
         setLoading(false);
       }
     });
