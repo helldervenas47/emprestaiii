@@ -569,7 +569,7 @@ function SalesList({ sales, onDeleteSale, onUpdateSale, clients = [], hideOnTrac
             <p className="text-xs font-medium opacity-90">Vencidos</p>
             <AlertTriangle className="h-4 w-4 opacity-70" />
           </div>
-          <p className="text-xl font-bold">{formatCurrency(totalOverdue)}</p>
+          <p className="text-sm sm:text-xl font-bold truncate">{formatCurrency(totalOverdue)}</p>
           <p className="text-xs opacity-75 mt-1">{overdueSales.length} contratos</p>
         </div>
         {!hideOnTrackCard && (
@@ -578,7 +578,7 @@ function SalesList({ sales, onDeleteSale, onUpdateSale, clients = [], hideOnTrac
               <p className="text-xs font-medium opacity-90">No Prazo</p>
               <Clock className="h-4 w-4 opacity-70" />
             </div>
-            <p className="text-xl font-bold">{formatCurrency(totalOnTrack + totalDueToday)}</p>
+            <p className="text-sm sm:text-xl font-bold truncate">{formatCurrency(totalOnTrack + totalDueToday)}</p>
             <p className="text-xs opacity-75 mt-1">{onTrackSales.length + dueTodaySales.length} contratos</p>
           </div>
         )}
@@ -587,7 +587,7 @@ function SalesList({ sales, onDeleteSale, onUpdateSale, clients = [], hideOnTrac
             <p className="text-xs font-medium opacity-90">Pagos</p>
             <CircleCheck className="h-4 w-4 opacity-70" />
           </div>
-          <p className="text-xl font-bold">{formatCurrency(totalPaid)}</p>
+          <p className="text-sm sm:text-xl font-bold truncate">{formatCurrency(totalPaid)}</p>
           <p className="text-xs opacity-75 mt-1">{paidContractsCount} contratos quitados</p>
         </div>
         <div className="rounded-2xl p-4 bg-gradient-to-br from-warning/80 to-warning text-warning-foreground animate-fade-in shadow-[0_2px_12px_-4px_hsl(0_0%_0%/0.08)]" style={{ animationDelay: '240ms', animationFillMode: 'backwards' }}>
@@ -595,7 +595,7 @@ function SalesList({ sales, onDeleteSale, onUpdateSale, clients = [], hideOnTrac
             <p className="text-xs font-medium opacity-90">Total a Receber</p>
             <DollarSign className="h-4 w-4 opacity-70" />
           </div>
-          <p className="text-xl font-bold">{formatCurrency(totalAReceber)}</p>
+          <p className="text-sm sm:text-xl font-bold truncate">{formatCurrency(totalAReceber)}</p>
           <p className="text-xs opacity-75 mt-1">{overdueSales.length + onTrackSales.length + dueTodaySales.length} contratos</p>
         </div>
       </div>
