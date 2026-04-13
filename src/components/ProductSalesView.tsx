@@ -618,6 +618,7 @@ function SaleListRow({ sale, onEdit, onUpdate, formatCurrency }: {
     </div>
   );
 }
+type SaleCategory = "all" | "overdue" | "due_today" | "paid" | "on_track";
 
 
 const saleCategoryFilters: { id: SaleCategory; label: string; color: string; activeColor: string }[] = [
