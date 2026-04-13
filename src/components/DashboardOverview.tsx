@@ -301,8 +301,8 @@ export function DashboardOverview({ loans, sales, payments, expenses, onDeletePa
       const override = chartOverrides[m.month];
       return {
         month: m.month,
-        emprestado: override?.emprestado ?? m.emprestado,
-        recebido: override?.recebido ?? m.recebido,
+        emprestado: m.emprestado + (override?.emprestado ?? 0),
+        recebido: m.recebido + (override?.recebido ?? 0),
       };
     });
   }, [monthlyChartBase, chartOverrides]);
@@ -375,7 +375,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, onDeletePa
   const interestChart = useMemo(() => {
     return interestChartBase.map((m) => ({
       month: m.month,
-      juros: interestOverrides[m.month] ?? m.juros,
+      juros: m.juros + (interestOverrides[m.month] ?? 0),
     }));
   }, [interestChartBase, interestOverrides]);
 
