@@ -207,7 +207,7 @@ export function generateContract(sale: Sale, client?: Client, locador?: LocadorI
 <p>O presente contrato poderá ser rescindido por qualquer das partes em caso de descumprimento das cláusulas aqui estabelecidas, mediante comunicação por escrito.</p>
 
 <h2>CLÁUSULA 8ª – DO FORO</h2>
-<p>Fica eleito o foro da comarca de ________________________ para dirimir quaisquer controvérsias oriundas deste contrato.</p>
+<p>Fica eleito o foro da comarca de São Gonçalo dos Campos-BA para dirimir quaisquer controvérsias oriundas deste contrato.</p>
 
 ${sale.notes ? `<h2>OBSERVAÇÕES</h2><p>${sale.notes}</p>` : ""}
 
