@@ -158,6 +158,7 @@ Deno.serve(async (req) => {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
+      await adminClient.from("user_tab_permissions").delete().eq("user_id", user_id);
       await adminClient.from("user_owner").delete().eq("user_id", user_id);
       await adminClient.from("user_roles").delete().eq("user_id", user_id);
       await adminClient.auth.admin.deleteUser(user_id);

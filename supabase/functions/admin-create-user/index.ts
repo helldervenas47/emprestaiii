@@ -93,6 +93,12 @@ Deno.serve(async (req) => {
       owner_id: caller.id,
     });
 
+    // Create default tab permissions
+    await adminClient.from("user_tab_permissions").insert({
+      user_id: newUser.user.id,
+      allowed_tabs: ['overview','dashboard','calendar','clients','products','vehicles','expenses','overdue'],
+    });
+
     return new Response(JSON.stringify({ user: newUser.user }), {
       status: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
