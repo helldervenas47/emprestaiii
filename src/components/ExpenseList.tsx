@@ -1,4 +1,6 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
 import { useHideValues } from "@/contexts/HideValuesContext";
 import { Expense } from "@/types/loan";
 import { Card, CardContent } from "@/components/ui/card";
