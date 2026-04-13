@@ -152,7 +152,7 @@ function getTotalPaid(loan: Loan, payments: Payment[]): number {
 }
 
 function LoanCardView({
-  loan, payments: allPayments, installmentSchedules, onPayment, onPartialPayment, onInterestPayment, onUpdate, onDelete, onDeletePayment, onSaveSchedule, readOnly = false,
+  loan, payments: allPayments, installmentSchedules, onPayment, onPartialPayment, onInterestPayment, onUpdate, onDelete, onDeletePayment, onSaveSchedule, readOnly = false, no3d = false,
 }: {
   loan: Loan;
   payments: Payment[];
@@ -165,6 +165,7 @@ function LoanCardView({
   onDeletePayment: (paymentId: string) => void;
   onSaveSchedule: (loanId: string, rows: { installmentNumber: number; dueDate: string; amount: number }[]) => Promise<void>;
   readOnly?: boolean;
+  no3d?: boolean;
 }) {
   const { mask } = useHideValues();
   const formatCurrency = useCallback((v: number) => mask(rawFormatCurrency(v)), [mask]);
@@ -559,7 +560,7 @@ function LoanCardView({
 
   return (
     <>
-    <Card className={`overflow-hidden hover:shadow-[0_8px_24px_-6px_hsl(0_0%_0%/0.15)] hover:-translate-y-0.5 transition-all duration-300 h-full flex flex-col border ${cardBorder} ${cardBg}`}>
+    <Card no3d={no3d} className={`overflow-hidden hover:shadow-[0_8px_24px_-6px_hsl(0_0%_0%/0.15)] hover:-translate-y-0.5 transition-all duration-300 h-full flex flex-col border ${cardBorder} ${cardBg}`}>
       {/* Client Name Header */}
       <div className={`border-b px-4 py-3 text-center ${headerBg}`}>
         <h3 className="font-bold text-foreground text-lg">{loan.borrowerName}</h3>
