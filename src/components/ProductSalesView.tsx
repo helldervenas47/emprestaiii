@@ -577,7 +577,7 @@ function SalesList({ sales, onDeleteSale, onUpdateSale, clients = [], hideOnTrac
   const [editingSale, setEditingSale] = useState<Sale | null>(null);
   const [search, setSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState<SaleCategory>("all");
-  const [view, setView] = useState<"cards" | "folders">("cards");
+  const [view, setView] = useState<"cards" | "list" | "folders">("cards");
   const { mask } = useHideValues();
   const formatCurrency = useCallback((v: number) => mask(rawFormatCurrency(v)), [mask]);
 
@@ -775,6 +775,13 @@ function SalesList({ sales, onDeleteSale, onUpdateSale, clients = [], hideOnTrac
             }`}
           >
             <LayoutGrid className="h-3.5 w-3.5" />Cards
+          </button>
+          <button onClick={() => setView("list")}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 ${
+              view === "list" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            <List className="h-3.5 w-3.5" />Lista
           </button>
           <button onClick={() => setView("folders")}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 ${
