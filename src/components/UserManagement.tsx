@@ -314,6 +314,7 @@ export function UserManagement() {
             </Table>
           </CardContent>
         </Card>
+        )
       )}
 
       <Dialog open={showCreateForm} onOpenChange={setShowCreateForm}>
