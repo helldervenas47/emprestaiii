@@ -71,7 +71,7 @@ export function WhatsAppReport({ loans, clients, installmentSchedules }: Props) 
         loan,
         amount: getInstallmentAmount(loan, installmentSchedules),
       }))
-      .sort((a, b) => b.amount - a.amount);
+      .sort((a, b) => a.loan.dueDate.localeCompare(b.loan.dueDate));
   }, [activeLoans, installmentSchedules, todayStr]);
 
   const totalDueToday = dueTodayLoans.reduce((s, d) => s + d.amount, 0);
@@ -122,7 +122,7 @@ export function WhatsAppReport({ loans, clients, installmentSchedules }: Props) 
       lines.push(`💵 Empréstimos (${overdueLoans.length})`);
       overdueLoans.forEach(({ loan, amount }) => {
         lines.push(`• ${loan.borrowerName}  — ${rawFormatCurrency(amount)}`);
-        lines.push(`  └ ${getPaymentType(loan)}`);
+        lines.push(`  └ ${getPaymentType(loan)} • Venc. ${formatDateBR(loan.dueDate)}`);
       });
     }
 
@@ -200,7 +200,7 @@ export function WhatsAppReport({ loans, clients, installmentSchedules }: Props) 
                 {overdueLoans.map(({ loan, amount }) => (
                   <div key={loan.id} className="ml-2">
                     <p>• {loan.borrowerName} — {rawFormatCurrency(amount)}</p>
-                    <p className="text-muted-foreground ml-3">└ {getPaymentType(loan)}</p>
+                    <p className="text-muted-foreground ml-3">└ {getPaymentType(loan)} • Venc. {formatDateBR(loan.dueDate)}</p>
                   </div>
                 ))}
               </div>
