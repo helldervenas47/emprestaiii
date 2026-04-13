@@ -1,5 +1,5 @@
 import { useRef, useState, useEffect } from "react";
-import { Plus, HandCoins, Users, LayoutDashboard, Download, Upload, ShoppingBag, BarChart3, AlertTriangle, Receipt, CalendarDays, Sun, Moon, LogOut, Info, X, Eye, EyeOff, Car, Wrench } from "lucide-react";
+import { Plus, HandCoins, Users, LayoutDashboard, Download, Upload, ShoppingBag, BarChart3, AlertTriangle, Receipt, CalendarDays, Sun, Moon, LogOut, Info, X, Eye, EyeOff, Car, Wrench, DatabaseBackup } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
@@ -28,8 +28,9 @@ import {
 import { toast } from "sonner";
 import { HideValuesProvider, useHideValues } from "@/contexts/HideValuesContext";
 import { UserManagement } from "@/components/UserManagement";
+import { BackupExport } from "@/components/BackupExport";
 
-type Tab = "overview" | "dashboard" | "clients" | "products" | "vehicles" | "overdue" | "expenses" | "calendar" | "users";
+type Tab = "overview" | "dashboard" | "clients" | "products" | "vehicles" | "overdue" | "expenses" | "calendar" | "users" | "backup";
 
 const tabConfig = [
   { id: "overview" as Tab, label: "Dashboard", icon: BarChart3 },
@@ -41,6 +42,7 @@ const tabConfig = [
   { id: "expenses" as Tab, label: "Despesas", icon: Receipt },
   { id: "overdue" as Tab, label: "Inadimplentes", icon: AlertTriangle },
   { id: "users" as Tab, label: "Usuários", icon: Users },
+  { id: "backup" as Tab, label: "Backup", icon: DatabaseBackup },
 ];
 
 const tabHelp: Record<Tab, { title: string; items: string[] }> = {
@@ -121,6 +123,15 @@ const tabHelp: Record<Tab, { title: string; items: string[] }> = {
       "Defina papéis: Admin, Operador ou Visualizador.",
       "Apenas administradores podem acessar esta aba.",
       "Gerencie permissões de acesso dos usuários.",
+    ],
+  },
+  backup: {
+    title: "Backup de Dados",
+    items: [
+      "Exporte todos os seus dados cadastrados em formato CSV.",
+      "Faça backup de empréstimos, clientes, vendas, despesas e pagamentos.",
+      "Use 'Exportar Tudo' para baixar todos os dados de uma vez.",
+      "Os arquivos são nomeados com a data do backup.",
     ],
   },
 };
@@ -401,6 +412,7 @@ const Index = () => {
           />
         )}
         {tab === "users" && <UserManagement />}
+        {tab === "backup" && <BackupExport loans={loans} payments={payments} clients={clients} sales={sales} expenses={expenses} />}
       </main>
 
       {showLoanForm && <LoanForm onAdd={addLoan} onSaveSchedule={saveSchedule} onClose={() => setShowLoanForm(false)} clients={clients} />}
