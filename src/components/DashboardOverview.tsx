@@ -265,6 +265,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, onDeletePa
       defaultRate,
       totalReceived,
       overdueAmount,
+      overdueLoans,
       capitalOnStreet,
       totalToReceive,
       principalReceived,
@@ -622,10 +623,34 @@ export function DashboardOverview({ loans, sales, payments, expenses, onDeletePa
                   <p className="text-base sm:text-xl font-bold text-success">{formatCurrency(portfolio.totalReceived)}</p>
                 </CardContent>
               </Card>
-              <Card className="border-0 bg-gradient-to-br from-destructive/10 to-destructive/5">
+              <Card className="border-0 bg-gradient-to-br from-destructive/10 to-destructive/5 cursor-pointer transition-all duration-300" onClick={() => setExpandedBreakdown(expandedBreakdown === "overdue" ? null : "overdue")}>
                 <CardContent className="p-3 sm:p-4">
-                  <p className="text-[10px] sm:text-xs text-muted-foreground">Atrasado</p>
+                  <div className="flex items-center justify-between">
+                    <p className="text-[10px] sm:text-xs text-muted-foreground">Atrasado</p>
+                    <ChevronDown className={`h-3.5 w-3.5 text-muted-foreground transition-transform duration-300 ${expandedBreakdown === "overdue" ? "rotate-180" : ""}`} />
+                  </div>
                   <p className="text-base sm:text-xl font-bold text-destructive">{formatCurrency(portfolio.overdueAmount)}</p>
+                  <p className="text-[10px] text-muted-foreground">{portfolio.overdueLoans.length} contrato{portfolio.overdueLoans.length !== 1 ? "s" : ""}</p>
+                  {expandedBreakdown === "overdue" && portfolio.overdueLoans.length > 0 && (
+                    <div className="mt-3 pt-3 border-t border-destructive/20 space-y-2 max-h-60 overflow-y-auto">
+                      {portfolio.overdueLoans.map((l) => {
+                        const expected = calculateTotalWithInterest(l.amount, l.interestRate, l.installments);
+                        const paid = payments.filter((p) => p.loanId === l.id).reduce((s, p) => s + p.amount, 0);
+                        const remaining = Math.max(0, expected - paid);
+                        const dueDate = new Date(l.dueDate + "T00:00:00");
+                        const daysLate = Math.max(0, Math.floor((Date.now() - dueDate.getTime()) / (1000 * 60 * 60 * 24)));
+                        return (
+                          <div key={l.id} className="flex items-center justify-between text-xs">
+                            <div>
+                              <p className="font-medium text-foreground">{l.borrowerName}</p>
+                              <p className="text-[10px] text-muted-foreground">{daysLate} dia{daysLate !== 1 ? "s" : ""} atraso • Venc. {dueDate.toLocaleDateString("pt-BR")}</p>
+                            </div>
+                            <span className="font-bold text-destructive whitespace-nowrap">{rawFormatCurrency(remaining)}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             </div>
