@@ -196,6 +196,57 @@ export function UserManagement() {
           </CardContent>
         </Card>
       ) : (
+        isMobile ? (
+          <div className="space-y-2">
+            {users.map((user) => {
+              const isExpanded = expandedUserId === user.id;
+              return (
+                <Card key={user.id} className="overflow-hidden">
+                  <button
+                    className="w-full flex items-center justify-between p-3 text-left"
+                    onClick={() => setExpandedUserId(isExpanded ? null : user.id)}
+                  >
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-foreground truncate">{user.display_name}</p>
+                      <p className="text-xs text-muted-foreground">{user.username || "—"}</p>
+                    </div>
+                    <ChevronDown className={`h-4 w-4 text-muted-foreground shrink-0 transition-transform ${isExpanded ? "rotate-180" : ""}`} />
+                  </button>
+                  {isExpanded && (
+                    <div className="px-3 pb-3 space-y-3 border-t border-border/30 pt-3">
+                      <div className="space-y-1 text-sm">
+                        <p className="text-muted-foreground"><span className="font-medium text-foreground">Email:</span> {user.email}</p>
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium text-foreground">Papel:</span>
+                          <Select value={user.role || ""} onValueChange={(val) => handleUpdateRole(user.id, val)}>
+                            <SelectTrigger className="w-[130px] h-7 text-xs">
+                              <SelectValue>
+                                <Badge variant={roleBadgeVariant(user.role)}>{roleLabel(user.role)}</Badge>
+                              </SelectValue>
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="admin"><div className="flex items-center gap-2"><Shield className="h-3 w-3" /> Admin</div></SelectItem>
+                              <SelectItem value="operador">Operador</SelectItem>
+                              <SelectItem value="visualizador">Visualizador</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button variant="outline" size="sm" className="flex-1 gap-1" onClick={() => openEdit(user)}>
+                          <Pencil className="h-3.5 w-3.5" /> Editar
+                        </Button>
+                        <Button variant="outline" size="sm" className="gap-1 text-destructive hover:text-destructive" onClick={() => handleDelete(user.id, user.display_name)}>
+                          <Trash2 className="h-3.5 w-3.5" /> Excluir
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </Card>
+              );
+            })}
+          </div>
+        ) : (
         <Card>
           <CardContent className="p-0">
             <Table>
