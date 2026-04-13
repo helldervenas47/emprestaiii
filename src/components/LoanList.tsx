@@ -1671,7 +1671,18 @@ export function LoanList({ loans, payments, installmentSchedules, onPayment, onP
         singles.push(loans[0]);
       }
     });
-    grouped.sort((a, b) => a.name.localeCompare(b.name));
+     grouped.sort((a, b) => {
+       // Get earliest due date among active loans for each group
+       const getEarliestDue = (g: ClientGroup) => {
+         const activeLoans = g.loans.filter((l) => l.status !== "paid");
+         if (activeLoans.length === 0) return "9999-12-31";
+         return activeLoans.reduce((earliest, l) => {
+           const date = l.dueDate;
+           return date < earliest ? date : earliest;
+         }, "9999-12-31");
+       };
+       return getEarliestDue(a).localeCompare(getEarliestDue(b));
+     });
     return { grouped, singles };
   }, [categorized, payments]);
 
