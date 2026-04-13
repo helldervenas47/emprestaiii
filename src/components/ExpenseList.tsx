@@ -9,12 +9,13 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import {
   Search, Trash2, CheckCircle, Receipt, Calendar, Tag,
-  CircleDollarSign, ChevronLeft, ChevronRight,
+  CircleDollarSign, ChevronLeft, ChevronRight, Undo2,
 } from "lucide-react";
 
 interface Props {
   expenses: Expense[];
   onPay: (id: string) => void;
+  onUnpay?: (id: string) => void;
   onDelete: (id: string) => void;
 }
 
