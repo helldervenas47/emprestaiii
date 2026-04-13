@@ -1674,41 +1674,6 @@ export function LoanList({ loans, payments, installmentSchedules, onPayment, onP
 
   return (
     <div className="space-y-3">
-      {/* Summary cards that react to filters */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="gradient-primary rounded-xl p-5 text-primary-foreground shadow-lg">
-          <div className="flex items-center justify-between mb-3">
-            <span className="text-sm font-medium opacity-90">Capital na Rua</span>
-            <DollarSign className="h-5 w-5 opacity-80" />
-          </div>
-          <p className="text-2xl font-bold">{formatCurrency(summaryData.totalLent)}</p>
-        </div>
-        <div className="gradient-success rounded-xl p-5 text-primary-foreground shadow-lg">
-          <div className="flex items-center justify-between mb-3">
-            <span className="text-sm font-medium opacity-90">Total a Receber</span>
-            <DollarSign className="h-5 w-5 opacity-80" />
-          </div>
-          <p className="text-2xl font-bold">{formatCurrency(summaryData.totalToReceive)}</p>
-        </div>
-        <div className="gradient-warning rounded-xl p-5 text-primary-foreground shadow-lg">
-          <div className="flex items-center justify-between mb-3">
-            <span className="text-sm font-medium opacity-90">Lucro em Juros</span>
-            <DollarSign className="h-5 w-5 opacity-80" />
-          </div>
-          <p className="text-2xl font-bold">{formatCurrency(summaryData.totalInterest)}</p>
-        </div>
-        <div className="gradient-primary rounded-xl p-5 text-primary-foreground shadow-lg">
-          <div className="flex items-center justify-between mb-3">
-            <span className="text-sm font-medium opacity-90">Empréstimos Ativos</span>
-            <User className="h-5 w-5 opacity-80" />
-          </div>
-          <p className="text-2xl font-bold">{summaryData.activeCount}</p>
-          {summaryData.overdueCount > 0 && (
-            <p className="text-xs mt-1 opacity-80">{summaryData.overdueCount} em atraso</p>
-          )}
-        </div>
-      </div>
-
       <div className="flex flex-wrap gap-2">
         {categoryConfig.map((cat) => (
           <button key={cat.id} onClick={() => setCategory(cat.id)}
