@@ -10,7 +10,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
-import { Trash2, Search, ShoppingCart, Tv, Car, Calendar as CalendarIcon, User, Pencil, ChevronDown, ChevronUp, CheckCircle, HandCoins, Check, X as XIcon, DollarSign, AlertTriangle, Clock, CircleCheck, Receipt, Plus, Wallet, ChevronLeft, ChevronRight, LayoutGrid, Folder, List } from "lucide-react";
+import { Trash2, Search, ShoppingCart, Tv, Car, Calendar as CalendarIcon, User, Pencil, ChevronDown, ChevronUp, CheckCircle, HandCoins, Check, X as XIcon, DollarSign, AlertTriangle, Clock, CircleCheck, Receipt, Plus, Wallet, ChevronLeft, ChevronRight, LayoutGrid, Folder, List, FileText } from "lucide-react";
+import { generateContract } from "@/lib/generateContract";
 import { addMonths, addWeeks, addDays, format, startOfMonth, endOfMonth } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
@@ -452,6 +453,9 @@ function SaleCard({ sale, onDelete, onEdit, onUpdate, formatCurrency, readOnly =
               {new Date(sale.date + "T00:00:00").toLocaleDateString("pt-BR")}
             </p>
             <div className="flex items-center gap-1">
+              <Button size="icon" variant="ghost" className="h-8 w-8 text-primary hover:bg-primary/10" onClick={() => generateContract(sale)} title="Gerar Contrato">
+                <FileText className="h-4 w-4" />
+              </Button>
               <Button size="icon" variant="ghost" className="h-8 w-8 text-success hover:bg-success/10" onClick={() => setShowPayments(true)} title="Ver Pagamentos">
                 <CircleCheck className="h-4 w-4" />
               </Button>
