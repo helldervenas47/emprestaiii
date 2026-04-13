@@ -143,8 +143,9 @@ export function WhatsAppReport({ loans, payments, clients, installmentSchedules 
       lines.push(`Nenhum empréstimo vencendo hoje.`);
     } else {
       lines.push(`💵 Empréstimos (${dueTodayLoans.length})`);
-      dueTodayLoans.forEach(({ loan, amount }) => {
-        lines.push(`• *${loan.borrowerName}*  — ${rawFormatCurrency(amount)}`);
+      dueTodayLoans.forEach(({ loan, amount, lateFees }) => {
+        const feesInfo = lateFees > 0 ? ` (inclui ${rawFormatCurrency(lateFees)} juros/multa)` : "";
+        lines.push(`• *${loan.borrowerName}*  — ${rawFormatCurrency(amount)}${feesInfo}`);
         lines.push(`  └ ${getPaymentType(loan)}`);
       });
     }
@@ -160,9 +161,9 @@ export function WhatsAppReport({ loans, payments, clients, installmentSchedules 
       lines.push(`Nenhum empréstimo em atraso!`);
     } else {
       lines.push(`💵 Empréstimos (${overdueLoans.length})`);
-      overdueLoans.forEach(({ loan, amount, baseAmount, lateFees }) => {
-        const feesInfo = lateFees > 0 ? ` (+${rawFormatCurrency(lateFees)} juros/multa)` : "";
-        lines.push(`• *${loan.borrowerName}*  — ${rawFormatCurrency(baseAmount)}${feesInfo}`);
+      overdueLoans.forEach(({ loan, amount, lateFees }) => {
+        const feesInfo = lateFees > 0 ? ` (inclui ${rawFormatCurrency(lateFees)} juros/multa)` : "";
+        lines.push(`• *${loan.borrowerName}*  — ${rawFormatCurrency(amount)}${feesInfo}`);
         lines.push(`  └ ${getPaymentType(loan)} • Venc. ${formatDateBR(loan.dueDate)}`);
       });
     }
