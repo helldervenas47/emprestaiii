@@ -121,9 +121,15 @@ export function ExpenseList({ expenses, onPay, onDelete }: Props) {
         <Button variant="ghost" size="icon" className="h-8 w-8" onClick={prevMonth}>
           <ChevronLeft className="h-4 w-4" />
         </Button>
-        <span className="text-sm font-medium text-foreground min-w-[140px] text-center capitalize">
+        <button
+          className="text-sm font-medium text-foreground min-w-[140px] text-center capitalize hover:text-primary transition-colors"
+          onClick={() => {
+            const n = new Date();
+            setSelectedMonth(`${n.getFullYear()}-${String(n.getMonth() + 1).padStart(2, "0")}`);
+          }}
+        >
           {format(new Date(selYear, selMonthNum - 1, 1), "MMMM yyyy", { locale: ptBR })}
-        </span>
+        </button>
         <Button variant="ghost" size="icon" className="h-8 w-8" onClick={nextMonth}>
           <ChevronRight className="h-4 w-4" />
         </Button>
