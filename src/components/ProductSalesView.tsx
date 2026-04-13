@@ -711,23 +711,45 @@ function SalesList({ sales, onDeleteSale, onUpdateSale, clients = [], hideOnTrac
 
       {renderAfterCards}
 
-      {/* Category filter pills */}
-      <div className="grid grid-cols-3 sm:grid-cols-5 gap-2 w-full">
-        {saleCategoryFilters.map((cat) => {
-          const count = cat.id === "all" ? sales.length : (counts[cat.id] || 0);
-          const isActive = categoryFilter === cat.id;
-          return (
-            <button
-              key={cat.id}
-              onClick={() => setCategoryFilter(cat.id)}
-              className={`px-2 py-1.5 rounded-xl text-[10px] sm:text-xs font-semibold border transition-all duration-200 whitespace-nowrap ${
-                isActive ? cat.activeColor : cat.color
-              }`}
-            >
-              {cat.label} ({count})
-            </button>
-          );
-        })}
+      {/* View toggle + Category filter pills */}
+      <div className="flex items-center gap-2">
+        <div className="flex-1 grid grid-cols-3 sm:grid-cols-5 gap-2 w-full">
+          {saleCategoryFilters.map((cat) => {
+            const count = cat.id === "all" ? sales.length : (counts[cat.id] || 0);
+            const isActive = categoryFilter === cat.id;
+            return (
+              <button
+                key={cat.id}
+                onClick={() => setCategoryFilter(cat.id)}
+                className={`px-2 py-1.5 rounded-xl text-[10px] sm:text-xs font-semibold border transition-all duration-200 whitespace-nowrap ${
+                  isActive ? cat.activeColor : cat.color
+                }`}
+              >
+                {cat.label} ({count})
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* View toggle */}
+      <div className="flex items-center gap-2">
+        <div className="bg-muted/50 rounded-xl p-1 flex gap-0.5">
+          <button onClick={() => setView("cards")}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 ${
+              view === "cards" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            <LayoutGrid className="h-3.5 w-3.5" />Cards
+          </button>
+          <button onClick={() => setView("folders")}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 ${
+              view === "folders" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            <Folder className="h-3.5 w-3.5" />Pastas ({folderCount})
+          </button>
+        </div>
       </div>
 
       <div className="flex items-center justify-between gap-4">
@@ -746,6 +768,34 @@ function SalesList({ sales, onDeleteSale, onUpdateSale, clients = [], hideOnTrac
           <ShoppingCart className="h-12 w-12 mx-auto text-muted-foreground/40 mb-3" />
           <p className="text-muted-foreground">Nenhum lançamento encontrado</p>
         </CardContent></Card>
+      ) : view === "folders" ? (
+        <div className="space-y-4">
+          {saleGroups.map((g) => (
+            <SaleClientFolder
+              key={g.name}
+              group={g}
+              onDeleteSale={onDeleteSale}
+              onUpdateSale={onUpdateSale}
+              formatCurrency={formatCurrency}
+              onEdit={setEditingSale}
+            />
+          ))}
+          {saleSingles.length > 0 && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {saleSingles.map((sale, i) => (
+                <div key={sale.id} className="animate-fade-in" style={{ animationDelay: `${i * 60}ms`, animationFillMode: 'backwards' }}>
+                  <SaleCard
+                    sale={sale}
+                    onDelete={() => onDeleteSale(sale.id)}
+                    onEdit={() => setEditingSale(sale)}
+                    onUpdate={(data) => onUpdateSale(sale.id, data)}
+                    formatCurrency={formatCurrency}
+                  />
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {filtered.map((sale, i) => (
@@ -761,7 +811,6 @@ function SalesList({ sales, onDeleteSale, onUpdateSale, clients = [], hideOnTrac
           ))}
         </div>
       )}
-
       {editingSale && (
         <SaleEditForm
           sale={editingSale}
