@@ -217,20 +217,21 @@ export function DashboardOverview({ loans, sales, payments, expenses, onDeletePa
     const totalReceived = payments.reduce((s, p) => s + p.amount, 0);
 
     // Split received into principal vs interest per loan (ALL payments)
+    // Uses proportional split: each payment is divided based on the ratio of principal to total
     let principalReceived = 0;
     let interestReceived = 0;
     loans.forEach((l) => {
       const loanPayments = payments.filter((p) => p.loanId === l.id);
-      const installmentAmount = calculateInstallment(l.amount, l.interestRate, l.installments);
-      const principalPerInstallment = l.installments > 0 ? l.amount / l.installments : 0;
+      const totalWithInterest = calculateTotalWithInterest(l.amount, l.interestRate, l.installments);
+      const principalRatio = totalWithInterest > 0 ? l.amount / totalWithInterest : 1;
       loanPayments.forEach((p) => {
         if (p.installmentNumber === 0) {
+          // Interest-only payment
           interestReceived += p.amount;
-        } else if (p.installmentNumber > 0) {
-          principalReceived += principalPerInstallment;
-          interestReceived += installmentAmount - principalPerInstallment;
         } else {
-          principalReceived += p.amount;
+          // Proportional split based on actual payment amount
+          principalReceived += p.amount * principalRatio;
+          interestReceived += p.amount * (1 - principalRatio);
         }
       });
     });
