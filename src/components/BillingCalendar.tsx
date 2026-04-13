@@ -130,7 +130,7 @@ export function BillingCalendar({ loans, payments, installmentSchedules }: Props
         <Button variant="outline" size="sm" onClick={goToToday}>Hoje</Button>
       </div>
 
-      <Card>
+      <Card no3d>
         <CardContent className="p-4">
           {/* Month navigation */}
           <div className="flex items-center justify-between mb-4">
@@ -204,7 +204,7 @@ export function BillingCalendar({ loans, payments, installmentSchedules }: Props
 
       {/* Selected day details */}
       {selectedDate && (
-        <Card>
+        <Card no3d>
           <CardContent className="p-4">
             <h3 className="text-sm font-semibold text-foreground mb-3">
               {new Date(selectedDate + "T00:00:00").toLocaleDateString("pt-BR", {
