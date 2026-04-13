@@ -547,9 +547,13 @@ function SaleListRow({ sale, onEdit, onUpdate, formatCurrency }: {
                 selected={undefined}
                 onSelect={(date) => {
                   if (date) {
+                    const paymentVal = partialOnNext;
+                    const newRecord: SalePaymentRecord = { amount: paymentVal, date: format(date, "yyyy-MM-dd"), type: "full" };
+                    const history = [...(sale.paymentHistory || []), newRecord];
                     onUpdate({
                       paidInstallments: Math.min(sale.installments, sale.paidInstallments + 1),
                       partialPaid: 0,
+                      paymentHistory: history,
                     });
                     setShowPayDatePicker(false);
                   }
