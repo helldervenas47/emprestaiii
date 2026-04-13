@@ -85,7 +85,7 @@ const saleCategoryConfig = {
   on_track: { label: "Em Dia", badge: "bg-primary/20 text-primary border-primary/30", border: "border-primary/50", bg: "bg-card", header: "bg-primary/8 border-border/50" },
 };
 
-function SaleCard({ sale, onDelete, onEdit, onUpdate, formatCurrency }: { sale: Sale; onDelete: () => void; onEdit: () => void; onUpdate: (data: Partial<Omit<Sale, "id">>) => void; formatCurrency: (v: number) => string }) {
+function SaleCard({ sale, onDelete, onEdit, onUpdate, formatCurrency, readOnly = false }: { sale: Sale; onDelete: () => void; onEdit: () => void; onUpdate: (data: Partial<Omit<Sale, "id">>) => void; formatCurrency: (v: number) => string; readOnly?: boolean }) {
   const [showPartial, setShowPartial] = useState(false);
   const [partialAmount, setPartialAmount] = useState("");
   const [partialDate, setPartialDate] = useState<Date | undefined>(undefined);
@@ -389,6 +389,7 @@ function SaleCard({ sale, onDelete, onEdit, onUpdate, formatCurrency }: { sale: 
                 </DialogContent>
               </Dialog>
 
+              {!readOnly && (
               <div className="flex gap-2">
                 <Popover open={showPayDatePicker} onOpenChange={setShowPayDatePicker}>
                   <PopoverTrigger asChild>
@@ -433,8 +434,7 @@ function SaleCard({ sale, onDelete, onEdit, onUpdate, formatCurrency }: { sale: 
                   <HandCoins className="h-3.5 w-3.5 mr-1" /> Pagar Parcial
                 </Button>
               </div>
-            </>
-          )}
+              )}
 
           {/* Notes */}
           {sale.notes && (
