@@ -1272,34 +1272,37 @@ export function ProductSalesView({ sales, onDeleteSale, onUpdateSale, clients = 
 
   const secondaryCards = (
     <div className="space-y-3">
-      {/* Month filter - full width */}
-      <div className="flex items-center justify-center gap-2">
-        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => {
-          const [y, m] = selectedMonth.split("-").map(Number);
-          const prev = new Date(y, m - 2, 1);
-          setSelectedMonth(`${prev.getFullYear()}-${String(prev.getMonth() + 1).padStart(2, "0")}`);
-        }}>
-          <ChevronLeft className="h-4 w-4" />
-        </Button>
-        <button
-          className="text-sm font-medium text-foreground min-w-[140px] text-center capitalize hover:text-primary transition-colors"
-          onClick={() => {
-            const n = new Date();
-            setSelectedMonth(`${n.getFullYear()}-${String(n.getMonth() + 1).padStart(2, "0")}`);
-          }}
-        >
-          {format(new Date(selYear, selMonthNum - 1, 1), "MMMM yyyy", { locale: ptBR })}
-        </button>
-        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => {
-          const [y, m] = selectedMonth.split("-").map(Number);
-          const next = new Date(y, m, 1);
-          setSelectedMonth(`${next.getFullYear()}-${String(next.getMonth() + 1).padStart(2, "0")}`);
-        }}>
-          <ChevronRight className="h-4 w-4" />
-        </Button>
-      </div>
+      {/* Month filter + cards in single row */}
+      <div className="grid grid-cols-3 gap-3 items-stretch">
+        {/* Month filter */}
+        <div className="rounded-xl border p-4 bg-card flex flex-col items-center justify-center">
+          <div className="flex items-center gap-1">
+            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => {
+              const [y, m] = selectedMonth.split("-").map(Number);
+              const prev = new Date(y, m - 2, 1);
+              setSelectedMonth(`${prev.getFullYear()}-${String(prev.getMonth() + 1).padStart(2, "0")}`);
+            }}>
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <button
+              className="text-xs font-medium text-foreground text-center capitalize hover:text-primary transition-colors min-w-[80px]"
+              onClick={() => {
+                const n = new Date();
+                setSelectedMonth(`${n.getFullYear()}-${String(n.getMonth() + 1).padStart(2, "0")}`);
+              }}
+            >
+              {format(new Date(selYear, selMonthNum - 1, 1), "MMM yyyy", { locale: ptBR })}
+            </button>
+            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => {
+              const [y, m] = selectedMonth.split("-").map(Number);
+              const next = new Date(y, m, 1);
+              setSelectedMonth(`${next.getFullYear()}-${String(next.getMonth() + 1).padStart(2, "0")}`);
+            }}>
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
 
-      <div className="grid grid-cols-2 gap-3 items-stretch">
         {/* Saldo em Conta */}
         <div className="rounded-xl border p-4 bg-card flex flex-col items-center justify-center">
           <div className="flex items-center justify-center gap-2 mb-2">
