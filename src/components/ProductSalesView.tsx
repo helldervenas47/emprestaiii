@@ -256,55 +256,56 @@ function SaleCard({ sale, onDelete, onEdit, onUpdate, formatCurrency }: { sale: 
               <DialogDescription>Gerencie os pagamentos desta venda.</DialogDescription>
             </DialogHeader>
             <div className="divide-y divide-border/30 max-h-64 overflow-y-auto">
-              {Array.from({ length: sale.paidInstallments }, (_, i) => {
-                const instBaseDate = new Date(sale.date + "T00:00:00");
-                const customDate = sale.installmentDates && sale.installmentDates[i];
-                const dueDate = customDate ? new Date(customDate + "T00:00:00") : (isRecorrente ? addByFrequency(instBaseDate, sale.frequency || "Mensal", i) : instBaseDate);
-                return (
+              {(sale.paymentHistory || []).length > 0 ? (
+                (sale.paymentHistory || []).map((record, i) => (
                   <div key={i} className="flex items-center gap-3 py-3">
-                    <span className="w-7 h-7 rounded-full bg-success/20 text-success flex items-center justify-center text-xs font-bold shrink-0">
-                      {i + 1}ª
+                    <span className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${
+                      record.type === "full" ? "bg-success/20 text-success" : "bg-warning/20 text-warning"
+                    }`}>
+                      {i + 1}
                     </span>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-foreground">{formatCurrency(getParcelaValue(i))}</p>
-                      <p className="text-xs text-muted-foreground">{format(dueDate, "dd/MM/yyyy")}</p>
+                      <p className="text-sm font-medium text-foreground">{formatCurrency(record.amount)}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {format(new Date(record.date + "T00:00:00"), "dd/MM/yyyy")}
+                      </p>
                     </div>
-                    <Badge className="bg-success/20 text-success border-success/30 text-xs">Paga</Badge>
+                    <Badge className={`text-xs ${record.type === "full" ? "bg-success/20 text-success border-success/30" : "bg-warning/20 text-warning border-warning/30"}`}>
+                      {record.type === "full" ? "Parcela" : "Parcial"}
+                    </Badge>
                     <Button
                       size="icon"
                       variant="ghost"
                       className="h-7 w-7 text-destructive hover:bg-destructive/10 shrink-0"
                       onClick={() => {
-                        onUpdate({ paidInstallments: i, partialPaid: 0 });
-                        if (i === 0) setShowPayments(false);
+                        const newHistory = (sale.paymentHistory || []).filter((_, idx) => idx !== i);
+                        // Recalculate paidInstallments and partialPaid from remaining history
+                        let recalcPaid = 0;
+                        let recalcPartial = 0;
+                        const amounts = sale.installmentAmounts;
+                        const defaultVal = sale.installments > 0 ? Math.max(0, sale.total - (sale.downPayment || 0)) / sale.installments : sale.total;
+                        const getVal = (idx: number) => amounts && amounts[idx] != null ? amounts[idx] : defaultVal;
+                        let accumulated = 0;
+                        let instIdx = 0;
+                        for (const r of newHistory) {
+                          accumulated += r.amount;
+                          while (instIdx < sale.installments && accumulated >= getVal(instIdx) - 0.01) {
+                            accumulated -= getVal(instIdx);
+                            instIdx++;
+                          }
+                        }
+                        recalcPaid = instIdx;
+                        recalcPartial = accumulated > 0.01 ? accumulated : 0;
+                        onUpdate({ paymentHistory: newHistory, paidInstallments: recalcPaid, partialPaid: recalcPartial });
+                        if (newHistory.length === 0) setShowPayments(false);
                       }}
                     >
                       <Trash2 className="h-3.5 w-3.5" />
                     </Button>
                   </div>
-                );
-              })}
-              {(sale.partialPaid || 0) > 0 && (
-                <div className="flex items-center gap-3 py-3">
-                  <span className="w-7 h-7 rounded-full bg-warning/20 text-warning flex items-center justify-center text-xs font-bold shrink-0">
-                    {sale.paidInstallments + 1}ª
-                  </span>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-foreground">{formatCurrency(sale.partialPaid)}</p>
-                    <p className="text-xs text-muted-foreground">Pagamento parcial</p>
-                  </div>
-                  <Badge className="bg-warning/20 text-warning border-warning/30 text-xs">Parcial</Badge>
-                  <Button
-                    size="icon"
-                    variant="ghost"
-                    className="h-7 w-7 text-destructive hover:bg-destructive/10 shrink-0"
-                    onClick={() => {
-                      onUpdate({ partialPaid: 0 });
-                    }}
-                  >
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </Button>
-                </div>
+                ))
+              ) : (
+                <p className="text-sm text-muted-foreground py-4 text-center">Nenhum pagamento registrado</p>
               )}
             </div>
           </DialogContent>
