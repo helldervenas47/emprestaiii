@@ -1490,6 +1490,8 @@ interface ClientGroup {
   loans: Loan[];
   totalAmount: number;
   totalPaid: number;
+  totalReceivable: number;
+  hasOverdue: boolean;
 }
 
 function ClientFolder({
@@ -1648,10 +1650,16 @@ export function LoanList({ loans, payments, installmentSchedules, onPayment, onP
     });
     const grouped: ClientGroup[] = [];
     const singles: Loan[] = [];
-    Object.entries(byName).forEach(([name, loans]) => {
-      if (loans.length > 1) {
-        const totalPaid = loans.reduce((s, l) => s + getTotalPaid(l, payments), 0);
-        grouped.push({ name, loans, totalAmount: loans.reduce((s, l) => s + l.amount, 0), totalPaid });
+     Object.entries(byName).forEach(([name, loans]) => {
+       if (loans.length > 1) {
+         const totalPaid = loans.reduce((s, l) => s + getTotalPaid(l, payments), 0);
+         const totalReceivable = loans.reduce((s, l) => {
+           const t = calculateTotalWithInterest(l.amount, l.interestRate, l.installments);
+           const paid = getTotalPaid(l, payments);
+           return s + Math.max(0, (l.remainingAmount != null && l.remainingAmount > 0 ? l.remainingAmount : t - paid));
+         }, 0);
+         const hasOverdue = loans.some((l) => l.status !== "paid" && getLoanCategory(l, payments, installmentSchedules) === "overdue");
+         grouped.push({ name, loans, totalAmount: loans.reduce((s, l) => s + l.amount, 0), totalPaid, totalReceivable, hasOverdue });
       } else {
         singles.push(loans[0]);
       }
