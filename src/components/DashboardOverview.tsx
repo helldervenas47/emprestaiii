@@ -165,8 +165,21 @@ export function DashboardOverview({ loans, sales, payments, expenses, onDeletePa
     });
     transactions.sort((a, b) => b.date.localeCompare(a.date));
 
+    const getLoanTotalToReceive = (l: Loan) => {
+      let total = calculateTotalWithInterest(l.amount, l.interestRate, l.installments);
+      if (l.customInterestValue && l.customInterestValue > 0) {
+        total += l.customInterestValue * l.installments;
+      }
+      if (l.lateInterestValue && l.lateInterestValue > 0) {
+        total += l.lateInterestValue * l.installments;
+      }
+      if (l.penaltyValue && l.penaltyValue > 0) {
+        total += l.penaltyValue;
+      }
+      return total;
+    };
     const totalLentInPeriod = filteredLoans.reduce((s, l) => s + l.amount, 0);
-    const totalToReceiveInPeriod = filteredLoans.reduce((s, l) => s + calculateTotalWithInterest(l.amount, l.interestRate, l.installments), 0);
+    const totalToReceiveInPeriod = filteredLoans.reduce((s, l) => s + getLoanTotalToReceive(l), 0);
     const avgInterestRate = totalLentInPeriod > 0
       ? ((totalToReceiveInPeriod - totalLentInPeriod) / totalLentInPeriod) * 100
       : 0;
