@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import {
   Search, Trash2, CheckCircle, Receipt, Calendar, Tag,
-  CircleDollarSign,
+  CircleDollarSign, ChevronLeft, ChevronRight,
 } from "lucide-react";
 
 interface Props {
