@@ -81,7 +81,7 @@ export function WhatsAppReport({ loans, clients, installmentSchedules }: Props) 
   const buildReport = useCallback(() => {
     const lines: string[] = [];
 
-    lines.push(`📊 *RELATÓRIO COBRAFÁCIL*`);
+    lines.push(`📊 *RELATÓRIO DIÁRIO*`);
     lines.push(`🗓 ${formatDateBR(todayStr)} • ${getDayOfWeek(todayStr)}`);
     lines.push(``);
     lines.push(`━━━━━━━━━━━━━━━━━━━━━`);
@@ -156,7 +156,7 @@ export function WhatsAppReport({ loans, clients, installmentSchedules }: Props) 
         {/* Report Preview */}
         <div className="bg-muted/50 rounded-lg p-4 text-sm space-y-3 font-mono text-xs leading-relaxed">
           <div>
-            <p className="font-bold">📊 RELATÓRIO COBRAFÁCIL</p>
+            <p className="font-bold">📊 RELATÓRIO DIÁRIO</p>
             <p className="text-muted-foreground">🗓 {formatDateBR(todayStr)} • {getDayOfWeek(todayStr)}</p>
           </div>
 
