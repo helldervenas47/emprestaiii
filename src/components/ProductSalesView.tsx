@@ -537,35 +537,35 @@ function SaleListRow({ sale, onEdit, onUpdate, formatCurrency, readOnly = false 
   const partialOnNext = (sale.partialPaid || 0) > 0 ? Math.max(0, nextInstValue - (sale.partialPaid || 0)) : nextInstValue;
 
   return (
-    <div className="flex items-center gap-2 px-3 py-2.5 hover:bg-muted/30 transition-colors">
-      <button onClick={onEdit} className="flex items-center gap-3 flex-1 min-w-0 text-left">
-        <div className={`h-9 w-9 rounded-full flex items-center justify-center text-primary-foreground font-bold text-xs shrink-0 ${
+    <div className="flex items-center gap-2 px-2 sm:px-3 py-2 hover:bg-muted/30 transition-colors">
+      <button onClick={onEdit} className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0 text-left">
+        <div className={`h-8 w-8 sm:h-9 sm:w-9 rounded-full flex items-center justify-center text-primary-foreground font-bold text-[10px] sm:text-xs shrink-0 ${
           category === "paid" ? "bg-success" : category === "overdue" ? "bg-destructive" : category === "due_today" ? "bg-warning" : "gradient-primary"
         }`}>
           {(sale.customerName || sale.description || "?").charAt(0).toUpperCase()}
         </div>
         <div className="flex-1 min-w-0">
-          <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Cliente</p>
-          <p className="text-sm font-semibold text-foreground truncate">{sale.customerName || "—"}</p>
+          <p className="text-[9px] sm:text-[10px] text-muted-foreground uppercase tracking-wide leading-tight">Cliente</p>
+          <p className="text-xs sm:text-sm font-semibold text-foreground truncate">{sale.customerName || "—"}</p>
         </div>
         <div className="hidden md:block flex-1 min-w-0 max-w-[200px]">
-          <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Descrição</p>
+          <p className="text-[10px] text-muted-foreground uppercase tracking-wide leading-tight">Descrição</p>
           <p className="text-sm font-bold text-foreground truncate">{sale.description || sale.productName || "—"}</p>
         </div>
-        <div className="flex-shrink-0 min-w-[90px]">
-          <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Vencimento</p>
-          <p className="text-xs text-foreground">
+        <div className="shrink-0 min-w-[70px] sm:min-w-[90px]">
+          <p className="text-[9px] sm:text-[10px] text-muted-foreground uppercase tracking-wide leading-tight">Vencimento</p>
+          <p className="text-[11px] sm:text-xs text-foreground truncate">
             {!isPaid ? format(nextDue, "dd/MM/yyyy") : "Quitado"}{isRecorrente && ` • ${sale.paidInstallments}/${sale.installments}`}
           </p>
         </div>
-        <div className="text-right shrink-0">
-          <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Valor</p>
+        <div className="text-right shrink-0 min-w-[60px] sm:min-w-[80px]">
+          <p className="text-[9px] sm:text-[10px] text-muted-foreground uppercase tracking-wide leading-tight">Valor</p>
           {isPaid ? (
-            <p className="text-sm font-bold text-success">{formatCurrency(sale.total)}</p>
+            <p className="text-xs sm:text-sm font-bold text-success">{formatCurrency(sale.total)}</p>
           ) : (
             <>
-              <p className="text-sm font-bold text-foreground">{formatCurrency(partialOnNext)}</p>
-              <p className="text-[11px] text-muted-foreground">Rest. {formatCurrency(remaining)}</p>
+              <p className="text-xs sm:text-sm font-bold text-foreground">{formatCurrency(partialOnNext)}</p>
+              <p className="text-[10px] sm:text-[11px] text-muted-foreground">Rest. {formatCurrency(remaining)}</p>
             </>
           )}
         </div>
