@@ -404,8 +404,14 @@ function SaleCard({ sale, onDelete, onEdit, onUpdate, formatCurrency }: { sale: 
                       selected={undefined}
                       onSelect={(date) => {
                         if (date) {
+                          const nextIdx = sale.paidInstallments;
+                          const paymentVal = getParcelaValue(nextIdx) - (sale.partialPaid || 0);
+                          const newRecord: SalePaymentRecord = { amount: paymentVal, date: format(date, "yyyy-MM-dd"), type: "full" };
+                          const history = [...(sale.paymentHistory || []), newRecord];
                           onUpdate({
                             paidInstallments: Math.min(sale.installments, sale.paidInstallments + 1),
+                            partialPaid: 0,
+                            paymentHistory: history,
                           });
                           setShowPayDatePicker(false);
                         }
