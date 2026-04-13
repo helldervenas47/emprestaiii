@@ -26,6 +26,29 @@ function getInstallmentAmount(loan: Loan, schedules: InstallmentSchedule[]): num
   return loan.customInstallmentValue || calculateInstallment(loan.amount, loan.interestRate, loan.installments);
 }
 
+function getDaysOverdue(dueDate: string): number {
+  const due = new Date(dueDate + "T00:00:00");
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  return Math.max(0, Math.floor((today.getTime() - due.getTime()) / (1000 * 60 * 60 * 24)));
+}
+
+function calcLateFees(loan: Loan, baseAmount: number): number {
+  const daysOverdue = getDaysOverdue(loan.dueDate);
+  if (daysOverdue === 0) return 0;
+
+  let lateInterestTotal = 0;
+  if (loan.lateInterestValue != null && loan.lateInterestValue > 0) {
+    if (loan.lateInterestType === "fixed") {
+      lateInterestTotal = loan.lateInterestValue * daysOverdue;
+    } else {
+      lateInterestTotal = baseAmount * (loan.lateInterestValue / 100) * daysOverdue;
+    }
+  }
+  const penaltyTotal = (loan.penaltyValue != null && loan.penaltyValue > 0) ? loan.penaltyValue : 0;
+  return lateInterestTotal + penaltyTotal;
+}
+
 function getPaymentType(loan: Loan): string {
   const types: Record<string, string> = {
     monthly: "Mensal",
@@ -58,19 +81,20 @@ export function WhatsAppReport({ loans, clients, installmentSchedules }: Props) 
   const dueTodayLoans = useMemo(() => {
     return activeLoans
       .filter((loan) => loan.dueDate === todayStr)
-      .map((loan) => ({
-        loan,
-        amount: getInstallmentAmount(loan, installmentSchedules),
-      }));
+      .map((loan) => {
+        const base = getInstallmentAmount(loan, installmentSchedules);
+        return { loan, amount: base };
+      });
   }, [activeLoans, installmentSchedules, todayStr]);
 
   const overdueLoans = useMemo(() => {
     return activeLoans
       .filter((loan) => loan.dueDate < todayStr)
-      .map((loan) => ({
-        loan,
-        amount: getInstallmentAmount(loan, installmentSchedules),
-      }))
+      .map((loan) => {
+        const base = getInstallmentAmount(loan, installmentSchedules);
+        const lateFees = calcLateFees(loan, base);
+        return { loan, amount: base + lateFees, baseAmount: base, lateFees };
+      })
       .sort((a, b) => a.loan.dueDate.localeCompare(b.loan.dueDate));
   }, [activeLoans, installmentSchedules, todayStr]);
 
@@ -120,8 +144,9 @@ export function WhatsAppReport({ loans, clients, installmentSchedules }: Props) 
       lines.push(`Nenhum empréstimo em atraso!`);
     } else {
       lines.push(`💵 Empréstimos (${overdueLoans.length})`);
-      overdueLoans.forEach(({ loan, amount }) => {
-        lines.push(`• ${loan.borrowerName}  — ${rawFormatCurrency(amount)}`);
+      overdueLoans.forEach(({ loan, amount, lateFees }) => {
+        const feesInfo = lateFees > 0 ? ` (inclui ${rawFormatCurrency(lateFees)} juros/multa)` : "";
+        lines.push(`• ${loan.borrowerName}  — ${rawFormatCurrency(amount)}${feesInfo}`);
         lines.push(`  └ ${getPaymentType(loan)} • Venc. ${formatDateBR(loan.dueDate)}`);
       });
     }
@@ -197,9 +222,11 @@ export function WhatsAppReport({ loans, clients, installmentSchedules }: Props) 
             ) : (
               <div className="mt-1">
                 <p>💵 Empréstimos ({overdueLoans.length})</p>
-                {overdueLoans.map(({ loan, amount }) => (
+                {overdueLoans.map(({ loan, amount, lateFees }) => (
                   <div key={loan.id} className="ml-2">
-                    <p>• {loan.borrowerName} — {rawFormatCurrency(amount)}</p>
+                    <p>• {loan.borrowerName} — {rawFormatCurrency(amount)}
+                      {lateFees > 0 && <span className="text-destructive"> (inclui {rawFormatCurrency(lateFees)} juros/multa)</span>}
+                    </p>
                     <p className="text-muted-foreground ml-3">└ {getPaymentType(loan)} • Venc. {formatDateBR(loan.dueDate)}</p>
                   </div>
                 ))}
