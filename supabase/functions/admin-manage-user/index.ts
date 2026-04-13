@@ -5,6 +5,19 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+function decodeJwtPayload(token: string): Record<string, unknown> | null {
+  try {
+    const parts = token.split(".");
+    if (parts.length !== 3) return null;
+    const payload = JSON.parse(atob(parts[1].replace(/-/g, "+").replace(/_/g, "/")));
+    // Check expiration
+    if (payload.exp && payload.exp * 1000 < Date.now()) return null;
+    return payload;
+  } catch {
+    return null;
+  }
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -12,7 +25,7 @@ Deno.serve(async (req) => {
 
   try {
     const authHeader = req.headers.get("Authorization");
-    if (!authHeader) {
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
       return new Response(JSON.stringify({ error: "Não autorizado" }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -21,23 +34,18 @@ Deno.serve(async (req) => {
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
 
     const adminClient = createClient(supabaseUrl, serviceRoleKey);
 
-    // Validate JWT using getClaims (does not require active session)
     const token = authHeader.replace("Bearer ", "");
-    const anonClient = createClient(supabaseUrl, anonKey, {
-      global: { headers: { Authorization: authHeader } },
-    });
-    const { data: claimsData, error: claimsError } = await anonClient.auth.getClaims(token);
-    if (claimsError || !claimsData?.claims?.sub) {
+    const payload = decodeJwtPayload(token);
+    if (!payload || !payload.sub) {
       return new Response(JSON.stringify({ error: "Não autorizado" }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-    const callerId = claimsData.claims.sub as string;
+    const callerId = payload.sub as string;
 
     const { data: roleData } = await adminClient
       .from("user_roles")
