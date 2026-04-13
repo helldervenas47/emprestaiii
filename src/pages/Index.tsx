@@ -412,55 +412,7 @@ const Index = () => {
           />
         )}
         {tab === "users" && <UserManagement />}
-        {tab === "backup" && <BackupExport
-          loans={loans} payments={payments} clients={clients} sales={sales} expenses={expenses}
-          onImportLoans={async (csv) => {
-            const imported = importLoansFromCSV(csv);
-            if (imported.length === 0) throw new Error();
-            for (let i = 0; i < imported.length; i += 5) {
-              const batch = imported.slice(i, i + 5);
-              await Promise.all(batch.map(async (loan) => {
-                const { totalPaid, ...loanData } = loan;
-                const loanId = await addLoan(loanData);
-                if (loanId && totalPaid && totalPaid > 0) {
-                  await addPartialPayment(loanId, totalPaid, loan.startDate);
-                }
-              }));
-            }
-            toast.success(`${imported.length} empréstimo(s) importado(s)!`);
-          }}
-          onImportClients={async (csv) => {
-            const imported = importClientsFromCSV(csv);
-            if (imported.length === 0) throw new Error();
-            await Promise.all(imported.map((client) => addClient(client)));
-            toast.success(`${imported.length} cliente(s) importado(s)!`);
-          }}
-          onImportSales={async (csv, businessType) => {
-            const imported = importSalesFromCSV(csv);
-            if (imported.length === 0) throw new Error();
-            const mapped = businessType ? imported.map(s => ({ ...s, businessType: businessType as any })) : imported;
-            await Promise.all(mapped.map((sale) => addSale(sale)));
-            toast.success(`${imported.length} registro(s) importado(s)!`);
-          }}
-          onImportExpenses={async (csv) => {
-            const lines = csv.split("\n").filter(l => l.trim());
-            if (lines.length < 2) throw new Error();
-            let count = 0;
-            for (let i = 1; i < lines.length; i++) {
-              const cols = lines[i].split(",").map(c => c.replace(/^"|"$/g, "").trim());
-              await addExpense({
-                description: cols[0] || "",
-                amount: parseFloat(cols[1]) || 0,
-                category: cols[2] || "",
-                type: (cols[3] === "recorrente" ? "recorrente" : "fixa") as "fixa" | "recorrente",
-                dueDate: cols[4] || new Date().toISOString().split("T")[0],
-                notes: cols[9] || "",
-              });
-              count++;
-            }
-            toast.success(`${count} despesa(s) importada(s)!`);
-          }}
-        />}
+        {tab === "backup" && <BackupExport loans={loans} payments={payments} clients={clients} sales={sales} expenses={expenses} />}
       </main>
 
       {showLoanForm && <LoanForm onAdd={addLoan} onSaveSchedule={saveSchedule} onClose={() => setShowLoanForm(false)} clients={clients} />}
