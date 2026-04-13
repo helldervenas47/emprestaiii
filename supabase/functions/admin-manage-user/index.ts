@@ -69,6 +69,7 @@ Deno.serve(async (req) => {
       const { data: roles } = await adminClient.from("user_roles").select("*");
       const { data: profiles } = await adminClient.from("profiles").select("*");
       const { data: tabPerms } = await adminClient.from("user_tab_permissions").select("*");
+      const { data: clientPerms } = await adminClient.from("user_client_permissions").select("*");
 
       const enriched = users.users.map((u) => ({
         id: u.id,
@@ -79,6 +80,7 @@ Deno.serve(async (req) => {
         created_at: u.created_at,
         last_sign_in_at: u.last_sign_in_at,
         allowed_tabs: tabPerms?.find((t) => t.user_id === u.id)?.allowed_tabs || null,
+        linked_client_ids: clientPerms?.filter((c) => c.user_id === u.id).map((c) => c.client_id) || [],
       }));
 
       return new Response(JSON.stringify({ users: enriched }), {
