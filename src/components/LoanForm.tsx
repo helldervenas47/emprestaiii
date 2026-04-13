@@ -236,9 +236,10 @@ export function LoanForm({ onAdd, onSaveSchedule, onClose, clients }: Props) {
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="startDate">Data Início</Label>
-                <Input
-                  id="startDate" type="date"
-                  value={form.startDate} onChange={(e) => update("startDate", e.target.value)}
+                <DatePickerField
+                  id="startDate"
+                  value={form.startDate}
+                  onChange={(v) => update("startDate", v)}
                 />
               </div>
               <div>

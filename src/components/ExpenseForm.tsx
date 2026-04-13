@@ -124,11 +124,10 @@ export function ExpenseForm({ onAdd, onClose }: Props) {
               </div>
               <div>
                 <Label htmlFor="dueDate">Data de Pagamento</Label>
-                <Input
+                <DatePickerField
                   id="dueDate"
-                  type="date"
                   value={form.dueDate}
-                  onChange={(e) => update("dueDate", e.target.value)}
+                  onChange={(v) => update("dueDate", v)}
                 />
               </div>
             </div>

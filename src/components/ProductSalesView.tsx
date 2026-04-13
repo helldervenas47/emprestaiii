@@ -767,7 +767,7 @@ function VehicleExpenseEditDialog({ expense, open, onOpenChange, onSave, formatC
             </div>
             <div>
               <Label htmlFor="edit-due">Data de Pagamento</Label>
-              <Input id="edit-due" type="date" value={form.dueDate} onChange={e => update("dueDate", e.target.value)} />
+              <DatePickerField id="edit-due" value={form.dueDate} onChange={(v) => update("dueDate", v)} />
             </div>
           </div>
           <div>
