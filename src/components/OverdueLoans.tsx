@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { calculateInstallment } from "@/hooks/useLoans";
 import { AlertTriangle, MessageCircle, Search, Phone, Calendar, DollarSign, Clock } from "lucide-react";
+import { WhatsAppReport } from "@/components/WhatsAppReport";
 
 interface Props {
   loans: Loan[];
@@ -302,6 +303,9 @@ export function OverdueLoans({ loans, clients, installmentSchedules }: Props) {
           ))
         )}
       </div>
+
+      {/* WhatsApp Report */}
+      <WhatsAppReport loans={loans} clients={clients} installmentSchedules={installmentSchedules} />
 
       {/* Info */}
       <Card>
