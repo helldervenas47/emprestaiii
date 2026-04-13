@@ -11,6 +11,7 @@ interface AuthContextType {
   role: AppRole;
   dataOwnerId: string | null;
   allowedTabs: string[] | null;
+  linkedClientIds: string[] | null;
   signOut: () => Promise<void>;
 }
 
@@ -23,6 +24,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [role, setRole] = useState<AppRole>(null);
   const [dataOwnerId, setDataOwnerId] = useState<string | null>(null);
   const [allowedTabs, setAllowedTabs] = useState<string[] | null>(null);
+  const [linkedClientIds, setLinkedClientIds] = useState<string[] | null>(null);
 
   const fetchRole = async (userId: string) => {
     const [{ data: isAdmin }, { data: isOperador }, { data: isVisualizador }] = await Promise.all([
@@ -66,11 +68,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setAllowedTabs((data as any)?.allowed_tabs || null);
   };
 
+  const fetchLinkedClients = async (userId: string) => {
+    const { data } = await supabase
+      .from("user_client_permissions" as any)
+      .select("client_id")
+      .eq("user_id", userId);
+
+    if (data && (data as any[]).length > 0) {
+      setLinkedClientIds((data as any[]).map((d: any) => d.client_id));
+    } else {
+      setLinkedClientIds(null);
+    }
+  };
+
   const hydrateUserState = async (userId: string) => {
     await Promise.all([
       fetchRole(userId),
       fetchDataOwner(userId),
       fetchTabPermissions(userId),
+      fetchLinkedClients(userId),
     ]);
   };
 
@@ -98,6 +114,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setRole(null);
         setDataOwnerId(null);
         setAllowedTabs(null);
+        setLinkedClientIds(null);
         setLoading(false);
       }
     });
@@ -128,7 +145,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, session, loading, role, dataOwnerId, allowedTabs, signOut }}>
+    <AuthContext.Provider value={{ user, session, loading, role, dataOwnerId, allowedTabs, linkedClientIds, signOut }}>
       {children}
     </AuthContext.Provider>
   );

@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { supabase } from "@/integrations/supabase/client";
+import { useClients } from "@/hooks/useClients";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -10,7 +11,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
-import { Plus, Trash2, Shield, UserPlus, Pencil, ChevronDown, Settings2 } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Plus, Trash2, Shield, UserPlus, Pencil, ChevronDown, Settings2, Link2 } from "lucide-react";
 import { toast } from "sonner";
 
 interface ManagedUser {
@@ -22,6 +25,7 @@ interface ManagedUser {
   created_at: string;
   last_sign_in_at: string | null;
   allowed_tabs: string[] | null;
+  linked_client_ids: string[];
 }
 
 const ALL_TABS = [
@@ -43,6 +47,11 @@ export function UserManagement() {
   const [permissionsUser, setPermissionsUser] = useState<ManagedUser | null>(null);
   const [permTabs, setPermTabs] = useState<string[]>([]);
   const [savingPerms, setSavingPerms] = useState(false);
+  const [clientLinkUser, setClientLinkUser] = useState<ManagedUser | null>(null);
+  const [selectedClientIds, setSelectedClientIds] = useState<string[]>([]);
+  const [savingClientLinks, setSavingClientLinks] = useState(false);
+  const [clientSearch, setClientSearch] = useState("");
+  const { clients } = useClients();
   const [creating, setCreating] = useState(false);
   const [expandedUserId, setExpandedUserId] = useState<string | null>(null);
   const isMobile = useIsMobile();
@@ -144,6 +153,34 @@ export function UserManagement() {
       username: user.username || "",
       display_name: user.display_name,
     });
+  };
+
+  const openClientLinks = (user: ManagedUser) => {
+    setClientLinkUser(user);
+    setSelectedClientIds(user.linked_client_ids || []);
+    setClientSearch("");
+  };
+
+  const handleToggleClient = (clientId: string) => {
+    setSelectedClientIds(prev =>
+      prev.includes(clientId) ? prev.filter(c => c !== clientId) : [...prev, clientId]
+    );
+  };
+
+  const handleSaveClientLinks = async () => {
+    if (!clientLinkUser) return;
+    setSavingClientLinks(true);
+    const { data, error } = await supabase.functions.invoke("admin-manage-user", {
+      body: { action: "update_client_links", user_id: clientLinkUser.id, client_ids: selectedClientIds },
+    });
+    if (error || data?.error) {
+      toast.error(data?.error || "Erro ao salvar vínculos");
+    } else {
+      toast.success("Vínculos de clientes atualizados!");
+      setClientLinkUser(null);
+      fetchUsers();
+    }
+    setSavingClientLinks(false);
   };
 
   const openPermissions = (user: ManagedUser) => {
@@ -284,9 +321,13 @@ export function UserManagement() {
                           </Select>
                         </div>
                       </div>
-                      <div className="flex gap-2">
+                      <div className="flex gap-2 flex-wrap">
                         <Button variant="outline" size="sm" className="flex-1 gap-1" onClick={() => openPermissions(user)}>
                           <Settings2 className="h-3.5 w-3.5" /> Abas
+                        </Button>
+                        <Button variant="outline" size="sm" className="flex-1 gap-1" onClick={() => openClientLinks(user)}>
+                          <Link2 className="h-3.5 w-3.5" /> Clientes
+                          {user.linked_client_ids?.length > 0 && <Badge variant="secondary" className="ml-1 text-[10px] px-1">{user.linked_client_ids.length}</Badge>}
                         </Button>
                         <Button variant="outline" size="sm" className="flex-1 gap-1" onClick={() => openEdit(user)}>
                           <Pencil className="h-3.5 w-3.5" /> Editar
@@ -345,29 +386,16 @@ export function UserManagement() {
                     </TableCell>
                     <TableCell>
                       <div className="flex gap-1">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => openPermissions(user)}
-                          className="h-8 w-8"
-                          title="Permissões de abas"
-                        >
+                        <Button variant="ghost" size="icon" onClick={() => openPermissions(user)} className="h-8 w-8" title="Permissões de abas">
                           <Settings2 className="h-4 w-4" />
                         </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => openEdit(user)}
-                          className="h-8 w-8"
-                        >
+                        <Button variant="ghost" size="icon" onClick={() => openClientLinks(user)} className="h-8 w-8" title="Vincular clientes">
+                          <Link2 className="h-4 w-4" />
+                        </Button>
+                        <Button variant="ghost" size="icon" onClick={() => openEdit(user)} className="h-8 w-8">
                           <Pencil className="h-4 w-4" />
                         </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleDelete(user.id, user.display_name)}
-                          className="h-8 w-8 text-destructive hover:text-destructive"
-                        >
+                        <Button variant="ghost" size="icon" onClick={() => handleDelete(user.id, user.display_name)} className="h-8 w-8 text-destructive hover:text-destructive">
                           <Trash2 className="h-4 w-4" />
                         </Button>
                       </div>
@@ -529,6 +557,60 @@ export function UserManagement() {
               </Button>
               <Button onClick={handleSavePermissions} disabled={savingPerms}>
                 {savingPerms ? "Salvando..." : "Salvar Permissões"}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Client links dialog */}
+      <Dialog open={!!clientLinkUser} onOpenChange={(open) => !open && setClientLinkUser(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Vincular Clientes — {clientLinkUser?.display_name}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Selecione os clientes que este usuário poderá visualizar. Sem vínculo = acesso a todos.
+            </p>
+            <Input
+              placeholder="Buscar cliente..."
+              value={clientSearch}
+              onChange={(e) => setClientSearch(e.target.value)}
+            />
+            <ScrollArea className="h-[300px] border rounded-md p-2">
+              {clients.length === 0 ? (
+                <p className="text-sm text-muted-foreground text-center py-4">Nenhum cliente cadastrado</p>
+              ) : (
+                <div className="space-y-2">
+                  {clients
+                    .filter(c => c.name.toLowerCase().includes(clientSearch.toLowerCase()))
+                    .map((client) => (
+                      <div key={client.id} className="flex items-center gap-3 py-1.5 px-1 rounded hover:bg-muted/50">
+                        <Checkbox
+                          checked={selectedClientIds.includes(client.id)}
+                          onCheckedChange={() => handleToggleClient(client.id)}
+                        />
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium truncate">{client.name}</p>
+                          {client.phone && <p className="text-xs text-muted-foreground">{client.phone}</p>}
+                        </div>
+                      </div>
+                    ))}
+                </div>
+              )}
+            </ScrollArea>
+            <div className="flex items-center justify-between">
+              <p className="text-xs text-muted-foreground">{selectedClientIds.length} selecionado(s)</p>
+              <div className="flex gap-2">
+                <Button variant="outline" size="sm" onClick={() => setSelectedClientIds([])}>Limpar</Button>
+                <Button variant="outline" size="sm" onClick={() => setSelectedClientIds(clients.map(c => c.id))}>Todos</Button>
+              </div>
+            </div>
+            <div className="flex gap-2 justify-end pt-2">
+              <Button variant="outline" onClick={() => setClientLinkUser(null)}>Cancelar</Button>
+              <Button onClick={handleSaveClientLinks} disabled={savingClientLinks}>
+                {savingClientLinks ? "Salvando..." : "Salvar Vínculos"}
               </Button>
             </div>
           </div>
