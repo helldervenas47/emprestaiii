@@ -150,7 +150,13 @@ export function useLoans() {
     const dateStr = paymentDate || new Date().toISOString().split("T")[0];
     const loan = loans.find((l) => l.id === loanId);
     if (!loan) return;
-    const newRemaining = Math.max(0, getLoanRemainingAmount(loan, payments) - amount);
+    const calcRemaining = getLoanRemainingAmount(loan, payments);
+    const newRemaining = Math.max(0, calcRemaining - amount);
+
+    console.log("[addPartialPayment]", {
+      loanId, amount, loanRemainingAmount: loan.remainingAmount,
+      calcRemaining, newRemaining, balanceDelta: amount,
+    });
 
     await Promise.all([
       supabase.from("payments").insert({
