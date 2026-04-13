@@ -1633,7 +1633,7 @@ export function LoanList({ loans, payments, installmentSchedules, onPayment, onP
       if (sortBy === "amount") return b.amount - a.amount;
       return a.borrowerName.localeCompare(b.borrowerName);
     });
-  }, [loans, payments, search, category, dateFrom, dateTo, amountMin, amountMax, tagFilter, sortBy, dueDateQuick]);
+  }, [loans, payments, search, category, dateFrom, dateTo, amountMin, amountMax, tagFilter, sortBy, dueDateQuick, view]);
 
   const folderCount = useMemo(() => {
     const byName: Record<string, number> = {};
