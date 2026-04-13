@@ -767,24 +767,24 @@ function SalesList({ sales, onDeleteSale, onUpdateSale, clients = [], hideOnTrac
       </div>
 
       {/* View toggle */}
-      <div className="flex items-center gap-2">
-        <div className="bg-muted/50 rounded-xl p-1 flex gap-0.5">
+      <div className="w-full">
+        <div className="bg-muted/50 rounded-xl p-1 flex gap-0.5 w-full">
           <button onClick={() => setView("cards")}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 ${
+            className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-all duration-200 ${
               view === "cards" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
             }`}
           >
             <LayoutGrid className="h-3.5 w-3.5" />Cards
           </button>
           <button onClick={() => setView("list")}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 ${
+            className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-all duration-200 ${
               view === "list" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
             }`}
           >
             <List className="h-3.5 w-3.5" />Lista
           </button>
           <button onClick={() => setView("folders")}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 ${
+            className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-all duration-200 ${
               view === "folders" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
             }`}
           >
