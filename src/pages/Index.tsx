@@ -1,5 +1,5 @@
-import { useRef, useState, useEffect } from "react";
-import { Plus, HandCoins, Users, LayoutDashboard, Download, Upload, ShoppingBag, BarChart3, AlertTriangle, Receipt, CalendarDays, Sun, Moon, LogOut, Info, X, Eye, EyeOff, Car, Wrench, DatabaseBackup } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Plus, HandCoins, Users, LayoutDashboard, ShoppingBag, BarChart3, AlertTriangle, Receipt, CalendarDays, Sun, Moon, LogOut, Info, X, Eye, EyeOff, Car, Wrench, DatabaseBackup } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
@@ -21,10 +21,6 @@ import { useLoans } from "@/hooks/useLoans";
 import { useClients } from "@/hooks/useClients";
 import { useProducts } from "@/hooks/useProducts";
 import { useExpenses } from "@/hooks/useExpenses";
-import {
-  exportLoansToCSV, exportClientsToCSV, exportSalesToCSV,
-  importLoansFromCSV, importClientsFromCSV, importSalesFromCSV, downloadCSV,
-} from "@/lib/csv";
 import { toast } from "sonner";
 import { HideValuesProvider, useHideValues } from "@/contexts/HideValuesContext";
 import { UserManagement } from "@/components/UserManagement";
@@ -63,7 +59,7 @@ const tabHelp: Record<Tab, { title: string; items: string[] }> = {
       "Registre pagamentos de parcela, juros ou pagamentos parciais.",
       "Clique em 'Mais detalhes' para ver o cronograma completo de parcelas.",
       "Use os filtros e etiquetas para organizar seus contratos.",
-      "Importe/Exporte dados via CSV.",
+      
     ],
   },
   calendar: {
@@ -81,7 +77,7 @@ const tabHelp: Record<Tab, { title: string; items: string[] }> = {
       "Cadastre seus clientes com nome, CPF/CNPJ, telefone e endereço.",
       "Use o score para classificar a confiabilidade do cliente.",
       "Clientes inativos não aparecem na lista de novos empréstimos.",
-      "Importe/Exporte clientes via CSV.",
+      
     ],
   },
   products: {
@@ -183,7 +179,7 @@ const Index = () => {
     }
     return true;
   });
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  
 
   // Apply dark class to html element
   useState(() => {
@@ -197,70 +193,6 @@ const Index = () => {
     localStorage.setItem("hvcred-theme", next ? "dark" : "light");
   };
 
-  const handleExport = () => {
-    if (tab === "dashboard") {
-      if (loans.length === 0) return toast.error("Nenhum empréstimo para exportar");
-      downloadCSV(exportLoansToCSV(loans, payments), "emprestimos.csv");
-      toast.success("Empréstimos exportados com sucesso!");
-    } else if (tab === "clients") {
-      if (clients.length === 0) return toast.error("Nenhum cliente para exportar");
-      downloadCSV(exportClientsToCSV(clients), "clientes.csv");
-      toast.success("Clientes exportados com sucesso!");
-    } else if (tab === "products") {
-      const filtered = sales.filter(s => s.businessType !== "aluguel_veiculo");
-      if (filtered.length === 0) return toast.error("Nenhuma venda para exportar");
-      downloadCSV(exportSalesToCSV(filtered), "vendas.csv");
-      toast.success("Vendas exportadas com sucesso!");
-    } else if (tab === "vehicles") {
-      const filtered = sales.filter(s => s.businessType === "aluguel_veiculo");
-      if (filtered.length === 0) return toast.error("Nenhum aluguel para exportar");
-      downloadCSV(exportSalesToCSV(filtered), "alugueis_veiculos.csv");
-      toast.success("Aluguéis exportados com sucesso!");
-    }
-  };
-
-  const handleImport = () => fileInputRef.current?.click();
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = async (evt) => {
-      const csv = evt.target?.result as string;
-      try {
-        if (tab === "dashboard") {
-          const imported = importLoansFromCSV(csv);
-          if (imported.length === 0) throw new Error();
-          const BATCH = 5;
-          for (let i = 0; i < imported.length; i += BATCH) {
-            const batch = imported.slice(i, i + BATCH);
-            await Promise.all(batch.map(async (loan) => {
-              const { totalPaid, ...loanData } = loan;
-              const loanId = await addLoan(loanData);
-              if (loanId && totalPaid && totalPaid > 0) {
-                await addPartialPayment(loanId, totalPaid, loan.startDate);
-              }
-            }));
-          }
-          toast.success(`${imported.length} empréstimo(s) importado(s)!`);
-        } else if (tab === "clients") {
-          const imported = importClientsFromCSV(csv);
-          if (imported.length === 0) throw new Error();
-          await Promise.all(imported.map((client) => addClient(client)));
-          toast.success(`${imported.length} cliente(s) importado(s)!`);
-        } else if (tab === "products") {
-          const imported = importSalesFromCSV(csv);
-          if (imported.length === 0) throw new Error();
-          await Promise.all(imported.map((sale) => addSale(sale)));
-          toast.success(`${imported.length} venda(s) importada(s)!`);
-        }
-      } catch {
-        toast.error("Erro ao importar CSV.");
-      }
-    };
-    reader.readAsText(file);
-    e.target.value = "";
-  };
 
   const handlePrimaryAction = () => {
     if (tab === "dashboard") setShowLoanForm(true);
@@ -279,7 +211,7 @@ const Index = () => {
   return (
     <HideValuesProvider>
     <div className="min-h-screen bg-background">
-      <input type="file" ref={fileInputRef} accept=".csv" className="hidden" onChange={handleFileChange} />
+      
 
       <header className="border-b border-border/30 glass sticky top-0 z-40">
         <div className="container mx-auto px-3 sm:px-4 py-2 sm:py-3 flex items-center justify-between gap-2">
@@ -320,16 +252,6 @@ const Index = () => {
             <Button variant="ghost" size="icon" onClick={signOut} className="h-8 w-8 sm:h-9 sm:w-9" title="Sair">
               <LogOut className="h-4 w-4" />
             </Button>
-            {!isReadOnly && (tab === "dashboard" || tab === "clients" || tab === "products" || tab === "vehicles") && (
-              <>
-                <Button variant="outline" size="sm" onClick={handleImport} className="h-8 px-2 sm:px-3">
-                  <Upload className="h-4 w-4 sm:mr-1" /><span className="hidden sm:inline">Importar</span>
-                </Button>
-                <Button variant="outline" size="sm" onClick={handleExport} className="h-8 px-2 sm:px-3">
-                  <Download className="h-4 w-4 sm:mr-1" /><span className="hidden sm:inline">Exportar</span>
-                </Button>
-              </>
-            )}
             {!isReadOnly && tab === "vehicles" && (
               <Button variant="outline" size="sm" onClick={() => setShowVehicleExpenseForm(true)} className="h-8 px-2 sm:px-3">
                 <Receipt className="h-4 w-4 sm:mr-1" /><span className="hidden sm:inline">Registrar Despesa</span>
