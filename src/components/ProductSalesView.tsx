@@ -1470,7 +1470,7 @@ export function ProductSalesView({ sales, onDeleteSale, onUpdateSale, clients = 
         />
 
         {/* Vehicle Expenses Section */}
-        {onAddExpense && (
+        {!readOnly && onAddExpense && (
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <h3 className="text-lg font-semibold text-foreground flex items-center gap-2">
