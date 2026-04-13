@@ -126,10 +126,8 @@ export function SaleForm({ onAdd, onClose, defaultBusinessType = "venda", client
 
   const frequencyOptions = isVehicleRental
     ? [
-        { value: "Diário", label: "Diário" },
+        { value: "Diário", label: "Diária" },
         { value: "Semanal", label: "Semanal" },
-        { value: "Quinzenal", label: "Quinzenal" },
-        { value: "Mensal", label: "Mensal" },
       ]
     : [
         { value: "Semanal", label: "Semanal" },
