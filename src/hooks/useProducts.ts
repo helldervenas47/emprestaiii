@@ -50,7 +50,7 @@ export function useProducts() {
           installmentAmounts: (s as any).installment_amounts || null,
           installmentDates: (s as any).installment_dates || null,
           partialPaid: Number((s as any).partial_paid) || 0,
-          paymentHistory: (Array.isArray(s.payment_history) ? s.payment_history : []) as SalePaymentRecord[],
+          paymentHistory: (Array.isArray(s.payment_history) ? s.payment_history : []) as unknown as SalePaymentRecord[],
         })));
       }
       setLoading(false);
