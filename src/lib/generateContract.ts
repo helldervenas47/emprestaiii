@@ -1,5 +1,7 @@
 import { Sale, Client } from "@/types/loan";
 import { format, addMonths, addWeeks, addDays } from "date-fns";
+import { LocadorInfo } from "@/hooks/useLocadorInfo";
+import { VehicleInfo } from "@/hooks/useVehicleRegistry";
 
 function addByFrequency(date: Date, frequency: string, n: number): Date {
   if (frequency === "Semanal") return addWeeks(date, n);
@@ -57,7 +59,7 @@ function numberToWords(n: number): string {
   return result;
 }
 
-export function generateContract(sale: Sale, client?: Client) {
+export function generateContract(sale: Sale, client?: Client, locador?: LocadorInfo, vehicle?: VehicleInfo) {
   const isRecorrente = sale.paymentMode === "recorrente" && sale.installments > 1;
   const defaultValorParcela = sale.installments > 0
     ? Math.max(0, sale.total - (sale.downPayment || 0)) / sale.installments
