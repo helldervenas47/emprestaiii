@@ -682,7 +682,7 @@ function getSalePaidAmountHelper(s: Sale): number {
 }
 
 function SaleClientFolder({
-  group, onDeleteSale, onUpdateSale, formatCurrency, onEdit, readOnly = false,
+  group, onDeleteSale, onUpdateSale, formatCurrency, onEdit, readOnly = false, clients = [],
 }: {
   group: SaleClientGroup;
   onDeleteSale: (id: string) => void;
@@ -690,6 +690,7 @@ function SaleClientFolder({
   formatCurrency: (v: number) => string;
   onEdit: (sale: Sale) => void;
   readOnly?: boolean;
+  clients?: Client[];
 }) {
   const [open, setOpen] = useState(false);
   const activeCount = group.sales.filter((s) => getSaleCategory(s) !== "paid").length;
