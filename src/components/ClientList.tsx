@@ -236,7 +236,7 @@ export function ClientList({ clients, loans, payments, onDelete, onUpdate }: Pro
             const cs = creditScores[client.id];
             return (
             <div key={client.id} className="animate-fade-in" style={{ animationDelay: `${i * 60}ms`, animationFillMode: 'backwards' }}>
-            <Card className={`hover:shadow-[0_8px_24px_-6px_hsl(0_0%_0%/0.15)] hover:-translate-y-0.5 transition-all duration-300 ${!client.active ? "opacity-60" : ""}`}>
+            <Card className={`hover:shadow-[0_4px_16px_-6px_hsl(0_0%_0%/0.08)] hover:-translate-y-[1px] transition-all duration-400 ease-out ${!client.active ? "opacity-60" : ""}`}>
               <CardContent className="p-5">
                 {editingId === client.id ? (
                   <div className="space-y-3">

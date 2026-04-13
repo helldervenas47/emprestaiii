@@ -122,7 +122,7 @@ function SaleCard({ sale, onDelete, onEdit, onUpdate, formatCurrency }: { sale: 
   });
 
   return (
-    <Card no3d className={`overflow-hidden hover:shadow-[0_8px_24px_-6px_hsl(0_0%_0%/0.15)] hover:-translate-y-0.5 transition-all duration-300 border ${catStyle.border} ${catStyle.bg} h-full flex flex-col`}>
+    <Card no3d className={`overflow-hidden hover:shadow-[0_4px_16px_-6px_hsl(0_0%_0%/0.08)] hover:-translate-y-[1px] transition-all duration-400 ease-out border ${catStyle.border} ${catStyle.bg} h-full flex flex-col`}>
       {/* Customer header - fixed */}
       <div className={`border-b px-4 py-2.5 text-center ${catStyle.header}`}>
         <h3 className="font-bold text-foreground text-sm truncate">{sale.customerName || sale.description || sale.productName}</h3>
@@ -898,7 +898,7 @@ function SalesList({ sales, onDeleteSale, onUpdateSale, clients = [], hideOnTrac
     <div className="space-y-4">
       {/* Dashboard cards */}
       <div className={`grid ${hideOnTrackCard ? 'grid-cols-3' : 'grid-cols-2 lg:grid-cols-4'} gap-2 sm:gap-3`}>
-        <div className="rounded-2xl p-3 sm:p-4 bg-card border border-border/20 shadow-[0_2px_12px_-4px_hsl(0_0%_0%/0.08)] animate-fade-in flex flex-col items-center text-center" style={{ animationDelay: '0ms', animationFillMode: 'backwards' }}>
+        <div className="rounded-2xl p-3 sm:p-4 bg-card border border-border/20 shadow-[0_1px_8px_-4px_hsl(0_0%_0%/0.05)] animate-fade-in flex flex-col items-center text-center" style={{ animationDelay: '0ms', animationFillMode: 'backwards' }}>
           <div className="h-8 w-8 rounded-lg bg-destructive/10 flex items-center justify-center mb-2">
             <AlertTriangle className="h-4 w-4 text-destructive" />
           </div>
@@ -907,7 +907,7 @@ function SalesList({ sales, onDeleteSale, onUpdateSale, clients = [], hideOnTrac
           <p className="text-[10px] text-muted-foreground mt-1">{overdueSales.length} contratos</p>
         </div>
         {!hideOnTrackCard && (
-          <div className="rounded-2xl p-3 sm:p-4 bg-card border border-border/20 shadow-[0_2px_12px_-4px_hsl(0_0%_0%/0.08)] animate-fade-in flex flex-col items-center text-center" style={{ animationDelay: '80ms', animationFillMode: 'backwards' }}>
+          <div className="rounded-2xl p-3 sm:p-4 bg-card border border-border/20 shadow-[0_1px_8px_-4px_hsl(0_0%_0%/0.05)] animate-fade-in flex flex-col items-center text-center" style={{ animationDelay: '80ms', animationFillMode: 'backwards' }}>
             <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center mb-2">
               <Clock className="h-4 w-4 text-primary" />
             </div>
@@ -916,7 +916,7 @@ function SalesList({ sales, onDeleteSale, onUpdateSale, clients = [], hideOnTrac
             <p className="text-[10px] text-muted-foreground mt-1">{onTrackSales.length + dueTodaySales.length} contratos</p>
           </div>
         )}
-        <div className="rounded-2xl p-3 sm:p-4 bg-card border border-border/20 shadow-[0_2px_12px_-4px_hsl(0_0%_0%/0.08)] animate-fade-in flex flex-col items-center text-center" style={{ animationDelay: '160ms', animationFillMode: 'backwards' }}>
+        <div className="rounded-2xl p-3 sm:p-4 bg-card border border-border/20 shadow-[0_1px_8px_-4px_hsl(0_0%_0%/0.05)] animate-fade-in flex flex-col items-center text-center" style={{ animationDelay: '160ms', animationFillMode: 'backwards' }}>
           <div className="h-8 w-8 rounded-lg bg-success/10 flex items-center justify-center mb-2">
             <CircleCheck className="h-4 w-4 text-success" />
           </div>
@@ -924,7 +924,7 @@ function SalesList({ sales, onDeleteSale, onUpdateSale, clients = [], hideOnTrac
           <p className="text-sm sm:text-xl font-bold text-success mt-0.5">{formatCurrency(totalPaid)}</p>
           <p className="text-[10px] text-muted-foreground mt-1">{paidContractsCount} contratos quitados</p>
         </div>
-        <div className="rounded-2xl p-3 sm:p-4 bg-card border border-border/20 shadow-[0_2px_12px_-4px_hsl(0_0%_0%/0.08)] animate-fade-in flex flex-col items-center text-center" style={{ animationDelay: '240ms', animationFillMode: 'backwards' }}>
+        <div className="rounded-2xl p-3 sm:p-4 bg-card border border-border/20 shadow-[0_1px_8px_-4px_hsl(0_0%_0%/0.05)] animate-fade-in flex flex-col items-center text-center" style={{ animationDelay: '240ms', animationFillMode: 'backwards' }}>
           <div className="h-8 w-8 rounded-lg bg-warning/10 flex items-center justify-center mb-2">
             <DollarSign className="h-4 w-4 text-warning" />
           </div>
@@ -1508,7 +1508,7 @@ export function ProductSalesView({ sales, onDeleteSale, onUpdateSale, clients = 
                   const installmentAmount = isRecorrente ? exp.amount / exp.installments! : exp.amount;
 
                   return (
-                    <Card key={exp.id} className={`${exp.paid ? "opacity-60" : ""} hover:shadow-[0_8px_24px_-6px_hsl(0_0%_0%/0.15)] hover:-translate-y-0.5 transition-all duration-300 animate-fade-in`} style={{ animationDelay: `${idx * 50}ms`, animationFillMode: 'backwards' }}>
+                    <Card key={exp.id} className={`${exp.paid ? "opacity-60" : ""} hover:shadow-[0_4px_16px_-6px_hsl(0_0%_0%/0.08)] hover:-translate-y-[1px] transition-all duration-400 ease-out animate-fade-in`} style={{ animationDelay: `${idx * 50}ms`, animationFillMode: 'backwards' }}>
                       <CardContent className="p-4">
                         <div className="flex items-start gap-3">
                           <div className="flex-1 min-w-0">

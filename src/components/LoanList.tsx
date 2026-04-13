@@ -560,7 +560,7 @@ function LoanCardView({
 
   return (
     <>
-    <Card no3d={no3d} className={`overflow-hidden hover:shadow-[0_8px_24px_-6px_hsl(0_0%_0%/0.15)] hover:-translate-y-0.5 transition-all duration-300 h-full flex flex-col border ${cardBorder} ${cardBg}`}>
+    <Card no3d={no3d} className={`overflow-hidden hover:shadow-[0_4px_16px_-6px_hsl(0_0%_0%/0.08)] hover:-translate-y-[1px] transition-all duration-400 ease-out h-full flex flex-col border ${cardBorder} ${cardBg}`}>
       {/* Client Name Header */}
       <div className={`border-b px-4 py-3 text-center ${headerBg}`}>
         <h3 className="font-bold text-foreground text-lg">{loan.borrowerName}</h3>
@@ -1982,7 +1982,7 @@ export function LoanList({ loans, payments, installmentSchedules, onPayment, onP
             </div>
             </>
           ) : (
-            <div className="rounded-2xl border border-border/30 overflow-hidden shadow-[0_2px_12px_-4px_hsl(0_0%_0%/0.08)]">
+            <div className="rounded-2xl border border-border/30 overflow-hidden shadow-[0_1px_8px_-4px_hsl(0_0%_0%/0.05)]">
               <div className="px-4 py-2 flex items-center justify-between border-b border-border/30 bg-muted/30">
                 <span className="text-sm text-muted-foreground">{categorized.length} empréstimos</span>
               </div>

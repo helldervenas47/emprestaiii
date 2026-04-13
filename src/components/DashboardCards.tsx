@@ -32,7 +32,7 @@ export function DashboardCards({ loans, payments }: Props) {
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
       {cards.map((card, i) => (
-        <div key={card.title} className={`rounded-2xl p-5 bg-card border border-border/20 shadow-[0_2px_12px_-4px_hsl(0_0%_0%/0.08)] backdrop-blur-sm ${card.glowClass} transition-all duration-300 hover:shadow-[0_8px_24px_-6px_hsl(0_0%_0%/0.15)] hover:-translate-y-0.5 text-center animate-fade-in`} style={{ animationDelay: `${i * 80}ms`, animationFillMode: 'backwards' }}>
+        <div key={card.title} className={`rounded-2xl p-5 bg-card border border-border/20 shadow-[0_1px_8px_-4px_hsl(0_0%_0%/0.05)] backdrop-blur-sm ${card.glowClass} transition-all duration-400 ease-out hover:shadow-[0_4px_16px_-6px_hsl(0_0%_0%/0.08)] hover:-translate-y-[1px] text-center animate-fade-in`} style={{ animationDelay: `${i * 80}ms`, animationFillMode: 'backwards' }}>
           <div className="flex items-center justify-center mb-3">
             <div className={`h-8 w-8 rounded-lg ${card.bgClass} flex items-center justify-center`}>
               <card.icon className={`h-4 w-4 ${card.accentClass}`} />
