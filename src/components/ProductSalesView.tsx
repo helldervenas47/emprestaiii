@@ -39,6 +39,7 @@ interface Props {
   onPayExpense?: (id: string, skipBalanceAdjust?: boolean) => void;
   onDeleteExpense?: (id: string, skipBalanceAdjust?: boolean) => void;
   onUpdateExpense?: (id: string, data: Partial<Omit<Expense, "id" | "createdAt">>) => void;
+  readOnly?: boolean;
 }
 
 function rawFormatCurrency(v: number) {
@@ -84,7 +85,7 @@ const saleCategoryConfig = {
   on_track: { label: "Em Dia", badge: "bg-primary/20 text-primary border-primary/30", border: "border-primary/50", bg: "bg-card", header: "bg-primary/8 border-border/50" },
 };
 
-function SaleCard({ sale, onDelete, onEdit, onUpdate, formatCurrency }: { sale: Sale; onDelete: () => void; onEdit: () => void; onUpdate: (data: Partial<Omit<Sale, "id">>) => void; formatCurrency: (v: number) => string }) {
+function SaleCard({ sale, onDelete, onEdit, onUpdate, formatCurrency, readOnly = false }: { sale: Sale; onDelete: () => void; onEdit: () => void; onUpdate: (data: Partial<Omit<Sale, "id">>) => void; formatCurrency: (v: number) => string; readOnly?: boolean }) {
   const [showPartial, setShowPartial] = useState(false);
   const [partialAmount, setPartialAmount] = useState("");
   const [partialDate, setPartialDate] = useState<Date | undefined>(undefined);
@@ -388,6 +389,7 @@ function SaleCard({ sale, onDelete, onEdit, onUpdate, formatCurrency }: { sale: 
                 </DialogContent>
               </Dialog>
 
+              {!readOnly && (
               <div className="flex gap-2">
                 <Popover open={showPayDatePicker} onOpenChange={setShowPayDatePicker}>
                   <PopoverTrigger asChild>
@@ -432,6 +434,7 @@ function SaleCard({ sale, onDelete, onEdit, onUpdate, formatCurrency }: { sale: 
                   <HandCoins className="h-3.5 w-3.5 mr-1" /> Pagar Parcial
                 </Button>
               </div>
+              )}
             </>
           )}
 
@@ -452,12 +455,16 @@ function SaleCard({ sale, onDelete, onEdit, onUpdate, formatCurrency }: { sale: 
               <Button size="icon" variant="ghost" className="h-8 w-8 text-success hover:bg-success/10" onClick={() => setShowPayments(true)} title="Ver Pagamentos">
                 <CircleCheck className="h-4 w-4" />
               </Button>
-              <Button size="icon" variant="ghost" className="h-8 w-8 text-muted-foreground hover:bg-accent hover:text-foreground" onClick={onEdit}>
-                <Pencil className="h-4 w-4" />
-              </Button>
-              <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive hover:bg-destructive hover:text-destructive-foreground" onClick={onDelete}>
-                <Trash2 className="h-4 w-4" />
-              </Button>
+              {!readOnly && (
+                <>
+                  <Button size="icon" variant="ghost" className="h-8 w-8 text-muted-foreground hover:bg-accent hover:text-foreground" onClick={onEdit}>
+                    <Pencil className="h-4 w-4" />
+                  </Button>
+                  <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive hover:bg-destructive hover:text-destructive-foreground" onClick={onDelete}>
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </>
+              )}
             </div>
           </div>
         </div>
@@ -482,11 +489,12 @@ function getNextInstallmentValueHelper(s: Sale): number {
   return s.installments > 0 ? Math.max(0, s.total - (s.downPayment || 0)) / s.installments : s.total;
 }
 
-function SaleListRow({ sale, onEdit, onUpdate, formatCurrency }: {
+function SaleListRow({ sale, onEdit, onUpdate, formatCurrency, readOnly = false }: {
   sale: Sale;
   onEdit: () => void;
   onUpdate: (data: Partial<Omit<Sale, "id">>) => void;
   formatCurrency: (v: number) => string;
+  readOnly?: boolean;
 }) {
   const [showPartial, setShowPartial] = useState(false);
   const [partialAmount, setPartialAmount] = useState("");
@@ -529,7 +537,7 @@ function SaleListRow({ sale, onEdit, onUpdate, formatCurrency }: {
         </div>
       </button>
 
-      {!isPaid && (
+      {!isPaid && !readOnly && (
         <div className="flex items-center gap-1 shrink-0">
           {/* Pay installment */}
           <Popover open={showPayDatePicker} onOpenChange={setShowPayDatePicker}>
@@ -670,13 +678,14 @@ function getSalePaidAmountHelper(s: Sale): number {
 }
 
 function SaleClientFolder({
-  group, onDeleteSale, onUpdateSale, formatCurrency, onEdit,
+  group, onDeleteSale, onUpdateSale, formatCurrency, onEdit, readOnly = false,
 }: {
   group: SaleClientGroup;
   onDeleteSale: (id: string) => void;
   onUpdateSale: (id: string, data: Partial<Omit<Sale, "id">>) => void;
   formatCurrency: (v: number) => string;
   onEdit: (sale: Sale) => void;
+  readOnly?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const activeCount = group.sales.filter((s) => getSaleCategory(s) !== "paid").length;
@@ -744,6 +753,7 @@ function SaleClientFolder({
                 onEdit={() => onEdit(sale)}
                 onUpdate={(data) => onUpdateSale(sale.id, data)}
                 formatCurrency={formatCurrency}
+                readOnly={readOnly}
               />
             ))}
           </div>
@@ -753,7 +763,7 @@ function SaleClientFolder({
   );
 }
 
-function SalesList({ sales, onDeleteSale, onUpdateSale, clients = [], hideOnTrackCard = false, renderAfterCards }: { sales: Sale[]; onDeleteSale: (id: string) => void; onUpdateSale: (id: string, data: Partial<Omit<Sale, "id">>) => void; clients?: Client[]; hideOnTrackCard?: boolean; renderAfterCards?: React.ReactNode }) {
+function SalesList({ sales, onDeleteSale, onUpdateSale, clients = [], hideOnTrackCard = false, renderAfterCards, readOnly = false }: { sales: Sale[]; onDeleteSale: (id: string) => void; onUpdateSale: (id: string, data: Partial<Omit<Sale, "id">>) => void; clients?: Client[]; hideOnTrackCard?: boolean; renderAfterCards?: React.ReactNode; readOnly?: boolean }) {
   const [editingSale, setEditingSale] = useState<Sale | null>(null);
   const [search, setSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState<SaleCategory>("all");
@@ -1011,6 +1021,7 @@ function SalesList({ sales, onDeleteSale, onUpdateSale, clients = [], hideOnTrac
                 onUpdateSale={onUpdateSale}
                 formatCurrency={formatCurrency}
                 onEdit={setEditingSale}
+                readOnly={readOnly}
               />
             ))}
           </div>
@@ -1030,6 +1041,7 @@ function SalesList({ sales, onDeleteSale, onUpdateSale, clients = [], hideOnTrac
                 onEdit={() => setEditingSale(sale)}
                 onUpdate={(data) => onUpdateSale(sale.id, data)}
                 formatCurrency={formatCurrency}
+                readOnly={readOnly}
               />
             ))}
           </div>
@@ -1044,6 +1056,7 @@ function SalesList({ sales, onDeleteSale, onUpdateSale, clients = [], hideOnTrac
               onEdit={() => setEditingSale(sale)}
               onUpdate={(data) => onUpdateSale(sale.id, data)}
               formatCurrency={formatCurrency}
+              readOnly={readOnly}
             />
             </div>
           ))}
@@ -1189,7 +1202,7 @@ function VehicleExpenseEditDialog({ expense, open, onOpenChange, onSave, formatC
   );
 }
 
-export function ProductSalesView({ sales, onDeleteSale, onUpdateSale, clients = [], expenses = [], onAddExpense, onPayExpense, onDeleteExpense, onUpdateExpense }: Props) {
+export function ProductSalesView({ sales, onDeleteSale, onUpdateSale, clients = [], expenses = [], onAddExpense, onPayExpense, onDeleteExpense, onUpdateExpense, readOnly = false }: Props) {
   const [showVehicleExpenseForm, setShowVehicleExpenseForm] = useState(false);
   const { mask } = useHideValues();
   const formatCurrency = useCallback((v: number) => mask(rawFormatCurrency(v)), [mask]);
@@ -1451,6 +1464,7 @@ export function ProductSalesView({ sales, onDeleteSale, onUpdateSale, clients = 
           clients={clients}
           hideOnTrackCard
           renderAfterCards={secondaryCards}
+          readOnly={readOnly}
         />
 
         {/* Vehicle Expenses Section */}
@@ -1540,7 +1554,7 @@ export function ProductSalesView({ sales, onDeleteSale, onUpdateSale, clients = 
                                     Pagamentos
                                   </Button>
                                 )}
-                                {!exp.paid && onPayExpense && (
+                                {!readOnly && !exp.paid && onPayExpense && (
                                   <Button size="sm" variant="outline" onClick={() => handleVehiclePayExpense(exp.id)} className="h-7 text-xs">
                                     <CheckCircle className="h-3.5 w-3.5 mr-1" />
                                     Pagar
@@ -1674,6 +1688,7 @@ export function ProductSalesView({ sales, onDeleteSale, onUpdateSale, clients = 
             onDeleteSale={onDeleteSale}
             onUpdateSale={onUpdateSale}
             clients={clients}
+            readOnly={readOnly}
           />
         </TabsContent>
       ))}

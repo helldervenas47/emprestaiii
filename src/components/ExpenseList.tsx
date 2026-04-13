@@ -17,6 +17,7 @@ interface Props {
   onPay: (id: string) => void;
   onUnpay?: (id: string) => void;
   onDelete: (id: string) => void;
+  readOnly?: boolean;
 }
 
 type Filter = "all" | "pending" | "paid" | "overdue";
@@ -31,7 +32,7 @@ function isOverdue(expense: Expense): boolean {
   return expense.dueDate < today;
 }
 
-export function ExpenseList({ expenses, onPay, onUnpay, onDelete }: Props) {
+export function ExpenseList({ expenses, onPay, onUnpay, onDelete, readOnly = false }: Props) {
   const { mask } = useHideValues();
   const formatCurrency = useCallback((v: number) => mask(rawFormatCurrency(v)), [mask]);
   const [search, setSearch] = useState("");
@@ -219,20 +220,22 @@ export function ExpenseList({ expenses, onPay, onUnpay, onDelete }: Props) {
                       <div className="flex items-center justify-between mt-2 pt-2 border-t border-border/40">
                         <p className="text-base sm:text-lg font-bold text-foreground">{formatCurrency(expense.amount)}</p>
                         <div className="flex items-center gap-1">
-                          {!expense.paid && (
+                          {!readOnly && !expense.paid && (
                             <Button size="sm" variant="outline" className="text-success border-success/30 hover:bg-success hover:text-success-foreground h-7 text-xs" onClick={() => onPay(expense.id)}>
                               <CheckCircle className="h-3.5 w-3.5 mr-1" />
                               {expense.type === "recorrente" && expense.installments && expense.installments > 1 ? "Pagar" : "Pagar"}
                             </Button>
                           )}
-                          {onUnpay && ((expense.type === "recorrente" && (expense.paidInstallments || 0) > 0) || expense.paid) && (
+                          {!readOnly && onUnpay && ((expense.type === "recorrente" && (expense.paidInstallments || 0) > 0) || expense.paid) && (
                             <Button size="icon" variant="ghost" className="h-7 w-7 text-warning hover:bg-warning hover:text-warning-foreground" onClick={() => onUnpay(expense.id)} title="Desfazer último pagamento">
                               <Undo2 className="h-3.5 w-3.5" />
                             </Button>
                           )}
+                          {!readOnly && (
                           <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive hover:bg-destructive hover:text-destructive-foreground" onClick={() => onDelete(expense.id)}>
                             <Trash2 className="h-3.5 w-3.5" />
                           </Button>
+                          )}
                         </div>
                       </div>
                     </div>
