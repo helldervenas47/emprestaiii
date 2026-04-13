@@ -1102,6 +1102,7 @@ function LoanRowView({
   onDeletePayment: (paymentId: string) => void;
   readOnly?: boolean;
 }) {
+  const [expanded, setExpanded] = useState(false);
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState<EditForm>(loanToForm(loan));
   const { mask } = useHideValues();
