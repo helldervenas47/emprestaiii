@@ -29,6 +29,9 @@ import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
 
 import { VehicleExpenseForm, vehicleExpenseCategories } from "@/components/VehicleExpenseForm";
+import { VehicleLocadorManager } from "@/components/VehicleLocadorManager";
+import { useLocadorInfo, LocadorInfo } from "@/hooks/useLocadorInfo";
+import { useVehicleRegistry, VehicleInfo } from "@/hooks/useVehicleRegistry";
 
 interface Props {
   sales: Sale[];
