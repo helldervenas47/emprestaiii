@@ -312,6 +312,18 @@ export function UserManagement() {
                       <div className="space-y-1 text-sm">
                         <p className="text-muted-foreground"><span className="font-medium text-foreground">Email:</span> {user.email}</p>
                         <div className="flex items-center gap-2">
+                          <span className="font-medium text-foreground">Status:</span>
+                          <div className="flex items-center gap-1.5">
+                            <Switch
+                              checked={user.is_active}
+                              onCheckedChange={(checked) => handleToggleActive(user.id, checked)}
+                            />
+                            <span className={`text-xs ${user.is_active ? "text-success" : "text-destructive"}`}>
+                              {user.is_active ? "Ativo" : "Inativo"}
+                            </span>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
                           <span className="font-medium text-foreground">Papel:</span>
                           <Select value={user.role || ""} onValueChange={(val) => handleUpdateRole(user.id, val)}>
                             <SelectTrigger className="w-[130px] h-7 text-xs">
