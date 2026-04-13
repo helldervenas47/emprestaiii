@@ -535,7 +535,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, onDeletePa
           <Card key={item.label}>
             <CardContent className="p-3 sm:p-4 flex flex-col items-center text-center">
               <div className={`h-8 w-8 rounded-lg ${item.iconBg} flex items-center justify-center mb-2`}>
-                <CircleDollarSign className={`h-4 w-4 ${item.iconColor}`} />
+                <DollarSign className={`h-4 w-4 ${item.iconColor}`} />
               </div>
               <p className="text-[10px] sm:text-xs text-muted-foreground">{item.label}</p>
               <p className={`text-sm sm:text-lg font-bold ${item.color} mt-0.5`}>{item.value}</p>
