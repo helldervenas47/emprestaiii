@@ -147,7 +147,7 @@ const Index = () => {
   const { loans, payments, installmentSchedules, addLoan, addPayment, addPartialPayment, addInterestOnlyPayment, updateLoan, deleteLoan, deletePayment, saveSchedule } = useLoans();
   const { clients, addClient, deleteClient, updateClient } = useClients();
   const { products, sales, addProduct, updateProduct, deleteProduct, addSale, updateSale, deleteSale } = useProducts();
-  const { expenses, addExpense, payExpense, deleteExpense, updateExpense } = useExpenses();
+  const { expenses, addExpense, payExpense, unpayExpense, deleteExpense, updateExpense } = useExpenses();
   const nonVehicleExpenses = expenses.filter(e => !vehicleExpenseCategories.includes(e.category));
   const [showLoanForm, setShowLoanForm] = useState(false);
   const [showClientForm, setShowClientForm] = useState(false);
@@ -344,7 +344,7 @@ const Index = () => {
         {tab === "expenses" && (
           <div>
             <h2 className="text-lg font-semibold text-foreground mb-4">Despesas ({nonVehicleExpenses.length})</h2>
-            <ExpenseList expenses={nonVehicleExpenses} onPay={payExpense} onDelete={deleteExpense} />
+            <ExpenseList expenses={nonVehicleExpenses} onPay={payExpense} onUnpay={unpayExpense} onDelete={deleteExpense} />
           </div>
         )}
         {tab === "overdue" && (
