@@ -88,16 +88,6 @@ export function generateContract(sale: Sale) {
 
   const frequencyLabel = sale.frequency === "Semanal" ? "semana" : sale.frequency === "Quinzenal" ? "quinzena" : sale.frequency === "Diário" ? "dia" : "mês";
 
-  const parcelasSection = parcelas.length > 1 ? `
-    <h3>Plano de Parcelas</h3>
-    <table>
-      <thead>
-        <tr><th>Parcela</th><th>Vencimento</th><th>Valor</th></tr>
-      </thead>
-      <tbody>
-        ${parcelas.map(p => `<tr><td>${p.number}ª</td><td>${p.date}</td><td class="right">${formatCurrencyBR(p.value)}</td></tr>`).join("")}
-      </tbody>
-    </table>` : "";
 
   const html = `<!DOCTYPE html>
 <html lang="pt-BR">
@@ -188,8 +178,8 @@ export function generateContract(sale: Sale) {
 <p>O presente contrato terá início em ${startDate} e término em ${endDate}, podendo ser renovado mediante novo acordo entre as partes.</p>
 
 <h2>CLÁUSULA 3ª – DO VALOR E FORMA DE PAGAMENTO</h2>
-<p>O valor da locação será de ${valorTotal} (${valorExtenso})${isRecorrente ? ` por ${frequencyLabel}` : ""}, a ser pago pelo LOCATÁRIO ao LOCADOR ${isRecorrente ? `conforme plano de parcelas abaixo` : `no momento de cada período contratado`}.</p>
-${parcelasSection}
+<p>O valor da locação será de ${valorTotal} (${valorExtenso})${isRecorrente ? ` por ${frequencyLabel}` : ""}, a ser pago pelo LOCATÁRIO ao LOCADOR no momento de cada período contratado.</p>
+
 
 <h2>CLÁUSULA 4ª – DAS OBRIGAÇÕES DO LOCADOR</h2>
 <p>O LOCADOR se obriga a:</p>
