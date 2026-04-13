@@ -878,7 +878,7 @@ export function ProductSalesView({ sales, onDeleteSale, onUpdateSale, clients = 
   const secondaryCards = (
     <div className="space-y-3">
       {/* Month filter - full width */}
-      <div className="flex items-center justify-between rounded-xl border p-3 bg-card">
+      <div className="flex items-center justify-center gap-2">
         <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => {
           const [y, m] = selectedMonth.split("-").map(Number);
           const prev = new Date(y, m - 2, 1);
@@ -887,7 +887,7 @@ export function ProductSalesView({ sales, onDeleteSale, onUpdateSale, clients = 
           <ChevronLeft className="h-4 w-4" />
         </Button>
         <button
-          className="text-sm font-medium text-foreground capitalize hover:text-primary transition-colors"
+          className="text-sm font-medium text-foreground min-w-[140px] text-center capitalize hover:text-primary transition-colors"
           onClick={() => {
             const n = new Date();
             setSelectedMonth(`${n.getFullYear()}-${String(n.getMonth() + 1).padStart(2, "0")}`);
