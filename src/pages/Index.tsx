@@ -296,7 +296,7 @@ const Index = () => {
                 <Receipt className="h-4 w-4 sm:mr-1" /><span className="hidden sm:inline">Registrar Despesa</span>
               </Button>
             )}
-            {!isReadOnly && tab !== "overview" && tab !== "overdue" && tab !== "calendar" && tab !== "users" && (
+            {!isReadOnly && tab !== "overview" && tab !== "overdue" && tab !== "calendar" && tab !== "users" && !(tab === "dashboard" && !isMobile) && (
               <Button onClick={handlePrimaryAction} size="sm" className="h-8 px-2 sm:px-3">
                 <Plus className="h-4 w-4 sm:mr-1" /><span className="hidden sm:inline">{primaryLabel}</span>
               </Button>
