@@ -855,9 +855,8 @@ function LoanCardView({
         )}
 
         {/* Action Buttons */}
-        {!readOnly && (
         <div className="flex flex-col gap-2 pt-2 border-t border-border/50 mt-auto">
-          {loan.status !== "paid" && (
+          {!readOnly && loan.status !== "paid" && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button className="w-full h-10 text-sm font-semibold gap-2">
@@ -918,7 +917,7 @@ function LoanCardView({
               </DropdownMenuContent>
             </DropdownMenu>
            )}
-          {loan.status !== "paid" && (
+          {!readOnly && loan.status !== "paid" && (
             <div className="flex gap-2">
               <Button variant="outline" size="sm" className="flex-1 h-9 text-xs gap-1.5" onClick={() => setShowLateInterest(!showLateInterest)}>
                 <Percent className="h-3.5 w-3.5" /> Juros por Atraso
@@ -928,7 +927,7 @@ function LoanCardView({
               </Button>
             </div>
           )}
-          {showLateInterest && (
+          {!readOnly && showLateInterest && (
             <div className="p-3 rounded-lg bg-muted border border-border/50 space-y-2">
               <p className="text-xs font-semibold text-foreground">Juros por Atraso</p>
               <div className="flex gap-2">
@@ -963,7 +962,7 @@ function LoanCardView({
               </div>
             </div>
           )}
-          {showPenalty && (
+          {!readOnly && showPenalty && (
             <div className="p-3 rounded-lg bg-muted border border-border/50 space-y-2">
               <p className="text-xs font-semibold text-foreground">Multa por Parcela (valor fixo único)</p>
               <Input
@@ -991,7 +990,7 @@ function LoanCardView({
             </div>
           )}
           <div className="flex items-center justify-center gap-1">
-            {loan.status === "paid" && (
+            {!readOnly && loan.status === "paid" && (
               <Button
                 size="icon" variant="ghost" className="h-8 w-8 text-success"
                 onClick={() => onUpdate({ status: "active", paidInstallments: 0 })}
@@ -1003,15 +1002,18 @@ function LoanCardView({
             <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => setShowHistory(true)} title="Histórico de Pagamentos">
               <History className="h-4 w-4 text-muted-foreground" />
             </Button>
-            <Button size="icon" variant="ghost" className="h-8 w-8" onClick={startEdit} title="Editar">
-              <Pencil className="h-4 w-4 text-muted-foreground" />
-            </Button>
-             <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive hover:bg-destructive hover:text-destructive-foreground" onClick={() => setConfirmDelete(true)} title="Excluir">
-               <Trash2 className="h-4 w-4" />
-             </Button>
+            {!readOnly && (
+              <>
+                <Button size="icon" variant="ghost" className="h-8 w-8" onClick={startEdit} title="Editar">
+                  <Pencil className="h-4 w-4 text-muted-foreground" />
+                </Button>
+                <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive hover:bg-destructive hover:text-destructive-foreground" onClick={() => setConfirmDelete(true)} title="Excluir">
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </>
+            )}
            </div>
         </div>
-        )}
       </CardContent>
     </Card>
     <Dialog open={!!paymentDialog} onOpenChange={(open) => !open && setPaymentDialog(null)}>
