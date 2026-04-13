@@ -18,6 +18,7 @@ interface Props {
   sales: Sale[];
   payments: Payment[];
   expenses: Expense[];
+  installmentSchedules?: InstallmentSchedule[];
   onDeletePayment?: (id: string) => void;
   onDeleteSale?: (id: string) => void;
   onDeleteLoan?: (id: string) => void;
