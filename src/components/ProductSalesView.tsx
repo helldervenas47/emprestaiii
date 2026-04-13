@@ -752,6 +752,7 @@ function SaleClientFolder({
                 onEdit={() => onEdit(sale)}
                 onUpdate={(data) => onUpdateSale(sale.id, data)}
                 formatCurrency={formatCurrency}
+                readOnly={readOnly}
               />
             ))}
           </div>
@@ -1038,6 +1039,7 @@ function SalesList({ sales, onDeleteSale, onUpdateSale, clients = [], hideOnTrac
                 onEdit={() => setEditingSale(sale)}
                 onUpdate={(data) => onUpdateSale(sale.id, data)}
                 formatCurrency={formatCurrency}
+                readOnly={readOnly}
               />
             ))}
           </div>
@@ -1052,6 +1054,7 @@ function SalesList({ sales, onDeleteSale, onUpdateSale, clients = [], hideOnTrac
               onEdit={() => setEditingSale(sale)}
               onUpdate={(data) => onUpdateSale(sale.id, data)}
               formatCurrency={formatCurrency}
+              readOnly={readOnly}
             />
             </div>
           ))}
