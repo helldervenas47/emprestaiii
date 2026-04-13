@@ -377,7 +377,7 @@ const Index = () => {
           <OverdueLoans loans={loans} clients={clients} installmentSchedules={installmentSchedules} />
         )}
         {tab === "calendar" && (
-          <BillingCalendar loans={loans} payments={payments} installmentSchedules={installmentSchedules} />
+          <BillingCalendar loans={loans} payments={payments} installmentSchedules={installmentSchedules} onPayment={addPayment} onPartialPayment={addPartialPayment} onInterestPayment={addInterestOnlyPayment} onUpdate={updateLoan} readOnly={isReadOnly} />
         )}
         {tab === "products" && (
           <ProductSalesView

@@ -1,16 +1,26 @@
 import { useState, useMemo, useCallback } from "react";
 import { useHideValues } from "@/contexts/HideValuesContext";
 import { Loan, Payment, InstallmentSchedule } from "@/types/loan";
-import { calculateInstallment } from "@/hooks/useLoans";
+import { calculateInstallment, calculateTotalWithInterest } from "@/hooks/useLoans";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight, CalendarDays, User, DollarSign } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Calendar as CalendarUI } from "@/components/ui/calendar";
+import { cn } from "@/lib/utils";
+import { ChevronLeft, ChevronRight, CalendarDays, User, DollarSign, CheckCircle, Percent, HandCoins, ChevronDown, ChevronUp, Calendar as CalendarIcon } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
 interface Props {
   loans: Loan[];
   payments: Payment[];
   installmentSchedules: InstallmentSchedule[];
+  onPayment?: (loanId: string, paymentDate?: string) => void;
+  onPartialPayment?: (loanId: string, amount: number, paymentDate?: string) => void;
+  onInterestPayment?: (loanId: string, paymentDate?: string) => void;
+  onUpdate?: (id: string, data: Partial<Omit<Loan, "id">>) => void;
+  readOnly?: boolean;
 }
 
 const dayNames = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
@@ -31,15 +41,21 @@ interface DueItem {
   amount: number;
   paid: boolean;
   date: string;
+  loan: Loan;
 }
 
-export function BillingCalendar({ loans, payments, installmentSchedules }: Props) {
+export function BillingCalendar({ loans, payments, installmentSchedules, onPayment, onPartialPayment, onInterestPayment, onUpdate, readOnly = false }: Props) {
   const { mask } = useHideValues();
   const formatCurrency = useCallback((v: number) => mask(rawFormatCurrency(v)), [mask]);
   const today = new Date();
   const [year, setYear] = useState(today.getFullYear());
   const [month, setMonth] = useState(today.getMonth());
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
+  const [expandedItem, setExpandedItem] = useState<string | null>(null);
+  const [showPartial, setShowPartial] = useState<string | null>(null);
+  const [partialAmount, setPartialAmount] = useState("");
+  const [paymentDialog, setPaymentDialog] = useState<{ loanId: string; type: "installment" | "interest" | "partial" | "full"; amount?: number; borrowerName: string } | null>(null);
+  const [paymentDate, setPaymentDate] = useState<Date>(new Date());
 
   // Build a map of date -> due items
   const dueMap = useMemo(() => {
@@ -51,12 +67,9 @@ export function BillingCalendar({ loans, payments, installmentSchedules }: Props
       if (loan.paidInstallments >= loan.installments) return;
       const defaultInstallmentAmount = loan.customInstallmentValue || calculateInstallment(loan.amount, loan.interestRate, loan.installments);
 
-      // Use loan.dueDate as the anchor for the next unpaid installment
-      // Then project remaining installments forward from there
       const nextInstallment = loan.paidInstallments + 1;
       const dueBase = new Date(loan.dueDate + "T00:00:00");
 
-      // Get schedules for this loan
       const loanSchedules = installmentSchedules.filter(s => s.loanId === loan.id);
 
       for (let i = nextInstallment; i <= loan.installments; i++) {
@@ -64,7 +77,6 @@ export function BillingCalendar({ loans, payments, installmentSchedules }: Props
         const dueDate = new Date(dueBase.getFullYear(), dueBase.getMonth() + monthsFromNext, dueBase.getDate());
         const dateStr = dueDate.toISOString().split("T")[0];
 
-        // Use schedule amount if available, otherwise default
         const schedule = loanSchedules.find(s => s.installmentNumber === i);
         const amount = schedule ? schedule.amount : defaultInstallmentAmount;
 
@@ -77,6 +89,7 @@ export function BillingCalendar({ loans, payments, installmentSchedules }: Props
           amount,
           paid: false,
           date: dateStr,
+          loan,
         });
       }
     });
@@ -115,11 +128,211 @@ export function BillingCalendar({ loans, payments, installmentSchedules }: Props
   const handleDayClick = (day: number) => {
     const dateStr = `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
     setSelectedDate(selectedDate === dateStr ? null : dateStr);
+    setExpandedItem(null);
+    setShowPartial(null);
   };
 
   const selectedItems = selectedDate ? (dueMap[selectedDate] || []) : [];
   const overdueSelected = selectedItems.filter((i) => i.date < todayStr);
   const upcomingSelected = selectedItems.filter((i) => i.date >= todayStr);
+
+  const toggleExpand = (itemKey: string) => {
+    setExpandedItem(expandedItem === itemKey ? null : itemKey);
+    setShowPartial(null);
+    setPartialAmount("");
+  };
+
+  const openPaymentDialog = (loanId: string, borrowerName: string, type: "installment" | "interest" | "partial" | "full", amount?: number) => {
+    setPaymentDate(new Date());
+    setPaymentDialog({ loanId, type, amount, borrowerName });
+  };
+
+  const confirmPayment = () => {
+    if (!paymentDialog) return;
+    const dateStr = paymentDate.toISOString().split("T")[0];
+    const loan = loans.find(l => l.id === paymentDialog.loanId);
+    if (!loan) return;
+
+    const total = calculateTotalWithInterest(loan.amount, loan.interestRate, loan.installments);
+    const totalPaid = payments.filter(p => p.loanId === loan.id).reduce((s, p) => s + p.amount, 0);
+    const remaining = loan.remainingAmount != null && loan.remainingAmount > 0 ? loan.remainingAmount : Math.max(0, total - totalPaid);
+
+    if (paymentDialog.type === "full") {
+      onPartialPayment?.(paymentDialog.loanId, remaining, dateStr);
+      onUpdate?.(paymentDialog.loanId, { paidInstallments: loan.installments, status: "paid" });
+    } else if (paymentDialog.type === "installment") {
+      onPayment?.(paymentDialog.loanId, dateStr);
+    } else if (paymentDialog.type === "interest") {
+      onInterestPayment?.(paymentDialog.loanId, dateStr);
+    } else if (paymentDialog.type === "partial" && paymentDialog.amount) {
+      onPartialPayment?.(paymentDialog.loanId, paymentDialog.amount, dateStr);
+    }
+    setPaymentDialog(null);
+    setExpandedItem(null);
+  };
+
+  const handlePartialSubmit = (loanId: string, borrowerName: string) => {
+    const val = parseFloat(partialAmount);
+    if (val > 0) {
+      openPaymentDialog(loanId, borrowerName, "partial", val);
+      setPartialAmount("");
+      setShowPartial(null);
+    }
+  };
+
+  const renderItemWithActions = (item: DueItem, isOverdue: boolean) => {
+    const itemKey = `${item.loanId}-${item.installmentNumber}`;
+    const isExpanded = expandedItem === itemKey;
+    const loan = item.loan;
+    const installment = item.amount;
+    const interestOnly = loan.amount * (loan.interestRate / 100);
+    const total = calculateTotalWithInterest(loan.amount, loan.interestRate, loan.installments);
+    const totalPaid = payments.filter(p => p.loanId === loan.id).reduce((s, p) => s + p.amount, 0);
+    const remaining = loan.remainingAmount != null && loan.remainingAmount > 0 ? loan.remainingAmount : Math.max(0, total - totalPaid);
+
+    const colorClass = isOverdue ? "destructive" : "warning";
+    const bgClass = isOverdue ? "bg-destructive/5 border-destructive/20" : "bg-warning/5 border-warning/20";
+    const avatarBg = isOverdue ? "bg-destructive/10" : "bg-warning/10";
+    const avatarText = isOverdue ? "text-destructive" : "text-warning";
+    const amountColor = isOverdue ? "text-destructive" : "text-warning";
+
+    return (
+      <div key={itemKey} className="overflow-hidden rounded-lg border">
+        <button
+          onClick={() => toggleExpand(itemKey)}
+          className={`flex items-center justify-between p-3 w-full text-left ${bgClass} transition-colors hover:opacity-90`}
+        >
+          <div className="flex items-center gap-3">
+            <div className={`h-8 w-8 rounded-full ${avatarBg} flex items-center justify-center`}>
+              <User className={`h-4 w-4 ${avatarText}`} />
+            </div>
+            <div>
+              <p className="text-sm font-medium text-foreground">{item.borrowerName}</p>
+              <p className="text-xs text-muted-foreground">
+                Parcela {item.installmentNumber}/{item.totalInstallments}
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="text-right">
+              <p className={`text-sm font-bold ${amountColor}`}>{formatCurrency(item.amount)}</p>
+              <Badge variant={isOverdue ? "destructive" : "outline"} className={`text-[10px] ${!isOverdue ? `text-warning border-warning` : ""}`}>
+                {isOverdue ? "Atrasado" : "A vencer"}
+              </Badge>
+            </div>
+            {isExpanded ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
+          </div>
+        </button>
+
+        {isExpanded && (
+          <div className="p-3 space-y-3 bg-card border-t">
+            {/* Loan info */}
+            <div className="grid grid-cols-2 gap-2 text-xs">
+              <div className="p-2 rounded bg-muted/50">
+                <p className="text-muted-foreground">Valor empréstimo</p>
+                <p className="font-semibold text-foreground">{formatCurrency(loan.amount)}</p>
+              </div>
+              <div className="p-2 rounded bg-muted/50">
+                <p className="text-muted-foreground">Juros</p>
+                <p className="font-semibold text-foreground">{loan.interestRate}% ({loan.interestType})</p>
+              </div>
+              <div className="p-2 rounded bg-muted/50">
+                <p className="text-muted-foreground">Parcelas pagas</p>
+                <p className="font-semibold text-foreground">{loan.paidInstallments}/{loan.installments}</p>
+              </div>
+              <div className="p-2 rounded bg-muted/50">
+                <p className="text-muted-foreground">Restante</p>
+                <p className="font-semibold text-foreground">{formatCurrency(remaining)}</p>
+              </div>
+            </div>
+
+            {/* Payment buttons */}
+            {!readOnly && (
+              <div className="space-y-2">
+                <p className="text-xs font-semibold text-muted-foreground">Formas de pagamento</p>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    onClick={() => openPaymentDialog(item.loanId, item.borrowerName, "installment")}
+                    className="flex items-center gap-2 p-2.5 rounded-lg border border-primary/20 bg-primary/5 hover:bg-primary/10 transition-colors"
+                  >
+                    <div className="h-7 w-7 rounded-full bg-primary/15 flex items-center justify-center shrink-0">
+                      <CheckCircle className="h-3.5 w-3.5 text-primary" />
+                    </div>
+                    <div className="text-left">
+                      <p className="text-xs font-medium text-foreground">Parcela</p>
+                      <p className="text-[10px] text-muted-foreground">{formatCurrency(installment)}</p>
+                    </div>
+                  </button>
+
+                  {loan.installments < 2 && (
+                    <button
+                      onClick={() => openPaymentDialog(item.loanId, item.borrowerName, "interest")}
+                      className="flex items-center gap-2 p-2.5 rounded-lg border border-purple/20 bg-purple/5 hover:bg-purple/10 transition-colors"
+                    >
+                      <div className="h-7 w-7 rounded-full bg-purple/15 flex items-center justify-center shrink-0">
+                        <Percent className="h-3.5 w-3.5 text-purple" />
+                      </div>
+                      <div className="text-left">
+                        <p className="text-xs font-medium text-foreground">Juros</p>
+                        <p className="text-[10px] text-muted-foreground">{formatCurrency(interestOnly)}</p>
+                      </div>
+                    </button>
+                  )}
+
+                  <button
+                    onClick={() => {
+                      setShowPartial(showPartial === itemKey ? null : itemKey);
+                      setPartialAmount("");
+                    }}
+                    className="flex items-center gap-2 p-2.5 rounded-lg border border-warning/20 bg-warning/5 hover:bg-warning/10 transition-colors"
+                  >
+                    <div className="h-7 w-7 rounded-full bg-warning/15 flex items-center justify-center shrink-0">
+                      <HandCoins className="h-3.5 w-3.5 text-warning" />
+                    </div>
+                    <div className="text-left">
+                      <p className="text-xs font-medium text-foreground">Parcial</p>
+                      <p className="text-[10px] text-muted-foreground">Valor personalizado</p>
+                    </div>
+                  </button>
+
+                  <button
+                    onClick={() => openPaymentDialog(item.loanId, item.borrowerName, "full")}
+                    className="flex items-center gap-2 p-2.5 rounded-lg border border-success/20 bg-success/5 hover:bg-success/10 transition-colors"
+                  >
+                    <div className="h-7 w-7 rounded-full bg-success/15 flex items-center justify-center shrink-0">
+                      <DollarSign className="h-3.5 w-3.5 text-success" />
+                    </div>
+                    <div className="text-left">
+                      <p className="text-xs font-medium text-foreground">Total</p>
+                      <p className="text-[10px] text-muted-foreground">{formatCurrency(remaining)}</p>
+                    </div>
+                  </button>
+                </div>
+
+                {showPartial === itemKey && (
+                  <div className="flex gap-2 mt-2">
+                    <Input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      placeholder="Valor parcial (R$)"
+                      value={partialAmount}
+                      onChange={(e) => setPartialAmount(e.target.value)}
+                      className="h-8 text-sm flex-1"
+                      autoFocus
+                    />
+                    <Button size="sm" className="h-8" onClick={() => handlePartialSubmit(item.loanId, item.borrowerName)}>
+                      Pagar
+                    </Button>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    );
+  };
 
   return (
     <div className="space-y-4">
@@ -224,28 +437,7 @@ export function BillingCalendar({ loans, payments, installmentSchedules }: Props
                     <p className="text-xs font-medium text-destructive mb-1">
                       Atrasado ({overdueSelected.length})
                     </p>
-                    {overdueSelected.map((item) => (
-                      <div
-                        key={`${item.loanId}-${item.installmentNumber}`}
-                        className="flex items-center justify-between p-3 rounded-lg bg-destructive/5 border border-destructive/20"
-                      >
-                        <div className="flex items-center gap-3">
-                          <div className="h-8 w-8 rounded-full bg-destructive/10 flex items-center justify-center">
-                            <User className="h-4 w-4 text-destructive" />
-                          </div>
-                          <div>
-                            <p className="text-sm font-medium text-foreground">{item.borrowerName}</p>
-                            <p className="text-xs text-muted-foreground">
-                              Parcela {item.installmentNumber}/{item.totalInstallments}
-                            </p>
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          <p className="text-sm font-bold text-destructive">{formatCurrency(item.amount)}</p>
-                          <Badge variant="destructive" className="text-[10px]">Atrasado</Badge>
-                        </div>
-                      </div>
-                    ))}
+                    {overdueSelected.map((item) => renderItemWithActions(item, true))}
                   </>
                 )}
 
@@ -254,28 +446,7 @@ export function BillingCalendar({ loans, payments, installmentSchedules }: Props
                     <p className="text-xs font-medium text-warning mt-3 mb-1">
                       A vencer ({upcomingSelected.length})
                     </p>
-                    {upcomingSelected.map((item) => (
-                      <div
-                        key={`${item.loanId}-${item.installmentNumber}`}
-                        className="flex items-center justify-between p-3 rounded-lg bg-warning/5 border border-warning/20"
-                      >
-                        <div className="flex items-center gap-3">
-                          <div className="h-8 w-8 rounded-full bg-warning/10 flex items-center justify-center">
-                            <User className="h-4 w-4 text-warning" />
-                          </div>
-                          <div>
-                            <p className="text-sm font-medium text-foreground">{item.borrowerName}</p>
-                            <p className="text-xs text-muted-foreground">
-                              Parcela {item.installmentNumber}/{item.totalInstallments}
-                            </p>
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          <p className="text-sm font-bold text-warning">{formatCurrency(item.amount)}</p>
-                          <Badge variant="outline" className="text-[10px] text-warning border-warning">A vencer</Badge>
-                        </div>
-                      </div>
-                    ))}
+                    {upcomingSelected.map((item) => renderItemWithActions(item, false))}
                   </>
                 )}
 
@@ -293,6 +464,52 @@ export function BillingCalendar({ loans, payments, installmentSchedules }: Props
           </CardContent>
         </Card>
       )}
+
+      {/* Payment confirmation dialog */}
+      <Dialog open={!!paymentDialog} onOpenChange={(open) => !open && setPaymentDialog(null)}>
+        <DialogContent className="sm:max-w-[340px]">
+          <DialogHeader>
+            <DialogTitle>
+              {paymentDialog?.type === "full" ? "Pagamento Total" :
+               paymentDialog?.type === "installment" ? "Receber Parcela" :
+               paymentDialog?.type === "interest" ? "Pagar Juros" : "Pagamento Parcial"}
+              {paymentDialog && <span className="block text-sm font-normal text-muted-foreground mt-1">{paymentDialog.borrowerName}</span>}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="flex flex-col items-center gap-2">
+            {paymentDialog?.type === "full" && paymentDialog.loanId && (() => {
+              const loan = loans.find(l => l.id === paymentDialog.loanId);
+              if (!loan) return null;
+              const total = calculateTotalWithInterest(loan.amount, loan.interestRate, loan.installments);
+              const totalPaid = payments.filter(p => p.loanId === loan.id).reduce((s, p) => s + p.amount, 0);
+              const remaining = loan.remainingAmount != null && loan.remainingAmount > 0 ? loan.remainingAmount : Math.max(0, total - totalPaid);
+              return (
+                <div className="text-center p-3 bg-muted/50 rounded-lg w-full">
+                  <p className="text-xs text-muted-foreground">Valor restante a receber</p>
+                  <p className="text-2xl font-bold text-primary">{formatCurrency(remaining)}</p>
+                </div>
+              );
+            })()}
+            {paymentDialog?.type === "partial" && paymentDialog.amount && (
+              <div className="text-center p-3 bg-muted/50 rounded-lg w-full">
+                <p className="text-xs text-muted-foreground">Valor parcial</p>
+                <p className="text-2xl font-bold text-warning">{formatCurrency(paymentDialog.amount)}</p>
+              </div>
+            )}
+            <Label className="text-sm text-muted-foreground">Selecione a data do pagamento</Label>
+            <CalendarUI
+              mode="single"
+              selected={paymentDate}
+              onSelect={(d) => d && setPaymentDate(d)}
+              className="rounded-md border pointer-events-auto"
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setPaymentDialog(null)}>Cancelar</Button>
+            <Button onClick={confirmPayment}>Confirmar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
