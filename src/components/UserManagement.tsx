@@ -585,6 +585,7 @@ export function UserManagement() {
                 <div className="space-y-2">
                   {clients
                     .filter(c => c.name.toLowerCase().includes(clientSearch.toLowerCase()))
+                    .sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'))
                     .map((client) => (
                       <div key={client.id} className="flex items-center gap-3 py-1.5 px-1 rounded hover:bg-muted/50">
                         <Checkbox
