@@ -265,6 +265,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, onDeletePa
       defaultRate,
       totalReceived,
       overdueAmount,
+      overdueLoans,
       capitalOnStreet,
       totalToReceive,
       principalReceived,
