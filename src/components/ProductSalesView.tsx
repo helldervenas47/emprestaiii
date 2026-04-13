@@ -1021,6 +1021,7 @@ function SalesList({ sales, onDeleteSale, onUpdateSale, clients = [], hideOnTrac
                 onUpdateSale={onUpdateSale}
                 formatCurrency={formatCurrency}
                 onEdit={setEditingSale}
+                readOnly={readOnly}
               />
             ))}
           </div>
@@ -1463,6 +1464,7 @@ export function ProductSalesView({ sales, onDeleteSale, onUpdateSale, clients = 
           clients={clients}
           hideOnTrackCard
           renderAfterCards={secondaryCards}
+          readOnly={readOnly}
         />
 
         {/* Vehicle Expenses Section */}
@@ -1686,6 +1688,7 @@ export function ProductSalesView({ sales, onDeleteSale, onUpdateSale, clients = 
             onDeleteSale={onDeleteSale}
             onUpdateSale={onUpdateSale}
             clients={clients}
+            readOnly={readOnly}
           />
         </TabsContent>
       ))}
