@@ -24,6 +24,7 @@ interface ManagedUser {
   role: string | null;
   created_at: string;
   last_sign_in_at: string | null;
+  is_active: boolean;
   allowed_tabs: string[] | null;
   linked_client_ids: string[];
 }
@@ -242,6 +243,18 @@ export function UserManagement() {
     }
   };
 
+  const handleToggleActive = async (userId: string, active: boolean) => {
+    const { data, error } = await supabase.functions.invoke("admin-manage-user", {
+      body: { action: "toggle_active", user_id: userId, active },
+    });
+    if (error || data?.error) {
+      toast.error(data?.error || "Erro ao alterar status");
+    } else {
+      toast.success(active ? "Usuário ativado!" : "Usuário desativado!");
+      fetchUsers();
+    }
+  };
+
   const roleBadgeVariant = (role: string | null) => {
     if (role === "admin") return "default";
     if (role === "operador") return "secondary";
@@ -299,6 +312,18 @@ export function UserManagement() {
                       <div className="space-y-1 text-sm">
                         <p className="text-muted-foreground"><span className="font-medium text-foreground">Email:</span> {user.email}</p>
                         <div className="flex items-center gap-2">
+                          <span className="font-medium text-foreground">Status:</span>
+                          <div className="flex items-center gap-1.5">
+                            <Switch
+                              checked={user.is_active}
+                              onCheckedChange={(checked) => handleToggleActive(user.id, checked)}
+                            />
+                            <span className={`text-xs ${user.is_active ? "text-success" : "text-destructive"}`}>
+                              {user.is_active ? "Ativo" : "Inativo"}
+                            </span>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
                           <span className="font-medium text-foreground">Papel:</span>
                           <Select value={user.role || ""} onValueChange={(val) => handleUpdateRole(user.id, val)}>
                             <SelectTrigger className="w-[130px] h-7 text-xs">
@@ -344,6 +369,7 @@ export function UserManagement() {
                   <TableHead>Nome</TableHead>
                   <TableHead>Usuário</TableHead>
                   <TableHead>Email</TableHead>
+                  <TableHead>Status</TableHead>
                   <TableHead>Papel</TableHead>
                   <TableHead className="w-[120px]">Ações</TableHead>
                 </TableRow>
@@ -354,6 +380,17 @@ export function UserManagement() {
                     <TableCell className="font-medium">{user.display_name}</TableCell>
                     <TableCell className="text-muted-foreground">{user.username || "—"}</TableCell>
                     <TableCell className="text-muted-foreground">{user.email}</TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <Switch
+                          checked={user.is_active}
+                          onCheckedChange={(checked) => handleToggleActive(user.id, checked)}
+                        />
+                        <span className={`text-xs ${user.is_active ? "text-success" : "text-destructive"}`}>
+                          {user.is_active ? "Ativo" : "Inativo"}
+                        </span>
+                      </div>
+                    </TableCell>
                     <TableCell>
                       <Select
                         value={user.role || ""}

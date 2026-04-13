@@ -48,6 +48,14 @@ Deno.serve(async (req) => {
       });
     }
 
+    // Check if user is banned/inactive
+    if (user.banned_until && new Date(user.banned_until) > new Date()) {
+      return new Response(JSON.stringify({ error: "Usuário inativo. Contate o administrador." }), {
+        status: 403,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     // Return the email so client can sign in normally
     return new Response(JSON.stringify({ email: user.email }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },

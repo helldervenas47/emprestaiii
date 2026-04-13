@@ -36,7 +36,13 @@ const Auth = () => {
     const { error } = await supabase.auth.signInWithPassword({ email: emailToUse, password });
     setLoading(false);
     if (error) {
-      toast.error(error.message === "Invalid login credentials" ? "Email/usuário ou senha incorretos" : error.message);
+      if (error.message === "Invalid login credentials") {
+        toast.error("Email/usuário ou senha incorretos");
+      } else if (error.message.toLowerCase().includes("banned") || error.message.toLowerCase().includes("ban")) {
+        toast.error("Usuário inativo. Contate o administrador.");
+      } else {
+        toast.error(error.message);
+      }
     }
   };
 

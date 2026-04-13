@@ -79,6 +79,7 @@ Deno.serve(async (req) => {
         role: roles?.find((r) => r.user_id === u.id)?.role || null,
         created_at: u.created_at,
         last_sign_in_at: u.last_sign_in_at,
+        is_active: !u.banned_until || new Date(u.banned_until) <= new Date(),
         allowed_tabs: tabPerms?.find((t) => t.user_id === u.id)?.allowed_tabs || null,
         linked_client_ids: clientPerms?.filter((c) => c.user_id === u.id).map((c) => c.client_id) || [],
       }));
@@ -211,6 +212,28 @@ Deno.serve(async (req) => {
       await adminClient.from("user_roles").delete().eq("user_id", user_id);
       await adminClient.auth.admin.deleteUser(user_id);
 
+      return new Response(JSON.stringify({ success: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    if (action === "toggle_active") {
+      if (!user_id) {
+        return new Response(JSON.stringify({ error: "user_id é obrigatório" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      const active = body.active as boolean;
+      const { error: banErr } = await adminClient.auth.admin.updateUserById(user_id, {
+        ban_duration: active ? "none" : "876600h",
+      });
+      if (banErr) {
+        return new Response(JSON.stringify({ error: banErr.message }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
       return new Response(JSON.stringify({ success: true }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
