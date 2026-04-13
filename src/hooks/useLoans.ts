@@ -315,7 +315,7 @@ export function getLoanRemainingAmount(loan: Loan, payments: Payment[]): number 
   const totalExpected = calculateTotalWithInterest(loan.amount, loan.interestRate, loan.installments);
   const totalPaid = payments.filter((p) => p.loanId === loan.id).reduce((sum, p) => sum + p.amount, 0);
 
-  if (loan.remainingAmount == null) {
+  if (loan.remainingAmount == null || loan.remainingAmount <= 0) {
     return Math.max(0, totalExpected - totalPaid);
   }
 
