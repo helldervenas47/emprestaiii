@@ -50,6 +50,7 @@ export function useProducts() {
           installmentAmounts: (s as any).installment_amounts || null,
           installmentDates: (s as any).installment_dates || null,
           partialPaid: Number((s as any).partial_paid) || 0,
+          paymentHistory: (Array.isArray(s.payment_history) ? s.payment_history : []) as SalePaymentRecord[],
         })));
       }
       setLoading(false);
@@ -162,6 +163,7 @@ export function useProducts() {
     if (data.installmentAmounts !== undefined) updateData.installment_amounts = data.installmentAmounts;
     if (data.installmentDates !== undefined) updateData.installment_dates = data.installmentDates;
     if (data.partialPaid !== undefined) updateData.partial_paid = data.partialPaid;
+    if (data.paymentHistory !== undefined) updateData.payment_history = data.paymentHistory;
     await supabase.from("sales").update(updateData as any).eq("id", id);
   }, [user]);
 
