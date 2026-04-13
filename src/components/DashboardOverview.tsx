@@ -156,20 +156,6 @@ export function DashboardOverview({ loans, sales, payments, expenses, onDeletePa
       const loan = loans.find((l) => l.id === p.loanId);
       transactions.push({ id: p.id, type: "in", source: "payment", description: `Parcela ${p.installmentNumber} — ${loan?.borrowerName || "Empréstimo"}`, amount: p.amount, date: p.date });
     });
-    filteredSales.forEach((s) => {
-      let received = 0;
-      if (s.installmentAmounts && s.installmentAmounts.length > 0) {
-        for (let i = 0; i < s.paidInstallments; i++) {
-          received += s.installmentAmounts[i] || 0;
-        }
-      } else if (s.installmentValue) {
-        received = s.paidInstallments * s.installmentValue;
-      } else if (s.installments > 0) {
-        received = s.paidInstallments * (s.total / s.installments);
-      }
-      received += s.partialPaid || 0;
-      transactions.push({ id: s.id, type: "in", source: "sale", description: `Venda: ${s.productName}${s.customerName ? ` — ${s.customerName}` : ""}`, amount: received, date: s.date });
-    });
     filteredLoans.forEach((l) => {
       transactions.push({ id: l.id, type: "out", source: "loan", description: `Empréstimo para ${l.borrowerName}`, amount: l.amount, date: l.startDate });
     });
