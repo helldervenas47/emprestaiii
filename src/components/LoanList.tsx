@@ -1544,7 +1544,7 @@ function ClientFolder({
       </button>
       {open && (
         <CardContent className="pt-0 pb-3 px-3">
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {group.loans.map((loan) => (
               <LoanCardView key={loan.id} loan={loan} payments={payments} installmentSchedules={installmentSchedules} readOnly={readOnly}
                 onPayment={(date) => onPayment(loan.id, date)} onPartialPayment={(amt, date) => onPartialPayment(loan.id, amt, date)}
@@ -1838,7 +1838,7 @@ export function LoanList({ loans, payments, installmentSchedules, onPayment, onP
       ) : (
         <div>
           {view === "cards" ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {categorized.map((loan, i) => (
                 <div key={loan.id} className="animate-fade-in" style={{ animationDelay: `${i * 60}ms`, animationFillMode: 'backwards' }}>
                 <LoanCardView loan={loan} payments={payments} installmentSchedules={installmentSchedules} readOnly={readOnly}
