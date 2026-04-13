@@ -59,13 +59,19 @@ export function useExpenses() {
       const installmentAmount = expense.amount / expense.installments;
       const newPaid = (expense.paidInstallments || 0) + 1;
       const fullyPaid = newPaid >= expense.installments;
+      // Advance due date to next month
+      const currentDue = new Date(expense.dueDate + "T00:00:00");
+      currentDue.setMonth(currentDue.getMonth() + 1);
+      const newDueDate = fullyPaid ? expense.dueDate : currentDue.toISOString().split("T")[0];
       setExpenses((prev) => prev.map((e) => e.id === id ? {
         ...e, paidInstallments: newPaid, paid: fullyPaid,
+        dueDate: newDueDate,
         paidDate: fullyPaid ? new Date().toISOString().split("T")[0] : undefined,
       } : e));
       if (!skipBalanceAdjust) await adjustBalance(-installmentAmount);
       await supabase.from("expenses").update({
         paid_installments: newPaid, paid: fullyPaid,
+        due_date: newDueDate,
         paid_date: fullyPaid ? new Date().toISOString().split("T")[0] : null,
       }).eq("id", id);
     } else {
