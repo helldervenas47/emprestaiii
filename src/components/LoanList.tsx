@@ -1796,6 +1796,7 @@ export function LoanList({ loans, payments, installmentSchedules, onPayment, onP
             </div>
           )}
         </div>
+      </div>
 
       {showFilters && (
         <Card>
