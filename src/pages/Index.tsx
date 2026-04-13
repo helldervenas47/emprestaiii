@@ -153,7 +153,13 @@ const Index = () => {
   // Filter data by linked clients if user has client restrictions
   const hasClientFilter = Array.isArray(linkedClientIds) && linkedClientIds.length > 0;
   const filteredClients = hasClientFilter ? clients.filter(c => linkedClientIds.includes(c.id)) : clients;
-  const filteredLoans = hasClientFilter ? loans.filter(l => l.borrowerId && linkedClientIds.includes(l.borrowerId)) : loans;
+  const linkedClientNames = hasClientFilter ? filteredClients.map(c => c.name.toLowerCase()) : [];
+  const filteredLoans = hasClientFilter
+    ? loans.filter(l =>
+        (l.borrowerId && linkedClientIds.includes(l.borrowerId)) ||
+        linkedClientNames.includes((l.borrowerName || "").toLowerCase())
+      )
+    : loans;
   const filteredPayments = hasClientFilter
     ? payments.filter(p => filteredLoans.some(l => l.id === p.loanId))
     : payments;
