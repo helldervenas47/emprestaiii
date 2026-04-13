@@ -948,19 +948,9 @@ function LoanCardView({
             <div className="flex gap-2">
               <Button variant="outline" size="sm" className="flex-1 h-9 text-xs gap-1.5" onClick={() => setShowLateInterest(!showLateInterest)}>
                 <Percent className="h-3.5 w-3.5" /> Juros por Atraso
-                {loan.lateInterestValue != null && loan.lateInterestValue > 0 && (
-                  <Badge className="ml-1 text-[9px] bg-warning/20 text-warning border-warning/30">
-                    {loan.lateInterestType === "fixed" ? rawFormatCurrency(loan.lateInterestValue) + "/dia" : loan.lateInterestValue + "%/dia"}
-                  </Badge>
-                )}
               </Button>
               <Button variant="outline" size="sm" className="flex-1 h-9 text-xs gap-1.5" onClick={() => setShowPenalty(!showPenalty)}>
                 <DollarSign className="h-3.5 w-3.5" /> Aplicar Multa
-                {loan.penaltyValue != null && loan.penaltyValue > 0 && (
-                  <Badge className="ml-1 text-[9px] bg-destructive/20 text-destructive border-destructive/30">
-                    {rawFormatCurrency(loan.penaltyValue)}
-                  </Badge>
-                )}
               </Button>
             </div>
           )}
