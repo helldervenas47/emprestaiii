@@ -1190,7 +1190,7 @@ function VehicleExpenseEditDialog({ expense, open, onOpenChange, onSave, formatC
   );
 }
 
-export function ProductSalesView({ sales, onDeleteSale, onUpdateSale, clients = [], expenses = [], onAddExpense, onPayExpense, onDeleteExpense, onUpdateExpense }: Props) {
+export function ProductSalesView({ sales, onDeleteSale, onUpdateSale, clients = [], expenses = [], onAddExpense, onPayExpense, onDeleteExpense, onUpdateExpense, readOnly = false }: Props) {
   const [showVehicleExpenseForm, setShowVehicleExpenseForm] = useState(false);
   const { mask } = useHideValues();
   const formatCurrency = useCallback((v: number) => mask(rawFormatCurrency(v)), [mask]);
