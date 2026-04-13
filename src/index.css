@@ -159,11 +159,11 @@
     border: 1px solid hsl(0 0% 100% / 0.06);
   }
   .glow-primary {
-    box-shadow: 0 0 30px -6px hsl(225 100% 62% / 0.25),
-                0 0 60px -12px hsl(262 80% 58% / 0.1);
+    box-shadow: 0 0 20px -8px hsl(225 100% 62% / 0.15),
+                0 0 40px -16px hsl(262 80% 58% / 0.06);
   }
   .glow-success {
-    box-shadow: 0 0 30px -6px hsl(160 75% 42% / 0.25);
+    box-shadow: 0 0 20px -8px hsl(160 75% 42% / 0.15);
   }
 }
 
@@ -176,16 +176,16 @@
     display: none;
   }
   .card-3d {
-    perspective: 800px;
+    perspective: 1200px;
   }
   .card-3d-inner {
-    transition: transform 0.3s ease-out, box-shadow 0.3s ease-out;
+    transition: transform 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94), box-shadow 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
     transform-style: preserve-3d;
   }
   .card-3d-inner:hover {
-    transform: rotateX(-1deg) rotateY(1.5deg) scale(1.01);
+    transform: rotateX(-0.5deg) rotateY(0.8deg) scale(1.005);
     box-shadow: 
-      -3px 4px 16px -6px hsl(0 0% 0% / 0.15),
-      0 0 12px -4px hsl(var(--primary) / 0.1);
+      -2px 3px 12px -6px hsl(0 0% 0% / 0.1),
+      0 0 8px -4px hsl(var(--primary) / 0.06);
   }
 }
