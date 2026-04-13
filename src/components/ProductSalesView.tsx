@@ -545,15 +545,21 @@ function SaleListRow({ sale, onEdit, onUpdate, formatCurrency, readOnly = false 
           {(sale.customerName || sale.description || "?").charAt(0).toUpperCase()}
         </div>
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-semibold text-foreground truncate">{sale.customerName || sale.description}</p>
-          <p className="text-xs text-muted-foreground truncate">
+          <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Cliente</p>
+          <p className="text-sm font-semibold text-foreground truncate">{sale.customerName || "—"}</p>
+        </div>
+        <div className="hidden md:block flex-1 min-w-0 max-w-[200px]">
+          <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Descrição</p>
+          <p className="text-sm font-bold text-foreground truncate">{sale.description || sale.productName || "—"}</p>
+        </div>
+        <div className="flex-shrink-0 min-w-[90px]">
+          <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Vencimento</p>
+          <p className="text-xs text-foreground">
             {!isPaid ? format(nextDue, "dd/MM/yyyy") : "Quitado"}{isRecorrente && ` • ${sale.paidInstallments}/${sale.installments}`}
           </p>
         </div>
-        <div className="hidden md:block flex-1 min-w-0 max-w-[200px]">
-          <p className="text-xs text-muted-foreground truncate">{sale.description || sale.productName || "—"}</p>
-        </div>
         <div className="text-right shrink-0">
+          <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Valor</p>
           {isPaid ? (
             <p className="text-sm font-bold text-success">{formatCurrency(sale.total)}</p>
           ) : (
