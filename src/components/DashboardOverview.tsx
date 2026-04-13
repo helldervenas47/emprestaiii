@@ -391,20 +391,22 @@ export function DashboardOverview({ loans, sales, payments, expenses, onDeletePa
       <div className="flex flex-col gap-3">
         <h2 className="text-lg font-semibold text-foreground">Visão Geral</h2>
         <div className="flex items-center gap-1 sm:gap-2 flex-wrap">
-          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setOffset(offset - 1)}>
-            <ChevronLeft className="h-4 w-4" />
-          </Button>
-          <span className="text-xs sm:text-sm font-medium text-foreground min-w-[120px] sm:min-w-[160px] text-center">{range.label}</span>
-          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setOffset(offset + 1)} disabled={offset >= 0}>
-            <ChevronRight className="h-4 w-4" />
-          </Button>
-          <div className="flex bg-muted/60 rounded-xl p-0.5 ml-auto sm:ml-2 backdrop-blur-sm border border-border/30">
+          <div className="flex bg-muted/60 rounded-xl p-0.5 backdrop-blur-sm border border-border/30">
             {(["day", "week", "month"] as Period[]).map((p) => (
               <button key={p} onClick={() => handleChangePeriod(p)}
                 className={`px-2 sm:px-3 py-1.5 rounded-lg text-[10px] sm:text-xs font-medium transition-all duration-200 ${period === p ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>
                 {periodLabels[p]}
               </button>
             ))}
+          </div>
+          <div className="flex items-center gap-1 sm:gap-2 ml-auto">
+            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setOffset(offset - 1)}>
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <span className="text-xs sm:text-sm font-medium text-foreground min-w-[120px] sm:min-w-[160px] text-center">{range.label}</span>
+            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setOffset(offset + 1)} disabled={offset >= 0}>
+              <ChevronRight className="h-4 w-4" />
+            </Button>
           </div>
         </div>
       </div>
