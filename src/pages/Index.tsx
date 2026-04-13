@@ -179,7 +179,7 @@ const Index = () => {
     }
     return true;
   });
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  
 
   // Apply dark class to html element
   useState(() => {
