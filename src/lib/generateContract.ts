@@ -217,10 +217,10 @@ ${sale.notes ? `<h2>OBSERVAÇÕES</h2><p>${sale.notes}</p>` : ""}
 <div class="signatures">
   <div class="sig-row">
     <div class="sig-block">
-      <div class="sig-line"><strong>LOCADOR:</strong> ___________________________</div>
+      <div class="sig-line"><strong>LOCADOR:</strong> ___________________________<br>${locador?.nome || ""}</div>
     </div>
     <div class="sig-block">
-      <div class="sig-line"><strong>LOCATÁRIO:</strong> ${sale.customerName || "___________________________"}</div>
+      <div class="sig-line"><strong>LOCATÁRIO:</strong> ___________________________<br>${sale.customerName || ""}</div>
     </div>
   </div>
 
