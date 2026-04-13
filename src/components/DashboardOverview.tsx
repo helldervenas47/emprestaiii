@@ -412,7 +412,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, onDeletePa
     setEditingInterest(false);
   };
 
-  const handleChangePeriod = (p: Period) => { setPeriod(p); setOffset(0); };
+  const handleChangePeriod = (p: Period) => { setPeriod(p); };
 
   const startEditBalance = () => { setTempBalance(String(accountBalance)); setEditingBalance(true); };
   const saveBalance = () => { setAccountBalance(parseFloat(tempBalance) || 0); setEditingBalance(false); };
