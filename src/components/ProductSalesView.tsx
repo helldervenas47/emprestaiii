@@ -121,7 +121,7 @@ function SaleCard({ sale, onDelete, onEdit, onUpdate, formatCurrency }: { sale: 
   });
 
   return (
-    <Card className={`overflow-hidden hover:shadow-[0_8px_24px_-6px_hsl(0_0%_0%/0.15)] hover:-translate-y-0.5 transition-all duration-300 border ${catStyle.border} ${catStyle.bg} h-full flex flex-col`}>
+    <Card no3d className={`overflow-hidden hover:shadow-[0_8px_24px_-6px_hsl(0_0%_0%/0.15)] hover:-translate-y-0.5 transition-all duration-300 border ${catStyle.border} ${catStyle.bg} h-full flex flex-col`}>
       {/* Customer header - fixed */}
       <div className={`border-b px-4 py-2.5 text-center ${catStyle.header}`}>
         <h3 className="font-bold text-foreground text-sm truncate">{sale.customerName || sale.description || sale.productName}</h3>
@@ -503,7 +503,7 @@ function SaleClientFolder({
   const paidCount = group.sales.filter((s) => getSaleCategory(s) === "paid").length;
 
   return (
-    <Card className={`overflow-hidden transition-shadow hover:shadow-lg ${open ? "ring-1 ring-primary/20" : ""} ${group.hasOverdue ? "border-destructive/40" : ""}`}>
+    <Card no3d className={`overflow-hidden transition-shadow hover:shadow-lg ${open ? "ring-1 ring-primary/20" : ""} ${group.hasOverdue ? "border-destructive/40" : ""}`}>
       <button
         onClick={() => setOpen(!open)}
         className="w-full flex items-center gap-3 px-4 py-3 text-left"
