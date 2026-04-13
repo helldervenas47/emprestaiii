@@ -143,7 +143,7 @@ function HideValuesToggle() {
 }
 
 const Index = () => {
-  const { signOut, role } = useAuth();
+  const { signOut, role, allowedTabs } = useAuth();
   const { loans, payments, installmentSchedules, addLoan, addPayment, addPartialPayment, addInterestOnlyPayment, updateLoan, deleteLoan, deletePayment, saveSchedule } = useLoans();
   const { clients, addClient, deleteClient, updateClient } = useClients();
   const { products, sales, addProduct, updateProduct, deleteProduct, addSale, updateSale, deleteSale } = useProducts();
@@ -160,12 +160,15 @@ const Index = () => {
   const isMobile = useIsMobile();
   const isReadOnly = role === "visualizador";
 
-  // Filter tabs based on role
+  // Filter tabs based on role and tab permissions
   const visibleTabs = tabConfig.filter((t) => {
+    // Admin always sees all tabs
     if (role === "admin" || !role) return true;
-    if (role === "operador") return ["overview", "dashboard", "calendar", "clients", "overdue"].includes(t.id);
-    if (role === "visualizador") return ["dashboard"].includes(t.id);
-    return false;
+    // For sub-users, check tab permissions
+    if (allowedTabs && !allowedTabs.includes(t.id) && t.id !== "users" && t.id !== "backup") return false;
+    // Users and Backup tabs are admin-only
+    if (t.id === "users" || t.id === "backup") return false;
+    return true;
   });
 
   // Reset tab if not visible for current role
