@@ -220,9 +220,11 @@ export function WhatsAppReport({ loans, payments, clients, installmentSchedules 
             ) : (
               <div className="mt-1">
                 <p>💵 Empréstimos ({dueTodayLoans.length})</p>
-                {dueTodayLoans.map(({ loan, amount }) => (
+                {dueTodayLoans.map(({ loan, amount, lateFees }) => (
                   <div key={loan.id} className="ml-2">
-                    <p>• <strong>{loan.borrowerName}</strong> — {rawFormatCurrency(amount)}</p>
+                    <p>• <strong>{loan.borrowerName}</strong> — {rawFormatCurrency(amount)}
+                      {lateFees > 0 && <span className="text-destructive"> (inclui {rawFormatCurrency(lateFees)} juros/multa)</span>}
+                    </p>
                     <p className="text-muted-foreground ml-3">└ {getPaymentType(loan)}</p>
                   </div>
                 ))}
