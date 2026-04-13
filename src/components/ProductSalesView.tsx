@@ -365,15 +365,22 @@ function SaleCard({ sale, onDelete, onEdit, onUpdate, formatCurrency }: { sale: 
                         const currentValue = getParcelaValue(nextIdx);
                         const currentPartial = sale.partialPaid || 0;
                         const newPartialTotal = currentPartial + val;
+                        const newRecord: SalePaymentRecord = {
+                          date: format(partialDate, "yyyy-MM-dd"),
+                          amount: val,
+                          type: "parcial",
+                          installmentNumber: nextIdx + 1,
+                        };
+                        const history = [...(sale.paymentHistory || []), newRecord];
                         if (newPartialTotal >= currentValue - 0.01) {
-                          // Partial payments cover the full installment - mark as paid, carry remainder
                           const remainder = newPartialTotal - currentValue;
                           onUpdate({
                             paidInstallments: Math.min(sale.installments, sale.paidInstallments + 1),
                             partialPaid: remainder > 0.01 ? remainder : 0,
+                            paymentHistory: history,
                           });
                         } else {
-                          onUpdate({ partialPaid: newPartialTotal });
+                          onUpdate({ partialPaid: newPartialTotal, paymentHistory: history });
                         }
                         setPartialAmount(""); setPartialDate(undefined); setShowPartial(false);
                       }
@@ -403,8 +410,18 @@ function SaleCard({ sale, onDelete, onEdit, onUpdate, formatCurrency }: { sale: 
                       selected={undefined}
                       onSelect={(date) => {
                         if (date) {
+                          const nextIdx = sale.paidInstallments;
+                          const parcelaVal = getParcelaValue(nextIdx);
+                          const newRecord: SalePaymentRecord = {
+                            date: format(date, "yyyy-MM-dd"),
+                            amount: parcelaVal,
+                            type: "parcela",
+                            installmentNumber: nextIdx + 1,
+                          };
+                          const history = [...(sale.paymentHistory || []), newRecord];
                           onUpdate({
                             paidInstallments: Math.min(sale.installments, sale.paidInstallments + 1),
+                            paymentHistory: history,
                           });
                           setShowPayDatePicker(false);
                         }
