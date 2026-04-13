@@ -24,6 +24,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [role, setRole] = useState<AppRole>(null);
   const [dataOwnerId, setDataOwnerId] = useState<string | null>(null);
   const [allowedTabs, setAllowedTabs] = useState<string[] | null>(null);
+  const [linkedClientIds, setLinkedClientIds] = useState<string[] | null>(null);
 
   const fetchRole = async (userId: string) => {
     const [{ data: isAdmin }, { data: isOperador }, { data: isVisualizador }] = await Promise.all([
