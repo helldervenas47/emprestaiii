@@ -141,10 +141,10 @@ export function SaleEditForm({ sale, onSave, onClose, clients = [], registeredVe
             </div>
 
             <div>
-              <Label>Cliente</Label>
+              <Label>{form.businessType === "aluguel_veiculo" ? "Locatário" : "Cliente"}</Label>
               <Select value={form.customerName} onValueChange={(v) => update("customerName", v)}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Selecione um cliente" />
+                  <SelectValue placeholder={form.businessType === "aluguel_veiculo" ? "Selecione o locatário" : "Selecione um cliente"} />
                 </SelectTrigger>
                 <SelectContent>
                   {clients.filter(c => c.active).sort((a, b) => a.name.localeCompare(b.name)).map((client) => (
@@ -154,10 +154,28 @@ export function SaleEditForm({ sale, onSave, onClose, clients = [], registeredVe
               </Select>
             </div>
 
-            <div>
-              <Label>Produto / Descrição</Label>
-              <Input value={form.description} onChange={(e) => update("description", e.target.value)} required />
-            </div>
+            {form.businessType === "aluguel_veiculo" ? (
+              <div>
+                <Label>Veículo</Label>
+                <Select value={form.description} onValueChange={(v) => update("description", v)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione um veículo cadastrado" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {registeredVehicles.map((v) => (
+                      <SelectItem key={v.id} value={v.marcaModelo}>
+                        {v.marcaModelo}{v.placa ? ` - ${v.placa}` : ""}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            ) : (
+              <div>
+                <Label>Produto / Descrição</Label>
+                <Input value={form.description} onChange={(e) => update("description", e.target.value)} required />
+              </div>
+            )}
 
             <div>
               <Label>Data da Venda</Label>
