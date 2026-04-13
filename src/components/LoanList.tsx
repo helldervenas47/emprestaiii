@@ -1090,10 +1090,11 @@ function LoanCardView({
 }
 
 function LoanRowView({
-  loan, payments: allPayments, onPayment, onPartialPayment, onInterestPayment, onUpdate, onDelete, onDeletePayment, readOnly = false,
+  loan, payments: allPayments, installmentSchedules = [], onPayment, onPartialPayment, onInterestPayment, onUpdate, onDelete, onDeletePayment, readOnly = false,
 }: {
   loan: Loan;
   payments: Payment[];
+  installmentSchedules?: InstallmentSchedule[];
   onPayment: (date?: string) => void;
   onPartialPayment: (amount: number, date?: string) => void;
   onInterestPayment: (date?: string) => void;
@@ -1116,7 +1117,17 @@ function LoanRowView({
 
   const total = calculateTotalWithInterest(loan.amount, loan.interestRate, loan.installments);
   const totalPaid = getTotalPaid(loan, allPayments);
-  const baseRemaining = loan.remainingAmount != null && loan.remainingAmount > 0 ? loan.remainingAmount : Math.max(0, total - totalPaid);
+  // For installment loans, use sum of pending installment amounts from schedule
+  const pendingScheduleSum = loan.installments >= 2
+    ? installmentSchedules
+        .filter((s) => s.loanId === loan.id && s.installmentNumber > loan.paidInstallments)
+        .reduce((sum, s) => sum + s.amount, 0)
+    : 0;
+  const baseRemaining = loan.installments >= 2 && pendingScheduleSum > 0
+    ? pendingScheduleSum
+    : loan.remainingAmount != null && loan.remainingAmount > 0
+      ? loan.remainingAmount
+      : Math.max(0, total - totalPaid);
 
   // Calculate late fees
   const dueDate = new Date(loan.dueDate + "T00:00:00");
