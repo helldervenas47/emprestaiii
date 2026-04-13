@@ -98,7 +98,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, onDeletePa
   const { mask } = useHideValues();
   const formatCurrency = useCallback((v: number) => mask(rawFormatCurrency(v)), [mask]);
   const [period, setPeriod] = useState<Period>("month");
-  const [offset, setOffset] = useState(0);
+  const [monthOffset, setMonthOffset] = useState(0);
   const [txFilter, setTxFilter] = useState<"all" | "in" | "out">("all");
   const [showAllTx, setShowAllTx] = useState(false);
   const [expandedBreakdown, setExpandedBreakdown] = useState<string | null>(null);
@@ -109,7 +109,11 @@ export function DashboardOverview({ loans, sales, payments, expenses, onDeletePa
   const [includeSales, setIncludeSales] = useState(false);
   const [chartOverrides, setChartOverrides] = useLocalStorage<Record<string, { emprestado?: number; recebido?: number }>>("hvcred-chart-overrides", {});
 
-  const range = useMemo(() => getRange(period, offset), [period, offset]);
+  const monthRange = useMemo(() => getMonthRange(monthOffset), [monthOffset]);
+  const range = useMemo(() => {
+    const filtered = getFilteredRange(period, monthRange.start, monthRange.end);
+    return { ...filtered, label: monthRange.label };
+  }, [period, monthRange]);
 
   // Helper to get chart month label from a date range
   const getChartLabel = (start: Date) => {
