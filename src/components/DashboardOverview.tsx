@@ -503,7 +503,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, onDeletePa
               <div className="mt-3 border-t border-border pt-3 space-y-2">
                 <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">Empréstimos considerados</p>
                 {data.filteredLoans.map((l) => {
-                  const totalToReceive = calculateTotalWithInterest(l.amount, l.interestRate, l.installments);
+                  const totalToReceive = data.getLoanTotalToReceive(l);
                   const interestPct = l.amount > 0 ? ((totalToReceive - l.amount) / l.amount) * 100 : 0;
                   return (
                     <div key={l.id} className="flex items-center justify-between text-xs bg-muted/30 rounded-lg p-2">
