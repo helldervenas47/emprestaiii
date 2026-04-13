@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect } from "react";
+import { DatePickerField } from "@/components/ui/date-picker-field";
 import { Sale, BusinessType, Client, Expense } from "@/types/loan";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -767,7 +768,7 @@ function VehicleExpenseEditDialog({ expense, open, onOpenChange, onSave, formatC
             </div>
             <div>
               <Label htmlFor="edit-due">Data de Pagamento</Label>
-              <Input id="edit-due" type="date" value={form.dueDate} onChange={e => update("dueDate", e.target.value)} />
+              <DatePickerField id="edit-due" value={form.dueDate} onChange={(v) => update("dueDate", v)} />
             </div>
           </div>
           <div>

@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useCallback } from "react";
+import { DatePickerField } from "@/components/ui/date-picker-field";
 import { useHideValues } from "@/contexts/HideValuesContext";
 import { format } from "date-fns";
 import { Loan, Payment, InstallmentSchedule } from "@/types/loan";
@@ -397,7 +398,7 @@ function LoanCardView({
             <div><Label className="text-xs">Parcelas</Label><Input type="number" value={form.installments} onChange={(e) => updateField("installments", e.target.value)} className="h-8 text-sm" /></div>
             <div><Label className="text-xs">Parcelas Pagas</Label><Input type="number" value={form.paidInstallments} onChange={(e) => updateField("paidInstallments", e.target.value)} className="h-8 text-sm" /></div>
             <div><Label className="text-xs">Restante a Receber (R$)</Label><Input type="number" step="0.01" value={form.remainingAmount} onChange={(e) => updateField("remainingAmount", e.target.value)} className="h-8 text-sm" /></div>
-            <div><Label className="text-xs">Data Início</Label><Input type="date" value={form.startDate} onChange={(e) => updateField("startDate", e.target.value)} className="h-8 text-sm" /></div>
+            <div><Label className="text-xs">Data Início</Label><DatePickerField value={form.startDate} onChange={(v) => updateField("startDate", v)} className="h-8 text-sm" /></div>
             <div>
               <Label className="text-xs">Data 1ª Parcela</Label>
               <Popover>
@@ -1729,11 +1730,11 @@ export function LoanList({ loans, payments, installmentSchedules, onPayment, onP
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
               <div>
                 <Label className="text-xs text-muted-foreground">Data Saída (De)</Label>
-                <Input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} className="h-8 text-sm" />
+                <DatePickerField value={dateFrom} onChange={(v) => setDateFrom(v)} className="h-8 text-sm" />
               </div>
               <div>
                 <Label className="text-xs text-muted-foreground">Data Saída (Até)</Label>
-                <Input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} className="h-8 text-sm" />
+                <DatePickerField value={dateTo} onChange={(v) => setDateTo(v)} className="h-8 text-sm" />
               </div>
               <div>
                 <Label className="text-xs text-muted-foreground">Valor Mínimo (R$)</Label>

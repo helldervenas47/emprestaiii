@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { DatePickerField } from "@/components/ui/date-picker-field";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -128,11 +129,10 @@ export function VehicleExpenseForm({ onAdd, onClose }: Props) {
               </div>
               <div>
                 <Label htmlFor="dueDate">Data de Pagamento</Label>
-                <Input
+                <DatePickerField
                   id="dueDate"
-                  type="date"
                   value={form.dueDate}
-                  onChange={(e) => update("dueDate", e.target.value)}
+                  onChange={(v) => update("dueDate", v)}
                 />
               </div>
             </div>
