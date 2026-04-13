@@ -129,6 +129,11 @@ export function useLoans() {
     const newPaid = loan.paidInstallments + 1;
     const newRemaining = Math.max(0, remaining - installmentAmount);
 
+    console.log("[addPayment]", {
+      loanId, loanRemainingAmount: loan.remainingAmount,
+      remaining, installmentAmount, newRemaining, balanceDelta: installmentAmount,
+    });
+
     await Promise.all([
       supabase.from("payments").insert({
         user_id: user.id, loan_id: loanId, amount: installmentAmount,
