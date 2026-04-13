@@ -1566,6 +1566,7 @@ export function LoanList({ loans, payments, installmentSchedules, onPayment, onP
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState<Category>("all");
   const [showFilters, setShowFilters] = useState(false);
+  const [dueDateQuick, setDueDateQuick] = useState<"yesterday" | "today" | "tomorrow" | null>(null);
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
   const [amountMin, setAmountMin] = useState("");
@@ -1614,6 +1615,17 @@ export function LoanList({ loans, payments, installmentSchedules, onPayment, onP
       filtered = filtered.filter((l) => l.tags?.includes(tagFilter));
     }
 
+    // Quick due date filter
+    if (dueDateQuick) {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const target = new Date(today);
+      if (dueDateQuick === "yesterday") target.setDate(target.getDate() - 1);
+      else if (dueDateQuick === "tomorrow") target.setDate(target.getDate() + 1);
+      const targetStr = target.toISOString().split("T")[0];
+      filtered = filtered.filter((l) => l.dueDate === targetStr);
+    }
+
     // Sort
     return [...filtered].sort((a, b) => {
       if (sortBy === "dueDate") return a.dueDate.localeCompare(b.dueDate);
@@ -1621,7 +1633,7 @@ export function LoanList({ loans, payments, installmentSchedules, onPayment, onP
       if (sortBy === "amount") return b.amount - a.amount;
       return a.borrowerName.localeCompare(b.borrowerName);
     });
-  }, [loans, payments, search, category, dateFrom, dateTo, amountMin, amountMax, tagFilter, sortBy]);
+  }, [loans, payments, search, category, dateFrom, dateTo, amountMin, amountMax, tagFilter, sortBy, dueDateQuick]);
 
   const folderCount = useMemo(() => {
     const byName: Record<string, number> = {};
@@ -1764,7 +1776,27 @@ export function LoanList({ loans, payments, installmentSchedules, onPayment, onP
         </div>
       </div>
 
-      {/* Advanced filters panel */}
+      {/* Quick due date filter */}
+      {view === "rows" && (
+        <div className="flex items-center gap-2">
+          {([
+            { id: "yesterday" as const, label: "Ontem" },
+            { id: "today" as const, label: "Hoje" },
+            { id: "tomorrow" as const, label: "Amanhã" },
+          ]).map((f) => (
+            <Button
+              key={f.id}
+              variant="outline"
+              size="sm"
+              onClick={() => setDueDateQuick(dueDateQuick === f.id ? null : f.id)}
+              className={`rounded-xl transition-all duration-200 ${dueDateQuick === f.id ? "bg-primary text-primary-foreground border-primary" : ""}`}
+            >
+              {f.label}
+            </Button>
+          ))}
+        </div>
+      )}
+
       {showFilters && (
         <Card>
           <CardContent className="p-4">
