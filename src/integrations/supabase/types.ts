@@ -476,6 +476,30 @@ export type Database = {
         }
         Relationships: []
       }
+      user_tab_permissions: {
+        Row: {
+          allowed_tabs: string[]
+          created_at: string
+          id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          allowed_tabs?: string[]
+          created_at?: string
+          id?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          allowed_tabs?: string[]
+          created_at?: string
+          id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       vehicle_balance: {
         Row: {
           amount: number
