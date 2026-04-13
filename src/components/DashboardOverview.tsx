@@ -142,8 +142,8 @@ export function DashboardOverview({ loans, sales, payments, expenses, onDeletePa
       const label = getChartLabel(range.start);
       const override = chartOverrides[label];
       if (override) {
-        if (override.emprestado !== undefined) totalLoanOutgoing = override.emprestado;
-        if (override.recebido !== undefined) incomeFromPayments = override.recebido;
+        if (override.emprestado !== undefined) totalLoanOutgoing += override.emprestado;
+        if (override.recebido !== undefined) incomeFromPayments += override.recebido;
       }
     }
 
@@ -301,8 +301,8 @@ export function DashboardOverview({ loans, sales, payments, expenses, onDeletePa
       const override = chartOverrides[m.month];
       return {
         month: m.month,
-        emprestado: override?.emprestado ?? m.emprestado,
-        recebido: override?.recebido ?? m.recebido,
+        emprestado: m.emprestado + (override?.emprestado ?? 0),
+        recebido: m.recebido + (override?.recebido ?? 0),
       };
     });
   }, [monthlyChartBase, chartOverrides]);
@@ -321,12 +321,14 @@ export function DashboardOverview({ loans, sales, payments, expenses, onDeletePa
     monthlyChartBase.forEach((m) => {
       const temp = tempOverrides[m.month];
       if (!temp) return;
-      const emprestado = parseFloat(temp.emprestado) || 0;
-      const recebido = parseFloat(temp.recebido) || 0;
-      if (emprestado !== m.emprestado || recebido !== m.recebido) {
+      const totalEmprestado = parseFloat(temp.emprestado) || 0;
+      const totalRecebido = parseFloat(temp.recebido) || 0;
+      const diffEmprestado = totalEmprestado - m.emprestado;
+      const diffRecebido = totalRecebido - m.recebido;
+      if (diffEmprestado !== 0 || diffRecebido !== 0) {
         newOverrides[m.month] = {
-          ...(emprestado !== m.emprestado ? { emprestado } : {}),
-          ...(recebido !== m.recebido ? { recebido } : {}),
+          ...(diffEmprestado !== 0 ? { emprestado: diffEmprestado } : {}),
+          ...(diffRecebido !== 0 ? { recebido: diffRecebido } : {}),
         };
       }
     });
@@ -375,7 +377,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, onDeletePa
   const interestChart = useMemo(() => {
     return interestChartBase.map((m) => ({
       month: m.month,
-      juros: interestOverrides[m.month] ?? m.juros,
+      juros: m.juros + (interestOverrides[m.month] ?? 0),
     }));
   }, [interestChartBase, interestOverrides]);
 
@@ -389,8 +391,9 @@ export function DashboardOverview({ loans, sales, payments, expenses, onDeletePa
   const saveInterestOverrides = () => {
     const newOverrides: Record<string, number> = {};
     interestChartBase.forEach((m) => {
-      const val = parseFloat(tempInterestOverrides[m.month]) || 0;
-      if (val !== m.juros) newOverrides[m.month] = val;
+      const totalVal = parseFloat(tempInterestOverrides[m.month]) || 0;
+      const diff = totalVal - m.juros;
+      if (diff !== 0) newOverrides[m.month] = diff;
     });
     setInterestOverrides(newOverrides);
     setEditingInterest(false);
