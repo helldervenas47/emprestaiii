@@ -51,20 +51,30 @@ Deno.serve(async (req) => {
 
     const { email, password, username, display_name, role } = await req.json();
 
-    if (!email || !password || !role) {
-      return new Response(JSON.stringify({ error: "Email, senha e papel são obrigatórios" }), {
+    if (!password || !role) {
+      return new Response(JSON.stringify({ error: "Senha e papel são obrigatórios" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // Create user with service role (auto-confirms)
-    const { data: newUser, error: createError } = await adminClient.auth.admin.createUser({
-      email,
+    // Build user creation params
+    const userParams: any = {
       password,
       email_confirm: true,
-      user_metadata: { display_name: display_name || email, username },
-    });
+      user_metadata: { display_name: display_name || username || email || "Usuário", username },
+    };
+
+    if (email) {
+      userParams.email = email;
+    } else {
+      // Generate a placeholder email using username or random id
+      const placeholder = username || crypto.randomUUID().slice(0, 8);
+      userParams.email = `${placeholder}@placeholder.local`;
+    }
+
+    // Create user with service role (auto-confirms)
+    const { data: newUser, error: createError } = await adminClient.auth.admin.createUser(userParams);
 
     if (createError) {
       return new Response(JSON.stringify({ error: createError.message }), {
