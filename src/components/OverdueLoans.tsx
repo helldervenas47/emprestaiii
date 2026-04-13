@@ -152,7 +152,7 @@ export function OverdueLoans({ loans, clients, installmentSchedules, payments }:
     return activeLoans
       .map((loan) => {
         if (loan.dueDate >= todayStr) return null;
-        const amount = getInstallmentAmount(loan, installmentSchedules);
+        const amount = getInstallmentAmount(loan, installmentSchedules, payments);
         const nextInst = loan.paidInstallments + 1;
         const installments = [{
           number: nextInst,
@@ -175,7 +175,7 @@ export function OverdueLoans({ loans, clients, installmentSchedules, payments }:
     return activeLoans
       .map((loan) => {
         if (loan.dueDate !== todayStr) return null;
-        const amount = getInstallmentAmount(loan, installmentSchedules);
+        const amount = getInstallmentAmount(loan, installmentSchedules, payments);
         const nextInst = loan.paidInstallments + 1;
         const installments = [{
           number: nextInst,
