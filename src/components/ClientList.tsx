@@ -113,7 +113,7 @@ function calculateCreditScore(clientId: string, loans: Loan[], payments: Payment
   return { score, label, color, bgColor, totalLoans, paidLoans, activeLoans, overdueLoans: totalOverdue, onTimePayments, latePayments, totalPayments };
 }
 
-export function ClientList({ clients, loans, payments, onDelete, onUpdate }: Props) {
+export function ClientList({ clients, loans, payments, onDelete, onUpdate, readOnly = false }: Props & { readOnly?: boolean }) {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [sortOption, setSortOption] = useState<SortOption>("name-asc");
@@ -292,6 +292,7 @@ export function ClientList({ clients, loans, payments, onDelete, onUpdate }: Pro
                           {client.cpf && <p className="text-xs text-muted-foreground">CPF: {client.cpf}</p>}
                         </div>
                       </div>
+                      {!readOnly && (
                       <div className="flex gap-1">
                         <Button
                           size="icon"
@@ -309,6 +310,7 @@ export function ClientList({ clients, loans, payments, onDelete, onUpdate }: Pro
                           <Trash2 className="h-4 w-4" />
                         </Button>
                       </div>
+                      )}
                     </div>
 
                     {/* Credit Score */}
