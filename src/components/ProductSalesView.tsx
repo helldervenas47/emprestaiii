@@ -1230,6 +1230,10 @@ export function ProductSalesView({ sales, onDeleteSale, onUpdateSale, clients = 
   const { mask } = useHideValues();
   const formatCurrency = useCallback((v: number) => mask(rawFormatCurrency(v)), [mask]);
 
+  // Locador & Vehicle Registry hooks
+  const { locador, save: saveLocador } = useLocadorInfo();
+  const { vehicles: registeredVehicles, add: addVehicle, update: updateVehicle, remove: removeVehicle } = useVehicleRegistry();
+
   // Balance state
   const [balance, setBalanceState] = useState<number>(0);
   const [editingBalance, setEditingBalance] = useState(false);
