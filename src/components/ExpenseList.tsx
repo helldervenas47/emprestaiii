@@ -177,62 +177,66 @@ export function ExpenseList({ expenses, onPay, onDelete }: Props) {
                   expense.paid ? "opacity-60" : overdue ? "border-destructive/30" : ""
                 }`}
               >
-                <CardContent className="p-4 flex items-center gap-4">
-                  <div className={`h-10 w-10 rounded-full flex items-center justify-center shrink-0 ${
-                    expense.paid ? "bg-success/10" : overdue ? "bg-destructive/10" : "bg-warning/10"
-                  }`}>
-                    <Receipt className={`h-5 w-5 ${
-                      expense.paid ? "text-success" : overdue ? "text-destructive" : "text-warning"
-                    }`} />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1">
-                      <h3 className="font-semibold text-foreground truncate">{expense.description}</h3>
-                      <Badge variant="outline" className="text-xs shrink-0">
-                        {expense.type === "fixa" ? "Fixa" : "Recorrente"}
-                      </Badge>
-                      {expense.type === "recorrente" && expense.installments && expense.installments > 1 && !expense.paid && (
-                        <Badge variant="outline" className="text-xs shrink-0">
-                          {expense.paidInstallments || 0}/{expense.installments} parcelas
-                        </Badge>
-                      )}
-                      {expense.paid && (
-                        <Badge className="bg-success/10 text-success border-success/20 text-xs shrink-0">Paga</Badge>
-                      )}
-                      {overdue && (
-                        <Badge className="bg-destructive/10 text-destructive border-destructive/20 text-xs shrink-0">Atrasada</Badge>
-                      )}
+                <CardContent className="p-3 sm:p-4">
+                  <div className="flex items-start gap-3 sm:items-center sm:gap-4">
+                    <div className={`h-9 w-9 sm:h-10 sm:w-10 rounded-full flex items-center justify-center shrink-0 ${
+                      expense.paid ? "bg-success/10" : overdue ? "bg-destructive/10" : "bg-warning/10"
+                    }`}>
+                      <Receipt className={`h-4 w-4 sm:h-5 sm:w-5 ${
+                        expense.paid ? "text-success" : overdue ? "text-destructive" : "text-warning"
+                      }`} />
                     </div>
-                    <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                      <span className="flex items-center gap-1"><Tag className="h-3 w-3" />{expense.category}</span>
-                      <span className="flex items-center gap-1">
-                        <Calendar className="h-3 w-3" />
-                        Vence: {new Date(expense.dueDate + "T00:00:00").toLocaleDateString("pt-BR")}
-                      </span>
-                      {expense.paidDate && (
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-start sm:items-center justify-between gap-2">
+                        <div className="min-w-0">
+                          <h3 className="font-semibold text-foreground text-sm truncate">{expense.description}</h3>
+                          <div className="flex flex-wrap items-center gap-1 mt-0.5">
+                            <Badge variant="outline" className="text-[10px] px-1.5 py-0 shrink-0">
+                              {expense.type === "fixa" ? "Fixa" : "Recorrente"}
+                            </Badge>
+                            {expense.type === "recorrente" && expense.installments && expense.installments > 1 && !expense.paid && (
+                              <Badge variant="outline" className="text-[10px] px-1.5 py-0 shrink-0">
+                                {expense.paidInstallments || 0}/{expense.installments} parcelas
+                              </Badge>
+                            )}
+                            {expense.paid && (
+                              <Badge className="bg-success/10 text-success border-success/20 text-[10px] px-1.5 py-0 shrink-0">Paga</Badge>
+                            )}
+                            {overdue && (
+                              <Badge className="bg-destructive/10 text-destructive border-destructive/20 text-[10px] px-1.5 py-0 shrink-0">Atrasada</Badge>
+                            )}
+                          </div>
+                        </div>
+                        <p className="text-base sm:text-lg font-bold text-foreground shrink-0">{formatCurrency(expense.amount)}</p>
+                      </div>
+                      <div className="flex flex-wrap items-center gap-2 sm:gap-4 text-xs text-muted-foreground mt-1">
+                        <span className="flex items-center gap-1"><Tag className="h-3 w-3" />{expense.category}</span>
                         <span className="flex items-center gap-1">
-                          <CheckCircle className="h-3 w-3" />
-                          Pago: {new Date(expense.paidDate + "T00:00:00").toLocaleDateString("pt-BR")}
+                          <Calendar className="h-3 w-3" />
+                          {new Date(expense.dueDate + "T00:00:00").toLocaleDateString("pt-BR")}
                         </span>
+                        {expense.paidDate && (
+                          <span className="flex items-center gap-1">
+                            <CheckCircle className="h-3 w-3" />
+                            Pago: {new Date(expense.paidDate + "T00:00:00").toLocaleDateString("pt-BR")}
+                          </span>
+                        )}
+                      </div>
+                      {expense.notes && <p className="text-xs text-muted-foreground mt-1 italic">"{expense.notes}"</p>}
+                      {expense.type === "recorrente" && expense.installments && expense.installments > 1 && (
+                        <p className="text-xs text-muted-foreground">{formatCurrency(expense.amount / expense.installments)}/parcela</p>
                       )}
                     </div>
-                    {expense.notes && <p className="text-xs text-muted-foreground mt-1 italic">"{expense.notes}"</p>}
                   </div>
-                  <div className="text-right shrink-0">
-                    <p className="text-lg font-bold text-foreground">{formatCurrency(expense.amount)}</p>
-                    {expense.type === "recorrente" && expense.installments && expense.installments > 1 && (
-                      <p className="text-xs text-muted-foreground">{formatCurrency(expense.amount / expense.installments)}/parcela</p>
-                    )}
-                  </div>
-                  <div className="flex gap-1 shrink-0">
+                  <div className="flex items-center justify-end gap-1 mt-2 sm:mt-0">
                     {!expense.paid && (
-                      <Button size="sm" variant="outline" className="text-success border-success/30 hover:bg-success hover:text-success-foreground" onClick={() => onPay(expense.id)}>
-                        <CheckCircle className="h-4 w-4 mr-1" />
+                      <Button size="sm" variant="outline" className="text-success border-success/30 hover:bg-success hover:text-success-foreground h-7 text-xs" onClick={() => onPay(expense.id)}>
+                        <CheckCircle className="h-3.5 w-3.5 mr-1" />
                         {expense.type === "recorrente" && expense.installments && expense.installments > 1 ? "Pagar Parcela" : "Pagar"}
                       </Button>
                     )}
-                    <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive hover:bg-destructive hover:text-destructive-foreground" onClick={() => onDelete(expense.id)}>
-                      <Trash2 className="h-4 w-4" />
+                    <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive hover:bg-destructive hover:text-destructive-foreground" onClick={() => onDelete(expense.id)}>
+                      <Trash2 className="h-3.5 w-3.5" />
                     </Button>
                   </div>
                 </CardContent>
