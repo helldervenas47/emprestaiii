@@ -1256,7 +1256,7 @@ function LoanRowView({
         </div>
       </td>
       {/* Status */}
-      <td className="px-2 sm:px-4 py-2 sm:py-3">
+      <td className="px-1.5 sm:px-4 py-2 sm:py-3">
         <Badge variant="outline" className={`${badge.className} text-[9px] sm:text-xs px-1.5 sm:px-2.5`}>{badge.label}</Badge>
       </td>
       {/* Emprestado - hidden on mobile */}
@@ -1264,8 +1264,8 @@ function LoanRowView({
         <span className="text-sm font-medium text-foreground">{formatCurrency(loan.amount)}</span>
       </td>
       {/* Restante */}
-      <td className="px-2 sm:px-4 py-2 sm:py-3">
-        <span className="text-[10px] sm:text-sm font-medium text-destructive">{formatCurrency(remaining)}</span>
+      <td className="px-1.5 sm:px-4 py-2 sm:py-3">
+        <span className="text-[11px] sm:text-sm font-medium text-destructive">{formatCurrency(remaining)}</span>
       </td>
       {/* Parcelas - hidden on mobile */}
       <td className="hidden sm:table-cell px-4 py-3">
@@ -1281,8 +1281,8 @@ function LoanRowView({
         )}
       </td>
       {/* Vencimento */}
-      <td className="px-2 sm:px-4 py-2 sm:py-3">
-        <span className={`text-[10px] sm:text-sm ${category === "overdue" ? "text-warning" : "text-foreground"}`}>
+      <td className="px-1.5 sm:px-4 py-2 sm:py-3">
+        <span className={`text-[11px] sm:text-sm ${category === "overdue" ? "text-warning" : "text-foreground"}`}>
           {new Date(loan.dueDate + "T00:00:00").toLocaleDateString("pt-BR")}
         </span>
       </td>
