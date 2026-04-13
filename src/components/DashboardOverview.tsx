@@ -244,17 +244,34 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
     const todayStr = new Date().toISOString().split("T")[0];
     const overdueLoans = activeLoans.filter((l) => l.dueDate < todayStr);
     const overdueAmount = overdueLoans.reduce((s, l) => {
-      // For installment loans, sum overdue installments from schedule
+      // Base remaining
+      let baseRemaining: number;
       if (l.installments >= 2) {
         const overdueSum = installmentSchedules
           .filter((sc) => sc.loanId === l.id && sc.installmentNumber > l.paidInstallments && sc.dueDate < todayStr)
           .reduce((sum, sc) => sum + sc.amount, 0);
-        if (overdueSum > 0) return s + overdueSum;
+        baseRemaining = overdueSum > 0 ? overdueSum : (l.remainingAmount > 0 ? l.remainingAmount : Math.max(0, calculateTotalWithInterest(l.amount, l.interestRate, l.installments) - payments.filter((p) => p.loanId === l.id).reduce((ss, p) => ss + p.amount, 0)));
+      } else if (l.remainingAmount != null && l.remainingAmount > 0) {
+        baseRemaining = l.remainingAmount;
+      } else {
+        const expected = calculateTotalWithInterest(l.amount, l.interestRate, l.installments);
+        const paid = payments.filter((p) => p.loanId === l.id).reduce((ss, p) => ss + p.amount, 0);
+        baseRemaining = Math.max(0, expected - paid);
       }
-      if (l.remainingAmount != null && l.remainingAmount > 0) return s + l.remainingAmount;
-      const expected = calculateTotalWithInterest(l.amount, l.interestRate, l.installments);
-      const paid = payments.filter((p) => p.loanId === l.id).reduce((ss, p) => ss + p.amount, 0);
-      return s + Math.max(0, expected - paid);
+      // Late fees (juros de mora + multa)
+      const dueDate = new Date(l.dueDate + "T00:00:00");
+      const todayNorm = new Date(); todayNorm.setHours(0, 0, 0, 0);
+      const daysLate = Math.max(0, Math.floor((todayNorm.getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24)));
+      let lateFees = 0;
+      if (l.lateInterestValue != null && l.lateInterestValue > 0 && daysLate > 0) {
+        lateFees += l.lateInterestType === "fixed"
+          ? l.lateInterestValue * daysLate
+          : baseRemaining * (l.lateInterestValue / 100) * daysLate;
+      }
+      if (l.penaltyValue != null && l.penaltyValue > 0 && daysLate > 0) {
+        lateFees += l.penaltyValue;
+      }
+      return s + baseRemaining + lateFees;
     }, 0);
 
     // Rates
