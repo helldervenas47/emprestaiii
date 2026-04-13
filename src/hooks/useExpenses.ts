@@ -85,6 +85,34 @@ export function useExpenses() {
     }
   }, [expenses]);
 
+  const unpayExpense = useCallback(async (id: string) => {
+    const expense = expenses.find((e) => e.id === id);
+    if (!expense) return;
+
+    if (expense.type === "recorrente" && expense.installments && expense.installments > 1 && (expense.paidInstallments || 0) > 0) {
+      const installmentAmount = expense.amount / expense.installments;
+      const newPaid = (expense.paidInstallments || 0) - 1;
+      // Move due date back one month
+      const currentDue = new Date(expense.dueDate + "T00:00:00");
+      currentDue.setMonth(currentDue.getMonth() - 1);
+      const newDueDate = currentDue.toISOString().split("T")[0];
+      setExpenses((prev) => prev.map((e) => e.id === id ? {
+        ...e, paidInstallments: newPaid, paid: false, paidDate: undefined, dueDate: newDueDate,
+      } : e));
+      await adjustBalance(installmentAmount);
+      await supabase.from("expenses").update({
+        paid_installments: newPaid, paid: false, paid_date: null, due_date: newDueDate,
+      }).eq("id", id);
+    } else if (expense.paid) {
+      setExpenses((prev) => prev.map((e) => e.id === id ? {
+        ...e, paid: false, paidDate: undefined,
+      } : e));
+      await adjustBalance(expense.amount);
+      await supabase.from("expenses").update({
+        paid: false, paid_date: null,
+      }).eq("id", id);
+    }
+
   const deleteExpense = useCallback(async (id: string, skipBalanceAdjust = false) => {
     const expense = expenses.find((e) => e.id === id);
     setExpenses((prev) => prev.filter((e) => e.id !== id));
