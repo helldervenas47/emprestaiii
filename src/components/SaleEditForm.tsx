@@ -260,9 +260,18 @@ export function SaleEditForm({ sale, onSave, onClose, clients = [], registeredVe
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="Semanal">Semanal</SelectItem>
-                      <SelectItem value="Quinzenal">Quinzenal</SelectItem>
-                      <SelectItem value="Mensal">Mensal</SelectItem>
+                      {form.businessType === "aluguel_veiculo" ? (
+                        <>
+                          <SelectItem value="Diário">Diária</SelectItem>
+                          <SelectItem value="Semanal">Semanal</SelectItem>
+                        </>
+                      ) : (
+                        <>
+                          <SelectItem value="Semanal">Semanal</SelectItem>
+                          <SelectItem value="Quinzenal">Quinzenal</SelectItem>
+                          <SelectItem value="Mensal">Mensal</SelectItem>
+                        </>
+                      )}
                     </SelectContent>
                   </Select>
                 </div>
