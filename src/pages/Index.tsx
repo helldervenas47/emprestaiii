@@ -296,7 +296,7 @@ const Index = () => {
                 <Receipt className="h-4 w-4 sm:mr-1" /><span className="hidden sm:inline">Registrar Despesa</span>
               </Button>
             )}
-            {!isReadOnly && tab !== "overview" && tab !== "overdue" && tab !== "calendar" && tab !== "users" && !(tab === "dashboard" && !isMobile) && !(tab === "clients" && !isMobile) && (
+            {!isReadOnly && tab !== "overview" && tab !== "overdue" && tab !== "calendar" && tab !== "users" && !(tab === "dashboard" && !isMobile) && (
               <Button onClick={handlePrimaryAction} size="sm" className="h-8 px-2 sm:px-3">
                 <Plus className="h-4 w-4 sm:mr-1" /><span className="hidden sm:inline">{primaryLabel}</span>
               </Button>
@@ -342,14 +342,7 @@ const Index = () => {
         )}
         {tab === "clients" && (
           <div>
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-semibold text-foreground">Clientes ({clients.length})</h2>
-              {!isMobile && !isReadOnly && (
-                <Button onClick={() => setShowClientForm(true)} size="sm" className="h-9 px-4">
-                  <Plus className="h-4 w-4 mr-1.5" />Novo Cliente
-                </Button>
-              )}
-            </div>
+            <h2 className="text-lg font-semibold text-foreground mb-4">Clientes ({clients.length})</h2>
             <ClientList clients={clients} loans={loans} payments={payments} onDelete={deleteClient} onUpdate={updateClient} />
           </div>
         )}
