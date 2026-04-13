@@ -1102,6 +1102,7 @@ function LoanRowView({
   onDeletePayment: (paymentId: string) => void;
   readOnly?: boolean;
 }) {
+  const [expanded, setExpanded] = useState(false);
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState<EditForm>(loanToForm(loan));
   const { mask } = useHideValues();
@@ -1231,7 +1232,7 @@ function LoanRowView({
 
   return (
     <>
-    <tr className="border-b border-border/30 hover:bg-muted/30 transition-colors group">
+    <tr className={`border-b border-border/30 hover:bg-muted/30 transition-colors group cursor-pointer ${expanded ? "bg-muted/20" : ""}`} onClick={() => setExpanded(!expanded)}>
       {/* Cliente */}
       <td className="px-1.5 sm:px-4 py-2 sm:py-3">
         <div className="flex items-center gap-1.5 sm:gap-3">
@@ -1298,84 +1299,127 @@ function LoanRowView({
           )) : <span className="text-xs text-muted-foreground">—</span>}
         </div>
       </td>
-      {/* Ações - hidden on mobile */}
-      <td className="hidden sm:table-cell px-4 py-3">
-        <div className="flex items-center gap-1 justify-end">
-          {!readOnly && loan.status !== "paid" && (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="sm" className="h-7 text-xs text-muted-foreground hover:text-foreground gap-1">
-                  <DollarSign className="h-3.5 w-3.5" /> Pagar
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={() => openPaymentDialog("full")}>
-                  <CheckCircle className="h-4 w-4 mr-2" /> Pagamento Total
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setShowPartial(!showPartial)}>
-                  <HandCoins className="h-4 w-4 mr-2" /> Pagamento Parcial
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => openPaymentDialog("interest")}>
-                  <Percent className="h-4 w-4 mr-2" /> Pagar Juros
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          )}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-7 w-7">
-                <MoreHorizontal className="h-4 w-4 text-muted-foreground" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              {!readOnly && loan.status !== "paid" && (
-                <>
-                  <DropdownMenuItem onClick={() => openPaymentDialog("installment")}>
-                    <CheckCircle className="h-4 w-4 mr-2" /> Receber Parcela
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => openPaymentDialog("interest")}>
-                    <Percent className="h-4 w-4 mr-2" /> Pagar Juros
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setShowPartial(!showPartial)}>
-                    <HandCoins className="h-4 w-4 mr-2" /> Pagamento Parcial
-                  </DropdownMenuItem>
-                </>
-              )}
-              {!readOnly && (
-                <DropdownMenuItem onClick={() => loan.status === "paid" ? onUpdate({ status: "active", paidInstallments: 0 }) : openPaymentDialog("full")}>
-                  <CheckCircle className="h-4 w-4 mr-2" /> {loan.status === "paid" ? "Marcar como não pago" : "Marcar como pago"}
-                </DropdownMenuItem>
-              )}
-              <DropdownMenuItem onClick={() => setShowHistory(true)}>
-                <History className="h-4 w-4 mr-2" /> Histórico
-              </DropdownMenuItem>
-              {!readOnly && (
-                <>
-                  <DropdownMenuItem onClick={startEdit}>
-                    <Pencil className="h-4 w-4 mr-2" /> Editar
-                  </DropdownMenuItem>
-                  <DropdownMenuItem className="text-destructive" onClick={() => setConfirmDelete(true)}>
-                    <Trash2 className="h-4 w-4 mr-2" /> Excluir
-                  </DropdownMenuItem>
-                </>
-              )}
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
+      {/* Chevron */}
+      <td className="hidden sm:table-cell px-4 py-3 text-right">
+        {expanded ? <ChevronDown className="h-4 w-4 text-muted-foreground inline" /> : <ChevronRight className="h-4 w-4 text-muted-foreground inline" />}
       </td>
     </tr>
-    {showPartial && (
-      <tr className="border-b border-border/30 bg-muted/30">
-        <td colSpan={8} className="px-4 py-2">
-          <div className="flex items-center gap-2">
-            <Input
-              type="number" step="0.01" placeholder="Valor parcial (R$)"
-              value={partialAmount} onChange={(e) => setPartialAmount(e.target.value)}
-              className="h-7 text-xs w-40" autoFocus
-              onKeyDown={(e) => e.key === "Enter" && handlePartialSubmit()}
-            />
-            <Button size="sm" className="h-7 text-xs" onClick={handlePartialSubmit}><Check className="h-3.5 w-3.5 mr-1" />Confirmar</Button>
-            <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setShowPartial(false)}><X className="h-3.5 w-3.5" /></Button>
+    {expanded && (
+      <tr className="border-b border-border/30 bg-muted/10">
+        <td colSpan={8} className="px-3 sm:px-6 py-4">
+          <div className="space-y-4">
+            {/* Info grid */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <div className="bg-card rounded-lg p-3 border border-border/30">
+                <p className="text-[10px] text-muted-foreground uppercase">Emprestado</p>
+                <p className="text-sm font-bold text-foreground">{formatCurrency(loan.amount)}</p>
+              </div>
+              <div className="bg-card rounded-lg p-3 border border-border/30">
+                <p className="text-[10px] text-muted-foreground uppercase">Total c/ Juros</p>
+                <p className="text-sm font-bold text-foreground">{formatCurrency(total)}</p>
+              </div>
+              <div className="bg-card rounded-lg p-3 border border-border/30">
+                <p className="text-[10px] text-muted-foreground uppercase">Total Pago</p>
+                <p className="text-sm font-bold text-success">{formatCurrency(totalPaid)}</p>
+              </div>
+              <div className="bg-card rounded-lg p-3 border border-border/30">
+                <p className="text-[10px] text-muted-foreground uppercase">Restante</p>
+                <p className="text-sm font-bold text-destructive">{formatCurrency(remaining)}</p>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <div>
+                <p className="text-[10px] text-muted-foreground uppercase">Juros</p>
+                <p className="text-xs font-medium">{loan.interestRate}% {loan.interestType}</p>
+              </div>
+              <div>
+                <p className="text-[10px] text-muted-foreground uppercase">Parcelas</p>
+                <p className="text-xs font-medium">{loan.paidInstallments}/{loan.installments}</p>
+              </div>
+              <div>
+                <p className="text-[10px] text-muted-foreground uppercase">Data Saída</p>
+                <p className="text-xs font-medium">{new Date(loan.startDate + "T00:00:00").toLocaleDateString("pt-BR")}</p>
+              </div>
+              <div>
+                <p className="text-[10px] text-muted-foreground uppercase">Vencimento</p>
+                <p className="text-xs font-medium">{new Date(loan.dueDate + "T00:00:00").toLocaleDateString("pt-BR")}</p>
+              </div>
+            </div>
+            {daysOverdue > 0 && loan.status !== "paid" && (
+              <div className="flex items-center gap-1.5 text-destructive">
+                <span className="h-2 w-2 rounded-full bg-destructive inline-block"></span>
+                <span className="text-xs font-medium">{daysOverdue} dia{daysOverdue > 1 ? "s" : ""} em atraso</span>
+                {lateInterestTotal > 0 && <span className="text-xs">• Juros mora: {formatCurrency(lateInterestTotal)}</span>}
+                {penaltyTotal > 0 && <span className="text-xs">• Multa: {formatCurrency(penaltyTotal)}</span>}
+              </div>
+            )}
+            {loan.notes && (
+              <div>
+                <p className="text-[10px] text-muted-foreground uppercase">Observações</p>
+                <p className="text-xs text-foreground mt-0.5">{loan.notes}</p>
+              </div>
+            )}
+            {loan.tags && loan.tags.length > 0 && (
+              <div className="flex flex-wrap gap-1">
+                {loan.tags.map((tag) => (
+                  <Badge key={tag} className="bg-primary text-primary-foreground text-[10px]">{tag}</Badge>
+                ))}
+              </div>
+            )}
+            {/* Progress */}
+            <div>
+              <Progress value={loan.installments > 0 ? (loan.paidInstallments / loan.installments) * 100 : 0} className="h-2" />
+              <p className="text-[10px] text-muted-foreground mt-1">{Math.round(loan.installments > 0 ? (loan.paidInstallments / loan.installments) * 100 : 0)}% concluído</p>
+            </div>
+            {/* Actions */}
+            <div className="flex flex-wrap items-center gap-2 pt-1 border-t border-border/30">
+              {!readOnly && loan.status !== "paid" && (
+                <>
+                  <Button size="sm" variant="outline" className="h-8 text-xs gap-1.5" onClick={(e) => { e.stopPropagation(); openPaymentDialog("installment"); }}>
+                    <CheckCircle className="h-3.5 w-3.5" /> Receber Parcela
+                  </Button>
+                  <Button size="sm" variant="outline" className="h-8 text-xs gap-1.5" onClick={(e) => { e.stopPropagation(); openPaymentDialog("interest"); }}>
+                    <Percent className="h-3.5 w-3.5" /> Pagar Juros
+                  </Button>
+                  <Button size="sm" variant="outline" className="h-8 text-xs gap-1.5" onClick={(e) => { e.stopPropagation(); setShowPartial(!showPartial); }}>
+                    <HandCoins className="h-3.5 w-3.5" /> Pagamento Parcial
+                  </Button>
+                  <Button size="sm" variant="default" className="h-8 text-xs gap-1.5" onClick={(e) => { e.stopPropagation(); openPaymentDialog("full"); }}>
+                    <DollarSign className="h-3.5 w-3.5" /> Pagamento Total
+                  </Button>
+                </>
+              )}
+              {!readOnly && loan.status === "paid" && (
+                <Button size="sm" variant="outline" className="h-8 text-xs gap-1.5" onClick={(e) => { e.stopPropagation(); onUpdate({ status: "active", paidInstallments: 0 }); }}>
+                  <X className="h-3.5 w-3.5" /> Marcar como não pago
+                </Button>
+              )}
+              <Button size="sm" variant="ghost" className="h-8 text-xs gap-1.5" onClick={(e) => { e.stopPropagation(); setShowHistory(true); }}>
+                <History className="h-3.5 w-3.5" /> Histórico
+              </Button>
+              {!readOnly && (
+                <>
+                  <Button size="sm" variant="ghost" className="h-8 text-xs gap-1.5" onClick={(e) => { e.stopPropagation(); startEdit(); }}>
+                    <Pencil className="h-3.5 w-3.5" /> Editar
+                  </Button>
+                  <Button size="sm" variant="ghost" className="h-8 text-xs gap-1.5 text-destructive hover:text-destructive" onClick={(e) => { e.stopPropagation(); setConfirmDelete(true); }}>
+                    <Trash2 className="h-3.5 w-3.5" /> Excluir
+                  </Button>
+                </>
+              )}
+            </div>
+            {showPartial && (
+              <div className="flex items-center gap-2 pt-2" onClick={(e) => e.stopPropagation()}>
+                <Input
+                  type="number" step="0.01" placeholder="Valor parcial (R$)"
+                  value={partialAmount} onChange={(e) => setPartialAmount(e.target.value)}
+                  className="h-7 text-xs w-40" autoFocus
+                  onKeyDown={(e) => e.key === "Enter" && handlePartialSubmit()}
+                />
+                <Button size="sm" className="h-7 text-xs" onClick={handlePartialSubmit}><Check className="h-3.5 w-3.5 mr-1" />Confirmar</Button>
+                <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setShowPartial(false)}><X className="h-3.5 w-3.5" /></Button>
+              </div>
+            )}
           </div>
         </td>
       </tr>
@@ -1900,7 +1944,7 @@ export function LoanList({ loans, payments, installmentSchedules, onPayment, onP
                     <th className="hidden sm:table-cell px-4 py-2.5 text-left text-xs font-medium text-muted-foreground">Parcelas</th>
                     <th className="px-1.5 sm:px-4 py-2.5 text-left text-[10px] sm:text-xs font-medium text-muted-foreground">Venc.</th>
                     <th className="hidden sm:table-cell px-4 py-2.5 text-left text-xs font-medium text-muted-foreground">Etiquetas</th>
-                    <th className="hidden sm:table-cell px-4 py-2.5 text-right text-xs font-medium text-muted-foreground">Ações</th>
+                    <th className="hidden sm:table-cell px-4 py-2.5 text-right text-xs font-medium text-muted-foreground"></th>
                   </tr>
                 </thead>
                 <tbody>
