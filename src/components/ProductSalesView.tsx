@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useMemo } from "react";
 import { DatePickerField } from "@/components/ui/date-picker-field";
 import { Sale, BusinessType, Client, Expense } from "@/types/loan";
 import { Card, CardContent } from "@/components/ui/card";
@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
-import { Trash2, Search, ShoppingCart, Tv, Car, Calendar as CalendarIcon, User, Pencil, ChevronDown, ChevronUp, CheckCircle, HandCoins, Check, X as XIcon, DollarSign, AlertTriangle, Clock, CircleCheck, Receipt, Plus, Wallet, ChevronLeft, ChevronRight } from "lucide-react";
+import { Trash2, Search, ShoppingCart, Tv, Car, Calendar as CalendarIcon, User, Pencil, ChevronDown, ChevronUp, CheckCircle, HandCoins, Check, X as XIcon, DollarSign, AlertTriangle, Clock, CircleCheck, Receipt, Plus, Wallet, ChevronLeft, ChevronRight, LayoutGrid, Folder } from "lucide-react";
 import { addMonths, addWeeks, addDays, format, startOfMonth, endOfMonth } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
@@ -466,10 +466,118 @@ const saleCategoryFilters: { id: SaleCategory; label: string; color: string; act
   { id: "on_track", label: "Em Dia", color: "border-primary/30 text-primary", activeColor: "bg-primary text-primary-foreground border-primary" },
 ];
 
+// Client folder grouping for sales
+interface SaleClientGroup {
+  name: string;
+  sales: Sale[];
+  totalAmount: number;
+  totalPaid: number;
+  totalReceivable: number;
+  hasOverdue: boolean;
+}
+
+function getSalePaidAmountHelper(s: Sale): number {
+  const amounts = s.installmentAmounts;
+  if (amounts && amounts.length > 0) {
+    let paid = s.downPayment || 0;
+    for (let i = 0; i < s.paidInstallments && i < amounts.length; i++) {
+      paid += amounts[i] || 0;
+    }
+    return paid;
+  }
+  const vp = s.installments > 0 ? Math.max(0, s.total - (s.downPayment || 0)) / s.installments : s.total;
+  return vp * s.paidInstallments + (s.downPayment || 0);
+}
+
+function SaleClientFolder({
+  group, onDeleteSale, onUpdateSale, formatCurrency, onEdit,
+}: {
+  group: SaleClientGroup;
+  onDeleteSale: (id: string) => void;
+  onUpdateSale: (id: string, data: Partial<Omit<Sale, "id">>) => void;
+  formatCurrency: (v: number) => string;
+  onEdit: (sale: Sale) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const activeCount = group.sales.filter((s) => getSaleCategory(s) !== "paid").length;
+  const paidCount = group.sales.filter((s) => getSaleCategory(s) === "paid").length;
+
+  return (
+    <Card className={`overflow-hidden transition-shadow hover:shadow-lg ${open ? "ring-1 ring-primary/20" : ""} ${group.hasOverdue ? "border-destructive/40" : ""}`}>
+      <button
+        onClick={() => setOpen(!open)}
+        className="w-full flex items-center gap-3 px-4 py-3 text-left"
+      >
+        <div className={`h-10 w-10 rounded-lg flex items-center justify-center text-primary-foreground font-bold text-sm shrink-0 shadow-md ${group.hasOverdue ? "bg-destructive" : "gradient-primary"}`}>
+          {group.name.charAt(0).toUpperCase()}
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2">
+            <h3 className="font-bold text-foreground text-sm truncate">{group.name}</h3>
+            {group.hasOverdue && <Badge className="bg-destructive/10 text-destructive border-destructive/20 text-[10px]">Atrasado</Badge>}
+          </div>
+          <div className="flex items-center gap-1.5 mt-0.5">
+            <Badge variant="outline" className="text-[10px]">{group.sales.length}</Badge>
+            {activeCount > 0 && <Badge variant="outline" className="text-[10px] bg-primary/10 text-primary border-primary/20">{activeCount} ativos</Badge>}
+            {paidCount > 0 && <Badge variant="outline" className="text-[10px] bg-success/10 text-success border-success/20">{paidCount} pagos</Badge>}
+          </div>
+        </div>
+        <div className="hidden sm:flex items-center gap-4 text-xs shrink-0">
+          <div className="text-right">
+            <p className="text-[9px] text-muted-foreground uppercase">Total</p>
+            <p className="font-bold text-foreground">{formatCurrency(group.totalAmount)}</p>
+          </div>
+          <div className="text-right">
+            <p className="text-[9px] text-muted-foreground uppercase">Recebido</p>
+            <p className="font-bold text-success">{formatCurrency(group.totalPaid)}</p>
+          </div>
+          <div className="text-right">
+            <p className="text-[9px] text-muted-foreground uppercase">A Receber</p>
+            <p className={`font-bold ${group.hasOverdue ? "text-destructive" : "text-warning"}`}>{formatCurrency(group.totalReceivable)}</p>
+          </div>
+        </div>
+        {open ? <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0" /> : <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />}
+      </button>
+      {open && (
+        <CardContent className="pt-0 pb-3 px-3 space-y-3">
+          {/* Mobile summary */}
+          <div className="flex sm:hidden items-center justify-between text-xs border-b border-border/30 pb-3">
+            <div className="text-center flex-1">
+              <p className="text-[9px] text-muted-foreground uppercase">Total</p>
+              <p className="font-bold text-foreground">{formatCurrency(group.totalAmount)}</p>
+            </div>
+            <div className="text-center flex-1">
+              <p className="text-[9px] text-muted-foreground uppercase">Recebido</p>
+              <p className="font-bold text-success">{formatCurrency(group.totalPaid)}</p>
+            </div>
+            <div className="text-center flex-1">
+              <p className="text-[9px] text-muted-foreground uppercase">A Receber</p>
+              <p className={`font-bold ${group.hasOverdue ? "text-destructive" : "text-warning"}`}>{formatCurrency(group.totalReceivable)}</p>
+            </div>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {group.sales.map((sale) => (
+              <SaleCard
+                key={sale.id}
+                sale={sale}
+                onDelete={() => onDeleteSale(sale.id)}
+                onEdit={() => onEdit(sale)}
+                onUpdate={(data) => onUpdateSale(sale.id, data)}
+                formatCurrency={formatCurrency}
+              />
+            ))}
+          </div>
+        </CardContent>
+      )}
+    </Card>
+  );
+}
+
 function SalesList({ sales, onDeleteSale, onUpdateSale, clients = [], hideOnTrackCard = false, renderAfterCards }: { sales: Sale[]; onDeleteSale: (id: string) => void; onUpdateSale: (id: string, data: Partial<Omit<Sale, "id">>) => void; clients?: Client[]; hideOnTrackCard?: boolean; renderAfterCards?: React.ReactNode }) {
   const [editingSale, setEditingSale] = useState<Sale | null>(null);
   const [search, setSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState<SaleCategory>("all");
+  const [view, setView] = useState<"cards" | "folders">("cards");
   const { mask } = useHideValues();
   const formatCurrency = useCallback((v: number) => mask(rawFormatCurrency(v)), [mask]);
 
@@ -508,6 +616,35 @@ function SalesList({ sales, onDeleteSale, onUpdateSale, clients = [], hideOnTrac
   });
 
   const total = filtered.reduce((acc, s) => acc + s.total, 0);
+
+  // Folder grouping: customers with 2+ contracts
+  const folderCount = useMemo(() => {
+    const byName: Record<string, number> = {};
+    sales.forEach((s) => { if (s.customerName) byName[s.customerName] = (byName[s.customerName] || 0) + 1; });
+    return Object.values(byName).filter((c) => c > 1).length;
+  }, [sales]);
+
+  const { saleGroups, saleSingles } = useMemo(() => {
+    const byName: Record<string, Sale[]> = {};
+    filtered.forEach((s) => {
+      const name = s.customerName || s.description || "Sem cliente";
+      (byName[name] ??= []).push(s);
+    });
+    const saleGroups: SaleClientGroup[] = [];
+    const saleSingles: Sale[] = [];
+    Object.entries(byName).forEach(([name, salesGroup]) => {
+      if (salesGroup.length > 1) {
+        const totalPaid = salesGroup.reduce((s, sale) => s + getSalePaidAmountHelper(sale), 0);
+        const totalReceivable = salesGroup.reduce((s, sale) => s + Math.max(0, sale.total - getSalePaidAmountHelper(sale)), 0);
+        const hasOverdue = salesGroup.some((s) => getSaleCategory(s) === "overdue");
+        saleGroups.push({ name, sales: salesGroup, totalAmount: salesGroup.reduce((s, sale) => s + sale.total, 0), totalPaid, totalReceivable, hasOverdue });
+      } else {
+        saleSingles.push(salesGroup[0]);
+      }
+    });
+    saleGroups.sort((a, b) => (a.hasOverdue === b.hasOverdue ? a.name.localeCompare(b.name) : a.hasOverdue ? -1 : 1));
+    return { saleGroups, saleSingles };
+  }, [filtered]);
 
   // Calculate receivables per category
   const getSalePaidAmount = (s: Sale) => {
@@ -603,23 +740,45 @@ function SalesList({ sales, onDeleteSale, onUpdateSale, clients = [], hideOnTrac
 
       {renderAfterCards}
 
-      {/* Category filter pills */}
-      <div className="grid grid-cols-3 sm:grid-cols-5 gap-2 w-full">
-        {saleCategoryFilters.map((cat) => {
-          const count = cat.id === "all" ? sales.length : (counts[cat.id] || 0);
-          const isActive = categoryFilter === cat.id;
-          return (
-            <button
-              key={cat.id}
-              onClick={() => setCategoryFilter(cat.id)}
-              className={`px-2 py-1.5 rounded-xl text-[10px] sm:text-xs font-semibold border transition-all duration-200 whitespace-nowrap ${
-                isActive ? cat.activeColor : cat.color
-              }`}
-            >
-              {cat.label} ({count})
-            </button>
-          );
-        })}
+      {/* View toggle + Category filter pills */}
+      <div className="flex items-center gap-2">
+        <div className="flex-1 grid grid-cols-3 sm:grid-cols-5 gap-2 w-full">
+          {saleCategoryFilters.map((cat) => {
+            const count = cat.id === "all" ? sales.length : (counts[cat.id] || 0);
+            const isActive = categoryFilter === cat.id;
+            return (
+              <button
+                key={cat.id}
+                onClick={() => setCategoryFilter(cat.id)}
+                className={`px-2 py-1.5 rounded-xl text-[10px] sm:text-xs font-semibold border transition-all duration-200 whitespace-nowrap ${
+                  isActive ? cat.activeColor : cat.color
+                }`}
+              >
+                {cat.label} ({count})
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* View toggle */}
+      <div className="flex items-center gap-2">
+        <div className="bg-muted/50 rounded-xl p-1 flex gap-0.5">
+          <button onClick={() => setView("cards")}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 ${
+              view === "cards" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            <LayoutGrid className="h-3.5 w-3.5" />Cards
+          </button>
+          <button onClick={() => setView("folders")}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 ${
+              view === "folders" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            <Folder className="h-3.5 w-3.5" />Pastas ({folderCount})
+          </button>
+        </div>
       </div>
 
       <div className="flex items-center justify-between gap-4">
@@ -638,6 +797,34 @@ function SalesList({ sales, onDeleteSale, onUpdateSale, clients = [], hideOnTrac
           <ShoppingCart className="h-12 w-12 mx-auto text-muted-foreground/40 mb-3" />
           <p className="text-muted-foreground">Nenhum lançamento encontrado</p>
         </CardContent></Card>
+      ) : view === "folders" ? (
+        <div className="space-y-4">
+          {saleGroups.map((g) => (
+            <SaleClientFolder
+              key={g.name}
+              group={g}
+              onDeleteSale={onDeleteSale}
+              onUpdateSale={onUpdateSale}
+              formatCurrency={formatCurrency}
+              onEdit={setEditingSale}
+            />
+          ))}
+          {saleSingles.length > 0 && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {saleSingles.map((sale, i) => (
+                <div key={sale.id} className="animate-fade-in" style={{ animationDelay: `${i * 60}ms`, animationFillMode: 'backwards' }}>
+                  <SaleCard
+                    sale={sale}
+                    onDelete={() => onDeleteSale(sale.id)}
+                    onEdit={() => setEditingSale(sale)}
+                    onUpdate={(data) => onUpdateSale(sale.id, data)}
+                    formatCurrency={formatCurrency}
+                  />
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {filtered.map((sale, i) => (
@@ -653,7 +840,6 @@ function SalesList({ sales, onDeleteSale, onUpdateSale, clients = [], hideOnTrac
           ))}
         </div>
       )}
-
       {editingSale && (
         <SaleEditForm
           sale={editingSale}
