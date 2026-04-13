@@ -1,4 +1,6 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
 import { useHideValues } from "@/contexts/HideValuesContext";
 import { Expense } from "@/types/loan";
 import { Card, CardContent } from "@/components/ui/card";
@@ -7,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import {
   Search, Trash2, CheckCircle, Receipt, Calendar, Tag,
-  CircleDollarSign,
+  CircleDollarSign, ChevronLeft, ChevronRight,
 } from "lucide-react";
 
 interface Props {
@@ -33,8 +35,15 @@ export function ExpenseList({ expenses, onPay, onDelete }: Props) {
   const formatCurrency = useCallback((v: number) => mask(rawFormatCurrency(v)), [mask]);
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<Filter>("all");
+  const now = new Date();
+  const [selectedMonth, setSelectedMonth] = useState(`${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`);
 
-  const filtered = expenses
+  const monthFiltered = useMemo(() => {
+    if (!selectedMonth) return expenses;
+    return expenses.filter((e) => e.dueDate.startsWith(selectedMonth));
+  }, [expenses, selectedMonth]);
+
+  const filtered = monthFiltered
     .filter((e) => e.description.toLowerCase().includes(search.toLowerCase()) || e.category.toLowerCase().includes(search.toLowerCase()))
     .filter((e) => {
       if (filter === "pending") return !e.paid && !isOverdue(e);
@@ -47,16 +56,26 @@ export function ExpenseList({ expenses, onPay, onDelete }: Props) {
       return b.dueDate.localeCompare(a.dueDate);
     });
 
-  const totalPending = expenses.filter((e) => !e.paid).reduce((s, e) => s + e.amount, 0);
-  const totalPaid = expenses.filter((e) => e.paid).reduce((s, e) => s + e.amount, 0);
-  const totalOverdue = expenses.filter((e) => isOverdue(e)).reduce((s, e) => s + e.amount, 0);
+  const totalPending = monthFiltered.filter((e) => !e.paid).reduce((s, e) => s + e.amount, 0);
+  const totalPaid = monthFiltered.filter((e) => e.paid).reduce((s, e) => s + e.amount, 0);
+  const totalOverdue = monthFiltered.filter((e) => isOverdue(e)).reduce((s, e) => s + e.amount, 0);
 
   const filters: { id: Filter; label: string; count: number }[] = [
-    { id: "all", label: "Todas", count: expenses.length },
-    { id: "pending", label: "Pendentes", count: expenses.filter((e) => !e.paid && !isOverdue(e)).length },
-    { id: "overdue", label: "Atrasadas", count: expenses.filter((e) => isOverdue(e)).length },
-    { id: "paid", label: "Pagas", count: expenses.filter((e) => e.paid).length },
+    { id: "all", label: "Todas", count: monthFiltered.length },
+    { id: "pending", label: "Pendentes", count: monthFiltered.filter((e) => !e.paid && !isOverdue(e)).length },
+    { id: "overdue", label: "Atrasadas", count: monthFiltered.filter((e) => isOverdue(e)).length },
+    { id: "paid", label: "Pagas", count: monthFiltered.filter((e) => e.paid).length },
   ];
+
+  const [selYear, selMonthNum] = selectedMonth.split("-").map(Number);
+  const prevMonth = () => {
+    const d = new Date(selYear, selMonthNum - 2, 1);
+    setSelectedMonth(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`);
+  };
+  const nextMonth = () => {
+    const d = new Date(selYear, selMonthNum, 1);
+    setSelectedMonth(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`);
+  };
 
   return (
     <div className="space-y-4">
@@ -95,6 +114,19 @@ export function ExpenseList({ expenses, onPay, onDelete }: Props) {
             </div>
           </CardContent>
         </Card>
+      </div>
+
+      {/* Month filter */}
+      <div className="flex items-center justify-center gap-2">
+        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={prevMonth}>
+          <ChevronLeft className="h-4 w-4" />
+        </Button>
+        <span className="text-sm font-medium text-foreground min-w-[140px] text-center capitalize">
+          {format(new Date(selYear, selMonthNum - 1, 1), "MMMM yyyy", { locale: ptBR })}
+        </span>
+        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={nextMonth}>
+          <ChevronRight className="h-4 w-4" />
+        </Button>
       </div>
 
       {/* Search + filters */}
