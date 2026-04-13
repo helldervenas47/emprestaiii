@@ -11,6 +11,52 @@ function formatCurrencyBR(v: number) {
   return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v);
 }
 
+function numberToWords(n: number): string {
+  const units = ["", "Um", "Dois", "Três", "Quatro", "Cinco", "Seis", "Sete", "Oito", "Nove"];
+  const teens = ["Dez", "Onze", "Doze", "Treze", "Quatorze", "Quinze", "Dezesseis", "Dezessete", "Dezoito", "Dezenove"];
+  const tens = ["", "", "Vinte", "Trinta", "Quarenta", "Cinquenta", "Sessenta", "Setenta", "Oitenta", "Noventa"];
+  const hundreds = ["", "Cento", "Duzentos", "Trezentos", "Quatrocentos", "Quinhentos", "Seiscentos", "Setecentos", "Oitocentos", "Novecentos"];
+
+  if (n === 0) return "Zero";
+  if (n === 100) return "Cem";
+
+  const parts: string[] = [];
+  const intPart = Math.floor(n);
+  const centsPart = Math.round((n - intPart) * 100);
+
+  if (intPart >= 1000) {
+    const thousands = Math.floor(intPart / 1000);
+    if (thousands === 1) parts.push("Mil");
+    else if (thousands < 10) parts.push(units[thousands] + " Mil");
+    else parts.push(String(thousands) + " Mil");
+  }
+
+  const remainder = intPart % 1000;
+  if (remainder >= 100) {
+    if (remainder === 100) parts.push("Cem");
+    else parts.push(hundreds[Math.floor(remainder / 100)]);
+  }
+  const lastTwo = remainder % 100;
+  if (lastTwo >= 10 && lastTwo < 20) {
+    parts.push(teens[lastTwo - 10]);
+  } else {
+    if (lastTwo >= 20) parts.push(tens[Math.floor(lastTwo / 10)]);
+    if (lastTwo % 10 > 0) parts.push(units[lastTwo % 10]);
+  }
+
+  let result = parts.join(" e ") + " Reais";
+  if (centsPart > 0) {
+    if (centsPart < 10) result += " e " + units[centsPart] + " Centavos";
+    else if (centsPart < 20) result += " e " + teens[centsPart - 10] + " Centavos";
+    else {
+      const t = tens[Math.floor(centsPart / 10)];
+      const u = centsPart % 10 > 0 ? " e " + units[centsPart % 10] : "";
+      result += " e " + t + u + " Centavos";
+    }
+  }
+  return result;
+}
+
 export function generateContract(sale: Sale) {
   const isRecorrente = sale.paymentMode === "recorrente" && sale.installments > 1;
   const defaultValorParcela = sale.installments > 0
@@ -31,6 +77,27 @@ export function generateContract(sale: Sale) {
   });
 
   const today = format(new Date(), "dd/MM/yyyy");
+  const startDate = format(new Date(sale.date + "T00:00:00"), "dd/MM/yyyy");
+
+  // Calculate end date from last installment
+  const lastParcela = parcelas[parcelas.length - 1];
+  const endDate = lastParcela ? lastParcela.date : startDate;
+
+  const valorTotal = formatCurrencyBR(sale.total);
+  const valorExtenso = numberToWords(sale.total);
+
+  const frequencyLabel = sale.frequency === "Semanal" ? "semana" : sale.frequency === "Quinzenal" ? "quinzena" : sale.frequency === "Diário" ? "dia" : "mês";
+
+  const parcelasSection = parcelas.length > 1 ? `
+    <h3>Plano de Parcelas</h3>
+    <table>
+      <thead>
+        <tr><th>Parcela</th><th>Vencimento</th><th>Valor</th></tr>
+      </thead>
+      <tbody>
+        ${parcelas.map(p => `<tr><td>${p.number}ª</td><td>${p.date}</td><td class="right">${formatCurrencyBR(p.value)}</td></tr>`).join("")}
+      </tbody>
+    </table>` : "";
 
   const html = `<!DOCTYPE html>
 <html lang="pt-BR">
@@ -39,98 +106,144 @@ export function generateContract(sale: Sale) {
 <title>Contrato - ${sale.customerName || sale.description}</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
-  body { font-family: 'Segoe UI', Arial, sans-serif; color: #1a1a1a; padding: 40px; max-width: 800px; margin: 0 auto; line-height: 1.6; }
-  h1 { text-align: center; font-size: 22px; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 1px; }
-  .subtitle { text-align: center; font-size: 13px; color: #666; margin-bottom: 32px; }
-  h2 { font-size: 15px; margin: 24px 0 12px; padding-bottom: 4px; border-bottom: 2px solid #333; text-transform: uppercase; letter-spacing: 0.5px; }
-  .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 24px; margin-bottom: 16px; }
-  .info-item { font-size: 14px; }
-  .info-item strong { color: #333; }
-  table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 13px; }
-  th, td { border: 1px solid #ccc; padding: 8px 12px; text-align: left; }
-  th { background: #f0f0f0; font-weight: 600; text-transform: uppercase; font-size: 11px; letter-spacing: 0.5px; }
-  td.currency { text-align: right; font-family: 'Courier New', monospace; }
-  .terms { font-size: 13px; margin: 16px 0; }
-  .terms p { margin-bottom: 8px; }
-  .signatures { margin-top: 60px; display: flex; justify-content: space-between; gap: 40px; }
+  body {
+    font-family: 'Times New Roman', Times, serif;
+    color: #000;
+    padding: 50px 60px;
+    max-width: 800px;
+    margin: 0 auto;
+    line-height: 1.7;
+    font-size: 14px;
+  }
+  h1 {
+    text-align: center;
+    font-size: 18px;
+    font-weight: bold;
+    text-transform: uppercase;
+    margin-bottom: 28px;
+    letter-spacing: 1px;
+  }
+  p { margin-bottom: 12px; text-align: justify; }
+  .intro { margin-bottom: 20px; }
+  .party { margin-bottom: 6px; }
+  .party strong { font-weight: bold; }
+  h2 {
+    font-size: 14px;
+    font-weight: bold;
+    margin: 22px 0 8px;
+    text-transform: uppercase;
+  }
+  h3 {
+    font-size: 14px;
+    font-weight: bold;
+    margin: 16px 0 8px;
+  }
+  ul { margin: 8px 0 12px 20px; list-style: none; }
+  ul li { margin-bottom: 4px; }
+  ul li::before { content: "- "; }
+  .clause-list { margin: 8px 0 12px 0; }
+  .clause-list p { margin-bottom: 6px; padding-left: 0; }
+  table { width: 100%; border-collapse: collapse; margin: 12px 0 16px; font-size: 13px; }
+  th, td { border: 1px solid #666; padding: 6px 10px; text-align: left; }
+  th { background: #f0f0f0; font-weight: bold; font-size: 12px; text-transform: uppercase; }
+  td.right { text-align: right; }
+  .signatures { margin-top: 50px; }
+  .sig-row { display: flex; justify-content: space-between; margin-top: 50px; gap: 40px; }
   .sig-block { flex: 1; text-align: center; }
-  .sig-line { border-top: 1px solid #333; margin-top: 60px; padding-top: 8px; font-size: 13px; }
-  .sig-name { font-weight: 600; }
-  .footer { margin-top: 40px; text-align: center; font-size: 11px; color: #999; }
-  @media print { body { padding: 20px; } }
+  .sig-line { border-top: 1px solid #000; padding-top: 6px; font-size: 13px; }
+  .witnesses { margin-top: 40px; }
+  .witness-row { display: flex; justify-content: space-between; margin-top: 40px; gap: 40px; }
+  .witness-block { flex: 1; }
+  .witness-line { border-top: 1px solid #000; padding-top: 6px; font-size: 13px; }
+  .location-date { margin-top: 30px; text-align: left; font-size: 14px; }
+  @media print {
+    body { padding: 30px 40px; }
+    @page { margin: 1.5cm; }
+  }
 </style>
 </head>
 <body>
-  <h1>Contrato de ${sale.businessType === "aluguel_veiculo" ? "Aluguel de Veículo" : sale.businessType === "streaming" ? "Serviço de Streaming" : "Venda"}</h1>
-  <p class="subtitle">Data de emissão: ${today}</p>
 
-  <h2>Dados do Cliente</h2>
-  <div class="info-grid">
-    <div class="info-item"><strong>Nome:</strong> ${sale.customerName || "—"}</div>
-    <div class="info-item"><strong>Data do Contrato:</strong> ${format(new Date(sale.date + "T00:00:00"), "dd/MM/yyyy")}</div>
-  </div>
+<h1>CONTRATO DE LOCAÇÃO DE MOTOCICLETA</h1>
 
-  <h2>Dados do Serviço / Produto</h2>
-  <div class="info-grid">
-    <div class="info-item"><strong>Descrição:</strong> ${sale.description || sale.productName || "—"}</div>
-    <div class="info-item"><strong>Quantidade:</strong> ${sale.quantity}</div>
-    <div class="info-item"><strong>Valor Total:</strong> ${formatCurrencyBR(sale.total)}</div>
-    <div class="info-item"><strong>Forma de Pagamento:</strong> ${isRecorrente ? `${sale.installments}x ${sale.frequency || "Mensal"}` : "À Vista"}</div>
-    ${sale.downPayment ? `<div class="info-item"><strong>Entrada:</strong> ${formatCurrencyBR(sale.downPayment)}</div>` : ""}
-  </div>
+<p class="intro">Pelo presente instrumento particular, de um lado:</p>
 
-  ${parcelas.length > 1 ? `
-  <h2>Plano de Parcelas</h2>
-  <table>
-    <thead>
-      <tr>
-        <th>Parcela</th>
-        <th>Vencimento</th>
-        <th>Valor</th>
-      </tr>
-    </thead>
-    <tbody>
-      ${parcelas.map(p => `
-      <tr>
-        <td>${p.number}ª</td>
-        <td>${p.date}</td>
-        <td class="currency">${formatCurrencyBR(p.value)}</td>
-      </tr>`).join("")}
-    </tbody>
-  </table>
-  ` : ""}
+<p class="party"><strong>LOCADOR:</strong> ____________________________________________, Brasileiro(a), portador(a) do RG nº __________________, CPF nº __________________, residente e domiciliado(a) à ____________________________________________.</p>
 
-  ${sale.notes ? `
-  <h2>Observações</h2>
-  <div class="terms"><p>${sale.notes}</p></div>
-  ` : ""}
+<p class="party"><strong>LOCATÁRIO:</strong> ${sale.customerName || "____________________________________________"}, Brasileiro(a), portador(a) do RG nº __________________, CPF nº __________________, residente e domiciliado(a) à ____________________________________________.</p>
 
-  <h2>Termos e Condições</h2>
-  <div class="terms">
-    <p>1. O presente contrato é celebrado entre as partes acima identificadas, regido pelas condições aqui estabelecidas.</p>
-    <p>2. O pagamento deverá ser realizado conforme o plano de parcelas descrito, nas datas de vencimento estipuladas.</p>
-    <p>3. O atraso no pagamento poderá acarretar a aplicação de multa e juros conforme legislação vigente.</p>
-    <p>4. Ambas as partes declaram ter lido e concordado com todas as cláusulas deste contrato.</p>
-  </div>
+<p>As partes acima identificadas têm, entre si, justo e acertado o presente Contrato de Locação de Motocicleta, que será regido pelas cláusulas seguintes:</p>
 
-  <div class="signatures">
+<h2>CLÁUSULA 1ª – DO OBJETO</h2>
+<p>O LOCADOR entrega ao LOCATÁRIO, em perfeito estado de uso e conservação, a motocicleta descrita abaixo:</p>
+<ul>
+  <li>Marca/Modelo: ${sale.description || sale.productName || "________________"}</li>
+  <li>Ano/Fabricação: ________________</li>
+  <li>Cor: ________________</li>
+  <li>Placa: ________________</li>
+  <li>Renavam: ________________</li>
+</ul>
+
+<h2>CLÁUSULA 2ª – DO PRAZO</h2>
+<p>O presente contrato terá início em ${startDate} e término em ${endDate}, podendo ser renovado mediante novo acordo entre as partes.</p>
+
+<h2>CLÁUSULA 3ª – DO VALOR E FORMA DE PAGAMENTO</h2>
+<p>O valor da locação será de ${valorTotal} (${valorExtenso})${isRecorrente ? ` por ${frequencyLabel}` : ""}, a ser pago pelo LOCATÁRIO ao LOCADOR ${isRecorrente ? `conforme plano de parcelas abaixo` : `no momento de cada período contratado`}.</p>
+${parcelasSection}
+
+<h2>CLÁUSULA 4ª – DAS OBRIGAÇÕES DO LOCADOR</h2>
+<p>O LOCADOR se obriga a:</p>
+<div class="clause-list">
+  <p>a) Entregar a motocicleta em bom estado de uso e funcionamento;</p>
+  <p>b) Manter em dia a documentação obrigatória para circulação;</p>
+  <p>c) Fornecer ao LOCATÁRIO os documentos necessários para uso legal do veículo.</p>
+</div>
+
+<h2>CLÁUSULA 5ª – DAS OBRIGAÇÕES DO LOCATÁRIO</h2>
+<p>O LOCATÁRIO se obriga a:</p>
+<div class="clause-list">
+  <p>a) Utilizar a motocicleta exclusivamente para fins lícitos;</p>
+  <p>b) Zelar pela conservação do veículo, responsabilizando-se por eventuais danos;</p>
+  <p>c) Arcar com despesas de combustível e eventuais multas de trânsito durante o período de locação;</p>
+  <p>d) Restituir a motocicleta ao LOCADOR no prazo estipulado e no mesmo estado em que a recebeu, salvo desgaste natural.</p>
+</div>
+
+<h2>CLÁUSULA 6ª – DA RESPONSABILIDADE</h2>
+<p>O LOCATÁRIO será responsável por quaisquer acidentes, multas ou infrações cometidas durante o período de locação, bem como por danos causados a terceiros.</p>
+
+<h2>CLÁUSULA 7ª – DA RESCISÃO</h2>
+<p>O presente contrato poderá ser rescindido por qualquer das partes em caso de descumprimento das cláusulas aqui estabelecidas, mediante comunicação por escrito.</p>
+
+<h2>CLÁUSULA 8ª – DO FORO</h2>
+<p>Fica eleito o foro da comarca de ________________________ para dirimir quaisquer controvérsias oriundas deste contrato.</p>
+
+${sale.notes ? `<h2>OBSERVAÇÕES</h2><p>${sale.notes}</p>` : ""}
+
+<p class="location-date">________________________, ${today}.</p>
+
+<div class="signatures">
+  <div class="sig-row">
     <div class="sig-block">
-      <div class="sig-line">
-        <p class="sig-name">Contratante</p>
-        <p>${sale.customerName || "___________________"}</p>
-      </div>
+      <div class="sig-line"><strong>LOCADOR:</strong> ___________________________</div>
     </div>
     <div class="sig-block">
-      <div class="sig-line">
-        <p class="sig-name">Contratado</p>
-        <p>___________________</p>
-      </div>
+      <div class="sig-line"><strong>LOCATÁRIO:</strong> ${sale.customerName || "___________________________"}</div>
     </div>
   </div>
 
-  <p class="footer">Documento gerado em ${today}</p>
+  <div class="witnesses">
+    <div class="witness-row">
+      <div class="witness-block">
+        <div class="witness-line"><strong>TESTEMUNHA 1:</strong> ___________________________ CPF: _______________</div>
+      </div>
+      <div class="witness-block">
+        <div class="witness-line"><strong>TESTEMUNHA 2:</strong> ___________________________ CPF: _______________</div>
+      </div>
+    </div>
+  </div>
+</div>
 
-  <script>window.onload = function() { window.print(); }</script>
+<script>window.onload = function() { window.print(); }</script>
 </body>
 </html>`;
 
