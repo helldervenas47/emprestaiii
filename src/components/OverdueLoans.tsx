@@ -1,16 +1,15 @@
 import { useMemo, useState, useCallback } from "react";
 import { useHideValues } from "@/contexts/HideValuesContext";
-import { Loan, Payment, Client, InstallmentSchedule } from "@/types/loan";
+import { Loan, Client, InstallmentSchedule } from "@/types/loan";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { calculateInstallment, getLoanRemainingAmount } from "@/hooks/useLoans";
+import { calculateInstallment } from "@/hooks/useLoans";
 import { AlertTriangle, MessageCircle, Search, Phone, Calendar, DollarSign, Clock } from "lucide-react";
 
 interface Props {
   loans: Loan[];
-  payments: Payment[];
   clients: Client[];
   installmentSchedules: InstallmentSchedule[];
 }
@@ -134,7 +133,7 @@ function LoanItemCard({ item, isOverdue, onSendWhatsApp }: { item: LoanItem; isO
   );
 }
 
-export function OverdueLoans({ loans, payments, clients, installmentSchedules }: Props) {
+export function OverdueLoans({ loans, clients, installmentSchedules }: Props) {
   const { mask } = useHideValues();
   const formatCurrency = useCallback((v: number) => mask(rawFormatCurrency(v)), [mask]);
   const [search, setSearch] = useState("");
@@ -150,7 +149,6 @@ export function OverdueLoans({ loans, payments, clients, installmentSchedules }:
       .map((loan) => {
         if (loan.dueDate >= todayStr) return null;
         const amount = getInstallmentAmount(loan, installmentSchedules);
-        const remaining = getLoanRemainingAmount(loan, payments);
         const nextInst = loan.paidInstallments + 1;
         const installments = [{
           number: nextInst,
@@ -162,19 +160,18 @@ export function OverdueLoans({ loans, payments, clients, installmentSchedules }:
           loan, client, phone: client?.phone || "",
           installments,
           daysOverdue: getDaysOverdue(loan.dueDate),
-          totalAmount: remaining,
+          totalAmount: amount,
         };
       })
       .filter(Boolean)
       .sort((a, b) => b!.daysOverdue - a!.daysOverdue) as LoanItem[];
-  }, [activeLoans, clients, payments, installmentSchedules, todayStr]);
+  }, [activeLoans, clients, installmentSchedules, todayStr]);
 
   const dueTodayData = useMemo<LoanItem[]>(() => {
     return activeLoans
       .map((loan) => {
         if (loan.dueDate !== todayStr) return null;
         const amount = getInstallmentAmount(loan, installmentSchedules);
-        const remaining = getLoanRemainingAmount(loan, payments);
         const nextInst = loan.paidInstallments + 1;
         const installments = [{
           number: nextInst,
@@ -186,11 +183,11 @@ export function OverdueLoans({ loans, payments, clients, installmentSchedules }:
           loan, client, phone: client?.phone || "",
           installments,
           daysOverdue: 0,
-          totalAmount: remaining,
+          totalAmount: amount,
         };
       })
       .filter(Boolean) as LoanItem[];
-  }, [activeLoans, clients, payments, installmentSchedules, todayStr]);
+  }, [activeLoans, clients, installmentSchedules, todayStr]);
 
   const totalOverdueAmount = overdueData.reduce((s, d) => s + d.totalAmount, 0);
   const totalDueTodayAmount = dueTodayData.reduce((s, d) => s + d.totalAmount, 0);
