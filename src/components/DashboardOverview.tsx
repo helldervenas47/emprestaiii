@@ -1,7 +1,7 @@
 import { useMemo, useState, useEffect, useCallback } from "react";
 import { Switch } from "@/components/ui/switch";
 import { useHideValues } from "@/contexts/HideValuesContext";
-import { Loan, Sale, Payment, Expense } from "@/types/loan";
+import { Loan, Sale, Payment, Expense, InstallmentSchedule } from "@/types/loan";
 import { calculateInstallment, calculateTotalWithInterest } from "@/hooks/useLoans";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
