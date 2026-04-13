@@ -355,20 +355,20 @@ const Index = () => {
 
       <main className="max-w-[1920px] mx-auto px-3 sm:px-4 lg:px-8 py-4 sm:py-6 space-y-4 sm:space-y-6">
         {tab === "overview" && (
-          <DashboardOverview loans={loans} sales={sales} payments={payments} expenses={expenses} installmentSchedules={installmentSchedules} onDeletePayment={deletePayment} onDeleteSale={deleteSale} onDeleteLoan={deleteLoan} />
+          <DashboardOverview loans={filteredLoans} sales={filteredSales} payments={filteredPayments} expenses={expenses} installmentSchedules={filteredInstallments} onDeletePayment={deletePayment} onDeleteSale={deleteSale} onDeleteLoan={deleteLoan} />
         )}
         {tab === "dashboard" && (
           <>
             <div>
               <h2 className="text-lg font-semibold text-foreground mb-4">Empréstimos</h2>
-              <LoanList loans={loans} payments={payments} installmentSchedules={installmentSchedules} onPayment={addPayment} onPartialPayment={addPartialPayment} onInterestPayment={addInterestOnlyPayment} onUpdate={updateLoan} onDelete={deleteLoan} onDeletePayment={deletePayment} onSaveSchedule={saveSchedule} readOnly={isReadOnly} />
+              <LoanList loans={filteredLoans} payments={filteredPayments} installmentSchedules={filteredInstallments} onPayment={addPayment} onPartialPayment={addPartialPayment} onInterestPayment={addInterestOnlyPayment} onUpdate={updateLoan} onDelete={deleteLoan} onDeletePayment={deletePayment} onSaveSchedule={saveSchedule} readOnly={isReadOnly} />
             </div>
           </>
         )}
         {tab === "clients" && (
           <div>
-            <h2 className="text-lg font-semibold text-foreground mb-4">Clientes ({clients.length})</h2>
-            <ClientList clients={clients} loans={loans} payments={payments} onDelete={deleteClient} onUpdate={updateClient} />
+            <h2 className="text-lg font-semibold text-foreground mb-4">Clientes ({filteredClients.length})</h2>
+            <ClientList clients={filteredClients} loans={filteredLoans} payments={filteredPayments} onDelete={deleteClient} onUpdate={updateClient} />
           </div>
         )}
         {tab === "expenses" && (
@@ -378,25 +378,25 @@ const Index = () => {
           </div>
         )}
         {tab === "overdue" && (
-          <OverdueLoans loans={loans} payments={payments} clients={clients} installmentSchedules={installmentSchedules} />
+          <OverdueLoans loans={filteredLoans} payments={filteredPayments} clients={filteredClients} installmentSchedules={filteredInstallments} />
         )}
         {tab === "calendar" && (
-          <BillingCalendar loans={loans} payments={payments} installmentSchedules={installmentSchedules} onPayment={addPayment} onPartialPayment={addPartialPayment} onInterestPayment={addInterestOnlyPayment} onUpdate={updateLoan} readOnly={isReadOnly} />
+          <BillingCalendar loans={filteredLoans} payments={filteredPayments} installmentSchedules={filteredInstallments} onPayment={addPayment} onPartialPayment={addPartialPayment} onInterestPayment={addInterestOnlyPayment} onUpdate={updateLoan} readOnly={isReadOnly} />
         )}
         {tab === "products" && (
           <ProductSalesView
-            sales={sales.filter(s => s.businessType !== "aluguel_veiculo")}
+            sales={filteredSales.filter(s => s.businessType !== "aluguel_veiculo")}
             onDeleteSale={deleteSale}
             onUpdateSale={updateSale}
-            clients={clients}
+            clients={filteredClients}
           />
         )}
         {tab === "vehicles" && (
           <ProductSalesView
-            sales={sales.filter(s => s.businessType === "aluguel_veiculo")}
+            sales={filteredSales.filter(s => s.businessType === "aluguel_veiculo")}
             onDeleteSale={deleteSale}
             onUpdateSale={updateSale}
-            clients={clients}
+            clients={filteredClients}
             expenses={expenses}
             onAddExpense={addExpense}
             onPayExpense={payExpense}
