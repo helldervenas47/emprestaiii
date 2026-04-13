@@ -1137,10 +1137,13 @@ function LoanRowView({
   const daysOverdue = getDaysOverdue(loan);
   const badge = statusMap[category];
 
-  const startEdit = () => { setForm(loanToForm(loan)); setEditing(true); };
+  const startEdit = () => { setForm(loanToForm(loan)); setEditing(true); setExpanded(true); };
   const cancelEdit = () => setEditing(false);
   const saveEdit = () => {
     const parsedTags = form.tags.split(",").map((t) => t.trim()).filter(Boolean);
+    const manualInterest = parseFloat(form.interestValue) || 0;
+    const calcInterest = (parseFloat(form.amount) || 0) * ((parseFloat(form.interestRate) || 0) / 100);
+    const hasCustomInterest = manualInterest > 0 && Math.abs(manualInterest - calcInterest) > 0.01;
     onUpdate({
       borrowerName: form.borrowerName,
       amount: parseFloat(form.amount) || loan.amount,
@@ -1152,83 +1155,41 @@ function LoanRowView({
       interestType: form.interestType,
       notes: form.notes,
       tags: parsedTags,
+      remainingAmount: parseFloat(form.remainingAmount) || 0,
+      customInterestValue: hasCustomInterest ? manualInterest : null,
     });
     setEditing(false);
   };
 
-  const openPaymentDialog = (type: "installment" | "interest" | "partial" | "full", amount?: number) => {
-    setPaymentDate(new Date());
-    setPaymentDialog({ type, amount });
+  const updateField = (field: keyof EditForm, value: string) => {
+    setForm((prev) => {
+      const next = { ...prev, [field]: value };
+      const amt = parseFloat(next.amount) || 0;
+      const months = parseInt(next.installments) || 1;
+
+      if (field === "amount" || field === "interestRate" || field === "installments" || field === "remainingAmount" || field === "paidInstallments") {
+        const rate = parseFloat(next.interestRate) || 0;
+        next.interestValue = (amt * (rate / 100)).toFixed(2);
+        const totalCalc = calculateTotalWithInterest(amt, rate, months);
+        const rem = parseFloat(next.remainingAmount) || totalCalc;
+        const paidInst = parseInt(next.paidInstallments) || 0;
+        const remInst = Math.max(1, months - paidInst);
+        next.installmentValue = (rem / remInst).toFixed(2);
+      } else if (field === "interestValue") {
+        const iv = parseFloat(value) || 0;
+        const newRate = amt > 0 ? (iv / amt) * 100 : 0;
+        next.interestRate = newRate.toFixed(2);
+        const totalCalc = calculateTotalWithInterest(amt, newRate, months);
+        const rem = parseFloat(next.remainingAmount) || totalCalc;
+        const paidInst = parseInt(next.paidInstallments) || 0;
+        const remInst = Math.max(1, months - paidInst);
+        next.installmentValue = (rem / remInst).toFixed(2);
+      } else if (field === "installmentValue") {
+        // Manual installment value — don't auto-recalculate
+      }
+      return next;
+    });
   };
-
-  const confirmPayment = () => {
-    if (!paymentDialog) return;
-    const dateStr = paymentDate.toISOString().split("T")[0];
-    if (paymentDialog.type === "full") {
-      onPartialPayment(remaining, dateStr);
-      onUpdate({ paidInstallments: loan.installments, status: "paid" });
-    } else if (paymentDialog.type === "installment") onPayment(dateStr);
-    else if (paymentDialog.type === "interest") onInterestPayment(dateStr);
-    else if (paymentDialog.type === "partial" && paymentDialog.amount) onPartialPayment(paymentDialog.amount, dateStr);
-    setPaymentDialog(null);
-  };
-
-  const handlePartialSubmit = () => {
-    const val = parseFloat(partialAmount);
-    if (val > 0) {
-      openPaymentDialog("partial", val);
-      setPartialAmount("");
-      setShowPartial(false);
-    }
-  };
-
-  const update = (field: keyof EditForm, value: string) => setForm((p) => ({ ...p, [field]: value }));
-
-  if (editing) {
-    return (
-      <>
-      <tr className="border-b border-border/30 bg-primary/5">
-        <td colSpan={7} className="px-4 py-3">
-          <div className="flex flex-wrap items-center gap-2">
-            <Input value={form.borrowerName} onChange={(e) => update("borrowerName", e.target.value)} className="h-7 w-28 text-xs" placeholder="Nome" />
-            <Input type="number" value={form.amount} onChange={(e) => update("amount", e.target.value)} className="h-7 w-24 text-xs" placeholder="Valor" />
-            <Input type="number" value={form.interestRate} onChange={(e) => update("interestRate", e.target.value)} className="h-7 w-16 text-xs" placeholder="Juros%" />
-            <Input type="number" value={form.installments} onChange={(e) => update("installments", e.target.value)} className="h-7 w-14 text-xs" placeholder="Parc." />
-            <Input type="number" value={form.paidInstallments} onChange={(e) => update("paidInstallments", e.target.value)} className="h-7 w-14 text-xs" placeholder="Pagas" />
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button variant="outline" className="h-7 w-32 justify-start text-left text-xs font-normal">
-                  <CalendarIcon className="mr-1 h-3 w-3" />
-                  {form.dueDate ? format(new Date(form.dueDate + "T00:00:00"), "dd/MM/yy") : "1ª Parcela"}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
-                <CalendarUI
-                  mode="single"
-                  selected={form.dueDate ? new Date(form.dueDate + "T00:00:00") : undefined}
-                  onSelect={(d) => d && update("dueDate", d.toISOString().split("T")[0])}
-                  initialFocus
-                  className={cn("p-3 pointer-events-auto")}
-                />
-              </PopoverContent>
-            </Popover>
-            <Select value={form.interestType} onValueChange={(v) => update("interestType", v)}>
-              <SelectTrigger className="h-7 w-24 text-xs"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="Semanal">Semanal</SelectItem>
-                <SelectItem value="Quinzenal">Quinzenal</SelectItem>
-                <SelectItem value="Mensal">Mensal</SelectItem>
-              </SelectContent>
-            </Select>
-            <Input value={form.tags} onChange={(e) => update("tags", e.target.value)} className="h-7 w-28 text-xs" placeholder="Etiquetas" />
-            <Button size="icon" variant="ghost" className="h-7 w-7" onClick={saveEdit}><Check className="h-3.5 w-3.5 text-success" /></Button>
-            <Button size="icon" variant="ghost" className="h-7 w-7" onClick={cancelEdit}><X className="h-3.5 w-3.5 text-destructive" /></Button>
-          </div>
-        </td>
-      </tr>
-      </>
-    );
-  }
 
   return (
     <>
