@@ -35,6 +35,7 @@ interface Props {
   onDeletePayment: (paymentId: string) => void;
   onSaveSchedule: (loanId: string, rows: { installmentNumber: number; dueDate: string; amount: number }[]) => Promise<void>;
   readOnly?: boolean;
+  onNewLoan?: () => void;
 }
 
 type Category = "all" | "overdue" | "paid_interest" | "paid" | "due_today" | "on_track" | "parcelado";
@@ -1559,7 +1560,7 @@ function ClientFolder({
   );
 }
 
-export function LoanList({ loans, payments, installmentSchedules, onPayment, onPartialPayment, onInterestPayment, onUpdate, onDelete, onDeletePayment, onSaveSchedule, readOnly = false }: Props) {
+export function LoanList({ loans, payments, installmentSchedules, onPayment, onPartialPayment, onInterestPayment, onUpdate, onDelete, onDeletePayment, onSaveSchedule, readOnly = false, onNewLoan }: Props) {
   const { mask } = useHideValues();
   const formatCurrency = useCallback((v: number) => mask(rawFormatCurrency(v)), [mask]);
   const [view, setView] = useState<"cards" | "rows" | "folders">("cards");
