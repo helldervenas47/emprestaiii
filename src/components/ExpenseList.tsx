@@ -31,7 +31,7 @@ function isOverdue(expense: Expense): boolean {
   return expense.dueDate < today;
 }
 
-export function ExpenseList({ expenses, onPay, onDelete }: Props) {
+export function ExpenseList({ expenses, onPay, onUnpay, onDelete }: Props) {
   const { mask } = useHideValues();
   const formatCurrency = useCallback((v: number) => mask(rawFormatCurrency(v)), [mask]);
   const [search, setSearch] = useState("");
