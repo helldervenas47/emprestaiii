@@ -27,6 +27,7 @@ import { toast } from "sonner";
 import { HideValuesProvider, useHideValues } from "@/contexts/HideValuesContext";
 import { UserManagement } from "@/components/UserManagement";
 import { BackupExport } from "@/components/BackupExport";
+import { Badge } from "@/components/ui/badge";
 
 type Tab = "overview" | "dashboard" | "clients" | "products" | "vehicles" | "overdue" | "expenses" | "calendar" | "users" | "backup";
 
