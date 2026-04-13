@@ -240,10 +240,18 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
     const principalToReceive = Math.max(0, totalPrincipal - principalReceived);
     const interestToReceive = Math.max(0, totalInterestExpected - interestReceived);
 
-    // Overdue (global)
+    // Overdue (global) — uses same "Restante" logic as LoanList line view
     const todayStr = new Date().toISOString().split("T")[0];
     const overdueLoans = activeLoans.filter((l) => l.dueDate <= todayStr);
     const overdueAmount = overdueLoans.reduce((s, l) => {
+      // For installment loans, sum overdue installments from schedule
+      if (l.installments >= 2) {
+        const overdueSum = installmentSchedules
+          .filter((sc) => sc.loanId === l.id && sc.installmentNumber > l.paidInstallments && sc.dueDate <= todayStr)
+          .reduce((sum, sc) => sum + sc.amount, 0);
+        if (overdueSum > 0) return s + overdueSum;
+      }
+      if (l.remainingAmount != null && l.remainingAmount > 0) return s + l.remainingAmount;
       const expected = calculateTotalWithInterest(l.amount, l.interestRate, l.installments);
       const paid = payments.filter((p) => p.loanId === l.id).reduce((ss, p) => ss + p.amount, 0);
       return s + Math.max(0, expected - paid);
