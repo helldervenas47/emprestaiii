@@ -265,6 +265,51 @@ export type Database = {
         }
         Relationships: []
       }
+      locador_info: {
+        Row: {
+          bairro: string
+          cidade: string
+          cpf: string
+          created_at: string
+          endereco: string
+          estado: string
+          id: string
+          nacionalidade: string
+          nome: string
+          rg: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          bairro?: string
+          cidade?: string
+          cpf?: string
+          created_at?: string
+          endereco?: string
+          estado?: string
+          id?: string
+          nacionalidade?: string
+          nome?: string
+          rg?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          bairro?: string
+          cidade?: string
+          cpf?: string
+          created_at?: string
+          endereco?: string
+          estado?: string
+          id?: string
+          nacionalidade?: string
+          nome?: string
+          rg?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       payments: {
         Row: {
           amount: number
@@ -560,6 +605,42 @@ export type Database = {
         Update: {
           amount?: number
           id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      vehicle_registry: {
+        Row: {
+          ano: string
+          cor: string
+          created_at: string
+          id: string
+          marca_modelo: string
+          placa: string
+          renavam: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          ano?: string
+          cor?: string
+          created_at?: string
+          id?: string
+          marca_modelo?: string
+          placa?: string
+          renavam?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          ano?: string
+          cor?: string
+          created_at?: string
+          id?: string
+          marca_modelo?: string
+          placa?: string
+          renavam?: string
           updated_at?: string
           user_id?: string
         }
