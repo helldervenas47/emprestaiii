@@ -142,8 +142,8 @@ export function DashboardOverview({ loans, sales, payments, expenses, onDeletePa
       const label = getChartLabel(range.start);
       const override = chartOverrides[label];
       if (override) {
-        if (override.emprestado !== undefined) totalLoanOutgoing = override.emprestado;
-        if (override.recebido !== undefined) incomeFromPayments = override.recebido;
+        if (override.emprestado !== undefined) totalLoanOutgoing += override.emprestado;
+        if (override.recebido !== undefined) incomeFromPayments += override.recebido;
       }
     }
 
