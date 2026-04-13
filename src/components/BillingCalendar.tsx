@@ -236,7 +236,7 @@ export function BillingCalendar({ loans, payments, installmentSchedules, onPayme
           </div>
           <div className="flex items-center gap-2">
             <div className="text-right">
-              <p className={`text-sm font-bold ${amountColor}`}>{formatCurrency(item.amount)}</p>
+              <p className={`text-sm font-bold ${amountColor}`}>{formatCurrency(installment)}</p>
               <Badge variant={isOverdue ? "destructive" : "outline"} className={`text-[10px] ${!isOverdue ? `text-warning border-warning` : ""}`}>
                 {isOverdue ? "Atrasado" : "A vencer"}
               </Badge>
