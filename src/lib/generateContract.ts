@@ -85,8 +85,9 @@ export function generateContract(sale: Sale, client?: Client, locador?: LocadorI
   const lastParcela = parcelas[parcelas.length - 1];
   const endDate = lastParcela ? lastParcela.date : startDate;
 
-  const valorTotal = formatCurrencyBR(sale.total);
-  const valorExtenso = numberToWords(sale.total);
+  const valorParcela = parcelas.length > 0 ? parcelas[0].value : sale.total;
+  const valorLocacao = formatCurrencyBR(valorParcela);
+  const valorLocacaoExtenso = numberToWords(valorParcela);
 
   const frequencyLabel = sale.frequency === "Semanal" ? "semana" : sale.frequency === "Quinzenal" ? "quinzena" : sale.frequency === "Diário" ? "dia" : "mês";
 
@@ -180,7 +181,7 @@ export function generateContract(sale: Sale, client?: Client, locador?: LocadorI
 <p>O presente contrato terá início em ${startDate} e término em ${endDate}, podendo ser renovado mediante novo acordo entre as partes.</p>
 
 <h2>CLÁUSULA 3ª – DO VALOR E FORMA DE PAGAMENTO</h2>
-<p>O valor da locação será de ${valorTotal} (${valorExtenso})${isRecorrente ? ` por ${frequencyLabel}` : ""}, a ser pago pelo LOCATÁRIO ao LOCADOR no momento de cada período contratado.</p>
+<p>O valor da locação será de ${valorLocacao} (${valorLocacaoExtenso}) por ${frequencyLabel}, a ser pago pelo LOCATÁRIO ao LOCADOR no momento de cada período contratado.</p>
 
 
 <h2>CLÁUSULA 4ª – DAS OBRIGAÇÕES DO LOCADOR</h2>
