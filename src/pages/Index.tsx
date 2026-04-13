@@ -38,7 +38,7 @@ const tabConfig = [
   { id: "products" as Tab, label: "Vendas", icon: ShoppingBag },
   { id: "vehicles" as Tab, label: "Veículos", icon: Car },
   { id: "expenses" as Tab, label: "Despesas", icon: Receipt },
-  { id: "overdue" as Tab, label: "Inadimplentes", icon: AlertTriangle },
+  { id: "overdue" as Tab, label: "Relatório", icon: AlertTriangle },
   { id: "users" as Tab, label: "Usuários", icon: Users },
   { id: "backup" as Tab, label: "Backup", icon: DatabaseBackup },
 ];
@@ -107,7 +107,7 @@ const tabHelp: Record<Tab, { title: string; items: string[] }> = {
     ],
   },
   overdue: {
-    title: "Inadimplentes",
+    title: "Relatório",
     items: [
       "Lista todos os empréstimos com parcelas em atraso.",
       "Também mostra empréstimos que vencem hoje.",
