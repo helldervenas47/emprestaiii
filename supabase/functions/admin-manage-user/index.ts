@@ -5,6 +5,19 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+function decodeJwtPayload(token: string): Record<string, unknown> | null {
+  try {
+    const parts = token.split(".");
+    if (parts.length !== 3) return null;
+    const payload = JSON.parse(atob(parts[1].replace(/-/g, "+").replace(/_/g, "/")));
+    // Check expiration
+    if (payload.exp && payload.exp * 1000 < Date.now()) return null;
+    return payload;
+  } catch {
+    return null;
+  }
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -12,7 +25,7 @@ Deno.serve(async (req) => {
 
   try {
     const authHeader = req.headers.get("Authorization");
-    if (!authHeader) {
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
       return new Response(JSON.stringify({ error: "Não autorizado" }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -24,20 +37,20 @@ Deno.serve(async (req) => {
 
     const adminClient = createClient(supabaseUrl, serviceRoleKey);
 
-    // Get caller from token
     const token = authHeader.replace("Bearer ", "");
-    const { data: { user: caller } } = await adminClient.auth.getUser(token);
-    if (!caller) {
+    const payload = decodeJwtPayload(token);
+    if (!payload || !payload.sub) {
       return new Response(JSON.stringify({ error: "Não autorizado" }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+    const callerId = payload.sub as string;
 
     const { data: roleData } = await adminClient
       .from("user_roles")
       .select("role")
-      .eq("user_id", caller.id)
+      .eq("user_id", callerId)
       .eq("role", "admin")
       .maybeSingle();
 
@@ -139,7 +152,7 @@ Deno.serve(async (req) => {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      if (user_id === caller.id) {
+      if (user_id === callerId) {
         return new Response(JSON.stringify({ error: "Não é possível excluir seu próprio usuário" }), {
           status: 400,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
