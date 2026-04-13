@@ -1615,8 +1615,8 @@ export function LoanList({ loans, payments, installmentSchedules, onPayment, onP
       filtered = filtered.filter((l) => l.tags?.includes(tagFilter));
     }
 
-    // Quick due date filter
-    if (dueDateQuick) {
+    // Quick due date filter (only applies to rows view)
+    if (dueDateQuick && view === "rows") {
       const today = new Date();
       today.setHours(0, 0, 0, 0);
       const target = new Date(today);
@@ -1633,7 +1633,7 @@ export function LoanList({ loans, payments, installmentSchedules, onPayment, onP
       if (sortBy === "amount") return b.amount - a.amount;
       return a.borrowerName.localeCompare(b.borrowerName);
     });
-  }, [loans, payments, search, category, dateFrom, dateTo, amountMin, amountMax, tagFilter, sortBy, dueDateQuick]);
+  }, [loans, payments, search, category, dateFrom, dateTo, amountMin, amountMax, tagFilter, sortBy, dueDateQuick, view]);
 
   const folderCount = useMemo(() => {
     const byName: Record<string, number> = {};
