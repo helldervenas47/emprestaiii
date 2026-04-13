@@ -1490,6 +1490,8 @@ interface ClientGroup {
   loans: Loan[];
   totalAmount: number;
   totalPaid: number;
+  totalReceivable: number;
+  hasOverdue: boolean;
 }
 
 function ClientFolder({
@@ -1514,16 +1516,19 @@ function ClientFolder({
   const paidCount = group.loans.filter((l) => l.status === "paid").length;
 
   return (
-    <Card className={`overflow-hidden transition-shadow hover:shadow-lg ${open ? "ring-1 ring-primary/20" : ""}`}>
+    <Card className={`overflow-hidden transition-shadow hover:shadow-lg ${open ? "ring-1 ring-primary/20" : ""} ${group.hasOverdue ? "border-destructive/40" : ""}`}>
       <button
         onClick={() => setOpen(!open)}
         className="w-full flex items-center gap-3 px-4 py-3 text-left"
       >
-        <div className="h-10 w-10 rounded-lg gradient-primary flex items-center justify-center text-primary-foreground font-bold text-sm shrink-0 shadow-md">
+        <div className={`h-10 w-10 rounded-lg flex items-center justify-center text-primary-foreground font-bold text-sm shrink-0 shadow-md ${group.hasOverdue ? "bg-destructive" : "gradient-primary"}`}>
           {group.name.charAt(0).toUpperCase()}
         </div>
         <div className="flex-1 min-w-0">
-          <h3 className="font-bold text-foreground text-sm truncate">{group.name}</h3>
+          <div className="flex items-center gap-2">
+            <h3 className="font-bold text-foreground text-sm truncate">{group.name}</h3>
+            {group.hasOverdue && <Badge className="bg-destructive/10 text-destructive border-destructive/20 text-[10px]">Atrasado</Badge>}
+          </div>
           <div className="flex items-center gap-1.5 mt-0.5">
             <Badge variant="outline" className="text-[10px]">{group.loans.length}</Badge>
             {activeCount > 0 && <Badge variant="outline" className="text-[10px] bg-primary/10 text-primary border-primary/20">{activeCount} ativos</Badge>}
@@ -1538,6 +1543,10 @@ function ClientFolder({
           <div className="text-right">
             <p className="text-[9px] text-muted-foreground uppercase">Recebido</p>
             <p className="font-bold text-success">{formatCurrency(group.totalPaid)}</p>
+          </div>
+          <div className="text-right">
+            <p className="text-[9px] text-muted-foreground uppercase">A Receber</p>
+            <p className={`font-bold ${group.hasOverdue ? "text-destructive" : "text-warning"}`}>{formatCurrency(group.totalReceivable)}</p>
           </div>
         </div>
         {open ? <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0" /> : <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />}
@@ -1648,10 +1657,16 @@ export function LoanList({ loans, payments, installmentSchedules, onPayment, onP
     });
     const grouped: ClientGroup[] = [];
     const singles: Loan[] = [];
-    Object.entries(byName).forEach(([name, loans]) => {
-      if (loans.length > 1) {
-        const totalPaid = loans.reduce((s, l) => s + getTotalPaid(l, payments), 0);
-        grouped.push({ name, loans, totalAmount: loans.reduce((s, l) => s + l.amount, 0), totalPaid });
+     Object.entries(byName).forEach(([name, loans]) => {
+       if (loans.length > 1) {
+         const totalPaid = loans.reduce((s, l) => s + getTotalPaid(l, payments), 0);
+         const totalReceivable = loans.reduce((s, l) => {
+           const t = calculateTotalWithInterest(l.amount, l.interestRate, l.installments);
+           const paid = getTotalPaid(l, payments);
+           return s + Math.max(0, (l.remainingAmount != null && l.remainingAmount > 0 ? l.remainingAmount : t - paid));
+         }, 0);
+         const hasOverdue = loans.some((l) => l.status !== "paid" && getLoanCategory(l, payments, installmentSchedules) === "overdue");
+         grouped.push({ name, loans, totalAmount: loans.reduce((s, l) => s + l.amount, 0), totalPaid, totalReceivable, hasOverdue });
       } else {
         singles.push(loans[0]);
       }
