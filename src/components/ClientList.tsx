@@ -282,6 +282,16 @@ export function ClientList({ clients, loans, payments, onDelete, onUpdate, readO
                         <div className="space-y-2 pt-2 border-t border-border/50">
                           <div className="grid grid-cols-2 gap-2">
                             <div>
+                              <Label className="text-xs">RG</Label>
+                              <Input value={editForm.rg} onChange={(e) => updateField("rg", e.target.value)} placeholder="00.000.000-0" />
+                            </div>
+                            <div>
+                              <Label className="text-xs">Cidade</Label>
+                              <Input value={editForm.city} onChange={(e) => updateField("city", e.target.value)} placeholder="São Paulo" />
+                            </div>
+                          </div>
+                          <div className="grid grid-cols-2 gap-2">
+                            <div>
                               <Label className="text-xs">Nacionalidade</Label>
                               <Input value={editForm.nacionalidade} onChange={(e) => updateField("nacionalidade", e.target.value)} placeholder="Brasileiro(a)" />
                             </div>

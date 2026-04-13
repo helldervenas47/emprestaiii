@@ -103,6 +103,18 @@ function SaleCard({ sale, onDelete, onEdit, onUpdate, formatCurrency, readOnly =
   const pendentes = isRecorrente ? sale.installments - sale.paidInstallments : (sale.paidInstallments >= 1 ? 0 : 1);
   const category = getSaleCategory(sale);
   const catStyle = saleCategoryConfig[category];
+  const normalizeClientName = (value?: string) =>
+    (value ?? "")
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .trim()
+      .toLowerCase();
+  const saleClientName = normalizeClientName(sale.customerName);
+  const matchedClients = saleClientName
+    ? clients.filter((client) => normalizeClientName(client.name) === saleClientName)
+    : [];
+  const matchedClient =
+    matchedClients.find((client) => client.isVehicleRental || client.rg || client.city) ?? matchedClients[0];
 
   // Generate installment rows with estimated dates
   const totalParcelas = isRecorrente ? sale.installments : 1;
@@ -453,7 +465,7 @@ function SaleCard({ sale, onDelete, onEdit, onUpdate, formatCurrency, readOnly =
               {new Date(sale.date + "T00:00:00").toLocaleDateString("pt-BR")}
             </p>
             <div className="flex items-center gap-1">
-              <Button size="icon" variant="ghost" className="h-8 w-8 text-primary hover:bg-primary/10" onClick={() => { const matchedClient = clients.find(c => c.name.toLowerCase() === (sale.customerName || '').toLowerCase()); generateContract(sale, matchedClient); }} title="Gerar Contrato">
+              <Button size="icon" variant="ghost" className="h-8 w-8 text-primary hover:bg-primary/10" onClick={() => generateContract(sale, matchedClient)} title="Gerar Contrato">
                 <FileText className="h-4 w-4" />
               </Button>
               <Button size="icon" variant="ghost" className="h-8 w-8 text-success hover:bg-success/10" onClick={() => setShowPayments(true)} title="Ver Pagamentos">
