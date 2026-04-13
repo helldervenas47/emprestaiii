@@ -860,7 +860,7 @@ function SalesList({ sales, onDeleteSale, onUpdateSale, clients = [], hideOnTrac
                 const catStyle = saleCategoryConfig[category];
                 const isRecorrente = sale.paymentMode === "recorrente" && sale.installments > 1;
                 const paidAmount = getSalePaidAmountHelper(sale);
-                const remaining = Math.max(0, sale.total - paidAmount);
+                const remaining = Math.max(0, sale.total - paidAmount - (sale.partialPaid || 0));
                 const isPaid = category === "paid";
                 const nextDue = getNextDueDateForSort(sale);
                 const nextInstValue = getNextInstallmentValue(sale);
