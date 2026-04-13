@@ -1778,21 +1778,21 @@ export function LoanList({ loans, payments, installmentSchedules, onPayment, onP
 
       {/* Quick due date filter */}
       {view === "rows" && (
-        <div className="flex items-center gap-2">
+        <div className="flex w-full bg-muted/60 rounded-xl p-0.5 backdrop-blur-sm border border-border/30">
           {([
             { id: "yesterday" as const, label: "Ontem" },
             { id: "today" as const, label: "Hoje" },
             { id: "tomorrow" as const, label: "Amanhã" },
           ]).map((f) => (
-            <Button
+            <button
               key={f.id}
-              variant="outline"
-              size="sm"
               onClick={() => setDueDateQuick(dueDateQuick === f.id ? null : f.id)}
-              className={`rounded-xl transition-all duration-200 ${dueDateQuick === f.id ? "bg-primary text-primary-foreground border-primary" : ""}`}
+              className={`flex-1 flex items-center justify-center px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 ${
+                dueDateQuick === f.id ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+              }`}
             >
               {f.label}
-            </Button>
+            </button>
           ))}
         </div>
       )}
