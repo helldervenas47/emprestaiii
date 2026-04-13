@@ -617,6 +617,35 @@ function SalesList({ sales, onDeleteSale, onUpdateSale, clients = [], hideOnTrac
 
   const total = filtered.reduce((acc, s) => acc + s.total, 0);
 
+  // Folder grouping: customers with 2+ contracts
+  const folderCount = useMemo(() => {
+    const byName: Record<string, number> = {};
+    sales.forEach((s) => { if (s.customerName) byName[s.customerName] = (byName[s.customerName] || 0) + 1; });
+    return Object.values(byName).filter((c) => c > 1).length;
+  }, [sales]);
+
+  const { saleGroups, saleSingles } = useMemo(() => {
+    const byName: Record<string, Sale[]> = {};
+    filtered.forEach((s) => {
+      const name = s.customerName || s.description || "Sem cliente";
+      (byName[name] ??= []).push(s);
+    });
+    const saleGroups: SaleClientGroup[] = [];
+    const saleSingles: Sale[] = [];
+    Object.entries(byName).forEach(([name, salesGroup]) => {
+      if (salesGroup.length > 1) {
+        const totalPaid = salesGroup.reduce((s, sale) => s + getSalePaidAmountHelper(sale), 0);
+        const totalReceivable = salesGroup.reduce((s, sale) => s + Math.max(0, sale.total - getSalePaidAmountHelper(sale)), 0);
+        const hasOverdue = salesGroup.some((s) => getSaleCategory(s) === "overdue");
+        saleGroups.push({ name, sales: salesGroup, totalAmount: salesGroup.reduce((s, sale) => s + sale.total, 0), totalPaid, totalReceivable, hasOverdue });
+      } else {
+        saleSingles.push(salesGroup[0]);
+      }
+    });
+    saleGroups.sort((a, b) => (a.hasOverdue === b.hasOverdue ? a.name.localeCompare(b.name) : a.hasOverdue ? -1 : 1));
+    return { saleGroups, saleSingles };
+  }, [filtered]);
+
   // Calculate receivables per category
   const getSalePaidAmount = (s: Sale) => {
     const amounts = s.installmentAmounts;
