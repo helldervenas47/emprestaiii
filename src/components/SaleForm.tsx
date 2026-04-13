@@ -9,6 +9,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Plus, X, Calendar as CalendarIcon } from "lucide-react";
 import { Sale, BusinessType, PaymentMode, Client } from "@/types/loan";
 import { format, addMonths, addWeeks, addDays } from "date-fns";
+import { VehicleInfo } from "@/hooks/useVehicleRegistry";
 import { cn } from "@/lib/utils";
 
 const businessTypeLabels: Record<BusinessType, string> = {
@@ -29,9 +30,10 @@ interface Props {
   onClose: () => void;
   defaultBusinessType?: BusinessType;
   clients?: Client[];
+  registeredVehicles?: VehicleInfo[];
 }
 
-export function SaleForm({ onAdd, onClose, defaultBusinessType = "venda", clients = [] }: Props) {
+export function SaleForm({ onAdd, onClose, defaultBusinessType = "venda", clients = [], registeredVehicles = [] }: Props) {
   const [form, setForm] = useState({
     description: "",
     quantity: "1",
