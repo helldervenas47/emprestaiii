@@ -172,6 +172,26 @@ Deno.serve(async (req) => {
       });
     }
 
+    if (action === "update_client_links") {
+      if (!user_id || !body.client_ids) {
+        return new Response(JSON.stringify({ error: "user_id e client_ids são obrigatórios" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      // Remove all existing links then insert new ones
+      await adminClient.from("user_client_permissions").delete().eq("user_id", user_id);
+      const clientIds = body.client_ids as string[];
+      if (clientIds.length > 0) {
+        await adminClient.from("user_client_permissions").insert(
+          clientIds.map((cid: string) => ({ user_id, client_id: cid }))
+        );
+      }
+      return new Response(JSON.stringify({ success: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     if (action === "delete") {
       if (!user_id) {
         return new Response(JSON.stringify({ error: "user_id é obrigatório" }), {
@@ -185,6 +205,7 @@ Deno.serve(async (req) => {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
+      await adminClient.from("user_client_permissions").delete().eq("user_id", user_id);
       await adminClient.from("user_tab_permissions").delete().eq("user_id", user_id);
       await adminClient.from("user_owner").delete().eq("user_id", user_id);
       await adminClient.from("user_roles").delete().eq("user_id", user_id);
