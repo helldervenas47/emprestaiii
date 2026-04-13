@@ -136,7 +136,7 @@ export function WhatsAppReport({ loans, clients, installmentSchedules }: Props) 
 
   // Preview of the report
   return (
-    <Card>
+    <Card no3d>
       <CardContent className="p-4 space-y-4">
         <div className="flex items-center justify-between">
           <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">

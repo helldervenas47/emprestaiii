@@ -80,7 +80,7 @@ function LoanItemCard({ item, isOverdue, onSendWhatsApp }: { item: LoanItem; isO
   const { mask } = useHideValues();
   const formatCurrency = useCallback((v: number) => mask(rawFormatCurrency(v)), [mask]);
   return (
-    <Card className={isOverdue ? "border-destructive/20" : "border-warning/20"}>
+    <Card no3d className={isOverdue ? "border-destructive/20" : "border-warning/20"}>
       <CardContent className="p-4">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
           <div className="flex-1 min-w-0">
@@ -226,7 +226,7 @@ export function OverdueLoans({ loans, clients, installmentSchedules }: Props) {
 
       {/* Summary cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <Card className="border-destructive/30">
+        <Card no3d className="border-destructive/30">
           <CardContent className="p-4 flex items-center gap-4">
             <div className="h-12 w-12 rounded-full bg-destructive/10 flex items-center justify-center shrink-0">
               <AlertTriangle className="h-6 w-6 text-destructive" />
@@ -238,7 +238,7 @@ export function OverdueLoans({ loans, clients, installmentSchedules }: Props) {
             </div>
           </CardContent>
         </Card>
-        <Card className="border-warning/30">
+        <Card no3d className="border-warning/30">
           <CardContent className="p-4 flex items-center gap-4">
             <div className="h-12 w-12 rounded-full bg-warning/10 flex items-center justify-center shrink-0">
               <Clock className="h-6 w-6 text-warning" />
@@ -266,7 +266,7 @@ export function OverdueLoans({ loans, clients, installmentSchedules }: Props) {
           )}
         </div>
         {dueTodayData.length === 0 ? (
-          <Card>
+          <Card no3d>
             <CardContent className="py-6 text-center">
               <p className="text-sm text-muted-foreground">Nenhum empréstimo vencendo hoje.</p>
             </CardContent>
@@ -292,7 +292,7 @@ export function OverdueLoans({ loans, clients, installmentSchedules }: Props) {
           )}
         </div>
         {overdueData.length === 0 ? (
-          <Card>
+          <Card no3d>
             <CardContent className="py-6 text-center">
               <p className="text-sm text-muted-foreground">Nenhum empréstimo em atraso!</p>
             </CardContent>
@@ -308,7 +308,7 @@ export function OverdueLoans({ loans, clients, installmentSchedules }: Props) {
       <WhatsAppReport loans={loans} clients={clients} installmentSchedules={installmentSchedules} />
 
       {/* Info */}
-      <Card>
+      <Card no3d>
         <CardContent className="p-4">
           <p className="text-xs text-muted-foreground">
             💡 Os botões abrem o WhatsApp Web com uma mensagem pré-formatada. Certifique-se de que os empréstimos estejam vinculados a clientes com telefone cadastrado.
