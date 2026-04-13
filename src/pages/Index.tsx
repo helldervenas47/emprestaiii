@@ -59,7 +59,7 @@ const tabHelp: Record<Tab, { title: string; items: string[] }> = {
       "Registre pagamentos de parcela, juros ou pagamentos parciais.",
       "Clique em 'Mais detalhes' para ver o cronograma completo de parcelas.",
       "Use os filtros e etiquetas para organizar seus contratos.",
-      "Importe/Exporte dados via CSV.",
+      
     ],
   },
   calendar: {
@@ -77,7 +77,7 @@ const tabHelp: Record<Tab, { title: string; items: string[] }> = {
       "Cadastre seus clientes com nome, CPF/CNPJ, telefone e endereço.",
       "Use o score para classificar a confiabilidade do cliente.",
       "Clientes inativos não aparecem na lista de novos empréstimos.",
-      "Importe/Exporte clientes via CSV.",
+      
     ],
   },
   products: {
