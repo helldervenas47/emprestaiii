@@ -456,7 +456,169 @@ function SaleCard({ sale, onDelete, onEdit, onUpdate, formatCurrency }: { sale: 
   );
 }
 
-type SaleCategory = "all" | "overdue" | "due_today" | "paid" | "on_track";
+function getNextDueDateHelper(s: Sale): Date {
+  const isRec = s.paymentMode === "recorrente" && s.installments > 1;
+  const baseDate = new Date(s.date + "T00:00:00");
+  const nextIdx = s.paidInstallments;
+  const customDate = s.installmentDates && s.installmentDates[nextIdx];
+  if (customDate) return new Date(customDate + "T00:00:00");
+  return isRec ? addByFrequency(baseDate, s.frequency || "Mensal", nextIdx) : baseDate;
+}
+
+function getNextInstallmentValueHelper(s: Sale): number {
+  const nextIdx = s.paidInstallments;
+  const amounts = s.installmentAmounts;
+  if (amounts && amounts[nextIdx] != null) return amounts[nextIdx];
+  return s.installments > 0 ? Math.max(0, s.total - (s.downPayment || 0)) / s.installments : s.total;
+}
+
+function SaleListRow({ sale, onEdit, onUpdate, formatCurrency }: {
+  sale: Sale;
+  onEdit: () => void;
+  onUpdate: (data: Partial<Omit<Sale, "id">>) => void;
+  formatCurrency: (v: number) => string;
+}) {
+  const [showPartial, setShowPartial] = useState(false);
+  const [partialAmount, setPartialAmount] = useState("");
+  const [partialDate, setPartialDate] = useState<Date | undefined>(undefined);
+  const [showPayDatePicker, setShowPayDatePicker] = useState(false);
+
+  const category = getSaleCategory(sale);
+  const catStyle = saleCategoryConfig[category];
+  const isRecorrente = sale.paymentMode === "recorrente" && sale.installments > 1;
+  const paidAmount = getSalePaidAmountHelper(sale);
+  const remaining = Math.max(0, sale.total - paidAmount - (sale.partialPaid || 0));
+  const isPaid = category === "paid";
+  const nextDue = getNextDueDateHelper(sale);
+  const nextInstValue = getNextInstallmentValueHelper(sale);
+  const partialOnNext = (sale.partialPaid || 0) > 0 ? Math.max(0, nextInstValue - (sale.partialPaid || 0)) : nextInstValue;
+
+  return (
+    <div className="flex items-center gap-2 px-3 py-2.5 hover:bg-muted/30 transition-colors">
+      <button onClick={onEdit} className="flex items-center gap-3 flex-1 min-w-0 text-left">
+        <div className={`h-9 w-9 rounded-full flex items-center justify-center text-primary-foreground font-bold text-xs shrink-0 ${
+          category === "paid" ? "bg-success" : category === "overdue" ? "bg-destructive" : category === "due_today" ? "bg-warning" : "gradient-primary"
+        }`}>
+          {(sale.customerName || sale.description || "?").charAt(0).toUpperCase()}
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-semibold text-foreground truncate">{sale.customerName || sale.description}</p>
+          <p className="text-xs text-muted-foreground truncate">
+            {!isPaid ? format(nextDue, "dd/MM/yyyy") : "Quitado"}{isRecorrente && ` • ${sale.paidInstallments}/${sale.installments}`}
+          </p>
+        </div>
+        <div className="text-right shrink-0">
+          {isPaid ? (
+            <p className="text-sm font-bold text-success">{formatCurrency(sale.total)}</p>
+          ) : (
+            <>
+              <p className="text-sm font-bold text-foreground">{formatCurrency(partialOnNext)}</p>
+              <p className="text-[11px] text-muted-foreground">Rest. {formatCurrency(remaining)}</p>
+            </>
+          )}
+        </div>
+      </button>
+
+      {!isPaid && (
+        <div className="flex items-center gap-1 shrink-0">
+          {/* Pay installment */}
+          <Popover open={showPayDatePicker} onOpenChange={setShowPayDatePicker}>
+            <PopoverTrigger asChild>
+              <Button variant="ghost" size="icon" className="h-8 w-8 text-primary hover:bg-primary/10" title="Pagar Parcela">
+                <CheckCircle className="h-4 w-4" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="end">
+              <div className="p-3 border-b border-border">
+                <p className="text-sm font-medium text-foreground">Data do pagamento</p>
+                <p className="text-xs text-muted-foreground">Parcela: {formatCurrency(partialOnNext)}</p>
+              </div>
+              <Calendar
+                mode="single"
+                selected={undefined}
+                onSelect={(date) => {
+                  if (date) {
+                    onUpdate({
+                      paidInstallments: Math.min(sale.installments, sale.paidInstallments + 1),
+                      partialPaid: 0,
+                    });
+                    setShowPayDatePicker(false);
+                  }
+                }}
+                initialFocus
+                className={cn("p-3 pointer-events-auto")}
+              />
+            </PopoverContent>
+          </Popover>
+
+          {/* Partial payment */}
+          <Button variant="ghost" size="icon" className="h-8 w-8 text-warning hover:bg-warning/10" title="Pagar Parcial" onClick={() => setShowPartial(true)}>
+            <HandCoins className="h-4 w-4" />
+          </Button>
+
+          <Dialog open={showPartial} onOpenChange={(open) => {
+            setShowPartial(open);
+            if (!open) { setPartialAmount(""); setPartialDate(undefined); }
+          }}>
+            <DialogContent className="sm:max-w-md">
+              <DialogHeader>
+                <DialogTitle>Pagamento Parcial</DialogTitle>
+                <DialogDescription>
+                  Parcela pendente: {formatCurrency(nextInstValue)}.
+                  {(sale.partialPaid || 0) > 0 && ` Já pago: ${formatCurrency(sale.partialPaid)}. Falta: ${formatCurrency(partialOnNext)}.`}
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4 py-2">
+                <div>
+                  <label className="text-sm font-medium text-foreground mb-1 block">Valor (R$)</label>
+                  <Input type="number" step="0.01" placeholder="0,00" value={partialAmount} onChange={(e) => setPartialAmount(e.target.value)} autoFocus />
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-foreground mb-1 block">Data do Pagamento</label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline" className={cn("w-full justify-start text-left font-normal", !partialDate && "text-muted-foreground")}>
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {partialDate ? format(partialDate, "dd/MM/yyyy") : "Selecione a data"}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar mode="single" selected={partialDate} onSelect={setPartialDate} initialFocus className={cn("p-3 pointer-events-auto")} />
+                    </PopoverContent>
+                  </Popover>
+                </div>
+              </div>
+              <DialogFooter>
+                <Button variant="ghost" onClick={() => { setShowPartial(false); setPartialAmount(""); setPartialDate(undefined); }}>Cancelar</Button>
+                <Button onClick={() => {
+                  const val = parseFloat(partialAmount);
+                  if (val > 0 && partialDate) {
+                    const currentValue = nextInstValue;
+                    const currentPartial = sale.partialPaid || 0;
+                    const newPartialTotal = currentPartial + val;
+                    if (newPartialTotal >= currentValue - 0.01) {
+                      const remainder = newPartialTotal - currentValue;
+                      onUpdate({
+                        paidInstallments: Math.min(sale.installments, sale.paidInstallments + 1),
+                        partialPaid: remainder > 0.01 ? remainder : 0,
+                      });
+                    } else {
+                      onUpdate({ partialPaid: newPartialTotal });
+                    }
+                    setPartialAmount(""); setPartialDate(undefined); setShowPartial(false);
+                  }
+                }} disabled={!partialAmount || parseFloat(partialAmount) <= 0 || !partialDate}>
+                  Confirmar
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        </div>
+      )}
+    </div>
+  );
+}
+
 
 const saleCategoryFilters: { id: SaleCategory; label: string; color: string; activeColor: string }[] = [
   { id: "all", label: "Todos", color: "border-border text-muted-foreground", activeColor: "bg-primary text-primary-foreground border-primary" },
