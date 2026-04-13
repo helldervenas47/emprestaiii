@@ -432,17 +432,6 @@ function SaleCard({ sale, onDelete, onEdit, onUpdate, formatCurrency }: { sale: 
             </div>
           )}
 
-          {/* Payments button */}
-          {sale.paidInstallments > 0 || (sale.partialPaid || 0) > 0 ? (
-            <Button
-              variant="outline"
-              className="w-full h-9 text-xs border-success/30 text-success hover:bg-success/10"
-              onClick={() => setShowPayments(true)}
-            >
-              <Receipt className="h-3.5 w-3.5 mr-1" /> Ver Pagamentos ({sale.paidInstallments}{(sale.partialPaid || 0) > 0 ? '+parcial' : ''})
-            </Button>
-          ) : null}
-
           {/* Footer: date + actions - always at bottom */}
           <div className="flex items-center justify-between pt-1 border-t border-border/50">
             <p className="text-xs text-muted-foreground flex items-center gap-1">
@@ -450,6 +439,9 @@ function SaleCard({ sale, onDelete, onEdit, onUpdate, formatCurrency }: { sale: 
               {new Date(sale.date + "T00:00:00").toLocaleDateString("pt-BR")}
             </p>
             <div className="flex items-center gap-1">
+              <Button size="icon" variant="ghost" className="h-8 w-8 text-success hover:bg-success/10" onClick={() => setShowPayments(true)} title="Ver Pagamentos">
+                <CircleCheck className="h-4 w-4" />
+              </Button>
               <Button size="icon" variant="ghost" className="h-8 w-8 text-muted-foreground hover:bg-accent hover:text-foreground" onClick={onEdit}>
                 <Pencil className="h-4 w-4" />
               </Button>
