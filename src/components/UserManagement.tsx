@@ -47,6 +47,11 @@ export function UserManagement() {
   const [permissionsUser, setPermissionsUser] = useState<ManagedUser | null>(null);
   const [permTabs, setPermTabs] = useState<string[]>([]);
   const [savingPerms, setSavingPerms] = useState(false);
+  const [clientLinkUser, setClientLinkUser] = useState<ManagedUser | null>(null);
+  const [selectedClientIds, setSelectedClientIds] = useState<string[]>([]);
+  const [savingClientLinks, setSavingClientLinks] = useState(false);
+  const [clientSearch, setClientSearch] = useState("");
+  const { clients } = useClients();
   const [creating, setCreating] = useState(false);
   const [expandedUserId, setExpandedUserId] = useState<string | null>(null);
   const isMobile = useIsMobile();
