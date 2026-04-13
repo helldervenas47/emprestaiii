@@ -85,8 +85,9 @@ export function generateContract(sale: Sale, client?: Client, locador?: LocadorI
   const lastParcela = parcelas[parcelas.length - 1];
   const endDate = lastParcela ? lastParcela.date : startDate;
 
-  const valorTotal = formatCurrencyBR(sale.total);
-  const valorExtenso = numberToWords(sale.total);
+  const valorParcela = parcelas.length > 0 ? parcelas[0].value : sale.total;
+  const valorLocacao = formatCurrencyBR(valorParcela);
+  const valorLocacaoExtenso = numberToWords(valorParcela);
 
   const frequencyLabel = sale.frequency === "Semanal" ? "semana" : sale.frequency === "Quinzenal" ? "quinzena" : sale.frequency === "Diário" ? "dia" : "mês";
 
