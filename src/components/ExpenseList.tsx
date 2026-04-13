@@ -222,7 +222,12 @@ export function ExpenseList({ expenses, onPay, onUnpay, onDelete }: Props) {
                           {!expense.paid && (
                             <Button size="sm" variant="outline" className="text-success border-success/30 hover:bg-success hover:text-success-foreground h-7 text-xs" onClick={() => onPay(expense.id)}>
                               <CheckCircle className="h-3.5 w-3.5 mr-1" />
-                              {expense.type === "recorrente" && expense.installments && expense.installments > 1 ? "Pagar Parcela" : "Pagar"}
+                              {expense.type === "recorrente" && expense.installments && expense.installments > 1 ? "Pagar" : "Pagar"}
+                            </Button>
+                          )}
+                          {onUnpay && ((expense.type === "recorrente" && (expense.paidInstallments || 0) > 0) || expense.paid) && (
+                            <Button size="icon" variant="ghost" className="h-7 w-7 text-warning hover:bg-warning hover:text-warning-foreground" onClick={() => onUnpay(expense.id)} title="Desfazer último pagamento">
+                              <Undo2 className="h-3.5 w-3.5" />
                             </Button>
                           )}
                           <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive hover:bg-destructive hover:text-destructive-foreground" onClick={() => onDelete(expense.id)}>
