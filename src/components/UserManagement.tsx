@@ -562,6 +562,60 @@ export function UserManagement() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Client links dialog */}
+      <Dialog open={!!clientLinkUser} onOpenChange={(open) => !open && setClientLinkUser(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Vincular Clientes — {clientLinkUser?.display_name}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Selecione os clientes que este usuário poderá visualizar. Sem vínculo = acesso a todos.
+            </p>
+            <Input
+              placeholder="Buscar cliente..."
+              value={clientSearch}
+              onChange={(e) => setClientSearch(e.target.value)}
+            />
+            <ScrollArea className="h-[300px] border rounded-md p-2">
+              {clients.length === 0 ? (
+                <p className="text-sm text-muted-foreground text-center py-4">Nenhum cliente cadastrado</p>
+              ) : (
+                <div className="space-y-2">
+                  {clients
+                    .filter(c => c.name.toLowerCase().includes(clientSearch.toLowerCase()))
+                    .map((client) => (
+                      <div key={client.id} className="flex items-center gap-3 py-1.5 px-1 rounded hover:bg-muted/50">
+                        <Checkbox
+                          checked={selectedClientIds.includes(client.id)}
+                          onCheckedChange={() => handleToggleClient(client.id)}
+                        />
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium truncate">{client.name}</p>
+                          {client.phone && <p className="text-xs text-muted-foreground">{client.phone}</p>}
+                        </div>
+                      </div>
+                    ))}
+                </div>
+              )}
+            </ScrollArea>
+            <div className="flex items-center justify-between">
+              <p className="text-xs text-muted-foreground">{selectedClientIds.length} selecionado(s)</p>
+              <div className="flex gap-2">
+                <Button variant="outline" size="sm" onClick={() => setSelectedClientIds([])}>Limpar</Button>
+                <Button variant="outline" size="sm" onClick={() => setSelectedClientIds(clients.map(c => c.id))}>Todos</Button>
+              </div>
+            </div>
+            <div className="flex gap-2 justify-end pt-2">
+              <Button variant="outline" onClick={() => setClientLinkUser(null)}>Cancelar</Button>
+              <Button onClick={handleSaveClientLinks} disabled={savingClientLinks}>
+                {savingClientLinks ? "Salvando..." : "Salvar Vínculos"}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
