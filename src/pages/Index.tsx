@@ -328,7 +328,17 @@ const Index = () => {
           <DashboardOverview loans={loans} sales={sales} payments={payments} expenses={expenses} onDeletePayment={deletePayment} onDeleteSale={deleteSale} onDeleteLoan={deleteLoan} />
         )}
         {tab === "dashboard" && (
-          <LoanList loans={loans} payments={payments} installmentSchedules={installmentSchedules} onPayment={addPayment} onPartialPayment={addPartialPayment} onInterestPayment={addInterestOnlyPayment} onUpdate={updateLoan} onDelete={deleteLoan} onDeletePayment={deletePayment} onSaveSchedule={saveSchedule} readOnly={isReadOnly} onNewLoan={!isMobile ? () => setShowLoanForm(true) : undefined} />
+          <>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-semibold text-foreground">Empréstimos</h2>
+              {!isMobile && !isReadOnly && (
+                <Button onClick={() => setShowLoanForm(true)} size="sm" className="h-9 px-4">
+                  <Plus className="h-4 w-4 mr-1.5" />Novo Empréstimo
+                </Button>
+              )}
+            </div>
+            <LoanList loans={loans} payments={payments} installmentSchedules={installmentSchedules} onPayment={addPayment} onPartialPayment={addPartialPayment} onInterestPayment={addInterestOnlyPayment} onUpdate={updateLoan} onDelete={deleteLoan} onDeletePayment={deletePayment} onSaveSchedule={saveSchedule} readOnly={isReadOnly} />
+          </>
         )}
         {tab === "clients" && (
           <div>

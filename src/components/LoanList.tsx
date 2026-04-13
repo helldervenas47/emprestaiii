@@ -17,7 +17,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { calculateInstallment, calculateTotalWithInterest } from "@/hooks/useLoans";
 import { cn } from "@/lib/utils";
 import {
-  CheckCircle, Trash2, DollarSign, User, Calendar as CalendarIcon, LayoutGrid, List, Plus,
+  CheckCircle, Trash2, DollarSign, User, Calendar as CalendarIcon, LayoutGrid, List,
   Search, Percent, Pencil, Check, X, ChevronDown, ChevronRight, FolderOpen, Folder, HandCoins, Tag, MoreHorizontal, MessageCircle, Filter, SlidersHorizontal, History,
 } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -35,7 +35,6 @@ interface Props {
   onDeletePayment: (paymentId: string) => void;
   onSaveSchedule: (loanId: string, rows: { installmentNumber: number; dueDate: string; amount: number }[]) => Promise<void>;
   readOnly?: boolean;
-  onNewLoan?: () => void;
 }
 
 type Category = "all" | "overdue" | "paid_interest" | "paid" | "due_today" | "on_track" | "parcelado";
@@ -1560,7 +1559,7 @@ function ClientFolder({
   );
 }
 
-export function LoanList({ loans, payments, installmentSchedules, onPayment, onPartialPayment, onInterestPayment, onUpdate, onDelete, onDeletePayment, onSaveSchedule, readOnly = false, onNewLoan }: Props) {
+export function LoanList({ loans, payments, installmentSchedules, onPayment, onPartialPayment, onInterestPayment, onUpdate, onDelete, onDeletePayment, onSaveSchedule, readOnly = false }: Props) {
   const { mask } = useHideValues();
   const formatCurrency = useCallback((v: number) => mask(rawFormatCurrency(v)), [mask]);
   const [view, setView] = useState<"cards" | "rows" | "folders">("cards");
@@ -1729,7 +1728,7 @@ export function LoanList({ loans, payments, installmentSchedules, onPayment, onP
 
   return (
     <div className="space-y-3">
-      <div className="flex flex-wrap gap-2 items-center justify-center sm:justify-start">
+      <div className="flex flex-wrap gap-2 justify-center sm:justify-start">
         {categoryConfig.map((cat) => (
           <button key={cat.id} onClick={() => setCategory(cat.id)}
             className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors border ${
@@ -1739,14 +1738,6 @@ export function LoanList({ loans, payments, installmentSchedules, onPayment, onP
             {cat.label} ({counts[cat.id]})
           </button>
         ))}
-        {onNewLoan && !readOnly && (
-          <button
-            onClick={onNewLoan}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-colors border border-primary/30 text-primary bg-card hover:bg-primary hover:text-primary-foreground"
-          >
-            <Plus className="h-3.5 w-3.5" />Novo Empréstimo
-          </button>
-        )}
       </div>
 
       <div className="flex items-center gap-2 flex-wrap">
