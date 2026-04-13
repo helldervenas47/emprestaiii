@@ -282,7 +282,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
       principalToReceive,
       interestToReceive,
     };
-  }, [loans, payments]);
+  }, [loans, payments, installmentSchedules]);
 
   // Manual overrides for monthly chart values
   // chartOverrides already declared above
