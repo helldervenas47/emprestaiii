@@ -97,6 +97,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, onDeletePa
   const [offset, setOffset] = useState(0);
   const [txFilter, setTxFilter] = useState<"all" | "in" | "out">("all");
   const [showAllTx, setShowAllTx] = useState(false);
+  const [expandedBreakdown, setExpandedBreakdown] = useState<string | null>(null);
   
   const [accountBalance, setAccountBalance] = useAccountBalance();
   const [editingBalance, setEditingBalance] = useState(false);
