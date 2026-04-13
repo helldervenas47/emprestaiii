@@ -9,6 +9,7 @@ import { Calendar as CalendarUI } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Save, X, Calendar as CalendarIcon } from "lucide-react";
 import { Sale, BusinessType, PaymentMode, Client } from "@/types/loan";
+import { VehicleInfo } from "@/hooks/useVehicleRegistry";
 import { format, addMonths, addWeeks, addDays } from "date-fns";
 
 function addByFrequency(date: Date, frequency: string, n: number): Date {
@@ -29,9 +30,10 @@ interface Props {
   onSave: (id: string, data: Partial<Omit<Sale, "id">>) => void;
   onClose: () => void;
   clients?: Client[];
+  registeredVehicles?: VehicleInfo[];
 }
 
-export function SaleEditForm({ sale, onSave, onClose, clients = [] }: Props) {
+export function SaleEditForm({ sale, onSave, onClose, clients = [], registeredVehicles = [] }: Props) {
   const initInstVal = () => {
     if (sale.installmentValue != null && sale.installmentValue > 0) return sale.installmentValue.toFixed(2);
     const count = sale.installments || 1;
