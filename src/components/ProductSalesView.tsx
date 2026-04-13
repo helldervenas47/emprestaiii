@@ -877,19 +877,19 @@ export function ProductSalesView({ sales, onDeleteSale, onUpdateSale, clients = 
   const secondaryCards = (
     <div className="grid grid-cols-2 gap-3">
       {/* Saldo em Conta */}
-      <div className="rounded-xl border p-4 bg-card">
-        <div className="flex items-center justify-between mb-2">
+      <div className="rounded-xl border p-4 bg-card text-center">
+        <div className="flex items-center justify-center gap-2 mb-2">
           <p className="text-xs font-medium text-muted-foreground">Saldo em Conta</p>
           <Wallet className="h-4 w-4 text-muted-foreground" />
         </div>
         {editingBalance ? (
-          <div className="flex items-center gap-2">
+          <div className="flex items-center justify-center gap-2">
             <Input
               type="number"
               step="0.01"
               value={balanceInput}
               onChange={(e) => setBalanceInput(e.target.value)}
-              className="h-8 text-sm"
+              className="h-8 text-sm w-28"
               autoFocus
               onKeyDown={(e) => { if (e.key === "Enter") handleSaveBalance(); if (e.key === "Escape") setEditingBalance(false); }}
             />
@@ -912,7 +912,7 @@ export function ProductSalesView({ sales, onDeleteSale, onUpdateSale, clients = 
       </div>
 
       {/* Despesas Mensais */}
-      <div className="rounded-xl border p-4 bg-card">
+      <div className="rounded-xl border p-4 bg-card text-center">
         <div className="flex items-center justify-center gap-2 mb-1">
           <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => {
             const [y, m] = selectedMonth.split("-").map(Number);
@@ -932,7 +932,7 @@ export function ProductSalesView({ sales, onDeleteSale, onUpdateSale, clients = 
             <ChevronRight className="h-4 w-4" />
           </Button>
         </div>
-        <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center justify-center gap-2 mb-2">
           <p className="text-xs font-medium text-muted-foreground">Despesas Mensais</p>
           <Receipt className="h-4 w-4 text-muted-foreground" />
         </div>
