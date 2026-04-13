@@ -524,40 +524,24 @@ export function DashboardOverview({ loans, sales, payments, expenses, onDeletePa
 
       {/* Portfolio metrics */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 sm:gap-3">
-        <Card>
-          <CardContent className="p-3 sm:p-4">
-            <p className="text-[10px] sm:text-xs text-muted-foreground">Capital na Rua</p>
-            <p className="text-sm sm:text-lg font-bold text-foreground">{formatCurrency(portfolio.capitalOnStreet)}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-3 sm:p-4">
-            <p className="text-[10px] sm:text-xs text-muted-foreground">Total a Receber</p>
-            <p className="text-sm sm:text-lg font-bold text-foreground">{formatCurrency(portfolio.totalToReceive)}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-3 sm:p-4">
-            <p className="text-[10px] sm:text-xs text-muted-foreground">Principal Recebido</p>
-            <p className="text-sm sm:text-lg font-bold text-success">{formatCurrency(portfolio.principalReceived)}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-3 sm:p-4">
-            <p className="text-[10px] sm:text-xs text-muted-foreground">Juros Recebido</p>
-            <p className="text-sm sm:text-lg font-bold text-success">{formatCurrency(portfolio.interestReceived)}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-3 sm:p-4">
-            <p className="text-[10px] sm:text-xs text-muted-foreground">Principal a Receber</p>
-            <p className="text-sm sm:text-lg font-bold text-warning">{formatCurrency(portfolio.principalToReceive)}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-3 sm:p-4">
-            <p className="text-[10px] sm:text-xs text-muted-foreground">Juros a Receber</p>
-            <p className="text-sm sm:text-lg font-bold text-warning">{formatCurrency(portfolio.interestToReceive)}</p>
+        {[
+          { label: "Capital na Rua", value: formatCurrency(portfolio.capitalOnStreet), color: "text-foreground", iconBg: "bg-primary/10", iconColor: "text-primary" },
+          { label: "Total a Receber", value: formatCurrency(portfolio.totalToReceive), color: "text-foreground", iconBg: "bg-primary/10", iconColor: "text-primary" },
+          { label: "Principal Recebido", value: formatCurrency(portfolio.principalReceived), color: "text-success", iconBg: "bg-success/10", iconColor: "text-success" },
+          { label: "Juros Recebido", value: formatCurrency(portfolio.interestReceived), color: "text-success", iconBg: "bg-success/10", iconColor: "text-success" },
+          { label: "Principal a Receber", value: formatCurrency(portfolio.principalToReceive), color: "text-warning", iconBg: "bg-warning/10", iconColor: "text-warning" },
+          { label: "Juros a Receber", value: formatCurrency(portfolio.interestToReceive), color: "text-warning", iconBg: "bg-warning/10", iconColor: "text-warning" },
+        ].map((item, i) => (
+          <Card key={item.label}>
+            <CardContent className="p-3 sm:p-4 flex flex-col items-center text-center">
+              <div className={`h-8 w-8 rounded-lg ${item.iconBg} flex items-center justify-center mb-2`}>
+                <CircleDollarSign className={`h-4 w-4 ${item.iconColor}`} />
+              </div>
+              <p className="text-[10px] sm:text-xs text-muted-foreground">{item.label}</p>
+              <p className={`text-sm sm:text-lg font-bold ${item.color} mt-0.5`}>{item.value}</p>
+            </CardContent>
+          </Card>
+        ))}
           </CardContent>
         </Card>
       </div>
