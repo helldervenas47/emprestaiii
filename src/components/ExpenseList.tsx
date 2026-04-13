@@ -116,6 +116,19 @@ export function ExpenseList({ expenses, onPay, onDelete }: Props) {
         </Card>
       </div>
 
+      {/* Month filter */}
+      <div className="flex items-center justify-center gap-2">
+        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={prevMonth}>
+          <ChevronLeft className="h-4 w-4" />
+        </Button>
+        <span className="text-sm font-medium text-foreground min-w-[140px] text-center capitalize">
+          {format(new Date(selYear, selMonthNum - 1, 1), "MMMM yyyy", { locale: ptBR })}
+        </span>
+        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={nextMonth}>
+          <ChevronRight className="h-4 w-4" />
+        </Button>
+      </div>
+
       {/* Search + filters */}
       <div className="flex flex-col sm:flex-row gap-3">
         <div className="relative flex-1">
