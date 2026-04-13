@@ -604,7 +604,7 @@ function SalesList({ sales, onDeleteSale, onUpdateSale, clients = [], hideOnTrac
       {renderAfterCards}
 
       {/* Category filter pills */}
-      <div className="flex flex-wrap gap-2">
+      <div className="grid grid-cols-3 sm:grid-cols-6 gap-2 w-full">
         {saleCategoryFilters.map((cat) => {
           const count = cat.id === "all" ? sales.length : (counts[cat.id] || 0);
           const isActive = categoryFilter === cat.id;
