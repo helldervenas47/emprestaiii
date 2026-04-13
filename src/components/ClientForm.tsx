@@ -112,6 +112,16 @@ export function ClientForm({ onAdd, onClose }: Props) {
                 <div className="space-y-3 pt-2 border-t border-border/50">
                   <div className="grid grid-cols-2 gap-4">
                     <div>
+                      <Label htmlFor="rg">RG</Label>
+                      <Input id="rg" value={form.rg} onChange={(e) => update("rg", e.target.value)} placeholder="00.000.000-0" />
+                    </div>
+                    <div>
+                      <Label htmlFor="city">Cidade</Label>
+                      <Input id="city" value={form.city} onChange={(e) => update("city", e.target.value)} placeholder="São Paulo" />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
                       <Label htmlFor="nacionalidade">Nacionalidade</Label>
                       <Input id="nacionalidade" value={form.nacionalidade} onChange={(e) => update("nacionalidade", e.target.value)} placeholder="Brasileiro(a)" />
                     </div>
