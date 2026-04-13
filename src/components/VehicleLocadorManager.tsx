@@ -90,6 +90,16 @@ export function VehicleLocadorManager({
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
+                    <Label className="text-xs">Nacionalidade</Label>
+                    <Input value={locadorForm.nacionalidade} onChange={(e) => setLocadorForm(p => ({ ...p, nacionalidade: e.target.value }))} placeholder="Brasileiro(a)" />
+                  </div>
+                  <div>
+                    <Label className="text-xs">Profissão</Label>
+                    <Input value={locadorForm.profissao} onChange={(e) => setLocadorForm(p => ({ ...p, profissao: e.target.value }))} placeholder="Empresário(a)" />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
                     <Label className="text-xs">RG</Label>
                     <Input value={locadorForm.rg} onChange={(e) => setLocadorForm(p => ({ ...p, rg: e.target.value }))} placeholder="00.000.000-0" />
                   </div>
@@ -98,29 +108,13 @@ export function VehicleLocadorManager({
                     <Input value={locadorForm.cpf} onChange={(e) => setLocadorForm(p => ({ ...p, cpf: e.target.value }))} placeholder="000.000.000-00" />
                   </div>
                 </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <Label className="text-xs">Nacionalidade</Label>
-                    <Input value={locadorForm.nacionalidade} onChange={(e) => setLocadorForm(p => ({ ...p, nacionalidade: e.target.value }))} placeholder="Brasileiro(a)" />
-                  </div>
-                  <div>
-                    <Label className="text-xs">Estado</Label>
-                    <Input value={locadorForm.estado} onChange={(e) => setLocadorForm(p => ({ ...p, estado: e.target.value }))} placeholder="SP" />
-                  </div>
-                </div>
                 <div>
                   <Label className="text-xs">Endereço</Label>
                   <Input value={locadorForm.endereco} onChange={(e) => setLocadorForm(p => ({ ...p, endereco: e.target.value }))} placeholder="Rua, número" />
                 </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <Label className="text-xs">Bairro</Label>
-                    <Input value={locadorForm.bairro} onChange={(e) => setLocadorForm(p => ({ ...p, bairro: e.target.value }))} placeholder="Centro" />
-                  </div>
-                  <div>
-                    <Label className="text-xs">Cidade</Label>
-                    <Input value={locadorForm.cidade} onChange={(e) => setLocadorForm(p => ({ ...p, cidade: e.target.value }))} placeholder="São Paulo" />
-                  </div>
+                <div>
+                  <Label className="text-xs">Cidade</Label>
+                  <Input value={locadorForm.cidade} onChange={(e) => setLocadorForm(p => ({ ...p, cidade: e.target.value }))} placeholder="São Paulo" />
                 </div>
                 {!readOnly && (
                   <div className="flex gap-2 justify-end">
@@ -140,9 +134,10 @@ export function VehicleLocadorManager({
                 <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
                   <p><span className="text-muted-foreground">Nome:</span> {locador.nome}</p>
                   <p><span className="text-muted-foreground">Nacionalidade:</span> {locador.nacionalidade}</p>
+                  <p><span className="text-muted-foreground">Profissão:</span> {locador.profissao || "—"}</p>
                   <p><span className="text-muted-foreground">RG:</span> {locador.rg || "—"}</p>
                   <p><span className="text-muted-foreground">CPF:</span> {locador.cpf || "—"}</p>
-                  <p className="col-span-2"><span className="text-muted-foreground">Endereço:</span> {[locador.endereco, locador.bairro, locador.cidade, locador.estado].filter(Boolean).join(", ") || "—"}</p>
+                  <p><span className="text-muted-foreground">Endereço:</span> {[locador.endereco, locador.cidade].filter(Boolean).join(", ") || "—"}</p>
                 </div>
                 {!readOnly && (
                   <Button size="sm" variant="outline" onClick={() => { setLocadorForm(locador); setEditingLocador(true); }}>
