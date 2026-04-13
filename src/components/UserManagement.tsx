@@ -25,6 +25,7 @@ interface ManagedUser {
   created_at: string;
   last_sign_in_at: string | null;
   allowed_tabs: string[] | null;
+  linked_client_ids: string[];
 }
 
 const ALL_TABS = [
