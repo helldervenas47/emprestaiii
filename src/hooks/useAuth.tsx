@@ -1,10 +1,21 @@
-import { useState, useEffect } from "react";
+import { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { User, Session } from "@supabase/supabase-js";
 
 export type AppRole = "admin" | "operador" | "visualizador" | null;
 
-export function useAuth() {
+interface AuthContextType {
+  user: User | null;
+  session: Session | null;
+  loading: boolean;
+  role: AppRole;
+  dataOwnerId: string | null;
+  signOut: () => Promise<void>;
+}
+
+const AuthContext = createContext<AuthContextType | null>(null);
+
+export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
@@ -30,21 +41,23 @@ export function useAuth() {
   };
 
   useEffect(() => {
-    if (!sessionStorage.getItem("hvcred_session")) {
-      supabase.auth.signOut().then(() => {
-        setLoading(false);
-      });
-    }
+    let mounted = true;
 
+    // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (_event, session) => {
+        if (!mounted) return;
         setSession(session);
         setUser(session?.user ?? null);
-        setLoading(false);
         if (session?.user) {
           sessionStorage.setItem("hvcred_session", "1");
-          fetchRole(session.user.id);
-          fetchDataOwner(session.user.id);
+          // Use setTimeout to avoid blocking the auth state change callback
+          setTimeout(() => {
+            if (mounted) {
+              fetchRole(session.user.id);
+              fetchDataOwner(session.user.id);
+            }
+          }, 0);
         } else {
           sessionStorage.removeItem("hvcred_session");
           setRole(null);
@@ -53,17 +66,25 @@ export function useAuth() {
       }
     );
 
+    // Then restore session
     supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!mounted) return;
       if (session && sessionStorage.getItem("hvcred_session")) {
         setSession(session);
-        setUser(session?.user ?? null);
+        setUser(session.user);
         fetchRole(session.user.id);
         fetchDataOwner(session.user.id);
+      } else if (!sessionStorage.getItem("hvcred_session")) {
+        // No stored session marker - sign out quietly
+        supabase.auth.signOut();
       }
       setLoading(false);
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
   }, []);
 
   const signOut = async () => {
@@ -71,5 +92,15 @@ export function useAuth() {
     await supabase.auth.signOut();
   };
 
-  return { user, session, loading, signOut, role, dataOwnerId };
+  return (
+    <AuthContext.Provider value={{ user, session, loading, role, dataOwnerId, signOut }}>
+      {children}
+    </AuthContext.Provider>
+  );
+}
+
+export function useAuth() {
+  const ctx = useContext(AuthContext);
+  if (!ctx) throw new Error("useAuth must be used within AuthProvider");
+  return ctx;
 }
