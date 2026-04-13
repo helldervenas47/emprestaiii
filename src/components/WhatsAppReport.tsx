@@ -98,7 +98,8 @@ export function WhatsAppReport({ loans, payments, clients, installmentSchedules 
       .filter((loan) => loan.dueDate === todayStr)
       .map((loan) => {
         const base = getLoanRemaining(loan, payments, installmentSchedules, todayStr);
-        return { loan, amount: base };
+        const lateFees = calcLateFees(loan, base);
+        return { loan, amount: base + lateFees, baseAmount: base, lateFees };
       });
   }, [activeLoans, payments, installmentSchedules, todayStr]);
 
