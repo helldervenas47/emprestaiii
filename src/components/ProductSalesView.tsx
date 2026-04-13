@@ -779,6 +779,8 @@ function SaleClientFolder({
                 formatCurrency={formatCurrency}
                 readOnly={readOnly}
                 clients={clients}
+                locadorInfo={locadorInfo}
+                registeredVehicles={registeredVehicles}
               />
             ))}
           </div>
@@ -1084,6 +1086,8 @@ function SalesList({ sales, onDeleteSale, onUpdateSale, clients = [], hideOnTrac
               formatCurrency={formatCurrency}
               readOnly={readOnly}
               clients={clients}
+              locadorInfo={locadorInfo}
+              registeredVehicles={registeredVehicles}
             />
             </div>
           ))}
