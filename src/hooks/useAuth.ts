@@ -9,6 +9,7 @@ export function useAuth() {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [role, setRole] = useState<AppRole>(null);
+  const [dataOwnerId, setDataOwnerId] = useState<string | null>(null);
 
   const fetchRole = async (userId: string) => {
     const { data } = await supabase
@@ -17,6 +18,15 @@ export function useAuth() {
       .eq("user_id", userId)
       .maybeSingle();
     setRole((data?.role as AppRole) || null);
+  };
+
+  const fetchDataOwner = async (userId: string) => {
+    const { data } = await supabase
+      .from("user_owner" as any)
+      .select("owner_id")
+      .eq("user_id", userId)
+      .maybeSingle();
+    setDataOwnerId((data as any)?.owner_id || userId);
   };
 
   useEffect(() => {
@@ -34,9 +44,11 @@ export function useAuth() {
         if (session?.user) {
           sessionStorage.setItem("hvcred_session", "1");
           fetchRole(session.user.id);
+          fetchDataOwner(session.user.id);
         } else {
           sessionStorage.removeItem("hvcred_session");
           setRole(null);
+          setDataOwnerId(null);
         }
       }
     );
@@ -46,6 +58,7 @@ export function useAuth() {
         setSession(session);
         setUser(session?.user ?? null);
         fetchRole(session.user.id);
+        fetchDataOwner(session.user.id);
       }
       setLoading(false);
     });
@@ -58,5 +71,5 @@ export function useAuth() {
     await supabase.auth.signOut();
   };
 
-  return { user, session, loading, signOut, role };
+  return { user, session, loading, signOut, role, dataOwnerId };
 }

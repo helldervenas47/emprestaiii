@@ -87,6 +87,12 @@ Deno.serve(async (req) => {
       role,
     });
 
+    // Link sub-user to the admin who created them
+    await adminClient.from("user_owner").insert({
+      user_id: newUser.user.id,
+      owner_id: caller.id,
+    });
+
     return new Response(JSON.stringify({ user: newUser.user }), {
       status: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" },

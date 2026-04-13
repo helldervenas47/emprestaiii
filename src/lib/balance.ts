@@ -1,32 +1,45 @@
 import { supabase } from "@/integrations/supabase/client";
 
-export async function getBalance(): Promise<number> {
+async function getDataOwnerId(): Promise<string | null> {
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return 0;
+  if (!user) return null;
+  
+  const { data } = await supabase
+    .from("user_owner" as any)
+    .select("owner_id")
+    .eq("user_id", user.id)
+    .maybeSingle();
+  
+  return (data as any)?.owner_id || user.id;
+}
+
+export async function getBalance(): Promise<number> {
+  const ownerId = await getDataOwnerId();
+  if (!ownerId) return 0;
 
   const { data } = await supabase
     .from("balance")
     .select("amount")
-    .eq("user_id", user.id)
+    .eq("user_id", ownerId)
     .maybeSingle();
 
   return data?.amount ?? 0;
 }
 
 export async function setBalance(value: number) {
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return;
+  const ownerId = await getDataOwnerId();
+  if (!ownerId) return;
 
   const { data: existing } = await supabase
     .from("balance")
     .select("id")
-    .eq("user_id", user.id)
+    .eq("user_id", ownerId)
     .maybeSingle();
 
   if (existing) {
-    await supabase.from("balance").update({ amount: value, updated_at: new Date().toISOString() }).eq("user_id", user.id);
+    await supabase.from("balance").update({ amount: value, updated_at: new Date().toISOString() }).eq("user_id", ownerId);
   } else {
-    await supabase.from("balance").insert({ user_id: user.id, amount: value });
+    await supabase.from("balance").insert({ user_id: ownerId, amount: value });
   }
 }
 

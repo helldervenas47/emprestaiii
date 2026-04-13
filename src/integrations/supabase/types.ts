@@ -434,6 +434,27 @@ export type Database = {
           },
         ]
       }
+      user_owner: {
+        Row: {
+          created_at: string
+          id: string
+          owner_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          owner_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          owner_id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -481,6 +502,8 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      can_write_data: { Args: { _user_id: string }; Returns: boolean }
+      get_data_owner_id: { Args: { _user_id: string }; Returns: string }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]

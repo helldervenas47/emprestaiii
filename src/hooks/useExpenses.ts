@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
 
 export function useExpenses() {
-  const { user } = useAuth();
+  const { user, dataOwnerId } = useAuth();
   const [expenses, setExpenses] = useState<Expense[]>([]);
 
   const fetchExpenses = useCallback(async () => {
@@ -13,7 +13,6 @@ export function useExpenses() {
     const { data } = await supabase
       .from("expenses")
       .select("*")
-      .eq("user_id", user.id)
       .order("created_at", { ascending: false });
 
     if (data) {
@@ -30,7 +29,7 @@ export function useExpenses() {
   useEffect(() => { fetchExpenses(); }, [fetchExpenses]);
 
   const addExpense = useCallback(async (expense: Omit<Expense, "id" | "paid" | "paidDate" | "createdAt">) => {
-    if (!user) return;
+    if (!user || !dataOwnerId) return;
     const tempId = crypto.randomUUID();
     const optimistic: Expense = {
       ...expense, id: tempId, paid: false, paidDate: undefined,
@@ -39,7 +38,7 @@ export function useExpenses() {
     setExpenses((prev) => [optimistic, ...prev]);
 
     const { data, error } = await supabase.from("expenses").insert({
-      user_id: user.id, description: expense.description, amount: expense.amount,
+      user_id: dataOwnerId, description: expense.description, amount: expense.amount,
       type: expense.type, category: expense.category, installments: expense.installments,
       paid_installments: 0, due_date: expense.dueDate, paid: false,
     }).select().single();
@@ -49,7 +48,7 @@ export function useExpenses() {
     } else if (data) {
       setExpenses((prev) => prev.map((e) => e.id === tempId ? { ...e, id: data.id, createdAt: data.created_at } : e));
     }
-  }, [user]);
+  }, [user, dataOwnerId]);
 
   const payExpense = useCallback(async (id: string, skipBalanceAdjust = false) => {
     let expenseSnapshot: Expense | undefined;
@@ -123,7 +122,6 @@ export function useExpenses() {
       return prev;
     });
 
-    // Wait for state to settle, then do async work with snapshot
     if (!expenseSnapshot) return;
     const expense = expenseSnapshot;
 

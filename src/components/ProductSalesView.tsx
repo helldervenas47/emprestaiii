@@ -1206,7 +1206,9 @@ export function ProductSalesView({ sales, onDeleteSale, onUpdateSale, clients = 
     (async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
-      const { data } = await supabase.from("vehicle_balance").select("amount").eq("user_id", user.id).maybeSingle();
+      const { data: ownerData } = await supabase.from("user_owner" as any).select("owner_id").eq("user_id", user.id).maybeSingle();
+      const ownerId = (ownerData as any)?.owner_id || user.id;
+      const { data } = await supabase.from("vehicle_balance").select("amount").eq("user_id", ownerId).maybeSingle();
       setBalanceState(data?.amount ?? 0);
     })();
   }, []);
@@ -1216,11 +1218,13 @@ export function ProductSalesView({ sales, onDeleteSale, onUpdateSale, clients = 
     if (isNaN(val)) return;
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
-    const { data: existing } = await supabase.from("vehicle_balance").select("id").eq("user_id", user.id).maybeSingle();
+    const { data: ownerData } = await supabase.from("user_owner" as any).select("owner_id").eq("user_id", user.id).maybeSingle();
+    const ownerId = (ownerData as any)?.owner_id || user.id;
+    const { data: existing } = await supabase.from("vehicle_balance").select("id").eq("user_id", ownerId).maybeSingle();
     if (existing) {
-      await supabase.from("vehicle_balance").update({ amount: val, updated_at: new Date().toISOString() }).eq("user_id", user.id);
+      await supabase.from("vehicle_balance").update({ amount: val, updated_at: new Date().toISOString() }).eq("user_id", ownerId);
     } else {
-      await supabase.from("vehicle_balance").insert({ user_id: user.id, amount: val });
+      await supabase.from("vehicle_balance").insert({ user_id: ownerId, amount: val });
     }
     setBalanceState(val);
     setEditingBalance(false);
@@ -1353,13 +1357,15 @@ export function ProductSalesView({ sales, onDeleteSale, onUpdateSale, clients = 
   const updateVehicleBalance = useCallback(async (delta: number) => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
-    const { data: existing } = await supabase.from("vehicle_balance").select("amount").eq("user_id", user.id).maybeSingle();
+    const { data: ownerData } = await supabase.from("user_owner" as any).select("owner_id").eq("user_id", user.id).maybeSingle();
+    const ownerId = (ownerData as any)?.owner_id || user.id;
+    const { data: existing } = await supabase.from("vehicle_balance").select("amount").eq("user_id", ownerId).maybeSingle();
     const currentBalance = existing?.amount ?? 0;
     const newBalance = currentBalance + delta;
     if (existing) {
-      await supabase.from("vehicle_balance").update({ amount: newBalance, updated_at: new Date().toISOString() }).eq("user_id", user.id);
+      await supabase.from("vehicle_balance").update({ amount: newBalance, updated_at: new Date().toISOString() }).eq("user_id", ownerId);
     } else {
-      await supabase.from("vehicle_balance").insert({ user_id: user.id, amount: newBalance });
+      await supabase.from("vehicle_balance").insert({ user_id: ownerId, amount: newBalance });
     }
     setBalanceState(newBalance);
   }, []);
