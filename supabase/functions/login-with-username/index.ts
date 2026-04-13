@@ -29,7 +29,7 @@ Deno.serve(async (req) => {
     const { data: profile } = await adminClient
       .from("profiles")
       .select("user_id")
-      .eq("username", username)
+      .ilike("username", username)
       .maybeSingle();
 
     if (!profile) {
