@@ -102,19 +102,12 @@ export function UserManagement() {
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.email || !formData.password || !formData.role) {
+    if (!formData.password || !formData.role) {
       toast.error("Preencha todos os campos obrigatórios");
       return;
     }
-    if (formData.password.length < 8) {
-      toast.error("A senha deve ter pelo menos 8 caracteres");
-      return;
-    }
-    const hasUpper = /[A-Z]/.test(formData.password);
-    const hasLower = /[a-z]/.test(formData.password);
-    const hasNumber = /[0-9]/.test(formData.password);
-    if (!hasUpper || !hasLower || !hasNumber) {
-      toast.error("A senha deve conter letras maiúsculas, minúsculas e números");
+    if (formData.password.length < 6) {
+      toast.error("A senha deve ter pelo menos 6 caracteres");
       return;
     }
     setCreating(true);
@@ -433,20 +426,19 @@ export function UserManagement() {
               />
             </div>
             <div className="space-y-2">
-              <Label>Email *</Label>
+              <Label>Email</Label>
               <Input
                 type="email"
-                placeholder="email@exemplo.com"
+                placeholder="email@exemplo.com (opcional)"
                 value={formData.email}
                 onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                required
               />
             </div>
             <div className="space-y-2">
               <Label>Senha *</Label>
               <Input
                 type="password"
-                placeholder="Mínimo 8 caracteres"
+                placeholder="Mínimo 6 caracteres"
                 value={formData.password}
                 onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                 required
