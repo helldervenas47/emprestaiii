@@ -1106,6 +1106,7 @@ function SalesList({ sales, onDeleteSale, onUpdateSale, clients = [], hideOnTrac
           }}
           onClose={() => setEditingSale(null)}
           clients={clients}
+          registeredVehicles={registeredVehicles}
         />
       )}
     </div>

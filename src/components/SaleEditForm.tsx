@@ -9,6 +9,7 @@ import { Calendar as CalendarUI } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Save, X, Calendar as CalendarIcon } from "lucide-react";
 import { Sale, BusinessType, PaymentMode, Client } from "@/types/loan";
+import { VehicleInfo } from "@/hooks/useVehicleRegistry";
 import { format, addMonths, addWeeks, addDays } from "date-fns";
 
 function addByFrequency(date: Date, frequency: string, n: number): Date {
@@ -29,9 +30,10 @@ interface Props {
   onSave: (id: string, data: Partial<Omit<Sale, "id">>) => void;
   onClose: () => void;
   clients?: Client[];
+  registeredVehicles?: VehicleInfo[];
 }
 
-export function SaleEditForm({ sale, onSave, onClose, clients = [] }: Props) {
+export function SaleEditForm({ sale, onSave, onClose, clients = [], registeredVehicles = [] }: Props) {
   const initInstVal = () => {
     if (sale.installmentValue != null && sale.installmentValue > 0) return sale.installmentValue.toFixed(2);
     const count = sale.installments || 1;
@@ -139,10 +141,10 @@ export function SaleEditForm({ sale, onSave, onClose, clients = [] }: Props) {
             </div>
 
             <div>
-              <Label>Cliente</Label>
+              <Label>{form.businessType === "aluguel_veiculo" ? "Locatário" : "Cliente"}</Label>
               <Select value={form.customerName} onValueChange={(v) => update("customerName", v)}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Selecione um cliente" />
+                  <SelectValue placeholder={form.businessType === "aluguel_veiculo" ? "Selecione o locatário" : "Selecione um cliente"} />
                 </SelectTrigger>
                 <SelectContent>
                   {clients.filter(c => c.active).sort((a, b) => a.name.localeCompare(b.name)).map((client) => (
@@ -152,10 +154,28 @@ export function SaleEditForm({ sale, onSave, onClose, clients = [] }: Props) {
               </Select>
             </div>
 
-            <div>
-              <Label>Produto / Descrição</Label>
-              <Input value={form.description} onChange={(e) => update("description", e.target.value)} required />
-            </div>
+            {form.businessType === "aluguel_veiculo" ? (
+              <div>
+                <Label>Veículo</Label>
+                <Select value={form.description} onValueChange={(v) => update("description", v)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione um veículo cadastrado" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {registeredVehicles.map((v) => (
+                      <SelectItem key={v.id} value={v.marcaModelo}>
+                        {v.marcaModelo}{v.placa ? ` - ${v.placa}` : ""}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            ) : (
+              <div>
+                <Label>Produto / Descrição</Label>
+                <Input value={form.description} onChange={(e) => update("description", e.target.value)} required />
+              </div>
+            )}
 
             <div>
               <Label>Data da Venda</Label>

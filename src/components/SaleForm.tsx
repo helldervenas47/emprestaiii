@@ -9,6 +9,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Plus, X, Calendar as CalendarIcon } from "lucide-react";
 import { Sale, BusinessType, PaymentMode, Client } from "@/types/loan";
 import { format, addMonths, addWeeks, addDays } from "date-fns";
+import { VehicleInfo } from "@/hooks/useVehicleRegistry";
 import { cn } from "@/lib/utils";
 
 const businessTypeLabels: Record<BusinessType, string> = {
@@ -29,9 +30,10 @@ interface Props {
   onClose: () => void;
   defaultBusinessType?: BusinessType;
   clients?: Client[];
+  registeredVehicles?: VehicleInfo[];
 }
 
-export function SaleForm({ onAdd, onClose, defaultBusinessType = "venda", clients = [] }: Props) {
+export function SaleForm({ onAdd, onClose, defaultBusinessType = "venda", clients = [], registeredVehicles = [] }: Props) {
   const [form, setForm] = useState({
     description: "",
     quantity: "1",
@@ -157,10 +159,28 @@ export function SaleForm({ onAdd, onClose, defaultBusinessType = "venda", client
               </select>
             </div>
 
-            <div>
-              <Label>{descriptionLabel}</Label>
-              <Input value={form.description} onChange={(e) => update("description", e.target.value)} placeholder={descriptionPlaceholder} required />
-            </div>
+            {isVehicleRental ? (
+              <div>
+                <Label>Veículo</Label>
+                <Select value={form.description} onValueChange={(v) => update("description", v)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione um veículo cadastrado" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {registeredVehicles.map((v) => (
+                      <SelectItem key={v.id} value={v.marcaModelo}>
+                        {v.marcaModelo}{v.placa ? ` - ${v.placa}` : ""}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            ) : (
+              <div>
+                <Label>{descriptionLabel}</Label>
+                <Input value={form.description} onChange={(e) => update("description", e.target.value)} placeholder={descriptionPlaceholder} required />
+              </div>
+            )}
 
             {!isVehicleRental && (
               <div className="grid grid-cols-2 gap-4">
@@ -363,10 +383,10 @@ export function SaleForm({ onAdd, onClose, defaultBusinessType = "venda", client
             )}
 
             <div>
-              <Label>Cliente</Label>
+              <Label>{isVehicleRental ? "Locatário" : "Cliente"}</Label>
               <Select value={form.customerName} onValueChange={(v) => update("customerName", v)}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Selecione um cliente" />
+                  <SelectValue placeholder={isVehicleRental ? "Selecione o locatário" : "Selecione um cliente"} />
                 </SelectTrigger>
                 <SelectContent>
                   {clients.filter(c => c.active).sort((a, b) => a.name.localeCompare(b.name)).map((client) => (
