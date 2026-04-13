@@ -252,58 +252,6 @@ export function OverdueLoans({ loans, clients, installmentSchedules }: Props) {
         </Card>
       </div>
 
-      {/* Due Today Section */}
-      <div className="space-y-3">
-        <div className="flex items-center justify-between">
-          <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
-            <Clock className="h-4 w-4 text-warning" />
-            Vencendo Hoje ({dueTodayData.length})
-          </h3>
-          {dueTodayData.length > 0 && (
-            <Button size="sm" onClick={() => handleSendAll(dueTodayData, false)} className="bg-[hsl(142,70%,45%)] hover:bg-[hsl(142,70%,38%)] text-white">
-              <MessageCircle className="h-3.5 w-3.5 mr-1" /> Notificar Todos
-            </Button>
-          )}
-        </div>
-        {dueTodayData.length === 0 ? (
-          <Card no3d>
-            <CardContent className="py-6 text-center">
-              <p className="text-sm text-muted-foreground">Nenhum empréstimo vencendo hoje.</p>
-            </CardContent>
-          </Card>
-        ) : (
-          dueTodayData.map((item) => (
-            <LoanItemCard key={item.loan.id} item={item} isOverdue={false} onSendWhatsApp={() => handleSendWhatsApp(item, false)} />
-          ))
-        )}
-      </div>
-
-      {/* Overdue Section */}
-      <div className="space-y-3">
-        <div className="flex items-center justify-between">
-          <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
-            <AlertTriangle className="h-4 w-4 text-destructive" />
-            Atrasados ({overdueData.length})
-          </h3>
-          {overdueData.length > 0 && (
-            <Button size="sm" onClick={() => handleSendAll(overdueData, true)} className="bg-[hsl(142,70%,45%)] hover:bg-[hsl(142,70%,38%)] text-white">
-              <MessageCircle className="h-3.5 w-3.5 mr-1" /> Notificar Todos
-            </Button>
-          )}
-        </div>
-        {overdueData.length === 0 ? (
-          <Card no3d>
-            <CardContent className="py-6 text-center">
-              <p className="text-sm text-muted-foreground">Nenhum empréstimo em atraso!</p>
-            </CardContent>
-          </Card>
-        ) : (
-          overdueData.map((item) => (
-            <LoanItemCard key={item.loan.id} item={item} isOverdue={true} onSendWhatsApp={() => handleSendWhatsApp(item, true)} />
-          ))
-        )}
-      </div>
-
       {/* WhatsApp Report */}
       <WhatsAppReport loans={loans} clients={clients} installmentSchedules={installmentSchedules} />
 
