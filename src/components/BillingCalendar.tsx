@@ -287,10 +287,7 @@ export function BillingCalendar({ loans, payments, installmentSchedules, onPayme
                     <div className="h-7 w-7 rounded-full bg-primary/15 flex items-center justify-center shrink-0">
                       <CheckCircle className="h-3.5 w-3.5 text-primary" />
                     </div>
-                    <div className="text-left">
-                      <p className="text-xs font-medium text-foreground">Parcela</p>
-                      <p className="text-[10px] text-muted-foreground">{formatCurrency(installment)}</p>
-                    </div>
+                     <p className="text-xs font-medium text-foreground">Parcela</p>
                   </button>
 
                   {loan.installments < 2 && (
@@ -301,10 +298,7 @@ export function BillingCalendar({ loans, payments, installmentSchedules, onPayme
                       <div className="h-7 w-7 rounded-full bg-purple/15 flex items-center justify-center shrink-0">
                         <Percent className="h-3.5 w-3.5 text-purple" />
                       </div>
-                      <div className="text-left">
-                        <p className="text-xs font-medium text-foreground">Juros</p>
-                        <p className="text-[10px] text-muted-foreground">{formatCurrency(interestOnly)}</p>
-                      </div>
+                       <p className="text-xs font-medium text-foreground">Juros</p>
                     </button>
                   )}
 
@@ -318,10 +312,7 @@ export function BillingCalendar({ loans, payments, installmentSchedules, onPayme
                     <div className="h-7 w-7 rounded-full bg-warning/15 flex items-center justify-center shrink-0">
                       <HandCoins className="h-3.5 w-3.5 text-warning" />
                     </div>
-                    <div className="text-left">
-                      <p className="text-xs font-medium text-foreground">Parcial</p>
-                      <p className="text-[10px] text-muted-foreground">Valor personalizado</p>
-                    </div>
+                     <p className="text-xs font-medium text-foreground">Parcial</p>
                   </button>
 
                   <button
@@ -331,10 +322,7 @@ export function BillingCalendar({ loans, payments, installmentSchedules, onPayme
                     <div className="h-7 w-7 rounded-full bg-success/15 flex items-center justify-center shrink-0">
                       <DollarSign className="h-3.5 w-3.5 text-success" />
                     </div>
-                    <div className="text-left">
-                      <p className="text-xs font-medium text-foreground">Total</p>
-                      <p className="text-[10px] text-muted-foreground">{formatCurrency(remaining)}</p>
-                    </div>
+                     <p className="text-xs font-medium text-foreground">Total</p>
                   </button>
                 </div>
 
