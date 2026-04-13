@@ -84,10 +84,10 @@ Deno.serve(async (req) => {
     }
 
     // Update profile with username
-    if (username) {
+    if (username || display_name) {
       await adminClient
         .from("profiles")
-        .update({ username, display_name: display_name || email })
+        .update({ username, display_name: display_name || username || email || "Usuário" })
         .eq("user_id", newUser.user.id);
     }
 
