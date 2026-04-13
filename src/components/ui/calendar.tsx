@@ -17,7 +17,6 @@ function Calendar({ className, classNames, showOutsideDays = true, ...props }: C
     (props as any).month || (props as any).defaultMonth || new Date()
   );
 
-  // Sync with external month prop
   React.useEffect(() => {
     if ((props as any).month) {
       setDisplayMonth((props as any).month);
@@ -47,8 +46,6 @@ function Calendar({ className, classNames, showOutsideDays = true, ...props }: C
     const dy = e.changedTouches[0].clientY - touchStartY.current;
     touchStartX.current = null;
     touchStartY.current = null;
-
-    // Only trigger if horizontal swipe is dominant and > 50px
     if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy)) {
       if (dx < 0) goToNextMonth();
       else goToPrevMonth();
@@ -66,12 +63,40 @@ function Calendar({ className, classNames, showOutsideDays = true, ...props }: C
     const dy = e.clientY - touchStartY.current;
     touchStartX.current = null;
     touchStartY.current = null;
-
     if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy)) {
       if (dx < 0) goToNextMonth();
       else goToPrevMonth();
     }
   };
+
+  // Wrap onSelect to auto-close parent Popover when a date is selected in single mode
+  const originalOnSelect = (props as any).onSelect;
+  const wrappedOnSelect = React.useCallback(
+    (...args: any[]) => {
+      originalOnSelect?.(...args);
+      // If a date was selected (first arg is truthy), close parent popover
+      if (args[0] && props.mode === "single") {
+        // Use requestAnimationFrame to let the state update first
+        requestAnimationFrame(() => {
+          // Find the closest popover content and trigger Escape to close it
+          const el = containerRef.current;
+          if (el) {
+            const popoverContent = el.closest('[data-radix-popper-content-wrapper]');
+            if (popoverContent) {
+              // Dispatch Escape key to close the popover
+              document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+            }
+          }
+        });
+      }
+    },
+    [originalOnSelect, props.mode]
+  );
+
+  const restProps = { ...props };
+  if (props.mode === "single" && originalOnSelect) {
+    (restProps as any).onSelect = wrappedOnSelect;
+  }
 
   return (
     <div
@@ -123,7 +148,7 @@ function Calendar({ className, classNames, showOutsideDays = true, ...props }: C
           IconLeft: ({ ..._props }) => <ChevronLeft className="h-4 w-4" />,
           IconRight: ({ ..._props }) => <ChevronRight className="h-4 w-4" />,
         }}
-        {...props}
+        {...restProps}
       />
     </div>
   );
