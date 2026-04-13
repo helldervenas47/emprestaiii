@@ -168,7 +168,7 @@ export function ExpenseList({ expenses, onPay, onUnpay, onDelete }: Props) {
             return (
               <div key={expense.id} className="animate-fade-in" style={{ animationDelay: `${i * 50}ms`, animationFillMode: 'backwards' }}>
               <Card
-                className={`transition-all duration-300 hover:shadow-[0_8px_24px_-6px_hsl(0_0%_0%/0.15)] hover:-translate-y-0.5 ${
+                className={`transition-all duration-400 ease-out hover:shadow-[0_4px_16px_-6px_hsl(0_0%_0%/0.08)] hover:-translate-y-[1px] ${
                   expense.paid ? "opacity-60" : overdue ? "border-destructive/30" : ""
                 }`}
               >
