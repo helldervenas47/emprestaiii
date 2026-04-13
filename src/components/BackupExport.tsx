@@ -79,7 +79,7 @@ function importExpensesFromCSV(csv: string): Omit<Expense, "id" | "createdAt">[]
       description: cols[0] || "",
       amount: parseFloat(cols[1]) || 0,
       category: cols[2] || "",
-      type: cols[3] || "fixa",
+      type: (cols[3] === "recorrente" ? "recorrente" : "fixa") as "fixa" | "recorrente",
       dueDate: cols[4] || new Date().toISOString().split("T")[0],
       paid: (cols[5] || "").toLowerCase() === "sim",
       paidDate: cols[6] || null,
