@@ -8,6 +8,7 @@ export interface LocadorInfo {
   rg: string;
   cpf: string;
   nacionalidade: string;
+  profissao: string;
   endereco: string;
   bairro: string;
   cidade: string;
@@ -15,7 +16,7 @@ export interface LocadorInfo {
 }
 
 const emptyLocador: LocadorInfo = {
-  nome: "", rg: "", cpf: "", nacionalidade: "Brasileiro(a)",
+  nome: "", rg: "", cpf: "", nacionalidade: "Brasileiro(a)", profissao: "",
   endereco: "", bairro: "", cidade: "", estado: "",
 };
 
@@ -33,15 +34,9 @@ export function useLocadorInfo() {
       .maybeSingle();
     if (data) {
       setLocador({
-        id: data.id,
-        nome: data.nome,
-        rg: data.rg,
-        cpf: data.cpf,
-        nacionalidade: data.nacionalidade,
-        endereco: data.endereco,
-        bairro: data.bairro,
-        cidade: data.cidade,
-        estado: data.estado,
+        id: data.id, nome: data.nome, rg: data.rg, cpf: data.cpf,
+        nacionalidade: data.nacionalidade, profissao: (data as any).profissao || "",
+        endereco: data.endereco, bairro: data.bairro, cidade: data.cidade, estado: data.estado,
       });
     }
     setLoading(false);
@@ -56,15 +51,15 @@ export function useLocadorInfo() {
     if (info.id) {
       await supabase.from("locador_info").update({
         nome: info.nome, rg: info.rg, cpf: info.cpf,
-        nacionalidade: info.nacionalidade, endereco: info.endereco,
-        bairro: info.bairro, cidade: info.cidade, estado: info.estado,
+        nacionalidade: info.nacionalidade, profissao: info.profissao,
+        endereco: info.endereco, bairro: info.bairro, cidade: info.cidade, estado: info.estado,
       }).eq("id", info.id);
     } else {
       const { data } = await supabase.from("locador_info").insert({
         user_id: dataOwnerId,
         nome: info.nome, rg: info.rg, cpf: info.cpf,
-        nacionalidade: info.nacionalidade, endereco: info.endereco,
-        bairro: info.bairro, cidade: info.cidade, estado: info.estado,
+        nacionalidade: info.nacionalidade, profissao: info.profissao,
+        endereco: info.endereco, bairro: info.bairro, cidade: info.cidade, estado: info.estado,
       }).select().single();
       if (data) setLocador(prev => ({ ...prev, id: data.id }));
     }
