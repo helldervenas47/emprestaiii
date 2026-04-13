@@ -383,10 +383,10 @@ export function SaleForm({ onAdd, onClose, defaultBusinessType = "venda", client
             )}
 
             <div>
-              <Label>Cliente</Label>
+              <Label>{isVehicleRental ? "Locatário" : "Cliente"}</Label>
               <Select value={form.customerName} onValueChange={(v) => update("customerName", v)}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Selecione um cliente" />
+                  <SelectValue placeholder={isVehicleRental ? "Selecione o locatário" : "Selecione um cliente"} />
                 </SelectTrigger>
                 <SelectContent>
                   {clients.filter(c => c.active).sort((a, b) => a.name.localeCompare(b.name)).map((client) => (
