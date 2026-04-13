@@ -156,7 +156,8 @@ const Index = () => {
   const [showExpenseForm, setShowExpenseForm] = useState(false);
   const [showVehicleExpenseForm, setShowVehicleExpenseForm] = useState(false);
   const [tab, setTab] = useState<Tab>("overview");
-
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const isMobile = useIsMobile();
   const isReadOnly = role === "visualizador";
 
   // Filter tabs based on role
