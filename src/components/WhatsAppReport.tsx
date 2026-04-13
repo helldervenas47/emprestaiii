@@ -101,6 +101,12 @@ export function WhatsAppReport({ loans, payments, clients, installmentSchedules 
     [loans]
   );
 
+  const sortByNameThenDate = (a: { loan: Loan }, b: { loan: Loan }) => {
+    const nameCompare = a.loan.borrowerName.localeCompare(b.loan.borrowerName, "pt-BR");
+    if (nameCompare !== 0) return nameCompare;
+    return a.loan.dueDate.localeCompare(b.loan.dueDate);
+  };
+
   const dueTodayLoans = useMemo(() => {
     return activeLoans
       .filter((loan) => loan.dueDate === todayStr)
@@ -108,7 +114,8 @@ export function WhatsAppReport({ loans, payments, clients, installmentSchedules 
         const base = getLoanRemaining(loan, payments, installmentSchedules, todayStr);
         const lateFees = calcLateFees(loan, base);
         return { loan, amount: base + lateFees, baseAmount: base, lateFees };
-      });
+      })
+      .sort(sortByNameThenDate);
   }, [activeLoans, payments, installmentSchedules, todayStr]);
 
   const overdueLoans = useMemo(() => {
@@ -119,7 +126,7 @@ export function WhatsAppReport({ loans, payments, clients, installmentSchedules 
         const lateFees = calcLateFees(loan, base);
         return { loan, amount: base + lateFees, baseAmount: base, lateFees };
       })
-      .sort((a, b) => a.loan.dueDate.localeCompare(b.loan.dueDate));
+      .sort(sortByNameThenDate);
   }, [activeLoans, payments, installmentSchedules, todayStr]);
 
   const totalDueToday = dueTodayLoans.reduce((s, d) => s + d.amount, 0);
