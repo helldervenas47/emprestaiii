@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Product, Sale, BusinessType } from "@/types/loan";
+import { Product, Sale, BusinessType, SalePaymentRecord } from "@/types/loan";
 import { useAuth } from "@/hooks/useAuth";
 import { adjustBalance } from "@/lib/balance";
 
