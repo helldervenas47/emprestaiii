@@ -52,22 +52,40 @@ export function useExpenses() {
   }, [user]);
 
   const payExpense = useCallback(async (id: string, skipBalanceAdjust = false) => {
-    const expense = expenses.find((e) => e.id === id);
-    if (!expense || expense.paid) return;
+    let expenseSnapshot: Expense | undefined;
+    setExpenses((prev) => {
+      const expense = prev.find((e) => e.id === id);
+      if (!expense || expense.paid) return prev;
+      expenseSnapshot = expense;
+
+      if (expense.type === "recorrente" && expense.installments && expense.installments > 1) {
+        const newPaid = (expense.paidInstallments || 0) + 1;
+        const fullyPaid = newPaid >= expense.installments;
+        const currentDue = new Date(expense.dueDate + "T00:00:00");
+        currentDue.setMonth(currentDue.getMonth() + 1);
+        const newDueDate = fullyPaid ? expense.dueDate : currentDue.toISOString().split("T")[0];
+        return prev.map((e) => e.id === id ? {
+          ...e, paidInstallments: newPaid, paid: fullyPaid,
+          dueDate: newDueDate,
+          paidDate: fullyPaid ? new Date().toISOString().split("T")[0] : undefined,
+        } : e);
+      } else {
+        return prev.map((e) => e.id === id ? {
+          ...e, paid: true, paidDate: new Date().toISOString().split("T")[0],
+        } : e);
+      }
+    });
+
+    if (!expenseSnapshot) return;
+    const expense = expenseSnapshot;
 
     if (expense.type === "recorrente" && expense.installments && expense.installments > 1) {
       const installmentAmount = expense.amount / expense.installments;
       const newPaid = (expense.paidInstallments || 0) + 1;
       const fullyPaid = newPaid >= expense.installments;
-      // Advance due date to next month
       const currentDue = new Date(expense.dueDate + "T00:00:00");
       currentDue.setMonth(currentDue.getMonth() + 1);
       const newDueDate = fullyPaid ? expense.dueDate : currentDue.toISOString().split("T")[0];
-      setExpenses((prev) => prev.map((e) => e.id === id ? {
-        ...e, paidInstallments: newPaid, paid: fullyPaid,
-        dueDate: newDueDate,
-        paidDate: fullyPaid ? new Date().toISOString().split("T")[0] : undefined,
-      } : e));
       if (!skipBalanceAdjust) await adjustBalance(-installmentAmount);
       await supabase.from("expenses").update({
         paid_installments: newPaid, paid: fullyPaid,
@@ -75,44 +93,57 @@ export function useExpenses() {
         paid_date: fullyPaid ? new Date().toISOString().split("T")[0] : null,
       }).eq("id", id);
     } else {
-      setExpenses((prev) => prev.map((e) => e.id === id ? {
-        ...e, paid: true, paidDate: new Date().toISOString().split("T")[0],
-      } : e));
       if (!skipBalanceAdjust) await adjustBalance(-expense.amount);
       await supabase.from("expenses").update({
         paid: true, paid_date: new Date().toISOString().split("T")[0],
       }).eq("id", id);
     }
-  }, [expenses]);
+  }, []);
 
   const unpayExpense = useCallback(async (id: string) => {
-    const expense = expenses.find((e) => e.id === id);
-    if (!expense) return;
+    let expenseSnapshot: Expense | undefined;
+    setExpenses((prev) => {
+      const expense = prev.find((e) => e.id === id);
+      if (!expense) return prev;
+      expenseSnapshot = expense;
+
+      if (expense.type === "recorrente" && expense.installments && expense.installments > 1 && (expense.paidInstallments || 0) > 0) {
+        const newPaid = (expense.paidInstallments || 0) - 1;
+        const currentDue = new Date(expense.dueDate + "T00:00:00");
+        currentDue.setMonth(currentDue.getMonth() - 1);
+        const newDueDate = currentDue.toISOString().split("T")[0];
+        return prev.map((e) => e.id === id ? {
+          ...e, paidInstallments: newPaid, paid: false, paidDate: undefined, dueDate: newDueDate,
+        } : e);
+      } else if (expense.paid) {
+        return prev.map((e) => e.id === id ? {
+          ...e, paid: false, paidDate: undefined,
+        } : e);
+      }
+      return prev;
+    });
+
+    // Wait for state to settle, then do async work with snapshot
+    if (!expenseSnapshot) return;
+    const expense = expenseSnapshot;
 
     if (expense.type === "recorrente" && expense.installments && expense.installments > 1 && (expense.paidInstallments || 0) > 0) {
       const installmentAmount = expense.amount / expense.installments;
       const newPaid = (expense.paidInstallments || 0) - 1;
-      // Move due date back one month
       const currentDue = new Date(expense.dueDate + "T00:00:00");
       currentDue.setMonth(currentDue.getMonth() - 1);
       const newDueDate = currentDue.toISOString().split("T")[0];
-      setExpenses((prev) => prev.map((e) => e.id === id ? {
-        ...e, paidInstallments: newPaid, paid: false, paidDate: undefined, dueDate: newDueDate,
-      } : e));
       await adjustBalance(installmentAmount);
       await supabase.from("expenses").update({
         paid_installments: newPaid, paid: false, paid_date: null, due_date: newDueDate,
       }).eq("id", id);
     } else if (expense.paid) {
-      setExpenses((prev) => prev.map((e) => e.id === id ? {
-        ...e, paid: false, paidDate: undefined,
-      } : e));
       await adjustBalance(expense.amount);
       await supabase.from("expenses").update({
         paid: false, paid_date: null,
       }).eq("id", id);
     }
-  }, [expenses]);
+  }, []);
 
   const deleteExpense = useCallback(async (id: string, skipBalanceAdjust = false) => {
     const expense = expenses.find((e) => e.id === id);
