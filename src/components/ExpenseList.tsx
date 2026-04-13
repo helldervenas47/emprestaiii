@@ -80,37 +80,37 @@ export function ExpenseList({ expenses, onPay, onDelete }: Props) {
   return (
     <div className="space-y-4">
       {/* Summary cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+      <div className="grid grid-cols-3 gap-2 sm:gap-3">
         <Card className="animate-fade-in" style={{ animationDelay: '0ms', animationFillMode: 'backwards' }}>
-          <CardContent className="p-4 flex items-center gap-3">
-            <div className="h-10 w-10 rounded-full bg-warning/10 flex items-center justify-center">
-              <CircleDollarSign className="h-5 w-5 text-warning" />
+          <CardContent className="p-2.5 sm:p-4 flex flex-col items-center sm:flex-row sm:items-center gap-1.5 sm:gap-3">
+            <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-full bg-warning/10 flex items-center justify-center">
+              <CircleDollarSign className="h-4 w-4 sm:h-5 sm:w-5 text-warning" />
             </div>
-            <div>
-              <p className="text-xs text-muted-foreground">Pendente</p>
-              <p className="text-lg font-bold text-foreground">{formatCurrency(totalPending)}</p>
+            <div className="text-center sm:text-left">
+              <p className="text-[10px] sm:text-xs text-muted-foreground">Pendente</p>
+              <p className="text-sm sm:text-lg font-bold text-foreground">{formatCurrency(totalPending)}</p>
             </div>
           </CardContent>
         </Card>
         <Card className="animate-fade-in" style={{ animationDelay: '80ms', animationFillMode: 'backwards' }}>
-          <CardContent className="p-4 flex items-center gap-3">
-            <div className="h-10 w-10 rounded-full bg-destructive/10 flex items-center justify-center">
-              <CircleDollarSign className="h-5 w-5 text-destructive" />
+          <CardContent className="p-2.5 sm:p-4 flex flex-col items-center sm:flex-row sm:items-center gap-1.5 sm:gap-3">
+            <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-full bg-destructive/10 flex items-center justify-center">
+              <CircleDollarSign className="h-4 w-4 sm:h-5 sm:w-5 text-destructive" />
             </div>
-            <div>
-              <p className="text-xs text-muted-foreground">Atrasado</p>
-              <p className="text-lg font-bold text-destructive">{formatCurrency(totalOverdue)}</p>
+            <div className="text-center sm:text-left">
+              <p className="text-[10px] sm:text-xs text-muted-foreground">Atrasado</p>
+              <p className="text-sm sm:text-lg font-bold text-destructive">{formatCurrency(totalOverdue)}</p>
             </div>
           </CardContent>
         </Card>
         <Card className="animate-fade-in" style={{ animationDelay: '160ms', animationFillMode: 'backwards' }}>
-          <CardContent className="p-4 flex items-center gap-3">
-            <div className="h-10 w-10 rounded-full bg-success/10 flex items-center justify-center">
-              <CheckCircle className="h-5 w-5 text-success" />
+          <CardContent className="p-2.5 sm:p-4 flex flex-col items-center sm:flex-row sm:items-center gap-1.5 sm:gap-3">
+            <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-full bg-success/10 flex items-center justify-center">
+              <CheckCircle className="h-4 w-4 sm:h-5 sm:w-5 text-success" />
             </div>
-            <div>
-              <p className="text-xs text-muted-foreground">Pago</p>
-              <p className="text-lg font-bold text-success">{formatCurrency(totalPaid)}</p>
+            <div className="text-center sm:text-left">
+              <p className="text-[10px] sm:text-xs text-muted-foreground">Pago</p>
+              <p className="text-sm sm:text-lg font-bold text-success">{formatCurrency(totalPaid)}</p>
             </div>
           </CardContent>
         </Card>
