@@ -34,32 +34,36 @@ function isInRange(dateStr: string, start: Date, end: Date): boolean {
   return date >= start && date <= end;
 }
 
-function getRange(period: Period, offset: number): { start: Date; end: Date; label: string } {
+function getMonthRange(monthOffset: number): { start: Date; end: Date; label: string } {
+  const now = new Date();
+  const m = new Date(now.getFullYear(), now.getMonth() + monthOffset, 1);
+  const mEnd = new Date(m.getFullYear(), m.getMonth() + 1, 0, 23, 59, 59, 999);
+  return { start: m, end: mEnd, label: `${monthNames[m.getMonth()]} ${m.getFullYear()}` };
+}
+
+function getFilteredRange(period: Period, monthStart: Date, monthEnd: Date): { start: Date; end: Date } {
   const now = new Date();
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
   if (period === "day") {
-    const d = new Date(today);
-    d.setDate(d.getDate() + offset);
+    // If current month, use today; otherwise use first day of month
+    const d = (today >= monthStart && today <= monthEnd) ? new Date(today) : new Date(monthStart);
     const end = new Date(d);
     end.setHours(23, 59, 59, 999);
-    return { start: d, end, label: d.toLocaleDateString("pt-BR", { day: "2-digit", month: "long", year: "numeric" }) };
+    return { start: d, end };
   }
   if (period === "week") {
-    const weekStart = new Date(today);
-    weekStart.setDate(today.getDate() - today.getDay() + offset * 7);
+    // If current month, use current week; otherwise use first week of month
+    const refDay = (today >= monthStart && today <= monthEnd) ? new Date(today) : new Date(monthStart);
+    const weekStart = new Date(refDay);
+    weekStart.setDate(refDay.getDate() - refDay.getDay());
     const weekEnd = new Date(weekStart);
     weekEnd.setDate(weekStart.getDate() + 6);
     weekEnd.setHours(23, 59, 59, 999);
-    return {
-      start: weekStart, end: weekEnd,
-      label: `${weekStart.toLocaleDateString("pt-BR", { day: "2-digit", month: "short" })} — ${weekEnd.toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric" })}`,
-    };
+    return { start: weekStart, end: weekEnd };
   }
-  // month
-  const m = new Date(today.getFullYear(), today.getMonth() + offset, 1);
-  const mEnd = new Date(m.getFullYear(), m.getMonth() + 1, 0, 23, 59, 59, 999);
-  return { start: m, end: mEnd, label: `${monthNames[m.getMonth()]} ${m.getFullYear()}` };
+  // month — full month
+  return { start: monthStart, end: monthEnd };
 }
 
 function rawFormatCurrency(v: number) {
