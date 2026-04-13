@@ -1233,9 +1233,9 @@ function LoanRowView({
     <>
     <tr className="border-b border-border/30 hover:bg-muted/30 transition-colors group">
       {/* Cliente */}
-      <td className="px-4 py-3">
-        <div className="flex items-center gap-3">
-          <div className={`h-8 w-8 rounded-full flex items-center justify-center text-primary-foreground font-bold text-xs shrink-0 ${
+      <td className="px-2 sm:px-4 py-2 sm:py-3">
+        <div className="flex items-center gap-1.5 sm:gap-3">
+          <div className={`h-6 w-6 sm:h-8 sm:w-8 rounded-full flex items-center justify-center text-primary-foreground font-bold text-[9px] sm:text-xs shrink-0 ${
             category === "overdue" ? "bg-destructive" :
             category === "due_today" ? "bg-warning" :
             category === "paid" ? "bg-success" :
@@ -1243,23 +1243,23 @@ function LoanRowView({
           }`}>
             {loan.borrowerName.split(" ").map(w => w[0]).join("").substring(0, 2).toUpperCase()}
           </div>
-          <span className="font-medium text-sm text-foreground">{loan.borrowerName}</span>
+          <span className="font-medium text-[10px] sm:text-sm text-foreground truncate max-w-[60px] sm:max-w-none">{loan.borrowerName}</span>
         </div>
       </td>
       {/* Status */}
-      <td className="px-4 py-3">
-        <Badge variant="outline" className={`${badge.className} text-xs`}>{badge.label}</Badge>
+      <td className="px-2 sm:px-4 py-2 sm:py-3">
+        <Badge variant="outline" className={`${badge.className} text-[9px] sm:text-xs px-1.5 sm:px-2.5`}>{badge.label}</Badge>
       </td>
-      {/* Emprestado */}
-      <td className="px-4 py-3">
+      {/* Emprestado - hidden on mobile */}
+      <td className="hidden sm:table-cell px-4 py-3">
         <span className="text-sm font-medium text-foreground">{formatCurrency(loan.amount)}</span>
       </td>
       {/* Restante */}
-      <td className="px-4 py-3">
-        <span className="text-sm font-medium text-destructive">{formatCurrency(remaining)}</span>
+      <td className="px-2 sm:px-4 py-2 sm:py-3">
+        <span className="text-[10px] sm:text-sm font-medium text-destructive">{formatCurrency(remaining)}</span>
       </td>
-      {/* Parcelas */}
-      <td className="px-4 py-3">
+      {/* Parcelas - hidden on mobile */}
+      <td className="hidden sm:table-cell px-4 py-3">
         <div className="flex items-center gap-1.5">
           <CheckCircle className="h-4 w-4 text-primary" />
           <span className="text-sm font-medium">{loan.paidInstallments}/{loan.installments}</span>
@@ -1272,21 +1272,21 @@ function LoanRowView({
         )}
       </td>
       {/* Vencimento */}
-      <td className="px-4 py-3">
-        <span className={`text-sm ${category === "overdue" ? "text-warning" : "text-foreground"}`}>
+      <td className="px-2 sm:px-4 py-2 sm:py-3">
+        <span className={`text-[10px] sm:text-sm ${category === "overdue" ? "text-warning" : "text-foreground"}`}>
           {new Date(loan.dueDate + "T00:00:00").toLocaleDateString("pt-BR")}
         </span>
       </td>
-      {/* Etiquetas */}
-      <td className="px-4 py-3">
+      {/* Etiquetas - hidden on mobile */}
+      <td className="hidden sm:table-cell px-4 py-3">
         <div className="flex flex-wrap gap-1">
           {loan.tags && loan.tags.length > 0 ? loan.tags.map((tag) => (
             <Badge key={tag} className="bg-primary text-primary-foreground text-[10px]">{tag}</Badge>
           )) : <span className="text-xs text-muted-foreground">—</span>}
         </div>
       </td>
-      {/* Ações */}
-      <td className="px-4 py-3">
+      {/* Ações - hidden on mobile */}
+      <td className="hidden sm:table-cell px-4 py-3">
         <div className="flex items-center gap-1 justify-end">
           {!readOnly && loan.status !== "paid" && (
             <DropdownMenu>
