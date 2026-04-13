@@ -1137,10 +1137,13 @@ function LoanRowView({
   const daysOverdue = getDaysOverdue(loan);
   const badge = statusMap[category];
 
-  const startEdit = () => { setForm(loanToForm(loan)); setEditing(true); };
+  const startEdit = () => { setForm(loanToForm(loan)); setEditing(true); setExpanded(true); };
   const cancelEdit = () => setEditing(false);
   const saveEdit = () => {
     const parsedTags = form.tags.split(",").map((t) => t.trim()).filter(Boolean);
+    const manualInterest = parseFloat(form.interestValue) || 0;
+    const calcInterest = (parseFloat(form.amount) || 0) * ((parseFloat(form.interestRate) || 0) / 100);
+    const hasCustomInterest = manualInterest > 0 && Math.abs(manualInterest - calcInterest) > 0.01;
     onUpdate({
       borrowerName: form.borrowerName,
       amount: parseFloat(form.amount) || loan.amount,
@@ -1152,6 +1155,8 @@ function LoanRowView({
       interestType: form.interestType,
       notes: form.notes,
       tags: parsedTags,
+      remainingAmount: parseFloat(form.remainingAmount) || 0,
+      customInterestValue: hasCustomInterest ? manualInterest : null,
     });
     setEditing(false);
   };
@@ -1182,53 +1187,35 @@ function LoanRowView({
     }
   };
 
-  const update = (field: keyof EditForm, value: string) => setForm((p) => ({ ...p, [field]: value }));
+  const updateField = (field: keyof EditForm, value: string) => {
+    setForm((prev) => {
+      const next = { ...prev, [field]: value };
+      const amt = parseFloat(next.amount) || 0;
+      const months = parseInt(next.installments) || 1;
 
-  if (editing) {
-    return (
-      <>
-      <tr className="border-b border-border/30 bg-primary/5">
-        <td colSpan={7} className="px-4 py-3">
-          <div className="flex flex-wrap items-center gap-2">
-            <Input value={form.borrowerName} onChange={(e) => update("borrowerName", e.target.value)} className="h-7 w-28 text-xs" placeholder="Nome" />
-            <Input type="number" value={form.amount} onChange={(e) => update("amount", e.target.value)} className="h-7 w-24 text-xs" placeholder="Valor" />
-            <Input type="number" value={form.interestRate} onChange={(e) => update("interestRate", e.target.value)} className="h-7 w-16 text-xs" placeholder="Juros%" />
-            <Input type="number" value={form.installments} onChange={(e) => update("installments", e.target.value)} className="h-7 w-14 text-xs" placeholder="Parc." />
-            <Input type="number" value={form.paidInstallments} onChange={(e) => update("paidInstallments", e.target.value)} className="h-7 w-14 text-xs" placeholder="Pagas" />
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button variant="outline" className="h-7 w-32 justify-start text-left text-xs font-normal">
-                  <CalendarIcon className="mr-1 h-3 w-3" />
-                  {form.dueDate ? format(new Date(form.dueDate + "T00:00:00"), "dd/MM/yy") : "1ª Parcela"}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
-                <CalendarUI
-                  mode="single"
-                  selected={form.dueDate ? new Date(form.dueDate + "T00:00:00") : undefined}
-                  onSelect={(d) => d && update("dueDate", d.toISOString().split("T")[0])}
-                  initialFocus
-                  className={cn("p-3 pointer-events-auto")}
-                />
-              </PopoverContent>
-            </Popover>
-            <Select value={form.interestType} onValueChange={(v) => update("interestType", v)}>
-              <SelectTrigger className="h-7 w-24 text-xs"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="Semanal">Semanal</SelectItem>
-                <SelectItem value="Quinzenal">Quinzenal</SelectItem>
-                <SelectItem value="Mensal">Mensal</SelectItem>
-              </SelectContent>
-            </Select>
-            <Input value={form.tags} onChange={(e) => update("tags", e.target.value)} className="h-7 w-28 text-xs" placeholder="Etiquetas" />
-            <Button size="icon" variant="ghost" className="h-7 w-7" onClick={saveEdit}><Check className="h-3.5 w-3.5 text-success" /></Button>
-            <Button size="icon" variant="ghost" className="h-7 w-7" onClick={cancelEdit}><X className="h-3.5 w-3.5 text-destructive" /></Button>
-          </div>
-        </td>
-      </tr>
-      </>
-    );
-  }
+      if (field === "amount" || field === "interestRate" || field === "installments" || field === "remainingAmount" || field === "paidInstallments") {
+        const rate = parseFloat(next.interestRate) || 0;
+        next.interestValue = (amt * (rate / 100)).toFixed(2);
+        const totalCalc = calculateTotalWithInterest(amt, rate, months);
+        const rem = parseFloat(next.remainingAmount) || totalCalc;
+        const paidInst = parseInt(next.paidInstallments) || 0;
+        const remInst = Math.max(1, months - paidInst);
+        next.installmentValue = (rem / remInst).toFixed(2);
+      } else if (field === "interestValue") {
+        const iv = parseFloat(value) || 0;
+        const newRate = amt > 0 ? (iv / amt) * 100 : 0;
+        next.interestRate = newRate.toFixed(2);
+        const totalCalc = calculateTotalWithInterest(amt, newRate, months);
+        const rem = parseFloat(next.remainingAmount) || totalCalc;
+        const paidInst = parseInt(next.paidInstallments) || 0;
+        const remInst = Math.max(1, months - paidInst);
+        next.installmentValue = (rem / remInst).toFixed(2);
+      } else if (field === "installmentValue") {
+        // Manual installment value — don't auto-recalculate
+      }
+      return next;
+    });
+  };
 
   return (
     <>
@@ -1306,7 +1293,62 @@ function LoanRowView({
     </tr>
     {expanded && (
       <tr className="border-b border-border/30 bg-muted/10">
-        <td colSpan={8} className="px-3 sm:px-6 py-4">
+        <td colSpan={8} className="px-3 sm:px-6 py-4" onClick={(e) => e.stopPropagation()}>
+          {editing ? (
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <h3 className="font-semibold text-foreground">Editar Empréstimo</h3>
+                <div className="flex gap-1">
+                  <Button size="icon" variant="ghost" className="h-8 w-8" onClick={saveEdit}><Check className="h-4 w-4 text-success" /></Button>
+                  <Button size="icon" variant="ghost" className="h-8 w-8" onClick={cancelEdit}><X className="h-4 w-4 text-destructive" /></Button>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div><Label className="text-xs">Nome do Devedor</Label><Input value={form.borrowerName} onChange={(e) => updateField("borrowerName", e.target.value)} className="h-8 text-sm" /></div>
+                <div><Label className="text-xs">Valor (R$)</Label><Input type="number" step="0.01" value={form.amount} onChange={(e) => updateField("amount", e.target.value)} className="h-8 text-sm" /></div>
+                <div><Label className="text-xs">Juros Mensal (%)</Label><Input type="number" step="0.1" value={form.interestRate} onChange={(e) => updateField("interestRate", e.target.value)} className="h-8 text-sm" /></div>
+                <div><Label className="text-xs">Valor do Juros (R$)</Label><Input type="number" step="0.01" value={form.interestValue} onChange={(e) => updateField("interestValue", e.target.value)} className="h-8 text-sm" /></div>
+                <div><Label className="text-xs">Valor da Parcela (R$)</Label><Input type="number" step="0.01" value={form.installmentValue} onChange={(e) => updateField("installmentValue", e.target.value)} className="h-8 text-sm" /></div>
+                <div><Label className="text-xs">Parcelas</Label><Input type="number" value={form.installments} onChange={(e) => updateField("installments", e.target.value)} className="h-8 text-sm" /></div>
+                <div><Label className="text-xs">Parcelas Pagas</Label><Input type="number" value={form.paidInstallments} onChange={(e) => updateField("paidInstallments", e.target.value)} className="h-8 text-sm" /></div>
+                <div><Label className="text-xs">Restante a Receber (R$)</Label><Input type="number" step="0.01" value={form.remainingAmount} onChange={(e) => updateField("remainingAmount", e.target.value)} className="h-8 text-sm" /></div>
+                <div><Label className="text-xs">Data Início</Label><DatePickerField value={form.startDate} onChange={(v) => updateField("startDate", v)} className="h-8 text-sm" /></div>
+                <div>
+                  <Label className="text-xs">Data 1ª Parcela</Label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline" className={cn("w-full justify-start text-left font-normal h-8 text-sm")}>
+                        <CalendarIcon className="mr-2 h-3.5 w-3.5" />
+                        {form.dueDate ? format(new Date(form.dueDate + "T00:00:00"), "dd/MM/yyyy") : "Selecione"}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <CalendarUI
+                        mode="single"
+                        selected={form.dueDate ? new Date(form.dueDate + "T00:00:00") : undefined}
+                        onSelect={(d) => d && updateField("dueDate", d.toISOString().split("T")[0])}
+                        initialFocus
+                        className={cn("p-3 pointer-events-auto")}
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
+                <div>
+                  <Label className="text-xs">Tipo Contrato</Label>
+                  <Select value={form.interestType} onValueChange={(v) => updateField("interestType", v)}>
+                    <SelectTrigger className="h-8 text-sm"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Semanal">Semanal</SelectItem>
+                      <SelectItem value="Quinzenal">Quinzenal</SelectItem>
+                      <SelectItem value="Mensal">Mensal</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <div><Label className="text-xs">Etiquetas (separar por vírgula)</Label><Input value={form.tags} onChange={(e) => updateField("tags", e.target.value)} className="h-8 text-sm" placeholder="Ex: VIP, Renovação, Garantia" /></div>
+              <div><Label className="text-xs">Observações</Label><Textarea value={form.notes} onChange={(e) => updateField("notes", e.target.value)} rows={2} className="text-sm" /></div>
+            </div>
+          ) : (
           <div className="space-y-4">
             {/* Info grid */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -1430,6 +1472,7 @@ function LoanRowView({
               </div>
             )}
           </div>
+          )}
         </td>
       </tr>
     )}
