@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect, useMemo } from "react";
 import { DatePickerField } from "@/components/ui/date-picker-field";
-import { Sale, BusinessType, Client, Expense } from "@/types/loan";
+import { Sale, BusinessType, Client, Expense, SalePaymentRecord } from "@/types/loan";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -252,59 +252,64 @@ function SaleCard({ sale, onDelete, onEdit, onUpdate, formatCurrency }: { sale: 
           <DialogContent className="sm:max-w-md">
             <DialogHeader>
               <DialogTitle>Pagamentos Realizados</DialogTitle>
-              <DialogDescription>Gerencie os pagamentos desta venda.</DialogDescription>
+              <DialogDescription>Histórico individual de pagamentos desta venda.</DialogDescription>
             </DialogHeader>
             <div className="divide-y divide-border/30 max-h-64 overflow-y-auto">
-              {Array.from({ length: sale.paidInstallments }, (_, i) => {
-                const instBaseDate = new Date(sale.date + "T00:00:00");
-                const customDate = sale.installmentDates && sale.installmentDates[i];
-                const dueDate = customDate ? new Date(customDate + "T00:00:00") : (isRecorrente ? addByFrequency(instBaseDate, sale.frequency || "Mensal", i) : instBaseDate);
-                return (
-                  <div key={i} className="flex items-center gap-3 py-3">
-                    <span className="w-7 h-7 rounded-full bg-success/20 text-success flex items-center justify-center text-xs font-bold shrink-0">
-                      {i + 1}ª
-                    </span>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-foreground">{formatCurrency(getParcelaValue(i))}</p>
-                      <p className="text-xs text-muted-foreground">{format(dueDate, "dd/MM/yyyy")}</p>
-                    </div>
-                    <Badge className="bg-success/20 text-success border-success/30 text-xs">Paga</Badge>
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      className="h-7 w-7 text-destructive hover:bg-destructive/10 shrink-0"
-                      onClick={() => {
-                        onUpdate({ paidInstallments: i, partialPaid: 0 });
-                        if (i === 0) setShowPayments(false);
-                      }}
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </Button>
-                  </div>
-                );
-              })}
-              {(sale.partialPaid || 0) > 0 && (
-                <div className="flex items-center gap-3 py-3">
-                  <span className="w-7 h-7 rounded-full bg-warning/20 text-warning flex items-center justify-center text-xs font-bold shrink-0">
-                    {sale.paidInstallments + 1}ª
+              {(sale.paymentHistory || []).length === 0 && (
+                <p className="text-sm text-muted-foreground py-4 text-center">Nenhum pagamento registrado.</p>
+              )}
+              {(sale.paymentHistory || []).map((payment, i) => (
+                <div key={i} className="flex items-center gap-3 py-3">
+                  <span className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${
+                    payment.type === "parcela" ? "bg-success/20 text-success" : "bg-warning/20 text-warning"
+                  }`}>
+                    {payment.installmentNumber}ª
                   </span>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-foreground">{formatCurrency(sale.partialPaid)}</p>
-                    <p className="text-xs text-muted-foreground">Pagamento parcial</p>
+                    <p className="text-sm font-medium text-foreground">{formatCurrency(payment.amount)}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {format(new Date(payment.date + "T00:00:00"), "dd/MM/yyyy")}
+                    </p>
                   </div>
-                  <Badge className="bg-warning/20 text-warning border-warning/30 text-xs">Parcial</Badge>
+                  <Badge className={`text-xs ${
+                    payment.type === "parcela"
+                      ? "bg-success/20 text-success border-success/30"
+                      : "bg-warning/20 text-warning border-warning/30"
+                  }`}>
+                    {payment.type === "parcela" ? "Parcela" : "Parcial"}
+                  </Badge>
                   <Button
                     size="icon"
                     variant="ghost"
                     className="h-7 w-7 text-destructive hover:bg-destructive/10 shrink-0"
                     onClick={() => {
-                      onUpdate({ partialPaid: 0 });
+                      const newHistory = (sale.paymentHistory || []).filter((_, idx) => idx !== i);
+                      // Recalculate paidInstallments and partialPaid from remaining history
+                      let paidInst = 0;
+                      let partial = 0;
+                      const parcelaValues: number[] = [];
+                      for (let j = 0; j < sale.installments; j++) {
+                        parcelaValues.push(getParcelaValue(j));
+                      }
+                      let accumulated = 0;
+                      let currentInstIdx = 0;
+                      for (const rec of newHistory) {
+                        accumulated += rec.amount;
+                        while (currentInstIdx < sale.installments && accumulated >= parcelaValues[currentInstIdx] - 0.01) {
+                          accumulated -= parcelaValues[currentInstIdx];
+                          currentInstIdx++;
+                        }
+                      }
+                      paidInst = currentInstIdx;
+                      partial = accumulated > 0.01 ? accumulated : 0;
+                      onUpdate({ paymentHistory: newHistory, paidInstallments: paidInst, partialPaid: partial });
+                      if (newHistory.length === 0) setShowPayments(false);
                     }}
                   >
                     <Trash2 className="h-3.5 w-3.5" />
                   </Button>
                 </div>
-              )}
+              ))}
             </div>
           </DialogContent>
         </Dialog>
@@ -365,15 +370,22 @@ function SaleCard({ sale, onDelete, onEdit, onUpdate, formatCurrency }: { sale: 
                         const currentValue = getParcelaValue(nextIdx);
                         const currentPartial = sale.partialPaid || 0;
                         const newPartialTotal = currentPartial + val;
+                        const newRecord: SalePaymentRecord = {
+                          date: format(partialDate, "yyyy-MM-dd"),
+                          amount: val,
+                          type: "parcial",
+                          installmentNumber: nextIdx + 1,
+                        };
+                        const history = [...(sale.paymentHistory || []), newRecord];
                         if (newPartialTotal >= currentValue - 0.01) {
-                          // Partial payments cover the full installment - mark as paid, carry remainder
                           const remainder = newPartialTotal - currentValue;
                           onUpdate({
                             paidInstallments: Math.min(sale.installments, sale.paidInstallments + 1),
                             partialPaid: remainder > 0.01 ? remainder : 0,
+                            paymentHistory: history,
                           });
                         } else {
-                          onUpdate({ partialPaid: newPartialTotal });
+                          onUpdate({ partialPaid: newPartialTotal, paymentHistory: history });
                         }
                         setPartialAmount(""); setPartialDate(undefined); setShowPartial(false);
                       }
@@ -403,8 +415,18 @@ function SaleCard({ sale, onDelete, onEdit, onUpdate, formatCurrency }: { sale: 
                       selected={undefined}
                       onSelect={(date) => {
                         if (date) {
+                          const nextIdx = sale.paidInstallments;
+                          const parcelaVal = getParcelaValue(nextIdx);
+                          const newRecord: SalePaymentRecord = {
+                            date: format(date, "yyyy-MM-dd"),
+                            amount: parcelaVal,
+                            type: "parcela",
+                            installmentNumber: nextIdx + 1,
+                          };
+                          const history = [...(sale.paymentHistory || []), newRecord];
                           onUpdate({
                             paidInstallments: Math.min(sale.installments, sale.paidInstallments + 1),
+                            paymentHistory: history,
                           });
                           setShowPayDatePicker(false);
                         }
@@ -546,9 +568,19 @@ function SaleListRow({ sale, onEdit, onUpdate, formatCurrency }: {
                 selected={undefined}
                 onSelect={(date) => {
                   if (date) {
+                    const nextIdx = sale.paidInstallments;
+                    const parcelaVal = partialOnNext;
+                    const newRecord: SalePaymentRecord = {
+                      date: format(date, "yyyy-MM-dd"),
+                      amount: parcelaVal,
+                      type: "parcela",
+                      installmentNumber: nextIdx + 1,
+                    };
+                    const history = [...(sale.paymentHistory || []), newRecord];
                     onUpdate({
                       paidInstallments: Math.min(sale.installments, sale.paidInstallments + 1),
                       partialPaid: 0,
+                      paymentHistory: history,
                     });
                     setShowPayDatePicker(false);
                   }
@@ -604,14 +636,22 @@ function SaleListRow({ sale, onEdit, onUpdate, formatCurrency }: {
                     const currentValue = nextInstValue;
                     const currentPartial = sale.partialPaid || 0;
                     const newPartialTotal = currentPartial + val;
+                    const newRecord: SalePaymentRecord = {
+                      date: format(partialDate, "yyyy-MM-dd"),
+                      amount: val,
+                      type: "parcial",
+                      installmentNumber: sale.paidInstallments + 1,
+                    };
+                    const history = [...(sale.paymentHistory || []), newRecord];
                     if (newPartialTotal >= currentValue - 0.01) {
                       const remainder = newPartialTotal - currentValue;
                       onUpdate({
                         paidInstallments: Math.min(sale.installments, sale.paidInstallments + 1),
                         partialPaid: remainder > 0.01 ? remainder : 0,
+                        paymentHistory: history,
                       });
                     } else {
-                      onUpdate({ partialPaid: newPartialTotal });
+                      onUpdate({ partialPaid: newPartialTotal, paymentHistory: history });
                     }
                     setPartialAmount(""); setPartialDate(undefined); setShowPartial(false);
                   }
