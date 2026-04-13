@@ -212,7 +212,7 @@ export function generateContract(sale: Sale, client?: Client, locador?: LocadorI
 
 ${sale.notes ? `<h2>OBSERVAÇÕES</h2><p>${sale.notes}</p>` : ""}
 
-<p class="location-date">________________________, ${today}.</p>
+<p class="location-date">São Gonçalo dos Campos - BA, ${today}.</p>
 
 <div class="signatures">
   <div class="sig-row">
