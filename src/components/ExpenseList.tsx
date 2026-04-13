@@ -103,7 +103,7 @@ export function ExpenseList({ expenses, onPay, onDelete }: Props) {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input placeholder="Buscar despesa..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-10" />
         </div>
-        <div className="flex gap-1">
+        <div className="grid grid-cols-2 sm:flex gap-1">
           {filters.map((f) => (
             <Button
               key={f.id}
