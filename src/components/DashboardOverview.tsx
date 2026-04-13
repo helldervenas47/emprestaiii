@@ -1,7 +1,7 @@
 import { useMemo, useState, useEffect, useCallback } from "react";
 import { Switch } from "@/components/ui/switch";
 import { useHideValues } from "@/contexts/HideValuesContext";
-import { Loan, Sale, Payment, Expense } from "@/types/loan";
+import { Loan, Sale, Payment, Expense, InstallmentSchedule } from "@/types/loan";
 import { calculateInstallment, calculateTotalWithInterest } from "@/hooks/useLoans";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -18,6 +18,7 @@ interface Props {
   sales: Sale[];
   payments: Payment[];
   expenses: Expense[];
+  installmentSchedules?: InstallmentSchedule[];
   onDeletePayment?: (id: string) => void;
   onDeleteSale?: (id: string) => void;
   onDeleteLoan?: (id: string) => void;
@@ -90,7 +91,7 @@ function useAccountBalance(): [number, (v: number) => void] {
   return [bal, update];
 }
 
-export function DashboardOverview({ loans, sales, payments, expenses, onDeletePayment, onDeleteSale, onDeleteLoan }: Props) {
+export function DashboardOverview({ loans, sales, payments, expenses, installmentSchedules = [], onDeletePayment, onDeleteSale, onDeleteLoan }: Props) {
   const { mask } = useHideValues();
   const formatCurrency = useCallback((v: number) => mask(rawFormatCurrency(v)), [mask]);
   const [period, setPeriod] = useState<Period>("month");
@@ -239,10 +240,18 @@ export function DashboardOverview({ loans, sales, payments, expenses, onDeletePa
     const principalToReceive = Math.max(0, totalPrincipal - principalReceived);
     const interestToReceive = Math.max(0, totalInterestExpected - interestReceived);
 
-    // Overdue (global)
+    // Overdue (global) — uses same "Restante" logic as LoanList line view
     const todayStr = new Date().toISOString().split("T")[0];
     const overdueLoans = activeLoans.filter((l) => l.dueDate <= todayStr);
     const overdueAmount = overdueLoans.reduce((s, l) => {
+      // For installment loans, sum overdue installments from schedule
+      if (l.installments >= 2) {
+        const overdueSum = installmentSchedules
+          .filter((sc) => sc.loanId === l.id && sc.installmentNumber > l.paidInstallments && sc.dueDate <= todayStr)
+          .reduce((sum, sc) => sum + sc.amount, 0);
+        if (overdueSum > 0) return s + overdueSum;
+      }
+      if (l.remainingAmount != null && l.remainingAmount > 0) return s + l.remainingAmount;
       const expected = calculateTotalWithInterest(l.amount, l.interestRate, l.installments);
       const paid = payments.filter((p) => p.loanId === l.id).reduce((ss, p) => ss + p.amount, 0);
       return s + Math.max(0, expected - paid);
@@ -273,7 +282,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, onDeletePa
       principalToReceive,
       interestToReceive,
     };
-  }, [loans, payments]);
+  }, [loans, payments, installmentSchedules]);
 
   // Manual overrides for monthly chart values
   // chartOverrides already declared above
@@ -634,9 +643,20 @@ export function DashboardOverview({ loans, sales, payments, expenses, onDeletePa
                   {expandedBreakdown === "overdue" && portfolio.overdueLoans.length > 0 && (
                     <div className="mt-3 pt-3 border-t border-destructive/20 space-y-2 max-h-60 overflow-y-auto">
                       {portfolio.overdueLoans.map((l) => {
-                        const expected = calculateTotalWithInterest(l.amount, l.interestRate, l.installments);
-                        const paid = payments.filter((p) => p.loanId === l.id).reduce((s, p) => s + p.amount, 0);
-                        const remaining = Math.max(0, expected - paid);
+                        const todayIso = new Date().toISOString().split("T")[0];
+                        let remaining: number;
+                        if (l.installments >= 2) {
+                          const overdueSum = installmentSchedules
+                            .filter((sc) => sc.loanId === l.id && sc.installmentNumber > l.paidInstallments && sc.dueDate <= todayIso)
+                            .reduce((sum, sc) => sum + sc.amount, 0);
+                          remaining = overdueSum > 0 ? overdueSum : (l.remainingAmount > 0 ? l.remainingAmount : Math.max(0, calculateTotalWithInterest(l.amount, l.interestRate, l.installments) - payments.filter((p) => p.loanId === l.id).reduce((s, p) => s + p.amount, 0)));
+                        } else if (l.remainingAmount != null && l.remainingAmount > 0) {
+                          remaining = l.remainingAmount;
+                        } else {
+                          const expected = calculateTotalWithInterest(l.amount, l.interestRate, l.installments);
+                          const paid = payments.filter((p) => p.loanId === l.id).reduce((s, p) => s + p.amount, 0);
+                          remaining = Math.max(0, expected - paid);
+                        }
                         const dueDate = new Date(l.dueDate + "T00:00:00");
                         const daysLate = Math.max(0, Math.floor((Date.now() - dueDate.getTime()) / (1000 * 60 * 60 * 24)));
                         return (
