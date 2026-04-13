@@ -1052,6 +1052,8 @@ function SalesList({ sales, onDeleteSale, onUpdateSale, clients = [], hideOnTrac
                 onEdit={setEditingSale}
                 readOnly={readOnly}
                 clients={clients}
+                locadorInfo={locadorInfo}
+                registeredVehicles={registeredVehicles}
               />
             ))}
           </div>
