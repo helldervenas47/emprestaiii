@@ -56,16 +56,26 @@ export function ExpenseList({ expenses, onPay, onDelete }: Props) {
       return b.dueDate.localeCompare(a.dueDate);
     });
 
-  const totalPending = expenses.filter((e) => !e.paid).reduce((s, e) => s + e.amount, 0);
-  const totalPaid = expenses.filter((e) => e.paid).reduce((s, e) => s + e.amount, 0);
-  const totalOverdue = expenses.filter((e) => isOverdue(e)).reduce((s, e) => s + e.amount, 0);
+  const totalPending = monthFiltered.filter((e) => !e.paid).reduce((s, e) => s + e.amount, 0);
+  const totalPaid = monthFiltered.filter((e) => e.paid).reduce((s, e) => s + e.amount, 0);
+  const totalOverdue = monthFiltered.filter((e) => isOverdue(e)).reduce((s, e) => s + e.amount, 0);
 
   const filters: { id: Filter; label: string; count: number }[] = [
-    { id: "all", label: "Todas", count: expenses.length },
-    { id: "pending", label: "Pendentes", count: expenses.filter((e) => !e.paid && !isOverdue(e)).length },
-    { id: "overdue", label: "Atrasadas", count: expenses.filter((e) => isOverdue(e)).length },
-    { id: "paid", label: "Pagas", count: expenses.filter((e) => e.paid).length },
+    { id: "all", label: "Todas", count: monthFiltered.length },
+    { id: "pending", label: "Pendentes", count: monthFiltered.filter((e) => !e.paid && !isOverdue(e)).length },
+    { id: "overdue", label: "Atrasadas", count: monthFiltered.filter((e) => isOverdue(e)).length },
+    { id: "paid", label: "Pagas", count: monthFiltered.filter((e) => e.paid).length },
   ];
+
+  const [selYear, selMonthNum] = selectedMonth.split("-").map(Number);
+  const prevMonth = () => {
+    const d = new Date(selYear, selMonthNum - 2, 1);
+    setSelectedMonth(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`);
+  };
+  const nextMonth = () => {
+    const d = new Date(selYear, selMonthNum, 1);
+    setSelectedMonth(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`);
+  };
 
   return (
     <div className="space-y-4">
