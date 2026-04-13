@@ -1115,7 +1115,23 @@ function LoanRowView({
 
   const total = calculateTotalWithInterest(loan.amount, loan.interestRate, loan.installments);
   const totalPaid = getTotalPaid(loan, allPayments);
-  const remaining = loan.remainingAmount != null && loan.remainingAmount > 0 ? loan.remainingAmount : Math.max(0, total - totalPaid);
+  const baseRemaining = loan.remainingAmount != null && loan.remainingAmount > 0 ? loan.remainingAmount : Math.max(0, total - totalPaid);
+
+  // Calculate late fees
+  const dueDate = new Date(loan.dueDate + "T00:00:00");
+  const todayNorm = new Date();
+  todayNorm.setHours(0, 0, 0, 0);
+  const daysLate = Math.max(0, Math.floor((todayNorm.getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24)));
+  let lateInterestTotal = 0;
+  if (loan.lateInterestValue != null && loan.lateInterestValue > 0 && daysLate > 0 && loan.status !== "paid") {
+    if (loan.lateInterestType === "fixed") {
+      lateInterestTotal = loan.lateInterestValue * daysLate;
+    } else {
+      lateInterestTotal = baseRemaining * (loan.lateInterestValue / 100) * daysLate;
+    }
+  }
+  const penaltyTotal = (loan.penaltyValue != null && loan.penaltyValue > 0 && daysLate > 0 && loan.status !== "paid") ? loan.penaltyValue : 0;
+  const remaining = baseRemaining + lateInterestTotal + penaltyTotal;
   const category = getLoanCategory(loan, allPayments, []);
   const daysOverdue = getDaysOverdue(loan);
   const badge = statusMap[category];
