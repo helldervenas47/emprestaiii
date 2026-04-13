@@ -1316,6 +1316,7 @@ export function ProductSalesView({ sales, onDeleteSale, onUpdateSale, clients = 
         </Button>
       </div>
 
+      {!readOnly && (
       <div className="grid grid-cols-2 gap-3 items-stretch">
         {/* Saldo em Conta */}
         <div className="rounded-xl border p-4 bg-card flex flex-col items-center justify-center">
@@ -1361,6 +1362,7 @@ export function ProductSalesView({ sales, onDeleteSale, onUpdateSale, clients = 
           <p className="text-xl font-bold text-destructive">{formatCurrency(monthlyTotal)}</p>
         </div>
       </div>
+      )}
     </div>
   );
 
