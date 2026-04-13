@@ -369,6 +369,7 @@ export function UserManagement() {
                   <TableHead>Nome</TableHead>
                   <TableHead>Usuário</TableHead>
                   <TableHead>Email</TableHead>
+                  <TableHead>Status</TableHead>
                   <TableHead>Papel</TableHead>
                   <TableHead className="w-[120px]">Ações</TableHead>
                 </TableRow>
@@ -379,6 +380,17 @@ export function UserManagement() {
                     <TableCell className="font-medium">{user.display_name}</TableCell>
                     <TableCell className="text-muted-foreground">{user.username || "—"}</TableCell>
                     <TableCell className="text-muted-foreground">{user.email}</TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <Switch
+                          checked={user.is_active}
+                          onCheckedChange={(checked) => handleToggleActive(user.id, checked)}
+                        />
+                        <span className={`text-xs ${user.is_active ? "text-success" : "text-destructive"}`}>
+                          {user.is_active ? "Ativo" : "Inativo"}
+                        </span>
+                      </div>
+                    </TableCell>
                     <TableCell>
                       <Select
                         value={user.role || ""}
