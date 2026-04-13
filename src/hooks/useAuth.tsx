@@ -25,12 +25,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [allowedTabs, setAllowedTabs] = useState<string[] | null>(null);
 
   const fetchRole = async (userId: string) => {
-    const { data } = await supabase
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", userId)
-      .maybeSingle();
-    setRole((data?.role as AppRole) || null);
+    const [{ data: isAdmin }, { data: isOperador }, { data: isVisualizador }] = await Promise.all([
+      supabase.rpc("has_role", { _user_id: userId, _role: "admin" }),
+      supabase.rpc("has_role", { _user_id: userId, _role: "operador" }),
+      supabase.rpc("has_role", { _user_id: userId, _role: "visualizador" }),
+    ]);
+
+    if (isAdmin) {
+      setRole("admin");
+      return;
+    }
+    if (isOperador) {
+      setRole("operador");
+      return;
+    }
+    if (isVisualizador) {
+      setRole("visualizador");
+      return;
+    }
+    setRole(null);
   };
 
   const fetchDataOwner = async (userId: string) => {
@@ -39,6 +52,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .select("owner_id")
       .eq("user_id", userId)
       .maybeSingle();
+
     setDataOwnerId((data as any)?.owner_id || userId);
   };
 
@@ -48,51 +62,58 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .select("allowed_tabs")
       .eq("user_id", userId)
       .maybeSingle();
+
     setAllowedTabs((data as any)?.allowed_tabs || null);
+  };
+
+  const hydrateUserState = async (userId: string) => {
+    await Promise.all([
+      fetchRole(userId),
+      fetchDataOwner(userId),
+      fetchTabPermissions(userId),
+    ]);
   };
 
   useEffect(() => {
     let mounted = true;
 
-    // Set up auth state listener FIRST
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
-        if (!mounted) return;
-        setSession(session);
-        setUser(session?.user ?? null);
-        if (session?.user) {
-          sessionStorage.setItem("hvcred_session", "1");
-          // Use setTimeout to avoid blocking the auth state change callback
-           setTimeout(() => {
-            if (mounted) {
-              fetchRole(session.user.id);
-              fetchDataOwner(session.user.id);
-              fetchTabPermissions(session.user.id);
-            }
-          }, 0);
-        } else {
-          sessionStorage.removeItem("hvcred_session");
-          setRole(null);
-          setDataOwnerId(null);
-          setAllowedTabs(null);
-        }
-      }
-    );
-
-    // Then restore session
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, nextSession) => {
       if (!mounted) return;
-      if (session && sessionStorage.getItem("hvcred_session")) {
-        setSession(session);
-        setUser(session.user);
-        fetchRole(session.user.id);
-        fetchDataOwner(session.user.id);
-        fetchTabPermissions(session.user.id);
-      } else if (!sessionStorage.getItem("hvcred_session")) {
-        // No stored session marker - sign out quietly
-        supabase.auth.signOut();
+
+      setSession(nextSession);
+      setUser(nextSession?.user ?? null);
+
+      if (nextSession?.user) {
+        sessionStorage.setItem("hvcred_session", "1");
+        setLoading(true);
+
+        setTimeout(() => {
+          if (!mounted) return;
+          hydrateUserState(nextSession.user.id).finally(() => {
+            if (mounted) setLoading(false);
+          });
+        }, 0);
+      } else {
+        sessionStorage.removeItem("hvcred_session");
+        setRole(null);
+        setDataOwnerId(null);
+        setAllowedTabs(null);
+        setLoading(false);
       }
-      setLoading(false);
+    });
+
+    supabase.auth.getSession().then(async ({ data: { session: currentSession } }) => {
+      if (!mounted) return;
+
+      if (currentSession && sessionStorage.getItem("hvcred_session")) {
+        setSession(currentSession);
+        setUser(currentSession.user);
+        await hydrateUserState(currentSession.user.id);
+      } else if (!sessionStorage.getItem("hvcred_session")) {
+        await supabase.auth.signOut();
+      }
+
+      if (mounted) setLoading(false);
     });
 
     return () => {
@@ -118,3 +139,4 @@ export function useAuth() {
   if (!ctx) throw new Error("useAuth must be used within AuthProvider");
   return ctx;
 }
+
