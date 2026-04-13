@@ -367,9 +367,16 @@ export function BillingCalendar({ loans, payments, installmentSchedules, onPayme
             <Button variant="ghost" size="icon" onClick={prevMonth}>
               <ChevronLeft className="h-4 w-4" />
             </Button>
-            <span className="text-sm font-semibold text-foreground">
+            <button
+              className="text-sm font-semibold text-foreground hover:text-primary transition-colors"
+              onClick={() => {
+                const n = new Date();
+                setMonth(n.getMonth());
+                setYear(n.getFullYear());
+              }}
+            >
               {monthNames[month]} {year}
-            </span>
+            </button>
             <Button variant="ghost" size="icon" onClick={nextMonth}>
               <ChevronRight className="h-4 w-4" />
             </Button>
