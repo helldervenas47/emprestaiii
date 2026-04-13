@@ -876,9 +876,9 @@ export function ProductSalesView({ sales, onDeleteSale, onUpdateSale, clients = 
   }
 
   const secondaryCards = (
-    <div className="grid grid-cols-2 gap-3">
+    <div className="grid grid-cols-2 gap-3 items-stretch">
       {/* Saldo em Conta */}
-      <div className="rounded-xl border p-4 bg-card text-center">
+      <div className="rounded-xl border p-4 bg-card flex flex-col items-center justify-center">
         <div className="flex items-center justify-center gap-2 mb-2">
           <p className="text-xs font-medium text-muted-foreground">Saldo em Conta</p>
           <Wallet className="h-4 w-4 text-muted-foreground" />
@@ -913,14 +913,14 @@ export function ProductSalesView({ sales, onDeleteSale, onUpdateSale, clients = 
       </div>
 
       {/* Despesas Mensais */}
-      <div className="rounded-xl border p-4 bg-card text-center">
-        <div className="flex items-center justify-center gap-2 mb-1">
+      <div className="rounded-xl border p-4 bg-card flex flex-col items-center justify-center">
+        <div className="flex items-center justify-center gap-1 mb-1">
           <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => {
             const [y, m] = selectedMonth.split("-").map(Number);
             const prev = new Date(y, m - 2, 1);
             setSelectedMonth(`${prev.getFullYear()}-${String(prev.getMonth() + 1).padStart(2, "0")}`);
           }}>
-            <ChevronLeft className="h-4 w-4" />
+            <ChevronLeft className="h-3 w-3" />
           </Button>
           <button
             className="text-xs font-medium text-muted-foreground capitalize hover:text-primary transition-colors"
@@ -936,7 +936,7 @@ export function ProductSalesView({ sales, onDeleteSale, onUpdateSale, clients = 
             const next = new Date(y, m, 1);
             setSelectedMonth(`${next.getFullYear()}-${String(next.getMonth() + 1).padStart(2, "0")}`);
           }}>
-            <ChevronRight className="h-4 w-4" />
+            <ChevronRight className="h-3 w-3" />
           </Button>
         </div>
         <div className="flex items-center justify-center gap-2 mb-2">
