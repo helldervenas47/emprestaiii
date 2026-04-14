@@ -1113,6 +1113,7 @@ function SalesList({ sales, onDeleteSale, onUpdateSale, clients = [], hideOnTrac
                 clients={clients}
                 locadorInfo={locadorInfo}
                 registeredVehicles={registeredVehicles}
+                locadores={locadores}
               />
             ))}
           </div>
