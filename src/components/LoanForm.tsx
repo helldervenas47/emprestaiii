@@ -403,6 +403,21 @@ export function LoanForm({ onAdd, onSaveSchedule, onClose, clients, existingTags
                   <Plus className="h-3.5 w-3.5" />
                 </Button>
               </div>
+              {existingTags.filter(t => !tags.includes(t)).length > 0 && (
+                <div className="flex flex-wrap gap-1.5 mt-2">
+                  <span className="text-xs text-muted-foreground mr-1">Sugestões:</span>
+                  {existingTags.filter(t => !tags.includes(t)).map((tag) => (
+                    <Badge
+                      key={tag}
+                      variant="outline"
+                      className="text-xs cursor-pointer hover:bg-primary/10 transition-colors"
+                      onClick={() => setTags([...tags, tag])}
+                    >
+                      + {tag}
+                    </Badge>
+                  ))}
+                </div>
+              )}
             </div>
 
             <div>
