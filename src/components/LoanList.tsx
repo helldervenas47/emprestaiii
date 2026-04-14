@@ -566,16 +566,16 @@ function LoanCardView({
                   </PopoverTrigger>
                   <PopoverContent className="w-48 p-1" align="start">
                     <div className="flex flex-col max-h-40 overflow-y-auto">
-                      {[...new Set(loans.flatMap((l) => l.tags || []))]
-                        .filter((t) => !form.tags.split(",").map((x) => x.trim()).filter(Boolean).includes(t))
-                        .sort((a, b) => a.localeCompare(b, "pt-BR"))
-                        .map((tag) => (
+                      {existingTags
+                        .filter((t: string) => !form.tags.split(",").map((x: string) => x.trim()).filter(Boolean).includes(t))
+                        .sort((a: string, b: string) => a.localeCompare(b, "pt-BR"))
+                        .map((tag: string) => (
                           <button
                             key={tag}
                             type="button"
                             className="text-left text-sm px-3 py-1.5 hover:bg-muted rounded-sm"
                             onClick={() => {
-                              const currentTags = form.tags.split(",").map((t) => t.trim()).filter(Boolean);
+                              const currentTags = form.tags.split(",").map((t: string) => t.trim()).filter(Boolean);
                               updateField("tags", [...currentTags, tag].join(", "));
                             }}
                           >
