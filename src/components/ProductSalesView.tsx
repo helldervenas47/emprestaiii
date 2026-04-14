@@ -939,7 +939,7 @@ function SalesList({ sales, onDeleteSale, onUpdateSale, clients = [], hideOnTrac
   const totalPaid = sales.reduce((acc, s) => acc + getSalePaidAmount(s), 0);
   // Quantidade de contratos = somente os quitados
   const paidContractsCount = paidSales.length;
-  const totalAReceber = totalOverdue + totalOnTrack + totalDueToday;
+  const totalAReceber = sales.filter((s) => getSaleCategory(s) !== "paid").reduce((acc, s) => acc + getRemaining(s), 0);
 
   return (
     <div className="space-y-4">
