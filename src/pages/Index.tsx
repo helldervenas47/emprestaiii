@@ -30,7 +30,8 @@ import { BackupExport } from "@/components/BackupExport";
 import { Badge } from "@/components/ui/badge";
 import { useVehicleRegistry } from "@/hooks/useVehicleRegistry";
 import { useLocadorInfo } from "@/hooks/useLocadorInfo";
-import { VehicleLocadorManager } from "@/components/VehicleLocadorManager";
+import { VehicleCardList } from "@/components/VehicleCardList";
+import { LocadorPopoverContent } from "@/components/LocadorPopoverContent";
 
 type Tab = "overview" | "dashboard" | "clients" | "products" | "vehicles" | "overdue" | "expenses" | "calendar" | "users" | "backup";
 type ClientSubTab = "clientes" | "veiculos";
@@ -404,14 +405,24 @@ const Index = () => {
             )}
             {clientSubTab === "veiculos" && (
               <>
-                <h2 className="text-lg font-semibold text-foreground mb-4">Veículos Cadastrados</h2>
-                <VehicleLocadorManager
-                  locador={locador}
-                  onSaveLocador={saveLocador}
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-lg font-semibold text-foreground">Veículos Cadastrados ({registeredVehicles.length})</h2>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline" size="sm">
+                        <User className="h-4 w-4 mr-1" /> Dados do Locador
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-96" align="end">
+                      <LocadorPopoverContent locador={locador} onSave={saveLocador} readOnly={isReadOnly} />
+                    </PopoverContent>
+                  </Popover>
+                </div>
+                <VehicleCardList
                   vehicles={registeredVehicles}
-                  onAddVehicle={addVehicle}
-                  onUpdateVehicle={updateVehicle}
-                  onDeleteVehicle={removeVehicle}
+                  onAdd={addVehicle}
+                  onUpdate={updateVehicle}
+                  onDelete={removeVehicle}
                   readOnly={isReadOnly}
                 />
               </>
