@@ -1426,7 +1426,7 @@ export function ProductSalesView({ sales, onDeleteSale, onUpdateSale, clients = 
   );
 
   // Check if this is the vehicles-only view
-  const hasSalesOrStreaming = sales.some(s => s.businessType === "venda" || s.businessType === "streaming");
+  const hasSalesOrStreaming = !isVehicleView;
   
   const updateVehicleBalance = useCallback(async (delta: number) => {
     const { data: { user } } = await supabase.auth.getUser();
