@@ -151,6 +151,7 @@ export function LoanForm({ onAdd, onSaveSchedule, onClose, clients }: Props) {
       remainingAmount: totalWithInterest,
       customInstallmentValue: hasCustomValue ? firstRowVal : null,
       customInterestValue: interestOverride !== "" ? parseFloat(interestOverride) || null : null,
+      tags: tags.length > 0 ? tags : undefined,
       createdAt: new Date().toISOString(),
     });
 
