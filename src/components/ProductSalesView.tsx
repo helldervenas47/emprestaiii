@@ -933,9 +933,57 @@ function SalesList({ sales, onDeleteSale, onUpdateSale, clients = [], hideOnTrac
     return Math.max(0, overdueValue - (s.partialPaid || 0));
   };
 
+  // Calculate future (not-yet-due) installments value for a sale
+  const getFutureInstallmentsValue = (s: Sale): number => {
+    const isRecorrente = s.paymentMode === "recorrente" && s.installments > 1;
+    if (!isRecorrente) return 0;
+    const baseDate = new Date(s.date + "T00:00:00");
+    const today = new Date();
+    const todayNorm = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    let futureValue = 0;
+    for (let i = s.paidInstallments; i < s.installments; i++) {
+      const customDate = s.installmentDates && s.installmentDates[i];
+      const dueDate = customDate ? new Date(customDate + "T00:00:00") : addByFrequency(baseDate, s.frequency || "Mensal", i);
+      const dueNorm = new Date(dueDate.getFullYear(), dueDate.getMonth(), dueDate.getDate());
+      if (todayNorm.getTime() < dueNorm.getTime()) {
+        if (s.installmentAmounts && s.installmentAmounts[i] != null) {
+          futureValue += s.installmentAmounts[i] || 0;
+        } else {
+          futureValue += s.installments > 0 ? Math.max(0, s.total - (s.downPayment || 0)) / s.installments : 0;
+        }
+      }
+    }
+    return futureValue;
+  };
+
+  // Due today installment value
+  const getDueTodayInstallmentValue = (s: Sale): number => {
+    const isRecorrente = s.paymentMode === "recorrente" && s.installments > 1;
+    if (!isRecorrente) return getRemaining(s);
+    const baseDate = new Date(s.date + "T00:00:00");
+    const today = new Date();
+    const todayNorm = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    let todayValue = 0;
+    for (let i = s.paidInstallments; i < s.installments; i++) {
+      const customDate = s.installmentDates && s.installmentDates[i];
+      const dueDate = customDate ? new Date(customDate + "T00:00:00") : addByFrequency(baseDate, s.frequency || "Mensal", i);
+      const dueNorm = new Date(dueDate.getFullYear(), dueDate.getMonth(), dueDate.getDate());
+      if (todayNorm.getTime() === dueNorm.getTime()) {
+        if (s.installmentAmounts && s.installmentAmounts[i] != null) {
+          todayValue += s.installmentAmounts[i] || 0;
+        } else {
+          todayValue += s.installments > 0 ? Math.max(0, s.total - (s.downPayment || 0)) / s.installments : 0;
+        }
+      }
+    }
+    return todayValue;
+  };
+
   const totalOverdue = overdueSales.reduce((acc, s) => acc + getOverdueInstallmentsValue(s), 0);
-  const totalOnTrack = onTrackSales.reduce((acc, s) => acc + getRemaining(s), 0);
-  const totalDueToday = dueTodaySales.reduce((acc, s) => acc + getRemaining(s), 0);
+  // "No Prazo" = future installments from ALL non-paid sales (including overdue contracts that have future installments)
+  const totalOnTrack = sales.filter((s) => getSaleCategory(s) !== "paid").reduce((acc, s) => acc + getFutureInstallmentsValue(s), 0)
+    + onTrackSales.filter((s) => s.paymentMode !== "recorrente" || s.installments <= 1).reduce((acc, s) => acc + getRemaining(s), 0);
+  const totalDueToday = dueTodaySales.reduce((acc, s) => acc + getDueTodayInstallmentValue(s), 0);
   const totalPaid = sales.reduce((acc, s) => acc + getSalePaidAmount(s), 0);
   // Quantidade de contratos = somente os quitados
   const paidContractsCount = paidSales.length;
