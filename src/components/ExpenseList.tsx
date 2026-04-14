@@ -179,6 +179,7 @@ export function ExpenseList({ expenses, onPay, onUnpay, onDelete, onUpdate, read
   const [editingExpenseId, setEditingExpenseId] = useState<string | null>(null);
   const [viewPaymentsExpenseId, setViewPaymentsExpenseId] = useState<string | null>(null);
   const [showClearPayments, setShowClearPayments] = useState(false);
+  const [deleteExpenseId, setDeleteExpenseId] = useState<string | null>(null);
 
   const getInstallmentAmount = useCallback((e: Expense) => {
     const isRec = e.type === "recorrente" && e.installments && e.installments > 1;
@@ -444,7 +445,7 @@ export function ExpenseList({ expenses, onPay, onUnpay, onDelete, onUpdate, read
                             </Button>
                           )}
                           {!readOnly && (
-                          <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive hover:bg-destructive hover:text-destructive-foreground" onClick={() => onDelete(expense.id)}>
+                          <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive hover:bg-destructive hover:text-destructive-foreground" onClick={() => setDeleteExpenseId(expense.id)}>
                             <Trash2 className="h-3.5 w-3.5" />
                           </Button>
                           )}
@@ -545,6 +546,13 @@ export function ExpenseList({ expenses, onPay, onUnpay, onDelete, onUpdate, read
           })}
         </div>
       )}
+      <ConfirmDeleteDialog
+        open={!!deleteExpenseId}
+        onOpenChange={() => setDeleteExpenseId(null)}
+        onConfirm={() => { if (deleteExpenseId) { onDelete(deleteExpenseId); setDeleteExpenseId(null); } }}
+        title="Excluir despesa"
+        description="Tem certeza que deseja excluir esta despesa?"
+      />
     </div>
   );
 }
