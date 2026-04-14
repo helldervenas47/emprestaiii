@@ -58,6 +58,7 @@ export function SaleEditForm({ sale, onSave, onClose, clients = [], registeredVe
     date: sale.date,
     notes: sale.notes || "",
     frequency: sale.frequency || "Mensal",
+    locadorId: sale.locadorId || (locadores.length === 1 ? (locadores[0].id || "") : ""),
   });
 
   // Generate initial installment rows
