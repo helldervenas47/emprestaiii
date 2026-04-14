@@ -335,8 +335,10 @@ function LoanCardView({
   const handlePartialSubmit = () => {
     const val = parseFloat(partialAmount);
     if (val > 0) {
-      openPaymentDialog("partial", val);
+      const dateStr = partialDate.toISOString().split("T")[0];
+      onPartialPayment(val, dateStr);
       setPartialAmount("");
+      setPartialDate(new Date());
       setShowPartial(false);
     }
   };
