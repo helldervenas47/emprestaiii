@@ -710,7 +710,7 @@ function getSalePaidAmountHelper(s: Sale): number {
 }
 
 function SaleClientFolder({
-  group, onDeleteSale, onUpdateSale, formatCurrency, onEdit, readOnly = false, clients = [], locadorInfo, registeredVehicles = [],
+  group, onDeleteSale, onUpdateSale, formatCurrency, onEdit, readOnly = false, clients = [], locadorInfo, registeredVehicles = [], locadores = [],
 }: {
   group: SaleClientGroup;
   onDeleteSale: (id: string) => void;
@@ -721,6 +721,7 @@ function SaleClientFolder({
   clients?: Client[];
   locadorInfo?: LocadorInfo;
   registeredVehicles?: VehicleInfo[];
+  locadores?: LocadorInfo[];
 }) {
   const [open, setOpen] = useState(false);
   const activeCount = group.sales.filter((s) => getSaleCategory(s) !== "paid").length;
