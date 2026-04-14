@@ -154,7 +154,7 @@ const Index = () => {
   const { products, sales, addProduct, updateProduct, deleteProduct, addSale, updateSale, deleteSale } = useProducts();
   const { expenses, addExpense, payExpense, unpayExpense, deleteExpense, updateExpense } = useExpenses();
   const { vehicles: registeredVehicles, add: addVehicle, update: updateVehicle, remove: removeVehicle } = useVehicleRegistry();
-  const { locadorInfo, saveLocadorInfo } = useLocadorInfo();
+  const { locador, save: saveLocador } = useLocadorInfo();
   const [clientSubTab, setClientSubTab] = useState<ClientSubTab>("clientes");
 
   // Filter data by linked clients if user has client restrictions
