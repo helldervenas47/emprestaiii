@@ -193,12 +193,41 @@ export function useProducts() {
           await supabase.from("products").update({ stock: newStock }).eq("id", s.productId);
         }
       }
-      await adjustBalance(s.total);
     }
   }, [user, dataOwnerId, products]);
 
   const updateSale = useCallback(async (id: string, data: Partial<Omit<Sale, "id">>) => {
     if (!user) return;
+    const sale = sales.find(s => s.id === id);
+
+    // Adjust balance when payments change (non-vehicle sales only — vehicle balance is handled separately)
+    if (sale && sale.businessType !== "aluguel_veiculo") {
+      const amounts = sale.installmentAmounts;
+      const defaultVal = sale.installments > 0 ? Math.max(0, sale.total - ((sale as any).downPayment || 0)) / sale.installments : sale.total;
+
+      if (data.paidInstallments !== undefined && data.paidInstallments !== sale.paidInstallments) {
+        if (data.paidInstallments > sale.paidInstallments) {
+          const paidIdx = sale.paidInstallments;
+          const paidValue = amounts && amounts[paidIdx] != null ? amounts[paidIdx] : defaultVal;
+          const actualPaid = Math.max(0, paidValue - (data.partialPaid !== undefined ? 0 : (sale.partialPaid || 0)));
+          await adjustBalance(actualPaid);
+        } else {
+          let refundTotal = 0;
+          for (let i = data.paidInstallments; i < sale.paidInstallments; i++) {
+            refundTotal += amounts && amounts[i] != null ? amounts[i] : defaultVal;
+          }
+          await adjustBalance(-refundTotal);
+        }
+      }
+
+      if (data.partialPaid !== undefined && data.paidInstallments === undefined) {
+        const addedPartial = (data.partialPaid || 0) - (sale.partialPaid || 0);
+        if (addedPartial !== 0) {
+          await adjustBalance(addedPartial);
+        }
+      }
+    }
+
     setSales((prev) => prev.map((s) => (s.id === id ? { ...s, ...data } : s)));
     const updateData: Record<string, any> = {};
     if (data.description !== undefined) updateData.description = data.description;
@@ -219,7 +248,7 @@ export function useProducts() {
     if (data.paymentHistory !== undefined) updateData.payment_history = data.paymentHistory;
     if (data.locadorId !== undefined) updateData.locador_id = data.locadorId;
     await supabase.from("sales").update(updateData as any).eq("id", id);
-  }, [user]);
+  }, [user, sales]);
 
   const deleteSale = useCallback(async (id: string) => {
     if (!user) return;
@@ -235,7 +264,17 @@ export function useProducts() {
           await supabase.from("products").update({ stock: newStock }).eq("id", sale.productId);
         }
       }
-      await adjustBalance(-sale.total);
+      // Only reverse the paid amount from balance (not the total)
+      if (sale.businessType !== "aluguel_veiculo" && sale.paidInstallments > 0) {
+        const amounts = sale.installmentAmounts;
+        const defaultVal = sale.installments > 0 ? Math.max(0, sale.total - ((sale as any).downPayment || 0)) / sale.installments : sale.total;
+        let paidTotal = 0;
+        for (let i = 0; i < sale.paidInstallments; i++) {
+          paidTotal += amounts && amounts[i] != null ? amounts[i] : defaultVal;
+        }
+        paidTotal += sale.partialPaid || 0;
+        if (paidTotal > 0) await adjustBalance(-paidTotal);
+      }
     }
     await supabase.from("sales").delete().eq("id", id);
   }, [user, sales, products]);
