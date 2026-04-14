@@ -27,6 +27,7 @@ import { toast } from "sonner";
 import { HideValuesProvider, useHideValues } from "@/contexts/HideValuesContext";
 import { UserManagement } from "@/components/UserManagement";
 import { BackupExport } from "@/components/BackupExport";
+import { WebhookSettings } from "@/components/WebhookSettings";
 import { Badge } from "@/components/ui/badge";
 import { useVehicleRegistry } from "@/hooks/useVehicleRegistry";
 import { useLocadorInfo } from "@/hooks/useLocadorInfo";
