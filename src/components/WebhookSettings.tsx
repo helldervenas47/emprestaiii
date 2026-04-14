@@ -12,7 +12,7 @@ import { Webhook, Loader2, Send, Clock } from "lucide-react";
 
 export function WebhookSettings() {
   const { user } = useAuth();
-  const { dataOwnerId } = useDataOwner();
+  const dataOwnerId = useDataOwner();
   const [webhookUrl, setWebhookUrl] = useState("");
   const [enabled, setEnabled] = useState(false);
   const [sendTime, setSendTime] = useState("08:00");
