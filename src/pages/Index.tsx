@@ -42,10 +42,10 @@ type VehicleSubTab = "veiculos" | "locadores";
 const tabConfig = [
   { id: "overview" as Tab, label: "Dashboard", icon: BarChart3 },
   { id: "dashboard" as Tab, label: "Empréstimos", icon: LayoutDashboard },
-  { id: "calendar" as Tab, label: "Calendário", icon: CalendarDays },
-  { id: "clients" as Tab, label: "Cadastro", icon: Users },
   { id: "products" as Tab, label: "Vendas", icon: ShoppingBag },
   { id: "vehicles" as Tab, label: "Veículos", icon: Car },
+  { id: "calendar" as Tab, label: "Calendário", icon: CalendarDays },
+  { id: "clients" as Tab, label: "Cadastro", icon: Users },
   { id: "expenses" as Tab, label: "Despesas", icon: Receipt },
   { id: "overdue" as Tab, label: "Relatório", icon: AlertTriangle },
   { id: "users" as Tab, label: "Usuários", icon: Users },
