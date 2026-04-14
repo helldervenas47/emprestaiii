@@ -361,6 +361,49 @@ export function LoanForm({ onAdd, onSaveSchedule, onClose, clients }: Props) {
             )}
 
             <div>
+              <Label>Etiquetas</Label>
+              <div className="flex flex-wrap gap-1.5 mb-2">
+                {tags.map((tag, i) => (
+                  <Badge key={i} variant="secondary" className="gap-1 text-xs">
+                    {tag}
+                    <button type="button" onClick={() => setTags(tags.filter((_, j) => j !== i))} className="ml-0.5 hover:text-destructive">
+                      <X className="h-3 w-3" />
+                    </button>
+                  </Badge>
+                ))}
+              </div>
+              <div className="flex gap-2">
+                <Input
+                  value={tagInput}
+                  onChange={(e) => setTagInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && tagInput.trim()) {
+                      e.preventDefault();
+                      if (!tags.includes(tagInput.trim())) setTags([...tags, tagInput.trim()]);
+                      setTagInput("");
+                    }
+                  }}
+                  placeholder="Digite e pressione Enter"
+                  className="h-9 text-sm"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="h-9 shrink-0"
+                  onClick={() => {
+                    if (tagInput.trim() && !tags.includes(tagInput.trim())) {
+                      setTags([...tags, tagInput.trim()]);
+                      setTagInput("");
+                    }
+                  }}
+                >
+                  <Plus className="h-3.5 w-3.5" />
+                </Button>
+              </div>
+            </div>
+
+            <div>
               <Label htmlFor="notes">Observações</Label>
               <Textarea
                 id="notes" value={form.notes} onChange={(e) => update("notes", e.target.value)}
