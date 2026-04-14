@@ -29,14 +29,17 @@ import { UserManagement } from "@/components/UserManagement";
 import { BackupExport } from "@/components/BackupExport";
 import { Badge } from "@/components/ui/badge";
 import { useVehicleRegistry } from "@/hooks/useVehicleRegistry";
+import { useLocadorInfo } from "@/hooks/useLocadorInfo";
+import { VehicleLocadorManager } from "@/components/VehicleLocadorManager";
 
 type Tab = "overview" | "dashboard" | "clients" | "products" | "vehicles" | "overdue" | "expenses" | "calendar" | "users" | "backup";
+type ClientSubTab = "clientes" | "veiculos";
 
 const tabConfig = [
   { id: "overview" as Tab, label: "Dashboard", icon: BarChart3 },
   { id: "dashboard" as Tab, label: "Empréstimos", icon: LayoutDashboard },
   { id: "calendar" as Tab, label: "Calendário", icon: CalendarDays },
-  { id: "clients" as Tab, label: "Clientes", icon: Users },
+  { id: "clients" as Tab, label: "Cadastro", icon: Users },
   { id: "products" as Tab, label: "Vendas", icon: ShoppingBag },
   { id: "vehicles" as Tab, label: "Veículos", icon: Car },
   { id: "expenses" as Tab, label: "Despesas", icon: Receipt },
@@ -76,12 +79,12 @@ const tabHelp: Record<Tab, { title: string; items: string[] }> = {
     ],
   },
   clients: {
-    title: "Clientes",
+    title: "Cadastro",
     items: [
       "Cadastre seus clientes com nome, CPF/CNPJ, telefone e endereço.",
       "Use o score para classificar a confiabilidade do cliente.",
+      "Cadastre e gerencie veículos na sub-aba Veículos.",
       "Clientes inativos não aparecem na lista de novos empréstimos.",
-      
     ],
   },
   products: {
@@ -150,7 +153,9 @@ const Index = () => {
   const { clients, addClient, deleteClient, updateClient } = useClients();
   const { products, sales, addProduct, updateProduct, deleteProduct, addSale, updateSale, deleteSale } = useProducts();
   const { expenses, addExpense, payExpense, unpayExpense, deleteExpense, updateExpense } = useExpenses();
-  const { vehicles: registeredVehicles } = useVehicleRegistry();
+  const { vehicles: registeredVehicles, add: addVehicle, update: updateVehicle, remove: removeVehicle } = useVehicleRegistry();
+  const { locador, save: saveLocador } = useLocadorInfo();
+  const [clientSubTab, setClientSubTab] = useState<ClientSubTab>("clientes");
 
   // Filter data by linked clients if user has client restrictions
   const hasClientFilter = Array.isArray(linkedClientIds) && linkedClientIds.length > 0;
@@ -225,14 +230,14 @@ const Index = () => {
 
   const handlePrimaryAction = () => {
     if (tab === "dashboard") setShowLoanForm(true);
-    else if (tab === "clients") setShowClientForm(true);
+    else if (tab === "clients" && clientSubTab === "clientes") setShowClientForm(true);
     else if (tab === "expenses") setShowExpenseForm(true);
     else if (tab === "products" || tab === "vehicles") setShowSaleForm(true);
   };
 
   const primaryLabel =
     tab === "dashboard" ? "Novo Empréstimo" :
-    tab === "clients" ? "Novo Cliente" :
+    tab === "clients" && clientSubTab === "clientes" ? "Novo Cliente" :
     tab === "expenses" ? "Nova Despesa" :
     tab === "products" ? "Novo Lançamento" :
     tab === "vehicles" ? "Novo Aluguel" : "";
@@ -334,7 +339,7 @@ const Index = () => {
                 <Receipt className="h-4 w-4 sm:mr-1" /><span className="hidden sm:inline">Registrar Despesa</span>
               </Button>
             )}
-            {!isReadOnly && tab !== "overview" && tab !== "overdue" && tab !== "calendar" && tab !== "users" && (
+            {!isReadOnly && tab !== "overview" && tab !== "overdue" && tab !== "calendar" && tab !== "users" && !(tab === "clients" && clientSubTab === "veiculos") && tab !== "backup" && (
               <Button onClick={handlePrimaryAction} size="sm" className="h-8 px-2 sm:px-3">
                 <Plus className="h-4 w-4 sm:mr-1" /><span className="hidden sm:inline">{primaryLabel}</span>
               </Button>
@@ -375,8 +380,42 @@ const Index = () => {
         )}
         {tab === "clients" && (
           <div>
-            <h2 className="text-lg font-semibold text-foreground mb-4">Clientes ({filteredClients.length})</h2>
-            <ClientList clients={filteredClients} loans={filteredLoans} payments={filteredPayments} onDelete={deleteClient} onUpdate={updateClient} readOnly={isReadOnly} />
+            <div className="flex gap-2 mb-4">
+              <Button
+                variant={clientSubTab === "clientes" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setClientSubTab("clientes")}
+              >
+                <Users className="h-4 w-4 mr-1" /> Clientes
+              </Button>
+              <Button
+                variant={clientSubTab === "veiculos" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setClientSubTab("veiculos")}
+              >
+                <Car className="h-4 w-4 mr-1" /> Veículos
+              </Button>
+            </div>
+            {clientSubTab === "clientes" && (
+              <>
+                <h2 className="text-lg font-semibold text-foreground mb-4">Clientes ({filteredClients.length})</h2>
+                <ClientList clients={filteredClients} loans={filteredLoans} payments={filteredPayments} onDelete={deleteClient} onUpdate={updateClient} readOnly={isReadOnly} />
+              </>
+            )}
+            {clientSubTab === "veiculos" && (
+              <>
+                <h2 className="text-lg font-semibold text-foreground mb-4">Veículos Cadastrados</h2>
+                <VehicleLocadorManager
+                  locador={locador}
+                  onSaveLocador={saveLocador}
+                  vehicles={registeredVehicles}
+                  onAddVehicle={addVehicle}
+                  onUpdateVehicle={updateVehicle}
+                  onDeleteVehicle={removeVehicle}
+                  readOnly={isReadOnly}
+                />
+              </>
+            )}
           </div>
         )}
         {tab === "expenses" && (
