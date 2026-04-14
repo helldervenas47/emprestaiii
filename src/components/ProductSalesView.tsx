@@ -27,6 +27,7 @@ import { SaleEditForm } from "@/components/SaleEditForm";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
+import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
 
 import { VehicleExpenseForm, vehicleExpenseCategories } from "@/components/VehicleExpenseForm";
 import { VehicleLocadorManager } from "@/components/VehicleLocadorManager";
@@ -500,6 +501,14 @@ function SaleCard({ sale, onDelete, onEdit, onUpdate, formatCurrency, readOnly =
         </div>
       </CardContent>
     </Card>
+    <ConfirmDeleteDialog
+      open={confirmDeleteSale}
+      onOpenChange={setConfirmDeleteSale}
+      onConfirm={() => { onDelete(); setConfirmDeleteSale(false); }}
+      title="Excluir venda"
+      description="Tem certeza que deseja excluir esta venda?"
+    />
+    </>
   );
 }
 
