@@ -329,12 +329,7 @@ const Index = () => {
             <Button variant="ghost" size="icon" onClick={signOut} className="h-8 w-8 sm:h-9 sm:w-9" title="Sair">
               <LogOut className="h-4 w-4" />
             </Button>
-            {!isReadOnly && tab === "vehicles" && (
-              <Button variant="outline" size="sm" onClick={() => setShowVehicleExpenseForm(true)} className="h-8 px-2 sm:px-3">
-                <Receipt className="h-4 w-4 sm:mr-1" /><span className="hidden sm:inline">Registrar Despesa</span>
-              </Button>
-            )}
-            {!isReadOnly && tab !== "overview" && tab !== "overdue" && tab !== "calendar" && tab !== "users" && (
+            {!isReadOnly && tab !== "overview" && tab !== "overdue" && tab !== "calendar" && tab !== "users" && tab !== "vehicles" && (
               <Button onClick={handlePrimaryAction} size="sm" className="h-8 px-2 sm:px-3">
                 <Plus className="h-4 w-4 sm:mr-1" /><span className="hidden sm:inline">{primaryLabel}</span>
               </Button>
@@ -401,19 +396,31 @@ const Index = () => {
           />
         )}
         {tab === "vehicles" && (
-          <ProductSalesView
-            sales={filteredSales.filter(s => s.businessType === "aluguel_veiculo")}
-            onDeleteSale={deleteSale}
-            onUpdateSale={updateSale}
-            clients={filteredClients}
-            expenses={expenses}
-            onAddExpense={addExpense}
-            onPayExpense={payExpense}
-            onDeleteExpense={deleteExpense}
-            onUpdateExpense={updateExpense}
-            readOnly={isReadOnly}
-            isVehicleView
-          />
+          <>
+            {!isReadOnly && (
+              <div className="flex gap-2 flex-wrap">
+                <Button onClick={() => setShowVehicleExpenseForm(true)} variant="outline" size="sm">
+                  <Receipt className="h-4 w-4 mr-1" /> Registrar Despesa
+                </Button>
+                <Button onClick={handlePrimaryAction} size="sm">
+                  <Plus className="h-4 w-4 mr-1" /> Novo Aluguel
+                </Button>
+              </div>
+            )}
+            <ProductSalesView
+              sales={filteredSales.filter(s => s.businessType === "aluguel_veiculo")}
+              onDeleteSale={deleteSale}
+              onUpdateSale={updateSale}
+              clients={filteredClients}
+              expenses={expenses}
+              onAddExpense={addExpense}
+              onPayExpense={payExpense}
+              onDeleteExpense={deleteExpense}
+              onUpdateExpense={updateExpense}
+              readOnly={isReadOnly}
+              isVehicleView
+            />
+          </>
         )}
         {tab === "users" && <UserManagement />}
         {tab === "backup" && (
