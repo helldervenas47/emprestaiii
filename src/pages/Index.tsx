@@ -468,35 +468,38 @@ const Index = () => {
         )}
         {tab === "users" && <UserManagement />}
         {tab === "backup" && (
-          <BackupExport
-            loans={loans}
-            payments={payments}
-            clients={clients}
-            sales={sales}
-            expenses={expenses}
-            onImportLoans={async (imported) => {
-              const BATCH = 5;
-              for (let i = 0; i < imported.length; i += BATCH) {
-                const batch = imported.slice(i, i + BATCH);
-                await Promise.all(batch.map(async (loan) => {
-                  const { totalPaid, ...loanData } = loan;
-                  const loanId = await addLoan(loanData);
-                  if (loanId && totalPaid && totalPaid > 0) {
-                    await addPartialPayment(loanId, totalPaid, loan.startDate);
-                  }
-                }));
-              }
-            }}
-            onImportClients={async (imported) => {
-              await Promise.all(imported.map((client) => addClient(client)));
-            }}
-            onImportSales={async (imported) => {
-              await Promise.all(imported.map((sale) => addSale(sale)));
-            }}
-            onImportExpenses={async (imported) => {
-              await Promise.all(imported.map((expense) => addExpense(expense)));
-            }}
-          />
+          <div className="space-y-6">
+            <BackupExport
+              loans={loans}
+              payments={payments}
+              clients={clients}
+              sales={sales}
+              expenses={expenses}
+              onImportLoans={async (imported) => {
+                const BATCH = 5;
+                for (let i = 0; i < imported.length; i += BATCH) {
+                  const batch = imported.slice(i, i + BATCH);
+                  await Promise.all(batch.map(async (loan) => {
+                    const { totalPaid, ...loanData } = loan;
+                    const loanId = await addLoan(loanData);
+                    if (loanId && totalPaid && totalPaid > 0) {
+                      await addPartialPayment(loanId, totalPaid, loan.startDate);
+                    }
+                  }));
+                }
+              }}
+              onImportClients={async (imported) => {
+                await Promise.all(imported.map((client) => addClient(client)));
+              }}
+              onImportSales={async (imported) => {
+                await Promise.all(imported.map((sale) => addSale(sale)));
+              }}
+              onImportExpenses={async (imported) => {
+                await Promise.all(imported.map((expense) => addExpense(expense)));
+              }}
+            />
+            <WebhookSettings />
+          </div>
         )}
       </main>
 
