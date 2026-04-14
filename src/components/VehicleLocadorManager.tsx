@@ -32,6 +32,7 @@ export function VehicleLocadorManager({
   const [vehicleForm, setVehicleForm] = useState({ marcaModelo: "", ano: "", cor: "", placa: "", renavam: "" });
   const [editingVehicleId, setEditingVehicleId] = useState<string | null>(null);
   const [editVehicleForm, setEditVehicleForm] = useState({ marcaModelo: "", ano: "", cor: "", placa: "", renavam: "" });
+  const [deleteVehicleId, setDeleteVehicleId] = useState<string | null>(null);
 
   const handleSaveLocador = () => {
     onSaveLocador(locadorForm);
@@ -218,8 +219,9 @@ export function VehicleLocadorManager({
                           <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => startEditVehicle(v)}>
                             <Pencil className="h-4 w-4 text-muted-foreground" />
                           </Button>
-                          <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive hover:bg-destructive hover:text-destructive-foreground" onClick={() => onDeleteVehicle(v.id)}>
+                          <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive hover:bg-destructive hover:text-destructive-foreground" onClick={() => setDeleteVehicleId(v.id)}>
                             <Trash2 className="h-4 w-4" />
+                          </Button>
                           </Button>
                         </div>
                       )}
@@ -283,6 +285,13 @@ export function VehicleLocadorManager({
           </div>
         )}
       </div>
+      <ConfirmDeleteDialog
+        open={!!deleteVehicleId}
+        onOpenChange={() => setDeleteVehicleId(null)}
+        onConfirm={() => { if (deleteVehicleId) { onDeleteVehicle(deleteVehicleId); setDeleteVehicleId(null); } }}
+        title="Excluir veículo"
+        description="Tem certeza que deseja excluir este veículo?"
+      />
     </div>
   );
 }
