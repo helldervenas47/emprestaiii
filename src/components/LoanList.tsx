@@ -1196,7 +1196,6 @@ function LoanCardView({
     </AlertDialog>
     </>
   );
-}
 function LoanRowView({
   loan, payments: allPayments, installmentSchedules = [], onPayment, onPartialPayment, onInterestPayment, onUpdate, onDelete, onDeletePayment, readOnly = false, existingTags = [],
 }: {
