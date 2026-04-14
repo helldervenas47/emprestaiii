@@ -101,12 +101,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       if (nextSession?.user) {
         sessionStorage.setItem("hvcred_session", "1");
-        setLoading(true);
+
+        // Only show loading spinner on initial sign-in, not on token refresh
+        // Token refresh (e.g. returning from background on mobile) should NOT
+        // unmount the entire app tree, which would lose form/modal state.
+        const isInitialSignIn = _event === "SIGNED_IN";
+        if (isInitialSignIn) setLoading(true);
 
         setTimeout(() => {
           if (!mounted) return;
           hydrateUserState(nextSession.user.id).finally(() => {
-            if (mounted) setLoading(false);
+            if (mounted && isInitialSignIn) setLoading(false);
           });
         }, 0);
       } else {
