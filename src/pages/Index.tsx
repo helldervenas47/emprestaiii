@@ -493,6 +493,8 @@ const Index = () => {
             onUpdateExpense={updateExpense}
             readOnly={isReadOnly}
             isVehicleView
+            locadores={locadores}
+            onSaveLocador={saveLocador}
           />
         )}
         {tab === "users" && <UserManagement />}
