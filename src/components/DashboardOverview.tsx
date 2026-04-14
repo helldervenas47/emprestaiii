@@ -391,11 +391,18 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
         });
         const installmentAmount = calculateInstallment(l.amount, l.interestRate, l.installments);
         const principalPerInstallment = l.installments > 0 ? l.amount / l.installments : 0;
+        const totalWithInterest = calculateTotalWithInterest(l.amount, l.interestRate, l.installments);
+        const interestRatio = totalWithInterest > 0 ? 1 - (l.amount / totalWithInterest) : 0;
         loanPayments.forEach((p) => {
           if (p.installmentNumber === 0) {
+            // Interest-only payment
             interestInMonth += p.amount;
           } else if (p.installmentNumber > 0) {
+            // Regular installment - interest portion
             interestInMonth += installmentAmount - principalPerInstallment;
+          } else if (p.installmentNumber === -1) {
+            // Partial payment - proportional interest portion
+            interestInMonth += p.amount * interestRatio;
           }
         });
       });
