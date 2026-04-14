@@ -1572,17 +1572,6 @@ export function ProductSalesView({ sales, onDeleteSale, onUpdateSale, clients = 
     // Vehicles page - render without sub-tabs + vehicle expenses
     return (
       <div className="space-y-6">
-        {/* Locador & Vehicle Registry */}
-        <VehicleLocadorManager
-          locador={locador}
-          onSaveLocador={saveLocador}
-          vehicles={registeredVehicles}
-          onAddVehicle={addVehicle}
-          onUpdateVehicle={updateVehicle}
-          onDeleteVehicle={removeVehicle}
-          readOnly={readOnly}
-        />
-
         <SalesList
           sales={sales}
           onDeleteSale={onDeleteSale}
