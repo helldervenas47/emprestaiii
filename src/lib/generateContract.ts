@@ -81,9 +81,12 @@ export function generateContract(sale: Sale, client?: Client, locador?: LocadorI
   const today = format(new Date(), "dd/MM/yyyy");
   const startDate = format(new Date(sale.date + "T00:00:00"), "dd/MM/yyyy");
 
-  // Calculate end date from last installment
-  const lastParcela = parcelas[parcelas.length - 1];
-  const endDate = lastParcela ? lastParcela.date : startDate;
+  // Calculate end date: 1 period after the last installment
+  const lastParcelaDate = parcelas.length > 0
+    ? new Date(parcelas[parcelas.length - 1].date.split("/").reverse().join("-") + "T00:00:00")
+    : new Date(sale.date + "T00:00:00");
+  const endDateObj = addByFrequency(lastParcelaDate, sale.frequency || "Mensal", 1);
+  const endDate = format(endDateObj, "dd/MM/yyyy");
 
   const valorParcela = parcelas.length > 0 ? parcelas[0].value : sale.total;
   const valorLocacao = formatCurrencyBR(valorParcela);
