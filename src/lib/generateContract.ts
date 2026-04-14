@@ -177,6 +177,8 @@ export function generateContract(sale: Sale, client?: Client, locador?: LocadorI
 </head>
 <body>
 
+<button class="close-btn" onclick="window.close()">✕ Fechar</button>
+
 <h1>CONTRATO DE LOCAÇÃO DE MOTOCICLETA</h1>
 
 <p class="intro">Pelo presente instrumento particular, de um lado:</p>
