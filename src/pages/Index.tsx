@@ -29,14 +29,17 @@ import { UserManagement } from "@/components/UserManagement";
 import { BackupExport } from "@/components/BackupExport";
 import { Badge } from "@/components/ui/badge";
 import { useVehicleRegistry } from "@/hooks/useVehicleRegistry";
+import { useLocadorInfo } from "@/hooks/useLocadorInfo";
+import { VehicleLocadorManager } from "@/components/VehicleLocadorManager";
 
 type Tab = "overview" | "dashboard" | "clients" | "products" | "vehicles" | "overdue" | "expenses" | "calendar" | "users" | "backup";
+type ClientSubTab = "clientes" | "veiculos";
 
 const tabConfig = [
   { id: "overview" as Tab, label: "Dashboard", icon: BarChart3 },
   { id: "dashboard" as Tab, label: "Empréstimos", icon: LayoutDashboard },
   { id: "calendar" as Tab, label: "Calendário", icon: CalendarDays },
-  { id: "clients" as Tab, label: "Clientes", icon: Users },
+  { id: "clients" as Tab, label: "Cadastro", icon: Users },
   { id: "products" as Tab, label: "Vendas", icon: ShoppingBag },
   { id: "vehicles" as Tab, label: "Veículos", icon: Car },
   { id: "expenses" as Tab, label: "Despesas", icon: Receipt },
@@ -76,12 +79,12 @@ const tabHelp: Record<Tab, { title: string; items: string[] }> = {
     ],
   },
   clients: {
-    title: "Clientes",
+    title: "Cadastro",
     items: [
       "Cadastre seus clientes com nome, CPF/CNPJ, telefone e endereço.",
       "Use o score para classificar a confiabilidade do cliente.",
+      "Cadastre e gerencie veículos na sub-aba Veículos.",
       "Clientes inativos não aparecem na lista de novos empréstimos.",
-      
     ],
   },
   products: {
