@@ -308,7 +308,7 @@ export function ExpenseList({ expenses, onPay, onUnpay, onDelete, onUpdate, read
         </div>
       </div>
 
-      {!readOnly && hasPaidExpenses && onUpdate && (
+      {!readOnly && hasPaidExpenses && onUnpay && (
         <div className="flex justify-end">
           <Button
             size="sm"
@@ -333,12 +333,17 @@ export function ExpenseList({ expenses, onPay, onUnpay, onDelete, onUpdate, read
           </DialogHeader>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowClearPayments(false)}>Cancelar</Button>
-            <Button variant="destructive" onClick={() => {
-              expenses.forEach(exp => {
-                if (exp.paid || (exp.paidInstallments && exp.paidInstallments > 0)) {
-                  onUpdate!(exp.id, { paid: false, paidDate: undefined, paidInstallments: 0 });
+            <Button variant="destructive" onClick={async () => {
+              for (const exp of expenses) {
+                if (exp.paid) {
+                  if (onUnpay) await onUnpay(exp.id);
+                } else if ((exp.paidInstallments || 0) > 0 && onUnpay) {
+                  const times = exp.paidInstallments || 0;
+                  for (let t = 0; t < times; t++) {
+                    await onUnpay(exp.id);
+                  }
                 }
-              });
+              }
               setShowClearPayments(false);
             }}>
               <Trash2 className="h-4 w-4 mr-1" />
@@ -467,15 +472,18 @@ export function ExpenseList({ expenses, onPay, onUnpay, onDelete, onUpdate, read
                               <p className="text-xs text-muted-foreground">Parcela {idx + 1} de {expense.installments}</p>
                             </div>
                             <Badge className="bg-success/20 text-success border-success/30 text-xs">Paga</Badge>
-                            {!readOnly && onUpdate && (
+                            {!readOnly && onUnpay && (
                               <Button
                                 size="icon"
                                 variant="ghost"
                                 className="h-7 w-7 text-destructive hover:bg-destructive/10 shrink-0"
-                                onClick={() => {
-                                  const newPaid = idx;
-                                  onUpdate(expense.id, { paidInstallments: newPaid, paid: false, paidDate: undefined });
-                                  if (newPaid === 0) setViewPaymentsExpenseId(null);
+                                onClick={async () => {
+                                  const currentPaid = expense.paidInstallments || 0;
+                                  const timesToUnpay = currentPaid - idx;
+                                  for (let t = 0; t < timesToUnpay; t++) {
+                                    await onUnpay(expense.id);
+                                  }
+                                  if (idx === 0) setViewPaymentsExpenseId(null);
                                 }}
                               >
                                 <Trash2 className="h-3.5 w-3.5" />
@@ -494,13 +502,13 @@ export function ExpenseList({ expenses, onPay, onUnpay, onDelete, onUpdate, read
                               {expense.paidDate && <p className="text-xs text-muted-foreground">{new Date(expense.paidDate + "T00:00:00").toLocaleDateString("pt-BR")}</p>}
                             </div>
                             <Badge className="bg-success/20 text-success border-success/30 text-xs">Paga</Badge>
-                            {!readOnly && onUpdate && (
+                            {!readOnly && onUnpay && (
                               <Button
                                 size="icon"
                                 variant="ghost"
                                 className="h-7 w-7 text-destructive hover:bg-destructive/10 shrink-0"
                                 onClick={() => {
-                                  onUpdate(expense.id, { paid: false, paidDate: undefined, paidInstallments: 0 });
+                                  onUnpay(expense.id);
                                   setViewPaymentsExpenseId(null);
                                 }}
                               >
