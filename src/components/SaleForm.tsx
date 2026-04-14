@@ -32,9 +32,10 @@ interface Props {
   defaultBusinessType?: BusinessType;
   clients?: Client[];
   registeredVehicles?: VehicleInfo[];
+  locadores?: LocadorInfo[];
 }
 
-export function SaleForm({ onAdd, onClose, defaultBusinessType = "venda", clients = [], registeredVehicles = [] }: Props) {
+export function SaleForm({ onAdd, onClose, defaultBusinessType = "venda", clients = [], registeredVehicles = [], locadores = [] }: Props) {
   const [form, setForm] = useState({
     description: "",
     quantity: "1",
