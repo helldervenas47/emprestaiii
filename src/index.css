@@ -217,11 +217,11 @@
     transform: scaleX(1);
   }
   .btn-sweep-hover:hover {
-    color: hsl(var(--foreground));
     border-color: transparent;
   }
   .btn-sweep-hover::before {
-    background: hsl(0 0% 100%);
+    background: currentColor;
+    opacity: 0.12;
   }
 }
 
