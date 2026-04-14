@@ -200,8 +200,8 @@ export function useProducts() {
     if (!user) return;
     const sale = sales.find(s => s.id === id);
 
-    // Adjust balance when payments change (non-vehicle sales only)
-    if (data.paidInstallments !== undefined && data.paidInstallments !== sale.paidInstallments) {
+    // Adjust balance when payments change (non-vehicle sales only — vehicle balance is handled separately)
+    if (sale && sale.businessType !== "aluguel_veiculo") {
       const amounts = sale.installmentAmounts;
       const defaultVal = sale.installments > 0 ? Math.max(0, sale.total - ((sale as any).downPayment || 0)) / sale.installments : sale.total;
 
@@ -265,7 +265,7 @@ export function useProducts() {
         }
       }
       // Only reverse the paid amount from balance (not the total)
-      if (sale.businessType !== "veiculo" && sale.paidInstallments > 0) {
+      if (sale.businessType !== "aluguel_veiculo" && sale.paidInstallments > 0) {
         const amounts = sale.installmentAmounts;
         const defaultVal = sale.installments > 0 ? Math.max(0, sale.total - ((sale as any).downPayment || 0)) / sale.installments : sale.total;
         let paidTotal = 0;
