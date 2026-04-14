@@ -152,7 +152,24 @@ export function generateContract(sale: Sale, client?: Client, locador?: LocadorI
   .witness-block { flex: 1; }
   .witness-line { border-top: 1px solid #000; padding-top: 6px; font-size: 13px; }
   .location-date { margin-top: 30px; text-align: left; font-size: 14px; }
+  .close-btn {
+    position: fixed;
+    top: 16px;
+    right: 16px;
+    background: #e53e3e;
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    padding: 10px 20px;
+    font-size: 15px;
+    font-weight: bold;
+    cursor: pointer;
+    z-index: 9999;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+  }
+  .close-btn:hover { background: #c53030; }
   @media print {
+    .close-btn { display: none; }
     body { padding: 30px 40px; }
     @page { margin: 1.5cm; }
   }
