@@ -380,8 +380,42 @@ const Index = () => {
         )}
         {tab === "clients" && (
           <div>
-            <h2 className="text-lg font-semibold text-foreground mb-4">Clientes ({filteredClients.length})</h2>
-            <ClientList clients={filteredClients} loans={filteredLoans} payments={filteredPayments} onDelete={deleteClient} onUpdate={updateClient} readOnly={isReadOnly} />
+            <div className="flex gap-2 mb-4">
+              <Button
+                variant={clientSubTab === "clientes" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setClientSubTab("clientes")}
+              >
+                <Users className="h-4 w-4 mr-1" /> Clientes
+              </Button>
+              <Button
+                variant={clientSubTab === "veiculos" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setClientSubTab("veiculos")}
+              >
+                <Car className="h-4 w-4 mr-1" /> Veículos
+              </Button>
+            </div>
+            {clientSubTab === "clientes" && (
+              <>
+                <h2 className="text-lg font-semibold text-foreground mb-4">Clientes ({filteredClients.length})</h2>
+                <ClientList clients={filteredClients} loans={filteredLoans} payments={filteredPayments} onDelete={deleteClient} onUpdate={updateClient} readOnly={isReadOnly} />
+              </>
+            )}
+            {clientSubTab === "veiculos" && (
+              <>
+                <h2 className="text-lg font-semibold text-foreground mb-4">Veículos Cadastrados</h2>
+                <VehicleLocadorManager
+                  locador={locador}
+                  onSaveLocador={saveLocador}
+                  vehicles={registeredVehicles}
+                  onAddVehicle={addVehicle}
+                  onUpdateVehicle={updateVehicle}
+                  onDeleteVehicle={removeVehicle}
+                  readOnly={isReadOnly}
+                />
+              </>
+            )}
           </div>
         )}
         {tab === "expenses" && (
