@@ -404,6 +404,13 @@ export function ClientList({ clients, loans, payments, onDelete, onUpdate, readO
           })}
         </div>
       )}
+      <ConfirmDeleteDialog
+        open={!!deleteClientId}
+        onOpenChange={() => setDeleteClientId(null)}
+        onConfirm={() => { if (deleteClientId) { onDelete(deleteClientId); setDeleteClientId(null); } }}
+        title="Excluir cliente"
+        description="Tem certeza que deseja excluir este cliente?"
+      />
     </div>
   );
 }
