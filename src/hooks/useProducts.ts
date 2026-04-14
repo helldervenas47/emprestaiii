@@ -201,7 +201,7 @@ export function useProducts() {
     const sale = sales.find(s => s.id === id);
 
     // Adjust balance when payments change (non-vehicle sales only)
-    if (sale && sale.businessType !== "veiculo") {
+    if (data.paidInstallments !== undefined && data.paidInstallments !== sale.paidInstallments) {
       const amounts = sale.installmentAmounts;
       const defaultVal = sale.installments > 0 ? Math.max(0, sale.total - ((sale as any).downPayment || 0)) / sale.installments : sale.total;
 
