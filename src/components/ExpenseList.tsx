@@ -415,10 +415,10 @@ export function ExpenseList({ expenses, onPay, onUnpay, onDelete, onUpdate, read
                       </div>
                       {expense.notes && <p className="text-xs text-muted-foreground mt-1 italic">"{expense.notes}"</p>}
                       {isRecorrente && (
-                        <p className="text-xs text-muted-foreground">{formatCurrency(installmentAmount)}/parcela</p>
+                        <p className="text-xs text-muted-foreground">Total: {formatCurrency(expense.amount)} ({expense.installments}x de {formatCurrency(installmentAmount)})</p>
                       )}
                       <div className="flex items-center justify-between mt-2 pt-2 border-t border-border/40">
-                        <p className="text-base sm:text-lg font-bold text-foreground">{formatCurrency(expense.amount)}</p>
+                        <p className="text-base sm:text-lg font-bold text-foreground">{formatCurrency(installmentAmount)}</p>
                         <div className="flex items-center gap-1">
                           {hasPaidSomething && onUpdate && (
                             <Button size="sm" variant="outline" onClick={() => setViewPaymentsExpenseId(expense.id)} className="h-7 text-xs">
