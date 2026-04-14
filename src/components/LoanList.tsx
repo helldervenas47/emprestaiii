@@ -1124,6 +1124,18 @@ function LoanCardView({
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>
+    <AlertDialog open={!!deletePaymentId} onOpenChange={() => setDeletePaymentId(null)}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Excluir pagamento</AlertDialogTitle>
+          <AlertDialogDescription>Tem certeza que deseja excluir este pagamento?</AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Cancelar</AlertDialogCancel>
+          <AlertDialogAction onClick={() => { if (deletePaymentId) { onDeletePayment(deletePaymentId); setDeletePaymentId(null); } }} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Excluir</AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
     </>
   );
 }
