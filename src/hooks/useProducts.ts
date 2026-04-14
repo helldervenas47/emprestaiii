@@ -58,6 +58,56 @@ export function useProducts() {
     fetchData();
   }, [user]);
 
+  // Realtime subscriptions for products and sales
+  useEffect(() => {
+    if (!user) return;
+    const fetchData = async () => {
+      const [prodRes, salesRes] = await Promise.all([
+        supabase.from("products").select("*").order("created_at", { ascending: false }),
+        supabase.from("sales").select("*").order("created_at", { ascending: false }),
+      ]);
+      if (prodRes.data) {
+        setProducts(prodRes.data.map((p) => ({
+          id: p.id, name: p.name, description: p.description || "",
+          price: Number(p.price), stock: p.stock, active: true, createdAt: p.created_at,
+        })));
+      }
+      if (salesRes.data) {
+        const prodMap = new Map((prodRes.data || []).map((p) => [p.id, p.name]));
+        setSales(salesRes.data.map((s) => ({
+          id: s.id,
+          productId: s.product_id || undefined,
+          productName: s.product_id ? (prodMap.get(s.product_id) || "Produto removido") : (s.description || ""),
+          description: s.description || "",
+          quantity: s.quantity,
+          unitPrice: 0,
+          cost: 0,
+          total: Number(s.total),
+          customerName: s.customer_name || "",
+          date: s.sale_date,
+          notes: (s as any).notes || "",
+          businessType: (s.business_type as BusinessType) || "venda",
+          paymentMode: ((s as any).payment_mode || "fixa") as "fixa" | "recorrente",
+          installments: (s as any).installments || 1,
+          paidInstallments: (s as any).paid_installments || 0,
+          downPayment: 0,
+          frequency: (s as any).frequency || "Mensal",
+          installmentValue: (s as any).installment_value != null ? Number((s as any).installment_value) : null,
+          installmentAmounts: (s as any).installment_amounts || null,
+          installmentDates: (s as any).installment_dates || null,
+          partialPaid: Number((s as any).partial_paid) || 0,
+          paymentHistory: (Array.isArray(s.payment_history) ? s.payment_history : []) as unknown as SalePaymentRecord[],
+        })));
+      }
+    };
+    const channel = supabase
+      .channel('products-sales-realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'products' }, () => { fetchData(); })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'sales' }, () => { fetchData(); })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [user]);
+
   const addProduct = useCallback(async (p: Omit<Product, "id" | "createdAt">) => {
     if (!user || !dataOwnerId) return;
     const tempId = crypto.randomUUID();

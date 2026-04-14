@@ -28,6 +28,16 @@ export function useExpenses() {
 
   useEffect(() => { fetchExpenses(); }, [fetchExpenses]);
 
+  // Realtime subscription
+  useEffect(() => {
+    if (!user) return;
+    const channel = supabase
+      .channel('expenses-realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'expenses' }, () => { fetchExpenses(); })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [user, fetchExpenses]);
+
   const addExpense = useCallback(async (expense: Omit<Expense, "id" | "paid" | "paidDate" | "createdAt">) => {
     if (!user || !dataOwnerId) return;
     const tempId = crypto.randomUUID();
