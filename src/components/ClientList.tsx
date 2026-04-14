@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Trash2, User, Phone, Mail, MapPin, Search, Users, Pencil, X, Check, ToggleLeft, ToggleRight, ArrowUpDown, ArrowDownAZ, ArrowUpAZ, Clock, CalendarDays, TrendingUp, AlertTriangle, CheckCircle, ShieldCheck } from "lucide-react";
+import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
 
 interface Props {
   clients: Client[];
@@ -120,6 +121,7 @@ export function ClientList({ clients, loans, payments, onDelete, onUpdate, readO
   const [sortOption, setSortOption] = useState<SortOption>("name-asc");
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState<Record<string, any>>({ name: "", phone: "", email: "", cpf: "", cnpj: "", rg: "", address: "", city: "", state: "", score: "", notes: "", isVehicleRental: false, nacionalidade: "", estadoCivil: "", profissao: "", bairro: "" });
+  const [deleteClientId, setDeleteClientId] = useState<string | null>(null);
 
   const creditScores = useMemo(() => {
     const map: Record<string, CreditScore> = {};
@@ -351,7 +353,7 @@ export function ClientList({ clients, loans, payments, onDelete, onUpdate, readO
                         <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => startEdit(client)} title="Editar">
                           <Pencil className="h-4 w-4 text-muted-foreground" />
                         </Button>
-                        <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive hover:bg-destructive hover:text-destructive-foreground" onClick={() => onDelete(client.id)} title="Excluir">
+                        <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive hover:bg-destructive hover:text-destructive-foreground" onClick={() => setDeleteClientId(client.id)} title="Excluir">
                           <Trash2 className="h-4 w-4" />
                         </Button>
                       </div>
@@ -402,6 +404,13 @@ export function ClientList({ clients, loans, payments, onDelete, onUpdate, readO
           })}
         </div>
       )}
+      <ConfirmDeleteDialog
+        open={!!deleteClientId}
+        onOpenChange={() => setDeleteClientId(null)}
+        onConfirm={() => { if (deleteClientId) { onDelete(deleteClientId); setDeleteClientId(null); } }}
+        title="Excluir cliente"
+        description="Tem certeza que deseja excluir este cliente?"
+      />
     </div>
   );
 }

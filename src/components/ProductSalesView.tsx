@@ -27,6 +27,7 @@ import { SaleEditForm } from "@/components/SaleEditForm";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
+import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
 
 import { VehicleExpenseForm, vehicleExpenseCategories } from "@/components/VehicleExpenseForm";
 import { VehicleLocadorManager } from "@/components/VehicleLocadorManager";
@@ -99,6 +100,7 @@ function SaleCard({ sale, onDelete, onEdit, onUpdate, formatCurrency, readOnly =
   const [showParcelas, setShowParcelas] = useState(false);
   const [showPayDatePicker, setShowPayDatePicker] = useState(false);
   const [showPayments, setShowPayments] = useState(false);
+  const [confirmDeleteSale, setConfirmDeleteSale] = useState(false);
   const TabIcon = businessTabs.find((t) => t.type === sale.businessType)?.icon || ShoppingCart;
   const isRecorrente = sale.paymentMode === "recorrente" && sale.installments > 1;
   const amounts = sale.installmentAmounts;
@@ -142,6 +144,7 @@ function SaleCard({ sale, onDelete, onEdit, onUpdate, formatCurrency, readOnly =
   });
 
   return (
+    <>
     <Card no3d className={`overflow-hidden hover:shadow-[0_4px_16px_-6px_hsl(0_0%_0%/0.08)] hover:-translate-y-[1px] transition-all duration-400 ease-out border ${catStyle.border} ${catStyle.bg} h-full flex flex-col`}>
       {/* Customer header - fixed */}
       <div className={`border-b px-4 py-2.5 text-center ${catStyle.header}`}>
@@ -489,7 +492,7 @@ function SaleCard({ sale, onDelete, onEdit, onUpdate, formatCurrency, readOnly =
                   <Button size="icon" variant="ghost" className="h-8 w-8 text-muted-foreground hover:bg-accent hover:text-foreground" onClick={onEdit}>
                     <Pencil className="h-4 w-4" />
                   </Button>
-                  <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive hover:bg-destructive hover:text-destructive-foreground" onClick={onDelete}>
+                  <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive hover:bg-destructive hover:text-destructive-foreground" onClick={() => setConfirmDeleteSale(true)}>
                     <Trash2 className="h-4 w-4" />
                   </Button>
                 </>
@@ -499,6 +502,14 @@ function SaleCard({ sale, onDelete, onEdit, onUpdate, formatCurrency, readOnly =
         </div>
       </CardContent>
     </Card>
+    <ConfirmDeleteDialog
+      open={confirmDeleteSale}
+      onOpenChange={setConfirmDeleteSale}
+      onConfirm={() => { onDelete(); setConfirmDeleteSale(false); }}
+      title="Excluir venda"
+      description="Tem certeza que deseja excluir esta venda?"
+    />
+    </>
   );
 }
 
@@ -1332,6 +1343,7 @@ export function ProductSalesView({ sales, onDeleteSale, onUpdateSale, clients = 
   const [showDeleteAllExpenses, setShowDeleteAllExpenses] = useState(false);
   const [viewPaymentsExpenseId, setViewPaymentsExpenseId] = useState<string | null>(null);
   const [editingExpenseId, setEditingExpenseId] = useState<string | null>(null);
+  const [deleteExpenseId, setDeleteExpenseId] = useState<string | null>(null);
 
   useEffect(() => {
     (async () => {
@@ -1689,7 +1701,7 @@ export function ProductSalesView({ sales, onDeleteSale, onUpdateSale, clients = 
                                   </Button>
                                 )}
                                 {!readOnly && onDeleteExpense && (
-                                  <Button size="sm" variant="ghost" onClick={() => onDeleteExpense(exp.id, true)} className="h-7 w-7 p-0 text-destructive hover:text-destructive">
+                                  <Button size="sm" variant="ghost" onClick={() => setDeleteExpenseId(exp.id)} className="h-7 w-7 p-0 text-destructive hover:text-destructive">
                                     <Trash2 className="h-3.5 w-3.5" />
                                   </Button>
                                 )}
@@ -1796,6 +1808,7 @@ export function ProductSalesView({ sales, onDeleteSale, onUpdateSale, clients = 
   const activeTabs = salesSubTabs;
   
   return (
+    <>
     <Tabs defaultValue={activeTabs[0]?.type || "venda"} className="space-y-4">
       {activeTabs.length > 1 && (
         <TabsList className={`w-full grid grid-cols-${activeTabs.length}`}>
@@ -1820,5 +1833,13 @@ export function ProductSalesView({ sales, onDeleteSale, onUpdateSale, clients = 
         </TabsContent>
       ))}
     </Tabs>
+    <ConfirmDeleteDialog
+      open={!!deleteExpenseId}
+      onOpenChange={() => setDeleteExpenseId(null)}
+      onConfirm={() => { if (deleteExpenseId && onDeleteExpense) { onDeleteExpense(deleteExpenseId, true); setDeleteExpenseId(null); } }}
+      title="Excluir despesa"
+      description="Tem certeza que deseja excluir esta despesa?"
+    />
+    </>
   );
 }

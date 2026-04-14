@@ -190,6 +190,7 @@ function LoanCardView({
   const [showPenalty, setShowPenalty] = useState(false);
   const [penaltyValue, setPenaltyValue] = useState<string>(loan.penaltyValue != null ? String(loan.penaltyValue) : "");
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deletePaymentId, setDeletePaymentId] = useState<string | null>(null);
 
   const total = calculateTotalWithInterest(loan.amount, loan.interestRate, loan.installments);
   const totalPaid = getTotalPaid(loan, allPayments);
@@ -1094,7 +1095,7 @@ function LoanCardView({
                       <p className="text-sm font-bold text-foreground mt-1">{formatCurrency(p.amount)}</p>
                     </div>
                     {!readOnly && (
-                    <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive hover:bg-destructive hover:text-destructive-foreground" onClick={() => onDeletePayment(p.id)} title="Excluir pagamento">
+                    <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive hover:bg-destructive hover:text-destructive-foreground" onClick={() => setDeletePaymentId(p.id)} title="Excluir pagamento">
                       <Trash2 className="h-3.5 w-3.5" />
                     </Button>
                     )}
@@ -1120,6 +1121,18 @@ function LoanCardView({
         <AlertDialogFooter>
           <AlertDialogCancel>Cancelar</AlertDialogCancel>
           <AlertDialogAction onClick={onDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Excluir</AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+    <AlertDialog open={!!deletePaymentId} onOpenChange={() => setDeletePaymentId(null)}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Excluir pagamento</AlertDialogTitle>
+          <AlertDialogDescription>Tem certeza que deseja excluir este pagamento?</AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Cancelar</AlertDialogCancel>
+          <AlertDialogAction onClick={() => { if (deletePaymentId) { onDeletePayment(deletePaymentId); setDeletePaymentId(null); } }} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Excluir</AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>
@@ -1153,6 +1166,7 @@ function LoanRowView({
   const [showHistory, setShowHistory] = useState(false);
   const [paymentDate, setPaymentDate] = useState<Date>(new Date());
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deletePaymentId, setDeletePaymentId] = useState<string | null>(null);
 
   const total = calculateTotalWithInterest(loan.amount, loan.interestRate, loan.installments);
   const totalPaid = getTotalPaid(loan, allPayments);
@@ -1604,7 +1618,7 @@ function LoanRowView({
                       <p className="text-sm font-bold text-foreground mt-1">{formatCurrency(p.amount)}</p>
                     </div>
                     {!readOnly && (
-                    <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive hover:bg-destructive hover:text-destructive-foreground" onClick={() => onDeletePayment(p.id)} title="Excluir pagamento">
+                    <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive hover:bg-destructive hover:text-destructive-foreground" onClick={() => setDeletePaymentId(p.id)} title="Excluir pagamento">
                       <Trash2 className="h-3.5 w-3.5" />
                     </Button>
                     )}
@@ -1630,6 +1644,18 @@ function LoanRowView({
         <AlertDialogFooter>
           <AlertDialogCancel>Cancelar</AlertDialogCancel>
           <AlertDialogAction onClick={onDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Excluir</AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+    <AlertDialog open={!!deletePaymentId} onOpenChange={() => setDeletePaymentId(null)}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Excluir pagamento</AlertDialogTitle>
+          <AlertDialogDescription>Tem certeza que deseja excluir este pagamento?</AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Cancelar</AlertDialogCancel>
+          <AlertDialogAction onClick={() => { if (deletePaymentId) { onDeletePayment(deletePaymentId); setDeletePaymentId(null); } }} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Excluir</AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>

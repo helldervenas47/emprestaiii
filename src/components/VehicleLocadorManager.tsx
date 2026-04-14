@@ -7,6 +7,7 @@ import { LocadorInfo } from "@/hooks/useLocadorInfo";
 import { VehicleInfo } from "@/hooks/useVehicleRegistry";
 import { Pencil, Check, X, Plus, Trash2, Car, User, ChevronDown, ChevronUp } from "lucide-react";
 import { toast } from "sonner";
+import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
 
 interface Props {
   locador: LocadorInfo;
@@ -31,6 +32,7 @@ export function VehicleLocadorManager({
   const [vehicleForm, setVehicleForm] = useState({ marcaModelo: "", ano: "", cor: "", placa: "", renavam: "" });
   const [editingVehicleId, setEditingVehicleId] = useState<string | null>(null);
   const [editVehicleForm, setEditVehicleForm] = useState({ marcaModelo: "", ano: "", cor: "", placa: "", renavam: "" });
+  const [deleteVehicleId, setDeleteVehicleId] = useState<string | null>(null);
 
   const handleSaveLocador = () => {
     onSaveLocador(locadorForm);
@@ -217,7 +219,7 @@ export function VehicleLocadorManager({
                           <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => startEditVehicle(v)}>
                             <Pencil className="h-4 w-4 text-muted-foreground" />
                           </Button>
-                          <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive hover:bg-destructive hover:text-destructive-foreground" onClick={() => onDeleteVehicle(v.id)}>
+                          <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive hover:bg-destructive hover:text-destructive-foreground" onClick={() => setDeleteVehicleId(v.id)}>
                             <Trash2 className="h-4 w-4" />
                           </Button>
                         </div>
@@ -282,6 +284,13 @@ export function VehicleLocadorManager({
           </div>
         )}
       </div>
+      <ConfirmDeleteDialog
+        open={!!deleteVehicleId}
+        onOpenChange={() => setDeleteVehicleId(null)}
+        onConfirm={() => { if (deleteVehicleId) { onDeleteVehicle(deleteVehicleId); setDeleteVehicleId(null); } }}
+        title="Excluir veículo"
+        description="Tem certeza que deseja excluir este veículo?"
+      />
     </div>
   );
 }
