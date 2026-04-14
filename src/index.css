@@ -193,6 +193,36 @@
   .btn-gradient-hover--success::before {
     background: linear-gradient(90deg, hsl(var(--success)), hsl(190 70% 42%));
   }
+
+  /* Sweep/loading hover effect for outline buttons */
+  .btn-sweep-hover {
+    position: relative;
+    overflow: hidden;
+    z-index: 0;
+    transition: color 0.4s ease;
+  }
+  .btn-sweep-hover::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: -1;
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform 0.45s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .btn-sweep-hover:hover::before {
+    transform: scaleX(1);
+  }
+  .btn-sweep-hover:hover {
+    color: hsl(var(--primary-foreground));
+    border-color: transparent;
+  }
+  .btn-sweep-hover::before {
+    background: hsl(var(--primary));
+  }
 }
 
 @layer utilities {
