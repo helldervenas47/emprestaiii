@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { VehicleInfo } from "@/hooks/useVehicleRegistry";
 import { Pencil, Check, X, Trash2, Car, Search, Plus } from "lucide-react";
 import { toast } from "sonner";
+import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
 
 interface Props {
   vehicles: VehicleInfo[];
@@ -21,6 +22,7 @@ export function VehicleCardList({ vehicles, onAdd, onUpdate, onDelete, readOnly 
   const [editForm, setEditForm] = useState({ marcaModelo: "", ano: "", cor: "", placa: "", renavam: "" });
   const [adding, setAdding] = useState(false);
   const [addForm, setAddForm] = useState({ marcaModelo: "", ano: "", cor: "", placa: "", renavam: "" });
+  const [deleteId, setDeleteId] = useState<string | null>(null);
 
   const filtered = vehicles.filter((v) => {
     const q = search.toLowerCase();
@@ -189,6 +191,13 @@ export function VehicleCardList({ vehicles, onAdd, onUpdate, onDelete, readOnly 
           <p className="text-sm text-muted-foreground">{search ? "Nenhum veículo encontrado" : "Nenhum veículo cadastrado"}</p>
         </div>
       )}
+      <ConfirmDeleteDialog
+        open={!!deleteId}
+        onOpenChange={() => setDeleteId(null)}
+        onConfirm={() => { if (deleteId) { onDelete(deleteId); setDeleteId(null); } }}
+        title="Excluir veículo"
+        description="Tem certeza que deseja excluir este veículo?"
+      />
     </div>
   );
 }

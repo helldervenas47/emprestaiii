@@ -16,6 +16,7 @@ import {
   Search, Trash2, CheckCircle, Receipt, Calendar, Tag,
   CircleDollarSign, ChevronLeft, ChevronRight, Undo2, Pencil, Check,
 } from "lucide-react";
+import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
 
 const categories = [
   "Aluguel", "Energia", "Água", "Internet", "Telefone",
