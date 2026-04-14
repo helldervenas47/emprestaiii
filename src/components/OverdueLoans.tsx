@@ -34,8 +34,17 @@ function getDaysOverdue(dueDate: string): number {
 }
 
 function getInstallmentAmount(loan: Loan, schedules: InstallmentSchedule[]): number {
+  // Para parcela única, usar remaining_amount diretamente
+  if (loan.installments === 1 && loan.remainingAmount && loan.remainingAmount > 0) {
+    return loan.remainingAmount;
+  }
+  // Para parcelado, tentar schedule primeiro
   const schedule = schedules.find(s => s.loanId === loan.id && s.installmentNumber === loan.paidInstallments + 1);
   if (schedule) return schedule.amount;
+  // Fallback: remainingAmount ou cálculo original
+  if (loan.remainingAmount && loan.remainingAmount > 0) {
+    return loan.remainingAmount;
+  }
   return loan.customInstallmentValue || calculateInstallment(loan.amount, loan.interestRate, loan.installments);
 }
 
