@@ -1832,5 +1832,13 @@ export function ProductSalesView({ sales, onDeleteSale, onUpdateSale, clients = 
         </TabsContent>
       ))}
     </Tabs>
+    <ConfirmDeleteDialog
+      open={!!deleteExpenseId}
+      onOpenChange={() => setDeleteExpenseId(null)}
+      onConfirm={() => { if (deleteExpenseId && onDeleteExpense) { onDeleteExpense(deleteExpenseId, true); setDeleteExpenseId(null); } }}
+      title="Excluir despesa"
+      description="Tem certeza que deseja excluir esta despesa?"
+    />
+    </>
   );
 }
