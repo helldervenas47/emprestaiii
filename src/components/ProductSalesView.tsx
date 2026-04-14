@@ -473,7 +473,8 @@ function SaleCard({ sale, onDelete, onEdit, onUpdate, formatCurrency, readOnly =
                 <Button size="icon" variant="ghost" className="h-8 w-8 text-primary hover:bg-primary/10" onClick={() => {
                   const descNorm = (sale.description || sale.productName || "").toLowerCase().trim();
                   const matchedVehicle = registeredVehicles.find(v => v.marcaModelo.toLowerCase().trim() === descNorm);
-                  generateContract(sale, matchedClient, locadorInfo, matchedVehicle);
+                  const saleLocador = sale.locadorId ? locadores.find(l => l.id === sale.locadorId) : undefined;
+                  generateContract(sale, matchedClient, saleLocador || locadorInfo, matchedVehicle);
                 }} title="Gerar Contrato">
                   <FileText className="h-4 w-4" />
                 </Button>
