@@ -20,7 +20,8 @@ export function DashboardCards({ loans, payments }: Props) {
     0
   );
   const activeLoans = activeLoansData.length;
-  const overdueLoans = loans.filter((l) => l.status === "overdue").length;
+  const todayStr = new Date().toISOString().split("T")[0];
+  const overdueLoans = loans.filter((l) => l.status === "overdue" && l.dueDate < todayStr).length;
 
   const cards = [
     { title: "Capital na Rua", value: formatCurrency(totalLent), isCurrency: true, icon: DollarSign, accentClass: "text-primary", bgClass: "bg-primary/10", glowClass: "glow-primary" },
