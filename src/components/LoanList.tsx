@@ -1199,7 +1199,7 @@ function LoanCardView({
 }
 
 function LoanRowView({
-  loan, payments: allPayments, installmentSchedules = [], onPayment, onPartialPayment, onInterestPayment, onUpdate, onDelete, onDeletePayment, readOnly = false,
+  loan, payments: allPayments, installmentSchedules = [], onPayment, onPartialPayment, onInterestPayment, onUpdate, onDelete, onDeletePayment, readOnly = false, existingTags = [],
 }: {
   loan: Loan;
   payments: Payment[];
@@ -1211,6 +1211,7 @@ function LoanRowView({
   onDelete: () => void;
   onDeletePayment: (paymentId: string) => void;
   readOnly?: boolean;
+  existingTags?: string[];
 }) {
   const [expanded, setExpanded] = useState(false);
   const [editing, setEditing] = useState(false);
