@@ -412,6 +412,7 @@ const Index = () => {
             onDeleteExpense={deleteExpense}
             onUpdateExpense={updateExpense}
             readOnly={isReadOnly}
+            isVehicleView
           />
         )}
         {tab === "users" && <UserManagement />}
