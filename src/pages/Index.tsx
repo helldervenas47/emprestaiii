@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Plus, HandCoins, Users, LayoutDashboard, ShoppingBag, BarChart3, AlertTriangle, Receipt, CalendarDays, Sun, Moon, LogOut, Info, X, Eye, EyeOff, Car, Wrench, DatabaseBackup, Menu, User } from "lucide-react";
+import { Plus, HandCoins, Users, LayoutDashboard, ShoppingBag, BarChart3, AlertTriangle, Receipt, CalendarDays, Sun, Moon, LogOut, Info, X, Eye, EyeOff, Car, Wrench, DatabaseBackup, Menu, User, RefreshCw } from "lucide-react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -329,6 +329,9 @@ const Index = () => {
                 </div>
               </PopoverContent>
             </Popover>
+            <Button variant="ghost" size="icon" onClick={() => window.location.reload()} className="h-8 w-8 sm:h-9 sm:w-9" title="Atualizar página">
+              <RefreshCw className="h-4 w-4" />
+            </Button>
             <HideValuesToggle />
             <Button variant="ghost" size="icon" onClick={toggleTheme} className="h-8 w-8 sm:h-9 sm:w-9" title={dark ? "Modo claro" : "Modo escuro"}>
               {dark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
