@@ -36,6 +36,7 @@ interface Props {
 }
 
 export function SaleForm({ onAdd, onClose, defaultBusinessType = "venda", clients = [], registeredVehicles = [], locadores = [] }: Props) {
+  const defaultLocadorId = locadores.length === 1 ? (locadores[0].id || "") : "";
   const [form, setForm] = useState({
     description: "",
     quantity: "1",
@@ -48,6 +49,7 @@ export function SaleForm({ onAdd, onClose, defaultBusinessType = "venda", client
     installments: defaultBusinessType === "aluguel_veiculo" ? "1" : "1",
     frequency: defaultBusinessType === "aluguel_veiculo" ? "Mensal" : "Mensal",
     firstInstallmentDate: new Date().toISOString().split("T")[0],
+    locadorId: defaultLocadorId,
   });
 
   const [installmentRows, setInstallmentRows] = useState<{ date: string; value: string; manualDate?: boolean; manualValue?: boolean }[]>([]);
