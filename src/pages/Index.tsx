@@ -396,19 +396,31 @@ const Index = () => {
           />
         )}
         {tab === "vehicles" && (
-          <ProductSalesView
-            sales={filteredSales.filter(s => s.businessType === "aluguel_veiculo")}
-            onDeleteSale={deleteSale}
-            onUpdateSale={updateSale}
-            clients={filteredClients}
-            expenses={expenses}
-            onAddExpense={addExpense}
-            onPayExpense={payExpense}
-            onDeleteExpense={deleteExpense}
-            onUpdateExpense={updateExpense}
-            readOnly={isReadOnly}
-            isVehicleView
-          />
+          <>
+            {!isReadOnly && (
+              <div className="flex gap-2 flex-wrap">
+                <Button onClick={() => setShowVehicleExpenseForm(true)} variant="outline" size="sm">
+                  <Receipt className="h-4 w-4 mr-1" /> Registrar Despesa
+                </Button>
+                <Button onClick={handlePrimaryAction} size="sm">
+                  <Plus className="h-4 w-4 mr-1" /> Novo Aluguel
+                </Button>
+              </div>
+            )}
+            <ProductSalesView
+              sales={filteredSales.filter(s => s.businessType === "aluguel_veiculo")}
+              onDeleteSale={deleteSale}
+              onUpdateSale={updateSale}
+              clients={filteredClients}
+              expenses={expenses}
+              onAddExpense={addExpense}
+              onPayExpense={payExpense}
+              onDeleteExpense={deleteExpense}
+              onUpdateExpense={updateExpense}
+              readOnly={isReadOnly}
+              isVehicleView
+            />
+          </>
         )}
         {tab === "users" && <UserManagement />}
         {tab === "backup" && (
