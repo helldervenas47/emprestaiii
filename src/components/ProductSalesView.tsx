@@ -44,6 +44,7 @@ interface Props {
   onDeleteExpense?: (id: string, skipBalanceAdjust?: boolean) => void;
   onUpdateExpense?: (id: string, data: Partial<Omit<Expense, "id" | "createdAt">>) => void;
   readOnly?: boolean;
+  isVehicleView?: boolean;
 }
 
 function rawFormatCurrency(v: number) {
@@ -1256,7 +1257,7 @@ function VehicleExpenseEditDialog({ expense, open, onOpenChange, onSave, formatC
   );
 }
 
-export function ProductSalesView({ sales, onDeleteSale, onUpdateSale, clients = [], expenses = [], onAddExpense, onPayExpense, onDeleteExpense, onUpdateExpense, readOnly = false }: Props) {
+export function ProductSalesView({ sales, onDeleteSale, onUpdateSale, clients = [], expenses = [], onAddExpense, onPayExpense, onDeleteExpense, onUpdateExpense, readOnly = false, isVehicleView = false }: Props) {
   const [showVehicleExpenseForm, setShowVehicleExpenseForm] = useState(false);
   const { mask } = useHideValues();
   const formatCurrency = useCallback((v: number) => mask(rawFormatCurrency(v)), [mask]);
@@ -1425,7 +1426,7 @@ export function ProductSalesView({ sales, onDeleteSale, onUpdateSale, clients = 
   );
 
   // Check if this is the vehicles-only view
-  const hasSalesOrStreaming = sales.some(s => s.businessType === "venda" || s.businessType === "streaming");
+  const hasSalesOrStreaming = !isVehicleView;
   
   const updateVehicleBalance = useCallback(async (delta: number) => {
     const { data: { user } } = await supabase.auth.getUser();
