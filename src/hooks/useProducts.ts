@@ -51,6 +51,7 @@ export function useProducts() {
           installmentDates: (s as any).installment_dates || null,
           partialPaid: Number((s as any).partial_paid) || 0,
           paymentHistory: (Array.isArray(s.payment_history) ? s.payment_history : []) as unknown as SalePaymentRecord[],
+          locadorId: s.locador_id || null,
         })));
       }
       setLoading(false);
@@ -97,6 +98,7 @@ export function useProducts() {
           installmentDates: (s as any).installment_dates || null,
           partialPaid: Number((s as any).partial_paid) || 0,
           paymentHistory: (Array.isArray(s.payment_history) ? s.payment_history : []) as unknown as SalePaymentRecord[],
+          locadorId: s.locador_id || null,
         })));
       }
     };
@@ -171,6 +173,7 @@ export function useProducts() {
       installment_value: s.installmentValue || null,
       installment_amounts: s.installmentAmounts || null,
       installment_dates: s.installmentDates || null,
+      locador_id: s.locadorId || null,
     } as any).select().single();
 
     if (error) {
@@ -214,6 +217,7 @@ export function useProducts() {
     if (data.installmentDates !== undefined) updateData.installment_dates = data.installmentDates;
     if (data.partialPaid !== undefined) updateData.partial_paid = data.partialPaid;
     if (data.paymentHistory !== undefined) updateData.payment_history = data.paymentHistory;
+    if (data.locadorId !== undefined) updateData.locador_id = data.locadorId;
     await supabase.from("sales").update(updateData as any).eq("id", id);
   }, [user]);
 

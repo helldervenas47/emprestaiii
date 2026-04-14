@@ -90,7 +90,7 @@ const saleCategoryConfig = {
   on_track: { label: "Em Dia", badge: "bg-primary/20 text-primary border-primary/30", border: "border-primary/50", bg: "bg-card", header: "bg-primary/8 border-border/50" },
 };
 
-function SaleCard({ sale, onDelete, onEdit, onUpdate, formatCurrency, readOnly = false, clients = [], locadorInfo, registeredVehicles = [] }: { sale: Sale; onDelete: () => void; onEdit: () => void; onUpdate: (data: Partial<Omit<Sale, "id">>) => void; formatCurrency: (v: number) => string; readOnly?: boolean; clients?: Client[]; locadorInfo?: LocadorInfo; registeredVehicles?: VehicleInfo[] }) {
+function SaleCard({ sale, onDelete, onEdit, onUpdate, formatCurrency, readOnly = false, clients = [], locadorInfo, registeredVehicles = [], locadores = [] }: { sale: Sale; onDelete: () => void; onEdit: () => void; onUpdate: (data: Partial<Omit<Sale, "id">>) => void; formatCurrency: (v: number) => string; readOnly?: boolean; clients?: Client[]; locadorInfo?: LocadorInfo; registeredVehicles?: VehicleInfo[]; locadores?: LocadorInfo[] }) {
   const [showPartial, setShowPartial] = useState(false);
   const [partialAmount, setPartialAmount] = useState("");
   const [partialDate, setPartialDate] = useState<Date | undefined>(undefined);
@@ -473,7 +473,8 @@ function SaleCard({ sale, onDelete, onEdit, onUpdate, formatCurrency, readOnly =
                 <Button size="icon" variant="ghost" className="h-8 w-8 text-primary hover:bg-primary/10" onClick={() => {
                   const descNorm = (sale.description || sale.productName || "").toLowerCase().trim();
                   const matchedVehicle = registeredVehicles.find(v => v.marcaModelo.toLowerCase().trim() === descNorm);
-                  generateContract(sale, matchedClient, locadorInfo, matchedVehicle);
+                  const saleLocador = sale.locadorId ? locadores.find(l => l.id === sale.locadorId) : undefined;
+                  generateContract(sale, matchedClient, saleLocador || locadorInfo, matchedVehicle);
                 }} title="Gerar Contrato">
                   <FileText className="h-4 w-4" />
                 </Button>
@@ -709,7 +710,7 @@ function getSalePaidAmountHelper(s: Sale): number {
 }
 
 function SaleClientFolder({
-  group, onDeleteSale, onUpdateSale, formatCurrency, onEdit, readOnly = false, clients = [], locadorInfo, registeredVehicles = [],
+  group, onDeleteSale, onUpdateSale, formatCurrency, onEdit, readOnly = false, clients = [], locadorInfo, registeredVehicles = [], locadores = [],
 }: {
   group: SaleClientGroup;
   onDeleteSale: (id: string) => void;
@@ -720,6 +721,7 @@ function SaleClientFolder({
   clients?: Client[];
   locadorInfo?: LocadorInfo;
   registeredVehicles?: VehicleInfo[];
+  locadores?: LocadorInfo[];
 }) {
   const [open, setOpen] = useState(false);
   const activeCount = group.sales.filter((s) => getSaleCategory(s) !== "paid").length;
@@ -791,6 +793,7 @@ function SaleClientFolder({
                 clients={clients}
                 locadorInfo={locadorInfo}
                 registeredVehicles={registeredVehicles}
+                locadores={locadores}
               />
             ))}
           </div>
@@ -800,7 +803,7 @@ function SaleClientFolder({
   );
 }
 
-function SalesList({ sales, onDeleteSale, onUpdateSale, clients = [], hideOnTrackCard = false, renderAfterCards, readOnly = false, locadorInfo, registeredVehicles = [] }: { sales: Sale[]; onDeleteSale: (id: string) => void; onUpdateSale: (id: string, data: Partial<Omit<Sale, "id">>) => void; clients?: Client[]; hideOnTrackCard?: boolean; renderAfterCards?: React.ReactNode; readOnly?: boolean; locadorInfo?: LocadorInfo; registeredVehicles?: VehicleInfo[] }) {
+function SalesList({ sales, onDeleteSale, onUpdateSale, clients = [], hideOnTrackCard = false, renderAfterCards, readOnly = false, locadorInfo, registeredVehicles = [], locadores = [] }: { sales: Sale[]; onDeleteSale: (id: string) => void; onUpdateSale: (id: string, data: Partial<Omit<Sale, "id">>) => void; clients?: Client[]; hideOnTrackCard?: boolean; renderAfterCards?: React.ReactNode; readOnly?: boolean; locadorInfo?: LocadorInfo; registeredVehicles?: VehicleInfo[]; locadores?: LocadorInfo[] }) {
   const [editingSale, setEditingSale] = useState<Sale | null>(null);
   const [search, setSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState<SaleCategory>("all");
@@ -1110,6 +1113,7 @@ function SalesList({ sales, onDeleteSale, onUpdateSale, clients = [], hideOnTrac
                 clients={clients}
                 locadorInfo={locadorInfo}
                 registeredVehicles={registeredVehicles}
+                locadores={locadores}
               />
             ))}
           </div>
@@ -1159,6 +1163,7 @@ function SalesList({ sales, onDeleteSale, onUpdateSale, clients = [], hideOnTrac
               clients={clients}
               locadorInfo={locadorInfo}
               registeredVehicles={registeredVehicles}
+              locadores={locadores}
             />
             </div>
           ))}
@@ -1174,6 +1179,7 @@ function SalesList({ sales, onDeleteSale, onUpdateSale, clients = [], hideOnTrac
           onClose={() => setEditingSale(null)}
           clients={clients}
           registeredVehicles={registeredVehicles}
+          locadores={locadores}
         />
       )}
     </div>
@@ -1311,7 +1317,7 @@ export function ProductSalesView({ sales, onDeleteSale, onUpdateSale, clients = 
   const formatCurrency = useCallback((v: number) => mask(rawFormatCurrency(v)), [mask]);
 
   // Locador & Vehicle Registry hooks
-  const { locador, save: saveLocador } = useLocadorInfo();
+  const { locador, locadores, save: saveLocador } = useLocadorInfo();
   const { vehicles: registeredVehicles, add: addVehicle, update: updateVehicle, remove: removeVehicle } = useVehicleRegistry();
 
   // Balance state
@@ -1587,6 +1593,7 @@ export function ProductSalesView({ sales, onDeleteSale, onUpdateSale, clients = 
           readOnly={readOnly}
           locadorInfo={locador}
           registeredVehicles={registeredVehicles}
+          locadores={locadores}
         />
 
         {/* Vehicle Expenses Section */}

@@ -10,6 +10,7 @@ import { Plus, X, Calendar as CalendarIcon } from "lucide-react";
 import { Sale, BusinessType, PaymentMode, Client } from "@/types/loan";
 import { format, addMonths, addWeeks, addDays } from "date-fns";
 import { VehicleInfo } from "@/hooks/useVehicleRegistry";
+import { LocadorInfo } from "@/hooks/useLocadorInfo";
 import { cn } from "@/lib/utils";
 
 const businessTypeLabels: Record<BusinessType, string> = {
@@ -31,9 +32,11 @@ interface Props {
   defaultBusinessType?: BusinessType;
   clients?: Client[];
   registeredVehicles?: VehicleInfo[];
+  locadores?: LocadorInfo[];
 }
 
-export function SaleForm({ onAdd, onClose, defaultBusinessType = "venda", clients = [], registeredVehicles = [] }: Props) {
+export function SaleForm({ onAdd, onClose, defaultBusinessType = "venda", clients = [], registeredVehicles = [], locadores = [] }: Props) {
+  const defaultLocadorId = locadores.length === 1 ? (locadores[0].id || "") : "";
   const [form, setForm] = useState({
     description: "",
     quantity: "1",
@@ -46,6 +49,7 @@ export function SaleForm({ onAdd, onClose, defaultBusinessType = "venda", client
     installments: defaultBusinessType === "aluguel_veiculo" ? "1" : "1",
     frequency: defaultBusinessType === "aluguel_veiculo" ? "Mensal" : "Mensal",
     firstInstallmentDate: new Date().toISOString().split("T")[0],
+    locadorId: defaultLocadorId,
   });
 
   const [installmentRows, setInstallmentRows] = useState<{ date: string; value: string; manualDate?: boolean; manualValue?: boolean }[]>([]);
@@ -105,6 +109,7 @@ export function SaleForm({ onAdd, onClose, defaultBusinessType = "venda", client
       installmentAmounts: amounts,
       installmentDates: dates,
       partialPaid: 0,
+      locadorId: form.businessType === "aluguel_veiculo" ? (form.locadorId || null) : null,
     });
     onClose();
   };
@@ -158,6 +163,7 @@ export function SaleForm({ onAdd, onClose, defaultBusinessType = "venda", client
             </div>
 
             {isVehicleRental ? (
+              <>
               <div>
                 <Label>Veículo</Label>
                 <Select value={form.description} onValueChange={(v) => update("description", v)}>
@@ -173,6 +179,24 @@ export function SaleForm({ onAdd, onClose, defaultBusinessType = "venda", client
                   </SelectContent>
                 </Select>
               </div>
+              {locadores.length > 0 && (
+                <div>
+                  <Label>Locador</Label>
+                  <Select value={form.locadorId} onValueChange={(v) => update("locadorId", v)}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione o locador" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {locadores.map((l) => (
+                        <SelectItem key={l.id} value={l.id!}>
+                          {l.nome}{l.cpf ? ` - ${l.cpf}` : ""}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+              </>
             ) : (
               <div>
                 <Label>{descriptionLabel}</Label>

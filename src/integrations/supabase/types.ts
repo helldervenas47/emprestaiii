@@ -465,6 +465,7 @@ export type Database = {
           installment_dates: Json | null
           installment_value: number | null
           installments: number
+          locador_id: string | null
           notes: string | null
           paid_installments: number
           partial_paid: number
@@ -487,6 +488,7 @@ export type Database = {
           installment_dates?: Json | null
           installment_value?: number | null
           installments?: number
+          locador_id?: string | null
           notes?: string | null
           paid_installments?: number
           partial_paid?: number
@@ -509,6 +511,7 @@ export type Database = {
           installment_dates?: Json | null
           installment_value?: number | null
           installments?: number
+          locador_id?: string | null
           notes?: string | null
           paid_installments?: number
           partial_paid?: number
@@ -521,6 +524,13 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "sales_locador_id_fkey"
+            columns: ["locador_id"]
+            isOneToOne: false
+            referencedRelation: "locador_info"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "sales_product_id_fkey"
             columns: ["product_id"]

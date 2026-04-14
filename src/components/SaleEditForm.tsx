@@ -9,6 +9,7 @@ import { Calendar as CalendarUI } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Save, X, Calendar as CalendarIcon } from "lucide-react";
 import { Sale, BusinessType, PaymentMode, Client } from "@/types/loan";
+import { LocadorInfo } from "@/hooks/useLocadorInfo";
 import { VehicleInfo } from "@/hooks/useVehicleRegistry";
 import { format, addMonths, addWeeks, addDays } from "date-fns";
 
@@ -31,9 +32,10 @@ interface Props {
   onClose: () => void;
   clients?: Client[];
   registeredVehicles?: VehicleInfo[];
+  locadores?: LocadorInfo[];
 }
 
-export function SaleEditForm({ sale, onSave, onClose, clients = [], registeredVehicles = [] }: Props) {
+export function SaleEditForm({ sale, onSave, onClose, clients = [], registeredVehicles = [], locadores = [] }: Props) {
   const initInstVal = () => {
     if (sale.installmentValue != null && sale.installmentValue > 0) return sale.installmentValue.toFixed(2);
     const count = sale.installments || 1;
@@ -56,6 +58,7 @@ export function SaleEditForm({ sale, onSave, onClose, clients = [], registeredVe
     date: sale.date,
     notes: sale.notes || "",
     frequency: sale.frequency || "Mensal",
+    locadorId: sale.locadorId || (locadores.length === 1 ? (locadores[0].id || "") : ""),
   });
 
   // Generate initial installment rows
@@ -110,6 +113,7 @@ export function SaleEditForm({ sale, onSave, onClose, clients = [], registeredVe
       installmentValue: null,
       installmentAmounts: amounts,
       installmentDates: dates,
+      locadorId: form.businessType === "aluguel_veiculo" ? (form.locadorId || null) : null,
     });
     onClose();
   };
@@ -155,6 +159,7 @@ export function SaleEditForm({ sale, onSave, onClose, clients = [], registeredVe
             </div>
 
             {form.businessType === "aluguel_veiculo" ? (
+              <>
               <div>
                 <Label>Veículo</Label>
                 <Select value={form.description} onValueChange={(v) => update("description", v)}>
@@ -170,6 +175,24 @@ export function SaleEditForm({ sale, onSave, onClose, clients = [], registeredVe
                   </SelectContent>
                 </Select>
               </div>
+              {locadores.length > 0 && (
+                <div>
+                  <Label>Locador</Label>
+                  <Select value={form.locadorId} onValueChange={(v) => update("locadorId", v)}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione o locador" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {locadores.map((l) => (
+                        <SelectItem key={l.id} value={l.id!}>
+                          {l.nome}{l.cpf ? ` - ${l.cpf}` : ""}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+              </>
             ) : (
               <div>
                 <Label>Produto / Descrição</Label>

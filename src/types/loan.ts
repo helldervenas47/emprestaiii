@@ -104,6 +104,7 @@ export interface Sale {
   installmentDates?: string[] | null;
   partialPaid: number;
   paymentHistory?: SalePaymentRecord[];
+  locadorId?: string | null;
 }
 
 export interface Expense {
