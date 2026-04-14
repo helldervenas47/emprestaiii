@@ -416,26 +416,45 @@ const Index = () => {
             )}
             {clientSubTab === "veiculos" && (
               <>
-                <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-lg font-semibold text-foreground">Veículos Cadastrados ({registeredVehicles.length})</h2>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button variant="outline" size="sm">
-                        <User className="h-4 w-4 mr-1" /> Dados do Locador
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-96" align="end">
-                      <LocadorPopoverContent locador={locador} onSave={saveLocador} readOnly={isReadOnly} />
-                    </PopoverContent>
-                  </Popover>
+                <div className="flex gap-2 mb-4">
+                  <Button
+                    variant={vehicleSubTab === "veiculos" ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setVehicleSubTab("veiculos")}
+                  >
+                    <Car className="h-4 w-4 mr-1" /> Veículos
+                  </Button>
+                  <Button
+                    variant={vehicleSubTab === "locadores" ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setVehicleSubTab("locadores")}
+                  >
+                    <User className="h-4 w-4 mr-1" /> Dados do Locador
+                  </Button>
                 </div>
-                <VehicleCardList
-                  vehicles={registeredVehicles}
-                  onAdd={addVehicle}
-                  onUpdate={updateVehicle}
-                  onDelete={removeVehicle}
-                  readOnly={isReadOnly}
-                />
+                {vehicleSubTab === "veiculos" && (
+                  <>
+                    <h2 className="text-lg font-semibold text-foreground mb-4">Veículos Cadastrados ({registeredVehicles.length})</h2>
+                    <VehicleCardList
+                      vehicles={registeredVehicles}
+                      onAdd={addVehicle}
+                      onUpdate={updateVehicle}
+                      onDelete={removeVehicle}
+                      readOnly={isReadOnly}
+                    />
+                  </>
+                )}
+                {vehicleSubTab === "locadores" && (
+                  <>
+                    <h2 className="text-lg font-semibold text-foreground mb-4">Locadores ({locadores.length})</h2>
+                    <LocadorList
+                      locadores={locadores}
+                      onSave={saveLocador}
+                      onDelete={removeLocador}
+                      readOnly={isReadOnly}
+                    />
+                  </>
+                )}
               </>
             )}
           </div>
