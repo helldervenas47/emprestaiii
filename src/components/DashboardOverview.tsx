@@ -1,4 +1,5 @@
 import { useMemo, useState, useEffect, useCallback } from "react";
+import { useChartOverrides } from "@/hooks/useChartOverrides";
 import { Switch } from "@/components/ui/switch";
 import { useHideValues } from "@/contexts/HideValuesContext";
 import { Loan, Sale, Payment, Expense, InstallmentSchedule } from "@/types/loan";
@@ -104,7 +105,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
   const [editingBalance, setEditingBalance] = useState(false);
   const [tempBalance, setTempBalance] = useState("");
   const [includeSales, setIncludeSales] = useState(false);
-  const [chartOverrides, setChartOverrides] = useLocalStorage<Record<string, { emprestado?: number; recebido?: number }>>("hvcred-chart-overrides", {});
+  const { chartOverrides, setChartOverrides, interestOverrides, setInterestOverrides } = useChartOverrides();
 
   const range = useMemo(() => getRange(period, offset), [period, offset]);
 
@@ -372,7 +373,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
   };
 
   // Interest chart - monthly interest received (last 12 months)
-  const [interestOverrides, setInterestOverrides] = useLocalStorage<Record<string, number>>("hvcred-interest-overrides", {});
+  // Interest chart - monthly interest received (last 12 months)
   const [editingInterest, setEditingInterest] = useState(false);
   const [tempInterestOverrides, setTempInterestOverrides] = useState<Record<string, string>>({});
 
