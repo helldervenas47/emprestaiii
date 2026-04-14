@@ -221,7 +221,7 @@
   }
   .btn-sweep-hover::before {
     background: currentColor;
-    opacity: 0.12;
+    opacity: 0.25;
   }
 }
 
