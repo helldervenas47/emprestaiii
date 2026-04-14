@@ -45,6 +45,8 @@ interface Props {
   onUpdateExpense?: (id: string, data: Partial<Omit<Expense, "id" | "createdAt">>) => void;
   readOnly?: boolean;
   isVehicleView?: boolean;
+  locadores?: LocadorInfo[];
+  onSaveLocador?: (info: LocadorInfo) => void;
 }
 
 function rawFormatCurrency(v: number) {
@@ -1316,8 +1318,11 @@ export function ProductSalesView({ sales, onDeleteSale, onUpdateSale, clients = 
   const { mask } = useHideValues();
   const formatCurrency = useCallback((v: number) => mask(rawFormatCurrency(v)), [mask]);
 
-  // Locador & Vehicle Registry hooks
-  const { locador, locadores, save: saveLocador } = useLocadorInfo();
+  // Locador & Vehicle Registry hooks - use props from parent to share state
+  const locadorHook = useLocadorInfo();
+  const locadores = props.locadores ?? locadorHook.locadores;
+  const saveLocador = props.onSaveLocador ?? locadorHook.save;
+  const locador = locadores[0] || { nome: "", rg: "", cpf: "", nacionalidade: "Brasileiro(a)", profissao: "", endereco: "", bairro: "", cidade: "", estado: "" };
   const { vehicles: registeredVehicles, add: addVehicle, update: updateVehicle, remove: removeVehicle } = useVehicleRegistry();
 
   // Balance state
