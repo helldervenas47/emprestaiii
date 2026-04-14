@@ -844,18 +844,38 @@ function LoanCardView({
         )}
 
         {/* Partial payment input */}
-        {showPartial && (
-          <div className="flex items-center gap-2 p-3 rounded-lg bg-muted border border-border/50">
-            <Input
-              type="number" step="0.01" placeholder="Valor (R$)"
-              value={partialAmount} onChange={(e) => setPartialAmount(e.target.value)}
-              className="h-8 text-sm flex-1" autoFocus
-              onKeyDown={(e) => e.key === "Enter" && handlePartialSubmit()}
-            />
-            <Button size="sm" className="h-8" onClick={handlePartialSubmit}><Check className="h-4 w-4" /></Button>
-            <Button size="sm" variant="ghost" className="h-8" onClick={() => setShowPartial(false)}><X className="h-4 w-4" /></Button>
-          </div>
-        )}
+        <Dialog open={showPartial} onOpenChange={(open) => { if (!open) { setShowPartial(false); setPartialAmount(""); setPartialDate(new Date()); } }}>
+          <DialogContent className="sm:max-w-[340px]">
+            <DialogHeader>
+              <DialogTitle>Pagamento Parcial</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div>
+                <Label className="text-sm">Valor (R$)</Label>
+                <Input
+                  type="number" step="0.01" placeholder="Ex: 150.00"
+                  value={partialAmount} onChange={(e) => setPartialAmount(e.target.value)}
+                  className="h-9 text-sm mt-1" autoFocus
+                />
+              </div>
+              <div>
+                <Label className="text-sm">Data do pagamento</Label>
+                <div className="mt-1 flex justify-center">
+                  <CalendarUI
+                    mode="single"
+                    selected={partialDate}
+                    onSelect={(d) => d && setPartialDate(d)}
+                    className="rounded-md border pointer-events-auto"
+                  />
+                </div>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => { setShowPartial(false); setPartialAmount(""); setPartialDate(new Date()); }}>Cancelar</Button>
+              <Button onClick={handlePartialSubmit} disabled={!partialAmount || parseFloat(partialAmount) <= 0}>Confirmar</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
 
         {/* Action Buttons */}
         <div className="flex flex-col gap-2 pt-2 border-t border-border/50 mt-auto">
