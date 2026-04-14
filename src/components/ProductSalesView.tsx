@@ -1808,6 +1808,7 @@ export function ProductSalesView({ sales, onDeleteSale, onUpdateSale, clients = 
   const activeTabs = salesSubTabs;
   
   return (
+    <>
     <Tabs defaultValue={activeTabs[0]?.type || "venda"} className="space-y-4">
       {activeTabs.length > 1 && (
         <TabsList className={`w-full grid grid-cols-${activeTabs.length}`}>
