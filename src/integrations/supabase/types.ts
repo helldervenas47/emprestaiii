@@ -35,6 +35,39 @@ export type Database = {
         }
         Relationships: []
       }
+      chart_overrides: {
+        Row: {
+          created_at: string
+          emprestado: number | null
+          id: string
+          juros: number | null
+          month_label: string
+          recebido: number | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          emprestado?: number | null
+          id?: string
+          juros?: number | null
+          month_label: string
+          recebido?: number | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          emprestado?: number | null
+          id?: string
+          juros?: number | null
+          month_label?: string
+          recebido?: number | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       clients: {
         Row: {
           active: boolean
