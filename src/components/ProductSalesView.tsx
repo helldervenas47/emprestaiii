@@ -1343,6 +1343,7 @@ export function ProductSalesView({ sales, onDeleteSale, onUpdateSale, clients = 
   const [showDeleteAllExpenses, setShowDeleteAllExpenses] = useState(false);
   const [viewPaymentsExpenseId, setViewPaymentsExpenseId] = useState<string | null>(null);
   const [editingExpenseId, setEditingExpenseId] = useState<string | null>(null);
+  const [deleteExpenseId, setDeleteExpenseId] = useState<string | null>(null);
 
   useEffect(() => {
     (async () => {
@@ -1700,7 +1701,7 @@ export function ProductSalesView({ sales, onDeleteSale, onUpdateSale, clients = 
                                   </Button>
                                 )}
                                 {!readOnly && onDeleteExpense && (
-                                  <Button size="sm" variant="ghost" onClick={() => onDeleteExpense(exp.id, true)} className="h-7 w-7 p-0 text-destructive hover:text-destructive">
+                                  <Button size="sm" variant="ghost" onClick={() => setDeleteExpenseId(exp.id)} className="h-7 w-7 p-0 text-destructive hover:text-destructive">
                                     <Trash2 className="h-3.5 w-3.5" />
                                   </Button>
                                 )}
