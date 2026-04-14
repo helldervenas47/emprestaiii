@@ -1313,15 +1313,15 @@ function VehicleExpenseEditDialog({ expense, open, onOpenChange, onSave, formatC
   );
 }
 
-export function ProductSalesView({ sales, onDeleteSale, onUpdateSale, clients = [], expenses = [], onAddExpense, onPayExpense, onDeleteExpense, onUpdateExpense, readOnly = false, isVehicleView = false }: Props) {
+export function ProductSalesView({ sales, onDeleteSale, onUpdateSale, clients = [], expenses = [], onAddExpense, onPayExpense, onDeleteExpense, onUpdateExpense, readOnly = false, isVehicleView = false, locadores: locadoresProp, onSaveLocador: onSaveLocadorProp }: Props) {
   const [showVehicleExpenseForm, setShowVehicleExpenseForm] = useState(false);
   const { mask } = useHideValues();
   const formatCurrency = useCallback((v: number) => mask(rawFormatCurrency(v)), [mask]);
 
   // Locador & Vehicle Registry hooks - use props from parent to share state
   const locadorHook = useLocadorInfo();
-  const locadores = props.locadores ?? locadorHook.locadores;
-  const saveLocador = props.onSaveLocador ?? locadorHook.save;
+  const locadores = locadoresProp ?? locadorHook.locadores;
+  const saveLocador = onSaveLocadorProp ?? locadorHook.save;
   const locador = locadores[0] || { nome: "", rg: "", cpf: "", nacionalidade: "Brasileiro(a)", profissao: "", endereco: "", bairro: "", cidade: "", estado: "" };
   const { vehicles: registeredVehicles, add: addVehicle, update: updateVehicle, remove: removeVehicle } = useVehicleRegistry();
 
