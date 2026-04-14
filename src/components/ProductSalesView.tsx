@@ -1585,13 +1585,29 @@ export function ProductSalesView({ sales, onDeleteSale, onUpdateSale, clients = 
     onUpdateExpense?.(id, data);
   }, [expenses, onUpdateExpense, updateVehicleBalance]);
 
+  // Wrap onDeleteSale for vehicle sales to reverse paid amounts from vehicle balance
+  const handleVehicleDeleteSale = useCallback((id: string) => {
+    const sale = sales.find(s => s.id === id);
+    if (sale && sale.paidInstallments > 0) {
+      const amounts = sale.installmentAmounts;
+      const defaultVal = sale.installments > 0 ? Math.max(0, sale.total - ((sale as any).downPayment || 0)) / sale.installments : sale.total;
+      let paidTotal = 0;
+      for (let i = 0; i < sale.paidInstallments; i++) {
+        paidTotal += amounts && amounts[i] != null ? amounts[i] : defaultVal;
+      }
+      paidTotal += sale.partialPaid || 0;
+      if (paidTotal > 0) updateVehicleBalance(-paidTotal);
+    }
+    onDeleteSale(id);
+  }, [sales, onDeleteSale, updateVehicleBalance]);
+
   if (!hasSalesOrStreaming) {
     // Vehicles page - render without sub-tabs + vehicle expenses
     return (
       <div className="space-y-6">
         <SalesList
           sales={sales}
-          onDeleteSale={onDeleteSale}
+          onDeleteSale={handleVehicleDeleteSale}
           onUpdateSale={handleVehicleUpdateSale}
           clients={clients}
           hideOnTrackCard
