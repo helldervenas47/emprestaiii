@@ -163,6 +163,7 @@ export function SaleForm({ onAdd, onClose, defaultBusinessType = "venda", client
             </div>
 
             {isVehicleRental ? (
+              <>
               <div>
                 <Label>Veículo</Label>
                 <Select value={form.description} onValueChange={(v) => update("description", v)}>
@@ -178,6 +179,24 @@ export function SaleForm({ onAdd, onClose, defaultBusinessType = "venda", client
                   </SelectContent>
                 </Select>
               </div>
+              {locadores.length > 0 && (
+                <div>
+                  <Label>Locador</Label>
+                  <Select value={form.locadorId} onValueChange={(v) => update("locadorId", v)}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione o locador" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {locadores.map((l) => (
+                        <SelectItem key={l.id} value={l.id!}>
+                          {l.nome}{l.cpf ? ` - ${l.cpf}` : ""}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+              </>
             ) : (
               <div>
                 <Label>{descriptionLabel}</Label>
