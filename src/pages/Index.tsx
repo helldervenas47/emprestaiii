@@ -153,7 +153,9 @@ const Index = () => {
   const { clients, addClient, deleteClient, updateClient } = useClients();
   const { products, sales, addProduct, updateProduct, deleteProduct, addSale, updateSale, deleteSale } = useProducts();
   const { expenses, addExpense, payExpense, unpayExpense, deleteExpense, updateExpense } = useExpenses();
-  const { vehicles: registeredVehicles } = useVehicleRegistry();
+  const { vehicles: registeredVehicles, add: addVehicle, update: updateVehicle, remove: removeVehicle } = useVehicleRegistry();
+  const { locadorInfo, saveLocadorInfo } = useLocadorInfo();
+  const [clientSubTab, setClientSubTab] = useState<ClientSubTab>("clientes");
 
   // Filter data by linked clients if user has client restrictions
   const hasClientFilter = Array.isArray(linkedClientIds) && linkedClientIds.length > 0;
