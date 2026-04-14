@@ -173,7 +173,7 @@ export function VehicleCardList({ vehicles, onAdd, onUpdate, onDelete, readOnly 
                       <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => startEdit(v)}>
                         <Pencil className="h-4 w-4 text-muted-foreground" />
                       </Button>
-                      <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive hover:bg-destructive hover:text-destructive-foreground" onClick={() => onDelete(v.id)}>
+                      <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive hover:bg-destructive hover:text-destructive-foreground" onClick={() => setDeleteId(v.id)}>
                         <Trash2 className="h-4 w-4" />
                       </Button>
                     </div>
