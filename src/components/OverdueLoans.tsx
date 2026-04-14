@@ -235,16 +235,15 @@ export function OverdueLoans({ loans, payments, clients, installmentSchedules }:
       </div>
 
       {/* Summary cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div className="grid grid-cols-2 gap-4">
         <Card no3d className="border-destructive/30">
           <CardContent className="p-4 flex items-center gap-4">
             <div className="h-12 w-12 rounded-full bg-destructive/10 flex items-center justify-center shrink-0">
               <AlertTriangle className="h-6 w-6 text-destructive" />
             </div>
             <div>
-              <p className="text-xs text-muted-foreground">Empréstimos Atrasados</p>
+              <p className="text-xs text-muted-foreground">Atrasados</p>
               <p className="text-xl font-bold text-destructive">{overdueData.length}</p>
-              <p className="text-xs text-muted-foreground">Total: {formatCurrency(totalOverdueAmount)}</p>
             </div>
           </CardContent>
         </Card>
@@ -256,7 +255,6 @@ export function OverdueLoans({ loans, payments, clients, installmentSchedules }:
             <div>
               <p className="text-xs text-muted-foreground">Vencendo Hoje</p>
               <p className="text-xl font-bold text-warning">{dueTodayData.length}</p>
-              <p className="text-xs text-muted-foreground">Total: {formatCurrency(totalDueTodayAmount)}</p>
             </div>
           </CardContent>
         </Card>
