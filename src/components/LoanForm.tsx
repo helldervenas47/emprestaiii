@@ -402,22 +402,33 @@ export function LoanForm({ onAdd, onSaveSchedule, onClose, clients, existingTags
                 >
                   <Plus className="h-3.5 w-3.5" />
                 </Button>
+                {existingTags.filter(t => !tags.includes(t)).length > 0 && (
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button type="button" variant="outline" size="sm" className="h-9 shrink-0">
+                        <ChevronDown className="h-3.5 w-3.5" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-56 p-2" align="end">
+                      <div className="flex flex-col gap-1 max-h-48 overflow-y-auto">
+                        {existingTags
+                          .filter(t => !tags.includes(t))
+                          .sort((a, b) => a.localeCompare(b, "pt-BR"))
+                          .map((tag) => (
+                            <button
+                              key={tag}
+                              type="button"
+                              className="text-left text-sm px-3 py-1.5 rounded-md hover:bg-muted transition-colors"
+                              onClick={() => setTags([...tags, tag])}
+                            >
+                              {tag}
+                            </button>
+                          ))}
+                      </div>
+                    </PopoverContent>
+                  </Popover>
+                )}
               </div>
-              {existingTags.filter(t => !tags.includes(t)).length > 0 && (
-                <div className="flex flex-wrap gap-1.5 mt-2">
-                  <span className="text-xs text-muted-foreground mr-1">Sugestões:</span>
-                  {existingTags.filter(t => !tags.includes(t)).map((tag) => (
-                    <Badge
-                      key={tag}
-                      variant="outline"
-                      className="text-xs cursor-pointer hover:bg-primary/10 transition-colors"
-                      onClick={() => setTags([...tags, tag])}
-                    >
-                      + {tag}
-                    </Badge>
-                  ))}
-                </div>
-              )}
             </div>
 
             <div>
