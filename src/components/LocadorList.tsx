@@ -10,7 +10,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 
 interface Props {
   locadores: LocadorInfo[];
-  onSave: (info: LocadorInfo) => void;
+  onSave: (info: LocadorInfo) => Promise<boolean> | void;
   onDelete: (id: string) => void;
   readOnly?: boolean;
 }
@@ -38,9 +38,13 @@ export function LocadorList({ locadores, onSave, onDelete, readOnly = false }: P
     setAdding(false);
   };
 
-  const saveEdit = () => {
+  const saveEdit = async () => {
     if (!form.nome) { toast.error("Informe o nome do locador"); return; }
-    onSave(form);
+    const result = await onSave(form);
+    if (result === false) {
+      toast.error("Erro ao salvar locador. Tente novamente.");
+      return;
+    }
     setEditingId(null);
     setAdding(false);
     toast.success(form.id ? "Locador atualizado!" : "Locador cadastrado!");
