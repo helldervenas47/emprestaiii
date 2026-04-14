@@ -1588,6 +1588,7 @@ export function ProductSalesView({ sales, onDeleteSale, onUpdateSale, clients = 
           readOnly={readOnly}
           locadorInfo={locador}
           registeredVehicles={registeredVehicles}
+          locadores={locadores}
         />
 
         {/* Vehicle Expenses Section */}
