@@ -1,14 +1,39 @@
 
 
-# Plano: Efeito de degradê hover nos botões
+## Problema
 
-Adicionar um efeito de hover nos botões onde, ao passar o mouse, um degradê (da esquerda para a direita) aparece suavemente.
+O componente `OverdueLoans` usa `calculateInstallment()` para calcular o valor exibido, ignorando o `remaining_amount` real do banco. Quando houve pagamentos parciais, os valores divergem.
 
-## Implementação
+## Solução
 
-Modificar o componente `src/components/ui/button.tsx` para adicionar um efeito de gradiente animado no hover usando pseudo-elemento CSS ou classes Tailwind customizadas.
+Alterar a função `getInstallmentAmount` em `src/components/OverdueLoans.tsx` para usar `loan.remainingAmount` quando disponível, em vez de recalcular pela fórmula.
 
-Adicionar em `src/index.css` uma classe utilitária que aplica um gradiente da esquerda para a direita no hover com transição suave, usando `background-size` e `background-position` para animar o degradê.
+## Alteração
 
-O efeito será aplicado nas variantes `default`, `destructive` e `success` (as que têm cor de fundo sólida).
+**Arquivo: `src/components/OverdueLoans.tsx`**
+
+- Na função `getInstallmentAmount`, priorizar `loan.remainingAmount` quando existir e for > 0
+- Para empréstimos com 1 parcela (parcela única), usar diretamente o `remainingAmount`
+- Para empréstimos parcelados com múltiplas parcelas, manter a lógica de schedule mas usar `remainingAmount` como fallback
+- Atualizar o `totalAmount` nos cards de resumo para refletir os valores corretos
+
+Lógica proposta:
+```
+function getInstallmentAmount(loan, schedules):
+  // Para parcela única, usar remaining_amount diretamente
+  if loan.installments === 1 e loan.remainingAmount > 0:
+    return loan.remainingAmount
+  
+  // Para parcelado, tentar schedule primeiro
+  schedule = encontrar no schedules
+  if schedule: return schedule.amount
+  
+  // Fallback: cálculo original
+  return calculateInstallment(...)
+```
+
+## Impacto
+
+- Os cards de "Empréstimos Atrasados" e "Vencendo Hoje" mostrarão valores corretos
+- As mensagens WhatsApp também usarão os valores corretos
 
