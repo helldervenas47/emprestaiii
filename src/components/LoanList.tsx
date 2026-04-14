@@ -919,10 +919,10 @@ function LoanCardView({
            )}
           {!readOnly && loan.status !== "paid" && (
             <div className="flex gap-2">
-              <Button variant="outline" size="sm" className="flex-1 h-9 text-xs gap-1.5 border-warning text-warning hover:text-foreground" onClick={() => setShowLateInterest(!showLateInterest)}>
+              <Button variant="outline" size="sm" className="flex-1 h-9 text-xs gap-1.5 border-warning text-warning" onClick={() => setShowLateInterest(!showLateInterest)}>
                 <Percent className="h-3.5 w-3.5" /> Juros por Atraso
               </Button>
-              <Button variant="outline" size="sm" className="flex-1 h-9 text-xs gap-1.5 border-destructive text-destructive hover:text-foreground" onClick={() => setShowPenalty(!showPenalty)}>
+              <Button variant="outline" size="sm" className="flex-1 h-9 text-xs gap-1.5 border-destructive text-destructive" onClick={() => setShowPenalty(!showPenalty)}>
                 <DollarSign className="h-3.5 w-3.5" /> Aplicar Multa
               </Button>
             </div>
