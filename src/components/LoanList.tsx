@@ -168,7 +168,7 @@ function LoanCardView({
   readOnly?: boolean;
   no3d?: boolean;
   existingTags?: string[];
-) {
+}) {
   const { mask } = useHideValues();
   const formatCurrency = useCallback((v: number) => mask(rawFormatCurrency(v)), [mask]);
   const [editing, setEditing] = useState(false);
