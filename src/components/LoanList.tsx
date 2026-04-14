@@ -1148,6 +1148,7 @@ function LoanRowView({
   const formatCurrency = useCallback((v: number) => mask(rawFormatCurrency(v)), [mask]);
   const [showPartial, setShowPartial] = useState(false);
   const [partialAmount, setPartialAmount] = useState("");
+  const [partialDate, setPartialDate] = useState<Date>(new Date());
   const [paymentDialog, setPaymentDialog] = useState<{ type: "installment" | "interest" | "partial" | "full"; amount?: number } | null>(null);
   const [showHistory, setShowHistory] = useState(false);
   const [paymentDate, setPaymentDate] = useState<Date>(new Date());
@@ -1231,8 +1232,10 @@ function LoanRowView({
   const handlePartialSubmit = () => {
     const val = parseFloat(partialAmount);
     if (val > 0) {
-      openPaymentDialog("partial", val);
+      const dateStr = partialDate.toISOString().split("T")[0];
+      onPartialPayment(val, dateStr);
       setPartialAmount("");
+      setPartialDate(new Date());
       setShowPartial(false);
     }
   };
