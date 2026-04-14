@@ -97,7 +97,7 @@ const Auth = () => {
             <div className="mx-auto h-14 w-14 rounded-2xl gradient-primary glow-primary flex items-center justify-center">
               <HandCoins className="h-7 w-7 text-primary-foreground" />
             </div>
-            <h1 className="text-2xl font-bold text-foreground">HVCred</h1>
+            <h1 className="text-2xl font-bold text-foreground">EmprestAI</h1>
             <p className="text-muted-foreground">Digite seu email para receber o link de recuperação</p>
           </div>
           <form onSubmit={handleForgotPassword} className="space-y-5">
@@ -127,7 +127,7 @@ const Auth = () => {
           <div className="mx-auto h-14 w-14 rounded-2xl gradient-primary glow-primary flex items-center justify-center">
             <HandCoins className="h-7 w-7 text-primary-foreground" />
           </div>
-          <h1 className="text-2xl font-bold text-foreground">HVCred</h1>
+          <h1 className="text-2xl font-bold text-foreground">EmprestAI</h1>
           <p className="text-muted-foreground">
             {isLogin ? "Entre na sua conta" : "Crie sua conta"}
           </p>

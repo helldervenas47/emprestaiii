@@ -265,7 +265,7 @@ const Index = () => {
                         <HandCoins className="h-5 w-5 text-primary-foreground" />
                       </div>
                       <div>
-                        <h1 className="text-lg font-bold text-foreground tracking-tight">HVCred</h1>
+                        <h1 className="text-lg font-bold text-foreground tracking-tight">EmprestAI</h1>
                         <p className="text-[10px] text-muted-foreground uppercase tracking-widest">Controle de empréstimos</p>
                       </div>
                     </div>
@@ -298,7 +298,7 @@ const Index = () => {
               <HandCoins className="h-4 w-4 sm:h-5 sm:w-5 text-primary-foreground" />
             </div>
             <div className="hidden sm:block">
-              <h1 className="text-lg font-bold text-foreground tracking-tight">HVCred</h1>
+              <h1 className="text-lg font-bold text-foreground tracking-tight">EmprestAI</h1>
               <p className="text-[10px] text-muted-foreground uppercase tracking-widest">Controle de empréstimos</p>
             </div>
           </div>
