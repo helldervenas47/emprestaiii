@@ -533,8 +533,64 @@ function LoanCardView({
             </div>
           )}
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div><Label className="text-xs">Etiquetas (separar por vírgula)</Label><Input value={form.tags} onChange={(e) => updateField("tags", e.target.value)} className="h-8 text-sm" placeholder="Ex: VIP, Renovação, Garantia" /></div>
+          {/* Tags */}
+          <div className="grid grid-cols-1 gap-3">
+            <div>
+              <Label className="text-xs">Etiquetas</Label>
+              <div className="flex flex-wrap gap-1.5 mb-2">
+                {form.tags.split(",").map((t) => t.trim()).filter(Boolean).map((tag, i) => (
+                  <Badge key={i} variant="secondary" className="gap-1 text-xs">
+                    {tag}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const currentTags = form.tags.split(",").map((t) => t.trim()).filter((t) => t !== tag);
+                        updateField("tags", currentTags.join(", "));
+                      }}
+                      className="ml-0.5 hover:text-destructive"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </Badge>
+                ))}
+              </div>
+              <div className="flex gap-2">
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" size="sm" className="h-8 text-xs shrink-0">
+                      <ChevronDown className="h-3.5 w-3.5 mr-1" />
+                      Existentes
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-48 p-1" align="start">
+                    <div className="flex flex-col max-h-40 overflow-y-auto">
+                      {[...new Set(loans.flatMap((l) => l.tags || []))]
+                        .filter((t) => !form.tags.split(",").map((x) => x.trim()).filter(Boolean).includes(t))
+                        .sort((a, b) => a.localeCompare(b, "pt-BR"))
+                        .map((tag) => (
+                          <button
+                            key={tag}
+                            type="button"
+                            className="text-left text-sm px-3 py-1.5 hover:bg-muted rounded-sm"
+                            onClick={() => {
+                              const currentTags = form.tags.split(",").map((t) => t.trim()).filter(Boolean);
+                              updateField("tags", [...currentTags, tag].join(", "));
+                            }}
+                          >
+                            {tag}
+                          </button>
+                        ))}
+                    </div>
+                  </PopoverContent>
+                </Popover>
+                <Input
+                  value={form.tags}
+                  onChange={(e) => updateField("tags", e.target.value)}
+                  className="h-8 text-sm flex-1"
+                  placeholder="Digite etiquetas separadas por vírgula"
+                />
+              </div>
+            </div>
           </div>
           <div><Label className="text-xs">Observações</Label><Textarea value={form.notes} onChange={(e) => updateField("notes", e.target.value)} rows={2} className="text-sm" /></div>
         </CardContent>
