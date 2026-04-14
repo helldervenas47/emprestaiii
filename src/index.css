@@ -193,6 +193,9 @@
   .btn-gradient-hover--success::before {
     background: linear-gradient(90deg, hsl(var(--success)), hsl(190 70% 42%));
   }
+  .btn-gradient-hover--outline::before {
+    background: linear-gradient(90deg, hsl(var(--accent)), hsl(var(--primary) / 0.15));
+  }
 }
 
 @layer utilities {
