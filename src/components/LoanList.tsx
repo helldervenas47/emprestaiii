@@ -2060,6 +2060,7 @@ export function LoanList({ loans, payments, installmentSchedules, onPayment, onP
             <div className="rounded-2xl border border-border/30 overflow-hidden shadow-[0_1px_8px_-4px_hsl(0_0%_0%/0.05)]">
               <div className="px-4 py-2 flex items-center justify-between border-b border-border/30 bg-muted/30">
                 <span className="text-sm text-muted-foreground">{categorized.length} empréstimos</span>
+                <span className="text-sm font-semibold text-destructive">{mask(rawFormatCurrency(summaryData.totalToReceive))}</span>
               </div>
               <table className="w-full">
                 <thead>
