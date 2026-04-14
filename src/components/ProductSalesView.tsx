@@ -1311,7 +1311,7 @@ export function ProductSalesView({ sales, onDeleteSale, onUpdateSale, clients = 
   const formatCurrency = useCallback((v: number) => mask(rawFormatCurrency(v)), [mask]);
 
   // Locador & Vehicle Registry hooks
-  const { locador, save: saveLocador } = useLocadorInfo();
+  const { locador, locadores, save: saveLocador } = useLocadorInfo();
   const { vehicles: registeredVehicles, add: addVehicle, update: updateVehicle, remove: removeVehicle } = useVehicleRegistry();
 
   // Balance state
