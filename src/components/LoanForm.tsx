@@ -47,6 +47,9 @@ export function LoanForm({ onAdd, onSaveSchedule, onClose, clients }: Props) {
     interestType: "Mensal",
   });
 
+  const [tags, setTags] = useState<string[]>([]);
+  const [tagInput, setTagInput] = useState("");
+
   const [firstDueDate, setFirstDueDate] = useState<Date>(defaultFirstDue);
   const [showSchedule, setShowSchedule] = useState(false);
 
