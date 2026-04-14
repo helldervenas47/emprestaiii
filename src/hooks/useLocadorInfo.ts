@@ -47,26 +47,28 @@ export function useLocadorInfo() {
 
   useEffect(() => { fetchAll(); }, [fetchAll]);
 
-  const save = useCallback(async (info: LocadorInfo) => {
-    if (!user || !dataOwnerId) return;
+  const save = useCallback(async (info: LocadorInfo): Promise<boolean> => {
+    if (!user || !dataOwnerId) return false;
 
     if (info.id) {
-      await supabase.from("locador_info").update({
+      const { error } = await supabase.from("locador_info").update({
         nome: info.nome, rg: info.rg, cpf: info.cpf,
         nacionalidade: info.nacionalidade, profissao: info.profissao,
         endereco: info.endereco, bairro: info.bairro, cidade: info.cidade, estado: info.estado,
       }).eq("id", info.id);
+      if (error) return false;
       setLocadores(prev => prev.map(l => l.id === info.id ? info : l));
+      return true;
     } else {
-      const { data } = await supabase.from("locador_info").insert({
+      const { data, error } = await supabase.from("locador_info").insert({
         user_id: dataOwnerId,
         nome: info.nome, rg: info.rg, cpf: info.cpf,
         nacionalidade: info.nacionalidade, profissao: info.profissao,
         endereco: info.endereco, bairro: info.bairro, cidade: info.cidade, estado: info.estado,
       }).select().single();
-      if (data) {
-        setLocadores(prev => [...prev, { ...info, id: data.id }]);
-      }
+      if (error || !data) return false;
+      setLocadores(prev => [...prev, { ...info, id: data.id }]);
+      return true;
     }
   }, [user, dataOwnerId]);
 
