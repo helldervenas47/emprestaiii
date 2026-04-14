@@ -109,6 +109,7 @@ export function SaleForm({ onAdd, onClose, defaultBusinessType = "venda", client
       installmentAmounts: amounts,
       installmentDates: dates,
       partialPaid: 0,
+      locadorId: form.businessType === "aluguel_veiculo" ? (form.locadorId || null) : null,
     });
     onClose();
   };
