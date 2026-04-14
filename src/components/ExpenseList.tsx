@@ -467,15 +467,18 @@ export function ExpenseList({ expenses, onPay, onUnpay, onDelete, onUpdate, read
                               <p className="text-xs text-muted-foreground">Parcela {idx + 1} de {expense.installments}</p>
                             </div>
                             <Badge className="bg-success/20 text-success border-success/30 text-xs">Paga</Badge>
-                            {!readOnly && onUpdate && (
+                            {!readOnly && onUnpay && (
                               <Button
                                 size="icon"
                                 variant="ghost"
                                 className="h-7 w-7 text-destructive hover:bg-destructive/10 shrink-0"
-                                onClick={() => {
-                                  const newPaid = idx;
-                                  onUpdate(expense.id, { paidInstallments: newPaid, paid: false, paidDate: undefined });
-                                  if (newPaid === 0) setViewPaymentsExpenseId(null);
+                                onClick={async () => {
+                                  const currentPaid = expense.paidInstallments || 0;
+                                  const timesToUnpay = currentPaid - idx;
+                                  for (let t = 0; t < timesToUnpay; t++) {
+                                    await onUnpay(expense.id);
+                                  }
+                                  if (idx === 0) setViewPaymentsExpenseId(null);
                                 }}
                               >
                                 <Trash2 className="h-3.5 w-3.5" />
