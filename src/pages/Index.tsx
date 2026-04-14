@@ -33,9 +33,11 @@ import { useVehicleRegistry } from "@/hooks/useVehicleRegistry";
 import { useLocadorInfo } from "@/hooks/useLocadorInfo";
 import { VehicleCardList } from "@/components/VehicleCardList";
 import { LocadorPopoverContent } from "@/components/LocadorPopoverContent";
+import { LocadorList } from "@/components/LocadorList";
 
 type Tab = "overview" | "dashboard" | "clients" | "products" | "vehicles" | "overdue" | "expenses" | "calendar" | "users" | "backup";
 type ClientSubTab = "clientes" | "veiculos";
+type VehicleSubTab = "veiculos" | "locadores";
 
 const tabConfig = [
   { id: "overview" as Tab, label: "Dashboard", icon: BarChart3 },
@@ -156,8 +158,9 @@ const Index = () => {
   const { products, sales, addProduct, updateProduct, deleteProduct, addSale, updateSale, deleteSale } = useProducts();
   const { expenses, addExpense, payExpense, unpayExpense, deleteExpense, updateExpense } = useExpenses();
   const { vehicles: registeredVehicles, add: addVehicle, update: updateVehicle, remove: removeVehicle } = useVehicleRegistry();
-  const { locador, save: saveLocador } = useLocadorInfo();
+  const { locador, locadores, save: saveLocador, remove: removeLocador } = useLocadorInfo();
   const [clientSubTab, setClientSubTab] = useState<ClientSubTab>("clientes");
+  const [vehicleSubTab, setVehicleSubTab] = useState<VehicleSubTab>("veiculos");
 
   // Filter data by linked clients if user has client restrictions
   const hasClientFilter = Array.isArray(linkedClientIds) && linkedClientIds.length > 0;
@@ -413,26 +416,45 @@ const Index = () => {
             )}
             {clientSubTab === "veiculos" && (
               <>
-                <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-lg font-semibold text-foreground">Veículos Cadastrados ({registeredVehicles.length})</h2>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button variant="outline" size="sm">
-                        <User className="h-4 w-4 mr-1" /> Dados do Locador
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-96" align="end">
-                      <LocadorPopoverContent locador={locador} onSave={saveLocador} readOnly={isReadOnly} />
-                    </PopoverContent>
-                  </Popover>
+                <div className="flex gap-2 mb-4">
+                  <Button
+                    variant={vehicleSubTab === "veiculos" ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setVehicleSubTab("veiculos")}
+                  >
+                    <Car className="h-4 w-4 mr-1" /> Veículos
+                  </Button>
+                  <Button
+                    variant={vehicleSubTab === "locadores" ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setVehicleSubTab("locadores")}
+                  >
+                    <User className="h-4 w-4 mr-1" /> Dados do Locador
+                  </Button>
                 </div>
-                <VehicleCardList
-                  vehicles={registeredVehicles}
-                  onAdd={addVehicle}
-                  onUpdate={updateVehicle}
-                  onDelete={removeVehicle}
-                  readOnly={isReadOnly}
-                />
+                {vehicleSubTab === "veiculos" && (
+                  <>
+                    <h2 className="text-lg font-semibold text-foreground mb-4">Veículos Cadastrados ({registeredVehicles.length})</h2>
+                    <VehicleCardList
+                      vehicles={registeredVehicles}
+                      onAdd={addVehicle}
+                      onUpdate={updateVehicle}
+                      onDelete={removeVehicle}
+                      readOnly={isReadOnly}
+                    />
+                  </>
+                )}
+                {vehicleSubTab === "locadores" && (
+                  <>
+                    <h2 className="text-lg font-semibold text-foreground mb-4">Locadores ({locadores.length})</h2>
+                    <LocadorList
+                      locadores={locadores}
+                      onSave={saveLocador}
+                      onDelete={removeLocador}
+                      readOnly={isReadOnly}
+                    />
+                  </>
+                )}
               </>
             )}
           </div>
