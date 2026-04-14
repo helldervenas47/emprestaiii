@@ -144,6 +144,7 @@ function SaleCard({ sale, onDelete, onEdit, onUpdate, formatCurrency, readOnly =
   });
 
   return (
+    <>
     <Card no3d className={`overflow-hidden hover:shadow-[0_4px_16px_-6px_hsl(0_0%_0%/0.08)] hover:-translate-y-[1px] transition-all duration-400 ease-out border ${catStyle.border} ${catStyle.bg} h-full flex flex-col`}>
       {/* Customer header - fixed */}
       <div className={`border-b px-4 py-2.5 text-center ${catStyle.header}`}>
