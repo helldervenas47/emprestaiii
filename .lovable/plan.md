@@ -1,32 +1,35 @@
 
 
-## Plano: Scripts para importar CSVs de perfis e permissões
+## Plano: Script SQL parametrizado para troca de UUIDs
 
-O problema é que as tabelas `profiles`, `user_roles`, `user_owner`, `user_tab_permissions` e `user_client_permissions` têm RLS ativo e dependem de usuários no `auth.users`. Para importar via CSV, você precisa:
+### Contexto
+Após criar os usuários no Supabase externo, os novos UUIDs serão diferentes dos originais. Todas as 16 tabelas referenciam `user_id`, então é preciso atualizar cada uma delas.
 
 ### O que será gerado
+Um arquivo SQL (`/mnt/documents/trocar_uuids.sql`) com:
 
-Um arquivo com scripts SQL para executar **antes** e **depois** da importação dos CSVs no Supabase externo:
+1. **Variáveis declaradas** para cada usuário — basta preencher o novo UUID:
+   - Helder Venas: `ba365726-d9b1-430d-b3c5-e05ac1816aad` → `NOVO_UUID`
+   - Mariana Alves: `2a936eda-4002-4af6-8e7c-4fe5a69c5831` → `NOVO_UUID`
+   - Renan Mota: `212547eb-42bb-4650-9d70-3028b71a117a` → `NOVO_UUID`
 
-**Script PRÉ-importação:**
-- Desabilita RLS em todas as tabelas problemáticas
-- Desabilita o trigger `handle_new_user` (que tenta criar perfil automaticamente e causa conflito)
+2. **Desabilita RLS e triggers** temporariamente em todas as tabelas
 
-**Script PÓS-importação:**
-- Reabilita RLS em todas as tabelas
-- Reabilita o trigger `handle_new_user`
+3. **UPDATE em todas as 16 tabelas** trocando `user_id` antigo pelo novo:
+   - `profiles`, `user_roles`, `user_owner` (tanto `user_id` quanto `owner_id`), `user_tab_permissions`, `user_client_permissions`
+   - `clients`, `loans`, `payments`, `loan_installments`, `sales`, `expenses`, `products`
+   - `balance`, `vehicle_balance`, `vehicle_registry`, `locador_info`
 
-### Ordem de importação obrigatória
-1. Primeiro: crie os usuários no Authentication do Supabase (com os mesmos UUIDs)
-2. Depois rode o script PRÉ-importação no SQL Editor
-3. Importe os CSVs nesta ordem: `profiles` → `user_roles` → `user_owner` → `user_tab_permissions` → `user_client_permissions`
-4. Rode o script PÓS-importação
+4. **Reabilita RLS e triggers**
 
-### Alternativa mais simples
-Gerar um script SQL com `INSERT INTO` direto para essas 5 tabelas, usando os dados já exportados — assim você só precisa colar no SQL Editor sem precisar importar CSV.
+### Como usar
+1. Crie os 3 usuários no Authentication do Supabase externo
+2. Copie os novos UUIDs gerados
+3. Substitua os placeholders no script
+4. Execute no SQL Editor do Supabase
 
-### Implementação
-- Consultar os dados atuais dessas 5 tabelas
-- Gerar arquivo SQL com os INSERTs prontos + controle de RLS/triggers
-- Salvar em `/mnt/documents/import_perfis_permissoes.sql`
+### Detalhes técnicos
+- Usa bloco `DO $$ ... $$` com variáveis PL/pgSQL para facilitar a substituição
+- Trata `user_owner.owner_id` separadamente (o admin Helder é o owner dos sub-usuários)
+- Script idempotente — pode rodar mais de uma vez sem erro
 
