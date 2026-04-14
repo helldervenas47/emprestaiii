@@ -222,7 +222,6 @@ export function VehicleLocadorManager({
                           <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive hover:bg-destructive hover:text-destructive-foreground" onClick={() => setDeleteVehicleId(v.id)}>
                             <Trash2 className="h-4 w-4" />
                           </Button>
-                          </Button>
                         </div>
                       )}
                     </div>
