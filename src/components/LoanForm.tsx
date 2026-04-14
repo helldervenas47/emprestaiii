@@ -20,6 +20,7 @@ interface Props {
   onSaveSchedule: (loanId: string, rows: { installmentNumber: number; dueDate: string; amount: number }[]) => Promise<void>;
   onClose: () => void;
   clients: Client[];
+  existingTags?: string[];
 }
 
 function getNextDate(base: Date, frequency: string, periods: number): Date {
@@ -30,7 +31,7 @@ function getNextDate(base: Date, frequency: string, periods: number): Date {
   return d;
 }
 
-export function LoanForm({ onAdd, onSaveSchedule, onClose, clients }: Props) {
+export function LoanForm({ onAdd, onSaveSchedule, onClose, clients, existingTags = [] }: Props) {
   const activeClients = clients.filter((c) => c.active).sort((a, b) => a.name.localeCompare(b.name, "pt-BR"));
 
   const defaultStart = new Date().toISOString().split("T")[0];
@@ -402,6 +403,21 @@ export function LoanForm({ onAdd, onSaveSchedule, onClose, clients }: Props) {
                   <Plus className="h-3.5 w-3.5" />
                 </Button>
               </div>
+              {existingTags.filter(t => !tags.includes(t)).length > 0 && (
+                <div className="flex flex-wrap gap-1.5 mt-2">
+                  <span className="text-xs text-muted-foreground mr-1">Sugestões:</span>
+                  {existingTags.filter(t => !tags.includes(t)).map((tag) => (
+                    <Badge
+                      key={tag}
+                      variant="outline"
+                      className="text-xs cursor-pointer hover:bg-primary/10 transition-colors"
+                      onClick={() => setTags([...tags, tag])}
+                    >
+                      + {tag}
+                    </Badge>
+                  ))}
+                </div>
+              )}
             </div>
 
             <div>
