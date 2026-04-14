@@ -373,7 +373,6 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
   };
 
   // Interest chart - monthly interest received (last 12 months)
-  // Interest chart - monthly interest received (last 12 months)
   const [editingInterest, setEditingInterest] = useState(false);
   const [tempInterestOverrides, setTempInterestOverrides] = useState<Record<string, string>>({});
 
