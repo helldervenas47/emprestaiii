@@ -30,7 +30,8 @@ import { BackupExport } from "@/components/BackupExport";
 import { Badge } from "@/components/ui/badge";
 import { useVehicleRegistry } from "@/hooks/useVehicleRegistry";
 import { useLocadorInfo } from "@/hooks/useLocadorInfo";
-import { VehicleLocadorManager } from "@/components/VehicleLocadorManager";
+import { VehicleCardList } from "@/components/VehicleCardList";
+import { LocadorPopoverContent } from "@/components/LocadorPopoverContent";
 
 type Tab = "overview" | "dashboard" | "clients" | "products" | "vehicles" | "overdue" | "expenses" | "calendar" | "users" | "backup";
 type ClientSubTab = "clientes" | "veiculos";
