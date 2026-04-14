@@ -113,6 +113,7 @@ export function SaleEditForm({ sale, onSave, onClose, clients = [], registeredVe
       installmentValue: null,
       installmentAmounts: amounts,
       installmentDates: dates,
+      locadorId: form.businessType === "aluguel_veiculo" ? (form.locadorId || null) : null,
     });
     onClose();
   };
