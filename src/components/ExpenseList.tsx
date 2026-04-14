@@ -308,7 +308,7 @@ export function ExpenseList({ expenses, onPay, onUnpay, onDelete, onUpdate, read
         </div>
       </div>
 
-      {!readOnly && hasPaidExpenses && onUpdate && (
+      {!readOnly && hasPaidExpenses && onUnpay && (
         <div className="flex justify-end">
           <Button
             size="sm"
