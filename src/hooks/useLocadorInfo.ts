@@ -22,31 +22,33 @@ const emptyLocador: LocadorInfo = {
 
 export function useLocadorInfo() {
   const { user, dataOwnerId } = useAuth();
-  const [locador, setLocador] = useState<LocadorInfo>(emptyLocador);
+  const [locadores, setLocadores] = useState<LocadorInfo[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const fetch = useCallback(async () => {
+  // Keep single locador for backward compat
+  const locador = locadores[0] || emptyLocador;
+
+  const fetchAll = useCallback(async () => {
     if (!user) return;
     setLoading(true);
     const { data } = await supabase
       .from("locador_info")
       .select("*")
-      .maybeSingle();
+      .order("created_at", { ascending: true });
     if (data) {
-      setLocador({
-        id: data.id, nome: data.nome, rg: data.rg, cpf: data.cpf,
-        nacionalidade: data.nacionalidade, profissao: (data as any).profissao || "",
-        endereco: data.endereco, bairro: data.bairro, cidade: data.cidade, estado: data.estado,
-      });
+      setLocadores(data.map(d => ({
+        id: d.id, nome: d.nome, rg: d.rg, cpf: d.cpf,
+        nacionalidade: d.nacionalidade, profissao: (d as any).profissao || "",
+        endereco: d.endereco, bairro: d.bairro, cidade: d.cidade, estado: d.estado,
+      })));
     }
     setLoading(false);
   }, [user]);
 
-  useEffect(() => { fetch(); }, [fetch]);
+  useEffect(() => { fetchAll(); }, [fetchAll]);
 
   const save = useCallback(async (info: LocadorInfo) => {
     if (!user || !dataOwnerId) return;
-    setLocador(info);
 
     if (info.id) {
       await supabase.from("locador_info").update({
@@ -54,6 +56,7 @@ export function useLocadorInfo() {
         nacionalidade: info.nacionalidade, profissao: info.profissao,
         endereco: info.endereco, bairro: info.bairro, cidade: info.cidade, estado: info.estado,
       }).eq("id", info.id);
+      setLocadores(prev => prev.map(l => l.id === info.id ? info : l));
     } else {
       const { data } = await supabase.from("locador_info").insert({
         user_id: dataOwnerId,
@@ -61,9 +64,17 @@ export function useLocadorInfo() {
         nacionalidade: info.nacionalidade, profissao: info.profissao,
         endereco: info.endereco, bairro: info.bairro, cidade: info.cidade, estado: info.estado,
       }).select().single();
-      if (data) setLocador(prev => ({ ...prev, id: data.id }));
+      if (data) {
+        setLocadores(prev => [...prev, { ...info, id: data.id }]);
+      }
     }
   }, [user, dataOwnerId]);
 
-  return { locador, save, loading };
+  const remove = useCallback(async (id: string) => {
+    if (!user) return;
+    await supabase.from("locador_info").delete().eq("id", id);
+    setLocadores(prev => prev.filter(l => l.id !== id));
+  }, [user]);
+
+  return { locador, locadores, save, remove, loading };
 }
