@@ -333,12 +333,17 @@ export function ExpenseList({ expenses, onPay, onUnpay, onDelete, onUpdate, read
           </DialogHeader>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowClearPayments(false)}>Cancelar</Button>
-            <Button variant="destructive" onClick={() => {
-              expenses.forEach(exp => {
-                if (exp.paid || (exp.paidInstallments && exp.paidInstallments > 0)) {
-                  onUpdate!(exp.id, { paid: false, paidDate: undefined, paidInstallments: 0 });
+            <Button variant="destructive" onClick={async () => {
+              for (const exp of expenses) {
+                if (exp.paid) {
+                  if (onUnpay) await onUnpay(exp.id);
+                } else if ((exp.paidInstallments || 0) > 0 && onUnpay) {
+                  const times = exp.paidInstallments || 0;
+                  for (let t = 0; t < times; t++) {
+                    await onUnpay(exp.id);
+                  }
                 }
-              });
+              }
               setShowClearPayments(false);
             }}>
               <Trash2 className="h-4 w-4 mr-1" />
