@@ -497,13 +497,13 @@ export function ExpenseList({ expenses, onPay, onUnpay, onDelete, onUpdate, read
                               {expense.paidDate && <p className="text-xs text-muted-foreground">{new Date(expense.paidDate + "T00:00:00").toLocaleDateString("pt-BR")}</p>}
                             </div>
                             <Badge className="bg-success/20 text-success border-success/30 text-xs">Paga</Badge>
-                            {!readOnly && onUpdate && (
+                            {!readOnly && onUnpay && (
                               <Button
                                 size="icon"
                                 variant="ghost"
                                 className="h-7 w-7 text-destructive hover:bg-destructive/10 shrink-0"
                                 onClick={() => {
-                                  onUpdate(expense.id, { paid: false, paidDate: undefined, paidInstallments: 0 });
+                                  onUnpay(expense.id);
                                   setViewPaymentsExpenseId(null);
                                 }}
                               >
