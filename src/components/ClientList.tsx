@@ -121,6 +121,7 @@ export function ClientList({ clients, loans, payments, onDelete, onUpdate, readO
   const [sortOption, setSortOption] = useState<SortOption>("name-asc");
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState<Record<string, any>>({ name: "", phone: "", email: "", cpf: "", cnpj: "", rg: "", address: "", city: "", state: "", score: "", notes: "", isVehicleRental: false, nacionalidade: "", estadoCivil: "", profissao: "", bairro: "" });
+  const [deleteClientId, setDeleteClientId] = useState<string | null>(null);
 
   const creditScores = useMemo(() => {
     const map: Record<string, CreditScore> = {};
