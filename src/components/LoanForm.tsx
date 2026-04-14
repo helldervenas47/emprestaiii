@@ -20,6 +20,7 @@ interface Props {
   onSaveSchedule: (loanId: string, rows: { installmentNumber: number; dueDate: string; amount: number }[]) => Promise<void>;
   onClose: () => void;
   clients: Client[];
+  existingTags?: string[];
 }
 
 function getNextDate(base: Date, frequency: string, periods: number): Date {
@@ -30,7 +31,7 @@ function getNextDate(base: Date, frequency: string, periods: number): Date {
   return d;
 }
 
-export function LoanForm({ onAdd, onSaveSchedule, onClose, clients }: Props) {
+export function LoanForm({ onAdd, onSaveSchedule, onClose, clients, existingTags = [] }: Props) {
   const activeClients = clients.filter((c) => c.active).sort((a, b) => a.name.localeCompare(b.name, "pt-BR"));
 
   const defaultStart = new Date().toISOString().split("T")[0];
