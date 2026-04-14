@@ -230,14 +230,14 @@ const Index = () => {
 
   const handlePrimaryAction = () => {
     if (tab === "dashboard") setShowLoanForm(true);
-    else if (tab === "clients") setShowClientForm(true);
+    else if (tab === "clients" && clientSubTab === "clientes") setShowClientForm(true);
     else if (tab === "expenses") setShowExpenseForm(true);
     else if (tab === "products" || tab === "vehicles") setShowSaleForm(true);
   };
 
   const primaryLabel =
     tab === "dashboard" ? "Novo Empréstimo" :
-    tab === "clients" ? "Novo Cliente" :
+    tab === "clients" && clientSubTab === "clientes" ? "Novo Cliente" :
     tab === "expenses" ? "Nova Despesa" :
     tab === "products" ? "Novo Lançamento" :
     tab === "vehicles" ? "Novo Aluguel" : "";
