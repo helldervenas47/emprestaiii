@@ -1,35 +1,39 @@
 
 
-## Plano: Script SQL parametrizado para troca de UUIDs
+# Plano: Transformar EmprestAI em App Nativo com Capacitor
 
-### Contexto
-Após criar os usuários no Supabase externo, os novos UUIDs serão diferentes dos originais. Todas as 16 tabelas referenciam `user_id`, então é preciso atualizar cada uma delas.
+## O que será feito
 
-### O que será gerado
-Um arquivo SQL (`/mnt/documents/trocar_uuids.sql`) com:
+Configurar o projeto para funcionar como um app nativo (Android/iOS) usando Capacitor, permitindo publicação na App Store e Google Play.
 
-1. **Variáveis declaradas** para cada usuário — basta preencher o novo UUID:
-   - Helder Venas: `ba365726-d9b1-430d-b3c5-e05ac1816aad` → `NOVO_UUID`
-   - Mariana Alves: `2a936eda-4002-4af6-8e7c-4fe5a69c5831` → `NOVO_UUID`
-   - Renan Mota: `212547eb-42bb-4650-9d70-3028b71a117a` → `NOVO_UUID`
+## Etapas
 
-2. **Desabilita RLS e triggers** temporariamente em todas as tabelas
+### 1. Instalar dependências do Capacitor
+- `@capacitor/core`, `@capacitor/cli`, `@capacitor/ios`, `@capacitor/android`
 
-3. **UPDATE em todas as 16 tabelas** trocando `user_id` antigo pelo novo:
-   - `profiles`, `user_roles`, `user_owner` (tanto `user_id` quanto `owner_id`), `user_tab_permissions`, `user_client_permissions`
-   - `clients`, `loans`, `payments`, `loan_installments`, `sales`, `expenses`, `products`
-   - `balance`, `vehicle_balance`, `vehicle_registry`, `locador_info`
+### 2. Inicializar o Capacitor
+- Criar `capacitor.config.ts` com:
+  - appId: `app.lovable.a2e7985c0a3e46259cac584b7fc384f5`
+  - appName: `emprestaii`
+  - Server apontando para o preview do sandbox (hot-reload durante desenvolvimento)
 
-4. **Reabilita RLS e triggers**
+### 3. Ajustar `vite.config.ts`
+- Adicionar `base: './'` para que os assets funcionem corretamente no Electron/Capacitor via `file://`
 
-### Como usar
-1. Crie os 3 usuários no Authentication do Supabase externo
-2. Copie os novos UUIDs gerados
-3. Substitua os placeholders no script
-4. Execute no SQL Editor do Supabase
+### 4. Passos manuais (você fará no seu computador)
+Após eu fazer as configurações acima, você precisará:
 
-### Detalhes técnicos
-- Usa bloco `DO $$ ... $$` com variáveis PL/pgSQL para facilitar a substituição
-- Trata `user_owner.owner_id` separadamente (o admin Helder é o owner dos sub-usuários)
-- Script idempotente — pode rodar mais de uma vez sem erro
+1. Exportar o projeto para o GitHub (botão "Export to GitHub" no Lovable)
+2. Clonar o repositório no seu computador
+3. Rodar `npm install`
+4. Adicionar a plataforma: `npx cap add android` e/ou `npx cap add ios`
+5. Rodar `npm run build` e depois `npx cap sync`
+6. Abrir no emulador: `npx cap run android` ou `npx cap run ios`
+
+**Requisitos no seu computador:**
+- Android: Android Studio instalado
+- iOS: Mac com Xcode instalado
+
+## Referência
+Guia completo: https://docs.lovable.dev/tips-tricks/native-mobile-apps
 
