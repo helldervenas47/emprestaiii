@@ -36,6 +36,7 @@ import { LocadorPopoverContent } from "@/components/LocadorPopoverContent";
 
 type Tab = "overview" | "dashboard" | "clients" | "products" | "vehicles" | "overdue" | "expenses" | "calendar" | "users" | "backup";
 type ClientSubTab = "clientes" | "veiculos";
+type VehicleSubTab = "veiculos" | "locadores";
 
 const tabConfig = [
   { id: "overview" as Tab, label: "Dashboard", icon: BarChart3 },
