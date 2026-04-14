@@ -168,6 +168,34 @@
 }
 
 @layer utilities {
+  .btn-gradient-hover {
+    position: relative;
+    overflow: hidden;
+    z-index: 0;
+  }
+  .btn-gradient-hover::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    opacity: 0;
+    transition: opacity 0.35s ease;
+  }
+  .btn-gradient-hover:hover::before {
+    opacity: 1;
+  }
+  .btn-gradient-hover--primary::before {
+    background: linear-gradient(90deg, hsl(var(--primary)), hsl(262 80% 58%));
+  }
+  .btn-gradient-hover--destructive::before {
+    background: linear-gradient(90deg, hsl(var(--destructive)), hsl(20 85% 50%));
+  }
+  .btn-gradient-hover--success::before {
+    background: linear-gradient(90deg, hsl(var(--success)), hsl(190 70% 42%));
+  }
+}
+
+@layer utilities {
   .scrollbar-hide {
     -ms-overflow-style: none;
     scrollbar-width: none;
