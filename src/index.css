@@ -247,3 +247,25 @@
       0 0 8px -4px hsl(var(--primary) / 0.06);
   }
 }
+
+/* Mobile ripple effect */
+@layer utilities {
+  .ripple-touch {
+    position: relative;
+    overflow: hidden;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .ripple-touch::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at var(--ripple-x, 50%) var(--ripple-y, 50%), hsl(var(--primary) / 0.25) 0%, transparent 60%);
+    opacity: 0;
+    transition: opacity 0.4s ease-out;
+    pointer-events: none;
+  }
+  .ripple-touch:active::after {
+    opacity: 1;
+    transition: opacity 0.1s ease-in;
+  }
+}
