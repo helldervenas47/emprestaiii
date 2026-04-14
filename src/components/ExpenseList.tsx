@@ -179,9 +179,24 @@ export function ExpenseList({ expenses, onPay, onUnpay, onDelete, onUpdate, read
   const [viewPaymentsExpenseId, setViewPaymentsExpenseId] = useState<string | null>(null);
   const [showClearPayments, setShowClearPayments] = useState(false);
 
+  const getInstallmentAmount = useCallback((e: Expense) => {
+    const isRec = e.type === "recorrente" && e.installments && e.installments > 1;
+    return isRec ? e.amount / e.installments! : e.amount;
+  }, []);
+
   const monthFiltered = useMemo(() => {
     if (!selectedMonth) return expenses;
-    return expenses.filter((e) => e.dueDate.startsWith(selectedMonth));
+    const [sYear, sMonth] = selectedMonth.split("-").map(Number);
+    return expenses.filter((e) => {
+      if (e.dueDate.startsWith(selectedMonth)) return true;
+      const isRec = e.type === "recorrente" && e.installments && e.installments > 1;
+      if (!isRec) return false;
+      const [dYear, dMonth] = e.dueDate.split("-").map(Number);
+      const startMonths = dYear * 12 + dMonth;
+      const selectedMonths = sYear * 12 + sMonth;
+      const endMonths = startMonths + (e.installments! - 1);
+      return selectedMonths >= startMonths && selectedMonths <= endMonths;
+    });
   }, [expenses, selectedMonth]);
 
   const filtered = monthFiltered
@@ -197,9 +212,9 @@ export function ExpenseList({ expenses, onPay, onUnpay, onDelete, onUpdate, read
       return b.dueDate.localeCompare(a.dueDate);
     });
 
-  const totalPending = monthFiltered.filter((e) => !e.paid).reduce((s, e) => s + e.amount, 0);
-  const totalPaid = monthFiltered.filter((e) => e.paid).reduce((s, e) => s + e.amount, 0);
-  const totalOverdue = monthFiltered.filter((e) => isOverdue(e)).reduce((s, e) => s + e.amount, 0);
+  const totalPending = monthFiltered.filter((e) => !e.paid).reduce((s, e) => s + getInstallmentAmount(e), 0);
+  const totalPaid = monthFiltered.filter((e) => e.paid).reduce((s, e) => s + getInstallmentAmount(e), 0);
+  const totalOverdue = monthFiltered.filter((e) => isOverdue(e)).reduce((s, e) => s + getInstallmentAmount(e), 0);
 
   const filters: { id: Filter; label: string; count: number }[] = [
     { id: "all", label: "Todas", count: monthFiltered.length },
