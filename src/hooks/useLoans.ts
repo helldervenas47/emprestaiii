@@ -60,6 +60,18 @@ export function useLoans() {
 
   useEffect(() => { fetchLoans(); fetchPayments(); fetchSchedules(); }, [fetchLoans, fetchPayments, fetchSchedules]);
 
+  // Realtime subscriptions for auto-refresh
+  useEffect(() => {
+    if (!user) return;
+    const channel = supabase
+      .channel('loans-realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'loans' }, () => { fetchLoans(); })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'payments' }, () => { fetchPayments(); })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'loan_installments' }, () => { fetchSchedules(); })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [user, fetchLoans, fetchPayments, fetchSchedules]);
+
   const saveSchedule = useCallback(async (loanId: string, rows: { installmentNumber: number; dueDate: string; amount: number }[]) => {
     if (!user || !dataOwnerId) return;
     await supabase.from("loan_installments").delete().eq("loan_id", loanId);
