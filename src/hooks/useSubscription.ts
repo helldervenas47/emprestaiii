@@ -41,6 +41,8 @@ export function useSubscription() {
       return;
     }
 
+    let cancelled = false;
+
     const fetchSubscription = async () => {
       const { data } = await supabase
         .from("subscriptions")
@@ -49,15 +51,18 @@ export function useSubscription() {
         .eq("environment", environment)
         .maybeSingle();
 
-      setSubscription(data);
-      setLoading(false);
+      if (!cancelled) {
+        setSubscription(data);
+        setLoading(false);
+      }
     };
 
     fetchSubscription();
 
     const channelName = `sub-${user.id}-${Date.now()}`;
-    const channel = supabase
-      .channel(channelName)
+    const channel = supabase.channel(channelName);
+    
+    channel
       .on(
         "postgres_changes",
         {
@@ -66,11 +71,14 @@ export function useSubscription() {
           table: "subscriptions",
           filter: `user_id=eq.${user.id}`,
         },
-        () => fetchSubscription()
+        () => {
+          if (!cancelled) fetchSubscription();
+        }
       )
       .subscribe();
 
     return () => {
+      cancelled = true;
       supabase.removeChannel(channel);
     };
   }, [user, environment]);
