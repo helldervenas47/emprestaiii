@@ -238,7 +238,7 @@ const Pricing = () => {
 
       {/* Pricing */}
       <section id="planos" className="bg-muted/30 border-y border-border/20 scroll-mt-16">
-        <div className="max-w-5xl mx-auto px-6 py-20">
+        <div className="max-w-7xl mx-auto px-6 py-20">
           <h2 className="text-2xl md:text-4xl font-bold text-foreground text-center mb-4">
             Escolha o plano ideal para você
           </h2>
@@ -248,7 +248,7 @@ const Pricing = () => {
           {loading ? (
             <div className="text-center py-12 text-muted-foreground">Carregando planos...</div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
               {plans.map((plan) => {
                 const isLoading = checkoutLoading && checkoutPlan === plan.name;
                 return (
@@ -283,8 +283,7 @@ const Pricing = () => {
                         ))}
                       </ul>
                       <Button
-                        className="w-full"
-                        variant={plan.highlight ? "default" : "outline"}
+                        className="w-full rounded-full text-base py-6 font-semibold"
                         onClick={() => handleSubscribe(plan)}
                         disabled={isLoading}
                       >
