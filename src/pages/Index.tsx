@@ -177,6 +177,7 @@ const Index = () => {
   const { locador, locadores, save: saveLocador, remove: removeLocador } = useLocadorInfo();
   const [clientSubTab, setClientSubTab] = useState<ClientSubTab>("clientes");
   const [vehicleSubTab, setVehicleSubTab] = useState<VehicleSubTab>("veiculos");
+  const [planMgmtSubTab, setPlanMgmtSubTab] = useState<PlanMgmtSubTab>("subscribers");
 
   // Filter data by linked clients if user has client restrictions
   const hasClientFilter = Array.isArray(linkedClientIds) && linkedClientIds.length > 0;
@@ -221,7 +222,7 @@ const Index = () => {
     if (loading) return false;
     if (role === "admin") return true;
     if (!role) return false;
-    if (t.id === "users" || t.id === "backup") return false;
+    if (t.id === "users" || t.id === "backup" || t.id === "plan_mgmt") return false;
     return Array.isArray(allowedTabs) ? allowedTabs.includes(t.id) : false;
   });
 
@@ -520,9 +521,33 @@ const Index = () => {
           </SubscriptionGate>
         )}
         {tab === "users" && (
-          <div className="space-y-8">
-            <UserManagement />
-            <PlanManagement />
+          <UserManagement />
+        )}
+        {tab === "plan_mgmt" && (
+          <div>
+            <div className="flex gap-2 mb-4">
+              <Button
+                variant={planMgmtSubTab === "subscribers" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setPlanMgmtSubTab("subscribers")}
+              >
+                <Users className="h-4 w-4 mr-1" /> Usuários
+              </Button>
+              <Button
+                variant={planMgmtSubTab === "plans" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setPlanMgmtSubTab("plans")}
+              >
+                <Wrench className="h-4 w-4 mr-1" /> Planos
+              </Button>
+            </div>
+            {planMgmtSubTab === "subscribers" && (
+              <>
+                <h2 className="text-lg font-semibold text-foreground mb-4">Assinantes</h2>
+                <PlanSubscribers />
+              </>
+            )}
+            {planMgmtSubTab === "plans" && <PlanManagement />}
           </div>
         )}
         {tab === "backup" && (
