@@ -63,7 +63,7 @@ export function useSubscription() {
 
     fetchSubscription();
 
-    const channelName = `sub-${user.id}-${Date.now()}`;
+    const channelName = createSubscriptionChannelName(user.id);
     const channel = supabase
       .channel(channelName)
       .on(
