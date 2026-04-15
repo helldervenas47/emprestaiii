@@ -12,6 +12,7 @@ import Pricing from "./pages/Pricing.tsx";
 import Terms from "./pages/Terms.tsx";
 import RefundPolicy from "./pages/RefundPolicy.tsx";
 import PrivacyPolicy from "./pages/PrivacyPolicy.tsx";
+import PWAInstallPrompt from "./components/PWAInstallPrompt";
 
 const queryClient = new QueryClient();
 
@@ -46,6 +47,7 @@ const App = () => (
     <TooltipProvider>
       <Toaster />
       <Sonner />
+      <PWAInstallPrompt />
       <BrowserRouter>
         <AuthProvider>
           <Routes>
