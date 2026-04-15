@@ -222,9 +222,6 @@ const Index = () => {
   const [clientSubTab, setClientSubTab] = useState<ClientSubTab>("clientes");
   const [vehicleSubTab, setVehicleSubTab] = useState<VehicleSubTab>("veiculos");
   const [planMgmtSubTab, setPlanMgmtSubTab] = useState<PlanMgmtSubTab>("subscribers");
-  const [clientSubTab, setClientSubTab] = useState<ClientSubTab>("clientes");
-  const [vehicleSubTab, setVehicleSubTab] = useState<VehicleSubTab>("veiculos");
-  const [planMgmtSubTab, setPlanMgmtSubTab] = useState<PlanMgmtSubTab>("subscribers");
 
   // Filter data by linked clients if user has client restrictions
   const hasClientFilter = Array.isArray(linkedClientIds) && linkedClientIds.length > 0;
