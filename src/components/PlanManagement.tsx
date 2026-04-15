@@ -6,9 +6,21 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Plus, Pencil, Trash2, GripVertical, Star } from "lucide-react";
+import { Plus, Pencil, Trash2, Star, LayoutGrid } from "lucide-react";
 import { toast } from "sonner";
 import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
+import { Checkbox } from "@/components/ui/checkbox";
+
+const ALL_TABS = [
+  { id: "overview", label: "Dashboard" },
+  { id: "dashboard", label: "Empréstimos" },
+  { id: "calendar", label: "Calendário" },
+  { id: "clients", label: "Clientes" },
+  { id: "products", label: "Vendas" },
+  { id: "vehicles", label: "Veículos" },
+  { id: "expenses", label: "Despesas" },
+  { id: "overdue", label: "Relatório" },
+];
 
 interface Plan {
   id: string;
