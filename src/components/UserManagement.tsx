@@ -308,11 +308,49 @@ export function UserManagement() {
       .update({ product_id: planProductId })
       .eq("user_id", planUser.id)
       .eq("environment", "live");
+
+    // Sync tab permissions based on plan
+    const planNameMap: Record<string, string> = {
+      free_plan: "Free",
+      basico_plan: "Básico",
+      profissional_plan: "Profissional",
+      empresarial_plan: "Empresarial",
+    };
+    const planName = planNameMap[planProductId];
+    if (planName) {
+      const { data: plan } = await supabase
+        .from("plans")
+        .select("allowed_tabs")
+        .eq("name", planName)
+        .eq("active", true)
+        .maybeSingle();
+
+      if (plan?.allowed_tabs) {
+        const { data: existing } = await supabase
+          .from("user_tab_permissions" as any)
+          .select("id")
+          .eq("user_id", planUser.id)
+          .maybeSingle();
+
+        if (existing) {
+          await supabase
+            .from("user_tab_permissions" as any)
+            .update({ allowed_tabs: plan.allowed_tabs, updated_at: new Date().toISOString() })
+            .eq("user_id", planUser.id);
+        } else {
+          await supabase
+            .from("user_tab_permissions" as any)
+            .insert({ user_id: planUser.id, allowed_tabs: plan.allowed_tabs });
+        }
+      }
+    }
+
     if (e1 || e2) {
       toast.error("Erro ao atualizar plano");
     } else {
       toast.success("Plano atualizado!");
       setPlanUser(null);
+      fetchUsers();
     }
     setSavingPlan(false);
   };
