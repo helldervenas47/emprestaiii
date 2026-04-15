@@ -46,14 +46,14 @@ const Terms = () => {
           oferecido pela empresa EmprestAI.
         </p>
 
-        <h2>3. Cadastro e Credenciais</h2>
+        <h2>4. Cadastro e Credenciais</h2>
         <p>
           Você é responsável por manter a confidencialidade de suas credenciais de acesso (e-mail e senha).
           Toda atividade realizada sob sua conta é de sua responsabilidade. Você deve fornecer informações
           precisas e mantê-las atualizadas.
         </p>
 
-        <h2>4. Uso Permitido</h2>
+        <h2>5. Uso Permitido</h2>
         <p>Você se compromete a não utilizar o Serviço para:</p>
         <ul>
           <li>Atividades ilegais, fraudulentas ou spam;</li>
@@ -62,21 +62,21 @@ const Terms = () => {
           <li>Redistribuição, revenda ou sublicenciamento do Serviço sem autorização.</li>
         </ul>
 
-        <h2>5. Propriedade Intelectual</h2>
+        <h2>6. Propriedade Intelectual</h2>
         <p>
           O EmprestAI retém todos os direitos de propriedade intelectual sobre o Serviço, incluindo software,
           documentação, marca e design. É concedida a você uma licença limitada, não exclusiva e
           intransferível para uso do Serviço dentro do plano contratado.
         </p>
 
-        <h2>6. Conteúdo do Usuário</h2>
+        <h2>7. Conteúdo do Usuário</h2>
         <p>
           Você mantém a propriedade dos dados que insere no Serviço. Ao utilizá-lo, você concede ao
           EmprestAI uma licença limitada para hospedar e processar esses dados exclusivamente para a
           prestação do Serviço.
         </p>
 
-        <h2>7. Pagamentos e Assinaturas</h2>
+        <h2>8. Pagamentos e Assinaturas</h2>
         <p>
           Nosso processo de compra é conduzido pelo nosso revendedor online Paddle.com. O Paddle.com é o
           Merchant of Record para todos os nossos pedidos. O Paddle fornece todo o atendimento ao cliente
@@ -90,39 +90,39 @@ const Terms = () => {
           </a>.
         </p>
 
-        <h2>8. Nível de Serviço</h2>
+        <h2>9. Nível de Serviço</h2>
         <p>
           O EmprestAI se esforça para manter o Serviço disponível e funcional, mas não garante operação
           ininterrupta ou livre de erros. Manutenções programadas podem ocorrer.
         </p>
 
-        <h2>9. Limitação de Responsabilidade</h2>
+        <h2>10. Limitação de Responsabilidade</h2>
         <p>
           Na máxima extensão permitida por lei, o EmprestAI não será responsável por danos indiretos,
           consequenciais ou especiais (incluindo perda de lucros, dados ou reputação). A responsabilidade
           total está limitada ao valor pago nos últimos 12 meses.
         </p>
 
-        <h2>10. Suspensão e Encerramento</h2>
+        <h2>11. Suspensão e Encerramento</h2>
         <p>
           O EmprestAI pode suspender ou encerrar seu acesso em caso de: violação material destes termos,
           inadimplência, risco de segurança/fraude ou violações repetidas das políticas. Ao encerrar sua
           conta, seus dados serão mantidos por 30 dias para exportação, após os quais serão excluídos.
         </p>
 
-        <h2>11. Indenização</h2>
+        <h2>12. Indenização</h2>
         <p>
           Você concorda em indenizar o EmprestAI contra reclamações decorrentes do uso indevido do Serviço,
           do conteúdo inserido ou da violação destes termos.
         </p>
 
-        <h2>12. Legislação Aplicável</h2>
+        <h2>13. Legislação Aplicável</h2>
         <p>
           Estes termos são regidos pelas leis da República Federativa do Brasil. Eventuais disputas serão
           resolvidas no foro da comarca da sede do EmprestAI.
         </p>
 
-        <h2>13. Alterações</h2>
+        <h2>14. Alterações</h2>
         <p>
           O EmprestAI pode alterar estes termos a qualquer momento, notificando os usuários por e-mail ou
           pelo Serviço. O uso continuado após a notificação constitui aceitação das alterações.
