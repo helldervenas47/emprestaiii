@@ -37,6 +37,7 @@ export function PlanSubscribers() {
     const { data: subs, error } = await supabase
       .from("subscriptions")
       .select("*")
+      .neq("product_id", "free_plan")
       .order("created_at", { ascending: false });
 
     if (error || !subs) {
