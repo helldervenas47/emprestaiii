@@ -629,15 +629,13 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
         </div>
       </div>
 
-      {/* Portfolio metrics */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 sm:gap-3">
+      {/* Portfolio metrics - filtered by period */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
         {[
-          { label: "Capital na Rua", value: formatCurrency(portfolio.capitalOnStreet), color: "text-foreground", iconBg: "bg-primary/10", iconColor: "text-primary" },
-          { label: "Total a Receber", value: formatCurrency(portfolio.totalToReceive), color: "text-foreground", iconBg: "bg-primary/10", iconColor: "text-primary" },
-          { label: "Principal Recebido", value: formatCurrency(portfolio.principalReceived), color: "text-success", iconBg: "bg-success/10", iconColor: "text-success" },
-          { label: "Juros Recebido", value: formatCurrency(portfolio.interestReceived), color: "text-success", iconBg: "bg-success/10", iconColor: "text-success" },
-          { label: "Principal a Receber", value: formatCurrency(portfolio.principalToReceive), color: "text-warning", iconBg: "bg-warning/10", iconColor: "text-warning" },
-          { label: "Juros a Receber", value: formatCurrency(portfolio.interestToReceive), color: "text-warning", iconBg: "bg-warning/10", iconColor: "text-warning" },
+          { label: "Restante a Receber", value: formatCurrency(data.remainingToReceiveInPeriod), color: "text-foreground", iconBg: "bg-primary/10", iconColor: "text-primary" },
+          { label: "Total Juros a Receber", value: formatCurrency(data.totalInterestTotal), color: "text-foreground", iconBg: "bg-primary/10", iconColor: "text-primary" },
+          { label: "Juros Recebido", value: formatCurrency(data.interestReceivedInPeriod), color: "text-success", iconBg: "bg-success/10", iconColor: "text-success" },
+          { label: "Juros a Receber", value: formatCurrency(data.interestPendingToReceive), color: "text-warning", iconBg: "bg-warning/10", iconColor: "text-warning" },
         ].map((item, i) => (
           <Card key={item.label}>
             <CardContent className="p-3 sm:p-4 flex flex-col items-center text-center">
