@@ -259,6 +259,29 @@ export function PlanManagement() {
         </DialogContent>
       </Dialog>
 
+      {/* Tabs Config Dialog */}
+      <Dialog open={!!tabsPlan} onOpenChange={(open) => !open && setTabsPlan(null)}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Abas do plano: {tabsPlan?.name}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <p className="text-sm text-muted-foreground">Selecione quais abas os usuários deste plano terão acesso:</p>
+            {ALL_TABS.map((tab) => (
+              <div key={tab.id} className="flex items-center gap-3 py-1">
+                <Checkbox
+                  id={`tab-${tab.id}`}
+                  checked={selectedTabs.includes(tab.id)}
+                  onCheckedChange={() => toggleTab(tab.id)}
+                />
+                <Label htmlFor={`tab-${tab.id}`} className="text-sm font-medium cursor-pointer">{tab.label}</Label>
+              </div>
+            ))}
+            <Button onClick={saveTabsConfig} className="w-full">Salvar abas</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       <ConfirmDeleteDialog
         open={!!deleteId}
         onOpenChange={(open) => !open && setDeleteId(null)}
