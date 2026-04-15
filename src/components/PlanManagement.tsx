@@ -176,6 +176,9 @@ export function PlanManagement() {
                   {plan.name}
                 </CardTitle>
                 <div className="flex gap-1">
+                  <Button variant="ghost" size="icon" className="h-8 w-8" title="Abas permitidas" onClick={() => openTabsConfig(plan)}>
+                    <LayoutGrid className="h-3.5 w-3.5" />
+                  </Button>
                   <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(plan)}>
                     <Pencil className="h-3.5 w-3.5" />
                   </Button>
