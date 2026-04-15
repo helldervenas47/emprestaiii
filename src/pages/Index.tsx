@@ -26,6 +26,7 @@ import { useExpenses } from "@/hooks/useExpenses";
 import { toast } from "sonner";
 import { HideValuesProvider, useHideValues } from "@/contexts/HideValuesContext";
 import { UserManagement } from "@/components/UserManagement";
+import { PlanManagement } from "@/components/PlanManagement";
 import { BackupExport } from "@/components/BackupExport";
 import { WebhookSettings } from "@/components/WebhookSettings";
 import { Badge } from "@/components/ui/badge";
@@ -497,7 +498,12 @@ const Index = () => {
             onSaveLocador={saveLocador}
           />
         )}
-        {tab === "users" && <UserManagement />}
+        {tab === "users" && (
+          <div className="space-y-8">
+            <UserManagement />
+            <PlanManagement />
+          </div>
+        )}
         {tab === "backup" && (
           <div className="space-y-6">
             <BackupExport
