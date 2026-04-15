@@ -383,7 +383,9 @@ const Index = () => {
 
       <main className="max-w-[1920px] mx-auto px-3 sm:px-4 lg:px-8 py-4 sm:py-6 space-y-4 sm:space-y-6">
         {tab === "overview" && (
+          <SubscriptionGate requiredTier={1} featureName="Dashboard">
           <DashboardOverview loans={filteredLoans} sales={filteredSales} payments={filteredPayments} expenses={expenses} installmentSchedules={filteredInstallments} onDeletePayment={deletePayment} onDeleteSale={deleteSale} onDeleteLoan={deleteLoan} />
+          </SubscriptionGate>
         )}
         {tab === "dashboard" && (
           <>
@@ -463,18 +465,23 @@ const Index = () => {
           </div>
         )}
         {tab === "expenses" && (
+          <SubscriptionGate requiredTier={2} featureName="Despesas">
           <div>
             <h2 className="text-lg font-semibold text-foreground mb-4">Despesas ({nonVehicleExpenses.length})</h2>
             <ExpenseList expenses={nonVehicleExpenses} onPay={payExpense} onUnpay={unpayExpense} onDelete={deleteExpense} onUpdate={updateExpense} readOnly={isReadOnly} />
           </div>
+          </SubscriptionGate>
         )}
         {tab === "overdue" && (
+          <SubscriptionGate requiredTier={2} featureName="Relatórios">
           <OverdueLoans loans={filteredLoans} payments={filteredPayments} clients={filteredClients} installmentSchedules={filteredInstallments} />
+          </SubscriptionGate>
         )}
         {tab === "calendar" && (
           <BillingCalendar loans={filteredLoans} payments={filteredPayments} installmentSchedules={filteredInstallments} onPayment={addPayment} onPartialPayment={addPartialPayment} onInterestPayment={addInterestOnlyPayment} onUpdate={updateLoan} readOnly={isReadOnly} />
         )}
         {tab === "products" && (
+          <SubscriptionGate requiredTier={2} featureName="Vendas">
           <ProductSalesView
             sales={filteredSales.filter(s => s.businessType !== "aluguel_veiculo")}
             onDeleteSale={deleteSale}
@@ -482,8 +489,10 @@ const Index = () => {
             clients={filteredClients}
             readOnly={isReadOnly}
           />
+          </SubscriptionGate>
         )}
         {tab === "vehicles" && (
+          <SubscriptionGate requiredTier={2} featureName="Veículos">
           <ProductSalesView
             sales={filteredSales.filter(s => s.businessType === "aluguel_veiculo")}
             onDeleteSale={deleteSale}
@@ -499,6 +508,7 @@ const Index = () => {
             locadores={locadores}
             onSaveLocador={saveLocador}
           />
+          </SubscriptionGate>
         )}
         {tab === "users" && (
           <div className="space-y-8">
