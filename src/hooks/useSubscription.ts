@@ -16,6 +16,7 @@ export interface Subscription {
 
 // Map product IDs to plan tiers (higher = more features)
 const PLAN_TIERS: Record<string, number> = {
+  free_plan: 0,
   basico_plan: 1,
   profissional_plan: 2,
   empresarial_plan: 3,
