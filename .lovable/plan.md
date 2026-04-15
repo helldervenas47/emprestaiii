@@ -1,39 +1,37 @@
 
 
-## Problema
+# Página de Planos e Preços
 
-O componente `OverdueLoans` usa `calculateInstallment()` para calcular o valor exibido, ignorando o `remaining_amount` real do banco. Quando houve pagamentos parciais, os valores divergem.
+## O que será feito
 
-## Solução
+Criar uma página pública (`/planos`) com os planos de assinatura do sistema, acessível sem login. A página terá um design moderno com cards para cada plano, botão de CTA e link visível na tela de login.
 
-Alterar a função `getInstallmentAmount` em `src/components/OverdueLoans.tsx` para usar `loan.remainingAmount` quando disponível, em vez de recalcular pela fórmula.
+## Estrutura
 
-## Alteração
+1. **Nova página `src/pages/Pricing.tsx`**
+   - 2-3 cards de planos (ex: Básico, Profissional, Empresarial) com preços, lista de funcionalidades e botão de ação
+   - Design responsivo com gradientes e destaque no plano recomendado
+   - Botão "Criar conta" que redireciona para `/auth`
+   - Header com logo e botão "Entrar"
 
-**Arquivo: `src/components/OverdueLoans.tsx`**
+2. **Rota pública no `App.tsx`**
+   - Adicionar rota `/planos` como rota pública (sem autenticação)
 
-- Na função `getInstallmentAmount`, priorizar `loan.remainingAmount` quando existir e for > 0
-- Para empréstimos com 1 parcela (parcela única), usar diretamente o `remainingAmount`
-- Para empréstimos parcelados com múltiplas parcelas, manter a lógica de schedule mas usar `remainingAmount` como fallback
-- Atualizar o `totalAmount` nos cards de resumo para refletir os valores corretos
+3. **Link na página de login (`Auth.tsx`)**
+   - Adicionar link "Ver planos" na tela de autenticação para direcionar novos visitantes
 
-Lógica proposta:
-```
-function getInstallmentAmount(loan, schedules):
-  // Para parcela única, usar remaining_amount diretamente
-  if loan.installments === 1 e loan.remainingAmount > 0:
-    return loan.remainingAmount
-  
-  // Para parcelado, tentar schedule primeiro
-  schedule = encontrar no schedules
-  if schedule: return schedule.amount
-  
-  // Fallback: cálculo original
-  return calculateInstallment(...)
-```
+## Planos sugeridos (editáveis depois)
 
-## Impacto
+| Plano | Preço | Destaques |
+|-------|-------|-----------|
+| Básico | R$ 29/mês | Até 50 empréstimos, 1 usuário |
+| Profissional | R$ 59/mês | Empréstimos ilimitados, 3 usuários, relatórios |
+| Empresarial | R$ 99/mês | Tudo incluso, usuários ilimitados, suporte prioritário |
 
-- Os cards de "Empréstimos Atrasados" e "Vencendo Hoje" mostrarão valores corretos
-- As mensagens WhatsApp também usarão os valores corretos
+Os valores e funcionalidades são apenas visuais por enquanto — sem integração de pagamento. Você poderá ajustar textos e preços facilmente depois.
+
+## Arquivos modificados
+- `src/pages/Pricing.tsx` — novo
+- `src/App.tsx` — nova rota pública
+- `src/pages/Auth.tsx` — link para /planos
 
