@@ -37,6 +37,8 @@ const LocadorList = lazy(() => import("@/components/LocadorList").then(m => ({ d
 const SubscriptionBanner = lazy(() => import("@/components/SubscriptionBanner").then(m => ({ default: m.SubscriptionBanner })));
 const SubscriptionGate = lazy(() => import("@/components/SubscriptionGate").then(m => ({ default: m.SubscriptionGate })));
 const VehicleExpenseForm = lazy(() => import("@/components/VehicleExpenseForm").then(m => ({ default: m.VehicleExpenseForm })));
+// Direct import for the constant used at render time
+import { vehicleExpenseCategories } from "@/components/VehicleExpenseForm";
 
 // Lazy load hooks only when needed
 import { useLoans } from "@/hooks/useLoans";
