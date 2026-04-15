@@ -6,9 +6,21 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Plus, Pencil, Trash2, GripVertical, Star } from "lucide-react";
+import { Plus, Pencil, Trash2, Star, LayoutGrid } from "lucide-react";
 import { toast } from "sonner";
 import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
+import { Checkbox } from "@/components/ui/checkbox";
+
+const ALL_TABS = [
+  { id: "overview", label: "Dashboard" },
+  { id: "dashboard", label: "Empréstimos" },
+  { id: "calendar", label: "Calendário" },
+  { id: "clients", label: "Clientes" },
+  { id: "products", label: "Vendas" },
+  { id: "vehicles", label: "Veículos" },
+  { id: "expenses", label: "Despesas" },
+  { id: "overdue", label: "Relatório" },
+];
 
 interface Plan {
   id: string;
@@ -20,6 +32,7 @@ interface Plan {
   max_users: number | null;
   sort_order: number;
   active: boolean;
+  allowed_tabs: string[];
 }
 
 export function PlanManagement() {
@@ -28,6 +41,8 @@ export function PlanManagement() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [editingPlan, setEditingPlan] = useState<Plan | null>(null);
+  const [tabsPlan, setTabsPlan] = useState<Plan | null>(null);
+  const [selectedTabs, setSelectedTabs] = useState<string[]>([]);
 
   const [name, setName] = useState("");
   const [price, setPrice] = useState("");
@@ -120,6 +135,26 @@ export function PlanManagement() {
     fetchPlans();
   };
 
+  const openTabsConfig = (plan: Plan) => {
+    setTabsPlan(plan);
+    setSelectedTabs(plan.allowed_tabs || ALL_TABS.map(t => t.id));
+  };
+
+  const toggleTab = (tabId: string) => {
+    setSelectedTabs(prev =>
+      prev.includes(tabId) ? prev.filter(t => t !== tabId) : [...prev, tabId]
+    );
+  };
+
+  const saveTabsConfig = async () => {
+    if (!tabsPlan) return;
+    const { error } = await supabase.from("plans").update({ allowed_tabs: selectedTabs }).eq("id", tabsPlan.id);
+    if (error) { toast.error("Erro ao salvar abas"); return; }
+    toast.success("Abas do plano atualizadas!");
+    setTabsPlan(null);
+    fetchPlans();
+  };
+
   if (loading) return <div className="text-center py-8 text-muted-foreground">Carregando planos...</div>;
 
   return (
@@ -141,6 +176,9 @@ export function PlanManagement() {
                   {plan.name}
                 </CardTitle>
                 <div className="flex gap-1">
+                  <Button variant="ghost" size="icon" className="h-8 w-8" title="Abas permitidas" onClick={() => openTabsConfig(plan)}>
+                    <LayoutGrid className="h-3.5 w-3.5" />
+                  </Button>
                   <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(plan)}>
                     <Pencil className="h-3.5 w-3.5" />
                   </Button>
@@ -217,6 +255,29 @@ export function PlanManagement() {
             <Button onClick={handleSave} className="w-full">
               {editingPlan ? "Salvar alterações" : "Criar plano"}
             </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Tabs Config Dialog */}
+      <Dialog open={!!tabsPlan} onOpenChange={(open) => !open && setTabsPlan(null)}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Abas do plano: {tabsPlan?.name}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <p className="text-sm text-muted-foreground">Selecione quais abas os usuários deste plano terão acesso:</p>
+            {ALL_TABS.map((tab) => (
+              <div key={tab.id} className="flex items-center gap-3 py-1">
+                <Checkbox
+                  id={`tab-${tab.id}`}
+                  checked={selectedTabs.includes(tab.id)}
+                  onCheckedChange={() => toggleTab(tab.id)}
+                />
+                <Label htmlFor={`tab-${tab.id}`} className="text-sm font-medium cursor-pointer">{tab.label}</Label>
+              </div>
+            ))}
+            <Button onClick={saveTabsConfig} className="w-full">Salvar abas</Button>
           </div>
         </DialogContent>
       </Dialog>
