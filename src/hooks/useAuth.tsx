@@ -27,25 +27,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [linkedClientIds, setLinkedClientIds] = useState<string[] | null>(null);
 
   const fetchRole = async (userId: string) => {
-    const [{ data: isAdmin }, { data: isOperador }, { data: isVisualizador }] = await Promise.all([
-      supabase.rpc("has_role", { _user_id: userId, _role: "admin" }),
-      supabase.rpc("has_role", { _user_id: userId, _role: "operador" }),
-      supabase.rpc("has_role", { _user_id: userId, _role: "visualizador" }),
-    ]);
+    const { data } = await supabase
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", userId)
+      .limit(1)
+      .maybeSingle();
 
-    if (isAdmin) {
-      setRole("admin");
-      return;
-    }
-    if (isOperador) {
-      setRole("operador");
-      return;
-    }
-    if (isVisualizador) {
-      setRole("visualizador");
-      return;
-    }
-    setRole(null);
+    setRole((data?.role as AppRole) ?? null);
   };
 
   const fetchDataOwner = async (userId: string) => {
