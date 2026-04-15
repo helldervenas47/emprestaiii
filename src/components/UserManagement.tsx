@@ -27,6 +27,7 @@ interface ManagedUser {
   is_active: boolean;
   allowed_tabs: string[] | null;
   linked_client_ids: string[];
+  plan_id?: string;
 }
 
 const ALL_TABS = [
