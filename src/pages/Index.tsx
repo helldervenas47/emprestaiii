@@ -372,31 +372,17 @@ const Index = () => {
               <User className="h-3 w-3" />
               <span className="max-w-[120px] truncate">{user?.user_metadata?.display_name || user?.email || "—"}</span>
               {role && <Badge variant={role === "admin" ? "default" : role === "operador" ? "secondary" : "outline"} className="text-[10px] px-1.5 py-0">{role === "admin" ? "Admin" : role === "operador" ? "Op." : "Vis."}</Badge>}
-              <Popover>
-                <PopoverTrigger asChild>
-                  <button className="ml-0.5">
-                    <Badge variant="outline" className="text-[10px] px-1.5 py-0 cursor-pointer hover:bg-primary/10 transition-colors border-primary/40 text-primary">
-                      {hasActiveSub && subscription ? (
-                        subscription.product_id === "basico_plan" ? "Básico" :
-                        subscription.product_id === "profissional_plan" ? "Profissional" :
-                        subscription.product_id === "empresarial_plan" ? "Empresarial" : "Plano"
-                      ) : "Sem Plano"}
-                    </Badge>
-                  </button>
-                </PopoverTrigger>
-                <PopoverContent className="w-56" align="end">
-                  <div className="space-y-2">
-                    <p className="text-xs font-semibold text-foreground">Plano atual: {hasActiveSub && subscription ? (
-                      subscription.product_id === "basico_plan" ? "Básico" :
-                      subscription.product_id === "profissional_plan" ? "Profissional" :
-                      subscription.product_id === "empresarial_plan" ? "Empresarial" : "—"
-                    ) : "Nenhum"}</p>
-                    <Button size="sm" className="w-full text-xs" onClick={() => navigate("/pricing")}>
-                      {hasActiveSub ? "Upgrade / Trocar Plano" : "Contratar Plano"}
-                    </Button>
-                  </div>
-                </PopoverContent>
-              </Popover>
+              <Badge
+                variant="outline"
+                className="text-[10px] px-1.5 py-0 cursor-pointer hover:bg-primary/10 transition-colors border-primary/40 text-primary"
+                onClick={() => navigate("/pricing")}
+              >
+                {hasActiveSub && subscription ? (
+                  subscription.product_id === "basico_plan" ? "Básico" :
+                  subscription.product_id === "profissional_plan" ? "Profissional" :
+                  subscription.product_id === "empresarial_plan" ? "Empresarial" : "Plano"
+                ) : "Sem Plano"}
+              </Badge>
             </div>
             <Popover>
               <PopoverTrigger asChild>
