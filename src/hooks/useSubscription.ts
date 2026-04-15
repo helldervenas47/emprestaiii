@@ -55,9 +55,9 @@ export function useSubscription() {
 
     fetchSubscription();
 
-    // Listen for realtime changes
+    const channelName = `sub-${user.id}-${Date.now()}`;
     const channel = supabase
-      .channel(`subscription-changes-${user.id}`)
+      .channel(channelName)
       .on(
         "postgres_changes",
         {
