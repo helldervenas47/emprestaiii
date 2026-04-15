@@ -330,12 +330,21 @@ const Pricing = () => {
             <HandCoins className="h-4 w-4 text-primary" />
             <span>EmprestAI © {new Date().getFullYear()}</span>
           </div>
-          <div className="flex gap-6">
+          <div className="flex flex-wrap gap-6">
             <button onClick={() => navigate("/auth")} className="hover:text-foreground transition-colors">
               Entrar
             </button>
             <button onClick={scrollToPlans} className="hover:text-foreground transition-colors">
               Planos
+            </button>
+            <button onClick={() => navigate("/termos")} className="hover:text-foreground transition-colors">
+              Termos de Uso
+            </button>
+            <button onClick={() => navigate("/reembolso")} className="hover:text-foreground transition-colors">
+              Reembolso
+            </button>
+            <button onClick={() => navigate("/privacidade")} className="hover:text-foreground transition-colors">
+              Privacidade
             </button>
           </div>
         </div>
