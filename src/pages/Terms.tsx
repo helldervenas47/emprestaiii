@@ -25,18 +25,25 @@ const Terms = () => {
         <h1 className="text-3xl font-bold text-foreground mb-2">Termos de Uso</h1>
         <p className="text-muted-foreground mb-8">Última atualização: {new Date().toLocaleDateString("pt-BR")}</p>
 
-        <h2>1. Aceitação dos Termos</h2>
+        <h2>1. Identificação do Fornecedor</h2>
+        <p>
+          Estes Termos de Uso são celebrados entre você ("Usuário") e <strong>EmprestAI</strong> ("Empresa", "nós"),
+          pessoa jurídica responsável pela operação da plataforma EmprestAI. Ao utilizar o Serviço, você está
+          contratando diretamente com a EmprestAI.
+        </p>
+
+        <h2>2. Aceitação dos Termos</h2>
         <p>
           Ao acessar e utilizar a plataforma EmprestAI ("Serviço"), você concorda com estes Termos de Uso.
           O uso continuado do Serviço constitui aceitação integral destes termos. Caso não concorde, interrompa
           o uso imediatamente.
         </p>
 
-        <h2>2. Sobre o Serviço</h2>
+        <h2>3. Sobre o Serviço</h2>
         <p>
           O EmprestAI é uma plataforma de gestão de empréstimos pessoais que permite cadastrar empréstimos,
           clientes, controlar parcelas, gerar relatórios financeiros e gerenciar cobranças. O Serviço é
-          oferecido por EmprestAI.
+          oferecido pela empresa EmprestAI.
         </p>
 
         <h2>3. Cadastro e Credenciais</h2>
