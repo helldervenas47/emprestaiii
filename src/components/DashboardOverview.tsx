@@ -163,6 +163,55 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
       ? ((totalToReceiveInPeriod - totalLentInPeriod) / totalLentInPeriod) * 100
       : 0;
 
+    // Period-filtered interest calculations
+    // Remaining to receive in period: active loans with due dates in range
+    const activeLoansInPeriod = loans.filter((l) => l.status !== "paid");
+    const remainingToReceiveInPeriod = activeLoansInPeriod.reduce((s, l) => {
+      // Check if loan has installments due in this period
+      const loanPaymentsInPeriod = filteredPayments.filter(p => p.loanId === l.id);
+      const totalWithInterest = calculateTotalWithInterest(l.amount, l.interestRate, l.installments);
+      const allLoanPayments = payments.filter(p => p.loanId === l.id);
+      const totalPaid = allLoanPayments.reduce((ss, p) => ss + p.amount, 0);
+      const remaining = Math.max(0, l.remainingAmount > 0 ? l.remainingAmount : totalWithInterest - totalPaid);
+      return s + remaining;
+    }, 0);
+
+    // Interest received in period (from filteredPayments)
+    let interestReceivedInPeriod = 0;
+    loans.forEach((l) => {
+      const loanPaymentsInPeriod = filteredPayments.filter(p => p.loanId === l.id);
+      const totalWithInterest = calculateTotalWithInterest(l.amount, l.interestRate, l.installments);
+      const principalRatio = totalWithInterest > 0 ? l.amount / totalWithInterest : 1;
+      loanPaymentsInPeriod.forEach((p) => {
+        if (p.installmentNumber === 0) {
+          interestReceivedInPeriod += p.amount;
+        } else {
+          interestReceivedInPeriod += p.amount * (1 - principalRatio);
+        }
+      });
+    });
+
+    // Total interest expected from all active loans
+    const totalInterestExpectedAll = activeLoansInPeriod.reduce((s, l) => {
+      return s + (calculateTotalWithInterest(l.amount, l.interestRate, l.installments) - l.amount);
+    }, 0);
+    // Total interest received globally
+    let totalInterestReceivedGlobal = 0;
+    loans.forEach((l) => {
+      const loanPayments = payments.filter(p => p.loanId === l.id);
+      const totalWithInterest = calculateTotalWithInterest(l.amount, l.interestRate, l.installments);
+      const principalRatio = totalWithInterest > 0 ? l.amount / totalWithInterest : 1;
+      loanPayments.forEach((p) => {
+        if (p.installmentNumber === 0) {
+          totalInterestReceivedGlobal += p.amount;
+        } else {
+          totalInterestReceivedGlobal += p.amount * (1 - principalRatio);
+        }
+      });
+    });
+    const interestPendingToReceive = Math.max(0, totalInterestExpectedAll - totalInterestReceivedGlobal);
+    const totalInterestTotal = totalInterestReceivedGlobal + interestPendingToReceive;
+
     // Build sales with received amounts for breakdown
     const salesWithReceived = filteredSales.map(sale => {
       let received = 0;
@@ -179,7 +228,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
       return { ...sale, received };
     });
 
-    return { totalIncome, incomeFromPayments, incomeFromSales, totalOutgoing, totalLoanOutgoing, totalExpenses, balance, transactions, loanCount: filteredLoans.length, saleCount: filteredSales.length, paymentCount: filteredPayments.length, expenseCount: filteredExpenses.length, avgInterestRate, filteredPayments, filteredLoans, filteredExpenses, salesWithReceived };
+    return { totalIncome, incomeFromPayments, incomeFromSales, totalOutgoing, totalLoanOutgoing, totalExpenses, balance, transactions, loanCount: filteredLoans.length, saleCount: filteredSales.length, paymentCount: filteredPayments.length, expenseCount: filteredExpenses.length, avgInterestRate, filteredPayments, filteredLoans, filteredExpenses, salesWithReceived, remainingToReceiveInPeriod, interestReceivedInPeriod, interestPendingToReceive, totalInterestTotal };
   }, [loans, sales, payments, expenses, range, includeSales, period, chartOverrides]);
 
   // Portfolio metrics — global (not filtered by period)
