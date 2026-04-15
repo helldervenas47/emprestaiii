@@ -41,6 +41,8 @@ export function PlanManagement() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [editingPlan, setEditingPlan] = useState<Plan | null>(null);
+  const [tabsPlan, setTabsPlan] = useState<Plan | null>(null);
+  const [selectedTabs, setSelectedTabs] = useState<string[]>([]);
 
   const [name, setName] = useState("");
   const [price, setPrice] = useState("");
