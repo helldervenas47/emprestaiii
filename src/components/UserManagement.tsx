@@ -99,7 +99,21 @@ export function UserManagement() {
         toast.error(errMsg);
       }
     } else {
-      setUsers(data.users || []);
+      const usersList = data.users || [];
+      // Fetch plans for each user
+      if (usersList.length > 0) {
+        const { data: subs } = await supabase
+          .from("subscriptions")
+          .select("user_id, product_id")
+          .eq("environment", "sandbox")
+          .in("user_id", usersList.map((u: ManagedUser) => u.id));
+        
+        const planMap = new Map(subs?.map((s) => [s.user_id, s.product_id]) || []);
+        usersList.forEach((u: ManagedUser) => {
+          u.plan_id = planMap.get(u.id) || "free_plan";
+        });
+      }
+      setUsers(usersList);
     }
     setLoading(false);
   };
