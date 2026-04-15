@@ -330,6 +330,20 @@ export function UserManagement() {
     return "Sem papel";
   };
 
+  const planBadgeVariant = (planId: string | undefined) => {
+    if (planId === "empresarial_plan") return "default";
+    if (planId === "profissional_plan") return "secondary";
+    if (planId === "basico_plan") return "outline";
+    return "outline";
+  };
+
+  const planLabel = (planId: string | undefined) => {
+    if (planId === "empresarial_plan") return "Empresarial";
+    if (planId === "profissional_plan") return "Profissional";
+    if (planId === "basico_plan") return "Básico";
+    return "Free";
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
