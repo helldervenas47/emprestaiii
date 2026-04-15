@@ -110,34 +110,9 @@ export function UserManagement() {
         
         const planMap = new Map(subs?.map((s) => [s.user_id, s.product_id]) || []);
         
-        // Find admin's plan to use as the reference for all users
-        const adminUser = usersList.find((u: ManagedUser) => u.role === "admin");
-        const adminPlanId = adminUser ? (planMap.get(adminUser.id) || "free_plan") : "free_plan";
-        
         usersList.forEach((u: ManagedUser) => {
-          if (u.role === "admin") {
-            u.plan_id = planMap.get(u.id) || "free_plan";
-          } else {
-            // Sub-users always inherit admin's plan
-            u.plan_id = adminPlanId;
-          }
+          u.plan_id = planMap.get(u.id) || "free_plan";
         });
-
-        // Auto-sync: update sub-users whose plan doesn't match admin's
-        for (const u of usersList) {
-          if (u.role !== "admin" && planMap.get(u.id) !== adminPlanId) {
-            await supabase
-              .from("subscriptions")
-              .update({ product_id: adminPlanId })
-              .eq("user_id", u.id)
-              .eq("environment", "sandbox");
-            await supabase
-              .from("subscriptions")
-              .update({ product_id: adminPlanId })
-              .eq("user_id", u.id)
-              .eq("environment", "live");
-          }
-        }
       }
       setUsers(usersList);
     }
