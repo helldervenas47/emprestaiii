@@ -83,31 +83,84 @@ Deno.serve(async (req) => {
       });
     }
 
+    const newUserId = newUser.user.id;
+
     // Update profile with username
     if (username || display_name) {
       await adminClient
         .from("profiles")
         .update({ username, display_name: display_name || username || email || "Usuário" })
-        .eq("user_id", newUser.user.id);
+        .eq("user_id", newUserId);
     }
 
     // Assign role
     await adminClient.from("user_roles").insert({
-      user_id: newUser.user.id,
+      user_id: newUserId,
       role,
     });
 
     // Link sub-user to the admin who created them
     await adminClient.from("user_owner").insert({
-      user_id: newUser.user.id,
+      user_id: newUserId,
       owner_id: caller.id,
     });
 
-    // Create default tab permissions
-    await adminClient.from("user_tab_permissions").insert({
-      user_id: newUser.user.id,
-      allowed_tabs: ['overview','dashboard','calendar','clients','products','vehicles','expenses','overdue'],
-    });
+    // --- Sync plan from admin to new user ---
+    // Fetch admin's subscription (try sandbox first, then live)
+    const { data: adminSubSandbox } = await adminClient
+      .from("subscriptions")
+      .select("product_id, price_id")
+      .eq("user_id", caller.id)
+      .eq("environment", "sandbox")
+      .maybeSingle();
+
+    const { data: adminSubLive } = await adminClient
+      .from("subscriptions")
+      .select("product_id, price_id")
+      .eq("user_id", caller.id)
+      .eq("environment", "live")
+      .maybeSingle();
+
+    const adminProductId = adminSubSandbox?.product_id || adminSubLive?.product_id || "free_plan";
+    const adminPriceId = adminSubSandbox?.price_id || adminSubLive?.price_id || "free";
+
+    // Update the new user's subscriptions (created by handle_new_user trigger) to match admin's plan
+    await adminClient
+      .from("subscriptions")
+      .update({ product_id: adminProductId, price_id: adminPriceId })
+      .eq("user_id", newUserId)
+      .eq("environment", "sandbox");
+
+    await adminClient
+      .from("subscriptions")
+      .update({ product_id: adminProductId, price_id: adminPriceId })
+      .eq("user_id", newUserId)
+      .eq("environment", "live");
+
+    // Sync tab permissions based on admin's plan
+    const planNameMap: Record<string, string> = {
+      free_plan: "Free",
+      basico_plan: "Básico",
+      profissional_plan: "Profissional",
+      empresarial_plan: "Empresarial",
+    };
+    const planName = planNameMap[adminProductId];
+    if (planName) {
+      const { data: plan } = await adminClient
+        .from("plans")
+        .select("allowed_tabs")
+        .eq("name", planName)
+        .eq("active", true)
+        .maybeSingle();
+
+      if (plan?.allowed_tabs) {
+        // Update the default tab permissions created above
+        await adminClient
+          .from("user_tab_permissions")
+          .update({ allowed_tabs: plan.allowed_tabs, updated_at: new Date().toISOString() })
+          .eq("user_id", newUserId);
+      }
+    }
 
     return new Response(JSON.stringify({ user: newUser.user }), {
       status: 200,
