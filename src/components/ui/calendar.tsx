@@ -13,9 +13,16 @@ function Calendar({ className, classNames, showOutsideDays = true, ...props }: C
   const touchStartX = React.useRef<number | null>(null);
   const touchStartY = React.useRef<number | null>(null);
 
-  const [displayMonth, setDisplayMonth] = React.useState<Date>(
-    (props as any).month || (props as any).defaultMonth || new Date()
-  );
+  const selectedDate = (props as any).selected;
+  const initialMonth = (props as any).month || (props as any).defaultMonth || (selectedDate instanceof Date ? selectedDate : null) || new Date();
+  const [displayMonth, setDisplayMonth] = React.useState<Date>(initialMonth);
+
+  // When the calendar opens with a selected date, jump to that month
+  React.useEffect(() => {
+    if (selectedDate instanceof Date) {
+      setDisplayMonth(selectedDate);
+    }
+  }, []);
 
   React.useEffect(() => {
     if ((props as any).month) {
