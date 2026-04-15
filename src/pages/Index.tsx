@@ -536,7 +536,7 @@ const Index = () => {
                 size="sm"
                 onClick={() => setPlanMgmtSubTab("subscribers")}
               >
-                <Users className="h-4 w-4 mr-1" /> Usuários
+                <Users className="h-4 w-4 mr-1" /> Assinantes
               </Button>
               <Button
                 variant={planMgmtSubTab === "plans" ? "default" : "outline"}
