@@ -218,6 +218,32 @@ const Index = () => {
   const isMobile = useIsMobile();
   const isReadOnly = role === "visualizador";
 
+  // Swipe from left edge to open sidebar on mobile
+  useEffect(() => {
+    if (!isMobile) return;
+    let touchStartX = 0;
+    let touchStartY = 0;
+    const onTouchStart = (e: TouchEvent) => {
+      touchStartX = e.touches[0].clientX;
+      touchStartY = e.touches[0].clientY;
+    };
+    const onTouchEnd = (e: TouchEvent) => {
+      const touchEndX = e.changedTouches[0].clientX;
+      const touchEndY = e.changedTouches[0].clientY;
+      const deltaX = touchEndX - touchStartX;
+      const deltaY = Math.abs(touchEndY - touchStartY);
+      if (touchStartX < 30 && deltaX > 50 && deltaY < 100) {
+        setSidebarOpen(true);
+      }
+    };
+    document.addEventListener("touchstart", onTouchStart, { passive: true });
+    document.addEventListener("touchend", onTouchEnd, { passive: true });
+    return () => {
+      document.removeEventListener("touchstart", onTouchStart);
+      document.removeEventListener("touchend", onTouchEnd);
+    };
+  }, [isMobile]);
+
   const visibleTabs = tabConfig.filter((t) => {
     if (loading) return false;
     if (role === "admin") return true;
