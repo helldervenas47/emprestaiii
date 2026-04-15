@@ -1,5 +1,6 @@
 import { useNavigate } from "react-router-dom";
-import { HandCoins, ArrowLeft } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
+import logoIcon from "@/assets/logo-icon.png";
 import { Button } from "@/components/ui/button";
 
 const Terms = () => {
