@@ -32,6 +32,7 @@ interface Plan {
   max_users: number | null;
   sort_order: number;
   active: boolean;
+  allowed_tabs: string[];
 }
 
 export function PlanManagement() {
