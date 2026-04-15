@@ -387,6 +387,48 @@ export type Database = {
           },
         ]
       }
+      plans: {
+        Row: {
+          active: boolean
+          created_at: string
+          features: string[]
+          highlight: boolean
+          id: string
+          max_loans: number | null
+          max_users: number | null
+          name: string
+          price: number
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          features?: string[]
+          highlight?: boolean
+          id?: string
+          max_loans?: number | null
+          max_users?: number | null
+          name: string
+          price?: number
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          features?: string[]
+          highlight?: boolean
+          id?: string
+          max_loans?: number | null
+          max_users?: number | null
+          name?: string
+          price?: number
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       products: {
         Row: {
           cost: number
