@@ -20,18 +20,13 @@ const TIER_NAMES: Record<number, string> = {
 
 export function SubscriptionGate({ children, requiredTier = 1, featureName }: SubscriptionGateProps) {
   const { isActive, hasFeature, loading } = useSubscription();
-  const { role } = useAuth();
+  const { role, user } = useAuth();
   const navigate = useNavigate();
 
   if (loading) return <>{children}</>;
 
-  // Admin users bypass subscription gates entirely
-  if (role === "admin") return <>{children}</>;
-
-  // If user has an active subscription with sufficient tier, show content
-  if (isActive && hasFeature(requiredTier)) {
-    return <>{children}</>;
-  }
+  // All authenticated users bypass subscription gates
+  if (user) return <>{children}</>;
 
   const planName = TIER_NAMES[requiredTier] || "Básico";
 

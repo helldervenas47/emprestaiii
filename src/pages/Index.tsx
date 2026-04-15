@@ -221,9 +221,14 @@ const Index = () => {
   const visibleTabs = tabConfig.filter((t) => {
     if (loading) return false;
     if (role === "admin") return true;
-    if (!role) return false;
+    // Admin-only tabs
     if (t.id === "users" || t.id === "backup" || t.id === "plan_mgmt") return false;
-    return Array.isArray(allowedTabs) ? allowedTabs.includes(t.id) : false;
+    // Any authenticated user sees all other tabs
+    if (user) {
+      if (Array.isArray(allowedTabs)) return allowedTabs.includes(t.id);
+      return true; // No tab restrictions = full access
+    }
+    return false;
   });
 
   useEffect(() => {
