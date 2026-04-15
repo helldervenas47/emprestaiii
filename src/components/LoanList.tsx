@@ -196,15 +196,13 @@ function LoanCardView({
 
   const total = calculateTotalWithInterest(loan.amount, loan.interestRate, loan.installments);
   const totalPaid = getTotalPaid(loan, allPayments);
-  // For installment loans, use sum of overdue (unpaid) installment amounts from schedule
-  const todayIso = new Date().toISOString().split("T")[0];
-  const overdueScheduleSum = loan.installments >= 2
-    ? installmentSchedules
-        .filter((s) => s.loanId === loan.id && s.installmentNumber > loan.paidInstallments && s.dueDate <= todayIso)
-        .reduce((sum, s) => sum + s.amount, 0)
-    : 0;
-  const baseRemaining = loan.installments >= 2 && overdueScheduleSum > 0
-    ? overdueScheduleSum
+  const unpaidSchedules = installmentSchedules
+    .filter((s) => s.loanId === loan.id && s.installmentNumber > loan.paidInstallments)
+    .sort((a, b) => a.installmentNumber - b.installmentNumber);
+  const nextSchedule = unpaidSchedules[0];
+  const allUnpaidScheduleSum = unpaidSchedules.reduce((sum, s) => sum + s.amount, 0);
+  const baseRemaining = loan.installments >= 2 && allUnpaidScheduleSum > 0
+    ? allUnpaidScheduleSum
     : loan.remainingAmount != null && loan.remainingAmount > 0
       ? loan.remainingAmount
       : Math.max(0, total - totalPaid);
@@ -228,8 +226,11 @@ function LoanCardView({
   const remaining = baseRemaining + lateFees;
 
   const remainingInstallments = Math.max(1, loan.installments - loan.paidInstallments);
-  const calculatedInstallment = remaining / remainingInstallments;
-  const installment = loan.customInstallmentValue != null && loan.customInstallmentValue > 0 ? loan.customInstallmentValue : calculatedInstallment;
+  const installment = nextSchedule
+    ? nextSchedule.amount
+    : loan.customInstallmentValue != null && loan.customInstallmentValue > 0
+      ? loan.customInstallmentValue
+      : remaining / remainingInstallments;
   const progress = loan.installments > 0 ? (loan.paidInstallments / loan.installments) * 100 : 0;
   const interestOnly = loan.customInterestValue != null && loan.customInterestValue > 0
     ? loan.customInterestValue
@@ -1229,36 +1230,31 @@ function LoanRowView({
 
   const total = calculateTotalWithInterest(loan.amount, loan.interestRate, loan.installments);
   const totalPaid = getTotalPaid(loan, allPayments);
-  // For installment loans, use sum of overdue (unpaid) installment amounts from schedule
-  const todayIso = new Date().toISOString().split("T")[0];
-  const overdueScheduleSum = loan.installments >= 2
-    ? installmentSchedules
-        .filter((s) => s.loanId === loan.id && s.installmentNumber > loan.paidInstallments && s.dueDate <= todayIso)
-        .reduce((sum, s) => sum + s.amount, 0)
-    : 0;
-  const baseRemaining = loan.installments >= 2 && overdueScheduleSum > 0
-    ? overdueScheduleSum
+  const unpaidSchedules = installmentSchedules
+    .filter((s) => s.loanId === loan.id && s.installmentNumber > loan.paidInstallments)
+    .sort((a, b) => a.installmentNumber - b.installmentNumber);
+  const allUnpaidScheduleSum = unpaidSchedules.reduce((sum, s) => sum + s.amount, 0);
+  const baseRemaining = loan.installments >= 2 && allUnpaidScheduleSum > 0
+    ? allUnpaidScheduleSum
     : loan.remainingAmount != null && loan.remainingAmount > 0
       ? loan.remainingAmount
       : Math.max(0, total - totalPaid);
 
+  const daysOverdue = getDaysOverdue(loan, installmentSchedules);
+
   // Calculate late fees
-  const dueDate = new Date(loan.dueDate + "T00:00:00");
-  const todayNorm = new Date();
-  todayNorm.setHours(0, 0, 0, 0);
-  const daysLate = Math.max(0, Math.floor((todayNorm.getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24)));
+  const effectiveDaysLate = Math.max(0, daysOverdue);
   let lateInterestTotal = 0;
-  if (loan.lateInterestValue != null && loan.lateInterestValue > 0 && daysLate > 0 && loan.status !== "paid") {
+  if (loan.lateInterestValue != null && loan.lateInterestValue > 0 && effectiveDaysLate > 0 && loan.status !== "paid") {
     if (loan.lateInterestType === "fixed") {
-      lateInterestTotal = loan.lateInterestValue * daysLate;
+      lateInterestTotal = loan.lateInterestValue * effectiveDaysLate;
     } else {
-      lateInterestTotal = baseRemaining * (loan.lateInterestValue / 100) * daysLate;
+      lateInterestTotal = baseRemaining * (loan.lateInterestValue / 100) * effectiveDaysLate;
     }
   }
-  const penaltyTotal = (loan.penaltyValue != null && loan.penaltyValue > 0 && daysLate > 0 && loan.status !== "paid") ? loan.penaltyValue : 0;
+  const penaltyTotal = (loan.penaltyValue != null && loan.penaltyValue > 0 && effectiveDaysLate > 0 && loan.status !== "paid") ? loan.penaltyValue : 0;
   const remaining = baseRemaining + lateInterestTotal + penaltyTotal;
-  const category = getLoanCategory(loan, allPayments, []);
-  const daysOverdue = getDaysOverdue(loan);
+  const category = getLoanCategory(loan, allPayments, installmentSchedules);
   const badge = statusMap[category];
 
   const startEdit = () => { setForm(loanToForm(loan)); setEditing(true); setExpanded(true); };
