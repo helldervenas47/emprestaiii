@@ -1978,8 +1978,33 @@ export function LoanList({ loans, payments, installmentSchedules, onPayment, onP
     const activeSource = source.filter((l) => l.status !== "paid");
     const totalLentRaw = activeSource.reduce((s, l) => s + l.amount, 0);
     
-    // Total a receber = usa remainingAmount quando disponível
+    // When a due date filter is active, sum installment values instead of total remaining
+    const useDueDateValues = dueDateQuick && view === "rows";
     const totalToReceive = activeSource.reduce((s, l) => {
+      if (useDueDateValues) {
+        // Sum the installment value (parcela) for loans due on the selected date
+        const isParcelado = (l.paymentType === "Parcelado" || l.installments >= 2) && l.paidInstallments < l.installments;
+        if (isParcelado) {
+          const unpaid = installmentSchedules
+            .filter((sc) => sc.loanId === l.id && sc.installmentNumber > l.paidInstallments)
+            .sort((a, b) => a.installmentNumber - b.installmentNumber);
+          const next = unpaid[0];
+          const remainingInst = Math.max(1, l.installments - l.paidInstallments);
+          const remaining = l.remainingAmount != null && l.remainingAmount > 0
+            ? l.remainingAmount
+            : Math.max(0, calculateTotalWithInterest(l.amount, l.interestRate, l.installments) - payments.filter(p => p.loanId === l.id).reduce((ss, p) => ss + p.amount, 0));
+          const instValue = next ? next.amount
+            : l.customInstallmentValue != null && l.customInstallmentValue > 0
+              ? l.customInstallmentValue
+              : remaining / remainingInst;
+          return s + instValue;
+        }
+        // For non-parcelado, use remaining
+        if (l.remainingAmount != null && l.remainingAmount > 0) return s + l.remainingAmount;
+        const expected = calculateTotalWithInterest(l.amount, l.interestRate, l.installments);
+        const paid = payments.filter((p) => p.loanId === l.id).reduce((ss, p) => ss + p.amount, 0);
+        return s + Math.max(0, expected - paid);
+      }
       if (l.remainingAmount != null && l.remainingAmount > 0) return s + l.remainingAmount;
       const expected = calculateTotalWithInterest(l.amount, l.interestRate, l.installments);
       const loanPayments = payments.filter((p) => p.loanId === l.id);
@@ -1994,7 +2019,7 @@ export function LoanList({ loans, payments, installmentSchedules, onPayment, onP
     const activeCount = source.filter((l) => l.status === "active").length;
     const overdueCount = source.filter((l) => getDaysOverdue(l) > 0 && l.status !== "paid").length;
     return { totalLent, totalToReceive, totalInterest, activeCount, overdueCount };
-  }, [categorized, payments]);
+  }, [categorized, payments, dueDateQuick, view, installmentSchedules]);
 
   if (loans.length === 0) {
     return (
