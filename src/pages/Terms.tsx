@@ -27,9 +27,10 @@ const Terms = () => {
 
         <h2>1. Identificação do Fornecedor</h2>
         <p>
-          Estes Termos de Uso são celebrados entre você ("Usuário") e <strong>EmprestAI</strong> ("Empresa", "nós"),
-          pessoa jurídica responsável pela operação da plataforma EmprestAI. Ao utilizar o Serviço, você está
-          contratando diretamente com a EmprestAI.
+          Estes Termos de Uso são celebrados entre você ("Usuário") e <strong>EmprestAI</strong>,
+          nome empresarial sob o qual opera a plataforma EmprestAI ("Empresa", "nós", "nosso").
+          EmprestAI é o nome legal da entidade fornecedora do Serviço. Ao utilizar o Serviço,
+          você está contratando diretamente com a EmprestAI.
         </p>
 
         <h2>2. Aceitação dos Termos</h2>
