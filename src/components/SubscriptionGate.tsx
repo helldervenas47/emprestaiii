@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Lock, ArrowRight } from "lucide-react";
 import { useSubscription } from "@/hooks/useSubscription";
+import { useAuth } from "@/hooks/useAuth";
 import { ReactNode } from "react";
 
 interface SubscriptionGateProps {
@@ -19,9 +20,13 @@ const TIER_NAMES: Record<number, string> = {
 
 export function SubscriptionGate({ children, requiredTier = 1, featureName }: SubscriptionGateProps) {
   const { isActive, hasFeature, loading } = useSubscription();
+  const { role } = useAuth();
   const navigate = useNavigate();
 
   if (loading) return <>{children}</>;
+
+  // Admin users bypass subscription gates entirely
+  if (role === "admin") return <>{children}</>;
 
   // If user has an active subscription with sufficient tier, show content
   if (isActive && hasFeature(requiredTier)) {
