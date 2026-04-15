@@ -200,10 +200,17 @@ const Index = () => {
   const { subscription, isActive: hasActiveSub } = useSubscription();
   const { loans, payments, installmentSchedules, addLoan, addPayment, addPartialPayment, addInterestOnlyPayment, updateLoan, deleteLoan, deletePayment, saveSchedule } = useLoans();
   const { clients, addClient, deleteClient, updateClient } = useClients();
-  const { products, sales, addProduct, updateProduct, deleteProduct, addSale, updateSale, deleteSale } = useProducts();
-  const { expenses, addExpense, payExpense, unpayExpense, deleteExpense, updateExpense } = useExpenses();
-  const { vehicles: registeredVehicles, add: addVehicle, update: updateVehicle, remove: removeVehicle } = useVehicleRegistry();
-  const { locador, locadores, save: saveLocador, remove: removeLocador } = useLocadorInfo();
+
+  // Defer heavy hooks until their tabs are active
+  const needsProducts = tab === "overview" || tab === "products" || tab === "vehicles";
+  const needsExpenses = tab === "overview" || tab === "expenses" || tab === "vehicles";
+  const needsVehicles = tab === "clients" || tab === "vehicles";
+  const needsLocadores = tab === "vehicles";
+
+  const { products, sales, addProduct, updateProduct, deleteProduct, addSale, updateSale, deleteSale } = useProducts(needsProducts);
+  const { expenses, addExpense, payExpense, unpayExpense, deleteExpense, updateExpense } = useExpenses(needsExpenses);
+  const { vehicles: registeredVehicles, add: addVehicle, update: updateVehicle, remove: removeVehicle } = useVehicleRegistry(needsVehicles);
+  const { locador, locadores, save: saveLocador, remove: removeLocador } = useLocadorInfo(needsLocadores);
   const [clientSubTab, setClientSubTab] = useState<ClientSubTab>("clientes");
   const [vehicleSubTab, setVehicleSubTab] = useState<VehicleSubTab>("veiculos");
   const [planMgmtSubTab, setPlanMgmtSubTab] = useState<PlanMgmtSubTab>("subscribers");
