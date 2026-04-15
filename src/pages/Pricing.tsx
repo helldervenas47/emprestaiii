@@ -4,7 +4,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
-  HandCoins,
   Check,
   ArrowRight,
   Shield,
@@ -18,6 +17,7 @@ import {
 } from "lucide-react";
 import { PaymentTestModeBanner } from "@/components/PaymentTestModeBanner";
 import { usePaddleCheckout } from "@/hooks/usePaddleCheckout";
+import logoIcon from "@/assets/logo-icon.png";
 
 interface Plan {
   id: string;
@@ -61,7 +61,7 @@ const benefits = [
     description: "Receba alertas de parcelas vencidas e envie lembretes via WhatsApp.",
   },
   {
-    icon: HandCoins,
+    icon: Shield,
     title: "Controle Financeiro",
     description: "Gerencie despesas, saldo e fluxo de caixa em um só lugar.",
   },
@@ -134,9 +134,7 @@ const Pricing = () => {
       <header className="border-b border-border/30 backdrop-blur-sm bg-background/80 sticky top-0 z-50">
         <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
           <button onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })} className="flex items-center gap-2">
-            <div className="h-9 w-9 rounded-xl gradient-primary flex items-center justify-center">
-              <HandCoins className="h-5 w-5 text-primary-foreground" />
-            </div>
+            <img src={logoIcon} alt="EmprestAI" className="h-9 w-9 rounded-xl" width={36} height={36} />
             <span className="text-lg font-bold text-foreground">EmprestAI</span>
           </button>
           <div className="flex items-center gap-3">
@@ -327,7 +325,7 @@ const Pricing = () => {
       <footer className="border-t border-border/30 bg-muted/20">
         <div className="max-w-6xl mx-auto px-6 py-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-muted-foreground">
           <div className="flex items-center gap-2">
-            <HandCoins className="h-4 w-4 text-primary" />
+            <img src={logoIcon} alt="EmprestAI" className="h-4 w-4 rounded" width={16} height={16} />
             <span>EmprestAI © {new Date().getFullYear()}</span>
           </div>
           <div className="flex flex-wrap gap-6">

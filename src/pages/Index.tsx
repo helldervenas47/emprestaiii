@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
-import { Plus, HandCoins, Users, LayoutDashboard, ShoppingBag, BarChart3, AlertTriangle, Receipt, CalendarDays, Sun, Moon, LogOut, Info, X, Eye, EyeOff, Car, Wrench, DatabaseBackup, Menu, User, RefreshCw } from "lucide-react";
+import { Plus, Users, LayoutDashboard, ShoppingBag, BarChart3, AlertTriangle, Receipt, CalendarDays, Sun, Moon, LogOut, Info, X, Eye, EyeOff, Car, Wrench, DatabaseBackup, Menu, User, RefreshCw } from "lucide-react";
+import logoIcon from "@/assets/logo-icon.png";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -272,9 +273,7 @@ const Index = () => {
                 <SheetContent side="left" className="w-64 p-0">
                   <div className="flex flex-col h-full">
                     <div className="p-4 border-b border-border/30 flex items-center gap-3">
-                      <div className="h-9 w-9 rounded-xl gradient-primary glow-primary flex items-center justify-center">
-                        <HandCoins className="h-5 w-5 text-primary-foreground" />
-                      </div>
+                      <img src={logoIcon} alt="EmprestAI" className="h-9 w-9 rounded-xl" width={36} height={36} />
                       <div>
                         <h1 className="text-lg font-bold text-foreground tracking-tight">EmprestAI</h1>
                         <p className="text-[10px] text-muted-foreground uppercase tracking-widest">Controle de empréstimos</p>
@@ -305,9 +304,7 @@ const Index = () => {
                 </SheetContent>
               </Sheet>
             )}
-            <div className="h-8 w-8 sm:h-9 sm:w-9 rounded-xl gradient-primary glow-primary flex items-center justify-center">
-              <HandCoins className="h-4 w-4 sm:h-5 sm:w-5 text-primary-foreground" />
-            </div>
+            <img src={logoIcon} alt="EmprestAI" className="h-8 w-8 sm:h-9 sm:w-9 rounded-xl" width={36} height={36} />
             <div className="hidden sm:block">
               <h1 className="text-lg font-bold text-foreground tracking-tight">EmprestAI</h1>
               <p className="text-[10px] text-muted-foreground uppercase tracking-widest">Controle de empréstimos</p>
