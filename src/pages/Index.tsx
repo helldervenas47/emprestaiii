@@ -31,6 +31,7 @@ import { PlanManagement } from "@/components/PlanManagement";
 import { BackupExport } from "@/components/BackupExport";
 import { WebhookSettings } from "@/components/WebhookSettings";
 import { Badge } from "@/components/ui/badge";
+import { PlanSubscribers } from "@/components/PlanSubscribers";
 import { useVehicleRegistry } from "@/hooks/useVehicleRegistry";
 import { useLocadorInfo } from "@/hooks/useLocadorInfo";
 import { VehicleCardList } from "@/components/VehicleCardList";
@@ -39,9 +40,10 @@ import { LocadorList } from "@/components/LocadorList";
 import { SubscriptionBanner } from "@/components/SubscriptionBanner";
 import { SubscriptionGate } from "@/components/SubscriptionGate";
 
-type Tab = "overview" | "dashboard" | "clients" | "products" | "vehicles" | "overdue" | "expenses" | "calendar" | "users" | "backup";
+type Tab = "overview" | "dashboard" | "clients" | "products" | "vehicles" | "overdue" | "expenses" | "calendar" | "users" | "plan_mgmt" | "backup";
 type ClientSubTab = "clientes" | "veiculos";
 type VehicleSubTab = "veiculos" | "locadores";
+type PlanMgmtSubTab = "subscribers" | "plans";
 
 const tabConfig = [
   { id: "overview" as Tab, label: "Dashboard", icon: BarChart3 },
@@ -53,6 +55,7 @@ const tabConfig = [
   { id: "expenses" as Tab, label: "Despesas", icon: Receipt },
   { id: "overdue" as Tab, label: "Relatório", icon: AlertTriangle },
   { id: "users" as Tab, label: "Usuários", icon: Users },
+  { id: "plan_mgmt" as Tab, label: "Gestão de Planos", icon: Wrench },
   { id: "backup" as Tab, label: "Backup", icon: DatabaseBackup },
 ];
 
@@ -136,6 +139,15 @@ const tabHelp: Record<Tab, { title: string; items: string[] }> = {
       "Gerencie permissões de acesso dos usuários.",
     ],
   },
+  plan_mgmt: {
+    title: "Gestão de Planos",
+    items: [
+      "Visualize todos os assinantes na sub-aba Usuários.",
+      "Crie e edite planos na sub-aba Planos.",
+      "As alterações são refletidas na página de compra.",
+      "Apenas administradores podem acessar esta aba.",
+    ],
+  },
   backup: {
     title: "Backup de Dados",
     items: [
@@ -165,6 +177,7 @@ const Index = () => {
   const { locador, locadores, save: saveLocador, remove: removeLocador } = useLocadorInfo();
   const [clientSubTab, setClientSubTab] = useState<ClientSubTab>("clientes");
   const [vehicleSubTab, setVehicleSubTab] = useState<VehicleSubTab>("veiculos");
+  const [planMgmtSubTab, setPlanMgmtSubTab] = useState<PlanMgmtSubTab>("subscribers");
 
   // Filter data by linked clients if user has client restrictions
   const hasClientFilter = Array.isArray(linkedClientIds) && linkedClientIds.length > 0;
@@ -209,7 +222,7 @@ const Index = () => {
     if (loading) return false;
     if (role === "admin") return true;
     if (!role) return false;
-    if (t.id === "users" || t.id === "backup") return false;
+    if (t.id === "users" || t.id === "backup" || t.id === "plan_mgmt") return false;
     return Array.isArray(allowedTabs) ? allowedTabs.includes(t.id) : false;
   });
 
@@ -508,9 +521,33 @@ const Index = () => {
           </SubscriptionGate>
         )}
         {tab === "users" && (
-          <div className="space-y-8">
-            <UserManagement />
-            <PlanManagement />
+          <UserManagement />
+        )}
+        {tab === "plan_mgmt" && (
+          <div>
+            <div className="flex gap-2 mb-4">
+              <Button
+                variant={planMgmtSubTab === "subscribers" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setPlanMgmtSubTab("subscribers")}
+              >
+                <Users className="h-4 w-4 mr-1" /> Usuários
+              </Button>
+              <Button
+                variant={planMgmtSubTab === "plans" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setPlanMgmtSubTab("plans")}
+              >
+                <Wrench className="h-4 w-4 mr-1" /> Planos
+              </Button>
+            </div>
+            {planMgmtSubTab === "subscribers" && (
+              <>
+                <h2 className="text-lg font-semibold text-foreground mb-4">Assinantes</h2>
+                <PlanSubscribers />
+              </>
+            )}
+            {planMgmtSubTab === "plans" && <PlanManagement />}
           </div>
         )}
         {tab === "backup" && (
