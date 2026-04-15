@@ -256,11 +256,6 @@ const Index = () => {
   const [showSaleForm, setShowSaleForm] = useState(false);
   const [showExpenseForm, setShowExpenseForm] = useState(false);
   const [showVehicleExpenseForm, setShowVehicleExpenseForm] = useState(false);
-  const [tab, setTabState] = useState<Tab>(() => {
-    const saved = sessionStorage.getItem("activeTab");
-    return saved && tabConfig.some(t => t.id === saved) ? saved as Tab : "overview";
-  });
-  const setTab = (t: Tab) => { sessionStorage.setItem("activeTab", t); setTabState(t); };
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const isMobile = useIsMobile();
   const isReadOnly = role === "visualizador";
