@@ -9,6 +9,9 @@ import Auth from "./pages/Auth.tsx";
 import ResetPassword from "./pages/ResetPassword.tsx";
 import NotFound from "./pages/NotFound.tsx";
 import Pricing from "./pages/Pricing.tsx";
+import Terms from "./pages/Terms.tsx";
+import RefundPolicy from "./pages/RefundPolicy.tsx";
+import PrivacyPolicy from "./pages/PrivacyPolicy.tsx";
 
 const queryClient = new QueryClient();
 
@@ -49,6 +52,9 @@ const App = () => (
             <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
             <Route path="/auth" element={<PublicRoute><Auth /></PublicRoute>} />
             <Route path="/planos" element={<Pricing />} />
+            <Route path="/termos" element={<Terms />} />
+            <Route path="/reembolso" element={<RefundPolicy />} />
+            <Route path="/privacidade" element={<PrivacyPolicy />} />
             <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
