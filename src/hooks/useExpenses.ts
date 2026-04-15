@@ -4,7 +4,7 @@ import { adjustBalance } from "@/lib/balance";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
 
-export function useExpenses() {
+export function useExpenses(enabled = true) {
   const { user, dataOwnerId } = useAuth();
   const [expenses, setExpenses] = useState<Expense[]>([]);
 
@@ -26,11 +26,11 @@ export function useExpenses() {
     }
   }, [user]);
 
-  useEffect(() => { fetchExpenses(); }, [fetchExpenses]);
+  useEffect(() => { if (enabled) fetchExpenses(); }, [fetchExpenses, enabled]);
 
   // Realtime subscription
   useEffect(() => {
-    if (!user) return;
+    if (!user || !enabled) return;
     const channel = supabase
       .channel('expenses-realtime')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'expenses' }, () => { fetchExpenses(); })

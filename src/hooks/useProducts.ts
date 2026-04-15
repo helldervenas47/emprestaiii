@@ -4,14 +4,14 @@ import { Product, Sale, BusinessType, SalePaymentRecord } from "@/types/loan";
 import { useAuth } from "@/hooks/useAuth";
 
 
-export function useProducts() {
+export function useProducts(enabled = true) {
   const { user, dataOwnerId } = useAuth();
   const [products, setProducts] = useState<Product[]>([]);
   const [sales, setSales] = useState<Sale[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!user) return;
+    if (!user || !enabled) return;
     const fetchData = async () => {
       setLoading(true);
       const [prodRes, salesRes] = await Promise.all([
@@ -57,11 +57,11 @@ export function useProducts() {
       setLoading(false);
     };
     fetchData();
-  }, [user]);
+  }, [user, enabled]);
 
   // Realtime subscriptions for products and sales
   useEffect(() => {
-    if (!user) return;
+    if (!user || !enabled) return;
     const fetchData = async () => {
       const [prodRes, salesRes] = await Promise.all([
         supabase.from("products").select("*").order("created_at", { ascending: false }),

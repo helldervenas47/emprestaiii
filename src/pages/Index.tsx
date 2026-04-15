@@ -198,12 +198,27 @@ const Index = () => {
   const { signOut, role, allowedTabs, linkedClientIds, loading, user } = useAuth();
   const navigate = useNavigate();
   const { subscription, isActive: hasActiveSub } = useSubscription();
+
+  // Tab state - declared early so hooks can use it for lazy loading
+  const [tab, setTabState] = useState<Tab>(() => {
+    const saved = sessionStorage.getItem("activeTab");
+    return saved && tabConfig.some(t => t.id === saved) ? saved as Tab : "overview";
+  });
+  const setTab = (t: Tab) => { sessionStorage.setItem("activeTab", t); setTabState(t); };
+
   const { loans, payments, installmentSchedules, addLoan, addPayment, addPartialPayment, addInterestOnlyPayment, updateLoan, deleteLoan, deletePayment, saveSchedule } = useLoans();
   const { clients, addClient, deleteClient, updateClient } = useClients();
-  const { products, sales, addProduct, updateProduct, deleteProduct, addSale, updateSale, deleteSale } = useProducts();
-  const { expenses, addExpense, payExpense, unpayExpense, deleteExpense, updateExpense } = useExpenses();
-  const { vehicles: registeredVehicles, add: addVehicle, update: updateVehicle, remove: removeVehicle } = useVehicleRegistry();
-  const { locador, locadores, save: saveLocador, remove: removeLocador } = useLocadorInfo();
+
+  // Defer heavy hooks until their tabs are active
+  const needsProducts = tab === "overview" || tab === "products" || tab === "vehicles";
+  const needsExpenses = tab === "overview" || tab === "expenses" || tab === "vehicles";
+  const needsVehicles = tab === "clients" || tab === "vehicles";
+  const needsLocadores = tab === "vehicles";
+
+  const { products, sales, addProduct, updateProduct, deleteProduct, addSale, updateSale, deleteSale } = useProducts(needsProducts);
+  const { expenses, addExpense, payExpense, unpayExpense, deleteExpense, updateExpense } = useExpenses(needsExpenses);
+  const { vehicles: registeredVehicles, add: addVehicle, update: updateVehicle, remove: removeVehicle } = useVehicleRegistry(needsVehicles);
+  const { locador, locadores, save: saveLocador, remove: removeLocador } = useLocadorInfo(needsLocadores);
   const [clientSubTab, setClientSubTab] = useState<ClientSubTab>("clientes");
   const [vehicleSubTab, setVehicleSubTab] = useState<VehicleSubTab>("veiculos");
   const [planMgmtSubTab, setPlanMgmtSubTab] = useState<PlanMgmtSubTab>("subscribers");
@@ -238,11 +253,6 @@ const Index = () => {
   const [showSaleForm, setShowSaleForm] = useState(false);
   const [showExpenseForm, setShowExpenseForm] = useState(false);
   const [showVehicleExpenseForm, setShowVehicleExpenseForm] = useState(false);
-  const [tab, setTabState] = useState<Tab>(() => {
-    const saved = sessionStorage.getItem("activeTab");
-    return saved && tabConfig.some(t => t.id === saved) ? saved as Tab : "overview";
-  });
-  const setTab = (t: Tab) => { sessionStorage.setItem("activeTab", t); setTabState(t); };
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const isMobile = useIsMobile();
   const isReadOnly = role === "visualizador";
