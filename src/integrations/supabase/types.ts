@@ -390,6 +390,7 @@ export type Database = {
       plans: {
         Row: {
           active: boolean
+          allowed_tabs: string[]
           created_at: string
           features: string[]
           highlight: boolean
@@ -403,6 +404,7 @@ export type Database = {
         }
         Insert: {
           active?: boolean
+          allowed_tabs?: string[]
           created_at?: string
           features?: string[]
           highlight?: boolean
@@ -416,6 +418,7 @@ export type Database = {
         }
         Update: {
           active?: boolean
+          allowed_tabs?: string[]
           created_at?: string
           features?: string[]
           highlight?: boolean
