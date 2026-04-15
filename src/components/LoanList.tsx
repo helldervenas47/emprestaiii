@@ -1254,6 +1254,14 @@ function LoanRowView({
   }
   const penaltyTotal = (loan.penaltyValue != null && loan.penaltyValue > 0 && effectiveDaysLate > 0 && loan.status !== "paid") ? loan.penaltyValue : 0;
   const remaining = baseRemaining + lateInterestTotal + penaltyTotal;
+  const remainingInstallments = Math.max(1, loan.installments - loan.paidInstallments);
+  const nextSchedule = unpaidSchedules[0];
+  const installmentValue = nextSchedule
+    ? nextSchedule.amount
+    : loan.customInstallmentValue != null && loan.customInstallmentValue > 0
+      ? loan.customInstallmentValue
+      : remaining / remainingInstallments;
+  const isParcelado = (loan.paymentType === "Parcelado" || loan.installments >= 2) && loan.status !== "paid" && loan.paidInstallments < loan.installments;
   const category = getLoanCategory(loan, allPayments, installmentSchedules);
   const badge = statusMap[category];
 
@@ -1373,10 +1381,15 @@ function LoanRowView({
       <td className="hidden sm:table-cell px-4 py-3">
         <span className="text-sm font-medium text-foreground">{formatCurrency(loan.amount)}</span>
       </td>
-      {/* Restante / Total Pago */}
+      {/* Restante / Parcela / Total Pago */}
       <td className="px-1.5 sm:px-4 py-2 sm:py-3">
         {loan.status === "paid" ? (
           <span className="text-[11px] sm:text-sm font-medium text-success">{formatCurrency(totalPaid)}</span>
+        ) : isParcelado ? (
+          <div>
+            <span className="text-[11px] sm:text-sm font-medium text-destructive">{formatCurrency(installmentValue)}</span>
+            <p className="text-[9px] text-muted-foreground">{loan.paidInstallments + 1}ª parcela</p>
+          </div>
         ) : (
           <span className="text-[11px] sm:text-sm font-medium text-destructive">{formatCurrency(remaining)}</span>
         )}
