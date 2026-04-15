@@ -6,6 +6,56 @@ const supabase = createClient(
   Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
 );
 
+// Map product_id from subscription to plan name
+const PRODUCT_TO_PLAN_NAME: Record<string, string> = {
+  free_plan: 'Free',
+  basico_plan: 'Básico',
+  profissional_plan: 'Profissional',
+  empresarial_plan: 'Empresarial',
+};
+
+async function syncTabPermissions(userId: string, productId: string) {
+  const planName = PRODUCT_TO_PLAN_NAME[productId];
+  if (!planName) {
+    console.log('Unknown product_id for tab sync:', productId);
+    return;
+  }
+
+  const { data: plan } = await supabase
+    .from('plans')
+    .select('allowed_tabs')
+    .eq('name', planName)
+    .eq('active', true)
+    .maybeSingle();
+
+  if (!plan) {
+    console.log('Plan not found for name:', planName);
+    return;
+  }
+
+  const allowedTabs = plan.allowed_tabs;
+
+  // Upsert user_tab_permissions
+  const { data: existing } = await supabase
+    .from('user_tab_permissions')
+    .select('id')
+    .eq('user_id', userId)
+    .maybeSingle();
+
+  if (existing) {
+    await supabase
+      .from('user_tab_permissions')
+      .update({ allowed_tabs: allowedTabs, updated_at: new Date().toISOString() })
+      .eq('user_id', userId);
+  } else {
+    await supabase
+      .from('user_tab_permissions')
+      .insert({ user_id: userId, allowed_tabs: allowedTabs });
+  }
+
+  console.log('Tab permissions synced for user', userId, 'plan', planName, 'tabs', allowedTabs);
+}
+
 Deno.serve(async (req) => {
   if (req.method !== 'POST') {
     return new Response('Method not allowed', { status: 405 });
@@ -75,10 +125,13 @@ async function handleSubscriptionCreated(data: any, env: PaddleEnv) {
   }, {
     onConflict: 'user_id,environment',
   });
+
+  // Sync tab permissions based on plan
+  await syncTabPermissions(userId, productId);
 }
 
 async function handleSubscriptionUpdated(data: any, env: PaddleEnv) {
-  const { id, status, currentBillingPeriod, scheduledChange } = data;
+  const { id, status, currentBillingPeriod, scheduledChange, items } = data;
 
   await supabase.from('subscriptions')
     .update({
@@ -90,9 +143,32 @@ async function handleSubscriptionUpdated(data: any, env: PaddleEnv) {
     })
     .eq('paddle_subscription_id', id)
     .eq('environment', env);
+
+  // If plan changed, sync tab permissions
+  if (items?.length > 0) {
+    const productId = items[0].product.importMeta?.externalId || items[0].product.id;
+    // Get user_id from subscription
+    const { data: sub } = await supabase
+      .from('subscriptions')
+      .select('user_id')
+      .eq('paddle_subscription_id', id)
+      .eq('environment', env)
+      .maybeSingle();
+
+    if (sub?.user_id) {
+      await syncTabPermissions(sub.user_id, productId);
+    }
+  }
 }
 
 async function handleSubscriptionCanceled(data: any, env: PaddleEnv) {
+  const { data: sub } = await supabase
+    .from('subscriptions')
+    .select('user_id')
+    .eq('paddle_subscription_id', data.id)
+    .eq('environment', env)
+    .maybeSingle();
+
   await supabase.from('subscriptions')
     .update({
       status: 'canceled',
@@ -100,4 +176,9 @@ async function handleSubscriptionCanceled(data: any, env: PaddleEnv) {
     })
     .eq('paddle_subscription_id', data.id)
     .eq('environment', env);
+
+  // Revert to free plan tabs
+  if (sub?.user_id) {
+    await syncTabPermissions(sub.user_id, 'free_plan');
+  }
 }
