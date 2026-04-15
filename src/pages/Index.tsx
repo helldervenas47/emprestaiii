@@ -39,6 +39,8 @@ import { LocadorPopoverContent } from "@/components/LocadorPopoverContent";
 import { LocadorList } from "@/components/LocadorList";
 import { SubscriptionBanner } from "@/components/SubscriptionBanner";
 import { SubscriptionGate } from "@/components/SubscriptionGate";
+import { useSubscription } from "@/hooks/useSubscription";
+import { useNavigate } from "react-router-dom";
 
 type Tab = "overview" | "dashboard" | "clients" | "products" | "vehicles" | "overdue" | "expenses" | "calendar" | "users" | "plan_mgmt" | "backup";
 type ClientSubTab = "clientes" | "veiculos";
@@ -169,6 +171,8 @@ function HideValuesToggle() {
 
 const Index = () => {
   const { signOut, role, allowedTabs, linkedClientIds, loading, user } = useAuth();
+  const navigate = useNavigate();
+  const { subscription, isActive: hasActiveSub } = useSubscription();
   const { loans, payments, installmentSchedules, addLoan, addPayment, addPartialPayment, addInterestOnlyPayment, updateLoan, deleteLoan, deletePayment, saveSchedule } = useLoans();
   const { clients, addClient, deleteClient, updateClient } = useClients();
   const { products, sales, addProduct, updateProduct, deleteProduct, addSale, updateSale, deleteSale } = useProducts();
@@ -339,8 +343,17 @@ const Index = () => {
                     </nav>
                     <div className="p-3 border-t border-border/30 flex items-center gap-2">
                       <User className="h-4 w-4 text-muted-foreground shrink-0" />
-                      <div className="min-w-0">
-                        <p className="text-xs font-medium text-foreground truncate">{user?.user_metadata?.display_name || user?.email || "—"}</p>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-1.5">
+                          <p className="text-xs font-medium text-foreground truncate">{user?.user_metadata?.display_name || user?.email || "—"}</p>
+                          <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-primary/40 text-primary cursor-pointer hover:bg-primary/10" onClick={() => { setSidebarOpen(false); navigate("/pricing"); }}>
+                            {hasActiveSub && subscription ? (
+                              subscription.product_id === "basico_plan" ? "Básico" :
+                              subscription.product_id === "profissional_plan" ? "Prof." :
+                              subscription.product_id === "empresarial_plan" ? "Emp." : "Plano"
+                            ) : "Sem Plano"}
+                          </Badge>
+                        </div>
                         {role && <p className="text-[10px] text-muted-foreground">{role === "admin" ? "Administrador" : role === "operador" ? "Operador" : "Visualizador"}</p>}
                       </div>
                     </div>
@@ -359,6 +372,31 @@ const Index = () => {
               <User className="h-3 w-3" />
               <span className="max-w-[120px] truncate">{user?.user_metadata?.display_name || user?.email || "—"}</span>
               {role && <Badge variant={role === "admin" ? "default" : role === "operador" ? "secondary" : "outline"} className="text-[10px] px-1.5 py-0">{role === "admin" ? "Admin" : role === "operador" ? "Op." : "Vis."}</Badge>}
+              <Popover>
+                <PopoverTrigger asChild>
+                  <button className="ml-0.5">
+                    <Badge variant="outline" className="text-[10px] px-1.5 py-0 cursor-pointer hover:bg-primary/10 transition-colors border-primary/40 text-primary">
+                      {hasActiveSub && subscription ? (
+                        subscription.product_id === "basico_plan" ? "Básico" :
+                        subscription.product_id === "profissional_plan" ? "Profissional" :
+                        subscription.product_id === "empresarial_plan" ? "Empresarial" : "Plano"
+                      ) : "Sem Plano"}
+                    </Badge>
+                  </button>
+                </PopoverTrigger>
+                <PopoverContent className="w-56" align="end">
+                  <div className="space-y-2">
+                    <p className="text-xs font-semibold text-foreground">Plano atual: {hasActiveSub && subscription ? (
+                      subscription.product_id === "basico_plan" ? "Básico" :
+                      subscription.product_id === "profissional_plan" ? "Profissional" :
+                      subscription.product_id === "empresarial_plan" ? "Empresarial" : "—"
+                    ) : "Nenhum"}</p>
+                    <Button size="sm" className="w-full text-xs" onClick={() => navigate("/pricing")}>
+                      {hasActiveSub ? "Upgrade / Trocar Plano" : "Contratar Plano"}
+                    </Button>
+                  </div>
+                </PopoverContent>
+              </Popover>
             </div>
             <Popover>
               <PopoverTrigger asChild>
