@@ -12,7 +12,7 @@ interface Props {
 
 export function DashboardCards({ loans, payments }: Props) {
   const { mask } = useHideValues();
-  const { planTier, maxLoans } = useSubscription();
+  const { planTier, planLimits } = useSubscription();
   const activeLoansData = loans.filter((l) => l.status !== "paid");
 
   const totalLent = activeLoansData.reduce((sum, l) => sum + l.amount, 0);
@@ -26,7 +26,8 @@ export function DashboardCards({ loans, payments }: Props) {
   const todayStr = new Date().toISOString().split("T")[0];
   const overdueLoans = loans.filter((l) => l.status === "overdue" && l.dueDate < todayStr).length;
 
-  // Calculate loan limit usage
+  // Calculate loan limit usage (default 5 for trial users without subscription)
+  const maxLoans = planLimits?.maxLoans || 5;
   const loanLimitPercent = Math.min(100, (activeLoans / maxLoans) * 100);
   const isNearLimit = loanLimitPercent >= 80;
   const isAtLimit = activeLoans >= maxLoans;
