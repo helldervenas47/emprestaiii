@@ -1,37 +1,18 @@
 
 
-# Página de Planos e Preços
+## Plano: Gesto de swipe para abrir menu lateral no mobile
 
-## O que será feito
+### O que será feito
+Adicionar detecção de gesto de swipe (arrastar da esquerda para a direita) na versão mobile para abrir o menu lateral de abas, que já existe como um `Sheet` com `side="left"`.
 
-Criar uma página pública (`/planos`) com os planos de assinatura do sistema, acessível sem login. A página terá um design moderno com cards para cada plano, botão de CTA e link visível na tela de login.
+### Detalhes técnicos
 
-## Estrutura
+**Arquivo:** `src/pages/Index.tsx`
 
-1. **Nova página `src/pages/Pricing.tsx`**
-   - 2-3 cards de planos (ex: Básico, Profissional, Empresarial) com preços, lista de funcionalidades e botão de ação
-   - Design responsivo com gradientes e destaque no plano recomendado
-   - Botão "Criar conta" que redireciona para `/auth`
-   - Header com logo e botão "Entrar"
+1. Adicionar detecção de touch events (`touchstart`, `touchmove`, `touchend`) no container principal da página quando `isMobile` for `true`.
+2. Detectar swipe da esquerda para a direita: o toque deve iniciar nos primeiros ~30px da tela (borda esquerda) e mover pelo menos 50px para a direita.
+3. Quando detectado, chamar `setSidebarOpen(true)` para abrir o Sheet lateral que já existe.
+4. Implementar via `useEffect` com event listeners ou criar um hook customizado `useSwipeToOpen`.
 
-2. **Rota pública no `App.tsx`**
-   - Adicionar rota `/planos` como rota pública (sem autenticação)
-
-3. **Link na página de login (`Auth.tsx`)**
-   - Adicionar link "Ver planos" na tela de autenticação para direcionar novos visitantes
-
-## Planos sugeridos (editáveis depois)
-
-| Plano | Preço | Destaques |
-|-------|-------|-----------|
-| Básico | R$ 29/mês | Até 50 empréstimos, 1 usuário |
-| Profissional | R$ 59/mês | Empréstimos ilimitados, 3 usuários, relatórios |
-| Empresarial | R$ 99/mês | Tudo incluso, usuários ilimitados, suporte prioritário |
-
-Os valores e funcionalidades são apenas visuais por enquanto — sem integração de pagamento. Você poderá ajustar textos e preços facilmente depois.
-
-## Arquivos modificados
-- `src/pages/Pricing.tsx` — novo
-- `src/App.tsx` — nova rota pública
-- `src/pages/Auth.tsx` — link para /planos
+Nenhuma biblioteca adicional será necessária — apenas eventos touch nativos do browser.
 
