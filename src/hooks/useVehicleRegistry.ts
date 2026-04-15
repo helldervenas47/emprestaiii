@@ -11,7 +11,7 @@ export interface VehicleInfo {
   renavam: string;
 }
 
-export function useVehicleRegistry() {
+export function useVehicleRegistry(enabled = true) {
   const { user, dataOwnerId } = useAuth();
   const [vehicles, setVehicles] = useState<VehicleInfo[]>([]);
   const [loading, setLoading] = useState(true);
@@ -36,7 +36,7 @@ export function useVehicleRegistry() {
     setLoading(false);
   }, [user]);
 
-  useEffect(() => { fetch(); }, [fetch]);
+  useEffect(() => { if (enabled) fetch(); }, [fetch, enabled]);
 
   const add = useCallback(async (v: Omit<VehicleInfo, "id">) => {
     if (!user || !dataOwnerId) return;

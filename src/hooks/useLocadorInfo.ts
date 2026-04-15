@@ -20,7 +20,7 @@ const emptyLocador: LocadorInfo = {
   endereco: "", bairro: "", cidade: "", estado: "",
 };
 
-export function useLocadorInfo() {
+export function useLocadorInfo(enabled = true) {
   const { user, dataOwnerId } = useAuth();
   const [locadores, setLocadores] = useState<LocadorInfo[]>([]);
   const [loading, setLoading] = useState(true);
@@ -45,7 +45,7 @@ export function useLocadorInfo() {
     setLoading(false);
   }, [user]);
 
-  useEffect(() => { fetchAll(); }, [fetchAll]);
+  useEffect(() => { if (enabled) fetchAll(); }, [fetchAll, enabled]);
 
   const save = useCallback(async (info: LocadorInfo): Promise<boolean> => {
     if (!user || !dataOwnerId) return false;
