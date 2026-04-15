@@ -387,6 +387,11 @@ export function UserManagement() {
                         </div>
                       </div>
                       <div className="flex gap-2 flex-wrap">
+                        {user.role === "admin" && (
+                          <Button variant="outline" size="sm" className="flex-1 gap-1" onClick={() => openPlanSelector(user)}>
+                            <CreditCard className="h-3.5 w-3.5" /> Plano
+                          </Button>
+                        )}
                         <Button variant="outline" size="sm" className="flex-1 gap-1" onClick={() => openPermissions(user)}>
                           <Settings2 className="h-3.5 w-3.5" /> Abas
                         </Button>
