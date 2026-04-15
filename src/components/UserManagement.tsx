@@ -13,7 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Plus, Trash2, Shield, UserPlus, Pencil, ChevronDown, Settings2, Link2 } from "lucide-react";
+import { Plus, Trash2, Shield, UserPlus, Pencil, ChevronDown, Settings2, Link2, CreditCard } from "lucide-react";
 import { toast } from "sonner";
 
 interface ManagedUser {
@@ -57,6 +57,12 @@ export function UserManagement() {
   const [expandedUserId, setExpandedUserId] = useState<string | null>(null);
   const isMobile = useIsMobile();
   const [saving, setSaving] = useState(false);
+
+  // Plan selection for admins
+  const [planUser, setPlanUser] = useState<ManagedUser | null>(null);
+  const [planProductId, setPlanProductId] = useState("");
+  const [savingPlan, setSavingPlan] = useState(false);
+  const [availablePlans, setAvailablePlans] = useState<{ id: string; name: string; product_id: string }[]>([]);
   const [formData, setFormData] = useState({
     email: "",
     password: "",
@@ -255,6 +261,47 @@ export function UserManagement() {
     }
   };
 
+  const PRODUCT_ID_MAP: Record<string, string> = {
+    free_plan: "Free",
+    basico_plan: "Básico",
+    profissional_plan: "Profissional",
+    empresarial_plan: "Empresarial",
+  };
+
+  const openPlanSelector = async (user: ManagedUser) => {
+    setPlanUser(user);
+    // Fetch current subscription
+    const { data: sub } = await supabase
+      .from("subscriptions")
+      .select("product_id")
+      .eq("user_id", user.id)
+      .maybeSingle();
+    setPlanProductId(sub?.product_id || "free_plan");
+  };
+
+  const handleSavePlan = async () => {
+    if (!planUser) return;
+    setSavingPlan(true);
+    // Update both environments
+    const { error: e1 } = await supabase
+      .from("subscriptions")
+      .update({ product_id: planProductId })
+      .eq("user_id", planUser.id)
+      .eq("environment", "sandbox");
+    const { error: e2 } = await supabase
+      .from("subscriptions")
+      .update({ product_id: planProductId })
+      .eq("user_id", planUser.id)
+      .eq("environment", "live");
+    if (e1 || e2) {
+      toast.error("Erro ao atualizar plano");
+    } else {
+      toast.success("Plano atualizado!");
+      setPlanUser(null);
+    }
+    setSavingPlan(false);
+  };
+
   const roleBadgeVariant = (role: string | null) => {
     if (role === "admin") return "default";
     if (role === "operador") return "secondary";
@@ -340,6 +387,11 @@ export function UserManagement() {
                         </div>
                       </div>
                       <div className="flex gap-2 flex-wrap">
+                        {user.role === "admin" && (
+                          <Button variant="outline" size="sm" className="flex-1 gap-1" onClick={() => openPlanSelector(user)}>
+                            <CreditCard className="h-3.5 w-3.5" /> Plano
+                          </Button>
+                        )}
                         <Button variant="outline" size="sm" className="flex-1 gap-1" onClick={() => openPermissions(user)}>
                           <Settings2 className="h-3.5 w-3.5" /> Abas
                         </Button>
@@ -416,6 +468,11 @@ export function UserManagement() {
                     </TableCell>
                     <TableCell>
                       <div className="flex gap-1">
+                        {user.role === "admin" && (
+                          <Button variant="ghost" size="icon" onClick={() => openPlanSelector(user)} className="h-8 w-8" title="Definir plano">
+                            <CreditCard className="h-4 w-4" />
+                          </Button>
+                        )}
                         <Button variant="ghost" size="icon" onClick={() => openPermissions(user)} className="h-8 w-8" title="Permissões de abas">
                           <Settings2 className="h-4 w-4" />
                         </Button>
@@ -641,6 +698,36 @@ export function UserManagement() {
               <Button variant="outline" onClick={() => setClientLinkUser(null)}>Cancelar</Button>
               <Button onClick={handleSaveClientLinks} disabled={savingClientLinks}>
                 {savingClientLinks ? "Salvando..." : "Salvar Vínculos"}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Plan selector dialog (admin only) */}
+      <Dialog open={!!planUser} onOpenChange={(open) => !open && setPlanUser(null)}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Definir Plano — {planUser?.display_name}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Selecione o plano deste administrador. Sub-usuários herdarão o mesmo plano.
+            </p>
+            <Select value={planProductId} onValueChange={setPlanProductId}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {Object.entries(PRODUCT_ID_MAP).map(([key, label]) => (
+                  <SelectItem key={key} value={key}>{label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <div className="flex gap-2 justify-end">
+              <Button variant="outline" onClick={() => setPlanUser(null)}>Cancelar</Button>
+              <Button onClick={handleSavePlan} disabled={savingPlan}>
+                {savingPlan ? "Salvando..." : "Salvar Plano"}
               </Button>
             </div>
           </div>
