@@ -3,6 +3,7 @@ import { Loan, Payment, InstallmentSchedule } from "@/types/loan";
 import { adjustBalance } from "@/lib/balance";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
+import { toast } from "sonner";
 
 export function useLoans() {
   const { user, dataOwnerId } = useAuth();
@@ -91,6 +92,36 @@ export function useLoans() {
 
   const addLoan = useCallback(async (loan: Omit<Loan, "id"> & { status?: string; paidInstallments?: number }): Promise<string | null> => {
     if (!user || !dataOwnerId) return null;
+
+    // Check loan limit based on subscription plan
+    const clientToken = import.meta.env.VITE_PAYMENTS_CLIENT_TOKEN;
+    const subEnv = clientToken?.startsWith("test_") ? "sandbox" : "live";
+    const { data: sub } = await supabase
+      .from("subscriptions")
+      .select("product_id, status")
+      .eq("user_id", user.id)
+      .eq("environment", subEnv)
+      .maybeSingle();
+
+    const PLAN_MAX_LOANS: Record<string, number> = {
+      basico_plan: 50,
+      profissional_plan: 200,
+      empresarial_plan: 9999,
+    };
+
+    const isSubActive = sub && ["active", "trialing"].includes(sub.status);
+    const maxLoans = isSubActive ? (PLAN_MAX_LOANS[sub.product_id] || 50) : 5;
+    const activeLoansCount = loans.filter(l => l.status === "active").length;
+
+    if (activeLoansCount >= maxLoans) {
+      toast.error(
+        isSubActive
+          ? `Limite de ${maxLoans} empréstimos ativos atingido no seu plano. Faça upgrade para aumentar.`
+          : "Limite de empréstimos atingido. Assine um plano para continuar."
+      );
+      return null;
+    }
+
     const status = (loan.status as Loan["status"]) || "active";
     const tempId = crypto.randomUUID();
     const optimistic: Loan = {
