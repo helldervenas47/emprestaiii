@@ -61,9 +61,8 @@ export function useSubscription() {
     fetchSubscription();
 
     const channelName = `sub-${user.id}-${Date.now()}`;
-    const channel = supabase.channel(channelName);
-    
-    channel
+    const channel = supabase
+      .channel(channelName)
       .on(
         "postgres_changes",
         {
