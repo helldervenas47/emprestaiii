@@ -1254,6 +1254,14 @@ function LoanRowView({
   }
   const penaltyTotal = (loan.penaltyValue != null && loan.penaltyValue > 0 && effectiveDaysLate > 0 && loan.status !== "paid") ? loan.penaltyValue : 0;
   const remaining = baseRemaining + lateInterestTotal + penaltyTotal;
+  const remainingInstallments = Math.max(1, loan.installments - loan.paidInstallments);
+  const nextSchedule = unpaidSchedules[0];
+  const installmentValue = nextSchedule
+    ? nextSchedule.amount
+    : loan.customInstallmentValue != null && loan.customInstallmentValue > 0
+      ? loan.customInstallmentValue
+      : remaining / remainingInstallments;
+  const isParcelado = (loan.paymentType === "Parcelado" || loan.installments >= 2) && loan.status !== "paid" && loan.paidInstallments < loan.installments;
   const category = getLoanCategory(loan, allPayments, installmentSchedules);
   const badge = statusMap[category];
 
