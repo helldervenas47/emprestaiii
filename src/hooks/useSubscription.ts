@@ -4,6 +4,9 @@ import { useAuth } from "@/hooks/useAuth";
 
 const clientToken = import.meta.env.VITE_PAYMENTS_CLIENT_TOKEN;
 
+const createSubscriptionChannelName = (userId: string) =>
+  `sub-${userId}-${globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(36).slice(2)}`}`;
+
 export interface Subscription {
   id: string;
   product_id: string;
