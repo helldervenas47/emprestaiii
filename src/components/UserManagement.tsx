@@ -261,6 +261,47 @@ export function UserManagement() {
     }
   };
 
+  const PRODUCT_ID_MAP: Record<string, string> = {
+    free_plan: "Free",
+    basico_plan: "Básico",
+    profissional_plan: "Profissional",
+    empresarial_plan: "Empresarial",
+  };
+
+  const openPlanSelector = async (user: ManagedUser) => {
+    setPlanUser(user);
+    // Fetch current subscription
+    const { data: sub } = await supabase
+      .from("subscriptions")
+      .select("product_id")
+      .eq("user_id", user.id)
+      .maybeSingle();
+    setPlanProductId(sub?.product_id || "free_plan");
+  };
+
+  const handleSavePlan = async () => {
+    if (!planUser) return;
+    setSavingPlan(true);
+    // Update both environments
+    const { error: e1 } = await supabase
+      .from("subscriptions")
+      .update({ product_id: planProductId })
+      .eq("user_id", planUser.id)
+      .eq("environment", "sandbox");
+    const { error: e2 } = await supabase
+      .from("subscriptions")
+      .update({ product_id: planProductId })
+      .eq("user_id", planUser.id)
+      .eq("environment", "live");
+    if (e1 || e2) {
+      toast.error("Erro ao atualizar plano");
+    } else {
+      toast.success("Plano atualizado!");
+      setPlanUser(null);
+    }
+    setSavingPlan(false);
+  };
+
   const roleBadgeVariant = (role: string | null) => {
     if (role === "admin") return "default";
     if (role === "operador") return "secondary";
