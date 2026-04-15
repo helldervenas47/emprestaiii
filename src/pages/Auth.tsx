@@ -233,9 +233,13 @@ const Auth = () => {
           </button>
         </div>
         <div className="text-center">
-          <button onClick={() => navigate("/planos")} className="text-sm text-muted-foreground hover:text-primary hover:underline">
+          <Button
+            variant="outline"
+            className="w-full h-11 rounded-xl text-sm font-semibold border-primary text-primary hover:bg-primary hover:text-primary-foreground transition-colors"
+            onClick={() => navigate("/planos")}
+          >
             Ver planos e preços
-          </button>
+          </Button>
         </div>
       </div>
     </div>
