@@ -135,6 +135,26 @@ export function PlanManagement() {
     fetchPlans();
   };
 
+  const openTabsConfig = (plan: Plan) => {
+    setTabsPlan(plan);
+    setSelectedTabs(plan.allowed_tabs || ALL_TABS.map(t => t.id));
+  };
+
+  const toggleTab = (tabId: string) => {
+    setSelectedTabs(prev =>
+      prev.includes(tabId) ? prev.filter(t => t !== tabId) : [...prev, tabId]
+    );
+  };
+
+  const saveTabsConfig = async () => {
+    if (!tabsPlan) return;
+    const { error } = await supabase.from("plans").update({ allowed_tabs: selectedTabs }).eq("id", tabsPlan.id);
+    if (error) { toast.error("Erro ao salvar abas"); return; }
+    toast.success("Abas do plano atualizadas!");
+    setTabsPlan(null);
+    fetchPlans();
+  };
+
   if (loading) return <div className="text-center py-8 text-muted-foreground">Carregando planos...</div>;
 
   return (
