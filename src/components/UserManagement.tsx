@@ -57,6 +57,12 @@ export function UserManagement() {
   const [expandedUserId, setExpandedUserId] = useState<string | null>(null);
   const isMobile = useIsMobile();
   const [saving, setSaving] = useState(false);
+
+  // Plan selection for admins
+  const [planUser, setPlanUser] = useState<ManagedUser | null>(null);
+  const [planProductId, setPlanProductId] = useState("");
+  const [savingPlan, setSavingPlan] = useState(false);
+  const [availablePlans, setAvailablePlans] = useState<{ id: string; name: string; product_id: string }[]>([]);
   const [formData, setFormData] = useState({
     email: "",
     password: "",
