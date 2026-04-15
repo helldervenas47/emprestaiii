@@ -703,6 +703,36 @@ export function UserManagement() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Plan selector dialog (admin only) */}
+      <Dialog open={!!planUser} onOpenChange={(open) => !open && setPlanUser(null)}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Definir Plano — {planUser?.display_name}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Selecione o plano deste administrador. Sub-usuários herdarão o mesmo plano.
+            </p>
+            <Select value={planProductId} onValueChange={setPlanProductId}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {Object.entries(PRODUCT_ID_MAP).map(([key, label]) => (
+                  <SelectItem key={key} value={key}>{label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <div className="flex gap-2 justify-end">
+              <Button variant="outline" onClick={() => setPlanUser(null)}>Cancelar</Button>
+              <Button onClick={handleSavePlan} disabled={savingPlan}>
+                {savingPlan ? "Salvando..." : "Salvar Plano"}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
