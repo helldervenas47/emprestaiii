@@ -40,6 +40,25 @@ const VehicleExpenseForm = lazy(() => import("@/components/VehicleExpenseForm").
 // Direct import for the constant used at render time
 import { vehicleExpenseCategories } from "@/components/VehicleExpenseForm";
 
+// Prefetch most-used chunks after idle
+const prefetchChunks = () => {
+  import("@/components/LoanList");
+  import("@/components/LoanForm");
+  import("@/components/DashboardOverview");
+  import("@/components/BillingCalendar");
+  import("@/components/ClientList");
+  import("@/components/DashboardCards");
+  import("@/components/SubscriptionBanner");
+  import("@/components/SubscriptionGate");
+};
+if (typeof window !== "undefined") {
+  if ("requestIdleCallback" in window) {
+    (window as any).requestIdleCallback(prefetchChunks);
+  } else {
+    setTimeout(prefetchChunks, 2000);
+  }
+}
+
 // Lazy load hooks only when needed
 import { useLoans } from "@/hooks/useLoans";
 import { useClients } from "@/hooks/useClients";
