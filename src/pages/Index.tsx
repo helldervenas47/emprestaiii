@@ -343,8 +343,17 @@ const Index = () => {
                     </nav>
                     <div className="p-3 border-t border-border/30 flex items-center gap-2">
                       <User className="h-4 w-4 text-muted-foreground shrink-0" />
-                      <div className="min-w-0">
-                        <p className="text-xs font-medium text-foreground truncate">{user?.user_metadata?.display_name || user?.email || "—"}</p>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-1.5">
+                          <p className="text-xs font-medium text-foreground truncate">{user?.user_metadata?.display_name || user?.email || "—"}</p>
+                          <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-primary/40 text-primary cursor-pointer hover:bg-primary/10" onClick={() => { setSidebarOpen(false); navigate("/pricing"); }}>
+                            {hasActiveSub && subscription ? (
+                              subscription.product_id === "basico_plan" ? "Básico" :
+                              subscription.product_id === "profissional_plan" ? "Prof." :
+                              subscription.product_id === "empresarial_plan" ? "Emp." : "Plano"
+                            ) : "Sem Plano"}
+                          </Badge>
+                        </div>
                         {role && <p className="text-[10px] text-muted-foreground">{role === "admin" ? "Administrador" : role === "operador" ? "Operador" : "Visualizador"}</p>}
                       </div>
                     </div>
