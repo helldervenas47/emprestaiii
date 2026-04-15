@@ -378,7 +378,12 @@ export function UserManagement() {
                     onClick={() => setExpandedUserId(isExpanded ? null : user.id)}
                   >
                     <div className="min-w-0">
-                      <p className="text-sm font-medium text-foreground truncate">{user.display_name}</p>
+                      <div className="flex items-center gap-2">
+                        <p className="text-sm font-medium text-foreground truncate">{user.display_name}</p>
+                        <Badge variant={planBadgeVariant(user.plan_id)} className="text-[10px] px-1.5 py-0 shrink-0">
+                          {planLabel(user.plan_id)}
+                        </Badge>
+                      </div>
                       <p className="text-xs text-muted-foreground">{user.username || "—"}</p>
                     </div>
                     <ChevronDown className={`h-4 w-4 text-muted-foreground shrink-0 transition-transform ${isExpanded ? "rotate-180" : ""}`} />
