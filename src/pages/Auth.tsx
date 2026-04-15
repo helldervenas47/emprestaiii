@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,6 +16,7 @@ const Auth = () => {
   const [displayName, setDisplayName] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
 
   const isEmail = (value: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
 
@@ -184,6 +186,11 @@ const Auth = () => {
           {isLogin ? "Não tem conta?" : "Já tem conta?"}{" "}
           <button onClick={() => setIsLogin(!isLogin)} className="text-primary hover:underline font-medium">
             {isLogin ? "Criar conta" : "Entrar"}
+          </button>
+        </div>
+        <div className="text-center">
+          <button onClick={() => navigate("/planos")} className="text-sm text-muted-foreground hover:text-primary hover:underline">
+            Ver planos e preços
           </button>
         </div>
       </div>
