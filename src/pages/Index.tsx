@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, lazy, Suspense } from "react";
 import { Plus, Users, LayoutDashboard, ShoppingBag, BarChart3, AlertTriangle, Receipt, CalendarDays, Sun, Moon, LogOut, Info, X, Eye, EyeOff, Car, Wrench, DatabaseBackup, Menu, User, RefreshCw } from "lucide-react";
 import logoIcon from "@/assets/logo-icon.png";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -6,41 +6,47 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
-import { DashboardCards } from "@/components/DashboardCards";
-import { LoanForm } from "@/components/LoanForm";
-import { LoanList } from "@/components/LoanList";
-import { ClientForm } from "@/components/ClientForm";
-import { ClientList } from "@/components/ClientList";
-import { ProductForm } from "@/components/ProductForm";
-import { SaleForm } from "@/components/SaleForm";
-import { ProductSalesView } from "@/components/ProductSalesView";
-import { DashboardOverview } from "@/components/DashboardOverview";
-import { OverdueLoans } from "@/components/OverdueLoans";
-import { BillingCalendar } from "@/components/BillingCalendar";
-import { ExpenseForm } from "@/components/ExpenseForm";
-import { VehicleExpenseForm, vehicleExpenseCategories } from "@/components/VehicleExpenseForm";
-import { ExpenseList } from "@/components/ExpenseList";
+import { toast } from "sonner";
+import { HideValuesProvider, useHideValues } from "@/contexts/HideValuesContext";
+import { Badge } from "@/components/ui/badge";
+import { useSubscription } from "@/hooks/useSubscription";
+import { useNavigate } from "react-router-dom";
+
+// Lazy load heavy components
+const DashboardCards = lazy(() => import("@/components/DashboardCards").then(m => ({ default: m.DashboardCards })));
+const LoanForm = lazy(() => import("@/components/LoanForm").then(m => ({ default: m.LoanForm })));
+const LoanList = lazy(() => import("@/components/LoanList").then(m => ({ default: m.LoanList })));
+const ClientForm = lazy(() => import("@/components/ClientForm").then(m => ({ default: m.ClientForm })));
+const ClientList = lazy(() => import("@/components/ClientList").then(m => ({ default: m.ClientList })));
+const ProductForm = lazy(() => import("@/components/ProductForm").then(m => ({ default: m.ProductForm })));
+const SaleForm = lazy(() => import("@/components/SaleForm").then(m => ({ default: m.SaleForm })));
+const ProductSalesView = lazy(() => import("@/components/ProductSalesView").then(m => ({ default: m.ProductSalesView })));
+const DashboardOverview = lazy(() => import("@/components/DashboardOverview").then(m => ({ default: m.DashboardOverview })));
+const OverdueLoans = lazy(() => import("@/components/OverdueLoans").then(m => ({ default: m.OverdueLoans })));
+const BillingCalendar = lazy(() => import("@/components/BillingCalendar").then(m => ({ default: m.BillingCalendar })));
+const ExpenseForm = lazy(() => import("@/components/ExpenseForm").then(m => ({ default: m.ExpenseForm })));
+const ExpenseList = lazy(() => import("@/components/ExpenseList").then(m => ({ default: m.ExpenseList })));
+const UserManagement = lazy(() => import("@/components/UserManagement").then(m => ({ default: m.UserManagement })));
+const PlanManagement = lazy(() => import("@/components/PlanManagement").then(m => ({ default: m.PlanManagement })));
+const BackupExport = lazy(() => import("@/components/BackupExport").then(m => ({ default: m.BackupExport })));
+const WebhookSettings = lazy(() => import("@/components/WebhookSettings").then(m => ({ default: m.WebhookSettings })));
+const PlanSubscribers = lazy(() => import("@/components/PlanSubscribers").then(m => ({ default: m.PlanSubscribers })));
+const VehicleCardList = lazy(() => import("@/components/VehicleCardList").then(m => ({ default: m.VehicleCardList })));
+const LocadorPopoverContent = lazy(() => import("@/components/LocadorPopoverContent").then(m => ({ default: m.LocadorPopoverContent })));
+const LocadorList = lazy(() => import("@/components/LocadorList").then(m => ({ default: m.LocadorList })));
+const SubscriptionBanner = lazy(() => import("@/components/SubscriptionBanner").then(m => ({ default: m.SubscriptionBanner })));
+const SubscriptionGate = lazy(() => import("@/components/SubscriptionGate").then(m => ({ default: m.SubscriptionGate })));
+const VehicleExpenseForm = lazy(() => import("@/components/VehicleExpenseForm").then(m => ({ default: m.VehicleExpenseForm })));
+// Direct import for the constant used at render time
+import { vehicleExpenseCategories } from "@/components/VehicleExpenseForm";
+
+// Lazy load hooks only when needed
 import { useLoans } from "@/hooks/useLoans";
 import { useClients } from "@/hooks/useClients";
 import { useProducts } from "@/hooks/useProducts";
 import { useExpenses } from "@/hooks/useExpenses";
-import { toast } from "sonner";
-import { HideValuesProvider, useHideValues } from "@/contexts/HideValuesContext";
-import { UserManagement } from "@/components/UserManagement";
-import { PlanManagement } from "@/components/PlanManagement";
-import { BackupExport } from "@/components/BackupExport";
-import { WebhookSettings } from "@/components/WebhookSettings";
-import { Badge } from "@/components/ui/badge";
-import { PlanSubscribers } from "@/components/PlanSubscribers";
 import { useVehicleRegistry } from "@/hooks/useVehicleRegistry";
 import { useLocadorInfo } from "@/hooks/useLocadorInfo";
-import { VehicleCardList } from "@/components/VehicleCardList";
-import { LocadorPopoverContent } from "@/components/LocadorPopoverContent";
-import { LocadorList } from "@/components/LocadorList";
-import { SubscriptionBanner } from "@/components/SubscriptionBanner";
-import { SubscriptionGate } from "@/components/SubscriptionGate";
-import { useSubscription } from "@/hooks/useSubscription";
-import { useNavigate } from "react-router-dom";
 
 type Tab = "overview" | "dashboard" | "clients" | "products" | "vehicles" | "overdue" | "expenses" | "calendar" | "users" | "plan_mgmt" | "backup";
 type ClientSubTab = "clientes" | "veiculos";
@@ -447,6 +453,7 @@ const Index = () => {
       </header>
 
       <main className="max-w-[1920px] mx-auto px-3 sm:px-4 lg:px-8 py-4 sm:py-6 space-y-4 sm:space-y-6">
+        <Suspense fallback={<div className="flex justify-center py-12"><div className="animate-spin h-8 w-8 border-2 border-primary border-t-transparent rounded-full" /></div>}>
         {tab === "overview" && (
           <SubscriptionGate requiredTier={1} featureName="Dashboard">
           <DashboardOverview loans={filteredLoans} sales={filteredSales} payments={filteredPayments} expenses={expenses} installmentSchedules={filteredInstallments} onDeletePayment={deletePayment} onDeleteSale={deleteSale} onDeleteLoan={deleteLoan} />
@@ -639,6 +646,7 @@ const Index = () => {
             <WebhookSettings />
           </div>
         )}
+        </Suspense>
       </main>
 
       {showLoanForm && <LoanForm onAdd={addLoan} onSaveSchedule={saveSchedule} onClose={() => setShowLoanForm(false)} clients={clients} existingTags={[...new Set(loans.flatMap(l => l.tags || []))]} />}
