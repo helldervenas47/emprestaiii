@@ -31,6 +31,7 @@ import { PlanManagement } from "@/components/PlanManagement";
 import { BackupExport } from "@/components/BackupExport";
 import { WebhookSettings } from "@/components/WebhookSettings";
 import { Badge } from "@/components/ui/badge";
+import { PlanSubscribers } from "@/components/PlanSubscribers";
 import { useVehicleRegistry } from "@/hooks/useVehicleRegistry";
 import { useLocadorInfo } from "@/hooks/useLocadorInfo";
 import { VehicleCardList } from "@/components/VehicleCardList";
@@ -39,9 +40,10 @@ import { LocadorList } from "@/components/LocadorList";
 import { SubscriptionBanner } from "@/components/SubscriptionBanner";
 import { SubscriptionGate } from "@/components/SubscriptionGate";
 
-type Tab = "overview" | "dashboard" | "clients" | "products" | "vehicles" | "overdue" | "expenses" | "calendar" | "users" | "backup";
+type Tab = "overview" | "dashboard" | "clients" | "products" | "vehicles" | "overdue" | "expenses" | "calendar" | "users" | "plan_mgmt" | "backup";
 type ClientSubTab = "clientes" | "veiculos";
 type VehicleSubTab = "veiculos" | "locadores";
+type PlanMgmtSubTab = "subscribers" | "plans";
 
 const tabConfig = [
   { id: "overview" as Tab, label: "Dashboard", icon: BarChart3 },
@@ -53,6 +55,7 @@ const tabConfig = [
   { id: "expenses" as Tab, label: "Despesas", icon: Receipt },
   { id: "overdue" as Tab, label: "Relatório", icon: AlertTriangle },
   { id: "users" as Tab, label: "Usuários", icon: Users },
+  { id: "plan_mgmt" as Tab, label: "Gestão de Planos", icon: Wrench },
   { id: "backup" as Tab, label: "Backup", icon: DatabaseBackup },
 ];
 
@@ -134,6 +137,15 @@ const tabHelp: Record<Tab, { title: string; items: string[] }> = {
       "Defina papéis: Admin, Operador ou Visualizador.",
       "Apenas administradores podem acessar esta aba.",
       "Gerencie permissões de acesso dos usuários.",
+    ],
+  },
+  plan_mgmt: {
+    title: "Gestão de Planos",
+    items: [
+      "Visualize todos os assinantes na sub-aba Usuários.",
+      "Crie e edite planos na sub-aba Planos.",
+      "As alterações são refletidas na página de compra.",
+      "Apenas administradores podem acessar esta aba.",
     ],
   },
   backup: {
