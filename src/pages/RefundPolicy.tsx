@@ -14,9 +14,7 @@ const RefundPolicy = () => {
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <div className="flex items-center gap-2">
-            <div className="h-8 w-8 rounded-xl gradient-primary flex items-center justify-center">
-              <HandCoins className="h-4 w-4 text-primary-foreground" />
-            </div>
+            <img src={logoIcon} alt="EmprestAI" className="h-8 w-8 rounded-xl" width={32} height={32} />
             <span className="text-lg font-bold text-foreground">EmprestAI</span>
           </div>
         </div>

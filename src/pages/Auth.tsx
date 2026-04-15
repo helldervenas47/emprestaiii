@@ -97,8 +97,8 @@ const Auth = () => {
       <div className="min-h-screen bg-background flex flex-col items-center justify-center px-6 py-8">
         <div className="w-full max-w-sm space-y-6">
           <div className="text-center space-y-2">
-            <div className="mx-auto h-14 w-14 rounded-2xl gradient-primary glow-primary flex items-center justify-center">
-              <HandCoins className="h-7 w-7 text-primary-foreground" />
+            <div className="mx-auto h-14 w-14 rounded-2xl overflow-hidden">
+              <img src={logoIcon} alt="EmprestAI" className="h-14 w-14" width={56} height={56} />
             </div>
             <h1 className="text-2xl font-bold text-foreground">EmprestAI</h1>
             <p className="text-muted-foreground">Digite seu email para receber o link de recuperação</p>
@@ -127,8 +127,8 @@ const Auth = () => {
     <div className="min-h-screen bg-background flex flex-col items-center justify-center px-6 py-8">
       <div className="w-full max-w-sm space-y-6">
         <div className="text-center space-y-2">
-          <div className="mx-auto h-14 w-14 rounded-2xl gradient-primary glow-primary flex items-center justify-center">
-            <HandCoins className="h-7 w-7 text-primary-foreground" />
+          <div className="mx-auto h-14 w-14 rounded-2xl overflow-hidden">
+            <img src={logoIcon} alt="EmprestAI" className="h-14 w-14" width={56} height={56} />
           </div>
           <h1 className="text-2xl font-bold text-foreground">EmprestAI</h1>
           <p className="text-muted-foreground">
