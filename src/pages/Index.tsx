@@ -171,6 +171,8 @@ function HideValuesToggle() {
 
 const Index = () => {
   const { signOut, role, allowedTabs, linkedClientIds, loading, user } = useAuth();
+  const navigate = useNavigate();
+  const { subscription, isActive: hasActiveSub } = useSubscription();
   const { loans, payments, installmentSchedules, addLoan, addPayment, addPartialPayment, addInterestOnlyPayment, updateLoan, deleteLoan, deletePayment, saveSchedule } = useLoans();
   const { clients, addClient, deleteClient, updateClient } = useClients();
   const { products, sales, addProduct, updateProduct, deleteProduct, addSale, updateSale, deleteSale } = useProducts();
