@@ -81,6 +81,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     let mounted = true;
+    let hydrated = false;
+
+    const doHydrate = async (userId: string, showLoading: boolean) => {
+      if (hydrated) return;
+      hydrated = true;
+      if (showLoading) setLoading(true);
+      await hydrateUserState(userId);
+      if (mounted) setLoading(false);
+    };
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, nextSession) => {
       if (!mounted) return;
@@ -91,18 +100,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (nextSession?.user) {
         sessionStorage.setItem("hvcred_session", "1");
 
-        // Only show loading spinner on initial sign-in, not on token refresh
-        // Token refresh (e.g. returning from background on mobile) should NOT
-        // unmount the entire app tree, which would lose form/modal state.
-        const isInitialSignIn = _event === "SIGNED_IN";
-        if (isInitialSignIn) setLoading(true);
-
-        setTimeout(() => {
-          if (!mounted) return;
-          hydrateUserState(nextSession.user.id).finally(() => {
-            if (mounted && isInitialSignIn) setLoading(false);
-          });
-        }, 0);
+        if (_event === "SIGNED_IN" || _event === "INITIAL_SESSION") {
+          setTimeout(() => {
+            if (!mounted) return;
+            doHydrate(nextSession.user.id, _event === "SIGNED_IN");
+          }, 0);
+        }
+        // TOKEN_REFRESHED: no re-hydrate needed
       } else {
         sessionStorage.removeItem("hvcred_session");
         setRole(null);
@@ -119,7 +123,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (currentSession && sessionStorage.getItem("hvcred_session")) {
         setSession(currentSession);
         setUser(currentSession.user);
-        await hydrateUserState(currentSession.user.id);
+        await doHydrate(currentSession.user.id, false);
       } else if (!sessionStorage.getItem("hvcred_session")) {
         await supabase.auth.signOut();
       }
