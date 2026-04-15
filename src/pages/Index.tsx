@@ -35,6 +35,8 @@ import { useLocadorInfo } from "@/hooks/useLocadorInfo";
 import { VehicleCardList } from "@/components/VehicleCardList";
 import { LocadorPopoverContent } from "@/components/LocadorPopoverContent";
 import { LocadorList } from "@/components/LocadorList";
+import { SubscriptionBanner } from "@/components/SubscriptionBanner";
+import { SubscriptionGate } from "@/components/SubscriptionGate";
 
 type Tab = "overview" | "dashboard" | "clients" | "products" | "vehicles" | "overdue" | "expenses" | "calendar" | "users" | "backup";
 type ClientSubTab = "clientes" | "veiculos";
