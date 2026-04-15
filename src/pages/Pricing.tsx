@@ -255,11 +255,11 @@ const Pricing = () => {
                   <Card
                     key={plan.id}
                     no3d
-                    className={
+                    className={`flex flex-col ${
                       plan.highlight
                         ? "border-primary/50 shadow-[0_0_30px_-8px_hsl(var(--primary)/0.3)] relative"
                         : ""
-                    }
+                    }`}
                   >
                     {plan.highlight && (
                       <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-4 py-1 rounded-full text-xs font-semibold gradient-primary text-primary-foreground">
@@ -273,8 +273,8 @@ const Pricing = () => {
                         <span className="text-muted-foreground">/mês</span>
                       </div>
                     </CardHeader>
-                    <CardContent className="space-y-6">
-                      <ul className="space-y-3">
+                    <CardContent className="flex flex-col flex-1">
+                      <ul className="space-y-3 flex-1">
                         {plan.features.map((f) => (
                           <li key={f} className="flex items-start gap-2 text-sm text-muted-foreground">
                             <Check className="h-4 w-4 text-primary mt-0.5 shrink-0" />
@@ -283,7 +283,7 @@ const Pricing = () => {
                         ))}
                       </ul>
                       <Button
-                        className="w-full rounded-full text-base py-6 font-semibold"
+                        className="w-full rounded-full text-base py-6 font-semibold mt-6"
                         onClick={() => handleSubscribe(plan)}
                         disabled={isLoading}
                       >
