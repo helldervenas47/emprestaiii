@@ -323,19 +323,27 @@ export function UserManagement() {
   const handleSavePlan = async () => {
     if (!planUser) return;
     setSavingPlan(true);
-    // Update both environments
-    const { error: e1 } = await supabase
-      .from("subscriptions")
-      .update({ product_id: planProductId })
-      .eq("user_id", planUser.id)
-      .eq("environment", "sandbox");
-    const { error: e2 } = await supabase
-      .from("subscriptions")
-      .update({ product_id: planProductId })
-      .eq("user_id", planUser.id)
-      .eq("environment", "live");
 
-    // Sync tab permissions based on plan
+    // Collect all user IDs to update: the admin + all sub-users
+    const allUserIds = [planUser.id, ...users.filter(u => u.role !== "admin").map(u => u.id)];
+
+    // Update both environments for all users
+    let hasError = false;
+    for (const uid of allUserIds) {
+      const { error: e1 } = await supabase
+        .from("subscriptions")
+        .update({ product_id: planProductId })
+        .eq("user_id", uid)
+        .eq("environment", "sandbox");
+      const { error: e2 } = await supabase
+        .from("subscriptions")
+        .update({ product_id: planProductId })
+        .eq("user_id", uid)
+        .eq("environment", "live");
+      if (e1 || e2) hasError = true;
+    }
+
+    // Sync tab permissions based on plan for all users
     const planNameMap: Record<string, string> = {
       free_plan: "Free",
       basico_plan: "Básico",
@@ -352,29 +360,31 @@ export function UserManagement() {
         .maybeSingle();
 
       if (plan?.allowed_tabs) {
-        const { data: existing } = await supabase
-          .from("user_tab_permissions" as any)
-          .select("id")
-          .eq("user_id", planUser.id)
-          .maybeSingle();
+        for (const uid of allUserIds) {
+          const { data: existing } = await supabase
+            .from("user_tab_permissions" as any)
+            .select("id")
+            .eq("user_id", uid)
+            .maybeSingle();
 
-        if (existing) {
-          await supabase
-            .from("user_tab_permissions" as any)
-            .update({ allowed_tabs: plan.allowed_tabs, updated_at: new Date().toISOString() })
-            .eq("user_id", planUser.id);
-        } else {
-          await supabase
-            .from("user_tab_permissions" as any)
-            .insert({ user_id: planUser.id, allowed_tabs: plan.allowed_tabs });
+          if (existing) {
+            await supabase
+              .from("user_tab_permissions" as any)
+              .update({ allowed_tabs: plan.allowed_tabs, updated_at: new Date().toISOString() })
+              .eq("user_id", uid);
+          } else {
+            await supabase
+              .from("user_tab_permissions" as any)
+              .insert({ user_id: uid, allowed_tabs: plan.allowed_tabs });
+          }
         }
       }
     }
 
-    if (e1 || e2) {
+    if (hasError) {
       toast.error("Erro ao atualizar plano");
     } else {
-      toast.success("Plano atualizado!");
+      toast.success("Plano atualizado para todos os usuários!");
       setPlanUser(null);
       fetchUsers();
     }
