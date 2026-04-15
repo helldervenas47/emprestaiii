@@ -27,6 +27,7 @@ interface ManagedUser {
   is_active: boolean;
   allowed_tabs: string[] | null;
   linked_client_ids: string[];
+  plan_id?: string;
 }
 
 const ALL_TABS = [
@@ -98,7 +99,21 @@ export function UserManagement() {
         toast.error(errMsg);
       }
     } else {
-      setUsers(data.users || []);
+      const usersList = data.users || [];
+      // Fetch plans for each user
+      if (usersList.length > 0) {
+        const { data: subs } = await supabase
+          .from("subscriptions")
+          .select("user_id, product_id")
+          .eq("environment", "sandbox")
+          .in("user_id", usersList.map((u: ManagedUser) => u.id));
+        
+        const planMap = new Map(subs?.map((s) => [s.user_id, s.product_id]) || []);
+        usersList.forEach((u: ManagedUser) => {
+          u.plan_id = planMap.get(u.id) || "free_plan";
+        });
+      }
+      setUsers(usersList);
     }
     setLoading(false);
   };
@@ -315,6 +330,20 @@ export function UserManagement() {
     return "Sem papel";
   };
 
+  const planBadgeVariant = (planId: string | undefined) => {
+    if (planId === "empresarial_plan") return "default";
+    if (planId === "profissional_plan") return "secondary";
+    if (planId === "basico_plan") return "outline";
+    return "outline";
+  };
+
+  const planLabel = (planId: string | undefined) => {
+    if (planId === "empresarial_plan") return "Empresarial";
+    if (planId === "profissional_plan") return "Profissional";
+    if (planId === "basico_plan") return "Básico";
+    return "Free";
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
@@ -349,7 +378,12 @@ export function UserManagement() {
                     onClick={() => setExpandedUserId(isExpanded ? null : user.id)}
                   >
                     <div className="min-w-0">
-                      <p className="text-sm font-medium text-foreground truncate">{user.display_name}</p>
+                      <div className="flex items-center gap-2">
+                        <p className="text-sm font-medium text-foreground truncate">{user.display_name}</p>
+                        <Badge variant={planBadgeVariant(user.plan_id)} className="text-[10px] px-1.5 py-0 shrink-0">
+                          {planLabel(user.plan_id)}
+                        </Badge>
+                      </div>
                       <p className="text-xs text-muted-foreground">{user.username || "—"}</p>
                     </div>
                     <ChevronDown className={`h-4 w-4 text-muted-foreground shrink-0 transition-transform ${isExpanded ? "rotate-180" : ""}`} />
@@ -427,9 +461,16 @@ export function UserManagement() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {users.map((user) => (
+                  {users.map((user) => (
                   <TableRow key={user.id}>
-                    <TableCell className="font-medium">{user.display_name}</TableCell>
+                    <TableCell className="font-medium">
+                      <div className="flex items-center gap-2">
+                        {user.display_name}
+                        <Badge variant={planBadgeVariant(user.plan_id)} className="text-[10px] px-1.5 py-0">
+                          {planLabel(user.plan_id)}
+                        </Badge>
+                      </div>
+                    </TableCell>
                     <TableCell className="text-muted-foreground">{user.username || "—"}</TableCell>
                     <TableCell className="text-muted-foreground">{user.email}</TableCell>
                     <TableCell>
