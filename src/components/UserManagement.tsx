@@ -456,9 +456,16 @@ export function UserManagement() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {users.map((user) => (
+                  {users.map((user) => (
                   <TableRow key={user.id}>
-                    <TableCell className="font-medium">{user.display_name}</TableCell>
+                    <TableCell className="font-medium">
+                      <div className="flex items-center gap-2">
+                        {user.display_name}
+                        <Badge variant={planBadgeVariant(user.plan_id)} className="text-[10px] px-1.5 py-0">
+                          {planLabel(user.plan_id)}
+                        </Badge>
+                      </div>
+                    </TableCell>
                     <TableCell className="text-muted-foreground">{user.username || "—"}</TableCell>
                     <TableCell className="text-muted-foreground">{user.email}</TableCell>
                     <TableCell>
