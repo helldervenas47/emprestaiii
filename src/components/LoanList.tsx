@@ -1978,7 +1978,11 @@ export function LoanList({ loans, payments, installmentSchedules, onPayment, onP
 
     // Sort
     return [...filtered].sort((a, b) => {
-      if (sortBy === "dueDate") return a.dueDate.localeCompare(b.dueDate);
+      if (sortBy === "dueDate") {
+        const aDate = getFirstPendingDate(a, installmentSchedules).getTime();
+        const bDate = getFirstPendingDate(b, installmentSchedules).getTime();
+        return aDate - bDate;
+      }
       if (sortBy === "startDate") return b.startDate.localeCompare(a.startDate);
       if (sortBy === "amount") return b.amount - a.amount;
       return a.borrowerName.localeCompare(b.borrowerName);
