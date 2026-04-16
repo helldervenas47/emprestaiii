@@ -61,6 +61,10 @@ export function useExpenses(enabled = true) {
       setExpenses((prev) => prev.filter((e) => e.id !== tempId));
     } else if (data) {
       setExpenses((prev) => prev.map((e) => e.id === tempId ? { ...e, id: data.id, createdAt: data.created_at } : e));
+      // Trigger budget overrun push notification check (personal scope only)
+      if ((expense.scope ?? "business") === "personal") {
+        supabase.functions.invoke("notify-budget-overrun").catch(() => { /* silent */ });
+      }
     }
   }, [user, dataOwnerId]);
 
