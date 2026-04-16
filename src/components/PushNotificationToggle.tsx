@@ -60,14 +60,20 @@ export function PushNotificationToggle() {
           )}
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-64 p-4" align="end">
+      <PopoverContent className="w-72 p-4" align="end">
         <div className="space-y-4">
+          {needsInstall && (
+            <div className="flex items-start gap-2 rounded-md bg-amber-500/10 border border-amber-500/30 p-2.5 text-xs text-amber-200">
+              <AlertTriangle className="h-4 w-4 mt-0.5 flex-shrink-0 text-amber-400" />
+              <span>No iOS, instale o app na Tela de Início primeiro: Safari → Compartilhar → Adicionar à Tela de Início.</span>
+            </div>
+          )}
           <div className="flex items-center justify-between">
             <span className="text-sm font-medium">Notificações Push</span>
             <Switch
               checked={isSubscribed}
               onCheckedChange={handleToggle}
-              disabled={isLoading}
+              disabled={isLoading || needsInstall}
               aria-label="Notificações push"
             />
           </div>
