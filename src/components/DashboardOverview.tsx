@@ -880,8 +880,9 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
               </Card>
               <div className="grid grid-cols-2 gap-2">
                 {otherCards.slice(0, 2).map((item) => (
-                  <Card key={item.label}>
-                    <CardContent className="p-3 flex flex-col items-center text-center">
+                  <Card key={item.label} className={item.onClick ? "cursor-pointer hover:bg-accent/50 transition-colors" : ""} onClick={item.onClick}>
+                    <CardContent className="p-3 flex flex-col items-center text-center relative">
+                      {item.onClick && <Eye className="h-3 w-3 text-muted-foreground absolute top-2 right-2" />}
                       <div className={`h-8 w-8 rounded-lg ${item.iconBg} flex items-center justify-center mb-2`}>
                         <DollarSign className={`h-4 w-4 ${item.iconColor}`} />
                       </div>
@@ -893,8 +894,9 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
               </div>
               <div className="grid grid-cols-2 gap-2">
                 {otherCards.slice(2, 4).map((item) => (
-                  <Card key={item.label}>
-                    <CardContent className="p-3 flex flex-col items-center text-center">
+                  <Card key={item.label} className={item.onClick ? "cursor-pointer hover:bg-accent/50 transition-colors" : ""} onClick={item.onClick}>
+                    <CardContent className="p-3 flex flex-col items-center text-center relative">
+                      {item.onClick && <Eye className="h-3 w-3 text-muted-foreground absolute top-2 right-2" />}
                       <div className={`h-8 w-8 rounded-lg ${item.iconBg} flex items-center justify-center mb-2`}>
                         <DollarSign className={`h-4 w-4 ${item.iconColor}`} />
                       </div>
@@ -906,8 +908,9 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
               </div>
               <div className="grid grid-cols-2 gap-2">
                 {otherCards.slice(4, 6).map((item) => (
-                  <Card key={item.label}>
-                    <CardContent className="p-3 flex flex-col items-center text-center">
+                  <Card key={item.label} className={item.onClick ? "cursor-pointer hover:bg-accent/50 transition-colors" : ""} onClick={item.onClick}>
+                    <CardContent className="p-3 flex flex-col items-center text-center relative">
+                      {item.onClick && <Eye className="h-3 w-3 text-muted-foreground absolute top-2 right-2" />}
                       <div className={`h-8 w-8 rounded-lg ${item.iconBg} flex items-center justify-center mb-2`}>
                         <DollarSign className={`h-4 w-4 ${item.iconColor}`} />
                       </div>
