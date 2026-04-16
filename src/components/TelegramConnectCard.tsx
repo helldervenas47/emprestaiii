@@ -284,6 +284,53 @@ export function TelegramConnectCard() {
                 Total dos últimos 7 dias por dia e por categoria.
               </p>
             </div>
+
+            <div className="rounded-lg border border-border bg-muted/30 p-3 space-y-2">
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2">
+                  <CalendarRange className="h-4 w-4 text-primary" />
+                  <Label htmlFor="tg-monthly" className="text-sm cursor-pointer">
+                    Resumo mensal automático
+                  </Label>
+                </div>
+                <Switch
+                  id="tg-monthly"
+                  checked={summaryPref.monthly_enabled}
+                  onCheckedChange={(v) => updateSummary({ monthly_enabled: v })}
+                />
+              </div>
+              {summaryPref.monthly_enabled && (
+                <div className="flex flex-wrap items-center gap-2 pt-1">
+                  <Label className="text-xs text-muted-foreground">Dia:</Label>
+                  <Select
+                    value={String(summaryPref.monthly_send_day)}
+                    onValueChange={(v) => updateSummary({ monthly_send_day: Number(v) })}
+                  >
+                    <SelectTrigger className="h-8 w-20 text-xs">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="max-h-60">
+                      {Array.from({ length: 31 }, (_, i) => i + 1).map((d) => (
+                        <SelectItem key={d} value={String(d)}>{d}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Label htmlFor="tg-monthly-time" className="text-xs text-muted-foreground">
+                    Horário:
+                  </Label>
+                  <Input
+                    id="tg-monthly-time"
+                    type="time"
+                    value={summaryPref.monthly_send_time}
+                    onChange={(e) => updateSummary({ monthly_send_time: e.target.value })}
+                    className="h-8 w-28 text-xs"
+                  />
+                </div>
+              )}
+              <p className="text-[10px] text-muted-foreground">
+                Total do mês com comparação ao mês anterior, top categorias, média diária e orçamentos. Se o dia escolhido não existir no mês (ex: 31 em fevereiro), envia no último dia.
+              </p>
+            </div>
           </div>
         ) : code ? (
           <div className="space-y-2 pt-1">
