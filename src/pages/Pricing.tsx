@@ -111,19 +111,8 @@ const Pricing = () => {
     document.getElementById("planos")?.scrollIntoView({ behavior: "smooth" });
   };
 
-  const handleSubscribe = async (plan: Plan) => {
-    const priceId = PLAN_PRICE_MAP[plan.name];
-    if (!priceId) {
-      navigate("/auth");
-      return;
-    }
-
-    setCheckoutPlan(plan.name);
-    await openCheckout({
-      priceId,
-      successUrl: `${window.location.origin}/auth?checkout=success`,
-    });
-    setCheckoutPlan(null);
+  const handleSubscribe = (plan: Plan) => {
+    navigate(`/cadastro?plan=${encodeURIComponent(plan.name)}`);
   };
 
   return (

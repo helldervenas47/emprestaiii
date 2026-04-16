@@ -9,6 +9,7 @@ import PWAInstallPrompt from "./components/PWAInstallPrompt";
 
 const Index = lazy(() => import("./pages/Index.tsx"));
 const Auth = lazy(() => import("./pages/Auth.tsx"));
+const Cadastro = lazy(() => import("./pages/Cadastro.tsx"));
 const ResetPassword = lazy(() => import("./pages/ResetPassword.tsx"));
 const NotFound = lazy(() => import("./pages/NotFound.tsx"));
 const Pricing = lazy(() => import("./pages/Pricing.tsx"));
@@ -59,6 +60,7 @@ const App = () => (
             <Routes>
               <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
               <Route path="/auth" element={<PublicRoute><Auth /></PublicRoute>} />
+              <Route path="/cadastro" element={<PublicRoute><Cadastro /></PublicRoute>} />
               <Route path="/planos" element={<Pricing />} />
               <Route path="/termos" element={<Terms />} />
               <Route path="/reembolso" element={<RefundPolicy />} />
