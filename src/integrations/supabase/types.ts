@@ -433,6 +433,7 @@ export type Database = {
       }
       personal_budget_alerts: {
         Row: {
+          alert_type: string
           category: string
           created_at: string
           id: string
@@ -440,6 +441,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          alert_type?: string
           category: string
           created_at?: string
           id?: string
@@ -447,6 +449,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          alert_type?: string
           category?: string
           created_at?: string
           id?: string
