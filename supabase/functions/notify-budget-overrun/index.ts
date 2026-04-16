@@ -169,15 +169,14 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ message: "No budgets" }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    // Fetch this month's paid personal expenses
+    // Fetch this month's registered personal expenses (by due_date, regardless of paid status)
     const { data: expenses } = await supabase
       .from("expenses")
-      .select("category, amount, type, installments, paid_date, scope, paid")
+      .select("category, amount, type, installments, due_date, scope")
       .eq("user_id", ownerId)
       .eq("scope", "personal")
-      .eq("paid", true)
-      .gte("paid_date", monthStart)
-      .lte("paid_date", monthEnd);
+      .gte("due_date", monthStart)
+      .lte("due_date", monthEnd);
 
     const spent = new Map<string, number>();
     for (const e of (expenses || []) as any[]) {
