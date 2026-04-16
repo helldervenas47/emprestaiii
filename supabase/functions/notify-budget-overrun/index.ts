@@ -259,7 +259,7 @@ Deno.serve(async (req) => {
     }
 
     return new Response(JSON.stringify({
-      alerted: toAlert.map((b) => b.category),
+      alerted: toAlert.map((p) => `${p.category}:${p.type}`),
       sent: totalSent, failed: totalFailed,
     }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
   } catch (e: any) {
