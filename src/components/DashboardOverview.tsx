@@ -221,8 +221,8 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
       return { ...sale, received };
     });
 
-    return { totalIncome, incomeFromPayments, incomeFromSales, totalOutgoing, totalLoanOutgoing, totalExpenses, balance, transactions, loanCount: filteredLoans.length, saleCount: filteredSales.length, paymentCount: filteredPayments.length, expenseCount: filteredExpenses.length, avgInterestRate, filteredPayments, filteredLoans, filteredExpenses, salesWithReceived, periodProfitExpected, periodProfitRealized, periodProfitPct };
-  }, [loans, sales, payments, expenses, range, includeSales, period, chartOverrides]);
+    return { totalIncome, incomeFromPayments, incomeFromSales, totalOutgoing, totalLoanOutgoing, totalExpenses, balance, transactions, loanCount: filteredLoans.length, saleCount: filteredSales.length, paymentCount: filteredPayments.length, expenseCount: filteredExpenses.length, avgInterestRate, filteredPayments, filteredLoans, filteredExpenses, salesWithReceived, periodProfitExpected: totalProfitExpected, periodProfitRealized: totalProfitRealized, periodProfitPct };
+  }, [loans, sales, payments, expenses, range, includeSales, period, chartOverrides, installmentSchedules]);
 
   // Portfolio metrics — global (not filtered by period)
   const portfolio = useMemo(() => {
