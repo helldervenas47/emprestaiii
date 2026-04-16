@@ -85,10 +85,17 @@ export function PlanSubscribers() {
 
     if (error || !subs) { setLoading(false); return; }
 
+    // Fetch admin-created users (those in user_owner) to exclude them
+    const { data: ownedUsers } = await supabase.from("user_owner").select("user_id");
+    const ownedUserIds = new Set((ownedUsers || []).map((o: any) => o.user_id));
+
+    // Filter out admin-created sub-users
+    const filteredSubs = subs.filter((s) => !ownedUserIds.has(s.user_id));
+
     const { data: profiles } = await supabase.from("profiles").select("user_id, display_name");
     const profileMap = new Map((profiles || []).map((p) => [p.user_id, p.display_name]));
 
-    const mapped: Subscriber[] = subs.map((s) => ({
+    const mapped: Subscriber[] = filteredSubs.map((s) => ({
       id: s.id,
       user_id: s.user_id,
       display_name: profileMap.get(s.user_id) || null,
