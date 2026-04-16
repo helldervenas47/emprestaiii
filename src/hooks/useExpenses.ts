@@ -126,6 +126,10 @@ export function useExpenses(enabled = true) {
       }).eq("id", id);
     }
 
+    // Trigger budget overrun alert (push + Telegram) for personal expenses
+    if (expense.scope === "personal") {
+      supabase.functions.invoke("notify-budget-overrun").catch(() => { /* silent */ });
+    }
   }, [expenses, dataOwnerId]);
 
   const unpayExpense = useCallback(async (id: string) => {
