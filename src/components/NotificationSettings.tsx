@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { useNotificationPreferences, NOTIFICATION_TYPES } from "@/hooks/useNotificationPreferences";
 import { Skeleton } from "@/components/ui/skeleton";
 import { usePushNotifications } from "@/hooks/usePushNotifications";
+
 import { toast } from "sonner";
 
 const HOURS = Array.from({ length: 24 }, (_, i) => {
@@ -22,7 +23,7 @@ const TEST_URLS: Record<string, string> = {
 
 export function NotificationSettings() {
   const { preferences, loading, upsert } = useNotificationPreferences();
-  const { isSubscribed } = usePushNotifications();
+  const { isSupported: isPushSupported, isSubscribed, isLoading: isPushLoading, permission, needsInstall, subscribe, unsubscribe } = usePushNotifications();
   const [sendingTest, setSendingTest] = useState<string | null>(null);
 
   const handleSendTest = async (type: string, label: string) => {
@@ -60,8 +61,48 @@ export function NotificationSettings() {
     );
   }
 
+  const handleTogglePush = async (checked: boolean) => {
+    if (checked) {
+      const ok = await subscribe();
+      if (ok) toast.success("Notificações push ativadas!");
+      else if (permission === "denied") toast.error("Permissão negada. Habilite nas configurações do navegador.");
+    } else {
+      await unsubscribe();
+      toast.info("Notificações push desativadas.");
+    }
+  };
+
   return (
     <div className="space-y-3">
+      {isPushSupported && (
+        <Card className="p-4">
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex items-start gap-3 flex-1 min-w-0">
+              <Bell className={`h-5 w-5 mt-0.5 shrink-0 ${isSubscribed ? "text-primary" : "text-muted-foreground"}`} />
+              <div className="min-w-0">
+                <p className="font-medium text-sm text-foreground">Ativar Notificações Push</p>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  {isSubscribed
+                    ? "Notificações push estão ativas neste dispositivo."
+                    : "Habilite para receber alertas diretamente no seu dispositivo."}
+                </p>
+              </div>
+            </div>
+            <Switch
+              checked={isSubscribed}
+              onCheckedChange={handleTogglePush}
+              disabled={isPushLoading || needsInstall}
+              aria-label="Ativar notificações push"
+            />
+          </div>
+          {needsInstall && (
+            <p className="text-xs text-warning mt-2 pl-8">
+              No iOS, instale o app na Tela de Início primeiro: Safari → Compartilhar → Adicionar à Tela de Início.
+            </p>
+          )}
+        </Card>
+      )}
+
       <p className="text-sm text-muted-foreground mb-4">
         Configure quais notificações você deseja receber e em qual horário.
       </p>
