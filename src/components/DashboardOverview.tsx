@@ -692,16 +692,16 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
             </div>
             <div className="space-y-3 flex-1 flex flex-col justify-center">
               <div className="flex items-center justify-between">
-                <span className="text-xs text-muted-foreground">Lucro Previsto</span>
-                <span className="text-sm font-bold text-foreground">{formatCurrency(data.periodProfitExpected)}</span>
+                <span className="text-sm text-muted-foreground">Lucro Previsto</span>
+                <span className="text-base font-bold text-foreground">{formatCurrency(data.periodProfitExpected)}</span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-xs text-muted-foreground">Lucro Realizado</span>
-                <span className="text-sm font-bold text-success">{formatCurrency(data.periodProfitRealized)}</span>
+                <span className="text-sm text-muted-foreground">Lucro Realizado</span>
+                <span className="text-base font-bold text-success">{formatCurrency(data.periodProfitRealized)}</span>
               </div>
-              <div className="flex items-center justify-between pt-1 border-t border-border/30">
-                <span className="text-xs text-muted-foreground">% Lucro</span>
-                <span className={`text-sm font-bold ${data.periodProfitPct >= 100 ? "text-success" : data.periodProfitPct >= 50 ? "text-warning" : "text-foreground"}`}>
+              <div className="flex items-center justify-between pt-2 border-t border-border/30">
+                <span className="text-sm text-muted-foreground">% Lucro</span>
+                <span className={`text-base font-bold ${data.periodProfitPct >= 100 ? "text-success" : data.periodProfitPct >= 50 ? "text-warning" : "text-foreground"}`}>
                   {data.periodProfitPct}%
                 </span>
               </div>
