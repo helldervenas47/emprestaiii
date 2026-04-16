@@ -2,8 +2,12 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Send, Copy, CheckCircle2, Unlink } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Send, Copy, CheckCircle2, Unlink, Clock } from "lucide-react";
 import { toast } from "sonner";
+import { useTelegramSummaryPref } from "@/hooks/useTelegramSummaryPref";
 
 const BOT_USERNAME_KEY = "telegram_bot_username";
 
@@ -14,6 +18,7 @@ export function TelegramConnectCard() {
   const [expiresAt, setExpiresAt] = useState<string | null>(null);
   const [generating, setGenerating] = useState(false);
   const botUsername = (typeof window !== "undefined" && localStorage.getItem(BOT_USERNAME_KEY)) || "";
+  const { pref: summaryPref, update: updateSummary } = useTelegramSummaryPref();
 
   const refresh = async () => {
     const { data: { user } } = await supabase.auth.getUser();
@@ -95,13 +100,48 @@ export function TelegramConnectCard() {
         </div>
 
         {linked ? (
-          <div className="flex items-center justify-between gap-3 pt-1">
-            <p className="text-xs text-muted-foreground">
-              Chat vinculado: <span className="font-mono">{linked.chat_id}</span>
-            </p>
-            <Button size="sm" variant="outline" onClick={disconnect}>
-              <Unlink className="h-3.5 w-3.5 mr-1" /> Desvincular
-            </Button>
+          <div className="space-y-3 pt-1">
+            <div className="flex items-center justify-between gap-3">
+              <p className="text-xs text-muted-foreground">
+                Chat vinculado: <span className="font-mono">{linked.chat_id}</span>
+              </p>
+              <Button size="sm" variant="outline" onClick={disconnect}>
+                <Unlink className="h-3.5 w-3.5 mr-1" /> Desvincular
+              </Button>
+            </div>
+
+            <div className="rounded-lg border border-border bg-muted/30 p-3 space-y-2">
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2">
+                  <Clock className="h-4 w-4 text-primary" />
+                  <Label htmlFor="tg-summary" className="text-sm cursor-pointer">
+                    Resumo diário
+                  </Label>
+                </div>
+                <Switch
+                  id="tg-summary"
+                  checked={summaryPref.enabled}
+                  onCheckedChange={(v) => updateSummary({ enabled: v })}
+                />
+              </div>
+              {summaryPref.enabled && (
+                <div className="flex items-center gap-2 pt-1">
+                  <Label htmlFor="tg-summary-time" className="text-xs text-muted-foreground">
+                    Horário:
+                  </Label>
+                  <Input
+                    id="tg-summary-time"
+                    type="time"
+                    value={summaryPref.send_time}
+                    onChange={(e) => updateSummary({ send_time: e.target.value })}
+                    className="h-8 w-28 text-xs"
+                  />
+                </div>
+              )}
+              <p className="text-[10px] text-muted-foreground">
+                Total gasto no dia + saldo dos orçamentos por categoria.
+              </p>
+            </div>
           </div>
         ) : code ? (
           <div className="space-y-2 pt-1">
