@@ -63,7 +63,7 @@ Deno.serve(async (req) => {
       .map((u: any) => ({
         update_id: u.update_id,
         chat_id: u.message.chat.id,
-        text: u.message.text ?? null,
+        text: u.message.text ?? u.message.caption ?? null,
         raw_update: u,
       }));
 
