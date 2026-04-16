@@ -163,6 +163,20 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
       ? ((totalToReceiveInPeriod - totalLentInPeriod) / totalLentInPeriod) * 100
       : 0;
 
+    // Profit metrics for the period
+    // Lucro Previsto = remaining + paid - amount for loans in this period
+    const periodProfitExpected = filteredLoans.reduce((s, l) => {
+      const totalPaid = payments.filter(p => p.loanId === l.id).reduce((ps, p) => ps + p.amount, 0);
+      const remaining = l.remainingAmount ?? (calculateTotalWithInterest(l.amount, l.interestRate, l.installments) - totalPaid);
+      return s + (remaining + totalPaid - l.amount);
+    }, 0);
+    // Lucro Realizado = payments received in period - principal portion
+    const periodProfitRealized = filteredLoans.reduce((s, l) => {
+      const totalPaid = payments.filter(p => p.loanId === l.id).reduce((ps, p) => ps + p.amount, 0);
+      return s + Math.max(0, totalPaid - l.amount);
+    }, 0);
+    const periodProfitPct = periodProfitExpected > 0 ? Math.round((periodProfitRealized / periodProfitExpected) * 100) : 0;
+
     // Build sales with received amounts for breakdown
     const salesWithReceived = filteredSales.map(sale => {
       let received = 0;
