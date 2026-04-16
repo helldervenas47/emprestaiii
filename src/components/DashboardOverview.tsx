@@ -176,9 +176,23 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
       return s + (sc.amount * interestRatio);
     }, 0);
     
-    // Lucro Realizado = interest portion of payments made (by payment date) in this period
+    // Lucro Realizado = interest portion of payments in period (for non-quitado loans)
+    //                  + total profit of loans fully paid off (quitados) in the period
     const paymentsInPeriod = payments.filter((p) => isInRange(p.date, range.start, range.end));
-    const periodProfitRealized = paymentsInPeriod.reduce((s, p) => {
+    
+    // Find loans that were fully paid off in this period (status === "paid" and last payment in period)
+    const loansQuitadosInPeriod = loans.filter(l => {
+      if (l.status !== "paid") return false;
+      const loanPayments = payments.filter(p => p.loanId === l.id);
+      if (loanPayments.length === 0) return false;
+      const lastPaymentDate = loanPayments.reduce((latest, p) => p.date > latest ? p.date : latest, loanPayments[0].date);
+      return isInRange(lastPaymentDate, range.start, range.end);
+    });
+    const quitadoLoanIds = new Set(loansQuitadosInPeriod.map(l => l.id));
+    
+    // Interest from payments on NON-quitado loans in the period
+    const interestFromActivePayments = paymentsInPeriod.reduce((s, p) => {
+      if (quitadoLoanIds.has(p.loanId)) return s; // skip quitado loans, handled separately
       const loan = loans.find(l => l.id === p.loanId);
       if (!loan) return s;
       const totalWithInterest = calculateTotalWithInterest(loan.amount, loan.interestRate, loan.installments);
@@ -186,24 +200,21 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
       return s + (p.amount * interestRatio);
     }, 0);
     
+    // Profit from quitado loans = total payments received - principal
+    const profitFromQuitados = loansQuitadosInPeriod.reduce((s, l) => {
+      const totalPaid = payments.filter(p => p.loanId === l.id).reduce((sum, p) => sum + p.amount, 0);
+      return s + Math.max(0, totalPaid - l.amount);
+    }, 0);
+    
+    const periodProfitRealized = interestFromActivePayments + profitFromQuitados;
+    
     // Also include single-installment loans (no schedule) using dueDate for expected
     const singleInstLoans = loans.filter(l => l.installments <= 1 && isInRange(l.dueDate, range.start, range.end));
     const singleExpected = singleInstLoans.reduce((s, l) => {
       return s + (calculateTotalWithInterest(l.amount, l.interestRate, l.installments) - l.amount);
     }, 0);
-    // Single realized: check if any payment for this loan was made in the period
-    const singleRealized = singleInstLoans.reduce((s, l) => {
-      const paidInPeriod = paymentsInPeriod.filter(p => p.loanId === l.id).reduce((sum, p) => sum + p.amount, 0);
-      if (paidInPeriod > 0) {
-        const totalWithInterest = calculateTotalWithInterest(l.amount, l.interestRate, l.installments);
-        const interestRatio = totalWithInterest > 0 ? 1 - (l.amount / totalWithInterest) : 0;
-        return s + (paidInPeriod * interestRatio);
-      }
-      return s;
-    }, 0);
     
     const totalProfitExpected = periodProfitExpected + singleExpected;
-    // periodProfitRealized already covers all payments in period; add only single-loan expected that had no payments
     const totalProfitRealized = periodProfitRealized;
     const periodProfitPct = totalProfitExpected > 0 ? Math.round((totalProfitRealized / totalProfitExpected) * 100) : 0;
 
