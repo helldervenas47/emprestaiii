@@ -1006,6 +1006,7 @@ function LoanCardView({
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="center" className="w-56 p-2 space-y-1">
+                {loan.installments >= 2 && (
                 <DropdownMenuItem
                   onClick={() => openPaymentDialog("installment")}
                   className="flex items-center gap-3 px-3 py-2.5 rounded-lg cursor-pointer hover:bg-primary/10 focus:bg-primary/10"
@@ -1018,6 +1019,7 @@ function LoanCardView({
                     <p className="text-[11px] text-muted-foreground">{formatCurrency(installment)}</p>
                   </div>
                 </DropdownMenuItem>
+                )}
                 {loan.installments < 2 && (
                 <DropdownMenuItem
                   onClick={() => openPaymentDialog("interest")}
@@ -1634,9 +1636,11 @@ function LoanRowView({
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="start" className="w-[var(--radix-dropdown-menu-trigger-width)]" onClick={(e) => e.stopPropagation()}>
-                    <DropdownMenuItem onClick={() => openPaymentDialog("installment")}>
-                      <CheckCircle className="h-4 w-4 mr-2" /> Receber Parcela
-                    </DropdownMenuItem>
+                    {loan.installments >= 2 && (
+                      <DropdownMenuItem onClick={() => openPaymentDialog("installment")}>
+                        <CheckCircle className="h-4 w-4 mr-2" /> Receber Parcela
+                      </DropdownMenuItem>
+                    )}
                     <DropdownMenuItem onClick={() => openPaymentDialog("interest")}>
                       <Percent className="h-4 w-4 mr-2" /> Pagar Juros
                     </DropdownMenuItem>
