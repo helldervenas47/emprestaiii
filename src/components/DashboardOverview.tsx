@@ -592,7 +592,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
       {/* Account balance + Interest rate + Profit */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <Card className="animate-fade-in" style={{ animationDelay: '80ms', animationFillMode: 'backwards' }}>
-          <CardContent className="p-4">
+          <CardContent className="p-4 flex flex-col h-full">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
