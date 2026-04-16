@@ -1,52 +1,70 @@
 
 
 ## Objetivo
-Adicionar 3 comandos no bot do Telegram para consulta e gestão rápida de despesas pessoais.
+Permitir que o usuário envie uma **foto de comprovante/nota fiscal** no Telegram. A IA (Lovable AI multimodal) lê a imagem, extrai valor + categoria + descrição + data e cadastra a despesa automaticamente — mesmo fluxo de confirmação que já existe para texto.
 
-## Comandos
+## Fluxo
+1. Usuário tira foto de cupom/NF e envia no chat (com ou sem caption).
+2. `telegram-poll` já captura o update — precisa começar a aceitar mensagens com `photo` (hoje filtra apenas `text`).
+3. `telegram-process` detecta que a mensagem tem `photo`:
+   a. Pega o `file_id` do maior tamanho (último item do array `photo`).
+   b. Chama `getFile` no gateway → recebe `file_path`.
+   c. Baixa bytes via `${GATEWAY_URL}/file/${file_path}`.
+   d. Converte para base64 (data URL `data:image/jpeg;base64,...`).
+   e. Chama Lovable AI com `google/gemini-3-flash-preview` (multimodal) usando a mesma tool `register_expense` já existente, passando `image_url` + caption (se houver) como contexto adicional.
+   f. Mesma lógica de confiança + insert em `expenses` + mensagem de confirmação que o fluxo de texto.
+4. Resposta no Telegram inclui ícone 📸 e indica que veio de imagem:
+   ```
+   📸 Despesa extraída do comprovante
 
-**`/saldo`** — Total gasto no mês corrente + breakdown por categoria com % do orçamento (se houver `personal_budgets`).
-```
-💰 Gastos de Abril
-Total: R$ 1.234,56
-
-📂 Por categoria:
-🟢 Alimentação: R$ 320,00 / R$ 800,00 (40%)
-🟡 Transporte: R$ 180,00 / R$ 200,00 (90%)
-🔴 Lazer: R$ 250,00 / R$ 200,00 (125%)
-⚪ Outros: R$ 484,56 (sem orçamento)
-```
-
-**`/ultimas`** — Últimas 5 despesas pessoais (ordem desc por `paid_date`/`created_at`).
-```
-🧾 Últimas despesas
-1. R$ 45,00 — Uber (Transporte) — 16/04
-2. R$ 230,00 — Mercado (Alimentação) — 15/04
-...
-```
-
-**`/apagar`** — Apaga a despesa pessoal mais recente do usuário, mostrando confirmação do que foi removido.
-```
-🗑️ Despesa removida:
-R$ 45,00 — Uber (Transporte) — 16/04
-```
-Se não houver despesas: `ℹ️ Nenhuma despesa para apagar.`
+   💰 R$ 87,50
+   📂 Alimentação
+   📝 Restaurante XYZ
+   📅 2026-04-16
+   ```
 
 ## Mudanças
 
-**Apenas 1 arquivo**: `supabase/functions/telegram-process/index.ts`
-- Antes do bloco que chama a IA, adicionar 3 branches `if` para `/saldo`, `/ultimas`, `/apagar` (case-insensitive, suportando `@botname`).
-- Atualizar `HELP_TEXT` para listar os novos comandos.
-- Sem mudanças de schema, sem novas funções/migrações.
+### 1. `supabase/functions/telegram-poll/index.ts`
+- Mudar `allowed_updates: ['message']` (já está) — ok, photo já vem em message.
+- No mapeamento de `rows`, salvar também o `raw_update` completo (já salva). Garantir que `text` aceite `null` quando for foto pura, e usar `caption` como text se existir:
+  ```ts
+  text: u.message.text ?? u.message.caption ?? null
+  ```
+
+### 2. `supabase/functions/telegram-process/index.ts`
+- Detectar foto: `const photos = msg.raw_update?.message?.photo`. Se array não vazio → fluxo imagem.
+- Nova função `downloadTelegramPhoto(fileId, lovableKey, telegramKey)`:
+  - POST `${GATEWAY}/getFile` → `file_path`
+  - GET `${GATEWAY}/file/${file_path}` → `arrayBuffer` → base64
+  - Retorna `data:image/jpeg;base64,${b64}`
+- Nova função `extractExpenseFromImage(imageDataUrl, caption, lovableKey)`:
+  - Mesmo schema/tool `register_expense` da função `extractExpense` atual
+  - `messages` com content multimodal: `[{type:"text", text: systemPrompt + caption}, {type:"image_url", image_url:{url: imageDataUrl}}]`
+  - Modelo: `google/gemini-3-flash-preview`
+- Branching no loop principal: se mensagem tem foto E usuário vinculado → baixa, extrai, insere, responde com 📸.
+- Se usuário não vinculado e mandou foto → mesma mensagem "🔒 Conta não vinculada".
+- Se extração falhar/baixa confiança → "🤔 Não consegui ler o comprovante. Tente uma foto mais nítida ou envie por texto."
+
+### 3. `HELP_TEXT`
+Adicionar linha:
+```
+📸 Envie foto de cupom/nota fiscal — eu extraio o valor automaticamente.
+```
 
 ## Detalhes técnicos
-- Mês corrente: filtrar `expenses` por `scope='personal'`, `user_id=link.user_id`, `paid_date` (ou `due_date`) começando com `YYYY-MM` atual em timezone local (usar `new Date().toISOString().slice(0,7)`).
-- Orçamentos: ler `personal_budgets` por `user_id` e cruzar por `category`. Ícone: 🟢 <70%, 🟡 70–99%, 🔴 ≥100%, ⚪ sem orçamento.
-- `/ultimas`: `select * from expenses where scope='personal' and user_id=? order by coalesce(paid_date, due_date) desc, created_at desc limit 5`.
-- `/apagar`: mesmo critério de ordenação, pega o primeiro, `delete` por `id`, responde com o que foi removido.
-- Formatação de moeda: `Intl.NumberFormat('pt-BR', { style:'currency', currency:'BRL' })`.
-- Datas exibidas no formato `DD/MM`.
+- Telegram entrega `photo` como array de PhotoSize com tamanhos crescentes — usar o último (maior resolução) para melhor OCR.
+- Base64 inline é suficiente (cupons fiscais raramente >1MB; gateway aceita).
+- Reaproveitar 100% da lógica de insert/categoria/confiança que já existe — única diferença é a fonte (texto vs imagem).
+- Continuar marcando a mensagem como `processed = true` ao final, mesmo se foto falhar (evita reprocessar foto borrada).
+
+## Sem alterações
+- Schema do banco: nada muda (`expenses` já cobre).
+- UI do app: nada muda (foto chega como despesa normal via realtime).
+- Outros comandos: intactos.
 
 ## Fora de escopo
-- `/desfazer` com janela de tempo, undo de múltiplas, edição de despesa — não solicitado.
+- Múltiplas despesas em uma mesma foto (cupom com vários itens) — vamos extrair como 1 despesa total.
+- Edição/correção via botões inline pós-foto — pode ser próximo passo.
+- Salvar a imagem do comprovante anexa à despesa — não solicitado.
 
