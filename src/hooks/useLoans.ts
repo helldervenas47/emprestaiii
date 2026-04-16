@@ -231,6 +231,30 @@ export function useLoans() {
     await fetchLoans();
   }, [user, dataOwnerId, loans, payments, fetchLoans, fetchPayments]);
 
+  const payOffLoan = useCallback(async (loanId: string, paymentDate?: string) => {
+    if (!user || !dataOwnerId) return;
+    const dateStr = paymentDate || new Date().toISOString().split("T")[0];
+    const loan = loans.find((l) => l.id === loanId);
+    if (!loan) return;
+    const remaining = getLoanRemainingAmount(loan, payments);
+    if (remaining <= 0) return;
+
+    await Promise.all([
+      supabase.from("payments").insert({
+        user_id: dataOwnerId, loan_id: loanId, amount: remaining,
+        date: dateStr, installment_number: loan.installments,
+      }),
+      supabase.from("loans").update({
+        paid_installments: loan.installments,
+        status: "paid",
+        remaining_amount: 0,
+      }).eq("id", loanId),
+      adjustBalance(remaining),
+    ]);
+    await fetchPayments();
+    await fetchLoans();
+  }, [user, dataOwnerId, loans, payments, fetchLoans, fetchPayments]);
+
   const addInterestOnlyPayment = useCallback(async (loanId: string, paymentDate?: string) => {
     if (!user || !dataOwnerId) return;
     const loan = loans.find((l) => l.id === loanId);
@@ -364,7 +388,7 @@ export function useLoans() {
     await fetchPayments();
   }, [payments, loans, fetchSchedules, fetchLoans, fetchPayments]);
 
-  return { loans, payments, installmentSchedules, addLoan, addPayment, addPartialPayment, addInterestOnlyPayment, updateLoan, deleteLoan, deletePayment, saveSchedule };
+  return { loans, payments, installmentSchedules, addLoan, addPayment, addPartialPayment, payOffLoan, addInterestOnlyPayment, updateLoan, deleteLoan, deletePayment, saveSchedule };
 }
 
 export function calculateInstallment(principal: number, rate: number, months: number): number {
