@@ -120,4 +120,5 @@ export interface Expense {
   paidDate?: string;
   notes?: string;
   createdAt: string;
+  parentExpenseId?: string;
 }
