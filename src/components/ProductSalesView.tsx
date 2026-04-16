@@ -1827,11 +1827,11 @@ export function ProductSalesView({ sales, onDeleteSale, onUpdateSale, clients = 
     <>
     <Tabs defaultValue={activeTabs[0]?.type || "venda"} className="space-y-4">
       {activeTabs.length > 1 && (
-        <TabsList className={`w-full grid grid-cols-${activeTabs.length}`}>
+        <TabsList className="w-full grid grid-cols-2">
           {activeTabs.map((tab) => (
-            <TabsTrigger key={tab.type} value={tab.type} className="flex items-center gap-2">
-              <tab.icon className="h-4 w-4" />
-              <span>{tab.label}</span>
+            <TabsTrigger key={tab.type} value={tab.type} className="flex items-center gap-2 min-h-[40px]">
+              <tab.icon className="h-4 w-4 shrink-0" />
+              <span className="truncate">{tab.label}</span>
             </TabsTrigger>
           ))}
         </TabsList>
