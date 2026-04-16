@@ -844,7 +844,7 @@ function SalesList({ sales, onDeleteSale, onUpdateSale, clients = [], hideOnTrac
       s.customerName.toLowerCase().includes(q) ||
       s.productName.toLowerCase().includes(q);
     if (!matchesSearch) return false;
-    if (categoryFilter === "all") return true;
+    if (categoryFilter === "all") return getSaleCategory(s) !== "paid";
     return getSaleCategory(s) === categoryFilter;
   }).sort((a, b) => {
     const catA = getSaleCategory(a);
