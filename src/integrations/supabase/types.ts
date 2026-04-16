@@ -761,6 +761,99 @@ export type Database = {
         }
         Relationships: []
       }
+      telegram_bot_state: {
+        Row: {
+          id: number
+          update_offset: number
+          updated_at: string
+        }
+        Insert: {
+          id: number
+          update_offset?: number
+          updated_at?: string
+        }
+        Update: {
+          id?: number
+          update_offset?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      telegram_link_codes: {
+        Row: {
+          code: string
+          created_at: string
+          expires_at: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          expires_at: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          expires_at?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      telegram_links: {
+        Row: {
+          chat_id: number
+          created_at: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          chat_id: number
+          created_at?: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          chat_id?: number
+          created_at?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      telegram_messages: {
+        Row: {
+          chat_id: number
+          created_at: string
+          processed: boolean
+          processed_at: string | null
+          raw_update: Json
+          text: string | null
+          update_id: number
+        }
+        Insert: {
+          chat_id: number
+          created_at?: string
+          processed?: boolean
+          processed_at?: string | null
+          raw_update: Json
+          text?: string | null
+          update_id: number
+        }
+        Update: {
+          chat_id?: number
+          created_at?: string
+          processed?: boolean
+          processed_at?: string | null
+          raw_update?: Json
+          text?: string | null
+          update_id?: number
+        }
+        Relationships: []
+      }
       user_client_permissions: {
         Row: {
           client_id: string
