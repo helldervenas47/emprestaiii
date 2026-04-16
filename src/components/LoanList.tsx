@@ -1255,13 +1255,14 @@ function LoanCardView({
 }
 
 function LoanRowView({
-  loan, payments: allPayments, installmentSchedules = [], onPayment, onPartialPayment, onInterestPayment, onUpdate, onDelete, onDeletePayment, readOnly = false, existingTags = [],
+  loan, payments: allPayments, installmentSchedules = [], onPayment, onPartialPayment, onFullPayment, onInterestPayment, onUpdate, onDelete, onDeletePayment, readOnly = false, existingTags = [],
 }: {
   loan: Loan;
   payments: Payment[];
   installmentSchedules?: InstallmentSchedule[];
   onPayment: (date?: string) => void;
   onPartialPayment: (amount: number, date?: string) => void;
+  onFullPayment?: (date?: string) => void;
   onInterestPayment: (date?: string) => void;
   onUpdate: (data: Partial<Omit<Loan, "id">>) => void;
   onDelete: () => void;
