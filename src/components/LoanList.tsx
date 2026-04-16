@@ -323,11 +323,10 @@ function LoanCardView({
       customInterestValue: hasCustomInterest ? manualInterest : null,
     });
 
-    // Save installment schedule
-    const paidCount = parseInt(form.paidInstallments) || 0;
+    // Save ALL installment rows
     if (editScheduleRows.length > 0) {
       await onSaveSchedule(loan.id, editScheduleRows.map((row, idx) => ({
-        installmentNumber: paidCount + idx + 1,
+        installmentNumber: idx + 1,
         dueDate: row.date.toISOString().split("T")[0],
         amount: parseFloat(row.value) || 0,
       })));
