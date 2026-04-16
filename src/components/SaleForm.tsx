@@ -38,6 +38,7 @@ interface Props {
 
 export function SaleForm({ onAdd, onClose, defaultBusinessType = "venda", clients = [], registeredVehicles = [], locadores = [] }: Props) {
   const [showSuccess, setShowSuccess] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   const defaultLocadorId = locadores.length === 1 ? (locadores[0].id || "") : "";
   const [form, setForm] = useState({
     description: "",
@@ -84,6 +85,7 @@ export function SaleForm({ onAdd, onClose, defaultBusinessType = "venda", client
     e.preventDefault();
     const total = parseFloat(form.total) || 0;
     if (!form.description || total <= 0 || !form.customerName) return;
+    setSubmitting(true);
     const isRecorrente = form.paymentMode === "recorrente";
     const amounts = isRecorrente && installmentRows.length > 0
       ? installmentRows.map(r => parseFloat(r.value) || 0)
@@ -425,9 +427,17 @@ export function SaleForm({ onAdd, onClose, defaultBusinessType = "venda", client
               <Input value={form.notes} onChange={(e) => update("notes", e.target.value)} placeholder="Notas..." />
             </div>
 
-            <Button type="submit" className="w-full">
-              <Plus className="h-4 w-4 mr-2" /> {isVehicleRental ? "Registrar Aluguel" : "Registrar Lançamento"}
-            </Button>
+            <div className="relative w-full h-11">
+              {submitting ? (
+                <div className="flex items-center justify-center h-11">
+                  <div className="h-7 w-7 rounded-full border-3 border-primary border-t-transparent animate-spin" />
+                </div>
+              ) : (
+                <Button type="submit" className="w-full">
+                  <Plus className="h-4 w-4 mr-2" /> {isVehicleRental ? "Registrar Aluguel" : "Registrar Lançamento"}
+                </Button>
+              )}
+            </div>
           </form>
         </CardContent>
       </Card>

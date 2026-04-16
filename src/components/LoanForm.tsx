@@ -34,6 +34,7 @@ function getNextDate(base: Date, frequency: string, periods: number): Date {
 
 export function LoanForm({ onAdd, onSaveSchedule, onClose, clients, existingTags = [] }: Props) {
   const [showSuccess, setShowSuccess] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   const activeClients = clients.filter((c) => c.active).sort((a, b) => a.name.localeCompare(b.name, "pt-BR"));
 
   const defaultStart = new Date().toISOString().split("T")[0];
@@ -129,6 +130,7 @@ export function LoanForm({ onAdd, onSaveSchedule, onClose, clients, existingTags
     e.preventDefault();
     const selectedClient = activeClients.find((c) => c.id === form.borrowerName);
     if (!selectedClient || !amount || !rate || !installments) return;
+    setSubmitting(true);
 
     const totalWithInterest = calculateTotalWithInterest(amount, rate, installments);
 
@@ -474,10 +476,18 @@ export function LoanForm({ onAdd, onSaveSchedule, onClose, clients, existingTags
               </div>
             )}
 
-            <Button type="submit" className="w-full">
-              <Plus className="h-4 w-4 mr-2" />
-              Registrar Empréstimo
-            </Button>
+            <div className="relative w-full h-11">
+              {submitting ? (
+                <div className="flex items-center justify-center h-11">
+                  <div className="h-7 w-7 rounded-full border-3 border-primary border-t-transparent animate-spin" />
+                </div>
+              ) : (
+                <Button type="submit" className="w-full">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Registrar Empréstimo
+                </Button>
+              )}
+            </div>
           </form>
         </CardContent>
       </Card>

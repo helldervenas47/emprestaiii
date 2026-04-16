@@ -23,6 +23,7 @@ interface Props {
 
 export function VehicleExpenseForm({ onAdd, onClose }: Props) {
   const [showSuccess, setShowSuccess] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   const [form, setForm] = useState({
     description: "",
     amount: "",
@@ -36,6 +37,7 @@ export function VehicleExpenseForm({ onAdd, onClose }: Props) {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.description || !form.amount || !form.category) return;
+    setSubmitting(true);
     const parsedAmount = parseFloat(form.amount) || 0;
     const installments = form.type === "recorrente" ? parseInt(form.installments) || 1 : 1;
     const totalAmount = form.type === "recorrente" ? parsedAmount * installments : parsedAmount;
@@ -167,10 +169,18 @@ export function VehicleExpenseForm({ onAdd, onClose }: Props) {
               </div>
             )}
 
-            <Button type="submit" className="w-full">
-              <Plus className="h-4 w-4 mr-2" />
-              Cadastrar Despesa
-            </Button>
+            <div className="relative w-full h-11">
+              {submitting ? (
+                <div className="flex items-center justify-center h-11">
+                  <div className="h-7 w-7 rounded-full border-3 border-primary border-t-transparent animate-spin" />
+                </div>
+              ) : (
+                <Button type="submit" className="w-full">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Cadastrar Despesa
+                </Button>
+              )}
+            </div>
           </form>
         </CardContent>
       </Card>
