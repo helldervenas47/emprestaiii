@@ -1,6 +1,5 @@
 import { useState, useCallback, useEffect } from "react";
 import { Expense } from "@/types/loan";
-import { adjustBalance } from "@/lib/balance";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
 
@@ -90,8 +89,6 @@ export function useExpenses(enabled = true) {
         paidDate: fullyPaid ? today : undefined,
       } : e));
 
-      if (!skipBalanceAdjust) await adjustBalance(-installmentAmount);
-
       // Insert historical record (paid installment snapshot)
       await supabase.from("expenses").insert({
         user_id: dataOwnerId,
@@ -120,7 +117,6 @@ export function useExpenses(enabled = true) {
       setExpenses((prev) => prev.map((e) => e.id === id ? {
         ...e, paid: true, paidDate: today,
       } : e));
-      if (!skipBalanceAdjust) await adjustBalance(-expense.amount);
       await supabase.from("expenses").update({
         paid: true, paid_date: today,
       }).eq("id", id);
@@ -162,8 +158,6 @@ export function useExpenses(enabled = true) {
           dueDate: newDueDate,
         } : e));
 
-      await adjustBalance(installmentAmount);
-
       if (latestChildId) {
         await supabase.from("expenses").delete().eq("id", latestChildId);
       }
@@ -177,7 +171,6 @@ export function useExpenses(enabled = true) {
       setExpenses((prev) => prev.map((e) => e.id === id ? {
         ...e, paid: false, paidDate: undefined,
       } : e));
-      await adjustBalance(expense.amount);
       await supabase.from("expenses").update({
         paid: false, paid_date: null,
       }).eq("id", id);
@@ -185,11 +178,7 @@ export function useExpenses(enabled = true) {
   }, [expenses]);
 
   const deleteExpense = useCallback(async (id: string, skipBalanceAdjust = false) => {
-    const expense = expenses.find((e) => e.id === id);
     setExpenses((prev) => prev.filter((e) => e.id !== id));
-    if (expense?.paid && !skipBalanceAdjust) {
-      await adjustBalance(expense.amount);
-    }
     await supabase.from("expenses").delete().eq("id", id);
   }, [expenses]);
 
