@@ -353,19 +353,22 @@ Deno.serve(async (req) => {
         const tokensToRemove: string[] = [];
 
         for (const tok of userToks) {
-          const ok = await sendWebPush(
-            { endpoint: tok.endpoint, p256dh: tok.p256dh, auth: tok.auth },
-            payload,
-            vapidPublicKey,
-            vapidPrivateKey,
-            "mailto:noreply@emprestaii.lovable.app",
-          );
+          for (const payload of payloads) {
+            const ok = await sendWebPush(
+              { endpoint: tok.endpoint, p256dh: tok.p256dh, auth: tok.auth },
+              payload,
+              vapidPublicKey,
+              vapidPrivateKey,
+              "mailto:noreply@emprestaii.lovable.app",
+            );
 
-          if (ok) {
-            sent++;
-          } else {
-            failed++;
-            tokensToRemove.push(tok.id);
+            if (ok) {
+              sent++;
+            } else {
+              failed++;
+              tokensToRemove.push(tok.id);
+              break; // token is invalid, skip remaining payloads for this token
+            }
           }
         }
 
