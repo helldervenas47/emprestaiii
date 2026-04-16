@@ -591,12 +591,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
 
       {/* Account balance + Interest rate + Profit */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <Card className="animate-fade-in relative" style={{ animationDelay: '80ms', animationFillMode: 'backwards' }}>
-          {!editingBalance && (
-            <Button variant="ghost" size="icon" className="h-7 w-7 absolute top-2 right-2 z-10" onClick={startEditBalance}>
-              <Pencil className="h-3.5 w-3.5 text-muted-foreground" />
-            </Button>
-          )}
+        <Card className="animate-fade-in" style={{ animationDelay: '80ms', animationFillMode: 'backwards' }}>
           <CardContent className="p-4 flex flex-col h-full">
             <div className="flex items-center justify-center flex-1">
               <div className="flex flex-col items-center text-center">
@@ -612,11 +607,16 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
                     <Button variant="ghost" size="icon" className="h-7 w-7" onClick={cancelEditBalance}><X className="h-3.5 w-3.5 text-destructive" /></Button>
                   </div>
                 ) : (
-                  <p className="text-lg font-bold text-foreground mt-0.5">{formatCurrency(accountBalance)}</p>
+                  <div className="flex items-center gap-1">
+                    <p className="text-lg font-bold text-foreground">{formatCurrency(accountBalance)}</p>
+                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={startEditBalance}>
+                      <Pencil className="h-3.5 w-3.5 text-muted-foreground" />
+                    </Button>
+                  </div>
                 )}
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-2 mt-3">
+            <div className="grid grid-cols-2 gap-2 mt-3 flex-1">
               <div className="bg-muted/50 rounded-lg p-3 border border-border/30 flex flex-col items-center justify-center text-center">
                 <div className="flex items-center gap-1.5 mb-1">
                   <Calendar className="h-3 w-3 text-primary" />
