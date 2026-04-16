@@ -59,13 +59,26 @@ Deno.serve(async (req) => {
     if (updates.length === 0) continue;
 
     const rows = updates
-      .filter((u: any) => u.message)
-      .map((u: any) => ({
-        update_id: u.update_id,
-        chat_id: u.message.chat.id,
-        text: u.message.text ?? u.message.caption ?? null,
-        raw_update: u,
-      }));
+      .map((u: any) => {
+        if (u.message) {
+          return {
+            update_id: u.update_id,
+            chat_id: u.message.chat.id,
+            text: u.message.text ?? u.message.caption ?? null,
+            raw_update: u,
+          };
+        }
+        if (u.callback_query?.message?.chat?.id) {
+          return {
+            update_id: u.update_id,
+            chat_id: u.callback_query.message.chat.id,
+            text: null,
+            raw_update: u,
+          };
+        }
+        return null;
+      })
+      .filter((r: any) => r !== null);
 
     if (rows.length > 0) {
       const { error: insertErr } = await supabase
