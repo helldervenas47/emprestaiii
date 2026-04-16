@@ -124,6 +124,24 @@ async function sendPush(sub: { endpoint: string; p256dh: string; auth: string },
   }
 }
 
+const TELEGRAM_GATEWAY = "https://connector-gateway.lovable.dev/telegram";
+
+async function sendTelegram(chatId: number, text: string, lovableKey: string, telegramKey: string) {
+  try {
+    await fetch(`${TELEGRAM_GATEWAY}/sendMessage`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${lovableKey}`,
+        "X-Connection-Api-Key": telegramKey,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ chat_id: chatId, text, parse_mode: "Markdown" }),
+    });
+  } catch (e) {
+    console.error("sendTelegram error", e);
+  }
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
