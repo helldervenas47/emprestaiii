@@ -258,19 +258,33 @@ function LoanCardView({
     const remInst = Math.max(1, totalInst - paidInst);
     const instVal = (rem / remInst).toFixed(2);
     const freq = loan.interestType || "Mensal";
-    // Use saved schedules if available
-    const savedSchedules = installmentSchedules
-      .filter((s) => s.loanId === loan.id && s.installmentNumber > paidInst)
+    // Build rows for ALL installments (paid + pending)
+    const allSchedules = installmentSchedules
+      .filter((s) => s.loanId === loan.id)
       .sort((a, b) => a.installmentNumber - b.installmentNumber);
-    if (savedSchedules.length > 0) {
-      setEditScheduleRows(savedSchedules.map((s) => ({
-        date: new Date(s.dueDate + "T00:00:00"),
-        value: s.amount.toFixed(2),
-      })));
+    if (allSchedules.length > 0) {
+      // Fill all installments from schedules
+      const rows: { date: Date; value: string }[] = [];
+      for (let i = 1; i <= totalInst; i++) {
+        const sched = allSchedules.find((s) => s.installmentNumber === i);
+        if (sched) {
+          rows.push({ date: new Date(sched.dueDate + "T00:00:00"), value: sched.amount.toFixed(2) });
+        } else {
+          // Generate from first due date
+          const firstDue = new Date(loan.dueDate + "T00:00:00");
+          rows.push({
+            date: getNextDate(firstDue, freq, i - 1),
+            value: loan.customInstallmentValue != null && loan.customInstallmentValue > 0
+              ? loan.customInstallmentValue.toFixed(2)
+              : instVal,
+          });
+        }
+      }
+      setEditScheduleRows(rows);
     } else {
       const firstDue = new Date(loan.dueDate + "T00:00:00");
       setEditScheduleRows(
-        Array.from({ length: remInst }, (_, i) => ({
+        Array.from({ length: totalInst }, (_, i) => ({
           date: i === 0 ? firstDue : getNextDate(firstDue, freq, i),
           value: loan.customInstallmentValue != null && loan.customInstallmentValue > 0
             ? loan.customInstallmentValue.toFixed(2)
@@ -309,11 +323,10 @@ function LoanCardView({
       customInterestValue: hasCustomInterest ? manualInterest : null,
     });
 
-    // Save installment schedule
-    const paidCount = parseInt(form.paidInstallments) || 0;
+    // Save ALL installment rows
     if (editScheduleRows.length > 0) {
       await onSaveSchedule(loan.id, editScheduleRows.map((row, idx) => ({
-        installmentNumber: paidCount + idx + 1,
+        installmentNumber: idx + 1,
         dueDate: row.date.toISOString().split("T")[0],
         amount: parseFloat(row.value) || 0,
       })));
@@ -364,14 +377,17 @@ function LoanCardView({
         const paidInst = parseInt(next.paidInstallments) || 0;
         const remInst = Math.max(1, months - paidInst);
         next.installmentValue = (rem / remInst).toFixed(2);
-        // Rebuild schedule rows
+        // Rebuild ALL schedule rows (paid rows keep existing values)
         const firstDue = next.dueDate ? new Date(next.dueDate + "T00:00:00") : new Date();
-        setEditScheduleRows(
-          Array.from({ length: remInst }, (_, i) => ({
-            date: i === 0 ? firstDue : getNextDate(firstDue, next.interestType, i),
-            value: next.installmentValue,
-          }))
-        );
+        setEditScheduleRows((prev) => {
+          return Array.from({ length: months }, (_, i) => {
+            if (i < paidInst && prev[i]) return prev[i]; // Keep paid rows
+            return {
+              date: i === 0 ? firstDue : getNextDate(firstDue, next.interestType, i),
+              value: next.installmentValue,
+            };
+          });
+        });
       } else if (field === "interestValue") {
         const iv = parseFloat(value) || 0;
         const newRate = amt > 0 ? (iv / amt) * 100 : 0;
@@ -386,13 +402,15 @@ function LoanCardView({
       } else if (field === "interestType" || field === "dueDate") {
         // Rebuild dates when contract type or due date changes
         const paidInst = parseInt(next.paidInstallments) || 0;
-        const remInst = Math.max(1, months - paidInst);
         const firstDue = next.dueDate ? new Date(next.dueDate + "T00:00:00") : new Date();
         setEditScheduleRows((prev) =>
-          Array.from({ length: remInst }, (_, i) => ({
-            date: i === 0 ? firstDue : getNextDate(firstDue, next.interestType, i),
-            value: prev[i]?.value || next.installmentValue,
-          }))
+          Array.from({ length: months }, (_, i) => {
+            if (i < paidInst && prev[i]) return prev[i]; // Keep paid rows
+            return {
+              date: i === 0 ? firstDue : getNextDate(firstDue, next.interestType, i),
+              value: prev[i]?.value || next.installmentValue,
+            };
+          })
         );
       }
       return next;
@@ -462,76 +480,96 @@ function LoanCardView({
                 className="flex items-center gap-2 w-full px-4 py-2.5 text-sm font-medium text-foreground hover:bg-muted/50 transition-colors"
               >
                 {showEditSchedule ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
-                Parcelas Pendentes ({editScheduleRows.length}x)
+                Parcelas ({editScheduleRows.length}x)
                 <Badge variant="outline" className="ml-auto text-xs">
                   {form.interestType}
                 </Badge>
               </button>
               {showEditSchedule && (
-                <div className="divide-y divide-border/30 max-h-64 overflow-y-auto">
-                  {editScheduleRows.map((row, idx) => (
-                    <div key={idx} className="flex items-center gap-2 px-3 py-2.5">
-                      <span className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold shrink-0 bg-muted/40 text-muted-foreground">
-                        {(parseInt(form.paidInstallments) || 0) + idx + 1}ª
-                      </span>
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <Button variant="outline" size="sm" className="h-8 text-xs flex-1 justify-start">
-                            <CalendarIcon className="h-3.5 w-3.5 mr-1.5 text-primary" />
-                            {format(row.date, "dd/MM/yyyy")}
-                          </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0" align="start">
-                          <CalendarUI
-                            mode="single"
-                            selected={row.date}
-                            onSelect={(d) => {
-                              if (d) {
-                                setEditScheduleRows((prev) => {
-                                  const rows = [...prev];
-                                  rows[idx] = { ...rows[idx], date: d };
-                                  for (let i = idx + 1; i < rows.length; i++) {
-                                    rows[i] = { ...rows[i], date: getNextDate(d, form.interestType, i - idx) };
-                                  }
-                                  return rows;
-                                });
-                              }
-                            }}
-                            initialFocus
-                            className={cn("p-3 pointer-events-auto")}
-                          />
-                        </PopoverContent>
-                      </Popover>
-                      <Input
-                        type="number"
-                        step="0.01"
-                        min="0"
-                        value={row.value}
-                        onChange={(e) => {
-                          setEditScheduleRows((prev) => {
-                            const rows = [...prev];
-                            const newVal = e.target.value;
-                            rows[idx] = { ...rows[idx], value: newVal };
-                            if (idx === 0 && rows.length > 1) {
-                              const firstVal = parseFloat(newVal) || 0;
-                              const totalRem = parseFloat(form.remainingAmount) || 0;
-                              const otherCount = rows.length - 1;
-                              const otherVal = (Math.max(0, totalRem - firstVal) / otherCount).toFixed(2);
-                              for (let i = 1; i < rows.length; i++) {
-                                rows[i] = { ...rows[i], value: otherVal };
-                              }
-                            }
-                            return rows;
-                          });
-                        }}
-                        className="h-8 w-24 text-xs text-right"
-                      />
+                <div>
+                  <div className="flex items-center justify-between px-3 py-2 bg-muted/20">
+                    <div className="flex gap-3">
+                      <span className="text-xs font-medium text-success">{parseInt(form.paidInstallments) || 0} pagas</span>
+                      <span className="text-xs font-medium text-warning">{Math.max(0, editScheduleRows.length - (parseInt(form.paidInstallments) || 0))} pendentes</span>
                     </div>
-                  ))}
-                  <div className="px-3 py-2 bg-muted/20">
-                    <p className="text-xs text-muted-foreground">
-                      Total: <span className="font-bold text-foreground">{rawFormatCurrency(editScheduleRows.reduce((s, r) => s + (parseFloat(r.value) || 0), 0))}</span>
-                    </p>
+                  </div>
+                  <div className="divide-y divide-border/30 max-h-64 overflow-y-auto">
+                    {editScheduleRows.map((row, idx) => {
+                      const paidCount = parseInt(form.paidInstallments) || 0;
+                      const isPaid = idx < paidCount;
+                      return (
+                        <div key={idx} className={`flex items-center gap-2 px-3 py-2.5 ${isPaid ? "opacity-60" : ""}`}>
+                          <span className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${
+                            isPaid ? "bg-success/20 text-success" : "bg-muted/40 text-muted-foreground"
+                          }`}>
+                            {idx + 1}ª
+                          </span>
+                          <Popover>
+                            <PopoverTrigger asChild>
+                              <Button variant="outline" size="sm" className="h-8 text-xs flex-1 justify-start" disabled={isPaid}>
+                                <CalendarIcon className={`h-3.5 w-3.5 mr-1.5 ${isPaid ? "text-success" : "text-primary"}`} />
+                                {format(row.date, "dd/MM/yyyy")}
+                              </Button>
+                            </PopoverTrigger>
+                            {!isPaid && (
+                              <PopoverContent className="w-auto p-0" align="start">
+                                <CalendarUI
+                                  mode="single"
+                                  selected={row.date}
+                                  onSelect={(d) => {
+                                    if (d) {
+                                      setEditScheduleRows((prev) => {
+                                        const rows = [...prev];
+                                        rows[idx] = { ...rows[idx], date: d };
+                                        for (let i = idx + 1; i < rows.length; i++) {
+                                          if (i >= paidCount) {
+                                            rows[i] = { ...rows[i], date: getNextDate(d, form.interestType, i - idx) };
+                                          }
+                                        }
+                                        return rows;
+                                      });
+                                    }
+                                  }}
+                                  initialFocus
+                                  className={cn("p-3 pointer-events-auto")}
+                                />
+                              </PopoverContent>
+                            )}
+                          </Popover>
+                          <Input
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            value={row.value}
+                            disabled={isPaid}
+                            onChange={(e) => {
+                              setEditScheduleRows((prev) => {
+                                const rows = [...prev];
+                                const newVal = e.target.value;
+                                rows[idx] = { ...rows[idx], value: newVal };
+                                if (idx === paidCount && rows.length > paidCount + 1) {
+                                  const firstVal = parseFloat(newVal) || 0;
+                                  const totalRem = parseFloat(form.remainingAmount) || 0;
+                                  const otherCount = rows.length - paidCount - 1;
+                                  const otherVal = (Math.max(0, totalRem - firstVal) / otherCount).toFixed(2);
+                                  for (let i = paidCount + 1; i < rows.length; i++) {
+                                    rows[i] = { ...rows[i], value: otherVal };
+                                  }
+                                }
+                                return rows;
+                              });
+                            }}
+                            className="h-8 w-24 text-xs text-right"
+                          />
+                          {isPaid && <Badge variant="outline" className="text-[10px] border-success/30 text-success shrink-0">Pago</Badge>}
+                        </div>
+                      );
+                    })}
+                    <div className="px-3 py-2 bg-muted/20">
+                      <p className="text-xs text-muted-foreground">
+                        Total: <span className="font-bold text-foreground">{rawFormatCurrency(editScheduleRows.reduce((s, r) => s + (parseFloat(r.value) || 0), 0))}</span>
+                      </p>
+                    </div>
                   </div>
                 </div>
               )}
