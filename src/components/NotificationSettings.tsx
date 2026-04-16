@@ -1,17 +1,51 @@
-import { Bell, Clock } from "lucide-react";
+import { useState } from "react";
+import { Bell, Clock, Send } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { useNotificationPreferences, NOTIFICATION_TYPES } from "@/hooks/useNotificationPreferences";
 import { Skeleton } from "@/components/ui/skeleton";
+import { usePushNotifications } from "@/hooks/usePushNotifications";
+import { toast } from "sonner";
 
 const HOURS = Array.from({ length: 24 }, (_, i) => {
   const h = i.toString().padStart(2, "0");
   return `${h}:00`;
 });
 
+const TEST_BODIES: Record<string, string> = {
+  parcelas_hoje: "🟡 Teste: Você tem parcelas vencendo hoje!",
+  parcelas_atrasadas: "🔴 Teste: Você tem parcelas em atraso!",
+  resumo_diario: "📊 Teste: Resumo diário das suas cobranças.",
+};
+
 export function NotificationSettings() {
   const { preferences, loading, upsert } = useNotificationPreferences();
+  const { isSubscribed } = usePushNotifications();
+  const [sendingTest, setSendingTest] = useState<string | null>(null);
+
+  const handleSendTest = async (type: string, label: string) => {
+    try {
+      setSendingTest(type);
+      const reg = await navigator.serviceWorker.getRegistration("/sw-push.js");
+      if (!reg) {
+        toast.error("Ative as notificações push primeiro.");
+        return;
+      }
+      await reg.showNotification("📊 Empréstai — Teste", {
+        body: TEST_BODIES[type] || `Teste: ${label}`,
+        icon: "/logo-icon.png",
+        badge: "/logo-icon.png",
+        data: { url: "/?tab=overdue" },
+      } as NotificationOptions);
+      toast.success("Notificação de teste enviada!");
+    } catch {
+      toast.error("Erro ao enviar notificação de teste.");
+    } finally {
+      setSendingTest(null);
+    }
+  };
 
   if (loading) {
     return (
@@ -47,7 +81,7 @@ export function NotificationSettings() {
               />
             </div>
             {enabled && (
-              <div className="mt-3 flex items-center gap-2 pl-8">
+              <div className="mt-3 flex items-center gap-2 pl-8 flex-wrap">
                 <Clock className="h-4 w-4 text-muted-foreground" />
                 <span className="text-xs text-muted-foreground">Horário:</span>
                 <Select value={sendTime} onValueChange={(val) => upsert(nt.type, { send_time: val })}>
@@ -60,6 +94,16 @@ export function NotificationSettings() {
                     ))}
                   </SelectContent>
                 </Select>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="ml-auto h-9 text-xs gap-1.5"
+                  disabled={!isSubscribed || sendingTest === nt.type}
+                  onClick={() => handleSendTest(nt.type, nt.label)}
+                >
+                  <Send className="h-3.5 w-3.5" />
+                  {sendingTest === nt.type ? "Enviando..." : "Enviar teste"}
+                </Button>
               </div>
             )}
           </Card>
