@@ -152,6 +152,19 @@ function getTotalPaid(loan: Loan, payments: Payment[]): number {
   return payments.filter((p) => p.loanId === loan.id).reduce((s, p) => s + p.amount, 0);
 }
 
+function getPartialPaidForCurrentInstallment(loan: Loan, payments: Payment[]): number {
+  const loanPayments = payments.filter((p) => p.loanId === loan.id);
+  // Find the date of the last full installment payment (installment_number > 0)
+  const fullPayments = loanPayments
+    .filter((p) => p.installmentNumber > 0)
+    .sort((a, b) => b.date.localeCompare(a.date));
+  const lastFullDate = fullPayments.length > 0 ? fullPayments[0].date : null;
+  // Sum partial payments (installment_number === -1) after the last full payment
+  return loanPayments
+    .filter((p) => p.installmentNumber === -1 && (!lastFullDate || p.date >= lastFullDate))
+    .reduce((sum, p) => sum + p.amount, 0);
+}
+
 function LoanCardView({
   loan, payments: allPayments, installmentSchedules, onPayment, onPartialPayment, onInterestPayment, onUpdate, onDelete, onDeletePayment, onSaveSchedule, readOnly = false, no3d = false, existingTags = [],
 }: {
@@ -226,11 +239,13 @@ function LoanCardView({
   const remaining = baseRemaining + lateFees;
 
   const remainingInstallments = Math.max(1, loan.installments - loan.paidInstallments);
-  const installment = nextSchedule
+  const partialPaidCurrent = getPartialPaidForCurrentInstallment(loan, allPayments);
+  const rawInstallment = nextSchedule
     ? nextSchedule.amount
     : loan.customInstallmentValue != null && loan.customInstallmentValue > 0
       ? loan.customInstallmentValue
       : remaining / remainingInstallments;
+  const installment = Math.max(0, rawInstallment - partialPaidCurrent);
   const progress = loan.installments > 0 ? (loan.paidInstallments / loan.installments) * 100 : 0;
   const interestOnly = loan.customInterestValue != null && loan.customInterestValue > 0
     ? loan.customInterestValue
@@ -710,7 +725,7 @@ function LoanCardView({
           )}
           <p className="text-xs text-muted-foreground mt-1">
             {(loan.paymentType === "Parcelado" || loan.installments >= 2) && loan.status !== "paid" && loan.paidInstallments < loan.installments
-              ? `parcela pendente (${loan.paidInstallments + 1}ª de ${loan.installments})${loan.customInstallmentValue != null ? " • manual" : ""}`
+              ? `parcela pendente (${loan.paidInstallments + 1}ª de ${loan.installments})${partialPaidCurrent > 0 ? ` • pago parcial: ${rawFormatCurrency(partialPaidCurrent)}` : ""}${loan.customInstallmentValue != null ? " • manual" : ""}`
               : "restante a receber"}
           </p>
           {(loan.paymentType === "Parcelado" || loan.installments >= 2) && loan.status !== "paid" && loan.paidInstallments < loan.installments && (
@@ -1256,11 +1271,13 @@ function LoanRowView({
   const remaining = baseRemaining + lateInterestTotal + penaltyTotal;
   const remainingInstallments = Math.max(1, loan.installments - loan.paidInstallments);
   const nextSchedule = unpaidSchedules[0];
-  const installmentValue = nextSchedule
+  const partialPaidCurrent = getPartialPaidForCurrentInstallment(loan, allPayments);
+  const rawInstallmentValue = nextSchedule
     ? nextSchedule.amount
     : loan.customInstallmentValue != null && loan.customInstallmentValue > 0
       ? loan.customInstallmentValue
       : remaining / remainingInstallments;
+  const installmentValue = Math.max(0, rawInstallmentValue - partialPaidCurrent);
   const isParcelado = (loan.paymentType === "Parcelado" || loan.installments >= 2) && loan.status !== "paid" && loan.paidInstallments < loan.installments;
   const category = getLoanCategory(loan, allPayments, installmentSchedules);
   const badge = statusMap[category];
