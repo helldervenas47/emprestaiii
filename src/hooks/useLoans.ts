@@ -171,6 +171,29 @@ export function useLoans() {
     const newPaid = loan.paidInstallments + 1;
     const newRemaining = Math.max(0, remaining - installmentAmount);
 
+    // Calculate next due date from schedule or by frequency
+    let nextDueDate = loan.dueDate;
+    if (newPaid < loan.installments) {
+      // Try to get next due date from installment schedule
+      const { data: nextSchedule } = await supabase
+        .from("loan_installments")
+        .select("due_date")
+        .eq("loan_id", loanId)
+        .eq("installment_number", newPaid + 1)
+        .maybeSingle();
+      if (nextSchedule?.due_date) {
+        nextDueDate = nextSchedule.due_date;
+      } else {
+        // Fallback: calculate from frequency
+        const freq = loan.interestType || "Mensal";
+        const base = new Date(loan.dueDate + "T00:00:00");
+        if (freq === "Semanal") base.setDate(base.getDate() + 7 * newPaid);
+        else if (freq === "Quinzenal") base.setDate(base.getDate() + 15 * newPaid);
+        else base.setMonth(base.getMonth() + newPaid);
+        nextDueDate = base.toISOString().split("T")[0];
+      }
+    }
+
     await Promise.all([
       supabase.from("payments").insert({
         user_id: dataOwnerId, loan_id: loanId, amount: installmentAmount,
@@ -180,6 +203,7 @@ export function useLoans() {
         paid_installments: newPaid,
         status: newPaid >= loan.installments ? "paid" : loan.status,
         remaining_amount: newRemaining,
+        due_date: nextDueDate,
       }).eq("id", loanId),
       adjustBalance(installmentAmount),
     ]);
