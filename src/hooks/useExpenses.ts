@@ -66,7 +66,7 @@ export function useExpenses(enabled = true) {
     const expense = expenses.find((e) => e.id === id);
     if (!expense || expense.paid) return;
 
-    const today = new Date().toISOString().split("T")[0];
+    const today = payDate || new Date().toISOString().split("T")[0];
     const isRecorrenteParcelada = expense.type === "recorrente" && expense.installments && expense.installments > 1;
 
     if (isRecorrenteParcelada) {
