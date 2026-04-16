@@ -344,7 +344,7 @@ Deno.serve(async (req) => {
         const payload = JSON.stringify({
           title: "📊 Empréstai — Cobranças",
           body,
-          url: "/",
+          url: "/?tab=overdue",
         });
 
         let sent = 0;

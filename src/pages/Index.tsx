@@ -204,6 +204,9 @@ const Index = () => {
 
   // Tab state - declared early so hooks can use it for lazy loading
   const [tab, setTabState] = useState<Tab>(() => {
+    const params = new URLSearchParams(window.location.search);
+    const urlTab = params.get("tab");
+    if (urlTab && tabConfig.some(t => t.id === urlTab)) return urlTab as Tab;
     const saved = sessionStorage.getItem("activeTab");
     return saved && tabConfig.some(t => t.id === saved) ? saved as Tab : "overview";
   });
