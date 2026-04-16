@@ -636,8 +636,8 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
         </Card>
 
         <Card className="animate-fade-in cursor-pointer" style={{ animationDelay: '160ms', animationFillMode: 'backwards' }} onClick={() => setExpandedBreakdown(expandedBreakdown === "interest-rate" ? null : "interest-rate")}>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
+          <CardContent className="p-4 flex flex-col h-full">
+            <div className="flex items-center gap-3 flex-1">
               <div className="h-10 w-10 rounded-full bg-warning/10 flex items-center justify-center shrink-0">
                 <Percent className="h-5 w-5 text-warning" />
               </div>
@@ -683,14 +683,14 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
 
         {/* Profit Card */}
         <Card className="animate-fade-in" style={{ animationDelay: '240ms', animationFillMode: 'backwards' }}>
-          <CardContent className="p-4">
+          <CardContent className="p-4 flex flex-col h-full">
             <div className="flex items-center gap-3 mb-3">
               <div className="h-10 w-10 rounded-full bg-success/10 flex items-center justify-center shrink-0">
                 <TrendingUp className="h-5 w-5 text-success" />
               </div>
               <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Lucro do Período</p>
             </div>
-            <div className="space-y-2">
+            <div className="space-y-3 flex-1 flex flex-col justify-center">
               <div className="flex items-center justify-between">
                 <span className="text-xs text-muted-foreground">Lucro Previsto</span>
                 <span className="text-sm font-bold text-foreground">{formatCurrency(data.periodProfitExpected)}</span>
