@@ -356,6 +356,45 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
     const profitScore = Math.min(100, Math.max(0, 50 + profitMargin));
     const score = Math.round(receivingScore * 0.4 + defaultScore * 0.35 + profitScore * 0.25);
 
+    // Forecast: next Sunday
+    const todayForecast = new Date(); todayForecast.setHours(0, 0, 0, 0);
+    const dayOfWeek = todayForecast.getDay(); // 0=Sun
+    const nextSunday = new Date(todayForecast);
+    if (dayOfWeek === 0) {
+      // today is Sunday — use today
+    } else {
+      nextSunday.setDate(nextSunday.getDate() + (7 - dayOfWeek));
+    }
+    nextSunday.setHours(23, 59, 59, 999);
+
+    // Forecast: end of month
+    const endOfMonth = new Date(todayForecast.getFullYear(), todayForecast.getMonth() + 1, 0, 23, 59, 59, 999);
+
+    const calcForecast = (limitDate: Date) => {
+      let sum = 0;
+      activeLoans.forEach((l) => {
+        if (l.installments >= 2) {
+          installmentSchedules.filter((sc) => {
+            if (sc.loanId !== l.id) return false;
+            if (sc.installmentNumber <= l.paidInstallments) return false;
+            const d = new Date(sc.dueDate + "T00:00:00");
+            return d >= todayForecast && d <= limitDate;
+          }).forEach((sc) => { sum += sc.amount; });
+        } else {
+          if (l.paidInstallments < 1) {
+            const d = new Date(l.dueDate + "T00:00:00");
+            if (d >= todayForecast && d <= limitDate) {
+              sum += calculateTotalWithInterest(l.amount, l.interestRate, l.installments);
+            }
+          }
+        }
+      });
+      return sum;
+    };
+
+    const forecastSunday = calcForecast(nextSunday);
+    const forecastEndMonth = calcForecast(endOfMonth);
+
     return {
       score: Math.max(0, Math.min(100, score)),
       receivingRate: Math.min(100, receivingRate),
@@ -369,6 +408,8 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
       estimatedProfit,
       interestDueThisMonth,
       globalInterestRate,
+      forecastSunday,
+      forecastEndMonth,
     };
   }, [loans, payments, installmentSchedules]);
 
