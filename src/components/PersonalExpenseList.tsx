@@ -102,6 +102,41 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, readOn
 
   const totalCategorized = categoryData.reduce((s, it) => s + it.value, 0);
 
+  // Spend per category (paid only) — used by budget progress
+  const spentByCategory = useMemo(() => {
+    const map = new Map<string, number>();
+    visibleMonth.filter((e) => e.paid).forEach((e) => {
+      map.set(e.category, (map.get(e.category) || 0) + getInstallmentAmount(e));
+    });
+    return map;
+  }, [visibleMonth, getInstallmentAmount]);
+
+  const totalBudget = budgets.reduce((s, b) => s + b.amount, 0);
+  const totalSpentBudgeted = budgets.reduce((s, b) => s + (spentByCategory.get(b.category) || 0), 0);
+
+  const openBudgetEdit = () => {
+    const draft: Record<string, string> = {};
+    personalCategories.forEach((c) => {
+      const b = budgets.find((x) => x.category === c.name);
+      draft[c.name] = b ? String(b.amount) : "";
+    });
+    setBudgetDraft(draft);
+    setBudgetEditOpen(true);
+  };
+
+  const saveBudgets = async () => {
+    for (const c of personalCategories) {
+      const raw = budgetDraft[c.name] ?? "";
+      const num = Number(raw.replace(",", "."));
+      const value = isNaN(num) ? 0 : num;
+      const existing = budgets.find((b) => b.category === c.name);
+      if ((existing?.amount ?? 0) !== value) {
+        await setBudget(c.name, value);
+      }
+    }
+    setBudgetEditOpen(false);
+  };
+
   const filtered = visibleMonth
     .filter((e) =>
       e.description.toLowerCase().includes(search.toLowerCase()) ||
