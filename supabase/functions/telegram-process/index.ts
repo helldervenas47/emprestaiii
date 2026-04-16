@@ -763,6 +763,55 @@ Deno.serve(async (req) => {
           .select("user_id").eq("chat_id", chatId).maybeSingle();
         if (!link) {
           await tgSend(chatId, "🔒 Conta não vinculada. Use o app para gerar um código e envie `/start CODIGO`.", LOVABLE_API_KEY, TELEGRAM_API_KEY);
+        } else {
+          // ✏️ Pending edit interception (before any other text handling)
+          const { data: pending } = await admin.from("telegram_pending_edits")
+            .select("*").eq("chat_id", chatId).maybeSingle();
+
+          let pendingHandled = false;
+          if (pending) {
+            const expired = new Date(pending.expires_at).getTime() < Date.now();
+            if (expired) {
+              await admin.from("telegram_pending_edits").delete().eq("chat_id", chatId);
+            } else if (/^\/cancelar\b/i.test(text)) {
+              await admin.from("telegram_pending_edits").delete().eq("chat_id", chatId);
+              await tgEditReplyMarkup(chatId, pending.message_id, buildExpenseKeyboard(pending.expense_id), LOVABLE_API_KEY, TELEGRAM_API_KEY);
+              await tgSend(chatId, "✏️ Edição cancelada.", LOVABLE_API_KEY, TELEGRAM_API_KEY);
+              pendingHandled = true;
+            } else {
+              const newAmount = parseAmount(text);
+              if (newAmount === null) {
+                await tgSend(chatId, "❌ Não entendi o valor. Envie só o número (ex: `45,90`) ou `/cancelar` para sair.", LOVABLE_API_KEY, TELEGRAM_API_KEY);
+                pendingHandled = true;
+              } else {
+                const { data: exp, error: updErr } = await admin.from("expenses")
+                  .update({ amount: newAmount })
+                  .eq("id", pending.expense_id).eq("user_id", link.user_id)
+                  .select("description, category, paid_date, due_date").maybeSingle();
+                await admin.from("telegram_pending_edits").delete().eq("chat_id", chatId);
+                if (updErr || !exp) {
+                  await tgSend(chatId, "❌ Erro ao atualizar valor.", LOVABLE_API_KEY, TELEGRAM_API_KEY);
+                } else {
+                  const fmt = fmtBRL(newAmount);
+                  const date = exp.paid_date || exp.due_date || "";
+                  await tgEditMessage(
+                    chatId, pending.message_id,
+                    `✏️ *Despesa atualizada*\n\n💰 ${fmt}\n📂 ${exp.category}\n📝 ${exp.description}\n📅 ${date}`,
+                    buildExpenseKeyboard(pending.expense_id),
+                    LOVABLE_API_KEY, TELEGRAM_API_KEY,
+                  );
+                  await tgSend(chatId, `✅ Valor atualizado para *${fmt}*`, LOVABLE_API_KEY, TELEGRAM_API_KEY);
+                  await checkBudgetAndAlert(admin, link.user_id, chatId, exp.category, LOVABLE_API_KEY, TELEGRAM_API_KEY);
+                }
+                pendingHandled = true;
+              }
+            }
+          }
+
+          if (!pendingHandled) {
+            if (/^\/saldo(?:@\w+)?\b/i.test(text)) {
+        if (!link) {
+          await tgSend(chatId, "🔒 Conta não vinculada. Use o app para gerar um código e envie `/start CODIGO`.", LOVABLE_API_KEY, TELEGRAM_API_KEY);
         } else if (/^\/saldo(?:@\w+)?\b/i.test(text)) {
           const reply = await handleSaldo(admin, link.user_id);
           await tgSend(chatId, reply, LOVABLE_API_KEY, TELEGRAM_API_KEY);
