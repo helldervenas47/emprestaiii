@@ -39,6 +39,7 @@ const SubscriptionGate = lazy(() => import("@/components/SubscriptionGate").then
 const VehicleExpenseForm = lazy(() => import("@/components/VehicleExpenseForm").then(m => ({ default: m.VehicleExpenseForm })));
 // Direct import for the constant used at render time
 import { vehicleExpenseCategories } from "@/components/VehicleExpenseForm";
+import { PushNotificationToggle } from "@/components/PushNotificationToggle";
 
 // Prefetch most-used chunks after idle
 const prefetchChunks = () => {
