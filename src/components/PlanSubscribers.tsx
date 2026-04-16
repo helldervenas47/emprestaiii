@@ -92,10 +92,20 @@ export function PlanSubscribers() {
     // Filter out admin-created sub-users
     const filteredSubs = subs.filter((s) => !ownedUserIds.has(s.user_id));
 
+    // Deduplicate: keep one entry per user (prefer "live" over "sandbox")
+    const userMap = new Map<string, typeof filteredSubs[0]>();
+    for (const s of filteredSubs) {
+      const existing = userMap.get(s.user_id);
+      if (!existing || (s.environment === "live" && existing.environment !== "live")) {
+        userMap.set(s.user_id, s);
+      }
+    }
+    const deduped = Array.from(userMap.values());
+
     const { data: profiles } = await supabase.from("profiles").select("user_id, display_name");
     const profileMap = new Map((profiles || []).map((p) => [p.user_id, p.display_name]));
 
-    const mapped: Subscriber[] = filteredSubs.map((s) => ({
+    const mapped: Subscriber[] = deduped.map((s) => ({
       id: s.id,
       user_id: s.user_id,
       display_name: profileMap.get(s.user_id) || null,
