@@ -627,27 +627,124 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
         const items = [
           { label: "Capital na Rua", value: formatCurrency(portfolio.capitalOnStreet), color: "text-foreground", iconBg: "bg-primary/10", iconColor: "text-primary" },
           { label: "Total a Receber", value: formatCurrency(portfolio.totalToReceive), color: "text-foreground", iconBg: "bg-primary/10", iconColor: "text-primary" },
-          { label: "Pendente de Recebimento", value: formatCurrency(portfolio.pendingReceivable), color: "text-orange-500", iconBg: "bg-orange-500/10", iconColor: "text-orange-500" },
+          { label: "Pendente de Recebimento", value: formatCurrency(portfolio.pendingReceivable), color: "text-success", iconBg: "bg-success/10", iconColor: "text-success" },
           { label: "Lucro Estimado", value: formatCurrency(portfolio.estimatedProfit), color: "text-success", iconBg: "bg-success/10", iconColor: "text-success" },
           { label: "Juros a Receber no Mês", value: formatCurrency(portfolio.interestDueThisMonth), color: "text-success", iconBg: "bg-success/10", iconColor: "text-success" },
           { label: "Juros Recebidos no Mês", value: formatCurrency(currentMonthInterest), color: "text-warning", iconBg: "bg-warning/10", iconColor: "text-warning" },
           { label: "Juros Pendentes do Mês", value: formatCurrency(interestPendingMonth), color: "text-warning", iconBg: "bg-warning/10", iconColor: "text-warning" },
         ];
 
+        const pendingCard = items[2]; // Pendente de Recebimento
+        const otherCards = [...items.slice(0, 2), ...items.slice(3)];
+
         return (
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 sm:gap-3">
-            {items.map((item, i) => (
-              <Card key={item.label}>
-                <CardContent className="p-3 sm:p-4 flex flex-col items-center text-center">
-                  <div className={`h-8 w-8 rounded-lg ${item.iconBg} flex items-center justify-center mb-2`}>
-                    <DollarSign className={`h-4 w-4 ${item.iconColor}`} />
+          <>
+            {/* Desktop: all 7 in one row */}
+            <div className="hidden lg:grid lg:grid-cols-7 gap-2">
+              {items.map((item) => (
+                <Card key={item.label}>
+                  <CardContent className="p-3 flex flex-col items-center text-center">
+                    <div className={`h-8 w-8 rounded-lg ${item.iconBg} flex items-center justify-center mb-2`}>
+                      <DollarSign className={`h-4 w-4 ${item.iconColor}`} />
+                    </div>
+                    <p className="text-[10px] text-muted-foreground">{item.label}</p>
+                    <p className={`text-sm font-bold ${item.color} mt-0.5`}>{item.value}</p>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+
+            {/* Tablet (sm-lg): Pendente full width on top, then 2 rows of 3 */}
+            <div className="hidden sm:grid lg:hidden gap-2">
+              <Card>
+                <CardContent className="p-4 flex flex-col items-center text-center">
+                  <div className={`h-8 w-8 rounded-lg ${pendingCard.iconBg} flex items-center justify-center mb-2`}>
+                    <DollarSign className={`h-4 w-4 ${pendingCard.iconColor}`} />
                   </div>
-                  <p className="text-[10px] sm:text-xs text-muted-foreground">{item.label}</p>
-                  <p className={`text-sm sm:text-lg font-bold ${item.color} mt-0.5`}>{item.value}</p>
+                  <p className="text-xs text-muted-foreground">{pendingCard.label}</p>
+                  <p className={`text-lg font-bold ${pendingCard.color} mt-0.5`}>{pendingCard.value}</p>
                 </CardContent>
               </Card>
-            ))}
-          </div>
+              <div className="grid grid-cols-3 gap-2">
+                {otherCards.slice(0, 3).map((item) => (
+                  <Card key={item.label}>
+                    <CardContent className="p-3 sm:p-4 flex flex-col items-center text-center">
+                      <div className={`h-8 w-8 rounded-lg ${item.iconBg} flex items-center justify-center mb-2`}>
+                        <DollarSign className={`h-4 w-4 ${item.iconColor}`} />
+                      </div>
+                      <p className="text-[10px] sm:text-xs text-muted-foreground">{item.label}</p>
+                      <p className={`text-sm sm:text-lg font-bold ${item.color} mt-0.5`}>{item.value}</p>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+              <div className="grid grid-cols-3 gap-2">
+                {otherCards.slice(3, 6).map((item) => (
+                  <Card key={item.label}>
+                    <CardContent className="p-3 sm:p-4 flex flex-col items-center text-center">
+                      <div className={`h-8 w-8 rounded-lg ${item.iconBg} flex items-center justify-center mb-2`}>
+                        <DollarSign className={`h-4 w-4 ${item.iconColor}`} />
+                      </div>
+                      <p className="text-[10px] sm:text-xs text-muted-foreground">{item.label}</p>
+                      <p className={`text-sm sm:text-lg font-bold ${item.color} mt-0.5`}>{item.value}</p>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </div>
+
+            {/* Mobile: Pendente full width on top, then 3 rows of 2 */}
+            <div className="grid sm:hidden gap-2">
+              <Card>
+                <CardContent className="p-3 flex flex-col items-center text-center">
+                  <div className={`h-8 w-8 rounded-lg ${pendingCard.iconBg} flex items-center justify-center mb-2`}>
+                    <DollarSign className={`h-4 w-4 ${pendingCard.iconColor}`} />
+                  </div>
+                  <p className="text-[10px] text-muted-foreground">{pendingCard.label}</p>
+                  <p className={`text-sm font-bold ${pendingCard.color} mt-0.5`}>{pendingCard.value}</p>
+                </CardContent>
+              </Card>
+              <div className="grid grid-cols-2 gap-2">
+                {otherCards.slice(0, 2).map((item) => (
+                  <Card key={item.label}>
+                    <CardContent className="p-3 flex flex-col items-center text-center">
+                      <div className={`h-8 w-8 rounded-lg ${item.iconBg} flex items-center justify-center mb-2`}>
+                        <DollarSign className={`h-4 w-4 ${item.iconColor}`} />
+                      </div>
+                      <p className="text-[10px] text-muted-foreground">{item.label}</p>
+                      <p className={`text-sm font-bold ${item.color} mt-0.5`}>{item.value}</p>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                {otherCards.slice(2, 4).map((item) => (
+                  <Card key={item.label}>
+                    <CardContent className="p-3 flex flex-col items-center text-center">
+                      <div className={`h-8 w-8 rounded-lg ${item.iconBg} flex items-center justify-center mb-2`}>
+                        <DollarSign className={`h-4 w-4 ${item.iconColor}`} />
+                      </div>
+                      <p className="text-[10px] text-muted-foreground">{item.label}</p>
+                      <p className={`text-sm font-bold ${item.color} mt-0.5`}>{item.value}</p>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                {otherCards.slice(4, 6).map((item) => (
+                  <Card key={item.label}>
+                    <CardContent className="p-3 flex flex-col items-center text-center">
+                      <div className={`h-8 w-8 rounded-lg ${item.iconBg} flex items-center justify-center mb-2`}>
+                        <DollarSign className={`h-4 w-4 ${item.iconColor}`} />
+                      </div>
+                      <p className="text-[10px] text-muted-foreground">{item.label}</p>
+                      <p className={`text-sm font-bold ${item.color} mt-0.5`}>{item.value}</p>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </div>
+          </>
         );
       })()}
 
