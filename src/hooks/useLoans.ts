@@ -373,7 +373,7 @@ export function calculateInstallment(principal: number, rate: number, months: nu
 }
 
 export function calculateTotalWithInterest(principal: number, rate: number, _months: number): number {
-  return principal * (1 + rate / 100);
+  return Math.round(principal * (1 + rate / 100));
 }
 
 export function getLoanRemainingAmount(loan: Loan, payments: Payment[]): number {
