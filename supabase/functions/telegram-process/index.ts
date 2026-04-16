@@ -607,7 +607,7 @@ Deno.serve(async (req) => {
             if (!extracted || !extracted.amount || extracted.confidence < 0.5) {
               await tgSend(chatId, "🤔 Não consegui ler o comprovante. Tente uma foto mais nítida ou envie por texto.", LOVABLE_API_KEY, TELEGRAM_API_KEY);
             } else {
-              const { error: insErr } = await admin.from("expenses").insert({
+              const { data: ins, error: insErr } = await admin.from("expenses").insert({
                 user_id: link.user_id,
                 description: extracted.description || "Comprovante",
                 amount: extracted.amount,
@@ -617,14 +617,15 @@ Deno.serve(async (req) => {
                 scope: "personal",
                 paid: true,
                 paid_date: extracted.date || new Date().toISOString().slice(0, 10),
-              });
-              if (insErr) {
-                await tgSend(chatId, "❌ Erro ao salvar: " + insErr.message, LOVABLE_API_KEY, TELEGRAM_API_KEY);
+              }).select("id").single();
+              if (insErr || !ins) {
+                await tgSend(chatId, "❌ Erro ao salvar: " + (insErr?.message ?? "desconhecido"), LOVABLE_API_KEY, TELEGRAM_API_KEY);
               } else {
                 const finalCategory = CATEGORIES.includes(extracted.category) ? extracted.category : "Outros";
                 const fmt = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(extracted.amount);
-                await tgSend(chatId,
-                  `📸 *Despesa extraída do comprovante*\n\n💰 ${fmt}\n📂 ${extracted.category}\n📝 ${extracted.description}\n📅 ${extracted.date}`,
+                await tgSendWithKeyboard(chatId,
+                  `📸 *Despesa extraída do comprovante*\n\n💰 ${fmt}\n📂 ${finalCategory}\n📝 ${extracted.description}\n📅 ${extracted.date}`,
+                  buildExpenseKeyboard(ins.id),
                   LOVABLE_API_KEY, TELEGRAM_API_KEY);
                 await checkBudgetAndAlert(admin, link.user_id, chatId, finalCategory, LOVABLE_API_KEY, TELEGRAM_API_KEY);
               }
