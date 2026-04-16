@@ -258,19 +258,33 @@ function LoanCardView({
     const remInst = Math.max(1, totalInst - paidInst);
     const instVal = (rem / remInst).toFixed(2);
     const freq = loan.interestType || "Mensal";
-    // Use saved schedules if available
-    const savedSchedules = installmentSchedules
-      .filter((s) => s.loanId === loan.id && s.installmentNumber > paidInst)
+    // Build rows for ALL installments (paid + pending)
+    const allSchedules = installmentSchedules
+      .filter((s) => s.loanId === loan.id)
       .sort((a, b) => a.installmentNumber - b.installmentNumber);
-    if (savedSchedules.length > 0) {
-      setEditScheduleRows(savedSchedules.map((s) => ({
-        date: new Date(s.dueDate + "T00:00:00"),
-        value: s.amount.toFixed(2),
-      })));
+    if (allSchedules.length > 0) {
+      // Fill all installments from schedules
+      const rows: { date: Date; value: string }[] = [];
+      for (let i = 1; i <= totalInst; i++) {
+        const sched = allSchedules.find((s) => s.installmentNumber === i);
+        if (sched) {
+          rows.push({ date: new Date(sched.dueDate + "T00:00:00"), value: sched.amount.toFixed(2) });
+        } else {
+          // Generate from first due date
+          const firstDue = new Date(loan.dueDate + "T00:00:00");
+          rows.push({
+            date: getNextDate(firstDue, freq, i - 1),
+            value: loan.customInstallmentValue != null && loan.customInstallmentValue > 0
+              ? loan.customInstallmentValue.toFixed(2)
+              : instVal,
+          });
+        }
+      }
+      setEditScheduleRows(rows);
     } else {
       const firstDue = new Date(loan.dueDate + "T00:00:00");
       setEditScheduleRows(
-        Array.from({ length: remInst }, (_, i) => ({
+        Array.from({ length: totalInst }, (_, i) => ({
           date: i === 0 ? firstDue : getNextDate(firstDue, freq, i),
           value: loan.customInstallmentValue != null && loan.customInstallmentValue > 0
             ? loan.customInstallmentValue.toFixed(2)
