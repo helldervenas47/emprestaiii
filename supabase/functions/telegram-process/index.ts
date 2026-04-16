@@ -200,7 +200,7 @@ async function extractExpense(text: string, lovableKey: string) {
   try { return JSON.parse(call.function.arguments); } catch { return null; }
 }
 
-async function downloadTelegramPhoto(fileId: string, lovableKey: string, telegramKey: string): Promise<string | null> {
+async function downloadTelegramFile(fileId: string, lovableKey: string, telegramKey: string): Promise<{ base64: string; filePath: string } | null> {
   try {
     const fileResp = await fetch(`${GATEWAY_URL}/getFile`, {
       method: "POST",
@@ -235,14 +235,61 @@ async function downloadTelegramPhoto(fileId: string, lovableKey: string, telegra
     for (let i = 0; i < buf.length; i += chunk) {
       binary += String.fromCharCode(...buf.subarray(i, i + chunk));
     }
-    const b64 = btoa(binary);
-    const ext = filePath.split(".").pop()?.toLowerCase() || "jpg";
-    const mime = ext === "png" ? "image/png" : ext === "webp" ? "image/webp" : "image/jpeg";
-    return `data:${mime};base64,${b64}`;
+    return { base64: btoa(binary), filePath };
   } catch (e) {
-    console.error("downloadTelegramPhoto err", e);
+    console.error("downloadTelegramFile err", e);
     return null;
   }
+}
+
+async function downloadTelegramPhoto(fileId: string, lovableKey: string, telegramKey: string): Promise<string | null> {
+  const f = await downloadTelegramFile(fileId, lovableKey, telegramKey);
+  if (!f) return null;
+  const ext = f.filePath.split(".").pop()?.toLowerCase() || "jpg";
+  const mime = ext === "png" ? "image/png" : ext === "webp" ? "image/webp" : "image/jpeg";
+  return `data:${mime};base64,${f.base64}`;
+}
+
+async function transcribeAudio(fileId: string, mimeHint: string, lovableKey: string, telegramKey: string): Promise<string | null> {
+  const f = await downloadTelegramFile(fileId, lovableKey, telegramKey);
+  if (!f) return null;
+  const ext = f.filePath.split(".").pop()?.toLowerCase() || "";
+  let mime = mimeHint;
+  if (!mime) {
+    if (ext === "oga" || ext === "ogg") mime = "audio/ogg";
+    else if (ext === "mp3") mime = "audio/mpeg";
+    else if (ext === "m4a" || ext === "mp4") mime = "audio/mp4";
+    else if (ext === "wav") mime = "audio/wav";
+    else if (ext === "webm") mime = "audio/webm";
+    else mime = "audio/ogg";
+  }
+  const dataUrl = `data:${mime};base64,${f.base64}`;
+
+  const resp = await fetch(AI_GATEWAY, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${lovableKey}`, "Content-Type": "application/json" },
+    body: JSON.stringify({
+      model: "google/gemini-3-flash-preview",
+      messages: [
+        { role: "system", content: "Transcreva o áudio em português brasileiro. Retorne apenas o texto transcrito, sem comentários ou formatação adicional." },
+        {
+          role: "user",
+          content: [
+            { type: "text", text: "Transcreva este áudio:" },
+            { type: "image_url", image_url: { url: dataUrl } },
+          ],
+        },
+      ],
+    }),
+  });
+  if (!resp.ok) {
+    console.error("transcribe err", resp.status, await resp.text());
+    return null;
+  }
+  const data = await resp.json();
+  const text = data.choices?.[0]?.message?.content;
+  if (typeof text !== "string") return null;
+  return text.trim();
 }
 
 async function extractExpenseFromImage(imageDataUrl: string, caption: string, lovableKey: string) {
