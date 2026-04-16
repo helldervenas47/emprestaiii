@@ -22,6 +22,7 @@ export function useExpenses(enabled = true) {
         installments: e.installments, paidInstallments: e.paid_installments,
         dueDate: e.due_date, paid: e.paid, paidDate: e.paid_date,
         notes: e.notes, createdAt: e.created_at,
+        parentExpenseId: e.parent_expense_id ?? undefined,
       })));
     }
   }, [user]);
@@ -61,97 +62,123 @@ export function useExpenses(enabled = true) {
   }, [user, dataOwnerId]);
 
   const payExpense = useCallback(async (id: string, skipBalanceAdjust = false) => {
-    let expenseSnapshot: Expense | undefined;
-    setExpenses((prev) => {
-      const expense = prev.find((e) => e.id === id);
-      if (!expense || expense.paid) return prev;
-      expenseSnapshot = expense;
+    if (!dataOwnerId) return;
+    const expense = expenses.find((e) => e.id === id);
+    if (!expense || expense.paid) return;
 
-      if (expense.type === "recorrente" && expense.installments && expense.installments > 1) {
-        const newPaid = (expense.paidInstallments || 0) + 1;
-        const fullyPaid = newPaid >= expense.installments;
-        const currentDue = new Date(expense.dueDate + "T00:00:00");
-        currentDue.setMonth(currentDue.getMonth() + 1);
-        const newDueDate = fullyPaid ? expense.dueDate : currentDue.toISOString().split("T")[0];
-        return prev.map((e) => e.id === id ? {
-          ...e, paidInstallments: newPaid, paid: fullyPaid,
-          dueDate: newDueDate,
-          paidDate: fullyPaid ? new Date().toISOString().split("T")[0] : undefined,
-        } : e);
-      } else {
-        return prev.map((e) => e.id === id ? {
-          ...e, paid: true, paidDate: new Date().toISOString().split("T")[0],
-        } : e);
-      }
-    });
+    const today = new Date().toISOString().split("T")[0];
+    const isRecorrenteParcelada = expense.type === "recorrente" && expense.installments && expense.installments > 1;
 
-    if (!expenseSnapshot) return;
-    const expense = expenseSnapshot;
-
-    if (expense.type === "recorrente" && expense.installments && expense.installments > 1) {
-      const installmentAmount = expense.amount / expense.installments;
+    if (isRecorrenteParcelada) {
+      const installmentAmount = expense.amount / expense.installments!;
       const newPaid = (expense.paidInstallments || 0) + 1;
-      const fullyPaid = newPaid >= expense.installments;
+      const fullyPaid = newPaid >= expense.installments!;
       const currentDue = new Date(expense.dueDate + "T00:00:00");
       currentDue.setMonth(currentDue.getMonth() + 1);
-      const newDueDate = fullyPaid ? expense.dueDate : currentDue.toISOString().split("T")[0];
+      const nextDueDate = currentDue.toISOString().split("T")[0];
+
+      // Optimistic: update parent
+      setExpenses((prev) => prev.map((e) => e.id === id ? {
+        ...e,
+        paidInstallments: newPaid,
+        paid: fullyPaid,
+        dueDate: fullyPaid ? expense.dueDate : nextDueDate,
+        paidDate: fullyPaid ? today : undefined,
+      } : e));
+
       if (!skipBalanceAdjust) await adjustBalance(-installmentAmount);
+
+      // Insert historical record (paid installment snapshot)
+      await supabase.from("expenses").insert({
+        user_id: dataOwnerId,
+        description: `${expense.description} (${newPaid}/${expense.installments})`,
+        amount: installmentAmount,
+        type: "fixa",
+        category: expense.category,
+        installments: null,
+        paid_installments: null,
+        due_date: expense.dueDate,
+        paid: true,
+        paid_date: today,
+        notes: expense.notes,
+        parent_expense_id: id,
+      });
+
+      // Update parent recurring expense
       await supabase.from("expenses").update({
-        paid_installments: newPaid, paid: fullyPaid,
-        due_date: newDueDate,
-        paid_date: fullyPaid ? new Date().toISOString().split("T")[0] : null,
+        paid_installments: newPaid,
+        paid: fullyPaid,
+        due_date: fullyPaid ? expense.dueDate : nextDueDate,
+        paid_date: fullyPaid ? today : null,
       }).eq("id", id);
     } else {
+      // Simple fixa expense
+      setExpenses((prev) => prev.map((e) => e.id === id ? {
+        ...e, paid: true, paidDate: today,
+      } : e));
       if (!skipBalanceAdjust) await adjustBalance(-expense.amount);
       await supabase.from("expenses").update({
-        paid: true, paid_date: new Date().toISOString().split("T")[0],
+        paid: true, paid_date: today,
       }).eq("id", id);
     }
-  }, []);
+  }, [expenses, dataOwnerId]);
 
   const unpayExpense = useCallback(async (id: string) => {
-    let expenseSnapshot: Expense | undefined;
-    setExpenses((prev) => {
-      const expense = prev.find((e) => e.id === id);
-      if (!expense) return prev;
-      expenseSnapshot = expense;
+    const expense = expenses.find((e) => e.id === id);
+    if (!expense) return;
 
-      if (expense.type === "recorrente" && expense.installments && expense.installments > 1 && (expense.paidInstallments || 0) > 0) {
-        const newPaid = (expense.paidInstallments || 0) - 1;
-        const currentDue = new Date(expense.dueDate + "T00:00:00");
-        currentDue.setMonth(currentDue.getMonth() - 1);
-        const newDueDate = currentDue.toISOString().split("T")[0];
-        return prev.map((e) => e.id === id ? {
-          ...e, paidInstallments: newPaid, paid: false, paidDate: undefined, dueDate: newDueDate,
-        } : e);
-      } else if (expense.paid) {
-        return prev.map((e) => e.id === id ? {
-          ...e, paid: false, paidDate: undefined,
-        } : e);
-      }
-      return prev;
-    });
+    const isRecorrenteParcelada = expense.type === "recorrente" && expense.installments && expense.installments > 1;
 
-    if (!expenseSnapshot) return;
-    const expense = expenseSnapshot;
-
-    if (expense.type === "recorrente" && expense.installments && expense.installments > 1 && (expense.paidInstallments || 0) > 0) {
-      const installmentAmount = expense.amount / expense.installments;
+    if (isRecorrenteParcelada && (expense.paidInstallments || 0) > 0) {
+      const installmentAmount = expense.amount / expense.installments!;
       const newPaid = (expense.paidInstallments || 0) - 1;
+      const wasFullyPaid = expense.paid;
+      // If was fully paid, dueDate already points to last installment; otherwise step back one month
       const currentDue = new Date(expense.dueDate + "T00:00:00");
-      currentDue.setMonth(currentDue.getMonth() - 1);
+      if (!wasFullyPaid) currentDue.setMonth(currentDue.getMonth() - 1);
       const newDueDate = currentDue.toISOString().split("T")[0];
+
+      // Find latest historical child record
+      const { data: children } = await supabase
+        .from("expenses")
+        .select("id, paid_date, created_at")
+        .eq("parent_expense_id", id)
+        .order("created_at", { ascending: false })
+        .limit(1);
+      const latestChildId = children?.[0]?.id;
+
+      // Optimistic update
+      setExpenses((prev) => prev
+        .filter((e) => e.id !== latestChildId)
+        .map((e) => e.id === id ? {
+          ...e,
+          paidInstallments: newPaid,
+          paid: false,
+          paidDate: undefined,
+          dueDate: newDueDate,
+        } : e));
+
       await adjustBalance(installmentAmount);
+
+      if (latestChildId) {
+        await supabase.from("expenses").delete().eq("id", latestChildId);
+      }
       await supabase.from("expenses").update({
-        paid_installments: newPaid, paid: false, paid_date: null, due_date: newDueDate,
+        paid_installments: newPaid,
+        paid: false,
+        paid_date: null,
+        due_date: newDueDate,
       }).eq("id", id);
     } else if (expense.paid) {
+      setExpenses((prev) => prev.map((e) => e.id === id ? {
+        ...e, paid: false, paidDate: undefined,
+      } : e));
       await adjustBalance(expense.amount);
       await supabase.from("expenses").update({
         paid: false, paid_date: null,
       }).eq("id", id);
     }
-  }, []);
+  }, [expenses]);
 
   const deleteExpense = useCallback(async (id: string, skipBalanceAdjust = false) => {
     const expense = expenses.find((e) => e.id === id);
