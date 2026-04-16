@@ -46,7 +46,7 @@ Deno.serve(async (req) => {
         "X-Connection-Api-Key": TELEGRAM_API_KEY,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ offset: currentOffset, timeout, allowed_updates: ["message"] }),
+      body: JSON.stringify({ offset: currentOffset, timeout, allowed_updates: ["message", "callback_query"] }),
     });
 
     const data = await resp.json();
