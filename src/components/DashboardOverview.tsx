@@ -378,12 +378,12 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
             if (sc.loanId !== l.id) return false;
             if (sc.installmentNumber <= l.paidInstallments) return false;
             const d = new Date(sc.dueDate + "T00:00:00");
-            return d >= todayForecast && d <= limitDate;
+            return d <= limitDate;
           }).forEach((sc) => { sum += sc.amount; });
         } else {
           if (l.paidInstallments < 1) {
             const d = new Date(l.dueDate + "T00:00:00");
-            if (d >= todayForecast && d <= limitDate) {
+            if (d <= limitDate) {
               sum += calculateTotalWithInterest(l.amount, l.interestRate, l.installments);
             }
           }
