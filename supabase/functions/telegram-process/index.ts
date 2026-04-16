@@ -599,6 +599,23 @@ Deno.serve(async (req) => {
           const expenseId = data.slice(5);
           await tgAnswerCallback(cbId, undefined, LOVABLE_API_KEY, TELEGRAM_API_KEY);
           await tgEditReplyMarkup(chatId, messageId, buildExpenseKeyboard(expenseId), LOVABLE_API_KEY, TELEGRAM_API_KEY);
+        } else if (data.startsWith("edit:")) {
+          const expenseId = data.slice(5);
+          const expiresAt = new Date(Date.now() + 5 * 60 * 1000).toISOString();
+          const { error: upErr } = await admin.from("telegram_pending_edits").upsert({
+            chat_id: chatId,
+            expense_id: expenseId,
+            user_id: link.user_id,
+            message_id: messageId,
+            expires_at: expiresAt,
+          }, { onConflict: "chat_id" });
+          if (upErr) {
+            await tgAnswerCallback(cbId, "Erro ao iniciar edição", LOVABLE_API_KEY, TELEGRAM_API_KEY);
+          } else {
+            await tgAnswerCallback(cbId, "Envie o novo valor", LOVABLE_API_KEY, TELEGRAM_API_KEY);
+            await tgEditReplyMarkup(chatId, messageId, [], LOVABLE_API_KEY, TELEGRAM_API_KEY);
+            await tgSend(chatId, "✏️ *Editar valor*\nEnvie o novo valor (ex: `45,90`) ou `/cancelar`.", LOVABLE_API_KEY, TELEGRAM_API_KEY);
+          }
         } else {
           await tgAnswerCallback(cbId, undefined, LOVABLE_API_KEY, TELEGRAM_API_KEY);
         }
