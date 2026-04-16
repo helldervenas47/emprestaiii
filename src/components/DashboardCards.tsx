@@ -1,6 +1,6 @@
 import { DollarSign, TrendingUp, Users, AlertTriangle, Crown } from "lucide-react";
 import { Loan, Payment } from "@/types/loan";
-import { calculateTotalWithInterest, getLoanRemainingAmount } from "@/hooks/useLoans";
+import { calculateTotalWithInterest } from "@/hooks/useLoans";
 import { useHideValues } from "@/contexts/HideValuesContext";
 import { useSubscription } from "@/hooks/useSubscription";
 import { Progress } from "@/components/ui/progress";
@@ -16,7 +16,32 @@ export function DashboardCards({ loans, payments }: Props) {
   const activeLoansData = loans.filter((l) => l.status !== "paid");
 
   const totalLent = activeLoansData.reduce((sum, l) => sum + l.amount, 0);
-  const totalToReceive = activeLoansData.reduce((sum, l) => sum + getLoanRemainingAmount(l, payments), 0);
+
+  // Total a Receber = total do contrato + lateFees + juros recebidos (installmentNumber === 0)
+  const todayNorm = new Date(); todayNorm.setHours(0, 0, 0, 0);
+  const totalToReceive = activeLoansData.reduce((sum, l) => {
+    const total = calculateTotalWithInterest(l.amount, l.interestRate, l.installments);
+    const dueDate = new Date(l.dueDate + "T00:00:00");
+    const daysLate = Math.max(0, Math.floor((todayNorm.getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24)));
+    let lateFees = 0;
+    if (l.lateInterestValue != null && l.lateInterestValue > 0 && daysLate > 0) {
+      const paidForLoan = payments.filter((p) => p.loanId === l.id).reduce((s, p) => s + p.amount, 0);
+      const baseRemaining = l.remainingAmount != null && l.remainingAmount > 0 ? l.remainingAmount : Math.max(0, total - paidForLoan);
+      lateFees += l.lateInterestType === "fixed"
+        ? l.lateInterestValue * daysLate
+        : baseRemaining * (l.lateInterestValue / 100) * daysLate;
+    }
+    if (l.penaltyValue != null && l.penaltyValue > 0 && daysLate > 0) {
+      lateFees += l.penaltyValue;
+    }
+    const interestPaymentsReceived = payments
+      .filter((p) => p.loanId === l.id && p.installmentNumber === 0)
+      .reduce((s, p) => s + p.amount, 0);
+    return sum + Math.round((total + lateFees + interestPaymentsReceived) * 100) / 100;
+  }, 0);
+
+  // Lucro Estimado = Total a Receber - Capital na Rua
+  const estimatedProfit = totalToReceive - totalLent;
 
   const totalInterest = loans.reduce(
     (sum, l) => sum + (calculateTotalWithInterest(l.amount, l.interestRate, l.installments) - l.amount),
