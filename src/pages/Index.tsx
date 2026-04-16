@@ -414,7 +414,7 @@ const Index = () => {
               <p className="text-[10px] text-muted-foreground uppercase tracking-widest">Controle de empréstimos</p>
             </div>
           </div>
-          <div className="flex items-center gap-1 sm:gap-1.5 justify-end">
+          <div className="flex items-center gap-0.5 sm:gap-1.5 justify-end">
             {!isMobileOrTablet && (
               <div className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-muted/50 text-xs text-muted-foreground mr-1">
                 <User className="h-3 w-3" />
