@@ -309,7 +309,7 @@ const Index = () => {
     }
     return true;
   });
-  
+import { PushNotificationToggle } from "@/components/PushNotificationToggle";
 
   // Apply dark class to html element
   useState(() => {
