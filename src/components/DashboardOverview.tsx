@@ -10,8 +10,9 @@ import { Button } from "@/components/ui/button";
 import { getBalance, setBalance } from "@/lib/balance";
 import {
   TrendingUp, TrendingDown, DollarSign, ArrowUpRight, ArrowDownRight,
-  ChevronLeft, ChevronRight, ChevronDown, Percent, Wallet, Pencil, Check, X, Trash2, Calendar,
+  ChevronLeft, ChevronRight, ChevronDown, Percent, Wallet, Pencil, Check, X, Trash2, Calendar, Eye,
 } from "lucide-react";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
 
 interface Props {
@@ -95,6 +96,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
   const [editingBalance, setEditingBalance] = useState(false);
   const [tempBalance, setTempBalance] = useState("");
   const [includeSales, setIncludeSales] = useState(false);
+  const [showInterestDetail, setShowInterestDetail] = useState(false);
   const { chartOverrides, setChartOverrides, interestOverrides, setInterestOverrides } = useChartOverrides();
 
   const range = useMemo(() => getRange(period, offset), [period, offset]);
@@ -208,6 +210,29 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
     
     const periodProfitRealized = interestFromActivePayments + profitFromQuitados;
     
+    // Build detail records for "Juros Recebidos no Mês"
+    const interestDetailRecords: { borrowerName: string; date: string; totalPayment: number; interestPortion: number; type: "juros" | "quitação" }[] = [];
+    paymentsInPeriod.forEach(p => {
+      if (quitadoLoanIds.has(p.loanId)) return;
+      const loan = loans.find(l => l.id === p.loanId);
+      if (!loan) return;
+      const totalWithInterest = calculateTotalWithInterest(loan.amount, loan.interestRate, loan.installments);
+      const interestRatio = totalWithInterest > 0 ? 1 - (loan.amount / totalWithInterest) : 0;
+      const interest = p.amount * interestRatio;
+      if (interest > 0) {
+        interestDetailRecords.push({ borrowerName: loan.borrowerName, date: p.date, totalPayment: p.amount, interestPortion: interest, type: "juros" });
+      }
+    });
+    loansQuitadosInPeriod.forEach(l => {
+      const totalPaidAll = payments.filter(p => p.loanId === l.id).reduce((sum, p) => sum + p.amount, 0);
+      const profit = Math.max(0, totalPaidAll - l.amount);
+      if (profit > 0) {
+        const lastDate = payments.filter(p => p.loanId === l.id).reduce((latest, p) => p.date > latest ? p.date : latest, "");
+        interestDetailRecords.push({ borrowerName: l.borrowerName, date: lastDate, totalPayment: totalPaidAll, interestPortion: profit, type: "quitação" });
+      }
+    });
+    interestDetailRecords.sort((a, b) => b.date.localeCompare(a.date));
+    
     // Also include single-installment loans (no schedule) using dueDate for expected
     const singleInstLoans = loans.filter(l => l.installments <= 1 && isInRange(l.dueDate, range.start, range.end));
     const singleExpected = singleInstLoans.reduce((s, l) => {
@@ -234,7 +259,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
       return { ...sale, received };
     });
 
-    return { totalIncome, incomeFromPayments, incomeFromSales, totalOutgoing, totalLoanOutgoing, totalExpenses, balance, transactions, loanCount: filteredLoans.length, saleCount: filteredSales.length, paymentCount: filteredPayments.length, expenseCount: filteredExpenses.length, avgInterestRate, filteredPayments, filteredLoans, filteredExpenses, salesWithReceived, periodProfitExpected: totalProfitExpected, periodProfitRealized: totalProfitRealized, periodProfitPct };
+    return { totalIncome, incomeFromPayments, incomeFromSales, totalOutgoing, totalLoanOutgoing, totalExpenses, balance, transactions, loanCount: filteredLoans.length, saleCount: filteredSales.length, paymentCount: filteredPayments.length, expenseCount: filteredExpenses.length, avgInterestRate, filteredPayments, filteredLoans, filteredExpenses, salesWithReceived, periodProfitExpected: totalProfitExpected, periodProfitRealized: totalProfitRealized, periodProfitPct, interestDetailRecords };
   }, [loans, sales, payments, expenses, range, includeSales, period, chartOverrides, installmentSchedules]);
 
   // Portfolio metrics — global (not filtered by period)
@@ -771,13 +796,13 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
         const interestPendingInPeriod = Math.max(0, interestDueInPeriod - interestReceivedInPeriod);
 
         const items = [
-          { label: "Capital na Rua", value: formatCurrency(portfolio.capitalOnStreet), color: "text-foreground", iconBg: "bg-primary/10", iconColor: "text-primary" },
-          { label: "Total a Receber", value: formatCurrency(portfolio.totalToReceive), color: "text-foreground", iconBg: "bg-primary/10", iconColor: "text-primary" },
-          { label: "Pendente de Recebimento", value: formatCurrency(portfolio.pendingReceivable), color: "text-success", iconBg: "bg-success/10", iconColor: "text-success" },
-          { label: "Lucro Estimado", value: formatCurrency(portfolio.estimatedProfit), color: "text-success", iconBg: "bg-success/10", iconColor: "text-success" },
-          { label: "Juros a Receber no Mês", value: formatCurrency(interestDueInPeriod), color: "text-success", iconBg: "bg-success/10", iconColor: "text-success" },
-          { label: "Juros Recebidos no Mês", value: formatCurrency(interestReceivedInPeriod), color: "text-warning", iconBg: "bg-warning/10", iconColor: "text-warning" },
-          { label: "Juros Pendentes do Mês", value: formatCurrency(interestPendingInPeriod), color: "text-warning", iconBg: "bg-warning/10", iconColor: "text-warning" },
+          { label: "Capital na Rua", value: formatCurrency(portfolio.capitalOnStreet), color: "text-foreground", iconBg: "bg-primary/10", iconColor: "text-primary", onClick: undefined as (() => void) | undefined },
+          { label: "Total a Receber", value: formatCurrency(portfolio.totalToReceive), color: "text-foreground", iconBg: "bg-primary/10", iconColor: "text-primary", onClick: undefined as (() => void) | undefined },
+          { label: "Pendente de Recebimento", value: formatCurrency(portfolio.pendingReceivable), color: "text-success", iconBg: "bg-success/10", iconColor: "text-success", onClick: undefined as (() => void) | undefined },
+          { label: "Lucro Estimado", value: formatCurrency(portfolio.estimatedProfit), color: "text-success", iconBg: "bg-success/10", iconColor: "text-success", onClick: undefined as (() => void) | undefined },
+          { label: "Juros a Receber no Mês", value: formatCurrency(interestDueInPeriod), color: "text-success", iconBg: "bg-success/10", iconColor: "text-success", onClick: undefined as (() => void) | undefined },
+          { label: "Juros Recebidos no Mês", value: formatCurrency(interestReceivedInPeriod), color: "text-warning", iconBg: "bg-warning/10", iconColor: "text-warning", onClick: () => setShowInterestDetail(true) },
+          { label: "Juros Pendentes do Mês", value: formatCurrency(interestPendingInPeriod), color: "text-warning", iconBg: "bg-warning/10", iconColor: "text-warning", onClick: undefined as (() => void) | undefined },
         ];
 
         const pendingCard = items[2]; // Pendente de Recebimento
@@ -788,8 +813,9 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
             {/* Desktop: all 7 in one row */}
             <div className="hidden lg:grid lg:grid-cols-7 gap-2">
               {items.map((item) => (
-                <Card key={item.label}>
-                  <CardContent className="p-3 flex flex-col items-center text-center">
+                <Card key={item.label} className={item.onClick ? "cursor-pointer hover:bg-accent/50 transition-colors" : ""} onClick={item.onClick}>
+                  <CardContent className="p-3 flex flex-col items-center text-center relative">
+                    {item.onClick && <Eye className="h-3 w-3 text-muted-foreground absolute top-2 right-2" />}
                     <div className={`h-6 w-6 rounded-md ${item.iconBg} flex items-center justify-center mb-1.5`}>
                       <DollarSign className={`h-3 w-3 ${item.iconColor}`} />
                     </div>
@@ -813,8 +839,9 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
               </Card>
               <div className="grid grid-cols-3 gap-2">
                 {otherCards.slice(0, 3).map((item) => (
-                  <Card key={item.label}>
-                    <CardContent className="p-3 sm:p-4 flex flex-col items-center text-center">
+                  <Card key={item.label} className={item.onClick ? "cursor-pointer hover:bg-accent/50 transition-colors" : ""} onClick={item.onClick}>
+                    <CardContent className="p-3 sm:p-4 flex flex-col items-center text-center relative">
+                      {item.onClick && <Eye className="h-3 w-3 text-muted-foreground absolute top-2 right-2" />}
                       <div className={`h-8 w-8 rounded-lg ${item.iconBg} flex items-center justify-center mb-2`}>
                         <DollarSign className={`h-4 w-4 ${item.iconColor}`} />
                       </div>
@@ -826,8 +853,9 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
               </div>
               <div className="grid grid-cols-3 gap-2">
                 {otherCards.slice(3, 6).map((item) => (
-                  <Card key={item.label}>
-                    <CardContent className="p-3 sm:p-4 flex flex-col items-center text-center">
+                  <Card key={item.label} className={item.onClick ? "cursor-pointer hover:bg-accent/50 transition-colors" : ""} onClick={item.onClick}>
+                    <CardContent className="p-3 sm:p-4 flex flex-col items-center text-center relative">
+                      {item.onClick && <Eye className="h-3 w-3 text-muted-foreground absolute top-2 right-2" />}
                       <div className={`h-8 w-8 rounded-lg ${item.iconBg} flex items-center justify-center mb-2`}>
                         <DollarSign className={`h-4 w-4 ${item.iconColor}`} />
                       </div>
@@ -852,8 +880,9 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
               </Card>
               <div className="grid grid-cols-2 gap-2">
                 {otherCards.slice(0, 2).map((item) => (
-                  <Card key={item.label}>
-                    <CardContent className="p-3 flex flex-col items-center text-center">
+                  <Card key={item.label} className={item.onClick ? "cursor-pointer hover:bg-accent/50 transition-colors" : ""} onClick={item.onClick}>
+                    <CardContent className="p-3 flex flex-col items-center text-center relative">
+                      {item.onClick && <Eye className="h-3 w-3 text-muted-foreground absolute top-2 right-2" />}
                       <div className={`h-8 w-8 rounded-lg ${item.iconBg} flex items-center justify-center mb-2`}>
                         <DollarSign className={`h-4 w-4 ${item.iconColor}`} />
                       </div>
@@ -865,8 +894,9 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
               </div>
               <div className="grid grid-cols-2 gap-2">
                 {otherCards.slice(2, 4).map((item) => (
-                  <Card key={item.label}>
-                    <CardContent className="p-3 flex flex-col items-center text-center">
+                  <Card key={item.label} className={item.onClick ? "cursor-pointer hover:bg-accent/50 transition-colors" : ""} onClick={item.onClick}>
+                    <CardContent className="p-3 flex flex-col items-center text-center relative">
+                      {item.onClick && <Eye className="h-3 w-3 text-muted-foreground absolute top-2 right-2" />}
                       <div className={`h-8 w-8 rounded-lg ${item.iconBg} flex items-center justify-center mb-2`}>
                         <DollarSign className={`h-4 w-4 ${item.iconColor}`} />
                       </div>
@@ -878,8 +908,9 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
               </div>
               <div className="grid grid-cols-2 gap-2">
                 {otherCards.slice(4, 6).map((item) => (
-                  <Card key={item.label}>
-                    <CardContent className="p-3 flex flex-col items-center text-center">
+                  <Card key={item.label} className={item.onClick ? "cursor-pointer hover:bg-accent/50 transition-colors" : ""} onClick={item.onClick}>
+                    <CardContent className="p-3 flex flex-col items-center text-center relative">
+                      {item.onClick && <Eye className="h-3 w-3 text-muted-foreground absolute top-2 right-2" />}
                       <div className={`h-8 w-8 rounded-lg ${item.iconBg} flex items-center justify-center mb-2`}>
                         <DollarSign className={`h-4 w-4 ${item.iconColor}`} />
                       </div>
@@ -1336,6 +1367,44 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
           })()}
         </CardContent>
       </Card>
+      {/* Interest Detail Sheet */}
+      <Sheet open={showInterestDetail} onOpenChange={setShowInterestDetail}>
+        <SheetContent side="bottom" className="max-h-[80vh] overflow-y-auto">
+          <SheetHeader>
+            <SheetTitle>Juros Recebidos no Mês — {range.label}</SheetTitle>
+          </SheetHeader>
+          <div className="mt-4 space-y-2">
+            {data.interestDetailRecords.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-4">Nenhum registro de juros recebidos neste período.</p>
+            ) : (
+              <>
+                {data.interestDetailRecords.map((rec, i) => (
+                  <div key={i} className="flex items-center justify-between p-3 rounded-lg bg-muted/50 border border-border/30">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium truncate">{rec.borrowerName}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {new Date(rec.date + "T00:00:00").toLocaleDateString("pt-BR")} — {rec.type === "quitação" ? "Lucro na quitação" : "Juros da parcela"}
+                      </p>
+                    </div>
+                    <div className="text-right ml-3">
+                      <p className="text-sm font-bold text-warning">{formatCurrency(rec.interestPortion)}</p>
+                      {rec.type === "juros" && (
+                        <p className="text-[10px] text-muted-foreground">de {formatCurrency(rec.totalPayment)}</p>
+                      )}
+                    </div>
+                  </div>
+                ))}
+                <div className="flex items-center justify-between pt-3 border-t border-border">
+                  <p className="text-sm font-semibold">Total</p>
+                  <p className="text-sm font-bold text-warning">
+                    {formatCurrency(data.interestDetailRecords.reduce((s, r) => s + r.interestPortion, 0))}
+                  </p>
+                </div>
+              </>
+            )}
+          </div>
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }
