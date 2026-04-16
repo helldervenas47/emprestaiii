@@ -1,23 +1,29 @@
 
 
-# Plano: Adicionar "Pendente de Recebimento" ao Dashboard
+# Adicionar sub-cards de Saldo Previsto no card "Saldo em Conta"
 
-## Problema
+## O que será feito
 
-O card "Pendente de Recebimento" foi adicionado ao componente `DashboardCards.tsx`, mas esse componente **não é renderizado em nenhum lugar**. O dashboard real usa o componente `DashboardOverview.tsx`, que tem sua própria lista de cards (linha 626-633).
+Abaixo do valor de "Saldo em Conta", adicionar 2 mini-cards lado a lado:
 
-## Solução
+1. **Saldo Previsto (Domingo)** — Saldo atual + soma das parcelas (`remaining_amount` ou valor da parcela) que vencem até o próximo domingo (a partir de segunda-feira, considera o domingo seguinte)
+2. **Saldo Previsto (Fim do Mês)** — Saldo atual + soma das parcelas que vencem até o último dia do mês vigente
 
-Adicionar o card "Pendente de Recebimento" na lista de cards do `DashboardOverview.tsx`, entre "Total a Receber" e "Lucro Estimado".
+Apenas parcelas de empréstimos ativos e não pagas entram na simulação.
 
-### Alterações em `src/components/DashboardOverview.tsx`
+## Detalhes técnicos
 
-1. **No `useMemo` do portfolio** (~linha 186): calcular `pendingReceivable` como a soma de `remainingAmount` dos empréstimos ativos
-2. **Na lista de cards** (linha 628-629): inserir o novo item entre "Total a Receber" e "Lucro Estimado":
-   ```
-   { label: "Pendente de Recebimento", value: formatCurrency(portfolio.pendingReceivable), color: "text-orange-500", ... }
-   ```
+**Arquivo:** `src/components/DashboardOverview.tsx`
 
-## Arquivo alterado
-- `src/components/DashboardOverview.tsx`
+1. **Calcular próximo domingo:** Se hoje é domingo, usa hoje; senão, avança até o próximo domingo (day === 0)
+
+2. **Calcular parcelas elegíveis:** Filtrar `installmentSchedules` onde:
+   - O empréstimo está ativo (`status !== "paid"`)
+   - A parcela ainda não foi paga (`installmentNumber > loan.paidInstallments`)
+   - `dueDate` está entre hoje e o limite (domingo ou fim do mês)
+   - Somar os valores dessas parcelas
+
+3. **Saldo previsto = accountBalance + soma das parcelas elegíveis**
+
+4. **Layout:** Dentro do card `Saldo em Conta` (linhas ~553-578), após o valor do saldo, adicionar uma div com `grid grid-cols-2 gap-2` contendo os dois mini-cards com ícone de calendário, label e valor formatado
 
