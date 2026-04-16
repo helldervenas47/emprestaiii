@@ -1474,7 +1474,7 @@ export function ProductSalesView({ sales, onDeleteSale, onUpdateSale, clients = 
             </div>
           ) : (
             <p
-              className="text-xl font-bold cursor-pointer hover:opacity-70 transition-opacity"
+              className={`text-xl font-bold cursor-pointer hover:opacity-70 transition-opacity ${balance < 0 ? "text-destructive" : ""}`}
               onClick={() => { setBalanceInput(String(balance)); setEditingBalance(true); }}
               title="Clique para editar"
             >

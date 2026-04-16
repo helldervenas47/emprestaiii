@@ -666,7 +666,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
                     <Button variant="ghost" size="icon" className="h-7 w-7" onClick={cancelEditBalance}><X className="h-3.5 w-3.5 text-destructive" /></Button>
                   </div>
                 ) : (
-                  <p className="text-lg font-bold text-foreground">{formatCurrency(accountBalance)}</p>
+                  <p className={`text-lg font-bold ${accountBalance < 0 ? "text-destructive" : "text-foreground"}`}>{formatCurrency(accountBalance)}</p>
                 )}
               </div>
             </div>
@@ -676,14 +676,14 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
                   <Calendar className="h-3 w-3 text-primary" />
                   <p className="text-[10px] text-muted-foreground">Prev. Domingo</p>
                 </div>
-                <p className="text-sm font-semibold text-foreground">{formatCurrency(accountBalance + portfolio.forecastSunday)}</p>
+                <p className={`text-sm font-semibold ${(accountBalance + portfolio.forecastSunday) < 0 ? "text-destructive" : "text-foreground"}`}>{formatCurrency(accountBalance + portfolio.forecastSunday)}</p>
               </div>
               <div className="bg-muted/50 rounded-lg p-3 border border-border/30 flex flex-col items-center justify-center text-center">
                 <div className="flex items-center gap-1.5 mb-1">
                   <Calendar className="h-3 w-3 text-primary" />
                   <p className="text-[10px] text-muted-foreground">Prev. Fim do Mês</p>
                 </div>
-                <p className="text-sm font-semibold text-foreground">{formatCurrency(accountBalance + portfolio.forecastEndMonth)}</p>
+                <p className={`text-sm font-semibold ${(accountBalance + portfolio.forecastEndMonth) < 0 ? "text-destructive" : "text-foreground"}`}>{formatCurrency(accountBalance + portfolio.forecastEndMonth)}</p>
               </div>
             </div>
           </CardContent>
