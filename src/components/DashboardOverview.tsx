@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { getBalance, setBalance } from "@/lib/balance";
 import {
   TrendingUp, TrendingDown, DollarSign, ArrowUpRight, ArrowDownRight,
-  ChevronLeft, ChevronRight, ChevronDown, Percent, Wallet, Pencil, Check, X, Trash2,
+  ChevronLeft, ChevronRight, ChevronDown, Percent, Wallet, Pencil, Check, X, Trash2, Calendar,
 } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
 
@@ -356,6 +356,45 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
     const profitScore = Math.min(100, Math.max(0, 50 + profitMargin));
     const score = Math.round(receivingScore * 0.4 + defaultScore * 0.35 + profitScore * 0.25);
 
+    // Forecast: next Sunday
+    const todayForecast = new Date(); todayForecast.setHours(0, 0, 0, 0);
+    const dayOfWeek = todayForecast.getDay(); // 0=Sun
+    const nextSunday = new Date(todayForecast);
+    if (dayOfWeek === 0) {
+      // today is Sunday — use today
+    } else {
+      nextSunday.setDate(nextSunday.getDate() + (7 - dayOfWeek));
+    }
+    nextSunday.setHours(23, 59, 59, 999);
+
+    // Forecast: end of month
+    const endOfMonth = new Date(todayForecast.getFullYear(), todayForecast.getMonth() + 1, 0, 23, 59, 59, 999);
+
+    const calcForecast = (limitDate: Date) => {
+      let sum = 0;
+      activeLoans.forEach((l) => {
+        if (l.installments >= 2) {
+          installmentSchedules.filter((sc) => {
+            if (sc.loanId !== l.id) return false;
+            if (sc.installmentNumber <= l.paidInstallments) return false;
+            const d = new Date(sc.dueDate + "T00:00:00");
+            return d >= todayForecast && d <= limitDate;
+          }).forEach((sc) => { sum += sc.amount; });
+        } else {
+          if (l.paidInstallments < 1) {
+            const d = new Date(l.dueDate + "T00:00:00");
+            if (d >= todayForecast && d <= limitDate) {
+              sum += calculateTotalWithInterest(l.amount, l.interestRate, l.installments);
+            }
+          }
+        }
+      });
+      return sum;
+    };
+
+    const forecastSunday = calcForecast(nextSunday);
+    const forecastEndMonth = calcForecast(endOfMonth);
+
     return {
       score: Math.max(0, Math.min(100, score)),
       receivingRate: Math.min(100, receivingRate),
@@ -369,6 +408,8 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
       estimatedProfit,
       interestDueThisMonth,
       globalInterestRate,
+      forecastSunday,
+      forecastEndMonth,
     };
   }, [loans, payments, installmentSchedules]);
 
@@ -551,30 +592,48 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
       {/* Account balance + Interest rate + Profit */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <Card className="animate-fade-in" style={{ animationDelay: '80ms', animationFillMode: 'backwards' }}>
-          <CardContent className="p-4 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                <Wallet className="h-5 w-5 text-primary" />
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                  <Wallet className="h-5 w-5 text-primary" />
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">Saldo em Conta</p>
+                  {editingBalance ? (
+                    <div className="flex items-center gap-1 mt-0.5">
+                      <Input type="number" value={tempBalance} onChange={(e) => setTempBalance(e.target.value)}
+                        className="h-7 w-32 text-sm" onKeyDown={(e) => e.key === "Enter" && saveBalance()} autoFocus />
+                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={saveBalance}><Check className="h-3.5 w-3.5 text-success" /></Button>
+                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={cancelEditBalance}><X className="h-3.5 w-3.5 text-destructive" /></Button>
+                    </div>
+                  ) : (
+                    <p className="text-lg font-bold text-foreground">{formatCurrency(accountBalance)}</p>
+                  )}
+                </div>
               </div>
-              <div>
-                <p className="text-xs text-muted-foreground">Saldo em Conta</p>
-                {editingBalance ? (
-                  <div className="flex items-center gap-1 mt-0.5">
-                    <Input type="number" value={tempBalance} onChange={(e) => setTempBalance(e.target.value)}
-                      className="h-7 w-32 text-sm" onKeyDown={(e) => e.key === "Enter" && saveBalance()} autoFocus />
-                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={saveBalance}><Check className="h-3.5 w-3.5 text-success" /></Button>
-                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={cancelEditBalance}><X className="h-3.5 w-3.5 text-destructive" /></Button>
-                  </div>
-                ) : (
-                  <p className="text-lg font-bold text-foreground">{formatCurrency(accountBalance)}</p>
-                )}
+              {!editingBalance && (
+                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={startEditBalance}>
+                  <Pencil className="h-4 w-4 text-muted-foreground" />
+                </Button>
+              )}
+            </div>
+            <div className="grid grid-cols-2 gap-2 mt-3">
+              <div className="bg-muted/50 rounded-lg p-2.5 border border-border/30">
+                <div className="flex items-center gap-1.5 mb-1">
+                  <Calendar className="h-3 w-3 text-primary" />
+                  <p className="text-[10px] text-muted-foreground">Prev. Domingo</p>
+                </div>
+                <p className="text-sm font-semibold text-foreground">{formatCurrency(accountBalance + portfolio.forecastSunday)}</p>
+              </div>
+              <div className="bg-muted/50 rounded-lg p-2.5 border border-border/30">
+                <div className="flex items-center gap-1.5 mb-1">
+                  <Calendar className="h-3 w-3 text-primary" />
+                  <p className="text-[10px] text-muted-foreground">Prev. Fim do Mês</p>
+                </div>
+                <p className="text-sm font-semibold text-foreground">{formatCurrency(accountBalance + portfolio.forecastEndMonth)}</p>
               </div>
             </div>
-            {!editingBalance && (
-              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={startEditBalance}>
-                <Pencil className="h-4 w-4 text-muted-foreground" />
-              </Button>
-            )}
           </CardContent>
         </Card>
 
