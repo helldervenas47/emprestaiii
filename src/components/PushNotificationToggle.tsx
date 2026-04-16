@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Bell, BellOff, Clock, Send, Loader2 } from "lucide-react";
+import { Bell, BellOff, Clock, Send, Loader2, AlertTriangle } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";

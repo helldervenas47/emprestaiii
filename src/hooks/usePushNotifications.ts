@@ -38,6 +38,11 @@ export function usePushNotifications() {
       setPermission(Notification.permission);
     }
 
+    // On iOS, push only works in standalone (installed) mode
+    if (isIOSDevice() && !isInStandaloneMode()) {
+      setNeedsInstall(true);
+    }
+
     if (supported && user) {
       checkExistingSubscription();
     } else {
@@ -168,5 +173,5 @@ export function usePushNotifications() {
     }
   }, []);
 
-  return { isSupported, isSubscribed, isLoading, permission, sendTime, subscribe, unsubscribe, updateSendTime, sendTestNotification };
+  return { isSupported, isSubscribed, isLoading, permission, sendTime, needsInstall, subscribe, unsubscribe, updateSendTime, sendTestNotification };
 }
