@@ -688,20 +688,19 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
 
       {/* Portfolio metrics */}
       {(() => {
-        // Get current month interest received from chart
-        const now = new Date();
-        const currentMonthLabel = `${monthNames[now.getMonth()].slice(0, 3)}/${String(now.getFullYear()).slice(2)}`;
-        const currentMonthInterest = interestChart.find((m) => m.month === currentMonthLabel)?.juros ?? 0;
-        const interestPendingMonth = Math.max(0, portfolio.interestDueThisMonth - currentMonthInterest);
+        // Interest metrics based on selected period filter (installment due dates)
+        const interestDueInPeriod = data.periodProfitExpected;
+        const interestReceivedInPeriod = data.periodProfitRealized;
+        const interestPendingInPeriod = Math.max(0, interestDueInPeriod - interestReceivedInPeriod);
 
         const items = [
           { label: "Capital na Rua", value: formatCurrency(portfolio.capitalOnStreet), color: "text-foreground", iconBg: "bg-primary/10", iconColor: "text-primary" },
           { label: "Total a Receber", value: formatCurrency(portfolio.totalToReceive), color: "text-foreground", iconBg: "bg-primary/10", iconColor: "text-primary" },
           { label: "Pendente de Recebimento", value: formatCurrency(portfolio.pendingReceivable), color: "text-success", iconBg: "bg-success/10", iconColor: "text-success" },
           { label: "Lucro Estimado", value: formatCurrency(portfolio.estimatedProfit), color: "text-success", iconBg: "bg-success/10", iconColor: "text-success" },
-          { label: "Juros a Receber no Mês", value: formatCurrency(portfolio.interestDueThisMonth), color: "text-success", iconBg: "bg-success/10", iconColor: "text-success" },
-          { label: "Juros Recebidos no Mês", value: formatCurrency(currentMonthInterest), color: "text-warning", iconBg: "bg-warning/10", iconColor: "text-warning" },
-          { label: "Juros Pendentes do Mês", value: formatCurrency(interestPendingMonth), color: "text-warning", iconBg: "bg-warning/10", iconColor: "text-warning" },
+          { label: "Juros a Receber no Mês", value: formatCurrency(interestDueInPeriod), color: "text-success", iconBg: "bg-success/10", iconColor: "text-success" },
+          { label: "Juros Recebidos no Mês", value: formatCurrency(interestReceivedInPeriod), color: "text-warning", iconBg: "bg-warning/10", iconColor: "text-warning" },
+          { label: "Juros Pendentes do Mês", value: formatCurrency(interestPendingInPeriod), color: "text-warning", iconBg: "bg-warning/10", iconColor: "text-warning" },
         ];
 
         const pendingCard = items[2]; // Pendente de Recebimento
