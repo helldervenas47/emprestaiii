@@ -14,10 +14,10 @@ const HOURS = Array.from({ length: 24 }, (_, i) => {
   return `${h}:00`;
 });
 
-const TEST_BODIES: Record<string, string> = {
-  parcelas_hoje: "🟡 Teste: Você tem parcelas vencendo hoje!",
-  parcelas_atrasadas: "🔴 Teste: Você tem parcelas em atraso!",
-  resumo_diario: "📊 Teste: Resumo diário das suas cobranças.",
+const TEST_URLS: Record<string, string> = {
+  parcelas_hoje: "/?tab=dashboard&filter=due_today&view=rows",
+  parcelas_atrasadas: "/?tab=dashboard&filter=overdue&view=rows",
+  resumo_diario: "/?tab=overdue",
 };
 
 export function NotificationSettings() {
@@ -33,11 +33,16 @@ export function NotificationSettings() {
         toast.error("Ative as notificações push primeiro.");
         return;
       }
+      const testBody: Record<string, string> = {
+        parcelas_hoje: "🟡 Teste: Você tem parcelas vencendo hoje!",
+        parcelas_atrasadas: "🔴 Teste: Você tem parcelas em atraso!",
+        resumo_diario: "📊 Teste: Resumo diário das suas cobranças.",
+      };
       await reg.showNotification("📊 Empréstai — Teste", {
-        body: TEST_BODIES[type] || `Teste: ${label}`,
+        body: testBody[type] || `Teste: ${label}`,
         icon: "/logo-icon.png",
         badge: "/logo-icon.png",
-        data: { url: "/?tab=overdue" },
+        data: { url: TEST_URLS[type] || "/" },
       } as NotificationOptions);
       toast.success("Notificação de teste enviada!");
     } catch {

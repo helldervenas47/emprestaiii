@@ -212,6 +212,10 @@ const Index = () => {
   });
   const setTab = (t: Tab) => { sessionStorage.setItem("activeTab", t); setTabState(t); };
 
+  // Read initial loan filter/view from URL query params (for push notification deep links)
+  const urlParams = new URLSearchParams(window.location.search);
+  const initialLoanCategory = urlParams.get("filter") as any;
+  const initialLoanView = urlParams.get("view") as any;
   const { loans, payments, installmentSchedules, addLoan, addPayment, addPartialPayment, addInterestOnlyPayment, updateLoan, deleteLoan, deletePayment, saveSchedule } = useLoans();
   const { clients, addClient, deleteClient, updateClient } = useClients();
 
@@ -500,7 +504,7 @@ const Index = () => {
           <>
             <div>
               <h2 className="text-lg font-semibold text-foreground mb-4">Empréstimos</h2>
-              <LoanList loans={filteredLoans} payments={filteredPayments} installmentSchedules={filteredInstallments} onPayment={addPayment} onPartialPayment={addPartialPayment} onInterestPayment={addInterestOnlyPayment} onUpdate={updateLoan} onDelete={deleteLoan} onDeletePayment={deletePayment} onSaveSchedule={saveSchedule} readOnly={isReadOnly} />
+              <LoanList loans={filteredLoans} payments={filteredPayments} installmentSchedules={filteredInstallments} onPayment={addPayment} onPartialPayment={addPartialPayment} onInterestPayment={addInterestOnlyPayment} onUpdate={updateLoan} onDelete={deleteLoan} onDeletePayment={deletePayment} onSaveSchedule={saveSchedule} readOnly={isReadOnly} initialCategory={initialLoanCategory} initialView={initialLoanView} />
             </div>
           </>
         )}

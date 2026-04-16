@@ -36,6 +36,8 @@ interface Props {
   onSaveSchedule: (loanId: string, rows: { installmentNumber: number; dueDate: string; amount: number }[]) => Promise<void>;
   readOnly?: boolean;
   existingTags?: string[];
+  initialCategory?: Category;
+  initialView?: "cards" | "rows" | "folders";
 }
 
 type Category = "all" | "overdue" | "paid_interest" | "paid" | "due_today" | "on_track" | "parcelado";
@@ -1841,12 +1843,12 @@ function ClientFolder({
   );
 }
 
-export function LoanList({ loans, payments, installmentSchedules, onPayment, onPartialPayment, onInterestPayment, onUpdate, onDelete, onDeletePayment, onSaveSchedule, readOnly = false }: Props) {
+export function LoanList({ loans, payments, installmentSchedules, onPayment, onPartialPayment, onInterestPayment, onUpdate, onDelete, onDeletePayment, onSaveSchedule, readOnly = false, initialCategory, initialView }: Props) {
   const { mask } = useHideValues();
   const formatCurrency = useCallback((v: number) => mask(rawFormatCurrency(v)), [mask]);
-  const [view, setView] = useState<"cards" | "rows" | "folders">("cards");
+  const [view, setView] = useState<"cards" | "rows" | "folders">(initialView ?? "cards");
   const [search, setSearch] = useState("");
-  const [category, setCategory] = useState<Category>("all");
+  const [category, setCategory] = useState<Category>(initialCategory ?? "all");
   const [showFilters, setShowFilters] = useState(false);
   const [dueDateQuick, setDueDateQuick] = useState<"yesterday" | "today" | "tomorrow" | null>(null);
   const [dateFrom, setDateFrom] = useState("");
