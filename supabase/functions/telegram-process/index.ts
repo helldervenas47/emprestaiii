@@ -200,6 +200,103 @@ async function extractExpense(text: string, lovableKey: string) {
   try { return JSON.parse(call.function.arguments); } catch { return null; }
 }
 
+async function downloadTelegramPhoto(fileId: string, lovableKey: string, telegramKey: string): Promise<string | null> {
+  try {
+    const fileResp = await fetch(`${GATEWAY_URL}/getFile`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${lovableKey}`,
+        "X-Connection-Api-Key": telegramKey,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ file_id: fileId }),
+    });
+    const fileData = await fileResp.json();
+    if (!fileResp.ok) {
+      console.error("getFile failed", fileData);
+      return null;
+    }
+    const filePath = fileData.result?.file_path;
+    if (!filePath) return null;
+
+    const dl = await fetch(`${GATEWAY_URL}/file/${filePath}`, {
+      headers: {
+        Authorization: `Bearer ${lovableKey}`,
+        "X-Connection-Api-Key": telegramKey,
+      },
+    });
+    if (!dl.ok) {
+      console.error("file download failed", dl.status);
+      return null;
+    }
+    const buf = new Uint8Array(await dl.arrayBuffer());
+    let binary = "";
+    const chunk = 0x8000;
+    for (let i = 0; i < buf.length; i += chunk) {
+      binary += String.fromCharCode(...buf.subarray(i, i + chunk));
+    }
+    const b64 = btoa(binary);
+    const ext = filePath.split(".").pop()?.toLowerCase() || "jpg";
+    const mime = ext === "png" ? "image/png" : ext === "webp" ? "image/webp" : "image/jpeg";
+    return `data:${mime};base64,${b64}`;
+  } catch (e) {
+    console.error("downloadTelegramPhoto err", e);
+    return null;
+  }
+}
+
+async function extractExpenseFromImage(imageDataUrl: string, caption: string, lovableKey: string) {
+  const today = new Date().toISOString().slice(0, 10);
+  const sysPrompt = `Você extrai despesas pessoais de imagens de cupons fiscais, notas fiscais ou comprovantes em português brasileiro. Hoje é ${today}. Categorias permitidas: ${CATEGORIES.join(", ")}. Some o valor TOTAL do comprovante (não item por item). Se a imagem não for um comprovante legível, retorne confidence baixo.${caption ? ` Contexto adicional do usuário: "${caption}"` : ""}`;
+
+  const resp = await fetch(AI_GATEWAY, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${lovableKey}`, "Content-Type": "application/json" },
+    body: JSON.stringify({
+      model: "google/gemini-3-flash-preview",
+      messages: [
+        { role: "system", content: sysPrompt },
+        {
+          role: "user",
+          content: [
+            { type: "text", text: caption || "Extraia a despesa total deste comprovante." },
+            { type: "image_url", image_url: { url: imageDataUrl } },
+          ],
+        },
+      ],
+      tools: [{
+        type: "function",
+        function: {
+          name: "register_expense",
+          description: "Registra uma despesa pessoal extraída do comprovante",
+          parameters: {
+            type: "object",
+            properties: {
+              description: { type: "string", description: "Nome do estabelecimento ou descrição curta" },
+              amount: { type: "number", description: "Valor TOTAL do comprovante em reais" },
+              category: { type: "string", enum: CATEGORIES },
+              date: { type: "string", description: "Data YYYY-MM-DD; use a data do comprovante ou hoje" },
+              confidence: { type: "number", description: "0 a 1" },
+            },
+            required: ["description", "amount", "category", "date", "confidence"],
+            additionalProperties: false,
+          },
+        },
+      }],
+      tool_choice: { type: "function", function: { name: "register_expense" } },
+    }),
+  });
+  if (!resp.ok) {
+    const t = await resp.text();
+    console.error("AI image err", resp.status, t);
+    return null;
+  }
+  const data = await resp.json();
+  const call = data.choices?.[0]?.message?.tool_calls?.[0];
+  if (!call) return null;
+  try { return JSON.parse(call.function.arguments); } catch { return null; }
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
