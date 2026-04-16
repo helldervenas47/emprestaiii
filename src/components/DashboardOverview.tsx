@@ -995,7 +995,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
                   <p className="text-[10px] text-muted-foreground">{portfolio.overdueLoans.length} contrato{portfolio.overdueLoans.length !== 1 ? "s" : ""}</p>
                   {expandedBreakdown === "overdue" && portfolio.overdueLoans.length > 0 && (
                     <div className="mt-3 pt-3 border-t border-destructive/20 space-y-2 max-h-60 overflow-y-auto">
-                      {portfolio.overdueLoans.map((l) => {
+                      {[...portfolio.overdueLoans].sort((a, b) => a.dueDate.localeCompare(b.dueDate)).map((l) => {
                         const todayIso = new Date().toISOString().split("T")[0];
                         let remaining: number;
                         if (l.installments >= 2) {
