@@ -2,7 +2,7 @@ import { useState, useEffect, lazy, Suspense } from "react";
 import { Plus, Users, LayoutDashboard, ShoppingBag, BarChart3, AlertTriangle, Receipt, CalendarDays, Sun, Moon, LogOut, Info, X, Eye, EyeOff, Car, Wrench, DatabaseBackup, Menu, User, RefreshCw, Bell } from "lucide-react";
 import logoIcon from "@/assets/logo-icon.png";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { useIsMobile } from "@/hooks/use-mobile";
+import { useIsMobile, useIsMobileOrTablet } from "@/hooks/use-mobile";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
@@ -266,11 +266,12 @@ const Index = () => {
   const [showVehicleExpenseForm, setShowVehicleExpenseForm] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const isMobile = useIsMobile();
+  const isMobileOrTablet = useIsMobileOrTablet();
   const isReadOnly = role === "visualizador";
 
   // Swipe from left edge to open sidebar on mobile
   useEffect(() => {
-    if (!isMobile) return;
+    if (!isMobileOrTablet) return;
     let touchStartX = 0;
     let touchStartY = 0;
     const onTouchStart = (e: TouchEvent) => {
@@ -292,7 +293,7 @@ const Index = () => {
       document.removeEventListener("touchstart", onTouchStart);
       document.removeEventListener("touchend", onTouchEnd);
     };
-  }, [isMobile]);
+  }, [isMobileOrTablet]);
 
   const visibleTabs = tabConfig.filter((t) => {
     if (loading) return false;
@@ -357,7 +358,7 @@ const Index = () => {
       <header className="border-b border-border/30 glass sticky top-0 z-40">
         <div className="max-w-[1920px] mx-auto px-3 sm:px-4 lg:px-8 py-2 sm:py-3 flex items-center justify-between gap-2">
           <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-            {isMobile && (
+            {isMobileOrTablet && (
               <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
                 <SheetTrigger asChild>
                   <Button variant="ghost" size="icon" className="h-8 w-8">
@@ -474,7 +475,7 @@ const Index = () => {
           </div>
         </div>
 
-        {!isMobile && (
+        {!isMobileOrTablet && (
           <div className="max-w-[1920px] mx-auto px-2 sm:px-4 lg:px-8">
             <nav className="flex gap-0.5 -mb-px overflow-x-auto scrollbar-hide pb-0">
               {visibleTabs.map((t) => (
