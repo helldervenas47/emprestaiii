@@ -1,4 +1,4 @@
-import { DollarSign, TrendingUp, Users, AlertTriangle, Crown } from "lucide-react";
+import { DollarSign, TrendingUp, Users, AlertTriangle, Crown, Clock } from "lucide-react";
 import { Loan, Payment } from "@/types/loan";
 import { calculateTotalWithInterest } from "@/hooks/useLoans";
 import { useHideValues } from "@/contexts/HideValuesContext";
@@ -51,6 +51,9 @@ export function DashboardCards({ loans, payments }: Props) {
   const todayStr = new Date().toISOString().split("T")[0];
   const overdueLoans = loans.filter((l) => l.status === "overdue" && l.dueDate < todayStr).length;
 
+  // Pendente de Recebimento = soma do remaining_amount dos empréstimos ativos
+  const pendingReceivable = activeLoansData.reduce((sum, l) => sum + (l.remainingAmount ?? 0), 0);
+
   // Calculate loan limit usage (default 5 for trial users without subscription)
   const maxLoans = planLimits?.maxLoans || 5;
   const loanLimitPercent = Math.min(100, (activeLoans / maxLoans) * 100);
@@ -60,6 +63,7 @@ export function DashboardCards({ loans, payments }: Props) {
   const cards = [
     { title: "Capital na Rua", value: formatCurrency(totalLent), isCurrency: true, icon: DollarSign, accentClass: "text-primary", bgClass: "bg-primary/10", glowClass: "glow-primary" },
     { title: "Total a Receber", value: formatCurrency(totalToReceive), isCurrency: true, icon: TrendingUp, accentClass: "text-success", bgClass: "bg-success/10", glowClass: "glow-success" },
+    { title: "Pendente de Recebimento", value: formatCurrency(pendingReceivable), isCurrency: true, icon: Clock, accentClass: "text-orange-500", bgClass: "bg-orange-500/10", glowClass: "" },
     { title: "Lucro Estimado", value: formatCurrency(estimatedProfit), isCurrency: true, icon: TrendingUp, accentClass: "text-warning", bgClass: "bg-warning/10", glowClass: "" },
     { 
       title: "Empréstimos Ativos", 
@@ -76,7 +80,7 @@ export function DashboardCards({ loans, payments }: Props) {
 
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
         {cards.map((card, i) => (
           <div key={card.title} className={`rounded-2xl p-5 bg-card border border-border/20 shadow-[0_1px_8px_-4px_hsl(0_0%_0%/0.05)] backdrop-blur-sm ${card.glowClass} transition-all duration-400 ease-out hover:shadow-[0_4px_16px_-6px_hsl(0_0%_0%/0.08)] hover:-translate-y-[1px] text-center animate-fade-in`} style={{ animationDelay: `${i * 80}ms`, animationFillMode: 'backwards' }}>
             <div className="flex items-center justify-center mb-3">
