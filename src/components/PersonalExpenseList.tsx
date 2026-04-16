@@ -244,7 +244,7 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, readOn
     <div className="space-y-4">
       {/* Summary cards */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-2 sm:gap-3">
-        <Card>
+        <Card no3d>
           <CardContent className="p-3 sm:p-4 flex flex-col items-center text-center">
             <div className="h-8 w-8 rounded-lg bg-success/10 flex items-center justify-center mb-2">
               <CheckCircle className="h-4 w-4 text-success" />
@@ -253,7 +253,7 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, readOn
             <p className="text-sm sm:text-lg font-bold text-success mt-0.5">{formatCurrency(totalPaid)}</p>
           </CardContent>
         </Card>
-        <Card>
+        <Card no3d>
           <CardContent className="p-3 sm:p-4 flex flex-col items-center text-center">
             <div className="h-8 w-8 rounded-lg bg-warning/10 flex items-center justify-center mb-2">
               <CircleDollarSign className="h-4 w-4 text-warning" />
@@ -262,7 +262,7 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, readOn
             <p className="text-sm sm:text-lg font-bold text-foreground mt-0.5">{formatCurrency(totalPending)}</p>
           </CardContent>
         </Card>
-        <Card>
+        <Card no3d>
           <CardContent className="p-3 sm:p-4 flex flex-col items-center text-center">
             <div className="h-8 w-8 rounded-lg bg-destructive/10 flex items-center justify-center mb-2">
               <CircleDollarSign className="h-4 w-4 text-destructive" />
@@ -271,7 +271,7 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, readOn
             <p className="text-sm sm:text-lg font-bold text-destructive mt-0.5">{formatCurrency(totalOverdue)}</p>
           </CardContent>
         </Card>
-        <Card>
+        <Card no3d>
           <CardContent className="p-3 sm:p-4 flex flex-col items-center text-center">
             <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center mb-2">
               <CalendarDays className="h-4 w-4 text-primary" />
@@ -280,7 +280,7 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, readOn
             <p className="text-sm sm:text-lg font-bold text-foreground mt-0.5">{formatCurrency(dailyAverage)}</p>
           </CardContent>
         </Card>
-        <Card>
+        <Card no3d>
           <CardContent className="p-3 sm:p-4 flex flex-col items-center text-center">
             <div className="h-8 w-8 rounded-lg bg-accent/30 flex items-center justify-center mb-2">
               <TrendingUp className="h-4 w-4 text-foreground" />
@@ -312,7 +312,7 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, readOn
 
       {/* Category chart */}
       {categoryData.length > 0 && (
-        <Card>
+        <Card no3d>
           <CardContent className="p-4">
             <div className="flex items-center justify-between mb-3">
               <h3 className="text-sm font-semibold text-foreground">Gastos por categoria</h3>
@@ -373,7 +373,7 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, readOn
       <TelegramConnectCard />
 
       {/* Budget per category */}
-      <Card>
+      <Card no3d>
         <CardContent className="p-4">
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
@@ -446,7 +446,7 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, readOn
       </Card>
 
       {/* Monthly evolution per category */}
-      <Card>
+      <Card no3d>
         <CardContent className="p-4">
           <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
             <div className="flex items-center gap-2">
@@ -570,7 +570,7 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, readOn
 
       {/* List */}
       {filtered.length === 0 ? (
-        <Card>
+        <Card no3d>
           <CardContent className="py-12 text-center">
             <Receipt className="h-12 w-12 mx-auto text-muted-foreground/40 mb-3" />
             <p className="text-muted-foreground">
@@ -588,7 +588,7 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, readOn
             const Icon = cat.icon;
 
             return (
-              <Card key={expense.id} className={overdue ? "border-destructive/50" : ""}>
+              <Card no3d key={expense.id} className={overdue ? "border-destructive/50" : ""}>
                 <CardContent className="p-3 sm:p-4">
                   <div className="flex items-start gap-3">
                     <div

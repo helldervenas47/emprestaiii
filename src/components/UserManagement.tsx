@@ -410,7 +410,7 @@ export function UserManagement() {
           <div className="animate-spin h-8 w-8 border-2 border-primary border-t-transparent rounded-full" />
         </div>
       ) : users.length === 0 ? (
-        <Card>
+        <Card no3d>
           <CardContent className="py-8 text-center text-muted-foreground">
             Nenhum usuário encontrado
           </CardContent>
@@ -421,7 +421,7 @@ export function UserManagement() {
             {users.map((user) => {
               const isExpanded = expandedUserId === user.id;
               return (
-                <Card key={user.id} className="overflow-hidden">
+                <Card no3d key={user.id} className="overflow-hidden">
                   <button
                     className="w-full flex items-center justify-between p-3 text-left"
                     onClick={() => setExpandedUserId(isExpanded ? null : user.id)}
@@ -496,7 +496,7 @@ export function UserManagement() {
             })}
           </div>
         ) : (
-        <Card>
+        <Card no3d>
           <CardContent className="p-0">
             <Table>
               <TableHeader>
