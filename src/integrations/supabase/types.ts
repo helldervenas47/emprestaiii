@@ -885,8 +885,12 @@ export type Database = {
         Row: {
           created_at: string
           enabled: boolean
+          last_monthly_sent_month: string | null
           last_sent_date: string | null
           last_weekly_sent_date: string | null
+          monthly_enabled: boolean
+          monthly_send_day: number
+          monthly_send_time: string
           send_time: string
           updated_at: string
           user_id: string
@@ -897,8 +901,12 @@ export type Database = {
         Insert: {
           created_at?: string
           enabled?: boolean
+          last_monthly_sent_month?: string | null
           last_sent_date?: string | null
           last_weekly_sent_date?: string | null
+          monthly_enabled?: boolean
+          monthly_send_day?: number
+          monthly_send_time?: string
           send_time?: string
           updated_at?: string
           user_id: string
@@ -909,8 +917,12 @@ export type Database = {
         Update: {
           created_at?: string
           enabled?: boolean
+          last_monthly_sent_month?: string | null
           last_sent_date?: string | null
           last_weekly_sent_date?: string | null
+          monthly_enabled?: boolean
+          monthly_send_day?: number
+          monthly_send_time?: string
           send_time?: string
           updated_at?: string
           user_id?: string
