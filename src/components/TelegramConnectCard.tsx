@@ -167,6 +167,16 @@ export function TelegramConnectCard() {
               <p className="text-[10px] text-muted-foreground">
                 Total gasto no dia + saldo dos orçamentos por categoria.
               </p>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={sendSummaryNow}
+                disabled={sendingNow}
+                className="w-full"
+              >
+                <Zap className="h-3.5 w-3.5 mr-1" />
+                {sendingNow ? "Enviando…" : "Enviar resumo agora"}
+              </Button>
             </div>
           </div>
         ) : code ? (
