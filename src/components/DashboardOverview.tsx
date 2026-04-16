@@ -616,7 +616,6 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
                 )}
               </div>
             </div>
-            </div>
             <div className="grid grid-cols-2 gap-2 mt-3 flex-1">
               <div className="bg-muted/50 rounded-lg p-3 border border-border/30 flex flex-col items-center justify-center text-center">
                 <div className="flex items-center gap-1.5 mb-1">
