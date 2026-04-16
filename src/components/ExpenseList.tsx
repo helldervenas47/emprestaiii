@@ -250,7 +250,7 @@ export function ExpenseList({ expenses, onPay, onUnpay, onDelete, onUpdate, read
     <div className="space-y-4">
       {/* Summary cards */}
       <div className="grid grid-cols-3 gap-2 sm:gap-3">
-        <Card className="animate-fade-in" style={{ animationDelay: '0ms', animationFillMode: 'backwards' }}>
+        <Card no3d className="animate-fade-in" style={{ animationDelay: '0ms', animationFillMode: 'backwards' }}>
           <CardContent className="p-3 sm:p-4 flex flex-col items-center text-center">
             <div className="h-8 w-8 rounded-lg bg-warning/10 flex items-center justify-center mb-2">
               <CircleDollarSign className="h-4 w-4 text-warning" />
@@ -259,7 +259,7 @@ export function ExpenseList({ expenses, onPay, onUnpay, onDelete, onUpdate, read
             <p className="text-sm sm:text-lg font-bold text-foreground mt-0.5">{formatCurrency(totalPending)}</p>
           </CardContent>
         </Card>
-        <Card className="animate-fade-in" style={{ animationDelay: '80ms', animationFillMode: 'backwards' }}>
+        <Card no3d className="animate-fade-in" style={{ animationDelay: '80ms', animationFillMode: 'backwards' }}>
           <CardContent className="p-3 sm:p-4 flex flex-col items-center text-center">
             <div className="h-8 w-8 rounded-lg bg-destructive/10 flex items-center justify-center mb-2">
               <CircleDollarSign className="h-4 w-4 text-destructive" />
@@ -268,7 +268,7 @@ export function ExpenseList({ expenses, onPay, onUnpay, onDelete, onUpdate, read
             <p className="text-sm sm:text-lg font-bold text-destructive mt-0.5">{formatCurrency(totalOverdue)}</p>
           </CardContent>
         </Card>
-        <Card className="animate-fade-in" style={{ animationDelay: '160ms', animationFillMode: 'backwards' }}>
+        <Card no3d className="animate-fade-in" style={{ animationDelay: '160ms', animationFillMode: 'backwards' }}>
           <CardContent className="p-3 sm:p-4 flex flex-col items-center text-center">
             <div className="h-8 w-8 rounded-lg bg-success/10 flex items-center justify-center mb-2">
               <CheckCircle className="h-4 w-4 text-success" />
@@ -366,7 +366,7 @@ export function ExpenseList({ expenses, onPay, onUnpay, onDelete, onUpdate, read
 
       {/* List */}
       {filtered.length === 0 ? (
-        <Card>
+        <Card no3d>
           <CardContent className="py-12 text-center">
             <Receipt className="h-12 w-12 mx-auto text-muted-foreground/40 mb-3" />
             <p className="text-muted-foreground">
@@ -384,7 +384,7 @@ export function ExpenseList({ expenses, onPay, onUnpay, onDelete, onUpdate, read
 
             return (
               <div key={expense.id} className="animate-fade-in" style={{ animationDelay: `${i * 50}ms`, animationFillMode: 'backwards' }}>
-              <Card
+              <Card no3d
                 className={`transition-all duration-400 ease-out hover:shadow-[0_4px_16px_-6px_hsl(0_0%_0%/0.08)] hover:-translate-y-[1px] ${
                   expense.paid ? "opacity-60" : overdue ? "border-destructive/30" : ""
                 }`}
