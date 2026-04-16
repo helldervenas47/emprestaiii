@@ -121,4 +121,5 @@ export interface Expense {
   notes?: string;
   createdAt: string;
   parentExpenseId?: string;
+  scope?: "business" | "personal";
 }
