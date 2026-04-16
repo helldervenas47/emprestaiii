@@ -46,7 +46,7 @@ Deno.serve(async (req) => {
         "X-Connection-Api-Key": TELEGRAM_API_KEY,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ offset: currentOffset, timeout, allowed_updates: ["message"] }),
+      body: JSON.stringify({ offset: currentOffset, timeout, allowed_updates: ["message", "callback_query"] }),
     });
 
     const data = await resp.json();
@@ -59,13 +59,26 @@ Deno.serve(async (req) => {
     if (updates.length === 0) continue;
 
     const rows = updates
-      .filter((u: any) => u.message)
-      .map((u: any) => ({
-        update_id: u.update_id,
-        chat_id: u.message.chat.id,
-        text: u.message.text ?? u.message.caption ?? null,
-        raw_update: u,
-      }));
+      .map((u: any) => {
+        if (u.message) {
+          return {
+            update_id: u.update_id,
+            chat_id: u.message.chat.id,
+            text: u.message.text ?? u.message.caption ?? null,
+            raw_update: u,
+          };
+        }
+        if (u.callback_query?.message?.chat?.id) {
+          return {
+            update_id: u.update_id,
+            chat_id: u.callback_query.message.chat.id,
+            text: null,
+            raw_update: u,
+          };
+        }
+        return null;
+      })
+      .filter((r: any) => r !== null);
 
     if (rows.length > 0) {
       const { error: insertErr } = await supabase
