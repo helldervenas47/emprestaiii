@@ -96,6 +96,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
   const [editingBalance, setEditingBalance] = useState(false);
   const [tempBalance, setTempBalance] = useState("");
   const [includeSales, setIncludeSales] = useState(false);
+  const [showInterestDetail, setShowInterestDetail] = useState(false);
   const { chartOverrides, setChartOverrides, interestOverrides, setInterestOverrides } = useChartOverrides();
 
   const range = useMemo(() => getRange(period, offset), [period, offset]);
