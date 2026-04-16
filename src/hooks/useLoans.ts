@@ -388,7 +388,7 @@ export function useLoans() {
     await fetchPayments();
   }, [payments, loans, fetchSchedules, fetchLoans, fetchPayments]);
 
-  return { loans, payments, installmentSchedules, addLoan, addPayment, addPartialPayment, addInterestOnlyPayment, updateLoan, deleteLoan, deletePayment, saveSchedule };
+  return { loans, payments, installmentSchedules, addLoan, addPayment, addPartialPayment, payOffLoan, addInterestOnlyPayment, updateLoan, deleteLoan, deletePayment, saveSchedule };
 }
 
 export function calculateInstallment(principal: number, rate: number, months: number): number {
