@@ -592,7 +592,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
       {/* Account balance + Interest rate + Profit */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <Card className="animate-fade-in" style={{ animationDelay: '80ms', animationFillMode: 'backwards' }}>
-          <CardContent className="p-4">
+          <CardContent className="p-4 flex flex-col h-full">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
@@ -618,19 +618,15 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
                 </Button>
               )}
             </div>
-            <div className="grid grid-cols-2 gap-2 mt-3">
-              <div className="bg-muted/50 rounded-lg p-2.5 border border-border/30">
-                <div className="flex items-center gap-1.5 mb-1">
-                  <Calendar className="h-3 w-3 text-primary" />
-                  <p className="text-[10px] text-muted-foreground">Prev. Domingo</p>
-                </div>
+            <div className="grid grid-cols-2 gap-2 mt-3 flex-1">
+              <div className="aspect-square bg-muted/50 rounded-xl border border-border/30 flex flex-col items-center justify-center text-center p-2">
+                <Calendar className="h-4 w-4 text-primary mb-1" />
+                <p className="text-[10px] text-muted-foreground mb-0.5">Prev. Domingo</p>
                 <p className="text-sm font-semibold text-foreground">{formatCurrency(accountBalance + portfolio.forecastSunday)}</p>
               </div>
-              <div className="bg-muted/50 rounded-lg p-2.5 border border-border/30">
-                <div className="flex items-center gap-1.5 mb-1">
-                  <Calendar className="h-3 w-3 text-primary" />
-                  <p className="text-[10px] text-muted-foreground">Prev. Fim do Mês</p>
-                </div>
+              <div className="aspect-square bg-muted/50 rounded-xl border border-border/30 flex flex-col items-center justify-center text-center p-2">
+                <Calendar className="h-4 w-4 text-primary mb-1" />
+                <p className="text-[10px] text-muted-foreground mb-0.5">Prev. Fim do Mês</p>
                 <p className="text-sm font-semibold text-foreground">{formatCurrency(accountBalance + portfolio.forecastEndMonth)}</p>
               </div>
             </div>
