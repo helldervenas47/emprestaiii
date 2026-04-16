@@ -238,6 +238,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
     const totalExpected = loans.reduce((s, l) => s + calculateTotalWithInterest(l.amount, l.interestRate, l.installments), 0);
     const totalPrincipal = loans.reduce((s, l) => s + l.amount, 0);
     const totalInterestExpected = totalExpected - totalPrincipal;
+    const globalInterestRate = totalPrincipal > 0 ? ((totalExpected - totalPrincipal) / totalPrincipal) * 100 : 0;
 
     // Total a receber = total do contrato + multa/juros atraso + juros recebidos (installmentNumber === 0)
     const todayNorm = new Date(); todayNorm.setHours(0, 0, 0, 0);
@@ -367,6 +368,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
       pendingReceivable: activeLoans.reduce((s, l) => s + (l.remainingAmount ?? 0), 0),
       estimatedProfit,
       interestDueThisMonth,
+      globalInterestRate,
     };
   }, [loans, payments, installmentSchedules]);
 
@@ -586,6 +588,11 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
                 <p className="text-xs text-muted-foreground">Taxa de Juros Mensal</p>
                 <p className="text-lg font-bold text-foreground">{data.avgInterestRate.toFixed(1)}%</p>
                 <p className="text-xs text-muted-foreground">{data.loanCount} empréstimo(s) no período</p>
+                <div className="mt-2 pt-2 border-t border-border/30">
+                  <p className="text-xs text-muted-foreground">Taxa de Juros Geral</p>
+                  <p className="text-sm font-bold text-warning">{portfolio.globalInterestRate.toFixed(1)}%</p>
+                  <p className="text-[10px] text-muted-foreground">{loans.length} empréstimo(s) total</p>
+                </div>
               </div>
               <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform ${expandedBreakdown === "interest-rate" ? "rotate-180" : ""}`} />
             </div>
