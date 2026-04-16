@@ -218,15 +218,18 @@ export function ExpenseList({ expenses, onPay, onUnpay, onDelete, onUpdate, read
       return b.dueDate.localeCompare(a.dueDate);
     });
 
-  const totalPending = monthFiltered.filter((e) => !e.paid).reduce((s, e) => s + getInstallmentAmount(e), 0);
-  const totalPaid = monthFiltered.filter((e) => e.paid).reduce((s, e) => s + getInstallmentAmount(e), 0);
-  const totalOverdue = monthFiltered.filter((e) => isOverdue(e)).reduce((s, e) => s + getInstallmentAmount(e), 0);
+  const isRecFullyPaid = (e: Expense) => e.type === "recorrente" && !!e.installments && e.installments > 1 && e.paid;
+  const visibleMonth = monthFiltered.filter((e) => !isRecFullyPaid(e));
+
+  const totalPending = visibleMonth.filter((e) => !e.paid).reduce((s, e) => s + getInstallmentAmount(e), 0);
+  const totalPaid = visibleMonth.filter((e) => e.paid).reduce((s, e) => s + getInstallmentAmount(e), 0);
+  const totalOverdue = visibleMonth.filter((e) => isOverdue(e)).reduce((s, e) => s + getInstallmentAmount(e), 0);
 
   const filters: { id: Filter; label: string; count: number }[] = [
-    { id: "all", label: "Todas", count: monthFiltered.length },
-    { id: "pending", label: "Pendentes", count: monthFiltered.filter((e) => !e.paid && !isOverdue(e)).length },
-    { id: "overdue", label: "Atrasadas", count: monthFiltered.filter((e) => isOverdue(e)).length },
-    { id: "paid", label: "Pagas", count: monthFiltered.filter((e) => e.paid).length },
+    { id: "all", label: "Todas", count: visibleMonth.length },
+    { id: "pending", label: "Pendentes", count: visibleMonth.filter((e) => !e.paid && !isOverdue(e)).length },
+    { id: "overdue", label: "Atrasadas", count: visibleMonth.filter((e) => isOverdue(e)).length },
+    { id: "paid", label: "Pagas", count: visibleMonth.filter((e) => e.paid).length },
   ];
 
   const [selYear, selMonthNum] = selectedMonth.split("-").map(Number);
