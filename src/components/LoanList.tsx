@@ -1198,7 +1198,7 @@ function LoanCardView({
                         <Badge variant="outline" className={`text-[10px] ${
                           p.installmentNumber > 0 ? "bg-success/10 text-success border-success/20" :
                           p.installmentNumber === 0 ? "bg-purple/10 text-purple border-purple/20" :
-                          "bg-primary/10 text-primary border-primary/20"
+                          "bg-yellow-500/10 text-yellow-500 border-yellow-500/20"
                         }`}>
                           {p.installmentNumber > 0 ? `Parcela ${p.installmentNumber}` : p.installmentNumber === 0 ? "Juros" : "Parcial"}
                         </Badge>
@@ -1742,7 +1742,7 @@ function LoanRowView({
                         <Badge variant="outline" className={`text-[10px] ${
                           p.installmentNumber > 0 ? "bg-success/10 text-success border-success/20" :
                           p.installmentNumber === 0 ? "bg-purple/10 text-purple border-purple/20" :
-                          "bg-primary/10 text-primary border-primary/20"
+                          "bg-yellow-500/10 text-yellow-500 border-yellow-500/20"
                         }`}>
                           {p.installmentNumber > 0 ? `Parcela ${p.installmentNumber}` : p.installmentNumber === 0 ? "Juros" : "Parcial"}
                         </Badge>
