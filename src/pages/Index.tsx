@@ -37,6 +37,7 @@ const LocadorList = lazy(() => import("@/components/LocadorList").then(m => ({ d
 const SubscriptionBanner = lazy(() => import("@/components/SubscriptionBanner").then(m => ({ default: m.SubscriptionBanner })));
 const SubscriptionGate = lazy(() => import("@/components/SubscriptionGate").then(m => ({ default: m.SubscriptionGate })));
 const VehicleExpenseForm = lazy(() => import("@/components/VehicleExpenseForm").then(m => ({ default: m.VehicleExpenseForm })));
+const NotificationSettings = lazy(() => import("@/components/NotificationSettings").then(m => ({ default: m.NotificationSettings })));
 // Direct import for the constant used at render time
 import { vehicleExpenseCategories } from "@/components/VehicleExpenseForm";
 import { PushNotificationToggle } from "@/components/PushNotificationToggle";
@@ -72,6 +73,7 @@ type Tab = "overview" | "dashboard" | "clients" | "products" | "vehicles" | "ove
 type ClientSubTab = "clientes" | "veiculos";
 type VehicleSubTab = "veiculos" | "locadores";
 type PlanMgmtSubTab = "subscribers" | "plans";
+type OverdueSubTab = "cobrancas" | "notificacoes";
 
 const tabConfig = [
   { id: "overview" as Tab, label: "Dashboard", icon: BarChart3 },
@@ -223,6 +225,7 @@ const Index = () => {
   const [clientSubTab, setClientSubTab] = useState<ClientSubTab>("clientes");
   const [vehicleSubTab, setVehicleSubTab] = useState<VehicleSubTab>("veiculos");
   const [planMgmtSubTab, setPlanMgmtSubTab] = useState<PlanMgmtSubTab>("subscribers");
+  const [overdueSubTab, setOverdueSubTab] = useState<OverdueSubTab>("cobrancas");
 
   // Filter data by linked clients if user has client restrictions
   const hasClientFilter = Array.isArray(linkedClientIds) && linkedClientIds.length > 0;
@@ -577,7 +580,30 @@ const Index = () => {
         )}
         {tab === "overdue" && (
           <SubscriptionGate requiredTier={2} featureName="Relatórios">
-          <OverdueLoans loans={filteredLoans} payments={filteredPayments} clients={filteredClients} installmentSchedules={filteredInstallments} />
+          <div>
+            <div className="flex gap-2 mb-4">
+              <Button
+                variant={overdueSubTab === "cobrancas" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setOverdueSubTab("cobrancas")}
+              >
+                <AlertTriangle className="h-4 w-4 mr-1" /> Cobranças
+              </Button>
+              <Button
+                variant={overdueSubTab === "notificacoes" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setOverdueSubTab("notificacoes")}
+              >
+                <Bell className="h-4 w-4 mr-1" /> Notificações
+              </Button>
+            </div>
+            {overdueSubTab === "cobrancas" && (
+              <OverdueLoans loans={filteredLoans} payments={filteredPayments} clients={filteredClients} installmentSchedules={filteredInstallments} />
+            )}
+            {overdueSubTab === "notificacoes" && (
+              <NotificationSettings />
+            )}
+          </div>
           </SubscriptionGate>
         )}
         {tab === "calendar" && (
