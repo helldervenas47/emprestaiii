@@ -592,8 +592,41 @@ const Index = () => {
         {tab === "expenses" && (
           <SubscriptionGate requiredTier={2} featureName="Despesas">
           <div>
-            <h2 className="text-lg font-semibold text-foreground mb-4">Despesas ({nonVehicleExpenses.length})</h2>
-            <ExpenseList expenses={nonVehicleExpenses} onPay={payExpense} onUnpay={unpayExpense} onDelete={deleteExpense} onUpdate={updateExpense} readOnly={isReadOnly} />
+            <div className="w-full bg-muted/50 rounded-xl p-1 flex gap-0.5 mb-4">
+              <button
+                onClick={() => setExpenseSubTab("business")}
+                className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-all duration-200 ${
+                  expenseSubTab === "business"
+                    ? "bg-card text-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                <Receipt className="h-3.5 w-3.5 shrink-0" />
+                <span className="truncate">Despesas Empresa</span>
+              </button>
+              <button
+                onClick={() => setExpenseSubTab("personal")}
+                className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-all duration-200 ${
+                  expenseSubTab === "personal"
+                    ? "bg-card text-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                <User className="h-3.5 w-3.5 shrink-0" />
+                <span className="truncate">Despesas Pessoais</span>
+              </button>
+            </div>
+            {expenseSubTab === "business" ? (
+              <>
+                <h2 className="text-lg font-semibold text-foreground mb-4">Despesas Empresa ({businessExpenses.length})</h2>
+                <ExpenseList expenses={businessExpenses} onPay={payExpense} onUnpay={unpayExpense} onDelete={deleteExpense} onUpdate={updateExpense} readOnly={isReadOnly} />
+              </>
+            ) : (
+              <>
+                <h2 className="text-lg font-semibold text-foreground mb-4">Despesas Pessoais ({personalExpenses.length})</h2>
+                <PersonalExpenseList expenses={personalExpenses} onPay={payExpense} onUnpay={unpayExpense} onDelete={deleteExpense} onUpdate={updateExpense} readOnly={isReadOnly} />
+              </>
+            )}
           </div>
           </SubscriptionGate>
         )}
@@ -732,7 +765,8 @@ const Index = () => {
       {showClientForm && <ClientForm onAdd={addClient} onClose={() => setShowClientForm(false)} />}
       {showProductForm && <ProductForm onAdd={addProduct} onClose={() => setShowProductForm(false)} />}
       {showSaleForm && <SaleForm onAdd={addSale} onClose={() => setShowSaleForm(false)} clients={clients} defaultBusinessType={tab === "vehicles" ? "aluguel_veiculo" : undefined} registeredVehicles={registeredVehicles} locadores={locadores} />}
-      {showExpenseForm && <ExpenseForm onAdd={addExpense} onClose={() => setShowExpenseForm(false)} />}
+      {showExpenseForm && <ExpenseForm onAdd={addExpense} onClose={() => setShowExpenseForm(false)} scope="business" />}
+      {showPersonalExpenseForm && <PersonalExpenseForm onAdd={addExpense} onClose={() => setShowPersonalExpenseForm(false)} />}
       {showVehicleExpenseForm && <VehicleExpenseForm onAdd={addExpense} onClose={() => setShowVehicleExpenseForm(false)} />}
     </div>
     </HideValuesProvider>
