@@ -257,6 +257,15 @@ Deno.serve(async (req) => {
           .select("user_id").eq("chat_id", chatId).maybeSingle();
         if (!link) {
           await tgSend(chatId, "🔒 Conta não vinculada. Use o app para gerar um código e envie `/start CODIGO`.", LOVABLE_API_KEY, TELEGRAM_API_KEY);
+        } else if (/^\/saldo(?:@\w+)?\b/i.test(text)) {
+          const reply = await handleSaldo(admin, link.user_id);
+          await tgSend(chatId, reply, LOVABLE_API_KEY, TELEGRAM_API_KEY);
+        } else if (/^\/ultimas(?:@\w+)?\b/i.test(text)) {
+          const reply = await handleUltimas(admin, link.user_id);
+          await tgSend(chatId, reply, LOVABLE_API_KEY, TELEGRAM_API_KEY);
+        } else if (/^\/apagar(?:@\w+)?\b/i.test(text)) {
+          const reply = await handleApagar(admin, link.user_id);
+          await tgSend(chatId, reply, LOVABLE_API_KEY, TELEGRAM_API_KEY);
         } else {
           const extracted = await extractExpense(text, LOVABLE_API_KEY);
           if (!extracted || !extracted.amount || extracted.confidence < 0.6) {
