@@ -41,7 +41,7 @@ interface Props {
   clients?: Client[];
   expenses?: Expense[];
   onAddExpense?: (expense: Omit<Expense, "id" | "paid" | "paidDate" | "createdAt">) => void;
-  onPayExpense?: (id: string, skipBalanceAdjust?: boolean) => void;
+  onPayExpense?: (id: string, skipBalanceAdjust?: boolean, payDate?: string) => void;
   onDeleteExpense?: (id: string, skipBalanceAdjust?: boolean) => void;
   onUpdateExpense?: (id: string, data: Partial<Omit<Expense, "id" | "createdAt">>) => void;
   readOnly?: boolean;
@@ -1552,13 +1552,13 @@ export function ProductSalesView({ sales, onDeleteSale, onUpdateSale, clients = 
   }, [sales, onUpdateSale, updateVehicleBalance]);
 
   // Wrap onPayExpense to debit vehicle balance
-  const handleVehiclePayExpense = useCallback((id: string) => {
+  const handleVehiclePayExpense = useCallback((id: string, _skip?: boolean, payDate?: string) => {
     const exp = expenses.find(e => e.id === id);
-    if (!exp || exp.paid) { onPayExpense?.(id, true); return; }
+    if (!exp || exp.paid) { onPayExpense?.(id, true, payDate); return; }
     const isRecorrente = exp.type === "recorrente" && exp.installments && exp.installments > 1;
     const debitAmount = isRecorrente ? exp.amount / exp.installments! : exp.amount;
     updateVehicleBalance(-debitAmount);
-    onPayExpense?.(id, true);
+    onPayExpense?.(id, true, payDate);
   }, [expenses, onPayExpense, updateVehicleBalance]);
 
   // Wrap onUpdateExpense to restore vehicle balance when payments are removed
