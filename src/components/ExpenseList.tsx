@@ -565,6 +565,32 @@ export function ExpenseList({ expenses, onPay, onUnpay, onDelete, onUpdate, read
         title="Excluir despesa"
         description="Tem certeza que deseja excluir esta despesa?"
       />
+
+      {/* Dialog para escolher data de pagamento */}
+      <Dialog open={!!payingExpenseId} onOpenChange={(open) => { if (!open) setPayingExpenseId(null); }}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Data do pagamento</DialogTitle>
+            <DialogDescription>Selecione a data em que esta despesa foi paga.</DialogDescription>
+          </DialogHeader>
+          <div className="py-2">
+            <Label htmlFor="pay-date">Data</Label>
+            <DatePickerField id="pay-date" value={payDate} onChange={setPayDate} />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setPayingExpenseId(null)}>Cancelar</Button>
+            <Button onClick={() => {
+              if (payingExpenseId) {
+                onPay(payingExpenseId, undefined, payDate);
+                setPayingExpenseId(null);
+              }
+            }}>
+              <CheckCircle className="h-4 w-4 mr-1" />
+              Confirmar pagamento
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
