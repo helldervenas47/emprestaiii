@@ -190,6 +190,8 @@ export function ExpenseList({ expenses, onPay, onUnpay, onDelete, onUpdate, read
     if (!selectedMonth) return expenses;
     const [sYear, sMonth] = selectedMonth.split("-").map(Number);
     return expenses.filter((e) => {
+      // Include if paid in the selected month (regardless of due date)
+      if (e.paid && e.paidDate && e.paidDate.startsWith(selectedMonth)) return true;
       if (e.dueDate.startsWith(selectedMonth)) return true;
       const isRec = e.type === "recorrente" && e.installments && e.installments > 1;
       if (!isRec) return false;
