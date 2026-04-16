@@ -285,10 +285,29 @@ async function tgAnswerCallback(callbackId: string, text: string | undefined, lo
 }
 
 function buildExpenseKeyboard(expenseId: string) {
-  return [[
-    { text: "📂 Mudar categoria", callback_data: `cat:${expenseId}` },
-    { text: "🗑️ Apagar", callback_data: `del:${expenseId}` },
-  ]];
+  return [
+    [{ text: "✏️ Editar valor", callback_data: `edit:${expenseId}` }],
+    [
+      { text: "📂 Mudar categoria", callback_data: `cat:${expenseId}` },
+      { text: "🗑️ Apagar", callback_data: `del:${expenseId}` },
+    ],
+  ];
+}
+
+function parseAmount(input: string): number | null {
+  const m = input.trim().match(/^R?\$?\s*([\d.,]+)\s*$/i);
+  if (!m) return null;
+  let raw = m[1];
+  // pt-BR: "." milhar, "," decimal. Se houver vírgula, ponto é milhar.
+  if (raw.includes(",")) {
+    raw = raw.replace(/\./g, "").replace(",", ".");
+  } else if ((raw.match(/\./g) || []).length > 1) {
+    // múltiplos pontos = separadores de milhar
+    raw = raw.replace(/\./g, "");
+  }
+  const n = Number(raw);
+  if (!isFinite(n) || n <= 0) return null;
+  return Math.round(n * 100) / 100;
 }
 
 function buildCategoryKeyboard(expenseId: string) {
