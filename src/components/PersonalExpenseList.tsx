@@ -304,7 +304,80 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, readOn
         </Card>
       )}
 
-      {/* Search + filters */}
+      {/* Budget per category */}
+      <Card>
+        <CardContent className="p-4">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <Target className="h-4 w-4 text-primary" />
+              <h3 className="text-sm font-semibold text-foreground">Orçamento mensal</h3>
+              {totalBudget > 0 && (
+                <span className="text-xs text-muted-foreground">
+                  {formatCurrency(totalSpentBudgeted)} / {formatCurrency(totalBudget)}
+                </span>
+              )}
+            </div>
+            {!readOnly && (
+              <Button size="sm" variant="outline" className="h-7 text-xs" onClick={openBudgetEdit}>
+                <Pencil className="h-3 w-3 mr-1" />
+                Definir
+              </Button>
+            )}
+          </div>
+          {budgets.length === 0 ? (
+            <p className="text-xs text-muted-foreground text-center py-4">
+              Nenhum orçamento definido. Clique em "Definir" para começar.
+            </p>
+          ) : (
+            <div className="space-y-3">
+              {budgets
+                .slice()
+                .sort((a, b) => {
+                  const sa = spentByCategory.get(a.category) || 0;
+                  const sb = spentByCategory.get(b.category) || 0;
+                  return (sb / b.amount) - (sa / a.amount);
+                })
+                .map((b) => {
+                  const cat = getPersonalCategory(b.category);
+                  const Icon = cat.icon;
+                  const spent = spentByCategory.get(b.category) || 0;
+                  const pct = b.amount > 0 ? Math.min(100, (spent / b.amount) * 100) : 0;
+                  const over = spent > b.amount;
+                  const near = !over && pct >= 80;
+                  return (
+                    <div key={b.id} className="space-y-1">
+                      <div className="flex items-center justify-between text-xs">
+                        <div className="flex items-center gap-1.5 min-w-0">
+                          <Icon className="h-3.5 w-3.5 shrink-0" style={{ color: `hsl(${cat.color})` }} />
+                          <span className="truncate text-foreground">{b.category}</span>
+                        </div>
+                        <div className="flex items-center gap-2 shrink-0">
+                          <span className={over ? "text-destructive font-medium" : near ? "text-warning font-medium" : "text-muted-foreground"}>
+                            {formatCurrency(spent)} / {formatCurrency(b.amount)}
+                          </span>
+                          <span className={`text-[10px] ${over ? "text-destructive" : near ? "text-warning" : "text-muted-foreground"}`}>
+                            {Math.round((spent / b.amount) * 100)}%
+                          </span>
+                        </div>
+                      </div>
+                      <Progress
+                        value={pct}
+                        className={`h-2 ${over ? "[&>div]:bg-destructive" : near ? "[&>div]:bg-warning" : ""}`}
+                      />
+                      {over && (
+                        <p className="text-[10px] text-destructive">
+                          Excedeu em {formatCurrency(spent - b.amount)}
+                        </p>
+                      )}
+                    </div>
+                  );
+                })}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+
       <div className="flex flex-col sm:flex-row gap-3">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
