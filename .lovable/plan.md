@@ -1,55 +1,34 @@
 
 
-# Redirecionar ao clicar na notificação push
+# Substituir ícone principal do site e PWA
 
-## Problema
-Atualmente, o payload da notificação envia `url: "/"`, e o Service Worker ao receber o clique apenas foca a janela existente sem navegar para a rota correta. O usuário não é levado à seção relevante (ex: parcelas atrasadas).
+## Resumo
+Substituir todos os ícones do site (favicon, apple-touch-icon, ícones PWA e logo interno) pelo novo ícone enviado. Gerar todas as variações de tamanho necessárias e configurar o manifest para exibição sem bordas (purpose: "any") em dispositivos móveis.
 
-## Solução
+## Arquivos de ícone a gerar
+Usando o ícone enviado, gerar via script Python (Pillow) todos os tamanhos:
+- `public/favicon.png` — 32x32
+- `public/apple-touch-icon.png` — 180x180
+- `public/logo-72.png` — 72x72
+- `public/logo-96.png` — 96x96
+- `public/logo-128.png` — 128x128
+- `public/logo-144.png` — 144x144
+- `public/logo-152.png` — 152x152
+- `public/logo-192.png` — 192x192
+- `public/logo-384.png` — 384x384
+- `public/logo-512.png` — 512x512
+- `public/logo-icon.png` — 512x512 (usado nas notificações)
+- `src/assets/logo-icon.png` — 512x512 (usado nos componentes React)
 
-### 1. Edge function `send-push-notifications/index.ts`
-Incluir URLs específicas no payload de acordo com o tipo de notificação:
-- Parcelas atrasadas/hoje → `url: "/?tab=overdue"`
+## Alterações no manifest.json
+Alterar `purpose` de todos os ícones grandes (192+) de `"any maskable"` para `"any"` — isso remove o "safe zone" do maskable que adiciona bordas/padding em dispositivos móveis, garantindo que o ícone apareça sem bordas.
 
-### 2. Service Worker `public/sw-push.js`
-Ajustar o handler `notificationclick` para:
-- Se já houver uma janela aberta, navegar para a URL da notificação (`client.navigate(url)`) e focar
-- Se não houver janela, abrir nova com a URL completa
+## Alterações no PWAInstallPrompt.tsx
+Remover `rounded-xl` da tag `<img>` do ícone para não adicionar bordas arredondadas artificiais.
 
-### 3. `src/pages/Index.tsx`
-Ler o parâmetro `tab` da URL (query string) ao carregar e definir a aba ativa automaticamente. Assim, `/?tab=overdue` abre direto na aba de Relatório/Cobranças.
-
-## Detalhes Técnicos
-
-**`public/sw-push.js` — notificationclick:**
-```javascript
-self.addEventListener('notificationclick', (event) => {
-  event.notification.close();
-  const url = event.notification.data?.url || '/';
-  
-  event.waitUntil(
-    clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windowClients) => {
-      for (const client of windowClients) {
-        if (client.url.includes(self.location.origin) && 'navigate' in client) {
-          client.navigate(url);
-          return client.focus();
-        }
-      }
-      return clients.openWindow(url);
-    })
-  );
-});
-```
-
-**Edge function payload:**
-```typescript
-url: "/?tab=overdue"
-```
-
-**`Index.tsx` — leitura de query param:**
-```typescript
-const searchParams = new URLSearchParams(window.location.search);
-const initialTab = searchParams.get("tab") as Tab;
-// usar como valor inicial do useState de tab
-```
+## Arquivos alterados
+1. Script Python para gerar todos os tamanhos a partir do upload
+2. `public/manifest.json` — purpose dos ícones
+3. `src/components/PWAInstallPrompt.tsx` — remover rounded do ícone
+4. Todos os PNGs em `public/` e `src/assets/` — substituídos
 
