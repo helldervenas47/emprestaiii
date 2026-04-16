@@ -212,7 +212,10 @@ const Index = () => {
   });
   const setTab = (t: Tab) => { sessionStorage.setItem("activeTab", t); setTabState(t); };
 
-  const { loans, payments, installmentSchedules, addLoan, addPayment, addPartialPayment, addInterestOnlyPayment, updateLoan, deleteLoan, deletePayment, saveSchedule } = useLoans();
+  // Read initial loan filter/view from URL query params (for push notification deep links)
+  const urlParams = new URLSearchParams(window.location.search);
+  const initialLoanCategory = urlParams.get("filter") as any;
+  const initialLoanView = urlParams.get("view") as any;
   const { clients, addClient, deleteClient, updateClient } = useClients();
 
   // Defer heavy hooks until their tabs are active
