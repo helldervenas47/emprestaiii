@@ -276,3 +276,17 @@
     transition: opacity 0.1s ease-in;
   }
 }
+
+/* Success animation particles */
+@layer utilities {
+  @keyframes success-particle {
+    0% {
+      transform: translate(-50%, -50%) rotate(var(--angle)) translateY(0) scale(1);
+      opacity: 1;
+    }
+    100% {
+      transform: translate(-50%, -50%) rotate(var(--angle)) translateY(-60px) scale(0);
+      opacity: 0;
+    }
+  }
+}
