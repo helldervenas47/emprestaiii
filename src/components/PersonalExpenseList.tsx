@@ -555,6 +555,44 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, readOn
         title="Excluir despesa"
         description="Tem certeza? Esta ação não pode ser desfeita."
       />
+
+      {/* Budget edit dialog */}
+      <Dialog open={budgetEditOpen} onOpenChange={setBudgetEditOpen}>
+        <DialogContent className="sm:max-w-md max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Definir orçamento mensal</DialogTitle>
+            <DialogDescription>Defina um valor por categoria. Deixe em branco ou 0 para remover.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2.5 py-2">
+            {personalCategories.map((c) => {
+              const Icon = c.icon;
+              return (
+                <div key={c.name} className="flex items-center gap-2">
+                  <div
+                    className="h-8 w-8 rounded-lg flex items-center justify-center shrink-0"
+                    style={{ backgroundColor: `hsl(${c.color} / 0.15)` }}
+                  >
+                    <Icon className="h-4 w-4" style={{ color: `hsl(${c.color})` }} />
+                  </div>
+                  <span className="text-sm flex-1 text-foreground">{c.name}</span>
+                  <Input
+                    type="number"
+                    inputMode="decimal"
+                    placeholder="0,00"
+                    className="w-28 h-8 text-sm"
+                    value={budgetDraft[c.name] ?? ""}
+                    onChange={(e) => setBudgetDraft((p) => ({ ...p, [c.name]: e.target.value }))}
+                  />
+                </div>
+              );
+            })}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setBudgetEditOpen(false)}>Cancelar</Button>
+            <Button onClick={saveBudgets}>Salvar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
