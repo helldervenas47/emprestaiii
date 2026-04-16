@@ -178,30 +178,74 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
       return s + (sc.amount * interestRatio);
     }, 0);
     
-    // Lucro Realizado = interest portion of ALL payments made in the period
+    // Lucro Realizado — 3 componentes:
+    // 1) Pagamentos de juros (installmentNumber === 0): valor integral é lucro
+    // 2) Contratos quitados no período: lucro total = total pago - principal
+    // 3) Parcelas regulares/parciais de contratos em aberto: proporção de juros
     const paymentsInPeriod = payments.filter((p) => isInRange(p.date, range.start, range.end));
-    
-    // For every payment in the period, calculate interest portion based on the loan's interest ratio
-    const periodProfitRealized = paymentsInPeriod.reduce((s, p) => {
-      const loan = loans.find(l => l.id === p.loanId);
+
+    // Identificar contratos quitados no período (último pagamento no período + status paid)
+    const quitadoLoanIds = new Set<string>();
+    loans.forEach(l => {
+      if (l.status !== "paid") return;
+      const loanPays = payments.filter(pp => pp.loanId === l.id);
+      if (loanPays.length === 0) return;
+      const lastPayDate = loanPays.reduce((max, pp) => pp.date > max ? pp.date : max, loanPays[0].date);
+      if (isInRange(lastPayDate, range.start, range.end)) quitadoLoanIds.add(l.id);
+    });
+
+    // 1) Juros avulsos de contratos NÃO quitados no período
+    const interestOnlyProfit = paymentsInPeriod
+      .filter(p => p.installmentNumber === 0 && !quitadoLoanIds.has(p.loanId))
+      .reduce((s, p) => s + p.amount, 0);
+
+    // 2) Lucro total de contratos quitados no período
+    const quitadoProfit = Array.from(quitadoLoanIds).reduce((s, loanId) => {
+      const loan = loans.find(l => l.id === loanId);
       if (!loan) return s;
-      const totalWithInterest = calculateTotalWithInterest(loan.amount, loan.interestRate, loan.installments);
-      const interestRatio = totalWithInterest > 0 ? 1 - (loan.amount / totalWithInterest) : 0;
-      return s + (p.amount * interestRatio);
+      const totalPaid = payments.filter(p => p.loanId === loanId).reduce((sum, p) => sum + p.amount, 0);
+      return s + Math.max(0, totalPaid - loan.amount);
     }, 0);
+
+    // 3) Parcelas regulares e parciais de contratos em aberto (não quitados no período)
+    const activeInstallmentProfit = paymentsInPeriod
+      .filter(p => p.installmentNumber !== 0 && !quitadoLoanIds.has(p.loanId))
+      .reduce((s, p) => {
+        const loan = loans.find(l => l.id === p.loanId);
+        if (!loan) return s;
+        const totalWithInterest = calculateTotalWithInterest(loan.amount, loan.interestRate, loan.installments);
+        const interestRatio = totalWithInterest > 0 ? 1 - (loan.amount / totalWithInterest) : 0;
+        return s + (p.amount * interestRatio);
+      }, 0);
+
+    const periodProfitRealized = interestOnlyProfit + quitadoProfit + activeInstallmentProfit;
     
     // Build detail records for "Juros Recebidos no Mês"
-    const interestDetailRecords: { borrowerName: string; date: string; totalPayment: number; interestPortion: number; type: "juros" | "quitação" }[] = [];
-    paymentsInPeriod.forEach(p => {
+    const interestDetailRecords: { borrowerName: string; date: string; totalPayment: number; interestPortion: number; type: "juros" | "quitação" | "parcial" }[] = [];
+    // Records from interest-only payments (non-quitado)
+    paymentsInPeriod.filter(p => p.installmentNumber === 0 && !quitadoLoanIds.has(p.loanId)).forEach(p => {
+      const loan = loans.find(l => l.id === p.loanId);
+      if (!loan) return;
+      interestDetailRecords.push({ borrowerName: loan.borrowerName, date: p.date, totalPayment: p.amount, interestPortion: p.amount, type: "juros" });
+    });
+    // Records from quitado contracts
+    Array.from(quitadoLoanIds).forEach(loanId => {
+      const loan = loans.find(l => l.id === loanId);
+      if (!loan) return;
+      const totalPaid = payments.filter(p => p.loanId === loanId).reduce((sum, p) => sum + p.amount, 0);
+      const profit = Math.max(0, totalPaid - loan.amount);
+      const loanPays = payments.filter(p => p.loanId === loanId);
+      const lastDate = loanPays.reduce((max, p) => p.date > max ? p.date : max, loanPays[0].date);
+      if (profit > 0) interestDetailRecords.push({ borrowerName: loan.borrowerName, date: lastDate, totalPayment: totalPaid, interestPortion: profit, type: "quitação" });
+    });
+    // Records from regular/partial payments on active contracts
+    paymentsInPeriod.filter(p => p.installmentNumber !== 0 && !quitadoLoanIds.has(p.loanId)).forEach(p => {
       const loan = loans.find(l => l.id === p.loanId);
       if (!loan) return;
       const totalWithInterest = calculateTotalWithInterest(loan.amount, loan.interestRate, loan.installments);
       const interestRatio = totalWithInterest > 0 ? 1 - (loan.amount / totalWithInterest) : 0;
       const interest = p.amount * interestRatio;
-      if (interest > 0) {
-        const isQuitado = loan.status === "paid";
-        interestDetailRecords.push({ borrowerName: loan.borrowerName, date: p.date, totalPayment: p.amount, interestPortion: interest, type: isQuitado ? "quitação" : "juros" });
-      }
+      if (interest > 0) interestDetailRecords.push({ borrowerName: loan.borrowerName, date: p.date, totalPayment: p.amount, interestPortion: interest, type: p.installmentNumber === -1 ? "parcial" : "juros" });
     });
     interestDetailRecords.sort((a, b) => b.date.localeCompare(a.date));
     
