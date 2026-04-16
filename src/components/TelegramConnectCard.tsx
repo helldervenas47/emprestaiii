@@ -6,7 +6,7 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Send, Copy, CheckCircle2, Unlink, Clock, Zap, CalendarDays } from "lucide-react";
+import { Send, Copy, CheckCircle2, Unlink, Clock, Zap, CalendarDays, CalendarRange } from "lucide-react";
 import { toast } from "sonner";
 import { useTelegramSummaryPref } from "@/hooks/useTelegramSummaryPref";
 
@@ -20,6 +20,7 @@ export function TelegramConnectCard() {
   const [generating, setGenerating] = useState(false);
   const [sendingNow, setSendingNow] = useState(false);
   const [sendingWeekly, setSendingWeekly] = useState(false);
+  const [sendingMonthly, setSendingMonthly] = useState(false);
   const botUsername = (typeof window !== "undefined" && localStorage.getItem(BOT_USERNAME_KEY)) || "";
   const { pref: summaryPref, update: updateSummary } = useTelegramSummaryPref();
 
@@ -128,6 +129,29 @@ export function TelegramConnectCard() {
     }
   };
 
+  const sendMonthlySummaryNow = async () => {
+    setSendingMonthly(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Sessão expirada");
+      const { data, error } = await supabase.functions.invoke(
+        `telegram-monthly-summary?user_id=${user.id}`,
+        { method: "POST" },
+      );
+      if (error) throw error;
+      const sent = (data as any)?.sent ?? 0;
+      if (sent > 0) {
+        toast.success("Resumo mensal enviado!", { description: "Confira seu Telegram." });
+      } else {
+        toast.warning("Nada enviado", { description: "Verifique se o Telegram está vinculado." });
+      }
+    } catch (e: any) {
+      toast.error("Erro ao enviar resumo mensal", { description: e.message });
+    } finally {
+      setSendingMonthly(false);
+    }
+  };
+
   if (loading) return null;
 
   return (
@@ -194,24 +218,18 @@ export function TelegramConnectCard() {
               <p className="text-[10px] text-muted-foreground">
                 Total gasto no dia + saldo dos orçamentos por categoria.
               </p>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={sendSummaryNow}
-                  disabled={sendingNow}
-                >
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                <Button size="sm" variant="outline" onClick={sendSummaryNow} disabled={sendingNow}>
                   <Zap className="h-3.5 w-3.5 mr-1" />
-                  {sendingNow ? "Enviando…" : "Resumo de hoje"}
+                  {sendingNow ? "…" : "Hoje"}
                 </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={sendWeeklySummaryNow}
-                  disabled={sendingWeekly}
-                >
+                <Button size="sm" variant="outline" onClick={sendWeeklySummaryNow} disabled={sendingWeekly}>
                   <CalendarDays className="h-3.5 w-3.5 mr-1" />
-                  {sendingWeekly ? "Enviando…" : "Resumo semanal"}
+                  {sendingWeekly ? "…" : "Semana"}
+                </Button>
+                <Button size="sm" variant="outline" onClick={sendMonthlySummaryNow} disabled={sendingMonthly}>
+                  <CalendarRange className="h-3.5 w-3.5 mr-1" />
+                  {sendingMonthly ? "…" : "Mês"}
                 </Button>
               </div>
             </div>
