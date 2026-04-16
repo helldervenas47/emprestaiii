@@ -8,6 +8,9 @@ export interface TelegramSummaryPref {
   weekly_enabled: boolean;
   weekly_send_time: string;
   weekly_send_weekday: number;
+  monthly_enabled: boolean;
+  monthly_send_time: string;
+  monthly_send_day: number;
 }
 
 export function useTelegramSummaryPref() {
@@ -18,6 +21,9 @@ export function useTelegramSummaryPref() {
     weekly_enabled: false,
     weekly_send_time: "09:00",
     weekly_send_weekday: 1,
+    monthly_enabled: false,
+    monthly_send_time: "09:00",
+    monthly_send_day: 1,
   });
   const [loading, setLoading] = useState(true);
 
@@ -26,7 +32,7 @@ export function useTelegramSummaryPref() {
     (async () => {
       const { data } = await supabase
         .from("telegram_summary_prefs" as any)
-        .select("enabled, send_time, weekly_enabled, weekly_send_time, weekly_send_weekday")
+        .select("enabled, send_time, weekly_enabled, weekly_send_time, weekly_send_weekday, monthly_enabled, monthly_send_time, monthly_send_day")
         .eq("user_id", user.id)
         .maybeSingle();
       if (data) setPref({
@@ -35,6 +41,9 @@ export function useTelegramSummaryPref() {
         weekly_enabled: (data as any).weekly_enabled ?? false,
         weekly_send_time: (data as any).weekly_send_time ?? "09:00",
         weekly_send_weekday: (data as any).weekly_send_weekday ?? 1,
+        monthly_enabled: (data as any).monthly_enabled ?? false,
+        monthly_send_time: (data as any).monthly_send_time ?? "09:00",
+        monthly_send_day: (data as any).monthly_send_day ?? 1,
       });
       setLoading(false);
     })();
@@ -52,6 +61,9 @@ export function useTelegramSummaryPref() {
         weekly_enabled: next.weekly_enabled,
         weekly_send_time: next.weekly_send_time,
         weekly_send_weekday: next.weekly_send_weekday,
+        monthly_enabled: next.monthly_enabled,
+        monthly_send_time: next.monthly_send_time,
+        monthly_send_day: next.monthly_send_day,
       },
       { onConflict: "user_id" }
     );
