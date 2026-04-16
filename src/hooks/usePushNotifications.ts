@@ -144,5 +144,23 @@ export function usePushNotifications() {
       .eq("user_id", user.id);
   }, [user]);
 
-  return { isSupported, isSubscribed, isLoading, permission, sendTime, subscribe, unsubscribe, updateSendTime };
+  const sendTestNotification = useCallback(async (): Promise<boolean> => {
+    try {
+      const registration = await navigator.serviceWorker.getRegistration("/sw-push.js");
+      if (!registration) return false;
+
+      await registration.showNotification("📊 Empréstai — Teste", {
+        body: "Esta é uma notificação de teste. Suas notificações estão funcionando!",
+        icon: "/logo-icon.png",
+        badge: "/logo-icon.png",
+        vibrate: [100, 50, 100],
+      });
+      return true;
+    } catch (err) {
+      console.error("Test notification error:", err);
+      return false;
+    }
+  }, []);
+
+  return { isSupported, isSubscribed, isLoading, permission, sendTime, subscribe, unsubscribe, updateSendTime, sendTestNotification };
 }
