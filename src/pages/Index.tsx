@@ -414,23 +414,7 @@ const Index = () => {
               <p className="text-[10px] text-muted-foreground uppercase tracking-widest">Controle de empréstimos</p>
             </div>
           </div>
-          <div className="flex items-center gap-1 sm:gap-2 flex-wrap justify-end">
-            <div className="hidden sm:flex items-center gap-1.5 px-2 py-1 rounded-md bg-muted/50 text-xs text-muted-foreground mr-1">
-              <User className="h-3 w-3" />
-              <span className="max-w-[120px] truncate">{user?.user_metadata?.display_name || user?.email || "—"}</span>
-              {role && <Badge variant={role === "admin" ? "default" : role === "operador" ? "secondary" : "outline"} className="text-[10px] px-1.5 py-0">{role === "admin" ? "Admin" : role === "operador" ? "Op." : "Vis."}</Badge>}
-              <Badge
-                variant="outline"
-                className="text-[10px] px-1.5 py-0 cursor-pointer hover:bg-primary/10 transition-colors border-primary/40 text-primary"
-                onClick={() => navigate("/pricing")}
-              >
-                {hasActiveSub && subscription ? (
-                  subscription.product_id === "basico_plan" ? "Básico" :
-                  subscription.product_id === "profissional_plan" ? "Profissional" :
-                  subscription.product_id === "empresarial_plan" ? "Empresarial" : "Plano"
-                ) : "Sem Plano"}
-              </Badge>
-            </div>
+          <div className="flex items-center gap-1 sm:gap-1.5 justify-end">
             <Popover>
               <PopoverTrigger asChild>
                 <Button variant="ghost" size="icon" className="h-8 w-8 sm:h-9 sm:w-9" title="Ajuda">
