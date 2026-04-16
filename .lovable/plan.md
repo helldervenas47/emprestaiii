@@ -1,18 +1,30 @@
 
 
-## Plano: Gesto de swipe para abrir menu lateral no mobile
+## Problema
 
-### O que será feito
-Adicionar detecção de gesto de swipe (arrastar da esquerda para a direita) na versão mobile para abrir o menu lateral de abas, que já existe como um `Sheet` com `side="left"`.
+O trigger `handle_new_user` cria 2 registros de assinatura por usuário (sandbox e live). Quando o admin altera o plano de um usuário, ambos os registros aparecem na lista, duplicando o usuário.
 
-### Detalhes técnicos
+## Solução
 
-**Arquivo:** `src/pages/Index.tsx`
+Agrupar os assinantes por `user_id` em `PlanSubscribers.tsx`, mostrando apenas uma entrada por usuário. A prioridade será exibir o registro `live` (se existir e não for free), senão o `sandbox`.
 
-1. Adicionar detecção de touch events (`touchstart`, `touchmove`, `touchend`) no container principal da página quando `isMobile` for `true`.
-2. Detectar swipe da esquerda para a direita: o toque deve iniciar nos primeiros ~30px da tela (borda esquerda) e mover pelo menos 50px para a direita.
-3. Quando detectado, chamar `setSidebarOpen(true)` para abrir o Sheet lateral que já existe.
-4. Implementar via `useEffect` com event listeners ou criar um hook customizado `useSwipeToOpen`.
+### Alteração em `src/components/PlanSubscribers.tsx`
 
-Nenhuma biblioteca adicional será necessária — apenas eventos touch nativos do browser.
+Na função `fetchSubscribers`, após o filtro de `ownedUserIds`, agrupar por `user_id`:
+
+```typescript
+// Deduplicate: keep one entry per user (prefer "live" over "sandbox")
+const userMap = new Map<string, typeof filteredSubs[0]>();
+for (const s of filteredSubs) {
+  const existing = userMap.get(s.user_id);
+  if (!existing || (s.environment === "live" && existing.environment !== "live")) {
+    userMap.set(s.user_id, s);
+  }
+}
+const deduped = Array.from(userMap.values());
+```
+
+Depois usar `deduped` no lugar de `filteredSubs` para montar a lista `mapped`.
+
+Apenas 1 arquivo alterado, nenhuma mudança no banco.
 
