@@ -1531,8 +1531,8 @@ function LoanRowView({
                 <p className="text-sm font-bold text-foreground">{formatCurrency(loan.amount)}</p>
               </div>
               <div className="bg-card rounded-lg p-3 border border-border/30">
-                <p className="text-[10px] text-muted-foreground uppercase">Total c/ Juros</p>
-                <p className="text-sm font-bold text-foreground">{formatCurrency(total)}</p>
+                <p className="text-[10px] text-muted-foreground uppercase">Total a Receber</p>
+                <p className="text-sm font-bold text-foreground">{formatCurrency(total + lateFees)}</p>
               </div>
               <div className="bg-card rounded-lg p-3 border border-border/30">
                 <p className="text-[10px] text-muted-foreground uppercase">Total Pago</p>
