@@ -1,57 +1,75 @@
 
 
 ## Objetivo
-Disparar um alerta **imediato** no Telegram para o usuário sempre que, ao registrar uma despesa pessoal (texto / foto / áudio via bot), uma categoria do mês cruzar 100% do `personal_budgets`. Sem esperar o resumo diário das 19h e sem duplicar alertas no mesmo mês.
+Após cada despesa registrada no Telegram (texto / foto / áudio), enviar a mensagem de confirmação com **botões inline**:
+- **🗑️ Apagar** — remove a despesa imediatamente.
+- **📂 Mudar categoria** — abre teclado com as categorias disponíveis. Ao escolher uma, atualiza a categoria da despesa.
 
 ## Como funciona
 
-1. Após qualquer `INSERT` bem-sucedido em `expenses` no `telegram-process` (texto, foto ou áudio), chamar uma função `checkBudgetAndAlert(admin, userId, chatId, category)`.
-2. Essa função:
-   a. Lê o orçamento da categoria em `personal_budgets`. Se não houver ou for ≤ 0 → ignora.
-   b. Soma todas as despesas pessoais pagas do mês corrente (`YYYY-MM`) naquela categoria.
-   c. Se total ≥ orçamento (≥ 100%):
-      - Verifica em `personal_budget_alerts` se já existe `(user_id, category, month=YYYY-MM, alert_type='exceeded')`.
-      - Se **não existir**: insere o registro e envia mensagem no Telegram:
-        ```
-        🚨 *Orçamento estourado!*
-        
-        📂 Lazer
-        💸 Gasto: R$ 250,00 / R$ 200,00 (125%)
-        
-        Você ultrapassou o limite mensal desta categoria.
-        ```
-      - Se já existir: não envia (evita spam — só 1 alerta por categoria/mês).
-3. Como o alerta é por `(user, category, month)`, despesas seguintes na mesma categoria no mesmo mês não disparam de novo. No próximo mês reseta naturalmente (chave inclui `month`).
+### 1. Mensagem de confirmação
+Em vez de `tgSend(...)`, usar `tgSendWithKeyboard(...)` que envia `reply_markup.inline_keyboard`. Cada botão tem `callback_data` codificando ação + ID da despesa:
+
+```
+del:<expense_id>
+cat:<expense_id>            ← abre lista de categorias
+setcat:<expense_id>:<cat>   ← define categoria
+```
+
+Limite do Telegram: `callback_data` ≤ 64 bytes. UUID v4 (36 chars) + prefixo + categoria curta cabe.
+
+### 2. Captura de callback queries
+- Atualizar `telegram-poll`: incluir `'callback_query'` em `allowed_updates` e armazenar essas updates.
+  - Hoje rows são filtrados por `u.message`. Adicionar branch para `u.callback_query` salvando `chat_id = callback_query.message.chat.id`, `text = null`, `raw_update` completo.
+- Atualizar `telegram-process`: detectar `raw_update.callback_query` e tratar antes do fluxo normal de mensagens.
+
+### 3. Handler de callback
+No início do loop de processamento, se `raw_update.callback_query` existir:
+1. Extrair `data` (string) e `id` (callback_query.id), e `message_id` para editar/responder.
+2. Sempre responder primeiro com `answerCallbackQuery` (Telegram exige — remove "loading" do botão).
+3. Verificar vínculo do chat → `telegram_links`. Se não vinculado, ignora.
+4. Roteamento por prefixo:
+   - `del:<id>` → `delete from expenses where id=? and user_id=?` → editar mensagem original com ✅ "Despesa removida".
+   - `cat:<id>` → `editMessageReplyMarkup` para mostrar grade de categorias (botões `setcat:<id>:<cat>`).
+   - `setcat:<id>:<cat>` → `update expenses set category=?` → editar mensagem original incluindo nova categoria + remover teclado.
+
+### 4. Funções helper (em `telegram-process`)
+- `tgSendWithKeyboard(chatId, text, keyboard, ...)` — POST `/sendMessage` com `reply_markup`.
+- `tgEditMessage(chatId, messageId, text, keyboard?, ...)` — POST `/editMessageText`.
+- `tgEditReplyMarkup(chatId, messageId, keyboard, ...)` — POST `/editMessageReplyMarkup`.
+- `tgAnswerCallback(callbackId, text?, ...)` — POST `/answerCallbackQuery`.
+- `buildExpenseKeyboard(expenseId)` → `[[{text:"📂 Mudar categoria", callback_data:`cat:${id}`}, {text:"🗑️ Apagar", callback_data:`del:${id}`}]]`
+- `buildCategoryKeyboard(expenseId)` → grid 2 colunas com todas `CATEGORIES` + botão "❌ Cancelar" (`canc:<id>`).
+
+### 5. Substituições nos 3 pontos de confirmação
+Substituir as 3 chamadas `tgSend(... "✅/📸/🎤 ... Despesa registrada/extraída ..." ...)` por `tgSendWithKeyboard(...)` passando `buildExpenseKeyboard(data.id)`. Para isso, capturar o `id` do `.insert(...).select("id").single()`.
 
 ## Mudanças
 
-**Apenas 1 arquivo**: `supabase/functions/telegram-process/index.ts`
+**2 arquivos:**
 
-### Adicionar função `checkBudgetAndAlert`
-Logo após `handleApagar`. Recebe `(admin, userId, chatId, category)`, faz a verificação e envia o alerta usando `tgSend` (chaves Lovable/Telegram já disponíveis no escopo do request).
+1. `supabase/functions/telegram-poll/index.ts`
+   - `allowed_updates: ['message', 'callback_query']`
+   - Mapeamento de `rows`: aceitar callback_query (chat_id de `callback_query.message.chat.id`).
 
-### Chamar nos 3 pontos de insert
-Após cada `await admin.from("expenses").insert(...)` bem-sucedido (sem `insErr`):
-- Bloco texto livre
-- Bloco foto/comprovante
-- Bloco áudio/voz
-
-A chamada é `await checkBudgetAndAlert(admin, link.user_id, chatId, finalCategory, LOVABLE_API_KEY, TELEGRAM_API_KEY)` onde `finalCategory` é a categoria efetivamente salva (já normalizada para "Outros" se inválida).
+2. `supabase/functions/telegram-process/index.ts`
+   - Novos helpers de keyboard / edit / callback acima.
+   - Branch `if (raw_update.callback_query) { ... continue; }` no topo do loop.
+   - Trocar 3 envios de confirmação por versão com keyboard, capturando `id` do insert.
 
 ## Detalhes técnicos
-- Tabela `personal_budget_alerts` já existe, com chave lógica `(user_id, category, month, alert_type)`. Vamos usar `alert_type='exceeded'`.
-- Mês: `new Date().toISOString().slice(0,7)` — mesmo formato usado no `handleSaldo` (consistência).
-- Soma do mês: filtrar despesas com `paid=true` e `paid_date` (fallback `due_date`) começando com `YYYY-MM`. Mesma lógica do `/saldo`.
-- Idempotência: `select` por `(user_id, category, month)` antes de inserir; se já houver linha com `alert_type='exceeded'`, não envia.
-- Alerta "Outros" sem orçamento: pulado naturalmente (não há linha em `personal_budgets`).
+- `callback_data` máx 64 bytes: `setcat:<uuid>:<categoria>` — categorias longas como "Alimentação" + UUID + prefixo dão ~55 bytes. OK. Se algum extrapolar no futuro → trunca.
+- `editMessageText` exige texto diferente do anterior (Telegram retorna erro se igual). Sempre incluir prefixo "✏️" ou "🗑️" para garantir mudança.
+- Mensagem após apagar: substituímos o texto por `🗑️ *Despesa removida.*` (sem keyboard).
+- `answerCallbackQuery` deve ser chamado mesmo em erro, senão o botão fica eternamente em loading.
 
 ## Sem alterações
-- Schema (`personal_budget_alerts` já existe e tem RLS para service_role).
-- UI / outros bots / resumo diário (continuam funcionando independente).
-- Demais comandos.
+- Schema do banco.
+- UI do app, outros comandos, fluxo de orçamento.
+- Hooks/tabelas existentes.
 
 ## Fora de escopo
-- Alertas a 70% / 90% (apenas 100%). Pode ser próximo passo se desejado.
-- Alertas para despesas criadas pela UI do app (apenas via Telegram). O `notify-budget-overrun` existente já cuida do resumo geral; aqui é o canal Telegram em tempo real.
-- Botão inline "ver detalhes" — mensagem só de texto.
+- Botão "✏️ editar valor" — só categoria + apagar.
+- Confirmação dupla antes de apagar — clique único deleta direto (alinhado com `/apagar`).
+- Histórico/undo após apagar.
 
