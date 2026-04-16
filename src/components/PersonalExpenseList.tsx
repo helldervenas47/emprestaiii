@@ -23,6 +23,7 @@ import { usePersonalBudgets } from "@/hooks/usePersonalBudgets";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as ReTooltip, LineChart, Line, XAxis, YAxis, CartesianGrid, Legend } from "recharts";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { TelegramConnectCard } from "@/components/TelegramConnectCard";
 
 interface Props {
   expenses: Expense[];
@@ -367,6 +368,9 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, readOn
           </CardContent>
         </Card>
       )}
+
+      {/* Telegram bot integration */}
+      <TelegramConnectCard />
 
       {/* Budget per category */}
       <Card>
