@@ -206,10 +206,12 @@ export function ExpenseList({ expenses, onPay, onUnpay, onDelete, onUpdate, read
   const filtered = monthFiltered
     .filter((e) => e.description.toLowerCase().includes(search.toLowerCase()) || e.category.toLowerCase().includes(search.toLowerCase()))
     .filter((e) => {
+      const isRecFullyPaid = e.type === "recorrente" && e.installments && e.installments > 1 && e.paid;
       if (filter === "pending") return !e.paid && !isOverdue(e);
-      if (filter === "paid") return e.paid;
+      if (filter === "paid") return e.paid && !isRecFullyPaid;
       if (filter === "overdue") return isOverdue(e);
-      return true;
+      // "all": hide the parent recurring record once fully paid (last installment is represented by historical child)
+      return !isRecFullyPaid;
     })
     .sort((a, b) => {
       if (a.paid !== b.paid) return a.paid ? 1 : -1;
