@@ -367,11 +367,9 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
       }
     });
 
-    // Overdue (filtered by due date relative to period end date)
-    const referenceDateStr = range.end instanceof Date
-      ? range.end.toISOString().split("T")[0]
-      : String(range.end);
-    const overdueLoans = activeLoans.filter((l) => l.dueDate < referenceDateStr);
+    // Overdue — contratos com 1 ou mais dias de atraso (baseado na data atual)
+    const todayStr = new Date().toISOString().split("T")[0];
+    const overdueLoans = activeLoans.filter((l) => l.dueDate < todayStr);
     const overdueAmount = overdueLoans.reduce((s, l) => {
       let baseRemaining: number;
       if (l.installments >= 2) {
