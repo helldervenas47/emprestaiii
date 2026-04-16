@@ -23,7 +23,7 @@ const TEST_URLS: Record<string, string> = {
 
 export function NotificationSettings() {
   const { preferences, loading, upsert } = useNotificationPreferences();
-  const { isSubscribed } = usePushNotifications();
+  const { isSupported: isPushSupported, isSubscribed, isLoading: isPushLoading, permission, needsInstall, subscribe, unsubscribe } = usePushNotifications();
   const [sendingTest, setSendingTest] = useState<string | null>(null);
 
   const handleSendTest = async (type: string, label: string) => {
