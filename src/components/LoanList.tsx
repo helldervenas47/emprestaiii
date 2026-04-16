@@ -1636,9 +1636,11 @@ function LoanRowView({
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="start" className="w-[var(--radix-dropdown-menu-trigger-width)]" onClick={(e) => e.stopPropagation()}>
-                    <DropdownMenuItem onClick={() => openPaymentDialog("installment")}>
-                      <CheckCircle className="h-4 w-4 mr-2" /> Receber Parcela
-                    </DropdownMenuItem>
+                    {loan.installments >= 2 && (
+                      <DropdownMenuItem onClick={() => openPaymentDialog("installment")}>
+                        <CheckCircle className="h-4 w-4 mr-2" /> Receber Parcela
+                      </DropdownMenuItem>
+                    )}
                     <DropdownMenuItem onClick={() => openPaymentDialog("interest")}>
                       <Percent className="h-4 w-4 mr-2" /> Pagar Juros
                     </DropdownMenuItem>
