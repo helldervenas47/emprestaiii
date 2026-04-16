@@ -72,7 +72,7 @@ export default function PWAInstallPrompt() {
     <div className="fixed bottom-4 left-4 right-4 z-50 mx-auto max-w-md animate-in slide-in-from-bottom-4 duration-300">
       <div className="rounded-2xl bg-card border border-border shadow-xl p-4">
         <div className="flex items-start gap-3">
-          <img src="/logo-96.png" alt="EmprestAI" className="w-12 h-12 rounded-xl flex-shrink-0" />
+          <img src="/logo-96.png" alt="EmprestAI" className="w-12 h-12 flex-shrink-0" />
           <div className="flex-1 min-w-0">
             <div className="flex items-center justify-between">
               <h3 className="font-semibold text-foreground text-sm">Instalar EmprestAI</h3>
