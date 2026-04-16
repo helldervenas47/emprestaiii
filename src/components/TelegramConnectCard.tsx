@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Send, Copy, CheckCircle2, Unlink, Clock, Zap, CalendarDays } from "lucide-react";
 import { toast } from "sonner";
 import { useTelegramSummaryPref } from "@/hooks/useTelegramSummaryPref";
@@ -213,6 +214,57 @@ export function TelegramConnectCard() {
                   {sendingWeekly ? "Enviando…" : "Resumo semanal"}
                 </Button>
               </div>
+            </div>
+
+            <div className="rounded-lg border border-border bg-muted/30 p-3 space-y-2">
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2">
+                  <CalendarDays className="h-4 w-4 text-primary" />
+                  <Label htmlFor="tg-weekly" className="text-sm cursor-pointer">
+                    Resumo semanal automático
+                  </Label>
+                </div>
+                <Switch
+                  id="tg-weekly"
+                  checked={summaryPref.weekly_enabled}
+                  onCheckedChange={(v) => updateSummary({ weekly_enabled: v })}
+                />
+              </div>
+              {summaryPref.weekly_enabled && (
+                <div className="flex flex-wrap items-center gap-2 pt-1">
+                  <Label className="text-xs text-muted-foreground">Dia:</Label>
+                  <Select
+                    value={String(summaryPref.weekly_send_weekday)}
+                    onValueChange={(v) => updateSummary({ weekly_send_weekday: Number(v) })}
+                  >
+                    <SelectTrigger className="h-8 w-32 text-xs">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="1">Segunda</SelectItem>
+                      <SelectItem value="2">Terça</SelectItem>
+                      <SelectItem value="3">Quarta</SelectItem>
+                      <SelectItem value="4">Quinta</SelectItem>
+                      <SelectItem value="5">Sexta</SelectItem>
+                      <SelectItem value="6">Sábado</SelectItem>
+                      <SelectItem value="0">Domingo</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Label htmlFor="tg-weekly-time" className="text-xs text-muted-foreground">
+                    Horário:
+                  </Label>
+                  <Input
+                    id="tg-weekly-time"
+                    type="time"
+                    value={summaryPref.weekly_send_time}
+                    onChange={(e) => updateSummary({ weekly_send_time: e.target.value })}
+                    className="h-8 w-28 text-xs"
+                  />
+                </div>
+              )}
+              <p className="text-[10px] text-muted-foreground">
+                Total dos últimos 7 dias por dia e por categoria.
+              </p>
             </div>
           </div>
         ) : code ? (
