@@ -152,6 +152,19 @@ function getTotalPaid(loan: Loan, payments: Payment[]): number {
   return payments.filter((p) => p.loanId === loan.id).reduce((s, p) => s + p.amount, 0);
 }
 
+function getPartialPaidForCurrentInstallment(loan: Loan, payments: Payment[]): number {
+  const loanPayments = payments.filter((p) => p.loanId === loan.id);
+  // Find the date of the last full installment payment (installment_number > 0)
+  const fullPayments = loanPayments
+    .filter((p) => p.installmentNumber > 0)
+    .sort((a, b) => b.date.localeCompare(a.date));
+  const lastFullDate = fullPayments.length > 0 ? fullPayments[0].date : null;
+  // Sum partial payments (installment_number === -1) after the last full payment
+  return loanPayments
+    .filter((p) => p.installmentNumber === -1 && (!lastFullDate || p.date >= lastFullDate))
+    .reduce((sum, p) => sum + p.amount, 0);
+}
+
 function LoanCardView({
   loan, payments: allPayments, installmentSchedules, onPayment, onPartialPayment, onInterestPayment, onUpdate, onDelete, onDeletePayment, onSaveSchedule, readOnly = false, no3d = false, existingTags = [],
 }: {
