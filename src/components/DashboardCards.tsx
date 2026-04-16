@@ -1,4 +1,4 @@
-import { DollarSign, TrendingUp, Users, AlertTriangle, Crown } from "lucide-react";
+import { DollarSign, TrendingUp, Users, AlertTriangle, Crown, Clock } from "lucide-react";
 import { Loan, Payment } from "@/types/loan";
 import { calculateTotalWithInterest } from "@/hooks/useLoans";
 import { useHideValues } from "@/contexts/HideValuesContext";
@@ -51,6 +51,9 @@ export function DashboardCards({ loans, payments }: Props) {
   const todayStr = new Date().toISOString().split("T")[0];
   const overdueLoans = loans.filter((l) => l.status === "overdue" && l.dueDate < todayStr).length;
 
+  // Pendente de Recebimento = soma do remaining_amount dos empréstimos ativos
+  const pendingReceivable = activeLoansData.reduce((sum, l) => sum + (l.remainingAmount ?? 0), 0);
+
   // Calculate loan limit usage (default 5 for trial users without subscription)
   const maxLoans = planLimits?.maxLoans || 5;
   const loanLimitPercent = Math.min(100, (activeLoans / maxLoans) * 100);
@@ -60,6 +63,7 @@ export function DashboardCards({ loans, payments }: Props) {
   const cards = [
     { title: "Capital na Rua", value: formatCurrency(totalLent), isCurrency: true, icon: DollarSign, accentClass: "text-primary", bgClass: "bg-primary/10", glowClass: "glow-primary" },
     { title: "Total a Receber", value: formatCurrency(totalToReceive), isCurrency: true, icon: TrendingUp, accentClass: "text-success", bgClass: "bg-success/10", glowClass: "glow-success" },
+    { title: "Pendente de Recebimento", value: formatCurrency(pendingReceivable), isCurrency: true, icon: Clock, accentClass: "text-orange-500", bgClass: "bg-orange-500/10", glowClass: "" },
     { title: "Lucro Estimado", value: formatCurrency(estimatedProfit), isCurrency: true, icon: TrendingUp, accentClass: "text-warning", bgClass: "bg-warning/10", glowClass: "" },
     { 
       title: "Empréstimos Ativos", 
