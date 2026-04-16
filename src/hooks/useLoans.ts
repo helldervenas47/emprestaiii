@@ -367,14 +367,13 @@ export function useLoans() {
   return { loans, payments, installmentSchedules, addLoan, addPayment, addPartialPayment, addInterestOnlyPayment, updateLoan, deleteLoan, deletePayment, saveSchedule };
 }
 
-export function calculateInstallment(principal: number, monthlyRate: number, months: number): number {
-  const r = monthlyRate / 100;
-  if (r === 0) return principal / months;
-  return (principal * r * Math.pow(1 + r, months)) / (Math.pow(1 + r, months) - 1);
+export function calculateInstallment(principal: number, rate: number, months: number): number {
+  const total = principal * (1 + rate / 100);
+  return months > 0 ? total / months : total;
 }
 
-export function calculateTotalWithInterest(principal: number, monthlyRate: number, months: number): number {
-  return calculateInstallment(principal, monthlyRate, months) * months;
+export function calculateTotalWithInterest(principal: number, rate: number, _months: number): number {
+  return principal * (1 + rate / 100);
 }
 
 export function getLoanRemainingAmount(loan: Loan, payments: Payment[]): number {
