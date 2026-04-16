@@ -20,7 +20,8 @@ import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
 import { personalCategories, getPersonalCategory } from "@/lib/personalExpenseCategories";
 import { Progress } from "@/components/ui/progress";
 import { usePersonalBudgets } from "@/hooks/usePersonalBudgets";
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as ReTooltip } from "recharts";
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as ReTooltip, LineChart, Line, XAxis, YAxis, CartesianGrid, Legend } from "recharts";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 
 interface Props {
   expenses: Expense[];
@@ -56,6 +57,37 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, readOn
   const [budgetEditOpen, setBudgetEditOpen] = useState(false);
   const [budgetDraft, setBudgetDraft] = useState<Record<string, string>>({});
   const { budgets, setBudget } = usePersonalBudgets();
+  const [historyMonths, setHistoryMonths] = useState<3 | 6 | 12>(6);
+
+  // Monthly evolution per category — last N months
+  const historyData = useMemo(() => {
+    const months: { key: string; label: string }[] = [];
+    const base = new Date(now.getFullYear(), now.getMonth(), 1);
+    for (let i = historyMonths - 1; i >= 0; i--) {
+      const d = new Date(base.getFullYear(), base.getMonth() - i, 1);
+      months.push({
+        key: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`,
+        label: format(d, "MMM/yy", { locale: ptBR }),
+      });
+    }
+    const monthSet = new Set(months.map((m) => m.key));
+    const categoriesPresent = new Set<string>();
+    const byMonth: Record<string, Record<string, number>> = {};
+    months.forEach((m) => (byMonth[m.key] = {}));
+    expenses.forEach((e) => {
+      const mk = e.dueDate.slice(0, 7);
+      if (!monthSet.has(mk)) return;
+      const amt = e.type === "recorrente" && e.installments && e.installments > 1
+        ? e.amount / e.installments
+        : e.amount;
+      byMonth[mk][e.category] = (byMonth[mk][e.category] || 0) + amt;
+      categoriesPresent.add(e.category);
+    });
+    const data = months.map((m) => ({ month: m.label, ...byMonth[m.key] }));
+    const cats = [...categoriesPresent];
+    return { data, categories: cats };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [expenses, historyMonths]);
 
   const getInstallmentAmount = useCallback((e: Expense) => {
     const isRec = e.type === "recorrente" && e.installments && e.installments > 1;
@@ -408,6 +440,72 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, readOn
         </CardContent>
       </Card>
 
+      {/* Monthly evolution per category */}
+      <Card>
+        <CardContent className="p-4">
+          <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
+            <div className="flex items-center gap-2">
+              <TrendingUp className="h-4 w-4 text-primary" />
+              <h3 className="text-sm font-semibold text-foreground">Evolução mensal por categoria</h3>
+            </div>
+            <ToggleGroup
+              type="single"
+              size="sm"
+              value={String(historyMonths)}
+              onValueChange={(v) => v && setHistoryMonths(Number(v) as 3 | 6 | 12)}
+            >
+              <ToggleGroupItem value="3" className="h-7 px-2 text-xs">3M</ToggleGroupItem>
+              <ToggleGroupItem value="6" className="h-7 px-2 text-xs">6M</ToggleGroupItem>
+              <ToggleGroupItem value="12" className="h-7 px-2 text-xs">12M</ToggleGroupItem>
+            </ToggleGroup>
+          </div>
+          {historyData.categories.length === 0 ? (
+            <p className="text-xs text-muted-foreground text-center py-8">
+              Sem dados suficientes para exibir o histórico
+            </p>
+          ) : (
+            <div className="h-64">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={historyData.data} margin={{ top: 5, right: 8, left: -8, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                  <XAxis dataKey="month" tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} />
+                  <YAxis
+                    tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
+                    tickFormatter={(v: number) =>
+                      v >= 1000 ? `R$ ${(v / 1000).toFixed(v >= 10000 ? 0 : 1)}k` : `R$ ${v}`
+                    }
+                  />
+                  <ReTooltip
+                    formatter={(value: number, name: string) => [fmt(value), name]}
+                    contentStyle={{
+                      background: "hsl(var(--popover))",
+                      border: "1px solid hsl(var(--border))",
+                      borderRadius: 8,
+                      fontSize: 12,
+                    }}
+                  />
+                  <Legend wrapperStyle={{ fontSize: 11, paddingTop: 8 }} />
+                  {historyData.categories.map((cat) => {
+                    const c = getPersonalCategory(cat);
+                    return (
+                      <Line
+                        key={cat}
+                        type="monotone"
+                        dataKey={cat}
+                        stroke={`hsl(${c.color})`}
+                        strokeWidth={2}
+                        dot={{ r: 3 }}
+                        activeDot={{ r: 5 }}
+                        connectNulls
+                      />
+                    );
+                  })}
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       <div className="flex flex-col sm:flex-row gap-3">
         <div className="relative flex-1">
