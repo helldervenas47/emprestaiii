@@ -151,6 +151,7 @@ export type Database = {
           paid_date: string | null
           paid_installments: number | null
           parent_expense_id: string | null
+          scope: string
           type: string
           user_id: string
         }
@@ -167,6 +168,7 @@ export type Database = {
           paid_date?: string | null
           paid_installments?: number | null
           parent_expense_id?: string | null
+          scope?: string
           type?: string
           user_id: string
         }
@@ -183,6 +185,7 @@ export type Database = {
           paid_date?: string | null
           paid_installments?: number | null
           parent_expense_id?: string | null
+          scope?: string
           type?: string
           user_id?: string
         }

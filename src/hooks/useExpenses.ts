@@ -23,6 +23,7 @@ export function useExpenses(enabled = true) {
         dueDate: e.due_date, paid: e.paid, paidDate: e.paid_date,
         notes: e.notes, createdAt: e.created_at,
         parentExpenseId: e.parent_expense_id ?? undefined,
+        scope: (e.scope as "business" | "personal") ?? "business",
       })));
     }
   }, [user]);
@@ -45,6 +46,7 @@ export function useExpenses(enabled = true) {
     const optimistic: Expense = {
       ...expense, id: tempId, paid: false, paidDate: undefined,
       paidInstallments: 0, createdAt: new Date().toISOString(),
+      scope: expense.scope ?? "business",
     };
     setExpenses((prev) => [optimistic, ...prev]);
 
@@ -52,7 +54,9 @@ export function useExpenses(enabled = true) {
       user_id: dataOwnerId, description: expense.description, amount: expense.amount,
       type: expense.type, category: expense.category, installments: expense.installments,
       paid_installments: 0, due_date: expense.dueDate, paid: false,
-    }).select().single();
+      notes: expense.notes ?? null,
+      scope: expense.scope ?? "business",
+    } as any).select().single();
 
     if (error) {
       setExpenses((prev) => prev.filter((e) => e.id !== tempId));
