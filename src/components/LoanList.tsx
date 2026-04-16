@@ -1006,6 +1006,7 @@ function LoanCardView({
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="center" className="w-56 p-2 space-y-1">
+                {loan.installments >= 2 && (
                 <DropdownMenuItem
                   onClick={() => openPaymentDialog("installment")}
                   className="flex items-center gap-3 px-3 py-2.5 rounded-lg cursor-pointer hover:bg-primary/10 focus:bg-primary/10"
@@ -1018,6 +1019,7 @@ function LoanCardView({
                     <p className="text-[11px] text-muted-foreground">{formatCurrency(installment)}</p>
                   </div>
                 </DropdownMenuItem>
+                )}
                 {loan.installments < 2 && (
                 <DropdownMenuItem
                   onClick={() => openPaymentDialog("interest")}
