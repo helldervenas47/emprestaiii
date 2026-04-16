@@ -96,7 +96,7 @@ export function NotificationSettings() {
             />
           </div>
           {needsInstall && (
-            <p className="text-xs text-amber-400 mt-2 pl-8">
+            <p className="text-xs text-warning mt-2 pl-8">
               No iOS, instale o app na Tela de Início primeiro: Safari → Compartilhar → Adicionar à Tela de Início.
             </p>
           )}
