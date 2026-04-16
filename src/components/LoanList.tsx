@@ -1472,7 +1472,9 @@ function LoanRowView({
       {/* Vencimento */}
       <td className="px-1.5 sm:px-4 py-2 sm:py-3">
         <span className={`text-[11px] sm:text-sm ${category === "overdue" ? "text-warning" : "text-foreground"}`}>
-          {new Date(loan.dueDate + "T00:00:00").toLocaleDateString("pt-BR")}
+          {loan.paymentType === "Parcelado"
+            ? getFirstPendingDate(loan, installmentSchedules).toLocaleDateString("pt-BR")
+            : new Date(loan.dueDate + "T00:00:00").toLocaleDateString("pt-BR")}
         </span>
       </td>
       {/* Etiquetas - hidden on mobile */}
@@ -1582,7 +1584,11 @@ function LoanRowView({
               </div>
               <div>
                 <p className="text-[10px] text-muted-foreground uppercase">Vencimento</p>
-                <p className="text-xs font-medium">{new Date(loan.dueDate + "T00:00:00").toLocaleDateString("pt-BR")}</p>
+                <p className="text-xs font-medium">
+                  {loan.paymentType === "Parcelado"
+                    ? getFirstPendingDate(loan, installmentSchedules).toLocaleDateString("pt-BR")
+                    : new Date(loan.dueDate + "T00:00:00").toLocaleDateString("pt-BR")}
+                </p>
               </div>
             </div>
             {daysOverdue > 0 && loan.status !== "paid" && (
