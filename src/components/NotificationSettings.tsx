@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { useNotificationPreferences, NOTIFICATION_TYPES } from "@/hooks/useNotificationPreferences";
 import { Skeleton } from "@/components/ui/skeleton";
 import { usePushNotifications } from "@/hooks/usePushNotifications";
+import { TelegramConnectCard } from "@/components/TelegramConnectCard";
 
 import { toast } from "sonner";
 
@@ -74,6 +75,7 @@ export function NotificationSettings() {
 
   return (
     <div className="space-y-3">
+      <TelegramConnectCard />
       {isPushSupported && (
         <Card className="p-4">
           <div className="flex items-start justify-between gap-3">
