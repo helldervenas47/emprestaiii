@@ -180,6 +180,8 @@ export function ExpenseList({ expenses, onPay, onUnpay, onDelete, onUpdate, read
   const [viewPaymentsExpenseId, setViewPaymentsExpenseId] = useState<string | null>(null);
   const [showClearPayments, setShowClearPayments] = useState(false);
   const [deleteExpenseId, setDeleteExpenseId] = useState<string | null>(null);
+  const [payingExpenseId, setPayingExpenseId] = useState<string | null>(null);
+  const [payDate, setPayDate] = useState<string>("");
 
   const getInstallmentAmount = useCallback((e: Expense) => {
     const isRec = e.type === "recorrente" && e.installments && e.installments > 1;
@@ -441,7 +443,10 @@ export function ExpenseList({ expenses, onPay, onUnpay, onDelete, onUpdate, read
                             </Button>
                           )}
                           {!readOnly && !expense.paid && (
-                            <Button size="sm" variant="outline" className="text-success border-success/30 hover:bg-success hover:text-success-foreground h-7 text-xs" onClick={() => onPay(expense.id)}>
+                            <Button size="sm" variant="outline" className="text-success border-success/30 hover:bg-success hover:text-success-foreground h-7 text-xs" onClick={() => {
+                              setPayDate(new Date().toISOString().split("T")[0]);
+                              setPayingExpenseId(expense.id);
+                            }}>
                               <CheckCircle className="h-3.5 w-3.5 mr-1" />
                               Pagar
                             </Button>
