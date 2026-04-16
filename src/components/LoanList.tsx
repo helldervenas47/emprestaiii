@@ -1421,17 +1421,14 @@ function LoanRowView({
       <td className="hidden sm:table-cell px-4 py-3">
         <span className="text-sm font-medium text-foreground">{formatCurrency(loan.amount)}</span>
       </td>
-      {/* Restante / Total Pago */}
+      {/* Restante / Parcela / Total Pago */}
       <td className="px-1.5 sm:px-4 py-2 sm:py-3">
         {loan.status === "paid" ? (
           <span className="text-[11px] sm:text-sm font-medium text-success">{formatCurrency(totalPaid)}</span>
+        ) : isParcelado ? (
+          <span className="text-[11px] sm:text-sm font-medium text-destructive">{formatCurrency(installmentValue)}</span>
         ) : (
-          <div>
-            <span className="text-[11px] sm:text-sm font-medium text-destructive">{formatCurrency(remaining)}</span>
-            {isParcelado && (
-              <span className="block text-[9px] sm:text-[10px] text-muted-foreground">Parcela: {formatCurrency(installmentValue)}</span>
-            )}
-          </div>
+          <span className="text-[11px] sm:text-sm font-medium text-destructive">{formatCurrency(remaining)}</span>
         )}
       </td>
       {/* Parcelas - hidden on mobile */}
