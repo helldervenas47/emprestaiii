@@ -121,6 +121,11 @@ export function useExpenses(enabled = true) {
         paid: true, paid_date: today,
       }).eq("id", id);
     }
+
+    // Trigger budget overrun push notification check (personal scope only)
+    if (expense.scope === "personal") {
+      supabase.functions.invoke("notify-budget-overrun").catch(() => { /* silent */ });
+    }
   }, [expenses, dataOwnerId]);
 
   const unpayExpense = useCallback(async (id: string) => {
