@@ -431,6 +431,30 @@ export type Database = {
           },
         ]
       }
+      personal_budget_alerts: {
+        Row: {
+          category: string
+          created_at: string
+          id: string
+          month: string
+          user_id: string
+        }
+        Insert: {
+          category: string
+          created_at?: string
+          id?: string
+          month: string
+          user_id: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          id?: string
+          month?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       personal_budgets: {
         Row: {
           amount: number
