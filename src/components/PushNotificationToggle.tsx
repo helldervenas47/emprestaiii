@@ -87,6 +87,10 @@ export function PushNotificationToggle() {
                   ))}
                 </SelectContent>
               </Select>
+              <Button variant="outline" size="sm" className="w-full" onClick={handleTest} disabled={testing}>
+                {testing ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" /> : <Send className="h-3.5 w-3.5 mr-1" />}
+                Enviar teste
+              </Button>
             </div>
           )}
         </div>
