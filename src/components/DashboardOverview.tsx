@@ -163,19 +163,47 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
       ? ((totalToReceiveInPeriod - totalLentInPeriod) / totalLentInPeriod) * 100
       : 0;
 
-    // Profit metrics for the period
-    // Lucro Previsto = remaining + paid - amount for loans in this period
-    const periodProfitExpected = filteredLoans.reduce((s, l) => {
-      const totalPaid = payments.filter(p => p.loanId === l.id).reduce((ps, p) => ps + p.amount, 0);
-      const remaining = l.remainingAmount ?? (calculateTotalWithInterest(l.amount, l.interestRate, l.installments) - totalPaid);
-      return s + (remaining + totalPaid - l.amount);
+    // Profit metrics for the period — based on installment due dates
+    // Find all installments with due dates in the period
+    const schedulesInPeriod = installmentSchedules.filter((sc) => isInRange(sc.dueDate, range.start, range.end));
+    
+    // Lucro Previsto = interest portion of installments due in this period
+    const periodProfitExpected = schedulesInPeriod.reduce((s, sc) => {
+      const loan = loans.find(l => l.id === sc.loanId);
+      if (!loan) return s;
+      const totalWithInterest = calculateTotalWithInterest(loan.amount, loan.interestRate, loan.installments);
+      const interestRatio = totalWithInterest > 0 ? 1 - (loan.amount / totalWithInterest) : 0;
+      return s + (sc.amount * interestRatio);
     }, 0);
-    // Lucro Realizado = payments received in period - principal portion
-    const periodProfitRealized = filteredLoans.reduce((s, l) => {
-      const totalPaid = payments.filter(p => p.loanId === l.id).reduce((ps, p) => ps + p.amount, 0);
-      return s + Math.max(0, totalPaid - l.amount);
+    
+    // Lucro Realizado = interest portion of payments whose installment had due date in period
+    const periodProfitRealized = schedulesInPeriod.reduce((s, sc) => {
+      const loan = loans.find(l => l.id === sc.loanId);
+      if (!loan) return s;
+      // Check if this installment was paid
+      if (sc.installmentNumber <= loan.paidInstallments) {
+        const totalWithInterest = calculateTotalWithInterest(loan.amount, loan.interestRate, loan.installments);
+        const interestRatio = totalWithInterest > 0 ? 1 - (loan.amount / totalWithInterest) : 0;
+        return s + (sc.amount * interestRatio);
+      }
+      return s;
     }, 0);
-    const periodProfitPct = periodProfitExpected > 0 ? Math.round((periodProfitRealized / periodProfitExpected) * 100) : 0;
+    
+    // Also include single-installment loans (no schedule) using dueDate
+    const singleInstLoans = loans.filter(l => l.installments <= 1 && isInRange(l.dueDate, range.start, range.end));
+    const singleExpected = singleInstLoans.reduce((s, l) => {
+      return s + (calculateTotalWithInterest(l.amount, l.interestRate, l.installments) - l.amount);
+    }, 0);
+    const singleRealized = singleInstLoans.reduce((s, l) => {
+      if (l.status === 'paid') {
+        return s + (calculateTotalWithInterest(l.amount, l.interestRate, l.installments) - l.amount);
+      }
+      return s;
+    }, 0);
+    
+    const totalProfitExpected = periodProfitExpected + singleExpected;
+    const totalProfitRealized = periodProfitRealized + singleRealized;
+    const periodProfitPct = totalProfitExpected > 0 ? Math.round((totalProfitRealized / totalProfitExpected) * 100) : 0;
 
     // Build sales with received amounts for breakdown
     const salesWithReceived = filteredSales.map(sale => {
@@ -193,8 +221,8 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
       return { ...sale, received };
     });
 
-    return { totalIncome, incomeFromPayments, incomeFromSales, totalOutgoing, totalLoanOutgoing, totalExpenses, balance, transactions, loanCount: filteredLoans.length, saleCount: filteredSales.length, paymentCount: filteredPayments.length, expenseCount: filteredExpenses.length, avgInterestRate, filteredPayments, filteredLoans, filteredExpenses, salesWithReceived, periodProfitExpected, periodProfitRealized, periodProfitPct };
-  }, [loans, sales, payments, expenses, range, includeSales, period, chartOverrides]);
+    return { totalIncome, incomeFromPayments, incomeFromSales, totalOutgoing, totalLoanOutgoing, totalExpenses, balance, transactions, loanCount: filteredLoans.length, saleCount: filteredSales.length, paymentCount: filteredPayments.length, expenseCount: filteredExpenses.length, avgInterestRate, filteredPayments, filteredLoans, filteredExpenses, salesWithReceived, periodProfitExpected: totalProfitExpected, periodProfitRealized: totalProfitRealized, periodProfitPct };
+  }, [loans, sales, payments, expenses, range, includeSales, period, chartOverrides, installmentSchedules]);
 
   // Portfolio metrics — global (not filtered by period)
   const portfolio = useMemo(() => {
