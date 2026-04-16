@@ -417,6 +417,58 @@ Deno.serve(async (req) => {
         continue;
       }
 
+      // 🎤 Voice / Audio handling
+      const voice = (msg.raw_update as any)?.message?.voice;
+      const audio = (msg.raw_update as any)?.message?.audio;
+      const audioMsg = voice || audio;
+      if (audioMsg) {
+        const { data: link } = await admin.from("telegram_links")
+          .select("user_id").eq("chat_id", chatId).maybeSingle();
+        if (!link) {
+          await tgSend(chatId, "🔒 Conta não vinculada. Use o app para gerar um código e envie `/start CODIGO`.", LOVABLE_API_KEY, TELEGRAM_API_KEY);
+        } else {
+          const transcript = await transcribeAudio(
+            audioMsg.file_id,
+            audioMsg.mime_type || "",
+            LOVABLE_API_KEY,
+            TELEGRAM_API_KEY,
+          );
+          if (!transcript) {
+            await tgSend(chatId, "🤔 Não consegui transcrever o áudio. Tente novamente ou envie por texto.", LOVABLE_API_KEY, TELEGRAM_API_KEY);
+          } else {
+            const extracted = await extractExpense(transcript, LOVABLE_API_KEY);
+            if (!extracted || !extracted.amount || extracted.confidence < 0.6) {
+              await tgSend(chatId, `🎤 Transcrevi: _"${transcript}"_\n\n🤔 Mas não consegui identificar a despesa. Tente reformular.`, LOVABLE_API_KEY, TELEGRAM_API_KEY);
+            } else {
+              const { error: insErr } = await admin.from("expenses").insert({
+                user_id: link.user_id,
+                description: extracted.description || transcript.slice(0, 80),
+                amount: extracted.amount,
+                category: CATEGORIES.includes(extracted.category) ? extracted.category : "Outros",
+                due_date: extracted.date || new Date().toISOString().slice(0, 10),
+                type: "fixa",
+                scope: "personal",
+                paid: true,
+                paid_date: extracted.date || new Date().toISOString().slice(0, 10),
+              });
+              if (insErr) {
+                await tgSend(chatId, "❌ Erro ao salvar: " + insErr.message, LOVABLE_API_KEY, TELEGRAM_API_KEY);
+              } else {
+                const fmt = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(extracted.amount);
+                await tgSend(chatId,
+                  `🎤 *Despesa registrada por áudio*\n\n_"${transcript}"_\n\n💰 ${fmt}\n📂 ${extracted.category}\n📝 ${extracted.description}\n📅 ${extracted.date}`,
+                  LOVABLE_API_KEY, TELEGRAM_API_KEY);
+              }
+            }
+          }
+        }
+        await admin.from("telegram_messages")
+          .update({ processed: true, processed_at: new Date().toISOString() })
+          .eq("update_id", msg.update_id);
+        processed++;
+        continue;
+      }
+
       // /start CODE → link account
       const startMatch = text.match(/^\/start(?:@\w+)?\s+(\d{6})/i);
       if (startMatch) {
