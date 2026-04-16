@@ -605,6 +605,9 @@ const Index = () => {
               >
                 <Bell className="h-4 w-4 mr-1" /> Notificações
               </Button>
+              {overdueSubTab === "notificacoes" && (
+                <PushNotificationToggle />
+              )}
             </div>
             {overdueSubTab === "cobrancas" && (
               <OverdueLoans loans={filteredLoans} payments={filteredPayments} clients={filteredClients} installmentSchedules={filteredInstallments} />
