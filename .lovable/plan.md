@@ -1,70 +1,57 @@
 
 
 ## Objetivo
-Permitir que o usuário envie uma **foto de comprovante/nota fiscal** no Telegram. A IA (Lovable AI multimodal) lê a imagem, extrai valor + categoria + descrição + data e cadastra a despesa automaticamente — mesmo fluxo de confirmação que já existe para texto.
+Disparar um alerta **imediato** no Telegram para o usuário sempre que, ao registrar uma despesa pessoal (texto / foto / áudio via bot), uma categoria do mês cruzar 100% do `personal_budgets`. Sem esperar o resumo diário das 19h e sem duplicar alertas no mesmo mês.
 
-## Fluxo
-1. Usuário tira foto de cupom/NF e envia no chat (com ou sem caption).
-2. `telegram-poll` já captura o update — precisa começar a aceitar mensagens com `photo` (hoje filtra apenas `text`).
-3. `telegram-process` detecta que a mensagem tem `photo`:
-   a. Pega o `file_id` do maior tamanho (último item do array `photo`).
-   b. Chama `getFile` no gateway → recebe `file_path`.
-   c. Baixa bytes via `${GATEWAY_URL}/file/${file_path}`.
-   d. Converte para base64 (data URL `data:image/jpeg;base64,...`).
-   e. Chama Lovable AI com `google/gemini-3-flash-preview` (multimodal) usando a mesma tool `register_expense` já existente, passando `image_url` + caption (se houver) como contexto adicional.
-   f. Mesma lógica de confiança + insert em `expenses` + mensagem de confirmação que o fluxo de texto.
-4. Resposta no Telegram inclui ícone 📸 e indica que veio de imagem:
-   ```
-   📸 Despesa extraída do comprovante
+## Como funciona
 
-   💰 R$ 87,50
-   📂 Alimentação
-   📝 Restaurante XYZ
-   📅 2026-04-16
-   ```
+1. Após qualquer `INSERT` bem-sucedido em `expenses` no `telegram-process` (texto, foto ou áudio), chamar uma função `checkBudgetAndAlert(admin, userId, chatId, category)`.
+2. Essa função:
+   a. Lê o orçamento da categoria em `personal_budgets`. Se não houver ou for ≤ 0 → ignora.
+   b. Soma todas as despesas pessoais pagas do mês corrente (`YYYY-MM`) naquela categoria.
+   c. Se total ≥ orçamento (≥ 100%):
+      - Verifica em `personal_budget_alerts` se já existe `(user_id, category, month=YYYY-MM, alert_type='exceeded')`.
+      - Se **não existir**: insere o registro e envia mensagem no Telegram:
+        ```
+        🚨 *Orçamento estourado!*
+        
+        📂 Lazer
+        💸 Gasto: R$ 250,00 / R$ 200,00 (125%)
+        
+        Você ultrapassou o limite mensal desta categoria.
+        ```
+      - Se já existir: não envia (evita spam — só 1 alerta por categoria/mês).
+3. Como o alerta é por `(user, category, month)`, despesas seguintes na mesma categoria no mesmo mês não disparam de novo. No próximo mês reseta naturalmente (chave inclui `month`).
 
 ## Mudanças
 
-### 1. `supabase/functions/telegram-poll/index.ts`
-- Mudar `allowed_updates: ['message']` (já está) — ok, photo já vem em message.
-- No mapeamento de `rows`, salvar também o `raw_update` completo (já salva). Garantir que `text` aceite `null` quando for foto pura, e usar `caption` como text se existir:
-  ```ts
-  text: u.message.text ?? u.message.caption ?? null
-  ```
+**Apenas 1 arquivo**: `supabase/functions/telegram-process/index.ts`
 
-### 2. `supabase/functions/telegram-process/index.ts`
-- Detectar foto: `const photos = msg.raw_update?.message?.photo`. Se array não vazio → fluxo imagem.
-- Nova função `downloadTelegramPhoto(fileId, lovableKey, telegramKey)`:
-  - POST `${GATEWAY}/getFile` → `file_path`
-  - GET `${GATEWAY}/file/${file_path}` → `arrayBuffer` → base64
-  - Retorna `data:image/jpeg;base64,${b64}`
-- Nova função `extractExpenseFromImage(imageDataUrl, caption, lovableKey)`:
-  - Mesmo schema/tool `register_expense` da função `extractExpense` atual
-  - `messages` com content multimodal: `[{type:"text", text: systemPrompt + caption}, {type:"image_url", image_url:{url: imageDataUrl}}]`
-  - Modelo: `google/gemini-3-flash-preview`
-- Branching no loop principal: se mensagem tem foto E usuário vinculado → baixa, extrai, insere, responde com 📸.
-- Se usuário não vinculado e mandou foto → mesma mensagem "🔒 Conta não vinculada".
-- Se extração falhar/baixa confiança → "🤔 Não consegui ler o comprovante. Tente uma foto mais nítida ou envie por texto."
+### Adicionar função `checkBudgetAndAlert`
+Logo após `handleApagar`. Recebe `(admin, userId, chatId, category)`, faz a verificação e envia o alerta usando `tgSend` (chaves Lovable/Telegram já disponíveis no escopo do request).
 
-### 3. `HELP_TEXT`
-Adicionar linha:
-```
-📸 Envie foto de cupom/nota fiscal — eu extraio o valor automaticamente.
-```
+### Chamar nos 3 pontos de insert
+Após cada `await admin.from("expenses").insert(...)` bem-sucedido (sem `insErr`):
+- Bloco texto livre
+- Bloco foto/comprovante
+- Bloco áudio/voz
+
+A chamada é `await checkBudgetAndAlert(admin, link.user_id, chatId, finalCategory, LOVABLE_API_KEY, TELEGRAM_API_KEY)` onde `finalCategory` é a categoria efetivamente salva (já normalizada para "Outros" se inválida).
 
 ## Detalhes técnicos
-- Telegram entrega `photo` como array de PhotoSize com tamanhos crescentes — usar o último (maior resolução) para melhor OCR.
-- Base64 inline é suficiente (cupons fiscais raramente >1MB; gateway aceita).
-- Reaproveitar 100% da lógica de insert/categoria/confiança que já existe — única diferença é a fonte (texto vs imagem).
-- Continuar marcando a mensagem como `processed = true` ao final, mesmo se foto falhar (evita reprocessar foto borrada).
+- Tabela `personal_budget_alerts` já existe, com chave lógica `(user_id, category, month, alert_type)`. Vamos usar `alert_type='exceeded'`.
+- Mês: `new Date().toISOString().slice(0,7)` — mesmo formato usado no `handleSaldo` (consistência).
+- Soma do mês: filtrar despesas com `paid=true` e `paid_date` (fallback `due_date`) começando com `YYYY-MM`. Mesma lógica do `/saldo`.
+- Idempotência: `select` por `(user_id, category, month)` antes de inserir; se já houver linha com `alert_type='exceeded'`, não envia.
+- Alerta "Outros" sem orçamento: pulado naturalmente (não há linha em `personal_budgets`).
 
 ## Sem alterações
-- Schema do banco: nada muda (`expenses` já cobre).
-- UI do app: nada muda (foto chega como despesa normal via realtime).
-- Outros comandos: intactos.
+- Schema (`personal_budget_alerts` já existe e tem RLS para service_role).
+- UI / outros bots / resumo diário (continuam funcionando independente).
+- Demais comandos.
 
 ## Fora de escopo
-- Múltiplas despesas em uma mesma foto (cupom com vários itens) — vamos extrair como 1 despesa total.
-- Edição/correção via botões inline pós-foto — pode ser próximo passo.
-- Salvar a imagem do comprovante anexa à despesa — não solicitado.
+- Alertas a 70% / 90% (apenas 100%). Pode ser próximo passo se desejado.
+- Alertas para despesas criadas pela UI do app (apenas via Telegram). O `notify-budget-overrun` existente já cuida do resumo geral; aqui é o canal Telegram em tempo real.
+- Botão inline "ver detalhes" — mensagem só de texto.
 
