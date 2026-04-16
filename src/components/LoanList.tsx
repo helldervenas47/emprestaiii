@@ -231,11 +231,16 @@ function LoanCardView({
   const remaining = baseRemaining + lateFees;
 
   const remainingInstallments = Math.max(1, loan.installments - loan.paidInstallments);
-  const installment = nextSchedule
+  const fullInstallment = nextSchedule
     ? nextSchedule.amount
     : loan.customInstallmentValue != null && loan.customInstallmentValue > 0
       ? loan.customInstallmentValue
-      : remaining / remainingInstallments;
+      : (loan.installments >= 2 ? total / loan.installments : baseRemaining);
+  const expectedRemainingForUnpaid = nextSchedule
+    ? allUnpaidScheduleSum
+    : fullInstallment * remainingInstallments;
+  const partialPaidOnCurrent = Math.max(0, expectedRemainingForUnpaid - baseRemaining);
+  const installment = Math.max(0, fullInstallment - partialPaidOnCurrent);
   const progress = loan.installments > 0 ? (loan.paidInstallments / loan.installments) * 100 : 0;
   const interestOnly = loan.customInterestValue != null && loan.customInterestValue > 0
     ? loan.customInterestValue
