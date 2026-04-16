@@ -57,6 +57,37 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, readOn
   const [budgetEditOpen, setBudgetEditOpen] = useState(false);
   const [budgetDraft, setBudgetDraft] = useState<Record<string, string>>({});
   const { budgets, setBudget } = usePersonalBudgets();
+  const [historyMonths, setHistoryMonths] = useState<3 | 6 | 12>(6);
+
+  // Monthly evolution per category — last N months
+  const historyData = useMemo(() => {
+    const months: { key: string; label: string }[] = [];
+    const base = new Date(now.getFullYear(), now.getMonth(), 1);
+    for (let i = historyMonths - 1; i >= 0; i--) {
+      const d = new Date(base.getFullYear(), base.getMonth() - i, 1);
+      months.push({
+        key: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`,
+        label: format(d, "MMM/yy", { locale: ptBR }),
+      });
+    }
+    const monthSet = new Set(months.map((m) => m.key));
+    const categoriesPresent = new Set<string>();
+    const byMonth: Record<string, Record<string, number>> = {};
+    months.forEach((m) => (byMonth[m.key] = {}));
+    expenses.forEach((e) => {
+      const mk = e.dueDate.slice(0, 7);
+      if (!monthSet.has(mk)) return;
+      const amt = e.type === "recorrente" && e.installments && e.installments > 1
+        ? e.amount / e.installments
+        : e.amount;
+      byMonth[mk][e.category] = (byMonth[mk][e.category] || 0) + amt;
+      categoriesPresent.add(e.category);
+    });
+    const data = months.map((m) => ({ month: m.label, ...byMonth[m.key] }));
+    const cats = [...categoriesPresent];
+    return { data, categories: cats };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [expenses, historyMonths]);
 
   const getInstallmentAmount = useCallback((e: Expense) => {
     const isRec = e.type === "recorrente" && e.installments && e.installments > 1;
