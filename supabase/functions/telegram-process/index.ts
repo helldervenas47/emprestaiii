@@ -22,9 +22,122 @@ Envie uma despesa em texto livre, ex:
 
 Vou interpretar e cadastrar automaticamente.
 
-Comandos:
+*Comandos:*
+/saldo — gastos do mês por categoria
+/ultimas — últimas 5 despesas
+/apagar — apaga a despesa mais recente
 /help — esta mensagem
 /start CODIGO — vincular conta`;
+
+const fmtBRL = (n: number) =>
+  new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(n);
+
+const fmtDayMonth = (iso: string) => {
+  const [, m, d] = iso.split("-");
+  return `${d}/${m}`;
+};
+
+const MONTH_NAMES = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
+
+function budgetIcon(pct: number | null): string {
+  if (pct === null) return "⚪";
+  if (pct >= 100) return "🔴";
+  if (pct >= 70) return "🟡";
+  return "🟢";
+}
+
+async function handleSaldo(admin: any, userId: string): Promise<string> {
+  const now = new Date();
+  const monthPrefix = now.toISOString().slice(0, 7); // YYYY-MM
+  const monthName = MONTH_NAMES[now.getMonth()];
+
+  const { data: expenses } = await admin
+    .from("expenses")
+    .select("amount, category, paid_date, due_date")
+    .eq("user_id", userId)
+    .eq("scope", "personal")
+    .eq("paid", true);
+
+  const monthExpenses = (expenses ?? []).filter((e: any) => {
+    const ref = (e.paid_date || e.due_date || "") as string;
+    return ref.startsWith(monthPrefix);
+  });
+
+  const byCat = new Map<string, number>();
+  let total = 0;
+  for (const e of monthExpenses) {
+    const amt = Number(e.amount) || 0;
+    total += amt;
+    byCat.set(e.category || "Outros", (byCat.get(e.category || "Outros") || 0) + amt);
+  }
+
+  const { data: budgets } = await admin
+    .from("personal_budgets")
+    .select("category, amount")
+    .eq("user_id", userId);
+  const budgetMap = new Map<string, number>();
+  for (const b of budgets ?? []) budgetMap.set(b.category, Number(b.amount) || 0);
+
+  let msg = `💰 *Gastos de ${monthName}*\nTotal: ${fmtBRL(total)}\n`;
+  if (byCat.size === 0) {
+    msg += `\n_Sem despesas neste mês._`;
+    return msg;
+  }
+  msg += `\n📂 *Por categoria:*\n`;
+  const sorted = [...byCat.entries()].sort((a, b) => b[1] - a[1]);
+  for (const [cat, spent] of sorted) {
+    const budget = budgetMap.get(cat);
+    if (budget && budget > 0) {
+      const pct = (spent / budget) * 100;
+      msg += `${budgetIcon(pct)} ${cat}: ${fmtBRL(spent)} / ${fmtBRL(budget)} (${pct.toFixed(0)}%)\n`;
+    } else {
+      msg += `${budgetIcon(null)} ${cat}: ${fmtBRL(spent)} (sem orçamento)\n`;
+    }
+  }
+  return msg.trimEnd();
+}
+
+async function handleUltimas(admin: any, userId: string): Promise<string> {
+  const { data } = await admin
+    .from("expenses")
+    .select("amount, description, category, paid_date, due_date, created_at")
+    .eq("user_id", userId)
+    .eq("scope", "personal")
+    .order("paid_date", { ascending: false, nullsFirst: false })
+    .order("created_at", { ascending: false })
+    .limit(5);
+
+  if (!data || data.length === 0) return "ℹ️ Nenhuma despesa registrada ainda.";
+
+  let msg = "🧾 *Últimas despesas*\n";
+  data.forEach((e: any, i: number) => {
+    const date = e.paid_date || e.due_date || "";
+    const dateStr = date ? fmtDayMonth(date) : "—";
+    msg += `${i + 1}. ${fmtBRL(Number(e.amount) || 0)} — ${e.description} (${e.category}) — ${dateStr}\n`;
+  });
+  return msg.trimEnd();
+}
+
+async function handleApagar(admin: any, userId: string): Promise<string> {
+  const { data } = await admin
+    .from("expenses")
+    .select("id, amount, description, category, paid_date, due_date")
+    .eq("user_id", userId)
+    .eq("scope", "personal")
+    .order("paid_date", { ascending: false, nullsFirst: false })
+    .order("created_at", { ascending: false })
+    .limit(1);
+
+  if (!data || data.length === 0) return "ℹ️ Nenhuma despesa para apagar.";
+
+  const e = data[0];
+  const { error } = await admin.from("expenses").delete().eq("id", e.id);
+  if (error) return "❌ Erro ao apagar: " + error.message;
+
+  const date = e.paid_date || e.due_date || "";
+  const dateStr = date ? fmtDayMonth(date) : "—";
+  return `🗑️ *Despesa removida:*\n${fmtBRL(Number(e.amount) || 0)} — ${e.description} (${e.category}) — ${dateStr}`;
+}
 
 async function tgSend(chatId: number, text: string, lovableKey: string, telegramKey: string) {
   await fetch(`${GATEWAY_URL}/sendMessage`, {
@@ -144,6 +257,15 @@ Deno.serve(async (req) => {
           .select("user_id").eq("chat_id", chatId).maybeSingle();
         if (!link) {
           await tgSend(chatId, "🔒 Conta não vinculada. Use o app para gerar um código e envie `/start CODIGO`.", LOVABLE_API_KEY, TELEGRAM_API_KEY);
+        } else if (/^\/saldo(?:@\w+)?\b/i.test(text)) {
+          const reply = await handleSaldo(admin, link.user_id);
+          await tgSend(chatId, reply, LOVABLE_API_KEY, TELEGRAM_API_KEY);
+        } else if (/^\/ultimas(?:@\w+)?\b/i.test(text)) {
+          const reply = await handleUltimas(admin, link.user_id);
+          await tgSend(chatId, reply, LOVABLE_API_KEY, TELEGRAM_API_KEY);
+        } else if (/^\/apagar(?:@\w+)?\b/i.test(text)) {
+          const reply = await handleApagar(admin, link.user_id);
+          await tgSend(chatId, reply, LOVABLE_API_KEY, TELEGRAM_API_KEY);
         } else {
           const extracted = await extractExpense(text, LOVABLE_API_KEY);
           if (!extracted || !extracted.amount || extracted.confidence < 0.6) {
