@@ -2,113 +2,34 @@
 
 ## Objetivo
 
-Na aba **Despesas**, criar duas sub-abas:
-1. **Despesas Empresa** (renomeação da atual, mantém todos os dados)
-2. **Despesas Pessoais** (nova área, com categorias e métricas inspiradas em apps de finanças pessoais — Mobills, Organizze, Wallet)
+Adicionar, na sub-aba **Despesas Pessoais**, um gráfico de linhas mostrando a evolução mensal dos gastos por categoria pessoal nos últimos meses.
 
-## Como diferenciar empresa vs pessoal
+## Como vai funcionar
 
-Vou adicionar uma coluna `scope text` (`'business' | 'personal'`) na tabela `expenses`, default `'business'` para preservar os dados atuais. As despesas de veículos continuam sendo identificadas pela categoria (já existe esse filtro) e ficam dentro de "Empresa".
+- Card novo "Evolução mensal por categoria" abaixo do card de Orçamento.
+- Eixo X: últimos 6 meses (configurável via toggle: 3M / 6M / 12M).
+- Eixo Y: valor gasto em R$.
+- Uma linha por categoria pessoal que tenha pelo menos uma despesa no período.
+- Cores fixas por categoria (paleta HSL do design system).
+- Tooltip mostra mês + valores por categoria formatados em BRL.
+- Legenda interativa: clicar oculta/mostra a linha.
+- Considera todas as despesas pessoais cadastradas (não apenas pagas), agrupadas pelo mês de `due_date` — consistente com a lógica de orçamento.
 
-### Migração SQL
-```sql
-ALTER TABLE public.expenses ADD COLUMN scope text NOT NULL DEFAULT 'business';
-```
+## Implementação técnica
 
-## Categorias pessoais (inspiradas nos melhores apps)
+**Arquivos:**
+- `src/components/PersonalExpenseList.tsx` — adicionar o card com `LineChart` (recharts via `@/components/ui/chart`).
 
-Lista padrão, com ícone e cor para cada uma:
-- Moradia (aluguel, condomínio, IPTU)
-- Alimentação (mercado, restaurante, delivery)
-- Transporte (combustível, Uber, transporte público)
-- Saúde (plano, farmácia, consultas)
-- Educação (cursos, livros, mensalidade)
-- Lazer (streaming, cinema, viagens)
-- Compras (vestuário, eletrônicos)
-- Contas (luz, água, internet, telefone)
-- Cartão de Crédito
-- Assinaturas
-- Pets
-- Presentes/Doações
-- Outros
+**Lógica de dados (memoizada):**
+1. Gerar lista dos últimos N meses (`YYYY-MM`).
+2. Filtrar despesas pessoais cujo `due_date` cai nesses meses.
+3. Agrupar: `{ mês, [categoria]: soma }`.
+4. Listar categorias presentes para gerar `<Line>` dinâmicos.
 
-## Componentes
+**UI:**
+- `ChartContainer` + `LineChart` com `CartesianGrid`, `XAxis` (label mês abreviado pt-BR), `YAxis` (formato R$ compacto), `ChartTooltip`, `ChartLegend`.
+- Toggle de período usando `ToggleGroup` (3M / 6M / 12M), default 6M.
+- Estado vazio: mensagem "Sem dados suficientes para exibir o histórico".
 
-### 1. `PersonalExpenseForm.tsx` (novo)
-Formulário inspirado em apps pessoais:
-- Descrição
-- Valor
-- Categoria (lista pessoal acima, com ícones)
-- Forma de pagamento (Dinheiro, Pix, Débito, Crédito) — campo informativo, salvo em `notes`
-- Tipo: Fixa / Recorrente (parcelada)
-- Data de vencimento
-- Observações
-- Define `scope: 'personal'` ao chamar `addExpense`
-
-### 2. `PersonalExpenseList.tsx` (novo)
-Reusa muita lógica de `ExpenseList` mas com layout focado em finanças pessoais:
-
-**Cards de resumo (mensais):**
-- Gasto do mês (total pago)
-- A pagar no mês (pendente)
-- Atrasado
-- **Média diária** (gasto / dia atual do mês) — métrica clássica de apps pessoais
-- **Projeção do mês** (gasto atual + média × dias restantes)
-
-**Gráfico de gastos por categoria** (donut/barras):
-- Mostra distribuição percentual das despesas do mês por categoria
-- Top 5 categorias destacadas, resto agrupado em "Outros"
-- Usar `recharts` (já existe no projeto via `chart.tsx`)
-
-**Filtros:**
-- Mês (já igual ao existente)
-- Busca
-- Pendentes / Pagas / Atrasadas / Todas
-- Filtro por categoria (chips clicáveis)
-
-**Lista de despesas:**
-- Mesmo padrão do `ExpenseList` (botão Pagar com seleção de data, editar, excluir, estornar)
-- Badge da categoria com cor
-
-### 3. Alterar `src/pages/Index.tsx`
-Na aba `expenses`, adicionar `Tabs` com:
-- "Despesas Empresa" → renderiza `ExpenseList` com `nonVehicleExpenses` filtradas por `scope==='business'`
-- "Despesas Pessoais" → renderiza `PersonalExpenseList` com expenses filtradas por `scope==='personal'`
-
-Estado `expenseSubTab: 'business' | 'personal'` controla qual formulário abrir ao clicar em "+ Nova Despesa" no header.
-
-### 4. Alterar `src/hooks/useExpenses.ts`
-- `fetchExpenses`: mapear novo campo `scope`
-- `addExpense`: aceitar `scope` opcional (default `'business'`) e passar para o INSERT
-- Tipo `Expense`: adicionar `scope?: 'business' | 'personal'`
-
-### 5. Alterar `src/components/ExpenseForm.tsx`
-Aceitar prop `scope` e passar para `onAdd`. Sem mudança visual.
-
-## Layout das sub-abas
-
-Mesmo padrão pílula usado em ProductSalesView (Vendas/Streaming):
-```text
-┌─────────────────────────────────────┐
-│ [🏢 Despesas Empresa] [👤 Pessoais] │
-└─────────────────────────────────────┘
-```
-
-## Arquivos a criar/alterar
-
-**Criar:**
-- Migração SQL (coluna `scope`)
-- `src/components/PersonalExpenseForm.tsx`
-- `src/components/PersonalExpenseList.tsx` (com gráfico de categorias e métricas)
-
-**Alterar:**
-- `src/types/loan.ts` — adicionar `scope` ao tipo `Expense`
-- `src/integrations/supabase/types.ts` — auto-atualizado pela migração
-- `src/hooks/useExpenses.ts` — mapear/inserir `scope`
-- `src/components/ExpenseForm.tsx` — aceitar prop `scope`
-- `src/pages/Index.tsx` — adicionar sub-abas, estado `expenseSubTab`, abrir form correto, filtrar por scope
-
-## Observação
-
-Despesas existentes mantêm todos os dados em "Despesas Empresa" (default `business` na migração). A sub-aba "Despesas Pessoais" inicia vazia — o usuário começa a cadastrar a partir de agora.
+**Observação:** Não há mudanças de schema nem de backend — apenas leitura dos dados já existentes em `expenses` (scope = `personal`).
 
