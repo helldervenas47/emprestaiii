@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useIsMobile } from "@/hooks/use-mobile";
+import { useIsMobileOrTablet } from "@/hooks/use-mobile";
 import { supabase } from "@/integrations/supabase/client";
 import { useClients } from "@/hooks/useClients";
 import { Button } from "@/components/ui/button";
@@ -56,7 +56,7 @@ export function UserManagement() {
   const { clients } = useClients();
   const [creating, setCreating] = useState(false);
   const [expandedUserId, setExpandedUserId] = useState<string | null>(null);
-  const isMobile = useIsMobile();
+  const isMobile = useIsMobileOrTablet();
   const [saving, setSaving] = useState(false);
 
   // Plan selection for admins

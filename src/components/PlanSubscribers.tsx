@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { useIsMobile } from "@/hooks/use-mobile";
+import { useIsMobileOrTablet } from "@/hooks/use-mobile";
 import { ChevronDown, Pencil, Trash2, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
@@ -51,7 +51,7 @@ export function PlanSubscribers() {
   const [loading, setLoading] = useState(true);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [plans, setPlans] = useState<PlanOption[]>([]);
-  const isMobile = useIsMobile();
+  const isMobile = useIsMobileOrTablet();
 
   // Edit dialog
   const [editSub, setEditSub] = useState<Subscriber | null>(null);
