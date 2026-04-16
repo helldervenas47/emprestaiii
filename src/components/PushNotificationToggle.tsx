@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Bell, BellOff, Clock } from "lucide-react";
+import { Bell, BellOff, Clock, Send, Loader2 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
@@ -13,8 +13,20 @@ const timeOptions = Array.from({ length: 24 }, (_, i) => {
 });
 
 export function PushNotificationToggle() {
-  const { isSupported, isSubscribed, isLoading, permission, subscribe, unsubscribe, sendTime, updateSendTime } = usePushNotifications();
+  const { isSupported, isSubscribed, isLoading, permission, subscribe, unsubscribe, sendTime, updateSendTime, sendTestNotification } = usePushNotifications();
   const [open, setOpen] = useState(false);
+  const [testing, setTesting] = useState(false);
+
+  const handleTest = async () => {
+    setTesting(true);
+    const ok = await sendTestNotification();
+    if (ok) {
+      toast.success("Notificação de teste enviada!");
+    } else {
+      toast.error("Falha ao enviar notificação de teste.");
+    }
+    setTesting(false);
+  };
 
   if (!isSupported) return null;
 
@@ -75,6 +87,10 @@ export function PushNotificationToggle() {
                   ))}
                 </SelectContent>
               </Select>
+              <Button variant="outline" size="sm" className="w-full" onClick={handleTest} disabled={testing}>
+                {testing ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" /> : <Send className="h-3.5 w-3.5 mr-1" />}
+                Enviar teste
+              </Button>
             </div>
           )}
         </div>
