@@ -2,9 +2,6 @@ import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 
-// The VAPID public key must be set via the secret added to the project.
-// We fetch it from the edge function or hardcode the public one here.
-// Public VAPID keys are safe to expose in client code.
 const VAPID_PUBLIC_KEY = "BDSknih4ImnAFRrO5UiitinHcs4tMGOds1cuOQHcV6yIvWKZjXisAHh7C7QEV04oHvkhFcxk5OzHVitM9MdHDSU";
 
 function urlBase64ToUint8Array(base64String: string): Uint8Array {
@@ -24,6 +21,7 @@ export function usePushNotifications() {
   const [isSubscribed, setIsSubscribed] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [permission, setPermission] = useState<NotificationPermission>("default");
+  const [sendTime, setSendTime] = useState("08:00");
 
   useEffect(() => {
     const supported = "serviceWorker" in navigator && "PushManager" in window && "Notification" in window;
@@ -46,6 +44,19 @@ export function usePushNotifications() {
       if (registration) {
         const subscription = await registration.pushManager.getSubscription();
         setIsSubscribed(!!subscription);
+      }
+
+      // Load send_time from DB
+      if (user) {
+        const { data } = await supabase
+          .from("push_tokens" as any)
+          .select("send_time")
+          .eq("user_id", user.id)
+          .limit(1)
+          .maybeSingle();
+        if ((data as any)?.send_time) {
+          setSendTime((data as any).send_time);
+        }
       }
     } catch {
       // ignore
@@ -80,7 +91,7 @@ export function usePushNotifications() {
       const auth = json.keys!.auth!;
 
       const { error } = await supabase.from("push_tokens" as any).upsert(
-        { user_id: user.id, endpoint, p256dh, auth },
+        { user_id: user.id, endpoint, p256dh, auth, send_time: sendTime },
         { onConflict: "user_id,endpoint" }
       );
 
@@ -94,7 +105,7 @@ export function usePushNotifications() {
     } finally {
       setIsLoading(false);
     }
-  }, [user, isSupported]);
+  }, [user, isSupported, sendTime]);
 
   const unsubscribe = useCallback(async () => {
     if (!user) return;
@@ -123,5 +134,15 @@ export function usePushNotifications() {
     }
   }, [user]);
 
-  return { isSupported, isSubscribed, isLoading, permission, subscribe, unsubscribe };
+  const updateSendTime = useCallback(async (newTime: string) => {
+    if (!user) return;
+    setSendTime(newTime);
+
+    await supabase
+      .from("push_tokens" as any)
+      .update({ send_time: newTime })
+      .eq("user_id", user.id);
+  }, [user]);
+
+  return { isSupported, isSubscribed, isLoading, permission, sendTime, subscribe, unsubscribe, updateSendTime };
 }
