@@ -239,11 +239,13 @@ function LoanCardView({
   const remaining = baseRemaining + lateFees;
 
   const remainingInstallments = Math.max(1, loan.installments - loan.paidInstallments);
-  const installment = nextSchedule
+  const partialPaidCurrent = getPartialPaidForCurrentInstallment(loan, allPayments);
+  const rawInstallment = nextSchedule
     ? nextSchedule.amount
     : loan.customInstallmentValue != null && loan.customInstallmentValue > 0
       ? loan.customInstallmentValue
       : remaining / remainingInstallments;
+  const installment = Math.max(0, rawInstallment - partialPaidCurrent);
   const progress = loan.installments > 0 ? (loan.paidInstallments / loan.installments) * 100 : 0;
   const interestOnly = loan.customInterestValue != null && loan.customInterestValue > 0
     ? loan.customInterestValue
@@ -1269,11 +1271,13 @@ function LoanRowView({
   const remaining = baseRemaining + lateInterestTotal + penaltyTotal;
   const remainingInstallments = Math.max(1, loan.installments - loan.paidInstallments);
   const nextSchedule = unpaidSchedules[0];
-  const installmentValue = nextSchedule
+  const partialPaidCurrent = getPartialPaidForCurrentInstallment(loan, allPayments);
+  const rawInstallmentValue = nextSchedule
     ? nextSchedule.amount
     : loan.customInstallmentValue != null && loan.customInstallmentValue > 0
       ? loan.customInstallmentValue
       : remaining / remainingInstallments;
+  const installmentValue = Math.max(0, rawInstallmentValue - partialPaidCurrent);
   const isParcelado = (loan.paymentType === "Parcelado" || loan.installments >= 2) && loan.status !== "paid" && loan.paidInstallments < loan.installments;
   const category = getLoanCategory(loan, allPayments, installmentSchedules);
   const badge = statusMap[category];
