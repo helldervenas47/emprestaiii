@@ -377,14 +377,17 @@ function LoanCardView({
         const paidInst = parseInt(next.paidInstallments) || 0;
         const remInst = Math.max(1, months - paidInst);
         next.installmentValue = (rem / remInst).toFixed(2);
-        // Rebuild schedule rows
+        // Rebuild ALL schedule rows (paid rows keep existing values)
         const firstDue = next.dueDate ? new Date(next.dueDate + "T00:00:00") : new Date();
-        setEditScheduleRows(
-          Array.from({ length: remInst }, (_, i) => ({
-            date: i === 0 ? firstDue : getNextDate(firstDue, next.interestType, i),
-            value: next.installmentValue,
-          }))
-        );
+        setEditScheduleRows((prev) => {
+          return Array.from({ length: months }, (_, i) => {
+            if (i < paidInst && prev[i]) return prev[i]; // Keep paid rows
+            return {
+              date: i === 0 ? firstDue : getNextDate(firstDue, next.interestType, i),
+              value: next.installmentValue,
+            };
+          });
+        });
       } else if (field === "interestValue") {
         const iv = parseFloat(value) || 0;
         const newRate = amt > 0 ? (iv / amt) * 100 : 0;
@@ -399,13 +402,15 @@ function LoanCardView({
       } else if (field === "interestType" || field === "dueDate") {
         // Rebuild dates when contract type or due date changes
         const paidInst = parseInt(next.paidInstallments) || 0;
-        const remInst = Math.max(1, months - paidInst);
         const firstDue = next.dueDate ? new Date(next.dueDate + "T00:00:00") : new Date();
         setEditScheduleRows((prev) =>
-          Array.from({ length: remInst }, (_, i) => ({
-            date: i === 0 ? firstDue : getNextDate(firstDue, next.interestType, i),
-            value: prev[i]?.value || next.installmentValue,
-          }))
+          Array.from({ length: months }, (_, i) => {
+            if (i < paidInst && prev[i]) return prev[i]; // Keep paid rows
+            return {
+              date: i === 0 ? firstDue : getNextDate(firstDue, next.interestType, i),
+              value: prev[i]?.value || next.installmentValue,
+            };
+          })
         );
       }
       return next;
