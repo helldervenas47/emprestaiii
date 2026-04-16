@@ -13,10 +13,12 @@ import {
 } from "@/components/ui/dialog";
 import {
   Search, Trash2, CheckCircle, Receipt, Calendar,
-  CircleDollarSign, ChevronLeft, ChevronRight, Undo2, TrendingUp, CalendarDays,
+  CircleDollarSign, ChevronLeft, ChevronRight, Undo2, TrendingUp, CalendarDays, Target, Pencil,
 } from "lucide-react";
 import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
 import { personalCategories, getPersonalCategory } from "@/lib/personalExpenseCategories";
+import { Progress } from "@/components/ui/progress";
+import { usePersonalBudgets } from "@/hooks/usePersonalBudgets";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as ReTooltip } from "recharts";
 
 interface Props {
