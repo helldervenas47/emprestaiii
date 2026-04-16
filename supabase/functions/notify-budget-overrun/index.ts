@@ -267,6 +267,27 @@ Deno.serve(async (req) => {
         else { totalFailed++; invalid.push(tok.id); }
       }
 
+      // Send Telegram alert (only for exceeded, if user has linked Telegram)
+      if (p.type === "exceeded") {
+        const lovableKey = Deno.env.get("LOVABLE_API_KEY");
+        const telegramKey = Deno.env.get("TELEGRAM_API_KEY");
+        if (lovableKey && telegramKey) {
+          const { data: tgLink } = await supabase
+            .from("telegram_links")
+            .select("chat_id")
+            .eq("user_id", ownerId)
+            .maybeSingle();
+          if (tgLink?.chat_id) {
+            await sendTelegram(
+              Number(tgLink.chat_id),
+              `🚨 *Orçamento estourado!*\n\n📂 ${p.category}\n💸 Gasto: ${fmt(p.spent)} / ${fmt(p.amount)} (${pct}%)\n\nVocê ultrapassou o limite mensal desta categoria.`,
+              lovableKey,
+              telegramKey,
+            );
+          }
+        }
+      }
+
       await supabase
         .from("personal_budget_alerts")
         .insert({ user_id: ownerId, category: p.category, month, alert_type: p.type });
