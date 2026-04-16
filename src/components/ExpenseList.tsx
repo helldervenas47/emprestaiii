@@ -25,7 +25,7 @@ const categories = [
 
 interface Props {
   expenses: Expense[];
-  onPay: (id: string) => void;
+  onPay: (id: string, skipBalanceAdjust?: boolean, payDate?: string) => void;
   onUnpay?: (id: string) => void;
   onDelete: (id: string) => void;
   onUpdate?: (id: string, data: Partial<Omit<Expense, "id" | "createdAt">>) => void;
