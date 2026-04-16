@@ -231,11 +231,16 @@ function LoanCardView({
   const remaining = baseRemaining + lateFees;
 
   const remainingInstallments = Math.max(1, loan.installments - loan.paidInstallments);
-  const installment = nextSchedule
+  const fullInstallment = nextSchedule
     ? nextSchedule.amount
     : loan.customInstallmentValue != null && loan.customInstallmentValue > 0
       ? loan.customInstallmentValue
-      : remaining / remainingInstallments;
+      : (loan.installments >= 2 ? total / loan.installments : baseRemaining);
+  const expectedRemainingForUnpaid = nextSchedule
+    ? allUnpaidScheduleSum
+    : fullInstallment * remainingInstallments;
+  const partialPaidOnCurrent = Math.max(0, expectedRemainingForUnpaid - baseRemaining);
+  const installment = Math.max(0, fullInstallment - partialPaidOnCurrent);
   const progress = loan.installments > 0 ? (loan.paidInstallments / loan.installments) * 100 : 0;
   const interestOnly = loan.customInterestValue != null && loan.customInterestValue > 0
     ? loan.customInterestValue
@@ -1304,11 +1309,16 @@ function LoanRowView({
   const remaining = baseRemaining + lateFees;
   const remainingInstallments = Math.max(1, loan.installments - loan.paidInstallments);
   const nextSchedule = unpaidSchedules[0];
-  const installmentValue = nextSchedule
+  const fullInstallmentValue = nextSchedule
     ? nextSchedule.amount
     : loan.customInstallmentValue != null && loan.customInstallmentValue > 0
       ? loan.customInstallmentValue
-      : remaining / remainingInstallments;
+      : (loan.installments >= 2 ? total / loan.installments : baseRemaining);
+  const expectedRemainingRow = nextSchedule
+    ? allUnpaidScheduleSum
+    : fullInstallmentValue * remainingInstallments;
+  const partialPaidOnCurrentRow = Math.max(0, expectedRemainingRow - baseRemaining);
+  const installmentValue = Math.max(0, fullInstallmentValue - partialPaidOnCurrentRow);
   const isParcelado = (loan.paymentType === "Parcelado" || loan.installments >= 2) && loan.status !== "paid" && loan.paidInstallments < loan.installments;
   const category = getLoanCategory(loan, allPayments, installmentSchedules);
   const badge = statusMap[category];
