@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { useNotificationPreferences, NOTIFICATION_TYPES } from "@/hooks/useNotificationPreferences";
 import { Skeleton } from "@/components/ui/skeleton";
 import { usePushNotifications } from "@/hooks/usePushNotifications";
+
 import { toast } from "sonner";
 
 const HOURS = Array.from({ length: 24 }, (_, i) => {
