@@ -186,23 +186,30 @@ Deno.serve(async (req) => {
     }
 
     // Find newly exceeded categories
-    const exceeded = (budgets as any[]).filter((b) => {
+    // Classify each budget: 'exceeded' (>100%) or 'warning' (>=80% and <=100%)
+    type Pending = { category: string; amount: number; spent: number; type: "exceeded" | "warning" };
+    const pending: Pending[] = [];
+    for (const b of budgets as any[]) {
+      const amt = Number(b.amount);
+      if (amt <= 0) continue;
       const s = spent.get(b.category) || 0;
-      return Number(b.amount) > 0 && s > Number(b.amount);
-    });
-
-    if (exceeded.length === 0) {
-      return new Response(JSON.stringify({ message: "Nothing exceeded" }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      const pct = (s / amt) * 100;
+      if (pct > 100) pending.push({ category: b.category, amount: amt, spent: s, type: "exceeded" });
+      else if (pct >= 80) pending.push({ category: b.category, amount: amt, spent: s, type: "warning" });
     }
 
-    // Filter out already-alerted
+    if (pending.length === 0) {
+      return new Response(JSON.stringify({ message: "Nothing to alert" }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
+    // Filter out already-alerted (per category + alert_type)
     const { data: existingAlerts } = await supabase
       .from("personal_budget_alerts")
-      .select("category")
+      .select("category, alert_type")
       .eq("user_id", ownerId)
       .eq("month", month);
-    const alertedSet = new Set((existingAlerts || []).map((a: any) => a.category));
-    const toAlert = exceeded.filter((b) => !alertedSet.has(b.category));
+    const alertedSet = new Set((existingAlerts || []).map((a: any) => `${a.category}::${a.alert_type}`));
+    const toAlert = pending.filter((p) => !alertedSet.has(`${p.category}::${p.type}`));
 
     if (toAlert.length === 0) {
       return new Response(JSON.stringify({ message: "Already alerted" }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
@@ -218,14 +225,19 @@ Deno.serve(async (req) => {
     let totalFailed = 0;
     const invalid: string[] = [];
 
-    for (const b of toAlert) {
-      const s = spent.get(b.category) || 0;
-      const over = s - Number(b.amount);
-      const payload = JSON.stringify({
-        title: `⚠️ Orçamento estourado: ${b.category}`,
-        body: `Você gastou ${fmt(s)} de ${fmt(Number(b.amount))} (${fmt(over)} acima).`,
-        url: "/?tab=expenses",
-      });
+    for (const p of toAlert) {
+      const pct = Math.round((p.spent / p.amount) * 100);
+      const payload = p.type === "exceeded"
+        ? JSON.stringify({
+            title: `⚠️ Orçamento estourado: ${p.category}`,
+            body: `Você cadastrou ${fmt(p.spent)} de ${fmt(p.amount)} (${fmt(p.spent - p.amount)} acima).`,
+            url: "/?tab=expenses",
+          })
+        : JSON.stringify({
+            title: `🟡 Atenção: ${p.category} em ${pct}%`,
+            body: `Você já cadastrou ${fmt(p.spent)} de ${fmt(p.amount)}. Aproximando do limite.`,
+            url: "/?tab=expenses",
+          });
 
       for (const tok of (tokens || []) as any[]) {
         const ok = await sendPush(
@@ -237,10 +249,9 @@ Deno.serve(async (req) => {
         else { totalFailed++; invalid.push(tok.id); }
       }
 
-      // Mark as alerted (idempotent via unique constraint)
       await supabase
         .from("personal_budget_alerts")
-        .insert({ user_id: ownerId, category: b.category, month });
+        .insert({ user_id: ownerId, category: p.category, month, alert_type: p.type });
     }
 
     if (invalid.length > 0) {
@@ -248,7 +259,7 @@ Deno.serve(async (req) => {
     }
 
     return new Response(JSON.stringify({
-      alerted: toAlert.map((b) => b.category),
+      alerted: toAlert.map((p) => `${p.category}:${p.type}`),
       sent: totalSent, failed: totalFailed,
     }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
   } catch (e: any) {
