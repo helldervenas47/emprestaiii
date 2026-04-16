@@ -153,8 +153,7 @@ export function usePushNotifications() {
         body: "Esta é uma notificação de teste. Suas notificações estão funcionando!",
         icon: "/logo-icon.png",
         badge: "/logo-icon.png",
-        vibrate: [100, 50, 100],
-      });
+      } as NotificationOptions);
       return true;
     } catch (err) {
       console.error("Test notification error:", err);
