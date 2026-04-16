@@ -143,6 +143,74 @@ async function handleApagar(admin: any, userId: string): Promise<string> {
   return `🗑️ *Despesa removida:*\n${fmtBRL(Number(e.amount) || 0)} — ${e.description} (${e.category}) — ${dateStr}`;
 }
 
+async function checkBudgetAndAlert(
+  admin: any,
+  userId: string,
+  chatId: number,
+  category: string,
+  lovableKey: string,
+  telegramKey: string,
+) {
+  try {
+    const { data: budgetRow } = await admin
+      .from("personal_budgets")
+      .select("amount")
+      .eq("user_id", userId)
+      .eq("category", category)
+      .maybeSingle();
+    const budget = Number(budgetRow?.amount) || 0;
+    if (budget <= 0) return;
+
+    const month = new Date().toISOString().slice(0, 7);
+
+    const { data: expenses } = await admin
+      .from("expenses")
+      .select("amount, paid_date, due_date")
+      .eq("user_id", userId)
+      .eq("scope", "personal")
+      .eq("category", category)
+      .eq("paid", true);
+
+    const total = (expenses || []).reduce((sum: number, e: any) => {
+      const d = (e.paid_date || e.due_date || "").slice(0, 7);
+      return d === month ? sum + (Number(e.amount) || 0) : sum;
+    }, 0);
+
+    if (total < budget) return;
+
+    const { data: existingAlert } = await admin
+      .from("personal_budget_alerts")
+      .select("id")
+      .eq("user_id", userId)
+      .eq("category", category)
+      .eq("month", month)
+      .eq("alert_type", "exceeded")
+      .maybeSingle();
+
+    if (existingAlert) return;
+
+    await admin.from("personal_budget_alerts").insert({
+      user_id: userId,
+      category,
+      month,
+      alert_type: "exceeded",
+    });
+
+    const pct = Math.round((total / budget) * 100);
+    const fmtTotal = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(total);
+    const fmtBudget = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(budget);
+
+    await tgSend(
+      chatId,
+      `🚨 *Orçamento estourado!*\n\n📂 ${category}\n💸 Gasto: ${fmtTotal} / ${fmtBudget} (${pct}%)\n\nVocê ultrapassou o limite mensal desta categoria.`,
+      lovableKey,
+      telegramKey,
+    );
+  } catch (e) {
+    console.error("checkBudgetAndAlert error", e);
+  }
+}
+
 async function tgSend(chatId: number, text: string, lovableKey: string, telegramKey: string) {
   await fetch(`${GATEWAY_URL}/sendMessage`, {
     method: "POST",
@@ -404,10 +472,12 @@ Deno.serve(async (req) => {
               if (insErr) {
                 await tgSend(chatId, "❌ Erro ao salvar: " + insErr.message, LOVABLE_API_KEY, TELEGRAM_API_KEY);
               } else {
+                const finalCategory = CATEGORIES.includes(extracted.category) ? extracted.category : "Outros";
                 const fmt = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(extracted.amount);
                 await tgSend(chatId,
                   `📸 *Despesa extraída do comprovante*\n\n💰 ${fmt}\n📂 ${extracted.category}\n📝 ${extracted.description}\n📅 ${extracted.date}`,
                   LOVABLE_API_KEY, TELEGRAM_API_KEY);
+                await checkBudgetAndAlert(admin, link.user_id, chatId, finalCategory, LOVABLE_API_KEY, TELEGRAM_API_KEY);
               }
             }
           }
@@ -456,10 +526,12 @@ Deno.serve(async (req) => {
               if (insErr) {
                 await tgSend(chatId, "❌ Erro ao salvar: " + insErr.message, LOVABLE_API_KEY, TELEGRAM_API_KEY);
               } else {
+                const finalCategory = CATEGORIES.includes(extracted.category) ? extracted.category : "Outros";
                 const fmt = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(extracted.amount);
                 await tgSend(chatId,
                   `🎤 *Despesa registrada por áudio*\n\n_"${transcript}"_\n\n💰 ${fmt}\n📂 ${extracted.category}\n📝 ${extracted.description}\n📅 ${extracted.date}`,
                   LOVABLE_API_KEY, TELEGRAM_API_KEY);
+                await checkBudgetAndAlert(admin, link.user_id, chatId, finalCategory, LOVABLE_API_KEY, TELEGRAM_API_KEY);
               }
             }
           }
@@ -532,10 +604,12 @@ Deno.serve(async (req) => {
             if (insErr) {
               await tgSend(chatId, "❌ Erro ao salvar: " + insErr.message, LOVABLE_API_KEY, TELEGRAM_API_KEY);
             } else {
+              const finalCategory = CATEGORIES.includes(extracted.category) ? extracted.category : "Outros";
               const fmt = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(extracted.amount);
               await tgSend(chatId,
                 `✅ *Despesa registrada*\n\n💰 ${fmt}\n📂 ${extracted.category}\n📝 ${extracted.description}\n📅 ${extracted.date}`,
                 LOVABLE_API_KEY, TELEGRAM_API_KEY);
+              await checkBudgetAndAlert(admin, link.user_id, chatId, finalCategory, LOVABLE_API_KEY, TELEGRAM_API_KEY);
             }
           }
         }
