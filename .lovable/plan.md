@@ -1,35 +1,49 @@
 
 
 ## Objetivo
+Permitir cadastrar despesas pessoais enviando mensagens em texto livre para um **bot do Telegram**, interpretadas pela Lovable AI.
 
-Adicionar, na sub-aba **Despesas Pessoais**, um gráfico de linhas mostrando a evolução mensal dos gastos por categoria pessoal nos últimos meses.
+## Fluxo
+1. Usuário fala com o bot (ex: "gastei 45 no uber ontem").
+2. Polling captura a mensagem (cron a cada minuto + long polling).
+3. Edge function identifica o usuário pelo `chat_id` vinculado e chama a Lovable AI para extrair `descrição`, `valor`, `categoria`, `data`.
+4. Insere em `expenses` com `scope='personal'` e responde no Telegram confirmando (✅ valor + categoria) ou pedindo correção.
 
-## Como vai funcionar
+## Vinculação de conta
+Na aba **Despesas Pessoais** novo card "Telegram":
+- Botão "Conectar Telegram" gera um código de 6 dígitos (válido 10 min).
+- Usuário envia `/start CODIGO` no bot → vinculado.
+- Mostra status conectado + botão desconectar.
 
-- Card novo "Evolução mensal por categoria" abaixo do card de Orçamento.
-- Eixo X: últimos 6 meses (configurável via toggle: 3M / 6M / 12M).
-- Eixo Y: valor gasto em R$.
-- Uma linha por categoria pessoal que tenha pelo menos uma despesa no período.
-- Cores fixas por categoria (paleta HSL do design system).
-- Tooltip mostra mês + valores por categoria formatados em BRL.
-- Legenda interativa: clicar oculta/mostra a linha.
-- Considera todas as despesas pessoais cadastradas (não apenas pagas), agrupadas pelo mês de `due_date` — consistente com a lógica de orçamento.
+## Mudanças no banco
+Nova tabela `telegram_links`: `user_id`, `chat_id` (unique), `created_at`.
+Nova tabela `telegram_link_codes`: `code`, `user_id`, `expires_at`.
+Tabelas de polling do guia: `telegram_bot_state`, `telegram_messages` (consumida e marcada como processada).
+RLS: usuário vê só seu link; service role gerencia tudo.
 
-## Implementação técnica
+## Edge functions
+- **`telegram-poll`** — cron 1x/min, faz long polling de `getUpdates`, salva mensagens.
+- **`telegram-process`** — disparada após o poll: para cada mensagem nova, resolve `chat_id → user_id`, trata `/start CODIGO` (vincula) e `/help`, ou chama Lovable AI (`google/gemini-3-flash-preview`) com tool calling estruturado para extrair a despesa, insere em `expenses` e envia confirmação via `sendMessage`.
+- **`telegram-link-code`** — gera código de vinculação para o usuário logado.
 
-**Arquivos:**
-- `src/components/PersonalExpenseList.tsx` — adicionar o card com `LineChart` (recharts via `@/components/ui/chart`).
+## IA (extração estruturada)
+Tool calling com schema:
+```
+{ description, amount, category (enum das categoriasPessoais), date (YYYY-MM-DD, default hoje), confidence }
+```
+Se `confidence < 0.6` ou faltar valor → bot responde pedindo para reescrever.
 
-**Lógica de dados (memoizada):**
-1. Gerar lista dos últimos N meses (`YYYY-MM`).
-2. Filtrar despesas pessoais cujo `due_date` cai nesses meses.
-3. Agrupar: `{ mês, [categoria]: soma }`.
-4. Listar categorias presentes para gerar `<Line>` dinâmicos.
+## Pré-requisitos
+- Conectar o connector **Telegram** (vou pedir via `standard_connectors--connect`).
+- Criar bot no @BotFather e fornecer o token na conexão.
+- Lovable AI já disponível (LOVABLE_API_KEY presente).
 
-**UI:**
-- `ChartContainer` + `LineChart` com `CartesianGrid`, `XAxis` (label mês abreviado pt-BR), `YAxis` (formato R$ compacto), `ChartTooltip`, `ChartLegend`.
-- Toggle de período usando `ToggleGroup` (3M / 6M / 12M), default 6M.
-- Estado vazio: mensagem "Sem dados suficientes para exibir o histórico".
+## UI
+- Card "Telegram" em `PersonalExpenseList.tsx` com estados: não vinculado (botão gerar código + instruções) / vinculado (chat_id + desconectar).
+- Toast quando código copiado.
+- Realtime em `expenses` já existe → despesa cadastrada via Telegram aparece automaticamente na lista.
 
-**Observação:** Não há mudanças de schema nem de backend — apenas leitura dos dados já existentes em `expenses` (scope = `personal`).
+## Observações
+- Sem webhook (não suportado pelo gateway) — latência típica 0–60s.
+- Apenas o dono dos dados (não usuários `operador`) pode vincular, para manter isolamento.
 
