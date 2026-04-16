@@ -23,13 +23,27 @@ export function useIsMobileOrTablet() {
   const [isSmall, setIsSmall] = React.useState<boolean | undefined>(undefined);
 
   React.useEffect(() => {
-    const mql = window.matchMedia(`(max-width: ${TABLET_BREAKPOINT - 1}px)`);
-    const onChange = () => {
-      setIsSmall(window.innerWidth < TABLET_BREAKPOINT);
+    const check = () => {
+      const width = window.innerWidth;
+      const height = window.innerHeight;
+      const isTouch = "ontouchstart" in window || navigator.maxTouchPoints > 0;
+      const shortSide = Math.min(width, height);
+
+      // Treat as tablet/mobile if:
+      // - Width < 1024 (portrait tablet or phone)
+      // - OR it's a touch device with short side <= 1024 (landscape tablet)
+      const isTabletOrMobile = width < TABLET_BREAKPOINT || (isTouch && shortSide < TABLET_BREAKPOINT);
+      setIsSmall(isTabletOrMobile);
     };
-    mql.addEventListener("change", onChange);
-    setIsSmall(window.innerWidth < TABLET_BREAKPOINT);
-    return () => mql.removeEventListener("change", onChange);
+
+    check();
+    window.addEventListener("resize", check);
+    // Also listen to orientation changes for PWA
+    window.addEventListener("orientationchange", () => setTimeout(check, 100));
+    return () => {
+      window.removeEventListener("resize", check);
+      window.removeEventListener("orientationchange", () => {});
+    };
   }, []);
 
   return !!isSmall;
