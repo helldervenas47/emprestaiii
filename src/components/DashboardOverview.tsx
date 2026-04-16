@@ -594,11 +594,11 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
         <Card className="animate-fade-in" style={{ animationDelay: '80ms', animationFillMode: 'backwards' }}>
           <CardContent className="p-4 flex flex-col h-full relative">
             {!editingBalance && (
-              <Button variant="ghost" size="icon" className="h-7 w-7 absolute top-2 right-2" onClick={startEditBalance}>
+              <Button variant="ghost" size="icon" className="h-7 w-7 absolute top-1 right-1 z-10" onClick={startEditBalance}>
                 <Pencil className="h-3.5 w-3.5 text-muted-foreground" />
               </Button>
             )}
-            <div className="flex items-center justify-center pt-2">
+            <div className="flex items-center justify-center">
               <div className="flex flex-col items-center text-center">
                 <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0 mb-1">
                   <Wallet className="h-5 w-5 text-primary" />
