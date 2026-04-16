@@ -594,7 +594,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
         <Card className="animate-fade-in" style={{ animationDelay: '80ms', animationFillMode: 'backwards' }}>
           <CardContent className="p-4 h-full relative flex flex-col">
             {!editingBalance && (
-              <Button variant="ghost" size="icon" <Button variant="ghost" size="icon" className="h-7 w-7 absolute top-1 left-1 z-10" onClick={startEditBalance}> onClick={startEditBalance}>
+              <Button variant="ghost" size="icon" className="h-7 w-7 absolute top-1 left-1 z-10" onClick={startEditBalance}>
                 <Pencil className="h-3.5 w-3.5 text-muted-foreground" />
               </Button>
             )}
