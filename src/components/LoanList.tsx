@@ -725,7 +725,7 @@ function LoanCardView({
           )}
           <p className="text-xs text-muted-foreground mt-1">
             {(loan.paymentType === "Parcelado" || loan.installments >= 2) && loan.status !== "paid" && loan.paidInstallments < loan.installments
-              ? `parcela pendente (${loan.paidInstallments + 1}ª de ${loan.installments})${loan.customInstallmentValue != null ? " • manual" : ""}`
+              ? `parcela pendente (${loan.paidInstallments + 1}ª de ${loan.installments})${partialPaidCurrent > 0 ? ` • pago parcial: ${rawFormatCurrency(partialPaidCurrent)}` : ""}${loan.customInstallmentValue != null ? " • manual" : ""}`
               : "restante a receber"}
           </p>
           {(loan.paymentType === "Parcelado" || loan.installments >= 2) && loan.status !== "paid" && loan.paidInstallments < loan.installments && (
