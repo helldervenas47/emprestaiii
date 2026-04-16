@@ -472,10 +472,12 @@ Deno.serve(async (req) => {
               if (insErr) {
                 await tgSend(chatId, "❌ Erro ao salvar: " + insErr.message, LOVABLE_API_KEY, TELEGRAM_API_KEY);
               } else {
+                const finalCategory = CATEGORIES.includes(extracted.category) ? extracted.category : "Outros";
                 const fmt = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(extracted.amount);
                 await tgSend(chatId,
                   `📸 *Despesa extraída do comprovante*\n\n💰 ${fmt}\n📂 ${extracted.category}\n📝 ${extracted.description}\n📅 ${extracted.date}`,
                   LOVABLE_API_KEY, TELEGRAM_API_KEY);
+                await checkBudgetAndAlert(admin, link.user_id, chatId, finalCategory, LOVABLE_API_KEY, TELEGRAM_API_KEY);
               }
             }
           }
@@ -524,10 +526,12 @@ Deno.serve(async (req) => {
               if (insErr) {
                 await tgSend(chatId, "❌ Erro ao salvar: " + insErr.message, LOVABLE_API_KEY, TELEGRAM_API_KEY);
               } else {
+                const finalCategory = CATEGORIES.includes(extracted.category) ? extracted.category : "Outros";
                 const fmt = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(extracted.amount);
                 await tgSend(chatId,
                   `🎤 *Despesa registrada por áudio*\n\n_"${transcript}"_\n\n💰 ${fmt}\n📂 ${extracted.category}\n📝 ${extracted.description}\n📅 ${extracted.date}`,
                   LOVABLE_API_KEY, TELEGRAM_API_KEY);
+                await checkBudgetAndAlert(admin, link.user_id, chatId, finalCategory, LOVABLE_API_KEY, TELEGRAM_API_KEY);
               }
             }
           }
@@ -600,10 +604,12 @@ Deno.serve(async (req) => {
             if (insErr) {
               await tgSend(chatId, "❌ Erro ao salvar: " + insErr.message, LOVABLE_API_KEY, TELEGRAM_API_KEY);
             } else {
+              const finalCategory = CATEGORIES.includes(extracted.category) ? extracted.category : "Outros";
               const fmt = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(extracted.amount);
               await tgSend(chatId,
                 `✅ *Despesa registrada*\n\n💰 ${fmt}\n📂 ${extracted.category}\n📝 ${extracted.description}\n📅 ${extracted.date}`,
                 LOVABLE_API_KEY, TELEGRAM_API_KEY);
+              await checkBudgetAndAlert(admin, link.user_id, chatId, finalCategory, LOVABLE_API_KEY, TELEGRAM_API_KEY);
             }
           }
         }
