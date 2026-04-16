@@ -225,6 +225,9 @@ function LoanCardView({
     ? loan.penaltyValue
     : 0;
   const lateFees = lateInterestTotal + penaltyTotal;
+  const interestPaymentsReceived = allPayments
+    .filter((p) => p.loanId === loan.id && p.installmentNumber === 0)
+    .reduce((sum, p) => sum + p.amount, 0);
   const remaining = baseRemaining + lateFees;
 
   const remainingInstallments = Math.max(1, loan.installments - loan.paidInstallments);
@@ -777,7 +780,7 @@ function LoanCardView({
           </div>
           <div>
             <p className="text-xs text-muted-foreground">Total a Receber</p>
-            <p className="text-base font-bold text-foreground">{formatCurrency(total + lateFees)}</p>
+            <p className="text-base font-bold text-foreground">{formatCurrency(total + lateFees + interestPaymentsReceived)}</p>
           </div>
         </div>
 
@@ -1532,7 +1535,7 @@ function LoanRowView({
               </div>
               <div className="bg-card rounded-lg p-3 border border-border/30">
                 <p className="text-[10px] text-muted-foreground uppercase">Total a Receber</p>
-                <p className="text-sm font-bold text-foreground">{formatCurrency(total + lateInterestTotal + penaltyTotal)}</p>
+                <p className="text-sm font-bold text-foreground">{formatCurrency(total + lateFees + interestPaymentsReceived)}</p>
               </div>
               <div className="bg-card rounded-lg p-3 border border-border/30">
                 <p className="text-[10px] text-muted-foreground uppercase">Total Pago</p>
