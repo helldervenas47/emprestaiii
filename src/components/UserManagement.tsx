@@ -56,7 +56,7 @@ export function UserManagement() {
   const { clients } = useClients();
   const [creating, setCreating] = useState(false);
   const [expandedUserId, setExpandedUserId] = useState<string | null>(null);
-  const isMobile = useIsMobile();
+  const isMobile = useIsMobileOrTablet();
   const [saving, setSaving] = useState(false);
 
   // Plan selection for admins

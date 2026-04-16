@@ -51,7 +51,7 @@ export function PlanSubscribers() {
   const [loading, setLoading] = useState(true);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [plans, setPlans] = useState<PlanOption[]>([]);
-  const isMobile = useIsMobile();
+  const isMobile = useIsMobileOrTablet();
 
   // Edit dialog
   const [editSub, setEditSub] = useState<Subscriber | null>(null);
