@@ -61,7 +61,7 @@ export function useExpenses(enabled = true) {
     }
   }, [user, dataOwnerId]);
 
-  const payExpense = useCallback(async (id: string, skipBalanceAdjust = false) => {
+  const payExpense = useCallback(async (id: string, skipBalanceAdjust = false, payDate?: string) => {
     if (!dataOwnerId) return;
     const expense = expenses.find((e) => e.id === id);
     if (!expense || expense.paid) return;
