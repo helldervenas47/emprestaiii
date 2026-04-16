@@ -223,6 +223,87 @@ async function tgSend(chatId: number, text: string, lovableKey: string, telegram
   }).catch((e) => console.error("sendMessage err", e));
 }
 
+async function tgSendWithKeyboard(chatId: number, text: string, keyboard: any, lovableKey: string, telegramKey: string) {
+  await fetch(`${GATEWAY_URL}/sendMessage`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${lovableKey}`,
+      "X-Connection-Api-Key": telegramKey,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      chat_id: chatId,
+      text,
+      parse_mode: "Markdown",
+      reply_markup: { inline_keyboard: keyboard },
+    }),
+  }).catch((e) => console.error("sendMessage kb err", e));
+}
+
+async function tgEditMessage(chatId: number, messageId: number, text: string, keyboard: any | null, lovableKey: string, telegramKey: string) {
+  const body: any = { chat_id: chatId, message_id: messageId, text, parse_mode: "Markdown" };
+  if (keyboard) body.reply_markup = { inline_keyboard: keyboard };
+  await fetch(`${GATEWAY_URL}/editMessageText`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${lovableKey}`,
+      "X-Connection-Api-Key": telegramKey,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(body),
+  }).catch((e) => console.error("editMessage err", e));
+}
+
+async function tgEditReplyMarkup(chatId: number, messageId: number, keyboard: any, lovableKey: string, telegramKey: string) {
+  await fetch(`${GATEWAY_URL}/editMessageReplyMarkup`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${lovableKey}`,
+      "X-Connection-Api-Key": telegramKey,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      chat_id: chatId,
+      message_id: messageId,
+      reply_markup: { inline_keyboard: keyboard },
+    }),
+  }).catch((e) => console.error("editReplyMarkup err", e));
+}
+
+async function tgAnswerCallback(callbackId: string, text: string | undefined, lovableKey: string, telegramKey: string) {
+  const body: any = { callback_query_id: callbackId };
+  if (text) body.text = text;
+  await fetch(`${GATEWAY_URL}/answerCallbackQuery`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${lovableKey}`,
+      "X-Connection-Api-Key": telegramKey,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(body),
+  }).catch((e) => console.error("answerCb err", e));
+}
+
+function buildExpenseKeyboard(expenseId: string) {
+  return [[
+    { text: "📂 Mudar categoria", callback_data: `cat:${expenseId}` },
+    { text: "🗑️ Apagar", callback_data: `del:${expenseId}` },
+  ]];
+}
+
+function buildCategoryKeyboard(expenseId: string) {
+  const rows: any[] = [];
+  for (let i = 0; i < CATEGORIES.length; i += 2) {
+    const row = [{ text: CATEGORIES[i], callback_data: `setcat:${expenseId}:${CATEGORIES[i]}` }];
+    if (CATEGORIES[i + 1]) {
+      row.push({ text: CATEGORIES[i + 1], callback_data: `setcat:${expenseId}:${CATEGORIES[i + 1]}` });
+    }
+    rows.push(row);
+  }
+  rows.push([{ text: "❌ Cancelar", callback_data: `canc:${expenseId}` }]);
+  return rows;
+}
+
 async function extractExpense(text: string, lovableKey: string) {
   const today = new Date().toISOString().slice(0, 10);
   const resp = await fetch(AI_GATEWAY, {
