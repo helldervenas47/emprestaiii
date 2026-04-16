@@ -13,10 +13,12 @@ import {
 } from "@/components/ui/dialog";
 import {
   Search, Trash2, CheckCircle, Receipt, Calendar,
-  CircleDollarSign, ChevronLeft, ChevronRight, Undo2, TrendingUp, CalendarDays,
+  CircleDollarSign, ChevronLeft, ChevronRight, Undo2, TrendingUp, CalendarDays, Target, Pencil,
 } from "lucide-react";
 import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
 import { personalCategories, getPersonalCategory } from "@/lib/personalExpenseCategories";
+import { Progress } from "@/components/ui/progress";
+import { usePersonalBudgets } from "@/hooks/usePersonalBudgets";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as ReTooltip } from "recharts";
 
 interface Props {
@@ -50,6 +52,9 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, readOn
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [payingId, setPayingId] = useState<string | null>(null);
   const [payDate, setPayDate] = useState("");
+  const [budgetEditOpen, setBudgetEditOpen] = useState(false);
+  const [budgetDraft, setBudgetDraft] = useState<Record<string, string>>({});
+  const { budgets, setBudget } = usePersonalBudgets();
 
   const getInstallmentAmount = useCallback((e: Expense) => {
     const isRec = e.type === "recorrente" && e.installments && e.installments > 1;
@@ -96,6 +101,41 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, readOn
   }, [visibleMonth, getInstallmentAmount]);
 
   const totalCategorized = categoryData.reduce((s, it) => s + it.value, 0);
+
+  // Spend per category (paid only) — used by budget progress
+  const spentByCategory = useMemo(() => {
+    const map = new Map<string, number>();
+    visibleMonth.filter((e) => e.paid).forEach((e) => {
+      map.set(e.category, (map.get(e.category) || 0) + getInstallmentAmount(e));
+    });
+    return map;
+  }, [visibleMonth, getInstallmentAmount]);
+
+  const totalBudget = budgets.reduce((s, b) => s + b.amount, 0);
+  const totalSpentBudgeted = budgets.reduce((s, b) => s + (spentByCategory.get(b.category) || 0), 0);
+
+  const openBudgetEdit = () => {
+    const draft: Record<string, string> = {};
+    personalCategories.forEach((c) => {
+      const b = budgets.find((x) => x.category === c.name);
+      draft[c.name] = b ? String(b.amount) : "";
+    });
+    setBudgetDraft(draft);
+    setBudgetEditOpen(true);
+  };
+
+  const saveBudgets = async () => {
+    for (const c of personalCategories) {
+      const raw = budgetDraft[c.name] ?? "";
+      const num = Number(raw.replace(",", "."));
+      const value = isNaN(num) ? 0 : num;
+      const existing = budgets.find((b) => b.category === c.name);
+      if ((existing?.amount ?? 0) !== value) {
+        await setBudget(c.name, value);
+      }
+    }
+    setBudgetEditOpen(false);
+  };
 
   const filtered = visibleMonth
     .filter((e) =>
@@ -264,7 +304,80 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, readOn
         </Card>
       )}
 
-      {/* Search + filters */}
+      {/* Budget per category */}
+      <Card>
+        <CardContent className="p-4">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <Target className="h-4 w-4 text-primary" />
+              <h3 className="text-sm font-semibold text-foreground">Orçamento mensal</h3>
+              {totalBudget > 0 && (
+                <span className="text-xs text-muted-foreground">
+                  {formatCurrency(totalSpentBudgeted)} / {formatCurrency(totalBudget)}
+                </span>
+              )}
+            </div>
+            {!readOnly && (
+              <Button size="sm" variant="outline" className="h-7 text-xs" onClick={openBudgetEdit}>
+                <Pencil className="h-3 w-3 mr-1" />
+                Definir
+              </Button>
+            )}
+          </div>
+          {budgets.length === 0 ? (
+            <p className="text-xs text-muted-foreground text-center py-4">
+              Nenhum orçamento definido. Clique em "Definir" para começar.
+            </p>
+          ) : (
+            <div className="space-y-3">
+              {budgets
+                .slice()
+                .sort((a, b) => {
+                  const sa = spentByCategory.get(a.category) || 0;
+                  const sb = spentByCategory.get(b.category) || 0;
+                  return (sb / b.amount) - (sa / a.amount);
+                })
+                .map((b) => {
+                  const cat = getPersonalCategory(b.category);
+                  const Icon = cat.icon;
+                  const spent = spentByCategory.get(b.category) || 0;
+                  const pct = b.amount > 0 ? Math.min(100, (spent / b.amount) * 100) : 0;
+                  const over = spent > b.amount;
+                  const near = !over && pct >= 80;
+                  return (
+                    <div key={b.id} className="space-y-1">
+                      <div className="flex items-center justify-between text-xs">
+                        <div className="flex items-center gap-1.5 min-w-0">
+                          <Icon className="h-3.5 w-3.5 shrink-0" style={{ color: `hsl(${cat.color})` }} />
+                          <span className="truncate text-foreground">{b.category}</span>
+                        </div>
+                        <div className="flex items-center gap-2 shrink-0">
+                          <span className={over ? "text-destructive font-medium" : near ? "text-warning font-medium" : "text-muted-foreground"}>
+                            {formatCurrency(spent)} / {formatCurrency(b.amount)}
+                          </span>
+                          <span className={`text-[10px] ${over ? "text-destructive" : near ? "text-warning" : "text-muted-foreground"}`}>
+                            {Math.round((spent / b.amount) * 100)}%
+                          </span>
+                        </div>
+                      </div>
+                      <Progress
+                        value={pct}
+                        className={`h-2 ${over ? "[&>div]:bg-destructive" : near ? "[&>div]:bg-warning" : ""}`}
+                      />
+                      {over && (
+                        <p className="text-[10px] text-destructive">
+                          Excedeu em {formatCurrency(spent - b.amount)}
+                        </p>
+                      )}
+                    </div>
+                  );
+                })}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+
       <div className="flex flex-col sm:flex-row gap-3">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -442,6 +555,44 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, readOn
         title="Excluir despesa"
         description="Tem certeza? Esta ação não pode ser desfeita."
       />
+
+      {/* Budget edit dialog */}
+      <Dialog open={budgetEditOpen} onOpenChange={setBudgetEditOpen}>
+        <DialogContent className="sm:max-w-md max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Definir orçamento mensal</DialogTitle>
+            <DialogDescription>Defina um valor por categoria. Deixe em branco ou 0 para remover.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2.5 py-2">
+            {personalCategories.map((c) => {
+              const Icon = c.icon;
+              return (
+                <div key={c.name} className="flex items-center gap-2">
+                  <div
+                    className="h-8 w-8 rounded-lg flex items-center justify-center shrink-0"
+                    style={{ backgroundColor: `hsl(${c.color} / 0.15)` }}
+                  >
+                    <Icon className="h-4 w-4" style={{ color: `hsl(${c.color})` }} />
+                  </div>
+                  <span className="text-sm flex-1 text-foreground">{c.name}</span>
+                  <Input
+                    type="number"
+                    inputMode="decimal"
+                    placeholder="0,00"
+                    className="w-28 h-8 text-sm"
+                    value={budgetDraft[c.name] ?? ""}
+                    onChange={(e) => setBudgetDraft((p) => ({ ...p, [c.name]: e.target.value }))}
+                  />
+                </div>
+              );
+            })}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setBudgetEditOpen(false)}>Cancelar</Button>
+            <Button onClick={saveBudgets}>Salvar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
