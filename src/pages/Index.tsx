@@ -415,6 +415,24 @@ const Index = () => {
             </div>
           </div>
           <div className="flex items-center gap-1 sm:gap-1.5 justify-end">
+            {!isMobileOrTablet && (
+              <div className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-muted/50 text-xs text-muted-foreground mr-1">
+                <User className="h-3 w-3" />
+                <span className="max-w-[120px] truncate">{user?.user_metadata?.display_name || user?.email || "—"}</span>
+                {role && <Badge variant={role === "admin" ? "default" : role === "operador" ? "secondary" : "outline"} className="text-[10px] px-1.5 py-0">{role === "admin" ? "Admin" : role === "operador" ? "Op." : "Vis."}</Badge>}
+                <Badge
+                  variant="outline"
+                  className="text-[10px] px-1.5 py-0 cursor-pointer hover:bg-primary/10 transition-colors border-primary/40 text-primary"
+                  onClick={() => navigate("/pricing")}
+                >
+                  {hasActiveSub && subscription ? (
+                    subscription.product_id === "basico_plan" ? "Básico" :
+                    subscription.product_id === "profissional_plan" ? "Profissional" :
+                    subscription.product_id === "empresarial_plan" ? "Empresarial" : "Plano"
+                  ) : "Sem Plano"}
+                </Badge>
+              </div>
+            )}
             <Popover>
               <PopoverTrigger asChild>
                 <Button variant="ghost" size="icon" className="h-8 w-8 sm:h-9 sm:w-9" title="Ajuda">
@@ -438,7 +456,6 @@ const Index = () => {
             <Button variant="ghost" size="icon" onClick={() => window.location.reload()} className="h-8 w-8 sm:h-9 sm:w-9" title="Atualizar página">
               <RefreshCw className="h-4 w-4" />
             </Button>
-            <PushNotificationToggle />
             <HideValuesToggle />
             <Button variant="ghost" size="icon" onClick={toggleTheme} className="h-8 w-8 sm:h-9 sm:w-9" title={dark ? "Modo claro" : "Modo escuro"}>
               {dark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
