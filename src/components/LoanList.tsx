@@ -1539,7 +1539,7 @@ function LoanRowView({
               </div>
               <div className="bg-card rounded-lg p-3 border border-border/30">
                 <p className="text-[10px] text-muted-foreground uppercase">Total a Receber</p>
-                <p className="text-sm font-bold text-foreground">{formatCurrency(total + lateFees + interestPaymentsReceived)}</p>
+                <p className="text-sm font-bold text-foreground">{formatCurrency(Math.round((total + lateFees + interestPaymentsReceived) * 100) / 100)}</p>
               </div>
               <div className="bg-card rounded-lg p-3 border border-border/30">
                 <p className="text-[10px] text-muted-foreground uppercase">Total Pago</p>
