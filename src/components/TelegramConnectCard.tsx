@@ -76,6 +76,31 @@ export function TelegramConnectCard() {
     toast.success("Telegram desvinculado");
   };
 
+  const sendSummaryNow = async () => {
+    setSendingNow(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Sessão expirada");
+      const { data, error } = await supabase.functions.invoke(
+        `telegram-daily-summary?user_id=${user.id}`,
+        { method: "POST" },
+      );
+      if (error) throw error;
+      const sent = (data as any)?.sent ?? 0;
+      if (sent > 0) {
+        toast.success("Resumo enviado!", { description: "Confira seu Telegram." });
+      } else {
+        toast.warning("Nada enviado", {
+          description: "Verifique se o resumo diário está habilitado e o Telegram vinculado.",
+        });
+      }
+    } catch (e: any) {
+      toast.error("Erro ao enviar resumo", { description: e.message });
+    } finally {
+      setSendingNow(false);
+    }
+  };
+
   if (loading) return null;
 
   return (
