@@ -17,9 +17,10 @@ const categories = [
 interface Props {
   onAdd: (expense: Omit<Expense, "id" | "paid" | "paidDate" | "createdAt">) => void;
   onClose: () => void;
+  scope?: "business" | "personal";
 }
 
-export function ExpenseForm({ onAdd, onClose }: Props) {
+export function ExpenseForm({ onAdd, onClose, scope = "business" }: Props) {
   const [form, setForm] = useState({
     description: "",
     amount: "",
@@ -42,6 +43,7 @@ export function ExpenseForm({ onAdd, onClose }: Props) {
       paidInstallments: form.type === "recorrente" ? 0 : undefined,
       dueDate: form.dueDate,
       notes: form.notes,
+      scope,
     });
     onClose();
   };
