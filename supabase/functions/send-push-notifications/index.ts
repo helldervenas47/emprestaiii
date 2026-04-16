@@ -313,6 +313,22 @@ Deno.serve(async (req) => {
 
     for (const [userId, userToks] of userTokens) {
       try {
+        // Fetch user's notification preferences
+        const { data: prefs } = await supabase
+          .from("notification_preferences")
+          .select("notification_type, enabled")
+          .eq("user_id", userId);
+
+        const enabledTypes = new Set(
+          (prefs || []).filter((p: any) => p.enabled).map((p: any) => p.notification_type)
+        );
+
+        // If user has preferences but none enabled, skip
+        if (prefs && prefs.length > 0 && enabledTypes.size === 0) {
+          results.push({ userId, sent: 0, failed: 0 });
+          continue;
+        }
+
         // Fetch active loans for this user
         const { data: loans } = await supabase
           .from("loans")
@@ -332,20 +348,43 @@ Deno.serve(async (req) => {
         const totalOverdue = overdue.reduce((s: number, l: any) => s + Number(l.remaining_amount || 0), 0);
 
         const payloads: string[] = [];
-        if (overdue.length > 0) {
+
+        // Only send if user has no prefs (default=send all) or type is enabled
+        const shouldSend = (type: string) => !prefs || prefs.length === 0 || enabledTypes.has(type);
+
+        if (overdue.length > 0 && shouldSend("parcelas_atrasadas")) {
           payloads.push(JSON.stringify({
             title: "📊 Empréstai — Parcelas Atrasadas",
             body: `🔴 ${overdue.length} parcela(s) atrasada(s) — ${formatCurrency(totalOverdue)}`,
             url: "/?tab=dashboard&filter=overdue&view=rows",
           }));
         }
-        if (dueToday.length > 0) {
+        if (dueToday.length > 0 && shouldSend("parcelas_hoje")) {
           const totalToday = dueToday.reduce((s: number, l: any) => s + Number(l.remaining_amount || 0), 0);
           payloads.push(JSON.stringify({
             title: "📊 Empréstai — Parcelas de Hoje",
             body: `🟡 ${dueToday.length} parcela(s) vence(m) hoje — ${formatCurrency(totalToday)}`,
             url: "/?tab=dashboard&filter=due_today&view=rows",
           }));
+        }
+        if (shouldSend("resumo_diario") && (overdue.length > 0 || dueToday.length > 0)) {
+          let body = "";
+          if (overdue.length > 0) body += `🔴 ${overdue.length} atrasada(s) — ${formatCurrency(totalOverdue)}`;
+          if (dueToday.length > 0) {
+            if (body) body += " | ";
+            const totalToday = dueToday.reduce((s: number, l: any) => s + Number(l.remaining_amount || 0), 0);
+            body += `🟡 ${dueToday.length} vence(m) hoje — ${formatCurrency(totalToday)}`;
+          }
+          payloads.push(JSON.stringify({
+            title: "📊 Empréstai — Resumo Diário",
+            body,
+            url: "/?tab=overdue",
+          }));
+        }
+
+        if (payloads.length === 0) {
+          results.push({ userId, sent: 0, failed: 0 });
+          continue;
         }
 
         let sent = 0;
