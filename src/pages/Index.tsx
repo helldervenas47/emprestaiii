@@ -266,6 +266,7 @@ const Index = () => {
   const [showVehicleExpenseForm, setShowVehicleExpenseForm] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const isMobile = useIsMobile();
+  const isMobileOrTablet = useIsMobileOrTablet();
   const isReadOnly = role === "visualizador";
 
   // Swipe from left edge to open sidebar on mobile
