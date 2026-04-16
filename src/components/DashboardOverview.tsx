@@ -588,6 +588,11 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
                 <p className="text-xs text-muted-foreground">Taxa de Juros Mensal</p>
                 <p className="text-lg font-bold text-foreground">{data.avgInterestRate.toFixed(1)}%</p>
                 <p className="text-xs text-muted-foreground">{data.loanCount} empréstimo(s) no período</p>
+                <div className="mt-2 pt-2 border-t border-border/30">
+                  <p className="text-xs text-muted-foreground">Taxa de Juros Geral</p>
+                  <p className="text-sm font-bold text-warning">{portfolio.globalInterestRate.toFixed(1)}%</p>
+                  <p className="text-[10px] text-muted-foreground">{loans.length} empréstimo(s) total</p>
+                </div>
               </div>
               <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform ${expandedBreakdown === "interest-rate" ? "rotate-180" : ""}`} />
             </div>
