@@ -11,3 +11,6 @@ verify_jwt = true
 
 [functions.telegram-daily-summary]
 verify_jwt = false
+
+[functions.telegram-weekly-summary]
+verify_jwt = false
