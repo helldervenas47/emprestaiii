@@ -636,7 +636,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
         </Card>
 
         <Card className="animate-fade-in cursor-pointer" style={{ animationDelay: '160ms', animationFillMode: 'backwards' }} onClick={() => setExpandedBreakdown(expandedBreakdown === "interest-rate" ? null : "interest-rate")}>
-          <CardContent className="p-4">
+          <CardContent className="p-4 h-full relative flex flex-col">
             <div className="flex items-center gap-3">
               <div className="h-10 w-10 rounded-full bg-warning/10 flex items-center justify-center shrink-0">
                 <Percent className="h-5 w-5 text-warning" />
