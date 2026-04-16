@@ -886,25 +886,37 @@ export type Database = {
           created_at: string
           enabled: boolean
           last_sent_date: string | null
+          last_weekly_sent_date: string | null
           send_time: string
           updated_at: string
           user_id: string
+          weekly_enabled: boolean
+          weekly_send_time: string
+          weekly_send_weekday: number
         }
         Insert: {
           created_at?: string
           enabled?: boolean
           last_sent_date?: string | null
+          last_weekly_sent_date?: string | null
           send_time?: string
           updated_at?: string
           user_id: string
+          weekly_enabled?: boolean
+          weekly_send_time?: string
+          weekly_send_weekday?: number
         }
         Update: {
           created_at?: string
           enabled?: boolean
           last_sent_date?: string | null
+          last_weekly_sent_date?: string | null
           send_time?: string
           updated_at?: string
           user_id?: string
+          weekly_enabled?: boolean
+          weekly_send_time?: string
+          weekly_send_weekday?: number
         }
         Relationships: []
       }

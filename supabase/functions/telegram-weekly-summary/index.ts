@@ -11,13 +11,20 @@ function fmtBRL(n: number) {
   return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(n);
 }
 
-function todayInTZ(tz = "America/Sao_Paulo") {
+function nowInTZ(tz = "America/Sao_Paulo") {
   const fmt = new Intl.DateTimeFormat("en-CA", {
     timeZone: tz, year: "numeric", month: "2-digit", day: "2-digit",
+    hour: "2-digit", minute: "2-digit", weekday: "short", hour12: false,
   });
   const parts = fmt.formatToParts(new Date());
   const get = (t: string) => parts.find((p) => p.type === t)?.value ?? "";
-  return `${get("year")}-${get("month")}-${get("day")}`;
+  // weekday short en: Sun, Mon, Tue, Wed, Thu, Fri, Sat
+  const wkMap: Record<string, number> = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 };
+  return {
+    date: `${get("year")}-${get("month")}-${get("day")}`,
+    hhmm: `${get("hour")}:${get("minute")}`,
+    weekday: wkMap[get("weekday")] ?? 0,
+  };
 }
 
 function addDaysISO(iso: string, days: number) {
@@ -43,55 +50,22 @@ async function tgSend(chatId: number, text: string, lovableKey: string, telegram
   if (!r.ok) console.error("sendMessage failed", r.status, await r.text());
 }
 
-Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
-
-  const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY")!;
-  const TELEGRAM_API_KEY = Deno.env.get("TELEGRAM_API_KEY")!;
-  const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
-  const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-
-  const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
-
-  const url = new URL(req.url);
-  const forceUserId = url.searchParams.get("user_id");
-  if (!forceUserId) {
-    return new Response(JSON.stringify({ error: "user_id required" }), { status: 400, headers: corsHeaders });
-  }
-
-  // Auth check — user must be themselves
-  const authHeader = req.headers.get("Authorization") ?? "";
-  const token = authHeader.replace(/^Bearer\s+/i, "");
-  if (!token) {
-    return new Response(JSON.stringify({ error: "Auth required" }), { status: 401, headers: corsHeaders });
-  }
-  const userClient = createClient(SUPABASE_URL, Deno.env.get("SUPABASE_ANON_KEY")!, {
-    global: { headers: { Authorization: `Bearer ${token}` } },
-  });
-  const { data: { user }, error: userErr } = await userClient.auth.getUser();
-  if (userErr || !user) {
-    return new Response(JSON.stringify({ error: "Invalid token" }), { status: 401, headers: corsHeaders });
-  }
-  if (user.id !== forceUserId) {
-    return new Response(JSON.stringify({ error: "Forbidden" }), { status: 403, headers: corsHeaders });
-  }
-
-  const today = todayInTZ();
-  const weekStart = addDaysISO(today, -6); // last 7 days inclusive
-
-  // Resolve chat
+async function buildAndSendWeekly(
+  admin: ReturnType<typeof createClient>,
+  userId: string,
+  today: string,
+  lovableKey: string,
+  telegramKey: string,
+): Promise<boolean> {
   const { data: link } = await admin.from("telegram_links")
-    .select("chat_id").eq("user_id", forceUserId).maybeSingle();
-  if (!link) {
-    return new Response(JSON.stringify({ ok: true, sent: 0, reason: "no_link" }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
-  }
+    .select("chat_id").eq("user_id", userId).maybeSingle();
+  if (!link) return false;
 
-  // Last 7 days personal expenses
+  const weekStart = addDaysISO(today, -6);
+
   const { data: expenses } = await admin.from("expenses")
     .select("amount, category, paid_date")
-    .eq("user_id", forceUserId)
+    .eq("user_id", userId)
     .eq("scope", "personal")
     .eq("paid", true)
     .gte("paid_date", weekStart)
@@ -99,17 +73,13 @@ Deno.serve(async (req) => {
 
   const totalWeek = (expenses ?? []).reduce((s, e: any) => s + Number(e.amount || 0), 0);
 
-  // Per-day totals
   const byDay = new Map<string, number>();
-  for (let i = 0; i < 7; i++) {
-    byDay.set(addDaysISO(weekStart, i), 0);
-  }
+  for (let i = 0; i < 7; i++) byDay.set(addDaysISO(weekStart, i), 0);
   for (const e of expenses ?? []) {
     const d = (e as any).paid_date as string;
     if (byDay.has(d)) byDay.set(d, (byDay.get(d) ?? 0) + Number((e as any).amount || 0));
   }
 
-  // Per-category totals
   const byCategory = new Map<string, number>();
   for (const e of expenses ?? []) {
     const cat = (e as any).category || "Outros";
@@ -141,9 +111,76 @@ Deno.serve(async (req) => {
     }
   }
 
-  await tgSend(Number(link.chat_id), lines.join("\n"), LOVABLE_API_KEY, TELEGRAM_API_KEY);
+  await tgSend(Number(link.chat_id), lines.join("\n"), lovableKey, telegramKey);
+  return true;
+}
 
-  return new Response(JSON.stringify({ ok: true, sent: 1 }), {
+Deno.serve(async (req) => {
+  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+
+  const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY")!;
+  const TELEGRAM_API_KEY = Deno.env.get("TELEGRAM_API_KEY")!;
+  const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
+  const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+
+  const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+
+  const url = new URL(req.url);
+  const forceUserId = url.searchParams.get("user_id");
+  const { date: today, hhmm, weekday } = nowInTZ();
+
+  // Manual mode (force user_id) — auth required
+  if (forceUserId) {
+    const authHeader = req.headers.get("Authorization") ?? "";
+    const token = authHeader.replace(/^Bearer\s+/i, "");
+    if (!token) return new Response(JSON.stringify({ error: "Auth required" }), { status: 401, headers: corsHeaders });
+
+    const userClient = createClient(SUPABASE_URL, Deno.env.get("SUPABASE_ANON_KEY")!, {
+      global: { headers: { Authorization: `Bearer ${token}` } },
+    });
+    const { data: { user }, error: userErr } = await userClient.auth.getUser();
+    if (userErr || !user) return new Response(JSON.stringify({ error: "Invalid token" }), { status: 401, headers: corsHeaders });
+    if (user.id !== forceUserId) return new Response(JSON.stringify({ error: "Forbidden" }), { status: 403, headers: corsHeaders });
+
+    const ok = await buildAndSendWeekly(admin, forceUserId, today, LOVABLE_API_KEY, TELEGRAM_API_KEY);
+    return new Response(JSON.stringify({ ok: true, sent: ok ? 1 : 0 }), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
+  // Cron mode — iterate enabled prefs and check weekday + time window
+  const [hh, mm] = hhmm.split(":").map(Number);
+  const nowMin = hh * 60 + mm;
+
+  const { data: prefs, error } = await admin
+    .from("telegram_summary_prefs")
+    .select("user_id, weekly_enabled, weekly_send_time, weekly_send_weekday, last_weekly_sent_date")
+    .eq("weekly_enabled", true);
+
+  if (error) return new Response(JSON.stringify({ error: error.message }), { status: 500, headers: corsHeaders });
+
+  let sent = 0;
+  for (const pref of prefs ?? []) {
+    try {
+      if ((pref as any).weekly_send_weekday !== weekday) continue;
+      const [ph, pm] = ((pref as any).weekly_send_time as string).split(":").map(Number);
+      const target = ph * 60 + pm;
+      if (nowMin < target || nowMin >= target + 5) continue;
+      if ((pref as any).last_weekly_sent_date === today) continue;
+
+      const ok = await buildAndSendWeekly(admin, (pref as any).user_id, today, LOVABLE_API_KEY, TELEGRAM_API_KEY);
+      if (ok) {
+        await admin.from("telegram_summary_prefs")
+          .update({ last_weekly_sent_date: today })
+          .eq("user_id", (pref as any).user_id);
+        sent++;
+      }
+    } catch (e) {
+      console.error("weekly summary error for", (pref as any).user_id, e);
+    }
+  }
+
+  return new Response(JSON.stringify({ ok: true, sent, checked: prefs?.length ?? 0, hhmm, weekday }), {
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
 });
