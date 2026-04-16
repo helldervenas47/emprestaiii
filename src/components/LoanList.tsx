@@ -1200,7 +1200,7 @@ function LoanCardView({
                           p.installmentNumber === 0 ? "bg-purple/10 text-purple border-purple/20" :
                           "bg-primary/10 text-primary border-primary/20"
                         }`}>
-                          {p.installmentNumber > 0 ? `Parcela ${p.installmentNumber}` : p.installmentNumber === 0 ? "Juros" : "Pagamento"}
+                          {p.installmentNumber > 0 ? `Parcela ${p.installmentNumber}` : p.installmentNumber === 0 ? "Juros" : "Parcial"}
                         </Badge>
                         <span className="text-xs text-muted-foreground">{new Date(p.date + "T00:00:00").toLocaleDateString("pt-BR")}</span>
                       </div>
@@ -1744,7 +1744,7 @@ function LoanRowView({
                           p.installmentNumber === 0 ? "bg-purple/10 text-purple border-purple/20" :
                           "bg-primary/10 text-primary border-primary/20"
                         }`}>
-                          {p.installmentNumber > 0 ? `Parcela ${p.installmentNumber}` : p.installmentNumber === 0 ? "Juros" : "Pagamento"}
+                          {p.installmentNumber > 0 ? `Parcela ${p.installmentNumber}` : p.installmentNumber === 0 ? "Juros" : "Parcial"}
                         </Badge>
                         <span className="text-xs text-muted-foreground">{new Date(p.date + "T00:00:00").toLocaleDateString("pt-BR")}</span>
                       </div>
