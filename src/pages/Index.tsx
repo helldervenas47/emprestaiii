@@ -216,7 +216,7 @@ const Index = () => {
   const urlParams = new URLSearchParams(window.location.search);
   const initialLoanCategory = urlParams.get("filter") as any;
   const initialLoanView = urlParams.get("view") as any;
-  const { loans, payments, installmentSchedules, addLoan, addPayment, addPartialPayment, addInterestOnlyPayment, updateLoan, deleteLoan, deletePayment, saveSchedule } = useLoans();
+  const { loans, payments, installmentSchedules, addLoan, addPayment, addPartialPayment, payOffLoan, addInterestOnlyPayment, updateLoan, deleteLoan, deletePayment, saveSchedule } = useLoans();
   const { clients, addClient, deleteClient, updateClient } = useClients();
 
   // Defer heavy hooks until their tabs are active
