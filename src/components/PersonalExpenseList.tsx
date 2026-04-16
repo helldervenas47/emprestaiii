@@ -1,4 +1,5 @@
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo, useEffect } from "react";
+import { toast } from "sonner";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useHideValues } from "@/contexts/HideValuesContext";
@@ -113,6 +114,36 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, readOn
 
   const totalBudget = budgets.reduce((s, b) => s + b.amount, 0);
   const totalSpentBudgeted = budgets.reduce((s, b) => s + (spentByCategory.get(b.category) || 0), 0);
+
+  // Alert when a category exceeds its monthly budget — once per month/category
+  useEffect(() => {
+    if (!isCurrentMonth || budgets.length === 0) return;
+    budgets.forEach((b) => {
+      if (b.amount <= 0) return;
+      const spent = spentByCategory.get(b.category) || 0;
+      if (spent > b.amount) {
+        const key = `budget-alert:${selectedMonth}:${b.category}`;
+        if (typeof window !== "undefined" && !localStorage.getItem(key)) {
+          const over = spent - b.amount;
+          toast.warning(`Orçamento estourado: ${b.category}`, {
+            description: `Você gastou ${fmt(spent)} de ${fmt(b.amount)} (${fmt(over)} acima do limite).`,
+            duration: 8000,
+          });
+          // Browser notification (when permission granted)
+          if (typeof Notification !== "undefined" && Notification.permission === "granted") {
+            try {
+              new Notification(`Orçamento estourado: ${b.category}`, {
+                body: `Você gastou ${fmt(spent)} de ${fmt(b.amount)} este mês.`,
+                icon: "/favicon.ico",
+                tag: key,
+              });
+            } catch { /* ignore */ }
+          }
+          localStorage.setItem(key, "1");
+        }
+      }
+    });
+  }, [budgets, spentByCategory, selectedMonth, isCurrentMonth]);
 
   const openBudgetEdit = () => {
     const draft: Record<string, string> = {};
