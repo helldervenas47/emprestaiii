@@ -124,6 +124,24 @@ async function sendPush(sub: { endpoint: string; p256dh: string; auth: string },
   }
 }
 
+const TELEGRAM_GATEWAY = "https://connector-gateway.lovable.dev/telegram";
+
+async function sendTelegram(chatId: number, text: string, lovableKey: string, telegramKey: string) {
+  try {
+    await fetch(`${TELEGRAM_GATEWAY}/sendMessage`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${lovableKey}`,
+        "X-Connection-Api-Key": telegramKey,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ chat_id: chatId, text, parse_mode: "Markdown" }),
+    });
+  } catch (e) {
+    console.error("sendTelegram error", e);
+  }
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
@@ -247,6 +265,27 @@ Deno.serve(async (req) => {
         );
         if (ok) totalSent++;
         else { totalFailed++; invalid.push(tok.id); }
+      }
+
+      // Send Telegram alert (only for exceeded, if user has linked Telegram)
+      if (p.type === "exceeded") {
+        const lovableKey = Deno.env.get("LOVABLE_API_KEY");
+        const telegramKey = Deno.env.get("TELEGRAM_API_KEY");
+        if (lovableKey && telegramKey) {
+          const { data: tgLink } = await supabase
+            .from("telegram_links")
+            .select("chat_id")
+            .eq("user_id", ownerId)
+            .maybeSingle();
+          if (tgLink?.chat_id) {
+            await sendTelegram(
+              Number(tgLink.chat_id),
+              `🚨 *Orçamento estourado!*\n\n📂 ${p.category}\n💸 Gasto: ${fmt(p.spent)} / ${fmt(p.amount)} (${pct}%)\n\nVocê ultrapassou o limite mensal desta categoria.`,
+              lovableKey,
+              telegramKey,
+            );
+          }
+        }
       }
 
       await supabase
