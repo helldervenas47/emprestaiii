@@ -13,7 +13,7 @@ const timeOptions = Array.from({ length: 24 }, (_, i) => {
 });
 
 export function PushNotificationToggle() {
-  const { isSupported, isSubscribed, isLoading, permission, subscribe, unsubscribe, sendTime, updateSendTime, sendTestNotification } = usePushNotifications();
+  const { isSupported, isSubscribed, isLoading, permission, subscribe, unsubscribe, sendTime, updateSendTime, sendTestNotification, needsInstall } = usePushNotifications();
   const [open, setOpen] = useState(false);
   const [testing, setTesting] = useState(false);
 

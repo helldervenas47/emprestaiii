@@ -15,7 +15,11 @@ const isPreviewHost =
   window.location.hostname.includes("id-preview--") ||
   window.location.hostname.includes("lovableproject.com");
 
-if (isPreviewHost || isInIframe) {
+const isInStandaloneMode =
+  window.matchMedia("(display-mode: standalone)").matches ||
+  (navigator as any).standalone === true;
+
+if ((isPreviewHost || isInIframe) && !isInStandaloneMode) {
   navigator.serviceWorker?.getRegistrations().then((registrations) => {
     registrations.forEach((r) => r.unregister());
   });

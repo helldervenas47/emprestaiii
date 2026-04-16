@@ -15,6 +15,12 @@ function urlBase64ToUint8Array(base64String: string): Uint8Array {
   return outputArray;
 }
 
+const isInStandaloneMode = () =>
+  window.matchMedia("(display-mode: standalone)").matches ||
+  (navigator as any).standalone === true;
+
+const isIOSDevice = () => /iphone|ipad|ipod/i.test(navigator.userAgent);
+
 export function usePushNotifications() {
   const { user } = useAuth();
   const [isSupported, setIsSupported] = useState(false);
@@ -22,6 +28,7 @@ export function usePushNotifications() {
   const [isLoading, setIsLoading] = useState(true);
   const [permission, setPermission] = useState<NotificationPermission>("default");
   const [sendTime, setSendTime] = useState("08:00");
+  const [needsInstall, setNeedsInstall] = useState(false);
 
   useEffect(() => {
     const supported = "serviceWorker" in navigator && "PushManager" in window && "Notification" in window;
