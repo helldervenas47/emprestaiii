@@ -5,7 +5,7 @@ import { lovable } from "@/integrations/lovable/index";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Mail, Lock, User, Eye, EyeOff } from "lucide-react";
+import { Mail, Lock, Eye, EyeOff } from "lucide-react";
 import logoIcon from "@/assets/logo-icon.png";
 import { toast } from "sonner";
 
@@ -62,30 +62,6 @@ const Auth = () => {
       } else {
         toast.error(error.message);
       }
-    }
-  };
-
-  const handleSignup = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (password.length < 6) {
-      toast.error("A senha deve ter pelo menos 6 caracteres");
-      return;
-    }
-    setLoading(true);
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: { display_name: displayName },
-        emailRedirectTo: window.location.origin,
-      },
-    });
-    setLoading(false);
-    if (error) {
-      toast.error(error.message);
-    } else {
-      toast.success("Conta criada! Verifique seu email para confirmar o cadastro.");
-      setIsLogin(true);
     }
   };
 
@@ -147,29 +123,14 @@ const Auth = () => {
             <img src={logoIcon} alt="EmprestAI" className="h-14 w-14" width={56} height={56} />
           </div>
           <h1 className="text-2xl font-bold text-foreground">EmprestAI</h1>
-          <p className="text-muted-foreground">
-            {isLogin ? "Entre na sua conta" : "Crie sua conta"}
-          </p>
+          <p className="text-muted-foreground">Entre na sua conta</p>
         </div>
-        <form onSubmit={isLogin ? handleLogin : handleSignup} className="space-y-5">
-          {!isLogin && (
-            <div className="space-y-2">
-              <Label htmlFor="name">Nome</Label>
-              <div className="relative">
-                <User className="absolute left-3 top-3.5 h-4 w-4 text-muted-foreground" />
-                <Input id="name" placeholder="Seu nome" value={displayName} onChange={(e) => setDisplayName(e.target.value)} className="pl-9 h-12 rounded-xl" required />
-              </div>
-            </div>
-          )}
+        <form onSubmit={handleLogin} className="space-y-5">
           <div className="space-y-2">
-            <Label htmlFor="loginId">{isLogin ? "Email ou Usuário" : "Email"}</Label>
+            <Label htmlFor="loginId">Email ou Usuário</Label>
             <div className="relative">
               <Mail className="absolute left-3 top-3.5 h-4 w-4 text-muted-foreground" />
-              {isLogin ? (
-                <Input id="loginId" type="text" placeholder="email ou nome de usuário" value={loginId} onChange={(e) => setLoginId(e.target.value)} className="pl-9 h-12 rounded-xl" required />
-              ) : (
-                <Input id="email" type="email" placeholder="seu@email.com" value={email} onChange={(e) => setEmail(e.target.value)} className="pl-9 h-12 rounded-xl" required />
-              )}
+              <Input id="loginId" type="text" placeholder="email ou nome de usuário" value={loginId} onChange={(e) => setLoginId(e.target.value)} className="pl-9 h-12 rounded-xl" required />
             </div>
           </div>
           <div className="space-y-2">
@@ -190,13 +151,11 @@ const Auth = () => {
               </button>
             </div>
           </div>
-          {isLogin && (
-            <button type="button" onClick={() => setIsForgot(true)} className="text-sm text-primary hover:underline">
-              Esqueceu a senha?
-            </button>
-          )}
+          <button type="button" onClick={() => setIsForgot(true)} className="text-sm text-primary hover:underline">
+            Esqueceu a senha?
+          </button>
           <Button type="submit" className="w-full h-12 rounded-xl text-base font-semibold" disabled={loading}>
-            {loading ? "Aguarde..." : isLogin ? "Entrar" : "Criar conta"}
+            {loading ? "Aguarde..." : "Entrar"}
           </Button>
         </form>
 
@@ -225,9 +184,9 @@ const Auth = () => {
         </Button>
 
         <div className="text-center text-sm text-muted-foreground">
-          {isLogin ? "Não tem conta?" : "Já tem conta?"}{" "}
-          <button onClick={() => setIsLogin(!isLogin)} className="text-primary hover:underline font-medium">
-            {isLogin ? "Criar conta" : "Entrar"}
+          Não tem conta?{" "}
+          <button onClick={() => navigate("/planos")} className="text-primary hover:underline font-medium">
+            Criar conta
           </button>
         </div>
         <div className="text-center">
