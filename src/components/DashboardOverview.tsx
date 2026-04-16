@@ -628,7 +628,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
               <ChevronLeft className="h-4 w-4" />
             </Button>
             <span className="text-xs sm:text-sm font-medium text-foreground min-w-[120px] sm:min-w-[160px] text-center cursor-pointer hover:text-primary transition-colors" onClick={() => setOffset(0)}>{range.label}</span>
-            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setOffset(offset + 1)} disabled={offset >= 0}>
+            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setOffset(offset + 1)}>
               <ChevronRight className="h-4 w-4" />
             </Button>
           </div>
