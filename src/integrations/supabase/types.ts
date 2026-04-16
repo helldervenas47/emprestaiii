@@ -150,6 +150,7 @@ export type Database = {
           paid: boolean
           paid_date: string | null
           paid_installments: number | null
+          parent_expense_id: string | null
           type: string
           user_id: string
         }
@@ -165,6 +166,7 @@ export type Database = {
           paid?: boolean
           paid_date?: string | null
           paid_installments?: number | null
+          parent_expense_id?: string | null
           type?: string
           user_id: string
         }
@@ -180,10 +182,19 @@ export type Database = {
           paid?: boolean
           paid_date?: string | null
           paid_installments?: number | null
+          parent_expense_id?: string | null
           type?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "expenses_parent_expense_id_fkey"
+            columns: ["parent_expense_id"]
+            isOneToOne: false
+            referencedRelation: "expenses"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       loan_installments: {
         Row: {
