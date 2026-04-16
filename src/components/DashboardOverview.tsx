@@ -367,14 +367,16 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
       }
     });
 
-    // Overdue (global)
-    const todayStr = new Date().toISOString().split("T")[0];
-    const overdueLoans = activeLoans.filter((l) => l.dueDate < todayStr);
+    // Overdue (filtered by due date relative to period end date)
+    const referenceDateStr = range.end instanceof Date
+      ? range.end.toISOString().split("T")[0]
+      : String(range.end);
+    const overdueLoans = activeLoans.filter((l) => l.dueDate < referenceDateStr);
     const overdueAmount = overdueLoans.reduce((s, l) => {
       let baseRemaining: number;
       if (l.installments >= 2) {
         const overdueSum = installmentSchedules
-          .filter((sc) => sc.loanId === l.id && sc.installmentNumber > l.paidInstallments && sc.dueDate < todayStr)
+          .filter((sc) => sc.loanId === l.id && sc.installmentNumber > l.paidInstallments && sc.dueDate < referenceDateStr)
           .reduce((sum, sc) => sum + sc.amount, 0);
         baseRemaining = overdueSum > 0 ? overdueSum : (l.remainingAmount > 0 ? l.remainingAmount : Math.max(0, calculateTotalWithInterest(l.amount, l.interestRate, l.installments) - payments.filter((p) => p.loanId === l.id).reduce((ss, p) => ss + p.amount, 0)));
       } else if (l.remainingAmount != null && l.remainingAmount > 0) {
@@ -385,8 +387,8 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
         baseRemaining = Math.max(0, expected - paid);
       }
       const dueDate = new Date(l.dueDate + "T00:00:00");
-      const todayNorm = new Date(); todayNorm.setHours(0, 0, 0, 0);
-      const daysLate = Math.max(0, Math.floor((todayNorm.getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24)));
+      const refNorm = new Date(referenceDateStr + "T00:00:00");
+      const daysLate = Math.max(0, Math.floor((refNorm.getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24)));
       let lateFees = 0;
       if (l.lateInterestValue != null && l.lateInterestValue > 0 && daysLate > 0) {
         lateFees += l.lateInterestType === "fixed"
@@ -465,7 +467,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
       forecastSunday,
       forecastEndMonth,
     };
-  }, [loans, payments, installmentSchedules]);
+  }, [loans, payments, installmentSchedules, range]);
 
   // Manual overrides for monthly chart values
   // chartOverrides already declared above
