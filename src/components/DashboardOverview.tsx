@@ -597,26 +597,38 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
       </div>
 
       {/* Portfolio metrics */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 sm:gap-3">
-        {[
+      {(() => {
+        // Get current month interest received from chart
+        const now = new Date();
+        const currentMonthLabel = `${monthNames[now.getMonth()].slice(0, 3)}/${String(now.getFullYear()).slice(2)}`;
+        const currentMonthInterest = interestChart.find((m) => m.month === currentMonthLabel)?.juros ?? 0;
+        const interestPendingMonth = Math.max(0, portfolio.interestDueThisMonth - currentMonthInterest);
+
+        const items = [
           { label: "Capital na Rua", value: formatCurrency(portfolio.capitalOnStreet), color: "text-foreground", iconBg: "bg-primary/10", iconColor: "text-primary" },
           { label: "Total a Receber", value: formatCurrency(portfolio.totalToReceive), color: "text-foreground", iconBg: "bg-primary/10", iconColor: "text-primary" },
-          { label: "Principal Recebido", value: formatCurrency(portfolio.principalReceived), color: "text-success", iconBg: "bg-success/10", iconColor: "text-success" },
-          { label: "Juros Recebido", value: formatCurrency(portfolio.interestReceived), color: "text-success", iconBg: "bg-success/10", iconColor: "text-success" },
-          { label: "Principal a Receber", value: formatCurrency(portfolio.principalToReceive), color: "text-warning", iconBg: "bg-warning/10", iconColor: "text-warning" },
-          { label: "Juros a Receber", value: formatCurrency(portfolio.interestToReceive), color: "text-warning", iconBg: "bg-warning/10", iconColor: "text-warning" },
-        ].map((item, i) => (
-          <Card key={item.label}>
-            <CardContent className="p-3 sm:p-4 flex flex-col items-center text-center">
-              <div className={`h-8 w-8 rounded-lg ${item.iconBg} flex items-center justify-center mb-2`}>
-                <DollarSign className={`h-4 w-4 ${item.iconColor}`} />
-              </div>
-              <p className="text-[10px] sm:text-xs text-muted-foreground">{item.label}</p>
-              <p className={`text-sm sm:text-lg font-bold ${item.color} mt-0.5`}>{item.value}</p>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+          { label: "Lucro Estimado", value: formatCurrency(portfolio.estimatedProfit), color: "text-success", iconBg: "bg-success/10", iconColor: "text-success" },
+          { label: "Juros a Receber no Mês", value: formatCurrency(portfolio.interestDueThisMonth), color: "text-success", iconBg: "bg-success/10", iconColor: "text-success" },
+          { label: "Juros Recebidos no Mês", value: formatCurrency(currentMonthInterest), color: "text-warning", iconBg: "bg-warning/10", iconColor: "text-warning" },
+          { label: "Juros Pendentes do Mês", value: formatCurrency(interestPendingMonth), color: "text-warning", iconBg: "bg-warning/10", iconColor: "text-warning" },
+        ];
+
+        return (
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 sm:gap-3">
+            {items.map((item, i) => (
+              <Card key={item.label}>
+                <CardContent className="p-3 sm:p-4 flex flex-col items-center text-center">
+                  <div className={`h-8 w-8 rounded-lg ${item.iconBg} flex items-center justify-center mb-2`}>
+                    <DollarSign className={`h-4 w-4 ${item.iconColor}`} />
+                  </div>
+                  <p className="text-[10px] sm:text-xs text-muted-foreground">{item.label}</p>
+                  <p className={`text-sm sm:text-lg font-bold ${item.color} mt-0.5`}>{item.value}</p>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        );
+      })()}
 
       {/* Health Score Gauge */}
       <Card>
