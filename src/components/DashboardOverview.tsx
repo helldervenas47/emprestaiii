@@ -593,30 +593,28 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <Card className="animate-fade-in" style={{ animationDelay: '80ms', animationFillMode: 'backwards' }}>
           <CardContent className="p-4 flex flex-col h-full">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+            <div className="flex items-center justify-center flex-1">
+              <div className="flex flex-col items-center text-center">
+                <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0 mb-1">
                   <Wallet className="h-5 w-5 text-primary" />
                 </div>
-                <div>
-                  <p className="text-xs text-muted-foreground">Saldo em Conta</p>
-                  {editingBalance ? (
-                    <div className="flex items-center gap-1 mt-0.5">
-                      <Input type="number" value={tempBalance} onChange={(e) => setTempBalance(e.target.value)}
-                        className="h-7 w-32 text-sm" onKeyDown={(e) => e.key === "Enter" && saveBalance()} autoFocus />
-                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={saveBalance}><Check className="h-3.5 w-3.5 text-success" /></Button>
-                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={cancelEditBalance}><X className="h-3.5 w-3.5 text-destructive" /></Button>
-                    </div>
-                  ) : (
+                <p className="text-xs text-muted-foreground">Saldo em Conta</p>
+                {editingBalance ? (
+                  <div className="flex items-center gap-1 mt-0.5">
+                    <Input type="number" value={tempBalance} onChange={(e) => setTempBalance(e.target.value)}
+                      className="h-7 w-32 text-sm" onKeyDown={(e) => e.key === "Enter" && saveBalance()} autoFocus />
+                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={saveBalance}><Check className="h-3.5 w-3.5 text-success" /></Button>
+                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={cancelEditBalance}><X className="h-3.5 w-3.5 text-destructive" /></Button>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-1">
                     <p className="text-lg font-bold text-foreground">{formatCurrency(accountBalance)}</p>
-                  )}
-                </div>
+                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={startEditBalance}>
+                      <Pencil className="h-3.5 w-3.5 text-muted-foreground" />
+                    </Button>
+                  </div>
+                )}
               </div>
-              {!editingBalance && (
-                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={startEditBalance}>
-                  <Pencil className="h-4 w-4 text-muted-foreground" />
-                </Button>
-              )}
             </div>
             <div className="grid grid-cols-2 gap-2 mt-3 flex-1">
               <div className="bg-muted/50 rounded-lg p-3 border border-border/30 flex flex-col items-center justify-center text-center">
