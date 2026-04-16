@@ -121,10 +121,34 @@ Deno.serve(async (req) => {
         .lte("paid_date", `${monthPrefix}-31`);
 
       const spentByCategory = new Map<string, number>();
+      let monthTotal = 0;
       for (const e of monthExpenses ?? []) {
         const cat = (e as any).category || "Outros";
-        spentByCategory.set(cat, (spentByCategory.get(cat) ?? 0) + Number((e as any).amount || 0));
+        const amt = Number((e as any).amount || 0);
+        spentByCategory.set(cat, (spentByCategory.get(cat) ?? 0) + amt);
+        monthTotal += amt;
       }
+
+      // Previous month same-period (day 1 .. same day-of-month) comparison
+      const [yStr, mStr, dStr] = today.split("-");
+      const y = Number(yStr), m = Number(mStr), d = Number(dStr);
+      const prevDate = new Date(Date.UTC(y, m - 2, 1));
+      const prevYear = prevDate.getUTCFullYear();
+      const prevMonth = prevDate.getUTCMonth() + 1; // 1-12
+      const lastDayPrev = new Date(Date.UTC(prevYear, prevMonth, 0)).getUTCDate();
+      const prevDay = Math.min(d, lastDayPrev);
+      const prevPrefix = `${prevYear}-${String(prevMonth).padStart(2, "0")}`;
+      const prevEnd = `${prevPrefix}-${String(prevDay).padStart(2, "0")}`;
+
+      const { data: prevExpenses } = await admin.from("expenses")
+        .select("amount")
+        .eq("user_id", pref.user_id)
+        .eq("scope", "personal")
+        .eq("paid", true)
+        .gte("paid_date", `${prevPrefix}-01`)
+        .lte("paid_date", prevEnd);
+
+      const prevTotal = (prevExpenses ?? []).reduce((s, e: any) => s + Number(e.amount || 0), 0);
 
       // Budgets
       const { data: budgets } = await admin.from("personal_budgets")
@@ -136,6 +160,19 @@ Deno.serve(async (req) => {
       lines.push("");
       lines.push(`💸 Total gasto hoje: *${fmtBRL(totalToday)}*`);
       lines.push(`   (${(expenses ?? []).length} ${(expenses ?? []).length === 1 ? "despesa" : "despesas"})`);
+
+      // Month-to-date + comparison with previous month same period
+      lines.push("");
+      lines.push(`📅 Acumulado do mês: *${fmtBRL(monthTotal)}*`);
+      if (prevTotal > 0) {
+        const diff = monthTotal - prevTotal;
+        const pctVar = (diff / prevTotal) * 100;
+        const arrow = diff > 0 ? "🔺" : diff < 0 ? "🔻" : "➖";
+        const sign = diff > 0 ? "+" : "";
+        lines.push(`${arrow} ${sign}${pctVar.toFixed(1)}% vs mês anterior (${fmtBRL(prevTotal)} até dia ${String(prevDay).padStart(2, "0")})`);
+      } else if (monthTotal > 0) {
+        lines.push(`_Sem gastos no mês anterior para comparar._`);
+      }
 
       if ((budgets ?? []).length > 0) {
         lines.push("");
