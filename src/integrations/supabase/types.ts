@@ -854,6 +854,33 @@ export type Database = {
         }
         Relationships: []
       }
+      telegram_pending_edits: {
+        Row: {
+          chat_id: number
+          created_at: string
+          expense_id: string
+          expires_at: string
+          message_id: number
+          user_id: string
+        }
+        Insert: {
+          chat_id: number
+          created_at?: string
+          expense_id: string
+          expires_at?: string
+          message_id: number
+          user_id: string
+        }
+        Update: {
+          chat_id?: number
+          created_at?: string
+          expense_id?: string
+          expires_at?: string
+          message_id?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
       telegram_summary_prefs: {
         Row: {
           created_at: string
