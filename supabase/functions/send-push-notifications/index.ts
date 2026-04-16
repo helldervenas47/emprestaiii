@@ -283,14 +283,20 @@ Deno.serve(async (req) => {
 
     const todayStr = getTodayStr();
 
-    // Get all users with push tokens
+    // Current hour in BRT (UTC-3)
+    const nowUtc = new Date();
+    const brtHour = (nowUtc.getUTCHours() - 3 + 24) % 24;
+    const currentHourStr = String(brtHour).padStart(2, "0") + ":00";
+
+    // Get tokens matching the current hour
     const { data: tokens, error: tokErr } = await supabase
       .from("push_tokens")
-      .select("*");
+      .select("*")
+      .eq("send_time", currentHourStr);
 
     if (tokErr) throw new Error(`Error fetching tokens: ${tokErr.message}`);
     if (!tokens || tokens.length === 0) {
-      return new Response(JSON.stringify({ message: "No push tokens registered" }), {
+      return new Response(JSON.stringify({ message: `No tokens for ${currentHourStr}` }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }

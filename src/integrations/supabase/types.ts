@@ -505,6 +505,7 @@ export type Database = {
           endpoint: string
           id: string
           p256dh: string
+          send_time: string
           user_id: string
         }
         Insert: {
@@ -513,6 +514,7 @@ export type Database = {
           endpoint: string
           id?: string
           p256dh: string
+          send_time?: string
           user_id: string
         }
         Update: {
@@ -521,6 +523,7 @@ export type Database = {
           endpoint?: string
           id?: string
           p256dh?: string
+          send_time?: string
           user_id?: string
         }
         Relationships: []
