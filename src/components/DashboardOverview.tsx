@@ -208,34 +208,53 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
     // Total received globally
     const totalReceived = payments.reduce((s, p) => s + p.amount, 0);
 
-    // Split received into principal vs interest per loan (ALL payments)
-    // Uses proportional split: each payment is divided based on the ratio of principal to total
-    let principalReceived = 0;
-    let interestReceived = 0;
-    loans.forEach((l) => {
-      const loanPayments = payments.filter((p) => p.loanId === l.id);
+    // Lucro Estimado = Total a Receber - Capital na Rua
+    const estimatedProfit = totalToReceive - capitalOnStreet;
+
+    // Juros a receber no mês: interest portion of installments due this month
+    const now = new Date();
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+
+    let interestDueThisMonth = 0;
+    activeLoans.forEach((l) => {
       const totalWithInterest = calculateTotalWithInterest(l.amount, l.interestRate, l.installments);
-      const principalRatio = totalWithInterest > 0 ? l.amount / totalWithInterest : 1;
-      loanPayments.forEach((p) => {
-        if (p.installmentNumber === 0) {
-          // Interest-only payment
-          interestReceived += p.amount;
+      const principalPerInstallment = l.installments > 0 ? l.amount / l.installments : 0;
+      const installmentAmount = calculateInstallment(l.amount, l.interestRate, l.installments);
+      const interestPerInstallment = installmentAmount - principalPerInstallment;
+
+      if (l.installments >= 2) {
+        // Parceled: check each installment schedule due this month
+        const schedulesThisMonth = installmentSchedules.filter((sc) => {
+          if (sc.loanId !== l.id) return false;
+          const d = new Date(sc.dueDate + "T00:00:00");
+          return d >= monthStart && d <= monthEnd;
+        });
+        if (schedulesThisMonth.length > 0) {
+          schedulesThisMonth.forEach((sc) => {
+            const interestRatio = totalWithInterest > 0 ? 1 - (l.amount / totalWithInterest) : 0;
+            interestDueThisMonth += sc.amount * interestRatio;
+          });
         } else {
-          // Proportional split based on actual payment amount
-          principalReceived += p.amount * principalRatio;
-          interestReceived += p.amount * (1 - principalRatio);
+          // Fallback: check if loan due_date falls in this month
+          const dueD = new Date(l.dueDate + "T00:00:00");
+          if (dueD >= monthStart && dueD <= monthEnd) {
+            interestDueThisMonth += interestPerInstallment;
+          }
         }
-      });
+      } else {
+        // Single installment: check due date
+        const dueD = new Date(l.dueDate + "T00:00:00");
+        if (dueD >= monthStart && dueD <= monthEnd) {
+          interestDueThisMonth += totalWithInterest - l.amount;
+        }
+      }
     });
 
-    const principalToReceive = Math.max(0, totalPrincipal - principalReceived);
-    const interestToReceive = Math.max(0, totalInterestExpected - interestReceived);
-
-    // Overdue (global) — uses same "Restante" logic as LoanList line view
+    // Overdue (global)
     const todayStr = new Date().toISOString().split("T")[0];
     const overdueLoans = activeLoans.filter((l) => l.dueDate < todayStr);
     const overdueAmount = overdueLoans.reduce((s, l) => {
-      // Base remaining
       let baseRemaining: number;
       if (l.installments >= 2) {
         const overdueSum = installmentSchedules
@@ -249,7 +268,6 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
         const paid = payments.filter((p) => p.loanId === l.id).reduce((ss, p) => ss + p.amount, 0);
         baseRemaining = Math.max(0, expected - paid);
       }
-      // Late fees (juros de mora + multa)
       const dueDate = new Date(l.dueDate + "T00:00:00");
       const todayNorm = new Date(); todayNorm.setHours(0, 0, 0, 0);
       const daysLate = Math.max(0, Math.floor((todayNorm.getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24)));
@@ -285,10 +303,8 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
       overdueLoans,
       capitalOnStreet,
       totalToReceive,
-      principalReceived,
-      interestReceived,
-      principalToReceive,
-      interestToReceive,
+      estimatedProfit,
+      interestDueThisMonth,
     };
   }, [loans, payments, installmentSchedules]);
 
