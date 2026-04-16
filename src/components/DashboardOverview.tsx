@@ -592,30 +592,48 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
       {/* Account balance + Interest rate + Profit */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <Card className="animate-fade-in" style={{ animationDelay: '80ms', animationFillMode: 'backwards' }}>
-          <CardContent className="p-4 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                <Wallet className="h-5 w-5 text-primary" />
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                  <Wallet className="h-5 w-5 text-primary" />
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">Saldo em Conta</p>
+                  {editingBalance ? (
+                    <div className="flex items-center gap-1 mt-0.5">
+                      <Input type="number" value={tempBalance} onChange={(e) => setTempBalance(e.target.value)}
+                        className="h-7 w-32 text-sm" onKeyDown={(e) => e.key === "Enter" && saveBalance()} autoFocus />
+                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={saveBalance}><Check className="h-3.5 w-3.5 text-success" /></Button>
+                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={cancelEditBalance}><X className="h-3.5 w-3.5 text-destructive" /></Button>
+                    </div>
+                  ) : (
+                    <p className="text-lg font-bold text-foreground">{formatCurrency(accountBalance)}</p>
+                  )}
+                </div>
               </div>
-              <div>
-                <p className="text-xs text-muted-foreground">Saldo em Conta</p>
-                {editingBalance ? (
-                  <div className="flex items-center gap-1 mt-0.5">
-                    <Input type="number" value={tempBalance} onChange={(e) => setTempBalance(e.target.value)}
-                      className="h-7 w-32 text-sm" onKeyDown={(e) => e.key === "Enter" && saveBalance()} autoFocus />
-                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={saveBalance}><Check className="h-3.5 w-3.5 text-success" /></Button>
-                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={cancelEditBalance}><X className="h-3.5 w-3.5 text-destructive" /></Button>
-                  </div>
-                ) : (
-                  <p className="text-lg font-bold text-foreground">{formatCurrency(accountBalance)}</p>
-                )}
+              {!editingBalance && (
+                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={startEditBalance}>
+                  <Pencil className="h-4 w-4 text-muted-foreground" />
+                </Button>
+              )}
+            </div>
+            <div className="grid grid-cols-2 gap-2 mt-3">
+              <div className="bg-muted/50 rounded-lg p-2.5 border border-border/30">
+                <div className="flex items-center gap-1.5 mb-1">
+                  <Calendar className="h-3 w-3 text-primary" />
+                  <p className="text-[10px] text-muted-foreground">Prev. Domingo</p>
+                </div>
+                <p className="text-sm font-semibold text-foreground">{formatCurrency(accountBalance + portfolio.forecastSunday)}</p>
+              </div>
+              <div className="bg-muted/50 rounded-lg p-2.5 border border-border/30">
+                <div className="flex items-center gap-1.5 mb-1">
+                  <Calendar className="h-3 w-3 text-primary" />
+                  <p className="text-[10px] text-muted-foreground">Prev. Fim do Mês</p>
+                </div>
+                <p className="text-sm font-semibold text-foreground">{formatCurrency(accountBalance + portfolio.forecastEndMonth)}</p>
               </div>
             </div>
-            {!editingBalance && (
-              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={startEditBalance}>
-                <Pencil className="h-4 w-4 text-muted-foreground" />
-              </Button>
-            )}
           </CardContent>
         </Card>
 
