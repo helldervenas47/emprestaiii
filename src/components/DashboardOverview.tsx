@@ -592,7 +592,12 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
       {/* Account balance + Interest rate + Profit */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <Card className="animate-fade-in" style={{ animationDelay: '80ms', animationFillMode: 'backwards' }}>
-          <CardContent className="p-4 flex flex-col h-full">
+          <CardContent className="p-4 flex flex-col h-full relative">
+            {!editingBalance && (
+              <Button variant="ghost" size="icon" className="h-7 w-7 absolute top-2 right-2" onClick={startEditBalance}>
+                <Pencil className="h-3.5 w-3.5 text-muted-foreground" />
+              </Button>
+            )}
             <div className="flex items-center justify-center flex-1">
               <div className="flex flex-col items-center text-center">
                 <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0 mb-1">
@@ -607,12 +612,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
                     <Button variant="ghost" size="icon" className="h-7 w-7" onClick={cancelEditBalance}><X className="h-3.5 w-3.5 text-destructive" /></Button>
                   </div>
                 ) : (
-                  <div className="flex items-center gap-1">
-                    <p className="text-lg font-bold text-foreground">{formatCurrency(accountBalance)}</p>
-                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={startEditBalance}>
-                      <Pencil className="h-3.5 w-3.5 text-muted-foreground" />
-                    </Button>
-                  </div>
+                  <p className="text-lg font-bold text-foreground">{formatCurrency(accountBalance)}</p>
                 )}
               </div>
             </div>
