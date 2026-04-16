@@ -26,6 +26,8 @@ const OverdueLoans = lazy(() => import("@/components/OverdueLoans").then(m => ({
 const BillingCalendar = lazy(() => import("@/components/BillingCalendar").then(m => ({ default: m.BillingCalendar })));
 const ExpenseForm = lazy(() => import("@/components/ExpenseForm").then(m => ({ default: m.ExpenseForm })));
 const ExpenseList = lazy(() => import("@/components/ExpenseList").then(m => ({ default: m.ExpenseList })));
+const PersonalExpenseForm = lazy(() => import("@/components/PersonalExpenseForm").then(m => ({ default: m.PersonalExpenseForm })));
+const PersonalExpenseList = lazy(() => import("@/components/PersonalExpenseList").then(m => ({ default: m.PersonalExpenseList })));
 const UserManagement = lazy(() => import("@/components/UserManagement").then(m => ({ default: m.UserManagement })));
 const PlanManagement = lazy(() => import("@/components/PlanManagement").then(m => ({ default: m.PlanManagement })));
 const BackupExport = lazy(() => import("@/components/BackupExport").then(m => ({ default: m.BackupExport })));
@@ -74,6 +76,7 @@ type ClientSubTab = "clientes" | "veiculos";
 type VehicleSubTab = "veiculos" | "locadores";
 type PlanMgmtSubTab = "subscribers" | "plans";
 type OverdueSubTab = "cobrancas" | "notificacoes";
+type ExpenseSubTab = "business" | "personal";
 
 const tabConfig = [
   { id: "overview" as Tab, label: "Dashboard", icon: BarChart3 },
@@ -233,6 +236,7 @@ const Index = () => {
   const [vehicleSubTab, setVehicleSubTab] = useState<VehicleSubTab>("veiculos");
   const [planMgmtSubTab, setPlanMgmtSubTab] = useState<PlanMgmtSubTab>("subscribers");
   const [overdueSubTab, setOverdueSubTab] = useState<OverdueSubTab>("cobrancas");
+  const [expenseSubTab, setExpenseSubTab] = useState<ExpenseSubTab>("business");
 
   // Filter data by linked clients if user has client restrictions
   const hasClientFilter = Array.isArray(linkedClientIds) && linkedClientIds.length > 0;
@@ -258,11 +262,14 @@ const Index = () => {
     : sales;
 
   const nonVehicleExpenses = expenses.filter(e => !vehicleExpenseCategories.includes(e.category));
+  const businessExpenses = nonVehicleExpenses.filter(e => (e.scope ?? "business") === "business");
+  const personalExpenses = expenses.filter(e => e.scope === "personal");
   const [showLoanForm, setShowLoanForm] = useState(false);
   const [showClientForm, setShowClientForm] = useState(false);
   const [showProductForm, setShowProductForm] = useState(false);
   const [showSaleForm, setShowSaleForm] = useState(false);
   const [showExpenseForm, setShowExpenseForm] = useState(false);
+  const [showPersonalExpenseForm, setShowPersonalExpenseForm] = useState(false);
   const [showVehicleExpenseForm, setShowVehicleExpenseForm] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const isMobile = useIsMobile();
@@ -339,7 +346,10 @@ const Index = () => {
   const handlePrimaryAction = () => {
     if (tab === "dashboard") setShowLoanForm(true);
     else if (tab === "clients" && clientSubTab === "clientes") setShowClientForm(true);
-    else if (tab === "expenses") setShowExpenseForm(true);
+    else if (tab === "expenses") {
+      if (expenseSubTab === "personal") setShowPersonalExpenseForm(true);
+      else setShowExpenseForm(true);
+    }
     else if (tab === "products" || tab === "vehicles") setShowSaleForm(true);
   };
 
