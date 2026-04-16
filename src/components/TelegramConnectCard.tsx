@@ -6,7 +6,13 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Send, Copy, CheckCircle2, Unlink, Clock, Zap, CalendarDays, CalendarRange } from "lucide-react";
+import { Copy, CheckCircle2, Unlink, Clock, Zap, CalendarDays, CalendarRange } from "lucide-react";
+
+const TelegramIcon = ({ className }: { className?: string }) => (
+  <svg viewBox="0 0 24 24" fill="currentColor" className={className} aria-hidden="true">
+    <path d="M21.944 4.667a1.5 1.5 0 0 0-1.62-.22L3.36 11.32c-.94.39-.93 1.72.02 2.09l4.27 1.66 1.66 5.32c.21.67 1.04.88 1.55.4l2.43-2.27 4.4 3.24c.62.46 1.51.13 1.69-.62l3.1-14.39a1.5 1.5 0 0 0-.54-1.58zM9.9 15.06l-.6 4.04-1.3-4.18 9.62-7.04-7.72 7.18z"/>
+  </svg>
+);
 import { toast } from "sonner";
 import { useTelegramSummaryPref } from "@/hooks/useTelegramSummaryPref";
 
@@ -160,7 +166,7 @@ export function TelegramConnectCard() {
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-center gap-2">
             <div className="h-9 w-9 rounded-lg bg-primary/10 flex items-center justify-center">
-              <Send className="h-4 w-4 text-primary" />
+              <TelegramIcon className="h-4 w-4 text-primary" />
             </div>
             <div>
               <p className="font-semibold text-sm">Bot do Telegram</p>
@@ -350,7 +356,7 @@ export function TelegramConnectCard() {
           </div>
         ) : (
           <Button size="sm" onClick={generateCode} disabled={generating} className="w-full sm:w-auto">
-            <Send className="h-3.5 w-3.5 mr-1" />
+            <TelegramIcon className="h-3.5 w-3.5 mr-1" />
             {generating ? "Gerando…" : "Conectar Telegram"}
           </Button>
         )}
