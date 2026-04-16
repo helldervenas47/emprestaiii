@@ -22,6 +22,8 @@ Envie uma despesa em texto livre, ex:
 
 📸 Ou envie uma *foto de cupom/nota fiscal* — eu leio o comprovante e extraio o valor automaticamente.
 
+🎤 Ou envie um *áudio* falando a despesa — eu transcrevo e cadastro.
+
 Vou interpretar e cadastrar automaticamente.
 
 *Comandos:*
