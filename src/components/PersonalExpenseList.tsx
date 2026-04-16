@@ -52,6 +52,9 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, readOn
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [payingId, setPayingId] = useState<string | null>(null);
   const [payDate, setPayDate] = useState("");
+  const [budgetEditOpen, setBudgetEditOpen] = useState(false);
+  const [budgetDraft, setBudgetDraft] = useState<Record<string, string>>({});
+  const { budgets, setBudget } = usePersonalBudgets();
 
   const getInstallmentAmount = useCallback((e: Expense) => {
     const isRec = e.type === "recorrente" && e.installments && e.installments > 1;
