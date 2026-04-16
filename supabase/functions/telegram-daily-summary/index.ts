@@ -156,9 +156,11 @@ Deno.serve(async (req) => {
 
       await tgSend(Number(link.chat_id), lines.join("\n"), LOVABLE_API_KEY, TELEGRAM_API_KEY);
 
-      await admin.from("telegram_summary_prefs")
-        .update({ last_sent_date: today })
-        .eq("user_id", pref.user_id);
+      if (!forceUserId) {
+        await admin.from("telegram_summary_prefs")
+          .update({ last_sent_date: today })
+          .eq("user_id", pref.user_id);
+      }
 
       sent++;
     } catch (e) {
