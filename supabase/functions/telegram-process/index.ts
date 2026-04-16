@@ -20,6 +20,8 @@ Envie uma despesa em texto livre, ex:
 • "mercado 230"
 • "netflix 39,90 assinatura"
 
+📸 Ou envie uma *foto de cupom/nota fiscal* — eu leio o comprovante e extraio o valor automaticamente.
+
 Vou interpretar e cadastrar automaticamente.
 
 *Comandos:*
