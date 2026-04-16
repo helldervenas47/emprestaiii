@@ -331,21 +331,22 @@ Deno.serve(async (req) => {
 
         const totalOverdue = overdue.reduce((s: number, l: any) => s + Number(l.remaining_amount || 0), 0);
 
-        let body = "";
+        const payloads: string[] = [];
         if (overdue.length > 0) {
-          body += `🔴 ${overdue.length} parcela(s) atrasada(s) — ${formatCurrency(totalOverdue)}`;
+          payloads.push(JSON.stringify({
+            title: "📊 Empréstai — Parcelas Atrasadas",
+            body: `🔴 ${overdue.length} parcela(s) atrasada(s) — ${formatCurrency(totalOverdue)}`,
+            url: "/?tab=dashboard&filter=overdue&view=rows",
+          }));
         }
         if (dueToday.length > 0) {
-          if (body) body += "\n";
           const totalToday = dueToday.reduce((s: number, l: any) => s + Number(l.remaining_amount || 0), 0);
-          body += `🟡 ${dueToday.length} parcela(s) vence(m) hoje — ${formatCurrency(totalToday)}`;
+          payloads.push(JSON.stringify({
+            title: "📊 Empréstai — Parcelas de Hoje",
+            body: `🟡 ${dueToday.length} parcela(s) vence(m) hoje — ${formatCurrency(totalToday)}`,
+            url: "/?tab=dashboard&filter=due_today&view=rows",
+          }));
         }
-
-        const payload = JSON.stringify({
-          title: "📊 Empréstai — Cobranças",
-          body,
-          url: "/?tab=overdue",
-        });
 
         let sent = 0;
         let failed = 0;
