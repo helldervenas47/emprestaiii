@@ -13,8 +13,20 @@ const timeOptions = Array.from({ length: 24 }, (_, i) => {
 });
 
 export function PushNotificationToggle() {
-  const { isSupported, isSubscribed, isLoading, permission, subscribe, unsubscribe, sendTime, updateSendTime } = usePushNotifications();
+  const { isSupported, isSubscribed, isLoading, permission, subscribe, unsubscribe, sendTime, updateSendTime, sendTestNotification } = usePushNotifications();
   const [open, setOpen] = useState(false);
+  const [testing, setTesting] = useState(false);
+
+  const handleTest = async () => {
+    setTesting(true);
+    const ok = await sendTestNotification();
+    if (ok) {
+      toast.success("Notificação de teste enviada!");
+    } else {
+      toast.error("Falha ao enviar notificação de teste.");
+    }
+    setTesting(false);
+  };
 
   if (!isSupported) return null;
 
