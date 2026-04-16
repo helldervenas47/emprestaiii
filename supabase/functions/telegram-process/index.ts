@@ -521,8 +521,76 @@ Deno.serve(async (req) => {
     const text = (msg.text as string | null)?.trim() ?? "";
     const photos = (msg.raw_update as any)?.message?.photo as any[] | undefined;
     const caption = ((msg.raw_update as any)?.message?.caption as string | null)?.trim() ?? "";
+    const callback = (msg.raw_update as any)?.callback_query;
 
     try {
+      // 🎛️ Callback query (inline button press)
+      if (callback) {
+        const cbId = callback.id as string;
+        const data = (callback.data as string) ?? "";
+        const messageId = callback.message?.message_id as number | undefined;
+
+        const { data: link } = await admin.from("telegram_links")
+          .select("user_id").eq("chat_id", chatId).maybeSingle();
+
+        if (!link || !messageId) {
+          await tgAnswerCallback(cbId, "Conta não vinculada", LOVABLE_API_KEY, TELEGRAM_API_KEY);
+        } else if (data.startsWith("del:")) {
+          const expenseId = data.slice(4);
+          const { error: delErr } = await admin.from("expenses")
+            .delete().eq("id", expenseId).eq("user_id", link.user_id);
+          if (delErr) {
+            await tgAnswerCallback(cbId, "Erro ao apagar", LOVABLE_API_KEY, TELEGRAM_API_KEY);
+          } else {
+            await tgAnswerCallback(cbId, "Despesa removida", LOVABLE_API_KEY, TELEGRAM_API_KEY);
+            await tgEditMessage(chatId, messageId, "🗑️ *Despesa removida.*", null, LOVABLE_API_KEY, TELEGRAM_API_KEY);
+          }
+        } else if (data.startsWith("cat:")) {
+          const expenseId = data.slice(4);
+          await tgAnswerCallback(cbId, undefined, LOVABLE_API_KEY, TELEGRAM_API_KEY);
+          await tgEditReplyMarkup(chatId, messageId, buildCategoryKeyboard(expenseId), LOVABLE_API_KEY, TELEGRAM_API_KEY);
+        } else if (data.startsWith("setcat:")) {
+          const rest = data.slice(7);
+          const sep = rest.indexOf(":");
+          const expenseId = rest.slice(0, sep);
+          const newCat = rest.slice(sep + 1);
+          if (!CATEGORIES.includes(newCat)) {
+            await tgAnswerCallback(cbId, "Categoria inválida", LOVABLE_API_KEY, TELEGRAM_API_KEY);
+          } else {
+            const { data: exp, error: updErr } = await admin.from("expenses")
+              .update({ category: newCat })
+              .eq("id", expenseId).eq("user_id", link.user_id)
+              .select("amount, description, paid_date, due_date").maybeSingle();
+            if (updErr || !exp) {
+              await tgAnswerCallback(cbId, "Erro ao atualizar", LOVABLE_API_KEY, TELEGRAM_API_KEY);
+            } else {
+              await tgAnswerCallback(cbId, "Categoria atualizada", LOVABLE_API_KEY, TELEGRAM_API_KEY);
+              const fmt = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(Number(exp.amount) || 0);
+              const date = exp.paid_date || exp.due_date || "";
+              await tgEditMessage(
+                chatId, messageId,
+                `✏️ *Despesa atualizada*\n\n💰 ${fmt}\n📂 ${newCat}\n📝 ${exp.description}\n📅 ${date}`,
+                buildExpenseKeyboard(expenseId),
+                LOVABLE_API_KEY, TELEGRAM_API_KEY,
+              );
+              await checkBudgetAndAlert(admin, link.user_id, chatId, newCat, LOVABLE_API_KEY, TELEGRAM_API_KEY);
+            }
+          }
+        } else if (data.startsWith("canc:")) {
+          const expenseId = data.slice(5);
+          await tgAnswerCallback(cbId, undefined, LOVABLE_API_KEY, TELEGRAM_API_KEY);
+          await tgEditReplyMarkup(chatId, messageId, buildExpenseKeyboard(expenseId), LOVABLE_API_KEY, TELEGRAM_API_KEY);
+        } else {
+          await tgAnswerCallback(cbId, undefined, LOVABLE_API_KEY, TELEGRAM_API_KEY);
+        }
+
+        await admin.from("telegram_messages")
+          .update({ processed: true, processed_at: new Date().toISOString() })
+          .eq("update_id", msg.update_id);
+        processed++;
+        continue;
+      }
+
       // 📸 Photo handling
       if (photos && photos.length > 0) {
         const { data: link } = await admin.from("telegram_links")
