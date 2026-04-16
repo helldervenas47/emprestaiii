@@ -1297,7 +1297,11 @@ function LoanRowView({
     }
   }
   const penaltyTotal = (loan.penaltyValue != null && loan.penaltyValue > 0 && effectiveDaysLate > 0 && loan.status !== "paid") ? loan.penaltyValue : 0;
-  const remaining = baseRemaining + lateInterestTotal + penaltyTotal;
+  const lateFees = lateInterestTotal + penaltyTotal;
+  const interestPaymentsReceived = allPayments
+    .filter((p) => p.loanId === loan.id && p.installmentNumber === 0)
+    .reduce((sum, p) => sum + p.amount, 0);
+  const remaining = baseRemaining + lateFees;
   const remainingInstallments = Math.max(1, loan.installments - loan.paidInstallments);
   const nextSchedule = unpaidSchedules[0];
   const installmentValue = nextSchedule
