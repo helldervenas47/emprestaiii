@@ -518,12 +518,12 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
         </div>
       </div>
 
-      {/* Account balance + Interest rate */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      {/* Account balance + Interest rate + Profit */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <Card className="animate-fade-in" style={{ animationDelay: '80ms', animationFillMode: 'backwards' }}>
           <CardContent className="p-4 flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+              <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
                 <Wallet className="h-5 w-5 text-primary" />
               </div>
               <div>
@@ -551,7 +551,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
         <Card className="animate-fade-in cursor-pointer" style={{ animationDelay: '160ms', animationFillMode: 'backwards' }} onClick={() => setExpandedBreakdown(expandedBreakdown === "interest-rate" ? null : "interest-rate")}>
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-full bg-warning/10 flex items-center justify-center">
+              <div className="h-10 w-10 rounded-full bg-warning/10 flex items-center justify-center shrink-0">
                 <Percent className="h-5 w-5 text-warning" />
               </div>
               <div className="flex-1">
@@ -586,6 +586,34 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
                 <p className="text-xs text-muted-foreground text-center">Nenhum empréstimo no período</p>
               </div>
             )}
+          </CardContent>
+        </Card>
+
+        {/* Profit Card */}
+        <Card className="animate-fade-in" style={{ animationDelay: '240ms', animationFillMode: 'backwards' }}>
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="h-10 w-10 rounded-full bg-success/10 flex items-center justify-center shrink-0">
+                <TrendingUp className="h-5 w-5 text-success" />
+              </div>
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Lucro do Período</p>
+            </div>
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-muted-foreground">Lucro Previsto</span>
+                <span className="text-sm font-bold text-foreground">{formatCurrency(data.periodProfitExpected)}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-muted-foreground">Lucro Realizado</span>
+                <span className="text-sm font-bold text-success">{formatCurrency(data.periodProfitRealized)}</span>
+              </div>
+              <div className="flex items-center justify-between pt-1 border-t border-border/30">
+                <span className="text-xs text-muted-foreground">% Lucro</span>
+                <span className={`text-sm font-bold ${data.periodProfitPct >= 100 ? "text-success" : data.periodProfitPct >= 50 ? "text-warning" : "text-foreground"}`}>
+                  {data.periodProfitPct}%
+                </span>
+              </div>
+            </div>
           </CardContent>
         </Card>
       </div>
