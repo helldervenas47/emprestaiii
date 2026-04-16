@@ -352,7 +352,7 @@ const Index = () => {
 
   return (
     <HideValuesProvider>
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background" style={{ paddingTop: 'env(safe-area-inset-top)', paddingBottom: 'env(safe-area-inset-bottom)', paddingLeft: 'env(safe-area-inset-left)', paddingRight: 'env(safe-area-inset-right)' }}>
       <SubscriptionBanner />
 
       <header className="border-b border-border/30 glass sticky top-0 z-40">

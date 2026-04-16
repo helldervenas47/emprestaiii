@@ -119,6 +119,13 @@
     letter-spacing: -0.01em;
   }
 
+  /* iOS PWA standalone safe-area */
+  @supports (padding-top: env(safe-area-inset-top)) {
+    .sticky {
+      top: env(safe-area-inset-top);
+    }
+  }
+
   ::-webkit-scrollbar {
     width: 5px;
     height: 5px;
