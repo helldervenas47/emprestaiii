@@ -1,47 +1,66 @@
 
 
-# Corrigir Ativação de Notificações Push no PWA iOS
+# Criar Sub-aba "Notificações" na Aba Relatório
 
-## Problema Identificado
+## Visão Geral
+Adicionar sub-abas na aba "Relatório" (overdue): **Cobranças** (conteúdo atual) e **Notificações** (nova). A sub-aba Notificações mostrará uma lista de notificações padrão com toggles de ativo/inativo e seletor de horário de envio.
 
-O arquivo `src/main.tsx` possui um guarda de segurança que **desregistra todos os Service Workers** quando detecta que o app está rodando em um domínio de preview (`lovableproject.com`). Se você instalou o app na Tela de Início a partir do link de preview, o hostname ainda contém `lovableproject.com`, fazendo com que o Service Worker de push (`sw-push.js`) seja removido a cada carregamento da página — impedindo qualquer notificação.
+## Alterações
 
-Além disso, mesmo na URL publicada (`emprestaii.lovable.app`), o guarda pode interferir se o app estiver em um iframe.
+### 1. Criar componente `NotificationSettings.tsx`
+Novo componente que exibe uma lista de notificações padrão configuráveis:
+- **Parcelas vencendo hoje** — lembrete diário das cobranças do dia
+- **Parcelas em atraso** — alerta de parcelas atrasadas
+- **Resumo diário** — relatório resumido do dia (webhook)
 
-## Solução
+Cada item terá:
+- Nome e descrição da notificação
+- Switch ativo/inativo
+- Seletor de horário de envio (dropdown com horas cheias)
 
-### 1. Ajustar o guarda em `main.tsx`
-- Não desregistrar Service Workers quando o app estiver em **modo standalone** (instalado na tela de início), independentemente do hostname
-- Isso permite que o `sw-push.js` permaneça registrado no PWA instalado
+O componente reutilizará a lógica existente de `usePushNotifications` para o toggle de push e `webhook_settings` para o webhook. Também integrará com a tabela `push_tokens` para salvar preferências.
 
-### 2. Melhorar feedback no `PushNotificationToggle`
-- Se o usuário estiver no preview (não standalone) e tentar ativar, mostrar mensagem explicando que precisa instalar o app primeiro
-- Adicionar tratamento para quando o iOS bloqueia a permissão
+### 2. Migração SQL — tabela `notification_preferences`
+Nova tabela para armazenar preferências por tipo de notificação:
+- `id`, `user_id`, `notification_type` (text), `enabled` (boolean), `send_time` (text), `created_at`, `updated_at`
+- Unique constraint em `(user_id, notification_type)`
+- RLS: usuários autenticados podem CRUD nos próprios registros
 
-### 3. Proteger o registro do SW de push contra o guarda
-- No hook `usePushNotifications`, verificar se o ambiente permite registro antes de tentar
+### 3. Alterar `src/pages/Index.tsx`
+- Adicionar estado `overdueSubTab` ("cobranças" | "notificacoes")
+- No bloco `tab === "overdue"`, renderizar sub-abas com botões (mesmo padrão visual de `planMgmtSubTab`)
+- Sub-aba "Cobranças" mostra o conteúdo atual (`OverdueLoans` + `WhatsAppReport`)
+- Sub-aba "Notificações" renderiza o novo `NotificationSettings`
+
+### 4. Criar hook `useNotificationPreferences.ts`
+Hook para CRUD na tabela `notification_preferences`, com tipos padrão pré-definidos e upsert ao alterar toggle ou horário.
 
 ## Detalhes Técnicos
 
-**Arquivo: `src/main.tsx`**
-```typescript
-const isInStandaloneMode =
-  window.matchMedia("(display-mode: standalone)").matches ||
-  (navigator as any).standalone === true;
-
-if ((isPreviewHost || isInIframe) && !isInStandaloneMode) {
-  navigator.serviceWorker?.getRegistrations().then((registrations) => {
-    registrations.forEach((r) => r.unregister());
-  });
-}
+**Tabela `notification_preferences`:**
+```sql
+CREATE TABLE public.notification_preferences (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL,
+  notification_type text NOT NULL,
+  enabled boolean NOT NULL DEFAULT false,
+  send_time text NOT NULL DEFAULT '08:00',
+  created_at timestamptz DEFAULT now(),
+  updated_at timestamptz DEFAULT now(),
+  UNIQUE(user_id, notification_type)
+);
+ALTER TABLE public.notification_preferences ENABLE ROW LEVEL SECURITY;
+-- RLS policies for authenticated users on own data
 ```
 
-**Arquivo: `src/components/PushNotificationToggle.tsx`**
-- Adicionar mensagem quando o usuário está no navegador (não PWA instalado) no iOS, orientando a instalar primeiro
+**Tipos de notificação padrão:**
+- `parcelas_hoje` — Parcelas vencendo hoje
+- `parcelas_atrasadas` — Parcelas em atraso  
+- `resumo_diario` — Resumo diário
 
-**Arquivo: `src/hooks/usePushNotifications.ts`**
-- Adicionar verificação de ambiente (standalone vs browser) para feedback mais claro ao usuário
-
-## Resultado Esperado
-Após a correção, ao abrir o app pelo ícone na Tela de Início do iPhone, o sino funcionará normalmente: ao ativar o toggle, o iOS pedirá permissão e as notificações serão registradas.
+**Arquivos criados/alterados:**
+- `src/components/NotificationSettings.tsx` (novo)
+- `src/hooks/useNotificationPreferences.ts` (novo)
+- `src/pages/Index.tsx` (sub-abas no Relatório)
+- Migração SQL para `notification_preferences`
 
