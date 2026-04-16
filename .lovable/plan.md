@@ -1,49 +1,52 @@
 
 
 ## Objetivo
-Permitir cadastrar despesas pessoais enviando mensagens em texto livre para um **bot do Telegram**, interpretadas pela Lovable AI.
+Adicionar 3 comandos no bot do Telegram para consulta e gestão rápida de despesas pessoais.
 
-## Fluxo
-1. Usuário fala com o bot (ex: "gastei 45 no uber ontem").
-2. Polling captura a mensagem (cron a cada minuto + long polling).
-3. Edge function identifica o usuário pelo `chat_id` vinculado e chama a Lovable AI para extrair `descrição`, `valor`, `categoria`, `data`.
-4. Insere em `expenses` com `scope='personal'` e responde no Telegram confirmando (✅ valor + categoria) ou pedindo correção.
+## Comandos
 
-## Vinculação de conta
-Na aba **Despesas Pessoais** novo card "Telegram":
-- Botão "Conectar Telegram" gera um código de 6 dígitos (válido 10 min).
-- Usuário envia `/start CODIGO` no bot → vinculado.
-- Mostra status conectado + botão desconectar.
-
-## Mudanças no banco
-Nova tabela `telegram_links`: `user_id`, `chat_id` (unique), `created_at`.
-Nova tabela `telegram_link_codes`: `code`, `user_id`, `expires_at`.
-Tabelas de polling do guia: `telegram_bot_state`, `telegram_messages` (consumida e marcada como processada).
-RLS: usuário vê só seu link; service role gerencia tudo.
-
-## Edge functions
-- **`telegram-poll`** — cron 1x/min, faz long polling de `getUpdates`, salva mensagens.
-- **`telegram-process`** — disparada após o poll: para cada mensagem nova, resolve `chat_id → user_id`, trata `/start CODIGO` (vincula) e `/help`, ou chama Lovable AI (`google/gemini-3-flash-preview`) com tool calling estruturado para extrair a despesa, insere em `expenses` e envia confirmação via `sendMessage`.
-- **`telegram-link-code`** — gera código de vinculação para o usuário logado.
-
-## IA (extração estruturada)
-Tool calling com schema:
+**`/saldo`** — Total gasto no mês corrente + breakdown por categoria com % do orçamento (se houver `personal_budgets`).
 ```
-{ description, amount, category (enum das categoriasPessoais), date (YYYY-MM-DD, default hoje), confidence }
+💰 Gastos de Abril
+Total: R$ 1.234,56
+
+📂 Por categoria:
+🟢 Alimentação: R$ 320,00 / R$ 800,00 (40%)
+🟡 Transporte: R$ 180,00 / R$ 200,00 (90%)
+🔴 Lazer: R$ 250,00 / R$ 200,00 (125%)
+⚪ Outros: R$ 484,56 (sem orçamento)
 ```
-Se `confidence < 0.6` ou faltar valor → bot responde pedindo para reescrever.
 
-## Pré-requisitos
-- Conectar o connector **Telegram** (vou pedir via `standard_connectors--connect`).
-- Criar bot no @BotFather e fornecer o token na conexão.
-- Lovable AI já disponível (LOVABLE_API_KEY presente).
+**`/ultimas`** — Últimas 5 despesas pessoais (ordem desc por `paid_date`/`created_at`).
+```
+🧾 Últimas despesas
+1. R$ 45,00 — Uber (Transporte) — 16/04
+2. R$ 230,00 — Mercado (Alimentação) — 15/04
+...
+```
 
-## UI
-- Card "Telegram" em `PersonalExpenseList.tsx` com estados: não vinculado (botão gerar código + instruções) / vinculado (chat_id + desconectar).
-- Toast quando código copiado.
-- Realtime em `expenses` já existe → despesa cadastrada via Telegram aparece automaticamente na lista.
+**`/apagar`** — Apaga a despesa pessoal mais recente do usuário, mostrando confirmação do que foi removido.
+```
+🗑️ Despesa removida:
+R$ 45,00 — Uber (Transporte) — 16/04
+```
+Se não houver despesas: `ℹ️ Nenhuma despesa para apagar.`
 
-## Observações
-- Sem webhook (não suportado pelo gateway) — latência típica 0–60s.
-- Apenas o dono dos dados (não usuários `operador`) pode vincular, para manter isolamento.
+## Mudanças
+
+**Apenas 1 arquivo**: `supabase/functions/telegram-process/index.ts`
+- Antes do bloco que chama a IA, adicionar 3 branches `if` para `/saldo`, `/ultimas`, `/apagar` (case-insensitive, suportando `@botname`).
+- Atualizar `HELP_TEXT` para listar os novos comandos.
+- Sem mudanças de schema, sem novas funções/migrações.
+
+## Detalhes técnicos
+- Mês corrente: filtrar `expenses` por `scope='personal'`, `user_id=link.user_id`, `paid_date` (ou `due_date`) começando com `YYYY-MM` atual em timezone local (usar `new Date().toISOString().slice(0,7)`).
+- Orçamentos: ler `personal_budgets` por `user_id` e cruzar por `category`. Ícone: 🟢 <70%, 🟡 70–99%, 🔴 ≥100%, ⚪ sem orçamento.
+- `/ultimas`: `select * from expenses where scope='personal' and user_id=? order by coalesce(paid_date, due_date) desc, created_at desc limit 5`.
+- `/apagar`: mesmo critério de ordenação, pega o primeiro, `delete` por `id`, responde com o que foi removido.
+- Formatação de moeda: `Intl.NumberFormat('pt-BR', { style:'currency', currency:'BRL' })`.
+- Datas exibidas no formato `DD/MM`.
+
+## Fora de escopo
+- `/desfazer` com janela de tempo, undo de múltiplas, edição de despesa — não solicitado.
 
