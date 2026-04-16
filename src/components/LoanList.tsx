@@ -437,6 +437,7 @@ function LoanCardView({
             <div><Label className="text-xs">Parcelas</Label><Input type="number" value={form.installments} onChange={(e) => updateField("installments", e.target.value)} className="h-8 text-sm" /></div>
             <div><Label className="text-xs">Parcelas Pagas</Label><Input type="number" value={form.paidInstallments} onChange={(e) => updateField("paidInstallments", e.target.value)} className="h-8 text-sm" /></div>
             <div><Label className="text-xs">Restante a Receber (R$)</Label><Input type="number" step="0.01" value={form.remainingAmount} onChange={(e) => updateField("remainingAmount", e.target.value)} className="h-8 text-sm" /></div>
+            <div><Label className="text-xs">Total a Receber (R$)</Label><p className="h-8 flex items-center text-sm font-bold text-primary">{formatCurrency((parseFloat(form.amount) || 0) + (parseFloat(form.interestValue) || 0) * (parseInt(form.installments) || 0))}</p></div>
             <div><Label className="text-xs">Data Início</Label><DatePickerField value={form.startDate} onChange={(v) => updateField("startDate", v)} className="h-8 text-sm" /></div>
             <div>
               <Label className="text-xs">Data 1ª Parcela</Label>
@@ -776,7 +777,7 @@ function LoanCardView({
           </div>
           <div>
             <p className="text-xs text-muted-foreground">Total a Receber</p>
-            <p className="text-base font-bold text-foreground">{formatCurrency(total)}</p>
+            <p className="text-base font-bold text-foreground">{formatCurrency(total + lateFees)}</p>
           </div>
         </div>
 
@@ -1484,6 +1485,7 @@ function LoanRowView({
                 <div><Label className="text-xs">Parcelas</Label><Input type="number" value={form.installments} onChange={(e) => updateField("installments", e.target.value)} className="h-8 text-sm" /></div>
                 <div><Label className="text-xs">Parcelas Pagas</Label><Input type="number" value={form.paidInstallments} onChange={(e) => updateField("paidInstallments", e.target.value)} className="h-8 text-sm" /></div>
                 <div><Label className="text-xs">Restante a Receber (R$)</Label><Input type="number" step="0.01" value={form.remainingAmount} onChange={(e) => updateField("remainingAmount", e.target.value)} className="h-8 text-sm" /></div>
+                <div><Label className="text-xs">Total a Receber (R$)</Label><p className="h-8 flex items-center text-sm font-bold text-primary">{formatCurrency((parseFloat(form.amount) || 0) + (parseFloat(form.interestValue) || 0) * (parseInt(form.installments) || 0))}</p></div>
                 <div><Label className="text-xs">Data Início</Label><DatePickerField value={form.startDate} onChange={(v) => updateField("startDate", v)} className="h-8 text-sm" /></div>
                 <div>
                   <Label className="text-xs">Data 1ª Parcela</Label>
@@ -1529,8 +1531,8 @@ function LoanRowView({
                 <p className="text-sm font-bold text-foreground">{formatCurrency(loan.amount)}</p>
               </div>
               <div className="bg-card rounded-lg p-3 border border-border/30">
-                <p className="text-[10px] text-muted-foreground uppercase">Total c/ Juros</p>
-                <p className="text-sm font-bold text-foreground">{formatCurrency(total)}</p>
+                <p className="text-[10px] text-muted-foreground uppercase">Total a Receber</p>
+                <p className="text-sm font-bold text-foreground">{formatCurrency(total + lateInterestTotal + penaltyTotal)}</p>
               </div>
               <div className="bg-card rounded-lg p-3 border border-border/30">
                 <p className="text-[10px] text-muted-foreground uppercase">Total Pago</p>
