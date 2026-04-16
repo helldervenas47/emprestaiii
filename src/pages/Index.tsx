@@ -39,6 +39,7 @@ const SubscriptionGate = lazy(() => import("@/components/SubscriptionGate").then
 const VehicleExpenseForm = lazy(() => import("@/components/VehicleExpenseForm").then(m => ({ default: m.VehicleExpenseForm })));
 // Direct import for the constant used at render time
 import { vehicleExpenseCategories } from "@/components/VehicleExpenseForm";
+import { PushNotificationToggle } from "@/components/PushNotificationToggle";
 
 // Prefetch most-used chunks after idle
 const prefetchChunks = () => {
@@ -309,7 +310,7 @@ const Index = () => {
     }
     return true;
   });
-  
+
 
   // Apply dark class to html element
   useState(() => {
@@ -442,6 +443,7 @@ const Index = () => {
             <Button variant="ghost" size="icon" onClick={() => window.location.reload()} className="h-8 w-8 sm:h-9 sm:w-9" title="Atualizar página">
               <RefreshCw className="h-4 w-4" />
             </Button>
+            <PushNotificationToggle />
             <HideValuesToggle />
             <Button variant="ghost" size="icon" onClick={toggleTheme} className="h-8 w-8 sm:h-9 sm:w-9" title={dark ? "Modo claro" : "Modo escuro"}>
               {dark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
