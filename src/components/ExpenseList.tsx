@@ -21,7 +21,7 @@ import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
 const categories = [
   "Aluguel", "Energia", "Água", "Internet", "Telefone",
   "Alimentação", "Transporte", "Salários", "Impostos", "Outros",
-];
+].sort((a, b) => a.localeCompare(b, "pt-BR"));
 
 interface Props {
   expenses: Expense[];

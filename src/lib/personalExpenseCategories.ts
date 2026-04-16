@@ -25,7 +25,7 @@ export const personalCategories: PersonalCategory[] = [
   { name: "Pets",            icon: PawPrint,        color: "30 75% 55%" },
   { name: "Presentes",       icon: Gift,            color: "340 75% 65%" },
   { name: "Outros",          icon: Package,         color: "215 15% 55%" },
-];
+].sort((a, b) => a.name.localeCompare(b.name, "pt-BR"));
 
 export const getPersonalCategory = (name: string): PersonalCategory =>
   personalCategories.find((c) => c.name === name) ?? personalCategories[personalCategories.length - 1];
