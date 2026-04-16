@@ -479,7 +479,7 @@ export function LoanForm({ onAdd, onSaveSchedule, onClose, clients, existingTags
             <div className="relative w-full h-11">
               {submitting ? (
                 <div className="flex items-center justify-center h-11">
-                  <div className="h-7 w-7 rounded-full border-3 border-primary border-t-transparent animate-spin" />
+                  <div className="h-8 w-8 rounded-full border-[3px] border-primary border-t-transparent animate-spin" />
                 </div>
               ) : (
                 <Button type="submit" className="w-full">
