@@ -5,11 +5,20 @@ import { useAuth } from "@/hooks/useAuth";
 export interface TelegramSummaryPref {
   enabled: boolean;
   send_time: string;
+  weekly_enabled: boolean;
+  weekly_send_time: string;
+  weekly_send_weekday: number;
 }
 
 export function useTelegramSummaryPref() {
   const { user } = useAuth();
-  const [pref, setPref] = useState<TelegramSummaryPref>({ enabled: false, send_time: "19:00" });
+  const [pref, setPref] = useState<TelegramSummaryPref>({
+    enabled: false,
+    send_time: "19:00",
+    weekly_enabled: false,
+    weekly_send_time: "09:00",
+    weekly_send_weekday: 1,
+  });
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -17,10 +26,16 @@ export function useTelegramSummaryPref() {
     (async () => {
       const { data } = await supabase
         .from("telegram_summary_prefs" as any)
-        .select("enabled, send_time")
+        .select("enabled, send_time, weekly_enabled, weekly_send_time, weekly_send_weekday")
         .eq("user_id", user.id)
         .maybeSingle();
-      if (data) setPref({ enabled: (data as any).enabled, send_time: (data as any).send_time });
+      if (data) setPref({
+        enabled: (data as any).enabled,
+        send_time: (data as any).send_time,
+        weekly_enabled: (data as any).weekly_enabled ?? false,
+        weekly_send_time: (data as any).weekly_send_time ?? "09:00",
+        weekly_send_weekday: (data as any).weekly_send_weekday ?? 1,
+      });
       setLoading(false);
     })();
   }, [user]);
@@ -30,7 +45,14 @@ export function useTelegramSummaryPref() {
     const next = { ...pref, ...updates };
     setPref(next);
     await supabase.from("telegram_summary_prefs" as any).upsert(
-      { user_id: user.id, enabled: next.enabled, send_time: next.send_time },
+      {
+        user_id: user.id,
+        enabled: next.enabled,
+        send_time: next.send_time,
+        weekly_enabled: next.weekly_enabled,
+        weekly_send_time: next.weekly_send_time,
+        weekly_send_weekday: next.weekly_send_weekday,
+      },
       { onConflict: "user_id" }
     );
   }, [user, pref]);
