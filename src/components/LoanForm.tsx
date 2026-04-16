@@ -453,8 +453,8 @@ export function LoanForm({ onAdd, onSaveSchedule, onClose, clients, existingTags
                     />
                   </div>
                   <div>
-                    <Label className="text-xs text-muted-foreground">Total (R$)</Label>
-                    <p className="h-8 flex items-center text-sm font-medium text-foreground">
+                    <Label className="text-xs text-muted-foreground">Total a Receber (R$)</Label>
+                    <p className="h-8 flex items-center text-sm font-bold text-primary">
                       {formatCurrency(totalAmount)}
                     </p>
                   </div>
