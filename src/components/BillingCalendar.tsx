@@ -18,6 +18,7 @@ interface Props {
   installmentSchedules: InstallmentSchedule[];
   onPayment?: (loanId: string, paymentDate?: string) => void;
   onPartialPayment?: (loanId: string, amount: number, paymentDate?: string) => void;
+  onFullPayment?: (loanId: string, paymentDate?: string) => void;
   onInterestPayment?: (loanId: string, paymentDate?: string) => void;
   onUpdate?: (id: string, data: Partial<Omit<Loan, "id">>) => void;
   readOnly?: boolean;
@@ -44,7 +45,7 @@ interface DueItem {
   loan: Loan;
 }
 
-export function BillingCalendar({ loans, payments, installmentSchedules, onPayment, onPartialPayment, onInterestPayment, onUpdate, readOnly = false }: Props) {
+export function BillingCalendar({ loans, payments, installmentSchedules, onPayment, onPartialPayment, onFullPayment, onInterestPayment, onUpdate, readOnly = false }: Props) {
   const { mask } = useHideValues();
   const formatCurrency = useCallback((v: number) => mask(rawFormatCurrency(v)), [mask]);
   const today = new Date();
@@ -166,8 +167,12 @@ export function BillingCalendar({ loans, payments, installmentSchedules, onPayme
     const remaining = loan.remainingAmount != null && loan.remainingAmount > 0 ? loan.remainingAmount : Math.max(0, total - totalPaid);
 
     if (paymentDialog.type === "full") {
-      onPartialPayment?.(paymentDialog.loanId, remaining, dateStr);
-      onUpdate?.(paymentDialog.loanId, { paidInstallments: loan.installments, status: "paid" });
+      if (onFullPayment) {
+        onFullPayment(paymentDialog.loanId, dateStr);
+      } else {
+        onPartialPayment?.(paymentDialog.loanId, remaining, dateStr);
+        onUpdate?.(paymentDialog.loanId, { paidInstallments: loan.installments, status: "paid" });
+      }
     } else if (paymentDialog.type === "installment") {
       onPayment?.(paymentDialog.loanId, dateStr);
     } else if (paymentDialog.type === "interest") {
