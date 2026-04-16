@@ -238,6 +238,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
     const totalExpected = loans.reduce((s, l) => s + calculateTotalWithInterest(l.amount, l.interestRate, l.installments), 0);
     const totalPrincipal = loans.reduce((s, l) => s + l.amount, 0);
     const totalInterestExpected = totalExpected - totalPrincipal;
+    const globalInterestRate = totalPrincipal > 0 ? ((totalExpected - totalPrincipal) / totalPrincipal) * 100 : 0;
 
     // Total a receber = total do contrato + multa/juros atraso + juros recebidos (installmentNumber === 0)
     const todayNorm = new Date(); todayNorm.setHours(0, 0, 0, 0);
