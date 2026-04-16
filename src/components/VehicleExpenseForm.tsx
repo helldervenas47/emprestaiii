@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { SuccessAnimation } from "@/components/SuccessAnimation";
 import { DatePickerField } from "@/components/ui/date-picker-field";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,6 +22,7 @@ interface Props {
 }
 
 export function VehicleExpenseForm({ onAdd, onClose }: Props) {
+  const [showSuccess, setShowSuccess] = useState(false);
   const [form, setForm] = useState({
     description: "",
     amount: "",
@@ -47,7 +49,7 @@ export function VehicleExpenseForm({ onAdd, onClose }: Props) {
       dueDate: form.dueDate,
       notes: form.notes,
     });
-    onClose();
+    setShowSuccess(true);
   };
 
   const update = (field: string, value: string) =>

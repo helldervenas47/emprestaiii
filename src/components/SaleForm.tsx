@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { SuccessAnimation } from "@/components/SuccessAnimation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -36,6 +37,7 @@ interface Props {
 }
 
 export function SaleForm({ onAdd, onClose, defaultBusinessType = "venda", clients = [], registeredVehicles = [], locadores = [] }: Props) {
+  const [showSuccess, setShowSuccess] = useState(false);
   const defaultLocadorId = locadores.length === 1 ? (locadores[0].id || "") : "";
   const [form, setForm] = useState({
     description: "",
@@ -111,7 +113,7 @@ export function SaleForm({ onAdd, onClose, defaultBusinessType = "venda", client
       partialPaid: 0,
       locadorId: form.businessType === "aluguel_veiculo" ? (form.locadorId || null) : null,
     });
-    onClose();
+    setShowSuccess(true);
   };
 
   const update = (f: string, v: string) => setForm((p) => ({ ...p, [f]: v }));
