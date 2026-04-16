@@ -1,0 +1,154 @@
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+const GATEWAY_URL = "https://connector-gateway.lovable.dev/telegram";
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+};
+
+function fmtBRL(n: number) {
+  return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(n);
+}
+
+function todayInTZ(tz = "America/Sao_Paulo") {
+  // returns { hhmm: "HH:MM", date: "YYYY-MM-DD" } in given TZ
+  const fmt = new Intl.DateTimeFormat("en-CA", {
+    timeZone: tz, year: "numeric", month: "2-digit", day: "2-digit",
+    hour: "2-digit", minute: "2-digit", hour12: false,
+  });
+  const parts = fmt.formatToParts(new Date());
+  const get = (t: string) => parts.find(p => p.type === t)?.value ?? "";
+  return {
+    date: `${get("year")}-${get("month")}-${get("day")}`,
+    hhmm: `${get("hour")}:${get("minute")}`,
+  };
+}
+
+async function tgSend(chatId: number, text: string, lovableKey: string, telegramKey: string) {
+  const r = await fetch(`${GATEWAY_URL}/sendMessage`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${lovableKey}`,
+      "X-Connection-Api-Key": telegramKey,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ chat_id: chatId, text, parse_mode: "Markdown" }),
+  });
+  if (!r.ok) console.error("sendMessage failed", r.status, await r.text());
+}
+
+Deno.serve(async (req) => {
+  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+
+  const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY")!;
+  const TELEGRAM_API_KEY = Deno.env.get("TELEGRAM_API_KEY")!;
+  const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
+  const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+
+  const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+
+  const url = new URL(req.url);
+  const forceUserId = url.searchParams.get("user_id");
+
+  const { date: today, hhmm } = todayInTZ();
+  const [hh, mm] = hhmm.split(":").map(Number);
+  const nowMin = hh * 60 + mm;
+
+  // Load enabled prefs
+  let query = admin.from("telegram_summary_prefs").select("user_id, enabled, send_time, last_sent_date");
+  if (forceUserId) query = query.eq("user_id", forceUserId);
+  else query = query.eq("enabled", true);
+
+  const { data: prefs, error } = await query;
+  if (error) {
+    return new Response(JSON.stringify({ error: error.message }), { status: 500, headers: corsHeaders });
+  }
+
+  let sent = 0;
+
+  for (const pref of prefs ?? []) {
+    try {
+      if (!forceUserId) {
+        const [ph, pm] = (pref.send_time as string).split(":").map(Number);
+        const target = ph * 60 + pm;
+        // Trigger window: cron runs every 5 min; fire if now is within [target, target+5)
+        if (nowMin < target || nowMin >= target + 5) continue;
+        if (pref.last_sent_date === today) continue;
+      }
+
+      // Resolve chat
+      const { data: link } = await admin.from("telegram_links")
+        .select("chat_id").eq("user_id", pref.user_id).maybeSingle();
+      if (!link) continue;
+
+      // Today's personal expenses paid today
+      const { data: expenses } = await admin.from("expenses")
+        .select("amount, category")
+        .eq("user_id", pref.user_id)
+        .eq("scope", "personal")
+        .eq("paid", true)
+        .eq("paid_date", today);
+
+      const totalToday = (expenses ?? []).reduce((s, e: any) => s + Number(e.amount || 0), 0);
+
+      // Month total per category
+      const monthPrefix = today.slice(0, 7); // YYYY-MM
+      const { data: monthExpenses } = await admin.from("expenses")
+        .select("amount, category, paid_date")
+        .eq("user_id", pref.user_id)
+        .eq("scope", "personal")
+        .eq("paid", true)
+        .gte("paid_date", `${monthPrefix}-01`)
+        .lte("paid_date", `${monthPrefix}-31`);
+
+      const spentByCategory = new Map<string, number>();
+      for (const e of monthExpenses ?? []) {
+        const cat = (e as any).category || "Outros";
+        spentByCategory.set(cat, (spentByCategory.get(cat) ?? 0) + Number((e as any).amount || 0));
+      }
+
+      // Budgets
+      const { data: budgets } = await admin.from("personal_budgets")
+        .select("category, amount")
+        .eq("user_id", pref.user_id);
+
+      const lines: string[] = [];
+      lines.push(`📊 *Resumo do dia* — ${today.split("-").reverse().join("/")}`);
+      lines.push("");
+      lines.push(`💸 Total gasto hoje: *${fmtBRL(totalToday)}*`);
+      lines.push(`   (${(expenses ?? []).length} ${(expenses ?? []).length === 1 ? "despesa" : "despesas"})`);
+
+      if ((budgets ?? []).length > 0) {
+        lines.push("");
+        lines.push("📂 *Orçamentos do mês:*");
+        const sorted = [...(budgets ?? [])].sort((a: any, b: any) => a.category.localeCompare(b.category, "pt-BR"));
+        for (const b of sorted) {
+          const budget = Number((b as any).amount || 0);
+          const spent = spentByCategory.get((b as any).category) ?? 0;
+          const left = budget - spent;
+          const pct = budget > 0 ? Math.round((spent / budget) * 100) : 0;
+          const icon = left < 0 ? "🔴" : pct >= 80 ? "🟡" : "🟢";
+          lines.push(`${icon} ${(b as any).category}: ${fmtBRL(left)} ${left < 0 ? "acima" : "restante"} (${pct}%)`);
+        }
+      } else {
+        lines.push("");
+        lines.push("_Sem orçamentos configurados._");
+      }
+
+      await tgSend(Number(link.chat_id), lines.join("\n"), LOVABLE_API_KEY, TELEGRAM_API_KEY);
+
+      await admin.from("telegram_summary_prefs")
+        .update({ last_sent_date: today })
+        .eq("user_id", pref.user_id);
+
+      sent++;
+    } catch (e) {
+      console.error("summary error for", pref.user_id, e);
+    }
+  }
+
+  return new Response(JSON.stringify({ ok: true, sent, checked: prefs?.length ?? 0, hhmm }), {
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
+});
