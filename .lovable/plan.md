@@ -1,34 +1,34 @@
 
 
-# Substituir ícone principal do site e PWA
+# Plano: Campo "Total a Receber" nos empréstimos
 
 ## Resumo
-Substituir todos os ícones do site (favicon, apple-touch-icon, ícones PWA e logo interno) pelo novo ícone enviado. Gerar todas as variações de tamanho necessárias e configurar o manifest para exibição sem bordas (purpose: "any") em dispositivos móveis.
 
-## Arquivos de ícone a gerar
-Usando o ícone enviado, gerar via script Python (Pillow) todos os tamanhos:
-- `public/favicon.png` — 32x32
-- `public/apple-touch-icon.png` — 180x180
-- `public/logo-72.png` — 72x72
-- `public/logo-96.png` — 96x96
-- `public/logo-128.png` — 128x128
-- `public/logo-144.png` — 144x144
-- `public/logo-152.png` — 152x152
-- `public/logo-192.png` — 192x192
-- `public/logo-384.png` — 384x384
-- `public/logo-512.png` — 512x512
-- `public/logo-icon.png` — 512x512 (usado nas notificações)
-- `src/assets/logo-icon.png` — 512x512 (usado nos componentes React)
+Adicionar um campo visual "Total a Receber" na criação, edição e nos cards de empréstimos. O cálculo será: **Valor emprestado + Juros total + Juros/Multa de atraso (se houver)**.
 
-## Alterações no manifest.json
-Alterar `purpose` de todos os ícones grandes (192+) de `"any maskable"` para `"any"` — isso remove o "safe zone" do maskable que adiciona bordas/padding em dispositivos móveis, garantindo que o ícone apareça sem bordas.
+## O que muda
 
-## Alterações no PWAInstallPrompt.tsx
-Remover `rounded-xl` da tag `<img>` do ícone para não adicionar bordas arredondadas artificiais.
+### 1. Formulário de Criação (`LoanForm.tsx`)
+- Adicionar campo somente leitura **"Total a Receber"** abaixo dos campos de valor/juros
+- Cálculo: `amount + totalInterest` (já existe como variável `totalAmount` na linha 75)
+- Exibir formatado em R$
+
+### 2. Formulário de Edição (`LoanList.tsx` - modo editing)
+- Adicionar campo somente leitura **"Total a Receber"** no grid de edição
+- Cálculo: `parseFloat(form.amount) + parseFloat(form.interestValue) * parseFloat(form.installments)`
+- Atualiza automaticamente quando valor, juros ou parcelas mudam
+
+### 3. Card do Empréstimo (`LoanList.tsx` - grid "Emprestado / Total a Receber")
+- O campo **"Total a Receber"** (linha 778) já existe, mas usa `total` (que é `calculateTotalWithInterest`)
+- Alterar para incluir juros de atraso e multa: `total + lateFees` (onde `lateFees = lateInterestTotal + penaltyTotal`, já calculado na linha 227)
+
+## Detalhes técnicos
+
+- **LoanForm.tsx**: Exibir `totalAmount` (linha 75) como campo read-only no formulário
+- **LoanList.tsx card**: Trocar `formatCurrency(total)` (linha 779) por `formatCurrency(total + lateFees)` para incluir multa/juros de atraso
+- **LoanList.tsx edit form**: Computar total a receber dinamicamente a partir dos campos do formulário de edição
 
 ## Arquivos alterados
-1. Script Python para gerar todos os tamanhos a partir do upload
-2. `public/manifest.json` — purpose dos ícones
-3. `src/components/PWAInstallPrompt.tsx` — remover rounded do ícone
-4. Todos os PNGs em `public/` e `src/assets/` — substituídos
+- `src/components/LoanForm.tsx`
+- `src/components/LoanList.tsx`
 
