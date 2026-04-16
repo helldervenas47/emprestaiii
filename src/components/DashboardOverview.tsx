@@ -210,6 +210,29 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
     
     const periodProfitRealized = interestFromActivePayments + profitFromQuitados;
     
+    // Build detail records for "Juros Recebidos no Mês"
+    const interestDetailRecords: { borrowerName: string; date: string; totalPayment: number; interestPortion: number; type: "juros" | "quitação" }[] = [];
+    paymentsInPeriod.forEach(p => {
+      if (quitadoLoanIds.has(p.loanId)) return;
+      const loan = loans.find(l => l.id === p.loanId);
+      if (!loan) return;
+      const totalWithInterest = calculateTotalWithInterest(loan.amount, loan.interestRate, loan.installments);
+      const interestRatio = totalWithInterest > 0 ? 1 - (loan.amount / totalWithInterest) : 0;
+      const interest = p.amount * interestRatio;
+      if (interest > 0) {
+        interestDetailRecords.push({ borrowerName: loan.borrowerName, date: p.date, totalPayment: p.amount, interestPortion: interest, type: "juros" });
+      }
+    });
+    loansQuitadosInPeriod.forEach(l => {
+      const totalPaidAll = payments.filter(p => p.loanId === l.id).reduce((sum, p) => sum + p.amount, 0);
+      const profit = Math.max(0, totalPaidAll - l.amount);
+      if (profit > 0) {
+        const lastDate = payments.filter(p => p.loanId === l.id).reduce((latest, p) => p.date > latest ? p.date : latest, "");
+        interestDetailRecords.push({ borrowerName: l.borrowerName, date: lastDate, totalPayment: totalPaidAll, interestPortion: profit, type: "quitação" });
+      }
+    });
+    interestDetailRecords.sort((a, b) => b.date.localeCompare(a.date));
+    
     // Also include single-installment loans (no schedule) using dueDate for expected
     const singleInstLoans = loans.filter(l => l.installments <= 1 && isInRange(l.dueDate, range.start, range.end));
     const singleExpected = singleInstLoans.reduce((s, l) => {
