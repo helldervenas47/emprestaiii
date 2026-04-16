@@ -660,8 +660,9 @@ function LoanCardView({
     category === "paid_interest" ? "border-l-purple" :
     "border-l-primary";
 
+  const expectedProfit = remaining + totalPaid - loan.amount;
   const realizedProfit = Math.max(0, totalPaid - loan.amount);
-  const realizedProfitPct = loan.amount > 0 ? Math.round((realizedProfit / loan.amount) * 100) : 0;
+  const realizedProfitPct = expectedProfit > 0 ? Math.round((realizedProfit / expectedProfit) * 100) : 0;
 
   const cardBorder =
     category === "overdue" ? "border-destructive/50" :
