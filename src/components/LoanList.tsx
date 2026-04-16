@@ -29,6 +29,7 @@ interface Props {
   installmentSchedules: InstallmentSchedule[];
   onPayment: (loanId: string, paymentDate?: string) => void;
   onPartialPayment: (loanId: string, amount: number, paymentDate?: string) => void;
+  onFullPayment?: (loanId: string, paymentDate?: string) => void;
   onInterestPayment: (loanId: string, paymentDate?: string) => void;
   onUpdate: (id: string, data: Partial<Omit<Loan, "id">>) => void;
   onDelete: (loanId: string) => void;
