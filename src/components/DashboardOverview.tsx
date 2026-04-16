@@ -467,7 +467,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
       forecastSunday,
       forecastEndMonth,
     };
-  }, [loans, payments, installmentSchedules]);
+  }, [loans, payments, installmentSchedules, range]);
 
   // Manual overrides for monthly chart values
   // chartOverrides already declared above
