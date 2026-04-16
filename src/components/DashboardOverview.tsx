@@ -322,6 +322,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
       overdueLoans,
       capitalOnStreet,
       totalToReceive,
+      pendingReceivable: activeLoans.reduce((s, l) => s + (l.remainingAmount ?? 0), 0),
       estimatedProfit,
       interestDueThisMonth,
     };
@@ -626,6 +627,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
         const items = [
           { label: "Capital na Rua", value: formatCurrency(portfolio.capitalOnStreet), color: "text-foreground", iconBg: "bg-primary/10", iconColor: "text-primary" },
           { label: "Total a Receber", value: formatCurrency(portfolio.totalToReceive), color: "text-foreground", iconBg: "bg-primary/10", iconColor: "text-primary" },
+          { label: "Pendente de Recebimento", value: formatCurrency(portfolio.pendingReceivable), color: "text-orange-500", iconBg: "bg-orange-500/10", iconColor: "text-orange-500" },
           { label: "Lucro Estimado", value: formatCurrency(portfolio.estimatedProfit), color: "text-success", iconBg: "bg-success/10", iconColor: "text-success" },
           { label: "Juros a Receber no Mês", value: formatCurrency(portfolio.interestDueThisMonth), color: "text-success", iconBg: "bg-success/10", iconColor: "text-success" },
           { label: "Juros Recebidos no Mês", value: formatCurrency(currentMonthInterest), color: "text-warning", iconBg: "bg-warning/10", iconColor: "text-warning" },
