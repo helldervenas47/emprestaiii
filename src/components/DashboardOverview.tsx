@@ -197,12 +197,31 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
     const totalPrincipal = loans.reduce((s, l) => s + l.amount, 0);
     const totalInterestExpected = totalExpected - totalPrincipal;
 
-    // Total a receber = sum of remainingAmount for active loans (uses manual value when set)
+    // Total a receber = total do contrato + multa/juros atraso + juros recebidos (installmentNumber === 0)
+    const todayNorm = new Date(); todayNorm.setHours(0, 0, 0, 0);
     const totalToReceive = activeLoans.reduce((s, l) => {
-      if (l.remainingAmount != null && l.remainingAmount > 0) return s + l.remainingAmount;
-      const expected = calculateTotalWithInterest(l.amount, l.interestRate, l.installments);
-      const paid = allPaymentsForActive.filter((p) => p.loanId === l.id).reduce((ss, p) => ss + p.amount, 0);
-      return s + Math.max(0, expected - paid);
+      const total = calculateTotalWithInterest(l.amount, l.interestRate, l.installments);
+
+      // Late fees calculation
+      const dueDate = new Date(l.dueDate + "T00:00:00");
+      const daysLate = Math.max(0, Math.floor((todayNorm.getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24)));
+      let lateFees = 0;
+      if (l.lateInterestValue != null && l.lateInterestValue > 0 && daysLate > 0) {
+        const baseRemaining = l.remainingAmount != null && l.remainingAmount > 0 ? l.remainingAmount : Math.max(0, total - allPaymentsForActive.filter((p) => p.loanId === l.id).reduce((ss, p) => ss + p.amount, 0));
+        lateFees += l.lateInterestType === "fixed"
+          ? l.lateInterestValue * daysLate
+          : baseRemaining * (l.lateInterestValue / 100) * daysLate;
+      }
+      if (l.penaltyValue != null && l.penaltyValue > 0 && daysLate > 0) {
+        lateFees += l.penaltyValue;
+      }
+
+      // Interest-only payments received
+      const interestPaymentsReceived = payments
+        .filter((p) => p.loanId === l.id && p.installmentNumber === 0)
+        .reduce((sum, p) => sum + p.amount, 0);
+
+      return s + Math.round((total + lateFees + interestPaymentsReceived) * 100) / 100;
     }, 0);
 
     // Total received globally
