@@ -1,27 +1,23 @@
 
 
-# Plano: Incluir pagamentos de juros no "Total a Receber"
+# Plano: Adicionar "Pendente de Recebimento" ao Dashboard
 
-## Resumo
+## Problema
 
-Adicionar os pagamentos de juros já recebidos (`installmentNumber === 0`) ao cálculo do "Total a Receber" nos cards de empréstimos. Nenhum outro tipo de pagamento (parcelas ou pagamentos parciais) entra neste cálculo.
+O card "Pendente de Recebimento" foi adicionado ao componente `DashboardCards.tsx`, mas esse componente **não é renderizado em nenhum lugar**. O dashboard real usa o componente `DashboardOverview.tsx`, que tem sua própria lista de cards (linha 626-633).
 
-## Fórmula atualizada
+## Solução
 
-```
-Total a Receber = total do contrato + multa/juros de atraso + pagamentos de juros recebidos
-```
+Adicionar o card "Pendente de Recebimento" na lista de cards do `DashboardOverview.tsx`, entre "Total a Receber" e "Lucro Estimado".
 
-Onde "pagamentos de juros recebidos" = soma de todos os `payments` com `installmentNumber === 0` para aquele empréstimo.
+### Alterações em `src/components/DashboardOverview.tsx`
 
-## O que muda
+1. **No `useMemo` do portfolio** (~linha 186): calcular `pendingReceivable` como a soma de `remainingAmount` dos empréstimos ativos
+2. **Na lista de cards** (linha 628-629): inserir o novo item entre "Total a Receber" e "Lucro Estimado":
+   ```
+   { label: "Pendente de Recebimento", value: formatCurrency(portfolio.pendingReceivable), color: "text-orange-500", ... }
+   ```
 
-### `src/components/LoanList.tsx`
-
-1. **Card do empréstimo (linha ~780)**: Calcular a soma dos pagamentos com `installmentNumber === 0` e somar ao `total + lateFees`
-2. **Card expandido (linha ~1272+)**: Mesmo ajuste no segundo bloco de renderização de cards
-3. Adicionar variável `interestPaymentsReceived` ao lado de `lateFees` nos dois blocos de cálculo (linhas ~200 e ~1272)
-
-## Arquivos alterados
-- `src/components/LoanList.tsx`
+## Arquivo alterado
+- `src/components/DashboardOverview.tsx`
 
