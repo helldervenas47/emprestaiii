@@ -1,29 +1,41 @@
 
+## Problema
 
-# Adicionar sub-cards de Saldo Previsto no card "Saldo em Conta"
+O app é um PWA com service worker (`vite-plugin-pwa` + `registerType: "autoUpdate"`). Quando você publica uma nova versão, o service worker continua servindo os arquivos do cache antigo até que o usuário limpe o cache manualmente. Isso acontece porque:
 
-## O que será feito
+1. O `autoUpdate` baixa a nova versão em background, mas só a ativa **após o usuário fechar todas as abas** do site.
+2. Não existe nenhum mecanismo para forçar o `skipWaiting` + `clients.claim()`, que faria o novo SW assumir imediatamente.
+3. Não há aviso ao usuário de que existe uma nova versão disponível.
+4. O cache `NetworkFirst` do Supabase tem TTL de 5 min, mas o shell do app (HTML/JS/CSS) fica preso no cache do Workbox até a próxima ativação.
 
-Abaixo do valor de "Saldo em Conta", adicionar 2 mini-cards lado a lado:
+## Solução
 
-1. **Saldo Previsto (Domingo)** — Saldo atual + soma das parcelas (`remaining_amount` ou valor da parcela) que vencem até o próximo domingo (a partir de segunda-feira, considera o domingo seguinte)
-2. **Saldo Previsto (Fim do Mês)** — Saldo atual + soma das parcelas que vencem até o último dia do mês vigente
+Ajustar o `vite.config.ts` e o `src/main.tsx` para que cada nova publicação seja aplicada automaticamente, sem o usuário precisar limpar cache.
 
-Apenas parcelas de empréstimos ativos e não pagas entram na simulação.
+### 1. `vite.config.ts` — forçar ativação imediata do novo SW
+Adicionar ao bloco `workbox`:
+- `skipWaiting: true` — o novo SW pula a fase "waiting" e ativa imediatamente.
+- `clientsClaim: true` — o novo SW assume o controle de todas as abas abertas sem precisar recarregar.
+- `cleanupOutdatedCaches: true` — remove caches de versões antigas do Workbox.
 
-## Detalhes técnicos
+### 2. `src/main.tsx` — detectar atualização e recarregar
+Usar o helper `registerSW` do `virtual:pwa-register` com:
+- `onNeedRefresh`: quando uma nova versão é detectada, chama `updateSW(true)` que força o reload da página com a versão nova.
+- Opcionalmente mostrar um toast "Nova versão disponível, atualizando..." antes do reload (1–2s de delay) para que o usuário não fique surpreso.
 
-**Arquivo:** `src/components/DashboardOverview.tsx`
+Isso faz com que, assim que o usuário abrir o app após uma nova publicação, o novo SW seja baixado, ativado e a página recarregue automaticamente com a versão mais recente — sem necessidade de limpar cache.
 
-1. **Calcular próximo domingo:** Se hoje é domingo, usa hoje; senão, avança até o próximo domingo (day === 0)
+### 3. Ajustar `index.html` (opcional, reforço)
+Garantir que o próprio `index.html` nunca seja cacheado pelo navegador (`Cache-Control: no-cache` via meta tag), para que o navegador sempre baixe o HTML novo, que por sua vez carrega os assets versionados (hash) corretos.
 
-2. **Calcular parcelas elegíveis:** Filtrar `installmentSchedules` onde:
-   - O empréstimo está ativo (`status !== "paid"`)
-   - A parcela ainda não foi paga (`installmentNumber > loan.paidInstallments`)
-   - `dueDate` está entre hoje e o limite (domingo ou fim do mês)
-   - Somar os valores dessas parcelas
+## Arquivos a alterar
 
-3. **Saldo previsto = accountBalance + soma das parcelas elegíveis**
+- `vite.config.ts` — adicionar `skipWaiting`, `clientsClaim`, `cleanupOutdatedCaches` no workbox.
+- `src/main.tsx` — registrar o SW via `virtual:pwa-register` com auto-reload em `onNeedRefresh`.
+- `index.html` — adicionar `<meta http-equiv="Cache-Control" content="no-cache">` como reforço.
 
-4. **Layout:** Dentro do card `Saldo em Conta` (linhas ~553-578), após o valor do saldo, adicionar uma div com `grid grid-cols-2 gap-2` contendo os dois mini-cards com ícone de calendário, label e valor formatado
+## Observação importante
 
+Esta correção só vai surtir efeito **a partir da próxima publicação** (porque os usuários que já têm o SW antigo instalado precisam baixar o SW novo uma vez para receber as instruções de auto-update). Da segunda publicação em diante, todas as atualizações serão automáticas.
+
+Usuários que estão com a versão atual travada agora ainda vão precisar limpar o cache **uma última vez** para pegar essa correção.
