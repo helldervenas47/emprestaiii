@@ -285,10 +285,29 @@ async function tgAnswerCallback(callbackId: string, text: string | undefined, lo
 }
 
 function buildExpenseKeyboard(expenseId: string) {
-  return [[
-    { text: "📂 Mudar categoria", callback_data: `cat:${expenseId}` },
-    { text: "🗑️ Apagar", callback_data: `del:${expenseId}` },
-  ]];
+  return [
+    [{ text: "✏️ Editar valor", callback_data: `edit:${expenseId}` }],
+    [
+      { text: "📂 Mudar categoria", callback_data: `cat:${expenseId}` },
+      { text: "🗑️ Apagar", callback_data: `del:${expenseId}` },
+    ],
+  ];
+}
+
+function parseAmount(input: string): number | null {
+  const m = input.trim().match(/^R?\$?\s*([\d.,]+)\s*$/i);
+  if (!m) return null;
+  let raw = m[1];
+  // pt-BR: "." milhar, "," decimal. Se houver vírgula, ponto é milhar.
+  if (raw.includes(",")) {
+    raw = raw.replace(/\./g, "").replace(",", ".");
+  } else if ((raw.match(/\./g) || []).length > 1) {
+    // múltiplos pontos = separadores de milhar
+    raw = raw.replace(/\./g, "");
+  }
+  const n = Number(raw);
+  if (!isFinite(n) || n <= 0) return null;
+  return Math.round(n * 100) / 100;
 }
 
 function buildCategoryKeyboard(expenseId: string) {
@@ -580,6 +599,23 @@ Deno.serve(async (req) => {
           const expenseId = data.slice(5);
           await tgAnswerCallback(cbId, undefined, LOVABLE_API_KEY, TELEGRAM_API_KEY);
           await tgEditReplyMarkup(chatId, messageId, buildExpenseKeyboard(expenseId), LOVABLE_API_KEY, TELEGRAM_API_KEY);
+        } else if (data.startsWith("edit:")) {
+          const expenseId = data.slice(5);
+          const expiresAt = new Date(Date.now() + 5 * 60 * 1000).toISOString();
+          const { error: upErr } = await admin.from("telegram_pending_edits").upsert({
+            chat_id: chatId,
+            expense_id: expenseId,
+            user_id: link.user_id,
+            message_id: messageId,
+            expires_at: expiresAt,
+          }, { onConflict: "chat_id" });
+          if (upErr) {
+            await tgAnswerCallback(cbId, "Erro ao iniciar edição", LOVABLE_API_KEY, TELEGRAM_API_KEY);
+          } else {
+            await tgAnswerCallback(cbId, "Envie o novo valor", LOVABLE_API_KEY, TELEGRAM_API_KEY);
+            await tgEditReplyMarkup(chatId, messageId, [], LOVABLE_API_KEY, TELEGRAM_API_KEY);
+            await tgSend(chatId, "✏️ *Editar valor*\nEnvie o novo valor (ex: `45,90`) ou `/cancelar`.", LOVABLE_API_KEY, TELEGRAM_API_KEY);
+          }
         } else {
           await tgAnswerCallback(cbId, undefined, LOVABLE_API_KEY, TELEGRAM_API_KEY);
         }
@@ -727,41 +763,89 @@ Deno.serve(async (req) => {
           .select("user_id").eq("chat_id", chatId).maybeSingle();
         if (!link) {
           await tgSend(chatId, "🔒 Conta não vinculada. Use o app para gerar um código e envie `/start CODIGO`.", LOVABLE_API_KEY, TELEGRAM_API_KEY);
-        } else if (/^\/saldo(?:@\w+)?\b/i.test(text)) {
-          const reply = await handleSaldo(admin, link.user_id);
-          await tgSend(chatId, reply, LOVABLE_API_KEY, TELEGRAM_API_KEY);
-        } else if (/^\/ultimas(?:@\w+)?\b/i.test(text)) {
-          const reply = await handleUltimas(admin, link.user_id);
-          await tgSend(chatId, reply, LOVABLE_API_KEY, TELEGRAM_API_KEY);
-        } else if (/^\/apagar(?:@\w+)?\b/i.test(text)) {
-          const reply = await handleApagar(admin, link.user_id);
-          await tgSend(chatId, reply, LOVABLE_API_KEY, TELEGRAM_API_KEY);
         } else {
-          const extracted = await extractExpense(text, LOVABLE_API_KEY);
-          if (!extracted || !extracted.amount || extracted.confidence < 0.6) {
-            await tgSend(chatId, "🤔 Não consegui entender. Tente algo como:\n_\"mercado 80 alimentação\"_ ou _\"uber 25 ontem\"_", LOVABLE_API_KEY, TELEGRAM_API_KEY);
-          } else {
-            const { data: ins, error: insErr } = await admin.from("expenses").insert({
-              user_id: link.user_id,
-              description: extracted.description || text.slice(0, 80),
-              amount: extracted.amount,
-              category: CATEGORIES.includes(extracted.category) ? extracted.category : "Outros",
-              due_date: extracted.date || new Date().toISOString().slice(0, 10),
-              type: "fixa",
-              scope: "personal",
-              paid: true,
-              paid_date: extracted.date || new Date().toISOString().slice(0, 10),
-            }).select("id").single();
-            if (insErr || !ins) {
-              await tgSend(chatId, "❌ Erro ao salvar: " + (insErr?.message ?? "desconhecido"), LOVABLE_API_KEY, TELEGRAM_API_KEY);
+          // ✏️ Pending edit interception (before any other text handling)
+          const { data: pending } = await admin.from("telegram_pending_edits")
+            .select("*").eq("chat_id", chatId).maybeSingle();
+
+          let pendingHandled = false;
+          if (pending) {
+            const expired = new Date(pending.expires_at).getTime() < Date.now();
+            if (expired) {
+              await admin.from("telegram_pending_edits").delete().eq("chat_id", chatId);
+            } else if (/^\/cancelar\b/i.test(text)) {
+              await admin.from("telegram_pending_edits").delete().eq("chat_id", chatId);
+              await tgEditReplyMarkup(chatId, pending.message_id, buildExpenseKeyboard(pending.expense_id), LOVABLE_API_KEY, TELEGRAM_API_KEY);
+              await tgSend(chatId, "✏️ Edição cancelada.", LOVABLE_API_KEY, TELEGRAM_API_KEY);
+              pendingHandled = true;
             } else {
-              const finalCategory = CATEGORIES.includes(extracted.category) ? extracted.category : "Outros";
-              const fmt = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(extracted.amount);
-              await tgSendWithKeyboard(chatId,
-                `✅ *Despesa registrada*\n\n💰 ${fmt}\n📂 ${finalCategory}\n📝 ${extracted.description}\n📅 ${extracted.date}`,
-                buildExpenseKeyboard(ins.id),
-                LOVABLE_API_KEY, TELEGRAM_API_KEY);
-              await checkBudgetAndAlert(admin, link.user_id, chatId, finalCategory, LOVABLE_API_KEY, TELEGRAM_API_KEY);
+              const newAmount = parseAmount(text);
+              if (newAmount === null) {
+                await tgSend(chatId, "❌ Não entendi o valor. Envie só o número (ex: `45,90`) ou `/cancelar` para sair.", LOVABLE_API_KEY, TELEGRAM_API_KEY);
+                pendingHandled = true;
+              } else {
+                const { data: exp, error: updErr } = await admin.from("expenses")
+                  .update({ amount: newAmount })
+                  .eq("id", pending.expense_id).eq("user_id", link.user_id)
+                  .select("description, category, paid_date, due_date").maybeSingle();
+                await admin.from("telegram_pending_edits").delete().eq("chat_id", chatId);
+                if (updErr || !exp) {
+                  await tgSend(chatId, "❌ Erro ao atualizar valor.", LOVABLE_API_KEY, TELEGRAM_API_KEY);
+                } else {
+                  const fmt = fmtBRL(newAmount);
+                  const date = exp.paid_date || exp.due_date || "";
+                  await tgEditMessage(
+                    chatId, pending.message_id,
+                    `✏️ *Despesa atualizada*\n\n💰 ${fmt}\n📂 ${exp.category}\n📝 ${exp.description}\n📅 ${date}`,
+                    buildExpenseKeyboard(pending.expense_id),
+                    LOVABLE_API_KEY, TELEGRAM_API_KEY,
+                  );
+                  await tgSend(chatId, `✅ Valor atualizado para *${fmt}*`, LOVABLE_API_KEY, TELEGRAM_API_KEY);
+                  await checkBudgetAndAlert(admin, link.user_id, chatId, exp.category, LOVABLE_API_KEY, TELEGRAM_API_KEY);
+                }
+                pendingHandled = true;
+              }
+            }
+          }
+
+          if (!pendingHandled) {
+            if (/^\/saldo(?:@\w+)?\b/i.test(text)) {
+              const reply = await handleSaldo(admin, link.user_id);
+              await tgSend(chatId, reply, LOVABLE_API_KEY, TELEGRAM_API_KEY);
+            } else if (/^\/ultimas(?:@\w+)?\b/i.test(text)) {
+              const reply = await handleUltimas(admin, link.user_id);
+              await tgSend(chatId, reply, LOVABLE_API_KEY, TELEGRAM_API_KEY);
+            } else if (/^\/apagar(?:@\w+)?\b/i.test(text)) {
+              const reply = await handleApagar(admin, link.user_id);
+              await tgSend(chatId, reply, LOVABLE_API_KEY, TELEGRAM_API_KEY);
+            } else {
+              const extracted = await extractExpense(text, LOVABLE_API_KEY);
+              if (!extracted || !extracted.amount || extracted.confidence < 0.6) {
+                await tgSend(chatId, "🤔 Não consegui entender. Tente algo como:\n_\"mercado 80 alimentação\"_ ou _\"uber 25 ontem\"_", LOVABLE_API_KEY, TELEGRAM_API_KEY);
+              } else {
+                const { data: ins, error: insErr } = await admin.from("expenses").insert({
+                  user_id: link.user_id,
+                  description: extracted.description || text.slice(0, 80),
+                  amount: extracted.amount,
+                  category: CATEGORIES.includes(extracted.category) ? extracted.category : "Outros",
+                  due_date: extracted.date || new Date().toISOString().slice(0, 10),
+                  type: "fixa",
+                  scope: "personal",
+                  paid: true,
+                  paid_date: extracted.date || new Date().toISOString().slice(0, 10),
+                }).select("id").single();
+                if (insErr || !ins) {
+                  await tgSend(chatId, "❌ Erro ao salvar: " + (insErr?.message ?? "desconhecido"), LOVABLE_API_KEY, TELEGRAM_API_KEY);
+                } else {
+                  const finalCategory = CATEGORIES.includes(extracted.category) ? extracted.category : "Outros";
+                  const fmt = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(extracted.amount);
+                  await tgSendWithKeyboard(chatId,
+                    `✅ *Despesa registrada*\n\n💰 ${fmt}\n📂 ${finalCategory}\n📝 ${extracted.description}\n📅 ${extracted.date}`,
+                    buildExpenseKeyboard(ins.id),
+                    LOVABLE_API_KEY, TELEGRAM_API_KEY);
+                  await checkBudgetAndAlert(admin, link.user_id, chatId, finalCategory, LOVABLE_API_KEY, TELEGRAM_API_KEY);
+                }
+              }
             }
           }
         }
