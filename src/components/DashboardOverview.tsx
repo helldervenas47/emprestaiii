@@ -368,6 +368,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
       pendingReceivable: activeLoans.reduce((s, l) => s + (l.remainingAmount ?? 0), 0),
       estimatedProfit,
       interestDueThisMonth,
+      globalInterestRate,
     };
   }, [loans, payments, installmentSchedules]);
 
