@@ -356,7 +356,7 @@ const Index = () => {
   const primaryLabel =
     tab === "dashboard" ? "Novo Empréstimo" :
     tab === "clients" && clientSubTab === "clientes" ? "Novo Cliente" :
-    tab === "expenses" ? "Nova Despesa" :
+    tab === "expenses" ? (expenseSubTab === "personal" ? "Nova Despesa Pessoal" : "Nova Despesa") :
     tab === "products" ? "Novo Lançamento" :
     tab === "vehicles" ? "Novo Aluguel" : "";
 
