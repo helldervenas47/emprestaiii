@@ -156,13 +156,14 @@ function getTotalPaid(loan: Loan, payments: Payment[]): number {
 }
 
 function LoanCardView({
-  loan, payments: allPayments, installmentSchedules, onPayment, onPartialPayment, onInterestPayment, onUpdate, onDelete, onDeletePayment, onSaveSchedule, readOnly = false, no3d = false, existingTags = [],
+  loan, payments: allPayments, installmentSchedules, onPayment, onPartialPayment, onFullPayment, onInterestPayment, onUpdate, onDelete, onDeletePayment, onSaveSchedule, readOnly = false, no3d = false, existingTags = [],
 }: {
   loan: Loan;
   payments: Payment[];
   installmentSchedules: InstallmentSchedule[];
   onPayment: (date?: string) => void;
   onPartialPayment: (amount: number, date?: string) => void;
+  onFullPayment?: (date?: string) => void;
   onInterestPayment: (date?: string) => void;
   onUpdate: (data: Partial<Omit<Loan, "id">>) => void;
   onDelete: () => void;
