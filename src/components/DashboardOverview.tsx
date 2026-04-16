@@ -203,7 +203,8 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
     }, 0);
     
     const totalProfitExpected = periodProfitExpected + singleExpected;
-    const totalProfitRealized = periodProfitRealized + singleRealized;
+    // periodProfitRealized already covers all payments in period; add only single-loan expected that had no payments
+    const totalProfitRealized = periodProfitRealized;
     const periodProfitPct = totalProfitExpected > 0 ? Math.round((totalProfitRealized / totalProfitExpected) * 100) : 0;
 
     // Build sales with received amounts for breakdown
