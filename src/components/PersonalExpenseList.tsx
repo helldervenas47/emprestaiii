@@ -22,6 +22,7 @@ import { Progress } from "@/components/ui/progress";
 import { usePersonalBudgets } from "@/hooks/usePersonalBudgets";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as ReTooltip, LineChart, Line, XAxis, YAxis, CartesianGrid, Legend } from "recharts";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface Props {
   expenses: Expense[];
@@ -532,33 +533,35 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, readOn
         </div>
       </div>
 
-      {/* Category chips */}
-      <div className="flex flex-wrap gap-1.5">
-        <button
-          onClick={() => setCategoryFilter(null)}
-          className={`text-xs px-2.5 py-1 rounded-full border transition-all ${
-            categoryFilter === null ? "bg-primary text-primary-foreground border-primary" : "border-border text-muted-foreground hover:text-foreground"
-          }`}
+      {/* Category filter */}
+      <div className="flex items-center gap-2">
+        <Select
+          value={categoryFilter ?? "__all__"}
+          onValueChange={(v) => setCategoryFilter(v === "__all__" ? null : v)}
         >
-          Todas categorias
-        </button>
-        {personalCategories.map((c) => {
-          const Icon = c.icon;
-          const active = categoryFilter === c.name;
-          return (
-            <button
-              key={c.name}
-              onClick={() => setCategoryFilter(active ? null : c.name)}
-              className={`inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-full border transition-all ${
-                active ? "border-primary text-foreground" : "border-border text-muted-foreground hover:text-foreground"
-              }`}
-              style={active ? { backgroundColor: `hsl(${c.color} / 0.15)`, borderColor: `hsl(${c.color})` } : undefined}
-            >
-              <Icon className="h-3 w-3" style={{ color: `hsl(${c.color})` }} />
-              {c.name}
-            </button>
-          );
-        })}
+          <SelectTrigger className="h-9 w-full sm:w-64">
+            <SelectValue placeholder="Filtrar por categoria" />
+          </SelectTrigger>
+          <SelectContent className="max-h-72">
+            <SelectItem value="__all__">Todas categorias</SelectItem>
+            {personalCategories.map((c) => {
+              const Icon = c.icon;
+              return (
+                <SelectItem key={c.name} value={c.name}>
+                  <span className="inline-flex items-center gap-2">
+                    <Icon className="h-3.5 w-3.5" style={{ color: `hsl(${c.color})` }} />
+                    {c.name}
+                  </span>
+                </SelectItem>
+              );
+            })}
+          </SelectContent>
+        </Select>
+        {categoryFilter && (
+          <Button variant="ghost" size="sm" className="h-9 text-xs" onClick={() => setCategoryFilter(null)}>
+            Limpar
+          </Button>
+        )}
       </div>
 
       {/* List */}
