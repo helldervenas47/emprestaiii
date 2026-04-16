@@ -592,14 +592,14 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
       {/* Account balance + Interest rate + Profit */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <Card className="animate-fade-in" style={{ animationDelay: '80ms', animationFillMode: 'backwards' }}>
-          <CardContent className="p-4 flex flex-col h-full relative">
+          <CardContent className="p-4 h-full relative flex flex-col">
             {!editingBalance && (
               <Button variant="ghost" size="icon" className="h-7 w-7 absolute top-1 right-1 z-10" onClick={startEditBalance}>
                 <Pencil className="h-3.5 w-3.5 text-muted-foreground" />
               </Button>
             )}
             <div className="flex items-center justify-center">
-              <div className="flex flex-col items-center text-center">
+              <div className="text-center flex-col flex items-center justify-center">
                 <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0 mb-1">
                   <Wallet className="h-5 w-5 text-primary" />
                 </div>
@@ -636,7 +636,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
         </Card>
 
         <Card className="animate-fade-in cursor-pointer" style={{ animationDelay: '160ms', animationFillMode: 'backwards' }} onClick={() => setExpandedBreakdown(expandedBreakdown === "interest-rate" ? null : "interest-rate")}>
-          <CardContent className="p-4">
+          <CardContent className="p-4 h-full relative flex flex-col">
             <div className="flex items-center gap-3">
               <div className="h-10 w-10 rounded-full bg-warning/10 flex items-center justify-center shrink-0">
                 <Percent className="h-5 w-5 text-warning" />
