@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { Send, Copy, CheckCircle2, Unlink, Clock } from "lucide-react";
+import { Send, Copy, CheckCircle2, Unlink, Clock, Zap } from "lucide-react";
 import { toast } from "sonner";
 import { useTelegramSummaryPref } from "@/hooks/useTelegramSummaryPref";
 
