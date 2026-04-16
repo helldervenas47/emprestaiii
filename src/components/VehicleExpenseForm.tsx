@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { SuccessAnimation } from "@/components/SuccessAnimation";
 import { DatePickerField } from "@/components/ui/date-picker-field";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,6 +22,7 @@ interface Props {
 }
 
 export function VehicleExpenseForm({ onAdd, onClose }: Props) {
+  const [showSuccess, setShowSuccess] = useState(false);
   const [form, setForm] = useState({
     description: "",
     amount: "",
@@ -47,7 +49,7 @@ export function VehicleExpenseForm({ onAdd, onClose }: Props) {
       dueDate: form.dueDate,
       notes: form.notes,
     });
-    onClose();
+    setShowSuccess(true);
   };
 
   const update = (field: string, value: string) =>
@@ -55,6 +57,7 @@ export function VehicleExpenseForm({ onAdd, onClose }: Props) {
 
   return (
     <div className="fixed inset-0 bg-foreground/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+      <SuccessAnimation show={showSuccess} onComplete={onClose} message="Despesa cadastrada!" />
       <Card className="w-full max-w-lg max-h-[90vh] overflow-y-auto">
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle className="text-xl">Despesa de Veículo</CardTitle>

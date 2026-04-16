@@ -1,4 +1,5 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
+import { SuccessAnimation } from "@/components/SuccessAnimation";
 import { DatePickerField } from "@/components/ui/date-picker-field";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
@@ -32,6 +33,7 @@ function getNextDate(base: Date, frequency: string, periods: number): Date {
 }
 
 export function LoanForm({ onAdd, onSaveSchedule, onClose, clients, existingTags = [] }: Props) {
+  const [showSuccess, setShowSuccess] = useState(false);
   const activeClients = clients.filter((c) => c.active).sort((a, b) => a.name.localeCompare(b.name, "pt-BR"));
 
   const defaultStart = new Date().toISOString().split("T")[0];
@@ -164,7 +166,7 @@ export function LoanForm({ onAdd, onSaveSchedule, onClose, clients, existingTags
       })));
     }
 
-    onClose();
+    setShowSuccess(true);
   };
 
   const update = (field: string, value: string) =>
@@ -172,6 +174,7 @@ export function LoanForm({ onAdd, onSaveSchedule, onClose, clients, existingTags
 
   return (
     <div className="fixed inset-0 bg-foreground/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+      <SuccessAnimation show={showSuccess} onComplete={onClose} message="Empréstimo registrado!" />
       <Card className="w-full max-w-lg max-h-[90vh] overflow-y-auto">
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle className="text-xl">Novo Empréstimo</CardTitle>
