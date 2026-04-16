@@ -166,7 +166,7 @@ export function TelegramConnectCard() {
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-center gap-2">
             <div className="h-9 w-9 rounded-lg bg-primary/10 flex items-center justify-center">
-              <Send className="h-4 w-4 text-primary" />
+              <TelegramIcon className="h-4 w-4 text-primary" />
             </div>
             <div>
               <p className="font-semibold text-sm">Bot do Telegram</p>
@@ -356,7 +356,7 @@ export function TelegramConnectCard() {
           </div>
         ) : (
           <Button size="sm" onClick={generateCode} disabled={generating} className="w-full sm:w-auto">
-            <Send className="h-3.5 w-3.5 mr-1" />
+            <TelegramIcon className="h-3.5 w-3.5 mr-1" />
             {generating ? "Gerando…" : "Conectar Telegram"}
           </Button>
         )}
