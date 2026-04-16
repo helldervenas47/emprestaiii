@@ -105,7 +105,7 @@ export function PlanSubscribers() {
     const { data: profiles } = await supabase.from("profiles").select("user_id, display_name");
     const profileMap = new Map((profiles || []).map((p) => [p.user_id, p.display_name]));
 
-    const mapped: Subscriber[] = filteredSubs.map((s) => ({
+    const mapped: Subscriber[] = deduped.map((s) => ({
       id: s.id,
       user_id: s.user_id,
       display_name: profileMap.get(s.user_id) || null,
