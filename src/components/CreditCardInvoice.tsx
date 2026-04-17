@@ -167,20 +167,67 @@ export function CreditCardInvoice({ card, onClose }: Props) {
                 {utilization.toFixed(0)}% do limite ({mask(fmt(card.creditLimit))})
               </p>
             )}
+            {openingAmount > 0 && (
+              <p className="text-[11px] text-muted-foreground mt-1">
+                Saldo inicial {mask(fmt(openingAmount))} + lançamentos {mask(fmt(transactionsTotal))}
+              </p>
+            )}
           </div>
 
-          {/* Items */}
-          {items.length === 0 ? (
-            <div className="text-center py-10 text-sm text-muted-foreground">
-              Nenhum lançamento neste período.
-              <p className="text-xs mt-2 max-w-sm mx-auto">
-                Para vincular despesas a este cartão, marque a forma de pagamento como
-                "Crédito" e mencione "{card.nickname || card.lastFour}" nas observações.
-              </p>
-            </div>
-          ) : (
-            <div className="space-y-2">
-              {items.map((e) => {
+          {/* Opening (saldo inicial) — destacado no topo */}
+          <div className="space-y-2">
+            {opening ? (
+              <div className="flex items-center justify-between gap-3 p-3 rounded-lg border-2 border-dashed border-primary/40 bg-primary/5">
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2">
+                    <Receipt className="h-4 w-4 text-primary shrink-0" />
+                    <p className="text-sm font-medium text-foreground truncate">
+                      Saldo inicial da fatura
+                    </p>
+                  </div>
+                  {opening.notes && (
+                    <p className="text-[11px] text-muted-foreground mt-0.5 truncate">
+                      {opening.notes}
+                    </p>
+                  )}
+                </div>
+                <div className="flex items-center gap-1 shrink-0">
+                  <p className="text-sm font-semibold text-foreground">
+                    {mask(fmt(openingAmount))}
+                  </p>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7"
+                    onClick={() => setEditingOpening(true)}
+                  >
+                    <Pencil className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <Button
+                variant="outline"
+                size="sm"
+                className="w-full"
+                onClick={() => setEditingOpening(true)}
+              >
+                <Receipt className="h-4 w-4 mr-1.5" />
+                Adicionar fatura do mês (saldo inicial)
+              </Button>
+            )}
+
+            {/* Items */}
+            {items.length === 0 && !opening ? (
+              <div className="text-center py-10 text-sm text-muted-foreground">
+                Nenhum lançamento neste período.
+                <p className="text-xs mt-2 max-w-sm mx-auto">
+                  Para vincular despesas a este cartão, marque a forma de pagamento como
+                  "Crédito" e mencione "{card.nickname || card.lastFour}" nas observações.
+                </p>
+              </div>
+            ) : (
+              items.map((e) => {
                 const isRec = e.type === "recorrente" && e.installments && e.installments > 1;
                 const value = isRec ? e.amount / e.installments! : e.amount;
                 return (
@@ -211,11 +258,25 @@ export function CreditCardInvoice({ card, onClose }: Props) {
                     </p>
                   </div>
                 );
-              })}
-            </div>
-          )}
+              })
+            )}
+          </div>
         </CardContent>
       </Card>
+
+      {editingOpening && (
+        <CreditCardOpeningDialog
+          open={editingOpening}
+          onOpenChange={setEditingOpening}
+          cardName={card.nickname || bank.name}
+          cycleLabel={format(cycle.dueDate, "MMMM/yy", { locale: ptBR })}
+          initialAmount={openingAmount}
+          initialNotes={opening?.notes ?? null}
+          onSave={async (amount, notes) => {
+            await upsertOpening(card.id, cycleKey, amount, notes);
+          }}
+        />
+      )}
     </div>
   );
 }
