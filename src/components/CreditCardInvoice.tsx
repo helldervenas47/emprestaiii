@@ -158,11 +158,19 @@ export function CreditCardInvoice({ card, onClose }: Props) {
               size="icon"
               className="h-8 w-8"
               onClick={() => setCycleOffset((o) => o + 1)}
-              disabled={cycleOffset >= 1}
             >
               <ChevronRight className="h-4 w-4" />
             </Button>
           </div>
+
+          {cycleOffset !== 0 && (
+            <div className="flex items-center gap-2 text-[11px] rounded-md bg-warning/10 border border-warning/30 text-warning-foreground px-3 py-1.5">
+              <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+              {cycleOffset < 0
+                ? "Você está editando uma fatura passada. As alterações afetam o histórico financeiro."
+                : "Você está editando uma fatura futura. Confira os valores antes de salvar."}
+            </div>
+          )}
 
           {/* Total */}
           <div className="rounded-xl bg-muted/40 p-4 text-center">
