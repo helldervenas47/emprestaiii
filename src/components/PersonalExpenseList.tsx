@@ -694,16 +694,16 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, onUpda
                               {format(new Date(expense.dueDate + "T00:00:00"), "dd/MM/yyyy")}
                             </span>
                             {isRecorrente && (() => {
-                              const [dY, dM] = expense.dueDate.split("-").map(Number);
-                              const [sY, sM] = selectedMonth.split("-").map(Number);
-                              const offset = (sY * 12 + sM) - (dY * 12 + dM);
-                              const current = Math.min(
-                                Math.max(1, offset + 1),
-                                expense.installments!,
-                              );
+                              // Parcela atual = próximas a pagar (paidInstallments + 1), limitada ao total.
+                              // Se já totalmente paga, mostra Total/Total.
+                              const total = expense.installments!;
+                              const paidCount = expense.paidInstallments || 0;
+                              const current = expense.paid
+                                ? total
+                                : Math.min(paidCount + 1, total);
                               return (
                                 <Badge variant="secondary" className="text-[10px] px-1.5 py-0 font-semibold">
-                                  Parcela {current}/{expense.installments}
+                                  Parcela {current}/{total}
                                 </Badge>
                               );
                             })()}
