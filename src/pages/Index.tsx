@@ -77,6 +77,7 @@ type VehicleSubTab = "veiculos" | "locadores";
 type PlanMgmtSubTab = "subscribers" | "plans";
 type OverdueSubTab = "cobrancas" | "notificacoes";
 type ExpenseSubTab = "business" | "personal";
+type PersonalSubTab = "expenses" | "cards";
 
 const tabConfig = [
   { id: "overview" as Tab, label: "Dashboard", icon: BarChart3 },
@@ -237,6 +238,7 @@ const Index = () => {
   const [planMgmtSubTab, setPlanMgmtSubTab] = useState<PlanMgmtSubTab>("subscribers");
   const [overdueSubTab, setOverdueSubTab] = useState<OverdueSubTab>("cobrancas");
   const [expenseSubTab, setExpenseSubTab] = useState<ExpenseSubTab>("business");
+  const [personalSubTab, setPersonalSubTab] = useState<PersonalSubTab>("expenses");
 
   // Filter data by linked clients if user has client restrictions
   const hasClientFilter = Array.isArray(linkedClientIds) && linkedClientIds.length > 0;
