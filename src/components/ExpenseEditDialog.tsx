@@ -41,7 +41,7 @@ interface Props {
 const PAYMENT_METHODS = ["Dinheiro", "Pix", "Débito", "Crédito", "Boleto", "Débito automático"] as const;
 type PaymentMethod = typeof PAYMENT_METHODS[number];
 
-const PAYMENT_TAG_RE = /\[\s*(Dinheiro|Pix|D[ée]bito|Cr[eé]dito|Boleto)\s*\]/i;
+const PAYMENT_TAG_RE = /\[\s*(Dinheiro|Pix|D[ée]bito autom[áa]tico|D[ée]bito|Cr[eé]dito|Boleto)\s*\]/i;
 const CARD_LINE_RE = /\[\s*Cr[eé]dito\s*\][^\n]*Cart[ãa]o:\s*([^\n(]+?)(?:\s*\(vence[^)]*\))?\s*(?:\n|$)/i;
 // Rastreabilidade: marcador de edição
 const EDITED_RE = /\n?\[\s*Editado em [^\]]+\]\s*$/i;
@@ -54,6 +54,7 @@ function detectPaymentMethod(notes: string | null | undefined): PaymentMethod {
   const v = m[1].toLowerCase();
   if (v.startsWith("din")) return "Dinheiro";
   if (v === "pix") return "Pix";
+  if (v.startsWith("déb autom") || v.startsWith("deb autom") || v.includes("automá") || v.includes("automa")) return "Débito automático";
   if (v.startsWith("déb") || v.startsWith("deb")) return "Débito";
   if (v.startsWith("cré") || v.startsWith("cre")) return "Crédito";
   if (v.startsWith("bol")) return "Boleto";
