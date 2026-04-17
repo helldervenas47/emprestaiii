@@ -67,13 +67,13 @@ interface LoanItem {
   totalAmount: number;
 }
 
-function LoanItemCard({ item, isOverdue, onSendWhatsApp }: { item: LoanItem; isOverdue: boolean; onSendWhatsApp: () => void }) {
+function LoanItemCard({ item, isOverdue }: { item: LoanItem; isOverdue: boolean }) {
   const { mask } = useHideValues();
   const formatCurrency = useCallback((v: number) => mask(rawFormatCurrency(v)), [mask]);
   return (
     <Card no3d className={isOverdue ? "border-destructive/20" : "border-warning/20"}>
       <CardContent className="p-4">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+        <div className="flex flex-col gap-3">
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-1">
               <p className="font-semibold text-foreground">{item.loan.borrowerName}</p>
@@ -111,14 +111,6 @@ function LoanItemCard({ item, isOverdue, onSendWhatsApp }: { item: LoanItem; isO
               ))}
             </div>
           </div>
-          <Button
-            onClick={onSendWhatsApp}
-            disabled={!formatPhone(item.phone)}
-            className="bg-[hsl(142,70%,45%)] hover:bg-[hsl(142,70%,38%)] text-white shrink-0"
-          >
-            <MessageCircle className="h-4 w-4 mr-1" />
-            WhatsApp
-          </Button>
         </div>
       </CardContent>
     </Card>
