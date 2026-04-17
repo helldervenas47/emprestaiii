@@ -1,0 +1,222 @@
+import { useState } from "react";
+import { PiggyBank, Plus, TrendingUp, Trash2, Pencil, Sparkles } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
+import {
+  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
+} from "@/components/ui/dialog";
+import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
+import { useHideValues } from "@/contexts/HideValuesContext";
+import { usePiggyBanks, type PiggyBank as PiggyBankType } from "@/hooks/usePiggyBanks";
+
+const fmt = (v: number) =>
+  new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v);
+
+const PALETTE = [
+  "210 80% 55%", "150 65% 45%", "280 70% 60%", "30 85% 55%",
+  "340 75% 60%", "190 70% 50%", "45 90% 55%", "0 75% 60%",
+];
+
+interface Props {
+  readOnly?: boolean;
+}
+
+export function PiggyBankList({ readOnly = false }: Props) {
+  const { mask } = useHideValues();
+  const { piggyBanks, balances, createPiggyBank, updatePiggyBank, deletePiggyBank } = usePiggyBanks();
+
+  const [createOpen, setCreateOpen] = useState(false);
+  const [editing, setEditing] = useState<PiggyBankType | null>(null);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [draft, setDraft] = useState({ name: "", color: PALETTE[0], annualRate: "11.15" });
+
+  const openCreate = () => {
+    setDraft({ name: "", color: PALETTE[0], annualRate: "11.15" });
+    setEditing(null);
+    setCreateOpen(true);
+  };
+  const openEdit = (pb: PiggyBankType) => {
+    setDraft({ name: pb.name, color: pb.color, annualRate: String(pb.annualRate) });
+    setEditing(pb);
+    setCreateOpen(true);
+  };
+
+  const save = async () => {
+    if (!draft.name.trim()) return;
+    const rate = Number(draft.annualRate.replace(",", ".")) || 11.15;
+    if (editing) {
+      await updatePiggyBank(editing.id, { name: draft.name.trim(), color: draft.color, annualRate: rate });
+    } else {
+      await createPiggyBank({ name: draft.name.trim(), color: draft.color, annualRate: rate });
+    }
+    setCreateOpen(false);
+  };
+
+  const totalBalance = piggyBanks.reduce((s, pb) => s + (balances.get(pb.id)?.balance ?? 0), 0);
+  const totalYield = piggyBanks.reduce((s, pb) => s + (balances.get(pb.id)?.yield ?? 0), 0);
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2 min-w-0">
+          <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+            <PiggyBank className="h-4 w-4 text-primary" />
+          </div>
+          <div className="min-w-0">
+            <h3 className="text-sm font-semibold text-foreground leading-tight">Cofrinhos</h3>
+            <p className="text-[10px] text-muted-foreground leading-tight">
+              Saldo total: <span className="font-medium text-foreground">{mask(fmt(totalBalance))}</span>
+              {totalYield > 0 && (
+                <span className="ml-1 text-success">(+{mask(fmt(totalYield))})</span>
+              )}
+            </p>
+          </div>
+        </div>
+        {!readOnly && (
+          <Button size="sm" variant="outline" className="h-8 text-xs shrink-0" onClick={openCreate}>
+            <Plus className="h-3.5 w-3.5 mr-1" /> Novo
+          </Button>
+        )}
+      </div>
+
+      {piggyBanks.length === 0 ? (
+        <div className="rounded-xl border border-dashed border-border/60 p-4 text-center">
+          <Sparkles className="h-6 w-6 mx-auto text-muted-foreground/50 mb-1.5" />
+          <p className="text-xs text-muted-foreground">
+            Crie cofrinhos para reservar dinheiro com rendimento simulado.
+          </p>
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {piggyBanks.map((pb) => {
+            const b = balances.get(pb.id);
+            return (
+              <div
+                key={pb.id}
+                className="rounded-xl border border-border/40 p-3 flex items-center gap-3"
+                style={{ background: `hsl(${pb.color} / 0.05)` }}
+              >
+                <div
+                  className="h-9 w-9 rounded-lg flex items-center justify-center shrink-0"
+                  style={{ backgroundColor: `hsl(${pb.color} / 0.18)` }}
+                >
+                  <PiggyBank className="h-4.5 w-4.5" style={{ color: `hsl(${pb.color})` }} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-1.5 min-w-0">
+                    <p className="text-sm font-semibold text-foreground truncate">{pb.name}</p>
+                    <Badge variant="outline" className="text-[9px] px-1 py-0 h-4 shrink-0">
+                      {pb.annualRate.toFixed(2)}% a.a.
+                    </Badge>
+                  </div>
+                  <p className="text-[11px] text-muted-foreground truncate">
+                    Aportado: {mask(fmt(b?.principal ?? 0))}
+                    {b && b.yield > 0 && (
+                      <span className="ml-1 text-success inline-flex items-center gap-0.5">
+                        <TrendingUp className="h-2.5 w-2.5" />
+                        {mask(fmt(b.yield))}
+                      </span>
+                    )}
+                  </p>
+                </div>
+                <div className="text-right shrink-0">
+                  <p className="text-sm font-bold text-foreground">{mask(fmt(b?.balance ?? 0))}</p>
+                  {!readOnly && (
+                    <div className="flex gap-0.5 justify-end mt-0.5">
+                      <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => openEdit(pb)}>
+                        <Pencil className="h-3 w-3" />
+                      </Button>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="h-6 w-6 text-destructive hover:text-destructive hover:bg-destructive/10"
+                        onClick={() => setDeleteId(pb.id)}
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      <p className="text-[10px] text-muted-foreground italic">
+        Para depositar, cadastre uma despesa pessoal e selecione "Destinar a um cofrinho".
+        Rendimento aplicado diariamente (juros compostos), referência ~100% CDI.
+      </p>
+
+      {/* Create/edit dialog */}
+      <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>{editing ? "Editar cofrinho" : "Novo cofrinho"}</DialogTitle>
+            <DialogDescription>
+              Defina um nome, cor e a taxa anual de rendimento (default ~100% CDI).
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 py-1">
+            <div>
+              <Label htmlFor="pb-name">Nome</Label>
+              <Input
+                id="pb-name"
+                placeholder="Ex: Reserva de emergência"
+                value={draft.name}
+                onChange={(e) => setDraft((p) => ({ ...p, name: e.target.value }))}
+              />
+            </div>
+            <div>
+              <Label>Cor</Label>
+              <div className="flex flex-wrap gap-1.5 mt-1.5">
+                {PALETTE.map((c) => (
+                  <button
+                    key={c}
+                    type="button"
+                    onClick={() => setDraft((p) => ({ ...p, color: c }))}
+                    className={`h-7 w-7 rounded-full border-2 transition ${draft.color === c ? "border-foreground scale-110" : "border-transparent"}`}
+                    style={{ backgroundColor: `hsl(${c})` }}
+                    aria-label={`Cor ${c}`}
+                  />
+                ))}
+              </div>
+            </div>
+            <div>
+              <Label htmlFor="pb-rate">Taxa anual (%)</Label>
+              <Input
+                id="pb-rate"
+                type="number"
+                step="0.01"
+                value={draft.annualRate}
+                onChange={(e) => setDraft((p) => ({ ...p, annualRate: e.target.value }))}
+              />
+              <p className="text-[10px] text-muted-foreground mt-1">
+                100% CDI ≈ 11,15% a.a. (referência PicPay).
+              </p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setCreateOpen(false)}>Cancelar</Button>
+            <Button onClick={save} disabled={!draft.name.trim()}>
+              {editing ? "Salvar" : "Criar cofrinho"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <ConfirmDeleteDialog
+        open={!!deleteId}
+        onOpenChange={(o) => !o && setDeleteId(null)}
+        onConfirm={() => {
+          if (deleteId) deletePiggyBank(deleteId);
+          setDeleteId(null);
+        }}
+        title="Excluir cofrinho"
+        description="Os aportes registrados também serão removidos. As despesas já lançadas permanecem no histórico. Esta ação não pode ser desfeita."
+      />
+    </div>
+  );
+}
