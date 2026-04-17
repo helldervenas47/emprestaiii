@@ -13,6 +13,7 @@ export interface CreditCard {
   creditLimit: number;
   closingDay: number;
   dueDay: number;
+  active: boolean;
 }
 
 export interface CreditCardInput {
@@ -23,6 +24,7 @@ export interface CreditCardInput {
   creditLimit: number;
   closingDay: number;
   dueDay: number;
+  active?: boolean;
 }
 
 const fromRow = (r: any): CreditCard => ({
@@ -34,6 +36,7 @@ const fromRow = (r: any): CreditCard => ({
   creditLimit: Number(r.credit_limit ?? 0),
   closingDay: r.closing_day,
   dueDay: r.due_day,
+  active: r.active ?? true,
 });
 
 export function useCreditCards() {
