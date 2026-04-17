@@ -232,33 +232,15 @@ export function CreditCardList({ readOnly = false }: Props) {
 
   return (
     <div>
-      <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
-        <h2 className="text-lg font-semibold text-foreground">
-          Cartões ({filteredCards.length}
-          {filteredCards.length !== cards.length ? `/${cards.length}` : ""})
+      <div className="flex items-center justify-between gap-3 mb-4">
+        <h2 className="text-lg font-semibold text-foreground truncate">
+          Cartões ({cards.length})
         </h2>
-        <div className="flex items-center gap-2 flex-wrap">
-          {dueDayOptions.length > 0 && (
-            <Select value={dueFilter} onValueChange={setDueFilter}>
-              <SelectTrigger className="h-8 w-[160px] text-xs">
-                <SelectValue placeholder="Vencimento" />
-              </SelectTrigger>
-              <SelectContent className="bg-background">
-                <SelectItem value="all">Todos vencimentos</SelectItem>
-                {dueDayOptions.map((d) => (
-                  <SelectItem key={d} value={String(d)}>
-                    Vence dia {d}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          )}
-          {!readOnly && (
-            <Button onClick={handleNew} size="sm">
-              <Plus className="h-4 w-4 mr-1" /> Novo Cartão
-            </Button>
-          )}
-        </div>
+        {!readOnly && (
+          <Button onClick={handleNew} size="sm" className="shrink-0">
+            <Plus className="h-4 w-4 mr-1" /> Novo Cartão
+          </Button>
+        )}
       </div>
 
       {loading ? (
@@ -273,13 +255,9 @@ export function CreditCardList({ readOnly = false }: Props) {
             </Button>
           )}
         </div>
-      ) : filteredCards.length === 0 ? (
-        <div className="text-center text-muted-foreground py-12 text-sm">
-          Nenhum cartão com esse vencimento
-        </div>
       ) : (
         <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 lg:grid-cols-4">
-          {filteredCards.map((card) => {
+          {cards.map((card) => {
             const inv = invoiceByCard.get(card.id) ?? {
               total: 0,
               dueDate: getCurrentCycle(card.closingDay, card.dueDay).dueDate,
