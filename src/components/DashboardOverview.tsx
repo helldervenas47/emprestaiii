@@ -1033,7 +1033,8 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
         </CardContent>
       </Card>
 
-      {/* Monthly Bar Chart - Last 12 months */}
+      {/* Manager Commissions Chart - isolated, view-only */}
+      <ManagerCommissionsChart clients={clients} />
       <Card>
         <CardContent className="p-6">
           <div className="flex items-center justify-between mb-4">
