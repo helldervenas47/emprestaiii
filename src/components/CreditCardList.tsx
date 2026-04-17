@@ -290,7 +290,11 @@ export function CreditCardList({ readOnly = false, referenceMonth }: Props) {
       });
     });
     return map;
-  }, [cards, expenses, getOpening]);
+  }, [cards, expenses, getOpening, referenceMonth]);
+
+  // Month key used to decide which cards should be highlighted as "Fatura do mês".
+  const refMonthKey = referenceMonth
+    ?? `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, "0")}`;
 
   const openingDialogData = useMemo(() => {
     if (!openingCard) return null;
