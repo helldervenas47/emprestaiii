@@ -148,8 +148,18 @@ export function PiggyBankList({ readOnly = false }: Props) {
             return (
               <div
                 key={pb.id}
-                className="rounded-xl border border-border/40 p-3 flex items-center gap-3"
+                role="button"
+                tabIndex={0}
+                onClick={() => setHistoryTarget(pb)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    setHistoryTarget(pb);
+                  }
+                }}
+                className="rounded-xl border border-border/40 p-3 flex items-center gap-3 cursor-pointer hover:border-border transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 style={{ background: `hsl(${pb.color} / 0.05)` }}
+                title="Ver histórico de aportes"
               >
                 <div
                   className="h-9 w-9 rounded-lg flex items-center justify-center shrink-0"
@@ -174,27 +184,32 @@ export function PiggyBankList({ readOnly = false }: Props) {
                     )}
                   </p>
                 </div>
-                <div className="text-right shrink-0">
+                <div className="text-right shrink-0" onClick={(e) => e.stopPropagation()}>
                   <p className="text-sm font-bold text-foreground">{mask(fmt(b?.balance ?? 0))}</p>
-                  {!readOnly && (
-                    <div className="flex gap-0.5 justify-end mt-0.5">
-                      <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => openAdjust(pb)} title="Ajustar saldo">
-                        <Wallet className="h-3 w-3" />
-                      </Button>
-                      <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => openEdit(pb)} title="Editar">
-                        <Pencil className="h-3 w-3" />
-                      </Button>
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        className="h-6 w-6 text-destructive hover:text-destructive hover:bg-destructive/10"
-                        onClick={() => setDeleteId(pb.id)}
-                        title="Excluir"
-                      >
-                        <Trash2 className="h-3 w-3" />
-                      </Button>
-                    </div>
-                  )}
+                  <div className="flex gap-0.5 justify-end mt-0.5">
+                    <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => setHistoryTarget(pb)} title="Histórico de aportes">
+                      <History className="h-3 w-3" />
+                    </Button>
+                    {!readOnly && (
+                      <>
+                        <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => openAdjust(pb)} title="Ajustar saldo">
+                          <Wallet className="h-3 w-3" />
+                        </Button>
+                        <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => openEdit(pb)} title="Editar">
+                          <Pencil className="h-3 w-3" />
+                        </Button>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="h-6 w-6 text-destructive hover:text-destructive hover:bg-destructive/10"
+                          onClick={() => setDeleteId(pb.id)}
+                          title="Excluir"
+                        >
+                          <Trash2 className="h-3 w-3" />
+                        </Button>
+                      </>
+                    )}
+                  </div>
                 </div>
               </div>
             );
