@@ -251,6 +251,21 @@ function nowBR(): { year: number; month: number; day: number } {
   return { year: y, month: m - 1, day: d }; // month 0-indexed for compatibility
 }
 
+// Validates and clamps an AI-provided date (YYYY-MM-DD).
+// - Returns todayBR() if invalid format.
+// - Clamps future dates to today.
+// - Clamps dates older than 1 year to today (likely AI hallucination).
+function sanitizeDate(input: unknown): string {
+  const today = todayBR();
+  if (typeof input !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(input)) return today;
+  if (input > today) return today; // future
+  // Compute 1y ago
+  const [y, m, d] = today.split("-").map(Number);
+  const oneYearAgo = `${y - 1}-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+  if (input < oneYearAgo) return today;
+  return input;
+}
+
 async function summarizeRange(
   admin: any,
   userId: string,
