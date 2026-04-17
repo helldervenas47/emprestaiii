@@ -769,7 +769,7 @@ function LoanCardView({
               {loan.interestType}
             </Badge>
             {loan.hasManager && (
-              <Badge variant="outline" className="text-xs bg-accent/15 text-accent-foreground border-accent/40 gap-1">
+              <Badge variant="outline" className="text-xs bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/40 gap-1">
                 <UserCog className="h-3 w-3" />Com gerente
               </Badge>
             )}
