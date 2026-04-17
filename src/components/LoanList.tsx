@@ -340,6 +340,9 @@ function LoanCardView({
       remainingAmount: parseFloat(form.remainingAmount) || 0,
       customInstallmentValue: hasCustom ? firstVal : null,
       customInterestValue: hasCustomInterest ? manualInterest : null,
+      hasManager: editHasManager,
+      managerId: editHasManager && editManagerId ? editManagerId : null,
+      managerCommissionRate: editHasManager ? parseFloat(editCommissionRate) || 10 : null,
     });
 
     // Save ALL installment rows
@@ -493,6 +496,41 @@ function LoanCardView({
                 </SelectContent>
               </Select>
             </div>
+          </div>
+
+          {/* Manager edit block */}
+          <div className="border border-border rounded-lg p-3 space-y-2 bg-muted/20">
+            <div className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                id={`edit-mgr-${loan.id}`}
+                checked={editHasManager}
+                onChange={(e) => setEditHasManager(e.target.checked)}
+                className="h-4 w-4 rounded border-border accent-primary"
+              />
+              <Label htmlFor={`edit-mgr-${loan.id}`} className="text-xs font-medium cursor-pointer">
+                Empréstimo com gerente
+              </Label>
+            </div>
+            {editHasManager && (
+              <div className="grid grid-cols-2 gap-2 pt-1">
+                <div>
+                  <Label className="text-xs">Gerente</Label>
+                  <Select value={editManagerId} onValueChange={setEditManagerId}>
+                    <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Selecione" /></SelectTrigger>
+                    <SelectContent>
+                      {managerOptions.map((m) => (
+                        <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label className="text-xs">Comissão (%)</Label>
+                  <Input type="number" step="0.1" value={editCommissionRate} onChange={(e) => setEditCommissionRate(e.target.value)} className="h-8 text-xs" />
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Installment Schedule */}
