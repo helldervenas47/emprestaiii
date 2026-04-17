@@ -125,13 +125,18 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, readOn
   const dailyAverage = dayOfMonth > 0 ? totalPaid / dayOfMonth : 0;
   const projection = isCurrentMonth ? totalPaid + dailyAverage * (daysInMonth - dayOfMonth) : totalPaid;
 
-  // Category breakdown (paid only, excluding cofrinho transfers)
+  // Category breakdown — includes all expenses of the selected month (paid + pending),
+  // ensuring consistency with monthly totals and accurate display for past months.
+  // Only categories with value > 0 are shown.
   const categoryData = useMemo(() => {
     const map = new Map<string, number>();
-    spendingMonth.filter((e) => e.paid).forEach((e) => {
-      map.set(e.category, (map.get(e.category) || 0) + getInstallmentAmount(e));
+    spendingMonth.forEach((e) => {
+      const v = getInstallmentAmount(e);
+      if (v <= 0) return;
+      map.set(e.category, (map.get(e.category) || 0) + v);
     });
     const arr = [...map.entries()]
+      .filter(([, value]) => value > 0)
       .map(([name, value]) => ({ name, value, cat: getPersonalCategory(name) }))
       .sort((a, b) => b.value - a.value);
     if (arr.length <= 6) return arr;
