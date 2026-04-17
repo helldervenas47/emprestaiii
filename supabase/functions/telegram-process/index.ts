@@ -690,7 +690,21 @@ async function extractExpense(text: string, lovableKey: string) {
       messages: [
         {
           role: "system",
-          content: `Você extrai despesas pessoais de mensagens em português brasileiro. Hoje é ${today}. Categorias permitidas: ${CATEGORIES.join(", ")}. Se faltar valor numérico, retorne confidence baixo.`,
+          content: `Você extrai despesas pessoais de mensagens em português brasileiro. Hoje é ${today} (timezone America/Sao_Paulo). Categorias permitidas: ${CATEGORIES.join(", ")}.
+
+REGRAS DE DATA (campo "date" no formato YYYY-MM-DD):
+- "hoje" ou sem menção de data → use ${today}
+- "ontem" → subtraia 1 dia de hoje
+- "anteontem" ou "antes de ontem" → subtraia 2 dias
+- "há N dias" / "faz N dias" → subtraia N dias
+- "há uma semana" / "semana passada" → subtraia 7 dias
+- "segunda", "terça", etc. (sem "que vem") → última ocorrência passada desse dia da semana
+- "dia 15", "no dia 10" → dia 15/10 do MÊS ATUAL (ou mês anterior se for data futura)
+- "10/03", "15/02/2025" → essa data exata
+- NUNCA retorne data no futuro (limite máximo: hoje)
+- NUNCA retorne data com mais de 1 ano atrás
+
+Se faltar valor numérico, retorne confidence baixo.`,
         },
         { role: "user", content: text },
       ],
