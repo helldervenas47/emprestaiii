@@ -131,8 +131,12 @@ export function PersonalExpenseForm({ onAdd, onClose }: Props) {
         scope: "personal",
       };
     }
-    onAdd(payload);
-    onClose();
+    try {
+      await onAdd(payload);
+      setShowSuccess(true);
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const update = (field: string, value: string) =>
@@ -144,6 +148,7 @@ export function PersonalExpenseForm({ onAdd, onClose }: Props) {
 
   return (
     <div className="fixed inset-0 bg-foreground/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+      <SuccessAnimation show={showSuccess} onComplete={onClose} message={toPiggy ? "Aporte registrado!" : "Despesa cadastrada!"} />
       <Card no3d className="w-full max-w-lg max-h-[90vh] overflow-y-auto">
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle className="text-xl">Nova Despesa Pessoal</CardTitle>
