@@ -30,7 +30,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 
 interface Props {
   expenses: Expense[];
-  onPay: (id: string, skipBalanceAdjust?: boolean, payDate?: string) => void;
+  onPay: (id: string, skipBalanceAdjust?: boolean, payDate?: string, paidAmount?: number) => void;
   onUnpay?: (id: string) => void;
   onDelete: (id: string) => void;
   onUpdate?: (id: string, data: Partial<Omit<Expense, "id" | "createdAt">>) => void;
@@ -65,6 +65,7 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, onUpda
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [payingId, setPayingId] = useState<string | null>(null);
   const [payDate, setPayDate] = useState("");
+  const [paidAmountInput, setPaidAmountInput] = useState("");
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
   const [budgetEditOpen, setBudgetEditOpen] = useState(false);
   const [budgetDraft, setBudgetDraft] = useState<Record<string, string>>({});
@@ -295,6 +296,7 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, onUpda
   const openPayDialog = (id: string) => {
     setPayingId(id);
     setPayDate(new Date().toISOString().split("T")[0]);
+    setPaidAmountInput("");
   };
 
   return (
@@ -734,15 +736,46 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, onUpda
       <Dialog open={!!payingId} onOpenChange={(o) => !o && setPayingId(null)}>
         <DialogContent className="sm:max-w-sm">
           <DialogHeader>
-            <DialogTitle>Data do pagamento</DialogTitle>
-            <DialogDescription>Selecione a data em que esta despesa foi paga.</DialogDescription>
+            <DialogTitle>Registrar pagamento</DialogTitle>
+            <DialogDescription>Confirme a data e, se quiser, informe o valor efetivamente pago.</DialogDescription>
           </DialogHeader>
-          <DatePickerField value={payDate} onChange={setPayDate} />
+          {(() => {
+            const exp = expenses.find((e) => e.id === payingId);
+            const suggested = exp ? getInstallmentAmount(exp) : 0;
+            return (
+              <div className="space-y-3">
+                <div>
+                  <Label className="text-xs">Data</Label>
+                  <DatePickerField value={payDate} onChange={setPayDate} />
+                </div>
+                <div>
+                  <Label htmlFor="pay-amount-personal" className="text-xs">Valor pago (opcional)</Label>
+                  <Input
+                    id="pay-amount-personal"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={paidAmountInput}
+                    onChange={(e) => setPaidAmountInput(e.target.value)}
+                    placeholder={suggested.toFixed(2)}
+                  />
+                  <p className="text-[11px] text-muted-foreground mt-1">
+                    Em branco usa o valor original ({formatCurrency(suggested)}).
+                  </p>
+                </div>
+              </div>
+            );
+          })()}
           <DialogFooter>
             <Button variant="outline" onClick={() => setPayingId(null)}>Cancelar</Button>
             <Button onClick={() => {
-              if (payingId) onPay(payingId, false, payDate);
+              if (payingId) {
+                const parsed = parseFloat(paidAmountInput);
+                const paidAmount = paidAmountInput.trim() && !isNaN(parsed) && parsed > 0 ? parsed : undefined;
+                onPay(payingId, false, payDate, paidAmount);
+              }
               setPayingId(null);
+              setPaidAmountInput("");
             }}>
               Confirmar pagamento
             </Button>

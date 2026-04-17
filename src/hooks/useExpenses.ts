@@ -68,7 +68,7 @@ export function useExpenses(enabled = true) {
     }
   }, [user, dataOwnerId]);
 
-  const payExpense = useCallback(async (id: string, skipBalanceAdjust = false, payDate?: string) => {
+  const payExpense = useCallback(async (id: string, skipBalanceAdjust = false, payDate?: string, paidAmount?: number) => {
     if (!dataOwnerId) return;
     const expense = expenses.find((e) => e.id === id);
     if (!expense || expense.paid) return;
@@ -77,7 +77,8 @@ export function useExpenses(enabled = true) {
     const isRecorrenteParcelada = expense.type === "recorrente" && expense.installments && expense.installments > 1;
 
     if (isRecorrenteParcelada) {
-      const installmentAmount = expense.amount / expense.installments!;
+      const originalInstallment = expense.amount / expense.installments!;
+      const installmentAmount = typeof paidAmount === "number" && paidAmount > 0 ? paidAmount : originalInstallment;
       const newPaid = (expense.paidInstallments || 0) + 1;
       const fullyPaid = newPaid >= expense.installments!;
       const currentDue = new Date(expense.dueDate + "T00:00:00");
@@ -93,7 +94,7 @@ export function useExpenses(enabled = true) {
         paidDate: fullyPaid ? today : undefined,
       } : e));
 
-      // Insert historical record (paid installment snapshot)
+      // Insert historical record (paid installment snapshot) using actual paid amount
       await supabase.from("expenses").insert({
         user_id: dataOwnerId,
         description: `${expense.description} (${newPaid}/${expense.installments})`,
@@ -107,7 +108,8 @@ export function useExpenses(enabled = true) {
         paid_date: today,
         notes: expense.notes,
         parent_expense_id: id,
-      });
+        scope: expense.scope ?? "business",
+      } as any);
 
       // Update parent recurring expense
       await supabase.from("expenses").update({
@@ -117,12 +119,13 @@ export function useExpenses(enabled = true) {
         paid_date: fullyPaid ? today : null,
       }).eq("id", id);
     } else {
-      // Simple fixa expense
+      // Simple fixa expense — if a different paid amount was provided, update the amount
+      const finalAmount = typeof paidAmount === "number" && paidAmount > 0 ? paidAmount : expense.amount;
       setExpenses((prev) => prev.map((e) => e.id === id ? {
-        ...e, paid: true, paidDate: today,
+        ...e, paid: true, paidDate: today, amount: finalAmount,
       } : e));
       await supabase.from("expenses").update({
-        paid: true, paid_date: today,
+        paid: true, paid_date: today, amount: finalAmount,
       }).eq("id", id);
     }
 
