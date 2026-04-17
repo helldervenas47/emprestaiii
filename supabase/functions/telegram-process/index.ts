@@ -1157,6 +1157,9 @@ Deno.serve(async (req) => {
             } else if (/^\/comparar(?:@\w+)?\b/i.test(text)) {
               const reply = await handleComparar(admin, link.user_id);
               await tgSend(chatId, reply, LOVABLE_API_KEY, TELEGRAM_API_KEY);
+            } else if (/^\/orcamento(?:s)?(?:@\w+)?\b/i.test(text)) {
+              const reply = await handleOrcamento(admin, link.user_id);
+              await tgSend(chatId, reply, LOVABLE_API_KEY, TELEGRAM_API_KEY);
             } else if (/^\/ultimas(?:@\w+)?\b/i.test(text)) {
               const reply = await handleUltimas(admin, link.user_id);
               await tgSend(chatId, reply, LOVABLE_API_KEY, TELEGRAM_API_KEY);
