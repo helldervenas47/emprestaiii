@@ -53,6 +53,7 @@ interface MiniCardProps {
   invoiceTotal: number;
   openingAmount: number;
   hasOpening: boolean;
+  hasActiveInvoice: boolean;
   dueDate: Date;
   onClick: () => void;
   onEdit?: () => void;
@@ -66,6 +67,7 @@ function MiniCreditCard({
   invoiceTotal,
   openingAmount,
   hasOpening,
+  hasActiveInvoice,
   dueDate,
   onClick,
   onEdit,
@@ -81,9 +83,18 @@ function MiniCreditCard({
   return (
     <Card
       no3d
-      className="group relative overflow-hidden cursor-pointer hover:shadow-md transition-shadow"
+      className={`group relative overflow-hidden cursor-pointer hover:shadow-md transition-shadow ${
+        hasActiveInvoice
+          ? "border-2 border-warning shadow-[0_0_0_3px_hsl(var(--warning)/0.15)]"
+          : ""
+      }`}
       onClick={onClick}
     >
+      {hasActiveInvoice && (
+        <div className="absolute top-2 right-2 z-10 px-2 py-0.5 rounded-full bg-warning text-warning-foreground text-[9px] font-bold uppercase tracking-wide shadow-sm">
+          Fatura do mês
+        </div>
+      )}
       <CardContent className="p-3 space-y-2.5">
         {/* Mini visual card thumbnail */}
         <div
@@ -316,6 +327,7 @@ export function CreditCardList({ readOnly = false, referenceMonth }: Props) {
                 invoiceTotal={inv.total}
                 openingAmount={inv.opening}
                 hasOpening={inv.hasOpening}
+                hasActiveInvoice={inv.total > 0}
                 dueDate={inv.dueDate}
                 onClick={() => setInvoiceCard(card)}
                 onEdit={readOnly ? undefined : () => handleEdit(card)}
