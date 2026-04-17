@@ -4,13 +4,6 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { useCreditCards, CreditCard } from "@/hooks/useCreditCards";
 import { useExpenses } from "@/hooks/useExpenses";
 import { useHideValues } from "@/contexts/HideValuesContext";
@@ -178,7 +171,6 @@ export function CreditCardList({ readOnly = false }: Props) {
   const [editing, setEditing] = useState<CreditCard | null>(null);
   const [deleting, setDeleting] = useState<CreditCard | null>(null);
   const [invoiceCard, setInvoiceCard] = useState<CreditCard | null>(null);
-  const [dueFilter, setDueFilter] = useState<string>("all");
 
   const handleNew = () => {
     setEditing(null);
@@ -218,47 +210,18 @@ export function CreditCardList({ readOnly = false }: Props) {
     return map;
   }, [cards, expenses]);
 
-  // Due-day filter options
-  const dueDayOptions = useMemo(() => {
-    const set = new Set<number>();
-    cards.forEach((c) => set.add(c.dueDay));
-    return Array.from(set).sort((a, b) => a - b);
-  }, [cards]);
-
-  const filteredCards = useMemo(() => {
-    if (dueFilter === "all") return cards;
-    return cards.filter((c) => String(c.dueDay) === dueFilter);
-  }, [cards, dueFilter]);
 
   return (
     <div>
-      <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
-        <h2 className="text-lg font-semibold text-foreground">
-          Cartões ({filteredCards.length}
-          {filteredCards.length !== cards.length ? `/${cards.length}` : ""})
+      <div className="flex items-center justify-between gap-3 mb-4">
+        <h2 className="text-lg font-semibold text-foreground truncate">
+          Cartões ({cards.length})
         </h2>
-        <div className="flex items-center gap-2 flex-wrap">
-          {dueDayOptions.length > 0 && (
-            <Select value={dueFilter} onValueChange={setDueFilter}>
-              <SelectTrigger className="h-8 w-[160px] text-xs">
-                <SelectValue placeholder="Vencimento" />
-              </SelectTrigger>
-              <SelectContent className="bg-background">
-                <SelectItem value="all">Todos vencimentos</SelectItem>
-                {dueDayOptions.map((d) => (
-                  <SelectItem key={d} value={String(d)}>
-                    Vence dia {d}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          )}
-          {!readOnly && (
-            <Button onClick={handleNew} size="sm">
-              <Plus className="h-4 w-4 mr-1" /> Novo Cartão
-            </Button>
-          )}
-        </div>
+        {!readOnly && (
+          <Button onClick={handleNew} size="sm" className="shrink-0">
+            <Plus className="h-4 w-4 mr-1" /> Novo Cartão
+          </Button>
+        )}
       </div>
 
       {loading ? (
@@ -273,13 +236,9 @@ export function CreditCardList({ readOnly = false }: Props) {
             </Button>
           )}
         </div>
-      ) : filteredCards.length === 0 ? (
-        <div className="text-center text-muted-foreground py-12 text-sm">
-          Nenhum cartão com esse vencimento
-        </div>
       ) : (
         <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 lg:grid-cols-4">
-          {filteredCards.map((card) => {
+          {cards.map((card) => {
             const inv = invoiceByCard.get(card.id) ?? {
               total: 0,
               dueDate: getCurrentCycle(card.closingDay, card.dueDay).dueDate,
