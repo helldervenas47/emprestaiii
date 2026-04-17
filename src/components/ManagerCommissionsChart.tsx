@@ -128,7 +128,7 @@ export function ManagerCommissionsChart({
   return (
     <Card>
       <CardContent className="p-3 sm:p-6">
-        <div className="flex flex-col items-center text-center mb-4 gap-3">
+        <div className="flex flex-col items-center text-center gap-3 mb-4 sm:flex-row sm:items-center sm:justify-between sm:text-left sm:gap-4">
           <div className="flex items-center gap-2">
             <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
               <Briefcase className="h-4 w-4 text-primary" />
@@ -141,15 +141,15 @@ export function ManagerCommissionsChart({
             </div>
           </div>
           <div className="grid grid-cols-3 gap-2 w-full sm:w-auto sm:flex sm:gap-6">
-            <div className="rounded-md bg-muted/40 sm:bg-transparent px-2 py-1 sm:p-0 text-center">
+            <div className="rounded-md bg-muted/40 sm:bg-transparent px-2 py-1 sm:p-0 text-center sm:text-right">
               <p className="text-[9px] sm:text-[10px] text-muted-foreground uppercase leading-tight">Pendente</p>
               <p className="text-xs sm:text-sm font-bold text-primary leading-tight">{mask(rawFormatCurrency(totalProjected))}</p>
             </div>
-            <div className="rounded-md bg-muted/40 sm:bg-transparent px-2 py-1 sm:p-0 text-center">
+            <div className="rounded-md bg-muted/40 sm:bg-transparent px-2 py-1 sm:p-0 text-center sm:text-right">
               <p className="text-[9px] sm:text-[10px] text-muted-foreground uppercase leading-tight">Recebido</p>
               <p className="text-xs sm:text-sm font-bold text-success leading-tight">{mask(rawFormatCurrency(totalPaid))}</p>
             </div>
-            <div className="rounded-md bg-muted/40 sm:bg-transparent px-2 py-1 sm:p-0 text-center">
+            <div className="rounded-md bg-muted/40 sm:bg-transparent px-2 py-1 sm:p-0 text-center sm:text-right">
               <p className="text-[9px] sm:text-[10px] text-muted-foreground uppercase leading-tight">Total</p>
               <p className="text-xs sm:text-sm font-bold text-foreground leading-tight">{mask(rawFormatCurrency(totalGeneral))}</p>
             </div>
