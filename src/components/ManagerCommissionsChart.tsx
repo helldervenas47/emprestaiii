@@ -115,28 +115,28 @@ export function ManagerCommissionsChart({
   return (
     <Card>
       <CardContent className="p-3 sm:p-6">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 gap-3">
+        <div className="flex flex-col items-center text-center mb-4 gap-3">
           <div className="flex items-center gap-2">
             <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
               <Briefcase className="h-4 w-4 text-primary" />
             </div>
-            <div className="min-w-0">
+            <div>
               <h3 className="text-sm font-semibold text-foreground">Comissões por Gerente</h3>
               {rangeLabel && (
-                <p className="text-[10px] text-muted-foreground truncate">{rangeLabel}</p>
+                <p className="text-[10px] text-muted-foreground">{rangeLabel}</p>
               )}
             </div>
           </div>
-          <div className="grid grid-cols-3 gap-2 sm:flex sm:gap-3 sm:text-right">
-            <div className="rounded-md bg-muted/40 sm:bg-transparent px-2 py-1 sm:p-0">
+          <div className="grid grid-cols-3 gap-2 w-full sm:w-auto sm:flex sm:gap-6">
+            <div className="rounded-md bg-muted/40 sm:bg-transparent px-2 py-1 sm:p-0 text-center">
               <p className="text-[9px] sm:text-[10px] text-muted-foreground uppercase leading-tight">Pendente</p>
               <p className="text-xs sm:text-sm font-bold text-primary leading-tight">{mask(rawFormatCurrency(totalProjected))}</p>
             </div>
-            <div className="rounded-md bg-muted/40 sm:bg-transparent px-2 py-1 sm:p-0">
+            <div className="rounded-md bg-muted/40 sm:bg-transparent px-2 py-1 sm:p-0 text-center">
               <p className="text-[9px] sm:text-[10px] text-muted-foreground uppercase leading-tight">Recebido</p>
               <p className="text-xs sm:text-sm font-bold text-success leading-tight">{mask(rawFormatCurrency(totalPaid))}</p>
             </div>
-            <div className="rounded-md bg-muted/40 sm:bg-transparent px-2 py-1 sm:p-0">
+            <div className="rounded-md bg-muted/40 sm:bg-transparent px-2 py-1 sm:p-0 text-center">
               <p className="text-[9px] sm:text-[10px] text-muted-foreground uppercase leading-tight">Total</p>
               <p className="text-xs sm:text-sm font-bold text-foreground leading-tight">{mask(rawFormatCurrency(totalGeneral))}</p>
             </div>
@@ -152,13 +152,13 @@ export function ManagerCommissionsChart({
             {data.map((m) => (
               <div
                 key={m.id}
-                className="rounded-lg border border-border bg-card/50 hover:bg-card transition-colors p-2.5 sm:p-4 flex flex-col gap-2 sm:gap-3"
+                className="rounded-lg border border-border bg-card/50 hover:bg-card transition-colors p-2.5 sm:p-4 flex flex-col items-center text-center gap-2 sm:gap-3"
               >
-                <div className="flex items-center gap-2">
-                  <div className="h-7 w-7 sm:h-8 sm:w-8 rounded-md bg-accent/15 flex items-center justify-center shrink-0">
+                <div className="flex flex-col items-center gap-1.5">
+                  <div className="h-7 w-7 sm:h-8 sm:w-8 rounded-md bg-accent/15 flex items-center justify-center">
                     <UserCog className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-accent-foreground" />
                   </div>
-                  <div className="min-w-0 flex-1">
+                  <div>
                     <p className="text-xs sm:text-sm font-semibold text-foreground leading-tight break-words" title={m.name}>
                       {m.name}
                     </p>
@@ -168,21 +168,21 @@ export function ManagerCommissionsChart({
                   </div>
                 </div>
 
-                <div className="flex flex-col gap-1 sm:gap-2">
-                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-0 sm:gap-2">
+                <div className="flex flex-col items-center gap-1.5 sm:gap-2 w-full">
+                  <div className="flex flex-col items-center">
                     <span className="text-[10px] sm:text-xs text-muted-foreground leading-tight">Pendente</span>
                     <span className="text-xs sm:text-sm font-semibold text-primary break-all">
                       {mask(rawFormatCurrency(m.projected))}
                     </span>
                   </div>
-                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-0 sm:gap-2">
+                  <div className="flex flex-col items-center">
                     <span className="text-[10px] sm:text-xs text-muted-foreground leading-tight">Recebido</span>
                     <span className="text-xs sm:text-sm font-semibold text-success break-all">
                       {mask(rawFormatCurrency(m.paid))}
                     </span>
                   </div>
-                  <div className="border-t border-border my-0.5 sm:my-1" />
-                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-0 sm:gap-2">
+                  <div className="border-t border-border w-full my-0.5 sm:my-1" />
+                  <div className="flex flex-col items-center">
                     <span className="text-[10px] sm:text-xs font-medium text-foreground leading-tight">Total geral</span>
                     <span className="text-sm sm:text-base font-bold text-foreground break-all">
                       {mask(rawFormatCurrency(m.total))}
@@ -193,7 +193,7 @@ export function ManagerCommissionsChart({
             ))}
           </div>
         )}
-        <p className="text-[10px] text-muted-foreground mt-3 italic">
+        <p className="text-[10px] text-muted-foreground mt-3 italic text-center">
           Recebido = comissões geradas dentro do período (data de recebimento). Pendente = parcelas com vencimento no período ainda não pagas.
         </p>
       </CardContent>
