@@ -737,7 +737,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
                 </div>
                 {/* Histórico — últimos 2 meses */}
                 <div className="mt-3 pt-2 border-t border-border/30 grid grid-cols-2 gap-2" onClick={(e) => e.stopPropagation()}>
-                  {[1, 2].map((monthsAgo) => {
+                  {[2, 1].map((monthsAgo) => {
                     const d = new Date();
                     d.setDate(1);
                     d.setMonth(d.getMonth() - monthsAgo);
