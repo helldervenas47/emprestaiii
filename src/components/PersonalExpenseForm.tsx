@@ -19,13 +19,16 @@ interface Props {
 
 const paymentMethods = ["Dinheiro", "Pix", "Débito", "Crédito", "Boleto", "Débito automático"];
 
+type ExpenseKind = "unica" | "parcelada" | "fixa";
+const FIXED_RECURRING_INSTALLMENTS = 999;
+
 export function PersonalExpenseForm({ onAdd, onClose }: Props) {
   const { piggyBanks, addDeposit, createRecurrence } = usePiggyBanks();
 
   const [form, setForm] = useState({
     description: "",
     amount: "",
-    type: "fixa" as "fixa" | "recorrente",
+    kind: "unica" as ExpenseKind,
     category: "",
     paymentMethod: "Pix",
     installments: "1",
@@ -34,7 +37,6 @@ export function PersonalExpenseForm({ onAdd, onClose }: Props) {
   });
   const [toPiggy, setToPiggy] = useState(false);
   const [piggyId, setPiggyId] = useState<string>("");
-  // Piggy recurrence: 'none' = single, 'fixed' = forever, 'until' = with end date
   const [piggyRecurrence, setPiggyRecurrence] = useState<"none" | "fixed" | "until">("none");
   const [piggyEndDate, setPiggyEndDate] = useState<string>("");
 
@@ -59,7 +61,6 @@ export function PersonalExpenseForm({ onAdd, onClose }: Props) {
       });
       await addDeposit({ piggyBankId: piggyId, amount, depositDate: form.dueDate });
 
-      // If recurring, create the rule (auto-generates monthly deposits going forward)
       if (piggyRecurrence !== "none") {
         await createRecurrence({
           piggyBankId: piggyId,
@@ -77,22 +78,54 @@ export function PersonalExpenseForm({ onAdd, onClose }: Props) {
     const notesWithMethod = form.notes
       ? `[${form.paymentMethod}] ${form.notes}`
       : `[${form.paymentMethod}]`;
-    onAdd({
-      description: form.description,
-      amount,
-      type: form.type,
-      category: form.category,
-      installments: form.type === "recorrente" ? parseInt(form.installments) || 1 : undefined,
-      paidInstallments: form.type === "recorrente" ? 0 : undefined,
-      dueDate: form.dueDate,
-      notes: notesWithMethod,
-      scope: "personal",
-    });
+
+    let payload: Omit<Expense, "id" | "paid" | "paidDate" | "createdAt">;
+    if (form.kind === "parcelada") {
+      const installments = Math.max(1, parseInt(form.installments) || 1);
+      payload = {
+        description: form.description,
+        amount: amount * installments,
+        type: "recorrente",
+        category: form.category,
+        installments,
+        paidInstallments: 0,
+        dueDate: form.dueDate,
+        notes: notesWithMethod,
+        scope: "personal",
+      };
+    } else if (form.kind === "fixa") {
+      payload = {
+        description: form.description,
+        amount: amount * FIXED_RECURRING_INSTALLMENTS,
+        type: "recorrente",
+        category: form.category,
+        installments: FIXED_RECURRING_INSTALLMENTS,
+        paidInstallments: 0,
+        dueDate: form.dueDate,
+        notes: notesWithMethod,
+        scope: "personal",
+      };
+    } else {
+      payload = {
+        description: form.description,
+        amount,
+        type: "fixa",
+        category: form.category,
+        dueDate: form.dueDate,
+        notes: notesWithMethod,
+        scope: "personal",
+      };
+    }
+    onAdd(payload);
     onClose();
   };
 
   const update = (field: string, value: string) =>
     setForm((prev) => ({ ...prev, [field]: value }));
+
+  const amountLabel =
+    form.kind === "parcelada" ? "Valor da Parcela (R$)" :
+    form.kind === "fixa" ? "Valor Mensal (R$)" : "Valor (R$)";
 
   return (
     <div className="fixed inset-0 bg-foreground/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
