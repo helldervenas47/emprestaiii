@@ -624,19 +624,45 @@ export function ExpenseList({ expenses, onPay, onUnpay, onDelete, onUpdate, read
       <Dialog open={!!payingExpenseId} onOpenChange={(open) => { if (!open) setPayingExpenseId(null); }}>
         <DialogContent className="sm:max-w-sm">
           <DialogHeader>
-            <DialogTitle>Data do pagamento</DialogTitle>
-            <DialogDescription>Selecione a data em que esta despesa foi paga.</DialogDescription>
+            <DialogTitle>Registrar pagamento</DialogTitle>
+            <DialogDescription>Confirme a data e, se quiser, informe o valor efetivamente pago.</DialogDescription>
           </DialogHeader>
-          <div className="py-2">
-            <Label htmlFor="pay-date">Data</Label>
-            <DatePickerField id="pay-date" value={payDate} onChange={setPayDate} />
-          </div>
+          {(() => {
+            const exp = expenses.find((e) => e.id === payingExpenseId);
+            const suggested = exp ? getInstallmentAmount(exp) : 0;
+            return (
+              <div className="py-2 space-y-3">
+                <div>
+                  <Label htmlFor="pay-date">Data</Label>
+                  <DatePickerField id="pay-date" value={payDate} onChange={setPayDate} />
+                </div>
+                <div>
+                  <Label htmlFor="pay-amount">Valor pago (opcional)</Label>
+                  <Input
+                    id="pay-amount"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={paidAmountInput}
+                    onChange={(e) => setPaidAmountInput(e.target.value)}
+                    placeholder={suggested.toFixed(2)}
+                  />
+                  <p className="text-[11px] text-muted-foreground mt-1">
+                    Em branco usa o valor original ({formatCurrency(suggested)}).
+                  </p>
+                </div>
+              </div>
+            );
+          })()}
           <DialogFooter>
             <Button variant="outline" onClick={() => setPayingExpenseId(null)}>Cancelar</Button>
             <Button onClick={() => {
               if (payingExpenseId) {
-                onPay(payingExpenseId, undefined, payDate);
+                const parsed = parseFloat(paidAmountInput);
+                const paidAmount = paidAmountInput.trim() && !isNaN(parsed) && parsed > 0 ? parsed : undefined;
+                onPay(payingExpenseId, undefined, payDate, paidAmount);
                 setPayingExpenseId(null);
+                setPaidAmountInput("");
               }
             }}>
               <CheckCircle className="h-4 w-4 mr-1" />
