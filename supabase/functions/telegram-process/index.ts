@@ -48,6 +48,14 @@ const CATEGORY_KEYWORDS: Array<{ category: string; words: string[] }> = [
   { category: "Presentes", words: ["presente", "aniversario", "aniversário", "natal", "dia das maes", "dia das mães", "dia dos pais"] },
 ];
 
+// Detects mentions of past dates in PT-BR text. If present, AI should handle the date,
+// not the regex quick-parser (which assumes "today").
+const DATE_HINT_REGEX = /\b(ontem|anteontem|antes de ontem|hoje|amanh[ãa]|domingo|segunda|ter[çc]a|quarta|quinta|sexta|s[áa]bado|h[áa]\s+\d+\s+(dia|dias|semana|semanas)|dia\s+\d{1,2}|\d{1,2}\/\d{1,2}(\/\d{2,4})?|\d{1,2}-\d{1,2}(-\d{2,4})?)\b/i;
+
+function hasDateHint(text: string): boolean {
+  return DATE_HINT_REGEX.test(text);
+}
+
 function detectCategory(description: string): string {
   const lower = description.toLowerCase();
   for (const { category, words } of CATEGORY_KEYWORDS) {
@@ -69,6 +77,8 @@ function detectCategory(description: string): string {
 function quickParseExpense(text: string): { amount: number; description: string; category: string } | null {
   const t = text.trim();
   if (t.length < 2 || t.startsWith("/")) return null;
+  // Defer to AI when text mentions a date — quick parser would assume "today".
+  if (hasDateHint(t)) return null;
   let amountStr: string | null = null;
   let description: string | null = null;
   const mA = t.match(/^R?\$?\s*([\d]+(?:\.\d{3})*(?:,\d{1,2})?|\d+(?:\.\d{1,2})?)\s+(.{2,80})$/i);
@@ -239,6 +249,21 @@ function todayBR(): string {
 function nowBR(): { year: number; month: number; day: number } {
   const [y, m, d] = todayBR().split("-").map(Number);
   return { year: y, month: m - 1, day: d }; // month 0-indexed for compatibility
+}
+
+// Validates and clamps an AI-provided date (YYYY-MM-DD).
+// - Returns todayBR() if invalid format.
+// - Clamps future dates to today.
+// - Clamps dates older than 1 year to today (likely AI hallucination).
+function sanitizeDate(input: unknown): string {
+  const today = todayBR();
+  if (typeof input !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(input)) return today;
+  if (input > today) return today; // future
+  // Compute 1y ago
+  const [y, m, d] = today.split("-").map(Number);
+  const oneYearAgo = `${y - 1}-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+  if (input < oneYearAgo) return today;
+  return input;
 }
 
 async function summarizeRange(
@@ -680,7 +705,21 @@ async function extractExpense(text: string, lovableKey: string) {
       messages: [
         {
           role: "system",
-          content: `Você extrai despesas pessoais de mensagens em português brasileiro. Hoje é ${today}. Categorias permitidas: ${CATEGORIES.join(", ")}. Se faltar valor numérico, retorne confidence baixo.`,
+          content: `Você extrai despesas pessoais de mensagens em português brasileiro. Hoje é ${today} (timezone America/Sao_Paulo). Categorias permitidas: ${CATEGORIES.join(", ")}.
+
+REGRAS DE DATA (campo "date" no formato YYYY-MM-DD):
+- "hoje" ou sem menção de data → use ${today}
+- "ontem" → subtraia 1 dia de hoje
+- "anteontem" ou "antes de ontem" → subtraia 2 dias
+- "há N dias" / "faz N dias" → subtraia N dias
+- "há uma semana" / "semana passada" → subtraia 7 dias
+- "segunda", "terça", etc. (sem "que vem") → última ocorrência passada desse dia da semana
+- "dia 15", "no dia 10" → dia 15/10 do MÊS ATUAL (ou mês anterior se for data futura)
+- "10/03", "15/02/2025" → essa data exata
+- NUNCA retorne data no futuro (limite máximo: hoje)
+- NUNCA retorne data com mais de 1 ano atrás
+
+Se faltar valor numérico, retorne confidence baixo.`,
         },
         { role: "user", content: text },
       ],
@@ -811,7 +850,14 @@ async function transcribeAudio(fileId: string, mimeHint: string, lovableKey: str
 
 async function extractExpenseFromImage(imageDataUrl: string, caption: string, lovableKey: string) {
   const today = todayBR();
-  const sysPrompt = `Você extrai despesas pessoais de imagens de cupons fiscais, notas fiscais ou comprovantes em português brasileiro. Hoje é ${today}. Categorias permitidas: ${CATEGORIES.join(", ")}. Some o valor TOTAL do comprovante (não item por item). Se a imagem não for um comprovante legível, retorne confidence baixo.${caption ? ` Contexto adicional do usuário: "${caption}"` : ""}`;
+  const sysPrompt = `Você extrai despesas pessoais de imagens de cupons fiscais, notas fiscais ou comprovantes em português brasileiro. Hoje é ${today} (timezone America/Sao_Paulo). Categorias permitidas: ${CATEGORIES.join(", ")}.
+
+REGRAS:
+- Some o valor TOTAL do comprovante (não item por item).
+- Para o campo "date" (YYYY-MM-DD): use a DATA IMPRESSA NO COMPROVANTE quando legível (data da compra/emissão). Se ilegível, use ${today}.
+- Se o usuário mencionar uma data na legenda (ex: "ontem", "dia 10", "15/03"), priorize essa data sobre a do comprovante.
+- NUNCA retorne data no futuro.
+- Se a imagem não for um comprovante legível, retorne confidence baixo.${caption ? `\n\nLegenda do usuário: "${caption}"` : ""}`;
 
   const resp = await fetch(AI_GATEWAY, {
     method: "POST",
@@ -989,16 +1035,17 @@ Deno.serve(async (req) => {
             if (!extracted || !extracted.amount || extracted.confidence < 0.5) {
               await tgSend(chatId, "🤔 Não consegui ler o comprovante. Tente uma foto mais nítida ou envie por texto.", LOVABLE_API_KEY, TELEGRAM_API_KEY);
             } else {
+              const finalDate = sanitizeDate(extracted.date);
               const { data: ins, error: insErr } = await admin.from("expenses").insert({
                 user_id: link.user_id,
                 description: extracted.description || "Comprovante",
                 amount: extracted.amount,
                 category: CATEGORIES.includes(extracted.category) ? extracted.category : "Outros",
-                due_date: extracted.date || todayBR(),
+                due_date: finalDate,
                 type: "fixa",
                 scope: "personal",
                 paid: true,
-                paid_date: extracted.date || todayBR(),
+                paid_date: finalDate,
               }).select("id").single();
               if (insErr || !ins) {
                 await tgSend(chatId, "❌ Erro ao salvar: " + (insErr?.message ?? "desconhecido"), LOVABLE_API_KEY, TELEGRAM_API_KEY);
@@ -1006,7 +1053,7 @@ Deno.serve(async (req) => {
                 const finalCategory = CATEGORIES.includes(extracted.category) ? extracted.category : "Outros";
                 const fmt = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(extracted.amount);
                 await tgSendWithKeyboard(chatId,
-                  `📸 *Despesa extraída do comprovante*\n\n💰 ${fmt}\n📂 ${finalCategory}\n📝 ${extracted.description}\n📅 ${extracted.date}`,
+                  `📸 *Despesa extraída do comprovante*\n\n💰 ${fmt}\n📂 ${finalCategory}\n📝 ${extracted.description}\n📅 ${finalDate}`,
                   buildExpenseKeyboard(ins.id),
                   LOVABLE_API_KEY, TELEGRAM_API_KEY);
                 await checkBudgetAndAlert(admin, link.user_id, chatId, finalCategory, LOVABLE_API_KEY, TELEGRAM_API_KEY);
@@ -1044,16 +1091,17 @@ Deno.serve(async (req) => {
             if (!extracted || !extracted.amount || extracted.confidence < 0.6) {
               await tgSend(chatId, `🎤 Transcrevi: _"${transcript}"_\n\n🤔 Mas não consegui identificar a despesa. Tente reformular.`, LOVABLE_API_KEY, TELEGRAM_API_KEY);
             } else {
+              const finalDate = sanitizeDate(extracted.date);
               const { data: ins, error: insErr } = await admin.from("expenses").insert({
                 user_id: link.user_id,
                 description: extracted.description || transcript.slice(0, 80),
                 amount: extracted.amount,
                 category: CATEGORIES.includes(extracted.category) ? extracted.category : "Outros",
-                due_date: extracted.date || todayBR(),
+                due_date: finalDate,
                 type: "fixa",
                 scope: "personal",
                 paid: true,
-                paid_date: extracted.date || todayBR(),
+                paid_date: finalDate,
               }).select("id").single();
               if (insErr || !ins) {
                 await tgSend(chatId, "❌ Erro ao salvar: " + (insErr?.message ?? "desconhecido"), LOVABLE_API_KEY, TELEGRAM_API_KEY);
@@ -1061,7 +1109,7 @@ Deno.serve(async (req) => {
                 const finalCategory = CATEGORIES.includes(extracted.category) ? extracted.category : "Outros";
                 const fmt = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(extracted.amount);
                 await tgSendWithKeyboard(chatId,
-                  `🎤 *Despesa registrada por áudio*\n\n_"${transcript}"_\n\n💰 ${fmt}\n📂 ${finalCategory}\n📝 ${extracted.description}\n📅 ${extracted.date}`,
+                  `🎤 *Despesa registrada por áudio*\n\n_"${transcript}"_\n\n💰 ${fmt}\n📂 ${finalCategory}\n📝 ${extracted.description}\n📅 ${finalDate}`,
                   buildExpenseKeyboard(ins.id),
                   LOVABLE_API_KEY, TELEGRAM_API_KEY);
                 await checkBudgetAndAlert(admin, link.user_id, chatId, finalCategory, LOVABLE_API_KEY, TELEGRAM_API_KEY);
@@ -1197,16 +1245,17 @@ Deno.serve(async (req) => {
               if (!extracted || !extracted.amount || extracted.confidence < 0.6) {
                 await tgSend(chatId, "🤔 Não consegui entender. Tente algo como:\n_\"mercado 80 alimentação\"_ ou _\"uber 25 ontem\"_", LOVABLE_API_KEY, TELEGRAM_API_KEY);
               } else {
+                const finalDate = sanitizeDate(extracted.date);
                 const { data: ins, error: insErr } = await admin.from("expenses").insert({
                   user_id: link.user_id,
                   description: extracted.description || text.slice(0, 80),
                   amount: extracted.amount,
                   category: CATEGORIES.includes(extracted.category) ? extracted.category : "Outros",
-                  due_date: extracted.date || today,
+                  due_date: finalDate,
                   type: "fixa",
                   scope: "personal",
                   paid: true,
-                  paid_date: extracted.date || today,
+                  paid_date: finalDate,
                 }).select("id").single();
                 if (insErr || !ins) {
                   await tgSend(chatId, "❌ Erro ao salvar: " + (insErr?.message ?? "desconhecido"), LOVABLE_API_KEY, TELEGRAM_API_KEY);
@@ -1214,7 +1263,7 @@ Deno.serve(async (req) => {
                   const finalCategory = CATEGORIES.includes(extracted.category) ? extracted.category : "Outros";
                   const fmt = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(extracted.amount);
                   await tgSendWithKeyboard(chatId,
-                    `✅ *Despesa registrada*\n\n💰 ${fmt}\n📂 ${finalCategory}\n📝 ${extracted.description}\n📅 ${extracted.date}`,
+                    `✅ *Despesa registrada*\n\n💰 ${fmt}\n📂 ${finalCategory}\n📝 ${extracted.description}\n📅 ${finalDate}`,
                     buildExpenseKeyboard(ins.id),
                     LOVABLE_API_KEY, TELEGRAM_API_KEY);
                   await checkBudgetAndAlert(admin, link.user_id, chatId, finalCategory, LOVABLE_API_KEY, TELEGRAM_API_KEY);
