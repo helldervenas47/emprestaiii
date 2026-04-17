@@ -349,6 +349,7 @@ const Index = () => {
     if (tab === "dashboard") setShowLoanForm(true);
     else if (tab === "clients" && clientSubTab === "clientes") setShowClientForm(true);
     else if (tab === "expenses") {
+      if (expenseSubTab === "personal" && personalSubTab === "cards") return;
       if (expenseSubTab === "personal") setShowPersonalExpenseForm(true);
       else setShowExpenseForm(true);
     }
@@ -358,7 +359,11 @@ const Index = () => {
   const primaryLabel =
     tab === "dashboard" ? "Novo Empréstimo" :
     tab === "clients" && clientSubTab === "clientes" ? "Novo Cliente" :
-    tab === "expenses" ? (expenseSubTab === "personal" ? "Nova Despesa Pessoal" : "Nova Despesa") :
+    tab === "expenses"
+      ? expenseSubTab === "personal"
+        ? personalSubTab === "cards" ? "" : "Nova Despesa Pessoal"
+        : "Nova Despesa"
+      :
     tab === "products" ? "Novo Lançamento" :
     tab === "vehicles" ? "Novo Aluguel" : "";
 
