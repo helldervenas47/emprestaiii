@@ -173,6 +173,15 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, onUpda
     return map;
   }, [spendingMonth, getInstallmentAmount]);
 
+  // Committed per category (paid + pending) — used only to sort budget subcards
+  const committedByCategory = useMemo(() => {
+    const map = new Map<string, number>();
+    spendingMonth.forEach((e) => {
+      map.set(e.category, (map.get(e.category) || 0) + getInstallmentAmount(e));
+    });
+    return map;
+  }, [spendingMonth, getInstallmentAmount]);
+
   const totalBudget = budgets.reduce((s, b) => s + b.amount, 0);
   const totalSpentBudgeted = budgets.reduce((s, b) => s + (spentByCategory.get(b.category) || 0), 0);
 
@@ -410,8 +419,8 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, onUpda
                 {budgets
                   .slice()
                   .sort((a, b) => {
-                    const sa = spentByCategory.get(a.category) || 0;
-                    const sb = spentByCategory.get(b.category) || 0;
+                    const sa = committedByCategory.get(a.category) || 0;
+                    const sb = committedByCategory.get(b.category) || 0;
                     if (sb !== sa) return sb - sa;
                     return a.category.localeCompare(b.category, "pt-BR");
                   })
@@ -780,8 +789,8 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, onUpda
             {personalCategories
               .slice()
               .sort((a, b) => {
-                const sa = spentByCategory.get(a.name) || 0;
-                const sb = spentByCategory.get(b.name) || 0;
+                const sa = committedByCategory.get(a.name) || 0;
+                const sb = committedByCategory.get(b.name) || 0;
                 if (sb !== sa) return sb - sa;
                 return a.name.localeCompare(b.name, "pt-BR");
               })
