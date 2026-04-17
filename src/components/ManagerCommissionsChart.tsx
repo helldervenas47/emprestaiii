@@ -204,8 +204,7 @@ export function ManagerCommissionsChart({
                     </span>
                   </div>
                 </div>
-              </div>
-            ))}
+              </button>
           </div>
         )}
         <p className="text-[10px] text-muted-foreground mt-3 italic text-center">
