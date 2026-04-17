@@ -171,7 +171,6 @@ export function CreditCardList({ readOnly = false }: Props) {
   const [editing, setEditing] = useState<CreditCard | null>(null);
   const [deleting, setDeleting] = useState<CreditCard | null>(null);
   const [invoiceCard, setInvoiceCard] = useState<CreditCard | null>(null);
-  const [dueFilter, setDueFilter] = useState<string>("all");
 
   const handleNew = () => {
     setEditing(null);
