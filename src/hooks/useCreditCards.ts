@@ -99,6 +99,7 @@ export function useCreditCards() {
         credit_limit: input.creditLimit,
         closing_day: input.closingDay,
         due_day: input.dueDay,
+        ...(input.active !== undefined ? { active: input.active } : {}),
       })
       .eq("id", id)
       .select()
