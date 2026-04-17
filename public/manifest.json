@@ -8,7 +8,7 @@
   "display_override": ["standalone", "minimal-ui"],
   "background_color": "#0F172A",
   "theme_color": "#0F172A",
-  "orientation": "portrait",
+  "orientation": "any",
   "categories": ["finance", "business"],
   "icons": [
     { "src": "/logo-72.png", "sizes": "72x72", "type": "image/png", "purpose": "any" },
