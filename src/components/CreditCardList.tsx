@@ -1,7 +1,15 @@
-import { useState } from "react";
-import { Plus, CreditCard as CreditCardIcon, ChevronUp } from "lucide-react";
+import { useState, useMemo } from "react";
+import { Plus, CreditCard as CreditCardIcon, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useCreditCards, CreditCard } from "@/hooks/useCreditCards";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { CreditCardItem } from "./CreditCardItem";
 import { CreditCardForm } from "./CreditCardForm";
 import { CreditCardInvoice } from "./CreditCardInvoice";
@@ -13,11 +21,13 @@ interface Props {
 
 export function CreditCardList({ readOnly = false }: Props) {
   const { cards, loading, addCard, updateCard, deleteCard } = useCreditCards();
+  const isMobile = useIsMobile();
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<CreditCard | null>(null);
   const [deleting, setDeleting] = useState<CreditCard | null>(null);
-  const [expanded, setExpanded] = useState(false);
   const [invoiceCard, setInvoiceCard] = useState<CreditCard | null>(null);
+  const [showMobileList, setShowMobileList] = useState(false);
+  const [dueFilter, setDueFilter] = useState<string>("all");
 
   const handleNew = () => {
     setEditing(null);
@@ -29,30 +39,67 @@ export function CreditCardList({ readOnly = false }: Props) {
     setShowForm(true);
   };
 
-  // Cards stacked like a wallet — overlap when collapsed, fan out sideways when expanded
-  const STACK_PEEK = 22; // px visible of each card when collapsed (vertical)
-  const SIDE_PEEK_PCT = 22; // % of card width revealed for each next card when expanded
-  const CARD_W = "14rem"; // smaller card width
+  // Build the list of due-day options actually in use
+  const dueDayOptions = useMemo(() => {
+    const set = new Set<number>();
+    cards.forEach((c) => set.add(c.dueDay));
+    return Array.from(set).sort((a, b) => a - b);
+  }, [cards]);
+
+  const filteredCards = useMemo(() => {
+    if (dueFilter === "all") return cards;
+    return cards.filter((c) => String(c.dueDay) === dueFilter);
+  }, [cards, dueFilter]);
+
+  const handleCardClick = (card: CreditCard) => {
+    if (isMobile && !showMobileList) {
+      setShowMobileList(true);
+    } else {
+      setInvoiceCard(card);
+    }
+  };
+
+  const renderCardGrid = (list: CreditCard[]) => (
+    <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+      {list.map((card) => (
+        <div
+          key={card.id}
+          className="cursor-pointer transition-transform hover:-translate-y-1"
+          onClick={() => handleCardClick(card)}
+        >
+          <CreditCardItem
+            card={card}
+            onEdit={readOnly ? undefined : () => handleEdit(card)}
+            onDelete={readOnly ? undefined : () => setDeleting(card)}
+            readOnly={readOnly}
+          />
+        </div>
+      ))}
+    </div>
+  );
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
         <h2 className="text-lg font-semibold text-foreground">
-          Cartões ({cards.length})
+          Cartões ({filteredCards.length}
+          {filteredCards.length !== cards.length ? `/${cards.length}` : ""})
         </h2>
-        <div className="flex items-center gap-2">
-          {cards.length > 1 && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setExpanded((v) => !v)}
-              className="gap-1"
-            >
-              <ChevronUp
-                className={`h-4 w-4 transition-transform ${expanded ? "rotate-90" : "rotate-180"}`}
-              />
-              {expanded ? "Recolher" : "Expandir"}
-            </Button>
+        <div className="flex items-center gap-2 flex-wrap">
+          {dueDayOptions.length > 0 && (
+            <Select value={dueFilter} onValueChange={setDueFilter}>
+              <SelectTrigger className="h-8 w-[160px] text-xs">
+                <SelectValue placeholder="Vencimento" />
+              </SelectTrigger>
+              <SelectContent className="bg-background">
+                <SelectItem value="all">Todos vencimentos</SelectItem>
+                {dueDayOptions.map((d) => (
+                  <SelectItem key={d} value={String(d)}>
+                    Vence dia {d}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           )}
           {!readOnly && (
             <Button onClick={handleNew} size="sm">
@@ -74,71 +121,80 @@ export function CreditCardList({ readOnly = false }: Props) {
             </Button>
           )}
         </div>
-      ) : (
-        <div className="w-full overflow-x-auto pb-2">
-          <div
-            className="relative mx-auto transition-all duration-500 ease-out"
-            style={
-              expanded
-                ? {
-                    width: `calc(${CARD_W} + (${CARD_W} * ${SIDE_PEEK_PCT / 100}) * ${cards.length - 1})`,
-                    minWidth: CARD_W,
-                    paddingBottom: `calc(${CARD_W} / 1.586)`,
-                  }
-                : {
-                    width: CARD_W,
-                    paddingBottom: `calc((${CARD_W} / 1.586) + ${(cards.length - 1) * STACK_PEEK}px)`,
-                  }
-            }
-          >
-            {cards.map((card, i) => {
-              const positionStyle: React.CSSProperties = expanded
-                ? {
-                    left: `calc((${CARD_W} * ${SIDE_PEEK_PCT / 100}) * ${i})`,
-                    top: 0,
-                    width: CARD_W,
-                    zIndex: i + 1,
-                  }
-                : {
-                    left: 0,
-                    width: CARD_W,
-                    top: `${i * STACK_PEEK}px`,
-                    zIndex: i + 1,
-                  };
-              return (
-                <div
-                  key={card.id}
-                  className="absolute transition-all duration-500 ease-out cursor-pointer hover:-translate-y-1"
-                  style={positionStyle}
-                  onClick={() => {
-                    if (!expanded && cards.length > 1) {
-                      setExpanded(true);
-                    } else {
-                      setInvoiceCard(card);
-                    }
-                  }}
-                >
-                  <CreditCardItem
-                    card={card}
-                    onEdit={expanded ? () => handleEdit(card) : undefined}
-                    onDelete={expanded ? () => setDeleting(card) : undefined}
-                    readOnly={readOnly || !expanded}
-                  />
-                </div>
-              );
-            })}
-          </div>
+      ) : filteredCards.length === 0 ? (
+        <div className="text-center text-muted-foreground py-12 text-sm">
+          Nenhum cartão com esse vencimento
         </div>
+      ) : isMobile ? (
+        // Mobile: stacked vertically (one column), tapping any card opens full-screen list
+        <div className="flex flex-col gap-3">
+          {filteredCards.map((card) => (
+            <div
+              key={card.id}
+              className="cursor-pointer"
+              onClick={() => handleCardClick(card)}
+            >
+              <CreditCardItem card={card} readOnly />
+            </div>
+          ))}
+        </div>
+      ) : (
+        // Desktop / tablet: grid layout side by side
+        renderCardGrid(filteredCards)
       )}
 
-      {cards.length > 0 && (
-        <p className="text-center text-xs text-muted-foreground mt-4">
-          {expanded
-            ? "Clique em um cartão para ver a fatura"
-            : cards.length > 1
-            ? "Clique na pilha para expandir"
-            : "Clique no cartão para ver a fatura"}
-        </p>
+      {/* Mobile full-screen list of all cards */}
+      {showMobileList && (
+        <div className="fixed inset-0 z-50 bg-background overflow-y-auto">
+          <div className="sticky top-0 bg-background border-b border-border flex items-center justify-between px-4 py-3 z-10">
+            <h2 className="text-lg font-semibold text-foreground">
+              Meus cartões
+            </h2>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setShowMobileList(false)}
+            >
+              <X className="h-5 w-5" />
+            </Button>
+          </div>
+          <div className="p-4 space-y-3">
+            {filteredCards.map((card) => (
+              <div
+                key={card.id}
+                className="cursor-pointer"
+                onClick={() => {
+                  setShowMobileList(false);
+                  setInvoiceCard(card);
+                }}
+              >
+                <CreditCardItem
+                  card={card}
+                  onEdit={readOnly ? undefined : () => {
+                    setShowMobileList(false);
+                    handleEdit(card);
+                  }}
+                  onDelete={readOnly ? undefined : () => {
+                    setDeleting(card);
+                  }}
+                  readOnly={readOnly}
+                />
+              </div>
+            ))}
+            {!readOnly && (
+              <Button
+                onClick={() => {
+                  setShowMobileList(false);
+                  handleNew();
+                }}
+                variant="outline"
+                className="w-full"
+              >
+                <Plus className="h-4 w-4 mr-1" /> Novo Cartão
+              </Button>
+            )}
+          </div>
+        </div>
       )}
 
       {showForm && (
