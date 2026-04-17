@@ -498,6 +498,7 @@ export function ExpenseList({ expenses, onPay, onUnpay, onDelete, onUpdate, read
                           {!readOnly && !expense.paid && (
                             <Button size="sm" variant="outline" className="text-success border-success/30 hover:bg-success hover:text-success-foreground h-7 text-xs" onClick={() => {
                               setPayDate(new Date().toISOString().split("T")[0]);
+                              setPaidAmountInput("");
                               setPayingExpenseId(expense.id);
                             }}>
                               <CheckCircle className="h-3.5 w-3.5 mr-1" />
