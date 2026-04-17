@@ -885,7 +885,14 @@ REGRAS DE DATA (campo "date" no formato YYYY-MM-DD):
 - NUNCA retorne data no futuro (limite máximo: hoje)
 - NUNCA retorne data com mais de 1 ano atrás
 
-Se faltar valor numérico, retorne confidence baixo.`,
+Se faltar valor numérico, retorne confidence baixo.
+
+PARCELAMENTO (campo "installments"):
+- Detecte expressões como "10x", "em 3x", "em 12 vezes", "parcelado em 6", "6 parcelas", "dividido em 4".
+- Quando o usuário disser "3 vezes de 50", o valor TOTAL é 3*50=150 e installments=3.
+- Quando o usuário disser "300 em 3x", o valor TOTAL é 300 e installments=3.
+- Se NÃO houver menção de parcelas, omita o campo (ou retorne 1).
+- O campo "amount" deve ser SEMPRE o valor TOTAL da compra, não o valor da parcela.`,
         },
         { role: "user", content: text },
       ],
@@ -897,10 +904,11 @@ Se faltar valor numérico, retorne confidence baixo.`,
           parameters: {
             type: "object",
             properties: {
-              description: { type: "string", description: "Descrição curta (sem o valor)" },
-              amount: { type: "number", description: "Valor em reais" },
+              description: { type: "string", description: "Descrição curta (sem o valor e sem o parcelamento)" },
+              amount: { type: "number", description: "Valor TOTAL em reais (não o valor da parcela)" },
               category: { type: "string", enum: CATEGORIES },
               date: { type: "string", description: "Data YYYY-MM-DD; default hoje" },
+              installments: { type: "number", description: "Número de parcelas (2 a 36). Omitir ou 1 se à vista." },
               confidence: { type: "number", description: "0 a 1" },
             },
             required: ["description", "amount", "category", "date", "confidence"],
