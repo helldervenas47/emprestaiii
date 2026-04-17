@@ -186,6 +186,7 @@ function LoanCardView({
   const [showTagInput, setShowTagInput] = useState(false);
   const [newTag, setNewTag] = useState("");
   const [paymentDialog, setPaymentDialog] = useState<{ type: "installment" | "interest" | "partial" | "full"; amount?: number } | null>(null);
+  const [payoffAmount, setPayoffAmount] = useState("");
   const [paymentDate, setPaymentDate] = useState<Date>(new Date());
   const [showHistory, setShowHistory] = useState(false);
   const [showDetails, setShowDetails] = useState(false);
@@ -371,15 +372,19 @@ function LoanCardView({
     if (!paymentDialog) return;
     const dateStr = paymentDate.toISOString().split("T")[0];
     if (paymentDialog.type === "full") {
+      const customRaw = parseFloat(payoffAmount.replace(",", "."));
+      const custom = isFinite(customRaw) && customRaw > 0 ? customRaw : undefined;
       if (onFullPayment) {
-        onFullPayment(dateStr);
+        onFullPayment(dateStr, custom);
       } else {
-        onPartialPayment(remaining, dateStr);
+        const amt = custom ?? remaining;
+        onPartialPayment(amt, dateStr);
         onUpdate({ paidInstallments: loan.installments, status: "paid" });
       }
     } else if (paymentDialog.type === "installment") onPayment(dateStr);
     else if (paymentDialog.type === "interest") onInterestPayment(dateStr);
     else if (paymentDialog.type === "partial" && paymentDialog.amount) onPartialPayment(paymentDialog.amount, dateStr);
+    setPayoffAmount("");
     setPaymentDialog(null);
   };
 
@@ -1227,9 +1232,27 @@ function LoanCardView({
         </DialogHeader>
         <div className="flex flex-col items-center gap-2">
           {paymentDialog?.type === "full" && (
-            <div className="text-center p-3 bg-muted/50 rounded-lg w-full">
-              <p className="text-xs text-muted-foreground">Valor restante a receber</p>
-              <p className="text-2xl font-bold text-primary">{formatCurrency(remaining)}</p>
+            <div className="w-full space-y-2">
+              <div className="text-center p-3 bg-muted/50 rounded-lg w-full">
+                <p className="text-xs text-muted-foreground">Total restante a receber</p>
+                <p className="text-2xl font-bold text-primary">{formatCurrency(remaining)}</p>
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="payoff-amount" className="text-xs">Valor para quitar (opcional)</Label>
+                <Input
+                  id="payoff-amount"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  inputMode="decimal"
+                  value={payoffAmount}
+                  onChange={(e) => setPayoffAmount(e.target.value)}
+                  placeholder={`Ex: ${remaining.toFixed(2)}`}
+                />
+                <p className="text-[10px] text-muted-foreground">
+                  Informe um valor diferente para quitar o contrato por esse montante. Em branco usa o restante.
+                </p>
+              </div>
             </div>
           )}
           <Label className="text-sm text-muted-foreground">Selecione a data do pagamento</Label>
