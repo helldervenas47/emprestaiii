@@ -1432,20 +1432,33 @@ Deno.serve(async (req) => {
                   basePayload.paid_date = finalDate;
                 }
 
-                const { data: ins, error: insErr } = await admin
+                // Send confirmation IMMEDIATELY (in parallel with DB insert) so the user
+                // sees the summary in real time, regardless of DB latency.
+                const fmt = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(extracted.amount);
+                const header = card
+                  ? `💳 *Compra no cartão registrada*`
+                  : `✅ *Despesa registrada*`;
+                const cardLine = card ? `\n💳 ${card.nickname || card.bank} (vence ${displayDate})` : "";
+                const summaryText = `${header}\n\n💰 ${fmt}\n📂 ${finalCategory}${cardLine}\n📝 ${extracted.description}\n📅 ${displayDate}`;
+
+                const insertPromise = admin
                   .from("expenses")
                   .insert(basePayload)
                   .select("id").single();
+
+                // Fire confirmation send in parallel with the insert.
+                const [insRes] = await Promise.all([
+                  insertPromise,
+                  tgSend(chatId, summaryText, LOVABLE_API_KEY, TELEGRAM_API_KEY),
+                ]);
+
+                const { data: ins, error: insErr } = insRes as any;
                 if (insErr || !ins) {
-                  await tgSend(chatId, "❌ Erro ao salvar: " + (insErr?.message ?? "desconhecido"), LOVABLE_API_KEY, TELEGRAM_API_KEY);
+                  await tgSend(chatId, "❌ Erro ao salvar no banco: " + (insErr?.message ?? "desconhecido"), LOVABLE_API_KEY, TELEGRAM_API_KEY);
                 } else {
-                  const fmt = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(extracted.amount);
-                  const header = card
-                    ? `💳 *Compra no cartão registrada*`
-                    : `✅ *Despesa registrada*`;
-                  const cardLine = card ? `\n💳 ${card.nickname || card.bank} (vence ${displayDate})` : "";
+                  // Follow-up message with edit/delete keyboard (needs the inserted id).
                   await tgSendWithKeyboard(chatId,
-                    `${header}\n\n💰 ${fmt}\n📂 ${finalCategory}${cardLine}\n📝 ${extracted.description}\n📅 ${displayDate}`,
+                    `🔧 Ações para a despesa acima:`,
                     buildExpenseKeyboard(ins.id),
                     LOVABLE_API_KEY, TELEGRAM_API_KEY);
                   if (!card) {
