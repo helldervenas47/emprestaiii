@@ -82,6 +82,21 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, onUpda
   } = usePersonalBudgets(true, selectedMonth);
   const [historyMonths, setHistoryMonths] = useState<3 | 6 | 12>(6);
 
+  // Helpers de recorrência: parceladas e fixas se replicam mês a mês.
+  const isRecurringMonthly = (e: Expense) =>
+    e.type === "recorrente" && !!e.installments && e.installments > 1;
+
+  /** True se a despesa parcelada/fixa "ocorre" no mês YYYY-MM informado. */
+  const occursInMonth = useCallback((e: Expense, yyyymm: string) => {
+    if (!isRecurringMonthly(e)) return e.dueDate.startsWith(yyyymm);
+    const [sY, sM] = yyyymm.split("-").map(Number);
+    const [dY, dM] = e.dueDate.split("-").map(Number);
+    const start = dY * 12 + dM;
+    const sel = sY * 12 + sM;
+    const end = start + (e.installments! - 1);
+    return sel >= start && sel <= end;
+  }, []);
+
   // Monthly evolution per category — last N months
   const historyData = useMemo(() => {
     const months: { key: string; label: string }[] = [];
@@ -93,38 +108,36 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, onUpda
         label: format(d, "MMM/yy", { locale: ptBR }),
       });
     }
-    const monthSet = new Set(months.map((m) => m.key));
     const categoriesPresent = new Set<string>();
     const byMonth: Record<string, Record<string, number>> = {};
     months.forEach((m) => (byMonth[m.key] = {}));
     expenses.forEach((e) => {
       if (isPiggyExpense(e.notes)) return; // Cofrinho transfers are not spending
-      const mk = e.dueDate.slice(0, 7);
-      if (!monthSet.has(mk)) return;
-      const amt = e.type === "recorrente" && e.installments && e.installments > 1
-        ? e.amount / e.installments
-        : e.amount;
-      byMonth[mk][e.category] = (byMonth[mk][e.category] || 0) + amt;
-      categoriesPresent.add(e.category);
+      const isRec = isRecurringMonthly(e);
+      const amt = isRec ? e.amount / e.installments! : e.amount;
+      months.forEach((m) => {
+        if (!occursInMonth(e, m.key)) return;
+        byMonth[m.key][e.category] = (byMonth[m.key][e.category] || 0) + amt;
+        categoriesPresent.add(e.category);
+      });
     });
     const data = months.map((m) => ({ month: m.label, ...byMonth[m.key] }));
     const cats = [...categoriesPresent];
     return { data, categories: cats };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [expenses, historyMonths]);
+  }, [expenses, historyMonths, occursInMonth]);
 
   const getInstallmentAmount = useCallback((e: Expense) => {
-    const isRec = e.type === "recorrente" && e.installments && e.installments > 1;
+    const isRec = isRecurringMonthly(e);
     return isRec ? e.amount / e.installments! : e.amount;
   }, []);
 
   const monthFiltered = useMemo(() => {
     return expenses.filter((e) => {
       if (e.paid && e.paidDate && e.paidDate.startsWith(selectedMonth)) return true;
-      if (e.dueDate.startsWith(selectedMonth)) return true;
-      return false;
+      return occursInMonth(e, selectedMonth);
     });
-  }, [expenses, selectedMonth]);
+  }, [expenses, selectedMonth, occursInMonth]);
 
   const isRecFullyPaid = (e: Expense) =>
     e.type === "recorrente" && !!e.installments && e.installments > 1 && e.paid;
@@ -182,7 +195,7 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, onUpda
     spendingMonth.forEach((e) => {
       const inMonth = e.paid
         ? true // já está em spendingMonth porque foi pago no mês
-        : e.dueDate.startsWith(selectedMonth);
+        : occursInMonth(e, selectedMonth);
       if (!inMonth) return;
       map.set(e.category, (map.get(e.category) || 0) + getInstallmentAmount(e));
     });
