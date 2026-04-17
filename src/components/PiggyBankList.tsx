@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { PiggyBank, Plus, TrendingUp, Trash2, Pencil, Sparkles, Wallet } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { PiggyBank, Plus, TrendingUp, Trash2, Pencil, Sparkles, Wallet, History, ArrowDownCircle, ArrowUpCircle, Repeat, Receipt } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -9,7 +9,8 @@ import {
 } from "@/components/ui/dialog";
 import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
 import { useHideValues } from "@/contexts/HideValuesContext";
-import { usePiggyBanks, type PiggyBank as PiggyBankType } from "@/hooks/usePiggyBanks";
+import { usePiggyBanks, type PiggyBank as PiggyBankType, type PiggyBankDeposit } from "@/hooks/usePiggyBanks";
+import { supabase } from "@/integrations/supabase/client";
 
 const fmt = (v: number) =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v);
@@ -25,7 +26,7 @@ interface Props {
 
 export function PiggyBankList({ readOnly = false }: Props) {
   const { mask } = useHideValues();
-  const { piggyBanks, balances, createPiggyBank, updatePiggyBank, deletePiggyBank, adjustBalance } = usePiggyBanks();
+  const { piggyBanks, deposits, balances, createPiggyBank, updatePiggyBank, deletePiggyBank, adjustBalance } = usePiggyBanks();
 
   const [createOpen, setCreateOpen] = useState(false);
   const [editing, setEditing] = useState<PiggyBankType | null>(null);
@@ -33,6 +34,8 @@ export function PiggyBankList({ readOnly = false }: Props) {
   const [draft, setDraft] = useState({ name: "", color: PALETTE[0], annualRate: "11.15" });
   const [adjustTarget, setAdjustTarget] = useState<PiggyBankType | null>(null);
   const [adjustValue, setAdjustValue] = useState("");
+  const [historyTarget, setHistoryTarget] = useState<PiggyBankType | null>(null);
+  const [expensesById, setExpensesById] = useState<Record<string, { description: string; category: string }>>({});
 
   const openCreate = () => {
     setDraft({ name: "", color: PALETTE[0], annualRate: "11.15" });
@@ -56,6 +59,42 @@ export function PiggyBankList({ readOnly = false }: Props) {
     await adjustBalance(adjustTarget.id, v);
     setAdjustTarget(null);
   };
+
+  const historyDeposits = useMemo<PiggyBankDeposit[]>(() => {
+    if (!historyTarget) return [];
+    return deposits
+      .filter((d) => d.piggyBankId === historyTarget.id)
+      .slice()
+      .sort((a, b) => {
+        if (a.depositDate !== b.depositDate) return a.depositDate < b.depositDate ? 1 : -1;
+        return a.id < b.id ? 1 : -1;
+      });
+  }, [historyTarget, deposits]);
+
+  // Fetch linked expenses (description/category) for the history dialog.
+  useEffect(() => {
+    if (!historyTarget) return;
+    const ids = Array.from(
+      new Set(historyDeposits.map((d) => d.expenseId).filter((id): id is string => !!id))
+    );
+    const missing = ids.filter((id) => !(id in expensesById));
+    if (missing.length === 0) return;
+    (async () => {
+      const { data } = await supabase
+        .from("expenses")
+        .select("id, description, category")
+        .in("id", missing);
+      if (data) {
+        setExpensesById((prev) => {
+          const next = { ...prev };
+          for (const row of data as any[]) {
+            next[row.id] = { description: row.description, category: row.category };
+          }
+          return next;
+        });
+      }
+    })();
+  }, [historyTarget, historyDeposits, expensesById]);
 
   const save = async () => {
     if (!draft.name.trim()) return;
@@ -109,8 +148,18 @@ export function PiggyBankList({ readOnly = false }: Props) {
             return (
               <div
                 key={pb.id}
-                className="rounded-xl border border-border/40 p-3 flex items-center gap-3"
+                role="button"
+                tabIndex={0}
+                onClick={() => setHistoryTarget(pb)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    setHistoryTarget(pb);
+                  }
+                }}
+                className="rounded-xl border border-border/40 p-3 flex items-center gap-3 cursor-pointer hover:border-border transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 style={{ background: `hsl(${pb.color} / 0.05)` }}
+                title="Ver histórico de aportes"
               >
                 <div
                   className="h-9 w-9 rounded-lg flex items-center justify-center shrink-0"
@@ -135,27 +184,32 @@ export function PiggyBankList({ readOnly = false }: Props) {
                     )}
                   </p>
                 </div>
-                <div className="text-right shrink-0">
+                <div className="text-right shrink-0" onClick={(e) => e.stopPropagation()}>
                   <p className="text-sm font-bold text-foreground">{mask(fmt(b?.balance ?? 0))}</p>
-                  {!readOnly && (
-                    <div className="flex gap-0.5 justify-end mt-0.5">
-                      <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => openAdjust(pb)} title="Ajustar saldo">
-                        <Wallet className="h-3 w-3" />
-                      </Button>
-                      <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => openEdit(pb)} title="Editar">
-                        <Pencil className="h-3 w-3" />
-                      </Button>
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        className="h-6 w-6 text-destructive hover:text-destructive hover:bg-destructive/10"
-                        onClick={() => setDeleteId(pb.id)}
-                        title="Excluir"
-                      >
-                        <Trash2 className="h-3 w-3" />
-                      </Button>
-                    </div>
-                  )}
+                  <div className="flex gap-0.5 justify-end mt-0.5">
+                    <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => setHistoryTarget(pb)} title="Histórico de aportes">
+                      <History className="h-3 w-3" />
+                    </Button>
+                    {!readOnly && (
+                      <>
+                        <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => openAdjust(pb)} title="Ajustar saldo">
+                          <Wallet className="h-3 w-3" />
+                        </Button>
+                        <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => openEdit(pb)} title="Editar">
+                          <Pencil className="h-3 w-3" />
+                        </Button>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="h-6 w-6 text-destructive hover:text-destructive hover:bg-destructive/10"
+                          onClick={() => setDeleteId(pb.id)}
+                          title="Excluir"
+                        >
+                          <Trash2 className="h-3 w-3" />
+                        </Button>
+                      </>
+                    )}
+                  </div>
                 </div>
               </div>
             );
@@ -280,6 +334,104 @@ export function PiggyBankList({ readOnly = false }: Props) {
           <DialogFooter>
             <Button variant="outline" onClick={() => setAdjustTarget(null)}>Cancelar</Button>
             <Button onClick={confirmAdjust}>Aplicar ajuste</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* History dialog */}
+      <Dialog open={!!historyTarget} onOpenChange={(o) => !o && setHistoryTarget(null)}>
+        <DialogContent className="sm:max-w-lg max-h-[85vh] flex flex-col">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              {historyTarget && (
+                <span
+                  className="h-7 w-7 rounded-md flex items-center justify-center"
+                  style={{ backgroundColor: `hsl(${historyTarget.color} / 0.18)` }}
+                >
+                  <PiggyBank className="h-3.5 w-3.5" style={{ color: `hsl(${historyTarget.color})` }} />
+                </span>
+              )}
+              Histórico de aportes — {historyTarget?.name}
+            </DialogTitle>
+            <DialogDescription>
+              {historyDeposits.length} {historyDeposits.length === 1 ? "movimentação" : "movimentações"}
+              {historyTarget && (
+                <> · Saldo atual: <span className="font-medium text-foreground">
+                  {fmt(balances.get(historyTarget.id)?.balance ?? 0)}
+                </span></>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="flex-1 overflow-y-auto -mx-2 px-2">
+            {historyDeposits.length === 0 ? (
+              <div className="rounded-lg border border-dashed border-border/60 p-6 text-center">
+                <Receipt className="h-6 w-6 mx-auto text-muted-foreground/50 mb-1.5" />
+                <p className="text-xs text-muted-foreground">
+                  Nenhum aporte registrado ainda. Cadastre uma despesa pessoal e
+                  selecione "Destinar a um cofrinho" para criar uma movimentação.
+                </p>
+              </div>
+            ) : (
+              <ul className="divide-y divide-border/40">
+                {historyDeposits.map((d) => {
+                  const isPositive = d.amount >= 0;
+                  const exp = d.expenseId ? expensesById[d.expenseId] : null;
+                  const sourceLabel =
+                    d.source === "manual"
+                      ? "Ajuste manual"
+                      : d.source === "recurring"
+                      ? "Aporte recorrente"
+                      : exp?.description
+                      ? "Despesa vinculada"
+                      : "Aporte";
+                  const SourceIcon =
+                    d.source === "recurring" ? Repeat : isPositive ? ArrowUpCircle : ArrowDownCircle;
+                  return (
+                    <li key={d.id} className="py-2.5 flex items-start gap-3">
+                      <span
+                        className={`h-8 w-8 rounded-lg flex items-center justify-center shrink-0 ${
+                          isPositive ? "bg-success/10 text-success" : "bg-destructive/10 text-destructive"
+                        }`}
+                      >
+                        <SourceIcon className="h-4 w-4" />
+                      </span>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between gap-2">
+                          <p className="text-sm font-medium text-foreground truncate">
+                            {exp?.description || sourceLabel}
+                          </p>
+                          <p
+                            className={`text-sm font-semibold tabular-nums shrink-0 ${
+                              isPositive ? "text-success" : "text-destructive"
+                            }`}
+                          >
+                            {isPositive ? "+" : ""}
+                            {fmt(d.amount)}
+                          </p>
+                        </div>
+                        <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 mt-0.5">
+                          <span className="text-[11px] text-muted-foreground">
+                            {d.depositDate.split("-").reverse().join("/")}
+                          </span>
+                          <span className="text-[11px] text-muted-foreground">·</span>
+                          <span className="text-[11px] text-muted-foreground">{sourceLabel}</span>
+                          {exp?.category && (
+                            <Badge variant="outline" className="text-[9px] px-1 py-0 h-4">
+                              {exp.category}
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setHistoryTarget(null)}>Fechar</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
