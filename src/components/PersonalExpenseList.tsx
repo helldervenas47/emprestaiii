@@ -173,6 +173,15 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, onUpda
     return map;
   }, [spendingMonth, getInstallmentAmount]);
 
+  // Committed per category (paid + pending) — used only to sort budget subcards
+  const committedByCategory = useMemo(() => {
+    const map = new Map<string, number>();
+    spendingMonth.forEach((e) => {
+      map.set(e.category, (map.get(e.category) || 0) + getInstallmentAmount(e));
+    });
+    return map;
+  }, [spendingMonth, getInstallmentAmount]);
+
   const totalBudget = budgets.reduce((s, b) => s + b.amount, 0);
   const totalSpentBudgeted = budgets.reduce((s, b) => s + (spentByCategory.get(b.category) || 0), 0);
 
