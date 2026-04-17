@@ -38,7 +38,7 @@ const fromRow = (r: any): CreditCard => ({
 
 export function useCreditCards() {
   const { user } = useAuth();
-  const { ownerId } = useDataOwner();
+  const ownerId = useDataOwner();
   const [cards, setCards] = useState<CreditCard[]>([]);
   const [loading, setLoading] = useState(true);
 

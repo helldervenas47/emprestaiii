@@ -31,7 +31,7 @@ export function CreditCardItem({ card, onEdit, onDelete, readOnly }: Props) {
         {/* Topo: chip + contactless + logo banco */}
         <div className="flex items-start justify-between relative">
           <div className="flex items-center gap-2">
-            <div className="h-9 w-12 rounded-md bg-gradient-to-br from-yellow-200/90 to-yellow-500/80 shadow-inner border border-yellow-100/30" />
+            <div className="h-9 w-12 rounded-md bg-gradient-to-br from-[hsl(45,90%,75%)] to-[hsl(40,80%,50%)] shadow-inner border border-[hsl(45,90%,80%)]/40" />
             <Wifi className="h-4 w-4 rotate-90 opacity-80" />
           </div>
           <div className="flex flex-col items-end">
