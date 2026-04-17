@@ -190,27 +190,69 @@ function buildCreditCardExpense(card: CardLite, _baseDescription: string, baseNo
   return { due_date: purchaseDate, paid: false, paid_date: null, notes, invoiceDueDate };
 }
 
+// Detects installment phrasing in the message and returns N parcels.
+// Examples: "10x", "em 3x", "em 12 vezes", "parcelado em 6", "6 parcelas",
+//           "dividido em 4", "4 vezes de 50".
+function detectInstallments(text: string): number | null {
+  const t = text.toLowerCase();
+  const patterns = [
+    /\bem\s+(\d{1,2})\s*x\b/i,
+    /\bem\s+(\d{1,2})\s+vezes\b/i,
+    /\bparcel(?:ad[oa])?\s+em\s+(\d{1,2})\b/i,
+    /\b(\d{1,2})\s+parcelas?\b/i,
+    /\bdividid[oa]?\s+em\s+(\d{1,2})\b/i,
+    /\b(\d{1,2})\s+vezes\s+de\b/i,
+    /\b(\d{1,2})\s*x\b/i,
+  ];
+  for (const re of patterns) {
+    const m = t.match(re);
+    if (m) {
+      const n = parseInt(m[1], 10);
+      if (n >= 2 && n <= 36) return n;
+    }
+  }
+  return null;
+}
+
+// Strips installment phrasing from description so it doesn't pollute the saved text.
+function stripInstallmentPhrase(desc: string): string {
+  return desc
+    .replace(/\bem\s+\d{1,2}\s*x\b/gi, "")
+    .replace(/\bem\s+\d{1,2}\s+vezes\b/gi, "")
+    .replace(/\bparcel(?:ad[oa])?\s+em\s+\d{1,2}\b/gi, "")
+    .replace(/\b\d{1,2}\s+parcelas?\b/gi, "")
+    .replace(/\bdividid[oa]?\s+em\s+\d{1,2}\b/gi, "")
+    .replace(/\b\d{1,2}\s+vezes\s+de\s+[\d.,]+\b/gi, "")
+    .replace(/\b\d{1,2}\s*x\b/gi, "")
+    .replace(/\s{2,}/g, " ")
+    .trim();
+}
+
 // Regex-first parser for common expense formats.
-// Examples: "45 mercado", "R$ 12,50 uber", "uber 25", "1.234,56 conta luz"
-function quickParseExpense(text: string): { amount: number; description: string; category: string } | null {
+// Examples: "45 mercado", "R$ 12,50 uber", "uber 25", "1.234,56 conta luz",
+//           "tv 1200 em 10x", "tenis 300 3x"
+function quickParseExpense(text: string): { amount: number; description: string; category: string; installments: number | null } | null {
   const t = text.trim();
   if (t.length < 2 || t.startsWith("/")) return null;
   // Defer to AI when text mentions a date — quick parser would assume "today".
   if (hasDateHint(t)) return null;
+  const installments = detectInstallments(t);
+  // Remove installment tokens before extracting amount/description so they don't confuse the regex.
+  const cleaned = installments ? stripInstallmentPhrase(t) : t;
   let amountStr: string | null = null;
   let description: string | null = null;
-  const mA = t.match(/^R?\$?\s*([\d]+(?:\.\d{3})*(?:,\d{1,2})?|\d+(?:\.\d{1,2})?)\s+(.{2,80})$/i);
+  const mA = cleaned.match(/^R?\$?\s*([\d]+(?:\.\d{3})*(?:,\d{1,2})?|\d+(?:\.\d{1,2})?)\s+(.{2,80})$/i);
   if (mA) { amountStr = mA[1]; description = mA[2]; }
   else {
-    const mB = t.match(/^(.{2,80}?)\s+R?\$?\s*([\d]+(?:\.\d{3})*(?:,\d{1,2})?|\d+(?:\.\d{1,2})?)$/i);
+    const mB = cleaned.match(/^(.{2,80}?)\s+R?\$?\s*([\d]+(?:\.\d{3})*(?:,\d{1,2})?|\d+(?:\.\d{1,2})?)$/i);
     if (mB) { description = mB[1]; amountStr = mB[2]; }
   }
   if (!amountStr || !description) return null;
   const amount = parseAmount(amountStr);
   if (amount === null) return null;
-  const desc = description.trim();
+  const desc = stripInstallmentPhrase(description.trim());
   if (desc.length < 2) return null;
-  return { amount, description: desc, category: detectCategory(desc) };
+  return { amount, description: desc, category: detectCategory(desc), installments };
 }
 
 const HELP_TEXT = `🤖 *Como usar*
@@ -843,7 +885,14 @@ REGRAS DE DATA (campo "date" no formato YYYY-MM-DD):
 - NUNCA retorne data no futuro (limite máximo: hoje)
 - NUNCA retorne data com mais de 1 ano atrás
 
-Se faltar valor numérico, retorne confidence baixo.`,
+Se faltar valor numérico, retorne confidence baixo.
+
+PARCELAMENTO (campo "installments"):
+- Detecte expressões como "10x", "em 3x", "em 12 vezes", "parcelado em 6", "6 parcelas", "dividido em 4".
+- Quando o usuário disser "3 vezes de 50", o valor TOTAL é 3*50=150 e installments=3.
+- Quando o usuário disser "300 em 3x", o valor TOTAL é 300 e installments=3.
+- Se NÃO houver menção de parcelas, omita o campo (ou retorne 1).
+- O campo "amount" deve ser SEMPRE o valor TOTAL da compra, não o valor da parcela.`,
         },
         { role: "user", content: text },
       ],
@@ -855,10 +904,11 @@ Se faltar valor numérico, retorne confidence baixo.`,
           parameters: {
             type: "object",
             properties: {
-              description: { type: "string", description: "Descrição curta (sem o valor)" },
-              amount: { type: "number", description: "Valor em reais" },
+              description: { type: "string", description: "Descrição curta (sem o valor e sem o parcelamento)" },
+              amount: { type: "number", description: "Valor TOTAL em reais (não o valor da parcela)" },
               category: { type: "string", enum: CATEGORIES },
               date: { type: "string", description: "Data YYYY-MM-DD; default hoje" },
+              installments: { type: "number", description: "Número de parcelas (2 a 36). Omitir ou 1 se à vista." },
               confidence: { type: "number", description: "0 a 1" },
             },
             required: ["description", "amount", "category", "date", "confidence"],
@@ -1253,6 +1303,9 @@ Deno.serve(async (req) => {
             } else {
               const finalDate = sanitizeDate(extracted.date);
               const finalCategory = CATEGORIES.includes(extracted.category) ? extracted.category : "Outros";
+              const installmentsN = extracted.installments && Number(extracted.installments) >= 2
+                ? Math.min(36, Math.floor(Number(extracted.installments)))
+                : null;
 
               // 💳 Card detection — uses transcript text
               const userCards = await getUserCards(admin, link.user_id);
@@ -1263,9 +1316,13 @@ Deno.serve(async (req) => {
                 description: extracted.description || transcript.slice(0, 80),
                 amount: extracted.amount,
                 category: finalCategory,
-                type: "fixa",
+                type: installmentsN ? "recorrente" : "fixa",
                 scope: "personal",
               };
+              if (installmentsN) {
+                basePayload.installments = installmentsN;
+                basePayload.paid_installments = 0;
+              }
               let displayDate = finalDate;
               if (card) {
                 const cc = buildCreditCardExpense(card, basePayload.description);
@@ -1276,8 +1333,8 @@ Deno.serve(async (req) => {
                 displayDate = cc.invoiceDueDate;
               } else {
                 basePayload.due_date = finalDate;
-                basePayload.paid = true;
-                basePayload.paid_date = finalDate;
+                basePayload.paid = installmentsN ? false : true;
+                basePayload.paid_date = installmentsN ? null : finalDate;
               }
 
               const { data: ins, error: insErr } = await admin
@@ -1288,12 +1345,15 @@ Deno.serve(async (req) => {
                 await tgSend(chatId, "❌ Erro ao salvar: " + (insErr?.message ?? "desconhecido"), LOVABLE_API_KEY, TELEGRAM_API_KEY);
               } else {
                 const fmt = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(extracted.amount);
-                const header = card
-                  ? `💳 *Compra no cartão (áudio)*`
-                  : `🎤 *Despesa registrada por áudio*`;
+                const installmentValue = installmentsN ? extracted.amount / installmentsN : extracted.amount;
+                const fmtParcel = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(installmentValue);
+                const header = installmentsN
+                  ? (card ? `💳 *Compra parcelada no cartão (áudio)*` : `🧾 *Compra parcelada (áudio)*`)
+                  : (card ? `💳 *Compra no cartão (áudio)*` : `🎤 *Despesa registrada por áudio*`);
                 const cardLine = card ? `\n💳 ${card.nickname || card.bank} (vence ${displayDate})` : "";
+                const parcelLine = installmentsN ? `\n🔢 ${installmentsN}x de ${fmtParcel}` : "";
                 await tgSendWithKeyboard(chatId,
-                  `${header}\n\n_"${transcript}"_\n\n💰 ${fmt}\n📂 ${finalCategory}${cardLine}\n📝 ${extracted.description}\n📅 ${displayDate}`,
+                  `${header}\n\n_"${transcript}"_\n\n💰 ${fmt}${parcelLine}\n📂 ${finalCategory}${cardLine}\n📝 ${extracted.description}\n📅 ${displayDate}`,
                   buildExpenseKeyboard(ins.id),
                   LOVABLE_API_KEY, TELEGRAM_API_KEY);
                 if (!card) {
@@ -1423,6 +1483,7 @@ Deno.serve(async (req) => {
                   amount: quick.amount,
                   category: quick.category,
                   date: today,
+                  installments: quick.installments ?? undefined,
                   confidence: 1,
                 };
               } else {
@@ -1433,6 +1494,9 @@ Deno.serve(async (req) => {
               } else {
                 const finalDate = sanitizeDate(extracted.date);
                 const finalCategory = CATEGORIES.includes(extracted.category) ? extracted.category : "Outros";
+                const installmentsN = extracted.installments && Number(extracted.installments) >= 2
+                  ? Math.min(36, Math.floor(Number(extracted.installments)))
+                  : null;
 
                 // 💳 Credit-card detection — register as pending invoice item
                 const userCards = await getUserCards(admin, link.user_id);
@@ -1443,9 +1507,13 @@ Deno.serve(async (req) => {
                   description: extracted.description || text.slice(0, 80),
                   amount: extracted.amount,
                   category: finalCategory,
-                  type: "fixa",
+                  type: installmentsN ? "recorrente" : "fixa",
                   scope: "personal",
                 };
+                if (installmentsN) {
+                  basePayload.installments = installmentsN;
+                  basePayload.paid_installments = 0;
+                }
                 let displayDate = finalDate;
                 if (card) {
                   const cc = buildCreditCardExpense(card, basePayload.description);
@@ -1456,19 +1524,25 @@ Deno.serve(async (req) => {
                   displayDate = cc.invoiceDueDate;
                 } else {
                   basePayload.due_date = finalDate;
-                  basePayload.paid = true;
-                  basePayload.paid_date = finalDate;
+                  // Parcelado: fica pendente até cada parcela ser paga manualmente.
+                  basePayload.paid = installmentsN ? false : true;
+                  basePayload.paid_date = installmentsN ? null : finalDate;
                 }
 
                 // Insert + single confirmation message with action keyboard.
                 // Insert is fast (~50-150ms); merging into one message removes the
                 // second round-trip to Telegram for users.
                 const fmt = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(extracted.amount);
-                const header = card
-                  ? `💳 *Compra no cartão registrada*`
-                  : `✅ *Despesa registrada*`;
+                const installmentValue = installmentsN ? extracted.amount / installmentsN : extracted.amount;
+                const fmtParcel = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(installmentValue);
+                const header = installmentsN
+                  ? (card ? `💳 *Compra parcelada no cartão*` : `🧾 *Compra parcelada registrada*`)
+                  : (card ? `💳 *Compra no cartão registrada*` : `✅ *Despesa registrada*`);
                 const cardLine = card ? `\n💳 ${card.nickname || card.bank} (vence ${displayDate})` : "";
-                const summaryText = `${header}\n\n💰 ${fmt}\n📂 ${finalCategory}${cardLine}\n📝 ${extracted.description}\n📅 ${displayDate}`;
+                const parcelLine = installmentsN
+                  ? `\n🔢 ${installmentsN}x de ${fmtParcel}`
+                  : "";
+                const summaryText = `${header}\n\n💰 ${fmt}${parcelLine}\n📂 ${finalCategory}${cardLine}\n📝 ${extracted.description}\n📅 ${displayDate}`;
 
                 const { data: ins, error: insErr } = await admin
                   .from("expenses")
