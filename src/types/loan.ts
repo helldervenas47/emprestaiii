@@ -19,6 +19,9 @@ export interface Loan {
   lateInterestType?: string | null;
   lateInterestValue?: number | null;
   penaltyValue?: number | null;
+  hasManager?: boolean;
+  managerId?: string | null;
+  managerCommissionRate?: number | null;
   createdAt: string;
 }
 
@@ -59,6 +62,21 @@ export interface Client {
   estadoCivil?: string;
   profissao?: string;
   bairro?: string;
+  isManager?: boolean;
+}
+
+export interface ManagerCommission {
+  id: string;
+  loanId: string;
+  managerId: string;
+  paymentId?: string | null;
+  commissionType: "interest" | "full";
+  baseAmount: number;
+  rate: number;
+  amount: number;
+  generatedAt: string;
+  notes?: string | null;
+  createdAt: string;
 }
 
 export interface Product {

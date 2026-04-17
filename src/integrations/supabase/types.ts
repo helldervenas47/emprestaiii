@@ -80,6 +80,7 @@ export type Database = {
           email: string
           estado_civil: string
           id: string
+          is_manager: boolean
           is_vehicle_rental: boolean
           nacionalidade: string
           name: string
@@ -102,6 +103,7 @@ export type Database = {
           email?: string
           estado_civil?: string
           id?: string
+          is_manager?: boolean
           is_vehicle_rental?: boolean
           nacionalidade?: string
           name: string
@@ -124,6 +126,7 @@ export type Database = {
           email?: string
           estado_civil?: string
           id?: string
+          is_manager?: boolean
           is_vehicle_rental?: boolean
           nacionalidade?: string
           name?: string
@@ -329,12 +332,15 @@ export type Database = {
           custom_installment_value: number | null
           custom_interest_value: number | null
           due_date: string
+          has_manager: boolean
           id: string
           installments: number
           interest_rate: number
           interest_type: string
           late_interest_type: string | null
           late_interest_value: number | null
+          manager_commission_rate: number
+          manager_id: string | null
           notes: string | null
           paid_installments: number
           payment_type: string
@@ -353,12 +359,15 @@ export type Database = {
           custom_installment_value?: number | null
           custom_interest_value?: number | null
           due_date: string
+          has_manager?: boolean
           id?: string
           installments?: number
           interest_rate?: number
           interest_type?: string
           late_interest_type?: string | null
           late_interest_value?: number | null
+          manager_commission_rate?: number
+          manager_id?: string | null
           notes?: string | null
           paid_installments?: number
           payment_type?: string
@@ -377,12 +386,15 @@ export type Database = {
           custom_installment_value?: number | null
           custom_interest_value?: number | null
           due_date?: string
+          has_manager?: boolean
           id?: string
           installments?: number
           interest_rate?: number
           interest_type?: string
           late_interest_type?: string | null
           late_interest_value?: number | null
+          manager_commission_rate?: number
+          manager_id?: string | null
           notes?: string | null
           paid_installments?: number
           payment_type?: string
@@ -439,6 +451,51 @@ export type Database = {
           profissao?: string
           rg?: string
           updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      manager_commissions: {
+        Row: {
+          amount: number
+          base_amount: number
+          commission_type: string
+          created_at: string
+          generated_at: string
+          id: string
+          loan_id: string
+          manager_id: string
+          notes: string | null
+          payment_id: string | null
+          rate: number
+          user_id: string
+        }
+        Insert: {
+          amount?: number
+          base_amount?: number
+          commission_type?: string
+          created_at?: string
+          generated_at: string
+          id?: string
+          loan_id: string
+          manager_id: string
+          notes?: string | null
+          payment_id?: string | null
+          rate?: number
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          base_amount?: number
+          commission_type?: string
+          created_at?: string
+          generated_at?: string
+          id?: string
+          loan_id?: string
+          manager_id?: string
+          notes?: string | null
+          payment_id?: string | null
+          rate?: number
           user_id?: string
         }
         Relationships: []

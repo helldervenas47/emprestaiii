@@ -29,6 +29,9 @@ export function useLoans() {
         tags: l.tags, notes: l.notes, createdAt: l.created_at,
         lateInterestType: l.late_interest_type, lateInterestValue: l.late_interest_value != null ? Number(l.late_interest_value) : null,
         penaltyValue: l.penalty_value != null ? Number(l.penalty_value) : null,
+        hasManager: (l as any).has_manager ?? false,
+        managerId: (l as any).manager_id ?? null,
+        managerCommissionRate: (l as any).manager_commission_rate != null ? Number((l as any).manager_commission_rate) : 10,
       })));
     }
   }, [user]);
@@ -138,7 +141,10 @@ export function useLoans() {
       paid_installments: loan.paidInstallments ?? 0, status, tags: loan.tags, notes: loan.notes,
       remaining_amount: loan.remainingAmount ?? 0,
       custom_interest_value: loan.customInterestValue ?? null,
-    }).select().single();
+      has_manager: loan.hasManager ?? false,
+      manager_id: loan.managerId ?? null,
+      manager_commission_rate: loan.managerCommissionRate ?? 10,
+    } as any).select().single();
 
     if (error) {
       setLoans((prev) => prev.filter((l) => l.id !== tempId));
@@ -239,11 +245,11 @@ export function useLoans() {
     const remaining = getLoanRemainingAmount(loan, payments);
     if (remaining <= 0) return;
 
-    await Promise.all([
+    const [paymentInsert] = await Promise.all([
       supabase.from("payments").insert({
         user_id: dataOwnerId, loan_id: loanId, amount: remaining,
         date: dateStr, installment_number: loan.installments,
-      }),
+      }).select().single(),
       supabase.from("loans").update({
         paid_installments: loan.installments,
         status: "paid",
@@ -251,6 +257,24 @@ export function useLoans() {
       }).eq("id", loanId),
       adjustBalance(remaining),
     ]);
+
+    // Manager commission (isolated — does NOT affect balance/profit/expenses)
+    if (loan.hasManager && loan.managerId) {
+      const rate = loan.managerCommissionRate ?? 10;
+      const amount = (loan.amount * rate) / 100;
+      await supabase.from("manager_commissions").insert({
+        user_id: dataOwnerId,
+        loan_id: loanId,
+        manager_id: loan.managerId,
+        payment_id: paymentInsert.data?.id ?? null,
+        commission_type: "full",
+        base_amount: loan.amount,
+        rate,
+        amount,
+        generated_at: dateStr,
+      } as any);
+    }
+
     await fetchPayments();
     await fetchLoans();
   }, [user, dataOwnerId, loans, payments, fetchLoans, fetchPayments]);
@@ -277,15 +301,33 @@ export function useLoans() {
       .eq("loan_id", loanId)
       .eq("installment_number", nextNum);
 
-    await Promise.all([
+    const [paymentInsert] = await Promise.all([
       supabase.from("payments").insert({
         user_id: dataOwnerId, loan_id: loanId, amount: interestAmount,
         date: dateStr, installment_number: 0, previous_due_date: loan.dueDate,
-      }),
+      }).select().single(),
       supabase.from("loans").update({ due_date: newDueDate }).eq("id", loanId),
       scheduleUpdate,
       adjustBalance(interestAmount),
     ]);
+
+    // Manager commission on interest payments — 10% of ORIGINAL loan amount, isolated
+    if (loan.hasManager && loan.managerId && loan.status !== "paid") {
+      const rate = loan.managerCommissionRate ?? 10;
+      const amount = (loan.amount * rate) / 100;
+      await supabase.from("manager_commissions").insert({
+        user_id: dataOwnerId,
+        loan_id: loanId,
+        manager_id: loan.managerId,
+        payment_id: paymentInsert.data?.id ?? null,
+        commission_type: "interest",
+        base_amount: loan.amount,
+        rate,
+        amount,
+        generated_at: dateStr,
+      } as any);
+    }
+
     await fetchLoans();
     await fetchPayments();
     await fetchSchedules();
@@ -322,6 +364,9 @@ export function useLoans() {
     if (data.lateInterestType !== undefined) updateData.late_interest_type = data.lateInterestType;
     if (data.lateInterestValue !== undefined) updateData.late_interest_value = data.lateInterestValue;
     if (data.penaltyValue !== undefined) updateData.penalty_value = data.penaltyValue;
+    if (data.hasManager !== undefined) (updateData as any).has_manager = data.hasManager;
+    if (data.managerId !== undefined) (updateData as any).manager_id = data.managerId;
+    if (data.managerCommissionRate !== undefined) (updateData as any).manager_commission_rate = data.managerCommissionRate;
     await supabase.from("loans").update(updateData).eq("id", id);
   }, [loans]);
 

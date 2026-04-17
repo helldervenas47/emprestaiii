@@ -2,7 +2,7 @@ import React, { useState, useMemo, useCallback } from "react";
 import { DatePickerField } from "@/components/ui/date-picker-field";
 import { useHideValues } from "@/contexts/HideValuesContext";
 import { format } from "date-fns";
-import { Loan, Payment, InstallmentSchedule } from "@/types/loan";
+import { Loan, Payment, InstallmentSchedule, Client } from "@/types/loan";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -39,6 +39,7 @@ interface Props {
   existingTags?: string[];
   initialCategory?: Category;
   initialView?: "cards" | "rows" | "folders";
+  clients?: Client[];
 }
 
 type Category = "all" | "overdue" | "paid_interest" | "paid" | "due_today" | "on_track" | "parcelado";
@@ -156,7 +157,7 @@ function getTotalPaid(loan: Loan, payments: Payment[]): number {
 }
 
 function LoanCardView({
-  loan, payments: allPayments, installmentSchedules, onPayment, onPartialPayment, onFullPayment, onInterestPayment, onUpdate, onDelete, onDeletePayment, onSaveSchedule, readOnly = false, no3d = false, existingTags = [],
+  loan, payments: allPayments, installmentSchedules, onPayment, onPartialPayment, onFullPayment, onInterestPayment, onUpdate, onDelete, onDeletePayment, onSaveSchedule, readOnly = false, no3d = false, existingTags = [], clients = [],
 }: {
   loan: Loan;
   payments: Payment[];
@@ -172,6 +173,7 @@ function LoanCardView({
   readOnly?: boolean;
   no3d?: boolean;
   existingTags?: string[];
+  clients?: Client[];
 }) {
   const { mask } = useHideValues();
   const formatCurrency = useCallback((v: number) => mask(rawFormatCurrency(v)), [mask]);
@@ -197,6 +199,10 @@ function LoanCardView({
   const [penaltyValue, setPenaltyValue] = useState<string>(loan.penaltyValue != null ? String(loan.penaltyValue) : "");
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deletePaymentId, setDeletePaymentId] = useState<string | null>(null);
+  const [editHasManager, setEditHasManager] = useState<boolean>(loan.hasManager ?? false);
+  const [editManagerId, setEditManagerId] = useState<string>(loan.managerId ?? "");
+  const [editCommissionRate, setEditCommissionRate] = useState<string>(String(loan.managerCommissionRate ?? 10));
+  const managerOptions = useMemo(() => clients.filter((c) => c.isManager && c.active !== false), [clients]);
 
   const total = calculateTotalWithInterest(loan.amount, loan.interestRate, loan.installments);
   const totalPaid = getTotalPaid(loan, allPayments);
@@ -334,6 +340,9 @@ function LoanCardView({
       remainingAmount: parseFloat(form.remainingAmount) || 0,
       customInstallmentValue: hasCustom ? firstVal : null,
       customInterestValue: hasCustomInterest ? manualInterest : null,
+      hasManager: editHasManager,
+      managerId: editHasManager && editManagerId ? editManagerId : null,
+      managerCommissionRate: editHasManager ? parseFloat(editCommissionRate) || 10 : null,
     });
 
     // Save ALL installment rows
@@ -487,6 +496,41 @@ function LoanCardView({
                 </SelectContent>
               </Select>
             </div>
+          </div>
+
+          {/* Manager edit block */}
+          <div className="border border-border rounded-lg p-3 space-y-2 bg-muted/20">
+            <div className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                id={`edit-mgr-${loan.id}`}
+                checked={editHasManager}
+                onChange={(e) => setEditHasManager(e.target.checked)}
+                className="h-4 w-4 rounded border-border accent-primary"
+              />
+              <Label htmlFor={`edit-mgr-${loan.id}`} className="text-xs font-medium cursor-pointer">
+                Empréstimo com gerente
+              </Label>
+            </div>
+            {editHasManager && (
+              <div className="grid grid-cols-2 gap-2 pt-1">
+                <div>
+                  <Label className="text-xs">Gerente</Label>
+                  <Select value={editManagerId} onValueChange={setEditManagerId}>
+                    <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Selecione" /></SelectTrigger>
+                    <SelectContent>
+                      {managerOptions.map((m) => (
+                        <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label className="text-xs">Comissão (%)</Label>
+                  <Input type="number" step="0.1" value={editCommissionRate} onChange={(e) => setEditCommissionRate(e.target.value)} className="h-8 text-xs" />
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Installment Schedule */}
@@ -1925,7 +1969,7 @@ function ClientFolder({
   );
 }
 
-export function LoanList({ loans, payments, installmentSchedules, onPayment, onPartialPayment, onFullPayment, onInterestPayment, onUpdate, onDelete, onDeletePayment, onSaveSchedule, readOnly = false, initialCategory, initialView }: Props) {
+export function LoanList({ loans, payments, installmentSchedules, onPayment, onPartialPayment, onFullPayment, onInterestPayment, onUpdate, onDelete, onDeletePayment, onSaveSchedule, readOnly = false, initialCategory, initialView, clients = [] }: Props) {
   const { mask } = useHideValues();
   const formatCurrency = useCallback((v: number) => mask(rawFormatCurrency(v)), [mask]);
   const [view, setView] = useState<"cards" | "rows" | "folders">(initialView ?? "cards");
@@ -2253,7 +2297,7 @@ export function LoanList({ loans, payments, installmentSchedules, onPayment, onP
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {categorized.map((loan, i) => (
                 <div key={loan.id} className="animate-fade-in h-full" style={{ animationDelay: `${i * 60}ms`, animationFillMode: 'backwards' }}>
-                <LoanCardView loan={loan} payments={payments} installmentSchedules={installmentSchedules} readOnly={readOnly} existingTags={loans.flatMap(l => l.tags || []).filter((v, i, a) => a.indexOf(v) === i)}
+                <LoanCardView loan={loan} payments={payments} installmentSchedules={installmentSchedules} readOnly={readOnly} existingTags={loans.flatMap(l => l.tags || []).filter((v, i, a) => a.indexOf(v) === i)} clients={clients}
                   onPayment={(date) => onPayment(loan.id, date)} onPartialPayment={(amt, date) => onPartialPayment(loan.id, amt, date)} onFullPayment={onFullPayment ? (date) => onFullPayment(loan.id, date) : undefined}
                   onInterestPayment={(date) => onInterestPayment(loan.id, date)} onUpdate={(d) => onUpdate(loan.id, d)} onDelete={() => onDelete(loan.id)} onDeletePayment={onDeletePayment} onSaveSchedule={onSaveSchedule} />
                 </div>
