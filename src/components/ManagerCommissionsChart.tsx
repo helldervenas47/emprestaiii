@@ -1,9 +1,12 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Badge } from "@/components/ui/badge";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { useManagerCommissions } from "@/hooks/useManagerCommissions";
-import { Client, Loan, InstallmentSchedule, Payment } from "@/types/loan";
+import { Client, Loan, InstallmentSchedule, Payment, ManagerCommission } from "@/types/loan";
 import { useHideValues } from "@/contexts/HideValuesContext";
-import { Briefcase, UserCog } from "lucide-react";
+import { Briefcase, UserCog, CalendarDays, CheckCircle2, Clock } from "lucide-react";
 
 interface Props {
   clients: Client[];
@@ -23,6 +26,15 @@ function inRange(dateStr: string, start: Date, end: Date) {
   return d >= start && d <= end;
 }
 
+function formatDate(dateStr?: string | null) {
+  if (!dateStr) return "—";
+  try {
+    return new Date(dateStr.length > 10 ? dateStr : dateStr + "T00:00:00").toLocaleDateString("pt-BR");
+  } catch {
+    return dateStr;
+  }
+}
+
 export function ManagerCommissionsChart({
   clients,
   loans = [],
@@ -33,6 +45,7 @@ export function ManagerCommissionsChart({
 }: Props) {
   const { commissions } = useManagerCommissions(true);
   const { mask } = useHideValues();
+  const [selectedManagerId, setSelectedManagerId] = useState<string | null>(null);
 
   const managers = useMemo(
     () => clients.filter((c) => c.isManager).sort((a, b) => a.name.localeCompare(b.name)),
@@ -150,9 +163,11 @@ export function ManagerCommissionsChart({
         ) : (
           <div className="grid grid-cols-2 md:grid-cols-3 gap-2 sm:gap-3">
             {data.map((m) => (
-              <div
+              <button
                 key={m.id}
-                className="rounded-lg border border-border bg-card/50 hover:bg-card transition-colors p-2.5 sm:p-4 flex flex-col items-center text-center gap-2 sm:gap-3"
+                type="button"
+                onClick={() => setSelectedManagerId(m.id)}
+                className="rounded-lg border border-border bg-card/50 hover:bg-card hover:border-primary/40 hover:shadow-sm transition-all p-2.5 sm:p-4 flex flex-col items-center text-center gap-2 sm:gap-3 cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary/40"
               >
                 <div className="flex flex-col items-center gap-1.5">
                   <div className="h-7 w-7 sm:h-8 sm:w-8 rounded-md bg-accent/15 flex items-center justify-center">
@@ -189,14 +204,236 @@ export function ManagerCommissionsChart({
                     </span>
                   </div>
                 </div>
-              </div>
+              </button>
             ))}
           </div>
         )}
         <p className="text-[10px] text-muted-foreground mt-3 italic text-center">
-          Recebido = comissões geradas dentro do período (data de recebimento). Pendente = parcelas com vencimento no período ainda não pagas.
+          Recebido = comissões geradas dentro do período (data de recebimento). Pendente = parcelas com vencimento no período ainda não pagas. Toque em um gerente para ver os detalhes.
         </p>
       </CardContent>
+
+      <ManagerDetailDialog
+        open={!!selectedManagerId}
+        onClose={() => setSelectedManagerId(null)}
+        manager={managers.find((c) => c.id === selectedManagerId) ?? null}
+        loans={loans}
+        installmentSchedules={installmentSchedules}
+        payments={payments}
+        commissions={commissions}
+        range={range}
+        rangeLabel={rangeLabel}
+        mask={mask}
+      />
     </Card>
+  );
+}
+
+interface DetailDialogProps {
+  open: boolean;
+  onClose: () => void;
+  manager: Client | null;
+  loans: Loan[];
+  installmentSchedules: InstallmentSchedule[];
+  payments: Payment[];
+  commissions: ManagerCommission[];
+  range?: { start: Date; end: Date };
+  rangeLabel?: string;
+  mask: (s: string) => string;
+}
+
+function ManagerDetailDialog({
+  open,
+  onClose,
+  manager,
+  loans,
+  installmentSchedules,
+  payments,
+  commissions,
+  range,
+  rangeLabel,
+  mask,
+}: DetailDialogProps) {
+  const detail = useMemo(() => {
+    if (!manager) return null;
+
+    const managerLoans = loans.filter((l) => l.hasManager && l.managerId === manager.id);
+
+    const loansBreakdown = managerLoans.map((l) => {
+      const rate = l.managerCommissionRate ?? 10;
+      const totalCommission = (l.amount * rate) / 100;
+      const perInstallment = totalCommission / Math.max(1, l.installments);
+
+      const schedules = installmentSchedules
+        .filter((s) => s.loanId === l.id)
+        .sort((a, b) => a.installmentNumber - b.installmentNumber);
+      const loanPayments = payments.filter((p) => p.loanId === l.id);
+      const paidNumsMap = new Map<number, Payment>();
+      loanPayments
+        .filter((p) => p.installmentNumber > 0)
+        .forEach((p) => paidNumsMap.set(p.installmentNumber, p));
+
+      const installments = schedules.map((s) => {
+        const paidPayment = paidNumsMap.get(s.installmentNumber);
+        const isPaid = !!paidPayment;
+        const inPeriod = range
+          ? (isPaid
+              ? inRange(paidPayment!.date, range.start, range.end)
+              : inRange(s.dueDate, range.start, range.end))
+          : true;
+        return {
+          number: s.installmentNumber,
+          dueDate: s.dueDate,
+          paidDate: paidPayment?.date,
+          commission: perInstallment,
+          isPaid,
+          inPeriod,
+        };
+      });
+
+      const paidInPeriod = installments.filter((i) => i.isPaid && i.inPeriod);
+      const pendingInPeriod = installments.filter((i) => !i.isPaid && i.inPeriod);
+
+      const paidAmount = paidInPeriod.reduce((s, i) => s + i.commission, 0);
+      const pendingAmount = pendingInPeriod.reduce((s, i) => s + i.commission, 0);
+
+      return {
+        loan: l,
+        rate,
+        totalCommission,
+        perInstallment,
+        installments,
+        paidAmount,
+        pendingAmount,
+        relevant: paidInPeriod.length > 0 || pendingInPeriod.length > 0,
+      };
+    });
+
+    const visible = loansBreakdown.filter((b) => b.relevant);
+    const totalPaid = visible.reduce((s, b) => s + b.paidAmount, 0);
+    const totalPending = visible.reduce((s, b) => s + b.pendingAmount, 0);
+
+    // also include actual commissions records for transparency
+    const realizedCommissions = commissions
+      .filter((c) => c.managerId === manager.id)
+      .filter((c) => !range || inRange(c.generatedAt, range.start, range.end))
+      .sort((a, b) => b.generatedAt.localeCompare(a.generatedAt));
+
+    return { visible, totalPaid, totalPending, realizedCommissions };
+  }, [manager, loans, installmentSchedules, payments, commissions, range]);
+
+  return (
+    <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="max-w-3xl max-h-[90vh] flex flex-col">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <UserCog className="h-5 w-5 text-accent-foreground" />
+            {manager?.name ?? "Gerente"}
+          </DialogTitle>
+          <DialogDescription>
+            Detalhamento das comissões{rangeLabel ? ` — ${rangeLabel}` : ""}
+          </DialogDescription>
+        </DialogHeader>
+
+        {detail && (
+          <ScrollArea className="flex-1 pr-3 -mr-3">
+            <div className="space-y-4">
+              <div className="grid grid-cols-3 gap-2">
+                <div className="rounded-md bg-muted/40 p-2 text-center">
+                  <p className="text-[10px] text-muted-foreground uppercase">Pendente</p>
+                  <p className="text-sm font-bold text-primary">{mask(rawFormatCurrency(detail.totalPending))}</p>
+                </div>
+                <div className="rounded-md bg-muted/40 p-2 text-center">
+                  <p className="text-[10px] text-muted-foreground uppercase">Recebido</p>
+                  <p className="text-sm font-bold text-success">{mask(rawFormatCurrency(detail.totalPaid))}</p>
+                </div>
+                <div className="rounded-md bg-muted/40 p-2 text-center">
+                  <p className="text-[10px] text-muted-foreground uppercase">Total</p>
+                  <p className="text-sm font-bold text-foreground">{mask(rawFormatCurrency(detail.totalPaid + detail.totalPending))}</p>
+                </div>
+              </div>
+
+              {detail.visible.length === 0 ? (
+                <p className="text-sm text-muted-foreground text-center py-6">
+                  Nenhum empréstimo com movimentação de comissão neste período.
+                </p>
+              ) : (
+                <div className="space-y-3">
+                  {detail.visible.map(({ loan, rate, totalCommission, perInstallment, installments, paidAmount, pendingAmount }) => (
+                    <div key={loan.id} className="rounded-lg border border-border p-3 space-y-2">
+                      <div className="flex flex-wrap items-start justify-between gap-2">
+                        <div className="min-w-0">
+                          <p className="text-sm font-semibold text-foreground">{loan.borrowerName}</p>
+                          <p className="text-[11px] text-muted-foreground">
+                            Empréstimo: {mask(rawFormatCurrency(loan.amount))} · {loan.installments}x · Comissão: {rate}%
+                          </p>
+                          <p className="text-[11px] text-muted-foreground">
+                            Total da comissão: {mask(rawFormatCurrency(totalCommission))} · Por parcela: {mask(rawFormatCurrency(perInstallment))}
+                          </p>
+                        </div>
+                        <div className="text-right text-[11px] space-y-0.5">
+                          <div className="text-success font-semibold">+ {mask(rawFormatCurrency(paidAmount))} recebido</div>
+                          <div className="text-primary font-semibold">+ {mask(rawFormatCurrency(pendingAmount))} pendente</div>
+                        </div>
+                      </div>
+
+                      <div className="border-t border-border pt-2">
+                        <p className="text-[10px] uppercase text-muted-foreground mb-1">Parcelas no período</p>
+                        <div className="space-y-1">
+                          {installments.filter((i) => i.inPeriod).map((i) => (
+                            <div key={i.number} className="flex items-center justify-between text-xs gap-2">
+                              <div className="flex items-center gap-1.5 min-w-0">
+                                {i.isPaid ? (
+                                  <CheckCircle2 className="h-3.5 w-3.5 text-success shrink-0" />
+                                ) : (
+                                  <Clock className="h-3.5 w-3.5 text-primary shrink-0" />
+                                )}
+                                <span className="font-medium">#{i.number}</span>
+                                <span className="text-muted-foreground flex items-center gap-1">
+                                  <CalendarDays className="h-3 w-3" />
+                                  {i.isPaid ? `Pago em ${formatDate(i.paidDate)}` : `Vence em ${formatDate(i.dueDate)}`}
+                                </span>
+                              </div>
+                              <Badge
+                                variant="outline"
+                                className={i.isPaid ? "border-success/40 text-success" : "border-primary/40 text-primary"}
+                              >
+                                {mask(rawFormatCurrency(i.commission))}
+                              </Badge>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {detail.realizedCommissions.length > 0 && (
+                <div className="rounded-lg border border-border p-3">
+                  <p className="text-xs font-semibold text-foreground mb-2">Comissões registradas no período</p>
+                  <div className="space-y-1">
+                    {detail.realizedCommissions.map((c) => {
+                      const loan = loans.find((l) => l.id === c.loanId);
+                      return (
+                        <div key={c.id} className="flex items-center justify-between text-xs gap-2">
+                          <div className="flex items-center gap-1.5 min-w-0">
+                            <CheckCircle2 className="h-3.5 w-3.5 text-success shrink-0" />
+                            <span className="text-muted-foreground truncate">
+                              {loan?.borrowerName ?? "Empréstimo"} · {formatDate(c.generatedAt)}
+                            </span>
+                          </div>
+                          <span className="font-semibold text-success">{mask(rawFormatCurrency(c.amount))}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+          </ScrollArea>
+        )}
+      </DialogContent>
+    </Dialog>
   );
 }
