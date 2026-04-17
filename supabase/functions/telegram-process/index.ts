@@ -103,6 +103,7 @@ Vou interpretar e cadastrar automaticamente.
 /mes — resumo completo do mês
 /semana — resumo dos últimos 7 dias
 /comparar — compara este mês com o anterior
+/orcamento — status dos orçamentos do mês
 /ultimas — últimas 5 despesas
 /apagar — apaga a despesa mais recente
 /help — esta mensagem
