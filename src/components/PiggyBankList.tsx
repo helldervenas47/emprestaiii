@@ -235,6 +235,54 @@ export function PiggyBankList({ readOnly = false }: Props) {
         title="Excluir cofrinho"
         description="Os aportes registrados também serão removidos. As despesas já lançadas permanecem no histórico. Esta ação não pode ser desfeita."
       />
+
+      {/* Manual balance adjustment dialog */}
+      <Dialog open={!!adjustTarget} onOpenChange={(o) => !o && setAdjustTarget(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Ajustar saldo</DialogTitle>
+            <DialogDescription>
+              Informe o novo saldo desejado para <strong>{adjustTarget?.name}</strong>. A diferença será
+              registrada como ajuste manual e não afeta o "Gasto do mês".
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 py-1">
+            <div className="rounded-lg bg-muted/50 p-2.5 text-xs flex items-center justify-between">
+              <span className="text-muted-foreground">Saldo atual:</span>
+              <span className="font-semibold">
+                {fmt(adjustTarget ? balances.get(adjustTarget.id)?.balance ?? 0 : 0)}
+              </span>
+            </div>
+            <div>
+              <Label htmlFor="adjust-value">Novo saldo (R$)</Label>
+              <Input
+                id="adjust-value"
+                type="number"
+                step="0.01"
+                min="0"
+                value={adjustValue}
+                onChange={(e) => setAdjustValue(e.target.value)}
+                autoFocus
+              />
+              {adjustTarget && (() => {
+                const current = balances.get(adjustTarget.id)?.balance ?? 0;
+                const v = Number(adjustValue.replace(",", "."));
+                if (Number.isNaN(v)) return null;
+                const delta = v - current;
+                return (
+                  <p className={`text-[11px] mt-1.5 ${delta > 0 ? "text-success" : delta < 0 ? "text-destructive" : "text-muted-foreground"}`}>
+                    Ajuste: {delta > 0 ? "+" : ""}{fmt(delta)}
+                  </p>
+                );
+              })()}
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setAdjustTarget(null)}>Cancelar</Button>
+            <Button onClick={confirmAdjust}>Aplicar ajuste</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
