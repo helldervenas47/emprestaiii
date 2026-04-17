@@ -69,7 +69,7 @@ export function ExpenseEditDialog({
         </DialogHeader>
 
         {warning && (
-          <div className="text-xs rounded-md bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/30 px-3 py-2">
+          <div className="text-xs rounded-md bg-warning/10 text-warning-foreground border border-warning/30 px-3 py-2">
             ⚠ {warning}
           </div>
         )}
