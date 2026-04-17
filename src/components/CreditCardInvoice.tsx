@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { X, ChevronLeft, ChevronRight, Receipt, Pencil } from "lucide-react";
+import { X, ChevronLeft, ChevronRight, Receipt, Pencil, Trash2, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -11,6 +11,10 @@ import { useCreditCardOpenings, cycleKeyFromDate } from "@/hooks/useCreditCardOp
 import { useHideValues } from "@/contexts/HideValuesContext";
 import { getBank, brandLabel } from "@/lib/creditCardBanks";
 import { CreditCardOpeningDialog } from "./CreditCardOpeningDialog";
+import { ExpenseEditDialog } from "./ExpenseEditDialog";
+import { ConfirmDeleteDialog } from "./ConfirmDeleteDialog";
+import { Expense } from "@/types/loan";
+import { toast } from "sonner";
 
 interface Props {
   card: CreditCard;
