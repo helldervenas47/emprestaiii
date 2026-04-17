@@ -153,6 +153,10 @@ export function LoanForm({ onAdd, onSaveSchedule, onClose, clients, existingTags
     e.preventDefault();
     const selectedClient = activeClients.find((c) => c.id === form.borrowerName);
     if (!selectedClient || !amount || !rate || !installments) return;
+    if (hasManager && !managerId) {
+      toast.error("Selecione um gerente para o empréstimo com gerente.");
+      return;
+    }
     setSubmitting(true);
 
     const totalWithInterest = calculateTotalWithInterest(amount, rate, installments);
