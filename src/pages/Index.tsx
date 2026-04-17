@@ -240,7 +240,7 @@ const Index = () => {
   const [vehicleSubTab, setVehicleSubTab] = useState<VehicleSubTab>("veiculos");
   const [planMgmtSubTab, setPlanMgmtSubTab] = useState<PlanMgmtSubTab>("subscribers");
   const [overdueSubTab, setOverdueSubTab] = useState<OverdueSubTab>("cobrancas");
-  const [expenseSubTab, setExpenseSubTab] = useState<ExpenseSubTab>("business");
+  const [expenseSubTab, setExpenseSubTab] = useState<ExpenseSubTab>("personal");
   const [personalSubTab, setPersonalSubTab] = useState<PersonalSubTab>("expenses");
 
   // Filter data by linked clients if user has client restrictions
