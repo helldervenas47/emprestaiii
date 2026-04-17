@@ -1046,14 +1046,24 @@ Deno.serve(async (req) => {
 
   let processed = 0;
 
-  for (const msg of messages ?? []) {
-    const chatId = msg.chat_id as number;
-    const text = (msg.text as string | null)?.trim() ?? "";
-    const photos = (msg.raw_update as any)?.message?.photo as any[] | undefined;
-    const caption = ((msg.raw_update as any)?.message?.caption as string | null)?.trim() ?? "";
-    const callback = (msg.raw_update as any)?.callback_query;
+  // Group messages by chat_id so we can process different chats in parallel
+  // while preserving order within the same chat.
+  const byChat = new Map<number, any[]>();
+  for (const m of messages ?? []) {
+    const arr = byChat.get(m.chat_id as number) ?? [];
+    arr.push(m);
+    byChat.set(m.chat_id as number, arr);
+  }
 
-    try {
+  const processChat = async (chatMessages: any[]) => {
+    for (const msg of chatMessages) {
+      const chatId = msg.chat_id as number;
+      const text = (msg.text as string | null)?.trim() ?? "";
+      const photos = (msg.raw_update as any)?.message?.photo as any[] | undefined;
+      const caption = ((msg.raw_update as any)?.message?.caption as string | null)?.trim() ?? "";
+      const callback = (msg.raw_update as any)?.callback_query;
+
+      try {
       // 🎛️ Callback query (inline button press)
       if (callback) {
         const cbId = callback.id as string;
