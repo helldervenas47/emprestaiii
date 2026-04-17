@@ -17,7 +17,7 @@ interface Props {
   onClose: () => void;
 }
 
-const paymentMethods = ["Dinheiro", "Pix", "Débito", "Crédito", "Boleto"];
+const paymentMethods = ["Dinheiro", "Pix", "Débito", "Crédito", "Boleto", "Débito automático"];
 
 export function PersonalExpenseForm({ onAdd, onClose }: Props) {
   const { piggyBanks, addDeposit, createRecurrence } = usePiggyBanks();
