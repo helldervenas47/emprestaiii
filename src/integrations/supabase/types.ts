@@ -637,6 +637,7 @@ export type Database = {
           category: string
           created_at: string
           id: string
+          month: string
           updated_at: string
           user_id: string
         }
@@ -645,6 +646,7 @@ export type Database = {
           category: string
           created_at?: string
           id?: string
+          month?: string
           updated_at?: string
           user_id: string
         }
@@ -653,6 +655,7 @@ export type Database = {
           category?: string
           created_at?: string
           id?: string
+          month?: string
           updated_at?: string
           user_id?: string
         }

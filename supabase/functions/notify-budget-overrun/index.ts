@@ -177,11 +177,29 @@ Deno.serve(async (req) => {
     const monthEndDate = new Date(y, m, 0);
     const monthEnd = `${monthEndDate.getFullYear()}-${String(monthEndDate.getMonth() + 1).padStart(2, "0")}-${String(monthEndDate.getDate()).padStart(2, "0")}`;
 
-    // Fetch budgets
-    const { data: budgets } = await supabase
+    // Fetch budgets — aplica regra de herança: usa limites do próprio mês;
+    // se não houver, usa o mês mais recente anterior; se não houver, o próximo mês.
+    const { data: allBudgets } = await supabase
       .from("personal_budgets")
-      .select("category, amount")
+      .select("category, amount, month")
       .eq("user_id", ownerId);
+
+    let budgets: { category: string; amount: number }[] = [];
+    if (allBudgets && allBudgets.length > 0) {
+      const monthsAvailable = Array.from(new Set((allBudgets as any[]).map((b) => b.month as string))).sort();
+      let sourceMonth: string | null = null;
+      if (monthsAvailable.includes(month)) {
+        sourceMonth = month;
+      } else {
+        const previous = [...monthsAvailable].reverse().find((m) => m < month);
+        sourceMonth = previous ?? monthsAvailable.find((m) => m > month) ?? null;
+      }
+      if (sourceMonth) {
+        budgets = (allBudgets as any[])
+          .filter((b) => b.month === sourceMonth)
+          .map((b) => ({ category: b.category, amount: Number(b.amount) }));
+      }
+    }
 
     if (!budgets || budgets.length === 0) {
       return new Response(JSON.stringify({ message: "No budgets" }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });

@@ -15,6 +15,7 @@ import {
 import {
   Search, Trash2, CheckCircle, Receipt, Calendar,
   CircleDollarSign, ChevronLeft, ChevronRight, Undo2, TrendingUp, CalendarDays, Target, Pencil,
+  Sparkles,
 } from "lucide-react";
 import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
 import { ExpenseEditDialog } from "@/components/ExpenseEditDialog";
@@ -67,7 +68,16 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, onUpda
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
   const [budgetEditOpen, setBudgetEditOpen] = useState(false);
   const [budgetDraft, setBudgetDraft] = useState<Record<string, string>>({});
-  const { budgets, setBudget } = usePersonalBudgets();
+  const {
+    budgets,
+    monthBudgets,
+    effectiveMonth,
+    isInherited,
+    targetMonth,
+    setBudget,
+    deleteBudget,
+    inheritIntoMonth,
+  } = usePersonalBudgets(true, selectedMonth);
   const [historyMonths, setHistoryMonths] = useState<3 | 6 | 12>(6);
 
   // Monthly evolution per category — last N months
@@ -199,8 +209,12 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, onUpda
   const openBudgetEdit = () => {
     const draft: Record<string, string> = {};
     personalCategories.forEach((c) => {
-      const b = budgets.find((x) => x.category === c.name);
-      draft[c.name] = b ? String(b.amount) : "";
+      // Pré-preenche com o limite do próprio mês; se não houver, usa o herdado
+      // (assim editar gera um novo registro próprio sem alterar o mês de origem).
+      const own = monthBudgets.find((b) => b.category === c.name);
+      const inherited = budgets.find((b) => b.category === c.name);
+      const value = own?.amount ?? inherited?.amount ?? 0;
+      draft[c.name] = value > 0 ? String(value) : "";
     });
     setBudgetDraft(draft);
     setBudgetEditOpen(true);
@@ -211,12 +225,24 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, onUpda
       const raw = budgetDraft[c.name] ?? "";
       const num = Number(raw.replace(",", "."));
       const value = isNaN(num) ? 0 : num;
-      const existing = budgets.find((b) => b.category === c.name);
-      if ((existing?.amount ?? 0) !== value) {
+      const ownExisting = monthBudgets.find((b) => b.category === c.name);
+      // Se mantiver o valor herdado e não há limite próprio, não precisa criar.
+      const inheritedSame =
+        !ownExisting && isInherited &&
+        budgets.find((b) => b.category === c.name)?.amount === value &&
+        value > 0;
+      if (inheritedSame) continue;
+      if ((ownExisting?.amount ?? 0) !== value) {
         await setBudget(c.name, value);
       }
     }
+    toast.success("Limites atualizados");
     setBudgetEditOpen(false);
+  };
+
+  const formatMonthLabel = (key: string) => {
+    const [y, m] = key.split("-").map(Number);
+    return format(new Date(y, m - 1, 1), "MMM/yyyy", { locale: ptBR });
   };
 
   const filtered = visibleMonth
@@ -331,6 +357,106 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, onUpda
           <ChevronRight className="h-4 w-4" />
         </Button>
       </div>
+
+      {/* Limites de gastos por categoria (escopo mensal + herança) */}
+      <Card no3d>
+        <CardContent className="p-3 sm:p-4">
+          <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
+            <div className="flex items-center gap-2 min-w-0">
+              <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                <Target className="h-4 w-4 text-primary" />
+              </div>
+              <div className="min-w-0">
+                <h3 className="text-sm font-semibold text-foreground leading-tight">
+                  Limites de gastos
+                </h3>
+                <p className="text-[11px] text-muted-foreground leading-tight">
+                  {budgets.length === 0
+                    ? "Defina um valor máximo mensal por categoria"
+                    : isInherited && effectiveMonth
+                      ? `Herdado de ${formatMonthLabel(effectiveMonth)}`
+                      : `${budgets.length} ${budgets.length === 1 ? "categoria" : "categorias"} configuradas`}
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              {isInherited && !readOnly && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-8 text-xs"
+                  onClick={() => inheritIntoMonth()}
+                >
+                  <Sparkles className="h-3.5 w-3.5 mr-1" />
+                  Usar para este mês
+                </Button>
+              )}
+              <Button
+                variant={budgets.length === 0 ? "default" : "outline"}
+                size="sm"
+                className="h-8 text-xs"
+                onClick={openBudgetEdit}
+                disabled={readOnly}
+              >
+                <Target className="h-3.5 w-3.5 mr-1" />
+                {budgets.length === 0 ? "Definir limites" : "Editar limites"}
+              </Button>
+            </div>
+          </div>
+
+          {budgets.length > 0 && (
+            <div className="space-y-2 mt-2">
+              {budgets
+                .slice()
+                .sort((a, b) => a.category.localeCompare(b.category, "pt-BR"))
+                .map((b) => {
+                  const cat = getPersonalCategory(b.category);
+                  const Icon = cat.icon;
+                  const spent = spentByCategory.get(b.category) || 0;
+                  const pct = b.amount > 0 ? Math.min(200, (spent / b.amount) * 100) : 0;
+                  const over = spent > b.amount;
+                  const own = monthBudgets.find((x) => x.id === b.id);
+                  return (
+                    <div key={b.id} className="space-y-1">
+                      <div className="flex items-center justify-between gap-2 text-xs">
+                        <div className="flex items-center gap-1.5 min-w-0">
+                          <Icon className="h-3.5 w-3.5 shrink-0" style={{ color: `hsl(${cat.color})` }} />
+                          <span className="truncate text-foreground">{b.category}</span>
+                        </div>
+                        <div className="flex items-center gap-2 shrink-0">
+                          <span className={over ? "font-semibold text-destructive" : "text-muted-foreground"}>
+                            {formatCurrency(spent)} / {formatCurrency(b.amount)}
+                          </span>
+                          {own && !readOnly && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-6 w-6 text-destructive hover:text-destructive hover:bg-destructive/10"
+                              onClick={() => deleteBudget(own.id)}
+                              title="Remover limite deste mês"
+                            >
+                              <Trash2 className="h-3 w-3" />
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+                      <Progress
+                        value={Math.min(100, pct)}
+                        className={over ? "h-1.5 [&>div]:bg-destructive" : "h-1.5"}
+                      />
+                    </div>
+                  );
+                })}
+              <div className="flex items-center justify-between text-[11px] text-muted-foreground pt-1 border-t border-border">
+                <span>Total</span>
+                <span>
+                  {formatCurrency(totalSpentBudgeted)} / {formatCurrency(totalBudget)}
+                </span>
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Category chart */}
       {categoryData.length > 0 && (
@@ -601,8 +727,13 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, onUpda
       <Dialog open={budgetEditOpen} onOpenChange={setBudgetEditOpen}>
         <DialogContent className="sm:max-w-md max-h-[80vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Definir orçamento mensal</DialogTitle>
-            <DialogDescription>Defina um valor por categoria. Deixe em branco ou 0 para remover.</DialogDescription>
+            <DialogTitle>Limites de {formatMonthLabel(targetMonth)}</DialogTitle>
+            <DialogDescription>
+              Defina um valor máximo por categoria para este mês. Deixe em branco ou 0 para remover.
+              {isInherited && effectiveMonth && (
+                <> Sem alteração, os limites de <strong>{formatMonthLabel(effectiveMonth)}</strong> continuam valendo.</>
+              )}
+            </DialogDescription>
           </DialogHeader>
           <div className="space-y-2.5 py-2">
             {personalCategories.map((c) => {
