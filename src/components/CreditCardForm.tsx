@@ -182,6 +182,24 @@ export function CreditCardForm({ initial, onSave, onClose }: Props) {
               </div>
             </div>
 
+            {initial && (
+              <div className="flex items-center justify-between rounded-md border p-3">
+                <div>
+                  <Label htmlFor="active" className="text-sm font-medium">
+                    Cartão ativo
+                  </Label>
+                  <p className="text-xs text-muted-foreground">
+                    Cartões inativos ficam ocultos das listagens
+                  </p>
+                </div>
+                <Switch
+                  id="active"
+                  checked={form.active ?? true}
+                  onCheckedChange={(v) => update("active", v)}
+                />
+              </div>
+            )}
+
             <Button type="submit" className="w-full">
               <Plus className="h-4 w-4 mr-2" />
               {initial ? "Salvar Alterações" : "Cadastrar Cartão"}
