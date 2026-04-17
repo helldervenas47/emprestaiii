@@ -237,17 +237,23 @@ export function useLoans() {
     await fetchLoans();
   }, [user, dataOwnerId, loans, payments, fetchLoans, fetchPayments]);
 
-  const payOffLoan = useCallback(async (loanId: string, paymentDate?: string) => {
+  const payOffLoan = useCallback(async (loanId: string, paymentDate?: string, customAmount?: number) => {
     if (!user || !dataOwnerId) return;
     const dateStr = paymentDate || new Date().toISOString().split("T")[0];
     const loan = loans.find((l) => l.id === loanId);
     if (!loan) return;
     const remaining = getLoanRemainingAmount(loan, payments);
-    if (remaining <= 0) return;
+    if (remaining <= 0 && !(typeof customAmount === "number" && customAmount > 0)) return;
+
+    // "Valor para quitar" personalizado: usa exatamente o valor informado como pagamento
+    // de quitação, marcando o contrato como totalmente pago independentemente do restante.
+    const payAmount = typeof customAmount === "number" && customAmount > 0
+      ? customAmount
+      : remaining;
 
     const [paymentInsert] = await Promise.all([
       supabase.from("payments").insert({
-        user_id: dataOwnerId, loan_id: loanId, amount: remaining,
+        user_id: dataOwnerId, loan_id: loanId, amount: payAmount,
         date: dateStr, installment_number: loan.installments,
       }).select().single(),
       supabase.from("loans").update({
@@ -255,7 +261,7 @@ export function useLoans() {
         status: "paid",
         remaining_amount: 0,
       }).eq("id", loanId),
-      adjustBalance(remaining),
+      adjustBalance(payAmount),
     ]);
 
     // Manager commission (isolated — does NOT affect balance/profit/expenses)

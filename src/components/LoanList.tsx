@@ -30,7 +30,7 @@ interface Props {
   installmentSchedules: InstallmentSchedule[];
   onPayment: (loanId: string, paymentDate?: string) => void;
   onPartialPayment: (loanId: string, amount: number, paymentDate?: string) => void;
-  onFullPayment?: (loanId: string, paymentDate?: string) => void;
+  onFullPayment?: (loanId: string, paymentDate?: string, customAmount?: number) => void;
   onInterestPayment: (loanId: string, paymentDate?: string) => void;
   onUpdate: (id: string, data: Partial<Omit<Loan, "id">>) => void;
   onDelete: (loanId: string) => void;
@@ -165,7 +165,7 @@ function LoanCardView({
   installmentSchedules: InstallmentSchedule[];
   onPayment: (date?: string) => void;
   onPartialPayment: (amount: number, date?: string) => void;
-  onFullPayment?: (date?: string) => void;
+  onFullPayment?: (date?: string, customAmount?: number) => void;
   onInterestPayment: (date?: string) => void;
   onUpdate: (data: Partial<Omit<Loan, "id">>) => void;
   onDelete: () => void;
@@ -186,6 +186,7 @@ function LoanCardView({
   const [showTagInput, setShowTagInput] = useState(false);
   const [newTag, setNewTag] = useState("");
   const [paymentDialog, setPaymentDialog] = useState<{ type: "installment" | "interest" | "partial" | "full"; amount?: number } | null>(null);
+  const [payoffAmount, setPayoffAmount] = useState("");
   const [paymentDate, setPaymentDate] = useState<Date>(new Date());
   const [showHistory, setShowHistory] = useState(false);
   const [showDetails, setShowDetails] = useState(false);
@@ -371,15 +372,19 @@ function LoanCardView({
     if (!paymentDialog) return;
     const dateStr = paymentDate.toISOString().split("T")[0];
     if (paymentDialog.type === "full") {
+      const customRaw = parseFloat(payoffAmount.replace(",", "."));
+      const custom = isFinite(customRaw) && customRaw > 0 ? customRaw : undefined;
       if (onFullPayment) {
-        onFullPayment(dateStr);
+        onFullPayment(dateStr, custom);
       } else {
-        onPartialPayment(remaining, dateStr);
+        const amt = custom ?? remaining;
+        onPartialPayment(amt, dateStr);
         onUpdate({ paidInstallments: loan.installments, status: "paid" });
       }
     } else if (paymentDialog.type === "installment") onPayment(dateStr);
     else if (paymentDialog.type === "interest") onInterestPayment(dateStr);
     else if (paymentDialog.type === "partial" && paymentDialog.amount) onPartialPayment(paymentDialog.amount, dateStr);
+    setPayoffAmount("");
     setPaymentDialog(null);
   };
 
@@ -1227,9 +1232,27 @@ function LoanCardView({
         </DialogHeader>
         <div className="flex flex-col items-center gap-2">
           {paymentDialog?.type === "full" && (
-            <div className="text-center p-3 bg-muted/50 rounded-lg w-full">
-              <p className="text-xs text-muted-foreground">Valor restante a receber</p>
-              <p className="text-2xl font-bold text-primary">{formatCurrency(remaining)}</p>
+            <div className="w-full space-y-2">
+              <div className="text-center p-3 bg-muted/50 rounded-lg w-full">
+                <p className="text-xs text-muted-foreground">Total restante a receber</p>
+                <p className="text-2xl font-bold text-primary">{formatCurrency(remaining)}</p>
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="payoff-amount" className="text-xs">Valor para quitar (opcional)</Label>
+                <Input
+                  id="payoff-amount"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  inputMode="decimal"
+                  value={payoffAmount}
+                  onChange={(e) => setPayoffAmount(e.target.value)}
+                  placeholder={`Ex: ${remaining.toFixed(2)}`}
+                />
+                <p className="text-[10px] text-muted-foreground">
+                  Informe um valor diferente para quitar o contrato por esse montante. Em branco usa o restante.
+                </p>
+              </div>
             </div>
           )}
           <Label className="text-sm text-muted-foreground">Selecione a data do pagamento</Label>
@@ -1326,7 +1349,7 @@ function LoanRowView({
   installmentSchedules?: InstallmentSchedule[];
   onPayment: (date?: string) => void;
   onPartialPayment: (amount: number, date?: string) => void;
-  onFullPayment?: (date?: string) => void;
+  onFullPayment?: (date?: string, customAmount?: number) => void;
   onInterestPayment: (date?: string) => void;
   onUpdate: (data: Partial<Omit<Loan, "id">>) => void;
   onDelete: () => void;
@@ -1344,6 +1367,7 @@ function LoanRowView({
   const [partialAmount, setPartialAmount] = useState("");
   const [partialDate, setPartialDate] = useState<Date>(new Date());
   const [paymentDialog, setPaymentDialog] = useState<{ type: "installment" | "interest" | "partial" | "full"; amount?: number } | null>(null);
+  const [payoffAmount, setPayoffAmount] = useState("");
   const [showHistory, setShowHistory] = useState(false);
   const [paymentDate, setPaymentDate] = useState<Date>(new Date());
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -1449,15 +1473,19 @@ function LoanRowView({
     if (!paymentDialog) return;
     const dateStr = paymentDate.toISOString().split("T")[0];
     if (paymentDialog.type === "full") {
+      const customRaw = parseFloat(payoffAmount.replace(",", "."));
+      const custom = isFinite(customRaw) && customRaw > 0 ? customRaw : undefined;
       if (onFullPayment) {
-        onFullPayment(dateStr);
+        onFullPayment(dateStr, custom);
       } else {
-        onPartialPayment(remaining, dateStr);
+        const amt = custom ?? remaining;
+        onPartialPayment(amt, dateStr);
         onUpdate({ paidInstallments: loan.installments, status: "paid" });
       }
     } else if (paymentDialog.type === "installment") onPayment(dateStr);
     else if (paymentDialog.type === "interest") onInterestPayment(dateStr);
     else if (paymentDialog.type === "partial" && paymentDialog.amount) onPartialPayment(paymentDialog.amount, dateStr);
+    setPayoffAmount("");
     setPaymentDialog(null);
   };
 
@@ -1842,9 +1870,27 @@ function LoanRowView({
         </DialogHeader>
         <div className="flex flex-col items-center gap-2">
           {paymentDialog?.type === "full" && (
-            <div className="text-center p-3 bg-muted/50 rounded-lg w-full">
-              <p className="text-xs text-muted-foreground">Valor restante a receber</p>
-              <p className="text-2xl font-bold text-primary">{formatCurrency(remaining)}</p>
+            <div className="w-full space-y-2">
+              <div className="text-center p-3 bg-muted/50 rounded-lg w-full">
+                <p className="text-xs text-muted-foreground">Total restante a receber</p>
+                <p className="text-2xl font-bold text-primary">{formatCurrency(remaining)}</p>
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="payoff-amount-row" className="text-xs">Valor para quitar (opcional)</Label>
+                <Input
+                  id="payoff-amount-row"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  inputMode="decimal"
+                  value={payoffAmount}
+                  onChange={(e) => setPayoffAmount(e.target.value)}
+                  placeholder={`Ex: ${remaining.toFixed(2)}`}
+                />
+                <p className="text-[10px] text-muted-foreground">
+                  Informe um valor diferente para quitar o contrato por esse montante. Em branco usa o restante.
+                </p>
+              </div>
             </div>
           )}
           <Label className="text-sm text-muted-foreground">Selecione a data do pagamento</Label>
@@ -1951,7 +1997,7 @@ function ClientFolder({
   installmentSchedules: InstallmentSchedule[];
   onPayment: (id: string, date?: string) => void;
   onPartialPayment: (id: string, amount: number, date?: string) => void;
-  onFullPayment?: (id: string, date?: string) => void;
+  onFullPayment?: (id: string, date?: string, customAmount?: number) => void;
   onInterestPayment: (id: string, date?: string) => void;
   onUpdate: (id: string, data: Partial<Omit<Loan, "id">>) => void;
   onDelete: (id: string) => void;
@@ -2042,7 +2088,7 @@ function ClientFolder({
               <tbody>
                 {group.loans.map((loan) => (
                   <LoanRowView key={loan.id} loan={loan} payments={payments} installmentSchedules={installmentSchedules} readOnly={readOnly} existingTags={[...new Set(group.loans.flatMap(l => l.tags || []))]} clients={clients}
-                    onPayment={(date) => onPayment(loan.id, date)} onPartialPayment={(amt, date) => onPartialPayment(loan.id, amt, date)} onFullPayment={onFullPayment ? (date) => onFullPayment(loan.id, date) : undefined}
+                    onPayment={(date) => onPayment(loan.id, date)} onPartialPayment={(amt, date) => onPartialPayment(loan.id, amt, date)} onFullPayment={onFullPayment ? (date, custom) => onFullPayment(loan.id, date, custom) : undefined}
                     onInterestPayment={(date) => onInterestPayment(loan.id, date)} onUpdate={(d) => onUpdate(loan.id, d)} onDelete={() => onDelete(loan.id)} onDeletePayment={onDeletePayment} />
                 ))}
               </tbody>
@@ -2383,7 +2429,7 @@ export function LoanList({ loans, payments, installmentSchedules, onPayment, onP
               {categorized.map((loan, i) => (
                 <div key={loan.id} className="animate-fade-in h-full" style={{ animationDelay: `${i * 60}ms`, animationFillMode: 'backwards' }}>
                 <LoanCardView loan={loan} payments={payments} installmentSchedules={installmentSchedules} readOnly={readOnly} existingTags={loans.flatMap(l => l.tags || []).filter((v, i, a) => a.indexOf(v) === i)} clients={clients}
-                  onPayment={(date) => onPayment(loan.id, date)} onPartialPayment={(amt, date) => onPartialPayment(loan.id, amt, date)} onFullPayment={onFullPayment ? (date) => onFullPayment(loan.id, date) : undefined}
+                  onPayment={(date) => onPayment(loan.id, date)} onPartialPayment={(amt, date) => onPartialPayment(loan.id, amt, date)} onFullPayment={onFullPayment ? (date, custom) => onFullPayment(loan.id, date, custom) : undefined}
                   onInterestPayment={(date) => onInterestPayment(loan.id, date)} onUpdate={(d) => onUpdate(loan.id, d)} onDelete={() => onDelete(loan.id)} onDeletePayment={onDeletePayment} onSaveSchedule={onSaveSchedule} />
                 </div>
               ))}
@@ -2427,7 +2473,7 @@ export function LoanList({ loans, payments, installmentSchedules, onPayment, onP
                 <tbody>
                   {categorized.map((loan) => (
                     <LoanRowView key={loan.id} loan={loan} payments={payments} installmentSchedules={installmentSchedules} readOnly={readOnly} existingTags={loans.flatMap(l => l.tags || []).filter((v, i, a) => a.indexOf(v) === i)} clients={clients}
-                      onPayment={(date) => onPayment(loan.id, date)} onPartialPayment={(amt, date) => onPartialPayment(loan.id, amt, date)} onFullPayment={onFullPayment ? (date) => onFullPayment(loan.id, date) : undefined}
+                      onPayment={(date) => onPayment(loan.id, date)} onPartialPayment={(amt, date) => onPartialPayment(loan.id, amt, date)} onFullPayment={onFullPayment ? (date, custom) => onFullPayment(loan.id, date, custom) : undefined}
                       onInterestPayment={(date) => onInterestPayment(loan.id, date)} onUpdate={(d) => onUpdate(loan.id, d)} onDelete={() => onDelete(loan.id)} onDeletePayment={onDeletePayment} />
                   ))}
                 </tbody>
