@@ -641,11 +641,11 @@ const Index = () => {
                   onDelete={deleteExpense}
                   onUpdate={updateExpense}
                   readOnly={isReadOnly}
-                  afterEvolution={
+                  afterEvolution={({ selectedMonth }) => (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <Card no3d>
                         <CardContent className="p-4">
-                          <CreditCardList readOnly={isReadOnly} />
+                          <CreditCardList readOnly={isReadOnly} referenceMonth={selectedMonth} />
                         </CardContent>
                       </Card>
                       <Card no3d>
@@ -654,7 +654,7 @@ const Index = () => {
                         </CardContent>
                       </Card>
                     </div>
-                  }
+                  )}
                 />
               </>
             )}
