@@ -1309,7 +1309,7 @@ function LoanCardView({
 }
 
 function LoanRowView({
-  loan, payments: allPayments, installmentSchedules = [], onPayment, onPartialPayment, onFullPayment, onInterestPayment, onUpdate, onDelete, onDeletePayment, readOnly = false, existingTags = [],
+  loan, payments: allPayments, installmentSchedules = [], onPayment, onPartialPayment, onFullPayment, onInterestPayment, onUpdate, onDelete, onDeletePayment, readOnly = false, existingTags = [], clients = [],
 }: {
   loan: Loan;
   payments: Payment[];
@@ -1323,6 +1323,7 @@ function LoanRowView({
   onDeletePayment: (paymentId: string) => void;
   readOnly?: boolean;
   existingTags?: string[];
+  clients?: Client[];
 }) {
   const [expanded, setExpanded] = useState(false);
   const [editing, setEditing] = useState(false);
@@ -1337,6 +1338,10 @@ function LoanRowView({
   const [paymentDate, setPaymentDate] = useState<Date>(new Date());
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deletePaymentId, setDeletePaymentId] = useState<string | null>(null);
+  const [editHasManager, setEditHasManager] = useState<boolean>(loan.hasManager ?? false);
+  const [editManagerId, setEditManagerId] = useState<string>(loan.managerId ?? "");
+  const [editCommissionRate, setEditCommissionRate] = useState<string>(String(loan.managerCommissionRate ?? 10));
+  const managerOptions = useMemo(() => clients.filter((c) => c.isManager && c.active !== false), [clients]);
 
   const total = calculateTotalWithInterest(loan.amount, loan.interestRate, loan.installments);
   const totalPaid = getTotalPaid(loan, allPayments);
@@ -1387,7 +1392,14 @@ function LoanRowView({
   const category = getLoanCategory(loan, allPayments, installmentSchedules);
   const badge = statusMap[category];
 
-  const startEdit = () => { setForm(loanToForm(loan)); setEditing(true); setExpanded(true); };
+  const startEdit = () => {
+    setForm(loanToForm(loan));
+    setEditHasManager(loan.hasManager ?? false);
+    setEditManagerId(loan.managerId ?? "");
+    setEditCommissionRate(String(loan.managerCommissionRate ?? 10));
+    setEditing(true);
+    setExpanded(true);
+  };
   const cancelEdit = () => setEditing(false);
   const saveEdit = () => {
     const parsedTags = form.tags.split(",").map((t) => t.trim()).filter(Boolean);
@@ -1407,6 +1419,9 @@ function LoanRowView({
       tags: parsedTags,
       remainingAmount: parseFloat(form.remainingAmount) || 0,
       customInterestValue: hasCustomInterest ? manualInterest : null,
+      hasManager: editHasManager,
+      managerId: editHasManager && editManagerId ? editManagerId : null,
+      managerCommissionRate: editHasManager ? parseFloat(editCommissionRate) || 10 : null,
     });
     setEditing(false);
   };
