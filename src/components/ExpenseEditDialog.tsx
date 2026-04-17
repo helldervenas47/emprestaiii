@@ -38,7 +38,7 @@ interface Props {
   }) => Promise<void> | void;
 }
 
-const PAYMENT_METHODS = ["Dinheiro", "Pix", "Débito", "Crédito", "Boleto"] as const;
+const PAYMENT_METHODS = ["Dinheiro", "Pix", "Débito", "Crédito", "Boleto", "Débito automático"] as const;
 type PaymentMethod = typeof PAYMENT_METHODS[number];
 
 const PAYMENT_TAG_RE = /\[\s*(Dinheiro|Pix|D[ée]bito|Cr[eé]dito|Boleto)\s*\]/i;
