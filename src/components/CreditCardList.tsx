@@ -5,6 +5,10 @@ import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { useCreditCards, CreditCard } from "@/hooks/useCreditCards";
 import { useExpenses } from "@/hooks/useExpenses";
 import { useCreditCardOpenings, cycleKeyFromDate } from "@/hooks/useCreditCardOpenings";
@@ -457,27 +461,39 @@ export function CreditCardList({ readOnly = false, referenceMonth }: Props) {
         const ids = inv?.unpaidExpenseIds ?? [];
         const total = inv?.total ?? 0;
         return (
-          <ConfirmDeleteDialog
-            open={!!payingCard}
-            onOpenChange={(o) => !o && !paying && setPayingCard(null)}
-            onConfirm={async () => {
-              if (paying) return;
-              setPaying(true);
-              try {
-                const today = new Date().toISOString().split("T")[0];
-                for (const id of ids) {
-                  await payExpense(id, false, today);
-                }
-                toast.success(`Fatura paga (${ids.length} ${ids.length === 1 ? "lançamento" : "lançamentos"})`);
-                setPayingCard(null);
-              } finally {
-                setPaying(false);
-              }
-            }}
-            title="Pagar fatura do cartão?"
-            description={`Confirmar o pagamento de ${ids.length} ${ids.length === 1 ? "lançamento pendente" : "lançamentos pendentes"} (${fmt(total)}) do cartão ${payingCard.nickname || getBank(payingCard.bank).name}? Cada despesa será marcada como paga e o saldo será debitado.`}
-            confirmLabel="Pagar fatura"
-          />
+          <AlertDialog open={!!payingCard} onOpenChange={(o) => !o && !paying && setPayingCard(null)}>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Pagar fatura do cartão?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Confirmar o pagamento de {ids.length} {ids.length === 1 ? "lançamento pendente" : "lançamentos pendentes"} ({fmt(total)}) do cartão {payingCard.nickname || getBank(payingCard.bank).name}? Cada despesa será marcada como paga e o saldo será debitado.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel disabled={paying}>Cancelar</AlertDialogCancel>
+                <AlertDialogAction
+                  disabled={paying || ids.length === 0}
+                  onClick={async (e) => {
+                    e.preventDefault();
+                    if (paying) return;
+                    setPaying(true);
+                    try {
+                      const today = new Date().toISOString().split("T")[0];
+                      for (const id of ids) {
+                        await payExpense(id, false, today);
+                      }
+                      toast.success(`Fatura paga (${ids.length} ${ids.length === 1 ? "lançamento" : "lançamentos"})`);
+                      setPayingCard(null);
+                    } finally {
+                      setPaying(false);
+                    }
+                  }}
+                >
+                  {paying ? "Pagando..." : "Pagar fatura"}
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         );
       })()}
     </div>
