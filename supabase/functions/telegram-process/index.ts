@@ -1186,8 +1186,12 @@ Deno.serve(async (req) => {
               };
               let displayDate = finalDate;
               if (card) {
-                Object.assign(basePayload, buildCreditCardExpense(card, basePayload.description));
-                displayDate = basePayload.due_date;
+                const cc = buildCreditCardExpense(card, basePayload.description);
+                basePayload.due_date = cc.due_date;
+                basePayload.paid = cc.paid;
+                basePayload.paid_date = cc.paid_date;
+                basePayload.notes = cc.notes;
+                displayDate = cc.invoiceDueDate;
               } else {
                 basePayload.due_date = finalDate;
                 basePayload.paid = true;
