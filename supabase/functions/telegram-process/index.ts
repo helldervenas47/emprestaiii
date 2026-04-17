@@ -72,6 +72,118 @@ function detectCategory(description: string): string {
   return "Outros";
 }
 
+// ============================================================
+// Credit card detection
+// ============================================================
+
+interface CardLite {
+  id: string;
+  nickname: string;
+  bank: string;
+  last_four: string;
+  closing_day: number;
+  due_day: number;
+}
+
+// Cache: user_id → cards (TTL 5min)
+const cardsCache = new Map<string, { cards: CardLite[]; expires: number }>();
+const CARDS_CACHE_TTL_MS = 5 * 60 * 1000;
+
+async function getUserCards(admin: any, userId: string): Promise<CardLite[]> {
+  const cached = cardsCache.get(userId);
+  if (cached && cached.expires > Date.now()) return cached.cards;
+  const { data } = await admin
+    .from("credit_cards")
+    .select("id, nickname, bank, last_four, closing_day, due_day")
+    .eq("user_id", userId);
+  const cards = (data ?? []) as CardLite[];
+  cardsCache.set(userId, { cards, expires: Date.now() + CARDS_CACHE_TTL_MS });
+  return cards;
+}
+
+function normalize(s: string): string {
+  return s
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9\s]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+/**
+ * Detects an explicit credit-card mention in the user's message.
+ * Matches against the card's nickname, bank name, or last 4 digits.
+ * Requires either: an explicit card keyword (cartao/credito/no cartão) OR the last4 digits OR the full nickname.
+ */
+function detectCardInText(text: string, cards: CardLite[]): CardLite | null {
+  if (cards.length === 0) return null;
+  const normText = normalize(text);
+  const hasCardKeyword = /\b(cartao|credito|fatura)\b/.test(normText);
+
+  // 1) Try last_four match (very specific)
+  for (const c of cards) {
+    if (c.last_four && c.last_four.length >= 3 && normText.includes(c.last_four)) {
+      return c;
+    }
+  }
+  // 2) Try nickname match (substring, must be at least 3 chars)
+  for (const c of cards) {
+    const nick = normalize(c.nickname || "");
+    if (nick && nick.length >= 3 && normText.includes(nick)) {
+      return c;
+    }
+  }
+  // 3) Bank match — only if a card-related keyword is present (avoids false positives)
+  if (hasCardKeyword) {
+    for (const c of cards) {
+      const bank = normalize(c.bank || "");
+      if (bank && bank.length >= 3 && normText.includes(bank)) {
+        return c;
+      }
+    }
+  }
+  return null;
+}
+
+/** Computes the next due date (YYYY-MM-DD) for a purchase made today on a given card. */
+function nextDueDateForCard(closingDay: number, dueDay: number): string {
+  const today = todayBR();
+  const [y, m, d] = today.split("-").map(Number);
+  // Reference: today (1-indexed month back to 0-indexed JS month)
+  const ref = new Date(Date.UTC(y, m - 1, d));
+  const day = ref.getUTCDate();
+  const yr = ref.getUTCFullYear();
+  const mo = ref.getUTCMonth();
+
+  // The cycle that contains "today" closes at closingDay of either this month (if today <= closingDay)
+  // or next month (if today > closingDay).
+  const closingNextMonth = day > closingDay ? mo + 1 : mo;
+  // Due date falls in the month after closing (or same month if dueDay > closingDay).
+  const dueMonth = dueDay > closingDay ? closingNextMonth : closingNextMonth + 1;
+  const lastDay = new Date(Date.UTC(yr, dueMonth + 1, 0)).getUTCDate();
+  const safeDay = Math.min(dueDay, lastDay);
+  const due = new Date(Date.UTC(yr, dueMonth, safeDay));
+  return due.toISOString().slice(0, 10);
+}
+
+/**
+ * Builds the insert payload for a credit-card purchase: pending expense whose
+ * due_date is the card's invoice due date, and notes flag it for the invoice view.
+ */
+function buildCreditCardExpense(card: CardLite, baseDescription: string, baseNotes?: string): {
+  due_date: string;
+  paid: false;
+  paid_date: null;
+  notes: string;
+} {
+  const due = nextDueDateForCard(card.closing_day, card.due_day);
+  const tag = card.nickname || card.last_four || card.bank;
+  const cardLine = `[Crédito] Cartão: ${tag}`;
+  const notes = baseNotes && baseNotes.trim() ? `${cardLine}\n${baseNotes.trim()}` : cardLine;
+  return { due_date: due, paid: false, paid_date: null, notes };
+}
+
 // Regex-first parser for common expense formats.
 // Examples: "45 mercado", "R$ 12,50 uber", "uber 25", "1.234,56 conta luz"
 function quickParseExpense(text: string): { amount: number; description: string; category: string } | null {
