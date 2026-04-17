@@ -76,6 +76,7 @@ export function useCreditCards() {
         credit_limit: input.creditLimit,
         closing_day: input.closingDay,
         due_day: input.dueDay,
+        active: input.active ?? true,
       })
       .select()
       .single();
