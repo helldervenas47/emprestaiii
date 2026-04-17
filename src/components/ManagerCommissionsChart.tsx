@@ -35,6 +35,20 @@ function formatDate(dateStr?: string | null) {
   }
 }
 
+function resolveLoanManagerId(loan: Loan, managers: Client[]) {
+  if (!loan.hasManager) return null;
+  if (loan.managerId) return loan.managerId;
+  if (loan.borrowerId && managers.some((manager) => manager.id === loan.borrowerId)) {
+    return loan.borrowerId;
+  }
+  const borrowerName = loan.borrowerName?.trim().toLocaleLowerCase("pt-BR");
+  if (!borrowerName) return null;
+  const matchedManager = managers.find(
+    (manager) => manager.name.trim().toLocaleLowerCase("pt-BR") === borrowerName
+  );
+  return matchedManager?.id ?? null;
+}
+
 export function ManagerCommissionsChart({
   clients,
   loans = [],
@@ -59,45 +73,50 @@ export function ManagerCommissionsChart({
       byManager[m.id] = { paid: 0, projected: 0, loanCount: 0 };
     });
 
-    // PAGO: comissões geradas, filtradas pela data de geração (data de recebimento)
     commissions.forEach((c) => {
       if (range && !inRange(c.generatedAt, range.start, range.end)) return;
       if (!byManager[c.managerId]) byManager[c.managerId] = { paid: 0, projected: 0, loanCount: 0 };
       byManager[c.managerId].paid += c.amount;
     });
 
-    // PENDENTE: para cada parcela de empréstimo gerenciado com vencimento no período
-    // e que ainda não foi paga, alocamos a comissão proporcional (total / nº parcelas).
-    const managedLoans = loans.filter((l) => l.hasManager && l.managerId && l.status !== "paid");
+    const managedLoans = loans
+      .map((loan) => ({ loan, resolvedManagerId: resolveLoanManagerId(loan, managers) }))
+      .filter(({ loan, resolvedManagerId }) => loan.hasManager && !!resolvedManagerId && loan.status !== "paid");
 
     if (range) {
-      managedLoans.forEach((l) => {
-        const id = l.managerId!;
+      managedLoans.forEach(({ loan: l, resolvedManagerId }) => {
+        const id = resolvedManagerId!;
         if (!byManager[id]) byManager[id] = { paid: 0, projected: 0, loanCount: 0 };
         const rate = l.managerCommissionRate ?? 10;
         const totalCommission = (l.amount * rate) / 100;
         const perInstallment = totalCommission / Math.max(1, l.installments);
 
         const schedules = installmentSchedules.filter((s) => s.loanId === l.id);
-        // determine which installmentNumbers were paid (installmentNumber > 0 only)
         const paidNums = new Set(
           payments.filter((p) => p.loanId === l.id && p.installmentNumber > 0).map((p) => p.installmentNumber)
         );
 
         let countedThisLoan = false;
-        schedules.forEach((s) => {
-          if (paidNums.has(s.installmentNumber)) return;
-          if (!inRange(s.dueDate, range.start, range.end)) return;
-          byManager[id].projected += perInstallment;
-          countedThisLoan = true;
-        });
+
+        if (schedules.length === 0) {
+          if (!paidNums.has(1) && inRange(l.dueDate, range.start, range.end)) {
+            byManager[id].projected += perInstallment;
+            countedThisLoan = true;
+          }
+        } else {
+          schedules.forEach((s) => {
+            if (paidNums.has(s.installmentNumber)) return;
+            if (!inRange(s.dueDate, range.start, range.end)) return;
+            byManager[id].projected += perInstallment;
+            countedThisLoan = true;
+          });
+        }
 
         if (countedThisLoan) byManager[id].loanCount += 1;
       });
     } else {
-      // Sem período: total previsto do empréstimo inteiro
-      managedLoans.forEach((l) => {
-        const id = l.managerId!;
+      managedLoans.forEach(({ loan: l, resolvedManagerId }) => {
+        const id = resolvedManagerId!;
         if (!byManager[id]) byManager[id] = { paid: 0, projected: 0, loanCount: 0 };
         const rate = l.managerCommissionRate ?? 10;
         byManager[id].projected += (l.amount * rate) / 100;
@@ -257,16 +276,19 @@ function ManagerDetailDialog({
   const detail = useMemo(() => {
     if (!manager) return null;
 
-    const managerLoans = loans.filter((l) => l.hasManager && l.managerId === manager.id);
+    const managerLoans = loans.filter((l) => l.hasManager && resolveLoanManagerId(l, [manager]) === manager.id);
 
     const loansBreakdown = managerLoans.map((l) => {
       const rate = l.managerCommissionRate ?? 10;
       const totalCommission = (l.amount * rate) / 100;
       const perInstallment = totalCommission / Math.max(1, l.installments);
 
-      const schedules = installmentSchedules
+      const savedSchedules = installmentSchedules
         .filter((s) => s.loanId === l.id)
         .sort((a, b) => a.installmentNumber - b.installmentNumber);
+      const schedules = savedSchedules.length > 0
+        ? savedSchedules
+        : [{ loanId: l.id, installmentNumber: Math.min(Math.max(1, l.paidInstallments + 1), Math.max(1, l.installments)), dueDate: l.dueDate, amount: perInstallment }];
       const loanPayments = payments.filter((p) => p.loanId === l.id);
       const paidNumsMap = new Map<number, Payment>();
       loanPayments
@@ -313,7 +335,6 @@ function ManagerDetailDialog({
     const totalPaid = visible.reduce((s, b) => s + b.paidAmount, 0);
     const totalPending = visible.reduce((s, b) => s + b.pendingAmount, 0);
 
-    // also include actual commissions records for transparency
     const realizedCommissions = commissions
       .filter((c) => c.managerId === manager.id)
       .filter((c) => !range || inRange(c.generatedAt, range.start, range.end))
