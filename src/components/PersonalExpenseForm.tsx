@@ -312,6 +312,28 @@ export function PersonalExpenseForm({ onAdd, onClose }: Props) {
               />
             </div>
 
+            {!toPiggy && parseFloat(form.amount) > 0 && (
+              <div className="rounded-lg bg-muted p-4 space-y-1">
+                {form.kind === "parcelada" && parseInt(form.installments) > 1 && (
+                  <p className="text-sm text-muted-foreground">
+                    Valor total: <span className="font-semibold text-foreground">
+                      {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(parseFloat(form.amount) * (parseInt(form.installments) || 1))}
+                    </span> ({form.installments}x de <span className="font-semibold text-foreground">{new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(parseFloat(form.amount))}</span>)
+                  </p>
+                )}
+                {form.kind === "fixa" && (
+                  <p className="text-sm text-muted-foreground">
+                    Despesa mensal recorrente sem prazo final — <span className="font-semibold text-foreground">{new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(parseFloat(form.amount))}</span>/mês.
+                  </p>
+                )}
+                <p className="text-sm text-muted-foreground">
+                  Ao pagar, <span className="font-semibold text-destructive">
+                    {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(parseFloat(form.amount))}
+                  </span> será debitado do saldo.
+                </p>
+              </div>
+            )}
+
             <Button type="submit" className="w-full" disabled={toPiggy && !piggyId}>
               <Plus className="h-4 w-4 mr-2" />
               {toPiggy ? "Aportar no cofrinho" : "Cadastrar Despesa"}

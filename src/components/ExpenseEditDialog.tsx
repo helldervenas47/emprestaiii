@@ -213,6 +213,18 @@ export function ExpenseEditDialog({
             </div>
           </div>
 
+          {isParcelada && Number(amount) > 0 && (expense.installments ?? 0) > 0 && (
+            <div className="rounded-md bg-muted px-3 py-2 text-xs text-muted-foreground">
+              Valor por parcela:{" "}
+              <span className="font-semibold text-foreground">
+                {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(
+                  Number(amount) / (expense.installments as number),
+                )}
+              </span>{" "}
+              ({expense.installments}x)
+            </div>
+          )}
+
           <div>
             <Label className="text-xs">Categoria</Label>
             <Select value={category} onValueChange={setCategory}>
