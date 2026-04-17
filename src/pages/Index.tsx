@@ -30,6 +30,7 @@ const ExpenseList = lazy(() => import("@/components/ExpenseList").then(m => ({ d
 const PersonalExpenseForm = lazy(() => import("@/components/PersonalExpenseForm").then(m => ({ default: m.PersonalExpenseForm })));
 const PersonalExpenseList = lazy(() => import("@/components/PersonalExpenseList").then(m => ({ default: m.PersonalExpenseList })));
 const CreditCardList = lazy(() => import("@/components/CreditCardList").then(m => ({ default: m.CreditCardList })));
+const PiggyBankList = lazy(() => import("@/components/PiggyBankList").then(m => ({ default: m.PiggyBankList })));
 const UserManagement = lazy(() => import("@/components/UserManagement").then(m => ({ default: m.UserManagement })));
 const PlanManagement = lazy(() => import("@/components/PlanManagement").then(m => ({ default: m.PlanManagement })));
 const BackupExport = lazy(() => import("@/components/BackupExport").then(m => ({ default: m.BackupExport })));
@@ -640,11 +641,18 @@ const Index = () => {
                   onUpdate={updateExpense}
                   readOnly={isReadOnly}
                   afterEvolution={
-                    <Card no3d>
-                      <CardContent className="p-4">
-                        <CreditCardList readOnly={isReadOnly} />
-                      </CardContent>
-                    </Card>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <Card no3d>
+                        <CardContent className="p-4">
+                          <CreditCardList readOnly={isReadOnly} />
+                        </CardContent>
+                      </Card>
+                      <Card no3d>
+                        <CardContent className="p-4">
+                          <PiggyBankList readOnly={isReadOnly} />
+                        </CardContent>
+                      </Card>
+                    </div>
                   }
                 />
               </>
