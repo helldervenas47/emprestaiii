@@ -296,6 +296,7 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, onUpda
   const openPayDialog = (id: string) => {
     setPayingId(id);
     setPayDate(new Date().toISOString().split("T")[0]);
+    setPaidAmountInput("");
   };
 
   return (
