@@ -245,11 +245,11 @@ export function useLoans() {
     const remaining = getLoanRemainingAmount(loan, payments);
     if (remaining <= 0) return;
 
-    await Promise.all([
+    const [paymentInsert] = await Promise.all([
       supabase.from("payments").insert({
         user_id: dataOwnerId, loan_id: loanId, amount: remaining,
         date: dateStr, installment_number: loan.installments,
-      }),
+      }).select().single(),
       supabase.from("loans").update({
         paid_installments: loan.installments,
         status: "paid",
@@ -257,6 +257,24 @@ export function useLoans() {
       }).eq("id", loanId),
       adjustBalance(remaining),
     ]);
+
+    // Manager commission (isolated — does NOT affect balance/profit/expenses)
+    if (loan.hasManager && loan.managerId) {
+      const rate = loan.managerCommissionRate ?? 10;
+      const amount = (loan.amount * rate) / 100;
+      await supabase.from("manager_commissions").insert({
+        user_id: dataOwnerId,
+        loan_id: loanId,
+        manager_id: loan.managerId,
+        payment_id: paymentInsert.data?.id ?? null,
+        commission_type: "full",
+        base_amount: loan.amount,
+        rate,
+        amount,
+        generated_at: dateStr,
+      } as any);
+    }
+
     await fetchPayments();
     await fetchLoans();
   }, [user, dataOwnerId, loans, payments, fetchLoans, fetchPayments]);
@@ -283,15 +301,33 @@ export function useLoans() {
       .eq("loan_id", loanId)
       .eq("installment_number", nextNum);
 
-    await Promise.all([
+    const [paymentInsert] = await Promise.all([
       supabase.from("payments").insert({
         user_id: dataOwnerId, loan_id: loanId, amount: interestAmount,
         date: dateStr, installment_number: 0, previous_due_date: loan.dueDate,
-      }),
+      }).select().single(),
       supabase.from("loans").update({ due_date: newDueDate }).eq("id", loanId),
       scheduleUpdate,
       adjustBalance(interestAmount),
     ]);
+
+    // Manager commission on interest payments — 10% of ORIGINAL loan amount, isolated
+    if (loan.hasManager && loan.managerId && loan.status !== "paid") {
+      const rate = loan.managerCommissionRate ?? 10;
+      const amount = (loan.amount * rate) / 100;
+      await supabase.from("manager_commissions").insert({
+        user_id: dataOwnerId,
+        loan_id: loanId,
+        manager_id: loan.managerId,
+        payment_id: paymentInsert.data?.id ?? null,
+        commission_type: "interest",
+        base_amount: loan.amount,
+        rate,
+        amount,
+        generated_at: dateStr,
+      } as any);
+    }
+
     await fetchLoans();
     await fetchPayments();
     await fetchSchedules();
