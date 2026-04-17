@@ -1981,7 +1981,7 @@ function ClientFolder({
             <h3 className="font-bold text-foreground text-sm truncate">{group.name}</h3>
             {group.hasOverdue && <Badge className="bg-destructive/10 text-destructive border-destructive/20 text-[10px]">Atrasado</Badge>}
             {managerCount > 0 && (
-              <Badge variant="outline" className="bg-accent/15 text-accent-foreground border-accent/40 text-[10px] gap-0.5">
+              <Badge variant="outline" className="bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/40 text-[10px] gap-0.5">
                 <UserCog className="h-2.5 w-2.5" />{managerCount === group.loans.length ? "Com gerente" : `${managerCount} c/ gerente`}
               </Badge>
             )}
