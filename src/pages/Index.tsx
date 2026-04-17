@@ -43,6 +43,7 @@ const SubscriptionBanner = lazy(() => import("@/components/SubscriptionBanner").
 const SubscriptionGate = lazy(() => import("@/components/SubscriptionGate").then(m => ({ default: m.SubscriptionGate })));
 const VehicleExpenseForm = lazy(() => import("@/components/VehicleExpenseForm").then(m => ({ default: m.VehicleExpenseForm })));
 const NotificationSettings = lazy(() => import("@/components/NotificationSettings").then(m => ({ default: m.NotificationSettings })));
+const MonthlyGoalsManager = lazy(() => import("@/components/MonthlyGoalsManager").then(m => ({ default: m.MonthlyGoalsManager })));
 // Direct import for the constant used at render time
 import { vehicleExpenseCategories } from "@/components/VehicleExpenseForm";
 import { PushNotificationToggle } from "@/components/PushNotificationToggle";
@@ -78,7 +79,7 @@ type Tab = "overview" | "dashboard" | "clients" | "products" | "vehicles" | "ove
 type ClientSubTab = "clientes" | "veiculos";
 type VehicleSubTab = "veiculos" | "locadores";
 type PlanMgmtSubTab = "subscribers" | "plans";
-type OverdueSubTab = "cobrancas" | "notificacoes";
+type OverdueSubTab = "cobrancas" | "notificacoes" | "metas";
 type ExpenseSubTab = "business" | "personal";
 type PersonalSubTab = "expenses" | "cards";
 
@@ -678,6 +679,13 @@ const Index = () => {
               >
                 <Bell className="h-4 w-4 mr-1" /> Notificações
               </Button>
+              <Button
+                variant={overdueSubTab === "metas" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setOverdueSubTab("metas")}
+              >
+                <Target className="h-4 w-4 mr-1" /> Metas
+              </Button>
               {overdueSubTab === "notificacoes" && (
                 <PushNotificationToggle />
               )}
@@ -687,6 +695,9 @@ const Index = () => {
             )}
             {overdueSubTab === "notificacoes" && (
               <NotificationSettings />
+            )}
+            {overdueSubTab === "metas" && (
+              <MonthlyGoalsManager />
             )}
           </div>
           </SubscriptionGate>
