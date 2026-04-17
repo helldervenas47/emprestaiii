@@ -29,9 +29,9 @@ export function CreditCardList({ readOnly = false }: Props) {
     setShowForm(true);
   };
 
-  // Cards stacked like a wallet — overlap when collapsed, fan out when expanded
-  const STACK_PEEK = 28; // px visible of each card when collapsed
-  const EXPANDED_GAP = 16; // px gap between cards when expanded
+  // Cards stacked like a wallet — overlap when collapsed, fan out sideways when expanded
+  const STACK_PEEK = 28; // px visible of each card when collapsed (vertical)
+  const SIDE_PEEK_PCT = 18; // % of card width revealed for each next card when expanded
 
   return (
     <div>
@@ -48,7 +48,7 @@ export function CreditCardList({ readOnly = false }: Props) {
               className="gap-1"
             >
               <ChevronUp
-                className={`h-4 w-4 transition-transform ${expanded ? "" : "rotate-180"}`}
+                className={`h-4 w-4 transition-transform ${expanded ? "rotate-90" : "rotate-180"}`}
               />
               {expanded ? "Recolher" : "Expandir"}
             </Button>
@@ -74,29 +74,42 @@ export function CreditCardList({ readOnly = false }: Props) {
           )}
         </div>
       ) : (
-        <div className="relative mx-auto max-w-md">
+        <div className={expanded ? "w-full overflow-x-auto pb-2" : ""}>
           <div
-            className="relative w-full transition-[padding] duration-500 ease-out"
-            style={{
-              paddingBottom: expanded
-                ? `calc((100% / 1.586) * ${cards.length} + ${
-                    (cards.length - 1) * EXPANDED_GAP
-                  }px)`
-                : `calc((100% / 1.586) + ${(cards.length - 1) * STACK_PEEK}px)`,
-            }}
+            className="relative mx-auto transition-all duration-500 ease-out"
+            style={
+              expanded
+                ? {
+                    width: `calc(20rem + (20rem * ${SIDE_PEEK_PCT / 100}) * ${cards.length - 1})`,
+                    minWidth: "20rem",
+                    paddingBottom: `calc(20rem / 1.586)`,
+                  }
+                : {
+                    width: "100%",
+                    maxWidth: "28rem",
+                    paddingBottom: `calc((100% / 1.586) + ${(cards.length - 1) * STACK_PEEK}px)`,
+                  }
+            }
           >
             {cards.map((card, i) => {
-              const top = expanded
-                ? `calc((100% / 1.586) * ${i} + ${i * EXPANDED_GAP}px)`
-                : `${i * STACK_PEEK}px`;
+              const positionStyle: React.CSSProperties = expanded
+                ? {
+                    left: `calc((20rem * ${SIDE_PEEK_PCT / 100}) * ${i})`,
+                    top: 0,
+                    width: "20rem",
+                    zIndex: i + 1,
+                  }
+                : {
+                    left: 0,
+                    right: 0,
+                    top: `${i * STACK_PEEK}px`,
+                    zIndex: i + 1,
+                  };
               return (
                 <div
                   key={card.id}
-                  className="absolute left-0 right-0 transition-all duration-500 ease-out cursor-pointer hover:-translate-y-1"
-                  style={{
-                    top,
-                    zIndex: i + 1,
-                  }}
+                  className="absolute transition-all duration-500 ease-out cursor-pointer hover:-translate-y-1"
+                  style={positionStyle}
                   onClick={() => {
                     if (!expanded && cards.length > 1) {
                       setExpanded(true);
