@@ -176,27 +176,6 @@ export function OverdueLoans({ loans, payments, clients, installmentSchedules }:
   const totalOverdueAmount = overdueData.reduce((s, d) => s + d.totalAmount, 0);
   const totalDueTodayAmount = dueTodayData.reduce((s, d) => s + d.totalAmount, 0);
 
-  const handleSendWhatsApp = (item: LoanItem, isOverdue: boolean) => {
-    const message = buildWhatsAppMessage(item.loan, item.installments, isOverdue);
-    const phone = formatPhone(item.phone);
-    if (!phone) {
-      alert("Este cliente não possui telefone cadastrado.");
-      return;
-    }
-    window.open(`https://wa.me/55${phone}?text=${encodeURIComponent(message)}`, "_blank");
-  };
-
-  const handleSendAll = (items: LoanItem[], isOverdue: boolean) => {
-    const withPhone = items.filter((d) => formatPhone(d.phone));
-    if (withPhone.length === 0) {
-      alert("Nenhum cliente com telefone cadastrado encontrado.");
-      return;
-    }
-    withPhone.forEach((item, index) => {
-      setTimeout(() => handleSendWhatsApp(item, isOverdue), index * 1000);
-    });
-  };
-
   return (
     <div className="space-y-6">
       {/* Search */}
@@ -233,20 +212,14 @@ export function OverdueLoans({ loans, payments, clients, installmentSchedules }:
         </Card>
       </div>
 
+      {/* Bot de Relatórios (independente) */}
+      <TelegramReportsConnectCard />
+
       {/* Telegram automatic schedule */}
       <TelegramBillingScheduleCard />
 
-      {/* WhatsApp Report */}
-      <WhatsAppReport loans={loans} payments={payments} clients={clients} installmentSchedules={installmentSchedules} />
-
-      {/* Info */}
-      <Card no3d>
-        <CardContent className="p-4">
-          <p className="text-xs text-muted-foreground">
-            💡 Os botões abrem o WhatsApp Web com uma mensagem pré-formatada. Certifique-se de que os empréstimos estejam vinculados a clientes com telefone cadastrado.
-          </p>
-        </CardContent>
-      </Card>
+      {/* Detailed report preview */}
+      <DetailedReport loans={loans} payments={payments} clients={clients} installmentSchedules={installmentSchedules} />
     </div>
   );
 }
