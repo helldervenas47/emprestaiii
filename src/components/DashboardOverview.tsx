@@ -735,6 +735,44 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
                     <p className="text-[10px] text-muted-foreground italic flex items-center gap-1"><Target className="h-3 w-3" /> Defina uma meta em Relatórios → Metas</p>
                   )}
                 </div>
+                {/* Histórico — últimos 2 meses */}
+                <div className="mt-3 pt-2 border-t border-border/30 grid grid-cols-2 gap-2" onClick={(e) => e.stopPropagation()}>
+                  {[1, 2].map((monthsAgo) => {
+                    const d = new Date();
+                    d.setDate(1);
+                    d.setMonth(d.getMonth() - monthsAgo);
+                    const mKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+                    const mStart = new Date(d.getFullYear(), d.getMonth(), 1);
+                    const mEnd = new Date(d.getFullYear(), d.getMonth() + 1, 0, 23, 59, 59);
+                    const mLoans = loans.filter((l) => isInRange(l.startDate, mStart, mEnd));
+                    const lent = mLoans.reduce((s, l) => s + l.amount, 0);
+                    const toReceive = mLoans.reduce((s, l) => s + calculateTotalWithInterest(l.amount, l.interestRate, l.installments), 0);
+                    const realized = lent > 0 ? ((toReceive - lent) / lent) * 100 : 0;
+                    const goal = getGoal("interest_rate", mKey);
+                    const target = goal?.targetValue ?? 0;
+                    const pct = target > 0 ? Math.min(100, (realized / target) * 100) : 0;
+                    const reached = target > 0 && realized >= target;
+                    const colorVar = reached ? "hsl(var(--success))" : "hsl(var(--destructive))";
+                    const trackVar = "hsl(var(--muted))";
+                    const monthShort = monthNames[d.getMonth()].slice(0, 3);
+                    return (
+                      <div key={monthsAgo} className="flex flex-col items-center gap-1">
+                        <div
+                          className="relative h-14 w-14 rounded-full flex items-center justify-center"
+                          style={{ background: `conic-gradient(${colorVar} ${pct * 3.6}deg, ${trackVar} 0deg)` }}
+                          title={target > 0 ? `Meta: ${target.toFixed(1)}%` : "Sem meta cadastrada"}
+                        >
+                          <div className="absolute inset-1 rounded-full bg-card flex items-center justify-center">
+                            <span className={`text-[10px] font-bold ${reached ? "text-success" : "text-destructive"}`}>
+                              {realized.toFixed(1)}%
+                            </span>
+                          </div>
+                        </div>
+                        <span className="text-[10px] text-muted-foreground capitalize">{monthShort}</span>
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
               <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform ${expandedBreakdown === "interest-rate" ? "rotate-180" : ""}`} />
             </div>
