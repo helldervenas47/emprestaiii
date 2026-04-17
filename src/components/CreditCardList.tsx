@@ -250,13 +250,15 @@ function MiniCreditCard({
 
 export function CreditCardList({ readOnly = false, referenceMonth }: Props) {
   const { cards, loading, addCard, updateCard, deleteCard } = useCreditCards();
-  const { expenses } = useExpenses();
+  const { expenses, payExpense } = useExpenses();
   const { getOpening, upsertOpening } = useCreditCardOpenings();
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<CreditCard | null>(null);
   const [deleting, setDeleting] = useState<CreditCard | null>(null);
   const [invoiceCard, setInvoiceCard] = useState<CreditCard | null>(null);
   const [openingCard, setOpeningCard] = useState<CreditCard | null>(null);
+  const [payingCard, setPayingCard] = useState<CreditCard | null>(null);
+  const [paying, setPaying] = useState(false);
 
   const handleNew = () => {
     setEditing(null);
@@ -272,14 +274,23 @@ export function CreditCardList({ readOnly = false, referenceMonth }: Props) {
   const invoiceByCard = useMemo(() => {
     const map = new Map<
       string,
-      { transactions: number; opening: number; total: number; dueDate: Date; cycleKey: string; openingNotes: string | null; hasOpening: boolean }
+      {
+        transactions: number;
+        opening: number;
+        total: number;
+        dueDate: Date;
+        cycleKey: string;
+        openingNotes: string | null;
+        hasOpening: boolean;
+        unpaidExpenseIds: string[];
+      }
     >();
     cards.forEach((card) => {
       const cycle = referenceMonth
         ? getCycleForDueMonth(referenceMonth, card.closingDay, card.dueDay)
         : getCurrentCycle(card.closingDay, card.dueDay);
       const cardTag = (card.nickname || card.lastFour || "").toLowerCase();
-      const transactions = expenses
+      const inCycle = expenses
         .filter((e) => e.scope === "personal")
         .filter((e) => /\[\s*cr[eé]dito\s*\]/i.test(e.notes ?? ""))
         .filter((e) => {
@@ -291,11 +302,12 @@ export function CreditCardList({ readOnly = false, referenceMonth }: Props) {
         .filter((e) => {
           const d = new Date(e.dueDate + "T00:00:00");
           return d > cycle.from && d <= cycle.to;
-        })
-        .reduce((s, e) => {
-          const isRec = e.type === "recorrente" && e.installments && e.installments > 1;
-          return s + (isRec ? e.amount / e.installments! : e.amount);
-        }, 0);
+        });
+      const transactions = inCycle.reduce((s, e) => {
+        const isRec = e.type === "recorrente" && e.installments && e.installments > 1;
+        return s + (isRec ? e.amount / e.installments! : e.amount);
+      }, 0);
+      const unpaidExpenseIds = inCycle.filter((e) => !e.paid).map((e) => e.id);
       const cycleKey = cycleKeyFromDate(cycle.to);
       const op = getOpening(card.id, cycleKey);
       const opening = op?.openingAmount ?? 0;
@@ -307,6 +319,7 @@ export function CreditCardList({ readOnly = false, referenceMonth }: Props) {
         cycleKey,
         openingNotes: op?.notes ?? null,
         hasOpening: !!op,
+        unpaidExpenseIds,
       });
     });
     return map;
