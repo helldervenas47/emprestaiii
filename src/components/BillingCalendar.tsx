@@ -18,7 +18,7 @@ interface Props {
   installmentSchedules: InstallmentSchedule[];
   onPayment?: (loanId: string, paymentDate?: string) => void;
   onPartialPayment?: (loanId: string, amount: number, paymentDate?: string) => void;
-  onFullPayment?: (loanId: string, paymentDate?: string) => void;
+  onFullPayment?: (loanId: string, paymentDate?: string, customAmount?: number) => void;
   onInterestPayment?: (loanId: string, paymentDate?: string) => void;
   onUpdate?: (id: string, data: Partial<Omit<Loan, "id">>) => void;
   readOnly?: boolean;
@@ -56,6 +56,7 @@ export function BillingCalendar({ loans, payments, installmentSchedules, onPayme
   const [showPartial, setShowPartial] = useState<string | null>(null);
   const [partialAmount, setPartialAmount] = useState("");
   const [paymentDialog, setPaymentDialog] = useState<{ loanId: string; type: "installment" | "interest" | "partial" | "full"; amount?: number; borrowerName: string } | null>(null);
+  const [payoffAmount, setPayoffAmount] = useState("");
   const [paymentDate, setPaymentDate] = useState<Date>(new Date());
 
   // Build a map of date -> due items
@@ -167,12 +168,16 @@ export function BillingCalendar({ loans, payments, installmentSchedules, onPayme
     const remaining = loan.remainingAmount != null && loan.remainingAmount > 0 ? loan.remainingAmount : Math.max(0, total - totalPaid);
 
     if (paymentDialog.type === "full") {
+      const customRaw = parseFloat(payoffAmount.replace(",", "."));
+      const custom = isFinite(customRaw) && customRaw > 0 ? customRaw : undefined;
       if (onFullPayment) {
-        onFullPayment(paymentDialog.loanId, dateStr);
+        onFullPayment(paymentDialog.loanId, dateStr, custom);
       } else {
-        onPartialPayment?.(paymentDialog.loanId, remaining, dateStr);
+        const amt = custom ?? remaining;
+        onPartialPayment?.(paymentDialog.loanId, amt, dateStr);
         onUpdate?.(paymentDialog.loanId, { paidInstallments: loan.installments, status: "paid" });
       }
+      setPayoffAmount("");
     } else if (paymentDialog.type === "installment") {
       onPayment?.(paymentDialog.loanId, dateStr);
     } else if (paymentDialog.type === "interest") {
@@ -525,9 +530,27 @@ export function BillingCalendar({ loans, payments, installmentSchedules, onPayme
               const totalPaid = payments.filter(p => p.loanId === loan.id).reduce((s, p) => s + p.amount, 0);
               const remaining = loan.remainingAmount != null && loan.remainingAmount > 0 ? loan.remainingAmount : Math.max(0, total - totalPaid);
               return (
-                <div className="text-center p-3 bg-muted/50 rounded-lg w-full">
-                  <p className="text-xs text-muted-foreground">Valor restante a receber</p>
-                  <p className="text-2xl font-bold text-primary">{formatCurrency(remaining)}</p>
+                <div className="w-full space-y-2">
+                  <div className="text-center p-3 bg-muted/50 rounded-lg w-full">
+                    <p className="text-xs text-muted-foreground">Total restante a receber</p>
+                    <p className="text-2xl font-bold text-primary">{formatCurrency(remaining)}</p>
+                  </div>
+                  <div className="space-y-1">
+                    <Label htmlFor="payoff-amount-cal" className="text-xs">Valor para quitar (opcional)</Label>
+                    <Input
+                      id="payoff-amount-cal"
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      inputMode="decimal"
+                      value={payoffAmount}
+                      onChange={(e) => setPayoffAmount(e.target.value)}
+                      placeholder={`Ex: ${remaining.toFixed(2)}`}
+                    />
+                    <p className="text-[10px] text-muted-foreground">
+                      Informe um valor diferente para quitar o contrato. Em branco usa o restante.
+                    </p>
+                  </div>
                 </div>
               );
             })()}
