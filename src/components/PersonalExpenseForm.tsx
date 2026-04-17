@@ -173,23 +173,47 @@ export function PersonalExpenseForm({ onAdd, onClose }: Props) {
                   />
                 </div>
                 {toPiggy && (
-                  <div>
-                    <Label className="text-xs">Cofrinho</Label>
-                    <Select value={piggyId} onValueChange={setPiggyId}>
-                      <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
-                      <SelectContent>
-                        {piggyBanks.map((pb) => (
-                          <SelectItem key={pb.id} value={pb.id}>
-                            <span className="inline-flex items-center gap-2">
-                              <PiggyBank className="h-3.5 w-3.5" style={{ color: `hsl(${pb.color})` }} />
-                              {pb.name}
-                            </span>
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <p className="text-[10px] text-muted-foreground mt-1.5">
+                  <div className="space-y-3">
+                    <div>
+                      <Label className="text-xs">Cofrinho</Label>
+                      <Select value={piggyId} onValueChange={setPiggyId}>
+                        <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                        <SelectContent>
+                          {piggyBanks.map((pb) => (
+                            <SelectItem key={pb.id} value={pb.id}>
+                              <span className="inline-flex items-center gap-2">
+                                <PiggyBank className="h-3.5 w-3.5" style={{ color: `hsl(${pb.color})` }} />
+                                {pb.name}
+                              </span>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label className="text-xs">Recorrência do aporte</Label>
+                      <Select value={piggyRecurrence} onValueChange={(v) => setPiggyRecurrence(v as any)}>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="none">Único (apenas hoje)</SelectItem>
+                          <SelectItem value="fixed">Fixa (mensal, sem fim)</SelectItem>
+                          <SelectItem value="until">Mensal com data de fim</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    {piggyRecurrence === "until" && (
+                      <div>
+                        <Label className="text-xs">Aportar até</Label>
+                        <DatePickerField
+                          value={piggyEndDate}
+                          onChange={setPiggyEndDate}
+                          placeholder="Selecione a data final"
+                        />
+                      </div>
+                    )}
+                    <p className="text-[10px] text-muted-foreground">
                       Aportes não entram no "Gasto do mês" e rendem ~100% CDI ao dia.
+                      {piggyRecurrence !== "none" && " Novos aportes serão criados automaticamente a cada mês."}
                     </p>
                   </div>
                 )}
