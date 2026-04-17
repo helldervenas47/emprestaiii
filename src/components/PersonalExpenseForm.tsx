@@ -207,7 +207,7 @@ export function PersonalExpenseForm({ onAdd, onClose }: Props) {
                     onCheckedChange={(v) => {
                       setToPiggy(v);
                       if (v && !piggyId) setPiggyId(piggyBanks[0].id);
-                      if (v) update("type", "fixa");
+                      if (v) update("kind", "unica");
                     }}
                   />
                 </div>
