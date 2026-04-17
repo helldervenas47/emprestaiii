@@ -20,6 +20,7 @@ import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
 import { personalCategories, getPersonalCategory } from "@/lib/personalExpenseCategories";
 import { Progress } from "@/components/ui/progress";
 import { usePersonalBudgets } from "@/hooks/usePersonalBudgets";
+import { isPiggyExpense } from "@/hooks/usePiggyBanks";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as ReTooltip, LineChart, Line, XAxis, YAxis, CartesianGrid, Legend } from "recharts";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -107,11 +108,13 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, readOn
 
   const isRecFullyPaid = (e: Expense) =>
     e.type === "recorrente" && !!e.installments && e.installments > 1 && e.paid;
+  // Cofrinho expenses (savings transfers) stay in the list but must NOT count as monthly spending.
   const visibleMonth = monthFiltered.filter((e) => !isRecFullyPaid(e));
+  const spendingMonth = visibleMonth.filter((e) => !isPiggyExpense(e.notes));
 
-  const totalPending = visibleMonth.filter((e) => !e.paid).reduce((s, e) => s + getInstallmentAmount(e), 0);
-  const totalPaid = visibleMonth.reduce((s, e) => s + getInstallmentAmount(e), 0);
-  const totalOverdue = visibleMonth.filter(isOverdue).reduce((s, e) => s + getInstallmentAmount(e), 0);
+  const totalPending = spendingMonth.filter((e) => !e.paid).reduce((s, e) => s + getInstallmentAmount(e), 0);
+  const totalPaid = spendingMonth.reduce((s, e) => s + getInstallmentAmount(e), 0);
+  const totalOverdue = spendingMonth.filter(isOverdue).reduce((s, e) => s + getInstallmentAmount(e), 0);
 
   // Daily average + projection — only meaningful for current month
   const [selYear, selMonthNum] = selectedMonth.split("-").map(Number);
