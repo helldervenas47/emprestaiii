@@ -6,9 +6,11 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, X } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import { Plus, X, PiggyBank } from "lucide-react";
 import { Expense } from "@/types/loan";
 import { personalCategories } from "@/lib/personalExpenseCategories";
+import { usePiggyBanks, buildPiggyTag } from "@/hooks/usePiggyBanks";
 
 interface Props {
   onAdd: (expense: Omit<Expense, "id" | "paid" | "paidDate" | "createdAt">) => void;
@@ -18,6 +20,8 @@ interface Props {
 const paymentMethods = ["Dinheiro", "Pix", "Débito", "Crédito", "Boleto"];
 
 export function PersonalExpenseForm({ onAdd, onClose }: Props) {
+  const { piggyBanks, addDeposit } = usePiggyBanks();
+
   const [form, setForm] = useState({
     description: "",
     amount: "",
@@ -28,16 +32,40 @@ export function PersonalExpenseForm({ onAdd, onClose }: Props) {
     dueDate: new Date().toISOString().split("T")[0],
     notes: "",
   });
+  const [toPiggy, setToPiggy] = useState(false);
+  const [piggyId, setPiggyId] = useState<string>("");
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.description || !form.amount || !form.category) return;
+    if (!form.description || !form.amount) return;
+    const amount = parseFloat(form.amount) || 0;
+
+    if (toPiggy) {
+      if (!piggyId) return;
+      const baseNotes = form.notes ? `[${form.paymentMethod}] ${form.notes}` : `[${form.paymentMethod}]`;
+      onAdd({
+        description: form.description,
+        amount,
+        type: "fixa",
+        category: "Cofrinho",
+        installments: undefined,
+        paidInstallments: undefined,
+        dueDate: form.dueDate,
+        notes: buildPiggyTag(piggyId, baseNotes),
+        scope: "personal",
+      });
+      await addDeposit({ piggyBankId: piggyId, amount, depositDate: form.dueDate });
+      onClose();
+      return;
+    }
+
+    if (!form.category) return;
     const notesWithMethod = form.notes
       ? `[${form.paymentMethod}] ${form.notes}`
       : `[${form.paymentMethod}]`;
     onAdd({
       description: form.description,
-      amount: parseFloat(form.amount) || 0,
+      amount,
       type: form.type,
       category: form.category,
       installments: form.type === "recorrente" ? parseInt(form.installments) || 1 : undefined,
@@ -69,7 +97,7 @@ export function PersonalExpenseForm({ onAdd, onClose }: Props) {
                 id="description"
                 value={form.description}
                 onChange={(e) => update("description", e.target.value)}
-                placeholder="Ex: Supermercado do mês"
+                placeholder={toPiggy ? "Ex: Aporte mensal" : "Ex: Supermercado do mês"}
                 required
               />
             </div>
@@ -88,7 +116,7 @@ export function PersonalExpenseForm({ onAdd, onClose }: Props) {
               </div>
               <div>
                 <Label>Tipo</Label>
-                <Select value={form.type} onValueChange={(v) => update("type", v)}>
+                <Select value={form.type} onValueChange={(v) => update("type", v)} disabled={toPiggy}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="fixa">Única</SelectItem>
@@ -97,7 +125,7 @@ export function PersonalExpenseForm({ onAdd, onClose }: Props) {
                 </Select>
               </div>
             </div>
-            {form.type === "recorrente" && (
+            {form.type === "recorrente" && !toPiggy && (
               <div>
                 <Label htmlFor="installments">Parcelas</Label>
                 <Input
@@ -110,27 +138,73 @@ export function PersonalExpenseForm({ onAdd, onClose }: Props) {
                 />
               </div>
             )}
-            <div>
-              <Label>Categoria</Label>
-              <Select value={form.category} onValueChange={(v) => update("category", v)}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione uma categoria" />
-                </SelectTrigger>
-                <SelectContent>
-                  {personalCategories.map((c) => {
-                    const Icon = c.icon;
-                    return (
-                      <SelectItem key={c.name} value={c.name}>
-                        <span className="inline-flex items-center gap-2">
-                          <Icon className="h-3.5 w-3.5" style={{ color: `hsl(${c.color})` }} />
-                          {c.name}
-                        </span>
-                      </SelectItem>
-                    );
-                  })}
-                </SelectContent>
-              </Select>
-            </div>
+
+            {piggyBanks.length > 0 && (
+              <div className="rounded-lg border border-border/50 p-3 space-y-3 bg-primary/[0.03]">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <PiggyBank className="h-4 w-4 text-primary shrink-0" />
+                    <Label htmlFor="to-piggy" className="text-sm cursor-pointer">
+                      Destinar a um cofrinho
+                    </Label>
+                  </div>
+                  <Switch
+                    id="to-piggy"
+                    checked={toPiggy}
+                    onCheckedChange={(v) => {
+                      setToPiggy(v);
+                      if (v && !piggyId) setPiggyId(piggyBanks[0].id);
+                      if (v) update("type", "fixa");
+                    }}
+                  />
+                </div>
+                {toPiggy && (
+                  <div>
+                    <Label className="text-xs">Cofrinho</Label>
+                    <Select value={piggyId} onValueChange={setPiggyId}>
+                      <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                      <SelectContent>
+                        {piggyBanks.map((pb) => (
+                          <SelectItem key={pb.id} value={pb.id}>
+                            <span className="inline-flex items-center gap-2">
+                              <PiggyBank className="h-3.5 w-3.5" style={{ color: `hsl(${pb.color})` }} />
+                              {pb.name}
+                            </span>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <p className="text-[10px] text-muted-foreground mt-1.5">
+                      Aportes não entram no "Gasto do mês" e rendem ~100% CDI ao dia.
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {!toPiggy && (
+              <div>
+                <Label>Categoria</Label>
+                <Select value={form.category} onValueChange={(v) => update("category", v)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione uma categoria" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {personalCategories.map((c) => {
+                      const Icon = c.icon;
+                      return (
+                        <SelectItem key={c.name} value={c.name}>
+                          <span className="inline-flex items-center gap-2">
+                            <Icon className="h-3.5 w-3.5" style={{ color: `hsl(${c.color})` }} />
+                            {c.name}
+                          </span>
+                        </SelectItem>
+                      );
+                    })}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label>Forma de pagamento</Label>
@@ -142,7 +216,7 @@ export function PersonalExpenseForm({ onAdd, onClose }: Props) {
                 </Select>
               </div>
               <div>
-                <Label htmlFor="dueDate">Data de Pagamento</Label>
+                <Label htmlFor="dueDate">Data {toPiggy ? "do aporte" : "de Pagamento"}</Label>
                 <DatePickerField
                   id="dueDate"
                   value={form.dueDate}
@@ -161,9 +235,9 @@ export function PersonalExpenseForm({ onAdd, onClose }: Props) {
               />
             </div>
 
-            <Button type="submit" className="w-full">
+            <Button type="submit" className="w-full" disabled={toPiggy && !piggyId}>
               <Plus className="h-4 w-4 mr-2" />
-              Cadastrar Despesa
+              {toPiggy ? "Aportar no cofrinho" : "Cadastrar Despesa"}
             </Button>
           </form>
         </CardContent>
