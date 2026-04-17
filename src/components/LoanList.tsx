@@ -1367,6 +1367,7 @@ function LoanRowView({
   const [partialAmount, setPartialAmount] = useState("");
   const [partialDate, setPartialDate] = useState<Date>(new Date());
   const [paymentDialog, setPaymentDialog] = useState<{ type: "installment" | "interest" | "partial" | "full"; amount?: number } | null>(null);
+  const [payoffAmount, setPayoffAmount] = useState("");
   const [showHistory, setShowHistory] = useState(false);
   const [paymentDate, setPaymentDate] = useState<Date>(new Date());
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -1472,15 +1473,19 @@ function LoanRowView({
     if (!paymentDialog) return;
     const dateStr = paymentDate.toISOString().split("T")[0];
     if (paymentDialog.type === "full") {
+      const customRaw = parseFloat(payoffAmount.replace(",", "."));
+      const custom = isFinite(customRaw) && customRaw > 0 ? customRaw : undefined;
       if (onFullPayment) {
-        onFullPayment(dateStr);
+        onFullPayment(dateStr, custom);
       } else {
-        onPartialPayment(remaining, dateStr);
+        const amt = custom ?? remaining;
+        onPartialPayment(amt, dateStr);
         onUpdate({ paidInstallments: loan.installments, status: "paid" });
       }
     } else if (paymentDialog.type === "installment") onPayment(dateStr);
     else if (paymentDialog.type === "interest") onInterestPayment(dateStr);
     else if (paymentDialog.type === "partial" && paymentDialog.amount) onPartialPayment(paymentDialog.amount, dateStr);
+    setPayoffAmount("");
     setPaymentDialog(null);
   };
 
