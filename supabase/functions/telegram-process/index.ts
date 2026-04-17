@@ -900,7 +900,7 @@ Deno.serve(async (req) => {
                 extracted = {
                   description: quick.description,
                   amount: quick.amount,
-                  category: "Outros",
+                  category: quick.category,
                   date: today,
                   confidence: 1,
                 };
