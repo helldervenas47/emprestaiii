@@ -30,7 +30,7 @@ interface Props {
   installmentSchedules: InstallmentSchedule[];
   onPayment: (loanId: string, paymentDate?: string) => void;
   onPartialPayment: (loanId: string, amount: number, paymentDate?: string) => void;
-  onFullPayment?: (loanId: string, paymentDate?: string) => void;
+  onFullPayment?: (loanId: string, paymentDate?: string, customAmount?: number) => void;
   onInterestPayment: (loanId: string, paymentDate?: string) => void;
   onUpdate: (id: string, data: Partial<Omit<Loan, "id">>) => void;
   onDelete: (loanId: string) => void;
@@ -165,7 +165,7 @@ function LoanCardView({
   installmentSchedules: InstallmentSchedule[];
   onPayment: (date?: string) => void;
   onPartialPayment: (amount: number, date?: string) => void;
-  onFullPayment?: (date?: string) => void;
+  onFullPayment?: (date?: string, customAmount?: number) => void;
   onInterestPayment: (date?: string) => void;
   onUpdate: (data: Partial<Omit<Loan, "id">>) => void;
   onDelete: () => void;
@@ -1326,7 +1326,7 @@ function LoanRowView({
   installmentSchedules?: InstallmentSchedule[];
   onPayment: (date?: string) => void;
   onPartialPayment: (amount: number, date?: string) => void;
-  onFullPayment?: (date?: string) => void;
+  onFullPayment?: (date?: string, customAmount?: number) => void;
   onInterestPayment: (date?: string) => void;
   onUpdate: (data: Partial<Omit<Loan, "id">>) => void;
   onDelete: () => void;
@@ -1951,7 +1951,7 @@ function ClientFolder({
   installmentSchedules: InstallmentSchedule[];
   onPayment: (id: string, date?: string) => void;
   onPartialPayment: (id: string, amount: number, date?: string) => void;
-  onFullPayment?: (id: string, date?: string) => void;
+  onFullPayment?: (id: string, date?: string, customAmount?: number) => void;
   onInterestPayment: (id: string, date?: string) => void;
   onUpdate: (id: string, data: Partial<Omit<Loan, "id">>) => void;
   onDelete: (id: string) => void;
