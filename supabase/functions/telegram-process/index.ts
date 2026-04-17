@@ -190,27 +190,69 @@ function buildCreditCardExpense(card: CardLite, _baseDescription: string, baseNo
   return { due_date: purchaseDate, paid: false, paid_date: null, notes, invoiceDueDate };
 }
 
+// Detects installment phrasing in the message and returns N parcels.
+// Examples: "10x", "em 3x", "em 12 vezes", "parcelado em 6", "6 parcelas",
+//           "dividido em 4", "4 vezes de 50".
+function detectInstallments(text: string): number | null {
+  const t = text.toLowerCase();
+  const patterns = [
+    /\bem\s+(\d{1,2})\s*x\b/i,
+    /\bem\s+(\d{1,2})\s+vezes\b/i,
+    /\bparcel(?:ad[oa])?\s+em\s+(\d{1,2})\b/i,
+    /\b(\d{1,2})\s+parcelas?\b/i,
+    /\bdividid[oa]?\s+em\s+(\d{1,2})\b/i,
+    /\b(\d{1,2})\s+vezes\s+de\b/i,
+    /\b(\d{1,2})\s*x\b/i,
+  ];
+  for (const re of patterns) {
+    const m = t.match(re);
+    if (m) {
+      const n = parseInt(m[1], 10);
+      if (n >= 2 && n <= 36) return n;
+    }
+  }
+  return null;
+}
+
+// Strips installment phrasing from description so it doesn't pollute the saved text.
+function stripInstallmentPhrase(desc: string): string {
+  return desc
+    .replace(/\bem\s+\d{1,2}\s*x\b/gi, "")
+    .replace(/\bem\s+\d{1,2}\s+vezes\b/gi, "")
+    .replace(/\bparcel(?:ad[oa])?\s+em\s+\d{1,2}\b/gi, "")
+    .replace(/\b\d{1,2}\s+parcelas?\b/gi, "")
+    .replace(/\bdividid[oa]?\s+em\s+\d{1,2}\b/gi, "")
+    .replace(/\b\d{1,2}\s+vezes\s+de\s+[\d.,]+\b/gi, "")
+    .replace(/\b\d{1,2}\s*x\b/gi, "")
+    .replace(/\s{2,}/g, " ")
+    .trim();
+}
+
 // Regex-first parser for common expense formats.
-// Examples: "45 mercado", "R$ 12,50 uber", "uber 25", "1.234,56 conta luz"
-function quickParseExpense(text: string): { amount: number; description: string; category: string } | null {
+// Examples: "45 mercado", "R$ 12,50 uber", "uber 25", "1.234,56 conta luz",
+//           "tv 1200 em 10x", "tenis 300 3x"
+function quickParseExpense(text: string): { amount: number; description: string; category: string; installments: number | null } | null {
   const t = text.trim();
   if (t.length < 2 || t.startsWith("/")) return null;
   // Defer to AI when text mentions a date — quick parser would assume "today".
   if (hasDateHint(t)) return null;
+  const installments = detectInstallments(t);
+  // Remove installment tokens before extracting amount/description so they don't confuse the regex.
+  const cleaned = installments ? stripInstallmentPhrase(t) : t;
   let amountStr: string | null = null;
   let description: string | null = null;
-  const mA = t.match(/^R?\$?\s*([\d]+(?:\.\d{3})*(?:,\d{1,2})?|\d+(?:\.\d{1,2})?)\s+(.{2,80})$/i);
+  const mA = cleaned.match(/^R?\$?\s*([\d]+(?:\.\d{3})*(?:,\d{1,2})?|\d+(?:\.\d{1,2})?)\s+(.{2,80})$/i);
   if (mA) { amountStr = mA[1]; description = mA[2]; }
   else {
-    const mB = t.match(/^(.{2,80}?)\s+R?\$?\s*([\d]+(?:\.\d{3})*(?:,\d{1,2})?|\d+(?:\.\d{1,2})?)$/i);
+    const mB = cleaned.match(/^(.{2,80}?)\s+R?\$?\s*([\d]+(?:\.\d{3})*(?:,\d{1,2})?|\d+(?:\.\d{1,2})?)$/i);
     if (mB) { description = mB[1]; amountStr = mB[2]; }
   }
   if (!amountStr || !description) return null;
   const amount = parseAmount(amountStr);
   if (amount === null) return null;
-  const desc = description.trim();
+  const desc = stripInstallmentPhrase(description.trim());
   if (desc.length < 2) return null;
-  return { amount, description: desc, category: detectCategory(desc) };
+  return { amount, description: desc, category: detectCategory(desc), installments };
 }
 
 const HELP_TEXT = `🤖 *Como usar*
