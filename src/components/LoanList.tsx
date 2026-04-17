@@ -2014,7 +2014,7 @@ function ClientFolder({
               </thead>
               <tbody>
                 {group.loans.map((loan) => (
-                  <LoanRowView key={loan.id} loan={loan} payments={payments} installmentSchedules={installmentSchedules} readOnly={readOnly} existingTags={[...new Set(group.loans.flatMap(l => l.tags || []))]}
+                  <LoanRowView key={loan.id} loan={loan} payments={payments} installmentSchedules={installmentSchedules} readOnly={readOnly} existingTags={[...new Set(group.loans.flatMap(l => l.tags || []))]} clients={clients}
                     onPayment={(date) => onPayment(loan.id, date)} onPartialPayment={(amt, date) => onPartialPayment(loan.id, amt, date)} onFullPayment={onFullPayment ? (date) => onFullPayment(loan.id, date) : undefined}
                     onInterestPayment={(date) => onInterestPayment(loan.id, date)} onUpdate={(d) => onUpdate(loan.id, d)} onDelete={() => onDelete(loan.id)} onDeletePayment={onDeletePayment} />
                 ))}
@@ -2365,7 +2365,7 @@ export function LoanList({ loans, payments, installmentSchedules, onPayment, onP
             <>
             <div className="space-y-4">
               {grouped.map((g) => (
-                <ClientFolder key={g.name} group={g} payments={payments} installmentSchedules={installmentSchedules} readOnly={readOnly}
+                <ClientFolder key={g.name} group={g} payments={payments} installmentSchedules={installmentSchedules} readOnly={readOnly} clients={clients}
                   onPayment={onPayment} onPartialPayment={onPartialPayment} onFullPayment={onFullPayment}
                   onInterestPayment={onInterestPayment} onUpdate={onUpdate} onDelete={onDelete} onDeletePayment={onDeletePayment} onSaveSchedule={onSaveSchedule} />
               ))}
@@ -2399,7 +2399,7 @@ export function LoanList({ loans, payments, installmentSchedules, onPayment, onP
                 </thead>
                 <tbody>
                   {categorized.map((loan) => (
-                    <LoanRowView key={loan.id} loan={loan} payments={payments} installmentSchedules={installmentSchedules} readOnly={readOnly} existingTags={loans.flatMap(l => l.tags || []).filter((v, i, a) => a.indexOf(v) === i)}
+                    <LoanRowView key={loan.id} loan={loan} payments={payments} installmentSchedules={installmentSchedules} readOnly={readOnly} existingTags={loans.flatMap(l => l.tags || []).filter((v, i, a) => a.indexOf(v) === i)} clients={clients}
                       onPayment={(date) => onPayment(loan.id, date)} onPartialPayment={(amt, date) => onPartialPayment(loan.id, amt, date)} onFullPayment={onFullPayment ? (date) => onFullPayment(loan.id, date) : undefined}
                       onInterestPayment={(date) => onInterestPayment(loan.id, date)} onUpdate={(d) => onUpdate(loan.id, d)} onDelete={() => onDelete(loan.id)} onDeletePayment={onDeletePayment} />
                   ))}
