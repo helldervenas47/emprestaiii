@@ -33,7 +33,12 @@ interface Props {
   onDelete: (id: string) => void;
   onUpdate?: (id: string, data: Partial<Omit<Expense, "id" | "createdAt">>) => void;
   readOnly?: boolean;
-  afterEvolution?: React.ReactNode;
+  /**
+   * Extra content rendered after the evolution chart.
+   * Can be a node, or a render-fn receiving the currently selected month
+   * (YYYY-MM) so child components (e.g. credit card invoice) can stay in sync.
+   */
+  afterEvolution?: React.ReactNode | ((ctx: { selectedMonth: string }) => React.ReactNode);
 }
 
 type Filter = "all" | "pending" | "paid" | "overdue";
