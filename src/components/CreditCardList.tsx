@@ -1,15 +1,17 @@
 import { useState, useMemo } from "react";
-import { Plus, CreditCard as CreditCardIcon, Wifi, Pencil, Trash2 } from "lucide-react";
+import { Plus, CreditCard as CreditCardIcon, Wifi, Pencil, Trash2, Receipt } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useCreditCards, CreditCard } from "@/hooks/useCreditCards";
 import { useExpenses } from "@/hooks/useExpenses";
+import { useCreditCardOpenings, cycleKeyFromDate } from "@/hooks/useCreditCardOpenings";
 import { useHideValues } from "@/contexts/HideValuesContext";
 import { getBank, brandLabel } from "@/lib/creditCardBanks";
 import { CreditCardForm } from "./CreditCardForm";
 import { CreditCardInvoice } from "./CreditCardInvoice";
+import { CreditCardOpeningDialog } from "./CreditCardOpeningDialog";
 import { ConfirmDeleteDialog } from "./ConfirmDeleteDialog";
 
 interface Props {
