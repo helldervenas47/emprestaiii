@@ -783,12 +783,14 @@ Deno.serve(async (req) => {
         } else {
           // Remove any prior link for this chat or user
           await admin.from("telegram_links").delete().or(`chat_id.eq.${chatId},user_id.eq.${codeRow.user_id}`);
+          invalidateLinkCache(chatId);
           const { error: linkErr } = await admin.from("telegram_links")
             .insert({ user_id: codeRow.user_id, chat_id: chatId });
           if (linkErr) {
             await tgSend(chatId, "❌ Erro ao vincular: " + linkErr.message, LOVABLE_API_KEY, TELEGRAM_API_KEY);
           } else {
             await admin.from("telegram_link_codes").delete().eq("id", codeRow.id);
+            invalidateLinkCache(chatId);
             await tgSend(chatId, "✅ *Conta vinculada!*\n\n" + HELP_TEXT, LOVABLE_API_KEY, TELEGRAM_API_KEY);
           }
         }
