@@ -127,9 +127,9 @@ function budgetIcon(pct: number | null): string {
 }
 
 async function handleSaldo(admin: any, userId: string): Promise<string> {
-  const now = new Date();
-  const monthPrefix = now.toISOString().slice(0, 7); // YYYY-MM
-  const monthName = MONTH_NAMES[now.getMonth()];
+  const { year, month } = nowBR();
+  const monthPrefix = `${year}-${String(month + 1).padStart(2, "0")}`;
+  const monthName = MONTH_NAMES[month];
 
   const { data: expenses } = await admin
     .from("expenses")
@@ -235,6 +235,12 @@ function todayBR(): string {
   return parts; // en-CA already formats as YYYY-MM-DD
 }
 
+// Returns current date components in America/Sao_Paulo timezone.
+function nowBR(): { year: number; month: number; day: number } {
+  const [y, m, d] = todayBR().split("-").map(Number);
+  return { year: y, month: m - 1, day: d }; // month 0-indexed for compatibility
+}
+
 async function summarizeRange(
   admin: any,
   userId: string,
@@ -269,11 +275,9 @@ async function summarizeRange(
 }
 
 async function handleMes(admin: any, userId: string): Promise<string> {
-  const now = new Date();
-  const year = now.getFullYear();
-  const month = now.getMonth();
-  const first = new Date(year, month, 1);
-  const last = new Date(year, month + 1, 0);
+  const { year, month, day } = nowBR();
+  const first = new Date(Date.UTC(year, month, 1));
+  const last = new Date(Date.UTC(year, month + 1, 0));
   const monthName = MONTH_NAMES[month];
 
   const { total, count, byCat, topItems } = await summarizeRange(
@@ -282,7 +286,7 @@ async function handleMes(admin: any, userId: string): Promise<string> {
 
   if (count === 0) return `📅 *Resumo de ${monthName}*\n\n_Sem despesas neste mês._`;
 
-  const dayOfMonth = now.getDate();
+  const dayOfMonth = day;
   const avgPerDay = total / dayOfMonth;
 
   let msg = `📅 *Resumo de ${monthName}*\n`;
@@ -307,17 +311,16 @@ async function handleMes(admin: any, userId: string): Promise<string> {
 }
 
 async function handleSemana(admin: any, userId: string): Promise<string> {
-  const now = new Date();
-  const to = new Date(now);
-  const from = new Date(now);
-  from.setDate(from.getDate() - 6);
+  const { year, month, day } = nowBR();
+  const to = new Date(Date.UTC(year, month, day));
+  const from = new Date(Date.UTC(year, month, day - 6));
 
   const { total, count, byCat, topItems } = await summarizeRange(
     admin, userId, ymd(from), ymd(to),
   );
 
-  const fromStr = `${String(from.getDate()).padStart(2, "0")}/${String(from.getMonth() + 1).padStart(2, "0")}`;
-  const toStr = `${String(to.getDate()).padStart(2, "0")}/${String(to.getMonth() + 1).padStart(2, "0")}`;
+  const fromStr = `${String(from.getUTCDate()).padStart(2, "0")}/${String(from.getUTCMonth() + 1).padStart(2, "0")}`;
+  const toStr = `${String(to.getUTCDate()).padStart(2, "0")}/${String(to.getUTCMonth() + 1).padStart(2, "0")}`;
 
   if (count === 0) return `🗓️ *Resumo da semana* (${fromStr} – ${toStr})\n\n_Sem despesas nos últimos 7 dias._`;
 
@@ -345,17 +348,15 @@ async function handleSemana(admin: any, userId: string): Promise<string> {
 }
 
 async function handleComparar(admin: any, userId: string): Promise<string> {
-  const now = new Date();
-  const year = now.getFullYear();
-  const month = now.getMonth();
+  const { year, month } = nowBR();
 
   // Current month range
-  const curFirst = new Date(year, month, 1);
-  const curLast = new Date(year, month + 1, 0);
+  const curFirst = new Date(Date.UTC(year, month, 1));
+  const curLast = new Date(Date.UTC(year, month + 1, 0));
 
   // Previous month range
-  const prevFirst = new Date(year, month - 1, 1);
-  const prevLast = new Date(year, month, 0);
+  const prevFirst = new Date(Date.UTC(year, month - 1, 1));
+  const prevLast = new Date(Date.UTC(year, month, 0));
 
   const [cur, prev] = await Promise.all([
     summarizeRange(admin, userId, ymd(curFirst), ymd(curLast)),
@@ -414,13 +415,11 @@ async function handleComparar(admin: any, userId: string): Promise<string> {
 }
 
 async function handleOrcamento(admin: any, userId: string): Promise<string> {
-  const now = new Date();
-  const year = now.getFullYear();
-  const month = now.getMonth();
-  const monthPrefix = now.toISOString().slice(0, 7); // YYYY-MM
+  const { year, month, day } = nowBR();
+  const monthPrefix = `${year}-${String(month + 1).padStart(2, "0")}`;
   const monthName = MONTH_NAMES[month];
-  const lastDay = new Date(year, month + 1, 0).getDate();
-  const today = now.getDate();
+  const lastDay = new Date(Date.UTC(year, month + 1, 0)).getUTCDate();
+  const today = day;
   const daysLeft = lastDay - today;
 
   const [{ data: budgets }, { data: expenses }] = await Promise.all([
