@@ -7,6 +7,8 @@ const GATEWAY_URL = 'https://connector-gateway.lovable.dev/telegram';
 
 const COMMANDS = [
   { command: 'saldo', description: 'Gastos do mês por categoria' },
+  { command: 'mes', description: 'Resumo completo do mês atual' },
+  { command: 'semana', description: 'Resumo dos últimos 7 dias' },
   { command: 'ultimas', description: 'Últimas 5 despesas' },
   { command: 'apagar', description: 'Apaga a despesa mais recente' },
   { command: 'help', description: 'Mostra ajuda' },
