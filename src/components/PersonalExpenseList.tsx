@@ -17,6 +17,7 @@ import {
   CircleDollarSign, ChevronLeft, ChevronRight, Undo2, TrendingUp, CalendarDays, Target, Pencil,
 } from "lucide-react";
 import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
+import { ExpenseEditDialog } from "@/components/ExpenseEditDialog";
 import { personalCategories, getPersonalCategory } from "@/lib/personalExpenseCategories";
 import { Progress } from "@/components/ui/progress";
 import { usePersonalBudgets } from "@/hooks/usePersonalBudgets";
@@ -49,7 +50,7 @@ const fmt = (v: number) =>
 const isOverdue = (e: Expense) =>
   !e.paid && e.dueDate < new Date().toISOString().split("T")[0];
 
-export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, readOnly = false, afterEvolution }: Props) {
+export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, onUpdate, readOnly = false, afterEvolution }: Props) {
   const { mask } = useHideValues();
   const formatCurrency = useCallback((v: number) => mask(fmt(v)), [mask]);
 
@@ -63,6 +64,7 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, readOn
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [payingId, setPayingId] = useState<string | null>(null);
   const [payDate, setPayDate] = useState("");
+  const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
   const [budgetEditOpen, setBudgetEditOpen] = useState(false);
   const [budgetDraft, setBudgetDraft] = useState<Record<string, string>>({});
   const { budgets, setBudget } = usePersonalBudgets();
@@ -526,6 +528,12 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, readOn
                               Estornar
                             </Button>
                           )}
+                          {onUpdate && (
+                            <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => setEditingExpense(expense)}>
+                              <Pencil className="h-3 w-3 mr-1" />
+                              Editar
+                            </Button>
+                          )}
                           <Button size="sm" variant="ghost" className="h-7 text-xs text-destructive hover:text-destructive hover:bg-destructive/10" onClick={() => setDeleteId(expense.id)}>
                             <Trash2 className="h-3 w-3 mr-1" />
                             Excluir
@@ -573,7 +581,23 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, readOn
         description="Tem certeza? Esta ação não pode ser desfeita."
       />
 
-      {/* Budget edit dialog */}
+      {/* Edit dialog */}
+      <ExpenseEditDialog
+        open={!!editingExpense}
+        onOpenChange={(o) => !o && setEditingExpense(null)}
+        expense={editingExpense}
+        onSave={async (patch) => {
+          if (!editingExpense || !onUpdate) return;
+          await onUpdate(editingExpense.id, {
+            description: patch.description,
+            amount: patch.amount,
+            dueDate: patch.dueDate,
+            category: patch.category,
+            notes: patch.notes ?? undefined,
+          });
+          toast.success("Despesa atualizada");
+        }}
+      />
       <Dialog open={budgetEditOpen} onOpenChange={setBudgetEditOpen}>
         <DialogContent className="sm:max-w-md max-h-[80vh] overflow-y-auto">
           <DialogHeader>
