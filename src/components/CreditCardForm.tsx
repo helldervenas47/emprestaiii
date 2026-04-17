@@ -25,6 +25,7 @@ export function CreditCardForm({ initial, onSave, onClose }: Props) {
     creditLimit: initial?.creditLimit ?? 0,
     closingDay: initial?.closingDay ?? 1,
     dueDay: initial?.dueDay ?? 10,
+    active: initial?.active ?? true,
   });
 
   useEffect(() => {
@@ -37,6 +38,7 @@ export function CreditCardForm({ initial, onSave, onClose }: Props) {
         creditLimit: initial.creditLimit,
         closingDay: initial.closingDay,
         dueDay: initial.dueDay,
+        active: initial.active ?? true,
       });
     }
   }, [initial]);
