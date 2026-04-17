@@ -1870,9 +1870,27 @@ function LoanRowView({
         </DialogHeader>
         <div className="flex flex-col items-center gap-2">
           {paymentDialog?.type === "full" && (
-            <div className="text-center p-3 bg-muted/50 rounded-lg w-full">
-              <p className="text-xs text-muted-foreground">Valor restante a receber</p>
-              <p className="text-2xl font-bold text-primary">{formatCurrency(remaining)}</p>
+            <div className="w-full space-y-2">
+              <div className="text-center p-3 bg-muted/50 rounded-lg w-full">
+                <p className="text-xs text-muted-foreground">Total restante a receber</p>
+                <p className="text-2xl font-bold text-primary">{formatCurrency(remaining)}</p>
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="payoff-amount-row" className="text-xs">Valor para quitar (opcional)</Label>
+                <Input
+                  id="payoff-amount-row"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  inputMode="decimal"
+                  value={payoffAmount}
+                  onChange={(e) => setPayoffAmount(e.target.value)}
+                  placeholder={`Ex: ${remaining.toFixed(2)}`}
+                />
+                <p className="text-[10px] text-muted-foreground">
+                  Informe um valor diferente para quitar o contrato por esse montante. Em branco usa o restante.
+                </p>
+              </div>
             </div>
           )}
           <Label className="text-sm text-muted-foreground">Selecione a data do pagamento</Label>
