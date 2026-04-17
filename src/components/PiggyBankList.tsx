@@ -25,12 +25,14 @@ interface Props {
 
 export function PiggyBankList({ readOnly = false }: Props) {
   const { mask } = useHideValues();
-  const { piggyBanks, balances, createPiggyBank, updatePiggyBank, deletePiggyBank } = usePiggyBanks();
+  const { piggyBanks, balances, createPiggyBank, updatePiggyBank, deletePiggyBank, adjustBalance } = usePiggyBanks();
 
   const [createOpen, setCreateOpen] = useState(false);
   const [editing, setEditing] = useState<PiggyBankType | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [draft, setDraft] = useState({ name: "", color: PALETTE[0], annualRate: "11.15" });
+  const [adjustTarget, setAdjustTarget] = useState<PiggyBankType | null>(null);
+  const [adjustValue, setAdjustValue] = useState("");
 
   const openCreate = () => {
     setDraft({ name: "", color: PALETTE[0], annualRate: "11.15" });
@@ -41,6 +43,18 @@ export function PiggyBankList({ readOnly = false }: Props) {
     setDraft({ name: pb.name, color: pb.color, annualRate: String(pb.annualRate) });
     setEditing(pb);
     setCreateOpen(true);
+  };
+  const openAdjust = (pb: PiggyBankType) => {
+    const current = balances.get(pb.id)?.balance ?? 0;
+    setAdjustValue(current.toFixed(2));
+    setAdjustTarget(pb);
+  };
+  const confirmAdjust = async () => {
+    if (!adjustTarget) return;
+    const v = Number(adjustValue.replace(",", "."));
+    if (Number.isNaN(v) || v < 0) return;
+    await adjustBalance(adjustTarget.id, v);
+    setAdjustTarget(null);
   };
 
   const save = async () => {
