@@ -1473,6 +1473,7 @@ Deno.serve(async (req) => {
                   amount: quick.amount,
                   category: quick.category,
                   date: today,
+                  installments: quick.installments ?? undefined,
                   confidence: 1,
                 };
               } else {
@@ -1483,6 +1484,9 @@ Deno.serve(async (req) => {
               } else {
                 const finalDate = sanitizeDate(extracted.date);
                 const finalCategory = CATEGORIES.includes(extracted.category) ? extracted.category : "Outros";
+                const installmentsN = extracted.installments && Number(extracted.installments) >= 2
+                  ? Math.min(36, Math.floor(Number(extracted.installments)))
+                  : null;
 
                 // 💳 Credit-card detection — register as pending invoice item
                 const userCards = await getUserCards(admin, link.user_id);
@@ -1493,9 +1497,13 @@ Deno.serve(async (req) => {
                   description: extracted.description || text.slice(0, 80),
                   amount: extracted.amount,
                   category: finalCategory,
-                  type: "fixa",
+                  type: installmentsN ? "recorrente" : "fixa",
                   scope: "personal",
                 };
+                if (installmentsN) {
+                  basePayload.installments = installmentsN;
+                  basePayload.paid_installments = 0;
+                }
                 let displayDate = finalDate;
                 if (card) {
                   const cc = buildCreditCardExpense(card, basePayload.description);
@@ -1506,19 +1514,25 @@ Deno.serve(async (req) => {
                   displayDate = cc.invoiceDueDate;
                 } else {
                   basePayload.due_date = finalDate;
-                  basePayload.paid = true;
-                  basePayload.paid_date = finalDate;
+                  // Parcelado: fica pendente até cada parcela ser paga manualmente.
+                  basePayload.paid = installmentsN ? false : true;
+                  basePayload.paid_date = installmentsN ? null : finalDate;
                 }
 
                 // Insert + single confirmation message with action keyboard.
                 // Insert is fast (~50-150ms); merging into one message removes the
                 // second round-trip to Telegram for users.
                 const fmt = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(extracted.amount);
-                const header = card
-                  ? `💳 *Compra no cartão registrada*`
-                  : `✅ *Despesa registrada*`;
+                const installmentValue = installmentsN ? extracted.amount / installmentsN : extracted.amount;
+                const fmtParcel = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(installmentValue);
+                const header = installmentsN
+                  ? (card ? `💳 *Compra parcelada no cartão*` : `🧾 *Compra parcelada registrada*`)
+                  : (card ? `💳 *Compra no cartão registrada*` : `✅ *Despesa registrada*`);
                 const cardLine = card ? `\n💳 ${card.nickname || card.bank} (vence ${displayDate})` : "";
-                const summaryText = `${header}\n\n💰 ${fmt}\n📂 ${finalCategory}${cardLine}\n📝 ${extracted.description}\n📅 ${displayDate}`;
+                const parcelLine = installmentsN
+                  ? `\n🔢 ${installmentsN}x de ${fmtParcel}`
+                  : "";
+                const summaryText = `${header}\n\n💰 ${fmt}${parcelLine}\n📂 ${finalCategory}${cardLine}\n📝 ${extracted.description}\n📅 ${displayDate}`;
 
                 const { data: ins, error: insErr } = await admin
                   .from("expenses")
