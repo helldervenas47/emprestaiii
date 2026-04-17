@@ -1,20 +1,36 @@
 import { useMemo } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { useManagerCommissions } from "@/hooks/useManagerCommissions";
-import { Client, Loan } from "@/types/loan";
+import { Client, Loan, InstallmentSchedule, Payment } from "@/types/loan";
 import { useHideValues } from "@/contexts/HideValuesContext";
 import { Briefcase, UserCog } from "lucide-react";
 
 interface Props {
   clients: Client[];
   loans?: Loan[];
+  installmentSchedules?: InstallmentSchedule[];
+  payments?: Payment[];
+  range?: { start: Date; end: Date };
+  rangeLabel?: string;
 }
 
 function rawFormatCurrency(v: number) {
   return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v);
 }
 
-export function ManagerCommissionsChart({ clients, loans = [] }: Props) {
+function inRange(dateStr: string, start: Date, end: Date) {
+  const d = new Date(dateStr + "T00:00:00");
+  return d >= start && d <= end;
+}
+
+export function ManagerCommissionsChart({
+  clients,
+  loans = [],
+  installmentSchedules = [],
+  payments = [],
+  range,
+  rangeLabel,
+}: Props) {
   const { commissions } = useManagerCommissions(true);
   const { mask } = useHideValues();
 
@@ -30,20 +46,51 @@ export function ManagerCommissionsChart({ clients, loans = [] }: Props) {
       byManager[m.id] = { paid: 0, projected: 0, loanCount: 0 };
     });
 
+    // PAGO: comissões geradas, filtradas pela data de geração (data de recebimento)
     commissions.forEach((c) => {
+      if (range && !inRange(c.generatedAt, range.start, range.end)) return;
       if (!byManager[c.managerId]) byManager[c.managerId] = { paid: 0, projected: 0, loanCount: 0 };
       byManager[c.managerId].paid += c.amount;
     });
 
-    loans
-      .filter((l) => l.hasManager && l.managerId && l.status !== "paid")
-      .forEach((l) => {
+    // PENDENTE: para cada parcela de empréstimo gerenciado com vencimento no período
+    // e que ainda não foi paga, alocamos a comissão proporcional (total / nº parcelas).
+    const managedLoans = loans.filter((l) => l.hasManager && l.managerId && l.status !== "paid");
+
+    if (range) {
+      managedLoans.forEach((l) => {
+        const id = l.managerId!;
+        if (!byManager[id]) byManager[id] = { paid: 0, projected: 0, loanCount: 0 };
+        const rate = l.managerCommissionRate ?? 10;
+        const totalCommission = (l.amount * rate) / 100;
+        const perInstallment = totalCommission / Math.max(1, l.installments);
+
+        const schedules = installmentSchedules.filter((s) => s.loanId === l.id);
+        // determine which installmentNumbers were paid (installmentNumber > 0 only)
+        const paidNums = new Set(
+          payments.filter((p) => p.loanId === l.id && p.installmentNumber > 0).map((p) => p.installmentNumber)
+        );
+
+        let countedThisLoan = false;
+        schedules.forEach((s) => {
+          if (paidNums.has(s.installmentNumber)) return;
+          if (!inRange(s.dueDate, range.start, range.end)) return;
+          byManager[id].projected += perInstallment;
+          countedThisLoan = true;
+        });
+
+        if (countedThisLoan) byManager[id].loanCount += 1;
+      });
+    } else {
+      // Sem período: total previsto do empréstimo inteiro
+      managedLoans.forEach((l) => {
         const id = l.managerId!;
         if (!byManager[id]) byManager[id] = { paid: 0, projected: 0, loanCount: 0 };
         const rate = l.managerCommissionRate ?? 10;
         byManager[id].projected += (l.amount * rate) / 100;
         byManager[id].loanCount += 1;
       });
+    }
 
     return Object.entries(byManager)
       .map(([id, v]) => {
@@ -59,7 +106,7 @@ export function ManagerCommissionsChart({ clients, loans = [] }: Props) {
       })
       .filter((m) => m.name.trim().length > 0)
       .sort((a, b) => a.name.localeCompare(b.name, "pt-BR", { sensitivity: "base" }));
-  }, [commissions, clients, loans, managers]);
+  }, [commissions, clients, loans, managers, range, installmentSchedules, payments]);
 
   const totalPaid = data.reduce((s, d) => s + d.paid, 0);
   const totalProjected = data.reduce((s, d) => s + d.projected, 0);
@@ -73,7 +120,12 @@ export function ManagerCommissionsChart({ clients, loans = [] }: Props) {
             <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center">
               <Briefcase className="h-4 w-4 text-primary" />
             </div>
-            <h3 className="text-sm font-semibold text-foreground">Comissões por Gerente</h3>
+            <div>
+              <h3 className="text-sm font-semibold text-foreground">Comissões por Gerente</h3>
+              {rangeLabel && (
+                <p className="text-[10px] text-muted-foreground">{rangeLabel}</p>
+              )}
+            </div>
           </div>
           <div className="flex gap-3 text-right">
             <div>
@@ -111,7 +163,7 @@ export function ManagerCommissionsChart({ clients, loans = [] }: Props) {
                       {m.name}
                     </p>
                     <p className="text-[10px] text-muted-foreground">
-                      {m.loanCount} {m.loanCount === 1 ? "contrato ativo" : "contratos ativos"}
+                      {m.loanCount} {m.loanCount === 1 ? "contrato no período" : "contratos no período"}
                     </p>
                   </div>
                 </div>
@@ -142,7 +194,7 @@ export function ManagerCommissionsChart({ clients, loans = [] }: Props) {
           </div>
         )}
         <p className="text-[10px] text-muted-foreground mt-3 italic">
-          Pendente = comissão estimada de empréstimos ativos com gerente. Recebido = comissões já geradas em pagamentos. Valores isolados — não impactam saldo, lucro ou despesas.
+          Recebido = comissões geradas dentro do período (data de recebimento). Pendente = parcelas com vencimento no período ainda não pagas. Valores isolados — não impactam saldo, lucro ou despesas.
         </p>
       </CardContent>
     </Card>
