@@ -28,6 +28,7 @@ const ExpenseForm = lazy(() => import("@/components/ExpenseForm").then(m => ({ d
 const ExpenseList = lazy(() => import("@/components/ExpenseList").then(m => ({ default: m.ExpenseList })));
 const PersonalExpenseForm = lazy(() => import("@/components/PersonalExpenseForm").then(m => ({ default: m.PersonalExpenseForm })));
 const PersonalExpenseList = lazy(() => import("@/components/PersonalExpenseList").then(m => ({ default: m.PersonalExpenseList })));
+const CreditCardList = lazy(() => import("@/components/CreditCardList").then(m => ({ default: m.CreditCardList })));
 const UserManagement = lazy(() => import("@/components/UserManagement").then(m => ({ default: m.UserManagement })));
 const PlanManagement = lazy(() => import("@/components/PlanManagement").then(m => ({ default: m.PlanManagement })));
 const BackupExport = lazy(() => import("@/components/BackupExport").then(m => ({ default: m.BackupExport })));
@@ -630,8 +631,36 @@ const Index = () => {
               </>
             ) : (
               <>
-                <h2 className="text-lg font-semibold text-foreground mb-4">Despesas Pessoais ({personalExpenses.length})</h2>
-                <PersonalExpenseList expenses={personalExpenses} onPay={payExpense} onUnpay={unpayExpense} onDelete={deleteExpense} onUpdate={updateExpense} readOnly={isReadOnly} />
+                <div className="w-full bg-muted/30 rounded-lg p-1 flex gap-0.5 mb-4 max-w-sm">
+                  <button
+                    onClick={() => setPersonalSubTab("expenses")}
+                    className={`flex-1 px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
+                      personalSubTab === "expenses"
+                        ? "bg-card text-foreground shadow-sm"
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    Despesas
+                  </button>
+                  <button
+                    onClick={() => setPersonalSubTab("cards")}
+                    className={`flex-1 px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
+                      personalSubTab === "cards"
+                        ? "bg-card text-foreground shadow-sm"
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    Cartões
+                  </button>
+                </div>
+                {personalSubTab === "expenses" ? (
+                  <>
+                    <h2 className="text-lg font-semibold text-foreground mb-4">Despesas Pessoais ({personalExpenses.length})</h2>
+                    <PersonalExpenseList expenses={personalExpenses} onPay={payExpense} onUnpay={unpayExpense} onDelete={deleteExpense} onUpdate={updateExpense} readOnly={isReadOnly} />
+                  </>
+                ) : (
+                  <CreditCardList readOnly={isReadOnly} />
+                )}
               </>
             )}
           </div>
