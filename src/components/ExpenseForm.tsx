@@ -34,12 +34,15 @@ export function ExpenseForm({ onAdd, onClose, scope = "business" }: Props) {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.description || !form.amount || !form.category) return;
+    const parsedAmount = parseFloat(form.amount) || 0;
+    const installments = form.type === "recorrente" ? parseInt(form.installments) || 1 : 1;
+    const totalAmount = form.type === "recorrente" ? parsedAmount * installments : parsedAmount;
     onAdd({
       description: form.description,
-      amount: parseFloat(form.amount) || 0,
+      amount: totalAmount,
       type: form.type,
       category: form.category,
-      installments: form.type === "recorrente" ? parseInt(form.installments) || 1 : undefined,
+      installments: form.type === "recorrente" ? installments : undefined,
       paidInstallments: form.type === "recorrente" ? 0 : undefined,
       dueDate: form.dueDate,
       notes: form.notes,
