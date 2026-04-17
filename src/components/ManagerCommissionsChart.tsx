@@ -73,18 +73,46 @@ export function ManagerCommissionsChart({
       byManager[m.id] = { paid: 0, projected: 0, loanCount: 0 };
     });
 
+    // All managed loans (including paid ones, to count historical commissions)
+    const managedLoans = loans
+      .map((loan) => ({ loan, resolvedManagerId: resolveLoanManagerId(loan, managers) }))
+      .filter(({ loan, resolvedManagerId }) => loan.hasManager && !!resolvedManagerId);
+
+    // Track which (loanId, installmentNumber) pairs have a recorded commission, to avoid double counting
+    const commissionPaymentKeys = new Set<string>();
+    commissions.forEach((c) => {
+      if (c.paymentId) commissionPaymentKeys.add(`${c.loanId}::${c.paymentId}`);
+    });
+
+    // Recorded commissions in manager_commissions table
     commissions.forEach((c) => {
       if (range && !inRange(c.generatedAt, range.start, range.end)) return;
       if (!byManager[c.managerId]) byManager[c.managerId] = { paid: 0, projected: 0, loanCount: 0 };
       byManager[c.managerId].paid += c.amount;
     });
 
-    const managedLoans = loans
-      .map((loan) => ({ loan, resolvedManagerId: resolveLoanManagerId(loan, managers) }))
-      .filter(({ loan, resolvedManagerId }) => loan.hasManager && !!resolvedManagerId && loan.status !== "paid");
+    // Derive historical paid commissions from payments for managed loans (covers legacy data)
+    managedLoans.forEach(({ loan: l, resolvedManagerId }) => {
+      const id = resolvedManagerId!;
+      if (!byManager[id]) byManager[id] = { paid: 0, projected: 0, loanCount: 0 };
+      const rate = l.managerCommissionRate ?? 10;
+      const totalCommission = (l.amount * rate) / 100;
+      const perInstallment = totalCommission / Math.max(1, l.installments);
+
+      const loanPayments = payments.filter((p) => p.loanId === l.id && p.installmentNumber > 0);
+      loanPayments.forEach((p) => {
+        // Skip if this payment already produced a recorded commission row
+        if (commissionPaymentKeys.has(`${l.id}::${p.id}`)) return;
+        if (range && !inRange(p.date, range.start, range.end)) return;
+        byManager[id].paid += perInstallment;
+      });
+    });
+
+    // Pending/projected for active loans
+    const activeManagedLoans = managedLoans.filter(({ loan }) => loan.status !== "paid");
 
     if (range) {
-      managedLoans.forEach(({ loan: l, resolvedManagerId }) => {
+      activeManagedLoans.forEach(({ loan: l, resolvedManagerId }) => {
         const id = resolvedManagerId!;
         if (!byManager[id]) byManager[id] = { paid: 0, projected: 0, loanCount: 0 };
         const rate = l.managerCommissionRate ?? 10;
@@ -115,7 +143,7 @@ export function ManagerCommissionsChart({
         if (countedThisLoan) byManager[id].loanCount += 1;
       });
     } else {
-      managedLoans.forEach(({ loan: l, resolvedManagerId }) => {
+      activeManagedLoans.forEach(({ loan: l, resolvedManagerId }) => {
         const id = resolvedManagerId!;
         if (!byManager[id]) byManager[id] = { paid: 0, projected: 0, loanCount: 0 };
         const rate = l.managerCommissionRate ?? 10;
