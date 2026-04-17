@@ -1303,6 +1303,9 @@ Deno.serve(async (req) => {
             } else {
               const finalDate = sanitizeDate(extracted.date);
               const finalCategory = CATEGORIES.includes(extracted.category) ? extracted.category : "Outros";
+              const installmentsN = extracted.installments && Number(extracted.installments) >= 2
+                ? Math.min(36, Math.floor(Number(extracted.installments)))
+                : null;
 
               // 💳 Card detection — uses transcript text
               const userCards = await getUserCards(admin, link.user_id);
@@ -1313,9 +1316,13 @@ Deno.serve(async (req) => {
                 description: extracted.description || transcript.slice(0, 80),
                 amount: extracted.amount,
                 category: finalCategory,
-                type: "fixa",
+                type: installmentsN ? "recorrente" : "fixa",
                 scope: "personal",
               };
+              if (installmentsN) {
+                basePayload.installments = installmentsN;
+                basePayload.paid_installments = 0;
+              }
               let displayDate = finalDate;
               if (card) {
                 const cc = buildCreditCardExpense(card, basePayload.description);
@@ -1326,8 +1333,8 @@ Deno.serve(async (req) => {
                 displayDate = cc.invoiceDueDate;
               } else {
                 basePayload.due_date = finalDate;
-                basePayload.paid = true;
-                basePayload.paid_date = finalDate;
+                basePayload.paid = installmentsN ? false : true;
+                basePayload.paid_date = installmentsN ? null : finalDate;
               }
 
               const { data: ins, error: insErr } = await admin
@@ -1338,12 +1345,15 @@ Deno.serve(async (req) => {
                 await tgSend(chatId, "❌ Erro ao salvar: " + (insErr?.message ?? "desconhecido"), LOVABLE_API_KEY, TELEGRAM_API_KEY);
               } else {
                 const fmt = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(extracted.amount);
-                const header = card
-                  ? `💳 *Compra no cartão (áudio)*`
-                  : `🎤 *Despesa registrada por áudio*`;
+                const installmentValue = installmentsN ? extracted.amount / installmentsN : extracted.amount;
+                const fmtParcel = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(installmentValue);
+                const header = installmentsN
+                  ? (card ? `💳 *Compra parcelada no cartão (áudio)*` : `🧾 *Compra parcelada (áudio)*`)
+                  : (card ? `💳 *Compra no cartão (áudio)*` : `🎤 *Despesa registrada por áudio*`);
                 const cardLine = card ? `\n💳 ${card.nickname || card.bank} (vence ${displayDate})` : "";
+                const parcelLine = installmentsN ? `\n🔢 ${installmentsN}x de ${fmtParcel}` : "";
                 await tgSendWithKeyboard(chatId,
-                  `${header}\n\n_"${transcript}"_\n\n💰 ${fmt}\n📂 ${finalCategory}${cardLine}\n📝 ${extracted.description}\n📅 ${displayDate}`,
+                  `${header}\n\n_"${transcript}"_\n\n💰 ${fmt}${parcelLine}\n📂 ${finalCategory}${cardLine}\n📝 ${extracted.description}\n📅 ${displayDate}`,
                   buildExpenseKeyboard(ins.id),
                   LOVABLE_API_KEY, TELEGRAM_API_KEY);
                 if (!card) {
