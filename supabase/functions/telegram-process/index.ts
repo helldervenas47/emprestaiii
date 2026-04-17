@@ -102,6 +102,7 @@ Vou interpretar e cadastrar automaticamente.
 /saldo — gastos do mês por categoria
 /mes — resumo completo do mês
 /semana — resumo dos últimos 7 dias
+/comparar — compara este mês com o anterior
 /ultimas — últimas 5 despesas
 /apagar — apaga a despesa mais recente
 /help — esta mensagem
@@ -326,6 +327,75 @@ async function handleSemana(admin: any, userId: string): Promise<string> {
     const dateStr = date ? fmtDayMonth(date) : "—";
     msg += `${i + 1}. ${fmtBRL(Number(e.amount) || 0)} — ${e.description} (${dateStr})\n`;
   });
+
+  return msg.trimEnd();
+}
+
+async function handleComparar(admin: any, userId: string): Promise<string> {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = now.getMonth();
+
+  // Current month range
+  const curFirst = new Date(year, month, 1);
+  const curLast = new Date(year, month + 1, 0);
+
+  // Previous month range
+  const prevFirst = new Date(year, month - 1, 1);
+  const prevLast = new Date(year, month, 0);
+
+  const [cur, prev] = await Promise.all([
+    summarizeRange(admin, userId, ymd(curFirst), ymd(curLast)),
+    summarizeRange(admin, userId, ymd(prevFirst), ymd(prevLast)),
+  ]);
+
+  const curMonthName = MONTH_NAMES[curFirst.getMonth()];
+  const prevMonthName = MONTH_NAMES[prevFirst.getMonth()];
+
+  if (cur.count === 0 && prev.count === 0) {
+    return `📊 *Comparativo ${prevMonthName} → ${curMonthName}*\n\n_Sem despesas em nenhum dos dois meses._`;
+  }
+
+  const fmtVar = (curVal: number, prevVal: number): string => {
+    if (prevVal === 0 && curVal === 0) return "—";
+    if (prevVal === 0) return "🆕 novo";
+    if (curVal === 0) return "✅ -100%";
+    const diff = curVal - prevVal;
+    const pct = (diff / prevVal) * 100;
+    const arrow = diff > 0 ? "🔺" : diff < 0 ? "🔻" : "➖";
+    const sign = diff > 0 ? "+" : "";
+    return `${arrow} ${sign}${pct.toFixed(0)}%`;
+  };
+
+  let msg = `📊 *Comparativo ${prevMonthName} → ${curMonthName}*\n\n`;
+
+  // Total
+  msg += `💰 *Total*\n`;
+  msg += `${prevMonthName}: ${fmtBRL(prev.total)}\n`;
+  msg += `${curMonthName}: ${fmtBRL(cur.total)}\n`;
+  msg += `Variação: ${fmtVar(cur.total, prev.total)}`;
+  if (prev.total > 0 && cur.total > 0) {
+    const diff = cur.total - prev.total;
+    msg += ` (${diff >= 0 ? "+" : ""}${fmtBRL(diff)})`;
+  }
+  msg += `\n\n`;
+
+  // Por categoria — união das categorias dos dois meses
+  msg += `📂 *Por categoria:*\n`;
+  const allCats = new Set<string>([...cur.byCat.keys(), ...prev.byCat.keys()]);
+  const rows = [...allCats].map((cat) => ({
+    cat,
+    curVal: cur.byCat.get(cat) || 0,
+    prevVal: prev.byCat.get(cat) || 0,
+  }));
+  // Ordena pelo gasto atual (depois anterior) decrescente
+  rows.sort((a, b) => (b.curVal + b.prevVal) - (a.curVal + a.prevVal));
+
+  for (const r of rows) {
+    msg += `\n*${r.cat}*\n`;
+    msg += `${prevMonthName}: ${fmtBRL(r.prevVal)} → ${curMonthName}: ${fmtBRL(r.curVal)}\n`;
+    msg += `${fmtVar(r.curVal, r.prevVal)}\n`;
+  }
 
   return msg.trimEnd();
 }
@@ -1005,6 +1075,9 @@ Deno.serve(async (req) => {
               await tgSend(chatId, reply, LOVABLE_API_KEY, TELEGRAM_API_KEY);
             } else if (/^\/semana(?:@\w+)?\b/i.test(text)) {
               const reply = await handleSemana(admin, link.user_id);
+              await tgSend(chatId, reply, LOVABLE_API_KEY, TELEGRAM_API_KEY);
+            } else if (/^\/comparar(?:@\w+)?\b/i.test(text)) {
+              const reply = await handleComparar(admin, link.user_id);
               await tgSend(chatId, reply, LOVABLE_API_KEY, TELEGRAM_API_KEY);
             } else if (/^\/ultimas(?:@\w+)?\b/i.test(text)) {
               const reply = await handleUltimas(admin, link.user_id);
