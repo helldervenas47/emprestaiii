@@ -10,6 +10,7 @@ const COMMANDS = [
   { command: 'mes', description: 'Resumo completo do mês atual' },
   { command: 'semana', description: 'Resumo dos últimos 7 dias' },
   { command: 'comparar', description: 'Compara este mês com o anterior' },
+  { command: 'orcamento', description: 'Status dos orçamentos do mês' },
   { command: 'ultimas', description: 'Últimas 5 despesas' },
   { command: 'apagar', description: 'Apaga a despesa mais recente' },
   { command: 'help', description: 'Mostra ajuda' },

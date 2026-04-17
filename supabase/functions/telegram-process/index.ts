@@ -103,6 +103,7 @@ Vou interpretar e cadastrar automaticamente.
 /mes — resumo completo do mês
 /semana — resumo dos últimos 7 dias
 /comparar — compara este mês com o anterior
+/orcamento — status dos orçamentos do mês
 /ultimas — últimas 5 despesas
 /apagar — apaga a despesa mais recente
 /help — esta mensagem
@@ -395,6 +396,84 @@ async function handleComparar(admin: any, userId: string): Promise<string> {
     msg += `\n*${r.cat}*\n`;
     msg += `${prevMonthName}: ${fmtBRL(r.prevVal)} → ${curMonthName}: ${fmtBRL(r.curVal)}\n`;
     msg += `${fmtVar(r.curVal, r.prevVal)}\n`;
+  }
+
+  return msg.trimEnd();
+}
+
+async function handleOrcamento(admin: any, userId: string): Promise<string> {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = now.getMonth();
+  const monthPrefix = now.toISOString().slice(0, 7); // YYYY-MM
+  const monthName = MONTH_NAMES[month];
+  const lastDay = new Date(year, month + 1, 0).getDate();
+  const today = now.getDate();
+  const daysLeft = lastDay - today;
+
+  const [{ data: budgets }, { data: expenses }] = await Promise.all([
+    admin.from("personal_budgets").select("category, amount").eq("user_id", userId),
+    admin
+      .from("expenses")
+      .select("amount, category, paid_date, due_date")
+      .eq("user_id", userId)
+      .eq("scope", "personal")
+      .eq("paid", true),
+  ]);
+
+  if (!budgets || budgets.length === 0) {
+    return `🎯 *Orçamentos de ${monthName}*\n\n_Nenhum orçamento cadastrado._\n\nDefina orçamentos por categoria no app para acompanhar aqui.`;
+  }
+
+  // Spent per category in current month
+  const spentByCat = new Map<string, number>();
+  for (const e of expenses ?? []) {
+    const ref = (e.paid_date || e.due_date || "") as string;
+    if (!ref.startsWith(monthPrefix)) continue;
+    const cat = e.category || "Outros";
+    spentByCat.set(cat, (spentByCat.get(cat) || 0) + (Number(e.amount) || 0));
+  }
+
+  // Build rows with computed metrics, sorted by % consumed desc
+  const rows = (budgets ?? []).map((b: any) => {
+    const budget = Number(b.amount) || 0;
+    const spent = spentByCat.get(b.category) || 0;
+    const remaining = budget - spent;
+    const pct = budget > 0 ? (spent / budget) * 100 : 0;
+    const dailyAllowance = daysLeft > 0 && remaining > 0 ? remaining / (daysLeft + 1) : 0;
+    return { category: b.category, budget, spent, remaining, pct, dailyAllowance };
+  });
+  rows.sort((a, b) => b.pct - a.pct);
+
+  let totalBudget = 0, totalSpent = 0;
+  for (const r of rows) { totalBudget += r.budget; totalSpent += r.spent; }
+  const totalRemaining = totalBudget - totalSpent;
+  const totalPct = totalBudget > 0 ? (totalSpent / totalBudget) * 100 : 0;
+
+  let msg = `🎯 *Orçamentos de ${monthName}*\n`;
+  msg += `📅 Faltam *${daysLeft}* ${daysLeft === 1 ? "dia" : "dias"} para fim do mês\n\n`;
+
+  msg += `💰 *Total*\n`;
+  msg += `${budgetIcon(totalPct)} ${fmtBRL(totalSpent)} / ${fmtBRL(totalBudget)} (${totalPct.toFixed(0)}%)\n`;
+  if (totalRemaining >= 0) {
+    msg += `Restante: ${fmtBRL(totalRemaining)}\n\n`;
+  } else {
+    msg += `🚨 Estouro: ${fmtBRL(Math.abs(totalRemaining))}\n\n`;
+  }
+
+  msg += `📂 *Por categoria:*\n`;
+  for (const r of rows) {
+    msg += `\n${budgetIcon(r.pct)} *${r.category}* — ${r.pct.toFixed(0)}%\n`;
+    msg += `${fmtBRL(r.spent)} / ${fmtBRL(r.budget)}\n`;
+    if (r.remaining >= 0) {
+      msg += `Restante: ${fmtBRL(r.remaining)}`;
+      if (r.dailyAllowance > 0) {
+        msg += ` (~${fmtBRL(r.dailyAllowance)}/dia)`;
+      }
+      msg += `\n`;
+    } else {
+      msg += `🚨 Estouro: ${fmtBRL(Math.abs(r.remaining))}\n`;
+    }
   }
 
   return msg.trimEnd();
@@ -1078,6 +1157,9 @@ Deno.serve(async (req) => {
               await tgSend(chatId, reply, LOVABLE_API_KEY, TELEGRAM_API_KEY);
             } else if (/^\/comparar(?:@\w+)?\b/i.test(text)) {
               const reply = await handleComparar(admin, link.user_id);
+              await tgSend(chatId, reply, LOVABLE_API_KEY, TELEGRAM_API_KEY);
+            } else if (/^\/orcamento(?:s)?(?:@\w+)?\b/i.test(text)) {
+              const reply = await handleOrcamento(admin, link.user_id);
               await tgSend(chatId, reply, LOVABLE_API_KEY, TELEGRAM_API_KEY);
             } else if (/^\/ultimas(?:@\w+)?\b/i.test(text)) {
               const reply = await handleUltimas(admin, link.user_id);
