@@ -457,11 +457,20 @@ export function ExpenseList({ expenses, onPay, onUnpay, onDelete, onUpdate, read
                         <Badge variant="outline" className="text-[10px] px-1.5 py-0 shrink-0">
                           {expense.type === "fixa" ? "Fixa" : "Recorrente"}
                         </Badge>
-                        {isRecorrente && !expense.paid && (
-                          <Badge variant="outline" className="text-[10px] px-1.5 py-0 shrink-0">
-                            {expense.paidInstallments || 0}/{expense.installments} parcelas
-                          </Badge>
-                        )}
+                        {isRecorrente && (() => {
+                          const [dY, dM] = expense.dueDate.split("-").map(Number);
+                          const [sY, sM] = selectedMonth.split("-").map(Number);
+                          const offset = (sY * 12 + sM) - (dY * 12 + dM);
+                          const current = Math.min(
+                            Math.max(1, offset + 1),
+                            expense.installments!,
+                          );
+                          return (
+                            <Badge variant="secondary" className="text-[10px] px-1.5 py-0 shrink-0 font-semibold">
+                              Parcela {current}/{expense.installments}
+                            </Badge>
+                          );
+                        })()}
                         {expense.paid && (
                           <Badge className="bg-success/10 text-success border-success/20 text-[10px] px-1.5 py-0 shrink-0">Paga</Badge>
                         )}
