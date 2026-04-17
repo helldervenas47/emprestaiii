@@ -195,7 +195,7 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, onUpda
     spendingMonth.forEach((e) => {
       const inMonth = e.paid
         ? true // já está em spendingMonth porque foi pago no mês
-        : e.dueDate.startsWith(selectedMonth);
+        : occursInMonth(e, selectedMonth);
       if (!inMonth) return;
       map.set(e.category, (map.get(e.category) || 0) + getInstallmentAmount(e));
     });
