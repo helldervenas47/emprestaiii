@@ -1000,6 +1000,12 @@ Deno.serve(async (req) => {
             if (/^\/saldo(?:@\w+)?\b/i.test(text)) {
               const reply = await handleSaldo(admin, link.user_id);
               await tgSend(chatId, reply, LOVABLE_API_KEY, TELEGRAM_API_KEY);
+            } else if (/^\/mes(?:@\w+)?\b/i.test(text)) {
+              const reply = await handleMes(admin, link.user_id);
+              await tgSend(chatId, reply, LOVABLE_API_KEY, TELEGRAM_API_KEY);
+            } else if (/^\/semana(?:@\w+)?\b/i.test(text)) {
+              const reply = await handleSemana(admin, link.user_id);
+              await tgSend(chatId, reply, LOVABLE_API_KEY, TELEGRAM_API_KEY);
             } else if (/^\/ultimas(?:@\w+)?\b/i.test(text)) {
               const reply = await handleUltimas(admin, link.user_id);
               await tgSend(chatId, reply, LOVABLE_API_KEY, TELEGRAM_API_KEY);
