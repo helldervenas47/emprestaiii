@@ -1432,8 +1432,9 @@ Deno.serve(async (req) => {
                   basePayload.paid_date = finalDate;
                 }
 
-                // Send confirmation IMMEDIATELY (in parallel with DB insert) so the user
-                // sees the summary in real time, regardless of DB latency.
+                // Insert + single confirmation message with action keyboard.
+                // Insert is fast (~50-150ms); merging into one message removes the
+                // second round-trip to Telegram for users.
                 const fmt = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(extracted.amount);
                 const header = card
                   ? `💳 *Compra no cartão registrada*`
@@ -1441,28 +1442,20 @@ Deno.serve(async (req) => {
                 const cardLine = card ? `\n💳 ${card.nickname || card.bank} (vence ${displayDate})` : "";
                 const summaryText = `${header}\n\n💰 ${fmt}\n📂 ${finalCategory}${cardLine}\n📝 ${extracted.description}\n📅 ${displayDate}`;
 
-                const insertPromise = admin
+                const { data: ins, error: insErr } = await admin
                   .from("expenses")
                   .insert(basePayload)
                   .select("id").single();
 
-                // Fire confirmation send in parallel with the insert.
-                const [insRes] = await Promise.all([
-                  insertPromise,
-                  tgSend(chatId, summaryText, LOVABLE_API_KEY, TELEGRAM_API_KEY),
-                ]);
-
-                const { data: ins, error: insErr } = insRes as any;
                 if (insErr || !ins) {
                   await tgSend(chatId, "❌ Erro ao salvar no banco: " + (insErr?.message ?? "desconhecido"), LOVABLE_API_KEY, TELEGRAM_API_KEY);
                 } else {
-                  // Follow-up message with edit/delete keyboard (needs the inserted id).
-                  await tgSendWithKeyboard(chatId,
-                    `🔧 Ações para a despesa acima:`,
-                    buildExpenseKeyboard(ins.id),
-                    LOVABLE_API_KEY, TELEGRAM_API_KEY);
+                  // Single message: summary + keyboard.
+                  await tgSendWithKeyboard(chatId, summaryText, buildExpenseKeyboard(ins.id), LOVABLE_API_KEY, TELEGRAM_API_KEY);
+                  // Budget alert in background (don't block response).
                   if (!card) {
-                    await checkBudgetAndAlert(admin, link.user_id, chatId, finalCategory, LOVABLE_API_KEY, TELEGRAM_API_KEY);
+                    checkBudgetAndAlert(admin, link.user_id, chatId, finalCategory, LOVABLE_API_KEY, TELEGRAM_API_KEY)
+                      .catch((e) => console.error("budget alert bg err", e));
                   }
                 }
               }
