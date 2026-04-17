@@ -33,7 +33,7 @@ export function useExpenses(enabled = true) {
   useEffect(() => {
     if (!user || !enabled) return;
     const channel = supabase
-      .channel('expenses-realtime')
+      .channel(`expenses-realtime-${crypto.randomUUID()}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'expenses' }, () => { fetchExpenses(); })
       .subscribe();
     return () => { supabase.removeChannel(channel); };
