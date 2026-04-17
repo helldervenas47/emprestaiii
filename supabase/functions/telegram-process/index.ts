@@ -100,6 +100,8 @@ Vou interpretar e cadastrar automaticamente.
 
 *Comandos:*
 /saldo — gastos do mês por categoria
+/mes — resumo completo do mês
+/semana — resumo dos últimos 7 dias
 /ultimas — últimas 5 despesas
 /apagar — apaga a despesa mais recente
 /help — esta mensagem
@@ -213,6 +215,119 @@ async function handleApagar(admin: any, userId: string): Promise<string> {
   const date = e.paid_date || e.due_date || "";
   const dateStr = date ? fmtDayMonth(date) : "—";
   return `🗑️ *Despesa removida:*\n${fmtBRL(Number(e.amount) || 0)} — ${e.description} (${e.category}) — ${dateStr}`;
+}
+
+function ymd(d: Date): string {
+  return d.toISOString().slice(0, 10);
+}
+
+async function summarizeRange(
+  admin: any,
+  userId: string,
+  fromISO: string,
+  toISO: string,
+): Promise<{ total: number; count: number; byCat: Map<string, number>; topItems: any[] }> {
+  const { data } = await admin
+    .from("expenses")
+    .select("amount, category, description, paid_date, due_date")
+    .eq("user_id", userId)
+    .eq("scope", "personal")
+    .eq("paid", true);
+
+  const filtered = (data ?? []).filter((e: any) => {
+    const ref = (e.paid_date || e.due_date || "") as string;
+    return ref >= fromISO && ref <= toISO;
+  });
+
+  const byCat = new Map<string, number>();
+  let total = 0;
+  for (const e of filtered) {
+    const amt = Number(e.amount) || 0;
+    total += amt;
+    byCat.set(e.category || "Outros", (byCat.get(e.category || "Outros") || 0) + amt);
+  }
+
+  const topItems = [...filtered]
+    .sort((a, b) => (Number(b.amount) || 0) - (Number(a.amount) || 0))
+    .slice(0, 5);
+
+  return { total, count: filtered.length, byCat, topItems };
+}
+
+async function handleMes(admin: any, userId: string): Promise<string> {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = now.getMonth();
+  const first = new Date(year, month, 1);
+  const last = new Date(year, month + 1, 0);
+  const monthName = MONTH_NAMES[month];
+
+  const { total, count, byCat, topItems } = await summarizeRange(
+    admin, userId, ymd(first), ymd(last),
+  );
+
+  if (count === 0) return `📅 *Resumo de ${monthName}*\n\n_Sem despesas neste mês._`;
+
+  const dayOfMonth = now.getDate();
+  const avgPerDay = total / dayOfMonth;
+
+  let msg = `📅 *Resumo de ${monthName}*\n`;
+  msg += `Total: ${fmtBRL(total)} (${count} ${count === 1 ? "despesa" : "despesas"})\n`;
+  msg += `Média/dia: ${fmtBRL(avgPerDay)}\n`;
+
+  msg += `\n📂 *Por categoria:*\n`;
+  const sorted = [...byCat.entries()].sort((a, b) => b[1] - a[1]);
+  for (const [cat, spent] of sorted) {
+    const pct = total > 0 ? (spent / total) * 100 : 0;
+    msg += `• ${cat}: ${fmtBRL(spent)} (${pct.toFixed(0)}%)\n`;
+  }
+
+  msg += `\n🔝 *Maiores despesas:*\n`;
+  topItems.forEach((e: any, i: number) => {
+    const date = e.paid_date || e.due_date || "";
+    const dateStr = date ? fmtDayMonth(date) : "—";
+    msg += `${i + 1}. ${fmtBRL(Number(e.amount) || 0)} — ${e.description} (${dateStr})\n`;
+  });
+
+  return msg.trimEnd();
+}
+
+async function handleSemana(admin: any, userId: string): Promise<string> {
+  const now = new Date();
+  const to = new Date(now);
+  const from = new Date(now);
+  from.setDate(from.getDate() - 6);
+
+  const { total, count, byCat, topItems } = await summarizeRange(
+    admin, userId, ymd(from), ymd(to),
+  );
+
+  const fromStr = `${String(from.getDate()).padStart(2, "0")}/${String(from.getMonth() + 1).padStart(2, "0")}`;
+  const toStr = `${String(to.getDate()).padStart(2, "0")}/${String(to.getMonth() + 1).padStart(2, "0")}`;
+
+  if (count === 0) return `🗓️ *Resumo da semana* (${fromStr} – ${toStr})\n\n_Sem despesas nos últimos 7 dias._`;
+
+  const avgPerDay = total / 7;
+
+  let msg = `🗓️ *Resumo da semana* (${fromStr} – ${toStr})\n`;
+  msg += `Total: ${fmtBRL(total)} (${count} ${count === 1 ? "despesa" : "despesas"})\n`;
+  msg += `Média/dia: ${fmtBRL(avgPerDay)}\n`;
+
+  msg += `\n📂 *Por categoria:*\n`;
+  const sorted = [...byCat.entries()].sort((a, b) => b[1] - a[1]);
+  for (const [cat, spent] of sorted) {
+    const pct = total > 0 ? (spent / total) * 100 : 0;
+    msg += `• ${cat}: ${fmtBRL(spent)} (${pct.toFixed(0)}%)\n`;
+  }
+
+  msg += `\n🔝 *Maiores despesas:*\n`;
+  topItems.forEach((e: any, i: number) => {
+    const date = e.paid_date || e.due_date || "";
+    const dateStr = date ? fmtDayMonth(date) : "—";
+    msg += `${i + 1}. ${fmtBRL(Number(e.amount) || 0)} — ${e.description} (${dateStr})\n`;
+  });
+
+  return msg.trimEnd();
 }
 
 async function checkBudgetAndAlert(
@@ -884,6 +999,12 @@ Deno.serve(async (req) => {
           if (!pendingHandled) {
             if (/^\/saldo(?:@\w+)?\b/i.test(text)) {
               const reply = await handleSaldo(admin, link.user_id);
+              await tgSend(chatId, reply, LOVABLE_API_KEY, TELEGRAM_API_KEY);
+            } else if (/^\/mes(?:@\w+)?\b/i.test(text)) {
+              const reply = await handleMes(admin, link.user_id);
+              await tgSend(chatId, reply, LOVABLE_API_KEY, TELEGRAM_API_KEY);
+            } else if (/^\/semana(?:@\w+)?\b/i.test(text)) {
+              const reply = await handleSemana(admin, link.user_id);
               await tgSend(chatId, reply, LOVABLE_API_KEY, TELEGRAM_API_KEY);
             } else if (/^\/ultimas(?:@\w+)?\b/i.test(text)) {
               const reply = await handleUltimas(admin, link.user_id);
