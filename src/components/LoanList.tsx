@@ -1508,7 +1508,14 @@ function LoanRowView({
             {loan.borrowerName.split(" ").map(w => w[0]).join("").substring(0, 2).toUpperCase()}
           </div>
           <div className="min-w-0">
-            <span className="font-medium text-[11px] sm:text-sm text-foreground truncate block max-w-[80px] sm:max-w-none">{loan.borrowerName}</span>
+            <div className="flex items-center gap-1 flex-wrap">
+              <span className="font-medium text-[11px] sm:text-sm text-foreground truncate block max-w-[80px] sm:max-w-none">{loan.borrowerName}</span>
+              {loan.hasManager && (
+                <Badge variant="outline" className="bg-accent/15 text-accent-foreground border-accent/40 text-[8px] sm:text-[10px] px-1 py-0 gap-0.5">
+                  <UserCog className="h-2.5 w-2.5" /><span className="hidden sm:inline">Gerente</span>
+                </Badge>
+              )}
+            </div>
             {loan.tags && loan.tags.length > 0 && (
               <div className="flex flex-wrap gap-0.5 mt-0.5 sm:hidden">
                 {loan.tags.map((tag) => (
