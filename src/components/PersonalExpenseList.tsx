@@ -32,6 +32,7 @@ interface Props {
   onDelete: (id: string) => void;
   onUpdate?: (id: string, data: Partial<Omit<Expense, "id" | "createdAt">>) => void;
   readOnly?: boolean;
+  afterEvolution?: React.ReactNode;
 }
 
 type Filter = "all" | "pending" | "paid" | "overdue";
@@ -42,7 +43,7 @@ const fmt = (v: number) =>
 const isOverdue = (e: Expense) =>
   !e.paid && e.dueDate < new Date().toISOString().split("T")[0];
 
-export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, readOnly = false }: Props) {
+export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, readOnly = false, afterEvolution }: Props) {
   const { mask } = useHideValues();
   const formatCurrency = useCallback((v: number) => mask(fmt(v)), [mask]);
 
@@ -508,6 +509,8 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, readOn
           )}
         </CardContent>
       </Card>
+
+      {afterEvolution}
 
       <div className="flex flex-col sm:flex-row gap-3">
         <div className="relative flex-1">
