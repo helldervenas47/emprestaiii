@@ -218,10 +218,60 @@ export function LoanForm({ onAdd, onSaveSchedule, onClose, clients, existingTags
                   </SelectTrigger>
                   <SelectContent>
                     {activeClients.map((c) => (
-                      <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                      <SelectItem key={c.id} value={c.id}>
+                        {c.name}{c.isManager ? " 👔" : ""}
+                      </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
+              )}
+            </div>
+
+            {/* Manager section */}
+            <div className="border border-border rounded-lg p-3 space-y-3 bg-muted/20">
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  id="hasManager"
+                  checked={hasManager}
+                  onChange={(e) => setHasManager(e.target.checked)}
+                  className="h-4 w-4 rounded border-border accent-primary"
+                />
+                <Label htmlFor="hasManager" className="font-medium cursor-pointer text-sm">
+                  Empréstimo com gerente
+                </Label>
+              </div>
+              {hasManager && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1 border-t border-border/50">
+                  <div>
+                    <Label className="text-xs">Gerente</Label>
+                    {managerClients.length === 0 ? (
+                      <p className="text-xs text-warning mt-1">Nenhum cliente marcado como gerente.</p>
+                    ) : (
+                      <Select value={managerId} onValueChange={setManagerId}>
+                        <SelectTrigger className="h-9 text-sm">
+                          <SelectValue placeholder="Selecione" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {managerClients.map((m) => (
+                            <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    )}
+                  </div>
+                  <div>
+                    <Label className="text-xs">Comissão (%)</Label>
+                    <Input
+                      type="number"
+                      step="0.1"
+                      min="0"
+                      value={commissionRate}
+                      onChange={(e) => setCommissionRate(e.target.value)}
+                      className="h-9 text-sm"
+                    />
+                  </div>
+                </div>
               )}
             </div>
             <div className="grid grid-cols-2 gap-4">
