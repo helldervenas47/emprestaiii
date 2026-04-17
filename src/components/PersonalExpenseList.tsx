@@ -68,7 +68,16 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, onUpda
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
   const [budgetEditOpen, setBudgetEditOpen] = useState(false);
   const [budgetDraft, setBudgetDraft] = useState<Record<string, string>>({});
-  const { budgets, setBudget } = usePersonalBudgets();
+  const {
+    budgets,
+    monthBudgets,
+    effectiveMonth,
+    isInherited,
+    targetMonth,
+    setBudget,
+    deleteBudget,
+    inheritIntoMonth,
+  } = usePersonalBudgets(true, selectedMonth);
   const [historyMonths, setHistoryMonths] = useState<3 | 6 | 12>(6);
 
   // Monthly evolution per category — last N months
