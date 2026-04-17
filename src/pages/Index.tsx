@@ -796,7 +796,7 @@ const Index = () => {
                 await Promise.all(imported.map((expense) => addExpense(expense)));
               }}
             />
-            <WebhookSettings />
+            
           </div>
         )}
         </Suspense>
