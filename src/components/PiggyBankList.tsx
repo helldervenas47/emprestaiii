@@ -60,6 +60,42 @@ export function PiggyBankList({ readOnly = false }: Props) {
     setAdjustTarget(null);
   };
 
+  const historyDeposits = useMemo<PiggyBankDeposit[]>(() => {
+    if (!historyTarget) return [];
+    return deposits
+      .filter((d) => d.piggyBankId === historyTarget.id)
+      .slice()
+      .sort((a, b) => {
+        if (a.depositDate !== b.depositDate) return a.depositDate < b.depositDate ? 1 : -1;
+        return a.id < b.id ? 1 : -1;
+      });
+  }, [historyTarget, deposits]);
+
+  // Fetch linked expenses (description/category) for the history dialog.
+  useEffect(() => {
+    if (!historyTarget) return;
+    const ids = Array.from(
+      new Set(historyDeposits.map((d) => d.expenseId).filter((id): id is string => !!id))
+    );
+    const missing = ids.filter((id) => !(id in expensesById));
+    if (missing.length === 0) return;
+    (async () => {
+      const { data } = await supabase
+        .from("expenses")
+        .select("id, description, category")
+        .in("id", missing);
+      if (data) {
+        setExpensesById((prev) => {
+          const next = { ...prev };
+          for (const row of data as any[]) {
+            next[row.id] = { description: row.description, category: row.category };
+          }
+          return next;
+        });
+      }
+    })();
+  }, [historyTarget, historyDeposits, expensesById]);
+
   const save = async () => {
     if (!draft.name.trim()) return;
     const rate = Number(draft.annualRate.replace(",", ".")) || 11.15;
