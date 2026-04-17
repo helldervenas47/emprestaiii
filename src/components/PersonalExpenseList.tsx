@@ -694,13 +694,18 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, onUpda
                               {format(new Date(expense.dueDate + "T00:00:00"), "dd/MM/yyyy")}
                             </span>
                             {isRecorrente && (() => {
-                              // Parcela atual = próximas a pagar (paidInstallments + 1), limitada ao total.
-                              // Se já totalmente paga, mostra Total/Total.
                               const total = expense.installments!;
                               const paidCount = expense.paidInstallments || 0;
+                              // Reconstrói a data da 1ª parcela (dueDate atual - paidCount meses)
+                              // para localizar corretamente a parcela do mês selecionado.
+                              const [dY, dM] = expense.dueDate.split("-").map(Number);
+                              const firstMonthIdx = (dY * 12 + dM) - paidCount;
+                              const [sY, sM] = selectedMonth.split("-").map(Number);
+                              const selIdx = sY * 12 + sM;
+                              const offset = selIdx - firstMonthIdx; // 0-based
                               const current = expense.paid
                                 ? total
-                                : Math.min(paidCount + 1, total);
+                                : Math.min(Math.max(1, offset + 1), total);
                               return (
                                 <Badge variant="secondary" className="text-[10px] px-1.5 py-0 font-semibold">
                                   Parcela {current}/{total}
