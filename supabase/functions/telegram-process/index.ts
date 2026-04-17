@@ -100,6 +100,8 @@ Vou interpretar e cadastrar automaticamente.
 
 *Comandos:*
 /saldo — gastos do mês por categoria
+/mes — resumo completo do mês
+/semana — resumo dos últimos 7 dias
 /ultimas — últimas 5 despesas
 /apagar — apaga a despesa mais recente
 /help — esta mensagem
