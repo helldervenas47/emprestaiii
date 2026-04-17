@@ -534,28 +534,6 @@ function ManagerDetailDialog({
                   ))}
                 </div>
               )}
-
-              {detail.realizedCommissions.length > 0 && (
-                <div className="rounded-lg border border-border p-3">
-                  <p className="text-xs font-semibold text-foreground mb-2">Comissões registradas no período</p>
-                  <div className="space-y-1">
-                    {detail.realizedCommissions.map((c) => {
-                      const loan = loans.find((l) => l.id === c.loanId);
-                      return (
-                        <div key={c.id} className="flex items-center justify-between text-xs gap-2">
-                          <div className="flex items-center gap-1.5 min-w-0">
-                            <CheckCircle2 className="h-3.5 w-3.5 text-success shrink-0" />
-                            <span className="text-muted-foreground truncate">
-                              {loan?.borrowerName ?? "Empréstimo"} · {formatDate(c.generatedAt)}
-                            </span>
-                          </div>
-                          <span className="font-semibold text-success">{mask(rawFormatCurrency(c.amount))}</span>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
             </div>
           </ScrollArea>
         )}
