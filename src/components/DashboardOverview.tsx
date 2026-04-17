@@ -2,7 +2,8 @@ import { useMemo, useState, useEffect, useCallback } from "react";
 import { useChartOverrides } from "@/hooks/useChartOverrides";
 import { Switch } from "@/components/ui/switch";
 import { useHideValues } from "@/contexts/HideValuesContext";
-import { Loan, Sale, Payment, Expense, InstallmentSchedule } from "@/types/loan";
+import { Loan, Sale, Payment, Expense, InstallmentSchedule, Client } from "@/types/loan";
+import { ManagerCommissionsChart } from "@/components/ManagerCommissionsChart";
 import { calculateInstallment, calculateTotalWithInterest } from "@/hooks/useLoans";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -21,6 +22,7 @@ interface Props {
   payments: Payment[];
   expenses: Expense[];
   installmentSchedules?: InstallmentSchedule[];
+  clients?: Client[];
   onDeletePayment?: (id: string) => void;
   onDeleteSale?: (id: string) => void;
   onDeleteLoan?: (id: string) => void;
@@ -83,7 +85,7 @@ function useAccountBalance(): [number, (v: number) => void] {
   return [bal, update];
 }
 
-export function DashboardOverview({ loans, sales, payments, expenses, installmentSchedules = [], onDeletePayment, onDeleteSale, onDeleteLoan }: Props) {
+export function DashboardOverview({ loans, sales, payments, expenses, installmentSchedules = [], clients = [], onDeletePayment, onDeleteSale, onDeleteLoan }: Props) {
   const { mask } = useHideValues();
   const formatCurrency = useCallback((v: number) => mask(rawFormatCurrency(v)), [mask]);
   const [period, setPeriod] = useState<Period>("month");
