@@ -633,6 +633,8 @@ export type Database = {
           expense_id: string | null
           id: string
           piggy_bank_id: string
+          recurrence_id: string | null
+          source: string
           user_id: string
         }
         Insert: {
@@ -642,6 +644,8 @@ export type Database = {
           expense_id?: string | null
           id?: string
           piggy_bank_id: string
+          recurrence_id?: string | null
+          source?: string
           user_id: string
         }
         Update: {
@@ -651,6 +655,8 @@ export type Database = {
           expense_id?: string | null
           id?: string
           piggy_bank_id?: string
+          recurrence_id?: string | null
+          source?: string
           user_id?: string
         }
         Relationships: [
@@ -663,6 +669,59 @@ export type Database = {
           },
           {
             foreignKeyName: "piggy_bank_deposits_piggy_bank_id_fkey"
+            columns: ["piggy_bank_id"]
+            isOneToOne: false
+            referencedRelation: "piggy_banks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      piggy_bank_recurrences: {
+        Row: {
+          active: boolean
+          amount: number
+          created_at: string
+          day_of_month: number
+          description: string | null
+          end_date: string | null
+          id: string
+          last_generated_date: string | null
+          piggy_bank_id: string
+          start_date: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          active?: boolean
+          amount?: number
+          created_at?: string
+          day_of_month?: number
+          description?: string | null
+          end_date?: string | null
+          id?: string
+          last_generated_date?: string | null
+          piggy_bank_id: string
+          start_date: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          active?: boolean
+          amount?: number
+          created_at?: string
+          day_of_month?: number
+          description?: string | null
+          end_date?: string | null
+          id?: string
+          last_generated_date?: string | null
+          piggy_bank_id?: string
+          start_date?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "piggy_bank_recurrences_piggy_bank_id_fkey"
             columns: ["piggy_bank_id"]
             isOneToOne: false
             referencedRelation: "piggy_banks"
