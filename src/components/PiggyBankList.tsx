@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { PiggyBank, Plus, TrendingUp, Trash2, Pencil, Sparkles } from "lucide-react";
+import { PiggyBank, Plus, TrendingUp, Trash2, Pencil, Sparkles, Wallet } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
