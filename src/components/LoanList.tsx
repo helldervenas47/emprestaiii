@@ -2,7 +2,7 @@ import React, { useState, useMemo, useCallback } from "react";
 import { DatePickerField } from "@/components/ui/date-picker-field";
 import { useHideValues } from "@/contexts/HideValuesContext";
 import { format } from "date-fns";
-import { Loan, Payment, InstallmentSchedule } from "@/types/loan";
+import { Loan, Payment, InstallmentSchedule, Client } from "@/types/loan";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -39,6 +39,7 @@ interface Props {
   existingTags?: string[];
   initialCategory?: Category;
   initialView?: "cards" | "rows" | "folders";
+  clients?: Client[];
 }
 
 type Category = "all" | "overdue" | "paid_interest" | "paid" | "due_today" | "on_track" | "parcelado";
@@ -156,7 +157,7 @@ function getTotalPaid(loan: Loan, payments: Payment[]): number {
 }
 
 function LoanCardView({
-  loan, payments: allPayments, installmentSchedules, onPayment, onPartialPayment, onFullPayment, onInterestPayment, onUpdate, onDelete, onDeletePayment, onSaveSchedule, readOnly = false, no3d = false, existingTags = [],
+  loan, payments: allPayments, installmentSchedules, onPayment, onPartialPayment, onFullPayment, onInterestPayment, onUpdate, onDelete, onDeletePayment, onSaveSchedule, readOnly = false, no3d = false, existingTags = [], clients = [],
 }: {
   loan: Loan;
   payments: Payment[];
@@ -172,6 +173,7 @@ function LoanCardView({
   readOnly?: boolean;
   no3d?: boolean;
   existingTags?: string[];
+  clients?: Client[];
 }) {
   const { mask } = useHideValues();
   const formatCurrency = useCallback((v: number) => mask(rawFormatCurrency(v)), [mask]);
@@ -197,6 +199,10 @@ function LoanCardView({
   const [penaltyValue, setPenaltyValue] = useState<string>(loan.penaltyValue != null ? String(loan.penaltyValue) : "");
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deletePaymentId, setDeletePaymentId] = useState<string | null>(null);
+  const [editHasManager, setEditHasManager] = useState<boolean>(loan.hasManager ?? false);
+  const [editManagerId, setEditManagerId] = useState<string>(loan.managerId ?? "");
+  const [editCommissionRate, setEditCommissionRate] = useState<string>(String(loan.managerCommissionRate ?? 10));
+  const managerOptions = useMemo(() => clients.filter((c) => c.isManager && c.active !== false), [clients]);
 
   const total = calculateTotalWithInterest(loan.amount, loan.interestRate, loan.installments);
   const totalPaid = getTotalPaid(loan, allPayments);
