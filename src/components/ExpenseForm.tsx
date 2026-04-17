@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { SuccessAnimation } from "@/components/SuccessAnimation";
 import { DatePickerField } from "@/components/ui/date-picker-field";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -26,6 +27,8 @@ interface Props {
 }
 
 export function ExpenseForm({ onAdd, onClose, scope = "business" }: Props) {
+  const [showSuccess, setShowSuccess] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   const [form, setForm] = useState({
     description: "",
     amount: "",
@@ -36,9 +39,11 @@ export function ExpenseForm({ onAdd, onClose, scope = "business" }: Props) {
     notes: "",
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.description || !form.amount || !form.category) return;
+    if (submitting) return;
+    setSubmitting(true);
     const parsedAmount = parseFloat(form.amount) || 0;
 
     let payload: Omit<Expense, "id" | "paid" | "paidDate" | "createdAt">;
@@ -80,8 +85,12 @@ export function ExpenseForm({ onAdd, onClose, scope = "business" }: Props) {
       };
     }
 
-    onAdd(payload);
-    onClose();
+    try {
+      await onAdd(payload);
+      setShowSuccess(true);
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const update = (field: string, value: string) =>
@@ -93,6 +102,7 @@ export function ExpenseForm({ onAdd, onClose, scope = "business" }: Props) {
 
   return (
     <div className="fixed inset-0 bg-foreground/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+      <SuccessAnimation show={showSuccess} onComplete={onClose} message="Despesa cadastrada!" />
       <Card no3d className="w-full max-w-lg max-h-[90vh] overflow-y-auto">
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle className="text-xl">Nova Despesa</CardTitle>
@@ -208,7 +218,7 @@ export function ExpenseForm({ onAdd, onClose, scope = "business" }: Props) {
               </div>
             )}
 
-            <Button type="submit" className="w-full">
+            <Button type="submit" className="w-full" disabled={submitting}>
               <Plus className="h-4 w-4 mr-2" />
               Cadastrar Despesa
             </Button>

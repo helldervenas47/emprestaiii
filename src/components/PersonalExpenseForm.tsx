@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { SuccessAnimation } from "@/components/SuccessAnimation";
 import { DatePickerField } from "@/components/ui/date-picker-field";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -24,6 +25,8 @@ const FIXED_RECURRING_INSTALLMENTS = 999;
 
 export function PersonalExpenseForm({ onAdd, onClose }: Props) {
   const { piggyBanks, addDeposit, createRecurrence } = usePiggyBanks();
+  const [showSuccess, setShowSuccess] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
   const [form, setForm] = useState({
     description: "",
@@ -43,38 +46,50 @@ export function PersonalExpenseForm({ onAdd, onClose }: Props) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.description || !form.amount) return;
+    if (submitting) return;
+    setSubmitting(true);
     const amount = parseFloat(form.amount) || 0;
 
     if (toPiggy) {
-      if (!piggyId) return;
-      const baseNotes = form.notes ? `[${form.paymentMethod}] ${form.notes}` : `[${form.paymentMethod}]`;
-      onAdd({
-        description: form.description,
-        amount,
-        type: "fixa",
-        category: "Cofrinho",
-        installments: undefined,
-        paidInstallments: undefined,
-        dueDate: form.dueDate,
-        notes: buildPiggyTag(piggyId, baseNotes),
-        scope: "personal",
-      });
-      await addDeposit({ piggyBankId: piggyId, amount, depositDate: form.dueDate });
-
-      if (piggyRecurrence !== "none") {
-        await createRecurrence({
-          piggyBankId: piggyId,
-          amount,
-          startDate: form.dueDate,
-          endDate: piggyRecurrence === "until" ? (piggyEndDate || null) : null,
-          description: form.description,
-        });
+      if (!piggyId) {
+        setSubmitting(false);
+        return;
       }
-      onClose();
+      try {
+        const baseNotes = form.notes ? `[${form.paymentMethod}] ${form.notes}` : `[${form.paymentMethod}]`;
+        await onAdd({
+          description: form.description,
+          amount,
+          type: "fixa",
+          category: "Cofrinho",
+          installments: undefined,
+          paidInstallments: undefined,
+          dueDate: form.dueDate,
+          notes: buildPiggyTag(piggyId, baseNotes),
+          scope: "personal",
+        });
+        await addDeposit({ piggyBankId: piggyId, amount, depositDate: form.dueDate });
+
+        if (piggyRecurrence !== "none") {
+          await createRecurrence({
+            piggyBankId: piggyId,
+            amount,
+            startDate: form.dueDate,
+            endDate: piggyRecurrence === "until" ? (piggyEndDate || null) : null,
+            description: form.description,
+          });
+        }
+        setShowSuccess(true);
+      } finally {
+        setSubmitting(false);
+      }
       return;
     }
 
-    if (!form.category) return;
+    if (!form.category) {
+      setSubmitting(false);
+      return;
+    }
     const notesWithMethod = form.notes
       ? `[${form.paymentMethod}] ${form.notes}`
       : `[${form.paymentMethod}]`;
@@ -116,8 +131,12 @@ export function PersonalExpenseForm({ onAdd, onClose }: Props) {
         scope: "personal",
       };
     }
-    onAdd(payload);
-    onClose();
+    try {
+      await onAdd(payload);
+      setShowSuccess(true);
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const update = (field: string, value: string) =>
@@ -129,6 +148,7 @@ export function PersonalExpenseForm({ onAdd, onClose }: Props) {
 
   return (
     <div className="fixed inset-0 bg-foreground/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+      <SuccessAnimation show={showSuccess} onComplete={onClose} message={toPiggy ? "Aporte registrado!" : "Despesa cadastrada!"} />
       <Card no3d className="w-full max-w-lg max-h-[90vh] overflow-y-auto">
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle className="text-xl">Nova Despesa Pessoal</CardTitle>
@@ -334,7 +354,7 @@ export function PersonalExpenseForm({ onAdd, onClose }: Props) {
               </div>
             )}
 
-            <Button type="submit" className="w-full" disabled={toPiggy && !piggyId}>
+            <Button type="submit" className="w-full" disabled={submitting || (toPiggy && !piggyId)}>
               <Plus className="h-4 w-4 mr-2" />
               {toPiggy ? "Aportar no cofrinho" : "Cadastrar Despesa"}
             </Button>
