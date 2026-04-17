@@ -110,7 +110,7 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, readOn
   const visibleMonth = monthFiltered.filter((e) => !isRecFullyPaid(e));
 
   const totalPending = visibleMonth.filter((e) => !e.paid).reduce((s, e) => s + getInstallmentAmount(e), 0);
-  const totalPaid = visibleMonth.filter((e) => e.paid).reduce((s, e) => s + getInstallmentAmount(e), 0);
+  const totalPaid = visibleMonth.reduce((s, e) => s + getInstallmentAmount(e), 0);
   const totalOverdue = visibleMonth.filter(isOverdue).reduce((s, e) => s + getInstallmentAmount(e), 0);
 
   // Daily average + projection — only meaningful for current month
