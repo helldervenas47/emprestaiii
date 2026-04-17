@@ -1035,16 +1035,17 @@ Deno.serve(async (req) => {
             if (!extracted || !extracted.amount || extracted.confidence < 0.5) {
               await tgSend(chatId, "🤔 Não consegui ler o comprovante. Tente uma foto mais nítida ou envie por texto.", LOVABLE_API_KEY, TELEGRAM_API_KEY);
             } else {
+              const finalDate = sanitizeDate(extracted.date);
               const { data: ins, error: insErr } = await admin.from("expenses").insert({
                 user_id: link.user_id,
                 description: extracted.description || "Comprovante",
                 amount: extracted.amount,
                 category: CATEGORIES.includes(extracted.category) ? extracted.category : "Outros",
-                due_date: extracted.date || todayBR(),
+                due_date: finalDate,
                 type: "fixa",
                 scope: "personal",
                 paid: true,
-                paid_date: extracted.date || todayBR(),
+                paid_date: finalDate,
               }).select("id").single();
               if (insErr || !ins) {
                 await tgSend(chatId, "❌ Erro ao salvar: " + (insErr?.message ?? "desconhecido"), LOVABLE_API_KEY, TELEGRAM_API_KEY);
@@ -1052,7 +1053,7 @@ Deno.serve(async (req) => {
                 const finalCategory = CATEGORIES.includes(extracted.category) ? extracted.category : "Outros";
                 const fmt = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(extracted.amount);
                 await tgSendWithKeyboard(chatId,
-                  `📸 *Despesa extraída do comprovante*\n\n💰 ${fmt}\n📂 ${finalCategory}\n📝 ${extracted.description}\n📅 ${extracted.date}`,
+                  `📸 *Despesa extraída do comprovante*\n\n💰 ${fmt}\n📂 ${finalCategory}\n📝 ${extracted.description}\n📅 ${finalDate}`,
                   buildExpenseKeyboard(ins.id),
                   LOVABLE_API_KEY, TELEGRAM_API_KEY);
                 await checkBudgetAndAlert(admin, link.user_id, chatId, finalCategory, LOVABLE_API_KEY, TELEGRAM_API_KEY);
