@@ -23,9 +23,8 @@ interface Props {
 const fmt = (v: number) =>
   v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
-/** Returns the current billing cycle (from, to, dueDate) for a card. */
-function getCurrentCycle(closingDay: number, dueDay: number) {
-  const ref = new Date();
+/** Returns cycle for a reference Date (today inside the cycle window). */
+function getCycleForRef(ref: Date, closingDay: number, dueDay: number) {
   const y = ref.getFullYear();
   const m = ref.getMonth();
   const day = ref.getDate();
@@ -46,6 +45,26 @@ function getCurrentCycle(closingDay: number, dueDay: number) {
     Math.min(dueDay, new Date(dueYear, dueMonth + 1, 0).getDate())
   );
   return { from: closingPrev, to: closingNext, dueDate };
+}
+
+/** Returns the current billing cycle (from, to, dueDate) for a card. */
+function getCurrentCycle(closingDay: number, dueDay: number) {
+  return getCycleForRef(new Date(), closingDay, dueDay);
+}
+
+/** Find the cycle whose dueDate falls in the given YYYY-MM month. */
+function getCycleForDueMonth(yyyymm: string, closingDay: number, dueDay: number) {
+  const [ty, tm] = yyyymm.split("-").map(Number);
+  for (let off = -24; off <= 24; off++) {
+    const d = new Date();
+    d.setDate(1);
+    d.setMonth(d.getMonth() + off);
+    const c = getCycleForRef(d, closingDay, dueDay);
+    if (c.dueDate.getFullYear() === ty && c.dueDate.getMonth() + 1 === tm) {
+      return c;
+    }
+  }
+  return getCycleForRef(new Date(), closingDay, dueDay);
 }
 
 interface MiniCardProps {
@@ -236,7 +255,9 @@ export function CreditCardList({ readOnly = false, referenceMonth }: Props) {
       { transactions: number; opening: number; total: number; dueDate: Date; cycleKey: string; openingNotes: string | null; hasOpening: boolean }
     >();
     cards.forEach((card) => {
-      const cycle = getCurrentCycle(card.closingDay, card.dueDay);
+      const cycle = referenceMonth
+        ? getCycleForDueMonth(referenceMonth, card.closingDay, card.dueDay)
+        : getCurrentCycle(card.closingDay, card.dueDay);
       const cardTag = (card.nickname || card.lastFour || "").toLowerCase();
       const transactions = expenses
         .filter((e) => e.scope === "personal")
@@ -269,7 +290,11 @@ export function CreditCardList({ readOnly = false, referenceMonth }: Props) {
       });
     });
     return map;
-  }, [cards, expenses, getOpening]);
+  }, [cards, expenses, getOpening, referenceMonth]);
+
+  // Month key used to decide which cards should be highlighted as "Fatura do mês".
+  const refMonthKey = referenceMonth
+    ?? `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, "0")}`;
 
   const openingDialogData = useMemo(() => {
     if (!openingCard) return null;
@@ -327,7 +352,10 @@ export function CreditCardList({ readOnly = false, referenceMonth }: Props) {
                 invoiceTotal={inv.total}
                 openingAmount={inv.opening}
                 hasOpening={inv.hasOpening}
-                hasActiveInvoice={inv.total > 0}
+                hasActiveInvoice={
+                  inv.total > 0 &&
+                  `${inv.dueDate.getFullYear()}-${String(inv.dueDate.getMonth() + 1).padStart(2, "0")}` === refMonthKey
+                }
                 dueDate={inv.dueDate}
                 onClick={() => setInvoiceCard(card)}
                 onEdit={readOnly ? undefined : () => handleEdit(card)}
