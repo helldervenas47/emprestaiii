@@ -30,8 +30,9 @@ export function CreditCardList({ readOnly = false }: Props) {
   };
 
   // Cards stacked like a wallet — overlap when collapsed, fan out sideways when expanded
-  const STACK_PEEK = 28; // px visible of each card when collapsed (vertical)
-  const SIDE_PEEK_PCT = 18; // % of card width revealed for each next card when expanded
+  const STACK_PEEK = 22; // px visible of each card when collapsed (vertical)
+  const SIDE_PEEK_PCT = 22; // % of card width revealed for each next card when expanded
+  const CARD_W = "14rem"; // smaller card width
 
   return (
     <div>
@@ -74,34 +75,33 @@ export function CreditCardList({ readOnly = false }: Props) {
           )}
         </div>
       ) : (
-        <div className={expanded ? "w-full overflow-x-auto pb-2" : ""}>
+        <div className="w-full overflow-x-auto pb-2">
           <div
             className="relative mx-auto transition-all duration-500 ease-out"
             style={
               expanded
                 ? {
-                    width: `calc(20rem + (20rem * ${SIDE_PEEK_PCT / 100}) * ${cards.length - 1})`,
-                    minWidth: "20rem",
-                    paddingBottom: `calc(20rem / 1.586)`,
+                    width: `calc(${CARD_W} + (${CARD_W} * ${SIDE_PEEK_PCT / 100}) * ${cards.length - 1})`,
+                    minWidth: CARD_W,
+                    paddingBottom: `calc(${CARD_W} / 1.586)`,
                   }
                 : {
-                    width: "100%",
-                    maxWidth: "28rem",
-                    paddingBottom: `calc((100% / 1.586) + ${(cards.length - 1) * STACK_PEEK}px)`,
+                    width: CARD_W,
+                    paddingBottom: `calc((${CARD_W} / 1.586) + ${(cards.length - 1) * STACK_PEEK}px)`,
                   }
             }
           >
             {cards.map((card, i) => {
               const positionStyle: React.CSSProperties = expanded
                 ? {
-                    left: `calc((20rem * ${SIDE_PEEK_PCT / 100}) * ${i})`,
+                    left: `calc((${CARD_W} * ${SIDE_PEEK_PCT / 100}) * ${i})`,
                     top: 0,
-                    width: "20rem",
+                    width: CARD_W,
                     zIndex: i + 1,
                   }
                 : {
                     left: 0,
-                    right: 0,
+                    width: CARD_W,
                     top: `${i * STACK_PEEK}px`,
                     zIndex: i + 1,
                   };
