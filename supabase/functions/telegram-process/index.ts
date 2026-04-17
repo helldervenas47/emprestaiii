@@ -77,6 +77,8 @@ function detectCategory(description: string): string {
 function quickParseExpense(text: string): { amount: number; description: string; category: string } | null {
   const t = text.trim();
   if (t.length < 2 || t.startsWith("/")) return null;
+  // Defer to AI when text mentions a date — quick parser would assume "today".
+  if (hasDateHint(t)) return null;
   let amountStr: string | null = null;
   let description: string | null = null;
   const mA = t.match(/^R?\$?\s*([\d]+(?:\.\d{3})*(?:,\d{1,2})?|\d+(?:\.\d{1,2})?)\s+(.{2,80})$/i);
