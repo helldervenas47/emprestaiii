@@ -31,12 +31,44 @@ function invalidateLinkCache(chatId: number) {
   linkCache.delete(chatId);
 }
 
+// Keyword → category mapping for regex pre-parser.
+// Order matters only within a category; first matching category wins.
+const CATEGORY_KEYWORDS: Array<{ category: string; words: string[] }> = [
+  { category: "Transporte", words: ["uber", "99", "99pop", "taxi", "táxi", "cabify", "indrive", "blablacar", "onibus", "ônibus", "metro", "metrô", "trem", "brt", "passagem", "gasolina", "combustivel", "combustível", "etanol", "alcool", "álcool", "diesel", "posto", "ipva", "pedagio", "pedágio", "estacionamento", "zona azul", "lavagem", "lava jato", "lava-jato", "oficina", "mecanico", "mecânico"] },
+  { category: "Alimentação", words: ["mercado", "supermercado", "feira", "padaria", "açougue", "acougue", "hortifruti", "sacolao", "sacolão", "ifood", "rappi", "delivery", "lanche", "lanchonete", "restaurante", "almoço", "almoco", "janta", "jantar", "café", "cafe", "cafeteria", "starbucks", "mc donalds", "mcdonalds", "mc", "burger", "bk", "burger king", "subway", "pizza", "pizzaria", "sushi", "japones", "japonês", "churrascaria", "marmita", "quentinha", "açai", "acai"] },
+  { category: "Assinaturas", words: ["netflix", "spotify", "disney", "disney+", "hbo", "max", "prime video", "amazon prime", "youtube premium", "apple music", "deezer", "tidal", "globoplay", "paramount", "crunchyroll", "icloud", "google one", "drive", "dropbox", "chatgpt", "claude", "midjourney", "canva", "notion", "office", "microsoft 365"] },
+  { category: "Contas", words: ["luz", "energia", "agua", "água", "gas", "gás", "internet", "wifi", "telefone", "celular", "claro", "vivo", "tim", "oi", "net", "iptu", "condominio", "condomínio", "aluguel", "boleto", "fatura", "conta de luz", "conta de agua", "conta de água"] },
+  { category: "Saúde", words: ["farmacia", "farmácia", "remedio", "remédio", "medicamento", "drogaria", "drogasil", "pacheco", "raia", "consulta", "medico", "médico", "dentista", "exame", "laboratorio", "laboratório", "hospital", "clinica", "clínica", "psicologo", "psicólogo", "terapia", "fisioterapia", "academia", "gym", "smartfit", "bioritmo"] },
+  { category: "Lazer", words: ["cinema", "ingresso", "show", "festa", "balada", "bar", "cerveja", "drink", "bebida", "viagem", "hotel", "airbnb", "passeio", "parque", "teatro", "museu", "jogo", "game", "steam", "playstation", "xbox", "nintendo", "livro", "amazon"] },
+  { category: "Compras", words: ["roupa", "calça", "calca", "camisa", "camiseta", "tenis", "tênis", "sapato", "shopping", "magalu", "magazine", "americanas", "shopee", "mercado livre", "mercadolivre", "ml", "aliexpress", "shein"] },
+  { category: "Pets", words: ["pet", "petshop", "pet shop", "racao", "ração", "veterinario", "veterinário", "vet", "cocheira", "banho e tosa", "cobasi", "petz"] },
+  { category: "Educação", words: ["curso", "faculdade", "mensalidade", "escola", "colegio", "colégio", "livro didatico", "alura", "udemy", "coursera", "pos graduacao", "pós-graduação", "ingles", "inglês"] },
+  { category: "Moradia", words: ["material de construção", "material de construcao", "tinta", "reforma", "marceneiro", "pedreiro", "eletricista", "encanador", "leroy", "leroy merlin", "telha norte", "moveis", "móveis", "casa bahia", "decoracao", "decoração"] },
+  { category: "Cartão de Crédito", words: ["fatura cartao", "fatura cartão", "fatura do cartao", "fatura do cartão", "cartao", "cartão", "nubank fatura", "itau fatura"] },
+  { category: "Presentes", words: ["presente", "aniversario", "aniversário", "natal", "dia das maes", "dia das mães", "dia dos pais"] },
+];
+
+function detectCategory(description: string): string {
+  const lower = description.toLowerCase();
+  for (const { category, words } of CATEGORY_KEYWORDS) {
+    for (const w of words) {
+      // Word-boundary-ish match: substring with surrounding non-letter or string edges
+      const idx = lower.indexOf(w);
+      if (idx === -1) continue;
+      const before = idx === 0 ? "" : lower[idx - 1];
+      const after = idx + w.length >= lower.length ? "" : lower[idx + w.length];
+      const isWordChar = (c: string) => /[a-záéíóúâêôãõç0-9]/i.test(c);
+      if (!isWordChar(before) && !isWordChar(after)) return category;
+    }
+  }
+  return "Outros";
+}
+
 // Regex-first parser for common expense formats.
 // Examples: "45 mercado", "R$ 12,50 uber", "uber 25", "1.234,56 conta luz"
-function quickParseExpense(text: string): { amount: number; description: string } | null {
+function quickParseExpense(text: string): { amount: number; description: string; category: string } | null {
   const t = text.trim();
   if (t.length < 2 || t.startsWith("/")) return null;
-  // Pattern A: <amount> <description>
   let amountStr: string | null = null;
   let description: string | null = null;
   const mA = t.match(/^R?\$?\s*([\d]+(?:\.\d{3})*(?:,\d{1,2})?|\d+(?:\.\d{1,2})?)\s+(.{2,80})$/i);
@@ -50,7 +82,7 @@ function quickParseExpense(text: string): { amount: number; description: string 
   if (amount === null) return null;
   const desc = description.trim();
   if (desc.length < 2) return null;
-  return { amount, description: desc };
+  return { amount, description: desc, category: detectCategory(desc) };
 }
 
 const HELP_TEXT = `🤖 *Como usar*
@@ -868,7 +900,7 @@ Deno.serve(async (req) => {
                 extracted = {
                   description: quick.description,
                   amount: quick.amount,
-                  category: "Outros",
+                  category: quick.category,
                   date: today,
                   confidence: 1,
                 };
