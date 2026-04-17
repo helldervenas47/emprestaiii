@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { PiggyBank, Plus, TrendingUp, Trash2, Pencil, Sparkles } from "lucide-react";
+import { PiggyBank, Plus, TrendingUp, Trash2, Pencil, Sparkles, Wallet } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -25,12 +25,14 @@ interface Props {
 
 export function PiggyBankList({ readOnly = false }: Props) {
   const { mask } = useHideValues();
-  const { piggyBanks, balances, createPiggyBank, updatePiggyBank, deletePiggyBank } = usePiggyBanks();
+  const { piggyBanks, balances, createPiggyBank, updatePiggyBank, deletePiggyBank, adjustBalance } = usePiggyBanks();
 
   const [createOpen, setCreateOpen] = useState(false);
   const [editing, setEditing] = useState<PiggyBankType | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [draft, setDraft] = useState({ name: "", color: PALETTE[0], annualRate: "11.15" });
+  const [adjustTarget, setAdjustTarget] = useState<PiggyBankType | null>(null);
+  const [adjustValue, setAdjustValue] = useState("");
 
   const openCreate = () => {
     setDraft({ name: "", color: PALETTE[0], annualRate: "11.15" });
@@ -41,6 +43,18 @@ export function PiggyBankList({ readOnly = false }: Props) {
     setDraft({ name: pb.name, color: pb.color, annualRate: String(pb.annualRate) });
     setEditing(pb);
     setCreateOpen(true);
+  };
+  const openAdjust = (pb: PiggyBankType) => {
+    const current = balances.get(pb.id)?.balance ?? 0;
+    setAdjustValue(current.toFixed(2));
+    setAdjustTarget(pb);
+  };
+  const confirmAdjust = async () => {
+    if (!adjustTarget) return;
+    const v = Number(adjustValue.replace(",", "."));
+    if (Number.isNaN(v) || v < 0) return;
+    await adjustBalance(adjustTarget.id, v);
+    setAdjustTarget(null);
   };
 
   const save = async () => {
@@ -125,7 +139,10 @@ export function PiggyBankList({ readOnly = false }: Props) {
                   <p className="text-sm font-bold text-foreground">{mask(fmt(b?.balance ?? 0))}</p>
                   {!readOnly && (
                     <div className="flex gap-0.5 justify-end mt-0.5">
-                      <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => openEdit(pb)}>
+                      <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => openAdjust(pb)} title="Ajustar saldo">
+                        <Wallet className="h-3 w-3" />
+                      </Button>
+                      <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => openEdit(pb)} title="Editar">
                         <Pencil className="h-3 w-3" />
                       </Button>
                       <Button
@@ -133,6 +150,7 @@ export function PiggyBankList({ readOnly = false }: Props) {
                         variant="ghost"
                         className="h-6 w-6 text-destructive hover:text-destructive hover:bg-destructive/10"
                         onClick={() => setDeleteId(pb.id)}
+                        title="Excluir"
                       >
                         <Trash2 className="h-3 w-3" />
                       </Button>
@@ -217,6 +235,54 @@ export function PiggyBankList({ readOnly = false }: Props) {
         title="Excluir cofrinho"
         description="Os aportes registrados também serão removidos. As despesas já lançadas permanecem no histórico. Esta ação não pode ser desfeita."
       />
+
+      {/* Manual balance adjustment dialog */}
+      <Dialog open={!!adjustTarget} onOpenChange={(o) => !o && setAdjustTarget(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Ajustar saldo</DialogTitle>
+            <DialogDescription>
+              Informe o novo saldo desejado para <strong>{adjustTarget?.name}</strong>. A diferença será
+              registrada como ajuste manual e não afeta o "Gasto do mês".
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 py-1">
+            <div className="rounded-lg bg-muted/50 p-2.5 text-xs flex items-center justify-between">
+              <span className="text-muted-foreground">Saldo atual:</span>
+              <span className="font-semibold">
+                {fmt(adjustTarget ? balances.get(adjustTarget.id)?.balance ?? 0 : 0)}
+              </span>
+            </div>
+            <div>
+              <Label htmlFor="adjust-value">Novo saldo (R$)</Label>
+              <Input
+                id="adjust-value"
+                type="number"
+                step="0.01"
+                min="0"
+                value={adjustValue}
+                onChange={(e) => setAdjustValue(e.target.value)}
+                autoFocus
+              />
+              {adjustTarget && (() => {
+                const current = balances.get(adjustTarget.id)?.balance ?? 0;
+                const v = Number(adjustValue.replace(",", "."));
+                if (Number.isNaN(v)) return null;
+                const delta = v - current;
+                return (
+                  <p className={`text-[11px] mt-1.5 ${delta > 0 ? "text-success" : delta < 0 ? "text-destructive" : "text-muted-foreground"}`}>
+                    Ajuste: {delta > 0 ? "+" : ""}{fmt(delta)}
+                  </p>
+                );
+              })()}
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setAdjustTarget(null)}>Cancelar</Button>
+            <Button onClick={confirmAdjust}>Aplicar ajuste</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
