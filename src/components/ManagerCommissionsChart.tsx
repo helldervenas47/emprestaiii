@@ -360,28 +360,28 @@ function ManagerDetailDialog({
       const loanPayments = payments.filter((p) => p.loanId === l.id);
       const paidInstallmentNumbers = new Set<number>();
 
-      const paidItems: DetailItem[] = loanPayments
-        .map((p) => {
-          const recordedCommission = commissionByPaymentId.get(p.id);
-          const commissionAmount = recordedCommission?.amount ?? getDerivedPaymentCommission(l, p);
-          if (commissionAmount <= 0) return null;
+      const paidItems: DetailItem[] = loanPayments.reduce<DetailItem[]>((acc, p) => {
+        const recordedCommission = commissionByPaymentId.get(p.id);
+        const commissionAmount = recordedCommission?.amount ?? getDerivedPaymentCommission(l, p);
+        if (commissionAmount <= 0) return acc;
 
-          if (p.installmentNumber > 0) paidInstallmentNumbers.add(p.installmentNumber);
+        if (p.installmentNumber > 0) paidInstallmentNumbers.add(p.installmentNumber);
 
-          return {
-            key: p.id,
-            label: p.installmentNumber > 0
-              ? `#${p.installmentNumber}`
-              : isLegacyInterestPayment(l, p)
-                ? (p.installmentNumber === 0 ? "Juros" : "Juros (legado)")
-                : "Pagamento",
-            paidDate: p.date,
-            commission: commissionAmount,
-            isPaid: true,
-            inPeriod: range ? inRange(p.date, range.start, range.end) : true,
-          };
-        })
-        .filter((item): item is DetailItem => item !== null);
+        acc.push({
+          key: p.id,
+          label: p.installmentNumber > 0
+            ? `#${p.installmentNumber}`
+            : isLegacyInterestPayment(l, p)
+              ? (p.installmentNumber === 0 ? "Juros" : "Juros (legado)")
+              : "Pagamento",
+          paidDate: p.date,
+          commission: commissionAmount,
+          isPaid: true,
+          inPeriod: range ? inRange(p.date, range.start, range.end) : true,
+        });
+
+        return acc;
+      }, []);
 
       const pendingItems: DetailItem[] = l.status === "paid"
         ? []
