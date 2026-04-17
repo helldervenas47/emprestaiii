@@ -149,7 +149,14 @@ export function ExpenseForm({ onAdd, onClose, scope = "business" }: Props) {
             </div>
 
             {parseFloat(form.amount) > 0 && (
-              <div className="rounded-lg bg-muted p-4">
+              <div className="rounded-lg bg-muted p-4 space-y-1">
+                {form.type === "recorrente" && parseInt(form.installments) > 1 && (
+                  <p className="text-sm text-muted-foreground">
+                    Valor total: <span className="font-semibold text-foreground">
+                      {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(parseFloat(form.amount) * (parseInt(form.installments) || 1))}
+                    </span> ({form.installments}x de {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(parseFloat(form.amount))})
+                  </p>
+                )}
                 <p className="text-sm text-muted-foreground">
                   Ao pagar, <span className="font-semibold text-destructive">
                     {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(parseFloat(form.amount))}
