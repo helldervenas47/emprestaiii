@@ -19,6 +19,8 @@ import { toast } from "sonner";
 interface Props {
   card: CreditCard;
   onClose: () => void;
+  /** YYYY-MM — when provided, the initial cycle is the one whose due date falls in this month. */
+  referenceMonth?: string;
 }
 
 const fmt = (v: number) =>

@@ -16,6 +16,8 @@ import { ConfirmDeleteDialog } from "./ConfirmDeleteDialog";
 
 interface Props {
   readOnly?: boolean;
+  /** YYYY-MM — when provided, opens the credit card invoice anchored to the cycle whose due date falls in this month. */
+  referenceMonth?: string;
 }
 
 const fmt = (v: number) =>
@@ -196,7 +198,7 @@ function MiniCreditCard({
   );
 }
 
-export function CreditCardList({ readOnly = false }: Props) {
+export function CreditCardList({ readOnly = false, referenceMonth }: Props) {
   const { cards, loading, addCard, updateCard, deleteCard } = useCreditCards();
   const { expenses } = useExpenses();
   const { getOpening, upsertOpening } = useCreditCardOpenings();
@@ -343,6 +345,7 @@ export function CreditCardList({ readOnly = false }: Props) {
         <CreditCardInvoice
           card={invoiceCard}
           onClose={() => setInvoiceCard(null)}
+          referenceMonth={referenceMonth}
         />
       )}
 
