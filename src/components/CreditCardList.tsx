@@ -1,7 +1,8 @@
 import { useState, useMemo } from "react";
-import { Plus, CreditCard as CreditCardIcon, Wifi, Pencil, Trash2, Receipt } from "lucide-react";
+import { Plus, CreditCard as CreditCardIcon, Wifi, Pencil, Trash2, Receipt, CheckCircle } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useCreditCards, CreditCard } from "@/hooks/useCreditCards";
@@ -73,11 +74,13 @@ interface MiniCardProps {
   openingAmount: number;
   hasOpening: boolean;
   hasActiveInvoice: boolean;
+  hasUnpaidInvoice: boolean;
   dueDate: Date;
   onClick: () => void;
   onEdit?: () => void;
   onDelete?: () => void;
   onAddOpening?: () => void;
+  onPayInvoice?: () => void;
   readOnly?: boolean;
 }
 
@@ -87,11 +90,13 @@ function MiniCreditCard({
   openingAmount,
   hasOpening,
   hasActiveInvoice,
+  hasUnpaidInvoice,
   dueDate,
   onClick,
   onEdit,
   onDelete,
   onAddOpening,
+  onPayInvoice,
   readOnly,
 }: MiniCardProps) {
   const bank = getBank(card.bank);
@@ -209,18 +214,33 @@ function MiniCreditCard({
           </div>
 
           {!readOnly && (
-            <Button
-              variant="outline"
-              size="sm"
-              className="w-full h-7 text-[11px] mt-1"
-              onClick={(e) => {
-                e.stopPropagation();
-                onAddOpening?.();
-              }}
-            >
-              <Receipt className="h-3 w-3 mr-1" />
-              {hasOpening ? "Editar fatura inicial" : "Adicionar fatura do mês"}
-            </Button>
+            <div className="space-y-1 mt-1">
+              <Button
+                variant="default"
+                size="sm"
+                className="w-full h-7 text-[11px]"
+                disabled={!hasUnpaidInvoice || invoiceTotal <= 0}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onPayInvoice?.();
+                }}
+              >
+                <CheckCircle className="h-3 w-3 mr-1" />
+                Pagar fatura
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="w-full h-7 text-[11px]"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onAddOpening?.();
+                }}
+              >
+                <Receipt className="h-3 w-3 mr-1" />
+                {hasOpening ? "Editar fatura inicial" : "Adicionar fatura do mês"}
+              </Button>
+            </div>
           )}
         </div>
       </CardContent>
