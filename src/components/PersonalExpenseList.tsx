@@ -79,6 +79,7 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, readOn
     const byMonth: Record<string, Record<string, number>> = {};
     months.forEach((m) => (byMonth[m.key] = {}));
     expenses.forEach((e) => {
+      if (isPiggyExpense(e.notes)) return; // Cofrinho transfers are not spending
       const mk = e.dueDate.slice(0, 7);
       if (!monthSet.has(mk)) return;
       const amt = e.type === "recorrente" && e.installments && e.installments > 1
@@ -124,10 +125,10 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, readOn
   const dailyAverage = dayOfMonth > 0 ? totalPaid / dayOfMonth : 0;
   const projection = isCurrentMonth ? totalPaid + dailyAverage * (daysInMonth - dayOfMonth) : totalPaid;
 
-  // Category breakdown (paid only)
+  // Category breakdown (paid only, excluding cofrinho transfers)
   const categoryData = useMemo(() => {
     const map = new Map<string, number>();
-    visibleMonth.filter((e) => e.paid).forEach((e) => {
+    spendingMonth.filter((e) => e.paid).forEach((e) => {
       map.set(e.category, (map.get(e.category) || 0) + getInstallmentAmount(e));
     });
     const arr = [...map.entries()]
@@ -137,18 +138,18 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, readOn
     const top = arr.slice(0, 5);
     const rest = arr.slice(5).reduce((s, it) => s + it.value, 0);
     return [...top, { name: "Outros", value: rest, cat: getPersonalCategory("Outros") }];
-  }, [visibleMonth, getInstallmentAmount]);
+  }, [spendingMonth, getInstallmentAmount]);
 
   const totalCategorized = categoryData.reduce((s, it) => s + it.value, 0);
 
-  // Spend per category (paid only) — used by budget progress
+  // Spend per category (paid only, excluding cofrinho) — used by budget progress
   const spentByCategory = useMemo(() => {
     const map = new Map<string, number>();
-    visibleMonth.filter((e) => e.paid).forEach((e) => {
+    spendingMonth.filter((e) => e.paid).forEach((e) => {
       map.set(e.category, (map.get(e.category) || 0) + getInstallmentAmount(e));
     });
     return map;
-  }, [visibleMonth, getInstallmentAmount]);
+  }, [spendingMonth, getInstallmentAmount]);
 
   const totalBudget = budgets.reduce((s, b) => s + b.amount, 0);
   const totalSpentBudgeted = budgets.reduce((s, b) => s + (spentByCategory.get(b.category) || 0), 0);
