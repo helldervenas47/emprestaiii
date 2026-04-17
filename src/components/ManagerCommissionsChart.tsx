@@ -3,8 +3,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { useManagerCommissions } from "@/hooks/useManagerCommissions";
 import { Client, Loan } from "@/types/loan";
 import { useHideValues } from "@/contexts/HideValuesContext";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
-import { Briefcase } from "lucide-react";
+import { Briefcase, UserCog } from "lucide-react";
 
 interface Props {
   clients: Client[];
@@ -19,16 +18,23 @@ export function ManagerCommissionsChart({ clients, loans = [] }: Props) {
   const { commissions } = useManagerCommissions(true);
   const { mask } = useHideValues();
 
+  const managers = useMemo(
+    () => clients.filter((c) => c.isManager).sort((a, b) => a.name.localeCompare(b.name)),
+    [clients]
+  );
+
   const data = useMemo(() => {
     const byManager: Record<string, { paid: number; projected: number; loanCount: number }> = {};
 
-    // Actual commissions already generated
+    managers.forEach((m) => {
+      byManager[m.id] = { paid: 0, projected: 0, loanCount: 0 };
+    });
+
     commissions.forEach((c) => {
       if (!byManager[c.managerId]) byManager[c.managerId] = { paid: 0, projected: 0, loanCount: 0 };
       byManager[c.managerId].paid += c.amount;
     });
 
-    // Projected commissions from active loans with manager
     loans
       .filter((l) => l.hasManager && l.managerId && l.status !== "paid")
       .forEach((l) => {
@@ -42,13 +48,21 @@ export function ManagerCommissionsChart({ clients, loans = [] }: Props) {
     return Object.entries(byManager)
       .map(([id, v]) => {
         const client = clients.find((c) => c.id === id);
-        return { name: client?.name || "Gerente removido", paid: v.paid, projected: v.projected, loanCount: v.loanCount, total: v.paid + v.projected };
+        return {
+          id,
+          name: client?.name || "Gerente removido",
+          paid: v.paid,
+          projected: v.projected,
+          loanCount: v.loanCount,
+          total: v.paid + v.projected,
+        };
       })
-      .sort((a, b) => b.total - a.total);
-  }, [commissions, clients, loans]);
+      .sort((a, b) => b.total - a.total || a.name.localeCompare(b.name));
+  }, [commissions, clients, loans, managers]);
 
   const totalPaid = data.reduce((s, d) => s + d.paid, 0);
   const totalProjected = data.reduce((s, d) => s + d.projected, 0);
+  const totalGeneral = totalPaid + totalProjected;
 
   return (
     <Card>
@@ -62,57 +76,72 @@ export function ManagerCommissionsChart({ clients, loans = [] }: Props) {
           </div>
           <div className="flex gap-3 text-right">
             <div>
-              <p className="text-[10px] text-muted-foreground uppercase">Pago</p>
+              <p className="text-[10px] text-muted-foreground uppercase">Pendente</p>
+              <p className="text-sm font-bold text-primary">{mask(rawFormatCurrency(totalProjected))}</p>
+            </div>
+            <div>
+              <p className="text-[10px] text-muted-foreground uppercase">Recebido</p>
               <p className="text-sm font-bold text-success">{mask(rawFormatCurrency(totalPaid))}</p>
             </div>
             <div>
-              <p className="text-[10px] text-muted-foreground uppercase">Previsto</p>
-              <p className="text-sm font-bold text-primary">{mask(rawFormatCurrency(totalProjected))}</p>
+              <p className="text-[10px] text-muted-foreground uppercase">Total</p>
+              <p className="text-sm font-bold text-foreground">{mask(rawFormatCurrency(totalGeneral))}</p>
             </div>
           </div>
         </div>
 
         {data.length === 0 ? (
           <div className="text-center py-8 text-sm text-muted-foreground">
-            Nenhum empréstimo com gerente vinculado. Marque "Com gerente" em um contrato para ver as comissões aqui.
+            Nenhum gerente cadastrado. Marque um cliente como "Gerente" para acompanhar as comissões aqui.
           </div>
         ) : (
-          <div className="w-full" style={{ height: Math.max(200, data.length * 52) }}>
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={data} layout="vertical" margin={{ top: 8, right: 16, left: 8, bottom: 8 }}>
-                <CartesianGrid strokeDasharray="3 3" className="stroke-border/40" horizontal={false} />
-                <XAxis
-                  type="number"
-                  tickFormatter={(v) => mask(rawFormatCurrency(v))}
-                  stroke="hsl(var(--muted-foreground))"
-                  fontSize={10}
-                />
-                <YAxis
-                  type="category"
-                  dataKey="name"
-                  width={120}
-                  stroke="hsl(var(--muted-foreground))"
-                  fontSize={11}
-                />
-                <Tooltip
-                  formatter={(v: number, name: string) => [mask(rawFormatCurrency(v)), name === "paid" ? "Pago" : "Previsto"]}
-                  contentStyle={{
-                    background: "hsl(var(--card))",
-                    border: "1px solid hsl(var(--border))",
-                    borderRadius: 8,
-                    fontSize: 12,
-                  }}
-                  cursor={{ fill: "hsl(var(--muted) / 0.3)" }}
-                />
-                <Legend wrapperStyle={{ fontSize: 11 }} formatter={(v) => v === "paid" ? "Pago" : "Previsto"} />
-                <Bar dataKey="paid" stackId="a" fill="hsl(var(--success))" />
-                <Bar dataKey="projected" stackId="a" radius={[0, 6, 6, 0]} fill="hsl(var(--primary))" fillOpacity={0.6} />
-              </BarChart>
-            </ResponsiveContainer>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            {data.map((m) => (
+              <div
+                key={m.id}
+                className="rounded-lg border border-border bg-card/50 hover:bg-card transition-colors p-4 flex flex-col gap-3"
+              >
+                <div className="flex items-start gap-2">
+                  <div className="h-8 w-8 rounded-md bg-accent/15 flex items-center justify-center shrink-0">
+                    <UserCog className="h-4 w-4 text-accent-foreground" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-semibold text-foreground truncate" title={m.name}>
+                      {m.name}
+                    </p>
+                    <p className="text-[10px] text-muted-foreground">
+                      {m.loanCount} {m.loanCount === 1 ? "contrato ativo" : "contratos ativos"}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex flex-col gap-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-muted-foreground">Pendente de recebimento</span>
+                    <span className="text-sm font-semibold text-primary">
+                      {mask(rawFormatCurrency(m.projected))}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-muted-foreground">Total recebido</span>
+                    <span className="text-sm font-semibold text-success">
+                      {mask(rawFormatCurrency(m.paid))}
+                    </span>
+                  </div>
+                  <div className="border-t border-border my-1" />
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-medium text-foreground">Total geral</span>
+                    <span className="text-base font-bold text-foreground">
+                      {mask(rawFormatCurrency(m.total))}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
         )}
         <p className="text-[10px] text-muted-foreground mt-3 italic">
-          Pago = comissões já geradas em pagamentos. Previsto = comissão estimada de empréstimos ativos com gerente. Valores isolados — não impactam saldo, lucro ou despesas.
+          Pendente = comissão estimada de empréstimos ativos com gerente. Recebido = comissões já geradas em pagamentos. Valores isolados — não impactam saldo, lucro ou despesas.
         </p>
       </CardContent>
     </Card>
