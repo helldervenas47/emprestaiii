@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { X, ChevronLeft, ChevronRight, Receipt, Pencil, Trash2, AlertTriangle } from "lucide-react";
@@ -19,6 +19,8 @@ import { toast } from "sonner";
 interface Props {
   card: CreditCard;
   onClose: () => void;
+  /** YYYY-MM — when provided, the initial cycle is the one whose due date falls in this month. */
+  referenceMonth?: string;
 }
 
 const fmt = (v: number) =>
@@ -52,15 +54,38 @@ function getCycle(ref: Date, closingDay: number, dueDay: number) {
   return { from: closingPrev, to: closingNext, dueDate };
 }
 
-export function CreditCardInvoice({ card, onClose }: Props) {
+export function CreditCardInvoice({ card, onClose, referenceMonth }: Props) {
   const { expenses, updateExpense, deleteExpense } = useExpenses();
   const { getOpening, upsertOpening } = useCreditCardOpenings();
   const { mask } = useHideValues();
   const bank = getBank(card.bank);
-  const [cycleOffset, setCycleOffset] = useState(0); // 0 = current, -1 = previous
+
+  // When a referenceMonth (YYYY-MM) is provided, find the offset whose cycle's
+  // due date falls in that month. Search ±24 months around current.
+  const initialOffset = useMemo(() => {
+    if (!referenceMonth) return 0;
+    const [ty, tm] = referenceMonth.split("-").map(Number);
+    if (!ty || !tm) return 0;
+    for (let off = -24; off <= 24; off++) {
+      const d = new Date();
+      d.setMonth(d.getMonth() + off);
+      const c = getCycle(d, card.closingDay, card.dueDay);
+      if (c.dueDate.getFullYear() === ty && c.dueDate.getMonth() + 1 === tm) {
+        return off;
+      }
+    }
+    return 0;
+  }, [referenceMonth, card.closingDay, card.dueDay]);
+
+  const [cycleOffset, setCycleOffset] = useState(initialOffset);
   const [editingOpening, setEditingOpening] = useState(false);
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
   const [deletingExpense, setDeletingExpense] = useState<Expense | null>(null);
+
+  // Keep cycle in sync if the user changes the external reference month.
+  useEffect(() => {
+    setCycleOffset(initialOffset);
+  }, [initialOffset]);
 
   const ref = useMemo(() => {
     const d = new Date();
