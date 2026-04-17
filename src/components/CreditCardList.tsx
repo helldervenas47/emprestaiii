@@ -377,6 +377,7 @@ export function CreditCardList({ readOnly = false, referenceMonth }: Props) {
               cycleKey: "",
               openingNotes: null,
               hasOpening: false,
+              unpaidExpenseIds: [] as string[],
             };
             return (
               <MiniCreditCard
@@ -389,11 +390,13 @@ export function CreditCardList({ readOnly = false, referenceMonth }: Props) {
                   inv.total > 0 &&
                   `${inv.dueDate.getFullYear()}-${String(inv.dueDate.getMonth() + 1).padStart(2, "0")}` === refMonthKey
                 }
+                hasUnpaidInvoice={inv.unpaidExpenseIds.length > 0}
                 dueDate={inv.dueDate}
                 onClick={() => setInvoiceCard(card)}
                 onEdit={readOnly ? undefined : () => handleEdit(card)}
                 onDelete={readOnly ? undefined : () => setDeleting(card)}
                 onAddOpening={readOnly ? undefined : () => setOpeningCard(card)}
+                onPayInvoice={readOnly ? undefined : () => setPayingCard(card)}
                 readOnly={readOnly}
               />
             );
@@ -448,6 +451,35 @@ export function CreditCardList({ readOnly = false, referenceMonth }: Props) {
           description={`Tem certeza que deseja excluir o cartão ${deleting.nickname || deleting.bank}?`}
         />
       )}
+
+      {payingCard && (() => {
+        const inv = invoiceByCard.get(payingCard.id);
+        const ids = inv?.unpaidExpenseIds ?? [];
+        const total = inv?.total ?? 0;
+        return (
+          <ConfirmDeleteDialog
+            open={!!payingCard}
+            onOpenChange={(o) => !o && !paying && setPayingCard(null)}
+            onConfirm={async () => {
+              if (paying) return;
+              setPaying(true);
+              try {
+                const today = new Date().toISOString().split("T")[0];
+                for (const id of ids) {
+                  await payExpense(id, false, today);
+                }
+                toast.success(`Fatura paga (${ids.length} ${ids.length === 1 ? "lançamento" : "lançamentos"})`);
+                setPayingCard(null);
+              } finally {
+                setPaying(false);
+              }
+            }}
+            title="Pagar fatura do cartão?"
+            description={`Confirmar o pagamento de ${ids.length} ${ids.length === 1 ? "lançamento pendente" : "lançamentos pendentes"} (${fmt(total)}) do cartão ${payingCard.nickname || getBank(payingCard.bank).name}? Cada despesa será marcada como paga e o saldo será debitado.`}
+            confirmLabel="Pagar fatura"
+          />
+        );
+      })()}
     </div>
   );
 }
