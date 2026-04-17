@@ -354,6 +354,19 @@ export function BillingCalendar({ loans, payments, installmentSchedules, onPayme
                       <p className="text-[10px] text-success font-semibold">{formatCurrency(remaining)}</p>
                     </div>
                   </button>
+
+                  <button
+                    onClick={() => openPaymentDialog(item.loanId, item.borrowerName, "payoff")}
+                    className="flex items-center gap-2 p-2.5 rounded-lg border border-primary/20 bg-primary/5 hover:bg-primary/10 transition-colors col-span-2"
+                  >
+                    <div className="h-7 w-7 rounded-full bg-primary/15 flex items-center justify-center shrink-0">
+                      <DollarSign className="h-3.5 w-3.5 text-primary" />
+                    </div>
+                    <div className="text-left">
+                      <p className="text-xs font-medium text-foreground">Quitar Contrato</p>
+                      <p className="text-[10px] text-primary font-semibold">Definir valor de quitação</p>
+                    </div>
+                  </button>
                 </div>
 
                 {showPartial === itemKey && (
@@ -525,6 +538,7 @@ export function BillingCalendar({ loans, payments, installmentSchedules, onPayme
           <DialogHeader>
             <DialogTitle>
               {paymentDialog?.type === "full" ? "Pagamento Total" :
+               paymentDialog?.type === "payoff" ? "Quitar Contrato" :
                paymentDialog?.type === "installment" ? "Receber Parcela" :
                paymentDialog?.type === "interest" ? "Pagar Juros" : "Pagamento Parcial"}
               {paymentDialog && <span className="block text-sm font-normal text-muted-foreground mt-1">{paymentDialog.borrowerName}</span>}
@@ -538,13 +552,26 @@ export function BillingCalendar({ loans, payments, installmentSchedules, onPayme
               const totalPaid = payments.filter(p => p.loanId === loan.id).reduce((s, p) => s + p.amount, 0);
               const remaining = loan.remainingAmount != null && loan.remainingAmount > 0 ? loan.remainingAmount : Math.max(0, total - totalPaid);
               return (
+                <div className="text-center p-3 bg-muted/50 rounded-lg w-full">
+                  <p className="text-xs text-muted-foreground">Total restante a receber</p>
+                  <p className="text-2xl font-bold text-primary">{formatCurrency(remaining)}</p>
+                </div>
+              );
+            })()}
+            {paymentDialog?.type === "payoff" && paymentDialog.loanId && (() => {
+              const loan = loans.find(l => l.id === paymentDialog.loanId);
+              if (!loan) return null;
+              const total = calculateTotalWithInterest(loan.amount, loan.interestRate, loan.installments);
+              const totalPaid = payments.filter(p => p.loanId === loan.id).reduce((s, p) => s + p.amount, 0);
+              const remaining = loan.remainingAmount != null && loan.remainingAmount > 0 ? loan.remainingAmount : Math.max(0, total - totalPaid);
+              return (
                 <div className="w-full space-y-2">
                   <div className="text-center p-3 bg-muted/50 rounded-lg w-full">
                     <p className="text-xs text-muted-foreground">Total restante a receber</p>
                     <p className="text-2xl font-bold text-primary">{formatCurrency(remaining)}</p>
                   </div>
                   <div className="space-y-1">
-                    <Label htmlFor="payoff-amount-cal" className="text-xs">Valor para quitar (opcional)</Label>
+                    <Label htmlFor="payoff-amount-cal" className="text-xs">Valor para quitar (R$)</Label>
                     <Input
                       id="payoff-amount-cal"
                       type="number"
@@ -554,9 +581,10 @@ export function BillingCalendar({ loans, payments, installmentSchedules, onPayme
                       value={payoffAmount}
                       onChange={(e) => setPayoffAmount(e.target.value)}
                       placeholder={`Ex: ${remaining.toFixed(2)}`}
+                      autoFocus
                     />
                     <p className="text-[10px] text-muted-foreground">
-                      Informe um valor diferente para quitar o contrato. Em branco usa o restante.
+                      Informe o valor de quitação. O contrato será marcado como pago.
                     </p>
                   </div>
                 </div>
