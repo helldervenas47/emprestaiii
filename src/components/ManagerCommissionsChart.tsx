@@ -1,9 +1,12 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Badge } from "@/components/ui/badge";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { useManagerCommissions } from "@/hooks/useManagerCommissions";
-import { Client, Loan, InstallmentSchedule, Payment } from "@/types/loan";
+import { Client, Loan, InstallmentSchedule, Payment, ManagerCommission } from "@/types/loan";
 import { useHideValues } from "@/contexts/HideValuesContext";
-import { Briefcase, UserCog } from "lucide-react";
+import { Briefcase, UserCog, CalendarDays, CheckCircle2, Clock } from "lucide-react";
 
 interface Props {
   clients: Client[];
