@@ -80,9 +80,11 @@ export function CreditCardForm({ initial, onSave, onClose }: Props) {
           </Button>
         </CardHeader>
         <CardContent>
-          <div className="mb-4">
-            <CreditCardItem card={previewCard} readOnly />
-          </div>
+          {initial && (
+            <div className="mb-4">
+              <CreditCardItem card={previewCard} readOnly />
+            </div>
+          )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
