@@ -167,14 +167,14 @@ export function ManagerCommissionsChart({
                 key={m.id}
                 type="button"
                 onClick={() => setSelectedManagerId(m.id)}
-                className="rounded-lg border border-border bg-card/50 hover:bg-card hover:border-primary/40 hover:shadow-sm transition-all p-2.5 sm:p-4 flex flex-col items-center text-center gap-2 sm:gap-3 cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary/40"
+                className="rounded-lg border border-border bg-card/50 hover:bg-card hover:border-primary/40 hover:shadow-sm transition-all p-2.5 sm:p-4 flex flex-col items-center text-center gap-2 sm:gap-3 sm:items-stretch sm:text-left cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary/40"
               >
-                <div className="flex flex-col items-center gap-1.5">
-                  <div className="h-7 w-7 sm:h-8 sm:w-8 rounded-md bg-accent/15 flex items-center justify-center">
+                <div className="flex flex-col items-center gap-1.5 sm:flex-row sm:items-center sm:gap-2">
+                  <div className="h-7 w-7 sm:h-8 sm:w-8 rounded-md bg-accent/15 flex items-center justify-center shrink-0">
                     <UserCog className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-accent-foreground" />
                   </div>
-                  <div>
-                    <p className="text-xs sm:text-sm font-semibold text-foreground leading-tight break-words" title={m.name}>
+                  <div className="min-w-0">
+                    <p className="text-xs sm:text-sm font-semibold text-foreground leading-tight break-words sm:truncate" title={m.name}>
                       {m.name}
                     </p>
                     <p className="text-[9px] sm:text-[10px] text-muted-foreground leading-tight mt-0.5">
@@ -183,23 +183,23 @@ export function ManagerCommissionsChart({
                   </div>
                 </div>
 
-                <div className="flex flex-col items-center gap-1.5 sm:gap-2 w-full">
-                  <div className="flex flex-col items-center">
+                <div className="flex flex-col items-center gap-1.5 sm:gap-2 w-full sm:items-stretch">
+                  <div className="flex flex-col items-center sm:flex-row sm:items-center sm:justify-between">
                     <span className="text-[10px] sm:text-xs text-muted-foreground leading-tight">Pendente</span>
-                    <span className="text-xs sm:text-sm font-semibold text-primary break-all">
+                    <span className="text-xs sm:text-sm font-semibold text-primary break-all sm:break-normal">
                       {mask(rawFormatCurrency(m.projected))}
                     </span>
                   </div>
-                  <div className="flex flex-col items-center">
+                  <div className="flex flex-col items-center sm:flex-row sm:items-center sm:justify-between">
                     <span className="text-[10px] sm:text-xs text-muted-foreground leading-tight">Recebido</span>
-                    <span className="text-xs sm:text-sm font-semibold text-success break-all">
+                    <span className="text-xs sm:text-sm font-semibold text-success break-all sm:break-normal">
                       {mask(rawFormatCurrency(m.paid))}
                     </span>
                   </div>
                   <div className="border-t border-border w-full my-0.5 sm:my-1" />
-                  <div className="flex flex-col items-center">
+                  <div className="flex flex-col items-center sm:flex-row sm:items-center sm:justify-between">
                     <span className="text-[10px] sm:text-xs font-medium text-foreground leading-tight">Total geral</span>
-                    <span className="text-sm sm:text-base font-bold text-foreground break-all">
+                    <span className="text-sm sm:text-base font-bold text-foreground break-all sm:break-normal">
                       {mask(rawFormatCurrency(m.total))}
                     </span>
                   </div>
