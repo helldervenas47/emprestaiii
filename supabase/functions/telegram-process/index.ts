@@ -223,6 +223,18 @@ function ymd(d: Date): string {
   return d.toISOString().slice(0, 10);
 }
 
+// Returns today's date in America/Sao_Paulo as YYYY-MM-DD.
+// The Edge runtime is UTC, so toISOString() can return tomorrow after 21:00 BRT.
+function todayBR(): string {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Sao_Paulo",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date());
+  return parts; // en-CA already formats as YYYY-MM-DD
+}
+
 async function summarizeRange(
   admin: any,
   userId: string,
@@ -660,7 +672,7 @@ function buildCategoryKeyboard(expenseId: string) {
 }
 
 async function extractExpense(text: string, lovableKey: string) {
-  const today = new Date().toISOString().slice(0, 10);
+  const today = todayBR();
   const resp = await fetch(AI_GATEWAY, {
     method: "POST",
     headers: { Authorization: `Bearer ${lovableKey}`, "Content-Type": "application/json" },
@@ -799,7 +811,7 @@ async function transcribeAudio(fileId: string, mimeHint: string, lovableKey: str
 }
 
 async function extractExpenseFromImage(imageDataUrl: string, caption: string, lovableKey: string) {
-  const today = new Date().toISOString().slice(0, 10);
+  const today = todayBR();
   const sysPrompt = `Você extrai despesas pessoais de imagens de cupons fiscais, notas fiscais ou comprovantes em português brasileiro. Hoje é ${today}. Categorias permitidas: ${CATEGORIES.join(", ")}. Some o valor TOTAL do comprovante (não item por item). Se a imagem não for um comprovante legível, retorne confidence baixo.${caption ? ` Contexto adicional do usuário: "${caption}"` : ""}`;
 
   const resp = await fetch(AI_GATEWAY, {
@@ -983,11 +995,11 @@ Deno.serve(async (req) => {
                 description: extracted.description || "Comprovante",
                 amount: extracted.amount,
                 category: CATEGORIES.includes(extracted.category) ? extracted.category : "Outros",
-                due_date: extracted.date || new Date().toISOString().slice(0, 10),
+                due_date: extracted.date || todayBR(),
                 type: "fixa",
                 scope: "personal",
                 paid: true,
-                paid_date: extracted.date || new Date().toISOString().slice(0, 10),
+                paid_date: extracted.date || todayBR(),
               }).select("id").single();
               if (insErr || !ins) {
                 await tgSend(chatId, "❌ Erro ao salvar: " + (insErr?.message ?? "desconhecido"), LOVABLE_API_KEY, TELEGRAM_API_KEY);
@@ -1038,11 +1050,11 @@ Deno.serve(async (req) => {
                 description: extracted.description || transcript.slice(0, 80),
                 amount: extracted.amount,
                 category: CATEGORIES.includes(extracted.category) ? extracted.category : "Outros",
-                due_date: extracted.date || new Date().toISOString().slice(0, 10),
+                due_date: extracted.date || todayBR(),
                 type: "fixa",
                 scope: "personal",
                 paid: true,
-                paid_date: extracted.date || new Date().toISOString().slice(0, 10),
+                paid_date: extracted.date || todayBR(),
               }).select("id").single();
               if (insErr || !ins) {
                 await tgSend(chatId, "❌ Erro ao salvar: " + (insErr?.message ?? "desconhecido"), LOVABLE_API_KEY, TELEGRAM_API_KEY);
@@ -1170,7 +1182,7 @@ Deno.serve(async (req) => {
             } else {
               // Regex-first: skip AI for clear "<amount> <description>" or "<description> <amount>" inputs.
               const quick = quickParseExpense(text);
-              const today = new Date().toISOString().slice(0, 10);
+              const today = todayBR();
               let extracted: any = null;
               if (quick) {
                 extracted = {
