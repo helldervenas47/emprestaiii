@@ -77,7 +77,7 @@ export function ExpenseForm({ onAdd, onClose, scope = "business" }: Props) {
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label htmlFor="amount">Valor (R$)</Label>
+                <Label htmlFor="amount">{form.type === "recorrente" ? "Valor da Parcela (R$)" : "Valor (R$)"}</Label>
                 <Input
                   id="amount"
                   type="number"
