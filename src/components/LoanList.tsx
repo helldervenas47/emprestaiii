@@ -769,7 +769,7 @@ function LoanCardView({
               {loan.interestType}
             </Badge>
             {loan.hasManager && (
-              <Badge variant="outline" className="text-xs bg-emerald-600/20 text-emerald-800 dark:bg-emerald-500/25 dark:text-emerald-300 border-emerald-600/70 dark:border-emerald-500/60 gap-1">
+              <Badge variant="outline" className="text-xs bg-[#009C3B]/15 text-[#009C3B] dark:bg-emerald-500/25 dark:text-emerald-300 border-[#009C3B]/60 dark:border-emerald-500/60 gap-1">
                 <UserCog className="h-3 w-3" />Com gerente
               </Badge>
             )}
@@ -1520,7 +1520,7 @@ function LoanRowView({
             <div className="flex items-center gap-1 flex-wrap">
               <span className="font-medium text-[11px] sm:text-sm text-foreground truncate block max-w-[80px] sm:max-w-none">{loan.borrowerName}</span>
               {loan.hasManager && (
-                <Badge variant="outline" className="bg-emerald-600/20 text-emerald-800 dark:bg-emerald-500/25 dark:text-emerald-300 border-emerald-600/70 dark:border-emerald-500/60 text-[9px] sm:text-[10px] px-1 py-0 gap-0.5 shrink-0" title="Com gerente">
+                <Badge variant="outline" className="bg-[#009C3B]/15 text-[#009C3B] dark:bg-emerald-500/25 dark:text-emerald-300 border-[#009C3B]/60 dark:border-emerald-500/60 text-[9px] sm:text-[10px] px-1 py-0 gap-0.5 shrink-0" title="Com gerente">
                   <UserCog className="h-3 w-3" /><span className="hidden sm:inline">Gerente</span>
                 </Badge>
               )}
@@ -1981,7 +1981,7 @@ function ClientFolder({
             <h3 className="font-bold text-foreground text-sm truncate">{group.name}</h3>
             {group.hasOverdue && <Badge className="bg-destructive/10 text-destructive border-destructive/20 text-[10px]">Atrasado</Badge>}
             {managerCount > 0 && (
-              <Badge variant="outline" className="bg-emerald-600/20 text-emerald-800 dark:bg-emerald-500/25 dark:text-emerald-300 border-emerald-600/70 dark:border-emerald-500/60 text-[10px] gap-0.5">
+              <Badge variant="outline" className="bg-[#009C3B]/15 text-[#009C3B] dark:bg-emerald-500/25 dark:text-emerald-300 border-[#009C3B]/60 dark:border-emerald-500/60 text-[10px] gap-0.5">
                 <UserCog className="h-2.5 w-2.5" />{managerCount === group.loans.length ? "Com gerente" : `${managerCount} c/ gerente`}
               </Badge>
             )}
