@@ -399,6 +399,8 @@ async function handleComparar(admin: any, userId: string): Promise<string> {
 
   return msg.trimEnd();
 }
+
+async function checkBudgetAndAlert(
   admin: any,
   userId: string,
   chatId: number,
