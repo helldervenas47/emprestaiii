@@ -168,20 +168,26 @@ function nextDueDateForCard(closingDay: number, dueDay: number): string {
 }
 
 /**
- * Builds the insert payload for a credit-card purchase: pending expense whose
- * due_date is the card's invoice due date, and notes flag it for the invoice view.
+ * Builds the insert payload for a credit-card purchase.
+ *
+ * IMPORTANT: `due_date` stores the *purchase date* (today) so the expense falls
+ * inside the card's current closing cycle in the invoice view (which filters by
+ * dueDate ∈ (cycle.from, cycle.to]). The invoice payment date is recorded in
+ * notes for reference and shown to the user.
  */
-function buildCreditCardExpense(card: CardLite, baseDescription: string, baseNotes?: string): {
+function buildCreditCardExpense(card: CardLite, _baseDescription: string, baseNotes?: string): {
   due_date: string;
   paid: false;
   paid_date: null;
   notes: string;
+  invoiceDueDate: string;
 } {
-  const due = nextDueDateForCard(card.closing_day, card.due_day);
+  const purchaseDate = todayBR();
+  const invoiceDueDate = nextDueDateForCard(card.closing_day, card.due_day);
   const tag = card.nickname || card.last_four || card.bank;
-  const cardLine = `[Crédito] Cartão: ${tag}`;
+  const cardLine = `[Crédito] Cartão: ${tag} (vence ${invoiceDueDate})`;
   const notes = baseNotes && baseNotes.trim() ? `${cardLine}\n${baseNotes.trim()}` : cardLine;
-  return { due_date: due, paid: false, paid_date: null, notes };
+  return { due_date: purchaseDate, paid: false, paid_date: null, notes, invoiceDueDate };
 }
 
 // Regex-first parser for common expense formats.
