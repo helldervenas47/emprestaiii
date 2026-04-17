@@ -137,6 +137,47 @@ export type Database = {
         }
         Relationships: []
       }
+      credit_card_invoice_openings: {
+        Row: {
+          card_id: string
+          created_at: string
+          cycle_key: string
+          id: string
+          notes: string | null
+          opening_amount: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          card_id: string
+          created_at?: string
+          cycle_key: string
+          id?: string
+          notes?: string | null
+          opening_amount?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          card_id?: string
+          created_at?: string
+          cycle_key?: string
+          id?: string
+          notes?: string | null
+          opening_amount?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "credit_card_invoice_openings_card_id_fkey"
+            columns: ["card_id"]
+            isOneToOne: false
+            referencedRelation: "credit_cards"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       credit_cards: {
         Row: {
           bank: string
