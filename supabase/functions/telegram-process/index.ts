@@ -835,7 +835,14 @@ async function transcribeAudio(fileId: string, mimeHint: string, lovableKey: str
 
 async function extractExpenseFromImage(imageDataUrl: string, caption: string, lovableKey: string) {
   const today = todayBR();
-  const sysPrompt = `Você extrai despesas pessoais de imagens de cupons fiscais, notas fiscais ou comprovantes em português brasileiro. Hoje é ${today}. Categorias permitidas: ${CATEGORIES.join(", ")}. Some o valor TOTAL do comprovante (não item por item). Se a imagem não for um comprovante legível, retorne confidence baixo.${caption ? ` Contexto adicional do usuário: "${caption}"` : ""}`;
+  const sysPrompt = `Você extrai despesas pessoais de imagens de cupons fiscais, notas fiscais ou comprovantes em português brasileiro. Hoje é ${today} (timezone America/Sao_Paulo). Categorias permitidas: ${CATEGORIES.join(", ")}.
+
+REGRAS:
+- Some o valor TOTAL do comprovante (não item por item).
+- Para o campo "date" (YYYY-MM-DD): use a DATA IMPRESSA NO COMPROVANTE quando legível (data da compra/emissão). Se ilegível, use ${today}.
+- Se o usuário mencionar uma data na legenda (ex: "ontem", "dia 10", "15/03"), priorize essa data sobre a do comprovante.
+- NUNCA retorne data no futuro.
+- Se a imagem não for um comprovante legível, retorne confidence baixo.${caption ? `\n\nLegenda do usuário: "${caption}"` : ""}`;
 
   const resp = await fetch(AI_GATEWAY, {
     method: "POST",
