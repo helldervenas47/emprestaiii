@@ -53,12 +53,14 @@ function getCycle(ref: Date, closingDay: number, dueDay: number) {
 }
 
 export function CreditCardInvoice({ card, onClose }: Props) {
-  const { expenses } = useExpenses();
+  const { expenses, updateExpense, deleteExpense } = useExpenses();
   const { getOpening, upsertOpening } = useCreditCardOpenings();
   const { mask } = useHideValues();
   const bank = getBank(card.bank);
   const [cycleOffset, setCycleOffset] = useState(0); // 0 = current, -1 = previous
   const [editingOpening, setEditingOpening] = useState(false);
+  const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
+  const [deletingExpense, setDeletingExpense] = useState<Expense | null>(null);
 
   const ref = useMemo(() => {
     const d = new Date();
