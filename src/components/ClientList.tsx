@@ -120,7 +120,7 @@ export function ClientList({ clients, loans, payments, onDelete, onUpdate, readO
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [sortOption, setSortOption] = useState<SortOption>("name-asc");
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [editForm, setEditForm] = useState<Record<string, any>>({ name: "", phone: "", email: "", cpf: "", cnpj: "", rg: "", address: "", city: "", state: "", score: "", notes: "", isVehicleRental: false, nacionalidade: "", estadoCivil: "", profissao: "", bairro: "" });
+  const [editForm, setEditForm] = useState<Record<string, any>>({ name: "", phone: "", email: "", cpf: "", cnpj: "", rg: "", address: "", city: "", state: "", score: "", notes: "", isVehicleRental: false, nacionalidade: "", estadoCivil: "", profissao: "", bairro: "", isManager: false });
   const [deleteClientId, setDeleteClientId] = useState<string | null>(null);
 
   const creditScores = useMemo(() => {
@@ -160,7 +160,7 @@ export function ClientList({ clients, loans, payments, onDelete, onUpdate, readO
 
   const startEdit = (client: Client) => {
     setEditingId(client.id);
-    setEditForm({ name: client.name, phone: client.phone, email: client.email, cpf: client.cpf, cnpj: client.cnpj || "", rg: client.rg || "", address: client.address, city: client.city || "", state: client.state || "", score: client.score || "", notes: client.notes || "", isVehicleRental: client.isVehicleRental || false, nacionalidade: client.nacionalidade || "", estadoCivil: client.estadoCivil || "", profissao: client.profissao || "", bairro: client.bairro || "" });
+    setEditForm({ name: client.name, phone: client.phone, email: client.email, cpf: client.cpf, cnpj: client.cnpj || "", rg: client.rg || "", address: client.address, city: client.city || "", state: client.state || "", score: client.score || "", notes: client.notes || "", isVehicleRental: client.isVehicleRental || false, nacionalidade: client.nacionalidade || "", estadoCivil: client.estadoCivil || "", profissao: client.profissao || "", bairro: client.bairro || "", isManager: client.isManager || false });
   };
 
   const saveEdit = (id: string) => {
@@ -268,6 +268,21 @@ export function ClientList({ clients, loans, payments, onDelete, onUpdate, readO
                     <div>
                       <Label className="text-xs">Observações</Label>
                       <Textarea value={editForm.notes} onChange={(e) => updateField("notes", e.target.value)} rows={2} />
+                    </div>
+                    <div className="border border-border rounded-lg p-3">
+                      <div className="flex items-center space-x-2">
+                        <Checkbox
+                          id={`edit-manager-${client.id}`}
+                          checked={editForm.isManager}
+                          onCheckedChange={(checked) => updateField("isManager", !!checked)}
+                        />
+                        <Label htmlFor={`edit-manager-${client.id}`} className="text-xs font-medium cursor-pointer">
+                          Cliente é Gerente
+                        </Label>
+                      </div>
+                      <p className="text-[10px] text-muted-foreground mt-1 ml-6">
+                        Habilita receber comissão sobre empréstimos atrelados.
+                      </p>
                     </div>
                     <div className="border border-border rounded-lg p-3 space-y-3">
                       <div className="flex items-center space-x-2">
