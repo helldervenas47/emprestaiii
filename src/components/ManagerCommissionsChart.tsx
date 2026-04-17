@@ -17,6 +17,16 @@ interface Props {
   rangeLabel?: string;
 }
 
+interface DetailItem {
+  key: string;
+  label: string;
+  paidDate?: string;
+  dueDate?: string;
+  commission: number;
+  isPaid: boolean;
+  inPeriod: boolean;
+}
+
 function rawFormatCurrency(v: number) {
   return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v);
 }
@@ -49,6 +59,27 @@ function resolveLoanManagerId(loan: Loan, managers: Client[]) {
   return matchedManager?.id ?? null;
 }
 
+function getCommissionConfig(loan: Loan) {
+  const rate = loan.managerCommissionRate ?? 10;
+  const totalCommission = (loan.amount * rate) / 100;
+  const perInstallment = totalCommission / Math.max(1, loan.installments);
+  return { rate, totalCommission, perInstallment };
+}
+
+function isLegacyInterestPayment(loan: Loan, payment: Payment) {
+  return payment.installmentNumber === 0 || (payment.installmentNumber === -1 && loan.installments === 1);
+}
+
+function getDerivedPaymentCommission(loan: Loan, payment: Payment) {
+  const { totalCommission, perInstallment } = getCommissionConfig(loan);
+
+  if (payment.installmentNumber > 0) return perInstallment;
+  if (payment.installmentNumber === 0) return totalCommission;
+  if (payment.installmentNumber === -1 && loan.installments === 1) return totalCommission;
+
+  return 0;
+}
+
 export function ManagerCommissionsChart({
   clients,
   loans = [],
@@ -67,57 +98,55 @@ export function ManagerCommissionsChart({
   );
 
   const data = useMemo(() => {
-    const byManager: Record<string, { paid: number; projected: number; loanCount: number }> = {};
+    const byManager: Record<string, { paid: number; projected: number }> = {};
+    const loanIdsByManager: Record<string, Set<string>> = {};
 
-    managers.forEach((m) => {
-      byManager[m.id] = { paid: 0, projected: 0, loanCount: 0 };
-    });
+    const ensureManagerBucket = (managerId: string) => {
+      if (!byManager[managerId]) byManager[managerId] = { paid: 0, projected: 0 };
+      if (!loanIdsByManager[managerId]) loanIdsByManager[managerId] = new Set<string>();
+    };
 
-    // All managed loans (including paid ones, to count historical commissions)
+    managers.forEach((m) => ensureManagerBucket(m.id));
+
     const managedLoans = loans
       .map((loan) => ({ loan, resolvedManagerId: resolveLoanManagerId(loan, managers) }))
       .filter(({ loan, resolvedManagerId }) => loan.hasManager && !!resolvedManagerId);
 
-    // Track which (loanId, installmentNumber) pairs have a recorded commission, to avoid double counting
     const commissionPaymentKeys = new Set<string>();
     commissions.forEach((c) => {
       if (c.paymentId) commissionPaymentKeys.add(`${c.loanId}::${c.paymentId}`);
     });
 
-    // Recorded commissions in manager_commissions table
     commissions.forEach((c) => {
       if (range && !inRange(c.generatedAt, range.start, range.end)) return;
-      if (!byManager[c.managerId]) byManager[c.managerId] = { paid: 0, projected: 0, loanCount: 0 };
+      ensureManagerBucket(c.managerId);
       byManager[c.managerId].paid += c.amount;
+      loanIdsByManager[c.managerId].add(c.loanId);
     });
 
-    // Derive historical paid commissions from payments for managed loans (covers legacy data)
     managedLoans.forEach(({ loan: l, resolvedManagerId }) => {
       const id = resolvedManagerId!;
-      if (!byManager[id]) byManager[id] = { paid: 0, projected: 0, loanCount: 0 };
-      const rate = l.managerCommissionRate ?? 10;
-      const totalCommission = (l.amount * rate) / 100;
-      const perInstallment = totalCommission / Math.max(1, l.installments);
+      ensureManagerBucket(id);
 
-      const loanPayments = payments.filter((p) => p.loanId === l.id && p.installmentNumber > 0);
+      const loanPayments = payments.filter((p) => p.loanId === l.id);
       loanPayments.forEach((p) => {
-        // Skip if this payment already produced a recorded commission row
+        const derivedCommission = getDerivedPaymentCommission(l, p);
+        if (derivedCommission <= 0) return;
         if (commissionPaymentKeys.has(`${l.id}::${p.id}`)) return;
         if (range && !inRange(p.date, range.start, range.end)) return;
-        byManager[id].paid += perInstallment;
+
+        byManager[id].paid += derivedCommission;
+        loanIdsByManager[id].add(l.id);
       });
     });
 
-    // Pending/projected for active loans
     const activeManagedLoans = managedLoans.filter(({ loan }) => loan.status !== "paid");
 
     if (range) {
       activeManagedLoans.forEach(({ loan: l, resolvedManagerId }) => {
         const id = resolvedManagerId!;
-        if (!byManager[id]) byManager[id] = { paid: 0, projected: 0, loanCount: 0 };
-        const rate = l.managerCommissionRate ?? 10;
-        const totalCommission = (l.amount * rate) / 100;
-        const perInstallment = totalCommission / Math.max(1, l.installments);
+        ensureManagerBucket(id);
+        const { perInstallment } = getCommissionConfig(l);
 
         const schedules = installmentSchedules.filter((s) => s.loanId === l.id);
         const paidNums = new Set(
@@ -140,15 +169,14 @@ export function ManagerCommissionsChart({
           });
         }
 
-        if (countedThisLoan) byManager[id].loanCount += 1;
+        if (countedThisLoan) loanIdsByManager[id].add(l.id);
       });
     } else {
       activeManagedLoans.forEach(({ loan: l, resolvedManagerId }) => {
         const id = resolvedManagerId!;
-        if (!byManager[id]) byManager[id] = { paid: 0, projected: 0, loanCount: 0 };
-        const rate = l.managerCommissionRate ?? 10;
-        byManager[id].projected += (l.amount * rate) / 100;
-        byManager[id].loanCount += 1;
+        ensureManagerBucket(id);
+        byManager[id].projected += getCommissionConfig(l).totalCommission;
+        loanIdsByManager[id].add(l.id);
       });
     }
 
@@ -160,7 +188,7 @@ export function ManagerCommissionsChart({
           name: client?.name ?? "",
           paid: v.paid,
           projected: v.projected,
-          loanCount: v.loanCount,
+          loanCount: loanIdsByManager[id]?.size ?? 0,
           total: v.paid + v.projected,
         };
       })
@@ -256,7 +284,7 @@ export function ManagerCommissionsChart({
           </div>
         )}
         <p className="text-[10px] text-muted-foreground mt-3 italic text-center">
-          Recebido = comissões geradas dentro do período (data de recebimento). Pendente = parcelas com vencimento no período ainda não pagas. Toque em um gerente para ver os detalhes.
+          Recebido = comissões registradas ou derivadas de juros/quitações recebidos no período. Pendente = parcelas com vencimento no período ainda não pagas. Toque em um gerente para ver os detalhes.
         </p>
       </CardContent>
 
@@ -305,54 +333,86 @@ function ManagerDetailDialog({
     if (!manager) return null;
 
     const managerLoans = loans.filter((l) => l.hasManager && resolveLoanManagerId(l, [manager]) === manager.id);
+    const commissionByPaymentId = new Map<string, ManagerCommission>();
+
+    commissions
+      .filter((c) => c.managerId === manager.id)
+      .forEach((c) => {
+        if (c.paymentId) commissionByPaymentId.set(c.paymentId, c);
+      });
 
     const loansBreakdown = managerLoans.map((l) => {
-      const rate = l.managerCommissionRate ?? 10;
-      const totalCommission = (l.amount * rate) / 100;
-      const perInstallment = totalCommission / Math.max(1, l.installments);
+      const { rate, totalCommission, perInstallment } = getCommissionConfig(l);
 
       const savedSchedules = installmentSchedules
         .filter((s) => s.loanId === l.id)
         .sort((a, b) => a.installmentNumber - b.installmentNumber);
+
       const schedules = savedSchedules.length > 0
         ? savedSchedules
-        : [{ loanId: l.id, installmentNumber: Math.min(Math.max(1, l.paidInstallments + 1), Math.max(1, l.installments)), dueDate: l.dueDate, amount: perInstallment }];
+        : [{
+            loanId: l.id,
+            installmentNumber: Math.min(Math.max(1, l.paidInstallments + 1), Math.max(1, l.installments)),
+            dueDate: l.dueDate,
+            amount: perInstallment,
+          }];
+
       const loanPayments = payments.filter((p) => p.loanId === l.id);
-      const paidNumsMap = new Map<number, Payment>();
-      loanPayments
-        .filter((p) => p.installmentNumber > 0)
-        .forEach((p) => paidNumsMap.set(p.installmentNumber, p));
+      const paidInstallmentNumbers = new Set<number>();
 
-      const installments = schedules.map((s) => {
-        const paidPayment = paidNumsMap.get(s.installmentNumber);
-        const isPaid = !!paidPayment;
-        const inPeriod = range
-          ? (isPaid
-              ? inRange(paidPayment!.date, range.start, range.end)
-              : inRange(s.dueDate, range.start, range.end))
-          : true;
-        return {
-          number: s.installmentNumber,
-          dueDate: s.dueDate,
-          paidDate: paidPayment?.date,
-          commission: perInstallment,
-          isPaid,
-          inPeriod,
-        };
-      });
+      const paidItems: DetailItem[] = loanPayments
+        .map((p) => {
+          const recordedCommission = commissionByPaymentId.get(p.id);
+          const commissionAmount = recordedCommission?.amount ?? getDerivedPaymentCommission(l, p);
+          if (commissionAmount <= 0) return null;
 
-      const paidInPeriod = installments.filter((i) => i.isPaid && i.inPeriod);
-      const pendingInPeriod = installments.filter((i) => !i.isPaid && i.inPeriod);
+          if (p.installmentNumber > 0) paidInstallmentNumbers.add(p.installmentNumber);
+
+          return {
+            key: p.id,
+            label: p.installmentNumber > 0
+              ? `#${p.installmentNumber}`
+              : isLegacyInterestPayment(l, p)
+                ? (p.installmentNumber === 0 ? "Juros" : "Juros (legado)")
+                : "Pagamento",
+            paidDate: p.date,
+            commission: commissionAmount,
+            isPaid: true,
+            inPeriod: range ? inRange(p.date, range.start, range.end) : true,
+          };
+        })
+        .filter((item): item is DetailItem => item !== null);
+
+      const pendingItems: DetailItem[] = l.status === "paid"
+        ? []
+        : schedules
+            .filter((s) => !paidInstallmentNumbers.has(s.installmentNumber))
+            .map((s) => ({
+              key: `${l.id}-${s.installmentNumber}`,
+              label: `#${s.installmentNumber}`,
+              dueDate: s.dueDate,
+              commission: perInstallment,
+              isPaid: false,
+              inPeriod: range ? inRange(s.dueDate, range.start, range.end) : true,
+            }));
+
+      const paidInPeriod = paidItems.filter((i) => i.inPeriod);
+      const pendingInPeriod = pendingItems.filter((i) => i.inPeriod);
 
       const paidAmount = paidInPeriod.reduce((s, i) => s + i.commission, 0);
       const pendingAmount = pendingInPeriod.reduce((s, i) => s + i.commission, 0);
+      const items = [...paidInPeriod, ...pendingInPeriod].sort((a, b) => {
+        const dateA = a.paidDate ?? a.dueDate ?? "";
+        const dateB = b.paidDate ?? b.dueDate ?? "";
+        return dateB.localeCompare(dateA);
+      });
 
       return {
         loan: l,
         rate,
         totalCommission,
         perInstallment,
-        installments,
+        items,
         paidAmount,
         pendingAmount,
         relevant: paidInPeriod.length > 0 || pendingInPeriod.length > 0,
@@ -408,7 +468,7 @@ function ManagerDetailDialog({
                 </p>
               ) : (
                 <div className="space-y-3">
-                  {detail.visible.map(({ loan, rate, totalCommission, perInstallment, installments, paidAmount, pendingAmount }) => (
+                  {detail.visible.map(({ loan, rate, totalCommission, perInstallment, items, paidAmount, pendingAmount }) => (
                     <div key={loan.id} className="rounded-lg border border-border p-3 space-y-2">
                       <div className="flex flex-wrap items-start justify-between gap-2">
                         <div className="min-w-0">
@@ -427,27 +487,27 @@ function ManagerDetailDialog({
                       </div>
 
                       <div className="border-t border-border pt-2">
-                        <p className="text-[10px] uppercase text-muted-foreground mb-1">Parcelas no período</p>
+                        <p className="text-[10px] uppercase text-muted-foreground mb-1">Movimentações no período</p>
                         <div className="space-y-1">
-                          {installments.filter((i) => i.inPeriod).map((i) => (
-                            <div key={i.number} className="flex items-center justify-between text-xs gap-2">
+                          {items.map((item) => (
+                            <div key={item.key} className="flex items-center justify-between text-xs gap-2">
                               <div className="flex items-center gap-1.5 min-w-0">
-                                {i.isPaid ? (
+                                {item.isPaid ? (
                                   <CheckCircle2 className="h-3.5 w-3.5 text-success shrink-0" />
                                 ) : (
                                   <Clock className="h-3.5 w-3.5 text-primary shrink-0" />
                                 )}
-                                <span className="font-medium">#{i.number}</span>
+                                <span className="font-medium">{item.label}</span>
                                 <span className="text-muted-foreground flex items-center gap-1">
                                   <CalendarDays className="h-3 w-3" />
-                                  {i.isPaid ? `Pago em ${formatDate(i.paidDate)}` : `Vence em ${formatDate(i.dueDate)}`}
+                                  {item.isPaid ? `Pago em ${formatDate(item.paidDate)}` : `Vence em ${formatDate(item.dueDate)}`}
                                 </span>
                               </div>
                               <Badge
                                 variant="outline"
-                                className={i.isPaid ? "border-success/40 text-success" : "border-primary/40 text-primary"}
+                                className={item.isPaid ? "border-success/40 text-success" : "border-primary/40 text-primary"}
                               >
-                                {mask(rawFormatCurrency(i.commission))}
+                                {mask(rawFormatCurrency(item.commission))}
                               </Badge>
                             </div>
                           ))}
