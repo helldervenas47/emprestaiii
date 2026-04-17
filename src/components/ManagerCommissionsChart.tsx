@@ -333,13 +333,20 @@ function ManagerDetailDialog({
     if (!manager) return null;
 
     const managerLoans = loans.filter((l) => l.hasManager && resolveLoanManagerId(l, [manager]) === manager.id);
-    const commissionByPaymentId = new Map<string, ManagerCommission>();
 
-    commissions
-      .filter((c) => c.managerId === manager.id)
-      .forEach((c) => {
-        if (c.paymentId) commissionByPaymentId.set(c.paymentId, c);
-      });
+    const managerCommissions = commissions.filter((c) => c.managerId === manager.id);
+    const commissionByPaymentId = new Map<string, ManagerCommission>();
+    const standaloneCommissionsByLoan = new Map<string, ManagerCommission[]>();
+
+    managerCommissions.forEach((c) => {
+      if (c.paymentId) {
+        commissionByPaymentId.set(c.paymentId, c);
+      } else {
+        const arr = standaloneCommissionsByLoan.get(c.loanId) ?? [];
+        arr.push(c);
+        standaloneCommissionsByLoan.set(c.loanId, arr);
+      }
+    });
 
     const loansBreakdown = managerLoans.map((l) => {
       const { rate, totalCommission, perInstallment } = getCommissionConfig(l);
@@ -367,21 +374,36 @@ function ManagerDetailDialog({
 
         if (p.installmentNumber > 0) paidInstallmentNumbers.add(p.installmentNumber);
 
+        const refDate = recordedCommission?.generatedAt ?? p.date;
+
         acc.push({
           key: p.id,
           label: p.installmentNumber > 0
-            ? `#${p.installmentNumber}`
+            ? `Parcela #${p.installmentNumber}`
             : isLegacyInterestPayment(l, p)
               ? (p.installmentNumber === 0 ? "Juros" : "Juros (legado)")
               : "Pagamento",
-          paidDate: p.date,
+          paidDate: refDate,
           commission: commissionAmount,
           isPaid: true,
-          inPeriod: range ? inRange(p.date, range.start, range.end) : true,
+          inPeriod: range ? inRange(refDate, range.start, range.end) : true,
         });
 
         return acc;
       }, []);
+
+      // Comissões avulsas (sem paymentId) registradas para este empréstimo
+      const standalone = standaloneCommissionsByLoan.get(l.id) ?? [];
+      standalone.forEach((c) => {
+        paidItems.push({
+          key: `commission-${c.id}`,
+          label: c.commissionType === "full" ? "Comissão integral" : "Comissão de juros",
+          paidDate: c.generatedAt,
+          commission: c.amount,
+          isPaid: true,
+          inPeriod: range ? inRange(c.generatedAt, range.start, range.end) : true,
+        });
+      });
 
       const pendingItems: DetailItem[] = l.status === "paid"
         ? []
@@ -389,7 +411,7 @@ function ManagerDetailDialog({
             .filter((s) => !paidInstallmentNumbers.has(s.installmentNumber))
             .map((s) => ({
               key: `${l.id}-${s.installmentNumber}`,
-              label: `#${s.installmentNumber}`,
+              label: `Parcela #${s.installmentNumber}`,
               dueDate: s.dueDate,
               commission: perInstallment,
               isPaid: false,
@@ -423,12 +445,7 @@ function ManagerDetailDialog({
     const totalPaid = visible.reduce((s, b) => s + b.paidAmount, 0);
     const totalPending = visible.reduce((s, b) => s + b.pendingAmount, 0);
 
-    const realizedCommissions = commissions
-      .filter((c) => c.managerId === manager.id)
-      .filter((c) => !range || inRange(c.generatedAt, range.start, range.end))
-      .sort((a, b) => b.generatedAt.localeCompare(a.generatedAt));
-
-    return { visible, totalPaid, totalPending, realizedCommissions };
+    return { visible, totalPaid, totalPending };
   }, [manager, loans, installmentSchedules, payments, commissions, range]);
 
   return (
@@ -515,28 +532,6 @@ function ManagerDetailDialog({
                       </div>
                     </div>
                   ))}
-                </div>
-              )}
-
-              {detail.realizedCommissions.length > 0 && (
-                <div className="rounded-lg border border-border p-3">
-                  <p className="text-xs font-semibold text-foreground mb-2">Comissões registradas no período</p>
-                  <div className="space-y-1">
-                    {detail.realizedCommissions.map((c) => {
-                      const loan = loans.find((l) => l.id === c.loanId);
-                      return (
-                        <div key={c.id} className="flex items-center justify-between text-xs gap-2">
-                          <div className="flex items-center gap-1.5 min-w-0">
-                            <CheckCircle2 className="h-3.5 w-3.5 text-success shrink-0" />
-                            <span className="text-muted-foreground truncate">
-                              {loan?.borrowerName ?? "Empréstimo"} · {formatDate(c.generatedAt)}
-                            </span>
-                          </div>
-                          <span className="font-semibold text-success">{mask(rawFormatCurrency(c.amount))}</span>
-                        </div>
-                      );
-                    })}
-                  </div>
                 </div>
               )}
             </div>
