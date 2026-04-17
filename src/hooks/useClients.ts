@@ -22,6 +22,7 @@ export function useClients() {
         active: c.active, createdAt: c.created_at,
         isVehicleRental: c.is_vehicle_rental, nacionalidade: c.nacionalidade,
         estadoCivil: c.estado_civil, profissao: c.profissao, bairro: c.bairro,
+        isManager: (c as any).is_manager ?? false,
       })));
     }
   }, [user]);
@@ -41,7 +42,8 @@ export function useClients() {
       active: client.active, is_vehicle_rental: client.isVehicleRental || false,
       nacionalidade: client.nacionalidade || '', estado_civil: client.estadoCivil || '',
       profissao: client.profissao || '', bairro: client.bairro || '',
-    }).select().single();
+      is_manager: client.isManager || false,
+    } as any).select().single();
 
     if (error) {
       setClients((prev) => prev.filter((c) => c.id !== tempId));
@@ -64,7 +66,8 @@ export function useClients() {
       state: data.state, score: data.score, notes: data.notes, active: data.active,
       is_vehicle_rental: data.isVehicleRental, nacionalidade: data.nacionalidade,
       estado_civil: data.estadoCivil, profissao: data.profissao, bairro: data.bairro,
-    }).eq("id", id);
+      is_manager: data.isManager,
+    } as any).eq("id", id);
     if (error) fetchClients();
   }, [fetchClients]);
 
