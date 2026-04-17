@@ -405,48 +405,89 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, onUpda
           </div>
 
           {budgets.length > 0 && (
-            <div className="space-y-2 mt-2">
-              {budgets
-                .slice()
-                .sort((a, b) => a.category.localeCompare(b.category, "pt-BR"))
-                .map((b) => {
-                  const cat = getPersonalCategory(b.category);
-                  const Icon = cat.icon;
-                  const spent = spentByCategory.get(b.category) || 0;
-                  const pct = b.amount > 0 ? Math.min(200, (spent / b.amount) * 100) : 0;
-                  const over = spent > b.amount;
-                  const own = monthBudgets.find((x) => x.id === b.id);
-                  return (
-                    <div key={b.id} className="space-y-1">
-                      <div className="flex items-center justify-between gap-2 text-xs">
-                        <div className="flex items-center gap-1.5 min-w-0">
-                          <Icon className="h-3.5 w-3.5 shrink-0" style={{ color: `hsl(${cat.color})` }} />
-                          <span className="truncate text-foreground">{b.category}</span>
-                        </div>
-                        <div className="flex items-center gap-2 shrink-0">
-                          <span className={over ? "font-semibold text-destructive" : "text-muted-foreground"}>
-                            {formatCurrency(spent)} / {formatCurrency(b.amount)}
-                          </span>
+            <div className="space-y-3 mt-2">
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
+                {budgets
+                  .slice()
+                  .sort((a, b) => {
+                    const sa = spentByCategory.get(a.category) || 0;
+                    const sb = spentByCategory.get(b.category) || 0;
+                    if (sb !== sa) return sb - sa;
+                    return a.category.localeCompare(b.category, "pt-BR");
+                  })
+                  .slice(0, 4)
+                  .map((b) => {
+                    const cat = getPersonalCategory(b.category);
+                    const Icon = cat.icon;
+                    const spent = spentByCategory.get(b.category) || 0;
+                    const pct = b.amount > 0 ? Math.min(200, (spent / b.amount) * 100) : 0;
+                    const over = spent > b.amount;
+                    const own = monthBudgets.find((x) => x.id === b.id);
+                    return (
+                      <div
+                        key={b.id}
+                        className={`rounded-lg border p-2.5 bg-card flex flex-col gap-1.5 ${
+                          over ? "border-destructive/40" : "border-border"
+                        }`}
+                      >
+                        <div className="flex items-center justify-between gap-1">
+                          <div className="flex items-center gap-1.5 min-w-0">
+                            <div
+                              className="h-6 w-6 rounded-md flex items-center justify-center shrink-0"
+                              style={{ backgroundColor: `hsl(${cat.color} / 0.12)` }}
+                            >
+                              <Icon className="h-3.5 w-3.5" style={{ color: `hsl(${cat.color})` }} />
+                            </div>
+                            <span className="truncate text-xs font-medium text-foreground">
+                              {b.category}
+                            </span>
+                          </div>
                           {own && !readOnly && (
                             <Button
                               variant="ghost"
                               size="icon"
-                              className="h-6 w-6 text-destructive hover:text-destructive hover:bg-destructive/10"
+                              className="h-5 w-5 text-destructive hover:text-destructive hover:bg-destructive/10 shrink-0"
                               onClick={() => deleteBudget(own.id)}
                               title="Remover limite deste mês"
                             >
-                              <Trash2 className="h-3 w-3" />
+                              <Trash2 className="h-2.5 w-2.5" />
                             </Button>
                           )}
                         </div>
+                        <div className="flex items-baseline justify-between gap-1">
+                          <span
+                            className={`text-sm font-semibold tabular-nums ${
+                              over ? "text-destructive" : "text-foreground"
+                            }`}
+                          >
+                            {formatCurrency(spent)}
+                          </span>
+                          <span className="text-[10px] text-muted-foreground tabular-nums">
+                            / {formatCurrency(b.amount)}
+                          </span>
+                        </div>
+                        <Progress
+                          value={Math.min(100, pct)}
+                          className={over ? "h-1.5 [&>div]:bg-destructive" : "h-1.5"}
+                        />
+                        <span
+                          className={`text-[10px] tabular-nums ${
+                            over ? "text-destructive font-medium" : "text-muted-foreground"
+                          }`}
+                        >
+                          {Math.round(pct)}% utilizado
+                        </span>
                       </div>
-                      <Progress
-                        value={Math.min(100, pct)}
-                        className={over ? "h-1.5 [&>div]:bg-destructive" : "h-1.5"}
-                      />
-                    </div>
-                  );
-                })}
+                    );
+                  })}
+              </div>
+              {budgets.length > 4 && (
+                <p className="text-[11px] text-muted-foreground text-center">
+                  Mostrando as 4 categorias com maior gasto. {budgets.length - 4}{" "}
+                  {budgets.length - 4 === 1 ? "outra" : "outras"} configurada
+                  {budgets.length - 4 === 1 ? "" : "s"}.
+                </p>
+              )}
               <div className="flex items-center justify-between text-[11px] text-muted-foreground pt-1 border-t border-border">
                 <span>Total</span>
                 <span>
