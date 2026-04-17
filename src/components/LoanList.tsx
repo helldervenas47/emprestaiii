@@ -185,7 +185,7 @@ function LoanCardView({
   const [partialDate, setPartialDate] = useState<Date>(new Date());
   const [showTagInput, setShowTagInput] = useState(false);
   const [newTag, setNewTag] = useState("");
-  const [paymentDialog, setPaymentDialog] = useState<{ type: "installment" | "interest" | "partial" | "full"; amount?: number } | null>(null);
+  const [paymentDialog, setPaymentDialog] = useState<{ type: "installment" | "interest" | "partial" | "full" | "payoff"; amount?: number } | null>(null);
   const [payoffAmount, setPayoffAmount] = useState("");
   const [paymentDate, setPaymentDate] = useState<Date>(new Date());
   const [showHistory, setShowHistory] = useState(false);
