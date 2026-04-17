@@ -54,8 +54,26 @@ export function LoanForm({ onAdd, onSaveSchedule, onClose, clients, existingTags
   const [tags, setTags] = useState<string[]>([]);
   const [tagInput, setTagInput] = useState("");
 
+  const [hasManager, setHasManager] = useState(false);
+  const [managerId, setManagerId] = useState<string>("");
+  const [commissionRate, setCommissionRate] = useState<string>("10");
+
   const [firstDueDate, setFirstDueDate] = useState<Date>(defaultFirstDue);
   const [showSchedule, setShowSchedule] = useState(false);
+
+  const managerClients = activeClients.filter((c) => c.isManager);
+
+  // Auto-toggle: when selected client is a manager, default hasManager=true
+  useEffect(() => {
+    const selected = activeClients.find((c) => c.id === form.borrowerName);
+    if (selected?.isManager) {
+      setHasManager(true);
+      // Pre-select self if no manager chosen yet
+      if (!managerId && managerClients.length > 0) {
+        setManagerId(selected.id);
+      }
+    }
+  }, [form.borrowerName]);
 
   const amount = parseFloat(form.amount) || 0;
   const rate = parseFloat(form.interestRate) || 0;
@@ -157,6 +175,9 @@ export function LoanForm({ onAdd, onSaveSchedule, onClose, clients, existingTags
       customInstallmentValue: hasCustomValue ? firstRowVal : null,
       customInterestValue: interestOverride !== "" ? parseFloat(interestOverride) || null : null,
       tags: tags.length > 0 ? tags : undefined,
+      hasManager,
+      managerId: hasManager && managerId ? managerId : null,
+      managerCommissionRate: hasManager ? parseFloat(commissionRate) || 10 : null,
       createdAt: new Date().toISOString(),
     });
 
