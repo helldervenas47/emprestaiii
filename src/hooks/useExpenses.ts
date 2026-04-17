@@ -120,12 +120,19 @@ export function useExpenses(enabled = true) {
       }).eq("id", id);
     } else {
       // Simple fixa expense — if a different paid amount was provided, update the amount
-      const finalAmount = typeof paidAmount === "number" && paidAmount > 0 ? paidAmount : expense.amount;
+      // and stash the original in notes so we can restore it on unpay.
+      const overrode = typeof paidAmount === "number" && paidAmount > 0 && paidAmount !== expense.amount;
+      const finalAmount = overrode ? paidAmount! : expense.amount;
+      const baseNotes = (expense.notes ?? "").replace(/\n?\[Original:\s*[\d.]+\]/gi, "").trimEnd();
+      const finalNotes = overrode
+        ? (baseNotes ? `${baseNotes}\n[Original: ${expense.amount.toFixed(2)}]` : `[Original: ${expense.amount.toFixed(2)}]`)
+        : expense.notes ?? null;
+
       setExpenses((prev) => prev.map((e) => e.id === id ? {
-        ...e, paid: true, paidDate: today, amount: finalAmount,
+        ...e, paid: true, paidDate: today, amount: finalAmount, notes: finalNotes,
       } : e));
       await supabase.from("expenses").update({
-        paid: true, paid_date: today, amount: finalAmount,
+        paid: true, paid_date: today, amount: finalAmount, notes: finalNotes,
       }).eq("id", id);
     }
 
@@ -180,11 +187,16 @@ export function useExpenses(enabled = true) {
         due_date: newDueDate,
       }).eq("id", id);
     } else if (expense.paid) {
+      // Restore original amount if we stashed it on pay.
+      const m = (expense.notes ?? "").match(/\[Original:\s*([\d.]+)\]/i);
+      const restoredAmount = m ? parseFloat(m[1]) : expense.amount;
+      const restoredNotes = (expense.notes ?? "").replace(/\n?\[Original:\s*[\d.]+\]/gi, "").trim() || null;
+
       setExpenses((prev) => prev.map((e) => e.id === id ? {
-        ...e, paid: false, paidDate: undefined,
+        ...e, paid: false, paidDate: undefined, amount: restoredAmount, notes: restoredNotes,
       } : e));
       await supabase.from("expenses").update({
-        paid: false, paid_date: null,
+        paid: false, paid_date: null, amount: restoredAmount, notes: restoredNotes,
       }).eq("id", id);
     }
   }, [expenses]);
