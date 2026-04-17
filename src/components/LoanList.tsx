@@ -18,7 +18,7 @@ import { calculateInstallment, calculateTotalWithInterest } from "@/hooks/useLoa
 import { cn } from "@/lib/utils";
 import {
   CheckCircle, Trash2, DollarSign, User, Calendar as CalendarIcon, LayoutGrid, List,
-  Search, Percent, Pencil, Check, X, ChevronDown, ChevronRight, FolderOpen, Folder, HandCoins, Tag, MoreHorizontal, MessageCircle, Filter, SlidersHorizontal, History,
+  Search, Percent, Pencil, Check, X, ChevronDown, ChevronRight, FolderOpen, Folder, HandCoins, Tag, MoreHorizontal, MessageCircle, Filter, SlidersHorizontal, History, UserCog,
 } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -763,6 +763,11 @@ function LoanCardView({
             <Badge variant="outline" className="text-xs bg-primary/10 text-primary border-primary/20 uppercase">
               {loan.interestType}
             </Badge>
+            {loan.hasManager && (
+              <Badge variant="outline" className="text-xs bg-accent/15 text-accent-foreground border-accent/40 gap-1">
+                <UserCog className="h-3 w-3" />Com gerente
+              </Badge>
+            )}
             {daysOverdue > 0 && loan.status !== "paid" && (
               <Badge variant="outline" className="bg-destructive/10 text-destructive border-destructive/20 text-xs">
                 {daysOverdue}d atraso
@@ -1503,7 +1508,14 @@ function LoanRowView({
             {loan.borrowerName.split(" ").map(w => w[0]).join("").substring(0, 2).toUpperCase()}
           </div>
           <div className="min-w-0">
-            <span className="font-medium text-[11px] sm:text-sm text-foreground truncate block max-w-[80px] sm:max-w-none">{loan.borrowerName}</span>
+            <div className="flex items-center gap-1 flex-wrap">
+              <span className="font-medium text-[11px] sm:text-sm text-foreground truncate block max-w-[80px] sm:max-w-none">{loan.borrowerName}</span>
+              {loan.hasManager && (
+                <Badge variant="outline" className="bg-accent/15 text-accent-foreground border-accent/40 text-[8px] sm:text-[10px] px-1 py-0 gap-0.5">
+                  <UserCog className="h-2.5 w-2.5" /><span className="hidden sm:inline">Gerente</span>
+                </Badge>
+              )}
+            </div>
             {loan.tags && loan.tags.length > 0 && (
               <div className="flex flex-wrap gap-0.5 mt-0.5 sm:hidden">
                 {loan.tags.map((tag) => (
@@ -1944,6 +1956,7 @@ function ClientFolder({
   const [open, setOpen] = useState(false);
   const activeCount = group.loans.filter((l) => l.status !== "paid").length;
   const paidCount = group.loans.filter((l) => l.status === "paid").length;
+  const managerCount = group.loans.filter((l) => l.hasManager).length;
 
   return (
     <Card no3d className={`overflow-hidden transition-shadow hover:shadow-lg ${open ? "ring-1 ring-primary/20" : ""} ${group.hasOverdue ? "border-destructive/40" : ""}`}>
@@ -1955,9 +1968,14 @@ function ClientFolder({
           {group.name.charAt(0).toUpperCase()}
         </div>
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <h3 className="font-bold text-foreground text-sm truncate">{group.name}</h3>
             {group.hasOverdue && <Badge className="bg-destructive/10 text-destructive border-destructive/20 text-[10px]">Atrasado</Badge>}
+            {managerCount > 0 && (
+              <Badge variant="outline" className="bg-accent/15 text-accent-foreground border-accent/40 text-[10px] gap-0.5">
+                <UserCog className="h-2.5 w-2.5" />{managerCount === group.loans.length ? "Com gerente" : `${managerCount} c/ gerente`}
+              </Badge>
+            )}
           </div>
           <div className="flex items-center gap-1.5 mt-0.5">
             <Badge variant="outline" className="text-[10px]">{group.loans.length}</Badge>
