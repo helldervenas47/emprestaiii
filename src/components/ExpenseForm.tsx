@@ -14,6 +14,11 @@ const categories = [
   "Alimentação", "Transporte", "Salários", "Impostos", "Outros",
 ].sort((a, b) => a.localeCompare(b, "pt-BR"));
 
+type ExpenseKind = "unica" | "parcelada" | "fixa";
+
+// Sentinel for "fixa mensal sem fim" — large installment count keeps recurrence open-ended
+const FIXED_RECURRING_INSTALLMENTS = 999;
+
 interface Props {
   onAdd: (expense: Omit<Expense, "id" | "paid" | "paidDate" | "createdAt">) => void;
   onClose: () => void;
@@ -24,7 +29,7 @@ export function ExpenseForm({ onAdd, onClose, scope = "business" }: Props) {
   const [form, setForm] = useState({
     description: "",
     amount: "",
-    type: "fixa" as "fixa" | "recorrente",
+    kind: "unica" as ExpenseKind,
     category: "",
     installments: "1",
     dueDate: new Date().toISOString().split("T")[0],
@@ -35,24 +40,56 @@ export function ExpenseForm({ onAdd, onClose, scope = "business" }: Props) {
     e.preventDefault();
     if (!form.description || !form.amount || !form.category) return;
     const parsedAmount = parseFloat(form.amount) || 0;
-    const installments = form.type === "recorrente" ? parseInt(form.installments) || 1 : 1;
-    const totalAmount = form.type === "recorrente" ? parsedAmount * installments : parsedAmount;
-    onAdd({
-      description: form.description,
-      amount: totalAmount,
-      type: form.type,
-      category: form.category,
-      installments: form.type === "recorrente" ? installments : undefined,
-      paidInstallments: form.type === "recorrente" ? 0 : undefined,
-      dueDate: form.dueDate,
-      notes: form.notes,
-      scope,
-    });
+
+    let payload: Omit<Expense, "id" | "paid" | "paidDate" | "createdAt">;
+    if (form.kind === "parcelada") {
+      const installments = Math.max(1, parseInt(form.installments) || 1);
+      payload = {
+        description: form.description,
+        amount: parsedAmount * installments,
+        type: "recorrente",
+        category: form.category,
+        installments,
+        paidInstallments: 0,
+        dueDate: form.dueDate,
+        notes: form.notes,
+        scope,
+      };
+    } else if (form.kind === "fixa") {
+      // Recurring monthly without a fixed end — uses a high installment count as sentinel
+      payload = {
+        description: form.description,
+        amount: parsedAmount * FIXED_RECURRING_INSTALLMENTS,
+        type: "recorrente",
+        category: form.category,
+        installments: FIXED_RECURRING_INSTALLMENTS,
+        paidInstallments: 0,
+        dueDate: form.dueDate,
+        notes: form.notes,
+        scope,
+      };
+    } else {
+      payload = {
+        description: form.description,
+        amount: parsedAmount,
+        type: "fixa",
+        category: form.category,
+        dueDate: form.dueDate,
+        notes: form.notes,
+        scope,
+      };
+    }
+
+    onAdd(payload);
     onClose();
   };
 
   const update = (field: string, value: string) =>
     setForm((prev) => ({ ...prev, [field]: value }));
+
+  const amountLabel =
+    form.kind === "parcelada" ? "Valor da Parcela (R$)" :
+    form.kind === "fixa" ? "Valor Mensal (R$)" : "Valor (R$)";
 
   return (
     <div className="fixed inset-0 bg-foreground/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
@@ -77,7 +114,7 @@ export function ExpenseForm({ onAdd, onClose, scope = "business" }: Props) {
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label htmlFor="amount">{form.type === "recorrente" ? "Valor da Parcela (R$)" : "Valor (R$)"}</Label>
+                <Label htmlFor="amount">{amountLabel}</Label>
                 <Input
                   id="amount"
                   type="number"
@@ -90,18 +127,19 @@ export function ExpenseForm({ onAdd, onClose, scope = "business" }: Props) {
               </div>
               <div>
                 <Label>Tipo</Label>
-                <Select value={form.type} onValueChange={(v) => update("type", v)}>
+                <Select value={form.kind} onValueChange={(v) => update("kind", v)}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="fixa">Fixa</SelectItem>
-                    <SelectItem value="recorrente">Recorrente</SelectItem>
+                    <SelectItem value="unica">Única</SelectItem>
+                    <SelectItem value="parcelada">Parcelada</SelectItem>
+                    <SelectItem value="fixa">Fixa (mensal)</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
             </div>
-            {form.type === "recorrente" && (
+            {form.kind === "parcelada" && (
               <div>
                 <Label htmlFor="installments">Parcelas</Label>
                 <Input
@@ -150,11 +188,16 @@ export function ExpenseForm({ onAdd, onClose, scope = "business" }: Props) {
 
             {parseFloat(form.amount) > 0 && (
               <div className="rounded-lg bg-muted p-4 space-y-1">
-                {form.type === "recorrente" && parseInt(form.installments) > 1 && (
+                {form.kind === "parcelada" && parseInt(form.installments) > 1 && (
                   <p className="text-sm text-muted-foreground">
                     Valor total: <span className="font-semibold text-foreground">
                       {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(parseFloat(form.amount) * (parseInt(form.installments) || 1))}
                     </span> ({form.installments}x de {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(parseFloat(form.amount))})
+                  </p>
+                )}
+                {form.kind === "fixa" && (
+                  <p className="text-sm text-muted-foreground">
+                    Despesa mensal recorrente sem prazo final.
                   </p>
                 )}
                 <p className="text-sm text-muted-foreground">
