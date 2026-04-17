@@ -169,13 +169,20 @@ export function BillingCalendar({ loans, payments, installmentSchedules, onPayme
     const remaining = loan.remainingAmount != null && loan.remainingAmount > 0 ? loan.remainingAmount : Math.max(0, total - totalPaid);
 
     if (paymentDialog.type === "full") {
+      if (onFullPayment) {
+        onFullPayment(paymentDialog.loanId, dateStr);
+      } else {
+        onPartialPayment?.(paymentDialog.loanId, remaining, dateStr);
+        onUpdate?.(paymentDialog.loanId, { paidInstallments: loan.installments, status: "paid" });
+      }
+    } else if (paymentDialog.type === "payoff") {
       const customRaw = parseFloat(payoffAmount.replace(",", "."));
-      const custom = isFinite(customRaw) && customRaw > 0 ? customRaw : undefined;
+      const custom = isFinite(customRaw) && customRaw > 0 ? customRaw : 0;
+      if (custom <= 0) return;
       if (onFullPayment) {
         onFullPayment(paymentDialog.loanId, dateStr, custom);
       } else {
-        const amt = custom ?? remaining;
-        onPartialPayment?.(paymentDialog.loanId, amt, dateStr);
+        onPartialPayment?.(paymentDialog.loanId, custom, dateStr);
         onUpdate?.(paymentDialog.loanId, { paidInstallments: loan.installments, status: "paid" });
       }
       setPayoffAmount("");
