@@ -693,11 +693,20 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, onUpda
                               <Calendar className="h-3 w-3" />
                               {format(new Date(expense.dueDate + "T00:00:00"), "dd/MM/yyyy")}
                             </span>
-                            {isRecorrente && (
-                              <span className="text-[10px]">
-                                {(expense.paidInstallments || 0)}/{expense.installments}
-                              </span>
-                            )}
+                            {isRecorrente && (() => {
+                              const [dY, dM] = expense.dueDate.split("-").map(Number);
+                              const [sY, sM] = selectedMonth.split("-").map(Number);
+                              const offset = (sY * 12 + sM) - (dY * 12 + dM);
+                              const current = Math.min(
+                                Math.max(1, offset + 1),
+                                expense.installments!,
+                              );
+                              return (
+                                <Badge variant="secondary" className="text-[10px] px-1.5 py-0 font-semibold">
+                                  Parcela {current}/{expense.installments}
+                                </Badge>
+                              );
+                            })()}
                           </div>
                         </div>
                         <div className="text-right shrink-0">
