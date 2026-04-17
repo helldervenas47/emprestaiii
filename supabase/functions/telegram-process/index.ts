@@ -589,9 +589,8 @@ Deno.serve(async (req) => {
         const data = (callback.data as string) ?? "";
         const messageId = callback.message?.message_id as number | undefined;
 
-        const { data: link } = await admin.from("telegram_links")
-          .select("user_id").eq("chat_id", chatId).maybeSingle();
-
+        const userId = await getLinkedUserId(admin, chatId);
+        const link = userId ? { user_id: userId } : null;
         if (!link || !messageId) {
           await tgAnswerCallback(cbId, "Conta não vinculada", LOVABLE_API_KEY, TELEGRAM_API_KEY);
         } else if (data.startsWith("del:")) {
