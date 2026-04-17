@@ -58,6 +58,11 @@ export function LoanForm({ onAdd, onSaveSchedule, onClose, clients, existingTags
   const [managerId, setManagerId] = useState<string>("");
   const [commissionRate, setCommissionRate] = useState<string>("10");
 
+  const toggleHasManager = (checked: boolean) => {
+    setHasManager(checked);
+    setForm((prev) => ({ ...prev, interestRate: checked ? "20" : "30" }));
+  };
+
   const [firstDueDate, setFirstDueDate] = useState<Date>(defaultFirstDue);
   const [showSchedule, setShowSchedule] = useState(false);
 
@@ -234,7 +239,7 @@ export function LoanForm({ onAdd, onSaveSchedule, onClose, clients, existingTags
                   type="checkbox"
                   id="hasManager"
                   checked={hasManager}
-                  onChange={(e) => setHasManager(e.target.checked)}
+                  onChange={(e) => toggleHasManager(e.target.checked)}
                   className="h-4 w-4 rounded border-border accent-primary"
                 />
                 <Label htmlFor="hasManager" className="font-medium cursor-pointer text-sm">
