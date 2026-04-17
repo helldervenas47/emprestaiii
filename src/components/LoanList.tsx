@@ -363,8 +363,9 @@ function LoanCardView({
     setEditing(false);
   };
 
-  const openPaymentDialog = (type: "installment" | "interest" | "partial" | "full", amount?: number) => {
+  const openPaymentDialog = (type: "installment" | "interest" | "partial" | "full" | "payoff", amount?: number) => {
     setPaymentDate(new Date());
+    setPayoffAmount("");
     setPaymentDialog({ type, amount });
   };
 
@@ -372,13 +373,20 @@ function LoanCardView({
     if (!paymentDialog) return;
     const dateStr = paymentDate.toISOString().split("T")[0];
     if (paymentDialog.type === "full") {
+      if (onFullPayment) {
+        onFullPayment(dateStr);
+      } else {
+        onPartialPayment(remaining, dateStr);
+        onUpdate({ paidInstallments: loan.installments, status: "paid" });
+      }
+    } else if (paymentDialog.type === "payoff") {
       const customRaw = parseFloat(payoffAmount.replace(",", "."));
-      const custom = isFinite(customRaw) && customRaw > 0 ? customRaw : undefined;
+      const custom = isFinite(customRaw) && customRaw > 0 ? customRaw : 0;
+      if (custom <= 0) return;
       if (onFullPayment) {
         onFullPayment(dateStr, custom);
       } else {
-        const amt = custom ?? remaining;
-        onPartialPayment(amt, dateStr);
+        onPartialPayment(custom, dateStr);
         onUpdate({ paidInstallments: loan.installments, status: "paid" });
       }
     } else if (paymentDialog.type === "installment") onPayment(dateStr);
@@ -1121,6 +1129,18 @@ function LoanCardView({
                     <p className="text-[11px] text-muted-foreground">{formatCurrency(remaining)}</p>
                   </div>
                 </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => openPaymentDialog("payoff")}
+                  className="flex items-center gap-3 px-3 py-2.5 rounded-lg cursor-pointer hover:bg-primary/10 focus:bg-primary/10"
+                >
+                  <div className="h-8 w-8 rounded-full bg-primary/15 flex items-center justify-center shrink-0">
+                    <DollarSign className="h-4 w-4 text-primary" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-foreground">Quitar Contrato</p>
+                    <p className="text-[11px] text-muted-foreground">Definir valor de quitação</p>
+                  </div>
+                </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
            )}
@@ -1227,18 +1247,27 @@ function LoanCardView({
       <DialogContent className="sm:max-w-[340px]">
         <DialogHeader>
           <DialogTitle>
-            {paymentDialog?.type === "full" ? "Pagamento Total" : paymentDialog?.type === "installment" ? "Receber Parcela" : paymentDialog?.type === "interest" ? "Pagar Juros" : "Pagamento Parcial"}
+            {paymentDialog?.type === "full" ? "Pagamento Total" :
+             paymentDialog?.type === "payoff" ? "Quitar Contrato" :
+             paymentDialog?.type === "installment" ? "Receber Parcela" :
+             paymentDialog?.type === "interest" ? "Pagar Juros" : "Pagamento Parcial"}
           </DialogTitle>
         </DialogHeader>
         <div className="flex flex-col items-center gap-2">
           {paymentDialog?.type === "full" && (
+            <div className="text-center p-3 bg-muted/50 rounded-lg w-full">
+              <p className="text-xs text-muted-foreground">Total restante a receber</p>
+              <p className="text-2xl font-bold text-primary">{formatCurrency(remaining)}</p>
+            </div>
+          )}
+          {paymentDialog?.type === "payoff" && (
             <div className="w-full space-y-2">
               <div className="text-center p-3 bg-muted/50 rounded-lg w-full">
                 <p className="text-xs text-muted-foreground">Total restante a receber</p>
                 <p className="text-2xl font-bold text-primary">{formatCurrency(remaining)}</p>
               </div>
               <div className="space-y-1">
-                <Label htmlFor="payoff-amount" className="text-xs">Valor para quitar (opcional)</Label>
+                <Label htmlFor="payoff-amount" className="text-xs">Valor para quitar (R$)</Label>
                 <Input
                   id="payoff-amount"
                   type="number"
@@ -1248,9 +1277,10 @@ function LoanCardView({
                   value={payoffAmount}
                   onChange={(e) => setPayoffAmount(e.target.value)}
                   placeholder={`Ex: ${remaining.toFixed(2)}`}
+                  autoFocus
                 />
                 <p className="text-[10px] text-muted-foreground">
-                  Informe um valor diferente para quitar o contrato por esse montante. Em branco usa o restante.
+                  Informe o valor de quitação. O contrato será marcado como pago.
                 </p>
               </div>
             </div>
@@ -1265,7 +1295,7 @@ function LoanCardView({
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => setPaymentDialog(null)}>Cancelar</Button>
-          <Button onClick={confirmPayment}>Confirmar</Button>
+          <Button onClick={confirmPayment} disabled={paymentDialog?.type === "payoff" && !(parseFloat(payoffAmount.replace(",", ".")) > 0)}>Confirmar</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
