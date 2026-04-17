@@ -128,15 +128,6 @@ export function CreditCardList({ readOnly = false }: Props) {
         </p>
       )}
 
-      {/* Single-card click also opens invoice */}
-      {cards.length === 1 && !expanded && (
-        <div
-          className="absolute inset-0 pointer-events-none"
-          aria-hidden
-          // The single-card case is handled inside the map above (always opens invoice when length===1)
-        />
-      )}
-
       {showForm && (
         <CreditCardForm
           initial={editing ?? undefined}
