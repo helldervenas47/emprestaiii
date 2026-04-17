@@ -244,52 +244,59 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, readOn
   return (
     <div className="space-y-4">
       {/* Summary cards */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-2 sm:gap-3">
-        <Card no3d>
-          <CardContent className="p-3 sm:p-4 flex flex-col items-center text-center">
-            <div className="h-8 w-8 rounded-lg bg-success/10 flex items-center justify-center mb-2">
-              <CheckCircle className="h-4 w-4 text-success" />
+      <div className="space-y-2 md:space-y-0 md:grid md:grid-cols-5 md:gap-3">
+        {/* Featured: Gasto do mês — destaque no topo no mobile */}
+        <Card no3d className="border-success/30 bg-success/5 md:bg-card md:border-border">
+          <CardContent className="p-4 flex md:flex-col items-center md:text-center gap-3 md:gap-0">
+            <div className="h-10 w-10 md:h-8 md:w-8 rounded-lg bg-success/15 flex items-center justify-center md:mb-2 shrink-0">
+              <CheckCircle className="h-5 w-5 md:h-4 md:w-4 text-success" />
             </div>
-            <p className="text-[10px] sm:text-xs text-muted-foreground">Gasto do mês</p>
-            <p className="text-sm sm:text-lg font-bold text-success mt-0.5">{formatCurrency(totalPaid)}</p>
+            <div className="flex-1 md:flex-none">
+              <p className="text-xs text-muted-foreground">Gasto do mês</p>
+              <p className="text-xl md:text-lg font-bold text-success mt-0.5">{formatCurrency(totalPaid)}</p>
+            </div>
           </CardContent>
         </Card>
-        <Card no3d>
-          <CardContent className="p-3 sm:p-4 flex flex-col items-center text-center">
-            <div className="h-8 w-8 rounded-lg bg-warning/10 flex items-center justify-center mb-2">
-              <CircleDollarSign className="h-4 w-4 text-warning" />
-            </div>
-            <p className="text-[10px] sm:text-xs text-muted-foreground">A pagar</p>
-            <p className="text-sm sm:text-lg font-bold text-foreground mt-0.5">{formatCurrency(totalPending)}</p>
-          </CardContent>
-        </Card>
-        <Card no3d>
-          <CardContent className="p-3 sm:p-4 flex flex-col items-center text-center">
-            <div className="h-8 w-8 rounded-lg bg-destructive/10 flex items-center justify-center mb-2">
-              <CircleDollarSign className="h-4 w-4 text-destructive" />
-            </div>
-            <p className="text-[10px] sm:text-xs text-muted-foreground">Atrasado</p>
-            <p className="text-sm sm:text-lg font-bold text-destructive mt-0.5">{formatCurrency(totalOverdue)}</p>
-          </CardContent>
-        </Card>
-        <Card no3d>
-          <CardContent className="p-3 sm:p-4 flex flex-col items-center text-center">
-            <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center mb-2">
-              <CalendarDays className="h-4 w-4 text-primary" />
-            </div>
-            <p className="text-[10px] sm:text-xs text-muted-foreground">Média diária</p>
-            <p className="text-sm sm:text-lg font-bold text-foreground mt-0.5">{formatCurrency(dailyAverage)}</p>
-          </CardContent>
-        </Card>
-        <Card no3d>
-          <CardContent className="p-3 sm:p-4 flex flex-col items-center text-center">
-            <div className="h-8 w-8 rounded-lg bg-accent/30 flex items-center justify-center mb-2">
-              <TrendingUp className="h-4 w-4 text-foreground" />
-            </div>
-            <p className="text-[10px] sm:text-xs text-muted-foreground">Projeção</p>
-            <p className="text-sm sm:text-lg font-bold text-foreground mt-0.5">{formatCurrency(projection)}</p>
-          </CardContent>
-        </Card>
+
+        {/* Outros cards: 2 colunas no mobile, fluem no grid pai no desktop */}
+        <div className="grid grid-cols-2 gap-2 md:contents">
+          <Card no3d>
+            <CardContent className="p-3 md:p-4 flex flex-col items-center text-center">
+              <div className="h-8 w-8 rounded-lg bg-warning/10 flex items-center justify-center mb-2">
+                <CircleDollarSign className="h-4 w-4 text-warning" />
+              </div>
+              <p className="text-[10px] md:text-xs text-muted-foreground">A pagar</p>
+              <p className="text-sm md:text-lg font-bold text-foreground mt-0.5">{formatCurrency(totalPending)}</p>
+            </CardContent>
+          </Card>
+          <Card no3d>
+            <CardContent className="p-3 md:p-4 flex flex-col items-center text-center">
+              <div className="h-8 w-8 rounded-lg bg-destructive/10 flex items-center justify-center mb-2">
+                <CircleDollarSign className="h-4 w-4 text-destructive" />
+              </div>
+              <p className="text-[10px] md:text-xs text-muted-foreground">Atrasado</p>
+              <p className="text-sm md:text-lg font-bold text-destructive mt-0.5">{formatCurrency(totalOverdue)}</p>
+            </CardContent>
+          </Card>
+          <Card no3d>
+            <CardContent className="p-3 md:p-4 flex flex-col items-center text-center">
+              <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center mb-2">
+                <CalendarDays className="h-4 w-4 text-primary" />
+              </div>
+              <p className="text-[10px] md:text-xs text-muted-foreground">Média diária</p>
+              <p className="text-sm md:text-lg font-bold text-foreground mt-0.5">{formatCurrency(dailyAverage)}</p>
+            </CardContent>
+          </Card>
+          <Card no3d>
+            <CardContent className="p-3 md:p-4 flex flex-col items-center text-center">
+              <div className="h-8 w-8 rounded-lg bg-accent/30 flex items-center justify-center mb-2">
+                <TrendingUp className="h-4 w-4 text-foreground" />
+              </div>
+              <p className="text-[10px] md:text-xs text-muted-foreground">Projeção</p>
+              <p className="text-sm md:text-lg font-bold text-foreground mt-0.5">{formatCurrency(projection)}</p>
+            </CardContent>
+          </Card>
+        </div>
       </div>
 
       {/* Month nav */}
