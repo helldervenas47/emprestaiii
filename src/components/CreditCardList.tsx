@@ -255,7 +255,9 @@ export function CreditCardList({ readOnly = false, referenceMonth }: Props) {
       { transactions: number; opening: number; total: number; dueDate: Date; cycleKey: string; openingNotes: string | null; hasOpening: boolean }
     >();
     cards.forEach((card) => {
-      const cycle = getCurrentCycle(card.closingDay, card.dueDay);
+      const cycle = referenceMonth
+        ? getCycleForDueMonth(referenceMonth, card.closingDay, card.dueDay)
+        : getCurrentCycle(card.closingDay, card.dueDay);
       const cardTag = (card.nickname || card.lastFour || "").toLowerCase();
       const transactions = expenses
         .filter((e) => e.scope === "personal")
