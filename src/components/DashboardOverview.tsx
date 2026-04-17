@@ -1082,7 +1082,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
       </Card>
 
       {/* Manager Commissions Chart - isolated, view-only */}
-      <ManagerCommissionsChart clients={clients} />
+      <ManagerCommissionsChart clients={clients} loans={loans} />
       <Card>
         <CardContent className="p-6">
           <div className="flex items-center justify-between mb-4">
