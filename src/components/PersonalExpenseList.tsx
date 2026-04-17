@@ -727,8 +727,13 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, onUpda
       <Dialog open={budgetEditOpen} onOpenChange={setBudgetEditOpen}>
         <DialogContent className="sm:max-w-md max-h-[80vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Definir orçamento mensal</DialogTitle>
-            <DialogDescription>Defina um valor por categoria. Deixe em branco ou 0 para remover.</DialogDescription>
+            <DialogTitle>Limites de {formatMonthLabel(targetMonth)}</DialogTitle>
+            <DialogDescription>
+              Defina um valor máximo por categoria para este mês. Deixe em branco ou 0 para remover.
+              {isInherited && effectiveMonth && (
+                <> Sem alteração, os limites de <strong>{formatMonthLabel(effectiveMonth)}</strong> continuam valendo.</>
+              )}
+            </DialogDescription>
           </DialogHeader>
           <div className="space-y-2.5 py-2">
             {personalCategories.map((c) => {
