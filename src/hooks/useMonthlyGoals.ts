@@ -71,8 +71,21 @@ export function useMonthlyGoals() {
   };
 
   const getGoal = useCallback(
-    (goalType: GoalType, month: string): MonthlyGoal | undefined =>
-      goals.find((g) => g.goalType === goalType && g.month === month),
+    (goalType: GoalType, month: string): MonthlyGoal | undefined => {
+      // Exact match first
+      const exact = goals.find((g) => g.goalType === goalType && g.month === month);
+      if (exact) return exact;
+      // Fallback: most recent goal of this type with month <= requested month
+      const candidates = goals
+        .filter((g) => g.goalType === goalType && g.month <= month)
+        .sort((a, b) => b.month.localeCompare(a.month));
+      if (candidates.length > 0) return candidates[0];
+      // Last resort: most recent goal of this type (any month)
+      const anyMostRecent = goals
+        .filter((g) => g.goalType === goalType)
+        .sort((a, b) => b.month.localeCompare(a.month));
+      return anyMostRecent[0];
+    },
     [goals]
   );
 
