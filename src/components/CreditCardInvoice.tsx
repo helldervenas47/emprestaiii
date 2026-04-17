@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { X, ChevronLeft, ChevronRight, Receipt, Pencil } from "lucide-react";
+import { X, ChevronLeft, ChevronRight, Receipt, Pencil, Trash2, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -11,6 +11,10 @@ import { useCreditCardOpenings, cycleKeyFromDate } from "@/hooks/useCreditCardOp
 import { useHideValues } from "@/contexts/HideValuesContext";
 import { getBank, brandLabel } from "@/lib/creditCardBanks";
 import { CreditCardOpeningDialog } from "./CreditCardOpeningDialog";
+import { ExpenseEditDialog } from "./ExpenseEditDialog";
+import { ConfirmDeleteDialog } from "./ConfirmDeleteDialog";
+import { Expense } from "@/types/loan";
+import { toast } from "sonner";
 
 interface Props {
   card: CreditCard;
@@ -49,12 +53,14 @@ function getCycle(ref: Date, closingDay: number, dueDay: number) {
 }
 
 export function CreditCardInvoice({ card, onClose }: Props) {
-  const { expenses } = useExpenses();
+  const { expenses, updateExpense, deleteExpense } = useExpenses();
   const { getOpening, upsertOpening } = useCreditCardOpenings();
   const { mask } = useHideValues();
   const bank = getBank(card.bank);
   const [cycleOffset, setCycleOffset] = useState(0); // 0 = current, -1 = previous
   const [editingOpening, setEditingOpening] = useState(false);
+  const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
+  const [deletingExpense, setDeletingExpense] = useState<Expense | null>(null);
 
   const ref = useMemo(() => {
     const d = new Date();
@@ -152,11 +158,19 @@ export function CreditCardInvoice({ card, onClose }: Props) {
               size="icon"
               className="h-8 w-8"
               onClick={() => setCycleOffset((o) => o + 1)}
-              disabled={cycleOffset >= 1}
             >
               <ChevronRight className="h-4 w-4" />
             </Button>
           </div>
+
+          {cycleOffset !== 0 && (
+            <div className="flex items-center gap-2 text-[11px] rounded-md bg-warning/10 border border-warning/30 text-warning-foreground px-3 py-1.5">
+              <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+              {cycleOffset < 0
+                ? "Você está editando uma fatura passada. As alterações afetam o histórico financeiro."
+                : "Você está editando uma fatura futura. Confira os valores antes de salvar."}
+            </div>
+          )}
 
           {/* Total */}
           <div className="rounded-xl bg-muted/40 p-4 text-center">
@@ -233,13 +247,13 @@ export function CreditCardInvoice({ card, onClose }: Props) {
                 return (
                   <div
                     key={e.id}
-                    className="flex items-center justify-between gap-3 p-3 rounded-lg border bg-card hover:bg-muted/30 transition-colors"
+                    className="flex items-center justify-between gap-2 p-3 rounded-lg border bg-card hover:bg-muted/30 transition-colors"
                   >
                     <div className="min-w-0 flex-1">
                       <p className="text-sm font-medium text-foreground truncate">
                         {e.description}
                       </p>
-                      <div className="flex items-center gap-2 mt-0.5">
+                      <div className="flex items-center gap-2 mt-0.5 flex-wrap">
                         <Badge variant="secondary" className="text-[10px] py-0 h-4">
                           {e.category}
                         </Badge>
@@ -253,9 +267,29 @@ export function CreditCardInvoice({ card, onClose }: Props) {
                         )}
                       </div>
                     </div>
-                    <p className="text-sm font-semibold text-foreground shrink-0">
-                      {mask(fmt(value))}
-                    </p>
+                    <div className="flex items-center gap-1 shrink-0">
+                      <p className="text-sm font-semibold text-foreground">
+                        {mask(fmt(value))}
+                      </p>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7"
+                        onClick={() => setEditingExpense(e)}
+                        aria-label="Editar lançamento"
+                      >
+                        <Pencil className="h-3.5 w-3.5" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 text-destructive hover:text-destructive"
+                        onClick={() => setDeletingExpense(e)}
+                        aria-label="Excluir lançamento"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
                   </div>
                 );
               })
@@ -277,6 +311,48 @@ export function CreditCardInvoice({ card, onClose }: Props) {
           }}
         />
       )}
+
+      <ExpenseEditDialog
+        open={!!editingExpense}
+        onOpenChange={(v) => !v && setEditingExpense(null)}
+        expense={editingExpense}
+        warning={
+          cycleOffset !== 0
+            ? cycleOffset < 0
+              ? "Esta despesa pertence a uma fatura passada."
+              : "Esta despesa pertence a uma fatura futura."
+            : null
+        }
+        onSave={async (patch) => {
+          if (!editingExpense) return;
+          await updateExpense(editingExpense.id, {
+            description: patch.description,
+            amount: patch.amount,
+            dueDate: patch.dueDate,
+            category: patch.category,
+            notes: patch.notes ?? undefined,
+          });
+          toast.success("Lançamento atualizado");
+        }}
+      />
+
+      <ConfirmDeleteDialog
+        open={!!deletingExpense}
+        onOpenChange={(v) => !v && setDeletingExpense(null)}
+        title="Excluir lançamento da fatura?"
+        description={
+          deletingExpense?.type === "recorrente" &&
+          (deletingExpense?.installments ?? 0) > 1
+            ? `Este lançamento é parcelado (${deletingExpense.installments}x). A exclusão removerá a despesa inteira de todas as faturas.`
+            : "Esta ação não pode ser desfeita."
+        }
+        onConfirm={async () => {
+          if (!deletingExpense) return;
+          await deleteExpense(deletingExpense.id);
+          toast.success("Lançamento excluído");
+          setDeletingExpense(null);
+        }}
+      />
     </div>
   );
 }
