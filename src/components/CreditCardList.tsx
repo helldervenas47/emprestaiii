@@ -74,25 +74,10 @@ export function CreditCardList({ readOnly = false }: Props) {
           )}
         </div>
       ) : (
-        <div
-          className="relative mx-auto max-w-md"
-          style={{
-            // Wallet container height adapts to expanded state
-            // Card aspect 1.586:1 → for max-w-md (~28rem ≈ 448px) height ≈ 282px
-            // Use CSS aspect via the first card; container needs to grow when expanded
-            height: expanded
-              ? `calc((100% / 1.586) + ${(cards.length - 1) * EXPANDED_GAP}px + ${
-                  (cards.length - 1) * 100
-                }%)`
-              : `calc((100% / 1.586) + ${(cards.length - 1) * STACK_PEEK}px)`,
-            // The above height-as-percent doesn't work; fall back to JS-friendly aspect via padding hack below
-          }}
-        >
-          {/* Use a sizing wrapper to compute heights from width via aspect-ratio */}
+        <div className="relative mx-auto max-w-md">
           <div
-            className="relative w-full"
+            className="relative w-full transition-[padding] duration-500 ease-out"
             style={{
-              // Total stack height: first card fully + extra peek/gap per remaining
               paddingBottom: expanded
                 ? `calc((100% / 1.586) * ${cards.length} + ${
                     (cards.length - 1) * EXPANDED_GAP
