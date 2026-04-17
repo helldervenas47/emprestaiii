@@ -214,7 +214,13 @@ Envie uma despesa em texto livre, ex:
 • "mercado 230"
 • "netflix 39,90 assinatura"
 
-📸 Ou envie uma *foto de cupom/nota fiscal* — eu leio o comprovante e extraio o valor automaticamente.
+💳 *Compra no cartão de crédito?*
+Mencione o nome (apelido), banco ou os últimos 4 dígitos do cartão na mensagem, ex:
+• "ifood 60 nubank"
+• "amazon 250 cartão final 1234"
+A despesa será lançada como *pendente* na fatura do cartão (vence no próximo vencimento) e só vira "paga" quando você quitar a fatura no app.
+
+📸 Ou envie uma *foto de cupom/nota fiscal* — eu leio o comprovante e extraio o valor automaticamente. Inclua o nome do cartão na legenda se foi no crédito.
 
 🎤 Ou envie um *áudio* falando a despesa — eu transcrevo e cadastro.
 
