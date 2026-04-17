@@ -19,6 +19,20 @@ export interface PiggyBankDeposit {
   expenseId?: string | null;
   amount: number;
   depositDate: string; // YYYY-MM-DD
+  source?: string; // 'expense' | 'manual' | 'recurring'
+  recurrenceId?: string | null;
+}
+
+export interface PiggyBankRecurrence {
+  id: string;
+  piggyBankId: string;
+  amount: number;
+  startDate: string;
+  endDate: string | null;
+  dayOfMonth: number;
+  description?: string | null;
+  active: boolean;
+  lastGeneratedDate: string | null;
 }
 
 const PIGGY_TAG_RE = /\[cofrinho:([0-9a-f-]{36})\]/i;
@@ -39,7 +53,7 @@ export const isPiggyExpense = (notes?: string | null) => !!extractPiggyId(notes)
 
 /**
  * Compound daily yield: amount * (1 + annualRate/100)^(days/365) - amount.
- * Uses today's date in local time for the day count.
+ * Negative deposits (manual withdrawals/adjustments) reduce balance without yield.
  */
 export function computePiggyBalance(
   deposits: PiggyBankDeposit[],
@@ -55,9 +69,50 @@ export function computePiggyBalance(
     const depMs = new Date(y, (m || 1) - 1, day || 1).getTime();
     const days = Math.max(0, Math.floor((todayMs - depMs) / 86_400_000));
     principal += d.amount;
-    total += d.amount * Math.pow(dailyFactor, days);
+    if (d.amount >= 0) {
+      total += d.amount * Math.pow(dailyFactor, days);
+    } else {
+      // withdrawals/adjustments don't earn yield going forward
+      total += d.amount;
+    }
   }
   return { principal, balance: total, yield: total - principal };
+}
+
+const ymd = (d: Date) =>
+  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+
+const parseYmd = (s: string) => {
+  const [y, m, d] = s.split("-").map(Number);
+  return new Date(y, (m || 1) - 1, d || 1);
+};
+
+/** Generate all due dates for a recurrence between (lastGenerated|start) and today. */
+function dueDatesFor(rec: PiggyBankRecurrence, today: Date): string[] {
+  const start = parseYmd(rec.startDate);
+  const end = rec.endDate ? parseYmd(rec.endDate) : null;
+  const lastGen = rec.lastGeneratedDate ? parseYmd(rec.lastGeneratedDate) : null;
+  const result: string[] = [];
+
+  // First due date = start
+  // Subsequent = same day_of_month each next month
+  const firstYear = start.getFullYear();
+  const firstMonth = start.getMonth();
+  const day = rec.dayOfMonth;
+
+  for (let i = 0; i < 600; i++) {
+    const d = new Date(firstYear, firstMonth + i, day);
+    if (d.getMonth() !== ((firstMonth + i) % 12 + 12) % 12) {
+      // overflow (e.g. day 31 in Feb) -> use last day of month
+      d.setDate(0);
+    }
+    if (d < start) continue;
+    if (end && d > end) break;
+    if (d > today) break;
+    if (lastGen && d <= lastGen) continue;
+    result.push(ymd(d));
+  }
+  return result;
 }
 
 export function usePiggyBanks() {
@@ -65,13 +120,15 @@ export function usePiggyBanks() {
   const dataOwnerId = useDataOwner();
   const [piggyBanks, setPiggyBanks] = useState<PiggyBank[]>([]);
   const [deposits, setDeposits] = useState<PiggyBankDeposit[]>([]);
+  const [recurrences, setRecurrences] = useState<PiggyBankRecurrence[]>([]);
   const [loading, setLoading] = useState(true);
 
   const reload = useCallback(async () => {
     if (!dataOwnerId) return;
-    const [pbRes, dpRes] = await Promise.all([
+    const [pbRes, dpRes, rcRes] = await Promise.all([
       supabase.from("piggy_banks" as any).select("*").eq("user_id", dataOwnerId).order("created_at"),
       supabase.from("piggy_bank_deposits" as any).select("*").eq("user_id", dataOwnerId),
+      supabase.from("piggy_bank_recurrences" as any).select("*").eq("user_id", dataOwnerId),
     ]);
     if (!pbRes.error) {
       setPiggyBanks(((pbRes.data as any[]) || []).map((r) => ({
@@ -90,12 +147,59 @@ export function usePiggyBanks() {
         expenseId: r.expense_id,
         amount: Number(r.amount),
         depositDate: r.deposit_date,
+        source: r.source,
+        recurrenceId: r.recurrence_id,
+      })));
+    }
+    if (!rcRes.error) {
+      setRecurrences(((rcRes.data as any[]) || []).map((r) => ({
+        id: r.id,
+        piggyBankId: r.piggy_bank_id,
+        amount: Number(r.amount),
+        startDate: r.start_date,
+        endDate: r.end_date,
+        dayOfMonth: r.day_of_month,
+        description: r.description,
+        active: r.active,
+        lastGeneratedDate: r.last_generated_date,
       })));
     }
     setLoading(false);
   }, [dataOwnerId]);
 
   useEffect(() => { reload(); }, [reload]);
+
+  // Auto-catch-up: generate missing recurring deposits whenever recurrences load.
+  useEffect(() => {
+    if (!dataOwnerId || recurrences.length === 0) return;
+    const today = new Date();
+    (async () => {
+      let touched = false;
+      for (const rec of recurrences) {
+        if (!rec.active) continue;
+        const due = dueDatesFor(rec, today);
+        if (due.length === 0) continue;
+        const rows = due.map((d) => ({
+          user_id: dataOwnerId,
+          piggy_bank_id: rec.piggyBankId,
+          amount: rec.amount,
+          deposit_date: d,
+          source: "recurring",
+          recurrence_id: rec.id,
+        }));
+        const { error } = await supabase.from("piggy_bank_deposits" as any).insert(rows);
+        if (!error) {
+          await supabase
+            .from("piggy_bank_recurrences" as any)
+            .update({ last_generated_date: due[due.length - 1] })
+            .eq("id", rec.id);
+          touched = true;
+        }
+      }
+      if (touched) reload();
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [recurrences, dataOwnerId]);
 
   const createPiggyBank = useCallback(async (data: { name: string; color?: string; icon?: string; annualRate?: number }) => {
     if (!user || !dataOwnerId) return null;
@@ -128,7 +232,7 @@ export function usePiggyBanks() {
     await reload();
   }, [reload]);
 
-  const addDeposit = useCallback(async (input: { piggyBankId: string; amount: number; depositDate: string; expenseId?: string }) => {
+  const addDeposit = useCallback(async (input: { piggyBankId: string; amount: number; depositDate: string; expenseId?: string; source?: string }) => {
     if (!dataOwnerId) return;
     const { error } = await supabase.from("piggy_bank_deposits" as any).insert({
       user_id: dataOwnerId,
@@ -136,6 +240,7 @@ export function usePiggyBanks() {
       expense_id: input.expenseId ?? null,
       amount: input.amount,
       deposit_date: input.depositDate,
+      source: input.source ?? "expense",
     });
     if (error) { toast.error("Erro ao registrar aporte"); return; }
     await reload();
@@ -145,6 +250,60 @@ export function usePiggyBanks() {
     await supabase.from("piggy_bank_deposits" as any).delete().eq("expense_id", expenseId);
     await reload();
   }, [reload]);
+
+  /** Adjust the balance to a new target value by inserting a delta deposit (positive or negative). */
+  const adjustBalance = useCallback(async (
+    piggyBankId: string,
+    newBalance: number,
+    note?: string
+  ) => {
+    if (!dataOwnerId) return;
+    const pb = piggyBanks.find((p) => p.id === piggyBankId);
+    if (!pb) return;
+    const ds = deposits.filter((d) => d.piggyBankId === piggyBankId);
+    const current = computePiggyBalance(ds, pb.annualRate).balance;
+    const delta = Number((newBalance - current).toFixed(2));
+    if (delta === 0) {
+      toast.info("Saldo já está nesse valor");
+      return;
+    }
+    const { error } = await supabase.from("piggy_bank_deposits" as any).insert({
+      user_id: dataOwnerId,
+      piggy_bank_id: piggyBankId,
+      amount: delta,
+      deposit_date: ymd(new Date()),
+      source: "manual",
+      // expense_id stays null -> won't affect any expense
+    });
+    if (error) { toast.error("Erro ao ajustar saldo"); return; }
+    toast.success(`Saldo ajustado em ${delta > 0 ? "+" : ""}${delta.toFixed(2)}`);
+    await reload();
+  }, [dataOwnerId, piggyBanks, deposits, reload]);
+
+  /** Create a recurring deposit rule. Returns the id of the recurrence so caller can link an expense if needed. */
+  const createRecurrence = useCallback(async (input: {
+    piggyBankId: string;
+    amount: number;
+    startDate: string;
+    endDate?: string | null;
+    description?: string;
+  }) => {
+    if (!dataOwnerId) return null;
+    const startDay = parseYmd(input.startDate).getDate();
+    const { data, error } = await (supabase as any).from("piggy_bank_recurrences").insert({
+      user_id: dataOwnerId,
+      piggy_bank_id: input.piggyBankId,
+      amount: input.amount,
+      start_date: input.startDate,
+      end_date: input.endDate ?? null,
+      day_of_month: startDay,
+      description: input.description ?? null,
+      active: true,
+    }).select().single();
+    if (error) { toast.error("Erro ao criar recorrência"); return null; }
+    await reload();
+    return (data as any)?.id as string;
+  }, [dataOwnerId, reload]);
 
   const balances = useMemo(() => {
     const map = new Map<string, ReturnType<typeof computePiggyBalance>>();
@@ -158,6 +317,7 @@ export function usePiggyBanks() {
   return {
     piggyBanks,
     deposits,
+    recurrences,
     balances,
     loading,
     createPiggyBank,
@@ -165,6 +325,8 @@ export function usePiggyBanks() {
     deletePiggyBank,
     addDeposit,
     removeDepositByExpenseId,
+    adjustBalance,
+    createRecurrence,
     reload,
   };
 }

@@ -20,7 +20,7 @@ interface Props {
 const paymentMethods = ["Dinheiro", "Pix", "Débito", "Crédito", "Boleto"];
 
 export function PersonalExpenseForm({ onAdd, onClose }: Props) {
-  const { piggyBanks, addDeposit } = usePiggyBanks();
+  const { piggyBanks, addDeposit, createRecurrence } = usePiggyBanks();
 
   const [form, setForm] = useState({
     description: "",
@@ -34,6 +34,9 @@ export function PersonalExpenseForm({ onAdd, onClose }: Props) {
   });
   const [toPiggy, setToPiggy] = useState(false);
   const [piggyId, setPiggyId] = useState<string>("");
+  // Piggy recurrence: 'none' = single, 'fixed' = forever, 'until' = with end date
+  const [piggyRecurrence, setPiggyRecurrence] = useState<"none" | "fixed" | "until">("none");
+  const [piggyEndDate, setPiggyEndDate] = useState<string>("");
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -55,6 +58,17 @@ export function PersonalExpenseForm({ onAdd, onClose }: Props) {
         scope: "personal",
       });
       await addDeposit({ piggyBankId: piggyId, amount, depositDate: form.dueDate });
+
+      // If recurring, create the rule (auto-generates monthly deposits going forward)
+      if (piggyRecurrence !== "none") {
+        await createRecurrence({
+          piggyBankId: piggyId,
+          amount,
+          startDate: form.dueDate,
+          endDate: piggyRecurrence === "until" ? (piggyEndDate || null) : null,
+          description: form.description,
+        });
+      }
       onClose();
       return;
     }
