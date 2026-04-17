@@ -38,11 +38,17 @@ export function useManagerCommissions(enabled: boolean = true) {
 
   useEffect(() => {
     if (!user || !enabled) return;
+    const channelName = `manager-commissions-realtime-${user.id}-${Math.random().toString(36).slice(2, 8)}`;
     const channel = supabase
-      .channel("manager-commissions-realtime")
+      .channel(channelName)
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "manager_commissions" },
+        () => fetch()
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "loans" },
         () => fetch()
       )
       .subscribe();
