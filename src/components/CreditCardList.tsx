@@ -49,20 +49,26 @@ function getCurrentCycle(closingDay: number, dueDay: number) {
 interface MiniCardProps {
   card: CreditCard;
   invoiceTotal: number;
+  openingAmount: number;
+  hasOpening: boolean;
   dueDate: Date;
   onClick: () => void;
   onEdit?: () => void;
   onDelete?: () => void;
+  onAddOpening?: () => void;
   readOnly?: boolean;
 }
 
 function MiniCreditCard({
   card,
   invoiceTotal,
+  openingAmount,
+  hasOpening,
   dueDate,
   onClick,
   onEdit,
   onDelete,
+  onAddOpening,
   readOnly,
 }: MiniCardProps) {
   const bank = getBank(card.bank);
@@ -142,6 +148,15 @@ function MiniCreditCard({
             </span>
           </div>
 
+          {hasOpening && openingAmount > 0 && (
+            <div className="flex items-baseline justify-between gap-2">
+              <span className="text-[10px] text-muted-foreground">Saldo inicial</span>
+              <span className="text-[11px] font-medium text-muted-foreground">
+                {mask(fmt(openingAmount))}
+              </span>
+            </div>
+          )}
+
           <div className="flex items-center justify-between gap-2 text-[10px] text-muted-foreground">
             <span>Vence {format(dueDate, "dd 'de' MMM", { locale: ptBR })}</span>
             <span>Limite {mask(fmt(card.creditLimit))}</span>
@@ -160,6 +175,21 @@ function MiniCreditCard({
               style={{ width: `${utilization}%` }}
             />
           </div>
+
+          {!readOnly && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="w-full h-7 text-[11px] mt-1"
+              onClick={(e) => {
+                e.stopPropagation();
+                onAddOpening?.();
+              }}
+            >
+              <Receipt className="h-3 w-3 mr-1" />
+              {hasOpening ? "Editar fatura inicial" : "Adicionar fatura do mês"}
+            </Button>
+          )}
         </div>
       </CardContent>
     </Card>
