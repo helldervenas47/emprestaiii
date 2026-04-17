@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { PiggyBank, Plus, TrendingUp, Trash2, Pencil, Sparkles, Wallet } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { PiggyBank, Plus, TrendingUp, Trash2, Pencil, Sparkles, Wallet, History, ArrowDownCircle, ArrowUpCircle, Repeat, Receipt } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -9,7 +9,8 @@ import {
 } from "@/components/ui/dialog";
 import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
 import { useHideValues } from "@/contexts/HideValuesContext";
-import { usePiggyBanks, type PiggyBank as PiggyBankType } from "@/hooks/usePiggyBanks";
+import { usePiggyBanks, type PiggyBank as PiggyBankType, type PiggyBankDeposit } from "@/hooks/usePiggyBanks";
+import { supabase } from "@/integrations/supabase/client";
 
 const fmt = (v: number) =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v);
@@ -25,7 +26,7 @@ interface Props {
 
 export function PiggyBankList({ readOnly = false }: Props) {
   const { mask } = useHideValues();
-  const { piggyBanks, balances, createPiggyBank, updatePiggyBank, deletePiggyBank, adjustBalance } = usePiggyBanks();
+  const { piggyBanks, deposits, balances, createPiggyBank, updatePiggyBank, deletePiggyBank, adjustBalance } = usePiggyBanks();
 
   const [createOpen, setCreateOpen] = useState(false);
   const [editing, setEditing] = useState<PiggyBankType | null>(null);
@@ -33,6 +34,8 @@ export function PiggyBankList({ readOnly = false }: Props) {
   const [draft, setDraft] = useState({ name: "", color: PALETTE[0], annualRate: "11.15" });
   const [adjustTarget, setAdjustTarget] = useState<PiggyBankType | null>(null);
   const [adjustValue, setAdjustValue] = useState("");
+  const [historyTarget, setHistoryTarget] = useState<PiggyBankType | null>(null);
+  const [expensesById, setExpensesById] = useState<Record<string, { description: string; category: string }>>({});
 
   const openCreate = () => {
     setDraft({ name: "", color: PALETTE[0], annualRate: "11.15" });
