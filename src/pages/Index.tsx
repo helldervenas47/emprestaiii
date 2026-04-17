@@ -350,7 +350,6 @@ const Index = () => {
     if (tab === "dashboard") setShowLoanForm(true);
     else if (tab === "clients" && clientSubTab === "clientes") setShowClientForm(true);
     else if (tab === "expenses") {
-      if (expenseSubTab === "personal" && personalSubTab === "cards") return;
       if (expenseSubTab === "personal") setShowPersonalExpenseForm(true);
       else setShowExpenseForm(true);
     }
@@ -631,36 +630,22 @@ const Index = () => {
               </>
             ) : (
               <>
-                <div className="w-full bg-muted/30 rounded-lg p-1 flex gap-0.5 mb-4 max-w-sm">
-                  <button
-                    onClick={() => setPersonalSubTab("expenses")}
-                    className={`flex-1 px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
-                      personalSubTab === "expenses"
-                        ? "bg-card text-foreground shadow-sm"
-                        : "text-muted-foreground hover:text-foreground"
-                    }`}
-                  >
-                    Despesas
-                  </button>
-                  <button
-                    onClick={() => setPersonalSubTab("cards")}
-                    className={`flex-1 px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
-                      personalSubTab === "cards"
-                        ? "bg-card text-foreground shadow-sm"
-                        : "text-muted-foreground hover:text-foreground"
-                    }`}
-                  >
-                    Cartões
-                  </button>
-                </div>
-                {personalSubTab === "expenses" ? (
-                  <>
-                    <h2 className="text-lg font-semibold text-foreground mb-4">Despesas Pessoais ({personalExpenses.length})</h2>
-                    <PersonalExpenseList expenses={personalExpenses} onPay={payExpense} onUnpay={unpayExpense} onDelete={deleteExpense} onUpdate={updateExpense} readOnly={isReadOnly} />
-                  </>
-                ) : (
-                  <CreditCardList readOnly={isReadOnly} />
-                )}
+                <h2 className="text-lg font-semibold text-foreground mb-4">Despesas Pessoais ({personalExpenses.length})</h2>
+                <PersonalExpenseList
+                  expenses={personalExpenses}
+                  onPay={payExpense}
+                  onUnpay={unpayExpense}
+                  onDelete={deleteExpense}
+                  onUpdate={updateExpense}
+                  readOnly={isReadOnly}
+                  afterEvolution={
+                    <Card no3d>
+                      <CardContent className="p-4">
+                        <CreditCardList readOnly={isReadOnly} />
+                      </CardContent>
+                    </Card>
+                  }
+                />
               </>
             )}
           </div>
