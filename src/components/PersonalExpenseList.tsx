@@ -17,6 +17,7 @@ import {
   CircleDollarSign, ChevronLeft, ChevronRight, Undo2, TrendingUp, CalendarDays, Target, Pencil,
 } from "lucide-react";
 import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
+import { ExpenseEditDialog } from "@/components/ExpenseEditDialog";
 import { personalCategories, getPersonalCategory } from "@/lib/personalExpenseCategories";
 import { Progress } from "@/components/ui/progress";
 import { usePersonalBudgets } from "@/hooks/usePersonalBudgets";
