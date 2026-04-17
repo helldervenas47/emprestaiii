@@ -15,6 +15,7 @@ import { calculateInstallment, calculateTotalWithInterest } from "@/hooks/useLoa
 import { Loan, Client } from "@/types/loan";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
+import { toast } from "sonner";
 
 interface Props {
   onAdd: (loan: Omit<Loan, "id" | "status" | "paidInstallments">) => Promise<string | null>;
