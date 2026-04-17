@@ -505,7 +505,11 @@ function LoanCardView({
                 type="checkbox"
                 id={`edit-mgr-${loan.id}`}
                 checked={editHasManager}
-                onChange={(e) => setEditHasManager(e.target.checked)}
+                onChange={(e) => {
+                  const checked = e.target.checked;
+                  setEditHasManager(checked);
+                  updateField("interestRate", checked ? "20" : "30");
+                }}
                 className="h-4 w-4 rounded border-border accent-primary"
               />
               <Label htmlFor={`edit-mgr-${loan.id}`} className="text-xs font-medium cursor-pointer">
