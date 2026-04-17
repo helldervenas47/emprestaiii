@@ -50,14 +50,15 @@ export function ManagerCommissionsChart({ clients, loans = [] }: Props) {
         const client = clients.find((c) => c.id === id);
         return {
           id,
-          name: client?.name || "Gerente removido",
+          name: client?.name ?? "",
           paid: v.paid,
           projected: v.projected,
           loanCount: v.loanCount,
           total: v.paid + v.projected,
         };
       })
-      .sort((a, b) => b.total - a.total || a.name.localeCompare(b.name));
+      .filter((m) => m.name.trim().length > 0)
+      .sort((a, b) => a.name.localeCompare(b.name, "pt-BR", { sensitivity: "base" }));
   }, [commissions, clients, loans, managers]);
 
   const totalPaid = data.reduce((s, d) => s + d.paid, 0);
