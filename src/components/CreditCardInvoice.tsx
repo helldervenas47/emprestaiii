@@ -50,9 +50,11 @@ function getCycle(ref: Date, closingDay: number, dueDay: number) {
 
 export function CreditCardInvoice({ card, onClose }: Props) {
   const { expenses } = useExpenses();
+  const { getOpening, upsertOpening } = useCreditCardOpenings();
   const { mask } = useHideValues();
   const bank = getBank(card.bank);
   const [cycleOffset, setCycleOffset] = useState(0); // 0 = current, -1 = previous
+  const [editingOpening, setEditingOpening] = useState(false);
 
   const ref = useMemo(() => {
     const d = new Date();
@@ -64,6 +66,10 @@ export function CreditCardInvoice({ card, onClose }: Props) {
     () => getCycle(ref, card.closingDay, card.dueDay),
     [ref, card.closingDay, card.dueDay]
   );
+
+  const cycleKey = useMemo(() => cycleKeyFromDate(cycle.to), [cycle.to]);
+  const opening = getOpening(card.id, cycleKey);
+  const openingAmount = opening?.openingAmount ?? 0;
 
   const cardTag = (card.nickname || card.lastFour || "").toLowerCase();
 
@@ -86,10 +92,11 @@ export function CreditCardInvoice({ card, onClose }: Props) {
       .sort((a, b) => b.dueDate.localeCompare(a.dueDate));
   }, [expenses, cycle, cardTag]);
 
-  const total = items.reduce((s, e) => {
+  const transactionsTotal = items.reduce((s, e) => {
     const isRec = e.type === "recorrente" && e.installments && e.installments > 1;
     return s + (isRec ? e.amount / e.installments! : e.amount);
   }, 0);
+  const total = transactionsTotal + openingAmount;
 
   const utilization = card.creditLimit > 0 ? (total / card.creditLimit) * 100 : 0;
 
