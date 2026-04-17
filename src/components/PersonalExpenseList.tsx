@@ -173,14 +173,19 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, onUpda
     return map;
   }, [spendingMonth, getInstallmentAmount]);
 
-  // Committed per category (paid + pending) — used only to sort budget subcards
+  // Committed per category — used to sort budget subcards.
+  // Inclui pagos no mês + pendentes cuja data de vencimento esteja no mês selecionado.
   const committedByCategory = useMemo(() => {
     const map = new Map<string, number>();
     spendingMonth.forEach((e) => {
+      const inMonth = e.paid
+        ? true // já está em spendingMonth porque foi pago no mês
+        : e.dueDate.startsWith(selectedMonth);
+      if (!inMonth) return;
       map.set(e.category, (map.get(e.category) || 0) + getInstallmentAmount(e));
     });
     return map;
-  }, [spendingMonth, getInstallmentAmount]);
+  }, [spendingMonth, getInstallmentAmount, selectedMonth]);
 
   const totalBudget = budgets.reduce((s, b) => s + b.amount, 0);
   const totalSpentBudgeted = budgets.reduce((s, b) => s + (spentByCategory.get(b.category) || 0), 0);
