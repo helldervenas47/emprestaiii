@@ -46,38 +46,50 @@ export function PersonalExpenseForm({ onAdd, onClose }: Props) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.description || !form.amount) return;
+    if (submitting) return;
+    setSubmitting(true);
     const amount = parseFloat(form.amount) || 0;
 
     if (toPiggy) {
-      if (!piggyId) return;
-      const baseNotes = form.notes ? `[${form.paymentMethod}] ${form.notes}` : `[${form.paymentMethod}]`;
-      onAdd({
-        description: form.description,
-        amount,
-        type: "fixa",
-        category: "Cofrinho",
-        installments: undefined,
-        paidInstallments: undefined,
-        dueDate: form.dueDate,
-        notes: buildPiggyTag(piggyId, baseNotes),
-        scope: "personal",
-      });
-      await addDeposit({ piggyBankId: piggyId, amount, depositDate: form.dueDate });
-
-      if (piggyRecurrence !== "none") {
-        await createRecurrence({
-          piggyBankId: piggyId,
-          amount,
-          startDate: form.dueDate,
-          endDate: piggyRecurrence === "until" ? (piggyEndDate || null) : null,
-          description: form.description,
-        });
+      if (!piggyId) {
+        setSubmitting(false);
+        return;
       }
-      onClose();
+      try {
+        const baseNotes = form.notes ? `[${form.paymentMethod}] ${form.notes}` : `[${form.paymentMethod}]`;
+        await onAdd({
+          description: form.description,
+          amount,
+          type: "fixa",
+          category: "Cofrinho",
+          installments: undefined,
+          paidInstallments: undefined,
+          dueDate: form.dueDate,
+          notes: buildPiggyTag(piggyId, baseNotes),
+          scope: "personal",
+        });
+        await addDeposit({ piggyBankId: piggyId, amount, depositDate: form.dueDate });
+
+        if (piggyRecurrence !== "none") {
+          await createRecurrence({
+            piggyBankId: piggyId,
+            amount,
+            startDate: form.dueDate,
+            endDate: piggyRecurrence === "until" ? (piggyEndDate || null) : null,
+            description: form.description,
+          });
+        }
+        setShowSuccess(true);
+      } finally {
+        setSubmitting(false);
+      }
       return;
     }
 
-    if (!form.category) return;
+    if (!form.category) {
+      setSubmitting(false);
+      return;
+    }
     const notesWithMethod = form.notes
       ? `[${form.paymentMethod}] ${form.notes}`
       : `[${form.paymentMethod}]`;
