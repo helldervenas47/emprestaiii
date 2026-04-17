@@ -150,7 +150,7 @@ export function PersonalExpenseForm({ onAdd, onClose }: Props) {
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label htmlFor="amount">Valor (R$)</Label>
+                <Label htmlFor="amount">{amountLabel}</Label>
                 <Input
                   id="amount"
                   type="number"
@@ -163,16 +163,17 @@ export function PersonalExpenseForm({ onAdd, onClose }: Props) {
               </div>
               <div>
                 <Label>Tipo</Label>
-                <Select value={form.type} onValueChange={(v) => update("type", v)} disabled={toPiggy}>
+                <Select value={form.kind} onValueChange={(v) => update("kind", v)} disabled={toPiggy}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="fixa">Única</SelectItem>
-                    <SelectItem value="recorrente">Parcelada</SelectItem>
+                    <SelectItem value="unica">Única</SelectItem>
+                    <SelectItem value="parcelada">Parcelada</SelectItem>
+                    <SelectItem value="fixa">Fixa (mensal)</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
             </div>
-            {form.type === "recorrente" && !toPiggy && (
+            {form.kind === "parcelada" && !toPiggy && (
               <div>
                 <Label htmlFor="installments">Parcelas</Label>
                 <Input
@@ -184,6 +185,11 @@ export function PersonalExpenseForm({ onAdd, onClose }: Props) {
                   placeholder="12"
                 />
               </div>
+            )}
+            {form.kind === "fixa" && !toPiggy && (
+              <p className="text-xs text-muted-foreground">
+                Despesa mensal recorrente sem prazo final.
+              </p>
             )}
 
             {piggyBanks.length > 0 && (
