@@ -581,7 +581,23 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, onUpda
         description="Tem certeza? Esta ação não pode ser desfeita."
       />
 
-      {/* Budget edit dialog */}
+      {/* Edit dialog */}
+      <ExpenseEditDialog
+        open={!!editingExpense}
+        onOpenChange={(o) => !o && setEditingExpense(null)}
+        expense={editingExpense}
+        onSave={async (patch) => {
+          if (!editingExpense || !onUpdate) return;
+          await onUpdate(editingExpense.id, {
+            description: patch.description,
+            amount: patch.amount,
+            dueDate: patch.dueDate,
+            category: patch.category,
+            notes: patch.notes ?? undefined,
+          });
+          toast.success("Despesa atualizada");
+        }}
+      />
       <Dialog open={budgetEditOpen} onOpenChange={setBudgetEditOpen}>
         <DialogContent className="sm:max-w-md max-h-[80vh] overflow-y-auto">
           <DialogHeader>
