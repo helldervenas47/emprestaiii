@@ -860,7 +860,21 @@ Deno.serve(async (req) => {
               const reply = await handleApagar(admin, link.user_id);
               await tgSend(chatId, reply, LOVABLE_API_KEY, TELEGRAM_API_KEY);
             } else {
-              const extracted = await extractExpense(text, LOVABLE_API_KEY);
+              // Regex-first: skip AI for clear "<amount> <description>" or "<description> <amount>" inputs.
+              const quick = quickParseExpense(text);
+              const today = new Date().toISOString().slice(0, 10);
+              let extracted: any = null;
+              if (quick) {
+                extracted = {
+                  description: quick.description,
+                  amount: quick.amount,
+                  category: "Outros",
+                  date: today,
+                  confidence: 1,
+                };
+              } else {
+                extracted = await extractExpense(text, LOVABLE_API_KEY);
+              }
               if (!extracted || !extracted.amount || extracted.confidence < 0.6) {
                 await tgSend(chatId, "🤔 Não consegui entender. Tente algo como:\n_\"mercado 80 alimentação\"_ ou _\"uber 25 ontem\"_", LOVABLE_API_KEY, TELEGRAM_API_KEY);
               } else {
@@ -869,11 +883,11 @@ Deno.serve(async (req) => {
                   description: extracted.description || text.slice(0, 80),
                   amount: extracted.amount,
                   category: CATEGORIES.includes(extracted.category) ? extracted.category : "Outros",
-                  due_date: extracted.date || new Date().toISOString().slice(0, 10),
+                  due_date: extracted.date || today,
                   type: "fixa",
                   scope: "personal",
                   paid: true,
-                  paid_date: extracted.date || new Date().toISOString().slice(0, 10),
+                  paid_date: extracted.date || today,
                 }).select("id").single();
                 if (insErr || !ins) {
                   await tgSend(chatId, "❌ Erro ao salvar: " + (insErr?.message ?? "desconhecido"), LOVABLE_API_KEY, TELEGRAM_API_KEY);
