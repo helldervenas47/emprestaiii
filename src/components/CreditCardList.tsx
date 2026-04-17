@@ -1,9 +1,14 @@
 import { useState, useMemo } from "react";
-import { Plus, CreditCard as CreditCardIcon, Wifi, Pencil, Trash2, Receipt } from "lucide-react";
+import { Plus, CreditCard as CreditCardIcon, Wifi, Pencil, Trash2, Receipt, CheckCircle } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { useCreditCards, CreditCard } from "@/hooks/useCreditCards";
 import { useExpenses } from "@/hooks/useExpenses";
 import { useCreditCardOpenings, cycleKeyFromDate } from "@/hooks/useCreditCardOpenings";
@@ -73,11 +78,13 @@ interface MiniCardProps {
   openingAmount: number;
   hasOpening: boolean;
   hasActiveInvoice: boolean;
+  hasUnpaidInvoice: boolean;
   dueDate: Date;
   onClick: () => void;
   onEdit?: () => void;
   onDelete?: () => void;
   onAddOpening?: () => void;
+  onPayInvoice?: () => void;
   readOnly?: boolean;
 }
 
@@ -87,11 +94,13 @@ function MiniCreditCard({
   openingAmount,
   hasOpening,
   hasActiveInvoice,
+  hasUnpaidInvoice,
   dueDate,
   onClick,
   onEdit,
   onDelete,
   onAddOpening,
+  onPayInvoice,
   readOnly,
 }: MiniCardProps) {
   const bank = getBank(card.bank);
@@ -209,18 +218,33 @@ function MiniCreditCard({
           </div>
 
           {!readOnly && (
-            <Button
-              variant="outline"
-              size="sm"
-              className="w-full h-7 text-[11px] mt-1"
-              onClick={(e) => {
-                e.stopPropagation();
-                onAddOpening?.();
-              }}
-            >
-              <Receipt className="h-3 w-3 mr-1" />
-              {hasOpening ? "Editar fatura inicial" : "Adicionar fatura do mês"}
-            </Button>
+            <div className="space-y-1 mt-1">
+              <Button
+                variant="default"
+                size="sm"
+                className="w-full h-7 text-[11px]"
+                disabled={!hasUnpaidInvoice || invoiceTotal <= 0}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onPayInvoice?.();
+                }}
+              >
+                <CheckCircle className="h-3 w-3 mr-1" />
+                Pagar fatura
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="w-full h-7 text-[11px]"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onAddOpening?.();
+                }}
+              >
+                <Receipt className="h-3 w-3 mr-1" />
+                {hasOpening ? "Editar fatura inicial" : "Adicionar fatura do mês"}
+              </Button>
+            </div>
           )}
         </div>
       </CardContent>
@@ -230,13 +254,15 @@ function MiniCreditCard({
 
 export function CreditCardList({ readOnly = false, referenceMonth }: Props) {
   const { cards, loading, addCard, updateCard, deleteCard } = useCreditCards();
-  const { expenses } = useExpenses();
+  const { expenses, payExpense } = useExpenses();
   const { getOpening, upsertOpening } = useCreditCardOpenings();
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<CreditCard | null>(null);
   const [deleting, setDeleting] = useState<CreditCard | null>(null);
   const [invoiceCard, setInvoiceCard] = useState<CreditCard | null>(null);
   const [openingCard, setOpeningCard] = useState<CreditCard | null>(null);
+  const [payingCard, setPayingCard] = useState<CreditCard | null>(null);
+  const [paying, setPaying] = useState(false);
 
   const handleNew = () => {
     setEditing(null);
@@ -252,14 +278,23 @@ export function CreditCardList({ readOnly = false, referenceMonth }: Props) {
   const invoiceByCard = useMemo(() => {
     const map = new Map<
       string,
-      { transactions: number; opening: number; total: number; dueDate: Date; cycleKey: string; openingNotes: string | null; hasOpening: boolean }
+      {
+        transactions: number;
+        opening: number;
+        total: number;
+        dueDate: Date;
+        cycleKey: string;
+        openingNotes: string | null;
+        hasOpening: boolean;
+        unpaidExpenseIds: string[];
+      }
     >();
     cards.forEach((card) => {
       const cycle = referenceMonth
         ? getCycleForDueMonth(referenceMonth, card.closingDay, card.dueDay)
         : getCurrentCycle(card.closingDay, card.dueDay);
       const cardTag = (card.nickname || card.lastFour || "").toLowerCase();
-      const transactions = expenses
+      const inCycle = expenses
         .filter((e) => e.scope === "personal")
         .filter((e) => /\[\s*cr[eé]dito\s*\]/i.test(e.notes ?? ""))
         .filter((e) => {
@@ -271,11 +306,12 @@ export function CreditCardList({ readOnly = false, referenceMonth }: Props) {
         .filter((e) => {
           const d = new Date(e.dueDate + "T00:00:00");
           return d > cycle.from && d <= cycle.to;
-        })
-        .reduce((s, e) => {
-          const isRec = e.type === "recorrente" && e.installments && e.installments > 1;
-          return s + (isRec ? e.amount / e.installments! : e.amount);
-        }, 0);
+        });
+      const transactions = inCycle.reduce((s, e) => {
+        const isRec = e.type === "recorrente" && e.installments && e.installments > 1;
+        return s + (isRec ? e.amount / e.installments! : e.amount);
+      }, 0);
+      const unpaidExpenseIds = inCycle.filter((e) => !e.paid).map((e) => e.id);
       const cycleKey = cycleKeyFromDate(cycle.to);
       const op = getOpening(card.id, cycleKey);
       const opening = op?.openingAmount ?? 0;
@@ -287,6 +323,7 @@ export function CreditCardList({ readOnly = false, referenceMonth }: Props) {
         cycleKey,
         openingNotes: op?.notes ?? null,
         hasOpening: !!op,
+        unpaidExpenseIds,
       });
     });
     return map;
@@ -344,6 +381,7 @@ export function CreditCardList({ readOnly = false, referenceMonth }: Props) {
               cycleKey: "",
               openingNotes: null,
               hasOpening: false,
+              unpaidExpenseIds: [] as string[],
             };
             return (
               <MiniCreditCard
@@ -356,11 +394,13 @@ export function CreditCardList({ readOnly = false, referenceMonth }: Props) {
                   inv.total > 0 &&
                   `${inv.dueDate.getFullYear()}-${String(inv.dueDate.getMonth() + 1).padStart(2, "0")}` === refMonthKey
                 }
+                hasUnpaidInvoice={inv.unpaidExpenseIds.length > 0}
                 dueDate={inv.dueDate}
                 onClick={() => setInvoiceCard(card)}
                 onEdit={readOnly ? undefined : () => handleEdit(card)}
                 onDelete={readOnly ? undefined : () => setDeleting(card)}
                 onAddOpening={readOnly ? undefined : () => setOpeningCard(card)}
+                onPayInvoice={readOnly ? undefined : () => setPayingCard(card)}
                 readOnly={readOnly}
               />
             );
@@ -415,6 +455,47 @@ export function CreditCardList({ readOnly = false, referenceMonth }: Props) {
           description={`Tem certeza que deseja excluir o cartão ${deleting.nickname || deleting.bank}?`}
         />
       )}
+
+      {payingCard && (() => {
+        const inv = invoiceByCard.get(payingCard.id);
+        const ids = inv?.unpaidExpenseIds ?? [];
+        const total = inv?.total ?? 0;
+        return (
+          <AlertDialog open={!!payingCard} onOpenChange={(o) => !o && !paying && setPayingCard(null)}>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Pagar fatura do cartão?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Confirmar o pagamento de {ids.length} {ids.length === 1 ? "lançamento pendente" : "lançamentos pendentes"} ({fmt(total)}) do cartão {payingCard.nickname || getBank(payingCard.bank).name}? Cada despesa será marcada como paga e o saldo será debitado.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel disabled={paying}>Cancelar</AlertDialogCancel>
+                <AlertDialogAction
+                  disabled={paying || ids.length === 0}
+                  onClick={async (e) => {
+                    e.preventDefault();
+                    if (paying) return;
+                    setPaying(true);
+                    try {
+                      const today = new Date().toISOString().split("T")[0];
+                      for (const id of ids) {
+                        await payExpense(id, false, today);
+                      }
+                      toast.success(`Fatura paga (${ids.length} ${ids.length === 1 ? "lançamento" : "lançamentos"})`);
+                      setPayingCard(null);
+                    } finally {
+                      setPaying(false);
+                    }
+                  }}
+                >
+                  {paying ? "Pagando..." : "Pagar fatura"}
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        );
+      })()}
     </div>
   );
 }
