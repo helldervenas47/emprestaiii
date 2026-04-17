@@ -1226,27 +1226,49 @@ Deno.serve(async (req) => {
               await tgSend(chatId, `🎤 Transcrevi: _"${transcript}"_\n\n🤔 Mas não consegui identificar a despesa. Tente reformular.`, LOVABLE_API_KEY, TELEGRAM_API_KEY);
             } else {
               const finalDate = sanitizeDate(extracted.date);
-              const { data: ins, error: insErr } = await admin.from("expenses").insert({
+              const finalCategory = CATEGORIES.includes(extracted.category) ? extracted.category : "Outros";
+
+              // 💳 Card detection — uses transcript text
+              const userCards = await getUserCards(admin, link.user_id);
+              const card = detectCardInText(transcript, userCards);
+
+              const basePayload: Record<string, any> = {
                 user_id: link.user_id,
                 description: extracted.description || transcript.slice(0, 80),
                 amount: extracted.amount,
-                category: CATEGORIES.includes(extracted.category) ? extracted.category : "Outros",
-                due_date: finalDate,
+                category: finalCategory,
                 type: "fixa",
                 scope: "personal",
-                paid: true,
-                paid_date: finalDate,
-              }).select("id").single();
+              };
+              let displayDate = finalDate;
+              if (card) {
+                Object.assign(basePayload, buildCreditCardExpense(card, basePayload.description));
+                displayDate = basePayload.due_date;
+              } else {
+                basePayload.due_date = finalDate;
+                basePayload.paid = true;
+                basePayload.paid_date = finalDate;
+              }
+
+              const { data: ins, error: insErr } = await admin
+                .from("expenses")
+                .insert(basePayload)
+                .select("id").single();
               if (insErr || !ins) {
                 await tgSend(chatId, "❌ Erro ao salvar: " + (insErr?.message ?? "desconhecido"), LOVABLE_API_KEY, TELEGRAM_API_KEY);
               } else {
-                const finalCategory = CATEGORIES.includes(extracted.category) ? extracted.category : "Outros";
                 const fmt = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(extracted.amount);
+                const header = card
+                  ? `💳 *Compra no cartão (áudio)*`
+                  : `🎤 *Despesa registrada por áudio*`;
+                const cardLine = card ? `\n💳 ${card.nickname || card.bank} (vence ${displayDate})` : "";
                 await tgSendWithKeyboard(chatId,
-                  `🎤 *Despesa registrada por áudio*\n\n_"${transcript}"_\n\n💰 ${fmt}\n📂 ${finalCategory}\n📝 ${extracted.description}\n📅 ${finalDate}`,
+                  `${header}\n\n_"${transcript}"_\n\n💰 ${fmt}\n📂 ${finalCategory}${cardLine}\n📝 ${extracted.description}\n📅 ${displayDate}`,
                   buildExpenseKeyboard(ins.id),
                   LOVABLE_API_KEY, TELEGRAM_API_KEY);
-                await checkBudgetAndAlert(admin, link.user_id, chatId, finalCategory, LOVABLE_API_KEY, TELEGRAM_API_KEY);
+                if (!card) {
+                  await checkBudgetAndAlert(admin, link.user_id, chatId, finalCategory, LOVABLE_API_KEY, TELEGRAM_API_KEY);
+                }
               }
             }
           }
