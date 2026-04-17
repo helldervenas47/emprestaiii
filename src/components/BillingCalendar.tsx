@@ -55,7 +55,7 @@ export function BillingCalendar({ loans, payments, installmentSchedules, onPayme
   const [expandedItem, setExpandedItem] = useState<string | null>(null);
   const [showPartial, setShowPartial] = useState<string | null>(null);
   const [partialAmount, setPartialAmount] = useState("");
-  const [paymentDialog, setPaymentDialog] = useState<{ loanId: string; type: "installment" | "interest" | "partial" | "full"; amount?: number; borrowerName: string } | null>(null);
+  const [paymentDialog, setPaymentDialog] = useState<{ loanId: string; type: "installment" | "interest" | "partial" | "full" | "payoff"; amount?: number; borrowerName: string } | null>(null);
   const [payoffAmount, setPayoffAmount] = useState("");
   const [paymentDate, setPaymentDate] = useState<Date>(new Date());
 
@@ -152,8 +152,9 @@ export function BillingCalendar({ loans, payments, installmentSchedules, onPayme
     setPartialAmount("");
   };
 
-  const openPaymentDialog = (loanId: string, borrowerName: string, type: "installment" | "interest" | "partial" | "full", amount?: number) => {
+  const openPaymentDialog = (loanId: string, borrowerName: string, type: "installment" | "interest" | "partial" | "full" | "payoff", amount?: number) => {
     setPaymentDate(new Date());
+    setPayoffAmount("");
     setPaymentDialog({ loanId, type, amount, borrowerName });
   };
 
