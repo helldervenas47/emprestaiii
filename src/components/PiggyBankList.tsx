@@ -139,7 +139,10 @@ export function PiggyBankList({ readOnly = false }: Props) {
                   <p className="text-sm font-bold text-foreground">{mask(fmt(b?.balance ?? 0))}</p>
                   {!readOnly && (
                     <div className="flex gap-0.5 justify-end mt-0.5">
-                      <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => openEdit(pb)}>
+                      <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => openAdjust(pb)} title="Ajustar saldo">
+                        <Wallet className="h-3 w-3" />
+                      </Button>
+                      <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => openEdit(pb)} title="Editar">
                         <Pencil className="h-3 w-3" />
                       </Button>
                       <Button
@@ -147,6 +150,7 @@ export function PiggyBankList({ readOnly = false }: Props) {
                         variant="ghost"
                         className="h-6 w-6 text-destructive hover:text-destructive hover:bg-destructive/10"
                         onClick={() => setDeleteId(pb.id)}
+                        title="Excluir"
                       >
                         <Trash2 className="h-3 w-3" />
                       </Button>
