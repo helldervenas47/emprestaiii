@@ -352,7 +352,10 @@ export function CreditCardList({ readOnly = false, referenceMonth }: Props) {
                 invoiceTotal={inv.total}
                 openingAmount={inv.opening}
                 hasOpening={inv.hasOpening}
-                hasActiveInvoice={inv.total > 0}
+                hasActiveInvoice={
+                  inv.total > 0 &&
+                  `${inv.dueDate.getFullYear()}-${String(inv.dueDate.getMonth() + 1).padStart(2, "0")}` === refMonthKey
+                }
                 dueDate={inv.dueDate}
                 onClick={() => setInvoiceCard(card)}
                 onEdit={readOnly ? undefined : () => handleEdit(card)}
