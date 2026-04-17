@@ -419,8 +419,8 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, onUpda
                 {budgets
                   .slice()
                   .sort((a, b) => {
-                    const sa = spentByCategory.get(a.category) || 0;
-                    const sb = spentByCategory.get(b.category) || 0;
+                    const sa = committedByCategory.get(a.category) || 0;
+                    const sb = committedByCategory.get(b.category) || 0;
                     if (sb !== sa) return sb - sa;
                     return a.category.localeCompare(b.category, "pt-BR");
                   })
