@@ -337,6 +337,104 @@ export function PiggyBankList({ readOnly = false }: Props) {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* History dialog */}
+      <Dialog open={!!historyTarget} onOpenChange={(o) => !o && setHistoryTarget(null)}>
+        <DialogContent className="sm:max-w-lg max-h-[85vh] flex flex-col">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              {historyTarget && (
+                <span
+                  className="h-7 w-7 rounded-md flex items-center justify-center"
+                  style={{ backgroundColor: `hsl(${historyTarget.color} / 0.18)` }}
+                >
+                  <PiggyBank className="h-3.5 w-3.5" style={{ color: `hsl(${historyTarget.color})` }} />
+                </span>
+              )}
+              Histórico de aportes — {historyTarget?.name}
+            </DialogTitle>
+            <DialogDescription>
+              {historyDeposits.length} {historyDeposits.length === 1 ? "movimentação" : "movimentações"}
+              {historyTarget && (
+                <> · Saldo atual: <span className="font-medium text-foreground">
+                  {fmt(balances.get(historyTarget.id)?.balance ?? 0)}
+                </span></>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="flex-1 overflow-y-auto -mx-2 px-2">
+            {historyDeposits.length === 0 ? (
+              <div className="rounded-lg border border-dashed border-border/60 p-6 text-center">
+                <Receipt className="h-6 w-6 mx-auto text-muted-foreground/50 mb-1.5" />
+                <p className="text-xs text-muted-foreground">
+                  Nenhum aporte registrado ainda. Cadastre uma despesa pessoal e
+                  selecione "Destinar a um cofrinho" para criar uma movimentação.
+                </p>
+              </div>
+            ) : (
+              <ul className="divide-y divide-border/40">
+                {historyDeposits.map((d) => {
+                  const isPositive = d.amount >= 0;
+                  const exp = d.expenseId ? expensesById[d.expenseId] : null;
+                  const sourceLabel =
+                    d.source === "manual"
+                      ? "Ajuste manual"
+                      : d.source === "recurring"
+                      ? "Aporte recorrente"
+                      : exp?.description
+                      ? "Despesa vinculada"
+                      : "Aporte";
+                  const SourceIcon =
+                    d.source === "recurring" ? Repeat : isPositive ? ArrowUpCircle : ArrowDownCircle;
+                  return (
+                    <li key={d.id} className="py-2.5 flex items-start gap-3">
+                      <span
+                        className={`h-8 w-8 rounded-lg flex items-center justify-center shrink-0 ${
+                          isPositive ? "bg-success/10 text-success" : "bg-destructive/10 text-destructive"
+                        }`}
+                      >
+                        <SourceIcon className="h-4 w-4" />
+                      </span>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between gap-2">
+                          <p className="text-sm font-medium text-foreground truncate">
+                            {exp?.description || sourceLabel}
+                          </p>
+                          <p
+                            className={`text-sm font-semibold tabular-nums shrink-0 ${
+                              isPositive ? "text-success" : "text-destructive"
+                            }`}
+                          >
+                            {isPositive ? "+" : ""}
+                            {fmt(d.amount)}
+                          </p>
+                        </div>
+                        <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 mt-0.5">
+                          <span className="text-[11px] text-muted-foreground">
+                            {d.depositDate.split("-").reverse().join("/")}
+                          </span>
+                          <span className="text-[11px] text-muted-foreground">·</span>
+                          <span className="text-[11px] text-muted-foreground">{sourceLabel}</span>
+                          {exp?.category && (
+                            <Badge variant="outline" className="text-[9px] px-1 py-0 h-4">
+                              {exp.category}
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setHistoryTarget(null)}>Fechar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
