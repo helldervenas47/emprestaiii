@@ -1,5 +1,6 @@
 import { useMemo, useState, useEffect, useCallback } from "react";
 import { useChartOverrides } from "@/hooks/useChartOverrides";
+import { useMonthlyGoals } from "@/hooks/useMonthlyGoals";
 import { Switch } from "@/components/ui/switch";
 import { useHideValues } from "@/contexts/HideValuesContext";
 import { Loan, Sale, Payment, Expense, InstallmentSchedule, Client } from "@/types/loan";
@@ -8,10 +9,11 @@ import { calculateInstallment, calculateTotalWithInterest } from "@/hooks/useLoa
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Progress } from "@/components/ui/progress";
 import { getBalance, setBalance } from "@/lib/balance";
 import {
   TrendingUp, TrendingDown, DollarSign, ArrowUpRight, ArrowDownRight,
-  ChevronLeft, ChevronRight, ChevronDown, Percent, Wallet, Pencil, Check, X, Trash2, Calendar, Eye,
+  ChevronLeft, ChevronRight, ChevronDown, Percent, Wallet, Pencil, Check, X, Trash2, Calendar, Eye, Target,
 } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
@@ -100,8 +102,17 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
   const [includeSales, setIncludeSales] = useState(false);
   const [showInterestDetail, setShowInterestDetail] = useState(false);
   const { chartOverrides, setChartOverrides, interestOverrides, setInterestOverrides } = useChartOverrides();
+  const { getGoal } = useMonthlyGoals();
 
   const range = useMemo(() => getRange(period, offset), [period, offset]);
+
+  // Use the month of range.start as the goal key (works for any period)
+  const goalMonthKey = useMemo(
+    () => `${range.start.getFullYear()}-${String(range.start.getMonth() + 1).padStart(2, "0")}`,
+    [range]
+  );
+  const interestGoal = getGoal("interest_rate", goalMonthKey);
+  const profitGoal = getGoal("profit", goalMonthKey);
 
   // Helper to get chart month label from a date range
   const getChartLabel = (start: Date) => {
@@ -697,14 +708,32 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
               <div className="h-10 w-10 rounded-full bg-warning/10 flex items-center justify-center shrink-0">
                 <Percent className="h-5 w-5 text-warning" />
               </div>
-              <div className="flex-1">
+              <div className="flex-1 min-w-0">
                 <p className="text-xs text-muted-foreground">Taxa de Juros Mensal</p>
                 <p className="text-lg font-bold text-foreground">{data.avgInterestRate.toFixed(1)}%</p>
-                <p className="text-xs text-muted-foreground">{data.loanCount} empréstimo(s) no período</p>
+                <div className="flex items-center justify-between gap-2 text-[10px] text-muted-foreground">
+                  <span>{data.loanCount} no período</span>
+                  <span>Geral: <span className="font-bold text-warning">{portfolio.globalInterestRate.toFixed(1)}%</span></span>
+                </div>
+                {/* Meta */}
                 <div className="mt-2 pt-2 border-t border-border/30">
-                  <p className="text-xs text-muted-foreground">Taxa de Juros Geral</p>
-                  <p className="text-sm font-bold text-warning">{portfolio.globalInterestRate.toFixed(1)}%</p>
-                  <p className="text-[10px] text-muted-foreground">{loans.length} empréstimo(s) total</p>
+                  {interestGoal ? (() => {
+                    const pct = interestGoal.targetValue > 0 ? Math.min(150, (data.avgInterestRate / interestGoal.targetValue) * 100) : 0;
+                    const reached = data.avgInterestRate >= interestGoal.targetValue;
+                    const status = reached ? "atingida" : pct >= 80 ? "perto" : "abaixo";
+                    const color = reached ? "text-success" : pct >= 80 ? "text-warning" : "text-destructive";
+                    return (
+                      <>
+                        <div className="flex items-center justify-between text-[10px]">
+                          <span className="flex items-center gap-1 text-muted-foreground"><Target className="h-3 w-3" /> Meta: {interestGoal.targetValue.toFixed(1)}%</span>
+                          <span className={`font-bold ${color}`}>{status === "atingida" ? "✓ Atingida" : status === "perto" ? "Quase lá" : "Abaixo"}</span>
+                        </div>
+                        <Progress value={Math.min(100, pct)} className="h-1.5 mt-1" />
+                      </>
+                    );
+                  })() : (
+                    <p className="text-[10px] text-muted-foreground italic flex items-center gap-1"><Target className="h-3 w-3" /> Defina uma meta em Relatórios → Metas</p>
+                  )}
                 </div>
               </div>
               <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform ${expandedBreakdown === "interest-rate" ? "rotate-180" : ""}`} />
@@ -746,20 +775,39 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
               </div>
               <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Lucro do Período</p>
             </div>
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               <div className="flex items-center justify-between">
-                <span className="text-xs text-muted-foreground">Lucro Previsto</span>
+                <span className="text-xs text-muted-foreground">Previsto</span>
                 <span className="text-sm font-bold text-foreground">{formatCurrency(data.periodProfitExpected)}</span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-xs text-muted-foreground">Lucro Realizado</span>
+                <span className="text-xs text-muted-foreground">Realizado</span>
                 <span className="text-sm font-bold text-success">{formatCurrency(data.periodProfitRealized)}</span>
               </div>
-              <div className="flex items-center justify-between pt-1 border-t border-border/30">
+              <div className="flex items-center justify-between">
                 <span className="text-xs text-muted-foreground">% Lucro</span>
                 <span className={`text-sm font-bold ${data.periodProfitPct >= 100 ? "text-success" : data.periodProfitPct >= 50 ? "text-warning" : "text-foreground"}`}>
                   {data.periodProfitPct}%
                 </span>
+              </div>
+              <div className="pt-1.5 border-t border-border/30">
+                {profitGoal ? (() => {
+                  const pct = profitGoal.targetValue > 0 ? Math.min(150, (data.periodProfitRealized / profitGoal.targetValue) * 100) : 0;
+                  const reached = data.periodProfitRealized >= profitGoal.targetValue;
+                  const status = reached ? "atingida" : pct >= 80 ? "perto" : "abaixo";
+                  const color = reached ? "text-success" : pct >= 80 ? "text-warning" : "text-destructive";
+                  return (
+                    <>
+                      <div className="flex items-center justify-between text-[10px]">
+                        <span className="flex items-center gap-1 text-muted-foreground"><Target className="h-3 w-3" /> Meta: {formatCurrency(profitGoal.targetValue)}</span>
+                        <span className={`font-bold ${color}`}>{status === "atingida" ? "✓ Atingida" : status === "perto" ? "Quase lá" : "Abaixo"}</span>
+                      </div>
+                      <Progress value={Math.min(100, pct)} className="h-1.5 mt-1" />
+                    </>
+                  );
+                })() : (
+                  <p className="text-[10px] text-muted-foreground italic flex items-center gap-1"><Target className="h-3 w-3" /> Defina uma meta em Relatórios → Metas</p>
+                )}
               </div>
             </div>
           </CardContent>
