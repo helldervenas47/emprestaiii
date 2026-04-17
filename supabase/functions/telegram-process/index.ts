@@ -13,6 +13,46 @@ const CATEGORIES = [
   "Educação", "Lazer", "Moradia", "Outros", "Pets", "Presentes", "Saúde", "Transporte",
 ];
 
+// In-memory cache (per-isolate) for chat_id → user_id lookups. TTL 5min.
+const linkCache = new Map<number, { userId: string | null; expires: number }>();
+const LINK_CACHE_TTL_MS = 5 * 60 * 1000;
+
+async function getLinkedUserId(admin: any, chatId: number): Promise<string | null> {
+  const cached = linkCache.get(chatId);
+  if (cached && cached.expires > Date.now()) return cached.userId;
+  const { data } = await admin.from("telegram_links")
+    .select("user_id").eq("chat_id", chatId).maybeSingle();
+  const userId = data?.user_id ?? null;
+  linkCache.set(chatId, { userId, expires: Date.now() + LINK_CACHE_TTL_MS });
+  return userId;
+}
+
+function invalidateLinkCache(chatId: number) {
+  linkCache.delete(chatId);
+}
+
+// Regex-first parser for common expense formats.
+// Examples: "45 mercado", "R$ 12,50 uber", "uber 25", "1.234,56 conta luz"
+function quickParseExpense(text: string): { amount: number; description: string } | null {
+  const t = text.trim();
+  if (t.length < 2 || t.startsWith("/")) return null;
+  // Pattern A: <amount> <description>
+  let amountStr: string | null = null;
+  let description: string | null = null;
+  const mA = t.match(/^R?\$?\s*([\d]+(?:\.\d{3})*(?:,\d{1,2})?|\d+(?:\.\d{1,2})?)\s+(.{2,80})$/i);
+  if (mA) { amountStr = mA[1]; description = mA[2]; }
+  else {
+    const mB = t.match(/^(.{2,80}?)\s+R?\$?\s*([\d]+(?:\.\d{3})*(?:,\d{1,2})?|\d+(?:\.\d{1,2})?)$/i);
+    if (mB) { description = mB[1]; amountStr = mB[2]; }
+  }
+  if (!amountStr || !description) return null;
+  const amount = parseAmount(amountStr);
+  if (amount === null) return null;
+  const desc = description.trim();
+  if (desc.length < 2) return null;
+  return { amount, description: desc };
+}
+
 const HELP_TEXT = `🤖 *Como usar*
 
 Envie uma despesa em texto livre, ex:
