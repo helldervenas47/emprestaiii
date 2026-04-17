@@ -245,16 +245,14 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, readOn
     <div className="space-y-4">
       {/* Summary cards */}
       <div className="space-y-2 md:space-y-0 md:grid md:grid-cols-5 md:gap-3">
-        {/* Featured: Gasto do mês — destaque no topo no mobile */}
-        <Card no3d className="border-success/30 bg-success/5 md:bg-card md:border-border">
-          <CardContent className="p-4 flex md:flex-col items-center md:text-center gap-3 md:gap-0">
-            <div className="h-10 w-10 md:h-8 md:w-8 rounded-lg bg-success/15 flex items-center justify-center md:mb-2 shrink-0">
-              <CheckCircle className="h-5 w-5 md:h-4 md:w-4 text-success" />
+        {/* Featured: Gasto do mês — destaque no topo no mobile, mesmo design dos demais */}
+        <Card no3d>
+          <CardContent className="p-3 md:p-4 flex flex-col items-center text-center">
+            <div className="h-8 w-8 rounded-lg bg-success/10 flex items-center justify-center mb-2">
+              <CheckCircle className="h-4 w-4 text-success" />
             </div>
-            <div className="flex-1 md:flex-none">
-              <p className="text-xs text-muted-foreground">Gasto do mês</p>
-              <p className="text-xl md:text-lg font-bold text-success mt-0.5">{formatCurrency(totalPaid)}</p>
-            </div>
+            <p className="text-[10px] md:text-xs text-muted-foreground">Gasto do mês</p>
+            <p className="text-sm md:text-lg font-bold text-success mt-0.5">{formatCurrency(totalPaid)}</p>
           </CardContent>
         </Card>
 
