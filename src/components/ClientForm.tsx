@@ -31,6 +31,7 @@ export function ClientForm({ onAdd, onClose }: Props) {
     estadoCivil: "",
     profissao: "",
     bairro: "",
+    isManager: false,
   });
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -93,6 +94,23 @@ export function ClientForm({ onAdd, onClose }: Props) {
             <div>
               <Label htmlFor="notes">Observações</Label>
               <Textarea id="notes" value={form.notes} onChange={(e) => update("notes", e.target.value)} placeholder="Notas sobre o cliente..." rows={2} />
+            </div>
+
+            {/* Manager flag */}
+            <div className="border border-border rounded-lg p-4">
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="isManager"
+                  checked={form.isManager}
+                  onCheckedChange={(checked) => update("isManager", !!checked)}
+                />
+                <Label htmlFor="isManager" className="font-medium cursor-pointer">
+                  Cliente é Gerente
+                </Label>
+              </div>
+              <p className="text-xs text-muted-foreground mt-1.5 ml-6">
+                Habilita receber 10% de comissão sobre empréstimos atrelados.
+              </p>
             </div>
 
             {/* Vehicle Rental Section */}
