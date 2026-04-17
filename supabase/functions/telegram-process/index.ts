@@ -223,6 +223,18 @@ function ymd(d: Date): string {
   return d.toISOString().slice(0, 10);
 }
 
+// Returns today's date in America/Sao_Paulo as YYYY-MM-DD.
+// The Edge runtime is UTC, so toISOString() can return tomorrow after 21:00 BRT.
+function todayBR(): string {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Sao_Paulo",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date());
+  return parts; // en-CA already formats as YYYY-MM-DD
+}
+
 async function summarizeRange(
   admin: any,
   userId: string,
