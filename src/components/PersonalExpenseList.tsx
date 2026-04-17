@@ -20,6 +20,7 @@ import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
 import { personalCategories, getPersonalCategory } from "@/lib/personalExpenseCategories";
 import { Progress } from "@/components/ui/progress";
 import { usePersonalBudgets } from "@/hooks/usePersonalBudgets";
+import { isPiggyExpense } from "@/hooks/usePiggyBanks";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as ReTooltip, LineChart, Line, XAxis, YAxis, CartesianGrid, Legend } from "recharts";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -78,6 +79,7 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, readOn
     const byMonth: Record<string, Record<string, number>> = {};
     months.forEach((m) => (byMonth[m.key] = {}));
     expenses.forEach((e) => {
+      if (isPiggyExpense(e.notes)) return; // Cofrinho transfers are not spending
       const mk = e.dueDate.slice(0, 7);
       if (!monthSet.has(mk)) return;
       const amt = e.type === "recorrente" && e.installments && e.installments > 1
@@ -107,11 +109,13 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, readOn
 
   const isRecFullyPaid = (e: Expense) =>
     e.type === "recorrente" && !!e.installments && e.installments > 1 && e.paid;
+  // Cofrinho expenses (savings transfers) stay in the list but must NOT count as monthly spending.
   const visibleMonth = monthFiltered.filter((e) => !isRecFullyPaid(e));
+  const spendingMonth = visibleMonth.filter((e) => !isPiggyExpense(e.notes));
 
-  const totalPending = visibleMonth.filter((e) => !e.paid).reduce((s, e) => s + getInstallmentAmount(e), 0);
-  const totalPaid = visibleMonth.reduce((s, e) => s + getInstallmentAmount(e), 0);
-  const totalOverdue = visibleMonth.filter(isOverdue).reduce((s, e) => s + getInstallmentAmount(e), 0);
+  const totalPending = spendingMonth.filter((e) => !e.paid).reduce((s, e) => s + getInstallmentAmount(e), 0);
+  const totalPaid = spendingMonth.reduce((s, e) => s + getInstallmentAmount(e), 0);
+  const totalOverdue = spendingMonth.filter(isOverdue).reduce((s, e) => s + getInstallmentAmount(e), 0);
 
   // Daily average + projection — only meaningful for current month
   const [selYear, selMonthNum] = selectedMonth.split("-").map(Number);
@@ -121,10 +125,10 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, readOn
   const dailyAverage = dayOfMonth > 0 ? totalPaid / dayOfMonth : 0;
   const projection = isCurrentMonth ? totalPaid + dailyAverage * (daysInMonth - dayOfMonth) : totalPaid;
 
-  // Category breakdown (paid only)
+  // Category breakdown (paid only, excluding cofrinho transfers)
   const categoryData = useMemo(() => {
     const map = new Map<string, number>();
-    visibleMonth.filter((e) => e.paid).forEach((e) => {
+    spendingMonth.filter((e) => e.paid).forEach((e) => {
       map.set(e.category, (map.get(e.category) || 0) + getInstallmentAmount(e));
     });
     const arr = [...map.entries()]
@@ -134,18 +138,18 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, readOn
     const top = arr.slice(0, 5);
     const rest = arr.slice(5).reduce((s, it) => s + it.value, 0);
     return [...top, { name: "Outros", value: rest, cat: getPersonalCategory("Outros") }];
-  }, [visibleMonth, getInstallmentAmount]);
+  }, [spendingMonth, getInstallmentAmount]);
 
   const totalCategorized = categoryData.reduce((s, it) => s + it.value, 0);
 
-  // Spend per category (paid only) — used by budget progress
+  // Spend per category (paid only, excluding cofrinho) — used by budget progress
   const spentByCategory = useMemo(() => {
     const map = new Map<string, number>();
-    visibleMonth.filter((e) => e.paid).forEach((e) => {
+    spendingMonth.filter((e) => e.paid).forEach((e) => {
       map.set(e.category, (map.get(e.category) || 0) + getInstallmentAmount(e));
     });
     return map;
-  }, [visibleMonth, getInstallmentAmount]);
+  }, [spendingMonth, getInstallmentAmount]);
 
   const totalBudget = budgets.reduce((s, b) => s + b.amount, 0);
   const totalSpentBudgeted = budgets.reduce((s, b) => s + (spentByCategory.get(b.category) || 0), 0);

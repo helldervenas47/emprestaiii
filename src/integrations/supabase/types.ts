@@ -568,6 +568,84 @@ export type Database = {
         }
         Relationships: []
       }
+      piggy_bank_deposits: {
+        Row: {
+          amount: number
+          created_at: string
+          deposit_date: string
+          expense_id: string | null
+          id: string
+          piggy_bank_id: string
+          user_id: string
+        }
+        Insert: {
+          amount?: number
+          created_at?: string
+          deposit_date: string
+          expense_id?: string | null
+          id?: string
+          piggy_bank_id: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          deposit_date?: string
+          expense_id?: string | null
+          id?: string
+          piggy_bank_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "piggy_bank_deposits_expense_id_fkey"
+            columns: ["expense_id"]
+            isOneToOne: false
+            referencedRelation: "expenses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "piggy_bank_deposits_piggy_bank_id_fkey"
+            columns: ["piggy_bank_id"]
+            isOneToOne: false
+            referencedRelation: "piggy_banks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      piggy_banks: {
+        Row: {
+          annual_rate: number
+          color: string
+          created_at: string
+          icon: string
+          id: string
+          name: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          annual_rate?: number
+          color?: string
+          created_at?: string
+          icon?: string
+          id?: string
+          name: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          annual_rate?: number
+          color?: string
+          created_at?: string
+          icon?: string
+          id?: string
+          name?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       plans: {
         Row: {
           active: boolean
