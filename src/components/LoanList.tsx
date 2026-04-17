@@ -1956,6 +1956,7 @@ function ClientFolder({
   const [open, setOpen] = useState(false);
   const activeCount = group.loans.filter((l) => l.status !== "paid").length;
   const paidCount = group.loans.filter((l) => l.status === "paid").length;
+  const managerCount = group.loans.filter((l) => l.hasManager).length;
 
   return (
     <Card no3d className={`overflow-hidden transition-shadow hover:shadow-lg ${open ? "ring-1 ring-primary/20" : ""} ${group.hasOverdue ? "border-destructive/40" : ""}`}>
@@ -1967,9 +1968,14 @@ function ClientFolder({
           {group.name.charAt(0).toUpperCase()}
         </div>
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <h3 className="font-bold text-foreground text-sm truncate">{group.name}</h3>
             {group.hasOverdue && <Badge className="bg-destructive/10 text-destructive border-destructive/20 text-[10px]">Atrasado</Badge>}
+            {managerCount > 0 && (
+              <Badge variant="outline" className="bg-accent/15 text-accent-foreground border-accent/40 text-[10px] gap-0.5">
+                <UserCog className="h-2.5 w-2.5" />{managerCount === group.loans.length ? "Com gerente" : `${managerCount} c/ gerente`}
+              </Badge>
+            )}
           </div>
           <div className="flex items-center gap-1.5 mt-0.5">
             <Badge variant="outline" className="text-[10px]">{group.loans.length}</Badge>
