@@ -658,7 +658,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
 
       {/* Account balance + Interest rate + Profit */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <Card className="animate-fade-in" style={{ animationDelay: '80ms', animationFillMode: 'backwards' }}>
+        <Card no3d className="animate-fade-in" style={{ animationDelay: '80ms', animationFillMode: 'backwards' }}>
           <CardContent className="p-4 h-full relative flex flex-col">
             {!editingBalance && (
               <Button variant="ghost" size="icon" className="h-7 w-7 absolute top-1 left-1 z-10" onClick={startEditBalance}>
@@ -702,7 +702,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
           </CardContent>
         </Card>
 
-        <Card className="animate-fade-in cursor-pointer" style={{ animationDelay: '160ms', animationFillMode: 'backwards' }} onClick={() => setExpandedBreakdown(expandedBreakdown === "interest-rate" ? null : "interest-rate")}>
+        <Card no3d className="animate-fade-in cursor-pointer" style={{ animationDelay: '160ms', animationFillMode: 'backwards' }} onClick={() => setExpandedBreakdown(expandedBreakdown === "interest-rate" ? null : "interest-rate")}>
           <CardContent className="p-4 h-full relative flex flex-col">
             <div className="flex items-center gap-3">
               <div className="h-10 w-10 rounded-full bg-warning/10 flex items-center justify-center shrink-0">
@@ -805,7 +805,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
         </Card>
 
         {/* Profit Card */}
-        <Card className="animate-fade-in" style={{ animationDelay: '240ms', animationFillMode: 'backwards' }}>
+        <Card no3d className="animate-fade-in" style={{ animationDelay: '240ms', animationFillMode: 'backwards' }}>
           <CardContent className="p-4">
             <div className="flex items-center gap-3 mb-3">
               <div className="h-10 w-10 rounded-full bg-success/10 flex items-center justify-center shrink-0">
@@ -917,7 +917,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
             {/* Desktop: all 7 in one row */}
             <div className="hidden lg:grid lg:grid-cols-7 gap-2">
               {items.map((item) => (
-                <Card key={item.label} className={item.onClick ? "cursor-pointer hover:bg-accent/50 transition-colors" : ""} onClick={item.onClick}>
+                <Card no3d key={item.label} className={item.onClick ? "cursor-pointer hover:bg-accent/50 transition-colors" : ""} onClick={item.onClick}>
                   <CardContent className="p-3 flex flex-col items-center text-center relative">
                     {item.onClick && <Eye className="h-3 w-3 text-muted-foreground absolute top-2 right-2" />}
                     <div className={`h-6 w-6 rounded-md ${item.iconBg} flex items-center justify-center mb-1.5`}>
@@ -932,7 +932,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
 
             {/* Tablet (sm-lg): Pendente full width on top, then 2 rows of 3 */}
             <div className="hidden sm:grid lg:hidden gap-2">
-              <Card>
+              <Card no3d>
                 <CardContent className="p-4 flex flex-col items-center text-center">
                   <div className={`h-8 w-8 rounded-lg ${pendingCard.iconBg} flex items-center justify-center mb-2`}>
                     <DollarSign className={`h-4 w-4 ${pendingCard.iconColor}`} />
@@ -943,7 +943,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
               </Card>
               <div className="grid grid-cols-3 gap-2">
                 {otherCards.slice(0, 3).map((item) => (
-                  <Card key={item.label} className={item.onClick ? "cursor-pointer hover:bg-accent/50 transition-colors" : ""} onClick={item.onClick}>
+                  <Card no3d key={item.label} className={item.onClick ? "cursor-pointer hover:bg-accent/50 transition-colors" : ""} onClick={item.onClick}>
                     <CardContent className="p-3 sm:p-4 flex flex-col items-center text-center relative">
                       {item.onClick && <Eye className="h-3 w-3 text-muted-foreground absolute top-2 right-2" />}
                       <div className={`h-8 w-8 rounded-lg ${item.iconBg} flex items-center justify-center mb-2`}>
@@ -957,7 +957,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
               </div>
               <div className="grid grid-cols-3 gap-2">
                 {otherCards.slice(3, 6).map((item) => (
-                  <Card key={item.label} className={item.onClick ? "cursor-pointer hover:bg-accent/50 transition-colors" : ""} onClick={item.onClick}>
+                  <Card no3d key={item.label} className={item.onClick ? "cursor-pointer hover:bg-accent/50 transition-colors" : ""} onClick={item.onClick}>
                     <CardContent className="p-3 sm:p-4 flex flex-col items-center text-center relative">
                       {item.onClick && <Eye className="h-3 w-3 text-muted-foreground absolute top-2 right-2" />}
                       <div className={`h-8 w-8 rounded-lg ${item.iconBg} flex items-center justify-center mb-2`}>
@@ -973,7 +973,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
 
             {/* Mobile: Pendente full width on top, then 3 rows of 2 */}
             <div className="grid sm:hidden gap-2">
-              <Card>
+              <Card no3d>
                 <CardContent className="p-3 flex flex-col items-center text-center">
                   <div className={`h-8 w-8 rounded-lg ${pendingCard.iconBg} flex items-center justify-center mb-2`}>
                     <DollarSign className={`h-4 w-4 ${pendingCard.iconColor}`} />
@@ -984,7 +984,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
               </Card>
               <div className="grid grid-cols-2 gap-2">
                 {otherCards.slice(0, 2).map((item) => (
-                  <Card key={item.label} className={item.onClick ? "cursor-pointer hover:bg-accent/50 transition-colors" : ""} onClick={item.onClick}>
+                  <Card no3d key={item.label} className={item.onClick ? "cursor-pointer hover:bg-accent/50 transition-colors" : ""} onClick={item.onClick}>
                     <CardContent className="p-3 flex flex-col items-center text-center relative">
                       {item.onClick && <Eye className="h-3 w-3 text-muted-foreground absolute top-2 right-2" />}
                       <div className={`h-8 w-8 rounded-lg ${item.iconBg} flex items-center justify-center mb-2`}>
@@ -998,7 +998,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
               </div>
               <div className="grid grid-cols-2 gap-2">
                 {otherCards.slice(2, 4).map((item) => (
-                  <Card key={item.label} className={item.onClick ? "cursor-pointer hover:bg-accent/50 transition-colors" : ""} onClick={item.onClick}>
+                  <Card no3d key={item.label} className={item.onClick ? "cursor-pointer hover:bg-accent/50 transition-colors" : ""} onClick={item.onClick}>
                     <CardContent className="p-3 flex flex-col items-center text-center relative">
                       {item.onClick && <Eye className="h-3 w-3 text-muted-foreground absolute top-2 right-2" />}
                       <div className={`h-8 w-8 rounded-lg ${item.iconBg} flex items-center justify-center mb-2`}>
@@ -1012,7 +1012,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
               </div>
               <div className="grid grid-cols-2 gap-2">
                 {otherCards.slice(4, 6).map((item) => (
-                  <Card key={item.label} className={item.onClick ? "cursor-pointer hover:bg-accent/50 transition-colors" : ""} onClick={item.onClick}>
+                  <Card no3d key={item.label} className={item.onClick ? "cursor-pointer hover:bg-accent/50 transition-colors" : ""} onClick={item.onClick}>
                     <CardContent className="p-3 flex flex-col items-center text-center relative">
                       {item.onClick && <Eye className="h-3 w-3 text-muted-foreground absolute top-2 right-2" />}
                       <div className={`h-8 w-8 rounded-lg ${item.iconBg} flex items-center justify-center mb-2`}>
@@ -1030,7 +1030,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
       })()}
 
       {/* Health Score Gauge */}
-      <Card>
+      <Card no3d>
         <CardContent className="p-4 sm:p-6">
           <h3 className="text-sm font-semibold text-foreground mb-4">Saúde da Operação</h3>
           <div className="flex flex-col items-center gap-4 sm:flex-row sm:gap-6">
@@ -1051,7 +1051,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
             </div>
             {/* Metrics */}
             <div className="flex-1 grid grid-cols-2 gap-2 sm:gap-4 w-full">
-              <Card className={`bg-gradient-to-br ${healthBg} border-0`}>
+              <Card no3d className={`bg-gradient-to-br ${healthBg} border-0`}>
                 <CardContent className="p-3 sm:p-4">
                   <p className="text-[10px] sm:text-xs text-muted-foreground">Taxa de Recebimento</p>
                   <p className={`text-base sm:text-xl font-bold ${portfolio.receivingRate >= 70 ? "text-success" : portfolio.receivingRate >= 40 ? "text-warning" : "text-destructive"}`}>
@@ -1059,7 +1059,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
                   </p>
                 </CardContent>
               </Card>
-              <Card className={`bg-gradient-to-br ${portfolio.defaultRate <= 20 ? "from-success/20 to-success/5" : portfolio.defaultRate <= 50 ? "from-warning/20 to-warning/5" : "from-destructive/20 to-destructive/5"} border-0`}>
+              <Card no3d className={`bg-gradient-to-br ${portfolio.defaultRate <= 20 ? "from-success/20 to-success/5" : portfolio.defaultRate <= 50 ? "from-warning/20 to-warning/5" : "from-destructive/20 to-destructive/5"} border-0`}>
                 <CardContent className="p-3 sm:p-4">
                   <p className="text-[10px] sm:text-xs text-muted-foreground">Inadimplência</p>
                   <p className={`text-base sm:text-xl font-bold ${portfolio.defaultRate <= 20 ? "text-success" : portfolio.defaultRate <= 50 ? "text-warning" : "text-destructive"}`}>
@@ -1067,13 +1067,13 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
                   </p>
                 </CardContent>
               </Card>
-              <Card className="border-0 bg-gradient-to-br from-success/10 to-success/5">
+              <Card no3d className="border-0 bg-gradient-to-br from-success/10 to-success/5">
                 <CardContent className="p-3 sm:p-4">
                   <p className="text-[10px] sm:text-xs text-muted-foreground">Recebido</p>
                   <p className="text-base sm:text-xl font-bold text-success">{formatCurrency(portfolio.totalReceived)}</p>
                 </CardContent>
               </Card>
-              <Card className="border-0 bg-gradient-to-br from-destructive/10 to-destructive/5 cursor-pointer transition-all duration-300" onClick={() => setExpandedBreakdown(expandedBreakdown === "overdue" ? null : "overdue")}>
+              <Card no3d className="border-0 bg-gradient-to-br from-destructive/10 to-destructive/5 cursor-pointer transition-all duration-300" onClick={() => setExpandedBreakdown(expandedBreakdown === "overdue" ? null : "overdue")}>
                 <CardContent className="p-3 sm:p-4">
                   <div className="flex items-center justify-between">
                     <p className="text-[10px] sm:text-xs text-muted-foreground">Atrasado</p>
@@ -1121,7 +1121,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
 
       {/* Manager Commissions Chart - isolated, view-only */}
       <ManagerCommissionsChart clients={clients} loans={loans} installmentSchedules={installmentSchedules} payments={payments} range={{ start: range.start, end: range.end }} rangeLabel={range.label} />
-      <Card>
+      <Card no3d>
         <CardContent className="p-6">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-sm font-semibold text-foreground">Histórico Mensal (Últimos 12 Meses)</h3>
@@ -1206,7 +1206,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
       </Card>
 
       {/* Interest Received Monthly Chart */}
-      <Card>
+      <Card no3d>
         <CardContent className="p-6">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-sm font-semibold text-foreground">Juros Recebidos por Mês (Últimos 12 Meses)</h3>
@@ -1274,7 +1274,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
 
       {/* Breakdown */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <Card>
+        <Card no3d>
           <CardContent className="p-5">
             <h3 className="text-sm font-semibold text-foreground mb-3">Detalhamento de Entradas</h3>
             <div className="space-y-1">
@@ -1333,7 +1333,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
             </div>
           </CardContent>
         </Card>
-        <Card>
+        <Card no3d>
           <CardContent className="p-5">
             <h3 className="text-sm font-semibold text-foreground mb-3">Detalhamento de Saídas</h3>
             <div className="space-y-1">
@@ -1389,7 +1389,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
       </div>
 
       {/* Monthly transactions */}
-      <Card>
+      <Card no3d>
         <CardContent className="p-5">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-4">
             <h3 className="text-sm font-semibold text-foreground">Movimentações — {range.label}</h3>

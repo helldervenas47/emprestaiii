@@ -201,7 +201,7 @@ export function ManagerCommissionsChart({
   const totalGeneral = totalPaid + totalProjected;
 
   return (
-    <Card>
+    <Card no3d>
       <CardContent className="p-3 sm:p-6">
         <div className="flex flex-col items-center text-center gap-3 mb-4 sm:flex-row sm:items-center sm:justify-between sm:text-left sm:gap-4">
           <div className="flex items-center gap-2">
