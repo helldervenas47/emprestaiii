@@ -1,68 +1,61 @@
 
+O usuário pergunta se dá pra acelerar a integração Telegram ↔ app. Hoje o fluxo é: cron a cada 1min → `telegram-poll` faz long polling até 55s → grava em `telegram_messages` → `telegram-process` lê e responde.
 
-## Objetivo
-Adicionar um botão **"✏️ Editar valor"** ao keyboard de cada despesa registrada via Telegram. Ao clicar, o bot pede o novo valor por mensagem; a próxima mensagem numérica do usuário atualiza o valor da despesa.
+Latência típica atual: **0–55s** para receber, mais alguns segundos para processar/responder. Pior caso ~60s. Vamos atacar onde realmente dá ganho.
 
-## Como funciona
+## Onde está a latência hoje
 
-1. Novo botão no `buildExpenseKeyboard`: `[✏️ Editar valor] [📂 Mudar categoria] [🗑️ Apagar]` (3 botões em linha — cabe bem).
-2. Clique em `✏️ Editar valor` (`callback_data: edit:<expenseId>`):
-   - `answerCallbackQuery` com toast "Envie o novo valor".
-   - Cria/atualiza um registro em nova tabela `telegram_pending_edits` com `(chat_id, expense_id, message_id, expires_at)` (TTL 5min).
-   - Edita a mensagem original adicionando `_✏️ Aguardando novo valor..._` (sem keyboard, para não confundir).
-3. Próxima mensagem do chat:
-   - **Antes** do parser AI normal de despesa: verificar se há `telegram_pending_edits` ativo (não expirado) para esse `chat_id`.
-   - Se sim: tenta parsear o texto como número (regex `^\s*R?\$?\s*([\d.,]+)\s*$` aceita `45`, `45,90`, `R$ 45.90`, `1.234,56`).
-   - Se número válido: `update expenses set amount=? where id=? and user_id=?`, deletar o `pending_edit`, editar mensagem original com novo valor + restaurar keyboard, enviar reply curto "✅ Valor atualizado". Disparar `checkBudgetAndAlert`.
-   - Se não for número válido: enviar "❌ Não entendi o valor. Envie só o número (ex: `45,90`) ou `/cancelar` para sair." (não consome o pending — usuário pode tentar de novo). Se enviar `/cancelar`, deleta pending e responde "✏️ Edição cancelada."
-4. Pendings expirados (>5min) são ignorados e limpos no fluxo.
-
-## Mudanças
-
-### 1. Migração SQL — nova tabela `telegram_pending_edits`
-```sql
-create table public.telegram_pending_edits (
-  chat_id bigint primary key,
-  expense_id uuid not null,
-  user_id uuid not null,
-  message_id bigint not null,
-  expires_at timestamptz not null default now() + interval '5 minutes',
-  created_at timestamptz not null default now()
-);
-alter table public.telegram_pending_edits enable row level security;
-create policy "Service role manages pending edits"
-  on public.telegram_pending_edits for all
-  using (auth.role() = 'service_role');
+```text
+mensagem do usuário no Telegram
+  └─► getUpdates long poll (0–50s de espera) 
+       └─► insert telegram_messages
+            └─► telegram-process roda (chamado como?) — verificar
+                 └─► AI parser (Lovable AI) ~1–3s
+                      └─► sendMessage de volta (~300–600ms)
 ```
 
-Chave primária `chat_id` garante que só haja 1 edição pendente por chat (clicar de novo substitui).
+Os dois maiores gargalos são (1) o long poll de até 50s e (2) o tempo do AI parser.
 
-### 2. `supabase/functions/telegram-process/index.ts`
-- `buildExpenseKeyboard(id)`: adicionar botão `✏️ Editar valor` (`edit:<id>`) — 1ª linha sozinho, 2ª linha com os outros 2, para evitar truncamento em telas pequenas.
-- Handler de callback: novo branch `data.startsWith("edit:")`:
-  - Upsert em `telegram_pending_edits` com `expires_at = now + 5min`.
-  - `tgEditMessage` com texto original + sufixo `\n\n_✏️ Aguardando novo valor..._`, sem keyboard. Como não temos o texto original facilmente, usaremos uma abordagem mais simples: enviar uma **nova mensagem** "✏️ *Editar valor*\nEnvie o novo valor (ex: `45,90`) ou `/cancelar`." e remover só o keyboard da mensagem original via `editMessageReplyMarkup` com `inline_keyboard: []`.
-- No início do loop de mensagens **texto** (após callback handler, antes do parser AI):
-  - `select * from telegram_pending_edits where chat_id = ?`
-  - Se existir e não expirado:
-    - `/cancelar` → delete pending + send "✏️ Edição cancelada." + restaurar keyboard original via `editMessageReplyMarkup` (precisamos do `expense_id` que está no pending) + `continue`.
-    - Senão tentar parse numérico. Se válido → update expense amount, delete pending, editar a mensagem original (`message_id` do pending) substituindo só o keyboard de volta + tgSend "✅ Valor atualizado para *R$ X*", `checkBudgetAndAlert`. `continue`.
-    - Se inválido → tgSend "❌ Não entendi o valor..." e **continue** (não processa como despesa nova).
-  - Se expirado → delete pending e segue fluxo normal.
-- Helper `parseAmount(text)`: regex + conversão pt-BR (`.` milhar, `,` decimal). Retorna `number | null`.
+## Plano de otimização (3 níveis, escolha quanto quer aplicar)
+
+### Nível 1 — Ganho grande, esforço baixo (recomendado)
+1. **Cron de 1min → cada 30s** efetivos: agendar **2 jobs pg_cron** com offset (um em `* * * * *`, outro em `* * * * *` mas com `pg_sleep(30)` antes do `net.http_post`). Como o `telegram-poll` já roda 55s, os dois jobs se intercalam e cobrem o gap de ~5s entre invocações → latência média cai de ~27s para ~14s, pior caso de 60s para ~32s.
+2. **Disparar `telegram-process` imediatamente após inserts**: hoje (presumido) ele roda em cron separado ou é chamado dentro do poll. Mudar `telegram-poll` para, ao final de cada batch com mensagens, chamar `telegram-process` via `fetch` direto (fire-and-forget) em vez de esperar próximo cron. Economiza até 60s no processamento.
+3. **Reduzir `allowed_updates`** já está OK (`['message']`), mas **adicionar** `callback_query` se a edição de despesa via botão usa callback — assim cliques em botões também chegam rápido.
+
+**Resultado esperado:** latência média de resposta cai de ~30–60s para **~5–15s**.
+
+### Nível 2 — Ganho médio, esforço médio
+4. **Trocar AI parser por regex-first**: hoje toda mensagem vai pro Lovable AI (~1–3s + custo). Adicionar um pré-parser regex para formatos comuns (`"45 mercado"`, `"R$ 12,50 uber"`, `/saldo`, `/resumo`) e só cair no AI se regex falhar. Economiza 1–3s na maioria das mensagens + reduz custo de tokens.
+5. **Cache de chat→user_id em memória do edge** (Map com TTL) — evita 1 query Supabase por mensagem.
+
+### Nível 3 — Ganho máximo, esforço alto (provavelmente não vale)
+6. **Substituir polling por webhook**: webhooks Telegram → Edge Function dariam latência **<1s**, mas o connector gateway atual da Lovable **não suporta webhooks** (documentado). Inviável sem trocar a forma de conectar (sair do connector e usar bot token direto), o que perderia a gestão automática de credenciais. **Não recomendo agora.**
+
+## O que vou fazer (se aprovar nível 1+2)
+
+**Migrações SQL:**
+- Atualizar o cron `poll-telegram-updates` para 2 jobs com offset de 30s usando `pg_sleep`.
+- (Sem mudança de schema — apenas cron.)
+
+**Edge `telegram-poll/index.ts`:**
+- Adicionar `callback_query` em `allowed_updates`.
+- Após cada batch com mensagens, fazer `fetch(...telegram-process, { method: 'POST' })` sem `await` (fire-and-forget) para acionamento imediato.
+
+**Edge `telegram-process/index.ts`:**
+- Adicionar pré-parser regex para padrões `<valor> <descrição>` antes de chamar Lovable AI.
+- Cache em memória `Map<chat_id, {user_id, expires}>` para o lookup de vínculo (TTL 5min).
 
 ## Detalhes técnicos
-- `callback_data` `edit:<uuid>` = ~41 bytes, OK.
-- Não precisamos editar o texto original da mensagem (mantém histórico legível); só removemos/recolocamos o keyboard.
-- Idempotência: PK em `chat_id` garante upsert simples; clicar 2x em editar substitui o pending sem erro.
-- Limite por chat: só uma edição pendente por vez (suficiente — usuário não está editando 2 despesas ao mesmo tempo no chat).
-- TTL 5min: se usuário esqueceu, próxima mensagem volta a ser tratada como despesa nova.
-
-## Sem alterações
-- Schema das outras tabelas, UI do app, fluxo de orçamento, outros comandos.
+- O segundo cron com `pg_sleep(30)` é seguro porque `pg_cron` executa em workers separados; não bloqueia o primeiro.
+- Fire-and-forget no Deno: `fetch(url).catch(console.error)` sem `await` — Deno mantém a request viva enquanto a function principal não retorna; ideal é usar `EdgeRuntime.waitUntil(fetch(...))` se disponível, com fallback `void fetch(...)`.
+- Regex parser: `/^\s*(R?\$?\s*[\d.,]+)\s+(.+)$/i` cobre ~70% das despesas digitadas; resto vai pro AI normalmente.
+- Cache em memória de Edge Function é per-isolate; em alta concorrência cada isolate tem o próprio cache, o que é OK (é só um speedup).
 
 ## Fora de escopo
-- Editar descrição/data/categoria via texto (categoria já tem botão dedicado).
-- Histórico de edições.
-- Múltiplas edições simultâneas no mesmo chat.
+- Webhook real (limitação do gateway).
+- Mudar para outro provedor de Telegram.
+- Reescrever o pipeline inteiro.
 
+## Pergunta antes de implementar
+Quer aplicar **só o Nível 1** (cron 30s + acionamento imediato — ganho grande, mudança mínima), ou **Nível 1 + 2** (também regex-first + cache, ganho extra de ~1–3s nas respostas)?
