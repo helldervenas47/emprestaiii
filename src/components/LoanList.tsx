@@ -763,6 +763,11 @@ function LoanCardView({
             <Badge variant="outline" className="text-xs bg-primary/10 text-primary border-primary/20 uppercase">
               {loan.interestType}
             </Badge>
+            {loan.hasManager && (
+              <Badge variant="outline" className="text-xs bg-accent/15 text-accent-foreground border-accent/40 gap-1">
+                <UserCog className="h-3 w-3" />Com gerente
+              </Badge>
+            )}
             {daysOverdue > 0 && loan.status !== "paid" && (
               <Badge variant="outline" className="bg-destructive/10 text-destructive border-destructive/20 text-xs">
                 {daysOverdue}d atraso
