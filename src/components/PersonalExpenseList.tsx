@@ -389,7 +389,9 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, readOn
         </Card>
       )}
 
-      {afterEvolution}
+      {typeof afterEvolution === "function"
+        ? afterEvolution({ selectedMonth })
+        : afterEvolution}
 
       <div className="flex flex-col sm:flex-row gap-3">
         <div className="relative flex-1">
