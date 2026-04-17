@@ -49,7 +49,7 @@ const fmt = (v: number) =>
 const isOverdue = (e: Expense) =>
   !e.paid && e.dueDate < new Date().toISOString().split("T")[0];
 
-export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, readOnly = false, afterEvolution }: Props) {
+export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, onUpdate, readOnly = false, afterEvolution }: Props) {
   const { mask } = useHideValues();
   const formatCurrency = useCallback((v: number) => mask(fmt(v)), [mask]);
 
@@ -63,6 +63,7 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, readOn
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [payingId, setPayingId] = useState<string | null>(null);
   const [payDate, setPayDate] = useState("");
+  const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
   const [budgetEditOpen, setBudgetEditOpen] = useState(false);
   const [budgetDraft, setBudgetDraft] = useState<Record<string, string>>({});
   const { budgets, setBudget } = usePersonalBudgets();
