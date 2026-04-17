@@ -354,7 +354,7 @@ export function PersonalExpenseForm({ onAdd, onClose }: Props) {
               </div>
             )}
 
-            <Button type="submit" className="w-full" disabled={toPiggy && !piggyId}>
+            <Button type="submit" className="w-full" disabled={submitting || (toPiggy && !piggyId)}>
               <Plus className="h-4 w-4 mr-2" />
               {toPiggy ? "Aportar no cofrinho" : "Cadastrar Despesa"}
             </Button>
