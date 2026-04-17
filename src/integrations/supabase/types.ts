@@ -183,6 +183,7 @@ export type Database = {
       }
       credit_cards: {
         Row: {
+          active: boolean
           bank: string
           brand: string
           closing_day: number
@@ -196,6 +197,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          active?: boolean
           bank: string
           brand?: string
           closing_day?: number
@@ -209,6 +211,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          active?: boolean
           bank?: string
           brand?: string
           closing_day?: number

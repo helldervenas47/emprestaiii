@@ -4,6 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import { X, Plus } from "lucide-react";
 import { BANKS, BRANDS } from "@/lib/creditCardBanks";
 import { CreditCard, CreditCardInput } from "@/hooks/useCreditCards";
@@ -24,6 +25,7 @@ export function CreditCardForm({ initial, onSave, onClose }: Props) {
     creditLimit: initial?.creditLimit ?? 0,
     closingDay: initial?.closingDay ?? 1,
     dueDay: initial?.dueDay ?? 10,
+    active: initial?.active ?? true,
   });
 
   useEffect(() => {
@@ -36,6 +38,7 @@ export function CreditCardForm({ initial, onSave, onClose }: Props) {
         creditLimit: initial.creditLimit,
         closingDay: initial.closingDay,
         dueDay: initial.dueDay,
+        active: initial.active ?? true,
       });
     }
   }, [initial]);
@@ -178,6 +181,24 @@ export function CreditCardForm({ initial, onSave, onClose }: Props) {
                 />
               </div>
             </div>
+
+            {initial && (
+              <div className="flex items-center justify-between rounded-md border p-3">
+                <div>
+                  <Label htmlFor="active" className="text-sm font-medium">
+                    Cartão ativo
+                  </Label>
+                  <p className="text-xs text-muted-foreground">
+                    Cartões inativos ficam ocultos das listagens
+                  </p>
+                </div>
+                <Switch
+                  id="active"
+                  checked={form.active ?? true}
+                  onCheckedChange={(v) => update("active", v)}
+                />
+              </div>
+            )}
 
             <Button type="submit" className="w-full">
               <Plus className="h-4 w-4 mr-2" />
