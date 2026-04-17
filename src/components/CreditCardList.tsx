@@ -199,10 +199,12 @@ function MiniCreditCard({
 export function CreditCardList({ readOnly = false }: Props) {
   const { cards, loading, addCard, updateCard, deleteCard } = useCreditCards();
   const { expenses } = useExpenses();
+  const { getOpening, upsertOpening } = useCreditCardOpenings();
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<CreditCard | null>(null);
   const [deleting, setDeleting] = useState<CreditCard | null>(null);
   const [invoiceCard, setInvoiceCard] = useState<CreditCard | null>(null);
+  const [openingCard, setOpeningCard] = useState<CreditCard | null>(null);
 
   const handleNew = () => {
     setEditing(null);
@@ -214,13 +216,16 @@ export function CreditCardList({ readOnly = false }: Props) {
     setShowForm(true);
   };
 
-  // Compute current invoice total per card
+  // Compute current invoice total per card (transactions + opening)
   const invoiceByCard = useMemo(() => {
-    const map = new Map<string, { total: number; dueDate: Date }>();
+    const map = new Map<
+      string,
+      { transactions: number; opening: number; total: number; dueDate: Date; cycleKey: string; openingNotes: string | null; hasOpening: boolean }
+    >();
     cards.forEach((card) => {
       const cycle = getCurrentCycle(card.closingDay, card.dueDay);
       const cardTag = (card.nickname || card.lastFour || "").toLowerCase();
-      const total = expenses
+      const transactions = expenses
         .filter((e) => e.scope === "personal")
         .filter((e) => /\[\s*cr[eé]dito\s*\]/i.test(e.notes ?? ""))
         .filter((e) => {
@@ -237,11 +242,33 @@ export function CreditCardList({ readOnly = false }: Props) {
           const isRec = e.type === "recorrente" && e.installments && e.installments > 1;
           return s + (isRec ? e.amount / e.installments! : e.amount);
         }, 0);
-      map.set(card.id, { total, dueDate: cycle.dueDate });
+      const cycleKey = cycleKeyFromDate(cycle.to);
+      const op = getOpening(card.id, cycleKey);
+      const opening = op?.openingAmount ?? 0;
+      map.set(card.id, {
+        transactions,
+        opening,
+        total: transactions + opening,
+        dueDate: cycle.dueDate,
+        cycleKey,
+        openingNotes: op?.notes ?? null,
+        hasOpening: !!op,
+      });
     });
     return map;
-  }, [cards, expenses]);
+  }, [cards, expenses, getOpening]);
 
+  const openingDialogData = useMemo(() => {
+    if (!openingCard) return null;
+    const inv = invoiceByCard.get(openingCard.id);
+    if (!inv) return null;
+    return {
+      cycleKey: inv.cycleKey,
+      cycleLabel: format(inv.dueDate, "MMMM/yy", { locale: ptBR }),
+      initialAmount: inv.opening,
+      initialNotes: inv.openingNotes,
+    };
+  }, [openingCard, invoiceByCard]);
 
   return (
     <div>
@@ -272,18 +299,26 @@ export function CreditCardList({ readOnly = false }: Props) {
         <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 lg:grid-cols-4">
           {cards.map((card) => {
             const inv = invoiceByCard.get(card.id) ?? {
+              transactions: 0,
+              opening: 0,
               total: 0,
               dueDate: getCurrentCycle(card.closingDay, card.dueDay).dueDate,
+              cycleKey: "",
+              openingNotes: null,
+              hasOpening: false,
             };
             return (
               <MiniCreditCard
                 key={card.id}
                 card={card}
                 invoiceTotal={inv.total}
+                openingAmount={inv.opening}
+                hasOpening={inv.hasOpening}
                 dueDate={inv.dueDate}
                 onClick={() => setInvoiceCard(card)}
                 onEdit={readOnly ? undefined : () => handleEdit(card)}
                 onDelete={readOnly ? undefined : () => setDeleting(card)}
+                onAddOpening={readOnly ? undefined : () => setOpeningCard(card)}
                 readOnly={readOnly}
               />
             );
@@ -308,6 +343,20 @@ export function CreditCardList({ readOnly = false }: Props) {
         <CreditCardInvoice
           card={invoiceCard}
           onClose={() => setInvoiceCard(null)}
+        />
+      )}
+
+      {openingCard && openingDialogData && (
+        <CreditCardOpeningDialog
+          open={!!openingCard}
+          onOpenChange={(o) => !o && setOpeningCard(null)}
+          cardName={openingCard.nickname || getBank(openingCard.bank).name}
+          cycleLabel={openingDialogData.cycleLabel}
+          initialAmount={openingDialogData.initialAmount}
+          initialNotes={openingDialogData.initialNotes}
+          onSave={async (amount, notes) => {
+            await upsertOpening(openingCard.id, openingDialogData.cycleKey, amount, notes);
+          }}
         />
       )}
 
