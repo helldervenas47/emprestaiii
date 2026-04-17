@@ -245,8 +245,8 @@ export function ManagerCommissionsChart({
                 className="rounded-lg border border-border bg-card/50 hover:bg-card hover:border-primary/40 hover:shadow-sm transition-all p-2.5 sm:p-4 flex flex-col items-center text-center gap-2 sm:gap-3 sm:items-stretch sm:text-left cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary/40"
               >
                 <div className="flex flex-col items-center gap-1.5 sm:flex-row sm:items-center sm:gap-2">
-                  <div className="h-7 w-7 sm:h-8 sm:w-8 rounded-md bg-emerald-500/15 flex items-center justify-center shrink-0">
-                    <UserCog className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-emerald-600 dark:text-emerald-400" />
+                  <div className="h-7 w-7 sm:h-8 sm:w-8 rounded-md bg-emerald-500/25 flex items-center justify-center shrink-0">
+                    <UserCog className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-emerald-700 dark:text-emerald-300" />
                   </div>
                   <div className="min-w-0">
                     <p className="text-xs sm:text-sm font-semibold text-foreground leading-tight break-words sm:truncate" title={m.name}>
@@ -453,7 +453,7 @@ function ManagerDetailDialog({
       <DialogContent className="max-w-3xl max-h-[90vh] flex flex-col">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <UserCog className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+            <UserCog className="h-5 w-5 text-emerald-700 dark:text-emerald-300" />
             {manager?.name ?? "Gerente"}
           </DialogTitle>
           <DialogDescription>
