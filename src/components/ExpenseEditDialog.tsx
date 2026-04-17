@@ -19,6 +19,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { DatePickerField } from "@/components/ui/date-picker-field";
 import { Expense } from "@/types/loan";
 import { personalCategories } from "@/lib/personalExpenseCategories";
 import { useCreditCards } from "@/hooks/useCreditCards";
@@ -202,11 +203,11 @@ export function ExpenseEditDialog({
               />
             </div>
             <div>
-              <Label className="text-xs">Data</Label>
-              <Input
-                type="date"
+              <Label className="text-xs">Data de vencimento</Label>
+              <DatePickerField
                 value={dueDate}
-                onChange={(e) => setDueDate(e.target.value)}
+                onChange={setDueDate}
+                placeholder="Selecione a data"
               />
             </div>
           </div>
