@@ -44,6 +44,17 @@ function isOverdue(expense: Expense): boolean {
   return expense.dueDate < today;
 }
 
+type ExpenseKind = "unica" | "parcelada" | "fixa";
+const FIXED_RECURRING_INSTALLMENTS = 999;
+
+function detectKind(expense: Expense): ExpenseKind {
+  if (expense.type === "recorrente") {
+    if ((expense.installments ?? 0) >= FIXED_RECURRING_INSTALLMENTS) return "fixa";
+    if ((expense.installments ?? 0) > 1) return "parcelada";
+  }
+  return "unica";
+}
+
 function ExpenseEditDialog({ expense, open, onOpenChange, onSave, formatCurrency }: {
   expense: Expense;
   open: boolean;
@@ -51,28 +62,35 @@ function ExpenseEditDialog({ expense, open, onOpenChange, onSave, formatCurrency
   onSave: (data: Partial<Omit<Expense, "id" | "createdAt">>) => void;
   formatCurrency: (v: number) => string;
 }) {
-  const isRecorrente = expense.type === "recorrente" && expense.installments && expense.installments > 1;
-  const installmentVal = isRecorrente ? expense.amount / expense.installments! : expense.amount;
+  const initialKind = detectKind(expense);
+  const initialUnit =
+    initialKind === "parcelada" ? expense.amount / (expense.installments || 1) :
+    initialKind === "fixa" ? expense.amount / FIXED_RECURRING_INSTALLMENTS :
+    expense.amount;
+
   const [form, setForm] = useState({
     description: expense.description,
-    amount: String(installmentVal),
-    type: expense.type as "fixa" | "recorrente",
+    amount: String(initialUnit),
+    kind: initialKind as ExpenseKind,
     category: expense.category,
-    installments: String(expense.installments || 1),
+    installments: String(expense.installments && expense.installments < FIXED_RECURRING_INSTALLMENTS ? expense.installments : 1),
     dueDate: expense.dueDate,
     notes: expense.notes || "",
   });
 
   useEffect(() => {
     if (open) {
-      const isRec = expense.type === "recorrente" && expense.installments && expense.installments > 1;
-      const instVal = isRec ? expense.amount / expense.installments! : expense.amount;
+      const k = detectKind(expense);
+      const unit =
+        k === "parcelada" ? expense.amount / (expense.installments || 1) :
+        k === "fixa" ? expense.amount / FIXED_RECURRING_INSTALLMENTS :
+        expense.amount;
       setForm({
         description: expense.description,
-        amount: String(instVal),
-        type: expense.type as "fixa" | "recorrente",
+        amount: String(unit),
+        kind: k,
         category: expense.category,
-        installments: String(expense.installments || 1),
+        installments: String(expense.installments && expense.installments < FIXED_RECURRING_INSTALLMENTS ? expense.installments : 1),
         dueDate: expense.dueDate,
         notes: expense.notes || "",
       });
@@ -82,20 +100,47 @@ function ExpenseEditDialog({ expense, open, onOpenChange, onSave, formatCurrency
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const parsedAmount = parseFloat(form.amount) || 0;
-    const installments = form.type === "recorrente" ? parseInt(form.installments) || 1 : 1;
-    const totalAmount = form.type === "recorrente" ? parsedAmount * installments : parsedAmount;
-    onSave({
-      description: form.description,
-      amount: totalAmount,
-      type: form.type,
-      category: form.category,
-      installments: form.type === "recorrente" ? installments : undefined,
-      dueDate: form.dueDate,
-      notes: form.notes || undefined,
-    });
+    let patch: Partial<Omit<Expense, "id" | "createdAt">>;
+    if (form.kind === "parcelada") {
+      const inst = Math.max(1, parseInt(form.installments) || 1);
+      patch = {
+        description: form.description,
+        amount: parsedAmount * inst,
+        type: "recorrente",
+        category: form.category,
+        installments: inst,
+        dueDate: form.dueDate,
+        notes: form.notes || undefined,
+      };
+    } else if (form.kind === "fixa") {
+      patch = {
+        description: form.description,
+        amount: parsedAmount * FIXED_RECURRING_INSTALLMENTS,
+        type: "recorrente",
+        category: form.category,
+        installments: FIXED_RECURRING_INSTALLMENTS,
+        dueDate: form.dueDate,
+        notes: form.notes || undefined,
+      };
+    } else {
+      patch = {
+        description: form.description,
+        amount: parsedAmount,
+        type: "fixa",
+        category: form.category,
+        installments: undefined,
+        dueDate: form.dueDate,
+        notes: form.notes || undefined,
+      };
+    }
+    onSave(patch);
   };
 
   const update = (field: string, value: string) => setForm(prev => ({ ...prev, [field]: value }));
+
+  const amountLabel =
+    form.kind === "parcelada" ? "Valor da Parcela (R$)" :
+    form.kind === "fixa" ? "Valor Mensal (R$)" : "Valor (R$)";
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -111,21 +156,22 @@ function ExpenseEditDialog({ expense, open, onOpenChange, onSave, formatCurrency
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <Label htmlFor="edit-amount">{form.type === "recorrente" ? "Valor da Parcela (R$)" : "Valor (R$)"}</Label>
+              <Label htmlFor="edit-amount">{amountLabel}</Label>
               <Input id="edit-amount" type="number" step="0.01" value={form.amount} onChange={e => update("amount", e.target.value)} required />
             </div>
             <div>
               <Label>Tipo</Label>
-              <Select value={form.type} onValueChange={v => update("type", v)}>
+              <Select value={form.kind} onValueChange={v => update("kind", v)}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="fixa">Fixa</SelectItem>
-                  <SelectItem value="recorrente">Recorrente</SelectItem>
+                  <SelectItem value="unica">Única</SelectItem>
+                  <SelectItem value="parcelada">Parcelada</SelectItem>
+                  <SelectItem value="fixa">Fixa (mensal)</SelectItem>
                 </SelectContent>
               </Select>
             </div>
           </div>
-          {form.type === "recorrente" && (
+          {form.kind === "parcelada" && (
             <div>
               <Label htmlFor="edit-inst">Parcelas</Label>
               <Input id="edit-inst" type="number" min="1" value={form.installments} onChange={e => update("installments", e.target.value)} />
@@ -150,13 +196,18 @@ function ExpenseEditDialog({ expense, open, onOpenChange, onSave, formatCurrency
             <Label htmlFor="edit-notes">Observações</Label>
             <Textarea id="edit-notes" value={form.notes} onChange={e => update("notes", e.target.value)} rows={2} />
           </div>
-          {parseFloat(form.amount) > 0 && form.type === "recorrente" && parseInt(form.installments) > 1 && (
+          {parseFloat(form.amount) > 0 && form.kind === "parcelada" && parseInt(form.installments) > 1 && (
             <div className="rounded-lg bg-muted p-3">
               <p className="text-sm text-muted-foreground">
                 Valor total: <span className="font-semibold text-foreground">
                   {formatCurrency(parseFloat(form.amount) * (parseInt(form.installments) || 1))}
                 </span> ({form.installments}x de {formatCurrency(parseFloat(form.amount))})
               </p>
+            </div>
+          )}
+          {form.kind === "fixa" && (
+            <div className="rounded-lg bg-muted p-3">
+              <p className="text-sm text-muted-foreground">Despesa mensal recorrente sem prazo final.</p>
             </div>
           )}
           <DialogFooter>
@@ -168,6 +219,7 @@ function ExpenseEditDialog({ expense, open, onOpenChange, onSave, formatCurrency
     </Dialog>
   );
 }
+
 
 export function ExpenseList({ expenses, onPay, onUnpay, onDelete, onUpdate, readOnly = false }: Props) {
   const { mask } = useHideValues();
