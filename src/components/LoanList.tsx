@@ -505,7 +505,11 @@ function LoanCardView({
                 type="checkbox"
                 id={`edit-mgr-${loan.id}`}
                 checked={editHasManager}
-                onChange={(e) => setEditHasManager(e.target.checked)}
+                onChange={(e) => {
+                  const checked = e.target.checked;
+                  setEditHasManager(checked);
+                  updateField("interestRate", checked ? "20" : "30");
+                }}
                 className="h-4 w-4 rounded border-border accent-primary"
               />
               <Label htmlFor={`edit-mgr-${loan.id}`} className="text-xs font-medium cursor-pointer">
@@ -1305,7 +1309,7 @@ function LoanCardView({
 }
 
 function LoanRowView({
-  loan, payments: allPayments, installmentSchedules = [], onPayment, onPartialPayment, onFullPayment, onInterestPayment, onUpdate, onDelete, onDeletePayment, readOnly = false, existingTags = [],
+  loan, payments: allPayments, installmentSchedules = [], onPayment, onPartialPayment, onFullPayment, onInterestPayment, onUpdate, onDelete, onDeletePayment, readOnly = false, existingTags = [], clients = [],
 }: {
   loan: Loan;
   payments: Payment[];
@@ -1319,6 +1323,7 @@ function LoanRowView({
   onDeletePayment: (paymentId: string) => void;
   readOnly?: boolean;
   existingTags?: string[];
+  clients?: Client[];
 }) {
   const [expanded, setExpanded] = useState(false);
   const [editing, setEditing] = useState(false);
@@ -1333,6 +1338,10 @@ function LoanRowView({
   const [paymentDate, setPaymentDate] = useState<Date>(new Date());
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deletePaymentId, setDeletePaymentId] = useState<string | null>(null);
+  const [editHasManager, setEditHasManager] = useState<boolean>(loan.hasManager ?? false);
+  const [editManagerId, setEditManagerId] = useState<string>(loan.managerId ?? "");
+  const [editCommissionRate, setEditCommissionRate] = useState<string>(String(loan.managerCommissionRate ?? 10));
+  const managerOptions = useMemo(() => clients.filter((c) => c.isManager && c.active !== false), [clients]);
 
   const total = calculateTotalWithInterest(loan.amount, loan.interestRate, loan.installments);
   const totalPaid = getTotalPaid(loan, allPayments);
@@ -1383,7 +1392,14 @@ function LoanRowView({
   const category = getLoanCategory(loan, allPayments, installmentSchedules);
   const badge = statusMap[category];
 
-  const startEdit = () => { setForm(loanToForm(loan)); setEditing(true); setExpanded(true); };
+  const startEdit = () => {
+    setForm(loanToForm(loan));
+    setEditHasManager(loan.hasManager ?? false);
+    setEditManagerId(loan.managerId ?? "");
+    setEditCommissionRate(String(loan.managerCommissionRate ?? 10));
+    setEditing(true);
+    setExpanded(true);
+  };
   const cancelEdit = () => setEditing(false);
   const saveEdit = () => {
     const parsedTags = form.tags.split(",").map((t) => t.trim()).filter(Boolean);
@@ -1403,6 +1419,9 @@ function LoanRowView({
       tags: parsedTags,
       remainingAmount: parseFloat(form.remainingAmount) || 0,
       customInterestValue: hasCustomInterest ? manualInterest : null,
+      hasManager: editHasManager,
+      managerId: editHasManager && editManagerId ? editManagerId : null,
+      managerCommissionRate: editHasManager ? parseFloat(editCommissionRate) || 10 : null,
     });
     setEditing(false);
   };
@@ -1599,6 +1618,44 @@ function LoanRowView({
                     </SelectContent>
                   </Select>
                 </div>
+              </div>
+              {/* Manager edit block */}
+              <div className="border border-border rounded-lg p-3 space-y-2 bg-muted/20">
+                <div className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    id={`row-edit-mgr-${loan.id}`}
+                    checked={editHasManager}
+                    onChange={(e) => {
+                      const checked = e.target.checked;
+                      setEditHasManager(checked);
+                      updateField("interestRate", checked ? "20" : "30");
+                    }}
+                    className="h-4 w-4 rounded border-border accent-primary"
+                  />
+                  <Label htmlFor={`row-edit-mgr-${loan.id}`} className="text-xs font-medium cursor-pointer">
+                    Empréstimo com gerente
+                  </Label>
+                </div>
+                {editHasManager && (
+                  <div className="grid grid-cols-2 gap-2 pt-1">
+                    <div>
+                      <Label className="text-xs">Gerente</Label>
+                      <Select value={editManagerId} onValueChange={setEditManagerId}>
+                        <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Selecione" /></SelectTrigger>
+                        <SelectContent>
+                          {managerOptions.map((m) => (
+                            <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label className="text-xs">Comissão (%)</Label>
+                      <Input type="number" step="0.1" value={editCommissionRate} onChange={(e) => setEditCommissionRate(e.target.value)} className="h-8 text-xs" />
+                    </div>
+                  </div>
+                )}
               </div>
               <div><Label className="text-xs">Etiquetas (separar por vírgula)</Label><Input value={form.tags} onChange={(e) => updateField("tags", e.target.value)} className="h-8 text-sm" placeholder="Ex: VIP, Renovação, Garantia" /></div>
               <div><Label className="text-xs">Observações</Label><Textarea value={form.notes} onChange={(e) => updateField("notes", e.target.value)} rows={2} className="text-sm" /></div>
@@ -1866,7 +1923,7 @@ interface ClientGroup {
 }
 
 function ClientFolder({
-  group, payments, installmentSchedules, onPayment, onPartialPayment, onFullPayment, onInterestPayment, onUpdate, onDelete, onDeletePayment, onSaveSchedule, readOnly = false,
+  group, payments, installmentSchedules, onPayment, onPartialPayment, onFullPayment, onInterestPayment, onUpdate, onDelete, onDeletePayment, onSaveSchedule, readOnly = false, clients = [],
 }: {
   group: ClientGroup;
   payments: Payment[];
@@ -1880,6 +1937,7 @@ function ClientFolder({
   onDeletePayment: (paymentId: string) => void;
   onSaveSchedule: (loanId: string, rows: { installmentNumber: number; dueDate: string; amount: number }[]) => Promise<void>;
   readOnly?: boolean;
+  clients?: Client[];
 }) {
   const { mask } = useHideValues();
   const formatCurrency = useCallback((v: number) => mask(rawFormatCurrency(v)), [mask]);
@@ -1956,7 +2014,7 @@ function ClientFolder({
               </thead>
               <tbody>
                 {group.loans.map((loan) => (
-                  <LoanRowView key={loan.id} loan={loan} payments={payments} installmentSchedules={installmentSchedules} readOnly={readOnly} existingTags={[...new Set(group.loans.flatMap(l => l.tags || []))]}
+                  <LoanRowView key={loan.id} loan={loan} payments={payments} installmentSchedules={installmentSchedules} readOnly={readOnly} existingTags={[...new Set(group.loans.flatMap(l => l.tags || []))]} clients={clients}
                     onPayment={(date) => onPayment(loan.id, date)} onPartialPayment={(amt, date) => onPartialPayment(loan.id, amt, date)} onFullPayment={onFullPayment ? (date) => onFullPayment(loan.id, date) : undefined}
                     onInterestPayment={(date) => onInterestPayment(loan.id, date)} onUpdate={(d) => onUpdate(loan.id, d)} onDelete={() => onDelete(loan.id)} onDeletePayment={onDeletePayment} />
                 ))}
@@ -2307,7 +2365,7 @@ export function LoanList({ loans, payments, installmentSchedules, onPayment, onP
             <>
             <div className="space-y-4">
               {grouped.map((g) => (
-                <ClientFolder key={g.name} group={g} payments={payments} installmentSchedules={installmentSchedules} readOnly={readOnly}
+                <ClientFolder key={g.name} group={g} payments={payments} installmentSchedules={installmentSchedules} readOnly={readOnly} clients={clients}
                   onPayment={onPayment} onPartialPayment={onPartialPayment} onFullPayment={onFullPayment}
                   onInterestPayment={onInterestPayment} onUpdate={onUpdate} onDelete={onDelete} onDeletePayment={onDeletePayment} onSaveSchedule={onSaveSchedule} />
               ))}
@@ -2341,7 +2399,7 @@ export function LoanList({ loans, payments, installmentSchedules, onPayment, onP
                 </thead>
                 <tbody>
                   {categorized.map((loan) => (
-                    <LoanRowView key={loan.id} loan={loan} payments={payments} installmentSchedules={installmentSchedules} readOnly={readOnly} existingTags={loans.flatMap(l => l.tags || []).filter((v, i, a) => a.indexOf(v) === i)}
+                    <LoanRowView key={loan.id} loan={loan} payments={payments} installmentSchedules={installmentSchedules} readOnly={readOnly} existingTags={loans.flatMap(l => l.tags || []).filter((v, i, a) => a.indexOf(v) === i)} clients={clients}
                       onPayment={(date) => onPayment(loan.id, date)} onPartialPayment={(amt, date) => onPartialPayment(loan.id, amt, date)} onFullPayment={onFullPayment ? (date) => onFullPayment(loan.id, date) : undefined}
                       onInterestPayment={(date) => onInterestPayment(loan.id, date)} onUpdate={(d) => onUpdate(loan.id, d)} onDelete={() => onDelete(loan.id)} onDeletePayment={onDeletePayment} />
                   ))}
