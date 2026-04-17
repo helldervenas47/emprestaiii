@@ -23,9 +23,8 @@ interface Props {
 const fmt = (v: number) =>
   v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
-/** Returns the current billing cycle (from, to, dueDate) for a card. */
-function getCurrentCycle(closingDay: number, dueDay: number) {
-  const ref = new Date();
+/** Returns cycle for a reference Date (today inside the cycle window). */
+function getCycleForRef(ref: Date, closingDay: number, dueDay: number) {
   const y = ref.getFullYear();
   const m = ref.getMonth();
   const day = ref.getDate();
@@ -46,6 +45,26 @@ function getCurrentCycle(closingDay: number, dueDay: number) {
     Math.min(dueDay, new Date(dueYear, dueMonth + 1, 0).getDate())
   );
   return { from: closingPrev, to: closingNext, dueDate };
+}
+
+/** Returns the current billing cycle (from, to, dueDate) for a card. */
+function getCurrentCycle(closingDay: number, dueDay: number) {
+  return getCycleForRef(new Date(), closingDay, dueDay);
+}
+
+/** Find the cycle whose dueDate falls in the given YYYY-MM month. */
+function getCycleForDueMonth(yyyymm: string, closingDay: number, dueDay: number) {
+  const [ty, tm] = yyyymm.split("-").map(Number);
+  for (let off = -24; off <= 24; off++) {
+    const d = new Date();
+    d.setDate(1);
+    d.setMonth(d.getMonth() + off);
+    const c = getCycleForRef(d, closingDay, dueDay);
+    if (c.dueDate.getFullYear() === ty && c.dueDate.getMonth() + 1 === tm) {
+      return c;
+    }
+  }
+  return getCycleForRef(new Date(), closingDay, dueDay);
 }
 
 interface MiniCardProps {
