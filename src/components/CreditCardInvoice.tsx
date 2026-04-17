@@ -247,13 +247,13 @@ export function CreditCardInvoice({ card, onClose }: Props) {
                 return (
                   <div
                     key={e.id}
-                    className="flex items-center justify-between gap-3 p-3 rounded-lg border bg-card hover:bg-muted/30 transition-colors"
+                    className="flex items-center justify-between gap-2 p-3 rounded-lg border bg-card hover:bg-muted/30 transition-colors"
                   >
                     <div className="min-w-0 flex-1">
                       <p className="text-sm font-medium text-foreground truncate">
                         {e.description}
                       </p>
-                      <div className="flex items-center gap-2 mt-0.5">
+                      <div className="flex items-center gap-2 mt-0.5 flex-wrap">
                         <Badge variant="secondary" className="text-[10px] py-0 h-4">
                           {e.category}
                         </Badge>
@@ -267,9 +267,29 @@ export function CreditCardInvoice({ card, onClose }: Props) {
                         )}
                       </div>
                     </div>
-                    <p className="text-sm font-semibold text-foreground shrink-0">
-                      {mask(fmt(value))}
-                    </p>
+                    <div className="flex items-center gap-1 shrink-0">
+                      <p className="text-sm font-semibold text-foreground">
+                        {mask(fmt(value))}
+                      </p>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7"
+                        onClick={() => setEditingExpense(e)}
+                        aria-label="Editar lançamento"
+                      >
+                        <Pencil className="h-3.5 w-3.5" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 text-destructive hover:text-destructive"
+                        onClick={() => setDeletingExpense(e)}
+                        aria-label="Excluir lançamento"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
                   </div>
                 );
               })
@@ -291,6 +311,48 @@ export function CreditCardInvoice({ card, onClose }: Props) {
           }}
         />
       )}
+
+      <ExpenseEditDialog
+        open={!!editingExpense}
+        onOpenChange={(v) => !v && setEditingExpense(null)}
+        expense={editingExpense}
+        warning={
+          cycleOffset !== 0
+            ? cycleOffset < 0
+              ? "Esta despesa pertence a uma fatura passada."
+              : "Esta despesa pertence a uma fatura futura."
+            : null
+        }
+        onSave={async (patch) => {
+          if (!editingExpense) return;
+          await updateExpense(editingExpense.id, {
+            description: patch.description,
+            amount: patch.amount,
+            dueDate: patch.dueDate,
+            category: patch.category,
+            notes: patch.notes ?? undefined,
+          });
+          toast.success("Lançamento atualizado");
+        }}
+      />
+
+      <ConfirmDeleteDialog
+        open={!!deletingExpense}
+        onOpenChange={(v) => !v && setDeletingExpense(null)}
+        title="Excluir lançamento da fatura?"
+        description={
+          deletingExpense?.type === "recorrente" &&
+          (deletingExpense?.installments ?? 0) > 1
+            ? `Este lançamento é parcelado (${deletingExpense.installments}x). A exclusão removerá a despesa inteira de todas as faturas.`
+            : "Esta ação não pode ser desfeita."
+        }
+        onConfirm={async () => {
+          if (!deletingExpense) return;
+          await deleteExpense(deletingExpense.id);
+          toast.success("Lançamento excluído");
+          setDeletingExpense(null);
+        }}
+      />
     </div>
   );
 }
