@@ -163,9 +163,11 @@ export function ManagerCommissionsChart({
         ) : (
           <div className="grid grid-cols-2 md:grid-cols-3 gap-2 sm:gap-3">
             {data.map((m) => (
-              <div
+              <button
                 key={m.id}
-                className="rounded-lg border border-border bg-card/50 hover:bg-card transition-colors p-2.5 sm:p-4 flex flex-col items-center text-center gap-2 sm:gap-3"
+                type="button"
+                onClick={() => setSelectedManagerId(m.id)}
+                className="rounded-lg border border-border bg-card/50 hover:bg-card hover:border-primary/40 hover:shadow-sm transition-all p-2.5 sm:p-4 flex flex-col items-center text-center gap-2 sm:gap-3 cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary/40"
               >
                 <div className="flex flex-col items-center gap-1.5">
                   <div className="h-7 w-7 sm:h-8 sm:w-8 rounded-md bg-accent/15 flex items-center justify-center">
