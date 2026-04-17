@@ -210,17 +210,6 @@ export function CreditCardList({ readOnly = false }: Props) {
     return map;
   }, [cards, expenses]);
 
-  // Due-day filter options
-  const dueDayOptions = useMemo(() => {
-    const set = new Set<number>();
-    cards.forEach((c) => set.add(c.dueDay));
-    return Array.from(set).sort((a, b) => a - b);
-  }, [cards]);
-
-  const filteredCards = useMemo(() => {
-    if (dueFilter === "all") return cards;
-    return cards.filter((c) => String(c.dueDay) === dueFilter);
-  }, [cards, dueFilter]);
 
   return (
     <div>
