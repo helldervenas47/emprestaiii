@@ -99,7 +99,7 @@ export function usePiggyBanks() {
 
   const createPiggyBank = useCallback(async (data: { name: string; color?: string; icon?: string; annualRate?: number }) => {
     if (!user || !dataOwnerId) return null;
-    const { data: row, error } = await supabase.from("piggy_banks" as any).insert({
+    const { data: row, error } = await (supabase as any).from("piggy_banks").insert({
       user_id: dataOwnerId,
       name: data.name,
       color: data.color ?? "210 80% 55%",
@@ -108,7 +108,7 @@ export function usePiggyBanks() {
     }).select().single();
     if (error) { toast.error("Erro ao criar cofrinho"); return null; }
     await reload();
-    return row?.id as string;
+    return (row as any)?.id as string;
   }, [user, dataOwnerId, reload]);
 
   const updatePiggyBank = useCallback(async (id: string, patch: Partial<{ name: string; color: string; icon: string; annualRate: number }>) => {
