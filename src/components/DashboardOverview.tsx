@@ -102,8 +102,17 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
   const [includeSales, setIncludeSales] = useState(false);
   const [showInterestDetail, setShowInterestDetail] = useState(false);
   const { chartOverrides, setChartOverrides, interestOverrides, setInterestOverrides } = useChartOverrides();
+  const { getGoal } = useMonthlyGoals();
 
   const range = useMemo(() => getRange(period, offset), [period, offset]);
+
+  // Use the month of range.start as the goal key (works for any period)
+  const goalMonthKey = useMemo(
+    () => `${range.start.getFullYear()}-${String(range.start.getMonth() + 1).padStart(2, "0")}`,
+    [range]
+  );
+  const interestGoal = getGoal("interest_rate", goalMonthKey);
+  const profitGoal = getGoal("profit", goalMonthKey);
 
   // Helper to get chart month label from a date range
   const getChartLabel = (start: Date) => {
