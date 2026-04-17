@@ -777,28 +777,42 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, onUpda
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-2.5 py-2">
-            {personalCategories.map((c) => {
-              const Icon = c.icon;
-              return (
-                <div key={c.name} className="flex items-center gap-2">
-                  <div
-                    className="h-8 w-8 rounded-lg flex items-center justify-center shrink-0"
-                    style={{ backgroundColor: `hsl(${c.color} / 0.15)` }}
-                  >
-                    <Icon className="h-4 w-4" style={{ color: `hsl(${c.color})` }} />
+            {personalCategories
+              .slice()
+              .sort((a, b) => {
+                const sa = spentByCategory.get(a.name) || 0;
+                const sb = spentByCategory.get(b.name) || 0;
+                if (sb !== sa) return sb - sa;
+                return a.name.localeCompare(b.name, "pt-BR");
+              })
+              .map((c) => {
+                const Icon = c.icon;
+                const spent = spentByCategory.get(c.name) || 0;
+                return (
+                  <div key={c.name} className="flex items-center gap-2">
+                    <div
+                      className="h-8 w-8 rounded-lg flex items-center justify-center shrink-0"
+                      style={{ backgroundColor: `hsl(${c.color} / 0.15)` }}
+                    >
+                      <Icon className="h-4 w-4" style={{ color: `hsl(${c.color})` }} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-sm text-foreground truncate">{c.name}</div>
+                      <div className="text-[11px] text-muted-foreground tabular-nums">
+                        Gasto: {formatCurrency(spent)}
+                      </div>
+                    </div>
+                    <Input
+                      type="number"
+                      inputMode="decimal"
+                      placeholder="0,00"
+                      className="w-28 h-8 text-sm"
+                      value={budgetDraft[c.name] ?? ""}
+                      onChange={(e) => setBudgetDraft((p) => ({ ...p, [c.name]: e.target.value }))}
+                    />
                   </div>
-                  <span className="text-sm flex-1 text-foreground">{c.name}</span>
-                  <Input
-                    type="number"
-                    inputMode="decimal"
-                    placeholder="0,00"
-                    className="w-28 h-8 text-sm"
-                    value={budgetDraft[c.name] ?? ""}
-                    onChange={(e) => setBudgetDraft((p) => ({ ...p, [c.name]: e.target.value }))}
-                  />
-                </div>
-              );
-            })}
+                );
+              })}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setBudgetEditOpen(false)}>Cancelar</Button>
