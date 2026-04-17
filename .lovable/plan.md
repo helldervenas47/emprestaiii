@@ -1,61 +1,50 @@
 
-O usuário pergunta se dá pra acelerar a integração Telegram ↔ app. Hoje o fluxo é: cron a cada 1min → `telegram-poll` faz long polling até 55s → grava em `telegram_messages` → `telegram-process` lê e responde.
+## Objetivo
+Fazer o Telegram mostrar o menu de autocomplete quando o usuário digita "/" no chat do bot.
 
-Latência típica atual: **0–55s** para receber, mais alguns segundos para processar/responder. Pior caso ~60s. Vamos atacar onde realmente dá ganho.
+## Como funciona
+O Telegram não lê os comandos do código — é preciso **registrá-los** explicitamente via `setMyCommands` da Bot API. Uma vez registrados, ficam salvos no servidor do Telegram e o autocomplete aparece automaticamente para todos os usuários do bot. Não precisa rodar toda hora — só quando a lista mudar.
 
-## Onde está a latência hoje
+## Comandos a registrar (já existentes no `telegram-process`)
+- `saldo` — Gastos do mês por categoria
+- `ultimas` — Últimas 5 despesas
+- `apagar` — Apaga a despesa mais recente
+- `help` — Mostra ajuda
+- `start` — Vincular conta com código
 
-```text
-mensagem do usuário no Telegram
-  └─► getUpdates long poll (0–50s de espera) 
-       └─► insert telegram_messages
-            └─► telegram-process roda (chamado como?) — verificar
-                 └─► AI parser (Lovable AI) ~1–3s
-                      └─► sendMessage de volta (~300–600ms)
+## Implementação
+
+**Nova Edge Function `telegram-set-commands`** (one-shot, chamada manualmente):
+- Faz `POST` no gateway `/setMyCommands` com a lista acima
+- Também registra o "menu button" como `commands` (aquele botão azul ao lado do campo de texto que abre a lista)
+- Retorna confirmação
+
+**Como acionar:** depois de deployada, eu chamo a função uma vez via `supabase--curl_edge_functions` e pronto — os comandos ficam salvos no Telegram permanentemente.
+
+**Código (resumo):**
+```ts
+await fetch(`${GATEWAY_URL}/setMyCommands`, {
+  method: 'POST', headers: {...},
+  body: JSON.stringify({
+    commands: [
+      { command: 'saldo', description: 'Gastos do mês por categoria' },
+      { command: 'ultimas', description: 'Últimas 5 despesas' },
+      { command: 'apagar', description: 'Apaga a despesa mais recente' },
+      { command: 'help', description: 'Mostra ajuda' },
+      { command: 'start', description: 'Vincular conta com código' },
+    ],
+  }),
+});
+
+await fetch(`${GATEWAY_URL}/setChatMenuButton`, {
+  method: 'POST', headers: {...},
+  body: JSON.stringify({ menu_button: { type: 'commands' } }),
+});
 ```
 
-Os dois maiores gargalos são (1) o long poll de até 50s e (2) o tempo do AI parser.
-
-## Plano de otimização (3 níveis, escolha quanto quer aplicar)
-
-### Nível 1 — Ganho grande, esforço baixo (recomendado)
-1. **Cron de 1min → cada 30s** efetivos: agendar **2 jobs pg_cron** com offset (um em `* * * * *`, outro em `* * * * *` mas com `pg_sleep(30)` antes do `net.http_post`). Como o `telegram-poll` já roda 55s, os dois jobs se intercalam e cobrem o gap de ~5s entre invocações → latência média cai de ~27s para ~14s, pior caso de 60s para ~32s.
-2. **Disparar `telegram-process` imediatamente após inserts**: hoje (presumido) ele roda em cron separado ou é chamado dentro do poll. Mudar `telegram-poll` para, ao final de cada batch com mensagens, chamar `telegram-process` via `fetch` direto (fire-and-forget) em vez de esperar próximo cron. Economiza até 60s no processamento.
-3. **Reduzir `allowed_updates`** já está OK (`['message']`), mas **adicionar** `callback_query` se a edição de despesa via botão usa callback — assim cliques em botões também chegam rápido.
-
-**Resultado esperado:** latência média de resposta cai de ~30–60s para **~5–15s**.
-
-### Nível 2 — Ganho médio, esforço médio
-4. **Trocar AI parser por regex-first**: hoje toda mensagem vai pro Lovable AI (~1–3s + custo). Adicionar um pré-parser regex para formatos comuns (`"45 mercado"`, `"R$ 12,50 uber"`, `/saldo`, `/resumo`) e só cair no AI se regex falhar. Economiza 1–3s na maioria das mensagens + reduz custo de tokens.
-5. **Cache de chat→user_id em memória do edge** (Map com TTL) — evita 1 query Supabase por mensagem.
-
-### Nível 3 — Ganho máximo, esforço alto (provavelmente não vale)
-6. **Substituir polling por webhook**: webhooks Telegram → Edge Function dariam latência **<1s**, mas o connector gateway atual da Lovable **não suporta webhooks** (documentado). Inviável sem trocar a forma de conectar (sair do connector e usar bot token direto), o que perderia a gestão automática de credenciais. **Não recomendo agora.**
-
-## O que vou fazer (se aprovar nível 1+2)
-
-**Migrações SQL:**
-- Atualizar o cron `poll-telegram-updates` para 2 jobs com offset de 30s usando `pg_sleep`.
-- (Sem mudança de schema — apenas cron.)
-
-**Edge `telegram-poll/index.ts`:**
-- Adicionar `callback_query` em `allowed_updates`.
-- Após cada batch com mensagens, fazer `fetch(...telegram-process, { method: 'POST' })` sem `await` (fire-and-forget) para acionamento imediato.
-
-**Edge `telegram-process/index.ts`:**
-- Adicionar pré-parser regex para padrões `<valor> <descrição>` antes de chamar Lovable AI.
-- Cache em memória `Map<chat_id, {user_id, expires}>` para o lookup de vínculo (TTL 5min).
-
-## Detalhes técnicos
-- O segundo cron com `pg_sleep(30)` é seguro porque `pg_cron` executa em workers separados; não bloqueia o primeiro.
-- Fire-and-forget no Deno: `fetch(url).catch(console.error)` sem `await` — Deno mantém a request viva enquanto a function principal não retorna; ideal é usar `EdgeRuntime.waitUntil(fetch(...))` se disponível, com fallback `void fetch(...)`.
-- Regex parser: `/^\s*(R?\$?\s*[\d.,]+)\s+(.+)$/i` cobre ~70% das despesas digitadas; resto vai pro AI normalmente.
-- Cache em memória de Edge Function é per-isolate; em alta concorrência cada isolate tem o próprio cache, o que é OK (é só um speedup).
-
 ## Fora de escopo
-- Webhook real (limitação do gateway).
-- Mudar para outro provedor de Telegram.
-- Reescrever o pipeline inteiro.
+- Comandos personalizados por usuário (a API só permite lista global ou por escopo de chat — sem valor agora).
+- Mudar os handlers já existentes — eles continuam iguais.
 
-## Pergunta antes de implementar
-Quer aplicar **só o Nível 1** (cron 30s + acionamento imediato — ganho grande, mudança mínima), ou **Nível 1 + 2** (também regex-first + cache, ganho extra de ~1–3s nas respostas)?
+## Resultado esperado
+Ao digitar "/" no chat do bot, o Telegram mostra a lista com descrição de cada comando. O botão de menu (ícone "/") também passa a abrir essa lista.
