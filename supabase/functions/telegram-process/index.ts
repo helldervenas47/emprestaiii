@@ -235,6 +235,12 @@ function todayBR(): string {
   return parts; // en-CA already formats as YYYY-MM-DD
 }
 
+// Returns current date components in America/Sao_Paulo timezone.
+function nowBR(): { year: number; month: number; day: number } {
+  const [y, m, d] = todayBR().split("-").map(Number);
+  return { year: y, month: m - 1, day: d }; // month 0-indexed for compatibility
+}
+
 async function summarizeRange(
   admin: any,
   userId: string,
