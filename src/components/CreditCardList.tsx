@@ -1,9 +1,10 @@
 import { useState } from "react";
-import { Plus, CreditCard as CreditCardIcon } from "lucide-react";
+import { Plus, CreditCard as CreditCardIcon, ChevronUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useCreditCards, CreditCard } from "@/hooks/useCreditCards";
 import { CreditCardItem } from "./CreditCardItem";
 import { CreditCardForm } from "./CreditCardForm";
+import { CreditCardInvoice } from "./CreditCardInvoice";
 import { ConfirmDeleteDialog } from "./ConfirmDeleteDialog";
 
 interface Props {
@@ -15,6 +16,8 @@ export function CreditCardList({ readOnly = false }: Props) {
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<CreditCard | null>(null);
   const [deleting, setDeleting] = useState<CreditCard | null>(null);
+  const [expanded, setExpanded] = useState(false);
+  const [invoiceCard, setInvoiceCard] = useState<CreditCard | null>(null);
 
   const handleNew = () => {
     setEditing(null);
@@ -26,17 +29,36 @@ export function CreditCardList({ readOnly = false }: Props) {
     setShowForm(true);
   };
 
+  // Cards stacked like a wallet — overlap when collapsed, fan out when expanded
+  const STACK_PEEK = 28; // px visible of each card when collapsed
+  const EXPANDED_GAP = 16; // px gap between cards when expanded
+
   return (
     <div>
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-lg font-semibold text-foreground">
           Cartões ({cards.length})
         </h2>
-        {!readOnly && (
-          <Button onClick={handleNew} size="sm">
-            <Plus className="h-4 w-4 mr-1" /> Novo Cartão
-          </Button>
-        )}
+        <div className="flex items-center gap-2">
+          {cards.length > 1 && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setExpanded((v) => !v)}
+              className="gap-1"
+            >
+              <ChevronUp
+                className={`h-4 w-4 transition-transform ${expanded ? "" : "rotate-180"}`}
+              />
+              {expanded ? "Recolher" : "Expandir"}
+            </Button>
+          )}
+          {!readOnly && (
+            <Button onClick={handleNew} size="sm">
+              <Plus className="h-4 w-4 mr-1" /> Novo Cartão
+            </Button>
+          )}
+        </div>
       </div>
 
       {loading ? (
@@ -52,17 +74,58 @@ export function CreditCardList({ readOnly = false }: Props) {
           )}
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-          {cards.map((card) => (
-            <CreditCardItem
-              key={card.id}
-              card={card}
-              onEdit={() => handleEdit(card)}
-              onDelete={() => setDeleting(card)}
-              readOnly={readOnly}
-            />
-          ))}
+        <div className="relative mx-auto max-w-md">
+          <div
+            className="relative w-full transition-[padding] duration-500 ease-out"
+            style={{
+              paddingBottom: expanded
+                ? `calc((100% / 1.586) * ${cards.length} + ${
+                    (cards.length - 1) * EXPANDED_GAP
+                  }px)`
+                : `calc((100% / 1.586) + ${(cards.length - 1) * STACK_PEEK}px)`,
+            }}
+          >
+            {cards.map((card, i) => {
+              const top = expanded
+                ? `calc((100% / 1.586) * ${i} + ${i * EXPANDED_GAP}px)`
+                : `${i * STACK_PEEK}px`;
+              return (
+                <div
+                  key={card.id}
+                  className="absolute left-0 right-0 transition-all duration-500 ease-out cursor-pointer hover:-translate-y-1"
+                  style={{
+                    top,
+                    zIndex: i + 1,
+                  }}
+                  onClick={() => {
+                    if (!expanded && cards.length > 1) {
+                      setExpanded(true);
+                    } else {
+                      setInvoiceCard(card);
+                    }
+                  }}
+                >
+                  <CreditCardItem
+                    card={card}
+                    onEdit={expanded ? () => handleEdit(card) : undefined}
+                    onDelete={expanded ? () => setDeleting(card) : undefined}
+                    readOnly={readOnly || !expanded}
+                  />
+                </div>
+              );
+            })}
+          </div>
         </div>
+      )}
+
+      {cards.length > 0 && (
+        <p className="text-center text-xs text-muted-foreground mt-4">
+          {expanded
+            ? "Clique em um cartão para ver a fatura"
+            : cards.length > 1
+            ? "Clique na pilha para expandir"
+            : "Clique no cartão para ver a fatura"}
+        </p>
       )}
 
       {showForm && (
@@ -75,6 +138,13 @@ export function CreditCardList({ readOnly = false }: Props) {
             setShowForm(false);
             setEditing(null);
           }}
+        />
+      )}
+
+      {invoiceCard && (
+        <CreditCardInvoice
+          card={invoiceCard}
+          onClose={() => setInvoiceCard(null)}
         />
       )}
 
