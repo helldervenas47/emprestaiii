@@ -606,7 +606,7 @@ export function BillingCalendar({ loans, payments, installmentSchedules, onPayme
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setPaymentDialog(null)}>Cancelar</Button>
-            <Button onClick={confirmPayment}>Confirmar</Button>
+            <Button onClick={confirmPayment} disabled={paymentDialog?.type === "payoff" && !(parseFloat(payoffAmount.replace(",", ".")) > 0)}>Confirmar</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
