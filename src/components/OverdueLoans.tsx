@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { calculateInstallment } from "@/hooks/useLoans";
 import { AlertTriangle, MessageCircle, Search, Phone, Calendar, DollarSign, Clock } from "lucide-react";
 import { WhatsAppReport } from "@/components/WhatsAppReport";
+import { TelegramBillingScheduleCard } from "@/components/TelegramBillingScheduleCard";
 
 interface Props {
   loans: Loan[];
@@ -259,6 +260,9 @@ export function OverdueLoans({ loans, payments, clients, installmentSchedules }:
           </CardContent>
         </Card>
       </div>
+
+      {/* Telegram automatic schedule */}
+      <TelegramBillingScheduleCard />
 
       {/* WhatsApp Report */}
       <WhatsAppReport loans={loans} payments={payments} clients={clients} installmentSchedules={installmentSchedules} />
