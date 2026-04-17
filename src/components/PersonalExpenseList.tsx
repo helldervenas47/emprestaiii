@@ -209,8 +209,12 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, onUpda
   const openBudgetEdit = () => {
     const draft: Record<string, string> = {};
     personalCategories.forEach((c) => {
-      const b = budgets.find((x) => x.category === c.name);
-      draft[c.name] = b ? String(b.amount) : "";
+      // Pré-preenche com o limite do próprio mês; se não houver, usa o herdado
+      // (assim editar gera um novo registro próprio sem alterar o mês de origem).
+      const own = monthBudgets.find((b) => b.category === c.name);
+      const inherited = budgets.find((b) => b.category === c.name);
+      const value = own?.amount ?? inherited?.amount ?? 0;
+      draft[c.name] = value > 0 ? String(value) : "";
     });
     setBudgetDraft(draft);
     setBudgetEditOpen(true);
@@ -221,12 +225,24 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, onUpda
       const raw = budgetDraft[c.name] ?? "";
       const num = Number(raw.replace(",", "."));
       const value = isNaN(num) ? 0 : num;
-      const existing = budgets.find((b) => b.category === c.name);
-      if ((existing?.amount ?? 0) !== value) {
+      const ownExisting = monthBudgets.find((b) => b.category === c.name);
+      // Se mantiver o valor herdado e não há limite próprio, não precisa criar.
+      const inheritedSame =
+        !ownExisting && isInherited &&
+        budgets.find((b) => b.category === c.name)?.amount === value &&
+        value > 0;
+      if (inheritedSame) continue;
+      if ((ownExisting?.amount ?? 0) !== value) {
         await setBudget(c.name, value);
       }
     }
+    toast.success("Limites atualizados");
     setBudgetEditOpen(false);
+  };
+
+  const formatMonthLabel = (key: string) => {
+    const [y, m] = key.split("-").map(Number);
+    return format(new Date(y, m - 1, 1), "MMM/yyyy", { locale: ptBR });
   };
 
   const filtered = visibleMonth
