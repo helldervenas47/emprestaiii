@@ -23,11 +23,11 @@ Deno.serve(async (req) => {
   }
 
   const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
-  const TELEGRAM_API_KEY = Deno.env.get('TELEGRAM_API_KEY');
+  const TELEGRAM_API_KEY = Deno.env.get('TELEGRAM_API_KEY_2');
 
   if (!LOVABLE_API_KEY || !TELEGRAM_API_KEY) {
     return new Response(
-      JSON.stringify({ error: 'Missing LOVABLE_API_KEY or TELEGRAM_API_KEY' }),
+      JSON.stringify({ error: 'Missing LOVABLE_API_KEY or TELEGRAM_API_KEY_2' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
     );
   }
