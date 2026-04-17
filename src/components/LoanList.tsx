@@ -1619,6 +1619,44 @@ function LoanRowView({
                   </Select>
                 </div>
               </div>
+              {/* Manager edit block */}
+              <div className="border border-border rounded-lg p-3 space-y-2 bg-muted/20">
+                <div className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    id={`row-edit-mgr-${loan.id}`}
+                    checked={editHasManager}
+                    onChange={(e) => {
+                      const checked = e.target.checked;
+                      setEditHasManager(checked);
+                      updateField("interestRate", checked ? "20" : "30");
+                    }}
+                    className="h-4 w-4 rounded border-border accent-primary"
+                  />
+                  <Label htmlFor={`row-edit-mgr-${loan.id}`} className="text-xs font-medium cursor-pointer">
+                    Empréstimo com gerente
+                  </Label>
+                </div>
+                {editHasManager && (
+                  <div className="grid grid-cols-2 gap-2 pt-1">
+                    <div>
+                      <Label className="text-xs">Gerente</Label>
+                      <Select value={editManagerId} onValueChange={setEditManagerId}>
+                        <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Selecione" /></SelectTrigger>
+                        <SelectContent>
+                          {managerOptions.map((m) => (
+                            <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label className="text-xs">Comissão (%)</Label>
+                      <Input type="number" step="0.1" value={editCommissionRate} onChange={(e) => setEditCommissionRate(e.target.value)} className="h-8 text-xs" />
+                    </div>
+                  </div>
+                )}
+              </div>
               <div><Label className="text-xs">Etiquetas (separar por vírgula)</Label><Input value={form.tags} onChange={(e) => updateField("tags", e.target.value)} className="h-8 text-sm" placeholder="Ex: VIP, Renovação, Garantia" /></div>
               <div><Label className="text-xs">Observações</Label><Textarea value={form.notes} onChange={(e) => updateField("notes", e.target.value)} rows={2} className="text-sm" /></div>
             </div>
