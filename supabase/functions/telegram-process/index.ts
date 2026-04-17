@@ -48,6 +48,14 @@ const CATEGORY_KEYWORDS: Array<{ category: string; words: string[] }> = [
   { category: "Presentes", words: ["presente", "aniversario", "aniversário", "natal", "dia das maes", "dia das mães", "dia dos pais"] },
 ];
 
+// Detects mentions of past dates in PT-BR text. If present, AI should handle the date,
+// not the regex quick-parser (which assumes "today").
+const DATE_HINT_REGEX = /\b(ontem|anteontem|antes de ontem|hoje|amanh[ãa]|domingo|segunda|ter[çc]a|quarta|quinta|sexta|s[áa]bado|h[áa]\s+\d+\s+(dia|dias|semana|semanas)|dia\s+\d{1,2}|\d{1,2}\/\d{1,2}(\/\d{2,4})?|\d{1,2}-\d{1,2}(-\d{2,4})?)\b/i;
+
+function hasDateHint(text: string): boolean {
+  return DATE_HINT_REGEX.test(text);
+}
+
 function detectCategory(description: string): string {
   const lower = description.toLowerCase();
   for (const { category, words } of CATEGORY_KEYWORDS) {
