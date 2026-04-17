@@ -26,6 +26,15 @@ function inRange(dateStr: string, start: Date, end: Date) {
   return d >= start && d <= end;
 }
 
+function formatDate(dateStr?: string | null) {
+  if (!dateStr) return "—";
+  try {
+    return new Date(dateStr.length > 10 ? dateStr : dateStr + "T00:00:00").toLocaleDateString("pt-BR");
+  } catch {
+    return dateStr;
+  }
+}
+
 export function ManagerCommissionsChart({
   clients,
   loans = [],
@@ -36,6 +45,7 @@ export function ManagerCommissionsChart({
 }: Props) {
   const { commissions } = useManagerCommissions(true);
   const { mask } = useHideValues();
+  const [selectedManagerId, setSelectedManagerId] = useState<string | null>(null);
 
   const managers = useMemo(
     () => clients.filter((c) => c.isManager).sort((a, b) => a.name.localeCompare(b.name)),
