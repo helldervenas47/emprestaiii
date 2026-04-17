@@ -13,6 +13,46 @@ const CATEGORIES = [
   "Educação", "Lazer", "Moradia", "Outros", "Pets", "Presentes", "Saúde", "Transporte",
 ];
 
+// In-memory cache (per-isolate) for chat_id → user_id lookups. TTL 5min.
+const linkCache = new Map<number, { userId: string | null; expires: number }>();
+const LINK_CACHE_TTL_MS = 5 * 60 * 1000;
+
+async function getLinkedUserId(admin: any, chatId: number): Promise<string | null> {
+  const cached = linkCache.get(chatId);
+  if (cached && cached.expires > Date.now()) return cached.userId;
+  const { data } = await admin.from("telegram_links")
+    .select("user_id").eq("chat_id", chatId).maybeSingle();
+  const userId = data?.user_id ?? null;
+  linkCache.set(chatId, { userId, expires: Date.now() + LINK_CACHE_TTL_MS });
+  return userId;
+}
+
+function invalidateLinkCache(chatId: number) {
+  linkCache.delete(chatId);
+}
+
+// Regex-first parser for common expense formats.
+// Examples: "45 mercado", "R$ 12,50 uber", "uber 25", "1.234,56 conta luz"
+function quickParseExpense(text: string): { amount: number; description: string } | null {
+  const t = text.trim();
+  if (t.length < 2 || t.startsWith("/")) return null;
+  // Pattern A: <amount> <description>
+  let amountStr: string | null = null;
+  let description: string | null = null;
+  const mA = t.match(/^R?\$?\s*([\d]+(?:\.\d{3})*(?:,\d{1,2})?|\d+(?:\.\d{1,2})?)\s+(.{2,80})$/i);
+  if (mA) { amountStr = mA[1]; description = mA[2]; }
+  else {
+    const mB = t.match(/^(.{2,80}?)\s+R?\$?\s*([\d]+(?:\.\d{3})*(?:,\d{1,2})?|\d+(?:\.\d{1,2})?)$/i);
+    if (mB) { description = mB[1]; amountStr = mB[2]; }
+  }
+  if (!amountStr || !description) return null;
+  const amount = parseAmount(amountStr);
+  if (amount === null) return null;
+  const desc = description.trim();
+  if (desc.length < 2) return null;
+  return { amount, description: desc };
+}
+
 const HELP_TEXT = `🤖 *Como usar*
 
 Envie uma despesa em texto livre, ex:
@@ -549,9 +589,8 @@ Deno.serve(async (req) => {
         const data = (callback.data as string) ?? "";
         const messageId = callback.message?.message_id as number | undefined;
 
-        const { data: link } = await admin.from("telegram_links")
-          .select("user_id").eq("chat_id", chatId).maybeSingle();
-
+        const userId = await getLinkedUserId(admin, chatId);
+        const link = userId ? { user_id: userId } : null;
         if (!link || !messageId) {
           await tgAnswerCallback(cbId, "Conta não vinculada", LOVABLE_API_KEY, TELEGRAM_API_KEY);
         } else if (data.startsWith("del:")) {
@@ -629,8 +668,8 @@ Deno.serve(async (req) => {
 
       // 📸 Photo handling
       if (photos && photos.length > 0) {
-        const { data: link } = await admin.from("telegram_links")
-          .select("user_id").eq("chat_id", chatId).maybeSingle();
+        const userId = await getLinkedUserId(admin, chatId);
+        const link = userId ? { user_id: userId } : null;
         if (!link) {
           await tgSend(chatId, "🔒 Conta não vinculada. Use o app para gerar um código e envie `/start CODIGO`.", LOVABLE_API_KEY, TELEGRAM_API_KEY);
         } else {
@@ -680,8 +719,8 @@ Deno.serve(async (req) => {
       const audio = (msg.raw_update as any)?.message?.audio;
       const audioMsg = voice || audio;
       if (audioMsg) {
-        const { data: link } = await admin.from("telegram_links")
-          .select("user_id").eq("chat_id", chatId).maybeSingle();
+        const userId = await getLinkedUserId(admin, chatId);
+        const link = userId ? { user_id: userId } : null;
         if (!link) {
           await tgSend(chatId, "🔒 Conta não vinculada. Use o app para gerar um código e envie `/start CODIGO`.", LOVABLE_API_KEY, TELEGRAM_API_KEY);
         } else {
@@ -744,12 +783,14 @@ Deno.serve(async (req) => {
         } else {
           // Remove any prior link for this chat or user
           await admin.from("telegram_links").delete().or(`chat_id.eq.${chatId},user_id.eq.${codeRow.user_id}`);
+          invalidateLinkCache(chatId);
           const { error: linkErr } = await admin.from("telegram_links")
             .insert({ user_id: codeRow.user_id, chat_id: chatId });
           if (linkErr) {
             await tgSend(chatId, "❌ Erro ao vincular: " + linkErr.message, LOVABLE_API_KEY, TELEGRAM_API_KEY);
           } else {
             await admin.from("telegram_link_codes").delete().eq("id", codeRow.id);
+            invalidateLinkCache(chatId);
             await tgSend(chatId, "✅ *Conta vinculada!*\n\n" + HELP_TEXT, LOVABLE_API_KEY, TELEGRAM_API_KEY);
           }
         }
@@ -758,9 +799,9 @@ Deno.serve(async (req) => {
       } else if (/^\/help\b/i.test(text)) {
         await tgSend(chatId, HELP_TEXT, LOVABLE_API_KEY, TELEGRAM_API_KEY);
       } else if (text) {
-        // Resolve user
-        const { data: link } = await admin.from("telegram_links")
-          .select("user_id").eq("chat_id", chatId).maybeSingle();
+        // Resolve user (cached)
+        const userId = await getLinkedUserId(admin, chatId);
+        const link = userId ? { user_id: userId } : null;
         if (!link) {
           await tgSend(chatId, "🔒 Conta não vinculada. Use o app para gerar um código e envie `/start CODIGO`.", LOVABLE_API_KEY, TELEGRAM_API_KEY);
         } else {
@@ -819,7 +860,21 @@ Deno.serve(async (req) => {
               const reply = await handleApagar(admin, link.user_id);
               await tgSend(chatId, reply, LOVABLE_API_KEY, TELEGRAM_API_KEY);
             } else {
-              const extracted = await extractExpense(text, LOVABLE_API_KEY);
+              // Regex-first: skip AI for clear "<amount> <description>" or "<description> <amount>" inputs.
+              const quick = quickParseExpense(text);
+              const today = new Date().toISOString().slice(0, 10);
+              let extracted: any = null;
+              if (quick) {
+                extracted = {
+                  description: quick.description,
+                  amount: quick.amount,
+                  category: "Outros",
+                  date: today,
+                  confidence: 1,
+                };
+              } else {
+                extracted = await extractExpense(text, LOVABLE_API_KEY);
+              }
               if (!extracted || !extracted.amount || extracted.confidence < 0.6) {
                 await tgSend(chatId, "🤔 Não consegui entender. Tente algo como:\n_\"mercado 80 alimentação\"_ ou _\"uber 25 ontem\"_", LOVABLE_API_KEY, TELEGRAM_API_KEY);
               } else {
@@ -828,11 +883,11 @@ Deno.serve(async (req) => {
                   description: extracted.description || text.slice(0, 80),
                   amount: extracted.amount,
                   category: CATEGORIES.includes(extracted.category) ? extracted.category : "Outros",
-                  due_date: extracted.date || new Date().toISOString().slice(0, 10),
+                  due_date: extracted.date || today,
                   type: "fixa",
                   scope: "personal",
                   paid: true,
-                  paid_date: extracted.date || new Date().toISOString().slice(0, 10),
+                  paid_date: extracted.date || today,
                 }).select("id").single();
                 if (insErr || !ins) {
                   await tgSend(chatId, "❌ Erro ao salvar: " + (insErr?.message ?? "desconhecido"), LOVABLE_API_KEY, TELEGRAM_API_KEY);

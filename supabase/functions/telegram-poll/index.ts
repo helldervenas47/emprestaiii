@@ -95,9 +95,10 @@ Deno.serve(async (req) => {
     currentOffset = newOffset;
   }
 
-  // Trigger processor (fire-and-forget) if we got new messages
+  // Trigger processor (fire-and-forget) if we got new messages.
+  // Use EdgeRuntime.waitUntil so the request isn't cancelled when the function returns.
   if (hasNew) {
-    fetch(`${SUPABASE_URL}/functions/v1/telegram-process`, {
+    const triggerPromise = fetch(`${SUPABASE_URL}/functions/v1/telegram-process`, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
@@ -105,6 +106,11 @@ Deno.serve(async (req) => {
       },
       body: "{}",
     }).catch((e) => console.error("trigger process failed", e));
+    // @ts-ignore - EdgeRuntime is available in Supabase edge runtime
+    if (typeof EdgeRuntime !== "undefined" && EdgeRuntime?.waitUntil) {
+      // @ts-ignore
+      EdgeRuntime.waitUntil(triggerPromise);
+    }
   }
 
   return new Response(JSON.stringify({ ok: true, processed: totalProcessed }), {
