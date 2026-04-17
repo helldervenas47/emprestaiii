@@ -528,6 +528,12 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, onUpda
                               Estornar
                             </Button>
                           )}
+                          {onUpdate && (
+                            <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => setEditingExpense(expense)}>
+                              <Pencil className="h-3 w-3 mr-1" />
+                              Editar
+                            </Button>
+                          )}
                           <Button size="sm" variant="ghost" className="h-7 text-xs text-destructive hover:text-destructive hover:bg-destructive/10" onClick={() => setDeleteId(expense.id)}>
                             <Trash2 className="h-3 w-3 mr-1" />
                             Excluir
