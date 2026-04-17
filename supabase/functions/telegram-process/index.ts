@@ -1046,14 +1046,24 @@ Deno.serve(async (req) => {
 
   let processed = 0;
 
-  for (const msg of messages ?? []) {
-    const chatId = msg.chat_id as number;
-    const text = (msg.text as string | null)?.trim() ?? "";
-    const photos = (msg.raw_update as any)?.message?.photo as any[] | undefined;
-    const caption = ((msg.raw_update as any)?.message?.caption as string | null)?.trim() ?? "";
-    const callback = (msg.raw_update as any)?.callback_query;
+  // Group messages by chat_id so we can process different chats in parallel
+  // while preserving order within the same chat.
+  const byChat = new Map<number, any[]>();
+  for (const m of messages ?? []) {
+    const arr = byChat.get(m.chat_id as number) ?? [];
+    arr.push(m);
+    byChat.set(m.chat_id as number, arr);
+  }
 
-    try {
+  const processChat = async (chatMessages: any[]) => {
+    for (const msg of chatMessages) {
+      const chatId = msg.chat_id as number;
+      const text = (msg.text as string | null)?.trim() ?? "";
+      const photos = (msg.raw_update as any)?.message?.photo as any[] | undefined;
+      const caption = ((msg.raw_update as any)?.message?.caption as string | null)?.trim() ?? "";
+      const callback = (msg.raw_update as any)?.callback_query;
+
+      try {
       // 🎛️ Callback query (inline button press)
       if (callback) {
         const cbId = callback.id as string;
@@ -1432,8 +1442,9 @@ Deno.serve(async (req) => {
                   basePayload.paid_date = finalDate;
                 }
 
-                // Send confirmation IMMEDIATELY (in parallel with DB insert) so the user
-                // sees the summary in real time, regardless of DB latency.
+                // Insert + single confirmation message with action keyboard.
+                // Insert is fast (~50-150ms); merging into one message removes the
+                // second round-trip to Telegram for users.
                 const fmt = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(extracted.amount);
                 const header = card
                   ? `💳 *Compra no cartão registrada*`
@@ -1441,28 +1452,20 @@ Deno.serve(async (req) => {
                 const cardLine = card ? `\n💳 ${card.nickname || card.bank} (vence ${displayDate})` : "";
                 const summaryText = `${header}\n\n💰 ${fmt}\n📂 ${finalCategory}${cardLine}\n📝 ${extracted.description}\n📅 ${displayDate}`;
 
-                const insertPromise = admin
+                const { data: ins, error: insErr } = await admin
                   .from("expenses")
                   .insert(basePayload)
                   .select("id").single();
 
-                // Fire confirmation send in parallel with the insert.
-                const [insRes] = await Promise.all([
-                  insertPromise,
-                  tgSend(chatId, summaryText, LOVABLE_API_KEY, TELEGRAM_API_KEY),
-                ]);
-
-                const { data: ins, error: insErr } = insRes as any;
                 if (insErr || !ins) {
                   await tgSend(chatId, "❌ Erro ao salvar no banco: " + (insErr?.message ?? "desconhecido"), LOVABLE_API_KEY, TELEGRAM_API_KEY);
                 } else {
-                  // Follow-up message with edit/delete keyboard (needs the inserted id).
-                  await tgSendWithKeyboard(chatId,
-                    `🔧 Ações para a despesa acima:`,
-                    buildExpenseKeyboard(ins.id),
-                    LOVABLE_API_KEY, TELEGRAM_API_KEY);
+                  // Single message: summary + keyboard.
+                  await tgSendWithKeyboard(chatId, summaryText, buildExpenseKeyboard(ins.id), LOVABLE_API_KEY, TELEGRAM_API_KEY);
+                  // Budget alert in background (don't block response).
                   if (!card) {
-                    await checkBudgetAndAlert(admin, link.user_id, chatId, finalCategory, LOVABLE_API_KEY, TELEGRAM_API_KEY);
+                    checkBudgetAndAlert(admin, link.user_id, chatId, finalCategory, LOVABLE_API_KEY, TELEGRAM_API_KEY)
+                      .catch((e) => console.error("budget alert bg err", e));
                   }
                 }
               }
@@ -1474,11 +1477,15 @@ Deno.serve(async (req) => {
       console.error("processing error", e);
     }
 
-    await admin.from("telegram_messages")
-      .update({ processed: true, processed_at: new Date().toISOString() })
-      .eq("update_id", msg.update_id);
-    processed++;
-  }
+      await admin.from("telegram_messages")
+        .update({ processed: true, processed_at: new Date().toISOString() })
+        .eq("update_id", msg.update_id);
+      processed++;
+    }
+  };
+
+  // Run all chats in parallel; messages within the same chat stay sequential.
+  await Promise.all([...byChat.values()].map(processChat));
 
   return new Response(JSON.stringify({ ok: true, processed }), {
     headers: { ...corsHeaders, "Content-Type": "application/json" },
