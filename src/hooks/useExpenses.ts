@@ -187,11 +187,16 @@ export function useExpenses(enabled = true) {
         due_date: newDueDate,
       }).eq("id", id);
     } else if (expense.paid) {
+      // Restore original amount if we stashed it on pay.
+      const m = (expense.notes ?? "").match(/\[Original:\s*([\d.]+)\]/i);
+      const restoredAmount = m ? parseFloat(m[1]) : expense.amount;
+      const restoredNotes = (expense.notes ?? "").replace(/\n?\[Original:\s*[\d.]+\]/gi, "").trim() || null;
+
       setExpenses((prev) => prev.map((e) => e.id === id ? {
-        ...e, paid: false, paidDate: undefined,
+        ...e, paid: false, paidDate: undefined, amount: restoredAmount, notes: restoredNotes,
       } : e));
       await supabase.from("expenses").update({
-        paid: false, paid_date: null,
+        paid: false, paid_date: null, amount: restoredAmount, notes: restoredNotes,
       }).eq("id", id);
     }
   }, [expenses]);
