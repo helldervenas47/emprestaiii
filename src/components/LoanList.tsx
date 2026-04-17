@@ -1520,7 +1520,7 @@ function LoanRowView({
             <div className="flex items-center gap-1 flex-wrap">
               <span className="font-medium text-[11px] sm:text-sm text-foreground truncate block max-w-[80px] sm:max-w-none">{loan.borrowerName}</span>
               {loan.hasManager && (
-                <Badge variant="outline" className="bg-accent/15 text-accent-foreground border-accent/40 text-[9px] sm:text-[10px] px-1 py-0 gap-0.5 shrink-0" title="Com gerente">
+                <Badge variant="outline" className="bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/40 text-[9px] sm:text-[10px] px-1 py-0 gap-0.5 shrink-0" title="Com gerente">
                   <UserCog className="h-3 w-3" /><span className="hidden sm:inline">Gerente</span>
                 </Badge>
               )}
