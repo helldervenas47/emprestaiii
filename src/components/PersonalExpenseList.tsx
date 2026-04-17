@@ -15,6 +15,7 @@ import {
 import {
   Search, Trash2, CheckCircle, Receipt, Calendar,
   CircleDollarSign, ChevronLeft, ChevronRight, Undo2, TrendingUp, CalendarDays, Target, Pencil,
+  Sparkles,
 } from "lucide-react";
 import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
 import { ExpenseEditDialog } from "@/components/ExpenseEditDialog";
