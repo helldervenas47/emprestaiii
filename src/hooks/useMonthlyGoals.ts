@@ -14,7 +14,7 @@ export interface MonthlyGoal {
 }
 
 export function useMonthlyGoals() {
-  const { ownerId, loading: ownerLoading } = useDataOwner();
+  const ownerId = useDataOwner();
   const [goals, setGoals] = useState<MonthlyGoal[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -41,8 +41,8 @@ export function useMonthlyGoals() {
   }, [ownerId]);
 
   useEffect(() => {
-    if (!ownerLoading) load();
-  }, [ownerLoading, load]);
+    if (ownerId) load();
+  }, [ownerId, load]);
 
   const upsertGoal = async (goalType: GoalType, month: string, targetValue: number, notes?: string) => {
     if (!ownerId) return;
