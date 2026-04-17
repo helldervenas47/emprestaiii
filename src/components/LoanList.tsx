@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { toast } from "sonner";
 
 interface Props {
   loans: Loan[];
@@ -314,6 +315,10 @@ function LoanCardView({
   };
   const cancelEdit = () => setEditing(false);
   const saveEdit = async () => {
+    if (editHasManager && !editManagerId) {
+      toast.error("Selecione um gerente para o empréstimo com gerente.");
+      return;
+    }
     const parsedTags = form.tags.split(",").map((t) => t.trim()).filter(Boolean);
     const firstRow = editScheduleRows[0];
     const dueDate = firstRow ? firstRow.date.toISOString().split("T")[0] : form.dueDate || loan.dueDate;
@@ -1411,6 +1416,10 @@ function LoanRowView({
     const manualInterest = parseFloat(form.interestValue) || 0;
     const calcInterest = (parseFloat(form.amount) || 0) * ((parseFloat(form.interestRate) || 0) / 100);
     const hasCustomInterest = manualInterest > 0 && Math.abs(manualInterest - calcInterest) > 0.01;
+    if (editHasManager && !editManagerId) {
+      toast.error("Selecione um gerente para o empréstimo com gerente.");
+      return;
+    }
     onUpdate({
       borrowerName: form.borrowerName,
       amount: parseFloat(form.amount) || loan.amount,

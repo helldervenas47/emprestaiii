@@ -15,6 +15,7 @@ import { calculateInstallment, calculateTotalWithInterest } from "@/hooks/useLoa
 import { Loan, Client } from "@/types/loan";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
+import { toast } from "sonner";
 
 interface Props {
   onAdd: (loan: Omit<Loan, "id" | "status" | "paidInstallments">) => Promise<string | null>;
@@ -153,6 +154,10 @@ export function LoanForm({ onAdd, onSaveSchedule, onClose, clients, existingTags
     e.preventDefault();
     const selectedClient = activeClients.find((c) => c.id === form.borrowerName);
     if (!selectedClient || !amount || !rate || !installments) return;
+    if (hasManager && !managerId) {
+      toast.error("Selecione um gerente para o empréstimo com gerente.");
+      return;
+    }
     setSubmitting(true);
 
     const totalWithInterest = calculateTotalWithInterest(amount, rate, installments);
