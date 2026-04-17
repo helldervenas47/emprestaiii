@@ -58,7 +58,7 @@ const benefits = [
   {
     icon: Clock,
     title: "Cobranças Automáticas",
-    description: "Receba alertas de parcelas vencidas e envie lembretes via WhatsApp.",
+    description: "Receba alertas de parcelas vencidas e relatórios automáticos via Telegram.",
   },
   {
     icon: Shield,

@@ -2,13 +2,13 @@ import { useMemo, useState, useCallback } from "react";
 import { useHideValues } from "@/contexts/HideValuesContext";
 import { Loan, Client, Payment, InstallmentSchedule } from "@/types/loan";
 import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { calculateInstallment } from "@/hooks/useLoans";
-import { AlertTriangle, MessageCircle, Search, Phone, Calendar, DollarSign, Clock } from "lucide-react";
-import { WhatsAppReport } from "@/components/WhatsAppReport";
+import { AlertTriangle, Search, Phone, Calendar, DollarSign, Clock } from "lucide-react";
+import { DetailedReport } from "@/components/DetailedReport";
 import { TelegramBillingScheduleCard } from "@/components/TelegramBillingScheduleCard";
+import { TelegramReportsConnectCard } from "@/components/TelegramReportsConnectCard";
 
 interface Props {
   loans: Loan[];
@@ -49,33 +49,13 @@ function getInstallmentAmount(loan: Loan, schedules: InstallmentSchedule[]): num
   return loan.customInstallmentValue || calculateInstallment(loan.amount, loan.interestRate, loan.installments);
 }
 
-function buildWhatsAppMessage(loan: Loan, installments: { number: number; dueDate: string; amount: number }[], isOverdue: boolean): string {
-  const total = installments.reduce((s, i) => s + i.amount, 0);
-  const lines = [
-    `Olá ${loan.borrowerName}, tudo bem?`,
-    ``,
-    isOverdue
-      ? `Gostaria de informar que você possui *${installments.length} parcela(s) em atraso* referente ao seu empréstimo.`
-      : `Gostaria de lembrar que você possui *${installments.length} parcela(s) vencendo hoje* referente ao seu empréstimo.`,
-    ``,
-    ...installments.map(
-      (inst) => `• Parcela ${inst.number} — Vencimento: ${new Date(inst.dueDate).toLocaleDateString("pt-BR")} — Valor: ${rawFormatCurrency(inst.amount)}`
-    ),
-    ``,
-    isOverdue
-      ? `*Total em atraso: ${rawFormatCurrency(total)}*`
-      : `*Total a pagar: ${rawFormatCurrency(total)}*`,
-    ``,
-    isOverdue
-      ? `Por favor, entre em contato para regularizar sua situação.`
-      : `Não se esqueça de efetuar o pagamento hoje.`,
-    `Obrigado!`,
-  ];
-  return lines.join("\n");
-}
-
-function formatPhone(phone: string): string {
-  return phone.replace(/\D/g, "");
+interface LoanItem {
+  loan: Loan;
+  client: Client | undefined;
+  phone: string;
+  installments: { number: number; dueDate: string; amount: number }[];
+  daysOverdue: number;
+  totalAmount: number;
 }
 
 interface LoanItem {
@@ -87,13 +67,13 @@ interface LoanItem {
   totalAmount: number;
 }
 
-function LoanItemCard({ item, isOverdue, onSendWhatsApp }: { item: LoanItem; isOverdue: boolean; onSendWhatsApp: () => void }) {
+function LoanItemCard({ item, isOverdue }: { item: LoanItem; isOverdue: boolean }) {
   const { mask } = useHideValues();
   const formatCurrency = useCallback((v: number) => mask(rawFormatCurrency(v)), [mask]);
   return (
     <Card no3d className={isOverdue ? "border-destructive/20" : "border-warning/20"}>
       <CardContent className="p-4">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+        <div className="flex flex-col gap-3">
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-1">
               <p className="font-semibold text-foreground">{item.loan.borrowerName}</p>
@@ -131,14 +111,6 @@ function LoanItemCard({ item, isOverdue, onSendWhatsApp }: { item: LoanItem; isO
               ))}
             </div>
           </div>
-          <Button
-            onClick={onSendWhatsApp}
-            disabled={!formatPhone(item.phone)}
-            className="bg-[hsl(142,70%,45%)] hover:bg-[hsl(142,70%,38%)] text-white shrink-0"
-          >
-            <MessageCircle className="h-4 w-4 mr-1" />
-            WhatsApp
-          </Button>
         </div>
       </CardContent>
     </Card>
@@ -204,27 +176,6 @@ export function OverdueLoans({ loans, payments, clients, installmentSchedules }:
   const totalOverdueAmount = overdueData.reduce((s, d) => s + d.totalAmount, 0);
   const totalDueTodayAmount = dueTodayData.reduce((s, d) => s + d.totalAmount, 0);
 
-  const handleSendWhatsApp = (item: LoanItem, isOverdue: boolean) => {
-    const message = buildWhatsAppMessage(item.loan, item.installments, isOverdue);
-    const phone = formatPhone(item.phone);
-    if (!phone) {
-      alert("Este cliente não possui telefone cadastrado.");
-      return;
-    }
-    window.open(`https://wa.me/55${phone}?text=${encodeURIComponent(message)}`, "_blank");
-  };
-
-  const handleSendAll = (items: LoanItem[], isOverdue: boolean) => {
-    const withPhone = items.filter((d) => formatPhone(d.phone));
-    if (withPhone.length === 0) {
-      alert("Nenhum cliente com telefone cadastrado encontrado.");
-      return;
-    }
-    withPhone.forEach((item, index) => {
-      setTimeout(() => handleSendWhatsApp(item, isOverdue), index * 1000);
-    });
-  };
-
   return (
     <div className="space-y-6">
       {/* Search */}
@@ -261,20 +212,14 @@ export function OverdueLoans({ loans, payments, clients, installmentSchedules }:
         </Card>
       </div>
 
+      {/* Bot de Relatórios (independente) */}
+      <TelegramReportsConnectCard />
+
       {/* Telegram automatic schedule */}
       <TelegramBillingScheduleCard />
 
-      {/* WhatsApp Report */}
-      <WhatsAppReport loans={loans} payments={payments} clients={clients} installmentSchedules={installmentSchedules} />
-
-      {/* Info */}
-      <Card no3d>
-        <CardContent className="p-4">
-          <p className="text-xs text-muted-foreground">
-            💡 Os botões abrem o WhatsApp Web com uma mensagem pré-formatada. Certifique-se de que os empréstimos estejam vinculados a clientes com telefone cadastrado.
-          </p>
-        </CardContent>
-      </Card>
+      {/* Detailed report preview */}
+      <DetailedReport loans={loans} payments={payments} clients={clients} installmentSchedules={installmentSchedules} />
     </div>
   );
 }

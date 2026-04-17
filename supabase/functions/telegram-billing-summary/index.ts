@@ -183,7 +183,8 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY")!;
-  const TELEGRAM_API_KEY = Deno.env.get("TELEGRAM_API_KEY")!;
+  // Use the dedicated reports bot (independent from the expenses bot)
+  const TELEGRAM_API_KEY = Deno.env.get("TELEGRAM_API_KEY_1")!;
   const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
   const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
@@ -244,8 +245,8 @@ Deno.serve(async (req) => {
 
       if (slotsToSend.length === 0) continue;
 
-      // Resolve telegram chat
-      const { data: link } = await admin.from("telegram_links")
+      // Resolve telegram chat from the dedicated reports bot link
+      const { data: link } = await admin.from("telegram_reports_links")
         .select("chat_id").eq("user_id", pref.user_id).maybeSingle();
       if (!link) continue;
 

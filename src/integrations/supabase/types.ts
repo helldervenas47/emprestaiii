@@ -1224,6 +1224,69 @@ export type Database = {
         }
         Relationships: []
       }
+      telegram_reports_bot_state: {
+        Row: {
+          id: number
+          update_offset: number
+          updated_at: string
+        }
+        Insert: {
+          id: number
+          update_offset?: number
+          updated_at?: string
+        }
+        Update: {
+          id?: number
+          update_offset?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      telegram_reports_link_codes: {
+        Row: {
+          code: string
+          created_at: string
+          expires_at: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          expires_at: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          expires_at?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      telegram_reports_links: {
+        Row: {
+          chat_id: number
+          created_at: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          chat_id: number
+          created_at?: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          chat_id?: number
+          created_at?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       telegram_summary_prefs: {
         Row: {
           created_at: string
