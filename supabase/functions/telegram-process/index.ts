@@ -668,8 +668,8 @@ Deno.serve(async (req) => {
 
       // 📸 Photo handling
       if (photos && photos.length > 0) {
-        const { data: link } = await admin.from("telegram_links")
-          .select("user_id").eq("chat_id", chatId).maybeSingle();
+        const userId = await getLinkedUserId(admin, chatId);
+        const link = userId ? { user_id: userId } : null;
         if (!link) {
           await tgSend(chatId, "🔒 Conta não vinculada. Use o app para gerar um código e envie `/start CODIGO`.", LOVABLE_API_KEY, TELEGRAM_API_KEY);
         } else {
