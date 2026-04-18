@@ -251,14 +251,14 @@ export function CreditCardInvoice({ card, onClose, referenceMonth }: Props) {
       <Card
         ref={cardRef}
         no3d
-        className="w-full max-w-2xl h-[100dvh] sm:h-auto sm:max-h-[92vh] overflow-y-auto rounded-none sm:rounded-2xl border-0 sm:border animate-scale-in p-0"
+        className="w-full max-w-2xl h-[100dvh] sm:h-auto sm:max-h-[92vh] overflow-y-auto rounded-none sm:rounded-2xl border-0 sm:border animate-card-expand sm:animate-scale-in p-0 will-change-transform"
         onClick={(e) => e.stopPropagation()}
         onTouchStart={onTouchStart}
         onTouchMove={onTouchMove}
         onTouchEnd={onTouchEnd}
         style={{
           transform: dragY > 0 ? `translateY(${dragY}px)` : undefined,
-          transition: dragging ? "none" : "transform 250ms ease-out",
+          transition: dragging ? "none" : "transform 250ms cubic-bezier(0.22, 1, 0.36, 1)",
         }}
       >
         {/* Drag handle (mobile only) */}
