@@ -345,6 +345,8 @@ export function usePiggyBanks() {
     deletePiggyBank,
     addDeposit,
     removeDepositByExpenseId,
+    updateDeposit,
+    deleteDeposit,
     adjustBalance,
     createRecurrence,
     reload,
