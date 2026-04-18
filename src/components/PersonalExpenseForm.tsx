@@ -37,6 +37,7 @@ const FIXED_RECURRING_INSTALLMENTS = 999;
 
 export function PersonalExpenseForm({ onAdd, onClose }: Props) {
   const { piggyBanks, addDeposit, createRecurrence } = usePiggyBanks();
+  const { cards } = useCreditCards();
   const [showSuccess, setShowSuccess] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
@@ -50,10 +51,29 @@ export function PersonalExpenseForm({ onAdd, onClose }: Props) {
     dueDate: new Date().toISOString().split("T")[0],
     notes: "",
   });
+  const [cardId, setCardId] = useState<string>("");
   const [toPiggy, setToPiggy] = useState(false);
   const [piggyId, setPiggyId] = useState<string>("");
   const [piggyRecurrence, setPiggyRecurrence] = useState<"none" | "fixed" | "until">("none");
   const [piggyEndDate, setPiggyEndDate] = useState<string>("");
+
+  // Auto-select default card (Nubank preferred) when Crédito is chosen
+  if (form.paymentMethod === "Crédito" && !cardId && cards.length) {
+    const def = pickDefaultCard(cards);
+    if (def) setTimeout(() => setCardId(def.id), 0);
+  }
+
+  const selectedCard = cards.find((c) => c.id === cardId) ?? null;
+
+  const buildPaymentNotes = (freeText: string) => {
+    if (form.paymentMethod === "Crédito" && selectedCard) {
+      const tag = selectedCard.nickname || selectedCard.lastFour || selectedCard.bank;
+      const head = `[Crédito] Cartão: ${tag}`;
+      return freeText ? `${head}\n${freeText}` : head;
+    }
+    return freeText ? `[${form.paymentMethod}] ${freeText}` : `[${form.paymentMethod}]`;
+  };
+
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
