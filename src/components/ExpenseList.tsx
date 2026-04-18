@@ -235,6 +235,7 @@ export function ExpenseList({ expenses, onPay, onUnpay, onDelete, onUpdate, read
   const [payingExpenseId, setPayingExpenseId] = useState<string | null>(null);
   const [payDate, setPayDate] = useState<string>("");
   const [paidAmountInput, setPaidAmountInput] = useState<string>("");
+  const [unpayingExpenseId, setUnpayingExpenseId] = useState<string | null>(null);
 
   const getInstallmentAmount = useCallback((e: Expense) => {
     const isRec = e.type === "recorrente" && e.installments && e.installments > 1;
