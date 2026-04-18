@@ -181,6 +181,10 @@ function LoanCardView({
   const formatCurrency = useCallback((v: number) => mask(rawFormatCurrency(v)), [mask]);
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState<EditForm>(loanToForm(loan));
+  // Keep form in sync with loan prop when not editing (prevents stale notes/etc on refetch)
+  React.useEffect(() => {
+    if (!editing) setForm(loanToForm(loan));
+  }, [loan, editing]);
   const [showPartial, setShowPartial] = useState(false);
   const [partialAmount, setPartialAmount] = useState("");
   const [partialDate, setPartialDate] = useState<Date>(new Date());
@@ -1409,6 +1413,10 @@ function LoanRowView({
   const [expanded, setExpanded] = useState(false);
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState<EditForm>(loanToForm(loan));
+  // Keep form in sync with loan prop when not editing (prevents stale notes/etc on refetch)
+  React.useEffect(() => {
+    if (!editing) setForm(loanToForm(loan));
+  }, [loan, editing]);
   const { mask } = useHideValues();
   const formatCurrency = useCallback((v: number) => mask(rawFormatCurrency(v)), [mask]);
   const [showPartial, setShowPartial] = useState(false);

@@ -138,7 +138,8 @@ export function useLoans() {
       amount: loan.amount, interest_rate: loan.interestRate,
       interest_type: loan.interestType || "Mensal", payment_type: loan.paymentType || "Parcelado",
       start_date: loan.startDate, due_date: loan.dueDate, installments: loan.installments,
-      paid_installments: loan.paidInstallments ?? 0, status, tags: loan.tags, notes: loan.notes,
+      paid_installments: loan.paidInstallments ?? 0, status, tags: loan.tags,
+      notes: loan.notes != null ? String(loan.notes) : null,
       remaining_amount: loan.remainingAmount ?? 0,
       custom_interest_value: loan.customInterestValue ?? null,
       has_manager: loan.hasManager ?? false,
@@ -363,7 +364,7 @@ export function useLoans() {
     if (data.paidInstallments !== undefined) updateData.paid_installments = data.paidInstallments;
     if (data.status !== undefined) updateData.status = data.status;
     if (data.tags !== undefined) updateData.tags = data.tags;
-    if (data.notes !== undefined) updateData.notes = data.notes;
+    if (data.notes !== undefined) updateData.notes = data.notes != null ? String(data.notes) : null;
     if (data.remainingAmount !== undefined) updateData.remaining_amount = data.remainingAmount;
     if (data.customInstallmentValue !== undefined) updateData.custom_installment_value = data.customInstallmentValue;
     if (data.customInterestValue !== undefined) updateData.custom_interest_value = data.customInterestValue;
@@ -373,8 +374,14 @@ export function useLoans() {
     if (data.hasManager !== undefined) (updateData as any).has_manager = data.hasManager;
     if (data.managerId !== undefined) (updateData as any).manager_id = data.managerId;
     if (data.managerCommissionRate !== undefined) (updateData as any).manager_commission_rate = data.managerCommissionRate;
-    await supabase.from("loans").update(updateData).eq("id", id);
-  }, [loans]);
+    const { error: updateErr } = await supabase.from("loans").update(updateData).eq("id", id);
+    if (updateErr) {
+      console.error("[updateLoan] Falha ao salvar:", updateErr);
+      toast.error("Falha ao salvar alterações: " + updateErr.message);
+      // refetch to revert optimistic state
+      await fetchLoans();
+    }
+  }, [loans, fetchLoans]);
 
   const deleteLoan = useCallback(async (id: string) => {
     const loan = loans.find((l) => l.id === id);
