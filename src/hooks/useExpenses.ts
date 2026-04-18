@@ -135,6 +135,27 @@ export function useExpenses(enabled = true) {
       await supabase.from("expenses").update({
         paid: true, paid_date: today, amount: finalAmount, notes: finalNotes,
       }).eq("id", id);
+
+      // Piggy bank credit: only when the piggy expense is paid.
+      const piggyId = extractPiggyId(expense.notes);
+      if (piggyId) {
+        // Avoid duplicate deposits if one already exists for this expense.
+        const { data: existing } = await supabase
+          .from("piggy_bank_deposits" as any)
+          .select("id")
+          .eq("expense_id", id)
+          .limit(1);
+        if (!existing || existing.length === 0) {
+          await supabase.from("piggy_bank_deposits" as any).insert({
+            user_id: dataOwnerId,
+            piggy_bank_id: piggyId,
+            expense_id: id,
+            amount: finalAmount,
+            deposit_date: today,
+            source: "expense",
+          });
+        }
+      }
     }
 
     // Trigger budget overrun alert (push + Telegram) for personal expenses
