@@ -594,7 +594,11 @@ export function CreditCardList({ readOnly = false, referenceMonth }: Props) {
       {invoiceCard && (
         <CreditCardInvoice
           card={invoiceCard}
-          onClose={() => setInvoiceCard(null)}
+          originRect={invoiceOriginRect}
+          onClose={() => {
+            setInvoiceCard(null);
+            setInvoiceOriginRect(null);
+          }}
           referenceMonth={referenceMonth}
         />
       )}
