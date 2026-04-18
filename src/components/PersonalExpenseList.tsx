@@ -596,6 +596,17 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, onUpda
           .filter((b) => b.amount > 0 && (spentByCategory.get(b.category) || 0) > b.amount)
           .map((b) => b.category)}
         hasExpenses={spendingMonth.length > 0}
+        categoryStats={(() => {
+          const cats = new Set<string>([
+            ...budgets.map((b) => b.category),
+            ...Array.from(spentByCategory.keys()),
+          ]);
+          return Array.from(cats).map((cat) => ({
+            category: cat,
+            spent: spentByCategory.get(cat) || 0,
+            budget: budgets.find((b) => b.category === cat)?.amount || 0,
+          }));
+        })()}
       />
 
       {typeof afterEvolution === "function"
