@@ -133,6 +133,10 @@ export function PersonalAIInsightsCard({
       });
   }, [categoryStats, suggestionsByCat]);
 
+  const MAX_VISIBLE = 6;
+  const visibleStats = useMemo(() => sortedStats.slice(0, MAX_VISIBLE), [sortedStats]);
+  const hasMore = sortedStats.length > MAX_VISIBLE;
+
   if (!hasExpenses) return null;
 
   // Markdown content for the "Último Relatório" subcard (everything except Oportunidades)
@@ -229,8 +233,8 @@ export function PersonalAIInsightsCard({
                 Nenhuma categoria com dados suficientes neste mês.
               </p>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
-                {sortedStats.map((s) => {
+              <div className="grid grid-cols-2 lg:grid-cols-3 gap-2">
+                {visibleStats.map((s) => {
                   const cat = getPersonalCategory(s.category);
                   const Icon = cat.icon;
                   const isOpen = expandedCat === s.category;
@@ -349,6 +353,15 @@ export function PersonalAIInsightsCard({
                   );
                 })}
               </div>
+            )}
+            {hasMore && (
+              <button
+                type="button"
+                onClick={() => setShowFullReport(true)}
+                className="w-full text-center text-[11px] text-primary hover:underline pt-1"
+              >
+                +{sortedStats.length - MAX_VISIBLE} categorias adicionais — ver no relatório completo
+              </button>
             )}
           </div>
         )}
