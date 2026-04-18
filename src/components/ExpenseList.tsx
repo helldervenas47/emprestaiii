@@ -261,7 +261,15 @@ export function ExpenseList({ expenses, onPay, onUnpay, onDelete, onUpdate, read
     });
   }, [expenses, selectedMonth]);
 
-  const filtered = monthFiltered
+  const isBotExpense = (e: Expense) => /\[\s*bot\s*\]/i.test(e.notes ?? "");
+
+  const sourceFiltered = useMemo(() => {
+    if (sourceFilter === "all") return monthFiltered;
+    if (sourceFilter === "auto") return monthFiltered.filter(isBotExpense);
+    return monthFiltered.filter((e) => !isBotExpense(e));
+  }, [monthFiltered, sourceFilter]);
+
+  const filtered = sourceFiltered
     .filter((e) => e.description.toLowerCase().includes(search.toLowerCase()) || e.category.toLowerCase().includes(search.toLowerCase()))
     .filter((e) => {
       const isRecFullyPaid = e.type === "recorrente" && e.installments && e.installments > 1 && e.paid;
