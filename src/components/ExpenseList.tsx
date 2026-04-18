@@ -458,7 +458,7 @@ export function ExpenseList({ expenses, onPay, onUnpay, onDelete, onUpdate, read
                         <Badge variant="outline" className="text-[10px] px-1.5 py-0 shrink-0">
                           {expense.type === "fixa" ? "Fixa" : "Recorrente"}
                         </Badge>
-                        {isRecorrente && (() => {
+                        {isRecorrente && expense.installments! < FIXED_RECURRING_INSTALLMENTS && (() => {
                           const [dY, dM] = expense.dueDate.split("-").map(Number);
                           const [sY, sM] = selectedMonth.split("-").map(Number);
                           const offset = (sY * 12 + sM) - (dY * 12 + dM);
