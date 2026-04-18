@@ -470,3 +470,87 @@ export function PersonalAIInsightsCard({
     </Card>
   );
 }
+
+interface DetailBlocksProps {
+  category: string;
+  spent: number;
+  budget: number;
+  over: boolean;
+  overPct: number;
+  suggestions: string[];
+  action: string;
+  onOpenFullReport: () => void;
+}
+
+function DetailBlocks({
+  category,
+  spent,
+  budget,
+  over,
+  overPct,
+  suggestions,
+  action,
+  onOpenFullReport,
+}: DetailBlocksProps) {
+  const summary = over
+    ? `Você ultrapassou em ${overPct.toFixed(0)}% (${fmt(spent - budget)} acima)`
+    : budget === 0
+    ? `Sem limite definido — ${fmt(spent)} gastos no mês`
+    : `${fmt(Math.max(0, budget - spent))} disponíveis até o fim do mês`;
+
+  return (
+    <div className="space-y-2.5 text-[11px] animate-fade-in">
+      {/* Resumo rápido */}
+      <div className="rounded-md bg-muted/40 px-2 py-1.5 flex items-start gap-1.5">
+        <TrendingUp className={cn("h-3 w-3 mt-0.5 shrink-0", over ? "text-destructive" : "text-primary")} />
+        <p className={cn("font-medium", over ? "text-destructive" : "text-foreground")}>
+          {summary}
+        </p>
+      </div>
+
+      {/* Sugestões da IA */}
+      <div>
+        <p className="font-semibold text-foreground flex items-center gap-1 mb-1">
+          <Lightbulb className="h-3 w-3 text-primary" /> Sugestões da IA
+        </p>
+        {suggestions.length > 0 ? (
+          <ul className="space-y-1 text-foreground/90">
+            {suggestions.slice(0, 3).map((sug, i) => (
+              <li key={i} className="flex items-start gap-1.5">
+                <span className="text-primary mt-0.5">•</span>
+                <span className="flex-1">
+                  <ReactMarkdown components={{ p: ({ children }) => <span>{children}</span> }}>
+                    {sug}
+                  </ReactMarkdown>
+                </span>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="text-muted-foreground italic">Sem recomendação específica para esta categoria.</p>
+        )}
+      </div>
+
+      <div className="border-t border-border/60" />
+
+      {/* Ação recomendada */}
+      <div>
+        <p className="font-semibold text-foreground flex items-center gap-1 mb-1">
+          <Target className="h-3 w-3 text-primary" /> Ação recomendada
+        </p>
+        <p className="text-muted-foreground">{action}</p>
+      </div>
+
+      {/* CTA: ver relatório completo */}
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={onOpenFullReport}
+        className="w-full h-7 text-xs gap-1 mt-1"
+      >
+        Ver detalhes completos
+        <ArrowRight className="h-3 w-3" />
+      </Button>
+    </div>
+  );
+}
