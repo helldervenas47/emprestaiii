@@ -282,7 +282,7 @@ export function PersonalAIInsightsCard({
               <Button
                 size="sm"
                 variant="ghost"
-                onClick={() => setShowFullReport(true)}
+                onClick={openGeneralReport}
                 className="h-7 px-2 text-xs gap-1 text-primary hover:text-primary"
               >
                 <FileText className="h-3 w-3" />
