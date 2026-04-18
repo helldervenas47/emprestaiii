@@ -104,9 +104,7 @@ export function MonthlyGoalsManager() {
             {goals.map((g) => {
               const meta = GOAL_TYPE_META[g.goalType];
               const Icon = meta.icon;
-              const formatted = g.goalType === "profit"
-                ? new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(g.targetValue)
-                : `${g.targetValue.toFixed(2)}%`;
+              const formatted = `${g.targetValue.toFixed(g.goalType === "profit" ? 0 : 2)}%`;
               return (
                 <div key={g.id} className="flex items-center justify-between gap-3 p-3 rounded-lg border border-border/30 bg-muted/20">
                   <div className="flex items-center gap-3 min-w-0 flex-1">
