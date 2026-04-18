@@ -486,7 +486,7 @@ export function CreditCardList({ readOnly = false, referenceMonth }: Props) {
                 }
                 hasUnpaidInvoice={inv.unpaidExpenseIds.length > 0}
                 dueDate={inv.dueDate}
-                onClick={() => setInvoiceCard(card)}
+                onClick={(rect) => openInvoice(card, rect)}
                 onEdit={readOnly ? undefined : () => handleEdit(card)}
                 onDelete={readOnly ? undefined : () => setDeleting(card)}
                 onAddOpening={readOnly ? undefined : () => setOpeningCard(card)}
