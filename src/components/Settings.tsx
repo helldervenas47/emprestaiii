@@ -1,0 +1,277 @@
+import { useState } from "react";
+import { lazy, Suspense } from "react";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { Switch } from "@/components/ui/switch";
+import { Bell, Send, Webhook, MessageSquare, CreditCard, Users as UsersIcon, DatabaseBackup, User as UserIcon, Sun, Moon, Eye, EyeOff, Trash2, Loader2, BarChart3, Sparkles } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
+import { useHideValues } from "@/contexts/HideValuesContext";
+import { useNavigate } from "react-router-dom";
+import { useSubscription } from "@/hooks/useSubscription";
+import { toast } from "sonner";
+import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
+
+const NotificationSettings = lazy(() => import("@/components/NotificationSettings").then(m => ({ default: m.NotificationSettings })));
+const WebhookSettings = lazy(() => import("@/components/WebhookSettings").then(m => ({ default: m.WebhookSettings })));
+const TelegramConnectCard = lazy(() => import("@/components/TelegramConnectCard").then(m => ({ default: m.TelegramConnectCard })));
+const TelegramReportsConnectCard = lazy(() => import("@/components/TelegramReportsConnectCard").then(m => ({ default: m.TelegramReportsConnectCard })));
+const TelegramBillingScheduleCard = lazy(() => import("@/components/TelegramBillingScheduleCard").then(m => ({ default: m.TelegramBillingScheduleCard })));
+const PushNotificationToggle = lazy(() => import("@/components/PushNotificationToggle").then(m => ({ default: m.PushNotificationToggle })));
+const UserManagement = lazy(() => import("@/components/UserManagement").then(m => ({ default: m.UserManagement })));
+const BackupExport = lazy(() => import("@/components/BackupExport").then(m => ({ default: m.BackupExport })));
+const LocadorList = lazy(() => import("@/components/LocadorList").then(m => ({ default: m.LocadorList })));
+
+const SectionLoader = () => (
+  <div className="flex justify-center py-8"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>
+);
+
+interface SettingsProps {
+  // Backup props (passados pelo Index)
+  backup: React.ComponentProps<typeof BackupExport>;
+  // Locadores
+  locadores: any[];
+  onSaveLocador: (l: any) => any;
+  onRemoveLocador: (id: string) => any;
+  isReadOnly: boolean;
+  // Tema
+  dark: boolean;
+  onToggleTheme: () => void;
+}
+
+export function Settings({ backup, locadores, onSaveLocador, onRemoveLocador, isReadOnly, dark, onToggleTheme }: SettingsProps) {
+  const { role } = useAuth();
+  const { hidden, toggle: toggleHidden } = useHideValues();
+  const navigate = useNavigate();
+  const { subscription, isActive } = useSubscription();
+  const [clearing, setClearing] = useState(false);
+  const [confirmClear, setConfirmClear] = useState(false);
+  const isAdmin = role === "admin";
+
+  const planLabel = isActive && subscription
+    ? subscription.product_id === "basico_plan" ? "Básico"
+    : subscription.product_id === "profissional_plan" ? "Profissional"
+    : subscription.product_id === "empresarial_plan" ? "Empresarial" : "Plano ativo"
+    : "Sem plano";
+
+  const handleClearCache = async () => {
+    setClearing(true);
+    try {
+      // Limpa Cache API
+      if ("caches" in window) {
+        const keys = await caches.keys();
+        await Promise.all(keys.map((k) => caches.delete(k)));
+      }
+      // Desregistra service workers (forçando recarregar assets)
+      if ("serviceWorker" in navigator) {
+        const regs = await navigator.serviceWorker.getRegistrations();
+        await Promise.all(regs.map((r) => r.unregister()));
+      }
+      toast.success("Cache limpo. Recarregando…");
+      setTimeout(() => window.location.reload(), 600);
+    } catch (e: any) {
+      toast.error("Falha ao limpar cache: " + (e?.message || "erro desconhecido"));
+      setClearing(false);
+    }
+  };
+
+  return (
+    <div className="space-y-6 max-w-4xl mx-auto">
+      <div>
+        <h2 className="text-2xl font-bold text-foreground">Configurações</h2>
+        <p className="text-sm text-muted-foreground mt-1">Gerencie preferências, notificações, dados e sua conta.</p>
+      </div>
+
+      {/* Plano */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-base">
+            <CreditCard className="h-4 w-4 text-primary" /> Plano e assinatura
+          </CardTitle>
+          <CardDescription>Plano atual: <span className="font-semibold text-foreground">{planLabel}</span></CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Button onClick={() => navigate("/planos")} variant="outline" size="sm">Gerenciar plano</Button>
+        </CardContent>
+      </Card>
+
+      {/* Preferências de exibição */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-base">
+            <Sparkles className="h-4 w-4 text-primary" /> Preferências de exibição
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              {dark ? <Moon className="h-4 w-4 text-muted-foreground" /> : <Sun className="h-4 w-4 text-muted-foreground" />}
+              <div>
+                <p className="text-sm font-medium">Tema escuro</p>
+                <p className="text-xs text-muted-foreground">Alterna entre modo claro e escuro</p>
+              </div>
+            </div>
+            <Switch checked={dark} onCheckedChange={onToggleTheme} />
+          </div>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              {hidden ? <EyeOff className="h-4 w-4 text-muted-foreground" /> : <Eye className="h-4 w-4 text-muted-foreground" />}
+              <div>
+                <p className="text-sm font-medium">Ocultar valores</p>
+                <p className="text-xs text-muted-foreground">Esconde os valores monetários na interface</p>
+              </div>
+            </div>
+            <Switch checked={hidden} onCheckedChange={toggleHidden} />
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Notificações e integrações */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-base">
+            <Bell className="h-4 w-4 text-primary" /> Notificações e integrações
+          </CardTitle>
+          <CardDescription>Configure todos os canais de envio de alertas e relatórios.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Accordion type="multiple" className="w-full">
+            <AccordionItem value="push">
+              <AccordionTrigger className="text-sm">
+                <span className="flex items-center gap-2"><Bell className="h-4 w-4" /> Notificações Push</span>
+              </AccordionTrigger>
+              <AccordionContent>
+                <Suspense fallback={<SectionLoader />}>
+                  <div className="py-2">
+                    <PushNotificationToggle />
+                  </div>
+                </Suspense>
+              </AccordionContent>
+            </AccordionItem>
+
+            <AccordionItem value="email">
+              <AccordionTrigger className="text-sm">
+                <span className="flex items-center gap-2"><Bell className="h-4 w-4" /> Preferências de notificação</span>
+              </AccordionTrigger>
+              <AccordionContent>
+                <Suspense fallback={<SectionLoader />}>
+                  <NotificationSettings />
+                </Suspense>
+              </AccordionContent>
+            </AccordionItem>
+
+            <AccordionItem value="telegram-billing">
+              <AccordionTrigger className="text-sm">
+                <span className="flex items-center gap-2"><Send className="h-4 w-4" /> Telegram — Cobrança</span>
+              </AccordionTrigger>
+              <AccordionContent>
+                <Suspense fallback={<SectionLoader />}>
+                  <div className="space-y-4">
+                    <TelegramConnectCard />
+                    <TelegramBillingScheduleCard />
+                  </div>
+                </Suspense>
+              </AccordionContent>
+            </AccordionItem>
+
+            <AccordionItem value="telegram-reports">
+              <AccordionTrigger className="text-sm">
+                <span className="flex items-center gap-2"><BarChart3 className="h-4 w-4" /> Telegram — Relatórios</span>
+              </AccordionTrigger>
+              <AccordionContent>
+                <Suspense fallback={<SectionLoader />}>
+                  <TelegramReportsConnectCard />
+                </Suspense>
+              </AccordionContent>
+            </AccordionItem>
+
+            <AccordionItem value="webhook">
+              <AccordionTrigger className="text-sm">
+                <span className="flex items-center gap-2"><Webhook className="h-4 w-4" /> Webhook personalizado</span>
+              </AccordionTrigger>
+              <AccordionContent>
+                <Suspense fallback={<SectionLoader />}>
+                  <WebhookSettings />
+                </Suspense>
+              </AccordionContent>
+            </AccordionItem>
+          </Accordion>
+        </CardContent>
+      </Card>
+
+      {/* Dados do locador */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-base">
+            <UserIcon className="h-4 w-4 text-primary" /> Dados do locador
+          </CardTitle>
+          <CardDescription>Cadastros usados em contratos de aluguel de veículos.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Suspense fallback={<SectionLoader />}>
+            <LocadorList locadores={locadores} onSave={onSaveLocador} onDelete={onRemoveLocador} readOnly={isReadOnly} />
+          </Suspense>
+        </CardContent>
+      </Card>
+
+      {/* Backup e exportação */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-base">
+            <DatabaseBackup className="h-4 w-4 text-primary" /> Backup e exportação
+          </CardTitle>
+          <CardDescription>Exporte seus dados em CSV ou importe um backup anterior.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Suspense fallback={<SectionLoader />}>
+            <BackupExport {...backup} />
+          </Suspense>
+        </CardContent>
+      </Card>
+
+      {/* Gerenciamento de usuários (admin) */}
+      {isAdmin && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-base">
+              <UsersIcon className="h-4 w-4 text-primary" /> Gerenciamento de usuários
+            </CardTitle>
+            <CardDescription>Crie e gerencie usuários, papéis e permissões.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Suspense fallback={<SectionLoader />}>
+              <UserManagement />
+            </Suspense>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Limpeza de cache */}
+      <Card className="border-destructive/30">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-base">
+            <Trash2 className="h-4 w-4 text-destructive" /> Limpar cache do navegador
+          </CardTitle>
+          <CardDescription>
+            Remove o cache de assets e atualizações pendentes do app. Mantém seu login e preferências.
+            Útil quando uma nova versão não carregou corretamente.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Button variant="destructive" onClick={() => setConfirmClear(true)} disabled={clearing} size="sm">
+            {clearing ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Limpando…</> : <><Trash2 className="h-4 w-4 mr-2" /> Limpar cache e recarregar</>}
+          </Button>
+        </CardContent>
+      </Card>
+
+      <ConfirmDeleteDialog
+        open={confirmClear}
+        onOpenChange={setConfirmClear}
+        title="Limpar cache do navegador"
+        description="O app vai recarregar para baixar a versão mais recente. Seus dados e login serão preservados."
+        confirmLabel="Limpar e recarregar"
+        onConfirm={handleClearCache}
+      />
+    </div>
+  );
+}
