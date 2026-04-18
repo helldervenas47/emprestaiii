@@ -901,7 +901,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
 
         const items = [
           { label: "Capital na Rua", value: formatCurrency(portfolio.capitalOnStreet), color: "text-foreground", iconBg: "bg-primary/10", iconColor: "text-primary", onClick: undefined as (() => void) | undefined },
-          { label: "Total a Receber", value: formatCurrency(portfolio.totalToReceive), color: "text-foreground", iconBg: "bg-primary/10", iconColor: "text-primary", onClick: undefined as (() => void) | undefined },
+          { label: "Total a Receber", value: formatCurrency(interestReceivedInPeriod + interestDueInPeriod), color: "text-foreground", iconBg: "bg-primary/10", iconColor: "text-primary", onClick: undefined as (() => void) | undefined },
           { label: "Pendente de Recebimento", value: formatCurrency(portfolio.pendingReceivable), color: "text-success", iconBg: "bg-success/10", iconColor: "text-success", onClick: undefined as (() => void) | undefined },
           { label: "Lucro Estimado", value: formatCurrency(portfolio.estimatedProfit), color: "text-success", iconBg: "bg-success/10", iconColor: "text-success", onClick: undefined as (() => void) | undefined },
           { label: "Juros a Receber no Mês", value: formatCurrency(interestDueInPeriod), color: "text-success", iconBg: "bg-success/10", iconColor: "text-success", onClick: undefined as (() => void) | undefined },
