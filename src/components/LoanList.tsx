@@ -762,8 +762,25 @@ function LoanCardView({
     <>
     <Card no3d={no3d} className={`overflow-hidden hover:shadow-[0_4px_16px_-6px_hsl(0_0%_0%/0.08)] hover:-translate-y-[1px] transition-all duration-400 ease-out h-full flex flex-col border ${cardBorder} ${cardBg}`}>
       {/* Client Name Header */}
-      <div className={`border-b px-4 py-3 text-center ${headerBg}`}>
+      <div className={`border-b px-4 py-3 text-center ${headerBg} relative`}>
         <h3 className="font-bold text-foreground text-lg">{loan.borrowerName}</h3>
+        {loan.notes && (
+          <TooltipProvider delayDuration={1000}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span
+                  className="absolute right-3 top-1/2 -translate-y-1/2 inline-flex items-center justify-center h-6 w-6 rounded-full bg-muted text-muted-foreground cursor-help"
+                  aria-label="Possui observações"
+                >
+                  <MessageCircle className="h-3.5 w-3.5" />
+                </span>
+              </TooltipTrigger>
+              <TooltipContent side="top" className="max-w-xs whitespace-pre-wrap text-xs">
+                {loan.notes}
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        )}
       </div>
 
       <CardContent className="p-4 flex-1 flex flex-col gap-3">
