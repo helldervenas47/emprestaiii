@@ -1,4 +1,5 @@
 import { useMemo, useState, useEffect, useLayoutEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import { format, addMonths } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
@@ -292,25 +293,35 @@ export function CreditCardInvoice({ card, onClose, referenceMonth, originRect }:
     return 1;
   })();
 
-  return (
+  // Lock body scroll while the panel is mounted (prevents background scrolling on mobile).
+  useEffect(() => {
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, []);
+
+  const content = (
     <div
-      className="fixed inset-0 z-[60] flex items-stretch sm:items-center justify-center p-0 sm:p-4 overscroll-contain"
+      className="fixed inset-0 z-[2147483647] flex items-stretch sm:items-center justify-center p-0 sm:p-4 overscroll-contain"
+      style={{ height: "100dvh" }}
       onClick={(e) => {
         if (!isMobile) handleClose();
       }}
     >
-      {/* Backdrop — animated separately so it fades in alongside the card expansion */}
+      {/* Backdrop — fully opaque on mobile so nothing behind leaks through. */}
       <div
         className="absolute inset-0 bg-background sm:bg-foreground/50 sm:backdrop-blur-md pointer-events-none"
         style={{
-          opacity: backdropOpacity,
+          opacity: isMobile ? 1 : backdropOpacity,
           transition: dragging ? "none" : "opacity 300ms cubic-bezier(0.22, 1, 0.36, 1)",
         }}
       />
       <Card
         ref={cardRef}
         no3d
-        className={`relative w-full max-w-2xl h-[100dvh] sm:h-auto sm:max-h-[92vh] sm:rounded-2xl border-0 sm:border p-0 will-change-transform ${
+        className={`relative w-full max-w-2xl h-[100dvh] sm:h-auto sm:max-h-[92vh] sm:rounded-2xl border-0 sm:border p-0 will-change-transform bg-background ${
           phase === "open" ? "overflow-y-auto rounded-none" : "overflow-hidden"
         }`}
         onClick={(e) => e.stopPropagation()}
@@ -746,4 +757,8 @@ export function CreditCardInvoice({ card, onClose, referenceMonth, originRect }:
       </Dialog>
     </div>
   );
+
+  return typeof document !== "undefined"
+    ? createPortal(content, document.body)
+    : content;
 }
