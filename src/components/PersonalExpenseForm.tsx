@@ -93,7 +93,7 @@ export function PersonalExpenseForm({ onAdd, onClose }: Props) {
         return;
       }
       try {
-        const baseNotes = form.notes ? `[${form.paymentMethod}] ${form.notes}` : `[${form.paymentMethod}]`;
+        const baseNotes = buildPaymentNotes(form.notes);
         await onAdd({
           description: form.description,
           amount,
