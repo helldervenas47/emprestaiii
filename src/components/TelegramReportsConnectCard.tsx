@@ -1,13 +1,18 @@
 import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Send, Copy, CheckCircle2, Unlink } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import { Send, Copy, CheckCircle2, Unlink, Sparkles, Clock } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useTelegramReportsLink } from "@/hooks/useTelegramReportsLink";
+import { usePersonalInsightsTelegramPrefs } from "@/hooks/usePersonalInsightsTelegramPrefs";
 
 export function TelegramReportsConnectCard() {
   const { linked, loading, disconnect } = useTelegramReportsLink();
+  const { prefs, loading: prefsLoading, save } = usePersonalInsightsTelegramPrefs();
   const [code, setCode] = useState<string | null>(null);
   const [generating, setGenerating] = useState(false);
 
@@ -94,6 +99,71 @@ export function TelegramReportsConnectCard() {
             <Send className="h-3.5 w-3.5 mr-1" />
             {generating ? "Gerando…" : "Conectar bot de relatórios"}
           </Button>
+        )}
+
+        {/* AI Insights schedule — only when bot linked */}
+        {linked && !prefsLoading && (
+          <div className="border-t pt-3 mt-3 space-y-3">
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex items-center gap-2 min-w-0">
+                <Sparkles className="h-4 w-4 text-primary shrink-0" />
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold">Relatório Inteligente (Despesas Pessoais)</p>
+                  <p className="text-[11px] text-muted-foreground">
+                    Receba a análise de IA nos horários definidos.
+                  </p>
+                </div>
+              </div>
+              <Switch
+                checked={prefs.enabled}
+                onCheckedChange={(v) => save({ enabled: v })}
+              />
+            </div>
+
+            {prefs.enabled && (
+              <>
+                <div className="grid grid-cols-3 gap-2">
+                  {[1, 2, 3].map((slot) => {
+                    const key = `send_time_${slot}` as "send_time_1" | "send_time_2" | "send_time_3";
+                    return (
+                      <div key={slot} className="space-y-1">
+                        <Label className="text-[10px] text-muted-foreground flex items-center gap-1">
+                          <Clock className="h-3 w-3" /> Horário {slot}
+                        </Label>
+                        <Input
+                          type="time"
+                          value={prefs[key] || ""}
+                          onChange={(e) => save({ [key]: e.target.value || null } as any)}
+                          className="h-8 text-xs"
+                        />
+                      </div>
+                    );
+                  })}
+                </div>
+
+                <div className="space-y-2">
+                  <label className="flex items-center justify-between gap-2 text-xs">
+                    <span className="text-foreground">Enviar quando uma categoria estourar</span>
+                    <Switch
+                      checked={prefs.alert_on_exceed}
+                      onCheckedChange={(v) => save({ alert_on_exceed: v })}
+                    />
+                  </label>
+                  <label className="flex items-center justify-between gap-2 text-xs">
+                    <span className="text-foreground">Enviar quando IA detectar tendência de alta</span>
+                    <Switch
+                      checked={prefs.alert_on_trend}
+                      onCheckedChange={(v) => save({ alert_on_trend: v })}
+                    />
+                  </label>
+                </div>
+
+                <p className="text-[10px] text-muted-foreground">
+                  Horários no fuso de Brasília. Deixe em branco para desativar um slot.
+                </p>
+              </>
+            )}
+          </div>
         )}
       </CardContent>
     </Card>
