@@ -652,6 +652,28 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, onUpda
         )}
       </div>
 
+      {/* Source filter (auto vs manual) */}
+      <div className="flex flex-wrap gap-2">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setSourceFilter(sourceFilter === "auto" ? "all" : "auto")}
+          className={`rounded-xl transition-all duration-200 ${sourceFilter === "auto" ? "bg-primary text-primary-foreground border-primary" : ""}`}
+          title="Despesas lançadas pelo bot do Telegram"
+        >
+          Automáticas ({visibleMonth.filter(isBotExpense).length})
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setSourceFilter(sourceFilter === "manual" ? "all" : "manual")}
+          className={`rounded-xl transition-all duration-200 ${sourceFilter === "manual" ? "bg-primary text-primary-foreground border-primary" : ""}`}
+          title="Despesas registradas manualmente no app"
+        >
+          Manuais ({visibleMonth.filter((e) => !isBotExpense(e)).length})
+        </Button>
+      </div>
+
       {/* List */}
       {filtered.length === 0 ? (
         <Card no3d>
