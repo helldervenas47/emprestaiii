@@ -1541,12 +1541,8 @@ Deno.serve(async (req) => {
                     : /\bd[eé]bito\b/i.test(text) ? "Débito"
                     : "Não informado");
 
-                // ⚡ Resposta instantânea: enviada ANTES do insert para confirmar
-                // imediatamente o recebimento da despesa, mesmo que o registro
-                // definitivo ainda esteja em andamento.
-                const instantText = `⚡ *Recebido!* Registrando despesa...\n\n💰 ${fmt}${parcelLine}\n📂 ${finalCategory}${cardLine}\n📝 ${extracted.description}\n📅 ${displayDate}\n💳 ${paymentMethod}`;
-                tgSend(chatId, instantText, LOVABLE_API_KEY, TELEGRAM_API_KEY)
-                  .catch((e) => console.error("instant ack err", e));
+                // Mensagem intermediária removida — enviamos apenas a confirmação
+                // final logo após o insert (rápido o suficiente para parecer instantâneo).
 
                 const header = installmentsN
                   ? (card ? `💳 *Compra parcelada no cartão*` : `🧾 *Compra parcelada registrada*`)
