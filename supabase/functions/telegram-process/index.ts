@@ -1371,6 +1371,7 @@ Deno.serve(async (req) => {
                 basePayload.paid_date = installmentsN ? null : finalDate;
               }
 
+              basePayload.notes = basePayload.notes ? `[bot]\n${basePayload.notes}` : "[bot]";
               const { data: ins, error: insErr } = await admin
                 .from("expenses")
                 .insert(basePayload)
