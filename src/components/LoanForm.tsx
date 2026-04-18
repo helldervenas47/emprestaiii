@@ -153,7 +153,7 @@ export function LoanForm({ onAdd, onSaveSchedule, onClose, clients, existingTags
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const selectedClient = activeClients.find((c) => c.id === form.borrowerName);
-    if (!selectedClient || !amount || !rate || !installments) return;
+    if (!selectedClient || !amount || !installments || isNaN(rate) || rate < 0) return;
     if (hasManager && !managerId) {
       toast.error("Selecione um gerente para o empréstimo com gerente.");
       return;
