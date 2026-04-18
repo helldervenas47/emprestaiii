@@ -167,33 +167,6 @@ const tabHelp: Record<Tab, { title: string; items: string[] }> = {
       "Use para priorizar suas cobranças diárias.",
     ],
   },
-  users: {
-    title: "Gerenciamento de Usuários",
-    items: [
-      "Crie novos usuários com email, nome de usuário e senha.",
-      "Defina papéis: Admin, Operador ou Visualizador.",
-      "Apenas administradores podem acessar esta aba.",
-      "Gerencie permissões de acesso dos usuários.",
-    ],
-  },
-  plan_mgmt: {
-    title: "Gestão de Planos",
-    items: [
-      "Visualize todos os assinantes na sub-aba Usuários.",
-      "Crie e edite planos na sub-aba Planos.",
-      "As alterações são refletidas na página de compra.",
-      "Apenas administradores podem acessar esta aba.",
-    ],
-  },
-  backup: {
-    title: "Backup de Dados",
-    items: [
-      "Exporte todos os seus dados cadastrados em formato CSV.",
-      "Faça backup de empréstimos, clientes, vendas, despesas e pagamentos.",
-      "Use 'Exportar Tudo' para baixar todos os dados de uma vez.",
-      "Os arquivos são nomeados com a data do backup.",
-    ],
-  },
   settings: {
     title: "Configurações",
     items: [
