@@ -270,7 +270,8 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
     
     const totalProfitExpected = periodProfitExpected + singleExpected;
     const totalProfitRealized = periodProfitRealized;
-    const periodProfitPct = totalProfitExpected > 0 ? Math.round((totalProfitRealized / totalProfitExpected) * 100) : 0;
+    const previstoTotal = totalProfitRealized + totalProfitExpected;
+    const periodProfitPct = previstoTotal > 0 ? Math.round((totalProfitRealized / previstoTotal) * 100) : 0;
 
     // Build sales with received amounts for breakdown
     const salesWithReceived = filteredSales.map(sale => {
