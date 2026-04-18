@@ -80,7 +80,7 @@ type Tab = "overview" | "dashboard" | "clients" | "products" | "vehicles" | "ove
 type ClientSubTab = "clientes" | "veiculos";
 type VehicleSubTab = "veiculos" | "locadores";
 type PlanMgmtSubTab = "subscribers" | "plans";
-type OverdueSubTab = "cobrancas" | "notificacoes" | "metas";
+type OverdueSubTab = "cobrancas" | "metas";
 type ExpenseSubTab = "business" | "personal";
 type PersonalSubTab = "expenses" | "cards";
 
@@ -689,28 +689,15 @@ const Index = () => {
                 <AlertTriangle className="h-4 w-4 mr-1" /> Cobranças
               </Button>
               <Button
-                variant={overdueSubTab === "notificacoes" ? "default" : "outline"}
-                size="sm"
-                onClick={() => setOverdueSubTab("notificacoes")}
-              >
-                <Bell className="h-4 w-4 mr-1" /> Notificações
-              </Button>
-              <Button
                 variant={overdueSubTab === "metas" ? "default" : "outline"}
                 size="sm"
                 onClick={() => setOverdueSubTab("metas")}
               >
                 <Target className="h-4 w-4 mr-1" /> Metas
               </Button>
-              {overdueSubTab === "notificacoes" && (
-                <PushNotificationToggle />
-              )}
             </div>
             {overdueSubTab === "cobrancas" && (
               <OverdueLoans loans={filteredLoans} payments={filteredPayments} clients={filteredClients} installmentSchedules={filteredInstallments} />
-            )}
-            {overdueSubTab === "notificacoes" && (
-              <NotificationSettings />
             )}
             {overdueSubTab === "metas" && (
               <MonthlyGoalsManager />
