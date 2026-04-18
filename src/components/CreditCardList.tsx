@@ -94,6 +94,7 @@ function MiniCreditCard({
   card,
   invoiceTotal,
   pendingTotal,
+  cyclePendingTotal,
   openingAmount,
   hasOpening,
   hasActiveInvoice,
