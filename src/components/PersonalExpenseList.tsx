@@ -61,6 +61,7 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, onUpda
 
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<Filter>("all");
+  const [sourceFilter, setSourceFilter] = useState<"all" | "auto" | "manual">("all");
   const [categoryFilter, setCategoryFilter] = useState<string | null>(null);
   const now = new Date();
   const [selectedMonth, setSelectedMonth] = useState(
@@ -250,12 +251,19 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, onUpda
     return format(new Date(y, m - 1, 1), "MMM/yyyy", { locale: ptBR });
   };
 
+  const isBotExpense = (e: Expense) => /\[\s*bot\s*\]/i.test(e.notes ?? "");
+
   const filtered = visibleMonth
     .filter((e) =>
       e.description.toLowerCase().includes(search.toLowerCase()) ||
       e.category.toLowerCase().includes(search.toLowerCase())
     )
     .filter((e) => (categoryFilter ? e.category === categoryFilter : true))
+    .filter((e) => {
+      if (sourceFilter === "auto") return isBotExpense(e);
+      if (sourceFilter === "manual") return !isBotExpense(e);
+      return true;
+    })
     .filter((e) => {
       if (filter === "pending") return !e.paid && !isOverdue(e);
       if (filter === "paid") return e.paid;
@@ -610,6 +618,24 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, onUpda
               {f.label} ({f.count})
             </Button>
           ))}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setSourceFilter(sourceFilter === "auto" ? "all" : "auto")}
+            className={`rounded-xl transition-all duration-200 ${sourceFilter === "auto" ? "bg-primary text-primary-foreground border-primary" : ""}`}
+            title="Despesas lançadas pelo bot do Telegram"
+          >
+            Automáticas ({visibleMonth.filter(isBotExpense).length})
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setSourceFilter(sourceFilter === "manual" ? "all" : "manual")}
+            className={`rounded-xl transition-all duration-200 ${sourceFilter === "manual" ? "bg-primary text-primary-foreground border-primary" : ""}`}
+            title="Despesas registradas manualmente no app"
+          >
+            Manuais ({visibleMonth.filter((e) => !isBotExpense(e)).length})
+          </Button>
         </div>
       </div>
 
