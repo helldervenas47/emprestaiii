@@ -70,6 +70,7 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, onUpda
   const [payingId, setPayingId] = useState<string | null>(null);
   const [payDate, setPayDate] = useState("");
   const [paidAmountInput, setPaidAmountInput] = useState("");
+  const [unpayingId, setUnpayingId] = useState<string | null>(null);
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
   const [budgetEditOpen, setBudgetEditOpen] = useState(false);
   const [budgetDraft, setBudgetDraft] = useState<Record<string, string>>({});
