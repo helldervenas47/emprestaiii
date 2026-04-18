@@ -68,7 +68,7 @@ export function useLoans() {
   useEffect(() => {
     if (!user) return;
     const channel = supabase
-      .channel('loans-realtime')
+      .channel(`loans-realtime-${user.id}-${Math.random().toString(36).slice(2)}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'loans' }, () => { fetchLoans(); })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'payments' }, () => { fetchPayments(); })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'loan_installments' }, () => { fetchSchedules(); })
