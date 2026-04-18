@@ -526,6 +526,7 @@ export function CreditCardList({ readOnly = false, referenceMonth }: Props) {
                 card={card}
                 invoiceTotal={inv.total}
                 pendingTotal={inv.pendingTotal}
+                cyclePendingTotal={inv.cyclePendingTotal}
                 openingAmount={inv.opening}
                 hasOpening={inv.hasOpening}
                 hasActiveInvoice={
