@@ -757,4 +757,8 @@ export function CreditCardInvoice({ card, onClose, referenceMonth, originRect }:
       </Dialog>
     </div>
   );
+
+  return typeof document !== "undefined"
+    ? createPortal(content, document.body)
+    : content;
 }
