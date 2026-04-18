@@ -213,8 +213,9 @@ export function OverdueLoans({ loans, payments, clients, installmentSchedules }:
       </div>
 
       {/* Bot de Relatórios (independente) */}
-      <TelegramReportsConnectCard />
-
+      <div id="telegram-reports-config" className="rounded-lg transition-all duration-500 scroll-mt-24">
+        <TelegramReportsConnectCard />
+      </div>
       {/* Telegram automatic schedule */}
       <TelegramBillingScheduleCard />
 
