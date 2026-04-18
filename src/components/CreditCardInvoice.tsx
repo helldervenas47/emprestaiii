@@ -339,7 +339,7 @@ export function CreditCardInvoice({ card, onClose, referenceMonth, originRect }:
             <Button
               variant="ghost"
               size="icon"
-              onClick={onClose}
+              onClick={handleClose}
               className={`${bank.textClass} hover:bg-white/15`}
             >
               <X className="h-5 w-5" />
