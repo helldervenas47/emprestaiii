@@ -871,28 +871,50 @@ async function extractExpense(text: string, lovableKey: string) {
       messages: [
         {
           role: "system",
-          content: `Você extrai despesas pessoais de mensagens em português brasileiro. Hoje é ${today} (timezone America/Sao_Paulo). Categorias permitidas: ${CATEGORIES.join(", ")}.
+          content: `Você extrai despesas pessoais de mensagens em português brasileiro, mesmo escritas em linguagem natural e desestruturada. Hoje é ${today} (timezone America/Sao_Paulo). Categorias permitidas: ${CATEGORIES.join(", ")}.
 
-REGRAS DE DATA (campo "date" no formato YYYY-MM-DD):
-- "hoje" ou sem menção de data → use ${today}
-- "ontem" → subtraia 1 dia de hoje
-- "anteontem" ou "antes de ontem" → subtraia 2 dias
-- "há N dias" / "faz N dias" → subtraia N dias
-- "há uma semana" / "semana passada" → subtraia 7 dias
-- "segunda", "terça", etc. (sem "que vem") → última ocorrência passada desse dia da semana
-- "dia 15", "no dia 10" → dia 15/10 do MÊS ATUAL (ou mês anterior se for data futura)
-- "10/03", "15/02/2025" → essa data exata
-- NUNCA retorne data no futuro (limite máximo: hoje)
-- NUNCA retorne data com mais de 1 ano atrás
+VALOR (campo "amount", número decimal em reais):
+- Aceite formatos numéricos: "45", "R$ 12,50", "1.234,56", "20.00".
+- Aceite valores por extenso em PT-BR: "vinte reais"=20, "vinte e cinco"=25, "cem reais"=100, "mil e duzentos"=1200, "dois mil e quinhentos"=2500.
+- "20 reais", "20 pila", "20 conto", "20 contos", "20 mangos" → 20.
+- Se houver mais de um número, use o que claramente representa o valor da despesa (ignore datas, quantidades de itens, parcelas, anos).
+- Sempre retorne o valor TOTAL da despesa (não da parcela).
 
-Se faltar valor numérico, retorne confidence baixo.
+DESCRIÇÃO (campo "description"):
+- Texto curto descrevendo a despesa, SEM o valor, SEM o meio de pagamento, SEM a data e SEM o parcelamento.
+- Ex.: "almocei no japonês com cartão nubank ontem por 80 reais" → "almoço no japonês".
+- Ex.: "20 reais uber pix" → "uber".
+- Mantenha em minúsculas, natural, sem emojis.
+
+MEIO DE PAGAMENTO (campo "payment_method", string opcional):
+- Se mencionado, retorne uma string curta:
+  - "pix" para Pix.
+  - "dinheiro" para dinheiro/cash/espécie.
+  - "débito" para cartão de débito.
+  - "cartão <nome>" para crédito quando houver banco/apelido (ex.: "cartão nubank", "cartão itaú", "cartão final 1234").
+  - "cartão" se for crédito sem identificação.
+  - "boleto" para boleto.
+- Se NÃO houver menção de meio de pagamento, OMITA o campo.
+
+DATA (campo "date" no formato YYYY-MM-DD):
+- "hoje" ou sem menção de data → use ${today}.
+- "ontem" → subtraia 1 dia de hoje.
+- "anteontem" ou "antes de ontem" → subtraia 2 dias.
+- "há N dias" / "faz N dias" → subtraia N dias.
+- "há uma semana" / "semana passada" → subtraia 7 dias.
+- "segunda", "terça", etc. (sem "que vem") → última ocorrência passada desse dia da semana.
+- "dia 15", "no dia 10" → dia 15/10 do MÊS ATUAL (ou mês anterior se for data futura).
+- "17/04", "17-04", "15/02/2025" → essa data exata; assuma o ano atual quando omitido.
+- NUNCA retorne data no futuro (limite máximo: hoje).
+- NUNCA retorne data com mais de 1 ano atrás.
 
 PARCELAMENTO (campo "installments"):
 - Detecte expressões como "10x", "em 3x", "em 12 vezes", "parcelado em 6", "6 parcelas", "dividido em 4".
 - Quando o usuário disser "3 vezes de 50", o valor TOTAL é 3*50=150 e installments=3.
 - Quando o usuário disser "300 em 3x", o valor TOTAL é 300 e installments=3.
 - Se NÃO houver menção de parcelas, omita o campo (ou retorne 1).
-- O campo "amount" deve ser SEMPRE o valor TOTAL da compra, não o valor da parcela.`,
+
+Se faltar valor numérico interpretável, retorne confidence baixo (<0.6).`,
         },
         { role: "user", content: text },
       ],
@@ -904,11 +926,12 @@ PARCELAMENTO (campo "installments"):
           parameters: {
             type: "object",
             properties: {
-              description: { type: "string", description: "Descrição curta (sem o valor e sem o parcelamento)" },
+              description: { type: "string", description: "Descrição curta (sem o valor, meio de pagamento, data e parcelamento)" },
               amount: { type: "number", description: "Valor TOTAL em reais (não o valor da parcela)" },
               category: { type: "string", enum: CATEGORIES },
               date: { type: "string", description: "Data YYYY-MM-DD; default hoje" },
               installments: { type: "number", description: "Número de parcelas (2 a 36). Omitir ou 1 se à vista." },
+              payment_method: { type: "string", description: "Meio de pagamento informado (pix, dinheiro, débito, cartão <nome>, boleto). Omita se não mencionado." },
               confidence: { type: "number", description: "0 a 1" },
             },
             required: ["description", "amount", "category", "date", "confidence"],
