@@ -1531,9 +1531,14 @@ Deno.serve(async (req) => {
                   ? Math.min(36, Math.floor(Number(extracted.installments)))
                   : null;
 
-                // 💳 Credit-card detection — register as pending invoice item
+                // 💳 Credit-card detection — register as pending invoice item.
+                // Search both the original message and any payment_method hint extracted by the AI.
                 const userCards = await getUserCards(admin, link.user_id);
-                const card = detectCardInText(text, userCards);
+                const aiPayMethod: string | undefined = typeof extracted.payment_method === "string"
+                  ? extracted.payment_method.trim()
+                  : undefined;
+                const cardSearchText = aiPayMethod ? `${text}\n${aiPayMethod}` : text;
+                const card = detectCardInText(cardSearchText, userCards);
 
                 const basePayload: Record<string, any> = {
                   user_id: link.user_id,
@@ -1567,12 +1572,28 @@ Deno.serve(async (req) => {
                 const fmtParcel = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(installmentValue);
                 const parcelLine = installmentsN ? `\n🔢 ${installmentsN}x de ${fmtParcel}` : "";
                 const cardLine = card ? `\n💳 ${card.nickname || card.bank} (vence ${displayDate})` : "";
+                // Resolve payment method label: prefer detected card → AI hint → regex on text → default.
+                const labelFromAi = (() => {
+                  if (!aiPayMethod) return null;
+                  const a = aiPayMethod.toLowerCase();
+                  if (/p[ií]x/.test(a)) return "Pix";
+                  if (/dinheiro|esp[eé]cie|cash/.test(a)) return "Dinheiro";
+                  if (/d[eé]bito/.test(a)) return "Débito";
+                  if (/boleto/.test(a)) return "Boleto";
+                  if (/cart[ãa]o/.test(a)) {
+                    const rest = aiPayMethod.replace(/cart[ãa]o/i, "").trim();
+                    return rest ? `Cartão ${rest}` : "Cartão";
+                  }
+                  return aiPayMethod.charAt(0).toUpperCase() + aiPayMethod.slice(1);
+                })();
                 const paymentMethod = card
                   ? `Cartão${card.nickname ? ` ${card.nickname}` : ""}`
-                  : (/\bpix\b/i.test(text) ? "Pix"
-                    : /(dinheiro|cash|esp[eé]cie)/i.test(text) ? "Dinheiro"
-                    : /\bd[eé]bito\b/i.test(text) ? "Débito"
-                    : "Não informado");
+                  : (labelFromAi
+                    ?? (/\bpix\b/i.test(text) ? "Pix"
+                      : /(dinheiro|cash|esp[eé]cie)/i.test(text) ? "Dinheiro"
+                      : /\bd[eé]bito\b/i.test(text) ? "Débito"
+                      : "Não informado"));
+
 
                 // Mensagem intermediária removida — enviamos apenas a confirmação
                 // final logo após o insert (rápido o suficiente para parecer instantâneo).
