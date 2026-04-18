@@ -1477,7 +1477,7 @@ function LoanRowView({
     onUpdate({
       borrowerName: form.borrowerName,
       amount: parseFloat(form.amount) || loan.amount,
-      interestRate: parseFloat(form.interestRate) || loan.interestRate,
+      interestRate: form.interestRate.trim() === "" || isNaN(parseFloat(form.interestRate)) ? loan.interestRate : Math.max(0, parseFloat(form.interestRate)),
       installments: parseInt(form.installments) || loan.installments,
       paidInstallments: parseInt(form.paidInstallments) || 0,
       startDate: form.startDate || loan.startDate,
