@@ -130,7 +130,7 @@ export function ExpenseEditDialog({
     const pm = detectPaymentMethod(expense.notes);
     setPaymentMethod(pm);
     setFreeNotes(extractFreeNotes(expense.notes));
-    // Try to map the card tag to a known card
+    // Try to map the card tag to a known card; default to Nubank when Crédito and no tag
     const tag = detectCardTag(expense.notes);
     if (tag && cards.length) {
       const lower = tag.toLowerCase();
@@ -141,6 +141,13 @@ export function ExpenseEditDialog({
           c.bank.toLowerCase() === lower,
       );
       setCardId(found?.id ?? "");
+    } else if (pm === "Crédito" && cards.length) {
+      const nubank = cards.find(
+        (c) =>
+          c.bank?.toLowerCase().includes("nubank") ||
+          c.nickname?.toLowerCase().includes("nubank"),
+      );
+      setCardId((nubank ?? cards[0]).id);
     } else {
       setCardId("");
     }

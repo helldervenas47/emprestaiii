@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { SuccessAnimation } from "@/components/SuccessAnimation";
 import { DatePickerField } from "@/components/ui/date-picker-field";
 import { Button } from "@/components/ui/button";
@@ -12,6 +12,18 @@ import { Plus, X, PiggyBank } from "lucide-react";
 import { Expense } from "@/types/loan";
 import { personalCategories } from "@/lib/personalExpenseCategories";
 import { usePiggyBanks, buildPiggyTag } from "@/hooks/usePiggyBanks";
+import { useCreditCards } from "@/hooks/useCreditCards";
+
+/** Pick the user's default credit card — prefers Nubank, falls back to first card. */
+function pickDefaultCard<T extends { bank: string; nickname: string }>(cards: T[]): T | null {
+  if (!cards.length) return null;
+  const nubank = cards.find(
+    (c) =>
+      c.bank?.toLowerCase().includes("nubank") ||
+      c.nickname?.toLowerCase().includes("nubank"),
+  );
+  return nubank ?? cards[0];
+}
 
 interface Props {
   onAdd: (expense: Omit<Expense, "id" | "paid" | "paidDate" | "createdAt">) => void;
@@ -25,6 +37,7 @@ const FIXED_RECURRING_INSTALLMENTS = 999;
 
 export function PersonalExpenseForm({ onAdd, onClose }: Props) {
   const { piggyBanks, addDeposit, createRecurrence } = usePiggyBanks();
+  const { cards } = useCreditCards();
   const [showSuccess, setShowSuccess] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
@@ -38,10 +51,34 @@ export function PersonalExpenseForm({ onAdd, onClose }: Props) {
     dueDate: new Date().toISOString().split("T")[0],
     notes: "",
   });
+  const [cardId, setCardId] = useState<string>("");
   const [toPiggy, setToPiggy] = useState(false);
   const [piggyId, setPiggyId] = useState<string>("");
   const [piggyRecurrence, setPiggyRecurrence] = useState<"none" | "fixed" | "until">("none");
   const [piggyEndDate, setPiggyEndDate] = useState<string>("");
+
+  // Auto-select default card (Nubank preferred) when Crédito is chosen
+  useEffect(() => {
+    if (form.paymentMethod === "Crédito" && !cardId && cards.length) {
+      const def = pickDefaultCard(cards);
+      if (def) setCardId(def.id);
+    }
+    if (form.paymentMethod !== "Crédito" && cardId) {
+      setCardId("");
+    }
+  }, [form.paymentMethod, cards, cardId]);
+
+  const selectedCard = cards.find((c) => c.id === cardId) ?? null;
+
+  const buildPaymentNotes = (freeText: string) => {
+    if (form.paymentMethod === "Crédito" && selectedCard) {
+      const tag = selectedCard.nickname || selectedCard.lastFour || selectedCard.bank;
+      const head = `[Crédito] Cartão: ${tag}`;
+      return freeText ? `${head}\n${freeText}` : head;
+    }
+    return freeText ? `[${form.paymentMethod}] ${freeText}` : `[${form.paymentMethod}]`;
+  };
+
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -56,7 +93,7 @@ export function PersonalExpenseForm({ onAdd, onClose }: Props) {
         return;
       }
       try {
-        const baseNotes = form.notes ? `[${form.paymentMethod}] ${form.notes}` : `[${form.paymentMethod}]`;
+        const baseNotes = buildPaymentNotes(form.notes);
         await onAdd({
           description: form.description,
           amount,
@@ -90,9 +127,7 @@ export function PersonalExpenseForm({ onAdd, onClose }: Props) {
       setSubmitting(false);
       return;
     }
-    const notesWithMethod = form.notes
-      ? `[${form.paymentMethod}] ${form.notes}`
-      : `[${form.paymentMethod}]`;
+    const notesWithMethod = buildPaymentNotes(form.notes);
 
     let payload: Omit<Expense, "id" | "paid" | "paidDate" | "createdAt">;
     if (form.kind === "parcelada") {
@@ -321,6 +356,29 @@ export function PersonalExpenseForm({ onAdd, onClose }: Props) {
                 />
               </div>
             </div>
+            {form.paymentMethod === "Crédito" && (
+              <div>
+                <Label>Cartão</Label>
+                <Select value={cardId} onValueChange={setCardId}>
+                  <SelectTrigger>
+                    <SelectValue placeholder={cards.length ? "Selecione" : "Nenhum cartão cadastrado"} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {cards.length === 0 && (
+                      <div className="px-2 py-1.5 text-xs text-muted-foreground">
+                        Nenhum cartão cadastrado
+                      </div>
+                    )}
+                    {cards.map((c) => (
+                      <SelectItem key={c.id} value={c.id}>
+                        {c.nickname || c.bank}
+                        {c.lastFour ? ` •••• ${c.lastFour}` : ""}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
             <div>
               <Label htmlFor="notes">Observações</Label>
               <Textarea
