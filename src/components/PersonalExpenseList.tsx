@@ -819,6 +819,30 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, onUpda
         description="Tem certeza? Esta ação não pode ser desfeita."
       />
 
+      {/* Unpay confirm */}
+      <Dialog open={!!unpayingId} onOpenChange={(o) => !o && setUnpayingId(null)}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Estornar pagamento</DialogTitle>
+            <DialogDescription>
+              Esta despesa voltará para o status pendente. Aportes vinculados a cofrinhos também serão revertidos. Deseja continuar?
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setUnpayingId(null)}>Cancelar</Button>
+            <Button
+              variant="destructive"
+              onClick={() => {
+                if (unpayingId && onUnpay) onUnpay(unpayingId);
+                setUnpayingId(null);
+              }}
+            >
+              Confirmar estorno
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* Edit dialog */}
       <ExpenseEditDialog
         open={!!editingExpense}
