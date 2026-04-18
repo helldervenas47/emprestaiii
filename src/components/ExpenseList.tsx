@@ -235,6 +235,8 @@ export function ExpenseList({ expenses, onPay, onUnpay, onDelete, onUpdate, read
   const [payingExpenseId, setPayingExpenseId] = useState<string | null>(null);
   const [payDate, setPayDate] = useState<string>("");
   const [paidAmountInput, setPaidAmountInput] = useState<string>("");
+  const [unpayingExpenseId, setUnpayingExpenseId] = useState<string | null>(null);
+  const [unpayConfirm, setUnpayConfirm] = useState<{ run: () => void | Promise<void>; label: string } | null>(null);
 
   const getInstallmentAmount = useCallback((e: Expense) => {
     const isRec = e.type === "recorrente" && e.installments && e.installments > 1;
@@ -457,7 +459,7 @@ export function ExpenseList({ expenses, onPay, onUnpay, onDelete, onUpdate, read
                         <Badge variant="outline" className="text-[10px] px-1.5 py-0 shrink-0">
                           {expense.type === "fixa" ? "Fixa" : "Recorrente"}
                         </Badge>
-                        {isRecorrente && (() => {
+                        {isRecorrente && expense.installments! < FIXED_RECURRING_INSTALLMENTS && (() => {
                           const [dY, dM] = expense.dueDate.split("-").map(Number);
                           const [sY, sM] = selectedMonth.split("-").map(Number);
                           const offset = (sY * 12 + sM) - (dY * 12 + dM);
@@ -492,7 +494,7 @@ export function ExpenseList({ expenses, onPay, onUnpay, onDelete, onUpdate, read
                         )}
                       </div>
                       {expense.notes && <p className="text-xs text-muted-foreground mt-1 italic">"{expense.notes}"</p>}
-                      {isRecorrente && (
+                      {isRecorrente && expense.installments! < FIXED_RECURRING_INSTALLMENTS && (
                         <p className="text-xs text-muted-foreground">Total: {formatCurrency(expense.amount)} ({expense.installments}x de {formatCurrency(installmentAmount)})</p>
                       )}
                       <div className="flex items-center justify-between mt-2 pt-2 border-t border-border/40">
@@ -554,13 +556,18 @@ export function ExpenseList({ expenses, onPay, onUnpay, onDelete, onUpdate, read
                                 size="icon"
                                 variant="ghost"
                                 className="h-7 w-7 text-destructive hover:bg-destructive/10 shrink-0"
-                                onClick={async () => {
-                                  const currentPaid = expense.paidInstallments || 0;
-                                  const timesToUnpay = currentPaid - idx;
-                                  for (let t = 0; t < timesToUnpay; t++) {
-                                    await onUnpay(expense.id);
-                                  }
-                                  if (idx === 0) setViewPaymentsExpenseId(null);
+                                onClick={() => {
+                                  setUnpayConfirm({
+                                    label: `Estornar a ${idx + 1}ª parcela em diante?`,
+                                    run: async () => {
+                                      const currentPaid = expense.paidInstallments || 0;
+                                      const timesToUnpay = currentPaid - idx;
+                                      for (let t = 0; t < timesToUnpay; t++) {
+                                        await onUnpay(expense.id);
+                                      }
+                                      if (idx === 0) setViewPaymentsExpenseId(null);
+                                    },
+                                  });
                                 }}
                               >
                                 <Trash2 className="h-3.5 w-3.5" />
@@ -585,8 +592,13 @@ export function ExpenseList({ expenses, onPay, onUnpay, onDelete, onUpdate, read
                                 variant="ghost"
                                 className="h-7 w-7 text-destructive hover:bg-destructive/10 shrink-0"
                                 onClick={() => {
-                                  onUnpay(expense.id);
-                                  setViewPaymentsExpenseId(null);
+                                  setUnpayConfirm({
+                                    label: "Estornar este pagamento?",
+                                    run: () => {
+                                      onUnpay(expense.id);
+                                      setViewPaymentsExpenseId(null);
+                                    },
+                                  });
                                 }}
                               >
                                 <Trash2 className="h-3.5 w-3.5" />
@@ -676,6 +688,31 @@ export function ExpenseList({ expenses, onPay, onUnpay, onDelete, onUpdate, read
             }}>
               <CheckCircle className="h-4 w-4 mr-1" />
               Confirmar pagamento
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Unpay confirm */}
+      <Dialog open={!!unpayConfirm} onOpenChange={(o) => !o && setUnpayConfirm(null)}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Estornar pagamento</DialogTitle>
+            <DialogDescription>
+              {unpayConfirm?.label ?? "Confirma estornar este pagamento?"} Esta ação reverte o status para pendente.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setUnpayConfirm(null)}>Cancelar</Button>
+            <Button
+              variant="destructive"
+              onClick={async () => {
+                const action = unpayConfirm;
+                setUnpayConfirm(null);
+                if (action) await action.run();
+              }}
+            >
+              Confirmar estorno
             </Button>
           </DialogFooter>
         </DialogContent>

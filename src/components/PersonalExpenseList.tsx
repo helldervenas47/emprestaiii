@@ -47,6 +47,8 @@ interface Props {
 
 type Filter = "all" | "pending" | "paid" | "overdue";
 
+const FIXED_RECURRING_INSTALLMENTS = 999;
+
 const fmt = (v: number) =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v);
 
@@ -68,6 +70,7 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, onUpda
   const [payingId, setPayingId] = useState<string | null>(null);
   const [payDate, setPayDate] = useState("");
   const [paidAmountInput, setPaidAmountInput] = useState("");
+  const [unpayingId, setUnpayingId] = useState<string | null>(null);
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
   const [budgetEditOpen, setBudgetEditOpen] = useState(false);
   const [budgetDraft, setBudgetDraft] = useState<Record<string, string>>({});
@@ -686,7 +689,7 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, onUpda
                               <Calendar className="h-3 w-3" />
                               {format(new Date(expense.dueDate + "T00:00:00"), "dd/MM/yyyy")}
                             </span>
-                            {isRecorrente && (() => {
+                            {isRecorrente && expense.installments! < FIXED_RECURRING_INSTALLMENTS && (() => {
                               const total = expense.installments!;
                               const paidCount = expense.paidInstallments || 0;
                               // Reconstrói a data da 1ª parcela (dueDate atual - paidCount meses)
@@ -727,7 +730,7 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, onUpda
                             </Button>
                           )}
                           {expense.paid && onUnpay && (
-                            <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => onUnpay(expense.id)}>
+                            <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => setUnpayingId(expense.id)}>
                               <Undo2 className="h-3 w-3 mr-1" />
                               Estornar
                             </Button>
@@ -815,6 +818,30 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, onUpda
         title="Excluir despesa"
         description="Tem certeza? Esta ação não pode ser desfeita."
       />
+
+      {/* Unpay confirm */}
+      <Dialog open={!!unpayingId} onOpenChange={(o) => !o && setUnpayingId(null)}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Estornar pagamento</DialogTitle>
+            <DialogDescription>
+              Esta despesa voltará para o status pendente. Aportes vinculados a cofrinhos também serão revertidos. Deseja continuar?
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setUnpayingId(null)}>Cancelar</Button>
+            <Button
+              variant="destructive"
+              onClick={() => {
+                if (unpayingId && onUnpay) onUnpay(unpayingId);
+                setUnpayingId(null);
+              }}
+            >
+              Confirmar estorno
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Edit dialog */}
       <ExpenseEditDialog
