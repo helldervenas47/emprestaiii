@@ -730,7 +730,7 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, onUpda
                             </Button>
                           )}
                           {expense.paid && onUnpay && (
-                            <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => onUnpay(expense.id)}>
+                            <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => setUnpayingId(expense.id)}>
                               <Undo2 className="h-3 w-3 mr-1" />
                               Estornar
                             </Button>
