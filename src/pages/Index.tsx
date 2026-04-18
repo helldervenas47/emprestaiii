@@ -220,6 +220,52 @@ const Index = () => {
   });
   const setTab = (t: Tab) => { sessionStorage.setItem("activeTab", t); setTabState(t); };
 
+  // Hard refresh: limpa caches do navegador (Cache Storage, SW, localStorage não-essencial)
+  // e força reload bypassing cache. Mantém sessão de auth e tema.
+  const [refreshing, setRefreshing] = useState(false);
+  const handleHardRefresh = async () => {
+    if (refreshing) return;
+    setRefreshing(true);
+    try {
+      // 1) Preserva chaves essenciais (auth, tema, tab atual)
+      const KEEP_KEYS = ["theme", "activeTab", "hvcred_session", "supabase.auth.token"];
+      const preserve: Record<string, string> = {};
+      try {
+        for (let i = 0; i < localStorage.length; i++) {
+          const k = localStorage.key(i);
+          if (k && (KEEP_KEYS.includes(k) || k.startsWith("sb-"))) {
+            preserve[k] = localStorage.getItem(k) ?? "";
+          }
+        }
+        localStorage.clear();
+        Object.entries(preserve).forEach(([k, v]) => localStorage.setItem(k, v));
+      } catch {}
+
+      // 2) Limpa Cache Storage (PWA / service worker caches)
+      try {
+        if ("caches" in window) {
+          const keys = await caches.keys();
+          await Promise.all(keys.map((k) => caches.delete(k)));
+        }
+      } catch {}
+
+      // 3) Atualiza service worker se houver
+      try {
+        if ("serviceWorker" in navigator) {
+          const regs = await navigator.serviceWorker.getRegistrations();
+          await Promise.all(regs.map((r) => r.update().catch(() => null)));
+        }
+      } catch {}
+
+      // 4) Hard reload (bypass HTTP cache)
+      const url = new URL(window.location.href);
+      url.searchParams.set("_r", Date.now().toString());
+      window.location.replace(url.toString());
+    } catch {
+      window.location.reload();
+    }
+  };
+
   // Listen for in-app navigation requests (e.g. shortcut to Telegram report config)
   useEffect(() => {
     const handler = (e: Event) => {
@@ -496,8 +542,15 @@ const Index = () => {
                 </div>
               </PopoverContent>
             </Popover>
-            <Button variant="ghost" size="icon" onClick={() => window.location.reload()} className="h-8 w-8 sm:h-9 sm:w-9" title="Atualizar página">
-              <RefreshCw className="h-4 w-4" />
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={handleHardRefresh}
+              disabled={refreshing}
+              className="h-8 w-8 sm:h-9 sm:w-9"
+              title="Atualizar (limpa cache)"
+            >
+              <RefreshCw className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`} />
             </Button>
             <HideValuesToggle />
             <Button variant="ghost" size="icon" onClick={toggleTheme} className="h-8 w-8 sm:h-9 sm:w-9" title={dark ? "Modo claro" : "Modo escuro"}>
