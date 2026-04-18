@@ -272,7 +272,7 @@ export function CreditCardList({ readOnly = false, referenceMonth }: Props) {
   const cards = useMemo(() => allCards.filter((c) => c.active !== false), [allCards]);
   const inactiveCards = useMemo(() => allCards.filter((c) => c.active === false), [allCards]);
   const { expenses, payExpense } = useExpenses();
-  const { getOpening, upsertOpening } = useCreditCardOpenings();
+  const { openings, getOpening, upsertOpening } = useCreditCardOpenings();
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<CreditCard | null>(null);
   const [deleting, setDeleting] = useState<CreditCard | null>(null);
