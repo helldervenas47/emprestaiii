@@ -76,7 +76,7 @@ import { useExpenses } from "@/hooks/useExpenses";
 import { useVehicleRegistry } from "@/hooks/useVehicleRegistry";
 import { useLocadorInfo } from "@/hooks/useLocadorInfo";
 
-type Tab = "overview" | "dashboard" | "clients" | "products" | "vehicles" | "overdue" | "expenses" | "calendar" | "users" | "plan_mgmt" | "backup" | "settings";
+type Tab = "overview" | "dashboard" | "clients" | "products" | "vehicles" | "overdue" | "expenses" | "calendar" | "settings";
 type ClientSubTab = "clientes" | "veiculos";
 type VehicleSubTab = "veiculos" | "locadores";
 type PlanMgmtSubTab = "subscribers" | "plans";
@@ -93,9 +93,6 @@ const tabConfig = [
   { id: "clients" as Tab, label: "Cadastro", icon: Users },
   { id: "expenses" as Tab, label: "Despesas", icon: Receipt },
   { id: "overdue" as Tab, label: "Relatório", icon: AlertTriangle },
-  { id: "users" as Tab, label: "Usuários", icon: Users },
-  { id: "plan_mgmt" as Tab, label: "Gestão de Planos", icon: Wrench },
-  { id: "backup" as Tab, label: "Backup", icon: DatabaseBackup },
   { id: "settings" as Tab, label: "Configurações", icon: SettingsIcon },
 ];
 
@@ -168,33 +165,6 @@ const tabHelp: Record<Tab, { title: string; items: string[] }> = {
       "Lista todos os empréstimos com parcelas em atraso.",
       "Também mostra empréstimos que vencem hoje.",
       "Use para priorizar suas cobranças diárias.",
-    ],
-  },
-  users: {
-    title: "Gerenciamento de Usuários",
-    items: [
-      "Crie novos usuários com email, nome de usuário e senha.",
-      "Defina papéis: Admin, Operador ou Visualizador.",
-      "Apenas administradores podem acessar esta aba.",
-      "Gerencie permissões de acesso dos usuários.",
-    ],
-  },
-  plan_mgmt: {
-    title: "Gestão de Planos",
-    items: [
-      "Visualize todos os assinantes na sub-aba Usuários.",
-      "Crie e edite planos na sub-aba Planos.",
-      "As alterações são refletidas na página de compra.",
-      "Apenas administradores podem acessar esta aba.",
-    ],
-  },
-  backup: {
-    title: "Backup de Dados",
-    items: [
-      "Exporte todos os seus dados cadastrados em formato CSV.",
-      "Faça backup de empréstimos, clientes, vendas, despesas e pagamentos.",
-      "Use 'Exportar Tudo' para baixar todos os dados de uma vez.",
-      "Os arquivos são nomeados com a data do backup.",
     ],
   },
   settings: {
@@ -354,8 +324,6 @@ const Index = () => {
   const visibleTabs = tabConfig.filter((t) => {
     if (loading) return false;
     if (role === "admin") return true;
-    // Admin-only tabs
-    if (t.id === "users" || t.id === "backup" || t.id === "plan_mgmt") return false;
     // Settings sempre disponível para usuários autenticados
     if (t.id === "settings") return !!user;
     // Any authenticated user sees all other tabs
@@ -540,7 +508,7 @@ const Index = () => {
                 <Receipt className="h-4 w-4 sm:mr-1" /><span className="hidden sm:inline">Registrar Despesa</span>
               </Button>
             )}
-            {!isReadOnly && tab !== "overview" && tab !== "overdue" && tab !== "calendar" && tab !== "users" && !(tab === "clients" && clientSubTab === "veiculos") && tab !== "backup" && (
+            {!isReadOnly && tab !== "overview" && tab !== "overdue" && tab !== "calendar" && tab !== "settings" && !(tab === "clients" && clientSubTab === "veiculos") && (
               <Button onClick={handlePrimaryAction} size="sm" className="h-8 px-2 sm:px-3">
                 <Plus className="h-4 w-4 sm:mr-1" /><span className="hidden sm:inline">{primaryLabel}</span>
               </Button>
@@ -782,70 +750,6 @@ const Index = () => {
             onSaveLocador={saveLocador}
           />
           </SubscriptionGate>
-        )}
-        {tab === "users" && (
-          <UserManagement />
-        )}
-        {tab === "plan_mgmt" && (
-          <div>
-            <div className="flex gap-2 mb-4">
-              <Button
-                variant={planMgmtSubTab === "subscribers" ? "default" : "outline"}
-                size="sm"
-                onClick={() => setPlanMgmtSubTab("subscribers")}
-              >
-                <Users className="h-4 w-4 mr-1" /> Assinantes
-              </Button>
-              <Button
-                variant={planMgmtSubTab === "plans" ? "default" : "outline"}
-                size="sm"
-                onClick={() => setPlanMgmtSubTab("plans")}
-              >
-                <Wrench className="h-4 w-4 mr-1" /> Planos
-              </Button>
-            </div>
-            {planMgmtSubTab === "subscribers" && (
-              <>
-                <h2 className="text-lg font-semibold text-foreground mb-4">Assinantes</h2>
-                <PlanSubscribers />
-              </>
-            )}
-            {planMgmtSubTab === "plans" && <PlanManagement />}
-          </div>
-        )}
-        {tab === "backup" && (
-          <div className="space-y-6">
-            <BackupExport
-              loans={loans}
-              payments={payments}
-              clients={clients}
-              sales={sales}
-              expenses={expenses}
-              onImportLoans={async (imported) => {
-                const BATCH = 5;
-                for (let i = 0; i < imported.length; i += BATCH) {
-                  const batch = imported.slice(i, i + BATCH);
-                  await Promise.all(batch.map(async (loan) => {
-                    const { totalPaid, ...loanData } = loan;
-                    const loanId = await addLoan(loanData);
-                    if (loanId && totalPaid && totalPaid > 0) {
-                      await addPartialPayment(loanId, totalPaid, loan.startDate);
-                    }
-                  }));
-                }
-              }}
-              onImportClients={async (imported) => {
-                await Promise.all(imported.map((client) => addClient(client)));
-              }}
-              onImportSales={async (imported) => {
-                await Promise.all(imported.map((sale) => addSale(sale)));
-              }}
-              onImportExpenses={async (imported) => {
-                await Promise.all(imported.map((expense) => addExpense(expense)));
-              }}
-            />
-            
-          </div>
         )}
         {tab === "settings" && (
           <Settings
