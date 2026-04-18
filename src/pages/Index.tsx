@@ -220,6 +220,29 @@ const Index = () => {
   });
   const setTab = (t: Tab) => { sessionStorage.setItem("activeTab", t); setTabState(t); };
 
+  // Listen for in-app navigation requests (e.g. shortcut to Telegram report config)
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent).detail || {};
+      const { tab: targetTab, subTab, scrollTo } = detail;
+      if (targetTab) setTab(targetTab);
+      if (subTab && targetTab === "overdue") setOverdueSubTab(subTab);
+      if (scrollTo) {
+        // Wait for tab content to mount
+        setTimeout(() => {
+          const el = document.getElementById(scrollTo);
+          if (el) {
+            el.scrollIntoView({ behavior: "smooth", block: "start" });
+            el.classList.add("ring-2", "ring-primary", "ring-offset-2");
+            setTimeout(() => el.classList.remove("ring-2", "ring-primary", "ring-offset-2"), 2000);
+          }
+        }, 250);
+      }
+    };
+    window.addEventListener("app:navigate", handler as EventListener);
+    return () => window.removeEventListener("app:navigate", handler as EventListener);
+  }, []);
+
   // Read initial loan filter/view from URL query params (for push notification deep links)
   const urlParams = new URLSearchParams(window.location.search);
   const initialLoanCategory = urlParams.get("filter") as any;
