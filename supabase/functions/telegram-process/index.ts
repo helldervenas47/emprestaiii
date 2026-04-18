@@ -52,9 +52,17 @@ const CATEGORY_KEYWORDS: Array<{ category: string; words: string[] }> = [
 // not the regex quick-parser (which assumes "today").
 const DATE_HINT_REGEX = /\b(ontem|anteontem|antes de ontem|hoje|amanh[ãa]|domingo|segunda|ter[çc]a|quarta|quinta|sexta|s[áa]bado|h[áa]\s+\d+\s+(dia|dias|semana|semanas)|dia\s+\d{1,2}|\d{1,2}\/\d{1,2}(\/\d{2,4})?|\d{1,2}-\d{1,2}(-\d{2,4})?)\b/i;
 
+// If the text mentions natural-language amount or payment method, defer to AI.
+const NATURAL_LANGUAGE_HINT = /\b(reais|real|pila|conto|contos|mangos|pix|dinheiro|esp[eé]cie|cash|d[eé]bito|cart[ãa]o|boleto|vinte|trinta|quarenta|cinquenta|sessenta|setenta|oitenta|noventa|cem|cento|duzentos|trezentos|quatrocentos|quinhentos|seiscentos|setecentos|oitocentos|novecentos|mil)\b/i;
+
 function hasDateHint(text: string): boolean {
   return DATE_HINT_REGEX.test(text);
 }
+
+function hasNaturalLanguageHint(text: string): boolean {
+  return NATURAL_LANGUAGE_HINT.test(text);
+}
+
 
 function detectCategory(description: string): string {
   const lower = description.toLowerCase();
@@ -236,6 +244,8 @@ function quickParseExpense(text: string): { amount: number; description: string;
   if (t.length < 2 || t.startsWith("/")) return null;
   // Defer to AI when text mentions a date — quick parser would assume "today".
   if (hasDateHint(t)) return null;
+  // Defer to AI when natural-language amount/payment hints are present.
+  if (hasNaturalLanguageHint(t)) return null;
   const installments = detectInstallments(t);
   // Remove installment tokens before extracting amount/description so they don't confuse the regex.
   const cleaned = installments ? stripInstallmentPhrase(t) : t;
@@ -871,28 +881,50 @@ async function extractExpense(text: string, lovableKey: string) {
       messages: [
         {
           role: "system",
-          content: `Você extrai despesas pessoais de mensagens em português brasileiro. Hoje é ${today} (timezone America/Sao_Paulo). Categorias permitidas: ${CATEGORIES.join(", ")}.
+          content: `Você extrai despesas pessoais de mensagens em português brasileiro, mesmo escritas em linguagem natural e desestruturada. Hoje é ${today} (timezone America/Sao_Paulo). Categorias permitidas: ${CATEGORIES.join(", ")}.
 
-REGRAS DE DATA (campo "date" no formato YYYY-MM-DD):
-- "hoje" ou sem menção de data → use ${today}
-- "ontem" → subtraia 1 dia de hoje
-- "anteontem" ou "antes de ontem" → subtraia 2 dias
-- "há N dias" / "faz N dias" → subtraia N dias
-- "há uma semana" / "semana passada" → subtraia 7 dias
-- "segunda", "terça", etc. (sem "que vem") → última ocorrência passada desse dia da semana
-- "dia 15", "no dia 10" → dia 15/10 do MÊS ATUAL (ou mês anterior se for data futura)
-- "10/03", "15/02/2025" → essa data exata
-- NUNCA retorne data no futuro (limite máximo: hoje)
-- NUNCA retorne data com mais de 1 ano atrás
+VALOR (campo "amount", número decimal em reais):
+- Aceite formatos numéricos: "45", "R$ 12,50", "1.234,56", "20.00".
+- Aceite valores por extenso em PT-BR: "vinte reais"=20, "vinte e cinco"=25, "cem reais"=100, "mil e duzentos"=1200, "dois mil e quinhentos"=2500.
+- "20 reais", "20 pila", "20 conto", "20 contos", "20 mangos" → 20.
+- Se houver mais de um número, use o que claramente representa o valor da despesa (ignore datas, quantidades de itens, parcelas, anos).
+- Sempre retorne o valor TOTAL da despesa (não da parcela).
 
-Se faltar valor numérico, retorne confidence baixo.
+DESCRIÇÃO (campo "description"):
+- Texto curto descrevendo a despesa, SEM o valor, SEM o meio de pagamento, SEM a data e SEM o parcelamento.
+- Ex.: "almocei no japonês com cartão nubank ontem por 80 reais" → "almoço no japonês".
+- Ex.: "20 reais uber pix" → "uber".
+- Mantenha em minúsculas, natural, sem emojis.
+
+MEIO DE PAGAMENTO (campo "payment_method", string opcional):
+- Se mencionado, retorne uma string curta:
+  - "pix" para Pix.
+  - "dinheiro" para dinheiro/cash/espécie.
+  - "débito" para cartão de débito.
+  - "cartão <nome>" para crédito quando houver banco/apelido (ex.: "cartão nubank", "cartão itaú", "cartão final 1234").
+  - "cartão" se for crédito sem identificação.
+  - "boleto" para boleto.
+- Se NÃO houver menção de meio de pagamento, OMITA o campo.
+
+DATA (campo "date" no formato YYYY-MM-DD):
+- "hoje" ou sem menção de data → use ${today}.
+- "ontem" → subtraia 1 dia de hoje.
+- "anteontem" ou "antes de ontem" → subtraia 2 dias.
+- "há N dias" / "faz N dias" → subtraia N dias.
+- "há uma semana" / "semana passada" → subtraia 7 dias.
+- "segunda", "terça", etc. (sem "que vem") → última ocorrência passada desse dia da semana.
+- "dia 15", "no dia 10" → dia 15/10 do MÊS ATUAL (ou mês anterior se for data futura).
+- "17/04", "17-04", "15/02/2025" → essa data exata; assuma o ano atual quando omitido.
+- NUNCA retorne data no futuro (limite máximo: hoje).
+- NUNCA retorne data com mais de 1 ano atrás.
 
 PARCELAMENTO (campo "installments"):
 - Detecte expressões como "10x", "em 3x", "em 12 vezes", "parcelado em 6", "6 parcelas", "dividido em 4".
 - Quando o usuário disser "3 vezes de 50", o valor TOTAL é 3*50=150 e installments=3.
 - Quando o usuário disser "300 em 3x", o valor TOTAL é 300 e installments=3.
 - Se NÃO houver menção de parcelas, omita o campo (ou retorne 1).
-- O campo "amount" deve ser SEMPRE o valor TOTAL da compra, não o valor da parcela.`,
+
+Se faltar valor numérico interpretável, retorne confidence baixo (<0.6).`,
         },
         { role: "user", content: text },
       ],
@@ -904,11 +936,12 @@ PARCELAMENTO (campo "installments"):
           parameters: {
             type: "object",
             properties: {
-              description: { type: "string", description: "Descrição curta (sem o valor e sem o parcelamento)" },
+              description: { type: "string", description: "Descrição curta (sem o valor, meio de pagamento, data e parcelamento)" },
               amount: { type: "number", description: "Valor TOTAL em reais (não o valor da parcela)" },
               category: { type: "string", enum: CATEGORIES },
               date: { type: "string", description: "Data YYYY-MM-DD; default hoje" },
               installments: { type: "number", description: "Número de parcelas (2 a 36). Omitir ou 1 se à vista." },
+              payment_method: { type: "string", description: "Meio de pagamento informado (pix, dinheiro, débito, cartão <nome>, boleto). Omita se não mencionado." },
               confidence: { type: "number", description: "0 a 1" },
             },
             required: ["description", "amount", "category", "date", "confidence"],
@@ -1498,9 +1531,14 @@ Deno.serve(async (req) => {
                   ? Math.min(36, Math.floor(Number(extracted.installments)))
                   : null;
 
-                // 💳 Credit-card detection — register as pending invoice item
+                // 💳 Credit-card detection — register as pending invoice item.
+                // Search both the original message and any payment_method hint extracted by the AI.
                 const userCards = await getUserCards(admin, link.user_id);
-                const card = detectCardInText(text, userCards);
+                const aiPayMethod: string | undefined = typeof extracted.payment_method === "string"
+                  ? extracted.payment_method.trim()
+                  : undefined;
+                const cardSearchText = aiPayMethod ? `${text}\n${aiPayMethod}` : text;
+                const card = detectCardInText(cardSearchText, userCards);
 
                 const basePayload: Record<string, any> = {
                   user_id: link.user_id,
@@ -1534,12 +1572,28 @@ Deno.serve(async (req) => {
                 const fmtParcel = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(installmentValue);
                 const parcelLine = installmentsN ? `\n🔢 ${installmentsN}x de ${fmtParcel}` : "";
                 const cardLine = card ? `\n💳 ${card.nickname || card.bank} (vence ${displayDate})` : "";
+                // Resolve payment method label: prefer detected card → AI hint → regex on text → default.
+                const labelFromAi = (() => {
+                  if (!aiPayMethod) return null;
+                  const a = aiPayMethod.toLowerCase();
+                  if (/p[ií]x/.test(a)) return "Pix";
+                  if (/dinheiro|esp[eé]cie|cash/.test(a)) return "Dinheiro";
+                  if (/d[eé]bito/.test(a)) return "Débito";
+                  if (/boleto/.test(a)) return "Boleto";
+                  if (/cart[ãa]o/.test(a)) {
+                    const rest = aiPayMethod.replace(/cart[ãa]o/i, "").trim();
+                    return rest ? `Cartão ${rest}` : "Cartão";
+                  }
+                  return aiPayMethod.charAt(0).toUpperCase() + aiPayMethod.slice(1);
+                })();
                 const paymentMethod = card
                   ? `Cartão${card.nickname ? ` ${card.nickname}` : ""}`
-                  : (/\bpix\b/i.test(text) ? "Pix"
-                    : /(dinheiro|cash|esp[eé]cie)/i.test(text) ? "Dinheiro"
-                    : /\bd[eé]bito\b/i.test(text) ? "Débito"
-                    : "Não informado");
+                  : (labelFromAi
+                    ?? (/\bpix\b/i.test(text) ? "Pix"
+                      : /(dinheiro|cash|esp[eé]cie)/i.test(text) ? "Dinheiro"
+                      : /\bd[eé]bito\b/i.test(text) ? "Débito"
+                      : "Não informado"));
+
 
                 // Mensagem intermediária removida — enviamos apenas a confirmação
                 // final logo após o insert (rápido o suficiente para parecer instantâneo).
