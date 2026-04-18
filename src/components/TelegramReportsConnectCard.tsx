@@ -129,6 +129,32 @@ export function TelegramReportsConnectCard() {
               />
             </div>
 
+            {/* Tone selector — applies to both on-screen and Telegram reports */}
+            <div className="space-y-1">
+              <Label className="text-[11px] text-muted-foreground flex items-center gap-1">
+                <MessageSquare className="h-3 w-3" /> Tom do relatório
+              </Label>
+              <Select
+                value={prefs.tone}
+                onValueChange={(v) => save({ tone: v as InsightTone })}
+              >
+                <SelectTrigger className="h-9 text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {TONE_OPTIONS.map((opt) => (
+                    <SelectItem key={opt.value} value={opt.value} className="text-xs">
+                      <span className="font-medium">{opt.label}</span>
+                      <span className="text-muted-foreground ml-1">— {opt.hint}</span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-[10px] text-muted-foreground">
+                Define o estilo de escrita da IA. Atualize o relatório para aplicar.
+              </p>
+            </div>
+
             {prefs.enabled && (
               <>
                 <div className="grid grid-cols-3 gap-2">
