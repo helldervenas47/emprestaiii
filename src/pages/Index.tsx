@@ -93,9 +93,6 @@ const tabConfig = [
   { id: "clients" as Tab, label: "Cadastro", icon: Users },
   { id: "expenses" as Tab, label: "Despesas", icon: Receipt },
   { id: "overdue" as Tab, label: "Relatório", icon: AlertTriangle },
-  { id: "users" as Tab, label: "Usuários", icon: Users },
-  { id: "plan_mgmt" as Tab, label: "Gestão de Planos", icon: Wrench },
-  { id: "backup" as Tab, label: "Backup", icon: DatabaseBackup },
   { id: "settings" as Tab, label: "Configurações", icon: SettingsIcon },
 ];
 
@@ -354,8 +351,6 @@ const Index = () => {
   const visibleTabs = tabConfig.filter((t) => {
     if (loading) return false;
     if (role === "admin") return true;
-    // Admin-only tabs
-    if (t.id === "users" || t.id === "backup" || t.id === "plan_mgmt") return false;
     // Settings sempre disponível para usuários autenticados
     if (t.id === "settings") return !!user;
     // Any authenticated user sees all other tabs
@@ -540,7 +535,7 @@ const Index = () => {
                 <Receipt className="h-4 w-4 sm:mr-1" /><span className="hidden sm:inline">Registrar Despesa</span>
               </Button>
             )}
-            {!isReadOnly && tab !== "overview" && tab !== "overdue" && tab !== "calendar" && tab !== "users" && !(tab === "clients" && clientSubTab === "veiculos") && tab !== "backup" && (
+            {!isReadOnly && tab !== "overview" && tab !== "overdue" && tab !== "calendar" && tab !== "settings" && !(tab === "clients" && clientSubTab === "veiculos") && (
               <Button onClick={handlePrimaryAction} size="sm" className="h-8 px-2 sm:px-3">
                 <Plus className="h-4 w-4 sm:mr-1" /><span className="hidden sm:inline">{primaryLabel}</span>
               </Button>
@@ -782,70 +777,6 @@ const Index = () => {
             onSaveLocador={saveLocador}
           />
           </SubscriptionGate>
-        )}
-        {tab === "users" && (
-          <UserManagement />
-        )}
-        {tab === "plan_mgmt" && (
-          <div>
-            <div className="flex gap-2 mb-4">
-              <Button
-                variant={planMgmtSubTab === "subscribers" ? "default" : "outline"}
-                size="sm"
-                onClick={() => setPlanMgmtSubTab("subscribers")}
-              >
-                <Users className="h-4 w-4 mr-1" /> Assinantes
-              </Button>
-              <Button
-                variant={planMgmtSubTab === "plans" ? "default" : "outline"}
-                size="sm"
-                onClick={() => setPlanMgmtSubTab("plans")}
-              >
-                <Wrench className="h-4 w-4 mr-1" /> Planos
-              </Button>
-            </div>
-            {planMgmtSubTab === "subscribers" && (
-              <>
-                <h2 className="text-lg font-semibold text-foreground mb-4">Assinantes</h2>
-                <PlanSubscribers />
-              </>
-            )}
-            {planMgmtSubTab === "plans" && <PlanManagement />}
-          </div>
-        )}
-        {tab === "backup" && (
-          <div className="space-y-6">
-            <BackupExport
-              loans={loans}
-              payments={payments}
-              clients={clients}
-              sales={sales}
-              expenses={expenses}
-              onImportLoans={async (imported) => {
-                const BATCH = 5;
-                for (let i = 0; i < imported.length; i += BATCH) {
-                  const batch = imported.slice(i, i + BATCH);
-                  await Promise.all(batch.map(async (loan) => {
-                    const { totalPaid, ...loanData } = loan;
-                    const loanId = await addLoan(loanData);
-                    if (loanId && totalPaid && totalPaid > 0) {
-                      await addPartialPayment(loanId, totalPaid, loan.startDate);
-                    }
-                  }));
-                }
-              }}
-              onImportClients={async (imported) => {
-                await Promise.all(imported.map((client) => addClient(client)));
-              }}
-              onImportSales={async (imported) => {
-                await Promise.all(imported.map((sale) => addSale(sale)));
-              }}
-              onImportExpenses={async (imported) => {
-                await Promise.all(imported.map((expense) => addExpense(expense)));
-              }}
-            />
-            
-          </div>
         )}
         {tab === "settings" && (
           <Settings
