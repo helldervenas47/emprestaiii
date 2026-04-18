@@ -16,7 +16,18 @@ import {
   CheckCircle2,
   Clock,
   CreditCard as CreditCardIcon,
+  Wallet,
 } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -93,6 +104,12 @@ export function CreditCardInvoice({ card, onClose, referenceMonth }: Props) {
   const [editingOpening, setEditingOpening] = useState(false);
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
   const [deletingExpense, setDeletingExpense] = useState<Expense | null>(null);
+  const [payDialogOpen, setPayDialogOpen] = useState(false);
+  const [payDate, setPayDate] = useState(() => {
+    const t = new Date();
+    return `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, "0")}-${String(t.getDate()).padStart(2, "0")}`;
+  });
+  const [paying, setPaying] = useState(false);
 
   useEffect(() => {
     setCycleOffset(initialOffset);
@@ -323,7 +340,17 @@ export function CreditCardInvoice({ card, onClose, referenceMonth }: Props) {
             </div>
           </div>
 
-          {/* Comparativo com fatura anterior */}
+          {/* Pagar fatura */}
+          {(items.some((e) => !e.paid) || (opening && openingAmount > 0)) && (
+            <Button
+              onClick={() => setPayDialogOpen(true)}
+              className="w-full h-11 text-sm font-semibold shadow-md"
+              size="lg"
+            >
+              <Wallet className="h-4 w-4 mr-2" />
+              Pagar fatura · {mask(fmt(total))}
+            </Button>
+          )}
           {prevTotal > 0 && (
             <div className="rounded-xl border bg-muted/30 px-3 py-2.5 flex items-center justify-between">
               <div>
@@ -528,6 +555,70 @@ export function CreditCardInvoice({ card, onClose, referenceMonth }: Props) {
           setDeletingExpense(null);
         }}
       />
+
+      <Dialog open={payDialogOpen} onOpenChange={setPayDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Wallet className="h-5 w-5 text-primary" />
+              Pagar fatura
+            </DialogTitle>
+            <DialogDescription>
+              Marca todos os lançamentos em aberto deste ciclo como pagos.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-2">
+            <div className="rounded-xl bg-muted/40 p-3 text-center">
+              <p className="text-xs text-muted-foreground">Valor total</p>
+              <p className="text-2xl font-bold text-foreground mt-1">{mask(fmt(total))}</p>
+              <p className="text-[11px] text-muted-foreground mt-1">
+                {items.filter((e) => !e.paid).length} lançamento(s) em aberto
+              </p>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label htmlFor="pay-date">Data do pagamento</Label>
+              <Input
+                id="pay-date"
+                type="date"
+                value={payDate}
+                onChange={(e) => setPayDate(e.target.value)}
+              />
+            </div>
+          </div>
+
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setPayDialogOpen(false)} disabled={paying}>
+              Cancelar
+            </Button>
+            <Button
+              disabled={paying || !payDate}
+              onClick={async () => {
+                setPaying(true);
+                try {
+                  const unpaid = items.filter((e) => !e.paid);
+                  for (const e of unpaid) {
+                    await updateExpense(e.id, { paid: true, paidDate: payDate });
+                  }
+                  toast.success(
+                    unpaid.length > 0
+                      ? `Fatura paga · ${unpaid.length} lançamento(s) marcado(s) como pagos`
+                      : "Fatura registrada como paga"
+                  );
+                  setPayDialogOpen(false);
+                } catch {
+                  toast.error("Erro ao pagar fatura");
+                } finally {
+                  setPaying(false);
+                }
+              }}
+            >
+              {paying ? "Pagando..." : "Confirmar pagamento"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
