@@ -81,6 +81,7 @@ export function CreditCardOpeningDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
         className="p-0 gap-0 overflow-hidden border-0 sm:border w-screen h-[100dvh] sm:w-full sm:h-auto sm:max-w-md sm:max-h-[92vh] sm:rounded-2xl flex flex-col"
+        style={{ zIndex: 2147483647 }}
       >
         {/* HEADER destacado — usuário sabe imediatamente que está editando */}
         <div className="bg-gradient-to-br from-primary to-primary/80 text-primary-foreground px-5 pt-5 pb-6 relative">
