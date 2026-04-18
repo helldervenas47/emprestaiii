@@ -58,10 +58,15 @@ export function PersonalExpenseForm({ onAdd, onClose }: Props) {
   const [piggyEndDate, setPiggyEndDate] = useState<string>("");
 
   // Auto-select default card (Nubank preferred) when Crédito is chosen
-  if (form.paymentMethod === "Crédito" && !cardId && cards.length) {
-    const def = pickDefaultCard(cards);
-    if (def) setTimeout(() => setCardId(def.id), 0);
-  }
+  useEffect(() => {
+    if (form.paymentMethod === "Crédito" && !cardId && cards.length) {
+      const def = pickDefaultCard(cards);
+      if (def) setCardId(def.id);
+    }
+    if (form.paymentMethod !== "Crédito" && cardId) {
+      setCardId("");
+    }
+  }, [form.paymentMethod, cards, cardId]);
 
   const selectedCard = cards.find((c) => c.id === cardId) ?? null;
 
