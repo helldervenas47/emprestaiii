@@ -57,7 +57,7 @@ async function buildAndSendWeekly(
   lovableKey: string,
   telegramKey: string,
 ): Promise<boolean> {
-  const { data: link } = await admin.from("telegram_links")
+  const { data: link } = await admin.from("telegram_reports_links")
     .select("chat_id").eq("user_id", userId).maybeSingle();
   if (!link) return false;
 
@@ -119,7 +119,7 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY")!;
-  const TELEGRAM_API_KEY = Deno.env.get("TELEGRAM_API_KEY_2")!;
+  const TELEGRAM_API_KEY = Deno.env.get("TELEGRAM_API_KEY_1")!;
   const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
   const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
