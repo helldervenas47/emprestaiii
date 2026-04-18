@@ -2,6 +2,7 @@ import { useState, useCallback, useEffect } from "react";
 import { Expense } from "@/types/loan";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
+import { extractPiggyId } from "./usePiggyBanks";
 
 export function useExpenses(enabled = true) {
   const { user, dataOwnerId } = useAuth();
