@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import { usePersonalInsights } from "@/hooks/usePersonalInsights";
 import { getPersonalCategory } from "@/lib/personalExpenseCategories";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 
 export interface CategoryStat {
