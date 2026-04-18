@@ -107,6 +107,12 @@ function MiniCreditCard({
   const { mask } = useHideValues();
   const utilization =
     card.creditLimit > 0 ? Math.min(100, (invoiceTotal / card.creditLimit) * 100) : 0;
+  const rootRef = (window as any).__cardRefMap || ((window as any).__cardRefMap = new Map());
+
+  const handleClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    onClick(rect);
+  };
 
   return (
     <Card
@@ -116,7 +122,7 @@ function MiniCreditCard({
           ? "border-2 border-warning shadow-[0_0_0_3px_hsl(var(--warning)/0.15)]"
           : ""
       }`}
-      onClick={onClick}
+      onClick={handleClick}
     >
       {hasActiveInvoice && (
         <div className="absolute top-2 right-2 z-10 px-2 py-0.5 rounded-full bg-warning text-warning-foreground text-[9px] font-bold uppercase tracking-wide shadow-sm">
