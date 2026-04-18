@@ -1452,6 +1452,9 @@ function LoanRowView({
     : fullInstallmentValue * remainingInstallments;
   const partialPaidOnCurrentRow = Math.max(0, expectedRemainingRow - actualRemainingRow);
   const installmentValue = Math.max(0, fullInstallmentValue - partialPaidOnCurrentRow);
+  const interestOnlyRow = loan.customInterestValue != null && loan.customInterestValue > 0
+    ? loan.customInterestValue
+    : loan.amount * (loan.interestRate / 100);
   const isParcelado = (loan.paymentType === "Parcelado" || loan.installments >= 2) && loan.status !== "paid" && loan.paidInstallments < loan.installments;
   const category = getLoanCategory(loan, allPayments, installmentSchedules);
   const badge = statusMap[category];
