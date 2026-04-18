@@ -665,17 +665,13 @@ const Index = () => {
                   onUpdate={updateExpense}
                   readOnly={isReadOnly}
                   afterEvolution={({ selectedMonth }) => (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <Card no3d>
-                        <CardContent className="p-4">
-                          <CreditCardList readOnly={isReadOnly} referenceMonth={selectedMonth} />
-                        </CardContent>
-                      </Card>
-                      <Card no3d>
-                        <CardContent className="p-4">
-                          <PiggyBankList readOnly={isReadOnly} />
-                        </CardContent>
-                      </Card>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-4">
+                      <section className="rounded-2xl border border-border/40 bg-card/60 backdrop-blur-sm p-4 shadow-[0_1px_8px_-4px_hsl(0_0%_0%/0.05)]">
+                        <CreditCardList readOnly={isReadOnly} referenceMonth={selectedMonth} />
+                      </section>
+                      <section className="rounded-2xl border border-border/40 bg-card/40 backdrop-blur-sm p-4 shadow-[0_1px_6px_-4px_hsl(0_0%_0%/0.04)]">
+                        <PiggyBankList readOnly={isReadOnly} />
+                      </section>
                     </div>
                   )}
                 />
