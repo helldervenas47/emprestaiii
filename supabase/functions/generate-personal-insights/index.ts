@@ -125,13 +125,13 @@ async function buildContext(supabase: any, ownerId: string, month: string) {
 function buildPrompt(ctx: any) {
   const lines: string[] = [];
   lines.push(`Mês de referência: ${ctx.month}`);
-  lines.push(`Total gasto: ${fmt(ctx.totalSpent)} | Total orçado: ${fmt(ctx.totalBudget)}`);
+  lines.push(`Total previsto no mês (pagos + a pagar): ${fmt(ctx.totalSpent)} | Total orçado: ${fmt(ctx.totalBudget)}`);
   lines.push("");
-  lines.push("Categorias (gasto / orçamento / % / tendência vs mês anterior):");
+  lines.push("Categorias (total previsto / orçamento / % / tendência vs mês anterior):");
   for (const s of ctx.stats) {
     const trendLabel = s.trend === "up" ? "↑ alta" : s.trend === "down" ? "↓ queda" : "→ estável";
     const budgetTxt = s.budget > 0 ? `${fmt(s.budget)} (${s.pct.toFixed(0)}%)` : "sem limite";
-    lines.push(`- ${s.category}: ${fmt(s.spent)} / ${budgetTxt} | ${trendLabel} (anterior: ${fmt(s.prevSpent || 0)})`);
+    lines.push(`- ${s.category}: ${fmt(s.spent)} previstos / ${budgetTxt} | ${trendLabel} (anterior: ${fmt(s.prevSpent || 0)})`);
   }
   return lines.join("\n");
 }
