@@ -110,21 +110,58 @@ export function PersonalAIInsightsCard({ month, exceededCategories, hasExpenses 
           </div>
         )}
 
-        {data && (
-          <div className="prose prose-sm dark:prose-invert max-w-none
-                          prose-headings:text-foreground prose-p:text-foreground
-                          prose-strong:text-foreground prose-li:text-foreground
-                          prose-h2:text-sm prose-h2:font-semibold prose-h2:mt-3 prose-h2:mb-1
-                          prose-p:my-1 prose-ul:my-1 prose-li:my-0.5">
-            <ReactMarkdown>{data.content}</ReactMarkdown>
-            {data.generated_at && (
-              <p className="text-[10px] text-muted-foreground mt-2 not-prose">
-                Gerado em {new Date(data.generated_at).toLocaleString("pt-BR")}
-                {data.cached ? " (em cache)" : ""}
-              </p>
-            )}
-          </div>
-        )}
+        {data && (() => {
+          // Split markdown by H2 sections, isolating "Oportunidades de redução"
+          const sections = data.content.split(/(?=^##\s)/m);
+          const opportunities = sections.find((s) => /##\s.*Oportunidades/i.test(s)) || "";
+          const rest = sections.filter((s) => !/##\s.*Oportunidades/i.test(s)).join("");
+          const proseClasses = `prose prose-sm dark:prose-invert max-w-none
+            prose-headings:text-foreground prose-p:text-foreground
+            prose-strong:text-foreground prose-li:text-foreground
+            prose-h2:text-sm prose-h2:font-semibold prose-h2:mt-2 prose-h2:mb-1
+            prose-p:my-1 prose-ul:my-1 prose-li:my-0.5`;
+          return (
+            <div className="grid gap-3 md:grid-cols-2">
+              {/* Subcard 1: Último Relatório Gerado */}
+              <div className="rounded-lg border border-border bg-card/50 p-3 space-y-1">
+                <div className="flex items-center gap-1.5 mb-1">
+                  <Sparkles className="h-3.5 w-3.5 text-primary" />
+                  <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                    Último Relatório Gerado
+                  </h4>
+                </div>
+                <div className={proseClasses}>
+                  <ReactMarkdown>{rest.trim() || data.content}</ReactMarkdown>
+                </div>
+                {data.generated_at && (
+                  <p className="text-[10px] text-muted-foreground pt-1">
+                    Gerado em {new Date(data.generated_at).toLocaleString("pt-BR")}
+                    {data.cached ? " (em cache)" : ""}
+                  </p>
+                )}
+              </div>
+
+              {/* Subcard 2: Oportunidades por Categoria */}
+              <div className="rounded-lg border border-primary/30 bg-gradient-to-br from-primary/5 to-accent/5 p-3 space-y-1">
+                <div className="flex items-center gap-1.5 mb-1">
+                  <AlertTriangle className="h-3.5 w-3.5 text-primary" />
+                  <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                    Oportunidades por Categoria
+                  </h4>
+                </div>
+                {opportunities ? (
+                  <div className={proseClasses}>
+                    <ReactMarkdown>{opportunities.replace(/^##\s.*\n?/, "").trim()}</ReactMarkdown>
+                  </div>
+                ) : (
+                  <p className="text-xs text-muted-foreground py-2">
+                    Nenhuma oportunidade de redução destacada pela IA neste mês.
+                  </p>
+                )}
+              </div>
+            </div>
+          );
+        })()}
       </CardContent>
     </Card>
   );
