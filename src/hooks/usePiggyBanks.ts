@@ -251,6 +251,26 @@ export function usePiggyBanks() {
     await reload();
   }, [reload]);
 
+  /** Update a single deposit's amount and/or date. */
+  const updateDeposit = useCallback(async (
+    id: string,
+    patch: Partial<{ amount: number; depositDate: string }>
+  ) => {
+    const dbPatch: any = {};
+    if (patch.amount !== undefined) dbPatch.amount = patch.amount;
+    if (patch.depositDate !== undefined) dbPatch.deposit_date = patch.depositDate;
+    const { error } = await supabase.from("piggy_bank_deposits" as any).update(dbPatch).eq("id", id);
+    if (error) { toast.error("Erro ao atualizar lançamento"); return; }
+    await reload();
+  }, [reload]);
+
+  /** Delete a single deposit by id. */
+  const deleteDeposit = useCallback(async (id: string) => {
+    const { error } = await supabase.from("piggy_bank_deposits" as any).delete().eq("id", id);
+    if (error) { toast.error("Erro ao excluir lançamento"); return; }
+    await reload();
+  }, [reload]);
+
   /** Adjust the balance to a new target value by inserting a delta deposit (positive or negative). */
   const adjustBalance = useCallback(async (
     piggyBankId: string,
@@ -325,6 +345,8 @@ export function usePiggyBanks() {
     deletePiggyBank,
     addDeposit,
     removeDepositByExpenseId,
+    updateDeposit,
+    deleteDeposit,
     adjustBalance,
     createRecurrence,
     reload,

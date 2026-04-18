@@ -26,7 +26,7 @@ interface Props {
 
 export function PiggyBankList({ readOnly = false }: Props) {
   const { mask } = useHideValues();
-  const { piggyBanks, deposits, balances, createPiggyBank, updatePiggyBank, deletePiggyBank, adjustBalance } = usePiggyBanks();
+  const { piggyBanks, deposits, balances, createPiggyBank, updatePiggyBank, deletePiggyBank, adjustBalance, updateDeposit, deleteDeposit } = usePiggyBanks();
 
   const [createOpen, setCreateOpen] = useState(false);
   const [editing, setEditing] = useState<PiggyBankType | null>(null);
@@ -36,6 +36,21 @@ export function PiggyBankList({ readOnly = false }: Props) {
   const [adjustValue, setAdjustValue] = useState("");
   const [historyTarget, setHistoryTarget] = useState<PiggyBankType | null>(null);
   const [expensesById, setExpensesById] = useState<Record<string, { description: string; category: string }>>({});
+  const [editDeposit, setEditDeposit] = useState<PiggyBankDeposit | null>(null);
+  const [editDepositDraft, setEditDepositDraft] = useState({ amount: "", depositDate: "" });
+  const [deleteDepositId, setDeleteDepositId] = useState<string | null>(null);
+
+  const openEditDeposit = (d: PiggyBankDeposit) => {
+    setEditDepositDraft({ amount: d.amount.toFixed(2), depositDate: d.depositDate });
+    setEditDeposit(d);
+  };
+  const confirmEditDeposit = async () => {
+    if (!editDeposit) return;
+    const v = Number(editDepositDraft.amount.replace(",", "."));
+    if (Number.isNaN(v)) return;
+    await updateDeposit(editDeposit.id, { amount: v, depositDate: editDepositDraft.depositDate });
+    setEditDeposit(null);
+  };
 
   const openCreate = () => {
     setDraft({ name: "", color: PALETTE[0], annualRate: "11.15" });
@@ -423,6 +438,28 @@ export function PiggyBankList({ readOnly = false }: Props) {
                           )}
                         </div>
                       </div>
+                      {!readOnly && (
+                        <div className="flex gap-0.5 shrink-0">
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="h-7 w-7"
+                            onClick={() => openEditDeposit(d)}
+                            title="Editar lançamento"
+                          >
+                            <Pencil className="h-3 w-3" />
+                          </Button>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="h-7 w-7 text-destructive hover:text-destructive hover:bg-destructive/10"
+                            onClick={() => setDeleteDepositId(d.id)}
+                            title="Excluir lançamento"
+                          >
+                            <Trash2 className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      )}
                     </li>
                   );
                 })}
@@ -435,6 +472,55 @@ export function PiggyBankList({ readOnly = false }: Props) {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Edit deposit dialog */}
+      <Dialog open={!!editDeposit} onOpenChange={(o) => !o && setEditDeposit(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Editar lançamento</DialogTitle>
+            <DialogDescription>
+              Ajuste o valor e a data deste lançamento. Valores negativos representam retiradas.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 py-1">
+            <div>
+              <Label htmlFor="dep-amount">Valor (R$)</Label>
+              <Input
+                id="dep-amount"
+                type="number"
+                step="0.01"
+                value={editDepositDraft.amount}
+                onChange={(e) => setEditDepositDraft((p) => ({ ...p, amount: e.target.value }))}
+                autoFocus
+              />
+            </div>
+            <div>
+              <Label htmlFor="dep-date">Data</Label>
+              <Input
+                id="dep-date"
+                type="date"
+                value={editDepositDraft.depositDate}
+                onChange={(e) => setEditDepositDraft((p) => ({ ...p, depositDate: e.target.value }))}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditDeposit(null)}>Cancelar</Button>
+            <Button onClick={confirmEditDeposit}>Salvar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <ConfirmDeleteDialog
+        open={!!deleteDepositId}
+        onOpenChange={(o) => !o && setDeleteDepositId(null)}
+        onConfirm={() => {
+          if (deleteDepositId) deleteDeposit(deleteDepositId);
+          setDeleteDepositId(null);
+        }}
+        title="Excluir lançamento"
+        description="Este aporte será removido do histórico do cofrinho. A despesa vinculada (se houver) permanece. Esta ação não pode ser desfeita."
+      />
     </div>
   );
 }
