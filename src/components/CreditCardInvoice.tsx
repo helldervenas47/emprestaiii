@@ -644,6 +644,8 @@ export function CreditCardInvoice({ card, onClose, referenceMonth, originRect }:
           cycleLabel={format(cycle.dueDate, "MMMM/yy", { locale: ptBR })}
           initialAmount={openingAmount}
           initialNotes={opening?.notes ?? null}
+          creditLimit={card.creditLimit}
+          transactionsTotal={transactionsTotal}
           onSave={async (amount, notes) => {
             await upsertOpening(card.id, cycleKey, amount, notes);
           }}
