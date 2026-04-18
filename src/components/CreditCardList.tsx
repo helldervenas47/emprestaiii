@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { Plus, CreditCard as CreditCardIcon, Wifi, Pencil, Trash2, Receipt, CheckCircle } from "lucide-react";
+import { Plus, CreditCard as CreditCardIcon, Wifi, Pencil, Trash2, Receipt, CheckCircle, EyeOff, RotateCcw } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
@@ -255,6 +255,7 @@ function MiniCreditCard({
 export function CreditCardList({ readOnly = false, referenceMonth }: Props) {
   const { cards: allCards, loading, addCard, updateCard, deleteCard } = useCreditCards();
   const cards = useMemo(() => allCards.filter((c) => c.active !== false), [allCards]);
+  const inactiveCards = useMemo(() => allCards.filter((c) => c.active === false), [allCards]);
   const { expenses, payExpense } = useExpenses();
   const { getOpening, upsertOpening } = useCreditCardOpenings();
   const [showForm, setShowForm] = useState(false);
@@ -264,6 +265,7 @@ export function CreditCardList({ readOnly = false, referenceMonth }: Props) {
   const [openingCard, setOpeningCard] = useState<CreditCard | null>(null);
   const [payingCard, setPayingCard] = useState<CreditCard | null>(null);
   const [paying, setPaying] = useState(false);
+  const [showInactive, setShowInactive] = useState(false);
 
   const handleNew = () => {
     setEditing(null);
@@ -352,11 +354,23 @@ export function CreditCardList({ readOnly = false, referenceMonth }: Props) {
         <h2 className="text-lg font-semibold text-foreground truncate">
           Cartões ({cards.length})
         </h2>
-        {!readOnly && (
-          <Button onClick={handleNew} size="sm" className="shrink-0">
-            <Plus className="h-4 w-4 mr-1" /> Novo Cartão
-          </Button>
-        )}
+        <div className="flex items-center gap-2 shrink-0">
+          {inactiveCards.length > 0 && (
+            <Button
+              onClick={() => setShowInactive((v) => !v)}
+              size="sm"
+              variant="outline"
+            >
+              <EyeOff className="h-4 w-4 mr-1" />
+              {showInactive ? "Ocultar inativos" : `Inativos (${inactiveCards.length})`}
+            </Button>
+          )}
+          {!readOnly && (
+            <Button onClick={handleNew} size="sm">
+              <Plus className="h-4 w-4 mr-1" /> Novo Cartão
+            </Button>
+          )}
+        </div>
       </div>
 
       {loading ? (
@@ -406,6 +420,85 @@ export function CreditCardList({ readOnly = false, referenceMonth }: Props) {
               />
             );
           })}
+        </div>
+      )}
+
+      {showInactive && inactiveCards.length > 0 && (
+        <div className="mt-8">
+          <div className="flex items-center gap-2 mb-3">
+            <EyeOff className="h-4 w-4 text-muted-foreground" />
+            <h3 className="text-sm font-semibold text-muted-foreground">
+              Cartões inativos ({inactiveCards.length})
+            </h3>
+          </div>
+          <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 lg:grid-cols-4">
+            {inactiveCards.map((card) => {
+              const bank = getBank(card.bank);
+              return (
+                <Card key={card.id} no3d className="opacity-60 hover:opacity-100 transition-opacity">
+                  <CardContent className="p-3 space-y-2.5">
+                    <div className={`${bank.gradient} ${bank.textClass} relative aspect-[1.586/1] w-full rounded-lg p-2.5 shadow-sm overflow-hidden grayscale`}>
+                      <div className="flex items-start justify-between">
+                        <div className="flex items-center gap-1">
+                          <div className="h-4 w-5 rounded-sm bg-gradient-to-br from-[hsl(45,90%,75%)] to-[hsl(40,80%,50%)] border border-[hsl(45,90%,80%)]/40" />
+                          <Wifi className="h-2.5 w-2.5 rotate-90 opacity-80" />
+                        </div>
+                        <span className="text-[9px] font-bold tracking-wide truncate max-w-[60%] text-right">
+                          {bank.name}
+                        </span>
+                      </div>
+                      <div className="absolute left-2.5 right-2.5 bottom-2 flex items-end justify-between">
+                        <span className="font-mono text-[10px] tracking-[0.15em] opacity-95">
+                          •••• {card.lastFour || "0000"}
+                        </span>
+                        <span className="text-[9px] font-bold italic opacity-95">
+                          {brandLabel(card.brand)}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="space-y-1.5">
+                      <p className="text-xs font-semibold text-foreground truncate">
+                        {card.nickname || bank.name}
+                      </p>
+                      <span className="inline-block text-[9px] px-1.5 py-0.5 rounded-full bg-muted text-muted-foreground font-semibold uppercase tracking-wide">
+                        Inativo
+                      </span>
+                      {!readOnly && (
+                        <div className="flex gap-1 pt-1">
+                          <Button
+                            variant="default"
+                            size="sm"
+                            className="flex-1 h-7 text-[11px]"
+                            onClick={() => updateCard(card.id, {
+                              nickname: card.nickname,
+                              bank: card.bank,
+                              brand: card.brand,
+                              lastFour: card.lastFour,
+                              creditLimit: card.creditLimit,
+                              closingDay: card.closingDay,
+                              dueDay: card.dueDay,
+                              active: true,
+                            })}
+                          >
+                            <RotateCcw className="h-3 w-3 mr-1" />
+                            Reativar
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7 text-destructive hover:text-destructive"
+                            onClick={() => setDeleting(card)}
+                          >
+                            <Trash2 className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
         </div>
       )}
 
