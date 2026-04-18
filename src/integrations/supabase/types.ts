@@ -607,6 +607,45 @@ export type Database = {
           },
         ]
       }
+      personal_ai_insights: {
+        Row: {
+          content: string
+          created_at: string
+          exceeded_categories: string[]
+          generated_at: string
+          id: string
+          month: string
+          summary: string | null
+          trends: Json
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          exceeded_categories?: string[]
+          generated_at?: string
+          id?: string
+          month: string
+          summary?: string | null
+          trends?: Json
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          exceeded_categories?: string[]
+          generated_at?: string
+          id?: string
+          month?: string
+          summary?: string | null
+          trends?: Json
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       personal_budget_alerts: {
         Row: {
           alert_type: string
@@ -659,6 +698,45 @@ export type Database = {
           created_at?: string
           id?: string
           month?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      personal_insights_telegram_prefs: {
+        Row: {
+          alert_on_exceed: boolean
+          alert_on_trend: boolean
+          created_at: string
+          enabled: boolean
+          last_sent: Json
+          send_time_1: string | null
+          send_time_2: string | null
+          send_time_3: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          alert_on_exceed?: boolean
+          alert_on_trend?: boolean
+          created_at?: string
+          enabled?: boolean
+          last_sent?: Json
+          send_time_1?: string | null
+          send_time_2?: string | null
+          send_time_3?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          alert_on_exceed?: boolean
+          alert_on_trend?: boolean
+          created_at?: string
+          enabled?: boolean
+          last_sent?: Json
+          send_time_1?: string | null
+          send_time_2?: string | null
+          send_time_3?: string | null
           updated_at?: string
           user_id?: string
         }
