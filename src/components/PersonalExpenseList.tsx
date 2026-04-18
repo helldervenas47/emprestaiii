@@ -589,6 +589,15 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, onUpda
         </Card>
       )}
 
+      {/* AI-generated intelligent report */}
+      <PersonalAIInsightsCard
+        month={selectedMonth}
+        exceededCategories={budgets
+          .filter((b) => b.amount > 0 && (spentByCategory.get(b.category) || 0) > b.amount)
+          .map((b) => b.category)}
+        hasExpenses={spendingMonth.length > 0}
+      />
+
       {typeof afterEvolution === "function"
         ? afterEvolution({ selectedMonth })
         : afterEvolution}
