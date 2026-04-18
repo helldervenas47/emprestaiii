@@ -836,7 +836,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
                 return (
                   <div className="flex items-center justify-between">
                     <span className="text-xs text-muted-foreground">% Meta</span>
-                    <span className={`text-sm font-bold ${metaPct >= 100 ? "text-success" : metaPct >= 80 ? "text-warning" : "text-destructive"}`}>
+                    <span className={`text-sm font-bold ${metaPct >= 100 ? "text-success" : "text-destructive"}`}>
                       {metaPct.toFixed(1)}%
                     </span>
                   </div>
