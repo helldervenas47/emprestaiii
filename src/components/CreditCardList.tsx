@@ -268,11 +268,17 @@ export function CreditCardList({ readOnly = false, referenceMonth }: Props) {
   const [editing, setEditing] = useState<CreditCard | null>(null);
   const [deleting, setDeleting] = useState<CreditCard | null>(null);
   const [invoiceCard, setInvoiceCard] = useState<CreditCard | null>(null);
+  const [invoiceOriginRect, setInvoiceOriginRect] = useState<DOMRect | null>(null);
   const [openingCard, setOpeningCard] = useState<CreditCard | null>(null);
   const [payingCard, setPayingCard] = useState<CreditCard | null>(null);
   const [paying, setPaying] = useState(false);
   const [showInactive, setShowInactive] = useState(false);
   const [showAllMobile, setShowAllMobile] = useState(false);
+
+  const openInvoice = (card: CreditCard, rect: DOMRect) => {
+    setInvoiceOriginRect(rect);
+    setInvoiceCard(card);
+  };
 
   const handleNew = () => {
     setEditing(null);
