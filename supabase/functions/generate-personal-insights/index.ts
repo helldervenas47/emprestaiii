@@ -198,6 +198,29 @@ Liste como bullets as categorias que estouraram OU estão acima de 80%. Para cad
 Mantenha o tom solicitado em TODAS as seções. Nunca invente categorias que não estão nos dados.`;
 }
 
+function buildCategorySystemPrompt(tone: string, category: string): string {
+  const toneInstruction = TONE_INSTRUCTIONS[tone] ?? TONE_INSTRUCTIONS.balanced;
+  return `Você é um consultor financeiro pessoal. Vai analisar UMA ÚNICA categoria de despesas pessoais: **${category}**.
+
+TOM DE VOZ: ${toneInstruction}
+
+Resposta em português do Brasil, Markdown enxuto, máximo 220 palavras, sem títulos H1. Use EXATAMENTE estas seções com ##:
+
+## 📊 Análise da categoria
+Diagnóstico específico de **${category}**: gasto atual, % do orçamento, comparação com mês anterior e share dentro do total mensal. 2-3 frases.
+
+## 🚨 Problemas identificados
+Bullets curtos: estouro de orçamento, recorrência elevada, picos atípicos, ausência de limite, etc. Se nada relevante, diga "Sem problemas críticos detectados.".
+
+## 💰 Sugestões práticas de redução
+2-4 bullets ESPECÍFICOS para **${category}** (não genéricos). Inclua estimativas de economia quando possível (ex.: "renegociar plano pode poupar ~R$ 40/mês").
+
+## 🎯 Recomendações de controle
+2-3 ações concretas para manter a categoria sob controle nos próximos meses (ex.: "definir limite de R$ X", "criar alerta em 70%", "revisar assinaturas mensalmente").
+
+Foque APENAS em **${category}**. Não comente outras categorias. Nunca invente dados.`;
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
@@ -237,6 +260,47 @@ Deno.serve(async (req) => {
 
     force = !!body.force;
     const month = body.month || currentMonth();
+    const targetCategory: string | undefined = body.category;
+
+    // Per-category mode: ad-hoc, not cached
+    if (targetCategory) {
+      const ctx = await buildContext(supabase, ownerId, month);
+      const stat = ctx.stats.find((s: CategoryStat) => s.category === targetCategory);
+      if (!stat || (stat.spent === 0 && stat.budget === 0)) {
+        return new Response(JSON.stringify({
+          content: `## 📊 Análise da categoria\n\nAinda não há dados suficientes em **${targetCategory}** neste mês para uma análise detalhada.`,
+          category: targetCategory,
+          empty: true,
+        }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+      const totalShare = ctx.totalSpent > 0 ? (stat.spent / ctx.totalSpent) * 100 : 0;
+      const trendLabel = stat.trend === "up" ? "↑ alta" : stat.trend === "down" ? "↓ queda" : "→ estável";
+      const userPromptCat = [
+        `Categoria analisada: ${targetCategory}`,
+        `Mês: ${month} (anterior: ${ctx.prevMonth})`,
+        `Gasto atual: ${fmt(stat.spent)}`,
+        `Gasto mês anterior: ${fmt(stat.prevSpent || 0)}`,
+        `Orçamento: ${stat.budget > 0 ? `${fmt(stat.budget)} (${stat.pct.toFixed(0)}% utilizado)` : "sem limite definido"}`,
+        `Tendência: ${trendLabel}`,
+        `Status: ${stat.status}`,
+        `Share no total mensal: ${totalShare.toFixed(1)}% (${fmt(stat.spent)} de ${fmt(ctx.totalSpent)})`,
+      ].join("\n");
+
+      const { data: tonePrefCat } = await supabase
+        .from("personal_insights_telegram_prefs")
+        .select("tone")
+        .eq("user_id", ownerId)
+        .maybeSingle();
+      const toneCat = (tonePrefCat as any)?.tone || body.tone || "balanced";
+
+      const contentCat = await callAI(buildCategorySystemPrompt(toneCat, targetCategory), userPromptCat);
+
+      return new Response(JSON.stringify({
+        content: contentCat,
+        category: targetCategory,
+        stat: { spent: stat.spent, budget: stat.budget, pct: stat.pct, trend: stat.trend, status: stat.status },
+      }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
 
     // Reuse cached if generated within last 30 minutes and not forced
     if (!force) {

@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import { usePersonalInsights } from "@/hooks/usePersonalInsights";
 import { getPersonalCategory } from "@/lib/personalExpenseCategories";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 
 export interface CategoryStat {
@@ -73,7 +74,40 @@ export function PersonalAIInsightsCard({
   const [hasAutoTried, setHasAutoTried] = useState(false);
   const [expandedCat, setExpandedCat] = useState<string | null>(null);
   const [showFullReport, setShowFullReport] = useState(false);
+  const [reportCategory, setReportCategory] = useState<string | null>(null);
+  const [catReport, setCatReport] = useState<string | null>(null);
+  const [catReportLoading, setCatReportLoading] = useState(false);
+  const [catReportError, setCatReportError] = useState<string | null>(null);
   const isMobile = useIsMobile();
+
+  // Fetch a per-category ad-hoc report when user opens "Ver detalhes completos"
+  const openCategoryReport = async (category: string) => {
+    setReportCategory(category);
+    setShowFullReport(true);
+    setCatReport(null);
+    setCatReportError(null);
+    setCatReportLoading(true);
+    try {
+      const { data: result, error: fnError } = await supabase.functions.invoke(
+        "generate-personal-insights",
+        { body: { month, category } },
+      );
+      if (fnError) throw fnError;
+      if ((result as any)?.error) throw new Error((result as any).error);
+      setCatReport((result as any).content);
+    } catch (e: any) {
+      setCatReportError(e?.message || "Falha ao gerar análise da categoria");
+    } finally {
+      setCatReportLoading(false);
+    }
+  };
+
+  const openGeneralReport = () => {
+    setReportCategory(null);
+    setCatReport(null);
+    setCatReportError(null);
+    setShowFullReport(true);
+  };
 
   // Auto-generate on open (once per month) if no cached version, and on exceeded changes
   useEffect(() => {
@@ -248,7 +282,7 @@ export function PersonalAIInsightsCard({
               <Button
                 size="sm"
                 variant="ghost"
-                onClick={() => setShowFullReport(true)}
+                onClick={openGeneralReport}
                 className="h-7 px-2 text-xs gap-1 text-primary hover:text-primary"
               >
                 <FileText className="h-3 w-3" />
@@ -371,7 +405,7 @@ export function PersonalAIInsightsCard({
                                 overPct={overPct}
                                 suggestions={suggestions}
                                 action={action}
-                                onOpenFullReport={() => setShowFullReport(true)}
+                                onOpenFullReport={() => openCategoryReport(s.category)}
                               />
                             </div>
                           </div>
@@ -385,7 +419,7 @@ export function PersonalAIInsightsCard({
             {hasMore && (
               <button
                 type="button"
-                onClick={() => setShowFullReport(true)}
+                onClick={openGeneralReport}
                 className="w-full text-center text-[11px] text-primary hover:underline pt-1"
               >
                 +{sortedStats.length - MAX_VISIBLE} categorias adicionais — ver no relatório completo
@@ -469,8 +503,9 @@ export function PersonalAIInsightsCard({
                       suggestions={suggestions}
                       action={action}
                       onOpenFullReport={() => {
+                        const cat = s.category;
                         setExpandedCat(null);
-                        setShowFullReport(true);
+                        openCategoryReport(cat);
                       }}
                     />
                   </div>
@@ -481,30 +516,109 @@ export function PersonalAIInsightsCard({
         </Sheet>
       )}
 
-      {/* Full report dialog */}
-      <Dialog open={showFullReport} onOpenChange={setShowFullReport}>
+      {/* Full report dialog (general OR per-category) */}
+      <Dialog
+        open={showFullReport}
+        onOpenChange={(o) => {
+          setShowFullReport(o);
+          if (!o) {
+            setReportCategory(null);
+            setCatReport(null);
+            setCatReportError(null);
+          }
+        }}
+      >
         <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Sparkles className="h-4 w-4 text-primary" />
-              Relatório Inteligente
-            </DialogTitle>
-            <DialogDescription>
-              Análise completa gerada por IA com insights e recomendações detalhadas.
-            </DialogDescription>
+            {reportCategory ? (
+              (() => {
+                const cat = getPersonalCategory(reportCategory);
+                const Icon = cat.icon;
+                return (
+                  <>
+                    <Badge variant="outline" className="w-fit text-[10px] gap-1 mb-1 border-primary/30 text-primary">
+                      <Sparkles className="h-2.5 w-2.5" /> Relatório individual
+                    </Badge>
+                    <DialogTitle className="flex items-center gap-2">
+                      <div
+                        className="h-8 w-8 rounded-md flex items-center justify-center shrink-0"
+                        style={{
+                          backgroundColor: `hsl(${cat.color} / 0.15)`,
+                          color: `hsl(${cat.color})`,
+                        }}
+                      >
+                        <Icon className="h-4 w-4" />
+                      </div>
+                      {reportCategory}
+                    </DialogTitle>
+                    <DialogDescription>
+                      Análise específica desta categoria, gerada por IA com base nos seus gastos do mês.
+                    </DialogDescription>
+                  </>
+                );
+              })()
+            ) : (
+              <>
+                <DialogTitle className="flex items-center gap-2">
+                  <Sparkles className="h-4 w-4 text-primary" />
+                  Relatório Inteligente — Visão geral
+                </DialogTitle>
+                <DialogDescription>
+                  Análise completa do mês com insights e recomendações de todas as categorias.
+                </DialogDescription>
+              </>
+            )}
           </DialogHeader>
-          {data && (
+
+          {/* Per-category content */}
+          {reportCategory ? (
             <div className="space-y-3">
-              <div className={proseClasses}>
-                <ReactMarkdown>{restContent || data.content}</ReactMarkdown>
-              </div>
-              {data.generated_at && (
-                <p className="text-[10px] text-muted-foreground pt-2 border-t border-border">
-                  Gerado em {new Date(data.generated_at).toLocaleString("pt-BR")}
-                  {data.cached ? " (em cache)" : ""}
-                </p>
+              {catReportLoading && (
+                <div className="flex items-center justify-center py-10 text-sm text-muted-foreground gap-2">
+                  <Sparkles className="h-4 w-4 animate-pulse text-primary" />
+                  Gerando análise de {reportCategory}…
+                </div>
+              )}
+              {catReportError && !catReportLoading && (
+                <div className="text-sm text-destructive p-3 rounded-md bg-destructive/10">
+                  {catReportError}
+                </div>
+              )}
+              {catReport && !catReportLoading && (
+                <div className={proseClasses}>
+                  <ReactMarkdown>{catReport}</ReactMarkdown>
+                </div>
+              )}
+              {catReport && !catReportLoading && (
+                <div className="pt-2 border-t border-border">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      setReportCategory(null);
+                      setCatReport(null);
+                    }}
+                    className="text-xs gap-1 h-7"
+                  >
+                    <ArrowRight className="h-3 w-3 rotate-180" /> Ver relatório geral do mês
+                  </Button>
+                </div>
               )}
             </div>
+          ) : (
+            data && (
+              <div className="space-y-3">
+                <div className={proseClasses}>
+                  <ReactMarkdown>{restContent || data.content}</ReactMarkdown>
+                </div>
+                {data.generated_at && (
+                  <p className="text-[10px] text-muted-foreground pt-2 border-t border-border">
+                    Gerado em {new Date(data.generated_at).toLocaleString("pt-BR")}
+                    {data.cached ? " (em cache)" : ""}
+                  </p>
+                )}
+              </div>
+            )
           )}
         </DialogContent>
       </Dialog>
