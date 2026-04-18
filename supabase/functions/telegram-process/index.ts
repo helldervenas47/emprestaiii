@@ -1281,6 +1281,7 @@ Deno.serve(async (req) => {
                 basePayload.paid_date = finalDate;
               }
 
+              basePayload.notes = basePayload.notes ? `[bot]\n${basePayload.notes}` : "[bot]";
               const { data: ins, error: insErr } = await admin
                 .from("expenses")
                 .insert(basePayload)
@@ -1370,6 +1371,7 @@ Deno.serve(async (req) => {
                 basePayload.paid_date = installmentsN ? null : finalDate;
               }
 
+              basePayload.notes = basePayload.notes ? `[bot]\n${basePayload.notes}` : "[bot]";
               const { data: ins, error: insErr } = await admin
                 .from("expenses")
                 .insert(basePayload)
@@ -1603,6 +1605,7 @@ Deno.serve(async (req) => {
                   : (card ? `💳 *Compra no cartão registrada*` : `✅ *Despesa registrada*`);
                 const summaryText = `${header}\n\n💰 ${fmt}${parcelLine}\n📂 ${finalCategory}${cardLine}\n📝 ${extracted.description}\n📅 ${displayDate}\n💳 ${paymentMethod}`;
 
+                basePayload.notes = basePayload.notes ? `[bot]\n${basePayload.notes}` : "[bot]";
                 const { data: ins, error: insErr } = await admin
                   .from("expenses")
                   .insert(basePayload)

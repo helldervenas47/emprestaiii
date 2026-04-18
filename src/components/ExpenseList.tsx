@@ -226,6 +226,7 @@ export function ExpenseList({ expenses, onPay, onUnpay, onDelete, onUpdate, read
   const formatCurrency = useCallback((v: number) => mask(rawFormatCurrency(v)), [mask]);
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<Filter>("all");
+  const [sourceFilter, setSourceFilter] = useState<"all" | "auto" | "manual">("all");
   const now = new Date();
   const [selectedMonth, setSelectedMonth] = useState(`${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`);
   const [editingExpenseId, setEditingExpenseId] = useState<string | null>(null);
@@ -260,7 +261,15 @@ export function ExpenseList({ expenses, onPay, onUnpay, onDelete, onUpdate, read
     });
   }, [expenses, selectedMonth]);
 
-  const filtered = monthFiltered
+  const isBotExpense = (e: Expense) => /\[\s*bot\s*\]/i.test(e.notes ?? "");
+
+  const sourceFiltered = useMemo(() => {
+    if (sourceFilter === "all") return monthFiltered;
+    if (sourceFilter === "auto") return monthFiltered.filter(isBotExpense);
+    return monthFiltered.filter((e) => !isBotExpense(e));
+  }, [monthFiltered, sourceFilter]);
+
+  const filtered = sourceFiltered
     .filter((e) => e.description.toLowerCase().includes(search.toLowerCase()) || e.category.toLowerCase().includes(search.toLowerCase()))
     .filter((e) => {
       const isRecFullyPaid = e.type === "recorrente" && e.installments && e.installments > 1 && e.paid;
@@ -276,7 +285,7 @@ export function ExpenseList({ expenses, onPay, onUnpay, onDelete, onUpdate, read
     });
 
   const isRecFullyPaid = (e: Expense) => e.type === "recorrente" && !!e.installments && e.installments > 1 && e.paid;
-  const visibleMonth = monthFiltered.filter((e) => !isRecFullyPaid(e));
+  const visibleMonth = sourceFiltered.filter((e) => !isRecFullyPaid(e));
 
   const totalPending = visibleMonth.filter((e) => !e.paid).reduce((s, e) => s + getInstallmentAmount(e), 0);
   const totalPaid = visibleMonth.filter((e) => e.paid).reduce((s, e) => s + getInstallmentAmount(e), 0);
@@ -371,6 +380,24 @@ export function ExpenseList({ expenses, onPay, onUnpay, onDelete, onUpdate, read
               {f.label} ({f.count})
             </Button>
           ))}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setSourceFilter(sourceFilter === "auto" ? "all" : "auto")}
+            className={`rounded-xl transition-all duration-200 ${sourceFilter === "auto" ? "bg-primary text-primary-foreground border-primary" : ""}`}
+            title="Despesas lançadas pelo bot"
+          >
+            Automáticas ({monthFiltered.filter(isBotExpense).filter((e) => !isRecFullyPaid(e)).length})
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setSourceFilter(sourceFilter === "manual" ? "all" : "manual")}
+            className={`rounded-xl transition-all duration-200 ${sourceFilter === "manual" ? "bg-primary text-primary-foreground border-primary" : ""}`}
+            title="Despesas registradas manualmente no app"
+          >
+            Manuais ({monthFiltered.filter((e) => !isBotExpense(e)).filter((e) => !isRecFullyPaid(e)).length})
+          </Button>
         </div>
       </div>
 
