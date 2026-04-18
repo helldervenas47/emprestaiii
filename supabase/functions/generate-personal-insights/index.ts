@@ -167,7 +167,19 @@ async function callAI(systemPrompt: string, userPrompt: string) {
   return data.choices?.[0]?.message?.content as string;
 }
 
-const SYSTEM_PROMPT = `Você é um consultor financeiro pessoal especializado em análise de gastos, no estilo de educadores como Nathalia Arcuri e Thiago Nigro. Recebe um resumo mensal de gastos por categoria com orçamentos definidos pelo usuário e tendência vs o mês anterior.
+const TONE_INSTRUCTIONS: Record<string, string> = {
+  balanced: "Tom equilibrado, profissional e acolhedor — como Nathalia Arcuri ou Thiago Nigro: claro, direto e empático.",
+  strict: "Tom RIGOROSO e direto, sem rodeios. Aponte estouros e desperdícios com firmeza, use linguagem de cobrança responsável (ex.: 'isso precisa parar', 'corte agora'). Evite elogios desnecessários.",
+  motivational: "Tom MOTIVACIONAL e encorajador. Celebre conquistas (mesmo pequenas), use linguagem positiva e inspiradora ('você consegue', 'ótimo passo'), foque em progresso e potencial.",
+  technical: "Tom TÉCNICO e analítico. Use percentuais, comparativos numéricos e terminologia financeira (variação MoM, share da carteira, ticket médio). Mínimo de emojis, máximo de objetividade.",
+  friendly: "Tom AMIGÁVEL e conversacional, como um amigo próximo dando dicas. Use linguagem informal, descontraída, com analogias do dia a dia. Evite jargão.",
+};
+
+function buildSystemPrompt(tone: string): string {
+  const toneInstruction = TONE_INSTRUCTIONS[tone] ?? TONE_INSTRUCTIONS.balanced;
+  return `Você é um consultor financeiro pessoal especializado em análise de gastos. Recebe um resumo mensal de gastos por categoria com orçamentos definidos pelo usuário e tendência vs o mês anterior.
+
+TOM DE VOZ DESTA RESPOSTA: ${toneInstruction}
 
 Sua resposta DEVE ser em português do Brasil, em formato Markdown enxuto, sem títulos H1, com no máximo 280 palavras, organizada nestas seções (use exatamente esses títulos com ##):
 
@@ -183,7 +195,8 @@ Liste como bullets as categorias que estouraram OU estão acima de 80%. Para cad
 ## ✅ Próximas ações
 2-3 ações concretas que o usuário pode executar essa semana. Use verbos no infinitivo (ex.: "Definir limite", "Renegociar", "Revisar assinaturas").
 
-Seja direto, evite jargões e nunca invente categorias que não estão nos dados.`;
+Mantenha o tom solicitado em TODAS as seções. Nunca invente categorias que não estão nos dados.`;
+}
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
@@ -253,7 +266,16 @@ Deno.serve(async (req) => {
     }
 
     const userPrompt = buildPrompt(ctx);
-    const content = await callAI(SYSTEM_PROMPT, userPrompt);
+
+    // Load tone preference (defaults to balanced)
+    const { data: tonePref } = await supabase
+      .from("personal_insights_telegram_prefs")
+      .select("tone")
+      .eq("user_id", ownerId)
+      .maybeSingle();
+    const tone = (tonePref as any)?.tone || body.tone || "balanced";
+
+    const content = await callAI(buildSystemPrompt(tone), userPrompt);
 
     const exceeded = ctx.stats.filter((s: CategoryStat) => s.status === "exceeded").map((s: CategoryStat) => s.category);
     const trends = ctx.stats

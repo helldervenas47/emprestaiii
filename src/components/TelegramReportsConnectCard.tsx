@@ -4,11 +4,20 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { Send, Copy, CheckCircle2, Unlink, Sparkles, Clock } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Send, Copy, CheckCircle2, Unlink, Sparkles, Clock, MessageSquare } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useTelegramReportsLink } from "@/hooks/useTelegramReportsLink";
-import { usePersonalInsightsTelegramPrefs } from "@/hooks/usePersonalInsightsTelegramPrefs";
+import { usePersonalInsightsTelegramPrefs, type InsightTone } from "@/hooks/usePersonalInsightsTelegramPrefs";
+
+const TONE_OPTIONS: { value: InsightTone; label: string; hint: string }[] = [
+  { value: "balanced", label: "⚖️ Equilibrado", hint: "Profissional e acolhedor" },
+  { value: "strict", label: "🎯 Rigoroso", hint: "Direto, sem rodeios" },
+  { value: "motivational", label: "🚀 Motivacional", hint: "Encorajador e positivo" },
+  { value: "technical", label: "📊 Técnico", hint: "Analítico, numérico" },
+  { value: "friendly", label: "😊 Amigável", hint: "Informal, como um amigo" },
+];
 
 export function TelegramReportsConnectCard() {
   const { linked, loading, disconnect } = useTelegramReportsLink();
@@ -118,6 +127,32 @@ export function TelegramReportsConnectCard() {
                 checked={prefs.enabled}
                 onCheckedChange={(v) => save({ enabled: v })}
               />
+            </div>
+
+            {/* Tone selector — applies to both on-screen and Telegram reports */}
+            <div className="space-y-1">
+              <Label className="text-[11px] text-muted-foreground flex items-center gap-1">
+                <MessageSquare className="h-3 w-3" /> Tom do relatório
+              </Label>
+              <Select
+                value={prefs.tone}
+                onValueChange={(v) => save({ tone: v as InsightTone })}
+              >
+                <SelectTrigger className="h-9 text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {TONE_OPTIONS.map((opt) => (
+                    <SelectItem key={opt.value} value={opt.value} className="text-xs">
+                      <span className="font-medium">{opt.label}</span>
+                      <span className="text-muted-foreground ml-1">— {opt.hint}</span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-[10px] text-muted-foreground">
+                Define o estilo de escrita da IA. Atualize o relatório para aplicar.
+              </p>
             </div>
 
             {prefs.enabled && (
