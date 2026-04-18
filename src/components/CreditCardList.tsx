@@ -80,7 +80,7 @@ interface MiniCardProps {
   hasActiveInvoice: boolean;
   hasUnpaidInvoice: boolean;
   dueDate: Date;
-  onClick: () => void;
+  onClick: (rect: DOMRect) => void;
   onEdit?: () => void;
   onDelete?: () => void;
   onAddOpening?: () => void;
