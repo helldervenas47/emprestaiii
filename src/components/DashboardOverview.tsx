@@ -816,7 +816,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
             <div className="space-y-1.5">
               <div className="flex items-center justify-between">
                 <span className="text-xs text-muted-foreground">Previsto</span>
-                <span className="text-sm font-bold text-foreground">{formatCurrency(data.periodProfitExpected)}</span>
+                <span className="text-sm font-bold text-foreground">{formatCurrency(data.periodProfitRealized + data.periodProfitExpected)}</span>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-xs text-muted-foreground">Realizado</span>
