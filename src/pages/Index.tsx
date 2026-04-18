@@ -1,5 +1,5 @@
 import { useState, useEffect, lazy, Suspense } from "react";
-import { Plus, Users, LayoutDashboard, ShoppingBag, BarChart3, AlertTriangle, Receipt, CalendarDays, Sun, Moon, LogOut, Info, X, Eye, EyeOff, Car, Wrench, DatabaseBackup, Menu, User, RefreshCw, Bell, Target } from "lucide-react";
+import { Plus, Users, LayoutDashboard, ShoppingBag, BarChart3, AlertTriangle, Receipt, CalendarDays, Sun, Moon, LogOut, Info, X, Eye, EyeOff, Car, Wrench, DatabaseBackup, Menu, User, RefreshCw, Bell, Target, Settings as SettingsIcon } from "lucide-react";
 import logoIcon from "@/assets/logo-icon.png";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { useIsMobile, useIsMobileOrTablet } from "@/hooks/use-mobile";
@@ -44,6 +44,7 @@ const SubscriptionGate = lazy(() => import("@/components/SubscriptionGate").then
 const VehicleExpenseForm = lazy(() => import("@/components/VehicleExpenseForm").then(m => ({ default: m.VehicleExpenseForm })));
 const NotificationSettings = lazy(() => import("@/components/NotificationSettings").then(m => ({ default: m.NotificationSettings })));
 const MonthlyGoalsManager = lazy(() => import("@/components/MonthlyGoalsManager").then(m => ({ default: m.MonthlyGoalsManager })));
+const Settings = lazy(() => import("@/components/Settings").then(m => ({ default: m.Settings })));
 // Direct import for the constant used at render time
 import { vehicleExpenseCategories } from "@/components/VehicleExpenseForm";
 import { PushNotificationToggle } from "@/components/PushNotificationToggle";
@@ -75,7 +76,7 @@ import { useExpenses } from "@/hooks/useExpenses";
 import { useVehicleRegistry } from "@/hooks/useVehicleRegistry";
 import { useLocadorInfo } from "@/hooks/useLocadorInfo";
 
-type Tab = "overview" | "dashboard" | "clients" | "products" | "vehicles" | "overdue" | "expenses" | "calendar" | "users" | "plan_mgmt" | "backup";
+type Tab = "overview" | "dashboard" | "clients" | "products" | "vehicles" | "overdue" | "expenses" | "calendar" | "users" | "plan_mgmt" | "backup" | "settings";
 type ClientSubTab = "clientes" | "veiculos";
 type VehicleSubTab = "veiculos" | "locadores";
 type PlanMgmtSubTab = "subscribers" | "plans";
@@ -95,6 +96,7 @@ const tabConfig = [
   { id: "users" as Tab, label: "Usuários", icon: Users },
   { id: "plan_mgmt" as Tab, label: "Gestão de Planos", icon: Wrench },
   { id: "backup" as Tab, label: "Backup", icon: DatabaseBackup },
+  { id: "settings" as Tab, label: "Configurações", icon: SettingsIcon },
 ];
 
 const tabHelp: Record<Tab, { title: string; items: string[] }> = {
@@ -195,6 +197,16 @@ const tabHelp: Record<Tab, { title: string; items: string[] }> = {
       "Os arquivos são nomeados com a data do backup.",
     ],
   },
+  settings: {
+    title: "Configurações",
+    items: [
+      "Centralize preferências de exibição (tema e ocultar valores).",
+      "Configure todos os canais de notificação: push, e-mail, Telegram e webhook.",
+      "Gerencie locadores, plano de assinatura e usuários (admins).",
+      "Faça backup ou exporte seus dados.",
+      "Use 'Limpar cache' para forçar atualização do app sem perder dados.",
+    ],
+  },
 };
 function HideValuesToggle() {
   const { hidden, toggle } = useHideValues();
@@ -262,7 +274,7 @@ const Index = () => {
   const needsProducts = tab === "overview" || tab === "products" || tab === "vehicles";
   const needsExpenses = tab === "overview" || tab === "expenses" || tab === "vehicles";
   const needsVehicles = tab === "clients" || tab === "vehicles";
-  const needsLocadores = tab === "vehicles";
+  const needsLocadores = tab === "vehicles" || tab === "settings";
 
   const { products, sales, addProduct, updateProduct, deleteProduct, addSale, updateSale, deleteSale } = useProducts(needsProducts);
   const { expenses, addExpense, payExpense, unpayExpense, deleteExpense, updateExpense } = useExpenses(needsExpenses);
@@ -344,6 +356,8 @@ const Index = () => {
     if (role === "admin") return true;
     // Admin-only tabs
     if (t.id === "users" || t.id === "backup" || t.id === "plan_mgmt") return false;
+    // Settings sempre disponível para usuários autenticados
+    if (t.id === "settings") return !!user;
     // Any authenticated user sees all other tabs
     if (user) {
       if (Array.isArray(allowedTabs)) return allowedTabs.includes(t.id);
@@ -832,6 +846,45 @@ const Index = () => {
             />
             
           </div>
+        )}
+        {tab === "settings" && (
+          <Settings
+            backup={{
+              loans,
+              payments,
+              clients,
+              sales,
+              expenses,
+              onImportLoans: async (imported) => {
+                const BATCH = 5;
+                for (let i = 0; i < imported.length; i += BATCH) {
+                  const batch = imported.slice(i, i + BATCH);
+                  await Promise.all(batch.map(async (loan) => {
+                    const { totalPaid, ...loanData } = loan;
+                    const loanId = await addLoan(loanData);
+                    if (loanId && totalPaid && totalPaid > 0) {
+                      await addPartialPayment(loanId, totalPaid, loan.startDate);
+                    }
+                  }));
+                }
+              },
+              onImportClients: async (imported) => {
+                await Promise.all(imported.map((client) => addClient(client)));
+              },
+              onImportSales: async (imported) => {
+                await Promise.all(imported.map((sale) => addSale(sale)));
+              },
+              onImportExpenses: async (imported) => {
+                await Promise.all(imported.map((expense) => addExpense(expense)));
+              },
+            }}
+            locadores={locadores}
+            onSaveLocador={saveLocador}
+            onRemoveLocador={removeLocador}
+            isReadOnly={isReadOnly}
+            dark={dark}
+            onToggleTheme={toggleTheme}
+          />
         )}
         </Suspense>
       </main>
