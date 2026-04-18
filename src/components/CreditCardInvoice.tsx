@@ -179,8 +179,31 @@ export function CreditCardInvoice({ card, onClose, referenceMonth, originRect }:
   const total = transactionsTotal + openingAmount;
   const prevTotal = sumItems(prevItems) + (prevOpening?.openingAmount ?? 0);
 
-  const utilization = card.creditLimit > 0 ? (total / card.creditLimit) * 100 : 0;
-  const available = Math.max(0, card.creditLimit - total);
+  // Limite disponível = limite total - soma de TODAS as despesas pendentes do cartão
+  // (independente do ciclo). Considera apenas parcelas/lançamentos não pagos.
+  const pendingTotal = useMemo(() => {
+    return expenses
+      .filter((e) => e.scope === "personal")
+      .filter((e) => /\[\s*cr[eé]dito\s*\]/i.test(e.notes ?? ""))
+      .filter((e) => {
+        if (!cardTag) return true;
+        const n = (e.notes ?? "").toLowerCase();
+        if (n.includes(cardTag)) return true;
+        return !/cart[aã]o[:\s]/i.test(n);
+      })
+      .filter((e) => !e.paid)
+      .reduce((s, e) => {
+        const isRec = e.type === "recorrente" && e.installments && e.installments > 1;
+        const installmentValue = isRec ? e.amount / e.installments! : e.amount;
+        const remaining = isRec
+          ? Math.max(0, e.installments! - (e.paidInstallments ?? 0)) * installmentValue
+          : installmentValue;
+        return s + remaining;
+      }, 0);
+  }, [expenses, cardTag]);
+
+  const utilization = card.creditLimit > 0 ? Math.min(100, (pendingTotal / card.creditLimit) * 100) : 0;
+  const available = Math.max(0, card.creditLimit - pendingTotal);
 
   // "Melhor dia de compra" = dia seguinte ao fechamento
   const bestPurchaseDay = ((card.closingDay % 31) + 1);
