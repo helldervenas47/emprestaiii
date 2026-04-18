@@ -692,6 +692,31 @@ export function ExpenseList({ expenses, onPay, onUnpay, onDelete, onUpdate, read
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Unpay confirm */}
+      <Dialog open={!!unpayConfirm} onOpenChange={(o) => !o && setUnpayConfirm(null)}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Estornar pagamento</DialogTitle>
+            <DialogDescription>
+              {unpayConfirm?.label ?? "Confirma estornar este pagamento?"} Esta ação reverte o status para pendente.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setUnpayConfirm(null)}>Cancelar</Button>
+            <Button
+              variant="destructive"
+              onClick={async () => {
+                const action = unpayConfirm;
+                setUnpayConfirm(null);
+                if (action) await action.run();
+              }}
+            >
+              Confirmar estorno
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
