@@ -381,7 +381,7 @@ export function useLoans() {
       // refetch to revert optimistic state
       await fetchLoans();
     }
-  }, [loans]);
+  }, [loans, fetchLoans]);
 
   const deleteLoan = useCallback(async (id: string) => {
     const loan = loans.find((l) => l.id === id);
