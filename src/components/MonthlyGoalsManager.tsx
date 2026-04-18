@@ -61,7 +61,7 @@ export function MonthlyGoalsManager() {
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="interest_rate">Taxa de Juros Mensal (%)</SelectItem>
-                  <SelectItem value="profit">Lucro no Período (R$)</SelectItem>
+                  <SelectItem value="profit">Lucro no Período (% do Previsto)</SelectItem>
                 </SelectContent>
               </Select>
             </div>
