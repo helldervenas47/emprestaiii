@@ -425,7 +425,14 @@ export function CreditCardInvoice({ card, onClose, referenceMonth, originRect }:
           </div>
         </div>
 
-        <CardContent className="space-y-4 pt-5 px-4 sm:px-6 pb-6">
+        <CardContent
+          className="space-y-4 pt-5 px-4 sm:px-6 pb-6"
+          style={{
+            opacity: phase === "open" ? 1 : 0,
+            transform: phase === "open" ? "translateY(0)" : "translateY(8px)",
+            transition: "opacity 220ms ease-out 120ms, transform 260ms cubic-bezier(0.22,1,0.36,1) 120ms",
+          }}
+        >
           {/* Quick stats grid */}
           <div className="grid grid-cols-3 gap-2">
             <div className="rounded-xl border bg-card p-3 text-center">
