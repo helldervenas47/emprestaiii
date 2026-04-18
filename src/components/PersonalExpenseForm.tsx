@@ -12,6 +12,18 @@ import { Plus, X, PiggyBank } from "lucide-react";
 import { Expense } from "@/types/loan";
 import { personalCategories } from "@/lib/personalExpenseCategories";
 import { usePiggyBanks, buildPiggyTag } from "@/hooks/usePiggyBanks";
+import { useCreditCards } from "@/hooks/useCreditCards";
+
+/** Pick the user's default credit card — prefers Nubank, falls back to first card. */
+function pickDefaultCard<T extends { bank: string; nickname: string }>(cards: T[]): T | null {
+  if (!cards.length) return null;
+  const nubank = cards.find(
+    (c) =>
+      c.bank?.toLowerCase().includes("nubank") ||
+      c.nickname?.toLowerCase().includes("nubank"),
+  );
+  return nubank ?? cards[0];
+}
 
 interface Props {
   onAdd: (expense: Omit<Expense, "id" | "paid" | "paidDate" | "createdAt">) => void;
