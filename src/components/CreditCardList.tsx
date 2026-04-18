@@ -354,11 +354,23 @@ export function CreditCardList({ readOnly = false, referenceMonth }: Props) {
         <h2 className="text-lg font-semibold text-foreground truncate">
           Cartões ({cards.length})
         </h2>
-        {!readOnly && (
-          <Button onClick={handleNew} size="sm" className="shrink-0">
-            <Plus className="h-4 w-4 mr-1" /> Novo Cartão
-          </Button>
-        )}
+        <div className="flex items-center gap-2 shrink-0">
+          {inactiveCards.length > 0 && (
+            <Button
+              onClick={() => setShowInactive((v) => !v)}
+              size="sm"
+              variant="outline"
+            >
+              <EyeOff className="h-4 w-4 mr-1" />
+              {showInactive ? "Ocultar inativos" : `Inativos (${inactiveCards.length})`}
+            </Button>
+          )}
+          {!readOnly && (
+            <Button onClick={handleNew} size="sm">
+              <Plus className="h-4 w-4 mr-1" /> Novo Cartão
+            </Button>
+          )}
+        </div>
       </div>
 
       {loading ? (
