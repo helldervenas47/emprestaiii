@@ -299,8 +299,9 @@ export function UserManagement() {
     if (!planUser) return;
     setSavingPlan(true);
 
-    // Collect all user IDs to update: the admin + all sub-users
-    const allUserIds = [planUser.id, ...users.filter(u => u.role !== "admin").map(u => u.id)];
+    // FIX: Only update the selected user. Previously this would cascade to all
+    // non-admin users in the visible list, which leaks plan changes across tenants.
+    const allUserIds = [planUser.id];
 
     // Update both environments for all users
     let hasError = false;

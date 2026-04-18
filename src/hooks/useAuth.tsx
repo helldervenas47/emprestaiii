@@ -81,11 +81,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     let mounted = true;
-    let hydrated = false;
+    let hydratedForUserId: string | null = null;
 
     const doHydrate = async (userId: string, showLoading: boolean) => {
-      if (hydrated) return;
-      hydrated = true;
+      // Only skip if we already hydrated for THIS exact user id
+      if (hydratedForUserId === userId) return;
+      hydratedForUserId = userId;
       if (showLoading) setLoading(true);
       await hydrateUserState(userId);
       if (mounted) setLoading(false);
@@ -109,6 +110,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // TOKEN_REFRESHED: no re-hydrate needed
       } else {
         sessionStorage.removeItem("hvcred_session");
+        hydratedForUserId = null;
         setRole(null);
         setDataOwnerId(null);
         setAllowedTabs(null);

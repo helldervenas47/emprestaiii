@@ -13,7 +13,7 @@ Deno.serve(async (req) => {
   try {
     const { username, password } = await req.json();
 
-    if (!username || !password) {
+    if (!username || !password || typeof username !== "string" || typeof password !== "string") {
       return new Response(JSON.stringify({ error: "Usuário e senha são obrigatórios" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -22,6 +22,7 @@ Deno.serve(async (req) => {
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
 
     const adminClient = createClient(supabaseUrl, serviceRoleKey);
 
@@ -29,24 +30,20 @@ Deno.serve(async (req) => {
     const { data: profile } = await adminClient
       .from("profiles")
       .select("user_id")
-      .ilike("username", username)
+      .ilike("username", username.trim())
       .maybeSingle();
 
-    if (!profile) {
-      return new Response(JSON.stringify({ error: "Usuário não encontrado" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+    // Generic error to avoid username enumeration
+    const genericError = new Response(
+      JSON.stringify({ error: "Email/usuário ou senha incorretos" }),
+      { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
 
-    // Get user email
-    const { data: { user } } = await adminClient.auth.admin.getUserById(profile.user_id);
-    if (!user?.email) {
-      return new Response(JSON.stringify({ error: "Usuário não encontrado" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+    if (!profile) return genericError;
+
+    const { data: userResp } = await adminClient.auth.admin.getUserById(profile.user_id);
+    const user = userResp?.user;
+    if (!user?.email) return genericError;
 
     // Check if user is banned/inactive
     if (user.banned_until && new Date(user.banned_until) > new Date()) {
@@ -56,12 +53,27 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Return the email so client can sign in normally
+    // CRITICAL: Validate the password server-side before returning the email.
+    // Without this, anyone could enumerate emails from usernames.
+    const verifyClient = createClient(supabaseUrl, anonKey, {
+      auth: { persistSession: false, autoRefreshToken: false },
+    });
+    const { error: signInError } = await verifyClient.auth.signInWithPassword({
+      email: user.email,
+      password,
+    });
+
+    if (signInError) return genericError;
+
+    // Sign out the verification session immediately (we don't want to keep it server-side)
+    await verifyClient.auth.signOut();
+
+    // Return the email so client can sign in normally and own the session
     return new Response(JSON.stringify({ email: user.email }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (error) {
-    return new Response(JSON.stringify({ error: error.message }), {
+    return new Response(JSON.stringify({ error: (error as Error).message }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
