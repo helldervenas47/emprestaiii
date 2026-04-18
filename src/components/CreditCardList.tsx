@@ -432,7 +432,7 @@ export function CreditCardList({ readOnly = false, referenceMonth }: Props) {
               <div className="grid gap-3 grid-cols-2 sm:hidden">
                 {mobileVisible.map((card) => {
                   const inv = invoiceByCard.get(card.id) ?? {
-                    transactions: 0, opening: 0, total: 0,
+                    transactions: 0, opening: 0, total: 0, pendingTotal: 0,
                     dueDate: getCurrentCycle(card.closingDay, card.dueDay).dueDate,
                     cycleKey: "", openingNotes: null, hasOpening: false,
                     unpaidExpenseIds: [] as string[],
@@ -442,6 +442,7 @@ export function CreditCardList({ readOnly = false, referenceMonth }: Props) {
                       key={card.id}
                       card={card}
                       invoiceTotal={inv.total}
+                      pendingTotal={inv.pendingTotal}
                       openingAmount={inv.opening}
                       hasOpening={inv.hasOpening}
                       hasActiveInvoice={
