@@ -27,6 +27,7 @@ import { isPiggyExpense } from "@/hooks/usePiggyBanks";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as ReTooltip, LineChart, Line, XAxis, YAxis, CartesianGrid, Legend } from "recharts";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { PersonalAIInsightsCard } from "@/components/PersonalAIInsightsCard";
 
 
 interface Props {
