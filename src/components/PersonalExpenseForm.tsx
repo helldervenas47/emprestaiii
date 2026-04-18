@@ -356,6 +356,29 @@ export function PersonalExpenseForm({ onAdd, onClose }: Props) {
                 />
               </div>
             </div>
+            {form.paymentMethod === "Crédito" && (
+              <div>
+                <Label>Cartão</Label>
+                <Select value={cardId} onValueChange={setCardId}>
+                  <SelectTrigger>
+                    <SelectValue placeholder={cards.length ? "Selecione" : "Nenhum cartão cadastrado"} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {cards.length === 0 && (
+                      <div className="px-2 py-1.5 text-xs text-muted-foreground">
+                        Nenhum cartão cadastrado
+                      </div>
+                    )}
+                    {cards.map((c) => (
+                      <SelectItem key={c.id} value={c.id}>
+                        {c.nickname || c.bank}
+                        {c.lastFour ? ` •••• ${c.lastFour}` : ""}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
             <div>
               <Label htmlFor="notes">Observações</Label>
               <Textarea
