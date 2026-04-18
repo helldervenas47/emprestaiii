@@ -80,7 +80,7 @@ interface MiniCardProps {
   hasActiveInvoice: boolean;
   hasUnpaidInvoice: boolean;
   dueDate: Date;
-  onClick: () => void;
+  onClick: (rect: DOMRect) => void;
   onEdit?: () => void;
   onDelete?: () => void;
   onAddOpening?: () => void;
@@ -107,6 +107,12 @@ function MiniCreditCard({
   const { mask } = useHideValues();
   const utilization =
     card.creditLimit > 0 ? Math.min(100, (invoiceTotal / card.creditLimit) * 100) : 0;
+  const rootRef = (window as any).__cardRefMap || ((window as any).__cardRefMap = new Map());
+
+  const handleClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    onClick(rect);
+  };
 
   return (
     <Card
@@ -116,7 +122,7 @@ function MiniCreditCard({
           ? "border-2 border-warning shadow-[0_0_0_3px_hsl(var(--warning)/0.15)]"
           : ""
       }`}
-      onClick={onClick}
+      onClick={handleClick}
     >
       {hasActiveInvoice && (
         <div className="absolute top-2 right-2 z-10 px-2 py-0.5 rounded-full bg-warning text-warning-foreground text-[9px] font-bold uppercase tracking-wide shadow-sm">
@@ -262,11 +268,17 @@ export function CreditCardList({ readOnly = false, referenceMonth }: Props) {
   const [editing, setEditing] = useState<CreditCard | null>(null);
   const [deleting, setDeleting] = useState<CreditCard | null>(null);
   const [invoiceCard, setInvoiceCard] = useState<CreditCard | null>(null);
+  const [invoiceOriginRect, setInvoiceOriginRect] = useState<DOMRect | null>(null);
   const [openingCard, setOpeningCard] = useState<CreditCard | null>(null);
   const [payingCard, setPayingCard] = useState<CreditCard | null>(null);
   const [paying, setPaying] = useState(false);
   const [showInactive, setShowInactive] = useState(false);
   const [showAllMobile, setShowAllMobile] = useState(false);
+
+  const openInvoice = (card: CreditCard, rect: DOMRect) => {
+    setInvoiceOriginRect(rect);
+    setInvoiceCard(card);
+  };
 
   const handleNew = () => {
     setEditing(null);
@@ -422,7 +434,7 @@ export function CreditCardList({ readOnly = false, referenceMonth }: Props) {
                       }
                       hasUnpaidInvoice={inv.unpaidExpenseIds.length > 0}
                       dueDate={inv.dueDate}
-                      onClick={() => setInvoiceCard(card)}
+                      onClick={(rect) => openInvoice(card, rect)}
                       onEdit={readOnly ? undefined : () => handleEdit(card)}
                       onDelete={readOnly ? undefined : () => setDeleting(card)}
                       onAddOpening={readOnly ? undefined : () => setOpeningCard(card)}
@@ -474,7 +486,7 @@ export function CreditCardList({ readOnly = false, referenceMonth }: Props) {
                 }
                 hasUnpaidInvoice={inv.unpaidExpenseIds.length > 0}
                 dueDate={inv.dueDate}
-                onClick={() => setInvoiceCard(card)}
+                onClick={(rect) => openInvoice(card, rect)}
                 onEdit={readOnly ? undefined : () => handleEdit(card)}
                 onDelete={readOnly ? undefined : () => setDeleting(card)}
                 onAddOpening={readOnly ? undefined : () => setOpeningCard(card)}
@@ -582,7 +594,11 @@ export function CreditCardList({ readOnly = false, referenceMonth }: Props) {
       {invoiceCard && (
         <CreditCardInvoice
           card={invoiceCard}
-          onClose={() => setInvoiceCard(null)}
+          originRect={invoiceOriginRect}
+          onClose={() => {
+            setInvoiceCard(null);
+            setInvoiceOriginRect(null);
+          }}
           referenceMonth={referenceMonth}
         />
       )}

@@ -48,6 +48,8 @@ interface Props {
   onClose: () => void;
   /** YYYY-MM — when provided, the initial cycle is the one whose due date falls in this month. */
   referenceMonth?: string;
+  /** Bounding rect of the source mini-card; used to animate from that position into fullscreen. */
+  originRect?: DOMRect | null;
 }
 
 const fmt = (v: number) =>
@@ -79,7 +81,7 @@ function getCycle(ref: Date, closingDay: number, dueDay: number) {
   return { from: closingPrev, to: closingNext, dueDate };
 }
 
-export function CreditCardInvoice({ card, onClose, referenceMonth }: Props) {
+export function CreditCardInvoice({ card, onClose, referenceMonth, originRect }: Props) {
   const { expenses, updateExpense, deleteExpense } = useExpenses();
   const { getOpening, upsertOpening } = useCreditCardOpenings();
   const { mask } = useHideValues();
@@ -205,9 +207,45 @@ export function CreditCardInvoice({ card, onClose, referenceMonth }: Props) {
   const touchStartY = useRef<number | null>(null);
   const cardRef = useRef<HTMLDivElement | null>(null);
 
+  // FLIP transition state: "enter" → "open" → "exit"
+  const [phase, setPhase] = useState<"enter" | "open" | "exit">(originRect ? "enter" : "open");
+  const isMobile = typeof window !== "undefined" && window.innerWidth < 640;
+
+  // Compute origin transform that places the panel exactly on top of the source mini-card.
+  const originTransform = useMemo(() => {
+    if (!originRect || typeof window === "undefined") return undefined;
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+    const scaleX = originRect.width / vw;
+    const scaleY = originRect.height / vh;
+    // Translate to the card's top-left, then scale down from the top-left origin.
+    return `translate(${originRect.left}px, ${originRect.top}px) scale(${scaleX}, ${scaleY})`;
+  }, [originRect]);
+
+  // Run the entrance animation on mount.
+  useEffect(() => {
+    if (phase !== "enter") return;
+    // Two RAFs: ensure browser commits the initial transform before transitioning.
+    const r1 = requestAnimationFrame(() => {
+      const r2 = requestAnimationFrame(() => setPhase("open"));
+      (window as any).__cardR2 = r2;
+    });
+    return () => cancelAnimationFrame(r1);
+  }, [phase]);
+
+  // Handle close: if mobile and we have an origin rect, animate back; else close immediately.
+  const handleClose = () => {
+    if (!originRect || !isMobile) {
+      onClose();
+      return;
+    }
+    setDragY(0);
+    setPhase("exit");
+    window.setTimeout(onClose, 300);
+  };
+
   const onTouchStart = (e: React.TouchEvent) => {
-    if (window.innerWidth >= 640) return;
-    // Only start drag if the scroll container is at the top
+    if (!isMobile) return;
     if ((cardRef.current?.scrollTop ?? 0) > 0) return;
     touchStartY.current = e.touches[0].clientY;
     setDragging(true);
@@ -216,17 +254,13 @@ export function CreditCardInvoice({ card, onClose, referenceMonth }: Props) {
   const onTouchMove = (e: React.TouchEvent) => {
     if (touchStartY.current == null) return;
     const delta = e.touches[0].clientY - touchStartY.current;
-    if (delta > 0) {
-      setDragY(delta);
-    } else {
-      setDragY(0);
-    }
+    setDragY(delta > 0 ? delta : 0);
   };
 
   const onTouchEnd = () => {
     if (touchStartY.current == null) return;
     if (dragY > 120) {
-      onClose();
+      handleClose();
     } else {
       setDragY(0);
     }
@@ -234,31 +268,53 @@ export function CreditCardInvoice({ card, onClose, referenceMonth }: Props) {
     setDragging(false);
   };
 
+  // Build the panel transform based on phase + drag.
+  const panelTransform = (() => {
+    if (phase === "enter" && originTransform) return originTransform;
+    if (phase === "exit" && originTransform) return originTransform;
+    if (dragY > 0) return `translateY(${dragY}px)`;
+    return "translate(0,0) scale(1,1)";
+  })();
+
+  // Backdrop opacity follows phase + drag.
+  const backdropOpacity = (() => {
+    if (phase === "enter" || phase === "exit") return 0;
+    if (dragY > 0) return Math.max(0.3, 1 - dragY / 500);
+    return 1;
+  })();
+
   return (
     <div
-      className="fixed inset-0 bg-background sm:bg-foreground/50 sm:backdrop-blur-md z-[60] flex items-stretch sm:items-center justify-center p-0 sm:p-4 animate-fade-in overscroll-contain"
+      className="fixed inset-0 z-[60] flex items-stretch sm:items-center justify-center p-0 sm:p-4 overscroll-contain"
       onClick={(e) => {
-        // Only close on backdrop click on desktop (mobile is fullscreen, no backdrop)
-        if (window.innerWidth >= 640) onClose();
-      }}
-      style={{
-        backgroundColor:
-          dragY > 0 && window.innerWidth < 640
-            ? `hsl(var(--background) / ${Math.max(0.4, 1 - dragY / 600)})`
-            : undefined,
+        if (!isMobile) handleClose();
       }}
     >
+      {/* Backdrop — animated separately so it fades in alongside the card expansion */}
+      <div
+        className="absolute inset-0 bg-background sm:bg-foreground/50 sm:backdrop-blur-md pointer-events-none"
+        style={{
+          opacity: backdropOpacity,
+          transition: dragging ? "none" : "opacity 300ms cubic-bezier(0.22, 1, 0.36, 1)",
+        }}
+      />
       <Card
         ref={cardRef}
         no3d
-        className="w-full max-w-2xl h-[100dvh] sm:h-auto sm:max-h-[92vh] overflow-y-auto rounded-none sm:rounded-2xl border-0 sm:border animate-card-expand sm:animate-scale-in p-0 will-change-transform"
+        className={`relative w-full max-w-2xl h-[100dvh] sm:h-auto sm:max-h-[92vh] overflow-y-auto rounded-none sm:rounded-2xl border-0 sm:border p-0 will-change-transform ${
+          phase === "open" ? "" : "overflow-hidden"
+        }`}
         onClick={(e) => e.stopPropagation()}
         onTouchStart={onTouchStart}
         onTouchMove={onTouchMove}
         onTouchEnd={onTouchEnd}
         style={{
-          transform: dragY > 0 ? `translateY(${dragY}px)` : undefined,
-          transition: dragging ? "none" : "transform 250ms cubic-bezier(0.22, 1, 0.36, 1)",
+          transform: panelTransform,
+          transformOrigin: "top left",
+          transition: dragging
+            ? "none"
+            : "transform 300ms cubic-bezier(0.22, 1, 0.36, 1)",
+          // While entering/exiting, hide internal scroll so the scaled-down card looks like the mini.
         }}
       >
         {/* Drag handle (mobile only) */}
@@ -283,7 +339,7 @@ export function CreditCardInvoice({ card, onClose, referenceMonth }: Props) {
             <Button
               variant="ghost"
               size="icon"
-              onClick={onClose}
+              onClick={handleClose}
               className={`${bank.textClass} hover:bg-white/15`}
             >
               <X className="h-5 w-5" />
@@ -369,7 +425,14 @@ export function CreditCardInvoice({ card, onClose, referenceMonth }: Props) {
           </div>
         </div>
 
-        <CardContent className="space-y-4 pt-5 px-4 sm:px-6 pb-6">
+        <CardContent
+          className="space-y-4 pt-5 px-4 sm:px-6 pb-6"
+          style={{
+            opacity: phase === "open" ? 1 : 0,
+            transform: phase === "open" ? "translateY(0)" : "translateY(8px)",
+            transition: "opacity 220ms ease-out 120ms, transform 260ms cubic-bezier(0.22,1,0.36,1) 120ms",
+          }}
+        >
           {/* Quick stats grid */}
           <div className="grid grid-cols-3 gap-2">
             <div className="rounded-xl border bg-card p-3 text-center">
