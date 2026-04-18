@@ -75,6 +75,7 @@ function getCycleForDueMonth(yyyymm: string, closingDay: number, dueDay: number)
 interface MiniCardProps {
   card: CreditCard;
   invoiceTotal: number;
+  pendingTotal: number;
   openingAmount: number;
   hasOpening: boolean;
   hasActiveInvoice: boolean;
@@ -91,6 +92,7 @@ interface MiniCardProps {
 function MiniCreditCard({
   card,
   invoiceTotal,
+  pendingTotal,
   openingAmount,
   hasOpening,
   hasActiveInvoice,
@@ -106,7 +108,7 @@ function MiniCreditCard({
   const bank = getBank(card.bank);
   const { mask } = useHideValues();
   const utilization =
-    card.creditLimit > 0 ? Math.min(100, (invoiceTotal / card.creditLimit) * 100) : 0;
+    card.creditLimit > 0 ? Math.min(100, (pendingTotal / card.creditLimit) * 100) : 0;
   const rootRef = (window as any).__cardRefMap || ((window as any).__cardRefMap = new Map());
 
   const handleClick = (e: React.MouseEvent<HTMLDivElement>) => {
