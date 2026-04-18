@@ -69,6 +69,7 @@ export function PersonalAIInsightsCard({
   const lastAutoKeyRef = useRef<string | null>(null);
   const [hasAutoTried, setHasAutoTried] = useState(false);
   const [expandedCat, setExpandedCat] = useState<string | null>(null);
+  const [showFullReport, setShowFullReport] = useState(false);
 
   // Auto-generate on open (once per month) if no cached version, and on exceeded changes
   useEffect(() => {
