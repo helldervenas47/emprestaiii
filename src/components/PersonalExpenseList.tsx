@@ -47,6 +47,8 @@ interface Props {
 
 type Filter = "all" | "pending" | "paid" | "overdue";
 
+const FIXED_RECURRING_INSTALLMENTS = 999;
+
 const fmt = (v: number) =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v);
 
