@@ -462,7 +462,7 @@ function ManagerDetailDialog({
         </DialogHeader>
 
         {detail && (
-          <ScrollArea className="flex-1 pr-3 -mr-3">
+          <ScrollArea className="flex-1 max-h-[70vh] overflow-y-auto pr-3 -mr-3">
             <div className="space-y-4">
               <div className="grid grid-cols-3 gap-2">
                 <div className="rounded-md bg-muted/40 p-2 text-center">
