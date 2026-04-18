@@ -233,8 +233,8 @@ export function PersonalAIInsightsCard({
                 Nenhuma categoria com dados suficientes neste mês.
               </p>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
-                {sortedStats.map((s) => {
+              <div className="grid grid-cols-2 lg:grid-cols-3 gap-2">
+                {visibleStats.map((s) => {
                   const cat = getPersonalCategory(s.category);
                   const Icon = cat.icon;
                   const isOpen = expandedCat === s.category;
