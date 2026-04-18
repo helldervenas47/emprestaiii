@@ -1452,6 +1452,9 @@ function LoanRowView({
     : fullInstallmentValue * remainingInstallments;
   const partialPaidOnCurrentRow = Math.max(0, expectedRemainingRow - actualRemainingRow);
   const installmentValue = Math.max(0, fullInstallmentValue - partialPaidOnCurrentRow);
+  const interestOnlyRow = loan.customInterestValue != null && loan.customInterestValue > 0
+    ? loan.customInterestValue
+    : loan.amount * (loan.interestRate / 100);
   const isParcelado = (loan.paymentType === "Parcelado" || loan.installments >= 2) && loan.status !== "paid" && loan.paidInstallments < loan.installments;
   const category = getLoanCategory(loan, allPayments, installmentSchedules);
   const badge = statusMap[category];
@@ -1823,23 +1826,70 @@ function LoanRowView({
                       <DollarSign className="h-4 w-4" /> Pagar
                     </Button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="start" className="w-[var(--radix-dropdown-menu-trigger-width)]" onClick={(e) => e.stopPropagation()}>
+                  <DropdownMenuContent align="center" className="w-56 p-2 space-y-1" onClick={(e) => e.stopPropagation()}>
                     {loan.installments >= 2 && (
-                      <DropdownMenuItem onClick={() => openPaymentDialog("installment")}>
-                        <CheckCircle className="h-4 w-4 mr-2" /> Receber Parcela
-                      </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={() => openPaymentDialog("installment")}
+                      className="flex items-center gap-3 px-3 py-2.5 rounded-lg cursor-pointer hover:bg-primary/10 focus:bg-primary/10"
+                    >
+                      <div className="h-8 w-8 rounded-full bg-primary/15 flex items-center justify-center shrink-0">
+                        <CheckCircle className="h-4 w-4 text-primary" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-foreground">Parcela</p>
+                        <p className="text-[11px] text-muted-foreground">{formatCurrency(installmentValue)}</p>
+                      </div>
+                    </DropdownMenuItem>
                     )}
-                    <DropdownMenuItem onClick={() => openPaymentDialog("interest")}>
-                      <Percent className="h-4 w-4 mr-2" /> Pagar Juros
+                    {loan.installments < 2 && (
+                    <DropdownMenuItem
+                      onClick={() => openPaymentDialog("interest")}
+                      className="flex items-center gap-3 px-3 py-2.5 rounded-lg cursor-pointer hover:bg-purple/10 focus:bg-purple/10"
+                    >
+                      <div className="h-8 w-8 rounded-full bg-purple/15 flex items-center justify-center shrink-0">
+                        <Percent className="h-4 w-4 text-purple" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-foreground">Juros</p>
+                        <p className="text-[11px] text-muted-foreground">{formatCurrency(interestOnlyRow)}</p>
+                      </div>
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => setShowPartial(true)}>
-                      <HandCoins className="h-4 w-4 mr-2" /> Pagamento Parcial
+                    )}
+                    <DropdownMenuItem
+                      onClick={() => setShowPartial(true)}
+                      className="flex items-center gap-3 px-3 py-2.5 rounded-lg cursor-pointer hover:bg-warning/10 focus:bg-warning/10"
+                    >
+                      <div className="h-8 w-8 rounded-full bg-warning/15 flex items-center justify-center shrink-0">
+                        <HandCoins className="h-4 w-4 text-warning" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-foreground">Parcial</p>
+                        <p className="text-[11px] text-muted-foreground">Valor personalizado</p>
+                      </div>
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => openPaymentDialog("full")}>
-                      <DollarSign className="h-4 w-4 mr-2" /> Pagamento Total
+                    <DropdownMenuItem
+                      onClick={() => openPaymentDialog("full")}
+                      className="flex items-center gap-3 px-3 py-2.5 rounded-lg cursor-pointer hover:bg-success/10 focus:bg-success/10"
+                    >
+                      <div className="h-8 w-8 rounded-full bg-success/15 flex items-center justify-center shrink-0">
+                        <DollarSign className="h-4 w-4 text-success" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-foreground">Total</p>
+                        <p className="text-[11px] text-muted-foreground">{formatCurrency(remaining)}</p>
+                      </div>
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => openPaymentDialog("payoff")}>
-                      <DollarSign className="h-4 w-4 mr-2" /> Quitar Contrato
+                    <DropdownMenuItem
+                      onClick={() => openPaymentDialog("payoff")}
+                      className="flex items-center gap-3 px-3 py-2.5 rounded-lg cursor-pointer hover:bg-primary/10 focus:bg-primary/10"
+                    >
+                      <div className="h-8 w-8 rounded-full bg-primary/15 flex items-center justify-center shrink-0">
+                        <DollarSign className="h-4 w-4 text-primary" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-foreground">Quitar Contrato</p>
+                        <p className="text-[11px] text-muted-foreground">Definir valor de quitação</p>
+                      </div>
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
