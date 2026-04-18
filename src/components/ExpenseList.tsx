@@ -261,15 +261,7 @@ export function ExpenseList({ expenses, onPay, onUnpay, onDelete, onUpdate, read
     });
   }, [expenses, selectedMonth]);
 
-  const isBotExpense = (e: Expense) => /\[\s*bot\s*\]/i.test(e.notes ?? "");
-
-  const sourceFiltered = useMemo(() => {
-    if (sourceFilter === "all") return monthFiltered;
-    if (sourceFilter === "auto") return monthFiltered.filter(isBotExpense);
-    return monthFiltered.filter((e) => !isBotExpense(e));
-  }, [monthFiltered, sourceFilter]);
-
-  const filtered = sourceFiltered
+  const filtered = monthFiltered
     .filter((e) => e.description.toLowerCase().includes(search.toLowerCase()) || e.category.toLowerCase().includes(search.toLowerCase()))
     .filter((e) => {
       const isRecFullyPaid = e.type === "recorrente" && e.installments && e.installments > 1 && e.paid;
@@ -285,7 +277,7 @@ export function ExpenseList({ expenses, onPay, onUnpay, onDelete, onUpdate, read
     });
 
   const isRecFullyPaid = (e: Expense) => e.type === "recorrente" && !!e.installments && e.installments > 1 && e.paid;
-  const visibleMonth = sourceFiltered.filter((e) => !isRecFullyPaid(e));
+  const visibleMonth = monthFiltered.filter((e) => !isRecFullyPaid(e));
 
   const totalPending = visibleMonth.filter((e) => !e.paid).reduce((s, e) => s + getInstallmentAmount(e), 0);
   const totalPaid = visibleMonth.filter((e) => e.paid).reduce((s, e) => s + getInstallmentAmount(e), 0);
