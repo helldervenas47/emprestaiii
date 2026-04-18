@@ -339,7 +339,8 @@ export function CreditCardList({ readOnly = false, referenceMonth }: Props) {
         return s + (isRec ? e.amount / e.installments! : e.amount);
       }, 0);
       // Pendente total = soma de todas as despesas não pagas do cartão (qualquer ciclo)
-      const pendingTotal = cardExpenses
+      // + soma de todos os saldos iniciais (openings) cadastrados, que representam faturas em aberto
+      const expensesPending = cardExpenses
         .filter((e) => !e.paid)
         .reduce((s, e) => {
           const isRec = e.type === "recorrente" && e.installments && e.installments > 1;
@@ -349,6 +350,10 @@ export function CreditCardList({ readOnly = false, referenceMonth }: Props) {
             : inst;
           return s + remaining;
         }, 0);
+      const openingsPending = openings
+        .filter((o) => o.cardId === card.id)
+        .reduce((s, o) => s + (o.openingAmount ?? 0), 0);
+      const pendingTotal = expensesPending + openingsPending;
       const unpaidExpenseIds = inCycle.filter((e) => !e.paid).map((e) => e.id);
       const cycleKey = cycleKeyFromDate(cycle.to);
       const op = getOpening(card.id, cycleKey);
