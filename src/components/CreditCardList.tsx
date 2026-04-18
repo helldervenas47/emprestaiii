@@ -611,6 +611,8 @@ export function CreditCardList({ readOnly = false, referenceMonth }: Props) {
           cycleLabel={openingDialogData.cycleLabel}
           initialAmount={openingDialogData.initialAmount}
           initialNotes={openingDialogData.initialNotes}
+          creditLimit={openingCard.creditLimit}
+          transactionsTotal={invoiceByCard.get(openingCard.id)?.transactions ?? 0}
           onSave={async (amount, notes) => {
             await upsertOpening(openingCard.id, openingDialogData.cycleKey, amount, notes);
           }}
