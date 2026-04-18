@@ -63,7 +63,7 @@ export function PersonalAIInsightsCard({
   month,
   exceededCategories,
   hasExpenses,
-  categoryStats,
+  categoryStats = [],
 }: Props) {
   const { data, loading, error, generate } = usePersonalInsights(month);
   const lastAutoKeyRef = useRef<string | null>(null);
