@@ -296,9 +296,9 @@ export function LoanForm({ onAdd, onSaveSchedule, onClose, clients, existingTags
               <div>
                 <Label htmlFor="interestRate">Juros (%)</Label>
                 <Input
-                  id="interestRate" type="number" step="0.1"
+                  id="interestRate" type="number" step="0.1" min="0"
                   value={form.interestRate} onChange={(e) => update("interestRate", e.target.value)}
-                  placeholder="5" required
+                  placeholder="0" required
                 />
               </div>
             </div>
