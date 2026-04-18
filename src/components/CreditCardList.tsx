@@ -206,6 +206,13 @@ function MiniCreditCard({
             </div>
           )}
 
+          <div className="flex items-baseline justify-between gap-2">
+            <span className="text-[10px] text-muted-foreground">Disponível</span>
+            <span className="text-[11px] font-semibold text-success tabular-nums">
+              {mask(fmt(Math.max(0, card.creditLimit - pendingTotal)))}
+            </span>
+          </div>
+
           <div className="flex items-center justify-between gap-2 text-[10px] text-muted-foreground">
             <span>Vence {format(dueDate, "dd 'de' MMM", { locale: ptBR })}</span>
             <span>Limite {mask(fmt(card.creditLimit))}</span>
