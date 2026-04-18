@@ -169,6 +169,18 @@ export function usePiggyBanks() {
 
   useEffect(() => { reload(); }, [reload]);
 
+  // Realtime: keep all consumers (form + list) in sync when deposits/banks change.
+  useEffect(() => {
+    if (!dataOwnerId) return;
+    const channel = supabase
+      .channel(`piggy-realtime-${crypto.randomUUID()}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'piggy_bank_deposits' }, () => { reload(); })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'piggy_banks' }, () => { reload(); })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'piggy_bank_recurrences' }, () => { reload(); })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [dataOwnerId, reload]);
+
   // Auto-catch-up: generate missing recurring deposits whenever recurrences load.
   useEffect(() => {
     if (!dataOwnerId || recurrences.length === 0) return;
