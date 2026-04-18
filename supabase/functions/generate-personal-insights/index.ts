@@ -57,6 +57,8 @@ async function buildContext(supabase: any, ownerId: string, month: string) {
     }
   }
 
+  // IMPORTANT: include all expenses for the month (paid and unpaid) so the
+  // analysis reflects the total committed/forecasted amount, not only what was already paid.
   const { data: expenses } = await supabase
     .from("expenses")
     .select("category, amount, type, installments, due_date, paid")
@@ -123,13 +125,13 @@ async function buildContext(supabase: any, ownerId: string, month: string) {
 function buildPrompt(ctx: any) {
   const lines: string[] = [];
   lines.push(`Mês de referência: ${ctx.month}`);
-  lines.push(`Total gasto: ${fmt(ctx.totalSpent)} | Total orçado: ${fmt(ctx.totalBudget)}`);
+  lines.push(`Total previsto no mês (pagos + a pagar): ${fmt(ctx.totalSpent)} | Total orçado: ${fmt(ctx.totalBudget)}`);
   lines.push("");
-  lines.push("Categorias (gasto / orçamento / % / tendência vs mês anterior):");
+  lines.push("Categorias (total previsto / orçamento / % / tendência vs mês anterior):");
   for (const s of ctx.stats) {
     const trendLabel = s.trend === "up" ? "↑ alta" : s.trend === "down" ? "↓ queda" : "→ estável";
     const budgetTxt = s.budget > 0 ? `${fmt(s.budget)} (${s.pct.toFixed(0)}%)` : "sem limite";
-    lines.push(`- ${s.category}: ${fmt(s.spent)} / ${budgetTxt} | ${trendLabel} (anterior: ${fmt(s.prevSpent || 0)})`);
+    lines.push(`- ${s.category}: ${fmt(s.spent)} previstos / ${budgetTxt} | ${trendLabel} (anterior: ${fmt(s.prevSpent || 0)})`);
   }
   return lines.join("\n");
 }
@@ -207,7 +209,7 @@ TOM DE VOZ: ${toneInstruction}
 Resposta em português do Brasil, Markdown enxuto, máximo 220 palavras, sem títulos H1. Use EXATAMENTE estas seções com ##:
 
 ## 📊 Análise da categoria
-Diagnóstico específico de **${category}**: gasto atual, % do orçamento, comparação com mês anterior e share dentro do total mensal. 2-3 frases.
+Diagnóstico específico de **${category}**: total previsto no mês (somando pagos + a pagar), % comprometido do orçamento, comparação com mês anterior e share dentro do total mensal previsto. 2-3 frases.
 
 ## 🚨 Problemas identificados
 Bullets curtos: estouro de orçamento, recorrência elevada, picos atípicos, ausência de limite, etc. Se nada relevante, diga "Sem problemas críticos detectados.".
@@ -278,12 +280,12 @@ Deno.serve(async (req) => {
       const userPromptCat = [
         `Categoria analisada: ${targetCategory}`,
         `Mês: ${month} (anterior: ${ctx.prevMonth})`,
-        `Gasto atual: ${fmt(stat.spent)}`,
-        `Gasto mês anterior: ${fmt(stat.prevSpent || 0)}`,
-        `Orçamento: ${stat.budget > 0 ? `${fmt(stat.budget)} (${stat.pct.toFixed(0)}% utilizado)` : "sem limite definido"}`,
+        `Total previsto no mês (pagos + a pagar): ${fmt(stat.spent)}`,
+        `Total previsto mês anterior: ${fmt(stat.prevSpent || 0)}`,
+        `Orçamento: ${stat.budget > 0 ? `${fmt(stat.budget)} (${stat.pct.toFixed(0)}% comprometido)` : "sem limite definido"}`,
         `Tendência: ${trendLabel}`,
         `Status: ${stat.status}`,
-        `Share no total mensal: ${totalShare.toFixed(1)}% (${fmt(stat.spent)} de ${fmt(ctx.totalSpent)})`,
+        `Share no total mensal previsto: ${totalShare.toFixed(1)}% (${fmt(stat.spent)} de ${fmt(ctx.totalSpent)})`,
       ].join("\n");
 
       const { data: tonePrefCat } = await supabase
