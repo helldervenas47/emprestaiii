@@ -1529,20 +1529,29 @@ Deno.serve(async (req) => {
                   basePayload.paid_date = installmentsN ? null : finalDate;
                 }
 
-                // Insert + single confirmation message with action keyboard.
-                // Insert is fast (~50-150ms); merging into one message removes the
-                // second round-trip to Telegram for users.
                 const fmt = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(extracted.amount);
                 const installmentValue = installmentsN ? extracted.amount / installmentsN : extracted.amount;
                 const fmtParcel = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(installmentValue);
+                const parcelLine = installmentsN ? `\n🔢 ${installmentsN}x de ${fmtParcel}` : "";
+                const cardLine = card ? `\n💳 ${card.nickname || card.bank} (vence ${displayDate})` : "";
+                const paymentMethod = card
+                  ? `Cartão${card.nickname ? ` ${card.nickname}` : ""}`
+                  : (/\bpix\b/i.test(text) ? "Pix"
+                    : /(dinheiro|cash|esp[eé]cie)/i.test(text) ? "Dinheiro"
+                    : /\bd[eé]bito\b/i.test(text) ? "Débito"
+                    : "Não informado");
+
+                // ⚡ Resposta instantânea: enviada ANTES do insert para confirmar
+                // imediatamente o recebimento da despesa, mesmo que o registro
+                // definitivo ainda esteja em andamento.
+                const instantText = `⚡ *Recebido!* Registrando despesa...\n\n💰 ${fmt}${parcelLine}\n📂 ${finalCategory}${cardLine}\n📝 ${extracted.description}\n📅 ${displayDate}\n💳 ${paymentMethod}`;
+                tgSend(chatId, instantText, LOVABLE_API_KEY, TELEGRAM_API_KEY)
+                  .catch((e) => console.error("instant ack err", e));
+
                 const header = installmentsN
                   ? (card ? `💳 *Compra parcelada no cartão*` : `🧾 *Compra parcelada registrada*`)
                   : (card ? `💳 *Compra no cartão registrada*` : `✅ *Despesa registrada*`);
-                const cardLine = card ? `\n💳 ${card.nickname || card.bank} (vence ${displayDate})` : "";
-                const parcelLine = installmentsN
-                  ? `\n🔢 ${installmentsN}x de ${fmtParcel}`
-                  : "";
-                const summaryText = `${header}\n\n💰 ${fmt}${parcelLine}\n📂 ${finalCategory}${cardLine}\n📝 ${extracted.description}\n📅 ${displayDate}`;
+                const summaryText = `${header}\n\n💰 ${fmt}${parcelLine}\n📂 ${finalCategory}${cardLine}\n📝 ${extracted.description}\n📅 ${displayDate}\n💳 ${paymentMethod}`;
 
                 const { data: ins, error: insErr } = await admin
                   .from("expenses")
@@ -1552,9 +1561,8 @@ Deno.serve(async (req) => {
                 if (insErr || !ins) {
                   await tgSend(chatId, "❌ Erro ao salvar no banco: " + (insErr?.message ?? "desconhecido"), LOVABLE_API_KEY, TELEGRAM_API_KEY);
                 } else {
-                  // Single message: summary + keyboard.
+                  // Confirmação final com teclado de ações após o registro persistir.
                   await tgSendWithKeyboard(chatId, summaryText, buildExpenseKeyboard(ins.id), LOVABLE_API_KEY, TELEGRAM_API_KEY);
-                  // Budget alert in background (don't block response).
                   if (!card) {
                     checkBudgetAndAlert(admin, link.user_id, chatId, finalCategory, LOVABLE_API_KEY, TELEGRAM_API_KEY)
                       .catch((e) => console.error("budget alert bg err", e));
