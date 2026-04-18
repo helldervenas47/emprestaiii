@@ -255,6 +255,7 @@ function MiniCreditCard({
 export function CreditCardList({ readOnly = false, referenceMonth }: Props) {
   const { cards: allCards, loading, addCard, updateCard, deleteCard } = useCreditCards();
   const cards = useMemo(() => allCards.filter((c) => c.active !== false), [allCards]);
+  const inactiveCards = useMemo(() => allCards.filter((c) => c.active === false), [allCards]);
   const { expenses, payExpense } = useExpenses();
   const { getOpening, upsertOpening } = useCreditCardOpenings();
   const [showForm, setShowForm] = useState(false);
@@ -264,6 +265,7 @@ export function CreditCardList({ readOnly = false, referenceMonth }: Props) {
   const [openingCard, setOpeningCard] = useState<CreditCard | null>(null);
   const [payingCard, setPayingCard] = useState<CreditCard | null>(null);
   const [paying, setPaying] = useState(false);
+  const [showInactive, setShowInactive] = useState(false);
 
   const handleNew = () => {
     setEditing(null);
