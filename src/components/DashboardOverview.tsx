@@ -854,7 +854,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
                     <>
                       <div className="flex items-center justify-between text-[10px]">
                         <span className="flex items-center gap-1 text-muted-foreground"><Target className="h-3 w-3" /> Meta: {profitGoal.targetValue}% ({formatCurrency(targetAmount)})</span>
-                        <span className={`font-bold ${color}`}>{status === "atingida" ? "✓ Atingida" : status === "perto" ? "Quase lá" : "Abaixo"}</span>
+                        <span className={`font-bold ${color}`}>{status === "atingida" ? "✓ Atingida" : "Abaixo"}</span>
                       </div>
                       <Progress value={Math.min(100, pct)} className="h-1.5 mt-1" />
                     </>
