@@ -676,17 +676,20 @@ export function CreditCardList({ readOnly = false, referenceMonth }: Props) {
 
       {payingCard && (() => {
         const inv = invoiceByCard.get(payingCard.id);
-        const ids = inv?.unpaidExpenseIds ?? [];
-        const cardOpenings = openings.filter((o) => o.cardId === payingCard.id);
-        const total = inv?.pendingTotal ?? 0;
-        const itemsCount = ids.length + cardOpenings.length;
+        const ids = inv?.cycleUnpaidExpenseIds ?? [];
+        const cycleOpening = inv?.hasOpening
+          ? openings.find((o) => o.cardId === payingCard.id && o.cycleKey === inv.cycleKey) ?? null
+          : null;
+        const total = inv?.cyclePendingTotal ?? 0;
+        const itemsCount = ids.length + (cycleOpening ? 1 : 0);
+        const cycleLabel = inv ? format(inv.dueDate, "MMMM/yy", { locale: ptBR }) : "";
         return (
           <AlertDialog open={!!payingCard} onOpenChange={(o) => !o && !paying && setPayingCard(null)}>
             <AlertDialogContent>
               <AlertDialogHeader>
-                <AlertDialogTitle>Pagar fatura do cartão?</AlertDialogTitle>
+                <AlertDialogTitle>Pagar fatura do mês?</AlertDialogTitle>
                 <AlertDialogDescription>
-                  Confirmar o pagamento de {itemsCount} {itemsCount === 1 ? "item pendente" : "itens pendentes"} ({fmt(total)}) do cartão {payingCard.nickname || getBank(payingCard.bank).name}? Cada despesa será marcada como paga e o saldo será debitado.
+                  Confirmar o pagamento da fatura de <strong>{cycleLabel}</strong> — {itemsCount} {itemsCount === 1 ? "item" : "itens"} ({fmt(total)}) do cartão {payingCard.nickname || getBank(payingCard.bank).name}. Apenas as despesas e o saldo inicial deste ciclo serão quitados.
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
@@ -702,10 +705,10 @@ export function CreditCardList({ readOnly = false, referenceMonth }: Props) {
                       for (const id of ids) {
                         await payExpense(id, false, today);
                       }
-                      for (const op of cardOpenings) {
-                        await deleteOpening(op.id);
+                      if (cycleOpening) {
+                        await deleteOpening(cycleOpening.id);
                       }
-                      toast.success(`Fatura paga (${itemsCount} ${itemsCount === 1 ? "item" : "itens"})`);
+                      toast.success(`Fatura de ${cycleLabel} paga (${itemsCount} ${itemsCount === 1 ? "item" : "itens"})`);
                       setPayingCard(null);
                     } finally {
                       setPaying(false);
