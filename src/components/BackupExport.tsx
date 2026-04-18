@@ -241,15 +241,21 @@ export function BackupExport({ loans, payments, clients, sales, expenses, onImpo
         />
       ))}
 
-      <div className="flex items-center justify-between">
+      <div className="flex items-start sm:items-center justify-between gap-3 flex-col sm:flex-row">
         <div>
           <h2 className="text-lg font-semibold text-foreground">Backup de Dados</h2>
           <p className="text-sm text-muted-foreground">Exporte ou importe seus dados cadastrados em formato CSV.</p>
         </div>
-        <Button onClick={handleExportAll} className="gap-2">
-          <FileDown className="h-4 w-4" />
-          Exportar Tudo
-        </Button>
+        <div className="flex gap-2 w-full sm:w-auto">
+          <Button onClick={handleExportAll} className="gap-2 flex-1 sm:flex-none">
+            <FileDown className="h-4 w-4" />
+            Exportar Tudo
+          </Button>
+          <Button onClick={handleClearCache} variant="outline" className="gap-2 flex-1 sm:flex-none">
+            <Trash2 className="h-4 w-4" />
+            Limpar Cache
+          </Button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
