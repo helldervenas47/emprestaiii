@@ -240,14 +240,14 @@ function MiniCreditCard({
                 variant="default"
                 size="sm"
                 className="w-full h-7 text-[11px]"
-                disabled={pendingTotal <= 0}
+                disabled={cyclePendingTotal <= 0}
                 onClick={(e) => {
                   e.stopPropagation();
                   onPayInvoice?.();
                 }}
               >
                 <CheckCircle className="h-3 w-3 mr-1" />
-                Pagar fatura
+                Pagar fatura do mês
               </Button>
               <Button
                 variant="outline"
