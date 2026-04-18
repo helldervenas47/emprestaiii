@@ -198,6 +198,29 @@ Liste como bullets as categorias que estouraram OU estão acima de 80%. Para cad
 Mantenha o tom solicitado em TODAS as seções. Nunca invente categorias que não estão nos dados.`;
 }
 
+function buildCategorySystemPrompt(tone: string, category: string): string {
+  const toneInstruction = TONE_INSTRUCTIONS[tone] ?? TONE_INSTRUCTIONS.balanced;
+  return `Você é um consultor financeiro pessoal. Vai analisar UMA ÚNICA categoria de despesas pessoais: **${category}**.
+
+TOM DE VOZ: ${toneInstruction}
+
+Resposta em português do Brasil, Markdown enxuto, máximo 220 palavras, sem títulos H1. Use EXATAMENTE estas seções com ##:
+
+## 📊 Análise da categoria
+Diagnóstico específico de **${category}**: gasto atual, % do orçamento, comparação com mês anterior e share dentro do total mensal. 2-3 frases.
+
+## 🚨 Problemas identificados
+Bullets curtos: estouro de orçamento, recorrência elevada, picos atípicos, ausência de limite, etc. Se nada relevante, diga "Sem problemas críticos detectados.".
+
+## 💰 Sugestões práticas de redução
+2-4 bullets ESPECÍFICOS para **${category}** (não genéricos). Inclua estimativas de economia quando possível (ex.: "renegociar plano pode poupar ~R$ 40/mês").
+
+## 🎯 Recomendações de controle
+2-3 ações concretas para manter a categoria sob controle nos próximos meses (ex.: "definir limite de R$ X", "criar alerta em 70%", "revisar assinaturas mensalmente").
+
+Foque APENAS em **${category}**. Não comente outras categorias. Nunca invente dados.`;
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
