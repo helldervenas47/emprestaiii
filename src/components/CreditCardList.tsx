@@ -300,6 +300,7 @@ export function CreditCardList({ readOnly = false, referenceMonth }: Props) {
         transactions: number;
         opening: number;
         total: number;
+        pendingTotal: number;
         dueDate: Date;
         cycleKey: string;
         openingNotes: string | null;
@@ -312,23 +313,35 @@ export function CreditCardList({ readOnly = false, referenceMonth }: Props) {
         ? getCycleForDueMonth(referenceMonth, card.closingDay, card.dueDay)
         : getCurrentCycle(card.closingDay, card.dueDay);
       const cardTag = (card.nickname || card.lastFour || "").toLowerCase();
-      const inCycle = expenses
+      const matchesCard = (e: typeof expenses[number]) => {
+        if (!cardTag) return true;
+        const n = (e.notes ?? "").toLowerCase();
+        if (n.includes(cardTag)) return true;
+        return !/cart[aã]o[:\s]/i.test(n);
+      };
+      const cardExpenses = expenses
         .filter((e) => e.scope === "personal")
         .filter((e) => /\[\s*cr[eé]dito\s*\]/i.test(e.notes ?? ""))
-        .filter((e) => {
-          if (!cardTag) return true;
-          const n = (e.notes ?? "").toLowerCase();
-          if (n.includes(cardTag)) return true;
-          return !/cart[aã]o[:\s]/i.test(n);
-        })
-        .filter((e) => {
-          const d = new Date(e.dueDate + "T00:00:00");
-          return d > cycle.from && d <= cycle.to;
-        });
+        .filter(matchesCard);
+      const inCycle = cardExpenses.filter((e) => {
+        const d = new Date(e.dueDate + "T00:00:00");
+        return d > cycle.from && d <= cycle.to;
+      });
       const transactions = inCycle.reduce((s, e) => {
         const isRec = e.type === "recorrente" && e.installments && e.installments > 1;
         return s + (isRec ? e.amount / e.installments! : e.amount);
       }, 0);
+      // Pendente total = soma de todas as despesas não pagas do cartão (qualquer ciclo)
+      const pendingTotal = cardExpenses
+        .filter((e) => !e.paid)
+        .reduce((s, e) => {
+          const isRec = e.type === "recorrente" && e.installments && e.installments > 1;
+          const inst = isRec ? e.amount / e.installments! : e.amount;
+          const remaining = isRec
+            ? Math.max(0, e.installments! - (e.paidInstallments ?? 0)) * inst
+            : inst;
+          return s + remaining;
+        }, 0);
       const unpaidExpenseIds = inCycle.filter((e) => !e.paid).map((e) => e.id);
       const cycleKey = cycleKeyFromDate(cycle.to);
       const op = getOpening(card.id, cycleKey);
@@ -337,6 +350,7 @@ export function CreditCardList({ readOnly = false, referenceMonth }: Props) {
         transactions,
         opening,
         total: transactions + opening,
+        pendingTotal,
         dueDate: cycle.dueDate,
         cycleKey,
         openingNotes: op?.notes ?? null,
