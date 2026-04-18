@@ -373,7 +373,7 @@ export function useLoans() {
     if (data.penaltyValue !== undefined) updateData.penalty_value = data.penaltyValue;
     if (data.hasManager !== undefined) (updateData as any).has_manager = data.hasManager;
     if (data.managerId !== undefined) (updateData as any).manager_id = data.managerId;
-    if (data.managerCommissionRate !== undefined) (updateData as any).manager_commission_rate = data.managerCommissionRate;
+    if (data.managerCommissionRate !== undefined) (updateData as any).manager_commission_rate = data.managerCommissionRate ?? 10;
     const { error: updateErr } = await supabase.from("loans").update(updateData).eq("id", id);
     if (updateErr) {
       console.error("[updateLoan] Falha ao salvar:", updateErr);
