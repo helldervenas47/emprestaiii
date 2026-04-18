@@ -309,6 +309,26 @@ Deno.serve(async (req) => {
       await supabase
         .from("personal_budget_alerts")
         .insert({ user_id: ownerId, category: p.category, month, alert_type: p.type });
+
+      // Trigger AI insights telegram report on category overrun
+      if (p.type === "exceeded") {
+        try {
+          await fetch(`${supabaseUrl}/functions/v1/send-personal-insights-telegram`, {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${serviceKey}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              mode: "trigger",
+              user_id: ownerId,
+              reason: `Categoria "${p.category}" estourou o orçamento`,
+            }),
+          });
+        } catch (e) {
+          console.error("[notify-budget-overrun] AI insight trigger failed", e);
+        }
+      }
     }
 
     if (invalid.length > 0) {

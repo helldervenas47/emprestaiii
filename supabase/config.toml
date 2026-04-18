@@ -17,3 +17,9 @@ verify_jwt = false
 
 [functions.telegram-monthly-summary]
 verify_jwt = false
+
+[functions.send-personal-insights-telegram]
+verify_jwt = false
+
+[functions.generate-personal-insights]
+verify_jwt = false

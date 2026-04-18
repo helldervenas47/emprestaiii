@@ -27,6 +27,7 @@ import { isPiggyExpense } from "@/hooks/usePiggyBanks";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as ReTooltip, LineChart, Line, XAxis, YAxis, CartesianGrid, Legend } from "recharts";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { PersonalAIInsightsCard } from "@/components/PersonalAIInsightsCard";
 
 
 interface Props {
@@ -587,6 +588,15 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, onUpda
           </CardContent>
         </Card>
       )}
+
+      {/* AI-generated intelligent report */}
+      <PersonalAIInsightsCard
+        month={selectedMonth}
+        exceededCategories={budgets
+          .filter((b) => b.amount > 0 && (spentByCategory.get(b.category) || 0) > b.amount)
+          .map((b) => b.category)}
+        hasExpenses={spendingMonth.length > 0}
+      />
 
       {typeof afterEvolution === "function"
         ? afterEvolution({ selectedMonth })
