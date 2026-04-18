@@ -226,15 +226,21 @@ export function CreditCardInvoice({ card, onClose, referenceMonth, originRect }:
   const panelRadius = phase === "open" ? 0 : 16;
 
   // Run the entrance animation on mount.
-  useEffect(() => {
+  // useLayoutEffect ensures the initial transform paints before we transition to "open".
+  useLayoutEffect(() => {
     if (phase !== "enter") return;
-    // Two RAFs: ensure browser commits the initial transform before transitioning.
+    // Force a synchronous reflow so the initial transform commits before transitioning.
+    if (cardRef.current) {
+      // eslint-disable-next-line @typescript-eslint/no-unused-expressions
+      cardRef.current.getBoundingClientRect();
+    }
     const r1 = requestAnimationFrame(() => {
       const r2 = requestAnimationFrame(() => setPhase("open"));
       (window as any).__cardR2 = r2;
     });
     return () => cancelAnimationFrame(r1);
-  }, [phase]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Handle close: if mobile and we have an origin rect, animate back; else close immediately.
   const handleClose = () => {
