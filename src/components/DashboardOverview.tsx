@@ -830,14 +830,16 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
               </div>
               <div className="pt-1.5 border-t border-border/30">
                 {profitGoal ? (() => {
-                  const pct = profitGoal.targetValue > 0 ? Math.min(150, (data.periodProfitRealized / profitGoal.targetValue) * 100) : 0;
-                  const reached = data.periodProfitRealized >= profitGoal.targetValue;
+                  const previstoTotal = data.periodProfitRealized + data.periodProfitExpected;
+                  const targetAmount = previstoTotal * (profitGoal.targetValue / 100);
+                  const pct = targetAmount > 0 ? Math.min(150, (data.periodProfitRealized / targetAmount) * 100) : 0;
+                  const reached = data.periodProfitRealized >= targetAmount && targetAmount > 0;
                   const status = reached ? "atingida" : pct >= 80 ? "perto" : "abaixo";
                   const color = reached ? "text-success" : pct >= 80 ? "text-warning" : "text-destructive";
                   return (
                     <>
                       <div className="flex items-center justify-between text-[10px]">
-                        <span className="flex items-center gap-1 text-muted-foreground"><Target className="h-3 w-3" /> Meta: {formatCurrency(profitGoal.targetValue)}</span>
+                        <span className="flex items-center gap-1 text-muted-foreground"><Target className="h-3 w-3" /> Meta: {profitGoal.targetValue}% ({formatCurrency(targetAmount)})</span>
                         <span className={`font-bold ${color}`}>{status === "atingida" ? "✓ Atingida" : status === "perto" ? "Quase lá" : "Abaixo"}</span>
                       </div>
                       <Progress value={Math.min(100, pct)} className="h-1.5 mt-1" />
