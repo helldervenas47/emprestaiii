@@ -38,6 +38,11 @@ function getPaymentType(t: string) {
   return ({ monthly:"Mensal", biweekly:"Quinzenal", weekly:"Semanal", daily:"Diário" } as Record<string,string>)[t] || t;
 }
 
+function escapeMd(s: string) {
+  // Escape Telegram Markdown (legacy) special chars to avoid parse errors
+  return s.replace(/([_*`\[\]])/g, "\\$1");
+}
+
 function calcTotalWithInterest(amount: number, rate: number, installments: number) {
   // Match calculateTotalWithInterest in useLoans (simple monthly interest * installments)
   const interest = amount * (rate / 100) * installments;
