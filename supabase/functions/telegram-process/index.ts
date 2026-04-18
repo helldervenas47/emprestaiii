@@ -52,9 +52,17 @@ const CATEGORY_KEYWORDS: Array<{ category: string; words: string[] }> = [
 // not the regex quick-parser (which assumes "today").
 const DATE_HINT_REGEX = /\b(ontem|anteontem|antes de ontem|hoje|amanh[ãa]|domingo|segunda|ter[çc]a|quarta|quinta|sexta|s[áa]bado|h[áa]\s+\d+\s+(dia|dias|semana|semanas)|dia\s+\d{1,2}|\d{1,2}\/\d{1,2}(\/\d{2,4})?|\d{1,2}-\d{1,2}(-\d{2,4})?)\b/i;
 
+// If the text mentions natural-language amount or payment method, defer to AI.
+const NATURAL_LANGUAGE_HINT = /\b(reais|real|pila|conto|contos|mangos|pix|dinheiro|esp[eé]cie|cash|d[eé]bito|cart[ãa]o|boleto|vinte|trinta|quarenta|cinquenta|sessenta|setenta|oitenta|noventa|cem|cento|duzentos|trezentos|quatrocentos|quinhentos|seiscentos|setecentos|oitocentos|novecentos|mil)\b/i;
+
 function hasDateHint(text: string): boolean {
   return DATE_HINT_REGEX.test(text);
 }
+
+function hasNaturalLanguageHint(text: string): boolean {
+  return NATURAL_LANGUAGE_HINT.test(text);
+}
+
 
 function detectCategory(description: string): string {
   const lower = description.toLowerCase();
