@@ -1,13 +1,15 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
-import { Sparkles, RefreshCw, AlertTriangle, ChevronDown, TrendingUp, Lightbulb, FileText } from "lucide-react";
+import { Sparkles, RefreshCw, AlertTriangle, ChevronDown, TrendingUp, Lightbulb, FileText, Target, ArrowRight } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { toast } from "sonner";
 import { usePersonalInsights } from "@/hooks/usePersonalInsights";
 import { getPersonalCategory } from "@/lib/personalExpenseCategories";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
 
 export interface CategoryStat {
