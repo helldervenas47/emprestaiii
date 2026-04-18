@@ -222,6 +222,9 @@ export function CreditCardInvoice({ card, onClose, referenceMonth, originRect }:
     return `translate(${originRect.left}px, ${originRect.top}px) scale(${scaleX}, ${scaleY})`;
   }, [originRect]);
 
+  // Border radius transitions from the mini-card (12px) to fullscreen (0) for smoothness.
+  const panelRadius = phase === "open" ? 0 : 16;
+
   // Run the entrance animation on mount.
   useEffect(() => {
     if (phase !== "enter") return;
@@ -301,8 +304,8 @@ export function CreditCardInvoice({ card, onClose, referenceMonth, originRect }:
       <Card
         ref={cardRef}
         no3d
-        className={`relative w-full max-w-2xl h-[100dvh] sm:h-auto sm:max-h-[92vh] overflow-y-auto rounded-none sm:rounded-2xl border-0 sm:border p-0 will-change-transform ${
-          phase === "open" ? "" : "overflow-hidden"
+        className={`relative w-full max-w-2xl h-[100dvh] sm:h-auto sm:max-h-[92vh] sm:rounded-2xl border-0 sm:border p-0 will-change-transform ${
+          phase === "open" ? "overflow-y-auto rounded-none" : "overflow-hidden"
         }`}
         onClick={(e) => e.stopPropagation()}
         onTouchStart={onTouchStart}
@@ -311,10 +314,10 @@ export function CreditCardInvoice({ card, onClose, referenceMonth, originRect }:
         style={{
           transform: panelTransform,
           transformOrigin: "top left",
+          borderRadius: isMobile && phase !== "open" ? `${panelRadius}px` : undefined,
           transition: dragging
             ? "none"
-            : "transform 300ms cubic-bezier(0.22, 1, 0.36, 1)",
-          // While entering/exiting, hide internal scroll so the scaled-down card looks like the mini.
+            : "transform 320ms cubic-bezier(0.22, 1, 0.36, 1), border-radius 320ms cubic-bezier(0.22, 1, 0.36, 1)",
         }}
       >
         {/* Drag handle (mobile only) */}
