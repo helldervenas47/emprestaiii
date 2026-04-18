@@ -26,7 +26,7 @@ interface Props {
 
 export function PiggyBankList({ readOnly = false }: Props) {
   const { mask } = useHideValues();
-  const { piggyBanks, deposits, balances, createPiggyBank, updatePiggyBank, deletePiggyBank, adjustBalance } = usePiggyBanks();
+  const { piggyBanks, deposits, balances, createPiggyBank, updatePiggyBank, deletePiggyBank, adjustBalance, updateDeposit, deleteDeposit } = usePiggyBanks();
 
   const [createOpen, setCreateOpen] = useState(false);
   const [editing, setEditing] = useState<PiggyBankType | null>(null);
