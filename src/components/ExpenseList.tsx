@@ -285,7 +285,7 @@ export function ExpenseList({ expenses, onPay, onUnpay, onDelete, onUpdate, read
     });
 
   const isRecFullyPaid = (e: Expense) => e.type === "recorrente" && !!e.installments && e.installments > 1 && e.paid;
-  const visibleMonth = monthFiltered.filter((e) => !isRecFullyPaid(e));
+  const visibleMonth = sourceFiltered.filter((e) => !isRecFullyPaid(e));
 
   const totalPending = visibleMonth.filter((e) => !e.paid).reduce((s, e) => s + getInstallmentAmount(e), 0);
   const totalPaid = visibleMonth.filter((e) => e.paid).reduce((s, e) => s + getInstallmentAmount(e), 0);
