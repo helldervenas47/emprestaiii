@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
-import { Sparkles, RefreshCw, AlertTriangle, ChevronDown, TrendingUp, Lightbulb, FileText, Target, ArrowRight } from "lucide-react";
+import { Sparkles, RefreshCw, AlertTriangle, ChevronDown, TrendingUp, Lightbulb, FileText, Target, ArrowRight, Send } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
+import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { toast } from "sonner";
 import { usePersonalInsights } from "@/hooks/usePersonalInsights";
 import { getPersonalCategory } from "@/lib/personalExpenseCategories";
@@ -171,16 +172,43 @@ export function PersonalAIInsightsCard({
               </p>
             </div>
           </div>
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={handleRefresh}
-            disabled={loading}
-            className="shrink-0"
-          >
-            <RefreshCw className={`h-3.5 w-3.5 ${loading ? "animate-spin" : ""}`} />
-            <span className="hidden sm:inline ml-1">Atualizar</span>
-          </Button>
+          <div className="flex items-center gap-1.5 shrink-0">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => {
+                    window.dispatchEvent(
+                      new CustomEvent("app:navigate", {
+                        detail: {
+                          tab: "overdue",
+                          subTab: "cobrancas",
+                          scrollTo: "telegram-reports-config",
+                        },
+                      }),
+                    );
+                  }}
+                  className="shrink-0"
+                  aria-label="Configurar envio do relatório no Telegram"
+                >
+                  <Send className="h-3.5 w-3.5" />
+                  <span className="hidden md:inline ml-1">Configurar</span>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Configurar envio no Telegram</TooltipContent>
+            </Tooltip>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={handleRefresh}
+              disabled={loading}
+              className="shrink-0"
+            >
+              <RefreshCw className={`h-3.5 w-3.5 ${loading ? "animate-spin" : ""}`} />
+              <span className="hidden sm:inline ml-1">Atualizar</span>
+            </Button>
+          </div>
         </div>
 
         {exceededCategories.length > 0 && (
