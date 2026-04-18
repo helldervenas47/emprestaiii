@@ -1,0 +1,364 @@
+import { useMemo, useState } from "react";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Calculator, TrendingUp, TrendingDown, Receipt, Wallet, FileBarChart } from "lucide-react";
+import { useHideValues } from "@/contexts/HideValuesContext";
+
+interface AccountantReportProps {
+  loans: any[];
+  payments: any[];
+  sales: any[];
+  expenses: any[];
+}
+
+const TAX_CATEGORIES = ["impostos", "imposto", "tributos", "tributo", "taxa", "taxas", "iss", "irpf", "irpj", "icms", "das", "mei", "simples"];
+
+function fmt(n: number, hidden: boolean) {
+  if (hidden) return "R$ ••••";
+  return n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+}
+
+function getMonthKey(dateStr: string): string {
+  return (dateStr || "").slice(0, 7);
+}
+
+function getYearKey(dateStr: string): string {
+  return (dateStr || "").slice(0, 4);
+}
+
+export function AccountantReport({ loans, payments, sales, expenses }: AccountantReportProps) {
+  const { hidden } = useHideValues();
+  const now = new Date();
+  const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+  const currentYear = String(now.getFullYear());
+
+  const [period, setPeriod] = useState<"month" | "year">("month");
+  const [monthFilter, setMonthFilter] = useState(currentMonth);
+  const [yearFilter, setYearFilter] = useState(currentYear);
+
+  // Available months/years from data
+  const { months, years } = useMemo(() => {
+    const ms = new Set<string>();
+    const ys = new Set<string>();
+    [...payments.map((p) => p.date), ...sales.map((s) => s.sale_date), ...expenses.map((e) => e.due_date)]
+      .filter(Boolean)
+      .forEach((d) => {
+        ms.add(getMonthKey(d));
+        ys.add(getYearKey(d));
+      });
+    ms.add(currentMonth);
+    ys.add(currentYear);
+    return {
+      months: Array.from(ms).sort().reverse(),
+      years: Array.from(ys).sort().reverse(),
+    };
+  }, [payments, sales, expenses, currentMonth, currentYear]);
+
+  const matchPeriod = (dateStr: string) => {
+    if (!dateStr) return false;
+    return period === "month" ? getMonthKey(dateStr) === monthFilter : getYearKey(dateStr) === yearFilter;
+  };
+
+  // ===== DRE =====
+  const dre = useMemo(() => {
+    const periodPayments = payments.filter((p) => matchPeriod(p.date));
+    const periodSales = sales.filter((s) => matchPeriod(s.sale_date));
+    const periodExpenses = expenses.filter((e) => e.paid && matchPeriod(e.paid_date || e.due_date));
+
+    // Receita de juros = pagamentos - principal proporcional
+    let totalReceived = 0;
+    let interestRevenue = 0;
+    periodPayments.forEach((p) => {
+      const amt = Number(p.amount) || 0;
+      totalReceived += amt;
+      const loan = loans.find((l) => l.id === p.loan_id);
+      if (loan) {
+        const principalPerInstall = Number(loan.amount) / Math.max(1, Number(loan.installments) || 1);
+        interestRevenue += Math.max(0, amt - principalPerInstall);
+      }
+    });
+
+    const salesRevenue = periodSales.reduce((s, x) => s + (Number(x.total) || 0), 0);
+
+    const totalRevenue = interestRevenue + salesRevenue;
+    const totalExpenses = periodExpenses.reduce((s, x) => s + (Number(x.amount) || 0), 0);
+
+    const businessExp = periodExpenses.filter((e) => e.scope !== "personal").reduce((s, x) => s + (Number(x.amount) || 0), 0);
+    const personalExp = periodExpenses.filter((e) => e.scope === "personal").reduce((s, x) => s + (Number(x.amount) || 0), 0);
+
+    return {
+      interestRevenue,
+      salesRevenue,
+      totalRevenue,
+      businessExp,
+      personalExp,
+      totalExpenses,
+      netProfit: totalRevenue - businessExp,
+      principalReceived: totalReceived - interestRevenue,
+    };
+  }, [payments, sales, expenses, loans, period, monthFilter, yearFilter]);
+
+  // ===== Impostos =====
+  const taxes = useMemo(() => {
+    const isTax = (cat: string) => {
+      const c = (cat || "").toLowerCase();
+      return TAX_CATEGORIES.some((t) => c.includes(t));
+    };
+    const periodTaxes = expenses.filter((e) => isTax(e.category) && matchPeriod(e.due_date));
+    const paid = periodTaxes.filter((e) => e.paid).reduce((s, x) => s + (Number(x.amount) || 0), 0);
+    const pending = periodTaxes.filter((e) => !e.paid).reduce((s, x) => s + (Number(x.amount) || 0), 0);
+    return { items: periodTaxes, paid, pending, total: paid + pending };
+  }, [expenses, period, monthFilter, yearFilter]);
+
+  // ===== Fluxo de caixa =====
+  const cashflow = useMemo(() => {
+    const map = new Map<string, { in: number; out: number }>();
+    payments.filter((p) => matchPeriod(p.date)).forEach((p) => {
+      const k = period === "month" ? p.date : getMonthKey(p.date);
+      const cur = map.get(k) || { in: 0, out: 0 };
+      cur.in += Number(p.amount) || 0;
+      map.set(k, cur);
+    });
+    sales.filter((s) => matchPeriod(s.sale_date)).forEach((s) => {
+      const k = period === "month" ? s.sale_date : getMonthKey(s.sale_date);
+      const cur = map.get(k) || { in: 0, out: 0 };
+      cur.in += Number(s.total) || 0;
+      map.set(k, cur);
+    });
+    expenses.filter((e) => e.paid && e.scope !== "personal" && matchPeriod(e.paid_date || e.due_date)).forEach((e) => {
+      const d = e.paid_date || e.due_date;
+      const k = period === "month" ? d : getMonthKey(d);
+      const cur = map.get(k) || { in: 0, out: 0 };
+      cur.out += Number(e.amount) || 0;
+      map.set(k, cur);
+    });
+    const rows = Array.from(map.entries()).sort(([a], [b]) => a.localeCompare(b)).map(([k, v]) => ({
+      key: k,
+      in: v.in,
+      out: v.out,
+      net: v.in - v.out,
+    }));
+    const totalIn = rows.reduce((s, r) => s + r.in, 0);
+    const totalOut = rows.reduce((s, r) => s + r.out, 0);
+    return { rows, totalIn, totalOut, net: totalIn - totalOut };
+  }, [payments, sales, expenses, period, monthFilter, yearFilter]);
+
+  const formatDate = (k: string) => {
+    if (k.length === 10) return new Date(k + "T00:00:00").toLocaleDateString("pt-BR");
+    if (k.length === 7) {
+      const [y, m] = k.split("-");
+      return new Date(Number(y), Number(m) - 1, 1).toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
+    }
+    return k;
+  };
+
+  return (
+    <div className="space-y-4">
+      {/* Filtro de período */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center gap-2 text-base">
+            <Calculator className="h-4 w-4 text-primary" /> Relatório Contábil
+          </CardTitle>
+          <CardDescription>DRE, controle de impostos e fluxo de caixa da empresa.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-wrap gap-2 items-center">
+            <Select value={period} onValueChange={(v: "month" | "year") => setPeriod(v)}>
+              <SelectTrigger className="w-[140px] h-9"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="month">Mensal</SelectItem>
+                <SelectItem value="year">Anual</SelectItem>
+              </SelectContent>
+            </Select>
+            {period === "month" ? (
+              <Select value={monthFilter} onValueChange={setMonthFilter}>
+                <SelectTrigger className="w-[180px] h-9"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {months.map((m) => (
+                    <SelectItem key={m} value={m}>{formatDate(m)}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            ) : (
+              <Select value={yearFilter} onValueChange={setYearFilter}>
+                <SelectTrigger className="w-[120px] h-9"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {years.map((y) => <SelectItem key={y} value={y}>{y}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
+      <Tabs defaultValue="dre" className="w-full">
+        <TabsList className="grid w-full grid-cols-3">
+          <TabsTrigger value="dre" className="text-xs sm:text-sm"><FileBarChart className="h-4 w-4 mr-1 hidden sm:inline" /> DRE</TabsTrigger>
+          <TabsTrigger value="taxes" className="text-xs sm:text-sm"><Receipt className="h-4 w-4 mr-1 hidden sm:inline" /> Impostos</TabsTrigger>
+          <TabsTrigger value="cashflow" className="text-xs sm:text-sm"><Wallet className="h-4 w-4 mr-1 hidden sm:inline" /> Fluxo de Caixa</TabsTrigger>
+        </TabsList>
+
+        {/* DRE */}
+        <TabsContent value="dre" className="space-y-3 mt-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-xs text-muted-foreground flex items-center gap-1"><TrendingUp className="h-3 w-3 text-success" /> Receita Total</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-xl font-bold text-success">{fmt(dre.totalRevenue, hidden)}</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-xs text-muted-foreground flex items-center gap-1"><TrendingDown className="h-3 w-3 text-destructive" /> Despesas Empresa</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-xl font-bold text-destructive">{fmt(dre.businessExp, hidden)}</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-xs text-muted-foreground">Lucro Líquido</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className={`text-xl font-bold ${dre.netProfit >= 0 ? "text-success" : "text-destructive"}`}>{fmt(dre.netProfit, hidden)}</p>
+              </CardContent>
+            </Card>
+          </div>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-sm">Demonstrativo Detalhado</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2 text-sm">
+                <div className="flex justify-between py-2 border-b">
+                  <span className="font-medium">(+) Receita de Juros</span>
+                  <span className="text-success">{fmt(dre.interestRevenue, hidden)}</span>
+                </div>
+                <div className="flex justify-between py-2 border-b">
+                  <span className="font-medium">(+) Receita de Vendas</span>
+                  <span className="text-success">{fmt(dre.salesRevenue, hidden)}</span>
+                </div>
+                <div className="flex justify-between py-2 border-b font-semibold bg-muted/30 px-2 rounded">
+                  <span>(=) Receita Bruta</span>
+                  <span>{fmt(dre.totalRevenue, hidden)}</span>
+                </div>
+                <div className="flex justify-between py-2 border-b">
+                  <span className="font-medium">(−) Despesas Operacionais</span>
+                  <span className="text-destructive">{fmt(dre.businessExp, hidden)}</span>
+                </div>
+                <div className="flex justify-between py-2 font-bold bg-primary/5 px-2 rounded">
+                  <span>(=) Lucro Líquido</span>
+                  <span className={dre.netProfit >= 0 ? "text-success" : "text-destructive"}>{fmt(dre.netProfit, hidden)}</span>
+                </div>
+                <div className="flex justify-between pt-3 text-xs text-muted-foreground">
+                  <span>Capital recuperado (principal)</span>
+                  <span>{fmt(dre.principalReceived, hidden)}</span>
+                </div>
+                <div className="flex justify-between text-xs text-muted-foreground">
+                  <span>Despesas pessoais (não impacta DRE)</span>
+                  <span>{fmt(dre.personalExp, hidden)}</span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Impostos */}
+        <TabsContent value="taxes" className="space-y-3 mt-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <Card>
+              <CardHeader className="pb-2"><CardTitle className="text-xs text-muted-foreground">Total no período</CardTitle></CardHeader>
+              <CardContent><p className="text-xl font-bold">{fmt(taxes.total, hidden)}</p></CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="pb-2"><CardTitle className="text-xs text-muted-foreground">Pagos</CardTitle></CardHeader>
+              <CardContent><p className="text-xl font-bold text-success">{fmt(taxes.paid, hidden)}</p></CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="pb-2"><CardTitle className="text-xs text-muted-foreground">Pendentes</CardTitle></CardHeader>
+              <CardContent><p className="text-xl font-bold text-destructive">{fmt(taxes.pending, hidden)}</p></CardContent>
+            </Card>
+          </div>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-sm">Impostos e Tributos</CardTitle>
+              <CardDescription className="text-xs">Despesas com categoria contendo: impostos, tributos, taxa, ISS, IRPF, IRPJ, ICMS, DAS, MEI, Simples.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {taxes.items.length === 0 ? (
+                <p className="text-sm text-muted-foreground text-center py-6">Nenhum imposto registrado no período.</p>
+              ) : (
+                <div className="space-y-2">
+                  {taxes.items.map((t) => (
+                    <div key={t.id} className="flex items-center justify-between py-2 border-b text-sm">
+                      <div>
+                        <p className="font-medium">{t.description}</p>
+                        <p className="text-xs text-muted-foreground">{t.category} · venc. {new Date(t.due_date + "T00:00:00").toLocaleDateString("pt-BR")}</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-semibold">{fmt(Number(t.amount) || 0, hidden)}</p>
+                        <p className={`text-xs ${t.paid ? "text-success" : "text-destructive"}`}>{t.paid ? "Pago" : "Pendente"}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Fluxo de caixa */}
+        <TabsContent value="cashflow" className="space-y-3 mt-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <Card>
+              <CardHeader className="pb-2"><CardTitle className="text-xs text-muted-foreground">Entradas</CardTitle></CardHeader>
+              <CardContent><p className="text-xl font-bold text-success">{fmt(cashflow.totalIn, hidden)}</p></CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="pb-2"><CardTitle className="text-xs text-muted-foreground">Saídas</CardTitle></CardHeader>
+              <CardContent><p className="text-xl font-bold text-destructive">{fmt(cashflow.totalOut, hidden)}</p></CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="pb-2"><CardTitle className="text-xs text-muted-foreground">Saldo</CardTitle></CardHeader>
+              <CardContent><p className={`text-xl font-bold ${cashflow.net >= 0 ? "text-success" : "text-destructive"}`}>{fmt(cashflow.net, hidden)}</p></CardContent>
+            </Card>
+          </div>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-sm">Movimentações {period === "month" ? "diárias" : "mensais"}</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {cashflow.rows.length === 0 ? (
+                <p className="text-sm text-muted-foreground text-center py-6">Sem movimentações no período.</p>
+              ) : (
+                <div className="space-y-1">
+                  <div className="grid grid-cols-4 gap-2 text-xs font-semibold text-muted-foreground border-b pb-2">
+                    <span>Data</span>
+                    <span className="text-right">Entrada</span>
+                    <span className="text-right">Saída</span>
+                    <span className="text-right">Saldo</span>
+                  </div>
+                  {cashflow.rows.map((r) => (
+                    <div key={r.key} className="grid grid-cols-4 gap-2 py-1.5 text-sm border-b">
+                      <span className="text-xs">{formatDate(r.key)}</span>
+                      <span className="text-right text-success">{fmt(r.in, hidden)}</span>
+                      <span className="text-right text-destructive">{fmt(r.out, hidden)}</span>
+                      <span className={`text-right font-medium ${r.net >= 0 ? "text-success" : "text-destructive"}`}>{fmt(r.net, hidden)}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
+    </div>
+  );
+}
