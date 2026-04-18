@@ -76,6 +76,7 @@ interface MiniCardProps {
   card: CreditCard;
   invoiceTotal: number;
   pendingTotal: number;
+  cyclePendingTotal: number;
   openingAmount: number;
   hasOpening: boolean;
   hasActiveInvoice: boolean;
@@ -93,6 +94,7 @@ function MiniCreditCard({
   card,
   invoiceTotal,
   pendingTotal,
+  cyclePendingTotal,
   openingAmount,
   hasOpening,
   hasActiveInvoice,
@@ -238,14 +240,14 @@ function MiniCreditCard({
                 variant="default"
                 size="sm"
                 className="w-full h-7 text-[11px]"
-                disabled={pendingTotal <= 0}
+                disabled={cyclePendingTotal <= 0}
                 onClick={(e) => {
                   e.stopPropagation();
                   onPayInvoice?.();
                 }}
               >
                 <CheckCircle className="h-3 w-3 mr-1" />
-                Pagar fatura
+                Pagar fatura do mês
               </Button>
               <Button
                 variant="outline"
@@ -308,11 +310,13 @@ export function CreditCardList({ readOnly = false, referenceMonth }: Props) {
         opening: number;
         total: number;
         pendingTotal: number;
+        cyclePendingTotal: number;
         dueDate: Date;
         cycleKey: string;
         openingNotes: string | null;
         hasOpening: boolean;
         unpaidExpenseIds: string[];
+        cycleUnpaidExpenseIds: string[];
       }
     >();
     cards.forEach((card) => {
@@ -338,8 +342,6 @@ export function CreditCardList({ readOnly = false, referenceMonth }: Props) {
         const isRec = e.type === "recorrente" && e.installments && e.installments > 1;
         return s + (isRec ? e.amount / e.installments! : e.amount);
       }, 0);
-      // Pendente total = soma de todas as despesas não pagas do cartão (qualquer ciclo)
-      // + soma de todos os saldos iniciais (openings) cadastrados, que representam faturas em aberto
       const expensesPending = cardExpenses
         .filter((e) => !e.paid)
         .reduce((s, e) => {
@@ -358,16 +360,27 @@ export function CreditCardList({ readOnly = false, referenceMonth }: Props) {
       const cycleKey = cycleKeyFromDate(cycle.to);
       const op = getOpening(card.id, cycleKey);
       const opening = op?.openingAmount ?? 0;
+      // Pendentes apenas do ciclo selecionado (para o botão "Pagar fatura")
+      const cycleUnpaidExpenseIds = inCycle.filter((e) => !e.paid).map((e) => e.id);
+      const cycleExpensesPending = inCycle
+        .filter((e) => !e.paid)
+        .reduce((s, e) => {
+          const isRec = e.type === "recorrente" && e.installments && e.installments > 1;
+          return s + (isRec ? e.amount / e.installments! : e.amount);
+        }, 0);
+      const cyclePendingTotal = cycleExpensesPending + opening;
       map.set(card.id, {
         transactions,
         opening,
         total: transactions + opening,
         pendingTotal,
+        cyclePendingTotal,
         dueDate: cycle.dueDate,
         cycleKey,
         openingNotes: op?.notes ?? null,
         hasOpening: !!op,
         unpaidExpenseIds,
+        cycleUnpaidExpenseIds,
       });
     });
     return map;
@@ -444,10 +457,11 @@ export function CreditCardList({ readOnly = false, referenceMonth }: Props) {
               <div className="grid gap-3 grid-cols-2 sm:hidden">
                 {mobileVisible.map((card) => {
                   const inv = invoiceByCard.get(card.id) ?? {
-                    transactions: 0, opening: 0, total: 0, pendingTotal: 0,
+                    transactions: 0, opening: 0, total: 0, pendingTotal: 0, cyclePendingTotal: 0,
                     dueDate: getCurrentCycle(card.closingDay, card.dueDay).dueDate,
                     cycleKey: "", openingNotes: null, hasOpening: false,
                     unpaidExpenseIds: [] as string[],
+                    cycleUnpaidExpenseIds: [] as string[],
                   };
                   return (
                     <MiniCreditCard
@@ -455,6 +469,7 @@ export function CreditCardList({ readOnly = false, referenceMonth }: Props) {
                       card={card}
                       invoiceTotal={inv.total}
                       pendingTotal={inv.pendingTotal}
+                      cyclePendingTotal={inv.cyclePendingTotal}
                       openingAmount={inv.opening}
                       hasOpening={inv.hasOpening}
                       hasActiveInvoice={
@@ -497,11 +512,13 @@ export function CreditCardList({ readOnly = false, referenceMonth }: Props) {
               opening: 0,
               total: 0,
               pendingTotal: 0,
+              cyclePendingTotal: 0,
               dueDate: getCurrentCycle(card.closingDay, card.dueDay).dueDate,
               cycleKey: "",
               openingNotes: null,
               hasOpening: false,
               unpaidExpenseIds: [] as string[],
+              cycleUnpaidExpenseIds: [] as string[],
             };
             return (
               <MiniCreditCard
@@ -509,6 +526,7 @@ export function CreditCardList({ readOnly = false, referenceMonth }: Props) {
                 card={card}
                 invoiceTotal={inv.total}
                 pendingTotal={inv.pendingTotal}
+                cyclePendingTotal={inv.cyclePendingTotal}
                 openingAmount={inv.opening}
                 hasOpening={inv.hasOpening}
                 hasActiveInvoice={
@@ -665,17 +683,20 @@ export function CreditCardList({ readOnly = false, referenceMonth }: Props) {
 
       {payingCard && (() => {
         const inv = invoiceByCard.get(payingCard.id);
-        const ids = inv?.unpaidExpenseIds ?? [];
-        const cardOpenings = openings.filter((o) => o.cardId === payingCard.id);
-        const total = inv?.pendingTotal ?? 0;
-        const itemsCount = ids.length + cardOpenings.length;
+        const ids = inv?.cycleUnpaidExpenseIds ?? [];
+        const cycleOpening = inv?.hasOpening
+          ? openings.find((o) => o.cardId === payingCard.id && o.cycleKey === inv.cycleKey) ?? null
+          : null;
+        const total = inv?.cyclePendingTotal ?? 0;
+        const itemsCount = ids.length + (cycleOpening ? 1 : 0);
+        const cycleLabel = inv ? format(inv.dueDate, "MMMM/yy", { locale: ptBR }) : "";
         return (
           <AlertDialog open={!!payingCard} onOpenChange={(o) => !o && !paying && setPayingCard(null)}>
             <AlertDialogContent>
               <AlertDialogHeader>
-                <AlertDialogTitle>Pagar fatura do cartão?</AlertDialogTitle>
+                <AlertDialogTitle>Pagar fatura do mês?</AlertDialogTitle>
                 <AlertDialogDescription>
-                  Confirmar o pagamento de {itemsCount} {itemsCount === 1 ? "item pendente" : "itens pendentes"} ({fmt(total)}) do cartão {payingCard.nickname || getBank(payingCard.bank).name}? Cada despesa será marcada como paga e o saldo será debitado.
+                  Confirmar o pagamento da fatura de <strong>{cycleLabel}</strong> — {itemsCount} {itemsCount === 1 ? "item" : "itens"} ({fmt(total)}) do cartão {payingCard.nickname || getBank(payingCard.bank).name}. Apenas as despesas e o saldo inicial deste ciclo serão quitados.
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
@@ -691,10 +712,10 @@ export function CreditCardList({ readOnly = false, referenceMonth }: Props) {
                       for (const id of ids) {
                         await payExpense(id, false, today);
                       }
-                      for (const op of cardOpenings) {
-                        await deleteOpening(op.id);
+                      if (cycleOpening) {
+                        await deleteOpening(cycleOpening.id);
                       }
-                      toast.success(`Fatura paga (${itemsCount} ${itemsCount === 1 ? "item" : "itens"})`);
+                      toast.success(`Fatura de ${cycleLabel} paga (${itemsCount} ${itemsCount === 1 ? "item" : "itens"})`);
                       setPayingCard(null);
                     } finally {
                       setPaying(false);
