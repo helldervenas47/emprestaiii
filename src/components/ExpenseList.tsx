@@ -380,6 +380,24 @@ export function ExpenseList({ expenses, onPay, onUnpay, onDelete, onUpdate, read
               {f.label} ({f.count})
             </Button>
           ))}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setSourceFilter(sourceFilter === "auto" ? "all" : "auto")}
+            className={`rounded-xl transition-all duration-200 ${sourceFilter === "auto" ? "bg-primary text-primary-foreground border-primary" : ""}`}
+            title="Despesas lançadas pelo bot"
+          >
+            Automáticas ({monthFiltered.filter(isBotExpense).filter((e) => !isRecFullyPaid(e)).length})
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setSourceFilter(sourceFilter === "manual" ? "all" : "manual")}
+            className={`rounded-xl transition-all duration-200 ${sourceFilter === "manual" ? "bg-primary text-primary-foreground border-primary" : ""}`}
+            title="Despesas registradas manualmente no app"
+          >
+            Manuais ({monthFiltered.filter((e) => !isBotExpense(e)).filter((e) => !isRecFullyPaid(e)).length})
+          </Button>
         </div>
       </div>
 
