@@ -38,6 +38,11 @@ function getPaymentType(t: string) {
   return ({ monthly:"Mensal", biweekly:"Quinzenal", weekly:"Semanal", daily:"Diário" } as Record<string,string>)[t] || t;
 }
 
+function escapeMd(s: string) {
+  // Escape Telegram Markdown (legacy) special chars to avoid parse errors
+  return s.replace(/([_*`\[\]])/g, "\\$1");
+}
+
 function calcTotalWithInterest(amount: number, rate: number, installments: number) {
   // Match calculateTotalWithInterest in useLoans (simple monthly interest * installments)
   const interest = amount * (rate / 100) * installments;
@@ -141,7 +146,7 @@ async function buildBillingReport(admin: any, ownerId: string, today: string): P
       lines.push(`• *${loan.borrower_name}*  — ${fmtBRL(amount)}${fees}`);
       lines.push(`  └ ${getPaymentType(loan.payment_type)}`);
       if (loan.notes && String(loan.notes).trim()) {
-        lines.push(`  📝 _${String(loan.notes).trim()}_`);
+        lines.push(`  📝 _${escapeMd(String(loan.notes).trim())}_`);
       }
     }
   }
@@ -160,7 +165,7 @@ async function buildBillingReport(admin: any, ownerId: string, today: string): P
       lines.push(`• *${loan.borrower_name}*  — ${fmtBRL(amount)}${fees}`);
       lines.push(`  └ ${getPaymentType(loan.payment_type)} • Venc. ${formatDateBR(loan.due_date)}`);
       if (loan.notes && String(loan.notes).trim()) {
-        lines.push(`  📝 _${String(loan.notes).trim()}_`);
+        lines.push(`  📝 _${escapeMd(String(loan.notes).trim())}_`);
       }
     }
   }
