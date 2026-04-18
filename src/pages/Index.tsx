@@ -419,7 +419,7 @@ const Index = () => {
                 <SheetContent side="left" className="w-64 p-0">
                   <div className="flex flex-col h-full">
                     <div className="p-4 border-b border-border/30 flex items-center gap-3">
-                      <img src={logoIcon} alt="EmprestAI" className="h-9 w-auto object-contain shrink-0" />
+                      <img src={logoIcon} alt="EmprestAI" className="self-stretch w-auto object-contain shrink-0" />
                       <div>
                         <h1 className="text-lg font-bold text-foreground tracking-tight">EmprestAI</h1>
                         <p className="text-[10px] text-muted-foreground uppercase tracking-widest">Controle de empréstimos</p>
@@ -459,7 +459,7 @@ const Index = () => {
                 </SheetContent>
               </Sheet>
             )}
-            <img src={logoIcon} alt="EmprestAI" className="h-9 sm:h-10 w-auto object-contain shrink-0" />
+            <img src={logoIcon} alt="EmprestAI" className="self-stretch w-auto object-contain shrink-0" />
             <div className="hidden sm:block">
               <h1 className="text-lg font-bold text-foreground tracking-tight">EmprestAI</h1>
               <p className="text-[10px] text-muted-foreground uppercase tracking-widest">Controle de empréstimos</p>
