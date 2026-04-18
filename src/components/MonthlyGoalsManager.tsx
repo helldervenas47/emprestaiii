@@ -11,7 +11,7 @@ import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
 
 const GOAL_TYPE_META: Record<GoalType, { label: string; icon: any; unit: string; color: string }> = {
   interest_rate: { label: "Taxa de Juros Mensal", icon: Percent, unit: "%", color: "text-warning" },
-  profit: { label: "Lucro no Período", icon: TrendingUp, unit: "R$", color: "text-success" },
+  profit: { label: "Lucro no Período (% do Previsto)", icon: TrendingUp, unit: "%", color: "text-success" },
 };
 
 export function MonthlyGoalsManager() {
@@ -61,7 +61,7 @@ export function MonthlyGoalsManager() {
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="interest_rate">Taxa de Juros Mensal (%)</SelectItem>
-                  <SelectItem value="profit">Lucro no Período (R$)</SelectItem>
+                  <SelectItem value="profit">Lucro no Período (% do Previsto)</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -74,7 +74,7 @@ export function MonthlyGoalsManager() {
               <Input
                 type="number"
                 step="0.01"
-                placeholder={goalType === "interest_rate" ? "Ex: 15" : "Ex: 5000"}
+                placeholder={goalType === "interest_rate" ? "Ex: 15" : "Ex: 70"}
                 value={value}
                 onChange={(e) => setValue(e.target.value)}
               />
@@ -104,9 +104,7 @@ export function MonthlyGoalsManager() {
             {goals.map((g) => {
               const meta = GOAL_TYPE_META[g.goalType];
               const Icon = meta.icon;
-              const formatted = g.goalType === "profit"
-                ? new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(g.targetValue)
-                : `${g.targetValue.toFixed(2)}%`;
+              const formatted = `${g.targetValue.toFixed(g.goalType === "profit" ? 0 : 2)}%`;
               return (
                 <div key={g.id} className="flex items-center justify-between gap-3 p-3 rounded-lg border border-border/30 bg-muted/20">
                   <div className="flex items-center gap-3 min-w-0 flex-1">
