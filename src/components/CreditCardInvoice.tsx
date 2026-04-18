@@ -184,12 +184,15 @@ export function CreditCardInvoice({ card, onClose, referenceMonth }: Props) {
 
   return (
     <div
-      className="fixed inset-0 bg-foreground/50 backdrop-blur-md z-50 flex items-center justify-center p-0 sm:p-4 animate-fade-in"
-      onClick={onClose}
+      className="fixed inset-0 bg-background sm:bg-foreground/50 sm:backdrop-blur-md z-[60] flex items-stretch sm:items-center justify-center p-0 sm:p-4 animate-fade-in overscroll-contain"
+      onClick={(e) => {
+        // Only close on backdrop click on desktop (mobile is fullscreen, no backdrop)
+        if (window.innerWidth >= 640) onClose();
+      }}
     >
       <Card
         no3d
-        className="w-full max-w-2xl h-full sm:h-auto sm:max-h-[92vh] overflow-y-auto rounded-none sm:rounded-2xl animate-scale-in p-0"
+        className="w-full max-w-2xl h-[100dvh] sm:h-auto sm:max-h-[92vh] overflow-y-auto rounded-none sm:rounded-2xl border-0 sm:border animate-scale-in p-0"
         onClick={(e) => e.stopPropagation()}
       >
         {/* HERO — Cartão visual estilo app real */}
