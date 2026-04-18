@@ -73,7 +73,40 @@ export function PersonalAIInsightsCard({
   const [hasAutoTried, setHasAutoTried] = useState(false);
   const [expandedCat, setExpandedCat] = useState<string | null>(null);
   const [showFullReport, setShowFullReport] = useState(false);
+  const [reportCategory, setReportCategory] = useState<string | null>(null);
+  const [catReport, setCatReport] = useState<string | null>(null);
+  const [catReportLoading, setCatReportLoading] = useState(false);
+  const [catReportError, setCatReportError] = useState<string | null>(null);
   const isMobile = useIsMobile();
+
+  // Fetch a per-category ad-hoc report when user opens "Ver detalhes completos"
+  const openCategoryReport = async (category: string) => {
+    setReportCategory(category);
+    setShowFullReport(true);
+    setCatReport(null);
+    setCatReportError(null);
+    setCatReportLoading(true);
+    try {
+      const { data: result, error: fnError } = await supabase.functions.invoke(
+        "generate-personal-insights",
+        { body: { month, category } },
+      );
+      if (fnError) throw fnError;
+      if ((result as any)?.error) throw new Error((result as any).error);
+      setCatReport((result as any).content);
+    } catch (e: any) {
+      setCatReportError(e?.message || "Falha ao gerar análise da categoria");
+    } finally {
+      setCatReportLoading(false);
+    }
+  };
+
+  const openGeneralReport = () => {
+    setReportCategory(null);
+    setCatReport(null);
+    setCatReportError(null);
+    setShowFullReport(true);
+  };
 
   // Auto-generate on open (once per month) if no cached version, and on exceeded changes
   useEffect(() => {
