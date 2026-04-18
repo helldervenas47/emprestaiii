@@ -1,5 +1,5 @@
 import { useRef } from "react";
-import { Download, Upload, FileDown, Database, Trash2 } from "lucide-react";
+import { Download, Upload, FileDown, Database } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loan, Payment, Client, Sale, Expense } from "@/types/loan";
@@ -227,35 +227,6 @@ export function BackupExport({ loans, payments, clients, sales, expenses, onImpo
     }
   };
 
-  const handleClearCache = async () => {
-    const confirmed = window.confirm(
-      "Limpar o cache do navegador? Isso removerá arquivos temporários e recarregará o app para aplicar a versão mais recente. Seus dados ficarão preservados."
-    );
-    if (!confirmed) return;
-    try {
-      // 1. Clear Cache Storage (PWA / service worker caches)
-      if ("caches" in window) {
-        const keys = await caches.keys();
-        await Promise.all(keys.map((k) => caches.delete(k)));
-      }
-      // 2. Unregister service workers so a fresh one is fetched
-      if ("serviceWorker" in navigator) {
-        const regs = await navigator.serviceWorker.getRegistrations();
-        await Promise.all(regs.map((r) => r.unregister()));
-      }
-      // 3. Clear sessionStorage (keep localStorage to preserve user prefs/auth)
-      try { sessionStorage.clear(); } catch { /* noop */ }
-      toast.success("Cache limpo! Atualizando o app...");
-      setTimeout(() => {
-        // Force reload bypassing HTTP cache
-        window.location.reload();
-      }, 800);
-    } catch (err) {
-      console.error("[clear-cache]", err);
-      toast.error("Não foi possível limpar todo o cache. Tente novamente.");
-    }
-  };
-
   return (
     <div className="space-y-6">
       {/* Hidden file inputs */}
@@ -279,10 +250,6 @@ export function BackupExport({ loans, payments, clients, sales, expenses, onImpo
           <Button onClick={handleExportAll} className="gap-2 flex-1 sm:flex-none">
             <FileDown className="h-4 w-4" />
             Exportar Tudo
-          </Button>
-          <Button onClick={handleClearCache} variant="outline" className="gap-2 flex-1 sm:flex-none">
-            <Trash2 className="h-4 w-4" />
-            Limpar Cache
           </Button>
         </div>
       </div>
