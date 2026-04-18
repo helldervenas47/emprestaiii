@@ -308,11 +308,13 @@ export function CreditCardList({ readOnly = false, referenceMonth }: Props) {
         opening: number;
         total: number;
         pendingTotal: number;
+        cyclePendingTotal: number;
         dueDate: Date;
         cycleKey: string;
         openingNotes: string | null;
         hasOpening: boolean;
         unpaidExpenseIds: string[];
+        cycleUnpaidExpenseIds: string[];
       }
     >();
     cards.forEach((card) => {
@@ -338,8 +340,6 @@ export function CreditCardList({ readOnly = false, referenceMonth }: Props) {
         const isRec = e.type === "recorrente" && e.installments && e.installments > 1;
         return s + (isRec ? e.amount / e.installments! : e.amount);
       }, 0);
-      // Pendente total = soma de todas as despesas não pagas do cartão (qualquer ciclo)
-      // + soma de todos os saldos iniciais (openings) cadastrados, que representam faturas em aberto
       const expensesPending = cardExpenses
         .filter((e) => !e.paid)
         .reduce((s, e) => {
@@ -358,16 +358,27 @@ export function CreditCardList({ readOnly = false, referenceMonth }: Props) {
       const cycleKey = cycleKeyFromDate(cycle.to);
       const op = getOpening(card.id, cycleKey);
       const opening = op?.openingAmount ?? 0;
+      // Pendentes apenas do ciclo selecionado (para o botão "Pagar fatura")
+      const cycleUnpaidExpenseIds = inCycle.filter((e) => !e.paid).map((e) => e.id);
+      const cycleExpensesPending = inCycle
+        .filter((e) => !e.paid)
+        .reduce((s, e) => {
+          const isRec = e.type === "recorrente" && e.installments && e.installments > 1;
+          return s + (isRec ? e.amount / e.installments! : e.amount);
+        }, 0);
+      const cyclePendingTotal = cycleExpensesPending + opening;
       map.set(card.id, {
         transactions,
         opening,
         total: transactions + opening,
         pendingTotal,
+        cyclePendingTotal,
         dueDate: cycle.dueDate,
         cycleKey,
         openingNotes: op?.notes ?? null,
         hasOpening: !!op,
         unpaidExpenseIds,
+        cycleUnpaidExpenseIds,
       });
     });
     return map;
