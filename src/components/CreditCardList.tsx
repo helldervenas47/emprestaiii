@@ -483,6 +483,7 @@ export function CreditCardList({ readOnly = false, referenceMonth }: Props) {
               transactions: 0,
               opening: 0,
               total: 0,
+              pendingTotal: 0,
               dueDate: getCurrentCycle(card.closingDay, card.dueDay).dueDate,
               cycleKey: "",
               openingNotes: null,
@@ -494,6 +495,7 @@ export function CreditCardList({ readOnly = false, referenceMonth }: Props) {
                 key={card.id}
                 card={card}
                 invoiceTotal={inv.total}
+                pendingTotal={inv.pendingTotal}
                 openingAmount={inv.opening}
                 hasOpening={inv.hasOpening}
                 hasActiveInvoice={
