@@ -405,7 +405,7 @@ export function PersonalAIInsightsCard({
                                 overPct={overPct}
                                 suggestions={suggestions}
                                 action={action}
-                                onOpenFullReport={() => setShowFullReport(true)}
+                                onOpenFullReport={() => openCategoryReport(s.category)}
                               />
                             </div>
                           </div>
