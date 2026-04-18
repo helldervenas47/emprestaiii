@@ -36,6 +36,21 @@ export function PiggyBankList({ readOnly = false }: Props) {
   const [adjustValue, setAdjustValue] = useState("");
   const [historyTarget, setHistoryTarget] = useState<PiggyBankType | null>(null);
   const [expensesById, setExpensesById] = useState<Record<string, { description: string; category: string }>>({});
+  const [editDeposit, setEditDeposit] = useState<PiggyBankDeposit | null>(null);
+  const [editDepositDraft, setEditDepositDraft] = useState({ amount: "", depositDate: "" });
+  const [deleteDepositId, setDeleteDepositId] = useState<string | null>(null);
+
+  const openEditDeposit = (d: PiggyBankDeposit) => {
+    setEditDepositDraft({ amount: d.amount.toFixed(2), depositDate: d.depositDate });
+    setEditDeposit(d);
+  };
+  const confirmEditDeposit = async () => {
+    if (!editDeposit) return;
+    const v = Number(editDepositDraft.amount.replace(",", "."));
+    if (Number.isNaN(v)) return;
+    await updateDeposit(editDeposit.id, { amount: v, depositDate: editDepositDraft.depositDate });
+    setEditDeposit(null);
+  };
 
   const openCreate = () => {
     setDraft({ name: "", color: PALETTE[0], annualRate: "11.15" });
