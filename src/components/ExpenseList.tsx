@@ -556,13 +556,18 @@ export function ExpenseList({ expenses, onPay, onUnpay, onDelete, onUpdate, read
                                 size="icon"
                                 variant="ghost"
                                 className="h-7 w-7 text-destructive hover:bg-destructive/10 shrink-0"
-                                onClick={async () => {
-                                  const currentPaid = expense.paidInstallments || 0;
-                                  const timesToUnpay = currentPaid - idx;
-                                  for (let t = 0; t < timesToUnpay; t++) {
-                                    await onUnpay(expense.id);
-                                  }
-                                  if (idx === 0) setViewPaymentsExpenseId(null);
+                                onClick={() => {
+                                  setUnpayConfirm({
+                                    label: `Estornar a ${idx + 1}ª parcela em diante?`,
+                                    run: async () => {
+                                      const currentPaid = expense.paidInstallments || 0;
+                                      const timesToUnpay = currentPaid - idx;
+                                      for (let t = 0; t < timesToUnpay; t++) {
+                                        await onUnpay(expense.id);
+                                      }
+                                      if (idx === 0) setViewPaymentsExpenseId(null);
+                                    },
+                                  });
                                 }}
                               >
                                 <Trash2 className="h-3.5 w-3.5" />
