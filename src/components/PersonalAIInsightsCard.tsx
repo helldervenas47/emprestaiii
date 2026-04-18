@@ -354,6 +354,15 @@ export function PersonalAIInsightsCard({
                 })}
               </div>
             )}
+            {hasMore && (
+              <button
+                type="button"
+                onClick={() => setShowFullReport(true)}
+                className="w-full text-center text-[11px] text-primary hover:underline pt-1"
+              >
+                +{sortedStats.length - MAX_VISIBLE} categorias adicionais — ver no relatório completo
+              </button>
+            )}
           </div>
         )}
       </CardContent>
