@@ -3,7 +3,17 @@ import { supabase } from "@/integrations/supabase/client";
 import { useDataOwner } from "@/hooks/useDataOwner";
 import { toast } from "sonner";
 
-export type GoalType = "interest_rate" | "profit";
+export type GoalType =
+  | "interest_rate"
+  | "profit"
+  | "loan_volume"
+  | "new_loans_count"
+  | "received_total"
+  | "interest_received"
+  | "active_capital"
+  | "net_profit"
+  | "max_default_rate"
+  | "new_clients_count";
 
 export interface MonthlyGoal {
   id: string;
