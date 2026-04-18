@@ -72,6 +72,7 @@ export function PersonalAIInsightsCard({
   const [hasAutoTried, setHasAutoTried] = useState(false);
   const [expandedCat, setExpandedCat] = useState<string | null>(null);
   const [showFullReport, setShowFullReport] = useState(false);
+  const isMobile = useIsMobile();
 
   // Auto-generate on open (once per month) if no cached version, and on exceeded changes
   useEffect(() => {
