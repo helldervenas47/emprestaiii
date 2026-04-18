@@ -548,7 +548,7 @@ const Index = () => {
               onClick={handleHardRefresh}
               disabled={refreshing}
               className="h-8 w-8 sm:h-9 sm:w-9"
-              title="Atualizar (limpa cache)"
+              title="Atualizar"
             >
               <RefreshCw className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`} />
             </Button>
