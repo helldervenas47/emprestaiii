@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
-import { Sparkles, RefreshCw, AlertTriangle, ChevronDown, TrendingUp, Lightbulb, FileText, Target, ArrowRight } from "lucide-react";
+import { Sparkles, RefreshCw, AlertTriangle, ChevronDown, TrendingUp, Lightbulb, FileText, Target, ArrowRight, Send } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
