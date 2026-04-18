@@ -666,20 +666,22 @@ export function CreditCardList({ readOnly = false, referenceMonth }: Props) {
       {payingCard && (() => {
         const inv = invoiceByCard.get(payingCard.id);
         const ids = inv?.unpaidExpenseIds ?? [];
-        const total = inv?.total ?? 0;
+        const cardOpenings = openings.filter((o) => o.cardId === payingCard.id);
+        const total = inv?.pendingTotal ?? 0;
+        const itemsCount = ids.length + cardOpenings.length;
         return (
           <AlertDialog open={!!payingCard} onOpenChange={(o) => !o && !paying && setPayingCard(null)}>
             <AlertDialogContent>
               <AlertDialogHeader>
                 <AlertDialogTitle>Pagar fatura do cartão?</AlertDialogTitle>
                 <AlertDialogDescription>
-                  Confirmar o pagamento de {ids.length} {ids.length === 1 ? "lançamento pendente" : "lançamentos pendentes"} ({fmt(total)}) do cartão {payingCard.nickname || getBank(payingCard.bank).name}? Cada despesa será marcada como paga e o saldo será debitado.
+                  Confirmar o pagamento de {itemsCount} {itemsCount === 1 ? "item pendente" : "itens pendentes"} ({fmt(total)}) do cartão {payingCard.nickname || getBank(payingCard.bank).name}? Cada despesa será marcada como paga e o saldo será debitado.
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
                 <AlertDialogCancel disabled={paying}>Cancelar</AlertDialogCancel>
                 <AlertDialogAction
-                  disabled={paying || ids.length === 0}
+                  disabled={paying || itemsCount === 0}
                   onClick={async (e) => {
                     e.preventDefault();
                     if (paying) return;
@@ -689,7 +691,10 @@ export function CreditCardList({ readOnly = false, referenceMonth }: Props) {
                       for (const id of ids) {
                         await payExpense(id, false, today);
                       }
-                      toast.success(`Fatura paga (${ids.length} ${ids.length === 1 ? "lançamento" : "lançamentos"})`);
+                      for (const op of cardOpenings) {
+                        await deleteOpening(op.id);
+                      }
+                      toast.success(`Fatura paga (${itemsCount} ${itemsCount === 1 ? "item" : "itens"})`);
                       setPayingCard(null);
                     } finally {
                       setPaying(false);
