@@ -57,6 +57,8 @@ async function buildContext(supabase: any, ownerId: string, month: string) {
     }
   }
 
+  // IMPORTANT: include all expenses for the month (paid and unpaid) so the
+  // analysis reflects the total committed/forecasted amount, not only what was already paid.
   const { data: expenses } = await supabase
     .from("expenses")
     .select("category, amount, type, installments, due_date, paid")
