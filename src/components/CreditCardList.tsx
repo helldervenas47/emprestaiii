@@ -509,11 +509,13 @@ export function CreditCardList({ readOnly = false, referenceMonth }: Props) {
               opening: 0,
               total: 0,
               pendingTotal: 0,
+              cyclePendingTotal: 0,
               dueDate: getCurrentCycle(card.closingDay, card.dueDay).dueDate,
               cycleKey: "",
               openingNotes: null,
               hasOpening: false,
               unpaidExpenseIds: [] as string[],
+              cycleUnpaidExpenseIds: [] as string[],
             };
             return (
               <MiniCreditCard
