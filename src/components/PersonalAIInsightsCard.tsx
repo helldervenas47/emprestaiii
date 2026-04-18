@@ -503,8 +503,9 @@ export function PersonalAIInsightsCard({
                       suggestions={suggestions}
                       action={action}
                       onOpenFullReport={() => {
+                        const cat = s.category;
                         setExpandedCat(null);
-                        setShowFullReport(true);
+                        openCategoryReport(cat);
                       }}
                     />
                   </div>
