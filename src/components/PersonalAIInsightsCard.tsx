@@ -133,6 +133,10 @@ export function PersonalAIInsightsCard({
       });
   }, [categoryStats, suggestionsByCat]);
 
+  const MAX_VISIBLE = 6;
+  const visibleStats = useMemo(() => sortedStats.slice(0, MAX_VISIBLE), [sortedStats]);
+  const hasMore = sortedStats.length > MAX_VISIBLE;
+
   if (!hasExpenses) return null;
 
   // Markdown content for the "Último Relatório" subcard (everything except Oportunidades)
