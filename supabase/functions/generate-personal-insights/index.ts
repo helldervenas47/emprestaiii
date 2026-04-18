@@ -209,7 +209,7 @@ TOM DE VOZ: ${toneInstruction}
 Resposta em português do Brasil, Markdown enxuto, máximo 220 palavras, sem títulos H1. Use EXATAMENTE estas seções com ##:
 
 ## 📊 Análise da categoria
-Diagnóstico específico de **${category}**: gasto atual, % do orçamento, comparação com mês anterior e share dentro do total mensal. 2-3 frases.
+Diagnóstico específico de **${category}**: total previsto no mês (somando pagos + a pagar), % comprometido do orçamento, comparação com mês anterior e share dentro do total mensal previsto. 2-3 frases.
 
 ## 🚨 Problemas identificados
 Bullets curtos: estouro de orçamento, recorrência elevada, picos atípicos, ausência de limite, etc. Se nada relevante, diga "Sem problemas críticos detectados.".
