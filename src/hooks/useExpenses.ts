@@ -2,6 +2,7 @@ import { useState, useCallback, useEffect } from "react";
 import { Expense } from "@/types/loan";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
+import { extractPiggyId } from "./usePiggyBanks";
 
 export function useExpenses(enabled = true) {
   const { user, dataOwnerId } = useAuth();
@@ -134,6 +135,27 @@ export function useExpenses(enabled = true) {
       await supabase.from("expenses").update({
         paid: true, paid_date: today, amount: finalAmount, notes: finalNotes,
       }).eq("id", id);
+
+      // Piggy bank credit: only when the piggy expense is paid.
+      const piggyId = extractPiggyId(expense.notes);
+      if (piggyId) {
+        // Avoid duplicate deposits if one already exists for this expense.
+        const { data: existing } = await supabase
+          .from("piggy_bank_deposits" as any)
+          .select("id")
+          .eq("expense_id", id)
+          .limit(1);
+        if (!existing || existing.length === 0) {
+          await supabase.from("piggy_bank_deposits" as any).insert({
+            user_id: dataOwnerId,
+            piggy_bank_id: piggyId,
+            expense_id: id,
+            amount: finalAmount,
+            deposit_date: today,
+            source: "expense",
+          });
+        }
+      }
     }
 
     // Trigger budget overrun alert (push + Telegram) for personal expenses
@@ -198,11 +220,18 @@ export function useExpenses(enabled = true) {
       await supabase.from("expenses").update({
         paid: false, paid_date: null, amount: restoredAmount, notes: restoredNotes,
       }).eq("id", id);
+
+      // Reverse piggy bank credit when unpaying a piggy expense.
+      if (extractPiggyId(expense.notes)) {
+        await supabase.from("piggy_bank_deposits" as any).delete().eq("expense_id", id);
+      }
     }
   }, [expenses]);
 
   const deleteExpense = useCallback(async (id: string, skipBalanceAdjust = false) => {
     setExpenses((prev) => prev.filter((e) => e.id !== id));
+    // Remove any piggy deposit linked to this expense (no-op if none).
+    await supabase.from("piggy_bank_deposits" as any).delete().eq("expense_id", id);
     await supabase.from("expenses").delete().eq("id", id);
   }, [expenses]);
 
