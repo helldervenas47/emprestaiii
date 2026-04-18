@@ -484,6 +484,7 @@ export function CreditCardList({ readOnly = false, referenceMonth }: Props) {
             );
           })}
         </div>
+        </>
       )}
 
       {showInactive && inactiveCards.length > 0 && (
