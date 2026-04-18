@@ -199,6 +199,41 @@ export function CreditCardInvoice({ card, onClose, referenceMonth }: Props) {
 
   const StatusIcon = status.icon;
 
+  // Swipe-down to close (mobile only)
+  const [dragY, setDragY] = useState(0);
+  const [dragging, setDragging] = useState(false);
+  const touchStartY = useRef<number | null>(null);
+  const cardRef = useRef<HTMLDivElement | null>(null);
+
+  const onTouchStart = (e: React.TouchEvent) => {
+    if (window.innerWidth >= 640) return;
+    // Only start drag if the scroll container is at the top
+    if ((cardRef.current?.scrollTop ?? 0) > 0) return;
+    touchStartY.current = e.touches[0].clientY;
+    setDragging(true);
+  };
+
+  const onTouchMove = (e: React.TouchEvent) => {
+    if (touchStartY.current == null) return;
+    const delta = e.touches[0].clientY - touchStartY.current;
+    if (delta > 0) {
+      setDragY(delta);
+    } else {
+      setDragY(0);
+    }
+  };
+
+  const onTouchEnd = () => {
+    if (touchStartY.current == null) return;
+    if (dragY > 120) {
+      onClose();
+    } else {
+      setDragY(0);
+    }
+    touchStartY.current = null;
+    setDragging(false);
+  };
+
   return (
     <div
       className="fixed inset-0 bg-background sm:bg-foreground/50 sm:backdrop-blur-md z-[60] flex items-stretch sm:items-center justify-center p-0 sm:p-4 animate-fade-in overscroll-contain"
@@ -206,12 +241,30 @@ export function CreditCardInvoice({ card, onClose, referenceMonth }: Props) {
         // Only close on backdrop click on desktop (mobile is fullscreen, no backdrop)
         if (window.innerWidth >= 640) onClose();
       }}
+      style={{
+        backgroundColor:
+          dragY > 0 && window.innerWidth < 640
+            ? `hsl(var(--background) / ${Math.max(0.4, 1 - dragY / 600)})`
+            : undefined,
+      }}
     >
       <Card
+        ref={cardRef}
         no3d
         className="w-full max-w-2xl h-[100dvh] sm:h-auto sm:max-h-[92vh] overflow-y-auto rounded-none sm:rounded-2xl border-0 sm:border animate-scale-in p-0"
         onClick={(e) => e.stopPropagation()}
+        onTouchStart={onTouchStart}
+        onTouchMove={onTouchMove}
+        onTouchEnd={onTouchEnd}
+        style={{
+          transform: dragY > 0 ? `translateY(${dragY}px)` : undefined,
+          transition: dragging ? "none" : "transform 250ms ease-out",
+        }}
       >
+        {/* Drag handle (mobile only) */}
+        <div className="sm:hidden flex justify-center pt-2 pb-1 sticky top-0 z-20 bg-transparent pointer-events-none">
+          <div className="h-1.5 w-10 rounded-full bg-white/40" />
+        </div>
         {/* HERO — Cartão visual estilo app real */}
         <div className={`${bank.gradient} ${bank.textClass} relative overflow-hidden`}>
           {/* glows */}
