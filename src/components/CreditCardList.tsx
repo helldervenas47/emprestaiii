@@ -75,6 +75,7 @@ function getCycleForDueMonth(yyyymm: string, closingDay: number, dueDay: number)
 interface MiniCardProps {
   card: CreditCard;
   invoiceTotal: number;
+  pendingTotal: number;
   openingAmount: number;
   hasOpening: boolean;
   hasActiveInvoice: boolean;
@@ -91,6 +92,7 @@ interface MiniCardProps {
 function MiniCreditCard({
   card,
   invoiceTotal,
+  pendingTotal,
   openingAmount,
   hasOpening,
   hasActiveInvoice,
@@ -106,7 +108,7 @@ function MiniCreditCard({
   const bank = getBank(card.bank);
   const { mask } = useHideValues();
   const utilization =
-    card.creditLimit > 0 ? Math.min(100, (invoiceTotal / card.creditLimit) * 100) : 0;
+    card.creditLimit > 0 ? Math.min(100, (pendingTotal / card.creditLimit) * 100) : 0;
   const rootRef = (window as any).__cardRefMap || ((window as any).__cardRefMap = new Map());
 
   const handleClick = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -298,6 +300,7 @@ export function CreditCardList({ readOnly = false, referenceMonth }: Props) {
         transactions: number;
         opening: number;
         total: number;
+        pendingTotal: number;
         dueDate: Date;
         cycleKey: string;
         openingNotes: string | null;
@@ -310,23 +313,35 @@ export function CreditCardList({ readOnly = false, referenceMonth }: Props) {
         ? getCycleForDueMonth(referenceMonth, card.closingDay, card.dueDay)
         : getCurrentCycle(card.closingDay, card.dueDay);
       const cardTag = (card.nickname || card.lastFour || "").toLowerCase();
-      const inCycle = expenses
+      const matchesCard = (e: typeof expenses[number]) => {
+        if (!cardTag) return true;
+        const n = (e.notes ?? "").toLowerCase();
+        if (n.includes(cardTag)) return true;
+        return !/cart[aã]o[:\s]/i.test(n);
+      };
+      const cardExpenses = expenses
         .filter((e) => e.scope === "personal")
         .filter((e) => /\[\s*cr[eé]dito\s*\]/i.test(e.notes ?? ""))
-        .filter((e) => {
-          if (!cardTag) return true;
-          const n = (e.notes ?? "").toLowerCase();
-          if (n.includes(cardTag)) return true;
-          return !/cart[aã]o[:\s]/i.test(n);
-        })
-        .filter((e) => {
-          const d = new Date(e.dueDate + "T00:00:00");
-          return d > cycle.from && d <= cycle.to;
-        });
+        .filter(matchesCard);
+      const inCycle = cardExpenses.filter((e) => {
+        const d = new Date(e.dueDate + "T00:00:00");
+        return d > cycle.from && d <= cycle.to;
+      });
       const transactions = inCycle.reduce((s, e) => {
         const isRec = e.type === "recorrente" && e.installments && e.installments > 1;
         return s + (isRec ? e.amount / e.installments! : e.amount);
       }, 0);
+      // Pendente total = soma de todas as despesas não pagas do cartão (qualquer ciclo)
+      const pendingTotal = cardExpenses
+        .filter((e) => !e.paid)
+        .reduce((s, e) => {
+          const isRec = e.type === "recorrente" && e.installments && e.installments > 1;
+          const inst = isRec ? e.amount / e.installments! : e.amount;
+          const remaining = isRec
+            ? Math.max(0, e.installments! - (e.paidInstallments ?? 0)) * inst
+            : inst;
+          return s + remaining;
+        }, 0);
       const unpaidExpenseIds = inCycle.filter((e) => !e.paid).map((e) => e.id);
       const cycleKey = cycleKeyFromDate(cycle.to);
       const op = getOpening(card.id, cycleKey);
@@ -335,6 +350,7 @@ export function CreditCardList({ readOnly = false, referenceMonth }: Props) {
         transactions,
         opening,
         total: transactions + opening,
+        pendingTotal,
         dueDate: cycle.dueDate,
         cycleKey,
         openingNotes: op?.notes ?? null,
@@ -416,7 +432,7 @@ export function CreditCardList({ readOnly = false, referenceMonth }: Props) {
               <div className="grid gap-3 grid-cols-2 sm:hidden">
                 {mobileVisible.map((card) => {
                   const inv = invoiceByCard.get(card.id) ?? {
-                    transactions: 0, opening: 0, total: 0,
+                    transactions: 0, opening: 0, total: 0, pendingTotal: 0,
                     dueDate: getCurrentCycle(card.closingDay, card.dueDay).dueDate,
                     cycleKey: "", openingNotes: null, hasOpening: false,
                     unpaidExpenseIds: [] as string[],
@@ -426,6 +442,7 @@ export function CreditCardList({ readOnly = false, referenceMonth }: Props) {
                       key={card.id}
                       card={card}
                       invoiceTotal={inv.total}
+                      pendingTotal={inv.pendingTotal}
                       openingAmount={inv.opening}
                       hasOpening={inv.hasOpening}
                       hasActiveInvoice={
@@ -467,6 +484,7 @@ export function CreditCardList({ readOnly = false, referenceMonth }: Props) {
               transactions: 0,
               opening: 0,
               total: 0,
+              pendingTotal: 0,
               dueDate: getCurrentCycle(card.closingDay, card.dueDay).dueDate,
               cycleKey: "",
               openingNotes: null,
@@ -478,6 +496,7 @@ export function CreditCardList({ readOnly = false, referenceMonth }: Props) {
                 key={card.id}
                 card={card}
                 invoiceTotal={inv.total}
+                pendingTotal={inv.pendingTotal}
                 openingAmount={inv.opening}
                 hasOpening={inv.hasOpening}
                 hasActiveInvoice={
