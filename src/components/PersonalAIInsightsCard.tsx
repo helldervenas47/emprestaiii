@@ -1,13 +1,15 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
-import { Sparkles, RefreshCw, AlertTriangle, ChevronDown, TrendingUp, Lightbulb, FileText } from "lucide-react";
+import { Sparkles, RefreshCw, AlertTriangle, ChevronDown, TrendingUp, Lightbulb, FileText, Target, ArrowRight } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { toast } from "sonner";
 import { usePersonalInsights } from "@/hooks/usePersonalInsights";
 import { getPersonalCategory } from "@/lib/personalExpenseCategories";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
 
 export interface CategoryStat {
@@ -70,6 +72,7 @@ export function PersonalAIInsightsCard({
   const [hasAutoTried, setHasAutoTried] = useState(false);
   const [expandedCat, setExpandedCat] = useState<string | null>(null);
   const [showFullReport, setShowFullReport] = useState(false);
+  const isMobile = useIsMobile();
 
   // Auto-generate on open (once per month) if no cached version, and on exceeded changes
   useEffect(() => {
@@ -236,143 +239,113 @@ export function PersonalAIInsightsCard({
                   const barColor = s.over
                     ? "bg-destructive"
                     : "bg-[hsl(210_85%_55%)]";
+                  const overPct = s.budget > 0 && s.over
+                    ? ((s.spent - s.budget) / s.budget) * 100
+                    : 0;
+                  const action = s.over
+                    ? `Reduzir gastos de ${s.category} ou renegociar limite`
+                    : s.budget === 0
+                    ? `Definir um orçamento mensal`
+                    : s.pct >= 80
+                    ? `Evitar novos gastos não essenciais`
+                    : `Continuar monitorando — sob controle`;
 
                   return (
-                    <button
+                    <div
                       key={s.category}
-                      type="button"
-                      onClick={() => setExpandedCat(isOpen ? null : s.category)}
                       className={cn(
-                        "group text-left rounded-lg border bg-card p-2.5 transition-all duration-300",
-                        "hover:shadow-md hover:border-primary/40 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
+                        "rounded-lg border bg-card transition-colors duration-200",
                         s.over ? "border-destructive/40" : "border-border",
-                        isOpen && "sm:col-span-2 lg:col-span-3 ring-1 ring-primary/30",
+                        isOpen && "border-primary/40 ring-1 ring-primary/20",
                       )}
-                      aria-expanded={isOpen}
                     >
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="flex items-center gap-2 min-w-0">
-                          <div
-                            className="h-7 w-7 rounded-md flex items-center justify-center shrink-0"
-                            style={{
-                              backgroundColor: `hsl(${cat.color} / 0.15)`,
-                              color: `hsl(${cat.color})`,
-                            }}
-                          >
-                            <Icon className="h-3.5 w-3.5" />
+                      {/* Fixed header (always visible) */}
+                      <button
+                        type="button"
+                        onClick={() => setExpandedCat(isOpen ? null : s.category)}
+                        className={cn(
+                          "w-full text-left p-2.5 rounded-lg",
+                          "hover:bg-muted/40 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
+                        )}
+                        aria-expanded={isOpen}
+                        aria-controls={`opp-detail-${s.category}`}
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="flex items-center gap-2 min-w-0">
+                            <div
+                              className="h-7 w-7 rounded-md flex items-center justify-center shrink-0"
+                              style={{
+                                backgroundColor: `hsl(${cat.color} / 0.15)`,
+                                color: `hsl(${cat.color})`,
+                              }}
+                            >
+                              <Icon className="h-3.5 w-3.5" />
+                            </div>
+                            <div className="min-w-0">
+                              <p className="text-xs font-semibold text-foreground truncate">
+                                {s.category}
+                              </p>
+                              <p className="text-[10px] text-muted-foreground truncate">
+                                {fmt(s.spent)}
+                                {s.budget > 0 ? ` / ${fmt(s.budget)}` : " · sem limite"}
+                              </p>
+                            </div>
                           </div>
-                          <div className="min-w-0">
-                            <p className="text-xs font-semibold text-foreground truncate">
-                              {s.category}
-                            </p>
-                            <p className="text-[10px] text-muted-foreground truncate">
-                              {fmt(s.spent)}
-                              {s.budget > 0 ? ` / ${fmt(s.budget)}` : " · sem limite"}
-                            </p>
-                          </div>
-                        </div>
-                        <ChevronDown
-                          className={cn(
-                            "h-3.5 w-3.5 text-muted-foreground shrink-0 transition-transform duration-300",
-                            isOpen && "rotate-180",
-                          )}
-                        />
-                      </div>
-
-                      {/* Progress bar */}
-                      <div className="mt-2 space-y-0.5">
-                        <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
-                          <div
-                            className={cn("h-full rounded-full transition-all duration-500", barColor)}
-                            style={{ width: `${barPct}%` }}
+                          <ChevronDown
+                            className={cn(
+                              "h-3.5 w-3.5 text-muted-foreground shrink-0 transition-transform duration-200",
+                              isOpen && !isMobile && "rotate-180",
+                            )}
                           />
                         </div>
-                        <div className="flex items-center justify-between text-[10px]">
-                          <span className={cn(s.over ? "text-destructive font-medium" : "text-muted-foreground")}>
-                            {s.budget > 0 ? `${s.pct.toFixed(0)}% do limite` : "—"}
-                          </span>
-                          {s.over && (
-                            <span className="text-destructive font-medium inline-flex items-center gap-0.5">
-                              <TrendingUp className="h-2.5 w-2.5" /> Estourado
+
+                        {/* Progress bar — always visible */}
+                        <div className="mt-2 space-y-0.5">
+                          <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
+                            <div
+                              className={cn("h-full rounded-full transition-all duration-500", barColor)}
+                              style={{ width: `${barPct}%` }}
+                            />
+                          </div>
+                          <div className="flex items-center justify-between text-[10px]">
+                            <span className={cn(s.over ? "text-destructive font-medium" : "text-muted-foreground")}>
+                              {s.budget > 0 ? `${s.pct.toFixed(0)}% do limite` : "—"}
                             </span>
-                          )}
+                            {s.over && (
+                              <span className="text-destructive font-medium inline-flex items-center gap-0.5">
+                                <TrendingUp className="h-2.5 w-2.5" /> Estourado
+                              </span>
+                            )}
+                          </div>
                         </div>
-                      </div>
+                      </button>
 
-                      {/* Expandable details */}
-                      <div
-                        className={cn(
-                          "grid transition-all duration-300 ease-in-out",
-                          isOpen ? "grid-rows-[1fr] opacity-100 mt-2" : "grid-rows-[0fr] opacity-0",
-                        )}
-                      >
-                        <div className="overflow-hidden">
-                          <div className="border-t border-border pt-2 space-y-2 text-[11px]">
-                            <div>
-                              <p className="font-semibold text-foreground flex items-center gap-1 mb-1">
-                                <Lightbulb className="h-3 w-3 text-primary" /> Sugestões da IA
-                              </p>
-                              {suggestions.length > 0 ? (
-                                <ul className="list-disc pl-4 space-y-0.5 text-foreground/90">
-                                  {suggestions.map((sug, i) => (
-                                    <li key={i}>
-                                      <ReactMarkdown
-                                        components={{ p: ({ children }) => <span>{children}</span> }}
-                                      >
-                                        {sug}
-                                      </ReactMarkdown>
-                                    </li>
-                                  ))}
-                                </ul>
-                              ) : (
-                                <p className="text-muted-foreground">
-                                  Sem recomendação específica da IA para esta categoria.
-                                </p>
-                              )}
-                            </div>
-
-                            <div>
-                              <p className="font-semibold text-foreground mb-0.5">Resumo</p>
-                              <p className="text-muted-foreground">
-                                Você gastou <span className="text-foreground font-medium">{fmt(s.spent)}</span>
-                                {s.budget > 0 ? (
-                                  <>
-                                    {" "}de um limite de{" "}
-                                    <span className="text-foreground font-medium">{fmt(s.budget)}</span>
-                                    {s.over ? (
-                                      <>
-                                        , <span className="text-destructive font-medium">
-                                          {fmt(s.spent - s.budget)} acima
-                                        </span>.
-                                      </>
-                                    ) : (
-                                      <>
-                                        {" "}({fmt(Math.max(0, s.budget - s.spent))} disponível).
-                                      </>
-                                    )}
-                                  </>
-                                ) : (
-                                  <> neste mês. Defina um limite para acompanhar a evolução.</>
-                                )}
-                              </p>
-                            </div>
-
-                            <div>
-                              <p className="font-semibold text-foreground mb-0.5">Ação recomendada</p>
-                              <p className="text-muted-foreground">
-                                {s.over
-                                  ? `Revise os lançamentos de ${s.category} deste mês e ajuste o limite ou corte despesas não essenciais.`
-                                  : s.budget === 0
-                                  ? `Defina um orçamento mensal para ${s.category} para evitar surpresas.`
-                                  : s.pct >= 80
-                                  ? `Você está perto do limite. Evite novos gastos não essenciais até o fim do mês.`
-                                  : `Categoria sob controle — continue monitorando.`}
-                              </p>
+                      {/* Inline accordion (desktop/tablet only) */}
+                      {!isMobile && (
+                        <div
+                          id={`opp-detail-${s.category}`}
+                          className={cn(
+                            "grid transition-all duration-200 ease-out",
+                            isOpen ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0",
+                          )}
+                        >
+                          <div className="overflow-hidden">
+                            <div className="px-2.5 pb-2.5">
+                              <DetailBlocks
+                                category={s.category}
+                                spent={s.spent}
+                                budget={s.budget}
+                                over={s.over}
+                                overPct={overPct}
+                                suggestions={suggestions}
+                                action={action}
+                                onOpenFullReport={() => setShowFullReport(true)}
+                              />
                             </div>
                           </div>
                         </div>
-                      </div>
-                    </button>
+                      )}
+                    </div>
                   );
                 })}
               </div>
@@ -380,6 +353,92 @@ export function PersonalAIInsightsCard({
           </div>
         )}
       </CardContent>
+
+      {/* Mobile bottom sheet for expanded category */}
+      {isMobile && (
+        <Sheet
+          open={!!expandedCat}
+          onOpenChange={(o) => !o && setExpandedCat(null)}
+        >
+          <SheetContent side="bottom" className="max-h-[85vh] overflow-y-auto rounded-t-2xl">
+            {(() => {
+              const s = sortedStats.find((x) => x.category === expandedCat);
+              if (!s) return null;
+              const cat = getPersonalCategory(s.category);
+              const Icon = cat.icon;
+              const suggestions = suggestionsByCat.get(s.category) || [];
+              const overPct = s.budget > 0 && s.over
+                ? ((s.spent - s.budget) / s.budget) * 100
+                : 0;
+              const action = s.over
+                ? `Reduzir gastos de ${s.category} ou renegociar limite`
+                : s.budget === 0
+                ? `Definir um orçamento mensal`
+                : s.pct >= 80
+                ? `Evitar novos gastos não essenciais`
+                : `Continuar monitorando — sob controle`;
+              return (
+                <>
+                  <SheetHeader className="text-left">
+                    <SheetTitle className="flex items-center gap-2">
+                      <div
+                        className="h-8 w-8 rounded-md flex items-center justify-center shrink-0"
+                        style={{
+                          backgroundColor: `hsl(${cat.color} / 0.15)`,
+                          color: `hsl(${cat.color})`,
+                        }}
+                      >
+                        <Icon className="h-4 w-4" />
+                      </div>
+                      {s.category}
+                    </SheetTitle>
+                    <SheetDescription>
+                      {fmt(s.spent)}{s.budget > 0 ? ` de ${fmt(s.budget)}` : " · sem limite"}
+                    </SheetDescription>
+                  </SheetHeader>
+                  {/* Progress bar in sheet */}
+                  <div className="mt-3 space-y-1">
+                    <div className="h-2 w-full rounded-full bg-muted overflow-hidden">
+                      <div
+                        className={cn(
+                          "h-full rounded-full transition-all duration-500",
+                          s.over ? "bg-destructive" : "bg-[hsl(210_85%_55%)]",
+                        )}
+                        style={{ width: `${Math.min(100, s.pct)}%` }}
+                      />
+                    </div>
+                    <div className="flex items-center justify-between text-[11px]">
+                      <span className={cn(s.over ? "text-destructive font-medium" : "text-muted-foreground")}>
+                        {s.budget > 0 ? `${s.pct.toFixed(0)}% do limite` : "—"}
+                      </span>
+                      {s.over && (
+                        <span className="text-destructive font-medium inline-flex items-center gap-0.5">
+                          <TrendingUp className="h-3 w-3" /> Estourado
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  <div className="mt-4">
+                    <DetailBlocks
+                      category={s.category}
+                      spent={s.spent}
+                      budget={s.budget}
+                      over={s.over}
+                      overPct={overPct}
+                      suggestions={suggestions}
+                      action={action}
+                      onOpenFullReport={() => {
+                        setExpandedCat(null);
+                        setShowFullReport(true);
+                      }}
+                    />
+                  </div>
+                </>
+              );
+            })()}
+          </SheetContent>
+        </Sheet>
+      )}
 
       {/* Full report dialog */}
       <Dialog open={showFullReport} onOpenChange={setShowFullReport}>
@@ -409,5 +468,89 @@ export function PersonalAIInsightsCard({
         </DialogContent>
       </Dialog>
     </Card>
+  );
+}
+
+interface DetailBlocksProps {
+  category: string;
+  spent: number;
+  budget: number;
+  over: boolean;
+  overPct: number;
+  suggestions: string[];
+  action: string;
+  onOpenFullReport: () => void;
+}
+
+function DetailBlocks({
+  category,
+  spent,
+  budget,
+  over,
+  overPct,
+  suggestions,
+  action,
+  onOpenFullReport,
+}: DetailBlocksProps) {
+  const summary = over
+    ? `Você ultrapassou em ${overPct.toFixed(0)}% (${fmt(spent - budget)} acima)`
+    : budget === 0
+    ? `Sem limite definido — ${fmt(spent)} gastos no mês`
+    : `${fmt(Math.max(0, budget - spent))} disponíveis até o fim do mês`;
+
+  return (
+    <div className="space-y-2.5 text-[11px] animate-fade-in">
+      {/* Resumo rápido */}
+      <div className="rounded-md bg-muted/40 px-2 py-1.5 flex items-start gap-1.5">
+        <TrendingUp className={cn("h-3 w-3 mt-0.5 shrink-0", over ? "text-destructive" : "text-primary")} />
+        <p className={cn("font-medium", over ? "text-destructive" : "text-foreground")}>
+          {summary}
+        </p>
+      </div>
+
+      {/* Sugestões da IA */}
+      <div>
+        <p className="font-semibold text-foreground flex items-center gap-1 mb-1">
+          <Lightbulb className="h-3 w-3 text-primary" /> Sugestões da IA
+        </p>
+        {suggestions.length > 0 ? (
+          <ul className="space-y-1 text-foreground/90">
+            {suggestions.slice(0, 3).map((sug, i) => (
+              <li key={i} className="flex items-start gap-1.5">
+                <span className="text-primary mt-0.5">•</span>
+                <span className="flex-1">
+                  <ReactMarkdown components={{ p: ({ children }) => <span>{children}</span> }}>
+                    {sug}
+                  </ReactMarkdown>
+                </span>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="text-muted-foreground italic">Sem recomendação específica para esta categoria.</p>
+        )}
+      </div>
+
+      <div className="border-t border-border/60" />
+
+      {/* Ação recomendada */}
+      <div>
+        <p className="font-semibold text-foreground flex items-center gap-1 mb-1">
+          <Target className="h-3 w-3 text-primary" /> Ação recomendada
+        </p>
+        <p className="text-muted-foreground">{action}</p>
+      </div>
+
+      {/* CTA: ver relatório completo */}
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={onOpenFullReport}
+        className="w-full h-7 text-xs gap-1 mt-1"
+      >
+        Ver detalhes completos
+        <ArrowRight className="h-3 w-3" />
+      </Button>
+    </div>
   );
 }
