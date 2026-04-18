@@ -1594,6 +1594,24 @@ function LoanRowView({
                   <UserCog className="h-3 w-3" /><span className="hidden sm:inline">Gerente</span>
                 </Badge>
               )}
+              {loan.notes && (
+                <TooltipProvider delayDuration={1000}>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span
+                        className="inline-flex items-center justify-center h-4 w-4 sm:h-5 sm:w-5 rounded-full bg-muted text-muted-foreground shrink-0 cursor-help"
+                        onClick={(e) => e.stopPropagation()}
+                        aria-label="Possui observações"
+                      >
+                        <MessageCircle className="h-2.5 w-2.5 sm:h-3 sm:w-3" />
+                      </span>
+                    </TooltipTrigger>
+                    <TooltipContent side="top" className="max-w-xs whitespace-pre-wrap text-xs">
+                      {loan.notes}
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              )}
             </div>
             {loan.tags && loan.tags.length > 0 && (
               <div className="flex flex-wrap gap-0.5 mt-0.5 sm:hidden">
