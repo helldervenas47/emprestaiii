@@ -251,12 +251,19 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, onUpda
     return format(new Date(y, m - 1, 1), "MMM/yyyy", { locale: ptBR });
   };
 
+  const isBotExpense = (e: Expense) => /\[\s*bot\s*\]/i.test(e.notes ?? "");
+
   const filtered = visibleMonth
     .filter((e) =>
       e.description.toLowerCase().includes(search.toLowerCase()) ||
       e.category.toLowerCase().includes(search.toLowerCase())
     )
     .filter((e) => (categoryFilter ? e.category === categoryFilter : true))
+    .filter((e) => {
+      if (sourceFilter === "auto") return isBotExpense(e);
+      if (sourceFilter === "manual") return !isBotExpense(e);
+      return true;
+    })
     .filter((e) => {
       if (filter === "pending") return !e.paid && !isOverdue(e);
       if (filter === "paid") return e.paid;
