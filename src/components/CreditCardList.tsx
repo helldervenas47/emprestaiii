@@ -266,6 +266,7 @@ export function CreditCardList({ readOnly = false, referenceMonth }: Props) {
   const [payingCard, setPayingCard] = useState<CreditCard | null>(null);
   const [paying, setPaying] = useState(false);
   const [showInactive, setShowInactive] = useState(false);
+  const [showAllMobile, setShowAllMobile] = useState(false);
 
   const handleNew = () => {
     setEditing(null);
@@ -386,7 +387,69 @@ export function CreditCardList({ readOnly = false, referenceMonth }: Props) {
           )}
         </div>
       ) : (
-        <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 lg:grid-cols-4">
+        <>
+        {(() => {
+          // Sort by nearest due date (soonest first) for mobile prioritization
+          const sortedCards = [...cards].sort((a, b) => {
+            const da = invoiceByCard.get(a.id)?.dueDate?.getTime() ?? 0;
+            const db = invoiceByCard.get(b.id)?.dueDate?.getTime() ?? 0;
+            return da - db;
+          });
+          const isMobileLimited = !showAllMobile && sortedCards.length > 2;
+          const mobileVisible = isMobileLimited ? sortedCards.slice(0, 2) : sortedCards;
+          const hiddenCount = sortedCards.length - 2;
+          return (
+            <>
+              {/* Mobile: limited list (max 2) */}
+              <div className="grid gap-3 grid-cols-2 sm:hidden">
+                {mobileVisible.map((card) => {
+                  const inv = invoiceByCard.get(card.id) ?? {
+                    transactions: 0, opening: 0, total: 0,
+                    dueDate: getCurrentCycle(card.closingDay, card.dueDay).dueDate,
+                    cycleKey: "", openingNotes: null, hasOpening: false,
+                    unpaidExpenseIds: [] as string[],
+                  };
+                  return (
+                    <MiniCreditCard
+                      key={card.id}
+                      card={card}
+                      invoiceTotal={inv.total}
+                      openingAmount={inv.opening}
+                      hasOpening={inv.hasOpening}
+                      hasActiveInvoice={
+                        inv.total > 0 &&
+                        `${inv.dueDate.getFullYear()}-${String(inv.dueDate.getMonth() + 1).padStart(2, "0")}` === refMonthKey
+                      }
+                      hasUnpaidInvoice={inv.unpaidExpenseIds.length > 0}
+                      dueDate={inv.dueDate}
+                      onClick={() => setInvoiceCard(card)}
+                      onEdit={readOnly ? undefined : () => handleEdit(card)}
+                      onDelete={readOnly ? undefined : () => setDeleting(card)}
+                      onAddOpening={readOnly ? undefined : () => setOpeningCard(card)}
+                      onPayInvoice={readOnly ? undefined : () => setPayingCard(card)}
+                      readOnly={readOnly}
+                    />
+                  );
+                })}
+              </div>
+              {sortedCards.length > 2 && (
+                <div className="sm:hidden mt-3 flex justify-center">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-full"
+                    onClick={() => setShowAllMobile((v) => !v)}
+                  >
+                    {showAllMobile ? "Mostrar menos" : `Ver todos (${hiddenCount} a mais)`}
+                  </Button>
+                </div>
+              )}
+            </>
+          );
+        })()}
+
+        {/* Tablet/Desktop: full grid */}
+        <div className="hidden sm:grid gap-3 sm:grid-cols-3 lg:grid-cols-4">
           {cards.map((card) => {
             const inv = invoiceByCard.get(card.id) ?? {
               transactions: 0,
@@ -421,6 +484,7 @@ export function CreditCardList({ readOnly = false, referenceMonth }: Props) {
             );
           })}
         </div>
+        </>
       )}
 
       {showInactive && inactiveCards.length > 0 && (
