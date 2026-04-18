@@ -1423,6 +1423,11 @@ function LoanRowView({
   const [editHasManager, setEditHasManager] = useState<boolean>(loan.hasManager ?? false);
   const [editManagerId, setEditManagerId] = useState<string>(loan.managerId ?? "");
   const [editCommissionRate, setEditCommissionRate] = useState<string>(String(loan.managerCommissionRate ?? 10));
+  const [showLateInterest, setShowLateInterest] = useState(false);
+  const [lateInterestType, setLateInterestType] = useState<string>(loan.lateInterestType || "percentage");
+  const [lateInterestValue, setLateInterestValue] = useState<string>(loan.lateInterestValue != null ? String(loan.lateInterestValue) : "");
+  const [showPenalty, setShowPenalty] = useState(false);
+  const [penaltyValue, setPenaltyValue] = useState<string>(loan.penaltyValue != null ? String(loan.penaltyValue) : "");
   const managerOptions = useMemo(() => clients.filter((c) => c.isManager && c.active !== false), [clients]);
 
   const total = calculateTotalWithInterest(loan.amount, loan.interestRate, loan.installments);
@@ -1929,6 +1934,74 @@ function LoanRowView({
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
+              )}
+              {!readOnly && loan.status !== "paid" && (
+                <div className="flex gap-2 w-full" onClick={(e) => e.stopPropagation()}>
+                  <Button variant="outline" size="sm" className="flex-1 h-9 text-xs gap-1.5 border-warning text-warning" onClick={(e) => { e.stopPropagation(); setShowLateInterest((v) => !v); }}>
+                    <Percent className="h-3.5 w-3.5" /> Adicionar Juros
+                  </Button>
+                  <Button variant="outline" size="sm" className="flex-1 h-9 text-xs gap-1.5 border-destructive text-destructive" onClick={(e) => { e.stopPropagation(); setShowPenalty((v) => !v); }}>
+                    <DollarSign className="h-3.5 w-3.5" /> Adicionar Multa
+                  </Button>
+                </div>
+              )}
+              {!readOnly && showLateInterest && (
+                <div className="p-3 rounded-lg bg-muted border border-border/50 space-y-2" onClick={(e) => e.stopPropagation()}>
+                  <p className="text-xs font-semibold text-foreground">Juros por Atraso</p>
+                  <div className="flex gap-2">
+                    <Button size="sm" variant={lateInterestType === "percentage" ? "default" : "outline"} className="flex-1 h-8 text-xs" onClick={() => setLateInterestType("percentage")}>% por dia</Button>
+                    <Button size="sm" variant={lateInterestType === "fixed" ? "default" : "outline"} className="flex-1 h-8 text-xs" onClick={() => setLateInterestType("fixed")}>R$ por dia</Button>
+                  </div>
+                  <Input
+                    type="number" step="0.01" min="0"
+                    placeholder={lateInterestType === "percentage" ? "Ex: 0.5 (%)" : "Ex: 5.00 (R$)"}
+                    value={lateInterestValue}
+                    onChange={(e) => setLateInterestValue(e.target.value)}
+                    className="h-8 text-sm"
+                  />
+                  <div className="flex gap-2">
+                    <Button size="sm" className="flex-1 h-8 text-xs" onClick={() => {
+                      const val = parseFloat(lateInterestValue) || 0;
+                      onUpdate({ lateInterestType, lateInterestValue: val > 0 ? val : null });
+                      setShowLateInterest(false);
+                    }}>Salvar</Button>
+                    {loan.lateInterestValue != null && (
+                      <Button size="sm" variant="ghost" className="h-8 text-xs text-destructive" onClick={() => {
+                        onUpdate({ lateInterestType: null, lateInterestValue: null });
+                        setLateInterestValue("");
+                        setShowLateInterest(false);
+                      }}>Remover</Button>
+                    )}
+                    <Button size="sm" variant="outline" className="h-8 text-xs" onClick={() => setShowLateInterest(false)}>Cancelar</Button>
+                  </div>
+                </div>
+              )}
+              {!readOnly && showPenalty && (
+                <div className="p-3 rounded-lg bg-muted border border-border/50 space-y-2" onClick={(e) => e.stopPropagation()}>
+                  <p className="text-xs font-semibold text-foreground">Multa por Parcela (valor fixo único)</p>
+                  <Input
+                    type="number" step="0.01" min="0"
+                    placeholder="Ex: 50.00 (R$)"
+                    value={penaltyValue}
+                    onChange={(e) => setPenaltyValue(e.target.value)}
+                    className="h-8 text-sm"
+                  />
+                  <div className="flex gap-2">
+                    <Button size="sm" className="flex-1 h-8 text-xs" onClick={() => {
+                      const val = parseFloat(penaltyValue) || 0;
+                      onUpdate({ penaltyValue: val > 0 ? val : null });
+                      setShowPenalty(false);
+                    }}>Salvar</Button>
+                    {loan.penaltyValue != null && (
+                      <Button size="sm" variant="ghost" className="h-8 text-xs text-destructive" onClick={() => {
+                        onUpdate({ penaltyValue: null });
+                        setPenaltyValue("");
+                        setShowPenalty(false);
+                      }}>Remover</Button>
+                    )}
+                    <Button size="sm" variant="outline" className="h-8 text-xs" onClick={() => setShowPenalty(false)}>Cancelar</Button>
+                  </div>
+                </div>
               )}
               {!readOnly && loan.status === "paid" && (
                 <Button variant="outline" className="w-full h-10 text-sm gap-2" onClick={(e) => { e.stopPropagation(); onUpdate({ status: "active", paidInstallments: 0 }); }}>
