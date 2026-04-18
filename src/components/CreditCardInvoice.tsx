@@ -16,7 +16,18 @@ import {
   CheckCircle2,
   Clock,
   CreditCard as CreditCardIcon,
+  Wallet,
 } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -93,6 +104,12 @@ export function CreditCardInvoice({ card, onClose, referenceMonth }: Props) {
   const [editingOpening, setEditingOpening] = useState(false);
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
   const [deletingExpense, setDeletingExpense] = useState<Expense | null>(null);
+  const [payDialogOpen, setPayDialogOpen] = useState(false);
+  const [payDate, setPayDate] = useState(() => {
+    const t = new Date();
+    return `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, "0")}-${String(t.getDate()).padStart(2, "0")}`;
+  });
+  const [paying, setPaying] = useState(false);
 
   useEffect(() => {
     setCycleOffset(initialOffset);
@@ -323,7 +340,17 @@ export function CreditCardInvoice({ card, onClose, referenceMonth }: Props) {
             </div>
           </div>
 
-          {/* Comparativo com fatura anterior */}
+          {/* Pagar fatura */}
+          {(items.some((e) => !e.paid) || (opening && openingAmount > 0)) && (
+            <Button
+              onClick={() => setPayDialogOpen(true)}
+              className="w-full h-11 text-sm font-semibold shadow-md"
+              size="lg"
+            >
+              <Wallet className="h-4 w-4 mr-2" />
+              Pagar fatura · {mask(fmt(total))}
+            </Button>
+          )}
           {prevTotal > 0 && (
             <div className="rounded-xl border bg-muted/30 px-3 py-2.5 flex items-center justify-between">
               <div>
