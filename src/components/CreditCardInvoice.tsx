@@ -84,7 +84,7 @@ function getCycle(ref: Date, closingDay: number, dueDay: number) {
 
 export function CreditCardInvoice({ card, onClose, referenceMonth, originRect }: Props) {
   const { expenses, updateExpense, deleteExpense } = useExpenses();
-  const { getOpening, upsertOpening } = useCreditCardOpenings();
+  const { openings, getOpening, upsertOpening } = useCreditCardOpenings();
   const { mask } = useHideValues();
   const bank = getBank(card.bank);
 
