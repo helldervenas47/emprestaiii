@@ -74,7 +74,7 @@ export function MonthlyGoalsManager() {
               <Input
                 type="number"
                 step="0.01"
-                placeholder={goalType === "interest_rate" ? "Ex: 15" : "Ex: 5000"}
+                placeholder={goalType === "interest_rate" ? "Ex: 15" : "Ex: 70"}
                 value={value}
                 onChange={(e) => setValue(e.target.value)}
               />
