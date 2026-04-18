@@ -159,6 +159,9 @@ async function buildBillingReport(admin: any, ownerId: string, today: string): P
       const fees = lateFees > 0 ? ` (inclui ${fmtBRL(lateFees)} juros/multa)` : "";
       lines.push(`• *${loan.borrower_name}*  — ${fmtBRL(amount)}${fees}`);
       lines.push(`  └ ${getPaymentType(loan.payment_type)} • Venc. ${formatDateBR(loan.due_date)}`);
+      if (loan.notes && String(loan.notes).trim()) {
+        lines.push(`  📝 _${String(loan.notes).trim()}_`);
+      }
     }
   }
 
