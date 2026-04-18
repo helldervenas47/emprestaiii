@@ -1,5 +1,5 @@
 import { useState, useEffect, lazy, Suspense } from "react";
-import { Plus, Users, LayoutDashboard, ShoppingBag, BarChart3, AlertTriangle, Receipt, CalendarDays, Sun, Moon, LogOut, Info, X, Eye, EyeOff, Car, Wrench, DatabaseBackup, Menu, User, RefreshCw, Bell, Target } from "lucide-react";
+import { Plus, Users, LayoutDashboard, ShoppingBag, BarChart3, AlertTriangle, Receipt, CalendarDays, Sun, Moon, LogOut, Info, X, Eye, EyeOff, Car, Wrench, DatabaseBackup, Menu, User, RefreshCw, Bell, Target, Settings as SettingsIcon } from "lucide-react";
 import logoIcon from "@/assets/logo-icon.png";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { useIsMobile, useIsMobileOrTablet } from "@/hooks/use-mobile";
@@ -44,6 +44,7 @@ const SubscriptionGate = lazy(() => import("@/components/SubscriptionGate").then
 const VehicleExpenseForm = lazy(() => import("@/components/VehicleExpenseForm").then(m => ({ default: m.VehicleExpenseForm })));
 const NotificationSettings = lazy(() => import("@/components/NotificationSettings").then(m => ({ default: m.NotificationSettings })));
 const MonthlyGoalsManager = lazy(() => import("@/components/MonthlyGoalsManager").then(m => ({ default: m.MonthlyGoalsManager })));
+const Settings = lazy(() => import("@/components/Settings").then(m => ({ default: m.Settings })));
 // Direct import for the constant used at render time
 import { vehicleExpenseCategories } from "@/components/VehicleExpenseForm";
 import { PushNotificationToggle } from "@/components/PushNotificationToggle";
@@ -75,7 +76,7 @@ import { useExpenses } from "@/hooks/useExpenses";
 import { useVehicleRegistry } from "@/hooks/useVehicleRegistry";
 import { useLocadorInfo } from "@/hooks/useLocadorInfo";
 
-type Tab = "overview" | "dashboard" | "clients" | "products" | "vehicles" | "overdue" | "expenses" | "calendar" | "users" | "plan_mgmt" | "backup";
+type Tab = "overview" | "dashboard" | "clients" | "products" | "vehicles" | "overdue" | "expenses" | "calendar" | "users" | "plan_mgmt" | "backup" | "settings";
 type ClientSubTab = "clientes" | "veiculos";
 type VehicleSubTab = "veiculos" | "locadores";
 type PlanMgmtSubTab = "subscribers" | "plans";
@@ -95,6 +96,7 @@ const tabConfig = [
   { id: "users" as Tab, label: "Usuários", icon: Users },
   { id: "plan_mgmt" as Tab, label: "Gestão de Planos", icon: Wrench },
   { id: "backup" as Tab, label: "Backup", icon: DatabaseBackup },
+  { id: "settings" as Tab, label: "Configurações", icon: SettingsIcon },
 ];
 
 const tabHelp: Record<Tab, { title: string; items: string[] }> = {
@@ -193,6 +195,16 @@ const tabHelp: Record<Tab, { title: string; items: string[] }> = {
       "Faça backup de empréstimos, clientes, vendas, despesas e pagamentos.",
       "Use 'Exportar Tudo' para baixar todos os dados de uma vez.",
       "Os arquivos são nomeados com a data do backup.",
+    ],
+  },
+  settings: {
+    title: "Configurações",
+    items: [
+      "Centralize preferências de exibição (tema e ocultar valores).",
+      "Configure todos os canais de notificação: push, e-mail, Telegram e webhook.",
+      "Gerencie locadores, plano de assinatura e usuários (admins).",
+      "Faça backup ou exporte seus dados.",
+      "Use 'Limpar cache' para forçar atualização do app sem perder dados.",
     ],
   },
 };
