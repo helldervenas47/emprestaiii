@@ -84,7 +84,7 @@ function getCycle(ref: Date, closingDay: number, dueDay: number) {
 
 export function CreditCardInvoice({ card, onClose, referenceMonth, originRect }: Props) {
   const { expenses, updateExpense, deleteExpense } = useExpenses();
-  const { getOpening, upsertOpening } = useCreditCardOpenings();
+  const { openings, getOpening, upsertOpening } = useCreditCardOpenings();
   const { mask } = useHideValues();
   const bank = getBank(card.bank);
 
@@ -179,10 +179,10 @@ export function CreditCardInvoice({ card, onClose, referenceMonth, originRect }:
   const total = transactionsTotal + openingAmount;
   const prevTotal = sumItems(prevItems) + (prevOpening?.openingAmount ?? 0);
 
-  // Limite disponível = limite total - soma de TODAS as despesas pendentes do cartão
-  // (independente do ciclo). Considera apenas parcelas/lançamentos não pagos.
+  // Limite disponível = limite total - (despesas pendentes do cartão + saldos iniciais de
+  // faturas em aberto). Reflete tudo que ainda foi gasto e não pago neste cartão.
   const pendingTotal = useMemo(() => {
-    return expenses
+    const expensesPending = expenses
       .filter((e) => e.scope === "personal")
       .filter((e) => /\[\s*cr[eé]dito\s*\]/i.test(e.notes ?? ""))
       .filter((e) => {
@@ -200,7 +200,11 @@ export function CreditCardInvoice({ card, onClose, referenceMonth, originRect }:
           : installmentValue;
         return s + remaining;
       }, 0);
-  }, [expenses, cardTag]);
+    const openingsPending = openings
+      .filter((o) => o.cardId === card.id)
+      .reduce((s, o) => s + (o.openingAmount ?? 0), 0);
+    return expensesPending + openingsPending;
+  }, [expenses, openings, cardTag, card.id]);
 
   const utilization = card.creditLimit > 0 ? Math.min(100, (pendingTotal / card.creditLimit) * 100) : 0;
   const available = Math.max(0, card.creditLimit - pendingTotal);
