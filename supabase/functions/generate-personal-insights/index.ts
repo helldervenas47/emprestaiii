@@ -280,12 +280,12 @@ Deno.serve(async (req) => {
       const userPromptCat = [
         `Categoria analisada: ${targetCategory}`,
         `Mês: ${month} (anterior: ${ctx.prevMonth})`,
-        `Gasto atual: ${fmt(stat.spent)}`,
-        `Gasto mês anterior: ${fmt(stat.prevSpent || 0)}`,
-        `Orçamento: ${stat.budget > 0 ? `${fmt(stat.budget)} (${stat.pct.toFixed(0)}% utilizado)` : "sem limite definido"}`,
+        `Total previsto no mês (pagos + a pagar): ${fmt(stat.spent)}`,
+        `Total previsto mês anterior: ${fmt(stat.prevSpent || 0)}`,
+        `Orçamento: ${stat.budget > 0 ? `${fmt(stat.budget)} (${stat.pct.toFixed(0)}% comprometido)` : "sem limite definido"}`,
         `Tendência: ${trendLabel}`,
         `Status: ${stat.status}`,
-        `Share no total mensal: ${totalShare.toFixed(1)}% (${fmt(stat.spent)} de ${fmt(ctx.totalSpent)})`,
+        `Share no total mensal previsto: ${totalShare.toFixed(1)}% (${fmt(stat.spent)} de ${fmt(ctx.totalSpent)})`,
       ].join("\n");
 
       const { data: tonePrefCat } = await supabase
