@@ -127,9 +127,7 @@ export function PersonalExpenseForm({ onAdd, onClose }: Props) {
       setSubmitting(false);
       return;
     }
-    const notesWithMethod = form.notes
-      ? `[${form.paymentMethod}] ${form.notes}`
-      : `[${form.paymentMethod}]`;
+    const notesWithMethod = buildPaymentNotes(form.notes);
 
     let payload: Omit<Expense, "id" | "paid" | "paidDate" | "createdAt">;
     if (form.kind === "parcelada") {
