@@ -516,30 +516,109 @@ export function PersonalAIInsightsCard({
         </Sheet>
       )}
 
-      {/* Full report dialog */}
-      <Dialog open={showFullReport} onOpenChange={setShowFullReport}>
+      {/* Full report dialog (general OR per-category) */}
+      <Dialog
+        open={showFullReport}
+        onOpenChange={(o) => {
+          setShowFullReport(o);
+          if (!o) {
+            setReportCategory(null);
+            setCatReport(null);
+            setCatReportError(null);
+          }
+        }}
+      >
         <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Sparkles className="h-4 w-4 text-primary" />
-              Relatório Inteligente
-            </DialogTitle>
-            <DialogDescription>
-              Análise completa gerada por IA com insights e recomendações detalhadas.
-            </DialogDescription>
+            {reportCategory ? (
+              (() => {
+                const cat = getPersonalCategory(reportCategory);
+                const Icon = cat.icon;
+                return (
+                  <>
+                    <Badge variant="outline" className="w-fit text-[10px] gap-1 mb-1 border-primary/30 text-primary">
+                      <Sparkles className="h-2.5 w-2.5" /> Relatório individual
+                    </Badge>
+                    <DialogTitle className="flex items-center gap-2">
+                      <div
+                        className="h-8 w-8 rounded-md flex items-center justify-center shrink-0"
+                        style={{
+                          backgroundColor: `hsl(${cat.color} / 0.15)`,
+                          color: `hsl(${cat.color})`,
+                        }}
+                      >
+                        <Icon className="h-4 w-4" />
+                      </div>
+                      {reportCategory}
+                    </DialogTitle>
+                    <DialogDescription>
+                      Análise específica desta categoria, gerada por IA com base nos seus gastos do mês.
+                    </DialogDescription>
+                  </>
+                );
+              })()
+            ) : (
+              <>
+                <DialogTitle className="flex items-center gap-2">
+                  <Sparkles className="h-4 w-4 text-primary" />
+                  Relatório Inteligente — Visão geral
+                </DialogTitle>
+                <DialogDescription>
+                  Análise completa do mês com insights e recomendações de todas as categorias.
+                </DialogDescription>
+              </>
+            )}
           </DialogHeader>
-          {data && (
+
+          {/* Per-category content */}
+          {reportCategory ? (
             <div className="space-y-3">
-              <div className={proseClasses}>
-                <ReactMarkdown>{restContent || data.content}</ReactMarkdown>
-              </div>
-              {data.generated_at && (
-                <p className="text-[10px] text-muted-foreground pt-2 border-t border-border">
-                  Gerado em {new Date(data.generated_at).toLocaleString("pt-BR")}
-                  {data.cached ? " (em cache)" : ""}
-                </p>
+              {catReportLoading && (
+                <div className="flex items-center justify-center py-10 text-sm text-muted-foreground gap-2">
+                  <Sparkles className="h-4 w-4 animate-pulse text-primary" />
+                  Gerando análise de {reportCategory}…
+                </div>
+              )}
+              {catReportError && !catReportLoading && (
+                <div className="text-sm text-destructive p-3 rounded-md bg-destructive/10">
+                  {catReportError}
+                </div>
+              )}
+              {catReport && !catReportLoading && (
+                <div className={proseClasses}>
+                  <ReactMarkdown>{catReport}</ReactMarkdown>
+                </div>
+              )}
+              {catReport && !catReportLoading && (
+                <div className="pt-2 border-t border-border">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      setReportCategory(null);
+                      setCatReport(null);
+                    }}
+                    className="text-xs gap-1 h-7"
+                  >
+                    <ArrowRight className="h-3 w-3 rotate-180" /> Ver relatório geral do mês
+                  </Button>
+                </div>
               )}
             </div>
+          ) : (
+            data && (
+              <div className="space-y-3">
+                <div className={proseClasses}>
+                  <ReactMarkdown>{restContent || data.content}</ReactMarkdown>
+                </div>
+                {data.generated_at && (
+                  <p className="text-[10px] text-muted-foreground pt-2 border-t border-border">
+                    Gerado em {new Date(data.generated_at).toLocaleString("pt-BR")}
+                    {data.cached ? " (em cache)" : ""}
+                  </p>
+                )}
+              </div>
+            )
           )}
         </DialogContent>
       </Dialog>
