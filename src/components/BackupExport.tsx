@@ -1,5 +1,5 @@
 import { useRef } from "react";
-import { Download, Upload, FileDown, Database } from "lucide-react";
+import { Download, Upload, FileDown, Database, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loan, Payment, Client, Sale, Expense } from "@/types/loan";
