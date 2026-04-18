@@ -354,7 +354,7 @@ export function CreditCardList({ readOnly = false, referenceMonth }: Props) {
         .filter((o) => o.cardId === card.id)
         .reduce((s, o) => s + (o.openingAmount ?? 0), 0);
       const pendingTotal = expensesPending + openingsPending;
-      const unpaidExpenseIds = inCycle.filter((e) => !e.paid).map((e) => e.id);
+      const unpaidExpenseIds = cardExpenses.filter((e) => !e.paid).map((e) => e.id);
       const cycleKey = cycleKeyFromDate(cycle.to);
       const op = getOpening(card.id, cycleKey);
       const opening = op?.openingAmount ?? 0;
