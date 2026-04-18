@@ -356,6 +356,8 @@ const Index = () => {
     if (role === "admin") return true;
     // Admin-only tabs
     if (t.id === "users" || t.id === "backup" || t.id === "plan_mgmt") return false;
+    // Settings sempre disponível para usuários autenticados
+    if (t.id === "settings") return !!user;
     // Any authenticated user sees all other tabs
     if (user) {
       if (Array.isArray(allowedTabs)) return allowedTabs.includes(t.id);
