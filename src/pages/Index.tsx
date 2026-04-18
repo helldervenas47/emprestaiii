@@ -847,6 +847,45 @@ const Index = () => {
             
           </div>
         )}
+        {tab === "settings" && (
+          <Settings
+            backup={{
+              loans,
+              payments,
+              clients,
+              sales,
+              expenses,
+              onImportLoans: async (imported) => {
+                const BATCH = 5;
+                for (let i = 0; i < imported.length; i += BATCH) {
+                  const batch = imported.slice(i, i + BATCH);
+                  await Promise.all(batch.map(async (loan) => {
+                    const { totalPaid, ...loanData } = loan;
+                    const loanId = await addLoan(loanData);
+                    if (loanId && totalPaid && totalPaid > 0) {
+                      await addPartialPayment(loanId, totalPaid, loan.startDate);
+                    }
+                  }));
+                }
+              },
+              onImportClients: async (imported) => {
+                await Promise.all(imported.map((client) => addClient(client)));
+              },
+              onImportSales: async (imported) => {
+                await Promise.all(imported.map((sale) => addSale(sale)));
+              },
+              onImportExpenses: async (imported) => {
+                await Promise.all(imported.map((expense) => addExpense(expense)));
+              },
+            }}
+            locadores={locadores}
+            onSaveLocador={saveLocador}
+            onRemoveLocador={removeLocador}
+            isReadOnly={isReadOnly}
+            dark={dark}
+            onToggleTheme={toggleTheme}
+          />
+        )}
         </Suspense>
       </main>
 
