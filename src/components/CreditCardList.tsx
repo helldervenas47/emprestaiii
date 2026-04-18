@@ -76,6 +76,7 @@ interface MiniCardProps {
   card: CreditCard;
   invoiceTotal: number;
   pendingTotal: number;
+  cyclePendingTotal: number;
   openingAmount: number;
   hasOpening: boolean;
   hasActiveInvoice: boolean;
