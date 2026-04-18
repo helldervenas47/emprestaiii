@@ -11,7 +11,7 @@ import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
 
 const GOAL_TYPE_META: Record<GoalType, { label: string; icon: any; unit: string; color: string }> = {
   interest_rate: { label: "Taxa de Juros Mensal", icon: Percent, unit: "%", color: "text-warning" },
-  profit: { label: "Lucro no Período", icon: TrendingUp, unit: "R$", color: "text-success" },
+  profit: { label: "Lucro no Período (% do Previsto)", icon: TrendingUp, unit: "%", color: "text-success" },
 };
 
 export function MonthlyGoalsManager() {
