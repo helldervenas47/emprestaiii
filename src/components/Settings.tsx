@@ -269,7 +269,6 @@ export function Settings({ backup, locadores, onSaveLocador, onRemoveLocador, is
         onOpenChange={setConfirmClear}
         title="Limpar cache do navegador"
         description="O app vai recarregar para baixar a versão mais recente. Seus dados e login serão preservados."
-        confirmLabel="Limpar e recarregar"
         onConfirm={handleClearCache}
       />
     </div>
