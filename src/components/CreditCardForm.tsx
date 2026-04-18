@@ -69,6 +69,7 @@ export function CreditCardForm({ initial, onSave, onClose }: Props) {
     creditLimit: Number(form.creditLimit) || 0,
     closingDay: Number(form.closingDay) || 1,
     dueDay: Number(form.dueDay) || 1,
+    active: form.active ?? true,
   };
 
   return (
