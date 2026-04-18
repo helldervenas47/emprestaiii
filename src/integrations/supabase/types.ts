@@ -713,6 +713,7 @@ export type Database = {
           send_time_1: string | null
           send_time_2: string | null
           send_time_3: string | null
+          tone: string
           updated_at: string
           user_id: string
         }
@@ -725,6 +726,7 @@ export type Database = {
           send_time_1?: string | null
           send_time_2?: string | null
           send_time_3?: string | null
+          tone?: string
           updated_at?: string
           user_id: string
         }
@@ -737,6 +739,7 @@ export type Database = {
           send_time_1?: string | null
           send_time_2?: string | null
           send_time_3?: string | null
+          tone?: string
           updated_at?: string
           user_id?: string
         }
