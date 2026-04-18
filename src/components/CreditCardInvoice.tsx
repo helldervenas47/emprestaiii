@@ -48,6 +48,8 @@ interface Props {
   onClose: () => void;
   /** YYYY-MM — when provided, the initial cycle is the one whose due date falls in this month. */
   referenceMonth?: string;
+  /** Bounding rect of the source mini-card; used to animate from that position into fullscreen. */
+  originRect?: DOMRect | null;
 }
 
 const fmt = (v: number) =>
