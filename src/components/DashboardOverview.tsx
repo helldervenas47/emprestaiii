@@ -828,6 +828,19 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
                   {data.periodProfitPct}%
                 </span>
               </div>
+              {profitGoal && (() => {
+                const previstoTotal = data.periodProfitRealized + data.periodProfitExpected;
+                const targetAmount = previstoTotal * (profitGoal.targetValue / 100);
+                const metaPct = targetAmount > 0 ? (data.periodProfitRealized / targetAmount) * 100 : 0;
+                return (
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-muted-foreground">% Meta</span>
+                    <span className={`text-sm font-bold ${metaPct >= 100 ? "text-success" : metaPct >= 80 ? "text-warning" : "text-destructive"}`}>
+                      {metaPct.toFixed(1)}%
+                    </span>
+                  </div>
+                );
+              })()}
               <div className="pt-1.5 border-t border-border/30">
                 {profitGoal ? (() => {
                   const previstoTotal = data.periodProfitRealized + data.periodProfitExpected;
