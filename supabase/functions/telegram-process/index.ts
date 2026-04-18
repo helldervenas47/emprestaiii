@@ -244,6 +244,8 @@ function quickParseExpense(text: string): { amount: number; description: string;
   if (t.length < 2 || t.startsWith("/")) return null;
   // Defer to AI when text mentions a date — quick parser would assume "today".
   if (hasDateHint(t)) return null;
+  // Defer to AI when natural-language amount/payment hints are present.
+  if (hasNaturalLanguageHint(t)) return null;
   const installments = detectInstallments(t);
   // Remove installment tokens before extracting amount/description so they don't confuse the regex.
   const cleaned = installments ? stripInstallmentPhrase(t) : t;
