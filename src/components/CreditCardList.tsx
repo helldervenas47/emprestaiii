@@ -238,7 +238,7 @@ function MiniCreditCard({
                 variant="default"
                 size="sm"
                 className="w-full h-7 text-[11px]"
-                disabled={!hasUnpaidInvoice || invoiceTotal <= 0}
+                disabled={pendingTotal <= 0}
                 onClick={(e) => {
                   e.stopPropagation();
                   onPayInvoice?.();
