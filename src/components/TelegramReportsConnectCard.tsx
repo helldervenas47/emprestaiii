@@ -4,11 +4,20 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { Send, Copy, CheckCircle2, Unlink, Sparkles, Clock } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Send, Copy, CheckCircle2, Unlink, Sparkles, Clock, MessageSquare } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useTelegramReportsLink } from "@/hooks/useTelegramReportsLink";
-import { usePersonalInsightsTelegramPrefs } from "@/hooks/usePersonalInsightsTelegramPrefs";
+import { usePersonalInsightsTelegramPrefs, type InsightTone } from "@/hooks/usePersonalInsightsTelegramPrefs";
+
+const TONE_OPTIONS: { value: InsightTone; label: string; hint: string }[] = [
+  { value: "balanced", label: "⚖️ Equilibrado", hint: "Profissional e acolhedor" },
+  { value: "strict", label: "🎯 Rigoroso", hint: "Direto, sem rodeios" },
+  { value: "motivational", label: "🚀 Motivacional", hint: "Encorajador e positivo" },
+  { value: "technical", label: "📊 Técnico", hint: "Analítico, numérico" },
+  { value: "friendly", label: "😊 Amigável", hint: "Informal, como um amigo" },
+];
 
 export function TelegramReportsConnectCard() {
   const { linked, loading, disconnect } = useTelegramReportsLink();
