@@ -102,6 +102,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
   const [tempBalance, setTempBalance] = useState("");
   const [includeSales, setIncludeSales] = useState(false);
   const [showInterestDetail, setShowInterestDetail] = useState(false);
+  const [showInterestExpectedDetail, setShowInterestExpectedDetail] = useState(false);
   const { chartOverrides, setChartOverrides, interestOverrides, setInterestOverrides } = useChartOverrides();
   const { getGoal } = useMonthlyGoals();
 
@@ -910,7 +911,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
           { label: "Total a Receber", value: formatCurrency(portfolio.totalToReceive), color: "text-foreground", iconBg: "bg-primary/10", iconColor: "text-primary", onClick: undefined as (() => void) | undefined },
           { label: "Pendente de Recebimento", value: formatCurrency(portfolio.pendingReceivable), color: "text-success", iconBg: "bg-success/10", iconColor: "text-success", onClick: undefined as (() => void) | undefined },
           { label: "Lucro Estimado", value: formatCurrency(portfolio.estimatedProfit), color: "text-success", iconBg: "bg-success/10", iconColor: "text-success", onClick: undefined as (() => void) | undefined },
-          { label: "Juros a Receber no Mês", value: formatCurrency(interestDueInPeriod), color: "text-success", iconBg: "bg-success/10", iconColor: "text-success", onClick: undefined as (() => void) | undefined },
+          { label: "Juros a Receber no Mês", value: formatCurrency(interestDueInPeriod), color: "text-success", iconBg: "bg-success/10", iconColor: "text-success", onClick: () => setShowInterestExpectedDetail(true) },
           { label: "Juros Recebidos no Mês", value: formatCurrency(interestReceivedInPeriod), color: "text-warning", iconBg: "bg-warning/10", iconColor: "text-warning", onClick: () => setShowInterestDetail(true) },
           { label: "Juros Pendentes do Mês", value: formatCurrency(interestPendingInPeriod), color: "text-warning", iconBg: "bg-warning/10", iconColor: "text-warning", onClick: undefined as (() => void) | undefined },
         ];
@@ -1512,6 +1513,43 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
                   <p className="text-sm font-semibold">Total</p>
                   <p className="text-sm font-bold text-warning">
                     {formatCurrency(data.interestDetailRecords.reduce((s, r) => s + r.interestPortion, 0))}
+                  </p>
+                </div>
+              </>
+            )}
+          </div>
+        </SheetContent>
+      </Sheet>
+      {/* Interest Expected Detail Sheet */}
+      <Sheet open={showInterestExpectedDetail} onOpenChange={setShowInterestExpectedDetail}>
+        <SheetContent side="bottom" className="max-h-[80vh] overflow-y-auto">
+          <SheetHeader>
+            <SheetTitle>Juros a Receber no Mês — {range.label}</SheetTitle>
+          </SheetHeader>
+          <div className="mt-4 space-y-2">
+            {data.interestExpectedRecords.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-4">Nenhuma parcela com vencimento neste período.</p>
+            ) : (
+              <>
+                {data.interestExpectedRecords.map((rec, i) => (
+                  <div key={i} className="flex items-center justify-between p-3 rounded-lg bg-muted/50 border border-border/30">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium truncate">{rec.borrowerName}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {new Date(rec.dueDate + "T00:00:00").toLocaleDateString("pt-BR")} — Parcela {rec.installmentNumber}/{rec.totalInstallments}
+                        {rec.loanStatus === "paid" && <span className="ml-1 text-success">(quitado)</span>}
+                      </p>
+                    </div>
+                    <div className="text-right ml-3">
+                      <p className="text-sm font-bold text-success">{formatCurrency(rec.interestPortion)}</p>
+                      <p className="text-[10px] text-muted-foreground">de {formatCurrency(rec.installmentAmount)}</p>
+                    </div>
+                  </div>
+                ))}
+                <div className="flex items-center justify-between pt-3 border-t border-border">
+                  <p className="text-sm font-semibold">Total</p>
+                  <p className="text-sm font-bold text-success">
+                    {formatCurrency(data.interestExpectedRecords.reduce((s, r) => s + r.interestPortion, 0))}
                   </p>
                 </div>
               </>
