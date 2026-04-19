@@ -8,11 +8,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { Plus, X, PiggyBank } from "lucide-react";
+import { Plus, X, PiggyBank, PlusCircle } from "lucide-react";
 import { Expense } from "@/types/loan";
-import { personalCategories } from "@/lib/personalExpenseCategories";
+import { personalCategories, resolvePersonalIcon } from "@/lib/personalExpenseCategories";
 import { usePiggyBanks, buildPiggyTag } from "@/hooks/usePiggyBanks";
 import { useCreditCards } from "@/hooks/useCreditCards";
+import { usePersonalExpenseCategories } from "@/hooks/usePersonalExpenseCategories";
+import { PersonalCategoryCreator } from "@/components/PersonalCategoryCreator";
 
 /** Pick the user's default credit card — prefers Nubank, falls back to first card. */
 function pickDefaultCard<T extends { bank: string; nickname: string }>(cards: T[]): T | null {
