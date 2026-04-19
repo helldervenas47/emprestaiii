@@ -264,6 +264,7 @@ export type Database = {
           created_at: string
           enabled: boolean
           last_sent: Json
+          send_target: string
           send_time_1: string | null
           send_time_2: string | null
           send_time_3: string | null
@@ -274,6 +275,7 @@ export type Database = {
           created_at?: string
           enabled?: boolean
           last_sent?: Json
+          send_target?: string
           send_time_1?: string | null
           send_time_2?: string | null
           send_time_3?: string | null
@@ -284,6 +286,7 @@ export type Database = {
           created_at?: string
           enabled?: boolean
           last_sent?: Json
+          send_target?: string
           send_time_1?: string | null
           send_time_2?: string | null
           send_time_3?: string | null
