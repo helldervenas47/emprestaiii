@@ -10,6 +10,7 @@ export type LogoSizes = Record<LogoArea, Record<LogoDevice, number>>;
 export interface AppBranding {
   id: string;
   logo_url: string | null;
+  brand_name: string;
   sizes: LogoSizes;
   updated_at: string;
 }
