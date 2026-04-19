@@ -965,7 +965,8 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
             {/* Tablet (sm-lg): Pendente full width on top, then 2 rows of 3 */}
             <div className="hidden sm:grid lg:hidden gap-2">
               <Card no3d>
-                <CardContent className="p-4 flex flex-col items-center text-center">
+                <CardContent className="p-4 flex flex-col items-center text-center relative">
+                  {pendingCard.tooltip && <InfoPopover text={pendingCard.tooltip} />}
                   <div className={`h-8 w-8 rounded-lg ${pendingCard.iconBg} flex items-center justify-center mb-2`}>
                     <DollarSign className={`h-4 w-4 ${pendingCard.iconColor}`} />
                   </div>
@@ -1008,7 +1009,8 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
             {/* Mobile: Pendente full width on top, then 3 rows of 2 */}
             <div className="grid sm:hidden gap-2">
               <Card no3d>
-                <CardContent className="p-3 flex flex-col items-center text-center">
+                <CardContent className="p-3 flex flex-col items-center text-center relative">
+                  {pendingCard.tooltip && <InfoPopover text={pendingCard.tooltip} />}
                   <div className={`h-8 w-8 rounded-lg ${pendingCard.iconBg} flex items-center justify-center mb-2`}>
                     <DollarSign className={`h-4 w-4 ${pendingCard.iconColor}`} />
                   </div>
