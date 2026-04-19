@@ -169,7 +169,7 @@ async function buildAndSend(
   const negative = balance < 0;
 
   const lines: string[] = [];
-  lines.push(`📅 *${brandName} — Planejamento do Dia*`);
+  lines.push(`📅 *${brandName} — Planejamento de Amanhã*`);
   lines.push(`🗓️ ${fmtDateBR(date)}`);
   lines.push("");
   lines.push(`🟢 *Receitas:* ${fmtBRL(totalIncome)}  _(${incomeRows.length})_`);
