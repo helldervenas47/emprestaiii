@@ -504,7 +504,9 @@ export function BillingCalendar({ loans, payments, installmentSchedules, onPayme
                     <p className="text-xs font-medium text-destructive mb-1">
                       Atrasado ({overdueSelected.length})
                     </p>
-                    {overdueSelected.map((item) => renderItemWithActions(item, true))}
+                    <div className="space-y-3">
+                      {overdueSelected.map((item) => renderItemWithActions(item, true))}
+                    </div>
                   </>
                 )}
 
@@ -513,7 +515,9 @@ export function BillingCalendar({ loans, payments, installmentSchedules, onPayme
                     <p className="text-xs font-medium text-warning mt-3 mb-1">
                       A vencer ({upcomingSelected.length})
                     </p>
-                    {upcomingSelected.map((item) => renderItemWithActions(item, false))}
+                    <div className="space-y-3">
+                      {upcomingSelected.map((item) => renderItemWithActions(item, false))}
+                    </div>
                   </>
                 )}
 
