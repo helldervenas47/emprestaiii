@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { toast } from "sonner";
+import { getPdfBranding } from "@/lib/pdfBranding";
 
 interface AccountantReportProps {
   loans: any[];
