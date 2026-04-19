@@ -931,13 +931,13 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
         const interestPendingInPeriod = Math.max(0, interestDueInPeriod - interestReceivedInPeriod);
 
         const items: Array<{ label: string; value: string; color: string; iconBg: string; iconColor: string; onClick?: () => void; tooltip?: string }> = [
-          { label: "Capital na Rua", value: formatCurrency(portfolio.capitalOnStreet), color: "text-foreground", iconBg: "bg-primary/10", iconColor: "text-primary" },
-          { label: "Total a Receber", value: formatCurrency(portfolio.totalToReceive), color: "text-foreground", iconBg: "bg-primary/10", iconColor: "text-primary" },
-          { label: "Pendente de Recebimento", value: formatCurrency(portfolio.pendingReceivable), color: "text-success", iconBg: "bg-success/10", iconColor: "text-success" },
-          { label: "Lucro Estimado", value: formatCurrency(portfolio.estimatedProfit), color: "text-success", iconBg: "bg-success/10", iconColor: "text-success" },
+          { label: "Capital na Rua", value: formatCurrency(portfolio.capitalOnStreet), color: "text-foreground", iconBg: "bg-primary/10", iconColor: "text-primary", tooltip: "Soma do valor principal (sem juros) de todos os contratos ativos que ainda não foram totalmente quitados. Representa quanto do seu dinheiro está atualmente emprestado." },
+          { label: "Total a Receber", value: formatCurrency(portfolio.totalToReceive), color: "text-foreground", iconBg: "bg-primary/10", iconColor: "text-primary", tooltip: "Soma de tudo que ainda falta receber dos contratos ativos: principal + juros de todas as parcelas em aberto." },
+          { label: "Pendente de Recebimento", value: formatCurrency(portfolio.pendingReceivable), color: "text-success", iconBg: "bg-success/10", iconColor: "text-success", tooltip: "Valor das parcelas já vencidas (atrasadas) que ainda não foram pagas. Indica quanto está em atraso no momento." },
+          { label: "Lucro Estimado", value: formatCurrency(portfolio.estimatedProfit), color: "text-success", iconBg: "bg-success/10", iconColor: "text-success", tooltip: "Total de juros previstos a receber considerando todos os contratos ativos até o final dos seus ciclos. É o lucro projetado se todos pagarem conforme o combinado." },
           { label: "Juros a Receber no Mês", value: formatCurrency(interestDueInPeriod), color: "text-success", iconBg: "bg-success/10", iconColor: "text-success", onClick: () => setShowInterestExpectedDetail(true), tooltip: "Valor bruto: soma a porção de juros de TODAS as parcelas com vencimento no mês selecionado, incluindo parcelas de contratos já quitados. Não diminui conforme os juros são pagos." },
-          { label: "Juros Recebidos no Mês", value: formatCurrency(interestReceivedInPeriod), color: "text-warning", iconBg: "bg-warning/10", iconColor: "text-warning", onClick: () => setShowInterestDetail(true) },
-          { label: "Juros Pendentes do Mês", value: formatCurrency(interestPendingInPeriod), color: "text-warning", iconBg: "bg-warning/10", iconColor: "text-warning" },
+          { label: "Juros Recebidos no Mês", value: formatCurrency(interestReceivedInPeriod), color: "text-warning", iconBg: "bg-warning/10", iconColor: "text-warning", onClick: () => setShowInterestDetail(true), tooltip: "Soma dos juros efetivamente recebidos através de pagamentos registrados no mês selecionado. Clique para ver o detalhamento por pagamento." },
+          { label: "Juros Pendentes do Mês", value: formatCurrency(interestPendingInPeriod), color: "text-warning", iconBg: "bg-warning/10", iconColor: "text-warning", tooltip: "Diferença entre os juros previstos do mês e os juros já recebidos. Mostra quanto de juros ainda falta entrar no período." },
         ];
 
         const pendingCard = items[2]; // Pendente de Recebimento
@@ -965,7 +965,8 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
             {/* Tablet (sm-lg): Pendente full width on top, then 2 rows of 3 */}
             <div className="hidden sm:grid lg:hidden gap-2">
               <Card no3d>
-                <CardContent className="p-4 flex flex-col items-center text-center">
+                <CardContent className="p-4 flex flex-col items-center text-center relative">
+                  {pendingCard.tooltip && <InfoPopover text={pendingCard.tooltip} />}
                   <div className={`h-8 w-8 rounded-lg ${pendingCard.iconBg} flex items-center justify-center mb-2`}>
                     <DollarSign className={`h-4 w-4 ${pendingCard.iconColor}`} />
                   </div>
@@ -1008,7 +1009,8 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
             {/* Mobile: Pendente full width on top, then 3 rows of 2 */}
             <div className="grid sm:hidden gap-2">
               <Card no3d>
-                <CardContent className="p-3 flex flex-col items-center text-center">
+                <CardContent className="p-3 flex flex-col items-center text-center relative">
+                  {pendingCard.tooltip && <InfoPopover text={pendingCard.tooltip} />}
                   <div className={`h-8 w-8 rounded-lg ${pendingCard.iconBg} flex items-center justify-center mb-2`}>
                     <DollarSign className={`h-4 w-4 ${pendingCard.iconColor}`} />
                   </div>
