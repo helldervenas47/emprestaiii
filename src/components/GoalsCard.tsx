@@ -126,14 +126,34 @@ export function GoalsCard({ loans, payments, expenses, clients, selectedMonth, p
   const [selectedGoalId, setSelectedGoalId] = useState<string | null>(null);
 
   const enriched = useMemo(() => {
-    // Filtra pelo mês selecionado, exceto metas sempre visíveis (ex: capital ativo)
-    const filtered = selectedMonth
-      ? goals.filter((g) => g.month === selectedMonth || ALWAYS_VISIBLE_GOALS.includes(g.goalType))
-      : goals;
-    // Para metas "sempre visíveis", usa o mês selecionado para o cálculo (snapshot atual)
-    return filtered.map((g) => {
+    // Para cada tipo de meta cadastrada, escolhe a melhor meta para o mês selecionado:
+    // 1) match exato; 2) mês anterior mais recente; 3) mês posterior mais próximo
+    const byType = new Map<GoalType, typeof goals>();
+    goals.forEach((g) => {
+      const arr = byType.get(g.goalType) || [];
+      arr.push(g);
+      byType.set(g.goalType, arr);
+    });
+
+    const chosen: typeof goals = [];
+    byType.forEach((list, type) => {
+      if (!selectedMonth) {
+        // Sem filtro: mantém todas (comportamento original)
+        chosen.push(...list);
+        return;
+      }
+      const exact = list.find((g) => g.month === selectedMonth);
+      if (exact) { chosen.push(exact); return; }
+      const earlier = list.filter((g) => g.month < selectedMonth).sort((a, b) => b.month.localeCompare(a.month))[0];
+      if (earlier) { chosen.push(earlier); return; }
+      const later = list.filter((g) => g.month > selectedMonth).sort((a, b) => a.month.localeCompare(b.month))[0];
+      if (later) { chosen.push(later); return; }
+    });
+
+    return chosen.map((g) => {
       const meta = GOAL_TYPE_META[g.goalType];
-      const computeMonth = ALWAYS_VISIBLE_GOALS.includes(g.goalType) && selectedMonth ? selectedMonth : g.month;
+      // Para metas sempre visíveis (snapshot atual) e para todas, usar o mês selecionado nos cálculos
+      const computeMonth = selectedMonth || g.month;
       const actual = computeActual(g.goalType, computeMonth, loans, payments, expenses, clients);
       let pct = 0;
       if (g.targetValue > 0) {
@@ -142,7 +162,10 @@ export function GoalsCard({ loans, payments, expenses, clients, selectedMonth, p
           : Math.min(100, (actual / g.targetValue) * 100);
       }
       return { ...g, actual, pct, meta };
-    }).sort((a, b) => b.month.localeCompare(a.month));
+    }).sort((a, b) => {
+      // Ordena por prioridade visual: inverse no fim, demais por % desc
+      return b.pct - a.pct;
+    });
   }, [goals, loans, payments, expenses, clients, selectedMonth]);
 
   const totalGoals = enriched.length;
@@ -212,6 +235,10 @@ export function GoalsCard({ loans, payments, expenses, clients, selectedMonth, p
                         {ALWAYS_VISIBLE_GOALS.includes(g.goalType) ? (
                           <Badge variant="outline" className="text-[8px] sm:text-[9px] px-1 py-0 h-3.5 border-primary/40 text-primary bg-primary/5 uppercase tracking-wide leading-none">
                             Sempre
+                          </Badge>
+                        ) : selectedMonth && g.month !== selectedMonth ? (
+                          <Badge variant="outline" className="text-[8px] sm:text-[9px] px-1 py-0 h-3.5 border-warning/40 text-warning bg-warning/5 uppercase tracking-wide leading-none" title={`Meta herdada de ${formatMonthLabel(g.month)}`}>
+                            Herdada · {formatMonthLabel(g.month)}
                           </Badge>
                         ) : (
                           <p className="text-[9px] sm:text-[10px] text-muted-foreground leading-tight">
