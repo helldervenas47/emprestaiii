@@ -171,6 +171,13 @@ Deno.serve(async (req) => {
       .maybeSingle();
     const ownerId = (ownerRow as any)?.owner_id || userId;
 
+    // Fetch brand name (singleton)
+    let brandName = "EmprestAI";
+    try {
+      const { data: bRow } = await supabase.from("app_branding").select("brand_name").limit(1).maybeSingle();
+      if ((bRow as any)?.brand_name) brandName = (bRow as any).brand_name;
+    } catch { /* ignore */ }
+
     const month = currentMonth();
     const monthStart = `${month}-01`;
     const [y, m] = month.split("-").map(Number);
@@ -265,12 +272,12 @@ Deno.serve(async (req) => {
       const pct = Math.round((p.spent / p.amount) * 100);
       const payload = p.type === "exceeded"
         ? JSON.stringify({
-            title: `⚠️ Orçamento estourado: ${p.category}`,
+            title: `${brandName} — ⚠️ Orçamento estourado: ${p.category}`,
             body: `Você cadastrou ${fmt(p.spent)} de ${fmt(p.amount)} (${fmt(p.spent - p.amount)} acima).`,
             url: "/?tab=expenses",
           })
         : JSON.stringify({
-            title: `🟡 Atenção: ${p.category} em ${pct}%`,
+            title: `${brandName} — 🟡 Atenção: ${p.category} em ${pct}%`,
             body: `Você já cadastrou ${fmt(p.spent)} de ${fmt(p.amount)}. Aproximando do limite.`,
             url: "/?tab=expenses",
           });
@@ -298,7 +305,7 @@ Deno.serve(async (req) => {
           if (tgLink?.chat_id) {
             await sendTelegram(
               Number(tgLink.chat_id),
-              `🚨 *Orçamento estourado!*\n\n📂 ${p.category}\n💸 Gasto: ${fmt(p.spent)} / ${fmt(p.amount)} (${pct}%)\n\nVocê ultrapassou o limite mensal desta categoria.`,
+              `🚨 *${brandName} — Orçamento estourado!*\n\n📂 ${p.category}\n💸 Gasto: ${fmt(p.spent)} / ${fmt(p.amount)} (${pct}%)\n\nVocê ultrapassou o limite mensal desta categoria.`,
               lovableKey,
               telegramKey,
             );
