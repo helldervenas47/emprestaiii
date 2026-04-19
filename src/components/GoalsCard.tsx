@@ -4,6 +4,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 import { useHideValues } from "@/contexts/HideValuesContext";
 import { useMonthlyGoals, GoalType, formatMonthLabel } from "@/hooks/useMonthlyGoals";
 import { Loan, Payment, Expense, Client } from "@/types/loan";
@@ -302,6 +304,20 @@ interface DialogProps {
 
 function GoalDetailDialog({ open, onClose, goal, viewingMonth }: DialogProps) {
   const { hidden } = useHideValues();
+  const { upsertGoal } = useMonthlyGoals();
+  const [creating, setCreating] = useState(false);
+
+  const handleCreateForMonth = async () => {
+    if (!goal || !viewingMonth) return;
+    setCreating(true);
+    try {
+      await upsertGoal(goal.goalType, viewingMonth, goal.targetValue, goal.notes || undefined);
+    } catch (e) {
+      toast.error("Erro ao criar meta");
+    } finally {
+      setCreating(false);
+    }
+  };
 
   const analysis = useMemo(() => {
     if (!goal) return null;
@@ -473,6 +489,16 @@ function GoalDetailDialog({ open, onClose, goal, viewingMonth }: DialogProps) {
                   Não há meta cadastrada para {formatMonthLabel(viewingMonth)}. Os valores realizados e a análise abaixo
                   consideram <strong>{formatMonthLabel(viewingMonth)}</strong>, comparados ao alvo definido em {formatMonthLabel(goal.month)}.
                 </p>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="mt-2 h-7 text-[11px] border-warning/40 text-warning hover:bg-warning/10"
+                  onClick={handleCreateForMonth}
+                  disabled={creating}
+                >
+                  <Target className="h-3 w-3" />
+                  {creating ? "Criando..." : `Criar meta para ${formatMonthLabel(viewingMonth)}`}
+                </Button>
               </div>
             </div>
           )}
