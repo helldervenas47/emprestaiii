@@ -80,7 +80,7 @@ function getLoanRemaining(loan: any, payments: any[], schedules: any[], today: s
   return Math.max(0, total - totalPaid);
 }
 
-async function buildBillingReport(admin: any, ownerId: string, today: string): Promise<string> {
+async function buildBillingReport(admin: any, ownerId: string, today: string, brandName: string): Promise<string> {
   const [{ data: loans }, { data: payments }, { data: schedules }] = await Promise.all([
     admin.from("loans").select("*").eq("user_id", ownerId).neq("status", "paid"),
     admin.from("payments").select("loan_id, amount").eq("user_id", ownerId),
@@ -121,7 +121,7 @@ async function buildBillingReport(admin: any, ownerId: string, today: string): P
   const totPending = totDue + totOver;
 
   const lines: string[] = [];
-  lines.push(`📊 *RELATÓRIO DIÁRIO*`);
+  lines.push(`📊 *${brandName} — RELATÓRIO DIÁRIO*`);
   lines.push(`🗓 ${formatDateBR(today)} • ${getDayOfWeek(today)}`);
   lines.push(``);
   lines.push(`━━━━━━━━━━━━━━━━━━━━━`);
@@ -228,6 +228,13 @@ Deno.serve(async (req) => {
   const { data: prefs, error } = await query;
   if (error) return new Response(JSON.stringify({ error: error.message }), { status: 500, headers: corsHeaders });
 
+  // Fetch brand name (singleton)
+  let brandName = "EmprestAI";
+  try {
+    const { data: bRow } = await admin.from("app_branding").select("brand_name").limit(1).maybeSingle();
+    if (bRow?.brand_name) brandName = bRow.brand_name;
+  } catch { /* ignore */ }
+
   let sent = 0;
   const errors: string[] = [];
 
@@ -261,7 +268,7 @@ Deno.serve(async (req) => {
         .select("chat_id").eq("user_id", pref.user_id).maybeSingle();
       if (!link) continue;
 
-      const report = await buildBillingReport(admin, pref.user_id, today);
+      const report = await buildBillingReport(admin, pref.user_id, today, brandName);
 
       await tgSend(Number(link.chat_id), report, LOVABLE_API_KEY, TELEGRAM_API_KEY);
 
