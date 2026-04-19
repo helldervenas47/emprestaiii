@@ -56,6 +56,7 @@ async function buildAndSendWeekly(
   today: string,
   lovableKey: string,
   telegramKey: string,
+  brandName: string,
 ): Promise<boolean> {
   const { data: link } = await admin.from("telegram_links")
     .select("chat_id").eq("user_id", userId).maybeSingle();
@@ -88,7 +89,7 @@ async function buildAndSendWeekly(
 
   const dayNames = ["dom", "seg", "ter", "qua", "qui", "sex", "sáb"];
   const lines: string[] = [];
-  lines.push(`📅 *Resumo semanal* — ${fmtDateBR(weekStart)} a ${fmtDateBR(today)}`);
+  lines.push(`📅 *${brandName} — Resumo semanal* — ${fmtDateBR(weekStart)} a ${fmtDateBR(today)}`);
   lines.push("");
   lines.push(`💸 Total da semana: *${fmtBRL(totalWeek)}*`);
   lines.push(`   (${(expenses ?? []).length} ${(expenses ?? []).length === 1 ? "despesa" : "despesas"})`);

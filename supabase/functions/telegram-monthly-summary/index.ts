@@ -72,6 +72,7 @@ async function buildAndSendMonthly(
   today: string,
   lovableKey: string,
   telegramKey: string,
+  brandName: string,
 ): Promise<boolean> {
   const { data: link } = await admin.from("telegram_links")
     .select("chat_id").eq("user_id", userId).maybeSingle();
@@ -115,7 +116,7 @@ async function buildAndSendMonthly(
   const dailyAvg = currS.total / Math.max(1, daysElapsed);
 
   const lines: string[] = [];
-  lines.push(`📆 *Resumo mensal* — ${monthNamePt(currMonth)}`);
+  lines.push(`📆 *${brandName} — Resumo mensal* — ${monthNamePt(currMonth)}`);
   lines.push("");
   lines.push(`💸 Total: *${fmtBRL(currS.total)}*  ${variation(currS.total, prevS.total)}`);
   lines.push(`   Mês passado: ${fmtBRL(prevS.total)}`);
