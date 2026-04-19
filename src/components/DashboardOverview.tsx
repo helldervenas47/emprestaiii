@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
 
 const InfoPopover = ({ text }: { text: string }) => (
   <Popover>
@@ -41,7 +42,6 @@ const InfoPopover = ({ text }: { text: string }) => (
     </PopoverContent>
   </Popover>
 );
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
 
 interface Props {
   loans: Loan[];
