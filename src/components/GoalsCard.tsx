@@ -781,6 +781,101 @@ function GoalDetailDialog({ open, onClose, goal, viewingMonth }: DialogProps) {
                 </CardContent>
               </Card>
             )}
+
+            {/* Como esta meta é calculada */}
+            {(() => {
+              const exp = GOAL_EXPLANATIONS[goal.goalType];
+              if (!exp) return null;
+              return (
+                <Card no3d className="border-primary/20 bg-gradient-to-br from-primary/5 to-transparent">
+                  <CardContent className="p-4 space-y-4">
+                    <div className="flex items-center gap-2">
+                      <div className="h-7 w-7 rounded-md bg-primary/15 flex items-center justify-center shrink-0">
+                        <BookOpen className="h-3.5 w-3.5 text-primary" />
+                      </div>
+                      <div>
+                        <h4 className="text-sm font-semibold text-foreground leading-tight">Como esta meta é calculada</h4>
+                        <p className="text-[10px] text-muted-foreground leading-tight">Entenda a fórmula, os dados e veja um exemplo prático</p>
+                      </div>
+                    </div>
+
+                    {/* Fórmula */}
+                    <div className="rounded-md border border-border bg-card/60 p-3">
+                      <div className="flex items-center gap-1.5 mb-1.5">
+                        <Calculator className="h-3.5 w-3.5 text-primary" />
+                        <span className="text-[11px] font-semibold text-foreground uppercase tracking-wide">Fórmula</span>
+                      </div>
+                      <p className="text-xs text-foreground leading-snug font-mono bg-muted/40 rounded px-2 py-1.5">
+                        {exp.formula}
+                      </p>
+                    </div>
+
+                    {/* Indicadores */}
+                    <div className="rounded-md border border-border bg-card/60 p-3">
+                      <div className="flex items-center gap-1.5 mb-1.5">
+                        <Target className="h-3.5 w-3.5 text-primary" />
+                        <span className="text-[11px] font-semibold text-foreground uppercase tracking-wide">Indicadores considerados</span>
+                      </div>
+                      <ul className="space-y-1">
+                        {exp.indicators.map((ind, i) => (
+                          <li key={i} className="text-xs text-foreground flex items-start gap-2 leading-snug">
+                            <span className="text-primary mt-0.5">•</span>
+                            <span>{ind}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+
+                    {/* Origem dos dados */}
+                    <div className="rounded-md border border-border bg-card/60 p-3">
+                      <div className="flex items-center gap-1.5 mb-1.5">
+                        <Database className="h-3.5 w-3.5 text-primary" />
+                        <span className="text-[11px] font-semibold text-foreground uppercase tracking-wide">Origem dos dados</span>
+                      </div>
+                      <ul className="space-y-1">
+                        {exp.dataSource.map((src, i) => (
+                          <li key={i} className="text-xs text-muted-foreground flex items-start gap-2 leading-snug">
+                            <span className="text-primary mt-0.5">›</span>
+                            <span>{src}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+
+                    {/* Exemplo prático */}
+                    <div className="rounded-md border border-success/30 bg-success/5 p-3">
+                      <div className="flex items-center gap-1.5 mb-2">
+                        <FlaskConical className="h-3.5 w-3.5 text-success" />
+                        <span className="text-[11px] font-semibold text-success uppercase tracking-wide">Exemplo prático</span>
+                      </div>
+                      <div className="space-y-1.5 text-xs">
+                        <div>
+                          <span className="text-[10px] text-muted-foreground uppercase">Cenário</span>
+                          <p className="text-foreground leading-snug">{exp.example.setup}</p>
+                        </div>
+                        <div>
+                          <span className="text-[10px] text-muted-foreground uppercase">Cálculo</span>
+                          <p className="text-foreground leading-snug font-mono bg-muted/40 rounded px-2 py-1">{exp.example.calc}</p>
+                        </div>
+                        <div>
+                          <span className="text-[10px] text-muted-foreground uppercase">Resultado</span>
+                          <p className="text-success font-semibold leading-snug">{exp.example.result}</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Como é medido */}
+                    <div className="rounded-md border border-primary/30 bg-primary/5 p-3">
+                      <div className="flex items-center gap-1.5 mb-1.5">
+                        <Sparkles className="h-3.5 w-3.5 text-primary" />
+                        <span className="text-[11px] font-semibold text-primary uppercase tracking-wide">Como o progresso é medido</span>
+                      </div>
+                      <p className="text-xs text-foreground leading-snug">{exp.measurement}</p>
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })()}
           </div>
         </ScrollArea>
       </DialogContent>
