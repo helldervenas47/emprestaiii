@@ -48,6 +48,13 @@ Deno.serve(async (req) => {
 
   const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
+  // Fetch brand name once for this invocation
+  let brandName = "EmprestAI";
+  try {
+    const { data: bRow } = await admin.from("app_branding").select("brand_name").limit(1).maybeSingle();
+    if (bRow?.brand_name) brandName = bRow.brand_name;
+  } catch (_) { /* ignore */ }
+
   const url = new URL(req.url);
   let forceUserId = url.searchParams.get("user_id");
 
@@ -156,7 +163,7 @@ Deno.serve(async (req) => {
         .eq("user_id", pref.user_id);
 
       const lines: string[] = [];
-      lines.push(`📊 *Resumo do dia* — ${today.split("-").reverse().join("/")}`);
+      lines.push(`📊 *${brandName} — Resumo do dia* — ${today.split("-").reverse().join("/")}`);
       lines.push("");
       lines.push(`💸 Total gasto hoje: *${fmtBRL(totalToday)}*`);
       lines.push(`   (${(expenses ?? []).length} ${(expenses ?? []).length === 1 ? "despesa" : "despesas"})`);
