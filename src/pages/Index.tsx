@@ -1,6 +1,7 @@
 import { useState, useEffect, lazy, Suspense } from "react";
 import { Plus, Users, LayoutDashboard, ShoppingBag, BarChart3, AlertTriangle, Receipt, CalendarDays, Sun, Moon, LogOut, Info, X, Eye, EyeOff, Car, Wrench, DatabaseBackup, Menu, User, RefreshCw, Bell, Target, Calculator, Settings as SettingsIcon } from "lucide-react";
 import { AppLogo } from "@/components/AppLogo";
+import { useAppBranding } from "@/hooks/useAppBranding";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { useIsMobile, useIsMobileOrTablet } from "@/hooks/use-mobile";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -402,9 +403,9 @@ const Index = () => {
                 <SheetContent side="left" className="w-64 p-0">
                   <div className="flex flex-col h-full">
                     <div className="p-4 border-b border-border/30 flex items-center gap-3">
-<AppLogo area="header" alt="EmprestAI" className="w-auto" />
+<AppLogo area="header" alt={brandName} className="w-auto" />
                       <div>
-                        <h1 className="text-lg font-bold text-foreground tracking-tight">EmprestAI</h1>
+                        <h1 className="text-lg font-bold text-foreground tracking-tight">{brandName}</h1>
                         <p className="text-[10px] text-muted-foreground uppercase tracking-widest">Controle de empréstimos</p>
                       </div>
                     </div>
@@ -442,9 +443,9 @@ const Index = () => {
                 </SheetContent>
               </Sheet>
             )}
-<AppLogo area="header" alt="EmprestAI" className="w-auto" />
+<AppLogo area="header" alt={brandName} className="w-auto" />
             <div className="hidden sm:block">
-              <h1 className="text-lg font-bold text-foreground tracking-tight">EmprestAI</h1>
+              <h1 className="text-lg font-bold text-foreground tracking-tight">{brandName}</h1>
               <p className="text-[10px] text-muted-foreground uppercase tracking-widest">Controle de empréstimos</p>
             </div>
           </div>
