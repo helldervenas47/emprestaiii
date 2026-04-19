@@ -711,10 +711,23 @@ export function AccountantReport({ loans, payments, sales, expenses }: Accountan
       {/* Filtro de período */}
       <Card>
         <CardHeader className="pb-3">
-          <CardTitle className="flex items-center gap-2 text-base">
-            <Calculator className="h-4 w-4 text-primary" /> Relatório Contábil
-          </CardTitle>
-          <CardDescription>DRE, controle de impostos e fluxo de caixa da empresa.</CardDescription>
+          <div className="flex items-start justify-between gap-2">
+            <div className="flex-1 min-w-0">
+              <CardTitle className="flex items-center gap-2 text-base">
+                <Calculator className="h-4 w-4 text-primary" /> Relatório Contábil
+              </CardTitle>
+              <CardDescription>DRE, controle de impostos e fluxo de caixa da empresa.</CardDescription>
+            </div>
+            <Button
+              size="sm"
+              onClick={exportConsolidatedPDF}
+              className="shrink-0 h-8 gap-1"
+            >
+              <Download className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">PDF Consolidado</span>
+              <span className="sm:hidden">PDF</span>
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
           <div className="flex flex-wrap gap-2 items-center">
