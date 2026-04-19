@@ -33,7 +33,12 @@ interface Props {
   payments: Payment[];
   expenses: Expense[];
   clients: Client[];
+  selectedMonth?: string; // YYYY-MM — filtra metas exibidas (exceto active_capital)
+  periodLabel?: string;
 }
+
+// Metas que NÃO devem ser filtradas pelo mês (sempre visíveis)
+const ALWAYS_VISIBLE_GOALS: GoalType[] = ["active_capital"];
 
 function inMonth(dateStr: string | undefined | null, month: string): boolean {
   if (!dateStr) return false;
@@ -115,15 +120,21 @@ function computeActual(
   }
 }
 
-export function GoalsCard({ loans, payments, expenses, clients }: Props) {
+export function GoalsCard({ loans, payments, expenses, clients, selectedMonth, periodLabel }: Props) {
   const { goals } = useMonthlyGoals();
   const { hidden } = useHideValues();
   const [selectedGoalId, setSelectedGoalId] = useState<string | null>(null);
 
   const enriched = useMemo(() => {
-    return goals.map((g) => {
+    // Filtra pelo mês selecionado, exceto metas sempre visíveis (ex: capital ativo)
+    const filtered = selectedMonth
+      ? goals.filter((g) => g.month === selectedMonth || ALWAYS_VISIBLE_GOALS.includes(g.goalType))
+      : goals;
+    // Para metas "sempre visíveis", usa o mês selecionado para o cálculo (snapshot atual)
+    return filtered.map((g) => {
       const meta = GOAL_TYPE_META[g.goalType];
-      const actual = computeActual(g.goalType, g.month, loans, payments, expenses, clients);
+      const computeMonth = ALWAYS_VISIBLE_GOALS.includes(g.goalType) && selectedMonth ? selectedMonth : g.month;
+      const actual = computeActual(g.goalType, computeMonth, loans, payments, expenses, clients);
       let pct = 0;
       if (g.targetValue > 0) {
         pct = meta?.inverse
@@ -132,7 +143,7 @@ export function GoalsCard({ loans, payments, expenses, clients }: Props) {
       }
       return { ...g, actual, pct, meta };
     }).sort((a, b) => b.month.localeCompare(a.month));
-  }, [goals, loans, payments, expenses, clients]);
+  }, [goals, loans, payments, expenses, clients, selectedMonth]);
 
   const totalGoals = enriched.length;
   const onTrack = enriched.filter((g) => g.pct >= 80).length;
@@ -171,7 +182,9 @@ export function GoalsCard({ loans, payments, expenses, clients }: Props) {
 
         {enriched.length === 0 ? (
           <div className="text-center py-8 text-sm text-muted-foreground">
-            Nenhuma meta cadastrada. Cadastre metas em Configurações → Metas para acompanhar aqui.
+            {selectedMonth
+              ? `Nenhuma meta cadastrada para ${periodLabel || formatMonthLabel(selectedMonth)}.`
+              : "Nenhuma meta cadastrada. Cadastre metas em Configurações → Metas para acompanhar aqui."}
           </div>
         ) : (
           <div className="grid grid-cols-2 md:grid-cols-3 gap-2 sm:gap-3">
