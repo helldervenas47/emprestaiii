@@ -7,6 +7,7 @@ export interface DailyPlanningTgPrefs {
   send_time_1: string | null;
   send_time_2: string | null;
   send_time_3: string | null;
+  send_target: "today" | "tomorrow";
 }
 
 const DEFAULT_PREFS: DailyPlanningTgPrefs = {
@@ -14,6 +15,7 @@ const DEFAULT_PREFS: DailyPlanningTgPrefs = {
   send_time_1: "08:00",
   send_time_2: null,
   send_time_3: null,
+  send_target: "tomorrow",
 };
 
 export function useDailyPlanningTelegramPrefs() {
@@ -26,7 +28,7 @@ export function useDailyPlanningTelegramPrefs() {
     if (!user) { setLoading(false); return; }
     const { data } = await supabase
       .from("daily_planning_telegram_prefs" as any)
-      .select("enabled, send_time_1, send_time_2, send_time_3")
+      .select("enabled, send_time_1, send_time_2, send_time_3, send_target")
       .eq("user_id", user.id)
       .maybeSingle();
     if (data) {
@@ -35,6 +37,7 @@ export function useDailyPlanningTelegramPrefs() {
         send_time_1: (data as any).send_time_1,
         send_time_2: (data as any).send_time_2,
         send_time_3: (data as any).send_time_3,
+        send_target: ((data as any).send_target ?? "tomorrow") as "today" | "tomorrow",
       });
     }
     setLoading(false);
