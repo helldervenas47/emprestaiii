@@ -98,7 +98,20 @@ export function BrandingSettings() {
   };
 
   const dirty = JSON.stringify(draftSizes) !== JSON.stringify(branding.sizes);
+  const nameDirty = (draftName || "").trim() !== branding.brand_name;
   const previewSrc = branding.logo_url || FALLBACK_LOGO;
+
+  const handleSaveName = async () => {
+    setSavingName(true);
+    try {
+      await saveBrandName(draftName);
+      toast.success("Nome da marca salvo.");
+    } catch (e: any) {
+      toast.error("Falha ao salvar: " + (e?.message || "erro desconhecido"));
+    } finally {
+      setSavingName(false);
+    }
+  };
 
   return (
     <div className="space-y-6">
