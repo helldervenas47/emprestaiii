@@ -948,10 +948,9 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
             {/* Desktop: all 7 in one row */}
             <div className="hidden lg:grid lg:grid-cols-7 gap-2">
               {items.map((item) => (
-                <Card no3d key={item.label} className={item.onClick ? "cursor-pointer hover:bg-accent/50 transition-colors" : ""} onClick={item.onClick} title={item.tooltip}>
+                <Card no3d key={item.label} className={item.onClick ? "cursor-pointer hover:bg-accent/50 transition-colors" : ""} onClick={item.onClick}>
                   <CardContent className="p-3 flex flex-col items-center text-center relative">
-                    {item.tooltip && <Info className="h-3 w-3 text-muted-foreground absolute top-2 left-2" />}
-                    {item.tooltip && <Info className="h-3 w-3 text-muted-foreground absolute top-2 left-2" />}
+                    {item.tooltip && <InfoPopover text={item.tooltip} />}
                       {item.onClick && <Eye className="h-3 w-3 text-muted-foreground absolute top-2 right-2" />}
                     <div className={`h-6 w-6 rounded-md ${item.iconBg} flex items-center justify-center mb-1.5`}>
                       <DollarSign className={`h-3 w-3 ${item.iconColor}`} />
