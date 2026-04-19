@@ -8,11 +8,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { Plus, X, PiggyBank } from "lucide-react";
+import { Plus, X, PiggyBank, PlusCircle } from "lucide-react";
 import { Expense } from "@/types/loan";
-import { personalCategories } from "@/lib/personalExpenseCategories";
+import { personalCategories, resolvePersonalIcon } from "@/lib/personalExpenseCategories";
 import { usePiggyBanks, buildPiggyTag } from "@/hooks/usePiggyBanks";
 import { useCreditCards } from "@/hooks/useCreditCards";
+import { usePersonalExpenseCategories } from "@/hooks/usePersonalExpenseCategories";
+import { PersonalCategoryCreator } from "@/components/PersonalCategoryCreator";
 
 /** Pick the user's default credit card — prefers Nubank, falls back to first card. */
 function pickDefaultCard<T extends { bank: string; nickname: string }>(cards: T[]): T | null {
@@ -38,8 +40,10 @@ const FIXED_RECURRING_INSTALLMENTS = 999;
 export function PersonalExpenseForm({ onAdd, onClose }: Props) {
   const { piggyBanks, addDeposit, createRecurrence } = usePiggyBanks();
   const { cards } = useCreditCards();
+  const { categories: customCategories, create: createCategory } = usePersonalExpenseCategories();
   const [showSuccess, setShowSuccess] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [creatorOpen, setCreatorOpen] = useState(false);
 
   const [form, setForm] = useState({
     description: "",
@@ -316,7 +320,19 @@ export function PersonalExpenseForm({ onAdd, onClose }: Props) {
 
             {!toPiggy && (
               <div>
-                <Label>Categoria</Label>
+                <div className="flex items-center justify-between">
+                  <Label>Categoria</Label>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 px-2 text-xs"
+                    onClick={() => setCreatorOpen(true)}
+                  >
+                    <PlusCircle className="mr-1 h-3.5 w-3.5" />
+                    Nova categoria
+                  </Button>
+                </div>
                 <Select value={form.category} onValueChange={(v) => update("category", v)}>
                   <SelectTrigger>
                     <SelectValue placeholder="Selecione uma categoria" />
@@ -326,6 +342,20 @@ export function PersonalExpenseForm({ onAdd, onClose }: Props) {
                       const Icon = c.icon;
                       return (
                         <SelectItem key={c.name} value={c.name}>
+                          <span className="inline-flex items-center gap-2">
+                            <Icon className="h-3.5 w-3.5" style={{ color: `hsl(${c.color})` }} />
+                            {c.name}
+                          </span>
+                        </SelectItem>
+                      );
+                    })}
+                    {customCategories.length > 0 && (
+                      <div className="my-1 border-t border-border" />
+                    )}
+                    {customCategories.map((c) => {
+                      const Icon = resolvePersonalIcon(c.icon);
+                      return (
+                        <SelectItem key={c.id} value={c.name}>
                           <span className="inline-flex items-center gap-2">
                             <Icon className="h-3.5 w-3.5" style={{ color: `hsl(${c.color})` }} />
                             {c.name}
@@ -419,6 +449,13 @@ export function PersonalExpenseForm({ onAdd, onClose }: Props) {
           </form>
         </CardContent>
       </Card>
+
+      <PersonalCategoryCreator
+        open={creatorOpen}
+        onOpenChange={setCreatorOpen}
+        createCategory={createCategory}
+        onCreated={(cat) => update("category", cat.name)}
+      />
     </div>
   );
 }

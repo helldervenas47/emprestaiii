@@ -20,7 +20,8 @@ import {
 } from "lucide-react";
 import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
 import { ExpenseEditDialog } from "@/components/ExpenseEditDialog";
-import { personalCategories, getPersonalCategory } from "@/lib/personalExpenseCategories";
+import { personalCategories, getPersonalCategory, resolvePersonalIcon, type PersonalCategory } from "@/lib/personalExpenseCategories";
+import { usePersonalExpenseCategories } from "@/hooks/usePersonalExpenseCategories";
 import { Progress } from "@/components/ui/progress";
 import { usePersonalBudgets } from "@/hooks/usePersonalBudgets";
 import { isPiggyExpense } from "@/hooks/usePiggyBanks";
@@ -58,6 +59,15 @@ const isOverdue = (e: Expense) =>
 export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, onUpdate, readOnly = false, afterEvolution }: Props) {
   const { mask } = useHideValues();
   const formatCurrency = useCallback((v: number) => mask(fmt(v)), [mask]);
+  const { categories: customCategories } = usePersonalExpenseCategories();
+  const customCategoryList = useMemo<PersonalCategory[]>(
+    () => customCategories.map((c) => ({ name: c.name, icon: resolvePersonalIcon(c.icon), color: c.color, id: c.id, custom: true })),
+    [customCategories],
+  );
+  const resolveCategory = useCallback(
+    (name: string) => getPersonalCategory(name, customCategoryList),
+    [customCategoryList],
+  );
 
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<Filter>("all");
@@ -174,13 +184,13 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, onUpda
     });
     const arr = [...map.entries()]
       .filter(([, value]) => value > 0)
-      .map(([name, value]) => ({ name, value, cat: getPersonalCategory(name) }))
+      .map(([name, value]) => ({ name, value, cat: resolveCategory(name) }))
       .sort((a, b) => b.value - a.value);
     if (arr.length <= 6) return arr;
     const top = arr.slice(0, 5);
     const rest = arr.slice(5).reduce((s, it) => s + it.value, 0);
-    return [...top, { name: "Outros", value: rest, cat: getPersonalCategory("Outros") }];
-  }, [spendingMonth, getInstallmentAmount]);
+    return [...top, { name: "Outros", value: rest, cat: resolveCategory("Outros") }];
+  }, [spendingMonth, getInstallmentAmount, resolveCategory]);
 
   const totalCategorized = categoryData.reduce((s, it) => s + it.value, 0);
 
@@ -431,7 +441,7 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, onUpda
                   })
                   .slice(0, 4)
                   .map((b) => {
-                    const cat = getPersonalCategory(b.category);
+                    const cat = resolveCategory(b.category);
                     const Icon = cat.icon;
                     const spent = spentByCategory.get(b.category) || 0;
                     const pct = b.amount > 0 ? Math.min(200, (spent / b.amount) * 100) : 0;
@@ -690,7 +700,7 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, onUpda
             const overdue = isOverdue(expense);
             const isRecorrente = expense.type === "recorrente" && expense.installments && expense.installments > 1;
             const installmentAmount = isRecorrente ? expense.amount / expense.installments! : expense.amount;
-            const cat = getPersonalCategory(expense.category);
+            const cat = resolveCategory(expense.category);
             const Icon = cat.icon;
 
             return (
