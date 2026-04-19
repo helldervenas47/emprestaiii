@@ -677,7 +677,7 @@ function GoalDetailDialog({ open, onClose, goal, viewingMonth }: DialogProps) {
           )}
         </DialogHeader>
 
-        <ScrollArea className="flex-1 -mx-6 px-6">
+        <div className="flex-1 -mx-6 px-6 overflow-y-auto overscroll-contain" style={{ WebkitOverflowScrolling: "touch" }}>
           <div className="space-y-4 pb-2">
             {/* Resumo */}
             <Card no3d className="bg-muted/30">
