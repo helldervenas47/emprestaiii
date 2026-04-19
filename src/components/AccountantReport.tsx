@@ -535,13 +535,27 @@ export function AccountantReport({ loans, payments, sales, expenses }: Accountan
         <TabsContent value="simulation" className="space-y-3 mt-4">
           <Card>
             <CardHeader className="pb-3">
-              <CardTitle className="text-sm flex items-center gap-2">
-                <Sparkles className="h-4 w-4 text-primary" /> Simulador de Impostos
-              </CardTitle>
-              <CardDescription className="text-xs">
-                Estimativa baseada nos juros recebidos no período selecionado ({fmt(taxSim.base, hidden)}).
-                Valores aproximados — consulte um contador para precisão fiscal.
-              </CardDescription>
+              <div className="flex items-start justify-between gap-2">
+                <div className="flex-1 min-w-0">
+                  <CardTitle className="text-sm flex items-center gap-2">
+                    <Sparkles className="h-4 w-4 text-primary" /> Simulador de Impostos
+                  </CardTitle>
+                  <CardDescription className="text-xs mt-1">
+                    Estimativa baseada nos juros recebidos no período selecionado ({fmt(taxSim.base, hidden)}).
+                    Valores aproximados — consulte um contador para precisão fiscal.
+                  </CardDescription>
+                </div>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={exportTaxSimulationPDF}
+                  disabled={taxSim.base === 0}
+                  className="shrink-0 h-8"
+                >
+                  <Download className="h-3.5 w-3.5 sm:mr-1" />
+                  <span className="hidden sm:inline">PDF</span>
+                </Button>
+              </div>
             </CardHeader>
             <CardContent className="space-y-3">
               <Select value={taxRegime} onValueChange={(v: "simples" | "presumido" | "irpf") => setTaxRegime(v)}>
