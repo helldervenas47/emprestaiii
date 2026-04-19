@@ -1,6 +1,6 @@
 // Service Worker for Web Push Notifications
 self.addEventListener('push', (event) => {
-  let data = { title: 'Empréstai', body: 'Você tem parcelas pendentes!' };
+  let data = { title: 'Notificação', body: 'Você tem parcelas pendentes!' };
   
   if (event.data) {
     try {
@@ -22,7 +22,7 @@ self.addEventListener('push', (event) => {
   };
 
   event.waitUntil(
-    self.registration.showNotification(data.title || 'Empréstai', options)
+    self.registration.showNotification(data.title || 'Notificação', options)
   );
 });
 

@@ -329,6 +329,17 @@ Deno.serve(async (req) => {
           continue;
         }
 
+        // Fetch the configured brand name (singleton)
+        let brandName = "Notificações";
+        try {
+          const { data: brandRow } = await supabase
+            .from("app_branding")
+            .select("brand_name")
+            .limit(1)
+            .maybeSingle();
+          if (brandRow?.brand_name) brandName = brandRow.brand_name;
+        } catch (_) { /* ignore */ }
+
         // Fetch active loans for this user
         const { data: loans } = await supabase
           .from("loans")
@@ -354,7 +365,7 @@ Deno.serve(async (req) => {
 
         if (overdue.length > 0 && shouldSend("parcelas_atrasadas")) {
           payloads.push(JSON.stringify({
-            title: "📊 Empréstai — Parcelas Atrasadas",
+            title: `📊 ${brandName} — Parcelas Atrasadas`,
             body: `🔴 ${overdue.length} parcela(s) atrasada(s) — ${formatCurrency(totalOverdue)}`,
             url: "/?tab=dashboard&filter=overdue&view=rows",
           }));
@@ -362,7 +373,7 @@ Deno.serve(async (req) => {
         if (dueToday.length > 0 && shouldSend("parcelas_hoje")) {
           const totalToday = dueToday.reduce((s: number, l: any) => s + Number(l.remaining_amount || 0), 0);
           payloads.push(JSON.stringify({
-            title: "📊 Empréstai — Parcelas de Hoje",
+            title: `📊 ${brandName} — Parcelas de Hoje`,
             body: `🟡 ${dueToday.length} parcela(s) vence(m) hoje — ${formatCurrency(totalToday)}`,
             url: "/?tab=dashboard&filter=due_today&view=rows",
           }));
@@ -376,7 +387,7 @@ Deno.serve(async (req) => {
             body += `🟡 ${dueToday.length} vence(m) hoje — ${formatCurrency(totalToday)}`;
           }
           payloads.push(JSON.stringify({
-            title: "📊 Empréstai — Resumo Diário",
+            title: `📊 ${brandName} — Resumo Diário`,
             body,
             url: "/?tab=overdue",
           }));
