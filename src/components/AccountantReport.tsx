@@ -587,6 +587,7 @@ export function AccountantReport({ loans, payments, sales, expenses }: Accountan
 
       // ===== Seção 2: Impostos =====
       doc.addPage();
+      drawBrandingLogo(doc, branding);
       doc.setFont("helvetica", "bold");
       doc.setFontSize(14);
       doc.text("2. Controle de Impostos", 14, 20);
@@ -634,6 +635,7 @@ export function AccountantReport({ loans, payments, sales, expenses }: Accountan
 
       // ===== Seção 3: Simulação =====
       doc.addPage();
+      drawBrandingLogo(doc, branding);
       doc.setFont("helvetica", "bold");
       doc.setFontSize(14);
       doc.text("3. Simulação de Impostos", 14, 20);
@@ -679,6 +681,7 @@ export function AccountantReport({ loans, payments, sales, expenses }: Accountan
 
       // ===== Seção 4: Fluxo de Caixa =====
       doc.addPage();
+      drawBrandingLogo(doc, branding);
       doc.setFont("helvetica", "bold");
       doc.setFontSize(14);
       doc.text("4. Fluxo de Caixa", 14, 20);
