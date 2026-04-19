@@ -162,24 +162,33 @@ export async function generateContract(sale: Sale, client?: Client, locador?: Lo
   .witness-block { flex: 1; }
   .witness-line { border-top: 1px solid #000; padding-top: 6px; font-size: 13px; }
   .location-date { margin-top: 30px; text-align: left; font-size: 14px; }
-  .close-btn {
+  .action-bar {
     position: fixed;
     top: 16px;
     right: 16px;
-    background: #e53e3e;
+    display: flex;
+    gap: 8px;
+    z-index: 9999;
+  }
+  .action-btn {
     color: #fff;
     border: none;
     border-radius: 8px;
-    padding: 10px 20px;
-    font-size: 15px;
+    padding: 10px 18px;
+    font-size: 14px;
     font-weight: bold;
     cursor: pointer;
-    z-index: 9999;
     box-shadow: 0 2px 8px rgba(0,0,0,0.2);
   }
+  .pdf-btn { background: #2563eb; }
+  .pdf-btn:hover { background: #1d4ed8; }
+  .pdf-btn:disabled { background: #94a3b8; cursor: wait; }
+  .print-btn { background: #16a34a; }
+  .print-btn:hover { background: #15803d; }
+  .close-btn { background: #e53e3e; }
   .close-btn:hover { background: #c53030; }
   @media print {
-    .close-btn { display: none; }
+    .action-bar { display: none; }
     body { padding: 30px 40px; }
     @page { margin: 1.5cm; }
   }
@@ -187,10 +196,16 @@ export async function generateContract(sale: Sale, client?: Client, locador?: Lo
 </head>
 <body>
 
-<button class="close-btn" onclick="window.close()">✕ Fechar</button>
+<div class="action-bar">
+  <button class="action-btn pdf-btn" id="downloadPdfBtn">⬇ Baixar PDF</button>
+  <button class="action-btn print-btn" onclick="window.print()">🖨 Imprimir</button>
+  <button class="action-btn close-btn" onclick="window.close()">✕ Fechar</button>
+</div>
+
+<div id="contractContent">
 
 <div style="display:flex; align-items:center; justify-content:center; gap:14px; margin-bottom:18px;">
-  <img src="${branding.url}" alt="${branding.brandName}" style="width:${branding.size}px; height:${branding.size}px; object-fit:contain;" />
+  <img src="${branding.url}" alt="${branding.brandName}" style="width:${branding.size}px; height:${branding.size}px; object-fit:contain;" crossorigin="anonymous" />
   <span style="font-size:16px; font-weight:bold; letter-spacing:0.5px;">${branding.brandName}</span>
 </div>
 
@@ -270,10 +285,44 @@ ${sale.notes ? `<h2>OBSERVAÇÕES</h2><p>${sale.notes}</p>` : ""}
         <div class="witness-line"><strong>TESTEMUNHA 2:</strong> ___________________________ CPF: _______________</div>
       </div>
     </div>
-  </div>
 </div>
 
-<script>window.onload = function() { window.print(); }</script>
+</div><!-- /contractContent -->
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<script>
+  (function() {
+    var btn = document.getElementById('downloadPdfBtn');
+    var safeName = ${JSON.stringify((sale.customerName || sale.description || "contrato").replace(/[^\w\-]+/g, "_"))};
+    btn.addEventListener('click', function() {
+      if (typeof html2pdf === 'undefined') {
+        alert('Biblioteca de PDF ainda não carregou. Tente novamente em instantes.');
+        return;
+      }
+      btn.disabled = true;
+      var originalText = btn.textContent;
+      btn.textContent = 'Gerando...';
+      var element = document.getElementById('contractContent');
+      var opt = {
+        margin: [10, 12, 10, 12],
+        filename: 'Contrato_' + safeName + '.pdf',
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { scale: 2, useCORS: true, logging: false },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+        pagebreak: { mode: ['css', 'legacy'] }
+      };
+      html2pdf().set(opt).from(element).save().then(function() {
+        btn.disabled = false;
+        btn.textContent = originalText;
+      }).catch(function(err) {
+        console.error(err);
+        alert('Erro ao gerar PDF: ' + (err && err.message ? err.message : 'desconhecido'));
+        btn.disabled = false;
+        btn.textContent = originalText;
+      });
+    });
+  })();
+</script>
 </body>
 </html>`;
 
