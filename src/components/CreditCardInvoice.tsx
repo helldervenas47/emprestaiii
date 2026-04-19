@@ -219,10 +219,12 @@ export function CreditCardInvoice({ card, onClose, referenceMonth, originRect }:
   const isOverdue = isClosed && today > cycle.dueDate && total > 0;
   const daysToDue = Math.ceil((cycle.dueDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
 
-  // Fatura quitada: existem itens no ciclo, todos pagos, e o saldo inicial está zerado.
-  // Se não houver nenhum item nem saldo inicial (cycleEverHadValue=false), é "Sem lançamentos".
+  // Fatura quitada: existe ao menos um item ou saldo inicial registrado, todos pagos.
+  // Usamos uma marca "[PAGA]" no campo notes do opening para preservar a informação
+  // de "fatura quitada" mesmo após zerar o saldo inicial.
+  const openingPaidFlag = /\[PAGA\]/i.test(opening?.notes ?? "");
   const cycleHasPending = items.some((e) => !e.paid) || openingAmount > 0;
-  const cycleEverHadValue = items.length > 0 || openingAmount > 0;
+  const cycleEverHadValue = items.length > 0 || openingAmount > 0 || openingPaidFlag;
   const isPaid = cycleEverHadValue && !cycleHasPending;
 
   const status: { label: string; tone: string; icon: typeof Clock } = isPaid
@@ -774,10 +776,14 @@ export function CreditCardInvoice({ card, onClose, referenceMonth, originRect }:
                   for (const e of unpaid) {
                     await updateExpense(e.id, { paid: true, paidDate: payDate });
                   }
-                  // Zera o saldo inicial da fatura (caso exista) para que o ciclo
-                  // seja considerado quitado e exiba o status verde "Paga".
-                  if (openingAmount > 0) {
-                    await upsertOpening(card.id, cycleKey, 0, opening?.notes ?? "");
+                  // Marca o saldo inicial como quitado: zera o valor e adiciona "[PAGA]"
+                  // ao campo notes para que a fatura mantenha o status verde "Paga".
+                  if (openingAmount > 0 || (opening && !/\[PAGA\]/i.test(opening.notes ?? ""))) {
+                    if (opening) {
+                      const baseNotes = (opening.notes ?? "").replace(/\[PAGA\]/gi, "").trim();
+                      const newNotes = baseNotes ? `${baseNotes} [PAGA]` : "[PAGA]";
+                      await upsertOpening(card.id, cycleKey, 0, newNotes);
+                    }
                   }
                   toast.success(
                     unpaid.length > 0 || openingAmount > 0
