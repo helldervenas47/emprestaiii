@@ -473,7 +473,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
       overdueLoans,
       capitalOnStreet,
       totalToReceive,
-      pendingReceivable: activeLoans.filter((l) => l.status !== "cancelled").reduce((s, l) => s + (l.remainingAmount ?? 0), 0),
+      pendingReceivable: activeLoans.reduce((s, l) => s + (l.remainingAmount ?? 0), 0),
       estimatedProfit,
       interestDueThisMonth,
       globalInterestRate,
