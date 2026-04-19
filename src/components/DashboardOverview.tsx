@@ -1046,6 +1046,9 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
         );
       })()}
 
+      {/* Goals Card - placed above Health Score */}
+      <GoalsCard loans={loans} payments={payments} expenses={expenses} clients={clients ?? []} />
+
       {/* Health Score Gauge */}
       <Card no3d>
         <CardContent className="p-4 sm:p-6">
