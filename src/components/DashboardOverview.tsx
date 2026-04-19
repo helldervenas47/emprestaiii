@@ -102,6 +102,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
   const [tempBalance, setTempBalance] = useState("");
   const [includeSales, setIncludeSales] = useState(false);
   const [showInterestDetail, setShowInterestDetail] = useState(false);
+  const [showInterestExpectedDetail, setShowInterestExpectedDetail] = useState(false);
   const { chartOverrides, setChartOverrides, interestOverrides, setInterestOverrides } = useChartOverrides();
   const { getGoal } = useMonthlyGoals();
 
@@ -181,40 +182,51 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
 
     // Juros previstos do período — porção de juros das parcelas com vencimento no período
     // Inclui TODOS os contratos (ativos, atrasados E quitados) — bruto, sem subtrair pagamentos.
-    // Para parcelados: usa schedules quando existem; senão, reconstrói virtualmente a partir de dueDate (1ª parcela), avançando 1 mês por parcela.
-    // Para parcela única: usa dueDate do contrato.
+    const interestExpectedRecords: { borrowerName: string; dueDate: string; installmentNumber: number; totalInstallments: number; installmentAmount: number; interestPortion: number; loanStatus: string }[] = [];
     const periodProfitExpected = loans.reduce((sum, loan) => {
       const totalWithInterest = calculateTotalWithInterest(loan.amount, loan.interestRate, loan.installments);
       const totalInterest = Math.max(0, totalWithInterest - loan.amount);
       if (totalInterest <= 0) return sum;
+      const interestRatio = totalWithInterest > 0 ? 1 - (loan.amount / totalWithInterest) : 0;
 
       if (loan.installments >= 2) {
         const interestPerInstallment = totalInterest / loan.installments;
         const loanSchedules = installmentSchedules.filter((sc) => sc.loanId === loan.id);
         if (loanSchedules.length > 0) {
-          const interestRatio = totalWithInterest > 0 ? 1 - (loan.amount / totalWithInterest) : 0;
-          return sum + loanSchedules
+          let acc = 0;
+          loanSchedules
             .filter((sc) => isInRange(sc.dueDate, range.start, range.end))
-            .reduce((s, sc) => s + sc.amount * interestRatio, 0);
+            .forEach((sc) => {
+              const interest = sc.amount * interestRatio;
+              acc += interest;
+              interestExpectedRecords.push({ borrowerName: loan.borrowerName, dueDate: sc.dueDate, installmentNumber: sc.installmentNumber, totalInstallments: loan.installments, installmentAmount: sc.amount, interestPortion: interest, loanStatus: loan.status });
+            });
+          return sum + acc;
         }
         // Sem schedules (ex.: contratos quitados antigos): gera datas virtuais a partir de dueDate (1ª parcela)
         if (!loan.dueDate) return sum;
         const baseDate = new Date(loan.dueDate + "T00:00:00");
         if (isNaN(baseDate.getTime())) return sum;
+        const installmentAmount = totalWithInterest / loan.installments;
         let acc = 0;
         for (let i = 0; i < loan.installments; i++) {
           const d = new Date(baseDate.getFullYear(), baseDate.getMonth() + i, baseDate.getDate());
           const dStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-          if (isInRange(dStr, range.start, range.end)) acc += interestPerInstallment;
+          if (isInRange(dStr, range.start, range.end)) {
+            acc += interestPerInstallment;
+            interestExpectedRecords.push({ borrowerName: loan.borrowerName, dueDate: dStr, installmentNumber: i + 1, totalInstallments: loan.installments, installmentAmount, interestPortion: interestPerInstallment, loanStatus: loan.status });
+          }
         }
         return sum + acc;
       }
       // Parcela única
       if (loan.dueDate && isInRange(loan.dueDate, range.start, range.end)) {
+        interestExpectedRecords.push({ borrowerName: loan.borrowerName, dueDate: loan.dueDate, installmentNumber: 1, totalInstallments: 1, installmentAmount: totalWithInterest, interestPortion: totalInterest, loanStatus: loan.status });
         return sum + totalInterest;
       }
       return sum;
     }, 0);
+    interestExpectedRecords.sort((a, b) => a.dueDate.localeCompare(b.dueDate));
     
     // Lucro Realizado — 3 componentes:
     // 1) Pagamentos de juros (installmentNumber === 0): valor integral é lucro
@@ -308,7 +320,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
       return { ...sale, received };
     });
 
-    return { totalIncome, incomeFromPayments, incomeFromSales, totalOutgoing, totalLoanOutgoing, totalExpenses, balance, transactions, loanCount: filteredLoans.length, saleCount: filteredSales.length, paymentCount: filteredPayments.length, expenseCount: filteredExpenses.length, avgInterestRate, filteredPayments, filteredLoans, filteredExpenses, salesWithReceived, periodProfitExpected: totalProfitExpected, periodProfitRealized: totalProfitRealized, periodProfitPct, interestDetailRecords };
+    return { totalIncome, incomeFromPayments, incomeFromSales, totalOutgoing, totalLoanOutgoing, totalExpenses, balance, transactions, loanCount: filteredLoans.length, saleCount: filteredSales.length, paymentCount: filteredPayments.length, expenseCount: filteredExpenses.length, avgInterestRate, filteredPayments, filteredLoans, filteredExpenses, salesWithReceived, periodProfitExpected: totalProfitExpected, periodProfitRealized: totalProfitRealized, periodProfitPct, interestDetailRecords, interestExpectedRecords };
   }, [loans, sales, payments, expenses, range, includeSales, period, chartOverrides, installmentSchedules]);
 
   // Portfolio metrics — global (not filtered by period)
@@ -899,7 +911,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
           { label: "Total a Receber", value: formatCurrency(portfolio.totalToReceive), color: "text-foreground", iconBg: "bg-primary/10", iconColor: "text-primary", onClick: undefined as (() => void) | undefined },
           { label: "Pendente de Recebimento", value: formatCurrency(portfolio.pendingReceivable), color: "text-success", iconBg: "bg-success/10", iconColor: "text-success", onClick: undefined as (() => void) | undefined },
           { label: "Lucro Estimado", value: formatCurrency(portfolio.estimatedProfit), color: "text-success", iconBg: "bg-success/10", iconColor: "text-success", onClick: undefined as (() => void) | undefined },
-          { label: "Juros a Receber no Mês", value: formatCurrency(interestDueInPeriod), color: "text-success", iconBg: "bg-success/10", iconColor: "text-success", onClick: undefined as (() => void) | undefined },
+          { label: "Juros a Receber no Mês", value: formatCurrency(interestDueInPeriod), color: "text-success", iconBg: "bg-success/10", iconColor: "text-success", onClick: () => setShowInterestExpectedDetail(true) },
           { label: "Juros Recebidos no Mês", value: formatCurrency(interestReceivedInPeriod), color: "text-warning", iconBg: "bg-warning/10", iconColor: "text-warning", onClick: () => setShowInterestDetail(true) },
           { label: "Juros Pendentes do Mês", value: formatCurrency(interestPendingInPeriod), color: "text-warning", iconBg: "bg-warning/10", iconColor: "text-warning", onClick: undefined as (() => void) | undefined },
         ];
@@ -1501,6 +1513,43 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
                   <p className="text-sm font-semibold">Total</p>
                   <p className="text-sm font-bold text-warning">
                     {formatCurrency(data.interestDetailRecords.reduce((s, r) => s + r.interestPortion, 0))}
+                  </p>
+                </div>
+              </>
+            )}
+          </div>
+        </SheetContent>
+      </Sheet>
+      {/* Interest Expected Detail Sheet */}
+      <Sheet open={showInterestExpectedDetail} onOpenChange={setShowInterestExpectedDetail}>
+        <SheetContent side="bottom" className="max-h-[80vh] overflow-y-auto">
+          <SheetHeader>
+            <SheetTitle>Juros a Receber no Mês — {range.label}</SheetTitle>
+          </SheetHeader>
+          <div className="mt-4 space-y-2">
+            {data.interestExpectedRecords.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-4">Nenhuma parcela com vencimento neste período.</p>
+            ) : (
+              <>
+                {data.interestExpectedRecords.map((rec, i) => (
+                  <div key={i} className="flex items-center justify-between p-3 rounded-lg bg-muted/50 border border-border/30">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium truncate">{rec.borrowerName}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {new Date(rec.dueDate + "T00:00:00").toLocaleDateString("pt-BR")} — Parcela {rec.installmentNumber}/{rec.totalInstallments}
+                        {rec.loanStatus === "paid" && <span className="ml-1 text-success">(quitado)</span>}
+                      </p>
+                    </div>
+                    <div className="text-right ml-3">
+                      <p className="text-sm font-bold text-success">{formatCurrency(rec.interestPortion)}</p>
+                      <p className="text-[10px] text-muted-foreground">de {formatCurrency(rec.installmentAmount)}</p>
+                    </div>
+                  </div>
+                ))}
+                <div className="flex items-center justify-between pt-3 border-t border-border">
+                  <p className="text-sm font-semibold">Total</p>
+                  <p className="text-sm font-bold text-success">
+                    {formatCurrency(data.interestExpectedRecords.reduce((s, r) => s + r.interestPortion, 0))}
                   </p>
                 </div>
               </>
