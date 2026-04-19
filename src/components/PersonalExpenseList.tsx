@@ -59,6 +59,15 @@ const isOverdue = (e: Expense) =>
 export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, onUpdate, readOnly = false, afterEvolution }: Props) {
   const { mask } = useHideValues();
   const formatCurrency = useCallback((v: number) => mask(fmt(v)), [mask]);
+  const { categories: customCategories } = usePersonalExpenseCategories();
+  const customCategoryList = useMemo<PersonalCategory[]>(
+    () => customCategories.map((c) => ({ name: c.name, icon: resolvePersonalIcon(c.icon), color: c.color, id: c.id, custom: true })),
+    [customCategories],
+  );
+  const resolveCategory = useCallback(
+    (name: string) => getPersonalCategory(name, customCategoryList),
+    [customCategoryList],
+  );
 
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<Filter>("all");
