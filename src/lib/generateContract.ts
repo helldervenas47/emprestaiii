@@ -69,7 +69,7 @@ export async function generateContract(sale: Sale, client?: Client, locador?: Lo
   }
   win.document.write('<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Gerando contrato...</title></head><body style="font-family:sans-serif;padding:40px;text-align:center;">Gerando contrato...</body></html>');
 
-  const branding = await getBrandingLogoUrl();
+  // Branding intencionalmente omitido nos contratos
   const isRecorrente = sale.paymentMode === "recorrente" && sale.installments > 1;
   const defaultValorParcela = sale.installments > 0
     ? Math.max(0, sale.total - (sale.downPayment || 0)) / sale.installments
@@ -204,10 +204,6 @@ export async function generateContract(sale: Sale, client?: Client, locador?: Lo
 
 <div id="contractContent">
 
-<div style="display:flex; align-items:center; justify-content:center; gap:14px; margin-bottom:18px;">
-  <img src="${branding.url}" alt="${branding.brandName}" style="width:${branding.size}px; height:${branding.size}px; object-fit:contain;" crossorigin="anonymous" />
-  <span style="font-size:16px; font-weight:bold; letter-spacing:0.5px;">${branding.brandName}</span>
-</div>
 
 <h1>CONTRATO DE LOCAÇÃO DE MOTOCICLETA</h1>
 
