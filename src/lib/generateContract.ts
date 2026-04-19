@@ -61,6 +61,14 @@ function numberToWords(n: number): string {
 }
 
 export async function generateContract(sale: Sale, client?: Client, locador?: LocadorInfo, vehicle?: VehicleInfo) {
+  // Open window synchronously (during click) to avoid popup blockers
+  const win = window.open("", "_blank");
+  if (!win) {
+    alert("Não foi possível abrir o contrato. Permita pop-ups para este site e tente novamente.");
+    return;
+  }
+  win.document.write('<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Gerando contrato...</title></head><body style="font-family:sans-serif;padding:40px;text-align:center;">Gerando contrato...</body></html>');
+
   const branding = await getBrandingLogoUrl();
   const isRecorrente = sale.paymentMode === "recorrente" && sale.installments > 1;
   const defaultValorParcela = sale.installments > 0
@@ -269,9 +277,7 @@ ${sale.notes ? `<h2>OBSERVAÇÕES</h2><p>${sale.notes}</p>` : ""}
 </body>
 </html>`;
 
-  const win = window.open("", "_blank");
-  if (win) {
-    win.document.write(html);
-    win.document.close();
-  }
+  win.document.open();
+  win.document.write(html);
+  win.document.close();
 }
