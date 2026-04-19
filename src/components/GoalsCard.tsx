@@ -26,26 +26,34 @@ const GOAL_EXPLANATIONS: Record<GoalType, {
   measurement: string;
 }> = {
   interest_rate: {
-    formula: "Taxa Média = Soma das taxas de juros dos contratos do mês ÷ Quantidade de contratos do mês",
-    indicators: ["Taxa de juros (%) cadastrada em cada contrato", "Data de início do contrato (deve estar no mês selecionado)"],
-    dataSource: ["Tabela de Empréstimos (loans)", "Campo: interest_rate", "Filtro: start_date no mês selecionado"],
+    formula: "Taxa Juros (%) = (Total a Receber − Total Emprestado) ÷ Total Emprestado × 100",
+    indicators: [
+      "Total Emprestado = soma do valor principal dos contratos do mês",
+      "Total a Receber = soma de (principal + juros) de cada contrato do mês",
+      "Validação: se Total Emprestado = 0, resultado = 0%",
+    ],
+    dataSource: ["Tabela de Empréstimos (loans)", "Campos: amount, interest_rate, installments", "Filtro: start_date no mês selecionado"],
     example: {
-      setup: "3 contratos criados no mês com taxas: 10%, 12% e 14%.",
-      calc: "(10 + 12 + 14) ÷ 3 = 36 ÷ 3",
-      result: "Taxa média = 12% ao mês",
+      setup: "2 empréstimos no mês: R$ 1.000 a 10% e R$ 2.000 a 15%.",
+      calc: "Total Emprestado = 3.000. Total a Receber = 1.100 + 2.300 = 3.400. (3.400 − 3.000) ÷ 3.000 × 100",
+      result: "Taxa Juros Mensal = 13,33%",
     },
-    measurement: "Quanto maior a taxa média, mais próximo da meta. Atingimento = (Realizado ÷ Meta) × 100.",
+    measurement: "Quanto maior, mais próximo da meta. Atingimento = (Realizado ÷ Meta) × 100. Resultado em % com 2 casas decimais.",
   },
   profit: {
-    formula: "Atualmente exibido como referência. O cálculo automático depende do módulo de lucro previsto.",
-    indicators: ["Lucro previsto (juros futuros dos contratos)", "Lucro realizado (juros recebidos)"],
-    dataSource: ["Tabela de Pagamentos", "Tabela de Empréstimos"],
+    formula: "Lucro do Período (%) = (Lucro Realizado ÷ (Lucro Realizado + Lucro Previsto)) × 100",
+    indicators: [
+      "Lucro Realizado: mesma lógica do gráfico 'Lucro por Período' (Realizado)",
+      "Lucro Previsto: parcelas com vencimento no mês × proporção de juros do contrato",
+      "% Meta no card = (Realizado ÷ (Previsto × Meta/100)) × 100",
+    ],
+    dataSource: ["Tabela de Pagamentos", "Tabela de Empréstimos (amount, interest_rate, installments)"],
     example: {
-      setup: "Lucro previsto: R$ 10.000. Lucro realizado: R$ 8.500.",
-      calc: "(8.500 ÷ 10.000) × 100",
-      result: "Lucro do período = 85%",
+      setup: "Lucro Previsto: R$ 2.000. Lucro Realizado: R$ 1.500.",
+      calc: "(1.500 ÷ (1.500 + 2.000)) × 100",
+      result: "Lucro do Período = 42,86%",
     },
-    measurement: "Percentual de lucro previsto efetivamente realizado no mês.",
+    measurement: "Espelha o campo '% Lucro' do card 'Lucro por Período' no Dashboard. Resultado em % com 2 casas decimais.",
   },
   loan_volume: {
     formula: "Volume = Soma do valor principal de todos os empréstimos com data de início no mês selecionado",
@@ -81,19 +89,19 @@ const GOAL_EXPLANATIONS: Record<GoalType, {
     measurement: "Atingimento = (Total recebido ÷ Meta) × 100.",
   },
   interest_received: {
-    formula: "Juros Recebidos = Σ máx(0, valor_pago − valor_principal_por_parcela) de cada pagamento do mês",
+    formula: "Juros Recebidos = mesma lógica do 'Realizado' no gráfico 'Lucro por Período'",
     indicators: [
-      "Valor de cada pagamento",
-      "Principal por parcela = Valor do empréstimo ÷ Total de parcelas",
-      "Diferença entre valor pago e principal = juros estimados",
+      "1) Juros avulsos (parcela 0) de contratos não quitados → valor integral",
+      "2) Contratos quitados no mês → (Total Pago − Principal)",
+      "3) Parcelas regulares de contratos ativos → valor × proporção de juros do contrato",
     ],
     dataSource: ["Tabela de Pagamentos (payments)", "Tabela de Empréstimos (loans)"],
     example: {
-      setup: "Empréstimo de R$ 1.000 em 10 parcelas. Parcela paga: R$ 130.",
-      calc: "Principal por parcela = 1.000 ÷ 10 = 100. Juros = 130 − 100",
-      result: "Juros desta parcela = R$ 30",
+      setup: "Empréstimo R$ 1.000 a 30% (Total a Receber R$ 1.300). Parcela paga R$ 130.",
+      calc: "Proporção juros = 1 − (1.000 ÷ 1.300) = 23,08%. Juros = 130 × 23,08%",
+      result: "Juros desta parcela ≈ R$ 30,00",
     },
-    measurement: "Atingimento = (Juros recebidos ÷ Meta) × 100.",
+    measurement: "Atingimento = (Juros recebidos ÷ Meta) × 100. Resultado em R$.",
   },
   active_capital: {
     formula: "Capital Ativo = Soma do 'restante a receber' de todos os contratos não finalizados (snapshot atual)",
