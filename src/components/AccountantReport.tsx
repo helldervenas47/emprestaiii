@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Calculator, TrendingUp, TrendingDown, Receipt, Wallet, FileBarChart } from "lucide-react";
+import { Calculator, TrendingUp, TrendingDown, Receipt, Wallet, FileBarChart, Sparkles } from "lucide-react";
 import { useHideValues } from "@/contexts/HideValuesContext";
 
 interface AccountantReportProps {
@@ -111,6 +111,84 @@ export function AccountantReport({ loans, payments, sales, expenses }: Accountan
     return { items: periodTaxes, paid, pending, total: paid + pending };
   }, [expenses, period, monthFilter, yearFilter]);
 
+  // ===== Simulação de Impostos =====
+  const [taxRegime, setTaxRegime] = useState<"simples" | "presumido" | "irpf">("simples");
+
+  const taxSim = useMemo(() => {
+    const base = dre.interestRevenue; // base = juros recebidos no período
+    const isYear = period === "year";
+
+    // --- Simples Nacional - Anexo III (Serviços) ---
+    // Faixas RBT12 (receita bruta dos últimos 12 meses) - usamos base anualizada como proxy.
+    const rbt12 = isYear ? base : base * 12;
+    const simplesFaixas = [
+      { ate: 180000, aliq: 0.06, ded: 0 },
+      { ate: 360000, aliq: 0.112, ded: 9360 },
+      { ate: 720000, aliq: 0.135, ded: 17640 },
+      { ate: 1800000, aliq: 0.16, ded: 35640 },
+      { ate: 3600000, aliq: 0.21, ded: 125640 },
+      { ate: 4800000, aliq: 0.33, ded: 648000 },
+    ];
+    const faixa = simplesFaixas.find((f) => rbt12 <= f.ate) || simplesFaixas[simplesFaixas.length - 1];
+    const aliqEfetivaSimples = rbt12 > 0 ? Math.max(0, (rbt12 * faixa.aliq - faixa.ded) / rbt12) : faixa.aliq;
+    const simplesTotal = base * aliqEfetivaSimples;
+
+    // --- Lucro Presumido (Serviços - presunção 32%) ---
+    const baseIRCSLL = base * 0.32;
+    const irpj = baseIRCSLL * 0.15;
+    // adicional 10% sobre o que exceder R$ 20.000/mês (R$ 60.000 no trimestre, simplificado mensal)
+    const limiteAdicional = isYear ? 240000 : 20000;
+    const irpjAdicional = baseIRCSLL > limiteAdicional ? (baseIRCSLL - limiteAdicional) * 0.10 : 0;
+    const csll = baseIRCSLL * 0.09;
+    const pis = base * 0.0065;
+    const cofins = base * 0.03;
+    const iss = base * 0.05; // alíquota máxima de ISS para serviços financeiros (varia por município)
+    const presumidoTotal = irpj + irpjAdicional + csll + pis + cofins + iss;
+
+    // --- IRPF Pessoa Física (Tabela mensal 2024) ---
+    const baseMensal = isYear ? base / 12 : base;
+    let aliqIRPF = 0;
+    let dedIRPF = 0;
+    if (baseMensal <= 2259.20) { aliqIRPF = 0; dedIRPF = 0; }
+    else if (baseMensal <= 2826.65) { aliqIRPF = 0.075; dedIRPF = 169.44; }
+    else if (baseMensal <= 3751.05) { aliqIRPF = 0.15; dedIRPF = 381.44; }
+    else if (baseMensal <= 4664.68) { aliqIRPF = 0.225; dedIRPF = 662.77; }
+    else { aliqIRPF = 0.275; dedIRPF = 896.00; }
+    const irpfMes = Math.max(0, baseMensal * aliqIRPF - dedIRPF);
+    const irpfTotal = isYear ? irpfMes * 12 : irpfMes;
+
+    return {
+      base,
+      rbt12,
+      simples: {
+        aliquotaEfetiva: aliqEfetivaSimples,
+        faixa: simplesFaixas.indexOf(faixa) + 1,
+        total: simplesTotal,
+        liquido: base - simplesTotal,
+      },
+      presumido: {
+        baseCalculo: baseIRCSLL,
+        irpj,
+        irpjAdicional,
+        csll,
+        pis,
+        cofins,
+        iss,
+        total: presumidoTotal,
+        aliquotaEfetiva: base > 0 ? presumidoTotal / base : 0,
+        liquido: base - presumidoTotal,
+      },
+      irpf: {
+        baseMensal,
+        aliquota: aliqIRPF,
+        deducao: dedIRPF,
+        total: irpfTotal,
+        aliquotaEfetiva: base > 0 ? irpfTotal / base : 0,
+        liquido: base - irpfTotal,
+      },
+    };
+  }, [dre.interestRevenue, period]);
+
   // ===== Fluxo de caixa =====
   const cashflow = useMemo(() => {
     const map = new Map<string, { in: number; out: number }>();
@@ -194,10 +272,11 @@ export function AccountantReport({ loans, payments, sales, expenses }: Accountan
       </Card>
 
       <Tabs defaultValue="dre" className="w-full">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="dre" className="text-xs sm:text-sm"><FileBarChart className="h-4 w-4 mr-1 hidden sm:inline" /> DRE</TabsTrigger>
           <TabsTrigger value="taxes" className="text-xs sm:text-sm"><Receipt className="h-4 w-4 mr-1 hidden sm:inline" /> Impostos</TabsTrigger>
-          <TabsTrigger value="cashflow" className="text-xs sm:text-sm"><Wallet className="h-4 w-4 mr-1 hidden sm:inline" /> Fluxo de Caixa</TabsTrigger>
+          <TabsTrigger value="simulation" className="text-xs sm:text-sm"><Sparkles className="h-4 w-4 mr-1 hidden sm:inline" /> Simulação</TabsTrigger>
+          <TabsTrigger value="cashflow" className="text-xs sm:text-sm"><Wallet className="h-4 w-4 mr-1 hidden sm:inline" /> Fluxo</TabsTrigger>
         </TabsList>
 
         {/* DRE */}
@@ -308,6 +387,176 @@ export function AccountantReport({ loans, payments, sales, expenses }: Accountan
                     </div>
                   ))}
                 </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Simulação de Impostos */}
+        <TabsContent value="simulation" className="space-y-3 mt-4">
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm flex items-center gap-2">
+                <Sparkles className="h-4 w-4 text-primary" /> Simulador de Impostos
+              </CardTitle>
+              <CardDescription className="text-xs">
+                Estimativa baseada nos juros recebidos no período selecionado ({fmt(taxSim.base, hidden)}).
+                Valores aproximados — consulte um contador para precisão fiscal.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <Select value={taxRegime} onValueChange={(v: "simples" | "presumido" | "irpf") => setTaxRegime(v)}>
+                <SelectTrigger className="w-full sm:w-[280px] h-9"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="simples">Simples Nacional (Anexo III)</SelectItem>
+                  <SelectItem value="presumido">Lucro Presumido (Serviços)</SelectItem>
+                  <SelectItem value="irpf">Pessoa Física (IRPF)</SelectItem>
+                </SelectContent>
+              </Select>
+
+              {taxSim.base === 0 ? (
+                <p className="text-sm text-muted-foreground text-center py-6">
+                  Nenhum juro recebido no período selecionado para simular.
+                </p>
+              ) : (
+                <>
+                  {taxRegime === "simples" && (
+                    <div className="space-y-2 text-sm">
+                      <div className="bg-primary/5 rounded-lg p-3 mb-2">
+                        <p className="text-xs text-muted-foreground">Imposto estimado a pagar</p>
+                        <p className="text-2xl font-bold text-destructive">{fmt(taxSim.simples.total, hidden)}</p>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Alíquota efetiva: <strong>{(taxSim.simples.aliquotaEfetiva * 100).toFixed(2)}%</strong> · Faixa {taxSim.simples.faixa}
+                        </p>
+                      </div>
+                      <div className="flex justify-between py-2 border-b">
+                        <span>Receita base (juros)</span>
+                        <span className="font-medium">{fmt(taxSim.base, hidden)}</span>
+                      </div>
+                      <div className="flex justify-between py-2 border-b">
+                        <span>RBT12 (anualizada)</span>
+                        <span className="font-medium">{fmt(taxSim.rbt12, hidden)}</span>
+                      </div>
+                      <div className="flex justify-between py-2 border-b">
+                        <span>(−) DAS estimado</span>
+                        <span className="text-destructive font-medium">{fmt(taxSim.simples.total, hidden)}</span>
+                      </div>
+                      <div className="flex justify-between py-2 font-bold bg-success/5 px-2 rounded">
+                        <span>(=) Líquido após imposto</span>
+                        <span className="text-success">{fmt(taxSim.simples.liquido, hidden)}</span>
+                      </div>
+                      <p className="text-xs text-muted-foreground pt-2">
+                        Anexo III aplica-se a serviços de intermediação financeira. Cálculo: (RBT12 × alíquota − dedução) ÷ RBT12.
+                      </p>
+                    </div>
+                  )}
+
+                  {taxRegime === "presumido" && (
+                    <div className="space-y-2 text-sm">
+                      <div className="bg-primary/5 rounded-lg p-3 mb-2">
+                        <p className="text-xs text-muted-foreground">Imposto estimado a pagar</p>
+                        <p className="text-2xl font-bold text-destructive">{fmt(taxSim.presumido.total, hidden)}</p>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Alíquota efetiva: <strong>{(taxSim.presumido.aliquotaEfetiva * 100).toFixed(2)}%</strong>
+                        </p>
+                      </div>
+                      <div className="flex justify-between py-2 border-b">
+                        <span>Receita base</span>
+                        <span className="font-medium">{fmt(taxSim.base, hidden)}</span>
+                      </div>
+                      <div className="flex justify-between py-2 border-b">
+                        <span>Base de cálculo IRPJ/CSLL (32%)</span>
+                        <span className="font-medium">{fmt(taxSim.presumido.baseCalculo, hidden)}</span>
+                      </div>
+                      <div className="flex justify-between py-1 text-xs">
+                        <span className="text-muted-foreground">IRPJ (15%)</span>
+                        <span>{fmt(taxSim.presumido.irpj, hidden)}</span>
+                      </div>
+                      {taxSim.presumido.irpjAdicional > 0 && (
+                        <div className="flex justify-between py-1 text-xs">
+                          <span className="text-muted-foreground">IRPJ Adicional (10%)</span>
+                          <span>{fmt(taxSim.presumido.irpjAdicional, hidden)}</span>
+                        </div>
+                      )}
+                      <div className="flex justify-between py-1 text-xs">
+                        <span className="text-muted-foreground">CSLL (9%)</span>
+                        <span>{fmt(taxSim.presumido.csll, hidden)}</span>
+                      </div>
+                      <div className="flex justify-between py-1 text-xs">
+                        <span className="text-muted-foreground">PIS (0,65%)</span>
+                        <span>{fmt(taxSim.presumido.pis, hidden)}</span>
+                      </div>
+                      <div className="flex justify-between py-1 text-xs">
+                        <span className="text-muted-foreground">COFINS (3%)</span>
+                        <span>{fmt(taxSim.presumido.cofins, hidden)}</span>
+                      </div>
+                      <div className="flex justify-between py-1 text-xs border-b pb-2">
+                        <span className="text-muted-foreground">ISS (5% — máx., varia por município)</span>
+                        <span>{fmt(taxSim.presumido.iss, hidden)}</span>
+                      </div>
+                      <div className="flex justify-between py-2 font-bold bg-success/5 px-2 rounded">
+                        <span>(=) Líquido após imposto</span>
+                        <span className="text-success">{fmt(taxSim.presumido.liquido, hidden)}</span>
+                      </div>
+                    </div>
+                  )}
+
+                  {taxRegime === "irpf" && (
+                    <div className="space-y-2 text-sm">
+                      <div className="bg-primary/5 rounded-lg p-3 mb-2">
+                        <p className="text-xs text-muted-foreground">Imposto estimado a pagar</p>
+                        <p className="text-2xl font-bold text-destructive">{fmt(taxSim.irpf.total, hidden)}</p>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Alíquota nominal: <strong>{(taxSim.irpf.aliquota * 100).toFixed(1)}%</strong> · Efetiva: <strong>{(taxSim.irpf.aliquotaEfetiva * 100).toFixed(2)}%</strong>
+                        </p>
+                      </div>
+                      <div className="flex justify-between py-2 border-b">
+                        <span>Receita base (juros)</span>
+                        <span className="font-medium">{fmt(taxSim.base, hidden)}</span>
+                      </div>
+                      <div className="flex justify-between py-2 border-b">
+                        <span>Base mensal</span>
+                        <span className="font-medium">{fmt(taxSim.irpf.baseMensal, hidden)}</span>
+                      </div>
+                      <div className="flex justify-between py-2 border-b">
+                        <span>Parcela a deduzir</span>
+                        <span className="font-medium">{fmt(taxSim.irpf.deducao, hidden)}</span>
+                      </div>
+                      <div className="flex justify-between py-2 border-b">
+                        <span>(−) IRPF / Carnê-Leão</span>
+                        <span className="text-destructive font-medium">{fmt(taxSim.irpf.total, hidden)}</span>
+                      </div>
+                      <div className="flex justify-between py-2 font-bold bg-success/5 px-2 rounded">
+                        <span>(=) Líquido após imposto</span>
+                        <span className="text-success">{fmt(taxSim.irpf.liquido, hidden)}</span>
+                      </div>
+                      <p className="text-xs text-muted-foreground pt-2">
+                        Tabela progressiva mensal vigente. Juros recebidos por PF são tributados via Carnê-Leão.
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Comparativo */}
+                  <Card className="mt-4 bg-muted/30">
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-xs">Comparativo entre regimes</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-1 text-xs">
+                      <div className="flex justify-between py-1 border-b">
+                        <span>Simples Nacional</span>
+                        <span className="font-semibold">{fmt(taxSim.simples.total, hidden)} ({(taxSim.simples.aliquotaEfetiva * 100).toFixed(1)}%)</span>
+                      </div>
+                      <div className="flex justify-between py-1 border-b">
+                        <span>Lucro Presumido</span>
+                        <span className="font-semibold">{fmt(taxSim.presumido.total, hidden)} ({(taxSim.presumido.aliquotaEfetiva * 100).toFixed(1)}%)</span>
+                      </div>
+                      <div className="flex justify-between py-1">
+                        <span>Pessoa Física</span>
+                        <span className="font-semibold">{fmt(taxSim.irpf.total, hidden)} ({(taxSim.irpf.aliquotaEfetiva * 100).toFixed(1)}%)</span>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </>
               )}
             </CardContent>
           </Card>
