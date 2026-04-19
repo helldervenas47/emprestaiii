@@ -719,25 +719,6 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, onUpda
                               <Calendar className="h-3 w-3" />
                               {format(new Date(expense.dueDate + "T00:00:00"), "dd/MM/yyyy")}
                             </span>
-                            {expense.type !== "fixa" && isRecorrente && expense.installments! < FIXED_RECURRING_INSTALLMENTS && (() => {
-                              const total = expense.installments!;
-                              const paidCount = expense.paidInstallments || 0;
-                              // Reconstrói a data da 1ª parcela (dueDate atual - paidCount meses)
-                              // para localizar corretamente a parcela do mês selecionado.
-                              const [dY, dM] = expense.dueDate.split("-").map(Number);
-                              const firstMonthIdx = (dY * 12 + dM) - paidCount;
-                              const [sY, sM] = selectedMonth.split("-").map(Number);
-                              const selIdx = sY * 12 + sM;
-                              const offset = selIdx - firstMonthIdx; // 0-based
-                              const current = expense.paid
-                                ? total
-                                : Math.min(Math.max(1, offset + 1), total);
-                              return (
-                                <Badge variant="secondary" className="text-[10px] px-1.5 py-0 font-semibold">
-                                  Parcela {current}/{total}
-                                </Badge>
-                              );
-                            })()}
                           </div>
                         </div>
                         <div className="text-right shrink-0">
