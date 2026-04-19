@@ -266,7 +266,7 @@ Deno.serve(async (req) => {
 
   const { data: prefs, error } = await admin
     .from("daily_planning_telegram_prefs")
-    .select("user_id, enabled, send_time_1, send_time_2, send_time_3, last_sent")
+    .select("user_id, enabled, send_time_1, send_time_2, send_time_3, send_target, last_sent")
     .eq("enabled", true);
 
   if (error) return new Response(JSON.stringify({ error: error.message }), { status: 500, headers: corsHeaders });
@@ -294,7 +294,8 @@ Deno.serve(async (req) => {
       }
       if (!firedSlot) continue;
 
-      const ok = await buildAndSend(admin, (pref as any).user_id, tomorrow, LOVABLE_API_KEY, TELEGRAM_API_KEY, brandName);
+      const target = ((pref as any).send_target === "today") ? today : tomorrow;
+      const ok = await buildAndSend(admin, (pref as any).user_id, target, LOVABLE_API_KEY, TELEGRAM_API_KEY, brandName);
       if (ok) {
         const newLast = { ...lastSent, [firedSlot]: today };
         await admin.from("daily_planning_telegram_prefs")
