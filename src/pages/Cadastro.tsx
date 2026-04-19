@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Mail, Lock, User, Eye, EyeOff, ArrowLeft } from "lucide-react";
-import logoIcon from "@/assets/logo-icon.png";
+import { AppLogo } from "@/components/AppLogo";
 import { toast } from "sonner";
 
 const Cadastro = () => {
@@ -64,8 +64,8 @@ const Cadastro = () => {
     <div className="min-h-screen bg-background flex flex-col items-center justify-center px-6 py-8">
       <div className="w-full max-w-sm space-y-6">
         <div className="text-center space-y-2">
-          <div className="mx-auto h-14 w-14 rounded-2xl overflow-hidden">
-            <img src={logoIcon} alt="EmprestAI" className="h-14 w-14" width={56} height={56} />
+          <div className="mx-auto rounded-2xl overflow-hidden flex items-center justify-center">
+            <AppLogo area="auth" alt="EmprestAI" rounded />
           </div>
           <h1 className="text-2xl font-bold text-foreground">EmprestAI</h1>
           <p className="text-muted-foreground">
