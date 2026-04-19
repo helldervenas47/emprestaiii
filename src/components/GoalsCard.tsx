@@ -236,6 +236,10 @@ export function GoalsCard({ loans, payments, expenses, clients, selectedMonth, p
                           <Badge variant="outline" className="text-[8px] sm:text-[9px] px-1 py-0 h-3.5 border-primary/40 text-primary bg-primary/5 uppercase tracking-wide leading-none">
                             Sempre
                           </Badge>
+                        ) : selectedMonth && g.month !== selectedMonth ? (
+                          <Badge variant="outline" className="text-[8px] sm:text-[9px] px-1 py-0 h-3.5 border-warning/40 text-warning bg-warning/5 uppercase tracking-wide leading-none" title={`Meta herdada de ${formatMonthLabel(g.month)}`}>
+                            Herdada · {formatMonthLabel(g.month)}
+                          </Badge>
                         ) : (
                           <p className="text-[9px] sm:text-[10px] text-muted-foreground leading-tight">
                             {formatMonthLabel(g.month)}
