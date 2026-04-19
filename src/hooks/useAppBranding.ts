@@ -23,6 +23,27 @@ const DEFAULT_SIZES: LogoSizes = {
 };
 
 export const FALLBACK_LOGO = logoIconFallback;
+export const DEFAULT_BRAND_NAME = "EmprestAI";
+
+const SELECT_COLS = "id, logo_url, brand_name, sizes, updated_at";
+
+function mapRow(row: any): AppBranding {
+  return {
+    id: row.id,
+    logo_url: row.logo_url ?? null,
+    brand_name: row.brand_name || DEFAULT_BRAND_NAME,
+    sizes: { ...DEFAULT_SIZES, ...(row.sizes ?? {}) } as LogoSizes,
+    updated_at: row.updated_at,
+  };
+}
+
+const DEFAULT_BRANDING: AppBranding = {
+  id: "default",
+  logo_url: null,
+  brand_name: DEFAULT_BRAND_NAME,
+  sizes: DEFAULT_SIZES,
+  updated_at: "",
+};
 
 let cache: AppBranding | null = null;
 const subscribers = new Set<(b: AppBranding) => void>();
@@ -35,30 +56,26 @@ function notify(b: AppBranding) {
 async function fetchBranding(): Promise<AppBranding> {
   const { data, error } = await supabase
     .from("app_branding" as any)
-    .select("id, logo_url, sizes, updated_at")
+    .select(SELECT_COLS)
     .limit(1)
     .maybeSingle();
-  if (error || !data) {
-    return {
-      id: "default",
-      logo_url: null,
-      sizes: DEFAULT_SIZES,
-      updated_at: new Date().toISOString(),
-    };
-  }
-  const row = data as any;
-  return {
-    id: row.id,
-    logo_url: row.logo_url,
-    sizes: { ...DEFAULT_SIZES, ...(row.sizes ?? {}) } as LogoSizes,
-    updated_at: row.updated_at,
-  };
+  if (error || !data) return { ...DEFAULT_BRANDING, updated_at: new Date().toISOString() };
+  return mapRow(data);
+}
+
+async function updateAndNotify(patch: Record<string, any>): Promise<void> {
+  const { data, error } = await supabase
+    .from("app_branding" as any)
+    .update(patch as any)
+    .eq("singleton", true)
+    .select(SELECT_COLS)
+    .single();
+  if (error) throw error;
+  notify(mapRow(data));
 }
 
 export function useAppBranding() {
-  const [branding, setBranding] = useState<AppBranding>(
-    cache ?? { id: "loading", logo_url: null, sizes: DEFAULT_SIZES, updated_at: "" }
-  );
+  const [branding, setBranding] = useState<AppBranding>(cache ?? DEFAULT_BRANDING);
   const [loading, setLoading] = useState(!cache);
 
   useEffect(() => {
@@ -84,21 +101,11 @@ export function useAppBranding() {
     notify(b);
   }, []);
 
-  const saveSizes = useCallback(async (sizes: LogoSizes) => {
-    const { data, error } = await supabase
-      .from("app_branding" as any)
-      .update({ sizes } as any)
-      .eq("singleton", true)
-      .select("id, logo_url, sizes, updated_at")
-      .single();
-    if (error) throw error;
-    const row = data as any;
-    notify({
-      id: row.id,
-      logo_url: row.logo_url,
-      sizes: { ...DEFAULT_SIZES, ...(row.sizes ?? {}) } as LogoSizes,
-      updated_at: row.updated_at,
-    });
+  const saveSizes = useCallback((sizes: LogoSizes) => updateAndNotify({ sizes }), []);
+
+  const saveBrandName = useCallback(async (brand_name: string) => {
+    const trimmed = (brand_name || "").trim() || DEFAULT_BRAND_NAME;
+    await updateAndNotify({ brand_name: trimmed });
   }, []);
 
   const uploadLogo = useCallback(async (file: File) => {
@@ -110,40 +117,12 @@ export function useAppBranding() {
     if (upErr) throw upErr;
     const { data: pub } = supabase.storage.from("branding").getPublicUrl(path);
     const url = `${pub.publicUrl}?v=${Date.now()}`;
-    const { data, error } = await supabase
-      .from("app_branding" as any)
-      .update({ logo_url: url } as any)
-      .eq("singleton", true)
-      .select("id, logo_url, sizes, updated_at")
-      .single();
-    if (error) throw error;
-    const row = data as any;
-    notify({
-      id: row.id,
-      logo_url: row.logo_url,
-      sizes: { ...DEFAULT_SIZES, ...(row.sizes ?? {}) } as LogoSizes,
-      updated_at: row.updated_at,
-    });
+    await updateAndNotify({ logo_url: url });
   }, []);
 
-  const removeLogo = useCallback(async () => {
-    const { data, error } = await supabase
-      .from("app_branding" as any)
-      .update({ logo_url: null } as any)
-      .eq("singleton", true)
-      .select("id, logo_url, sizes, updated_at")
-      .single();
-    if (error) throw error;
-    const row = data as any;
-    notify({
-      id: row.id,
-      logo_url: row.logo_url,
-      sizes: { ...DEFAULT_SIZES, ...(row.sizes ?? {}) } as LogoSizes,
-      updated_at: row.updated_at,
-    });
-  }, []);
+  const removeLogo = useCallback(() => updateAndNotify({ logo_url: null }), []);
 
-  return { branding, loading, refresh, saveSizes, uploadLogo, removeLogo };
+  return { branding, loading, refresh, saveSizes, saveBrandName, uploadLogo, removeLogo };
 }
 
 export { DEFAULT_SIZES };
