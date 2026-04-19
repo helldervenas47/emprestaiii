@@ -300,7 +300,7 @@ interface DialogProps {
   viewingMonth?: string;
 }
 
-function GoalDetailDialog({ open, onClose, goal }: DialogProps) {
+function GoalDetailDialog({ open, onClose, goal, viewingMonth }: DialogProps) {
   const { hidden } = useHideValues();
 
   const analysis = useMemo(() => {
@@ -449,12 +449,31 @@ function GoalDetailDialog({ open, onClose, goal }: DialogProps) {
               <Icon className={`h-5 w-5 ${goal.meta.color}`} />
             </div>
             <div className="min-w-0 flex-1">
-              <DialogTitle className="text-base truncate">{goal.meta.label}</DialogTitle>
+              <DialogTitle className="text-base truncate flex items-center gap-2">
+                {goal.meta.label}
+                {viewingMonth && goal.month !== viewingMonth && (
+                  <Badge variant="outline" className="text-[9px] px-1.5 py-0 h-4 border-warning/40 text-warning bg-warning/5 uppercase tracking-wide leading-none shrink-0">
+                    Herdada
+                  </Badge>
+                )}
+              </DialogTitle>
               <DialogDescription className="text-xs">
                 {formatMonthLabel(goal.month)} · {goal.meta.description}
               </DialogDescription>
             </div>
           </div>
+          {viewingMonth && goal.month !== viewingMonth && (
+            <div className="mt-3 rounded-md border border-warning/30 bg-warning/10 px-3 py-2 text-xs text-foreground flex items-start gap-2">
+              <AlertCircle className="h-3.5 w-3.5 text-warning shrink-0 mt-0.5" />
+              <div className="flex-1">
+                <p className="font-medium text-warning">Meta herdada de {formatMonthLabel(goal.month)}</p>
+                <p className="text-muted-foreground mt-0.5">
+                  Não há meta cadastrada para {formatMonthLabel(viewingMonth)}. Os valores realizados e a análise abaixo
+                  consideram <strong>{formatMonthLabel(viewingMonth)}</strong>, comparados ao alvo definido em {formatMonthLabel(goal.month)}.
+                </p>
+              </div>
+            </div>
+          )}
         </DialogHeader>
 
         <ScrollArea className="flex-1 -mx-6 px-6">
