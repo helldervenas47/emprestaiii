@@ -170,6 +170,29 @@ export function BrandingSettings() {
         </p>
       </div>
 
+      {/* Nome da marca */}
+      <div className="space-y-2 p-4 rounded-lg border border-border bg-muted/30">
+        <Label htmlFor="brand-name" className="flex items-center gap-2 text-sm font-medium">
+          <Type className="h-4 w-4 text-primary" /> Nome da marca
+        </Label>
+        <p className="text-xs text-muted-foreground">
+          Texto exibido ao lado da logo no cabeçalho, sidebar e telas de autenticação.
+        </p>
+        <div className="flex gap-2">
+          <Input
+            id="brand-name"
+            value={draftName}
+            onChange={(e) => setDraftName(e.target.value)}
+            placeholder={DEFAULT_BRAND_NAME}
+            maxLength={40}
+            className="flex-1"
+          />
+          <Button size="sm" onClick={handleSaveName} disabled={!nameDirty || savingName}>
+            {savingName ? <Loader2 className="h-4 w-4 animate-spin" /> : "Salvar"}
+          </Button>
+        </div>
+      </div>
+
       {/* Opções avançadas: tamanhos por área × dispositivo */}
       <div>
         <div className="flex items-center justify-between mb-2">
