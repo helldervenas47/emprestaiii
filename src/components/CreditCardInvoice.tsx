@@ -772,9 +772,14 @@ export function CreditCardInvoice({ card, onClose, referenceMonth, originRect }:
                   for (const e of unpaid) {
                     await updateExpense(e.id, { paid: true, paidDate: payDate });
                   }
+                  // Zera o saldo inicial da fatura (caso exista) para que o ciclo
+                  // seja considerado quitado e exiba o status verde "Paga".
+                  if (openingAmount > 0) {
+                    await upsertOpening(card.id, cycleKey, 0, opening?.notes ?? "");
+                  }
                   toast.success(
-                    unpaid.length > 0
-                      ? `Fatura paga · ${unpaid.length} lançamento(s) marcado(s) como pagos`
+                    unpaid.length > 0 || openingAmount > 0
+                      ? `Fatura paga · ${unpaid.length} lançamento(s) quitado(s)`
                       : "Fatura registrada como paga"
                   );
                   setPayDialogOpen(false);
