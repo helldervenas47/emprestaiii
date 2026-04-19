@@ -1,0 +1,321 @@
+import { useMemo, useState } from "react";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { DatePickerField } from "@/components/ui/date-picker-field";
+import { TrendingUp, TrendingDown, Wallet, AlertTriangle, Send, Loader2 } from "lucide-react";
+import { Loan, Payment, InstallmentSchedule, Sale, Expense } from "@/types/loan";
+import { calculateTotalWithInterest } from "@/hooks/useLoans";
+import { useCreditCards } from "@/hooks/useCreditCards";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+import { toast } from "sonner";
+import { useDailyPlanningTelegramPrefs } from "@/hooks/useDailyPlanningTelegramPrefs";
+import { Switch } from "@/components/ui/switch";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Clock } from "lucide-react";
+import { useTelegramReportsLink } from "@/hooks/useTelegramReportsLink";
+
+interface Props {
+  loans: Loan[];
+  payments: Payment[];
+  installmentSchedules: InstallmentSchedule[];
+  sales: Sale[];
+  expenses: Expense[];
+}
+
+function fmtBRL(v: number) {
+  return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v);
+}
+
+function todayISO() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
+interface Row {
+  origin: string;
+  description: string;
+  amount: number;
+  category?: string;
+}
+
+export function DailyPlanningReport({ loans, payments, installmentSchedules, sales, expenses }: Props) {
+  const [date, setDate] = useState<string>(todayISO());
+  const { user } = useAuth();
+  const { cards } = useCreditCards();
+  const { linked } = useTelegramReportsLink();
+  const { prefs, loading: prefsLoading, save } = useDailyPlanningTelegramPrefs();
+  const [sending, setSending] = useState(false);
+
+  // ---- RECEIPTS ----
+  const incomeRows = useMemo<Row[]>(() => {
+    const out: Row[] = [];
+
+    // Loan installments due on date, not yet paid
+    for (const loan of loans) {
+      if (loan.status === "paid") continue;
+      const schedules = installmentSchedules.filter(s => s.loanId === loan.id && s.dueDate === date);
+      for (const s of schedules) {
+        if (s.installmentNumber <= loan.paidInstallments) continue;
+        out.push({
+          origin: "Empréstimo",
+          description: `${loan.borrowerName} — Parcela ${s.installmentNumber}/${loan.installments}`,
+          amount: Number(s.amount || 0),
+        });
+      }
+      // Fallback for loans without explicit schedule rows: use dueDate field
+      if (schedules.length === 0 && loan.dueDate === date && loan.paidInstallments < loan.installments) {
+        const total = calculateTotalWithInterest(loan.amount, loan.interestRate, loan.installments);
+        const perInst = total / loan.installments;
+        out.push({
+          origin: "Empréstimo",
+          description: `${loan.borrowerName} — Parcela ${loan.paidInstallments + 1}/${loan.installments}`,
+          amount: Number(loan.customInstallmentValue ?? perInst),
+        });
+      }
+    }
+
+    // Sales: parcelas com vencimento no dia ainda não pagas
+    for (const sale of sales) {
+      const dates = (sale.installmentDates ?? []) as string[];
+      const amounts = (sale.installmentAmounts ?? []) as number[];
+      const total = sale.installments || 1;
+      const fallbackAmt = sale.installmentValue ?? (sale.total / Math.max(1, total));
+      for (let i = 0; i < total; i++) {
+        const dueDate = dates[i];
+        if (!dueDate || dueDate !== date) continue;
+        const installmentNum = i + 1;
+        if (installmentNum <= sale.paidInstallments) continue;
+        const amt = amounts[i] != null ? Number(amounts[i]) : Number(fallbackAmt);
+        out.push({
+          origin: sale.businessType === "aluguel_veiculo" ? "Aluguel" : "Venda",
+          description: `${sale.customerName || sale.description} — Parcela ${installmentNum}/${total}`,
+          amount: amt,
+        });
+      }
+    }
+
+    return out.sort((a, b) => b.amount - a.amount);
+  }, [loans, installmentSchedules, sales, date]);
+
+  // ---- EXPENSES ----
+  const expenseRows = useMemo<Row[]>(() => {
+    const out: Row[] = [];
+
+    for (const e of expenses) {
+      if (e.dueDate !== date) continue;
+      if (e.paid) continue;
+      out.push({
+        origin: e.scope === "personal" ? "Pessoal" : "Empresa",
+        description: e.description,
+        amount: Number(e.amount || 0),
+        category: e.category,
+      });
+    }
+
+    // Credit card invoices due today (by due_day)
+    const day = Number(date.slice(8, 10));
+    for (const card of cards) {
+      if (!card.active) continue;
+      if (card.dueDay !== day) continue;
+      out.push({
+        origin: "Cartão",
+        description: `Fatura ${card.nickname || card.bank} ${card.lastFour ? "•••• " + card.lastFour : ""}`.trim(),
+        amount: 0, // valor da fatura é dinâmico — sem cálculo aqui
+        category: "Cartão de crédito",
+      });
+    }
+
+    return out.sort((a, b) => b.amount - a.amount);
+  }, [expenses, cards, date]);
+
+  const totalIncome = incomeRows.reduce((s, r) => s + r.amount, 0);
+  const totalExpense = expenseRows.reduce((s, r) => s + r.amount, 0);
+  const balance = totalIncome - totalExpense;
+  const isNegative = balance < 0;
+
+  const handleSendNow = async () => {
+    if (!user) return;
+    if (!linked) {
+      toast.error("Conecte o Bot de Relatórios primeiro nas Configurações.");
+      return;
+    }
+    setSending(true);
+    try {
+      const { error } = await supabase.functions.invoke("daily-planning-summary", {
+        body: { date },
+      });
+      if (error) throw error;
+      toast.success("Relatório enviado para o Telegram!");
+    } catch (e: any) {
+      toast.error("Falha ao enviar", { description: e.message });
+    } finally {
+      setSending(false);
+    }
+  };
+
+  return (
+    <div className="space-y-4">
+      {/* Header / controls */}
+      <Card no3d>
+        <CardContent className="p-4 space-y-3">
+          <div className="flex flex-col sm:flex-row sm:items-end gap-3">
+            <div className="flex-1 space-y-1">
+              <Label className="text-xs">Data do relatório</Label>
+              <DatePickerField value={date} onChange={setDate} />
+            </div>
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm" onClick={() => setDate(todayISO())}>
+                Hoje
+              </Button>
+              <Button size="sm" onClick={handleSendNow} disabled={sending || !linked}>
+                {sending ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Send className="h-4 w-4 mr-1" />}
+                Enviar agora
+              </Button>
+            </div>
+          </div>
+          {!linked && (
+            <p className="text-xs text-muted-foreground">
+              💡 Conecte o Bot de Relatórios em <strong>Configurações → Notificações</strong> para receber este relatório no Telegram.
+            </p>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Totals */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <Card no3d>
+          <CardContent className="p-4">
+            <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1">
+              <TrendingUp className="h-4 w-4 text-success" /> Receitas do dia
+            </div>
+            <p className="text-2xl font-bold text-success">{fmtBRL(totalIncome)}</p>
+            <p className="text-[11px] text-muted-foreground mt-1">{incomeRows.length} {incomeRows.length === 1 ? "lançamento" : "lançamentos"}</p>
+          </CardContent>
+        </Card>
+        <Card no3d>
+          <CardContent className="p-4">
+            <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1">
+              <TrendingDown className="h-4 w-4 text-destructive" /> Despesas do dia
+            </div>
+            <p className="text-2xl font-bold text-destructive">{fmtBRL(totalExpense)}</p>
+            <p className="text-[11px] text-muted-foreground mt-1">{expenseRows.length} {expenseRows.length === 1 ? "lançamento" : "lançamentos"}</p>
+          </CardContent>
+        </Card>
+        <Card no3d className={isNegative ? "border-destructive/40" : "border-success/40"}>
+          <CardContent className="p-4">
+            <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1">
+              <Wallet className={`h-4 w-4 ${isNegative ? "text-destructive" : "text-success"}`} /> Saldo previsto
+            </div>
+            <p className={`text-2xl font-bold ${isNegative ? "text-destructive" : "text-success"}`}>{fmtBRL(balance)}</p>
+            {isNegative && (
+              <p className="text-[11px] text-destructive flex items-center gap-1 mt-1">
+                <AlertTriangle className="h-3 w-3" /> Saldo negativo previsto
+              </p>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Income list */}
+      <Card no3d>
+        <CardContent className="p-4">
+          <h3 className="font-semibold text-sm mb-3 flex items-center gap-2">
+            <TrendingUp className="h-4 w-4 text-success" /> Receitas previstas
+          </h3>
+          {incomeRows.length === 0 ? (
+            <p className="text-xs text-muted-foreground py-4 text-center">Nenhuma receita prevista para este dia.</p>
+          ) : (
+            <div className="space-y-2">
+              {incomeRows.map((r, i) => (
+                <div key={i} className="flex items-center justify-between gap-3 p-2 rounded-md hover:bg-muted/50">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2">
+                      <Badge variant="outline" className="text-[10px] shrink-0">{r.origin}</Badge>
+                      <p className="text-sm truncate">{r.description}</p>
+                    </div>
+                  </div>
+                  <p className="text-sm font-semibold text-success shrink-0">{fmtBRL(r.amount)}</p>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Expense list */}
+      <Card no3d>
+        <CardContent className="p-4">
+          <h3 className="font-semibold text-sm mb-3 flex items-center gap-2">
+            <TrendingDown className="h-4 w-4 text-destructive" /> Despesas previstas
+          </h3>
+          {expenseRows.length === 0 ? (
+            <p className="text-xs text-muted-foreground py-4 text-center">Nenhuma despesa prevista para este dia.</p>
+          ) : (
+            <div className="space-y-2">
+              {expenseRows.map((r, i) => (
+                <div key={i} className="flex items-center justify-between gap-3 p-2 rounded-md hover:bg-muted/50">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <Badge variant="outline" className="text-[10px] shrink-0">{r.origin}</Badge>
+                      {r.category && <Badge variant="secondary" className="text-[10px] shrink-0">{r.category}</Badge>}
+                      <p className="text-sm truncate">{r.description}</p>
+                    </div>
+                  </div>
+                  <p className="text-sm font-semibold text-destructive shrink-0">
+                    {r.amount > 0 ? fmtBRL(r.amount) : "—"}
+                  </p>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Telegram schedule */}
+      {linked && !prefsLoading && (
+        <Card no3d>
+          <CardContent className="p-4 space-y-3">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <p className="text-sm font-semibold">Envio automático no Telegram</p>
+                <p className="text-[11px] text-muted-foreground">
+                  Configure até 3 horários para receber o planejamento do dia automaticamente.
+                </p>
+              </div>
+              <Switch checked={prefs.enabled} onCheckedChange={(v) => save({ enabled: v })} />
+            </div>
+
+            {prefs.enabled && (
+              <>
+                <div className="grid grid-cols-3 gap-2">
+                  {[1, 2, 3].map((slot) => {
+                    const key = `send_time_${slot}` as "send_time_1" | "send_time_2" | "send_time_3";
+                    return (
+                      <div key={slot} className="space-y-1">
+                        <Label className="text-[10px] text-muted-foreground flex items-center gap-1">
+                          <Clock className="h-3 w-3" /> Horário {slot}
+                        </Label>
+                        <Input
+                          type="time"
+                          value={prefs[key] || ""}
+                          onChange={(e) => save({ [key]: e.target.value || null } as any)}
+                          className="h-8 text-xs"
+                        />
+                      </div>
+                    );
+                  })}
+                </div>
+                <p className="text-[10px] text-muted-foreground">
+                  Horários no fuso de Brasília. Deixe em branco para desativar um slot.
+                </p>
+              </>
+            )}
+          </CardContent>
+        </Card>
+      )}
+    </div>
+  );
+}

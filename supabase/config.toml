@@ -23,3 +23,6 @@ verify_jwt = false
 
 [functions.generate-personal-insights]
 verify_jwt = false
+
+[functions.daily-planning-summary]
+verify_jwt = false
