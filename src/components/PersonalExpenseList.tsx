@@ -450,9 +450,11 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, onUpda
                     const over = spent > b.amount;
                     const own = monthBudgets.find((x) => x.id === b.id);
                     return (
-                      <div
+                      <button
+                        type="button"
                         key={b.id}
-                        className={`rounded-lg border p-2.5 bg-card flex flex-col gap-1.5 ${
+                        onClick={() => setBudgetDetailCat(b.category)}
+                        className={`text-left rounded-lg border p-2.5 bg-card flex flex-col gap-1.5 transition hover:border-primary/50 hover:shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
                           over ? "border-destructive/40" : "border-border"
                         }`}
                       >
@@ -469,15 +471,16 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, onUpda
                             </span>
                           </div>
                           {own && !readOnly && (
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-5 w-5 text-destructive hover:text-destructive hover:bg-destructive/10 shrink-0"
-                              onClick={() => deleteBudget(own.id)}
+                            <span
+                              role="button"
+                              tabIndex={0}
+                              className="h-5 w-5 inline-flex items-center justify-center rounded text-destructive hover:text-destructive hover:bg-destructive/10 shrink-0 cursor-pointer"
+                              onClick={(e) => { e.stopPropagation(); deleteBudget(own.id); }}
+                              onKeyDown={(e) => { if (e.key === "Enter") { e.stopPropagation(); deleteBudget(own.id); } }}
                               title="Remover limite deste mês"
                             >
                               <Trash2 className="h-2.5 w-2.5" />
-                            </Button>
+                            </span>
                           )}
                         </div>
                         <div className="flex items-baseline justify-between gap-1">
