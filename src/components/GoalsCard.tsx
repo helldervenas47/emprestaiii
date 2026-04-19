@@ -15,7 +15,11 @@ import {
   Sparkles, CheckCircle2, AlertCircle, TrendingDown, Lightbulb,
   BookOpen, Calculator, Database, FlaskConical,
 } from "lucide-react";
-import { calculateTotalWithInterest } from "@/hooks/useLoans";
+
+// Inline para evitar import circular com useLoans
+function calculateTotalWithInterest(principal: number, rate: number, _months: number): number {
+  return Math.round(principal * (1 + rate / 100));
+}
 
 // Explicações didáticas de como cada meta é calculada
 const GOAL_EXPLANATIONS: Record<GoalType, {
