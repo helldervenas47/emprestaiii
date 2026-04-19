@@ -7,6 +7,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { useAuth, AuthProvider } from "@/hooks/useAuth";
 import PWAInstallPrompt from "./components/PWAInstallPrompt";
 import { BrandTitleSync } from "./components/BrandTitleSync";
+import { BrandFaviconSync } from "./components/BrandFaviconSync";
 
 const Index = lazy(() => import("./pages/Index.tsx"));
 const Auth = lazy(() => import("./pages/Auth.tsx"));
@@ -58,6 +59,7 @@ const App = () => (
       <BrowserRouter>
         <AuthProvider>
           <BrandTitleSync />
+          <BrandFaviconSync />
           <Suspense fallback={<PageLoader />}>
             <Routes>
               <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
