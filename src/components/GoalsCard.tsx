@@ -877,7 +877,7 @@ function GoalDetailDialog({ open, onClose, goal, viewingMonth }: DialogProps) {
               );
             })()}
           </div>
-        </ScrollArea>
+        </div>
       </DialogContent>
     </Dialog>
   );
