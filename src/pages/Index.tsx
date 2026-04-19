@@ -193,6 +193,8 @@ const Index = () => {
   const { signOut, role, allowedTabs, linkedClientIds, loading, user } = useAuth();
   const navigate = useNavigate();
   const { subscription, isActive: hasActiveSub } = useSubscription();
+  const { branding: appBranding } = useAppBranding();
+  const brandName = appBranding.brand_name;
 
   // Tab state - declared early so hooks can use it for lazy loading
   const [tab, setTabState] = useState<Tab>(() => {
