@@ -306,12 +306,26 @@ function GoalDetailDialog({ open, onClose, goal, viewingMonth }: DialogProps) {
   const { hidden } = useHideValues();
   const { upsertGoal } = useMonthlyGoals();
   const [creating, setCreating] = useState(false);
+  const [editingCreate, setEditingCreate] = useState(false);
+  const [newTarget, setNewTarget] = useState<string>("");
+
+  // Reset edição ao trocar de meta/mês
+  useMemo(() => {
+    setEditingCreate(false);
+    setNewTarget(goal ? String(goal.targetValue) : "");
+  }, [goal?.id, viewingMonth]);
 
   const handleCreateForMonth = async () => {
     if (!goal || !viewingMonth) return;
+    const parsed = Number(String(newTarget).replace(",", "."));
+    if (!isFinite(parsed) || parsed < 0) {
+      toast.error("Informe um valor válido");
+      return;
+    }
     setCreating(true);
     try {
-      await upsertGoal(goal.goalType, viewingMonth, goal.targetValue, goal.notes || undefined);
+      await upsertGoal(goal.goalType, viewingMonth, parsed, goal.notes || undefined);
+      setEditingCreate(false);
     } catch (e) {
       toast.error("Erro ao criar meta");
     } finally {
