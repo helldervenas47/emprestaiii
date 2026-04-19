@@ -20,7 +20,8 @@ import {
 } from "lucide-react";
 import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
 import { ExpenseEditDialog } from "@/components/ExpenseEditDialog";
-import { personalCategories, getPersonalCategory } from "@/lib/personalExpenseCategories";
+import { personalCategories, getPersonalCategory, resolvePersonalIcon, type PersonalCategory } from "@/lib/personalExpenseCategories";
+import { usePersonalExpenseCategories } from "@/hooks/usePersonalExpenseCategories";
 import { Progress } from "@/components/ui/progress";
 import { usePersonalBudgets } from "@/hooks/usePersonalBudgets";
 import { isPiggyExpense } from "@/hooks/usePiggyBanks";
