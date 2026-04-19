@@ -287,13 +287,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
     });
     interestDetailRecords.sort((a, b) => b.date.localeCompare(a.date));
     
-    // Also include single-installment loans (no schedule) using dueDate for expected
-    const singleInstLoans = loans.filter(l => l.installments <= 1 && isInRange(l.dueDate, range.start, range.end));
-    const singleExpected = singleInstLoans.reduce((s, l) => {
-      return s + (calculateTotalWithInterest(l.amount, l.interestRate, l.installments) - l.amount);
-    }, 0);
-    
-    const totalProfitExpected = periodProfitExpected + singleExpected;
+    const totalProfitExpected = periodProfitExpected;
     const totalProfitRealized = periodProfitRealized;
     const previstoTotal = totalProfitRealized + totalProfitExpected;
     const periodProfitPct = previstoTotal > 0 ? Math.round((totalProfitRealized / previstoTotal) * 100) : 0;
