@@ -13,7 +13,136 @@ import {
   Target, Percent, TrendingUp, Banknote, FileText,
   HandCoins, Coins, Wallet, PiggyBank, AlertTriangle, UserPlus,
   Sparkles, CheckCircle2, AlertCircle, TrendingDown, Lightbulb,
+  BookOpen, Calculator, Database, FlaskConical,
 } from "lucide-react";
+
+// Explicações didáticas de como cada meta é calculada
+const GOAL_EXPLANATIONS: Record<GoalType, {
+  formula: string;
+  indicators: string[];
+  dataSource: string[];
+  example: { setup: string; calc: string; result: string };
+  measurement: string;
+}> = {
+  interest_rate: {
+    formula: "Taxa Média = Soma das taxas de juros dos contratos do mês ÷ Quantidade de contratos do mês",
+    indicators: ["Taxa de juros (%) cadastrada em cada contrato", "Data de início do contrato (deve estar no mês selecionado)"],
+    dataSource: ["Tabela de Empréstimos (loans)", "Campo: interest_rate", "Filtro: start_date no mês selecionado"],
+    example: {
+      setup: "3 contratos criados no mês com taxas: 10%, 12% e 14%.",
+      calc: "(10 + 12 + 14) ÷ 3 = 36 ÷ 3",
+      result: "Taxa média = 12% ao mês",
+    },
+    measurement: "Quanto maior a taxa média, mais próximo da meta. Atingimento = (Realizado ÷ Meta) × 100.",
+  },
+  profit: {
+    formula: "Atualmente exibido como referência. O cálculo automático depende do módulo de lucro previsto.",
+    indicators: ["Lucro previsto (juros futuros dos contratos)", "Lucro realizado (juros recebidos)"],
+    dataSource: ["Tabela de Pagamentos", "Tabela de Empréstimos"],
+    example: {
+      setup: "Lucro previsto: R$ 10.000. Lucro realizado: R$ 8.500.",
+      calc: "(8.500 ÷ 10.000) × 100",
+      result: "Lucro do período = 85%",
+    },
+    measurement: "Percentual de lucro previsto efetivamente realizado no mês.",
+  },
+  loan_volume: {
+    formula: "Volume = Soma do valor principal de todos os empréstimos com data de início no mês selecionado",
+    indicators: ["Valor principal de cada novo empréstimo", "Data de início (start_date)"],
+    dataSource: ["Tabela de Empréstimos (loans)", "Campo: amount", "Filtro: start_date no mês selecionado"],
+    example: {
+      setup: "3 empréstimos criados no mês: R$ 1.000, R$ 2.500 e R$ 1.500.",
+      calc: "1.000 + 2.500 + 1.500",
+      result: "Volume emprestado = R$ 5.000",
+    },
+    measurement: "Atingimento = (Volume realizado ÷ Meta) × 100. Quanto maior, melhor.",
+  },
+  new_loans_count: {
+    formula: "Quantidade = Número total de empréstimos criados no mês selecionado",
+    indicators: ["Cada novo contrato conta como 1", "Data de início (start_date)"],
+    dataSource: ["Tabela de Empréstimos (loans)", "Filtro: start_date no mês selecionado"],
+    example: {
+      setup: "Você criou 7 novos contratos no mês.",
+      calc: "Contagem direta dos registros",
+      result: "Novos empréstimos = 7",
+    },
+    measurement: "Atingimento = (Quantidade realizada ÷ Meta) × 100.",
+  },
+  received_total: {
+    formula: "Total Recebido = Soma do valor de todos os pagamentos com data no mês selecionado",
+    indicators: ["Valor de cada pagamento (principal + juros)", "Data do pagamento"],
+    dataSource: ["Tabela de Pagamentos (payments)", "Campo: amount", "Filtro: date no mês selecionado"],
+    example: {
+      setup: "5 parcelas pagas no mês: R$ 300, R$ 450, R$ 200, R$ 500, R$ 350.",
+      calc: "300 + 450 + 200 + 500 + 350",
+      result: "Recebimentos no mês = R$ 1.800",
+    },
+    measurement: "Atingimento = (Total recebido ÷ Meta) × 100.",
+  },
+  interest_received: {
+    formula: "Juros Recebidos = Σ máx(0, valor_pago − valor_principal_por_parcela) de cada pagamento do mês",
+    indicators: [
+      "Valor de cada pagamento",
+      "Principal por parcela = Valor do empréstimo ÷ Total de parcelas",
+      "Diferença entre valor pago e principal = juros estimados",
+    ],
+    dataSource: ["Tabela de Pagamentos (payments)", "Tabela de Empréstimos (loans)"],
+    example: {
+      setup: "Empréstimo de R$ 1.000 em 10 parcelas. Parcela paga: R$ 130.",
+      calc: "Principal por parcela = 1.000 ÷ 10 = 100. Juros = 130 − 100",
+      result: "Juros desta parcela = R$ 30",
+    },
+    measurement: "Atingimento = (Juros recebidos ÷ Meta) × 100.",
+  },
+  active_capital: {
+    formula: "Capital Ativo = Soma do 'restante a receber' de todos os contratos não finalizados (snapshot atual)",
+    indicators: ["Saldo devedor (remaining_amount) de cada empréstimo ativo", "Status diferente de 'completed' ou 'paid'"],
+    dataSource: ["Tabela de Empréstimos (loans)", "Campo: remaining_amount", "Filtro: status ativo (independe do mês)"],
+    example: {
+      setup: "3 contratos ativos com restante: R$ 800, R$ 1.500 e R$ 2.200.",
+      calc: "800 + 1.500 + 2.200",
+      result: "Capital ativo = R$ 4.500",
+    },
+    measurement: "Esta meta é sempre calculada com a foto atual da carteira, independente do mês selecionado.",
+  },
+  net_profit: {
+    formula: "Lucro Líquido = Juros recebidos no mês − Despesas pagas no mês (escopo empresa)",
+    indicators: ["Juros recebidos do mês", "Despesas pagas (paid = true) com escopo diferente de 'pessoal'"],
+    dataSource: ["Tabela de Pagamentos", "Tabela de Empréstimos", "Tabela de Despesas (expenses)"],
+    example: {
+      setup: "Juros recebidos: R$ 2.500. Despesas pagas: R$ 800.",
+      calc: "2.500 − 800",
+      result: "Lucro líquido = R$ 1.700",
+    },
+    measurement: "Atingimento = (Lucro líquido ÷ Meta) × 100.",
+  },
+  max_default_rate: {
+    formula: "Inadimplência (%) = (Parcelas atrasadas ÷ Total de parcelas de todos os contratos) × 100",
+    indicators: [
+      "Total de parcelas de cada contrato",
+      "Parcelas pagas",
+      "Data de vencimento (due_date) anterior a hoje = atrasadas se não pagas",
+    ],
+    dataSource: ["Tabela de Empréstimos (loans)", "Campos: installments, paid_installments, due_date"],
+    example: {
+      setup: "Carteira: 50 parcelas no total. Vencidas e não pagas: 4.",
+      calc: "(4 ÷ 50) × 100",
+      result: "Inadimplência = 8%",
+    },
+    measurement: "Meta INVERSA: quanto menor, melhor. Atingimento = máx(0, 100 − (Realizado ÷ Meta) × 100).",
+  },
+  new_clients_count: {
+    formula: "Quantidade = Número de clientes cadastrados no mês selecionado",
+    indicators: ["Cada cliente conta como 1", "Data de criação (created_at)"],
+    dataSource: ["Tabela de Clientes (clients)", "Filtro: created_at no mês selecionado"],
+    example: {
+      setup: "Você cadastrou 4 novos clientes no mês.",
+      calc: "Contagem direta dos registros",
+      result: "Novos clientes = 4",
+    },
+    measurement: "Atingimento = (Quantidade realizada ÷ Meta) × 100.",
+  },
+};
 
 type Unit = "%" | "R$" | "qtd";
 
@@ -652,6 +781,101 @@ function GoalDetailDialog({ open, onClose, goal, viewingMonth }: DialogProps) {
                 </CardContent>
               </Card>
             )}
+
+            {/* Como esta meta é calculada */}
+            {(() => {
+              const exp = GOAL_EXPLANATIONS[goal.goalType];
+              if (!exp) return null;
+              return (
+                <Card no3d className="border-primary/20 bg-gradient-to-br from-primary/5 to-transparent">
+                  <CardContent className="p-4 space-y-4">
+                    <div className="flex items-center gap-2">
+                      <div className="h-7 w-7 rounded-md bg-primary/15 flex items-center justify-center shrink-0">
+                        <BookOpen className="h-3.5 w-3.5 text-primary" />
+                      </div>
+                      <div>
+                        <h4 className="text-sm font-semibold text-foreground leading-tight">Como esta meta é calculada</h4>
+                        <p className="text-[10px] text-muted-foreground leading-tight">Entenda a fórmula, os dados e veja um exemplo prático</p>
+                      </div>
+                    </div>
+
+                    {/* Fórmula */}
+                    <div className="rounded-md border border-border bg-card/60 p-3">
+                      <div className="flex items-center gap-1.5 mb-1.5">
+                        <Calculator className="h-3.5 w-3.5 text-primary" />
+                        <span className="text-[11px] font-semibold text-foreground uppercase tracking-wide">Fórmula</span>
+                      </div>
+                      <p className="text-xs text-foreground leading-snug font-mono bg-muted/40 rounded px-2 py-1.5">
+                        {exp.formula}
+                      </p>
+                    </div>
+
+                    {/* Indicadores */}
+                    <div className="rounded-md border border-border bg-card/60 p-3">
+                      <div className="flex items-center gap-1.5 mb-1.5">
+                        <Target className="h-3.5 w-3.5 text-primary" />
+                        <span className="text-[11px] font-semibold text-foreground uppercase tracking-wide">Indicadores considerados</span>
+                      </div>
+                      <ul className="space-y-1">
+                        {exp.indicators.map((ind, i) => (
+                          <li key={i} className="text-xs text-foreground flex items-start gap-2 leading-snug">
+                            <span className="text-primary mt-0.5">•</span>
+                            <span>{ind}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+
+                    {/* Origem dos dados */}
+                    <div className="rounded-md border border-border bg-card/60 p-3">
+                      <div className="flex items-center gap-1.5 mb-1.5">
+                        <Database className="h-3.5 w-3.5 text-primary" />
+                        <span className="text-[11px] font-semibold text-foreground uppercase tracking-wide">Origem dos dados</span>
+                      </div>
+                      <ul className="space-y-1">
+                        {exp.dataSource.map((src, i) => (
+                          <li key={i} className="text-xs text-muted-foreground flex items-start gap-2 leading-snug">
+                            <span className="text-primary mt-0.5">›</span>
+                            <span>{src}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+
+                    {/* Exemplo prático */}
+                    <div className="rounded-md border border-success/30 bg-success/5 p-3">
+                      <div className="flex items-center gap-1.5 mb-2">
+                        <FlaskConical className="h-3.5 w-3.5 text-success" />
+                        <span className="text-[11px] font-semibold text-success uppercase tracking-wide">Exemplo prático</span>
+                      </div>
+                      <div className="space-y-1.5 text-xs">
+                        <div>
+                          <span className="text-[10px] text-muted-foreground uppercase">Cenário</span>
+                          <p className="text-foreground leading-snug">{exp.example.setup}</p>
+                        </div>
+                        <div>
+                          <span className="text-[10px] text-muted-foreground uppercase">Cálculo</span>
+                          <p className="text-foreground leading-snug font-mono bg-muted/40 rounded px-2 py-1">{exp.example.calc}</p>
+                        </div>
+                        <div>
+                          <span className="text-[10px] text-muted-foreground uppercase">Resultado</span>
+                          <p className="text-success font-semibold leading-snug">{exp.example.result}</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Como é medido */}
+                    <div className="rounded-md border border-primary/30 bg-primary/5 p-3">
+                      <div className="flex items-center gap-1.5 mb-1.5">
+                        <Sparkles className="h-3.5 w-3.5 text-primary" />
+                        <span className="text-[11px] font-semibold text-primary uppercase tracking-wide">Como o progresso é medido</span>
+                      </div>
+                      <p className="text-xs text-foreground leading-snug">{exp.measurement}</p>
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })()}
           </div>
         </ScrollArea>
       </DialogContent>
