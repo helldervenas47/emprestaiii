@@ -445,7 +445,7 @@ const Index = () => {
                 </SheetContent>
               </Sheet>
             )}
-<AppLogo area="header" alt={brandName} className="w-auto" />
+<AppLogo area="header" alt={brandName} className="w-auto hidden md:block" />
             <div className="hidden sm:block">
               <h1 className="text-lg font-bold text-foreground tracking-tight">{brandName}</h1>
               <p className="text-[10px] text-muted-foreground uppercase tracking-widest">Controle de empréstimos</p>
