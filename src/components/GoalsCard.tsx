@@ -182,7 +182,9 @@ export function GoalsCard({ loans, payments, expenses, clients, selectedMonth, p
 
         {enriched.length === 0 ? (
           <div className="text-center py-8 text-sm text-muted-foreground">
-            Nenhuma meta cadastrada. Cadastre metas em Configurações → Metas para acompanhar aqui.
+            {selectedMonth
+              ? `Nenhuma meta cadastrada para ${periodLabel || formatMonthLabel(selectedMonth)}.`
+              : "Nenhuma meta cadastrada. Cadastre metas em Configurações → Metas para acompanhar aqui."}
           </div>
         ) : (
           <div className="grid grid-cols-2 md:grid-cols-3 gap-2 sm:gap-3">
