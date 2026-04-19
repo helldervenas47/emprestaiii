@@ -235,6 +235,141 @@ export function AccountantReport({ loans, payments, sales, expenses }: Accountan
     return k;
   };
 
+  const exportTaxSimulationPDF = () => {
+    try {
+      const doc = new jsPDF();
+      const periodLabel = period === "month" ? formatDate(monthFilter) : yearFilter;
+      const fmtBRL = (n: number) => n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+      const pct = (n: number) => `${(n * 100).toFixed(2)}%`;
+
+      // Cabeçalho
+      doc.setFontSize(16);
+      doc.setFont("helvetica", "bold");
+      doc.text("Simulação de Impostos", 14, 18);
+      doc.setFontSize(10);
+      doc.setFont("helvetica", "normal");
+      doc.setTextColor(100);
+      doc.text(`Período: ${periodLabel} (${period === "month" ? "Mensal" : "Anual"})`, 14, 25);
+      doc.text(`Gerado em: ${new Date().toLocaleString("pt-BR")}`, 14, 31);
+      doc.setTextColor(0);
+
+      // Base
+      doc.setFontSize(11);
+      doc.setFont("helvetica", "bold");
+      doc.text("Base de Cálculo", 14, 42);
+      autoTable(doc, {
+        startY: 45,
+        theme: "grid",
+        styles: { fontSize: 9 },
+        headStyles: { fillColor: [59, 130, 246] },
+        head: [["Descrição", "Valor"]],
+        body: [
+          ["Receita base (juros recebidos)", fmtBRL(taxSim.base)],
+          ["RBT12 (anualizada — Simples)", fmtBRL(taxSim.rbt12)],
+        ],
+      });
+
+      // Simples Nacional
+      let y = (doc as any).lastAutoTable.finalY + 8;
+      doc.setFont("helvetica", "bold");
+      doc.text("Simples Nacional (Anexo III)", 14, y);
+      autoTable(doc, {
+        startY: y + 3,
+        theme: "striped",
+        styles: { fontSize: 9 },
+        headStyles: { fillColor: [16, 185, 129] },
+        head: [["Item", "Valor"]],
+        body: [
+          ["Faixa", String(taxSim.simples.faixa)],
+          ["Alíquota efetiva", pct(taxSim.simples.aliquotaEfetiva)],
+          ["DAS estimado", fmtBRL(taxSim.simples.total)],
+          ["Líquido após imposto", fmtBRL(taxSim.simples.liquido)],
+        ],
+      });
+
+      // Lucro Presumido
+      y = (doc as any).lastAutoTable.finalY + 8;
+      doc.setFont("helvetica", "bold");
+      doc.text("Lucro Presumido (Serviços)", 14, y);
+      autoTable(doc, {
+        startY: y + 3,
+        theme: "striped",
+        styles: { fontSize: 9 },
+        headStyles: { fillColor: [234, 179, 8] },
+        head: [["Tributo", "Valor"]],
+        body: [
+          ["Base de cálculo (32%)", fmtBRL(taxSim.presumido.baseCalculo)],
+          ["IRPJ (15%)", fmtBRL(taxSim.presumido.irpj)],
+          ["IRPJ Adicional (10%)", fmtBRL(taxSim.presumido.irpjAdicional)],
+          ["CSLL (9%)", fmtBRL(taxSim.presumido.csll)],
+          ["PIS (0,65%)", fmtBRL(taxSim.presumido.pis)],
+          ["COFINS (3%)", fmtBRL(taxSim.presumido.cofins)],
+          ["ISS (5% — máx.)", fmtBRL(taxSim.presumido.iss)],
+          ["Total estimado", fmtBRL(taxSim.presumido.total)],
+          ["Alíquota efetiva", pct(taxSim.presumido.aliquotaEfetiva)],
+          ["Líquido após imposto", fmtBRL(taxSim.presumido.liquido)],
+        ],
+      });
+
+      // IRPF
+      y = (doc as any).lastAutoTable.finalY + 8;
+      if (y > 250) { doc.addPage(); y = 20; }
+      doc.setFont("helvetica", "bold");
+      doc.text("Pessoa Física (IRPF / Carnê-Leão)", 14, y);
+      autoTable(doc, {
+        startY: y + 3,
+        theme: "striped",
+        styles: { fontSize: 9 },
+        headStyles: { fillColor: [168, 85, 247] },
+        head: [["Item", "Valor"]],
+        body: [
+          ["Base mensal", fmtBRL(taxSim.irpf.baseMensal)],
+          ["Alíquota nominal", pct(taxSim.irpf.aliquota)],
+          ["Parcela a deduzir", fmtBRL(taxSim.irpf.deducao)],
+          ["IRPF estimado", fmtBRL(taxSim.irpf.total)],
+          ["Alíquota efetiva", pct(taxSim.irpf.aliquotaEfetiva)],
+          ["Líquido após imposto", fmtBRL(taxSim.irpf.liquido)],
+        ],
+      });
+
+      // Comparativo
+      y = (doc as any).lastAutoTable.finalY + 8;
+      if (y > 240) { doc.addPage(); y = 20; }
+      doc.setFont("helvetica", "bold");
+      doc.text("Comparativo entre Regimes", 14, y);
+      autoTable(doc, {
+        startY: y + 3,
+        theme: "grid",
+        styles: { fontSize: 10 },
+        headStyles: { fillColor: [30, 41, 59] },
+        head: [["Regime", "Imposto", "Alíquota Efetiva", "Líquido"]],
+        body: [
+          ["Simples Nacional", fmtBRL(taxSim.simples.total), pct(taxSim.simples.aliquotaEfetiva), fmtBRL(taxSim.simples.liquido)],
+          ["Lucro Presumido", fmtBRL(taxSim.presumido.total), pct(taxSim.presumido.aliquotaEfetiva), fmtBRL(taxSim.presumido.liquido)],
+          ["Pessoa Física", fmtBRL(taxSim.irpf.total), pct(taxSim.irpf.aliquotaEfetiva), fmtBRL(taxSim.irpf.liquido)],
+        ],
+      });
+
+      // Rodapé
+      y = (doc as any).lastAutoTable.finalY + 10;
+      if (y > 270) { doc.addPage(); y = 20; }
+      doc.setFontSize(8);
+      doc.setFont("helvetica", "italic");
+      doc.setTextColor(120);
+      doc.text(
+        "Valores aproximados, baseados nos juros recebidos no período. Consulte um contador para precisão fiscal.",
+        14, y, { maxWidth: 180 }
+      );
+
+      doc.save(`simulacao-impostos-${periodLabel.replace(/\s+/g, "-")}.pdf`);
+      toast.success("PDF da simulação exportado!");
+    } catch (e) {
+      console.error(e);
+      toast.error("Erro ao gerar PDF");
+    }
+  };
+
+
   return (
     <div className="space-y-4">
       {/* Filtro de período */}
