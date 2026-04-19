@@ -719,7 +719,7 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, onUpda
                               <Calendar className="h-3 w-3" />
                               {format(new Date(expense.dueDate + "T00:00:00"), "dd/MM/yyyy")}
                             </span>
-                            {isRecorrente && expense.installments! < FIXED_RECURRING_INSTALLMENTS && (() => {
+                            {expense.type !== "fixa" && isRecorrente && expense.installments! < FIXED_RECURRING_INSTALLMENTS && (() => {
                               const total = expense.installments!;
                               const paidCount = expense.paidInstallments || 0;
                               // Reconstrói a data da 1ª parcela (dueDate atual - paidCount meses)
