@@ -441,7 +441,7 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, onUpda
                   })
                   .slice(0, 4)
                   .map((b) => {
-                    const cat = getPersonalCategory(b.category);
+                    const cat = resolveCategory(b.category);
                     const Icon = cat.icon;
                     const spent = spentByCategory.get(b.category) || 0;
                     const pct = b.amount > 0 ? Math.min(200, (spent / b.amount) * 100) : 0;
@@ -700,7 +700,7 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, onUpda
             const overdue = isOverdue(expense);
             const isRecorrente = expense.type === "recorrente" && expense.installments && expense.installments > 1;
             const installmentAmount = isRecorrente ? expense.amount / expense.installments! : expense.amount;
-            const cat = getPersonalCategory(expense.category);
+            const cat = resolveCategory(expense.category);
             const Icon = cat.icon;
 
             return (
