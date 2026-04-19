@@ -208,9 +208,17 @@ export function GoalsCard({ loans, payments, expenses, clients, selectedMonth, p
                       <p className="text-xs sm:text-sm font-semibold text-foreground leading-tight break-words sm:truncate" title={g.meta?.label}>
                         {g.meta?.label || g.goalType}
                       </p>
-                      <p className="text-[9px] sm:text-[10px] text-muted-foreground leading-tight mt-0.5">
-                        {formatMonthLabel(g.month)}
-                      </p>
+                      <div className="flex items-center justify-center sm:justify-start gap-1 mt-0.5 flex-wrap">
+                        {ALWAYS_VISIBLE_GOALS.includes(g.goalType) ? (
+                          <Badge variant="outline" className="text-[8px] sm:text-[9px] px-1 py-0 h-3.5 border-primary/40 text-primary bg-primary/5 uppercase tracking-wide leading-none">
+                            Sempre
+                          </Badge>
+                        ) : (
+                          <p className="text-[9px] sm:text-[10px] text-muted-foreground leading-tight">
+                            {formatMonthLabel(g.month)}
+                          </p>
+                        )}
+                      </div>
                     </div>
                   </div>
 
