@@ -194,10 +194,11 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, onUpda
 
   const totalCategorized = categoryData.reduce((s, it) => s + it.value, 0);
 
-  // Spend per category (paid only, excluding cofrinho) — used by budget progress
+  // Spend per category — includes paid AND pending expenses (excluding cofrinho)
+  // so budget limits and the intelligent report reflect the real total commitment.
   const spentByCategory = useMemo(() => {
     const map = new Map<string, number>();
-    spendingMonth.filter((e) => e.paid).forEach((e) => {
+    spendingMonth.forEach((e) => {
       map.set(e.category, (map.get(e.category) || 0) + getInstallmentAmount(e));
     });
     return map;
