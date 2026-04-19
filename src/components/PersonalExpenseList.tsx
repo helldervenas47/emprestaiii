@@ -72,6 +72,7 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, onUpda
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<Filter>("all");
   const [sourceFilter, setSourceFilter] = useState<"all" | "auto" | "manual">("all");
+  const [budgetDetailCat, setBudgetDetailCat] = useState<string | null>(null);
   const [categoryFilter, setCategoryFilter] = useState<string | null>(null);
   const now = new Date();
   const [selectedMonth, setSelectedMonth] = useState(
@@ -449,9 +450,11 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, onUpda
                     const over = spent > b.amount;
                     const own = monthBudgets.find((x) => x.id === b.id);
                     return (
-                      <div
+                      <button
+                        type="button"
                         key={b.id}
-                        className={`rounded-lg border p-2.5 bg-card flex flex-col gap-1.5 ${
+                        onClick={() => setBudgetDetailCat(b.category)}
+                        className={`text-left rounded-lg border p-2.5 bg-card flex flex-col gap-1.5 transition hover:border-primary/50 hover:shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
                           over ? "border-destructive/40" : "border-border"
                         }`}
                       >
@@ -468,15 +471,16 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, onUpda
                             </span>
                           </div>
                           {own && !readOnly && (
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-5 w-5 text-destructive hover:text-destructive hover:bg-destructive/10 shrink-0"
-                              onClick={() => deleteBudget(own.id)}
+                            <span
+                              role="button"
+                              tabIndex={0}
+                              className="h-5 w-5 inline-flex items-center justify-center rounded text-destructive hover:text-destructive hover:bg-destructive/10 shrink-0 cursor-pointer"
+                              onClick={(e) => { e.stopPropagation(); deleteBudget(own.id); }}
+                              onKeyDown={(e) => { if (e.key === "Enter") { e.stopPropagation(); deleteBudget(own.id); } }}
                               title="Remover limite deste mês"
                             >
                               <Trash2 className="h-2.5 w-2.5" />
-                            </Button>
+                            </span>
                           )}
                         </div>
                         <div className="flex items-baseline justify-between gap-1">
@@ -502,7 +506,7 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, onUpda
                         >
                           {Math.round(pct)}% utilizado
                         </span>
-                      </div>
+                      </button>
                     );
                   })}
               </div>
@@ -935,6 +939,106 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, onUpda
             <Button variant="outline" onClick={() => setBudgetEditOpen(false)}>Cancelar</Button>
             <Button onClick={saveBudgets}>Salvar</Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Budget category detail — lists every expense composing this limit in the selected month */}
+      <Dialog open={!!budgetDetailCat} onOpenChange={(v) => !v && setBudgetDetailCat(null)}>
+        <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
+          {budgetDetailCat && (() => {
+            const cat = resolveCategory(budgetDetailCat);
+            const Icon = cat.icon;
+            const budget = budgets.find((b) => b.category === budgetDetailCat)?.amount ?? 0;
+            const items = spendingMonth
+              .filter((e) => e.category === budgetDetailCat)
+              .map((e) => ({ e, value: getInstallmentAmount(e) }))
+              .sort((a, b) => (a.e.dueDate < b.e.dueDate ? -1 : 1));
+            const total = items.reduce((s, it) => s + it.value, 0);
+            const totalPaid = items.filter((it) => it.e.paid).reduce((s, it) => s + it.value, 0);
+            const totalPending = total - totalPaid;
+            return (
+              <>
+                <DialogHeader>
+                  <DialogTitle className="flex items-center gap-2">
+                    <span
+                      className="h-7 w-7 rounded-md flex items-center justify-center"
+                      style={{ backgroundColor: `hsl(${cat.color} / 0.15)` }}
+                    >
+                      <Icon className="h-4 w-4" style={{ color: `hsl(${cat.color})` }} />
+                    </span>
+                    {budgetDetailCat}
+                  </DialogTitle>
+                  <DialogDescription>
+                    Despesas deste mês que compõem o limite{budget > 0 ? ` de ${formatCurrency(budget)}` : ""}.
+                  </DialogDescription>
+                </DialogHeader>
+
+                <div className="grid grid-cols-3 gap-2 text-center">
+                  <div className="rounded-md border border-border p-2">
+                    <div className="text-[10px] text-muted-foreground uppercase tracking-wide">Total</div>
+                    <div className="text-sm font-semibold tabular-nums">{formatCurrency(total)}</div>
+                  </div>
+                  <div className="rounded-md border border-border p-2">
+                    <div className="text-[10px] text-muted-foreground uppercase tracking-wide">Pago</div>
+                    <div className="text-sm font-semibold tabular-nums text-primary">
+                      {formatCurrency(totalPaid)}
+                    </div>
+                  </div>
+                  <div className="rounded-md border border-border p-2">
+                    <div className="text-[10px] text-muted-foreground uppercase tracking-wide">Pendente</div>
+                    <div className="text-sm font-semibold tabular-nums text-destructive">
+                      {formatCurrency(totalPending)}
+                    </div>
+                  </div>
+                </div>
+
+                {items.length === 0 ? (
+                  <p className="text-sm text-muted-foreground text-center py-6">
+                    Nenhuma despesa nesta categoria no mês selecionado.
+                  </p>
+                ) : (
+                  <ul className="divide-y divide-border rounded-md border border-border">
+                    {items.map(({ e, value }) => {
+                      const overdueItem = !e.paid && e.dueDate < new Date().toISOString().split("T")[0];
+                      return (
+                        <li key={e.id} className="flex items-center gap-3 p-2.5">
+                          <div className="flex-1 min-w-0">
+                            <div className="text-sm font-medium text-foreground truncate">
+                              {e.description}
+                            </div>
+                            <div className="text-[11px] text-muted-foreground flex items-center gap-1.5">
+                              <Calendar className="h-3 w-3" />
+                              {format(new Date(e.dueDate + "T00:00:00"), "dd/MM/yyyy", { locale: ptBR })}
+                              {e.type === "recorrente" && e.installments && e.installments > 1 && (
+                                <span className="ml-1">
+                                  • {e.installments === FIXED_RECURRING_INSTALLMENTS ? "fixa" : `parcelada`}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <div className="text-sm font-semibold tabular-nums">
+                              {formatCurrency(value)}
+                            </div>
+                            <Badge
+                              variant={e.paid ? "secondary" : overdueItem ? "destructive" : "outline"}
+                              className="text-[10px] py-0 px-1.5 mt-0.5"
+                            >
+                              {e.paid ? "Paga" : overdueItem ? "Atrasada" : "Pendente"}
+                            </Badge>
+                          </div>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
+
+                <DialogFooter>
+                  <Button variant="outline" onClick={() => setBudgetDetailCat(null)}>Fechar</Button>
+                </DialogFooter>
+              </>
+            );
+          })()}
         </DialogContent>
       </Dialog>
     </div>
