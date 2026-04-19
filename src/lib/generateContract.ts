@@ -2,6 +2,7 @@ import { Sale, Client } from "@/types/loan";
 import { format, addMonths, addWeeks, addDays } from "date-fns";
 import { LocadorInfo } from "@/hooks/useLocadorInfo";
 import { VehicleInfo } from "@/hooks/useVehicleRegistry";
+import { getBrandingLogoUrl } from "@/lib/pdfBranding";
 
 function addByFrequency(date: Date, frequency: string, n: number): Date {
   if (frequency === "Semanal") return addWeeks(date, n);
@@ -59,7 +60,8 @@ function numberToWords(n: number): string {
   return result;
 }
 
-export function generateContract(sale: Sale, client?: Client, locador?: LocadorInfo, vehicle?: VehicleInfo) {
+export async function generateContract(sale: Sale, client?: Client, locador?: LocadorInfo, vehicle?: VehicleInfo) {
+  const branding = await getBrandingLogoUrl();
   const isRecorrente = sale.paymentMode === "recorrente" && sale.installments > 1;
   const defaultValorParcela = sale.installments > 0
     ? Math.max(0, sale.total - (sale.downPayment || 0)) / sale.installments
@@ -178,6 +180,11 @@ export function generateContract(sale: Sale, client?: Client, locador?: LocadorI
 <body>
 
 <button class="close-btn" onclick="window.close()">✕ Fechar</button>
+
+<div style="display:flex; align-items:center; justify-content:center; gap:14px; margin-bottom:18px;">
+  <img src="${branding.url}" alt="${branding.brandName}" style="width:${branding.size}px; height:${branding.size}px; object-fit:contain;" />
+  <span style="font-size:16px; font-weight:bold; letter-spacing:0.5px;">${branding.brandName}</span>
+</div>
 
 <h1>CONTRATO DE LOCAÇÃO DE MOTOCICLETA</h1>
 

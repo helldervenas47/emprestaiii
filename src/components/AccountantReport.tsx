@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { toast } from "sonner";
+import { getPdfBranding } from "@/lib/pdfBranding";
 
 interface AccountantReportProps {
   loans: any[];
@@ -248,20 +249,23 @@ export function AccountantReport({ loans, payments, sales, expenses }: Accountan
     return k;
   };
 
-  const exportTaxSimulationPDF = () => {
+  const exportTaxSimulationPDF = async () => {
     try {
+      const branding = await getPdfBranding();
       const doc = new jsPDF();
       const periodLabel = period === "month" ? formatDate(monthFilter) : yearFilter;
       const fmtBRL = (n: number) => n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
       const pct = (n: number) => `${(n * 100).toFixed(2)}%`;
 
       // Cabeçalho
+      drawBrandingLogo(doc, branding);
       doc.setFontSize(16);
       doc.setFont("helvetica", "bold");
       doc.text("Simulação de Impostos", 14, 18);
       doc.setFontSize(10);
       doc.setFont("helvetica", "normal");
       doc.setTextColor(100);
+      if (branding.brandName) doc.text(branding.brandName, 14, 13);
       doc.text(`Período: ${periodLabel} (${period === "month" ? "Mensal" : "Anual"})`, 14, 25);
       doc.text(`Gerado em: ${new Date().toLocaleString("pt-BR")}`, 14, 31);
       doc.setTextColor(0);
@@ -382,25 +386,47 @@ export function AccountantReport({ loans, payments, sales, expenses }: Accountan
     }
   };
 
-  const pdfHeader = (doc: jsPDF, title: string) => {
+  const drawBrandingLogo = (
+    doc: jsPDF,
+    branding: { logoDataUrl: string | null; logoSize: number; brandName: string },
+  ) => {
+    if (!branding.logoDataUrl) return;
+    // Convert configured px (report area) to mm. 1 px ≈ 0.2645 mm.
+    const sizeMm = Math.max(12, Math.min(40, branding.logoSize * 0.2645));
+    const pageW = doc.internal.pageSize.getWidth();
+    try {
+      doc.addImage(branding.logoDataUrl, "PNG", pageW - sizeMm - 14, 10, sizeMm, sizeMm, undefined, "FAST");
+    } catch {
+      // ignore image errors
+    }
+  };
+
+  const pdfHeader = (
+    doc: jsPDF,
+    title: string,
+    branding?: { logoDataUrl: string | null; logoSize: number; brandName: string },
+  ) => {
     const periodLabel = period === "month" ? formatDate(monthFilter) : yearFilter;
+    if (branding) drawBrandingLogo(doc, branding);
     doc.setFontSize(16);
     doc.setFont("helvetica", "bold");
     doc.text(title, 14, 18);
     doc.setFontSize(10);
     doc.setFont("helvetica", "normal");
     doc.setTextColor(100);
+    if (branding?.brandName) doc.text(branding.brandName, 14, 13);
     doc.text(`Período: ${periodLabel} (${period === "month" ? "Mensal" : "Anual"})`, 14, 25);
     doc.text(`Gerado em: ${new Date().toLocaleString("pt-BR")}`, 14, 31);
     doc.setTextColor(0);
     return periodLabel;
   };
 
-  const exportDREPDF = () => {
+  const exportDREPDF = async () => {
     try {
+      const branding = await getPdfBranding();
       const doc = new jsPDF();
       const fmtBRL = (n: number) => n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-      const periodLabel = pdfHeader(doc, "Demonstrativo de Resultado (DRE)");
+      const periodLabel = pdfHeader(doc, "Demonstrativo de Resultado (DRE)", branding);
 
       autoTable(doc, {
         startY: 40,
@@ -444,11 +470,12 @@ export function AccountantReport({ loans, payments, sales, expenses }: Accountan
     }
   };
 
-  const exportCashflowPDF = () => {
+  const exportCashflowPDF = async () => {
     try {
+      const branding = await getPdfBranding();
       const doc = new jsPDF();
       const fmtBRL = (n: number) => n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-      const periodLabel = pdfHeader(doc, "Fluxo de Caixa");
+      const periodLabel = pdfHeader(doc, "Fluxo de Caixa", branding);
 
       autoTable(doc, {
         startY: 40,
@@ -504,20 +531,23 @@ export function AccountantReport({ loans, payments, sales, expenses }: Accountan
     }
   };
 
-  const exportConsolidatedPDF = () => {
+  const exportConsolidatedPDF = async () => {
     try {
+      const branding = await getPdfBranding();
       const doc = new jsPDF();
       const fmtBRL = (n: number) => n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
       const pct = (n: number) => `${(n * 100).toFixed(2)}%`;
       const periodLabel = period === "month" ? formatDate(monthFilter) : yearFilter;
 
       // ===== Capa =====
+      drawBrandingLogo(doc, branding);
       doc.setFontSize(20);
       doc.setFont("helvetica", "bold");
       doc.text("Relatório Contábil Consolidado", 14, 25);
       doc.setFontSize(11);
       doc.setFont("helvetica", "normal");
       doc.setTextColor(80);
+      if (branding.brandName) doc.text(branding.brandName, 14, 15);
       doc.text(`Período: ${periodLabel} (${period === "month" ? "Mensal" : "Anual"})`, 14, 34);
       doc.text(`Gerado em: ${new Date().toLocaleString("pt-BR")}`, 14, 40);
       doc.setTextColor(0);
@@ -557,6 +587,7 @@ export function AccountantReport({ loans, payments, sales, expenses }: Accountan
 
       // ===== Seção 2: Impostos =====
       doc.addPage();
+      drawBrandingLogo(doc, branding);
       doc.setFont("helvetica", "bold");
       doc.setFontSize(14);
       doc.text("2. Controle de Impostos", 14, 20);
@@ -604,6 +635,7 @@ export function AccountantReport({ loans, payments, sales, expenses }: Accountan
 
       // ===== Seção 3: Simulação =====
       doc.addPage();
+      drawBrandingLogo(doc, branding);
       doc.setFont("helvetica", "bold");
       doc.setFontSize(14);
       doc.text("3. Simulação de Impostos", 14, 20);
@@ -649,6 +681,7 @@ export function AccountantReport({ loans, payments, sales, expenses }: Accountan
 
       // ===== Seção 4: Fluxo de Caixa =====
       doc.addPage();
+      drawBrandingLogo(doc, branding);
       doc.setFont("helvetica", "bold");
       doc.setFontSize(14);
       doc.text("4. Fluxo de Caixa", 14, 20);

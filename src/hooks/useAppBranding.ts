@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import logoIconFallback from "@/assets/logo-icon.png";
+import { clearPdfBrandingCache } from "@/lib/pdfBranding";
 
 export type LogoArea = "header" | "auth" | "favicon" | "report";
 export type LogoDevice = "desktop" | "tablet" | "mobile";
@@ -50,6 +51,7 @@ const subscribers = new Set<(b: AppBranding) => void>();
 
 function notify(b: AppBranding) {
   cache = b;
+  clearPdfBrandingCache();
   subscribers.forEach((cb) => cb(b));
 }
 
