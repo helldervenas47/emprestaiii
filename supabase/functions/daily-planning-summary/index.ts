@@ -18,8 +18,14 @@ function nowInTZ(tz = "America/Sao_Paulo") {
   });
   const parts = fmt.formatToParts(new Date());
   const get = (t: string) => parts.find(p => p.type === t)?.value ?? "";
+  const today = `${get("year")}-${get("month")}-${get("day")}`;
+  // Tomorrow (UTC-safe arithmetic on the YYYY-MM-DD string)
+  const d = new Date(`${today}T12:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + 1);
+  const tomorrow = d.toISOString().slice(0, 10);
   return {
-    date: `${get("year")}-${get("month")}-${get("day")}`,
+    date: today,
+    tomorrow,
     hhmm: `${get("hour")}:${get("minute")}`,
   };
 }
@@ -163,7 +169,7 @@ async function buildAndSend(
   const negative = balance < 0;
 
   const lines: string[] = [];
-  lines.push(`📅 *${brandName} — Planejamento do Dia*`);
+  lines.push(`📅 *${brandName} — Planejamento de Amanhã*`);
   lines.push(`🗓️ ${fmtDateBR(date)}`);
   lines.push("");
   lines.push(`🟢 *Receitas:* ${fmtBRL(totalIncome)}  _(${incomeRows.length})_`);
@@ -216,7 +222,7 @@ Deno.serve(async (req) => {
 
   const url = new URL(req.url);
   const queryUserId = url.searchParams.get("user_id");
-  const { date: today, hhmm } = nowInTZ();
+  const { date: today, tomorrow, hhmm } = nowInTZ();
 
   // Manual/on-demand mode (called from app with auth)
   const authHeader = req.headers.get("Authorization") ?? "";
@@ -230,7 +236,7 @@ Deno.serve(async (req) => {
     if (!userErr && user) {
       let body: any = {};
       try { body = await req.json(); } catch (_) {}
-      const date = (body?.date as string) || today;
+      const date = (body?.date as string) || tomorrow;
       const ok = await buildAndSend(admin, user.id, date, LOVABLE_API_KEY, TELEGRAM_API_KEY, brandName);
       return new Response(JSON.stringify({ ok: true, sent: ok ? 1 : 0, date }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -248,7 +254,7 @@ Deno.serve(async (req) => {
     if (userErr || !user) return new Response(JSON.stringify({ error: "Invalid token" }), { status: 401, headers: corsHeaders });
     if (user.id !== queryUserId) return new Response(JSON.stringify({ error: "Forbidden" }), { status: 403, headers: corsHeaders });
 
-    const ok = await buildAndSend(admin, queryUserId, today, LOVABLE_API_KEY, TELEGRAM_API_KEY, brandName);
+    const ok = await buildAndSend(admin, queryUserId, tomorrow, LOVABLE_API_KEY, TELEGRAM_API_KEY, brandName);
     return new Response(JSON.stringify({ ok: true, sent: ok ? 1 : 0 }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
@@ -288,7 +294,7 @@ Deno.serve(async (req) => {
       }
       if (!firedSlot) continue;
 
-      const ok = await buildAndSend(admin, (pref as any).user_id, today, LOVABLE_API_KEY, TELEGRAM_API_KEY, brandName);
+      const ok = await buildAndSend(admin, (pref as any).user_id, tomorrow, LOVABLE_API_KEY, TELEGRAM_API_KEY, brandName);
       if (ok) {
         const newLast = { ...lastSent, [firedSlot]: today };
         await admin.from("daily_planning_telegram_prefs")
