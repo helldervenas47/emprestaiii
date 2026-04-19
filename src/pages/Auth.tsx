@@ -123,7 +123,7 @@ const Auth = () => {
       <div className="min-h-screen bg-background flex flex-col items-center justify-center px-6 py-8">
         <div className="w-full max-w-sm space-y-6">
           <div className="text-center space-y-2">
-            <div className="mx-auto rounded-2xl overflow-hidden flex items-center justify-center">
+            <div className="mx-auto rounded-2xl overflow-hidden flex items-center justify-center -mb-2">
               <AppLogo area="auth" alt={brandName} rounded />
             </div>
             <h1 className="text-2xl font-bold text-foreground">{brandName}</h1>
@@ -153,7 +153,7 @@ const Auth = () => {
     <div className="min-h-screen bg-background flex flex-col items-center justify-center px-6 py-8">
       <div className="w-full max-w-sm space-y-6">
         <div className="text-center space-y-2">
-          <div className="mx-auto rounded-2xl overflow-hidden flex items-center justify-center">
+          <div className="mx-auto rounded-2xl overflow-hidden flex items-center justify-center -mb-2">
             <AppLogo area="auth" alt={brandName} rounded />
           </div>
           <h1 className="text-2xl font-bold text-foreground">{brandName}</h1>
