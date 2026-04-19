@@ -18,8 +18,14 @@ function nowInTZ(tz = "America/Sao_Paulo") {
   });
   const parts = fmt.formatToParts(new Date());
   const get = (t: string) => parts.find(p => p.type === t)?.value ?? "";
+  const today = `${get("year")}-${get("month")}-${get("day")}`;
+  // Tomorrow (UTC-safe arithmetic on the YYYY-MM-DD string)
+  const d = new Date(`${today}T12:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + 1);
+  const tomorrow = d.toISOString().slice(0, 10);
   return {
-    date: `${get("year")}-${get("month")}-${get("day")}`,
+    date: today,
+    tomorrow,
     hhmm: `${get("hour")}:${get("minute")}`,
   };
 }
