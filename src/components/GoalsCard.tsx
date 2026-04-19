@@ -180,8 +180,87 @@ function inMonth(dateStr: string | undefined | null, month: string): boolean {
 function fmtValue(v: number, unit: Unit, hidden: boolean): string {
   if (hidden && unit === "R$") return "R$ ••••";
   if (unit === "R$") return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v);
-  if (unit === "%") return `${v.toFixed(1)}%`;
+  if (unit === "%") return `${v.toFixed(2)}%`;
   return String(Math.round(v));
+}
+
+// Calcula o "Lucro Realizado" do período usando a mesma lógica do gráfico "Lucro por Período"
+// (3 componentes: juros avulsos, contratos quitados no período, parcelas regulares de contratos ativos)
+function computeProfitRealized(loans: Loan[], payments: Payment[], m: string): number {
+  const inP = (date: string | undefined | null) => inMonth(date, m);
+  const paymentsInPeriod = payments.filter((p: any) => inP(p.date));
+
+  const quitadoLoanIds = new Set<string>();
+  loans.forEach((l: any) => {
+    if (l.status !== "paid") return;
+    const loanPays = payments.filter((pp: any) => (pp.loanId || pp.loan_id) === l.id);
+    if (loanPays.length === 0) return;
+    const lastPayDate = loanPays.reduce((max: string, pp: any) => pp.date > max ? pp.date : max, loanPays[0].date);
+    if (inP(lastPayDate)) quitadoLoanIds.add(l.id);
+  });
+
+  // 1) Juros avulsos (installmentNumber === 0) de contratos NÃO quitados no período
+  const interestOnly = paymentsInPeriod
+    .filter((p: any) => (p.installmentNumber ?? p.installment_number) === 0 && !quitadoLoanIds.has(p.loanId || p.loan_id))
+    .reduce((s: number, p: any) => s + (Number(p.amount) || 0), 0);
+
+  // 2) Lucro total dos contratos quitados no período (total pago - principal)
+  const quitadoProfit = Array.from(quitadoLoanIds).reduce((s: number, loanId: string) => {
+    const loan: any = loans.find((l: any) => l.id === loanId);
+    if (!loan) return s;
+    const totalPaid = payments
+      .filter((p: any) => (p.loanId || p.loan_id) === loanId)
+      .reduce((sum: number, p: any) => sum + (Number(p.amount) || 0), 0);
+    return s + Math.max(0, totalPaid - Number(loan.amount || 0));
+  }, 0);
+
+  // 3) Parcelas regulares/parciais de contratos em aberto: proporção de juros
+  const activeInstallment = paymentsInPeriod
+    .filter((p: any) => (p.installmentNumber ?? p.installment_number) !== 0 && !quitadoLoanIds.has(p.loanId || p.loan_id))
+    .reduce((s: number, p: any) => {
+      const loan: any = loans.find((l: any) => l.id === (p.loanId || p.loan_id));
+      if (!loan) return s;
+      const principal = Number(loan.amount) || 0;
+      const rate = Number(loan.interestRate ?? loan.interest_rate) || 0;
+      const inst = Number(loan.installments) || 1;
+      const totalWithInterest = calculateTotalWithInterest(principal, rate, inst);
+      const interestRatio = totalWithInterest > 0 ? 1 - (principal / totalWithInterest) : 0;
+      return s + (Number(p.amount) || 0) * interestRatio;
+    }, 0);
+
+  return interestOnly + quitadoProfit + activeInstallment;
+}
+
+// Calcula o "Lucro Previsto" do período (parcelas com vencimento no mês × proporção de juros)
+function computeProfitExpected(loans: Loan[], m: string): number {
+  return loans.reduce((s: number, l: any) => {
+    const principal = Number(l.amount) || 0;
+    const rate = Number(l.interestRate ?? l.interest_rate) || 0;
+    const inst = Number(l.installments) || 1;
+    const totalWithInterest = calculateTotalWithInterest(principal, rate, inst);
+    const interestRatio = totalWithInterest > 0 ? 1 - (principal / totalWithInterest) : 0;
+
+    const startDate = (l.startDate || l.start_date || "").slice(0, 10);
+    if (!startDate) return s;
+    const installmentValue = totalWithInterest / Math.max(1, inst);
+
+    // Para empréstimos com 1 parcela, usar dueDate
+    if (inst <= 1) {
+      const due = (l.dueDate || l.due_date || "").slice(0, 10);
+      if (inMonth(due, m)) return s + (totalWithInterest - principal);
+      return s;
+    }
+
+    // Para parcelados: percorrer cada parcela mensal a partir do startDate
+    const [sy, smo, sd] = startDate.split("-").map(Number);
+    let monthlyTotal = 0;
+    for (let i = 0; i < inst; i++) {
+      const dueDt = new Date(sy, (smo - 1) + (i + 1), sd);
+      const dueKey = `${dueDt.getFullYear()}-${String(dueDt.getMonth() + 1).padStart(2, "0")}`;
+      if (dueKey === m) monthlyTotal += installmentValue * interestRatio;
+    }
+    return s + monthlyTotal;
+  }, 0);
 }
 
 function computeActual(
@@ -202,22 +281,14 @@ function computeActual(
       return payments.filter((p: any) => inMonth(p.date, m))
         .reduce((s: number, p: any) => s + (Number(p.amount) || 0), 0);
     case "interest_received":
-      return payments.filter((p: any) => inMonth(p.date, m)).reduce((s: number, p: any) => {
-        const loan: any = loans.find((l: any) => l.id === (p as any).loanId || l.id === (p as any).loan_id);
-        if (!loan) return s;
-        const principalPerInstall = Number(loan.amount) / Math.max(1, Number(loan.installments) || 1);
-        return s + Math.max(0, (Number(p.amount) || 0) - principalPerInstall);
-      }, 0);
+      // Mesma lógica do "Realizado" do gráfico Lucro por Período
+      return computeProfitRealized(loans, payments, m);
     case "active_capital":
       return loans.filter((l: any) => l.status !== "completed" && l.status !== "paid")
         .reduce((s: number, l: any) => s + (Number(l.remainingAmount ?? l.remaining_amount) || 0), 0);
     case "net_profit": {
-      const interest = payments.filter((p: any) => inMonth(p.date, m)).reduce((s: number, p: any) => {
-        const loan: any = loans.find((l: any) => l.id === (p as any).loanId || l.id === (p as any).loan_id);
-        if (!loan) return s;
-        const principalPerInstall = Number(loan.amount) / Math.max(1, Number(loan.installments) || 1);
-        return s + Math.max(0, (Number(p.amount) || 0) - principalPerInstall);
-      }, 0);
+      // Usa o mesmo "Realizado" do Lucro por Período menos despesas pagas da empresa
+      const interest = computeProfitRealized(loans, payments, m);
       const exp = expenses.filter((e: any) => e.paid && e.scope !== "personal" && inMonth(e.paid_date || e.paidDate || e.due_date || e.dueDate, m))
         .reduce((s: number, e: any) => s + (Number(e.amount) || 0), 0);
       return interest - exp;
@@ -240,13 +311,29 @@ function computeActual(
     case "new_clients_count":
       return clients.filter((c: any) => inMonth(c.created_at || c.createdAt, m)).length;
     case "interest_rate": {
+      // Taxa Juros Mensal = (Total a Receber − Total Emprestado) ÷ Total Emprestado × 100
+      // Considera empréstimos com data de início no mês selecionado
       const monthLoans = loans.filter((l: any) => inMonth(l.startDate || l.start_date, m));
-      if (monthLoans.length === 0) return 0;
-      const sum = monthLoans.reduce((s: number, l: any) => s + (Number(l.interestRate ?? l.interest_rate) || 0), 0);
-      return sum / monthLoans.length;
+      const totalLent = monthLoans.reduce((s: number, l: any) => s + (Number(l.amount) || 0), 0);
+      const totalToReceive = monthLoans.reduce((s: number, l: any) => {
+        const principal = Number(l.amount) || 0;
+        const rate = Number(l.interestRate ?? l.interest_rate) || 0;
+        const inst = Number(l.installments) || 1;
+        return s + calculateTotalWithInterest(principal, rate, inst);
+      }, 0);
+      // Validação de divisão por zero
+      if (totalLent <= 0) return 0;
+      return ((totalToReceive - totalLent) / totalLent) * 100;
     }
-    case "profit":
-      return 0;
+    case "profit": {
+      // Mesma lógica do campo "% Lucro" / "% Meta" do card "Lucro por Período"
+      // = (Realizado ÷ (Realizado + Previsto)) × 100
+      const realized = computeProfitRealized(loans, payments, m);
+      const expected = computeProfitExpected(loans, m);
+      const previstoTotal = realized + expected;
+      if (previstoTotal <= 0) return 0;
+      return (realized / previstoTotal) * 100;
+    }
     default:
       return 0;
   }
