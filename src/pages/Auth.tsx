@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Mail, Lock, Eye, EyeOff } from "lucide-react";
 import { AppLogo } from "@/components/AppLogo";
+import { useAppBranding } from "@/hooks/useAppBranding";
 import { toast } from "sonner";
 
 const Auth = () => {
@@ -18,6 +19,8 @@ const Auth = () => {
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const navigate = useNavigate();
+  const { branding } = useAppBranding();
+  const brandName = branding.brand_name;
 
   // Check if a Google OAuth user was just auto-created (no prior account)
   useEffect(() => {
@@ -121,9 +124,9 @@ const Auth = () => {
         <div className="w-full max-w-sm space-y-6">
           <div className="text-center space-y-2">
             <div className="mx-auto rounded-2xl overflow-hidden flex items-center justify-center">
-              <AppLogo area="auth" alt="EmprestAI" rounded />
+              <AppLogo area="auth" alt={brandName} rounded />
             </div>
-            <h1 className="text-2xl font-bold text-foreground">EmprestAI</h1>
+            <h1 className="text-2xl font-bold text-foreground">{brandName}</h1>
             <p className="text-muted-foreground">Digite seu email para receber o link de recuperação</p>
           </div>
           <form onSubmit={handleForgotPassword} className="space-y-5">
@@ -151,9 +154,9 @@ const Auth = () => {
       <div className="w-full max-w-sm space-y-6">
         <div className="text-center space-y-2">
           <div className="mx-auto rounded-2xl overflow-hidden flex items-center justify-center">
-            <AppLogo area="auth" alt="EmprestAI" rounded />
+            <AppLogo area="auth" alt={brandName} rounded />
           </div>
-          <h1 className="text-2xl font-bold text-foreground">EmprestAI</h1>
+          <h1 className="text-2xl font-bold text-foreground">{brandName}</h1>
           <p className="text-muted-foreground">Entre na sua conta</p>
         </div>
         <form onSubmit={handleLogin} className="space-y-5">
