@@ -181,6 +181,11 @@ export async function generateContract(sale: Sale, client?: Client, locador?: Lo
 
 <button class="close-btn" onclick="window.close()">✕ Fechar</button>
 
+<div style="display:flex; align-items:center; justify-content:center; gap:14px; margin-bottom:18px;">
+  <img src="${branding.url}" alt="${branding.brandName}" style="width:${branding.size}px; height:${branding.size}px; object-fit:contain;" />
+  <span style="font-size:16px; font-weight:bold; letter-spacing:0.5px;">${branding.brandName}</span>
+</div>
+
 <h1>CONTRATO DE LOCAÇÃO DE MOTOCICLETA</h1>
 
 <p class="intro">Pelo presente instrumento particular, de um lado:</p>
