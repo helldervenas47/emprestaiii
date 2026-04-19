@@ -369,6 +369,127 @@ export function AccountantReport({ loans, payments, sales, expenses }: Accountan
     }
   };
 
+  const pdfHeader = (doc: jsPDF, title: string) => {
+    const periodLabel = period === "month" ? formatDate(monthFilter) : yearFilter;
+    doc.setFontSize(16);
+    doc.setFont("helvetica", "bold");
+    doc.text(title, 14, 18);
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(100);
+    doc.text(`Período: ${periodLabel} (${period === "month" ? "Mensal" : "Anual"})`, 14, 25);
+    doc.text(`Gerado em: ${new Date().toLocaleString("pt-BR")}`, 14, 31);
+    doc.setTextColor(0);
+    return periodLabel;
+  };
+
+  const exportDREPDF = () => {
+    try {
+      const doc = new jsPDF();
+      const fmtBRL = (n: number) => n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+      const periodLabel = pdfHeader(doc, "Demonstrativo de Resultado (DRE)");
+
+      autoTable(doc, {
+        startY: 40,
+        theme: "grid",
+        styles: { fontSize: 10 },
+        headStyles: { fillColor: [59, 130, 246] },
+        head: [["Descrição", "Valor"]],
+        body: [
+          ["(+) Receita de Juros", fmtBRL(dre.interestRevenue)],
+          ["(+) Receita de Vendas", fmtBRL(dre.salesRevenue)],
+          [{ content: "(=) Receita Bruta", styles: { fontStyle: "bold", fillColor: [243, 244, 246] } },
+           { content: fmtBRL(dre.totalRevenue), styles: { fontStyle: "bold", fillColor: [243, 244, 246] } }],
+          ["(−) Despesas Operacionais", fmtBRL(dre.businessExp)],
+          [{ content: "(=) Lucro Líquido", styles: { fontStyle: "bold", fillColor: [219, 234, 254] } },
+           { content: fmtBRL(dre.netProfit), styles: { fontStyle: "bold", fillColor: [219, 234, 254] } }],
+        ],
+      });
+
+      let y = (doc as any).lastAutoTable.finalY + 8;
+      doc.setFontSize(10);
+      doc.setFont("helvetica", "bold");
+      doc.text("Informações Complementares", 14, y);
+      autoTable(doc, {
+        startY: y + 3,
+        theme: "striped",
+        styles: { fontSize: 9 },
+        headStyles: { fillColor: [100, 116, 139] },
+        head: [["Item", "Valor"]],
+        body: [
+          ["Capital recuperado (principal)", fmtBRL(dre.principalReceived)],
+          ["Despesas pessoais (não impacta DRE)", fmtBRL(dre.personalExp)],
+          ["Total geral de despesas", fmtBRL(dre.totalExpenses)],
+        ],
+      });
+
+      doc.save(`dre-${periodLabel.replace(/\s+/g, "-")}.pdf`);
+      toast.success("PDF do DRE exportado!");
+    } catch (e) {
+      console.error(e);
+      toast.error("Erro ao gerar PDF");
+    }
+  };
+
+  const exportCashflowPDF = () => {
+    try {
+      const doc = new jsPDF();
+      const fmtBRL = (n: number) => n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+      const periodLabel = pdfHeader(doc, "Fluxo de Caixa");
+
+      autoTable(doc, {
+        startY: 40,
+        theme: "grid",
+        styles: { fontSize: 10 },
+        headStyles: { fillColor: [16, 185, 129] },
+        head: [["Resumo", "Valor"]],
+        body: [
+          ["Total de Entradas", fmtBRL(cashflow.totalIn)],
+          ["Total de Saídas", fmtBRL(cashflow.totalOut)],
+          [{ content: "Saldo Líquido", styles: { fontStyle: "bold", fillColor: [219, 234, 254] } },
+           { content: fmtBRL(cashflow.net), styles: { fontStyle: "bold", fillColor: [219, 234, 254] } }],
+        ],
+      });
+
+      let y = (doc as any).lastAutoTable.finalY + 8;
+      doc.setFontSize(10);
+      doc.setFont("helvetica", "bold");
+      doc.text(`Movimentações ${period === "month" ? "Diárias" : "Mensais"}`, 14, y);
+
+      if (cashflow.rows.length === 0) {
+        doc.setFont("helvetica", "italic");
+        doc.setFontSize(9);
+        doc.setTextColor(120);
+        doc.text("Sem movimentações no período.", 14, y + 8);
+      } else {
+        autoTable(doc, {
+          startY: y + 3,
+          theme: "striped",
+          styles: { fontSize: 9 },
+          headStyles: { fillColor: [59, 130, 246] },
+          head: [["Data", "Entrada", "Saída", "Saldo"]],
+          body: cashflow.rows.map((r) => [
+            formatDate(r.key),
+            fmtBRL(r.in),
+            fmtBRL(r.out),
+            fmtBRL(r.net),
+          ]),
+          foot: [[
+            { content: "Total", styles: { fontStyle: "bold" } },
+            { content: fmtBRL(cashflow.totalIn), styles: { fontStyle: "bold" } },
+            { content: fmtBRL(cashflow.totalOut), styles: { fontStyle: "bold" } },
+            { content: fmtBRL(cashflow.net), styles: { fontStyle: "bold" } },
+          ]],
+        });
+      }
+
+      doc.save(`fluxo-caixa-${periodLabel.replace(/\s+/g, "-")}.pdf`);
+      toast.success("PDF do Fluxo de Caixa exportado!");
+    } catch (e) {
+      console.error(e);
+      toast.error("Erro ao gerar PDF");
+    }
+  };
 
   return (
     <div className="space-y-4">
