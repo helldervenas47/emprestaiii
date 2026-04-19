@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Calculator, TrendingUp, TrendingDown, Receipt, Wallet, FileBarChart, Sparkles, Download } from "lucide-react";
+import { Calculator, TrendingUp, TrendingDown, Receipt, Wallet, FileBarChart, Sparkles, Download, DollarSign } from "lucide-react";
 import { useHideValues } from "@/contexts/HideValuesContext";
 import { Button } from "@/components/ui/button";
 import jsPDF from "jspdf";
@@ -196,17 +196,24 @@ export function AccountantReport({ loans, payments, sales, expenses }: Accountan
   // ===== Fluxo de caixa =====
   const cashflow = useMemo(() => {
     const map = new Map<string, { in: number; out: number }>();
+    let paymentCount = 0;
+    let saleCount = 0;
+    let loanCount = 0;
+    let expenseCount = 0;
+    let totalLoanOutgoing = 0;
     payments.filter((p) => matchPeriod(p.date)).forEach((p) => {
       const k = period === "month" ? p.date : getMonthKey(p.date);
       const cur = map.get(k) || { in: 0, out: 0 };
       cur.in += Number(p.amount) || 0;
       map.set(k, cur);
+      paymentCount += 1;
     });
     sales.filter((s) => matchPeriod(s.sale_date)).forEach((s) => {
       const k = period === "month" ? s.sale_date : getMonthKey(s.sale_date);
       const cur = map.get(k) || { in: 0, out: 0 };
       cur.in += Number(s.total) || 0;
       map.set(k, cur);
+      saleCount += 1;
     });
     expenses.filter((e) => e.paid && e.scope !== "personal" && matchPeriod(e.paid_date || e.due_date)).forEach((e) => {
       const d = e.paid_date || e.due_date;
@@ -214,6 +221,12 @@ export function AccountantReport({ loans, payments, sales, expenses }: Accountan
       const cur = map.get(k) || { in: 0, out: 0 };
       cur.out += Number(e.amount) || 0;
       map.set(k, cur);
+      expenseCount += 1;
+    });
+    // Empréstimos concedidos no período (saída de caixa do operador)
+    loans.filter((l) => matchPeriod(l.start_date || l.startDate)).forEach((l) => {
+      totalLoanOutgoing += Number(l.amount) || 0;
+      loanCount += 1;
     });
     const rows = Array.from(map.entries()).sort(([a], [b]) => a.localeCompare(b)).map(([k, v]) => ({
       key: k,
@@ -223,8 +236,8 @@ export function AccountantReport({ loans, payments, sales, expenses }: Accountan
     }));
     const totalIn = rows.reduce((s, r) => s + r.in, 0);
     const totalOut = rows.reduce((s, r) => s + r.out, 0);
-    return { rows, totalIn, totalOut, net: totalIn - totalOut };
-  }, [payments, sales, expenses, period, monthFilter, yearFilter]);
+    return { rows, totalIn, totalOut, net: totalIn - totalOut, paymentCount, saleCount, loanCount, expenseCount, totalLoanOutgoing };
+  }, [payments, sales, expenses, loans, period, monthFilter, yearFilter]);
 
   const formatDate = (k: string) => {
     if (k.length === 10) return new Date(k + "T00:00:00").toLocaleDateString("pt-BR");
@@ -758,6 +771,53 @@ export function AccountantReport({ loans, payments, sales, expenses }: Accountan
           </div>
         </CardContent>
       </Card>
+
+      {/* Resumo de Fluxo do Período */}
+      {(() => {
+        const totalOutFull = cashflow.totalOut + cashflow.totalLoanOutgoing;
+        const netFull = cashflow.totalIn - totalOutFull;
+        const periodLabelTxt = period === "month" ? formatDate(monthFilter) : yearFilter;
+        return (
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 items-stretch">
+            <div className="rounded-2xl p-4 sm:p-5 bg-card border border-success/20 flex flex-col">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Entradas</span>
+                <div className="h-8 w-8 rounded-xl bg-success/15 flex items-center justify-center">
+                  <TrendingUp className="h-4 w-4 text-success" />
+                </div>
+              </div>
+              <p className="text-xl sm:text-2xl font-bold text-success">{fmt(cashflow.totalIn, hidden)}</p>
+              <div className="flex flex-wrap gap-x-2 gap-y-0.5 mt-auto pt-2 text-xs text-muted-foreground">
+                <span>{cashflow.paymentCount} parcela(s)</span><span>·</span><span>{cashflow.saleCount} venda(s)</span>
+              </div>
+            </div>
+
+            <div className="rounded-2xl p-4 sm:p-5 bg-card border border-warning/20 flex flex-col">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Saídas</span>
+                <div className="h-8 w-8 rounded-xl bg-warning/15 flex items-center justify-center">
+                  <TrendingDown className="h-4 w-4 text-warning" />
+                </div>
+              </div>
+              <p className="text-xl sm:text-2xl font-bold text-warning">{fmt(totalOutFull, hidden)}</p>
+              <div className="flex flex-wrap gap-x-2 gap-y-0.5 mt-auto pt-2 text-xs text-muted-foreground">
+                <span>{cashflow.loanCount} empréstimo(s)</span><span>·</span><span>{cashflow.expenseCount} despesa(s)</span>
+              </div>
+            </div>
+
+            <div className={`rounded-2xl p-4 sm:p-5 bg-card border flex flex-col ${netFull >= 0 ? "border-primary/20" : "border-destructive/20"}`}>
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Saldo do Período</span>
+                <div className={`h-8 w-8 rounded-xl ${netFull >= 0 ? "bg-primary/15" : "bg-destructive/15"} flex items-center justify-center`}>
+                  <DollarSign className={`h-4 w-4 ${netFull >= 0 ? "text-primary" : "text-destructive"}`} />
+                </div>
+              </div>
+              <p className={`text-xl sm:text-2xl font-bold ${netFull >= 0 ? "text-primary" : "text-destructive"}`}>{fmt(netFull, hidden)}</p>
+              <p className="text-xs mt-auto pt-2 text-muted-foreground capitalize">{periodLabelTxt}</p>
+            </div>
+          </div>
+        );
+      })()}
 
       <Tabs defaultValue="dre" className="w-full">
         <TabsList className="grid w-full grid-cols-4">
