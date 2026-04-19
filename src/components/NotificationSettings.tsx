@@ -8,6 +8,7 @@ import { useNotificationPreferences, NOTIFICATION_TYPES } from "@/hooks/useNotif
 import { Skeleton } from "@/components/ui/skeleton";
 import { usePushNotifications } from "@/hooks/usePushNotifications";
 import { TelegramConnectCard } from "@/components/TelegramConnectCard";
+import { useAppBranding } from "@/hooks/useAppBranding";
 
 import { toast } from "sonner";
 
@@ -25,6 +26,7 @@ const TEST_URLS: Record<string, string> = {
 export function NotificationSettings() {
   const { preferences, loading, upsert } = useNotificationPreferences();
   const { isSupported: isPushSupported, isSubscribed, isLoading: isPushLoading, permission, needsInstall, subscribe, unsubscribe } = usePushNotifications();
+  const { branding } = useAppBranding();
   const [sendingTest, setSendingTest] = useState<string | null>(null);
 
   const handleSendTest = async (type: string, label: string) => {
@@ -40,7 +42,7 @@ export function NotificationSettings() {
         parcelas_atrasadas: "🔴 Teste: Você tem parcelas em atraso!",
         resumo_diario: "📊 Teste: Resumo diário das suas cobranças.",
       };
-      await reg.showNotification("📊 Empréstai — Teste", {
+      await reg.showNotification(`📊 ${branding.brand_name} — Teste`, {
         body: testBody[type] || `Teste: ${label}`,
         icon: "/logo-icon.png",
         badge: "/logo-icon.png",
