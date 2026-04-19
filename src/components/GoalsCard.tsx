@@ -430,7 +430,7 @@ function GoalDetailDialog({ open, onClose, goal, viewingMonth }: DialogProps) {
     }
 
     return { status, diff, diffPct, isCurrentMonth, isPastMonth, dayProgressPct, daysLeft, pace, projection, insights, suggestions };
-  }, [goal]);
+  }, [goal, viewingMonth]);
 
   if (!goal || !analysis) return null;
 
