@@ -772,6 +772,53 @@ export function AccountantReport({ loans, payments, sales, expenses }: Accountan
         </CardContent>
       </Card>
 
+      {/* Resumo de Fluxo do Período */}
+      {(() => {
+        const totalOutFull = cashflow.totalOut + cashflow.totalLoanOutgoing;
+        const netFull = cashflow.totalIn - totalOutFull;
+        const periodLabelTxt = period === "month" ? formatDate(monthFilter) : yearFilter;
+        return (
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 items-stretch">
+            <div className="rounded-2xl p-4 sm:p-5 bg-card border border-success/20 flex flex-col">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Entradas</span>
+                <div className="h-8 w-8 rounded-xl bg-success/15 flex items-center justify-center">
+                  <TrendingUp className="h-4 w-4 text-success" />
+                </div>
+              </div>
+              <p className="text-xl sm:text-2xl font-bold text-success">{fmt(cashflow.totalIn, hidden)}</p>
+              <div className="flex flex-wrap gap-x-2 gap-y-0.5 mt-auto pt-2 text-xs text-muted-foreground">
+                <span>{cashflow.paymentCount} parcela(s)</span><span>·</span><span>{cashflow.saleCount} venda(s)</span>
+              </div>
+            </div>
+
+            <div className="rounded-2xl p-4 sm:p-5 bg-card border border-warning/20 flex flex-col">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Saídas</span>
+                <div className="h-8 w-8 rounded-xl bg-warning/15 flex items-center justify-center">
+                  <TrendingDown className="h-4 w-4 text-warning" />
+                </div>
+              </div>
+              <p className="text-xl sm:text-2xl font-bold text-warning">{fmt(totalOutFull, hidden)}</p>
+              <div className="flex flex-wrap gap-x-2 gap-y-0.5 mt-auto pt-2 text-xs text-muted-foreground">
+                <span>{cashflow.loanCount} empréstimo(s)</span><span>·</span><span>{cashflow.expenseCount} despesa(s)</span>
+              </div>
+            </div>
+
+            <div className={`rounded-2xl p-4 sm:p-5 bg-card border flex flex-col ${netFull >= 0 ? "border-primary/20" : "border-destructive/20"}`}>
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Saldo do Período</span>
+                <div className={`h-8 w-8 rounded-xl ${netFull >= 0 ? "bg-primary/15" : "bg-destructive/15"} flex items-center justify-center`}>
+                  <DollarSign className={`h-4 w-4 ${netFull >= 0 ? "text-primary" : "text-destructive"}`} />
+                </div>
+              </div>
+              <p className={`text-xl sm:text-2xl font-bold ${netFull >= 0 ? "text-primary" : "text-destructive"}`}>{fmt(netFull, hidden)}</p>
+              <p className="text-xs mt-auto pt-2 text-muted-foreground capitalize">{periodLabelTxt}</p>
+            </div>
+          </div>
+        );
+      })()}
+
       <Tabs defaultValue="dre" className="w-full">
         <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="dre" className="text-xs sm:text-sm"><FileBarChart className="h-4 w-4 mr-1 hidden sm:inline" /> DRE</TabsTrigger>
