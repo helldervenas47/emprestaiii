@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Switch } from "@/components/ui/switch";
-import { Bell, Send, Webhook, MessageSquare, CreditCard, Users as UsersIcon, DatabaseBackup, User as UserIcon, Sun, Moon, Eye, EyeOff, Trash2, Loader2, BarChart3, Sparkles } from "lucide-react";
+import { Bell, Send, Webhook, MessageSquare, CreditCard, Users as UsersIcon, DatabaseBackup, User as UserIcon, Sun, Moon, Eye, EyeOff, Trash2, Loader2, BarChart3, Sparkles, Image as ImageIcon } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useHideValues } from "@/contexts/HideValuesContext";
 import { useNavigate } from "react-router-dom";
@@ -21,6 +21,7 @@ const PushNotificationToggle = lazy(() => import("@/components/PushNotificationT
 const UserManagement = lazy(() => import("@/components/UserManagement").then(m => ({ default: m.UserManagement })));
 const BackupExport = lazy(() => import("@/components/BackupExport").then(m => ({ default: m.BackupExport })));
 const LocadorList = lazy(() => import("@/components/LocadorList").then(m => ({ default: m.LocadorList })));
+const BrandingSettings = lazy(() => import("@/components/BrandingSettings").then(m => ({ default: m.BrandingSettings })));
 
 const SectionLoader = () => (
   <div className="flex justify-center py-8"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>
@@ -228,6 +229,25 @@ export function Settings({ backup, locadores, onSaveLocador, onRemoveLocador, is
           </Suspense>
         </CardContent>
       </Card>
+
+      {/* Identidade visual (admin) */}
+      {isAdmin && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-base">
+              <ImageIcon className="h-4 w-4 text-primary" /> Identidade visual
+            </CardTitle>
+            <CardDescription>
+              Defina a logo oficial do sistema e personalize o tamanho em pixels para cada área e dispositivo.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Suspense fallback={<SectionLoader />}>
+              <BrandingSettings />
+            </Suspense>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Gerenciamento de usuários (admin) */}
       {isAdmin && (

@@ -14,6 +14,36 @@ export type Database = {
   }
   public: {
     Tables: {
+      app_branding: {
+        Row: {
+          created_at: string
+          id: string
+          logo_url: string | null
+          singleton: boolean
+          sizes: Json
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          logo_url?: string | null
+          singleton?: boolean
+          sizes?: Json
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          logo_url?: string | null
+          singleton?: boolean
+          sizes?: Json
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       balance: {
         Row: {
           amount: number
