@@ -40,8 +40,10 @@ const FIXED_RECURRING_INSTALLMENTS = 999;
 export function PersonalExpenseForm({ onAdd, onClose }: Props) {
   const { piggyBanks, addDeposit, createRecurrence } = usePiggyBanks();
   const { cards } = useCreditCards();
+  const { categories: customCategories, create: createCategory } = usePersonalExpenseCategories();
   const [showSuccess, setShowSuccess] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [creatorOpen, setCreatorOpen] = useState(false);
 
   const [form, setForm] = useState({
     description: "",
