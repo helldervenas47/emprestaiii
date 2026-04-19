@@ -776,10 +776,14 @@ export function CreditCardInvoice({ card, onClose, referenceMonth, originRect }:
                   for (const e of unpaid) {
                     await updateExpense(e.id, { paid: true, paidDate: payDate });
                   }
-                  // Zera o saldo inicial da fatura (caso exista) para que o ciclo
-                  // seja considerado quitado e exiba o status verde "Paga".
-                  if (openingAmount > 0) {
-                    await upsertOpening(card.id, cycleKey, 0, opening?.notes ?? "");
+                  // Marca o saldo inicial como quitado: zera o valor e adiciona "[PAGA]"
+                  // ao campo notes para que a fatura mantenha o status verde "Paga".
+                  if (openingAmount > 0 || (opening && !/\[PAGA\]/i.test(opening.notes ?? ""))) {
+                    if (opening) {
+                      const baseNotes = (opening.notes ?? "").replace(/\[PAGA\]/gi, "").trim();
+                      const newNotes = baseNotes ? `${baseNotes} [PAGA]` : "[PAGA]";
+                      await upsertOpening(card.id, cycleKey, 0, newNotes);
+                    }
                   }
                   toast.success(
                     unpaid.length > 0 || openingAmount > 0
