@@ -14,7 +14,7 @@ import { Progress } from "@/components/ui/progress";
 import { getBalance, setBalance } from "@/lib/balance";
 import {
   TrendingUp, TrendingDown, DollarSign, ArrowUpRight, ArrowDownRight,
-  ChevronLeft, ChevronRight, ChevronDown, Percent, Wallet, Pencil, Check, X, Trash2, Calendar, Eye, Target,
+  ChevronLeft, ChevronRight, ChevronDown, Percent, Wallet, Pencil, Check, X, Trash2, Calendar, Eye, Target, Info,
 } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
@@ -906,14 +906,14 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
         const interestReceivedInPeriod = data.periodProfitRealized;
         const interestPendingInPeriod = Math.max(0, interestDueInPeriod - interestReceivedInPeriod);
 
-        const items = [
-          { label: "Capital na Rua", value: formatCurrency(portfolio.capitalOnStreet), color: "text-foreground", iconBg: "bg-primary/10", iconColor: "text-primary", onClick: undefined as (() => void) | undefined },
-          { label: "Total a Receber", value: formatCurrency(portfolio.totalToReceive), color: "text-foreground", iconBg: "bg-primary/10", iconColor: "text-primary", onClick: undefined as (() => void) | undefined },
-          { label: "Pendente de Recebimento", value: formatCurrency(portfolio.pendingReceivable), color: "text-success", iconBg: "bg-success/10", iconColor: "text-success", onClick: undefined as (() => void) | undefined },
-          { label: "Lucro Estimado", value: formatCurrency(portfolio.estimatedProfit), color: "text-success", iconBg: "bg-success/10", iconColor: "text-success", onClick: undefined as (() => void) | undefined },
-          { label: "Juros a Receber no Mês", value: formatCurrency(interestDueInPeriod), color: "text-success", iconBg: "bg-success/10", iconColor: "text-success", onClick: () => setShowInterestExpectedDetail(true) },
+        const items: Array<{ label: string; value: string; color: string; iconBg: string; iconColor: string; onClick?: () => void; tooltip?: string }> = [
+          { label: "Capital na Rua", value: formatCurrency(portfolio.capitalOnStreet), color: "text-foreground", iconBg: "bg-primary/10", iconColor: "text-primary" },
+          { label: "Total a Receber", value: formatCurrency(portfolio.totalToReceive), color: "text-foreground", iconBg: "bg-primary/10", iconColor: "text-primary" },
+          { label: "Pendente de Recebimento", value: formatCurrency(portfolio.pendingReceivable), color: "text-success", iconBg: "bg-success/10", iconColor: "text-success" },
+          { label: "Lucro Estimado", value: formatCurrency(portfolio.estimatedProfit), color: "text-success", iconBg: "bg-success/10", iconColor: "text-success" },
+          { label: "Juros a Receber no Mês", value: formatCurrency(interestDueInPeriod), color: "text-success", iconBg: "bg-success/10", iconColor: "text-success", onClick: () => setShowInterestExpectedDetail(true), tooltip: "Valor bruto: soma a porção de juros de TODAS as parcelas com vencimento no mês selecionado, incluindo parcelas de contratos já quitados. Não diminui conforme os juros são pagos." },
           { label: "Juros Recebidos no Mês", value: formatCurrency(interestReceivedInPeriod), color: "text-warning", iconBg: "bg-warning/10", iconColor: "text-warning", onClick: () => setShowInterestDetail(true) },
-          { label: "Juros Pendentes do Mês", value: formatCurrency(interestPendingInPeriod), color: "text-warning", iconBg: "bg-warning/10", iconColor: "text-warning", onClick: undefined as (() => void) | undefined },
+          { label: "Juros Pendentes do Mês", value: formatCurrency(interestPendingInPeriod), color: "text-warning", iconBg: "bg-warning/10", iconColor: "text-warning" },
         ];
 
         const pendingCard = items[2]; // Pendente de Recebimento
@@ -924,9 +924,11 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
             {/* Desktop: all 7 in one row */}
             <div className="hidden lg:grid lg:grid-cols-7 gap-2">
               {items.map((item) => (
-                <Card no3d key={item.label} className={item.onClick ? "cursor-pointer hover:bg-accent/50 transition-colors" : ""} onClick={item.onClick}>
+                <Card no3d key={item.label} className={item.onClick ? "cursor-pointer hover:bg-accent/50 transition-colors" : ""} onClick={item.onClick} title={item.tooltip}>
                   <CardContent className="p-3 flex flex-col items-center text-center relative">
-                    {item.onClick && <Eye className="h-3 w-3 text-muted-foreground absolute top-2 right-2" />}
+                    {item.tooltip && <Info className="h-3 w-3 text-muted-foreground absolute top-2 left-2" />}
+                    {item.tooltip && <Info className="h-3 w-3 text-muted-foreground absolute top-2 left-2" />}
+                      {item.onClick && <Eye className="h-3 w-3 text-muted-foreground absolute top-2 right-2" />}
                     <div className={`h-6 w-6 rounded-md ${item.iconBg} flex items-center justify-center mb-1.5`}>
                       <DollarSign className={`h-3 w-3 ${item.iconColor}`} />
                     </div>
@@ -950,8 +952,9 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
               </Card>
               <div className="grid grid-cols-3 gap-2">
                 {otherCards.slice(0, 3).map((item) => (
-                  <Card no3d key={item.label} className={item.onClick ? "cursor-pointer hover:bg-accent/50 transition-colors" : ""} onClick={item.onClick}>
+                  <Card no3d key={item.label} className={item.onClick ? "cursor-pointer hover:bg-accent/50 transition-colors" : ""} onClick={item.onClick} title={item.tooltip}>
                     <CardContent className="p-3 sm:p-4 flex flex-col items-center text-center relative">
+                      {item.tooltip && <Info className="h-3 w-3 text-muted-foreground absolute top-2 left-2" />}
                       {item.onClick && <Eye className="h-3 w-3 text-muted-foreground absolute top-2 right-2" />}
                       <div className={`h-8 w-8 rounded-lg ${item.iconBg} flex items-center justify-center mb-2`}>
                         <DollarSign className={`h-4 w-4 ${item.iconColor}`} />
@@ -964,8 +967,9 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
               </div>
               <div className="grid grid-cols-3 gap-2">
                 {otherCards.slice(3, 6).map((item) => (
-                  <Card no3d key={item.label} className={item.onClick ? "cursor-pointer hover:bg-accent/50 transition-colors" : ""} onClick={item.onClick}>
+                  <Card no3d key={item.label} className={item.onClick ? "cursor-pointer hover:bg-accent/50 transition-colors" : ""} onClick={item.onClick} title={item.tooltip}>
                     <CardContent className="p-3 sm:p-4 flex flex-col items-center text-center relative">
+                      {item.tooltip && <Info className="h-3 w-3 text-muted-foreground absolute top-2 left-2" />}
                       {item.onClick && <Eye className="h-3 w-3 text-muted-foreground absolute top-2 right-2" />}
                       <div className={`h-8 w-8 rounded-lg ${item.iconBg} flex items-center justify-center mb-2`}>
                         <DollarSign className={`h-4 w-4 ${item.iconColor}`} />
@@ -991,8 +995,9 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
               </Card>
               <div className="grid grid-cols-2 gap-2">
                 {otherCards.slice(0, 2).map((item) => (
-                  <Card no3d key={item.label} className={item.onClick ? "cursor-pointer hover:bg-accent/50 transition-colors" : ""} onClick={item.onClick}>
+                  <Card no3d key={item.label} className={item.onClick ? "cursor-pointer hover:bg-accent/50 transition-colors" : ""} onClick={item.onClick} title={item.tooltip}>
                     <CardContent className="p-3 flex flex-col items-center text-center relative">
+                      {item.tooltip && <Info className="h-3 w-3 text-muted-foreground absolute top-2 left-2" />}
                       {item.onClick && <Eye className="h-3 w-3 text-muted-foreground absolute top-2 right-2" />}
                       <div className={`h-8 w-8 rounded-lg ${item.iconBg} flex items-center justify-center mb-2`}>
                         <DollarSign className={`h-4 w-4 ${item.iconColor}`} />
@@ -1005,8 +1010,9 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
               </div>
               <div className="grid grid-cols-2 gap-2">
                 {otherCards.slice(2, 4).map((item) => (
-                  <Card no3d key={item.label} className={item.onClick ? "cursor-pointer hover:bg-accent/50 transition-colors" : ""} onClick={item.onClick}>
+                  <Card no3d key={item.label} className={item.onClick ? "cursor-pointer hover:bg-accent/50 transition-colors" : ""} onClick={item.onClick} title={item.tooltip}>
                     <CardContent className="p-3 flex flex-col items-center text-center relative">
+                      {item.tooltip && <Info className="h-3 w-3 text-muted-foreground absolute top-2 left-2" />}
                       {item.onClick && <Eye className="h-3 w-3 text-muted-foreground absolute top-2 right-2" />}
                       <div className={`h-8 w-8 rounded-lg ${item.iconBg} flex items-center justify-center mb-2`}>
                         <DollarSign className={`h-4 w-4 ${item.iconColor}`} />
@@ -1019,8 +1025,9 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
               </div>
               <div className="grid grid-cols-2 gap-2">
                 {otherCards.slice(4, 6).map((item) => (
-                  <Card no3d key={item.label} className={item.onClick ? "cursor-pointer hover:bg-accent/50 transition-colors" : ""} onClick={item.onClick}>
+                  <Card no3d key={item.label} className={item.onClick ? "cursor-pointer hover:bg-accent/50 transition-colors" : ""} onClick={item.onClick} title={item.tooltip}>
                     <CardContent className="p-3 flex flex-col items-center text-center relative">
+                      {item.tooltip && <Info className="h-3 w-3 text-muted-foreground absolute top-2 left-2" />}
                       {item.onClick && <Eye className="h-3 w-3 text-muted-foreground absolute top-2 right-2" />}
                       <div className={`h-8 w-8 rounded-lg ${item.iconBg} flex items-center justify-center mb-2`}>
                         <DollarSign className={`h-4 w-4 ${item.iconColor}`} />
