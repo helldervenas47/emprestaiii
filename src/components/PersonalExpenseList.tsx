@@ -184,13 +184,13 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, onUpda
     });
     const arr = [...map.entries()]
       .filter(([, value]) => value > 0)
-      .map(([name, value]) => ({ name, value, cat: getPersonalCategory(name) }))
+      .map(([name, value]) => ({ name, value, cat: resolveCategory(name) }))
       .sort((a, b) => b.value - a.value);
     if (arr.length <= 6) return arr;
     const top = arr.slice(0, 5);
     const rest = arr.slice(5).reduce((s, it) => s + it.value, 0);
-    return [...top, { name: "Outros", value: rest, cat: getPersonalCategory("Outros") }];
-  }, [spendingMonth, getInstallmentAmount]);
+    return [...top, { name: "Outros", value: rest, cat: resolveCategory("Outros") }];
+  }, [spendingMonth, getInstallmentAmount, resolveCategory]);
 
   const totalCategorized = categoryData.reduce((s, it) => s + it.value, 0);
 
