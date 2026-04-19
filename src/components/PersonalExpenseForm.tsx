@@ -449,6 +449,13 @@ export function PersonalExpenseForm({ onAdd, onClose }: Props) {
           </form>
         </CardContent>
       </Card>
+
+      <PersonalCategoryCreator
+        open={creatorOpen}
+        onOpenChange={setCreatorOpen}
+        createCategory={createCategory}
+        onCreated={(cat) => update("category", cat.name)}
+      />
     </div>
   );
 }
