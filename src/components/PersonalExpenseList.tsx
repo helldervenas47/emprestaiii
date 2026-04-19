@@ -980,13 +980,13 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, onUpda
                   </div>
                   <div className="rounded-md border border-border p-2">
                     <div className="text-[10px] text-muted-foreground uppercase tracking-wide">Pago</div>
-                    <div className="text-sm font-semibold tabular-nums text-emerald-600 dark:text-emerald-400">
+                    <div className="text-sm font-semibold tabular-nums text-primary">
                       {formatCurrency(totalPaid)}
                     </div>
                   </div>
                   <div className="rounded-md border border-border p-2">
                     <div className="text-[10px] text-muted-foreground uppercase tracking-wide">Pendente</div>
-                    <div className="text-sm font-semibold tabular-nums text-amber-600 dark:text-amber-400">
+                    <div className="text-sm font-semibold tabular-nums text-destructive">
                       {formatCurrency(totalPending)}
                     </div>
                   </div>
