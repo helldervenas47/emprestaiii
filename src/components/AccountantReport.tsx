@@ -111,6 +111,84 @@ export function AccountantReport({ loans, payments, sales, expenses }: Accountan
     return { items: periodTaxes, paid, pending, total: paid + pending };
   }, [expenses, period, monthFilter, yearFilter]);
 
+  // ===== Simulação de Impostos =====
+  const [taxRegime, setTaxRegime] = useState<"simples" | "presumido" | "irpf">("simples");
+
+  const taxSim = useMemo(() => {
+    const base = dre.interestRevenue; // base = juros recebidos no período
+    const isYear = period === "year";
+
+    // --- Simples Nacional - Anexo III (Serviços) ---
+    // Faixas RBT12 (receita bruta dos últimos 12 meses) - usamos base anualizada como proxy.
+    const rbt12 = isYear ? base : base * 12;
+    const simplesFaixas = [
+      { ate: 180000, aliq: 0.06, ded: 0 },
+      { ate: 360000, aliq: 0.112, ded: 9360 },
+      { ate: 720000, aliq: 0.135, ded: 17640 },
+      { ate: 1800000, aliq: 0.16, ded: 35640 },
+      { ate: 3600000, aliq: 0.21, ded: 125640 },
+      { ate: 4800000, aliq: 0.33, ded: 648000 },
+    ];
+    const faixa = simplesFaixas.find((f) => rbt12 <= f.ate) || simplesFaixas[simplesFaixas.length - 1];
+    const aliqEfetivaSimples = rbt12 > 0 ? Math.max(0, (rbt12 * faixa.aliq - faixa.ded) / rbt12) : faixa.aliq;
+    const simplesTotal = base * aliqEfetivaSimples;
+
+    // --- Lucro Presumido (Serviços - presunção 32%) ---
+    const baseIRCSLL = base * 0.32;
+    const irpj = baseIRCSLL * 0.15;
+    // adicional 10% sobre o que exceder R$ 20.000/mês (R$ 60.000 no trimestre, simplificado mensal)
+    const limiteAdicional = isYear ? 240000 : 20000;
+    const irpjAdicional = baseIRCSLL > limiteAdicional ? (baseIRCSLL - limiteAdicional) * 0.10 : 0;
+    const csll = baseIRCSLL * 0.09;
+    const pis = base * 0.0065;
+    const cofins = base * 0.03;
+    const iss = base * 0.05; // alíquota máxima de ISS para serviços financeiros (varia por município)
+    const presumidoTotal = irpj + irpjAdicional + csll + pis + cofins + iss;
+
+    // --- IRPF Pessoa Física (Tabela mensal 2024) ---
+    const baseMensal = isYear ? base / 12 : base;
+    let aliqIRPF = 0;
+    let dedIRPF = 0;
+    if (baseMensal <= 2259.20) { aliqIRPF = 0; dedIRPF = 0; }
+    else if (baseMensal <= 2826.65) { aliqIRPF = 0.075; dedIRPF = 169.44; }
+    else if (baseMensal <= 3751.05) { aliqIRPF = 0.15; dedIRPF = 381.44; }
+    else if (baseMensal <= 4664.68) { aliqIRPF = 0.225; dedIRPF = 662.77; }
+    else { aliqIRPF = 0.275; dedIRPF = 896.00; }
+    const irpfMes = Math.max(0, baseMensal * aliqIRPF - dedIRPF);
+    const irpfTotal = isYear ? irpfMes * 12 : irpfMes;
+
+    return {
+      base,
+      rbt12,
+      simples: {
+        aliquotaEfetiva: aliqEfetivaSimples,
+        faixa: simplesFaixas.indexOf(faixa) + 1,
+        total: simplesTotal,
+        liquido: base - simplesTotal,
+      },
+      presumido: {
+        baseCalculo: baseIRCSLL,
+        irpj,
+        irpjAdicional,
+        csll,
+        pis,
+        cofins,
+        iss,
+        total: presumidoTotal,
+        aliquotaEfetiva: base > 0 ? presumidoTotal / base : 0,
+        liquido: base - presumidoTotal,
+      },
+      irpf: {
+        baseMensal,
+        aliquota: aliqIRPF,
+        deducao: dedIRPF,
+        total: irpfTotal,
+        aliquotaEfetiva: base > 0 ? irpfTotal / base : 0,
+        liquido: base - irpfTotal,
+      },
+    };
+  }, [dre.interestRevenue, period]);
+
   // ===== Fluxo de caixa =====
   const cashflow = useMemo(() => {
     const map = new Map<string, { in: number; out: number }>();
