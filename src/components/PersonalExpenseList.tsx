@@ -72,6 +72,7 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, onUpda
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<Filter>("all");
   const [sourceFilter, setSourceFilter] = useState<"all" | "auto" | "manual">("all");
+  const [budgetDetailCat, setBudgetDetailCat] = useState<string | null>(null);
   const [categoryFilter, setCategoryFilter] = useState<string | null>(null);
   const now = new Date();
   const [selectedMonth, setSelectedMonth] = useState(
