@@ -119,10 +119,11 @@ export function DailyPlanningReport({ loans, payments, installmentSchedules, sal
     const day = Number(date.slice(8, 10));
     for (const card of cards) {
       if (!card.active) continue;
-      if (card.due_day !== day) continue;
+      if ((card as any).dueDay !== day) continue;
+      const lastFour = (card as any).lastFour;
       out.push({
         origin: "Cartão",
-        description: `Fatura ${card.nickname || card.bank} ${card.last_four ? "•••• " + card.last_four : ""}`.trim(),
+        description: `Fatura ${card.nickname || card.bank} ${lastFour ? "•••• " + lastFour : ""}`.trim(),
         amount: 0, // valor da fatura é dinâmico — sem cálculo aqui
         category: "Cartão de crédito",
       });
