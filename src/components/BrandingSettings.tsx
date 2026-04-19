@@ -5,9 +5,9 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Slider } from "@/components/ui/slider";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { Image as ImageIcon, Upload, Trash2, Loader2, Monitor, Tablet, Smartphone, RotateCcw } from "lucide-react";
+import { Image as ImageIcon, Upload, Trash2, Loader2, Monitor, Tablet, Smartphone, RotateCcw, Type } from "lucide-react";
 import { toast } from "sonner";
-import { useAppBranding, DEFAULT_SIZES, FALLBACK_LOGO, type LogoArea, type LogoDevice, type LogoSizes } from "@/hooks/useAppBranding";
+import { useAppBranding, DEFAULT_SIZES, FALLBACK_LOGO, DEFAULT_BRAND_NAME, type LogoArea, type LogoDevice, type LogoSizes } from "@/hooks/useAppBranding";
 
 const AREA_LABELS: Record<LogoArea, { title: string; description: string }> = {
   header: { title: "Cabeçalho / menu lateral", description: "Logo no topo do app e na navegação." },
@@ -23,16 +23,22 @@ const DEVICES: { key: LogoDevice; label: string; Icon: typeof Monitor; min: numb
 ];
 
 export function BrandingSettings() {
-  const { branding, loading, uploadLogo, removeLogo, saveSizes } = useAppBranding();
+  const { branding, loading, uploadLogo, removeLogo, saveSizes, saveBrandName } = useAppBranding();
   const fileRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [removing, setRemoving] = useState(false);
   const [savingSizes, setSavingSizes] = useState(false);
+  const [savingName, setSavingName] = useState(false);
   const [draftSizes, setDraftSizes] = useState<LogoSizes>(branding.sizes);
+  const [draftName, setDraftName] = useState<string>(branding.brand_name);
 
   useEffect(() => {
     setDraftSizes(branding.sizes);
   }, [branding.sizes]);
+
+  useEffect(() => {
+    setDraftName(branding.brand_name);
+  }, [branding.brand_name]);
 
   const handleFile = async (file: File | null) => {
     if (!file) return;
@@ -92,7 +98,20 @@ export function BrandingSettings() {
   };
 
   const dirty = JSON.stringify(draftSizes) !== JSON.stringify(branding.sizes);
+  const nameDirty = (draftName || "").trim() !== branding.brand_name;
   const previewSrc = branding.logo_url || FALLBACK_LOGO;
+
+  const handleSaveName = async () => {
+    setSavingName(true);
+    try {
+      await saveBrandName(draftName);
+      toast.success("Nome da marca salvo.");
+    } catch (e: any) {
+      toast.error("Falha ao salvar: " + (e?.message || "erro desconhecido"));
+    } finally {
+      setSavingName(false);
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -149,6 +168,29 @@ export function BrandingSettings() {
         <p className="text-xs text-muted-foreground">
           Formatos aceitos: PNG, JPG, WEBP ou SVG. Tamanho máximo: 4MB. Recomendado: imagem quadrada com fundo transparente.
         </p>
+      </div>
+
+      {/* Nome da marca */}
+      <div className="space-y-2 p-4 rounded-lg border border-border bg-muted/30">
+        <Label htmlFor="brand-name" className="flex items-center gap-2 text-sm font-medium">
+          <Type className="h-4 w-4 text-primary" /> Nome da marca
+        </Label>
+        <p className="text-xs text-muted-foreground">
+          Texto exibido ao lado da logo no cabeçalho, sidebar e telas de autenticação.
+        </p>
+        <div className="flex gap-2">
+          <Input
+            id="brand-name"
+            value={draftName}
+            onChange={(e) => setDraftName(e.target.value)}
+            placeholder={DEFAULT_BRAND_NAME}
+            maxLength={40}
+            className="flex-1"
+          />
+          <Button size="sm" onClick={handleSaveName} disabled={!nameDirty || savingName}>
+            {savingName ? <Loader2 className="h-4 w-4 animate-spin" /> : "Salvar"}
+          </Button>
+        </div>
       </div>
 
       {/* Opções avançadas: tamanhos por área × dispositivo */}

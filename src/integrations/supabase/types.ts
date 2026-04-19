@@ -16,6 +16,7 @@ export type Database = {
     Tables: {
       app_branding: {
         Row: {
+          brand_name: string
           created_at: string
           id: string
           logo_url: string | null
@@ -25,6 +26,7 @@ export type Database = {
           updated_by: string | null
         }
         Insert: {
+          brand_name?: string
           created_at?: string
           id?: string
           logo_url?: string | null
@@ -34,6 +36,7 @@ export type Database = {
           updated_by?: string | null
         }
         Update: {
+          brand_name?: string
           created_at?: string
           id?: string
           logo_url?: string | null
