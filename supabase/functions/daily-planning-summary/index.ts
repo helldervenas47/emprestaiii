@@ -60,6 +60,7 @@ async function buildAndSend(
   lovableKey: string,
   telegramKey: string,
   brandName: string,
+  titleLabel = "Planejamento do Dia",
 ): Promise<boolean> {
   // Resolve report bot chat
   const { data: link } = await admin.from("telegram_reports_links")
@@ -169,7 +170,7 @@ async function buildAndSend(
   const negative = balance < 0;
 
   const lines: string[] = [];
-  lines.push(`📅 *${brandName} — Planejamento de Amanhã*`);
+  lines.push(`📅 *${brandName} — ${titleLabel}*`);
   lines.push(`🗓️ ${fmtDateBR(date)}`);
   lines.push("");
   lines.push(`🟢 *Receitas:* ${fmtBRL(totalIncome)}  _(${incomeRows.length})_`);
