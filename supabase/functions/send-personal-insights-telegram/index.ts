@@ -89,6 +89,7 @@ async function processUser(
   pref: any,
   mode: "scheduled" | "trigger",
   triggerReason?: string,
+  brandName: string = "EmprestAI",
 ) {
   const ownerId = pref.user_id;
   const today = todayISO();
@@ -112,8 +113,8 @@ async function processUser(
 
   const headerEmoji = mode === "trigger" ? "🚨" : "🤖";
   const headerText = mode === "trigger"
-    ? `${headerEmoji} *Alerta de gastos pessoais*${triggerReason ? `\n_${triggerReason}_` : ""}`
-    : `${headerEmoji} *Relatório inteligente — Despesas Pessoais*\n_${currentMonth()}_`;
+    ? `${headerEmoji} *${brandName} — Alerta de gastos pessoais*${triggerReason ? `\n_${triggerReason}_` : ""}`
+    : `${headerEmoji} *${brandName} — Relatório inteligente — Despesas Pessoais*\n_${currentMonth()}_`;
 
   const message = `${headerText}\n\n${insight.content}\n\n—\n_Gerado por IA com base nos seus gastos do mês._`;
 
@@ -143,6 +144,13 @@ Deno.serve(async (req) => {
     const reason = body.reason as string | undefined;
     const targetUserId = body.user_id as string | undefined;
 
+    // Fetch brand name (singleton)
+    let brandName = "EmprestAI";
+    try {
+      const { data: bRow } = await supabase.from("app_branding").select("brand_name").limit(1).maybeSingle();
+      if ((bRow as any)?.brand_name) brandName = (bRow as any).brand_name;
+    } catch { /* ignore */ }
+
     // ---------- TRIGGER MODE: send immediately to one user (called from notify-budget-overrun) ----------
     if (mode === "trigger") {
       if (!targetUserId) {
@@ -161,7 +169,7 @@ Deno.serve(async (req) => {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      const result = await processUser(supabase, pref, "trigger", reason);
+      const result = await processUser(supabase, pref, "trigger", reason, brandName);
       return new Response(JSON.stringify(result), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -191,7 +199,7 @@ Deno.serve(async (req) => {
       const slotKey = `slot-${dueSlot.i}-${today}`;
       if (lastSent[slotKey]) continue; // already sent today
 
-      const r = await processUser(supabase, pref, "scheduled");
+      const r = await processUser(supabase, pref, "scheduled", undefined, brandName);
       // Mark slot as sent regardless of skip reason (avoid loops)
       const newLastSent = { ...lastSent, [slotKey]: new Date().toISOString() };
       await supabase
