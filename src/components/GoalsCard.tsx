@@ -287,6 +287,7 @@ export function GoalsCard({ loans, payments, expenses, clients, selectedMonth, p
         open={!!selected}
         onClose={() => setSelectedGoalId(null)}
         goal={selected}
+        viewingMonth={selectedMonth}
       />
     </Card>
   );
@@ -296,6 +297,7 @@ interface DialogProps {
   open: boolean;
   onClose: () => void;
   goal: (ReturnType<typeof useMonthlyGoals>["goals"][number] & { actual: number; pct: number; meta: typeof GOAL_TYPE_META[GoalType] }) | null;
+  viewingMonth?: string;
 }
 
 function GoalDetailDialog({ open, onClose, goal }: DialogProps) {
