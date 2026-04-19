@@ -491,6 +491,221 @@ export function AccountantReport({ loans, payments, sales, expenses }: Accountan
     }
   };
 
+  const exportConsolidatedPDF = () => {
+    try {
+      const doc = new jsPDF();
+      const fmtBRL = (n: number) => n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+      const pct = (n: number) => `${(n * 100).toFixed(2)}%`;
+      const periodLabel = period === "month" ? formatDate(monthFilter) : yearFilter;
+
+      // ===== Capa =====
+      doc.setFontSize(20);
+      doc.setFont("helvetica", "bold");
+      doc.text("Relatório Contábil Consolidado", 14, 25);
+      doc.setFontSize(11);
+      doc.setFont("helvetica", "normal");
+      doc.setTextColor(80);
+      doc.text(`Período: ${periodLabel} (${period === "month" ? "Mensal" : "Anual"})`, 14, 34);
+      doc.text(`Gerado em: ${new Date().toLocaleString("pt-BR")}`, 14, 40);
+      doc.setTextColor(0);
+
+      doc.setFontSize(10);
+      doc.setFont("helvetica", "italic");
+      doc.setTextColor(120);
+      doc.text(
+        "Este relatório consolida DRE, Controle de Impostos, Simulação Tributária e Fluxo de Caixa do período selecionado.",
+        14, 50, { maxWidth: 180 }
+      );
+      doc.setTextColor(0);
+
+      // ===== Seção 1: DRE =====
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(14);
+      doc.text("1. Demonstrativo de Resultado (DRE)", 14, 70);
+
+      autoTable(doc, {
+        startY: 75,
+        theme: "grid",
+        styles: { fontSize: 10 },
+        headStyles: { fillColor: [59, 130, 246] },
+        head: [["Descrição", "Valor"]],
+        body: [
+          ["(+) Receita de Juros", fmtBRL(dre.interestRevenue)],
+          ["(+) Receita de Vendas", fmtBRL(dre.salesRevenue)],
+          [{ content: "(=) Receita Bruta", styles: { fontStyle: "bold", fillColor: [243, 244, 246] } },
+           { content: fmtBRL(dre.totalRevenue), styles: { fontStyle: "bold", fillColor: [243, 244, 246] } }],
+          ["(−) Despesas Operacionais", fmtBRL(dre.businessExp)],
+          [{ content: "(=) Lucro Líquido", styles: { fontStyle: "bold", fillColor: [219, 234, 254] } },
+           { content: fmtBRL(dre.netProfit), styles: { fontStyle: "bold", fillColor: [219, 234, 254] } }],
+          ["Capital recuperado (principal)", fmtBRL(dre.principalReceived)],
+          ["Despesas pessoais (não impacta DRE)", fmtBRL(dre.personalExp)],
+        ],
+      });
+
+      // ===== Seção 2: Impostos =====
+      doc.addPage();
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(14);
+      doc.text("2. Controle de Impostos", 14, 20);
+
+      autoTable(doc, {
+        startY: 25,
+        theme: "grid",
+        styles: { fontSize: 10 },
+        headStyles: { fillColor: [234, 88, 12] },
+        head: [["Resumo", "Valor"]],
+        body: [
+          ["Total no período", fmtBRL(taxes.total)],
+          ["Pagos", fmtBRL(taxes.paid)],
+          ["Pendentes", fmtBRL(taxes.pending)],
+        ],
+      });
+
+      let y = (doc as any).lastAutoTable.finalY + 8;
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(11);
+      doc.text("Lançamentos de Impostos", 14, y);
+
+      if (taxes.items.length === 0) {
+        doc.setFont("helvetica", "italic");
+        doc.setFontSize(9);
+        doc.setTextColor(120);
+        doc.text("Nenhum imposto registrado no período.", 14, y + 7);
+        doc.setTextColor(0);
+      } else {
+        autoTable(doc, {
+          startY: y + 3,
+          theme: "striped",
+          styles: { fontSize: 9 },
+          headStyles: { fillColor: [100, 116, 139] },
+          head: [["Descrição", "Categoria", "Vencimento", "Valor", "Status"]],
+          body: taxes.items.map((t: any) => [
+            t.description,
+            t.category,
+            new Date(t.due_date + "T00:00:00").toLocaleDateString("pt-BR"),
+            fmtBRL(Number(t.amount) || 0),
+            t.paid ? "Pago" : "Pendente",
+          ]),
+        });
+      }
+
+      // ===== Seção 3: Simulação =====
+      doc.addPage();
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(14);
+      doc.text("3. Simulação de Impostos", 14, 20);
+      doc.setFontSize(9);
+      doc.setFont("helvetica", "italic");
+      doc.setTextColor(120);
+      doc.text(`Base de cálculo: juros recebidos no período (${fmtBRL(taxSim.base)})`, 14, 27);
+      doc.setTextColor(0);
+
+      autoTable(doc, {
+        startY: 32,
+        theme: "grid",
+        styles: { fontSize: 10 },
+        headStyles: { fillColor: [30, 41, 59] },
+        head: [["Regime", "Imposto", "Alíq. Efetiva", "Líquido"]],
+        body: [
+          ["Simples Nacional", fmtBRL(taxSim.simples.total), pct(taxSim.simples.aliquotaEfetiva), fmtBRL(taxSim.simples.liquido)],
+          ["Lucro Presumido", fmtBRL(taxSim.presumido.total), pct(taxSim.presumido.aliquotaEfetiva), fmtBRL(taxSim.presumido.liquido)],
+          ["Pessoa Física (IRPF)", fmtBRL(taxSim.irpf.total), pct(taxSim.irpf.aliquotaEfetiva), fmtBRL(taxSim.irpf.liquido)],
+        ],
+      });
+
+      y = (doc as any).lastAutoTable.finalY + 8;
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(11);
+      doc.text("Detalhamento - Lucro Presumido", 14, y);
+      autoTable(doc, {
+        startY: y + 3,
+        theme: "striped",
+        styles: { fontSize: 9 },
+        headStyles: { fillColor: [234, 179, 8] },
+        head: [["Tributo", "Valor"]],
+        body: [
+          ["Base de cálculo (32%)", fmtBRL(taxSim.presumido.baseCalculo)],
+          ["IRPJ (15%)", fmtBRL(taxSim.presumido.irpj)],
+          ["IRPJ Adicional (10%)", fmtBRL(taxSim.presumido.irpjAdicional)],
+          ["CSLL (9%)", fmtBRL(taxSim.presumido.csll)],
+          ["PIS (0,65%)", fmtBRL(taxSim.presumido.pis)],
+          ["COFINS (3%)", fmtBRL(taxSim.presumido.cofins)],
+          ["ISS (5%)", fmtBRL(taxSim.presumido.iss)],
+        ],
+      });
+
+      // ===== Seção 4: Fluxo de Caixa =====
+      doc.addPage();
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(14);
+      doc.text("4. Fluxo de Caixa", 14, 20);
+
+      autoTable(doc, {
+        startY: 25,
+        theme: "grid",
+        styles: { fontSize: 10 },
+        headStyles: { fillColor: [16, 185, 129] },
+        head: [["Resumo", "Valor"]],
+        body: [
+          ["Total de Entradas", fmtBRL(cashflow.totalIn)],
+          ["Total de Saídas", fmtBRL(cashflow.totalOut)],
+          [{ content: "Saldo Líquido", styles: { fontStyle: "bold", fillColor: [219, 234, 254] } },
+           { content: fmtBRL(cashflow.net), styles: { fontStyle: "bold", fillColor: [219, 234, 254] } }],
+        ],
+      });
+
+      y = (doc as any).lastAutoTable.finalY + 8;
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(11);
+      doc.text(`Movimentações ${period === "month" ? "Diárias" : "Mensais"}`, 14, y);
+
+      if (cashflow.rows.length === 0) {
+        doc.setFont("helvetica", "italic");
+        doc.setFontSize(9);
+        doc.setTextColor(120);
+        doc.text("Sem movimentações no período.", 14, y + 7);
+        doc.setTextColor(0);
+      } else {
+        autoTable(doc, {
+          startY: y + 3,
+          theme: "striped",
+          styles: { fontSize: 9 },
+          headStyles: { fillColor: [59, 130, 246] },
+          head: [["Data", "Entrada", "Saída", "Saldo"]],
+          body: cashflow.rows.map((r) => [
+            formatDate(r.key),
+            fmtBRL(r.in),
+            fmtBRL(r.out),
+            fmtBRL(r.net),
+          ]),
+          foot: [[
+            { content: "Total", styles: { fontStyle: "bold" } },
+            { content: fmtBRL(cashflow.totalIn), styles: { fontStyle: "bold" } },
+            { content: fmtBRL(cashflow.totalOut), styles: { fontStyle: "bold" } },
+            { content: fmtBRL(cashflow.net), styles: { fontStyle: "bold" } },
+          ]],
+        });
+      }
+
+      // Numeração de páginas
+      const pageCount = (doc as any).internal.getNumberOfPages();
+      for (let i = 1; i <= pageCount; i++) {
+        doc.setPage(i);
+        doc.setFontSize(8);
+        doc.setFont("helvetica", "normal");
+        doc.setTextColor(150);
+        doc.text(`Página ${i} de ${pageCount}`, 14, 290);
+        doc.text("Relatório Contábil Consolidado", 196, 290, { align: "right" });
+      }
+
+      doc.save(`relatorio-contabil-consolidado-${periodLabel.replace(/\s+/g, "-")}.pdf`);
+      toast.success("PDF consolidado exportado!");
+    } catch (e) {
+      console.error(e);
+      toast.error("Erro ao gerar PDF consolidado");
+    }
+  };
+
   return (
     <div className="space-y-4">
       {/* Filtro de período */}
