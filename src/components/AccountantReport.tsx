@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Calculator, TrendingUp, TrendingDown, Receipt, Wallet, FileBarChart } from "lucide-react";
+import { Calculator, TrendingUp, TrendingDown, Receipt, Wallet, FileBarChart, Sparkles } from "lucide-react";
 import { useHideValues } from "@/contexts/HideValuesContext";
 
 interface AccountantReportProps {
