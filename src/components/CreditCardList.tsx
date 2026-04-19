@@ -268,7 +268,9 @@ const MiniCreditCard = React.forwardRef<HTMLDivElement, MiniCardProps>(({
       </CardContent>
     </Card>
   );
-}
+});
+
+MiniCreditCard.displayName = "MiniCreditCard";
 
 export function CreditCardList({ readOnly = false, referenceMonth }: Props) {
   const { cards: allCards, loading, addCard, updateCard, deleteCard } = useCreditCards();
