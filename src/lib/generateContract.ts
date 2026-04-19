@@ -196,10 +196,16 @@ export async function generateContract(sale: Sale, client?: Client, locador?: Lo
 </head>
 <body>
 
-<button class="close-btn" onclick="window.close()">✕ Fechar</button>
+<div class="action-bar">
+  <button class="action-btn pdf-btn" id="downloadPdfBtn">⬇ Baixar PDF</button>
+  <button class="action-btn print-btn" onclick="window.print()">🖨 Imprimir</button>
+  <button class="action-btn close-btn" onclick="window.close()">✕ Fechar</button>
+</div>
+
+<div id="contractContent">
 
 <div style="display:flex; align-items:center; justify-content:center; gap:14px; margin-bottom:18px;">
-  <img src="${branding.url}" alt="${branding.brandName}" style="width:${branding.size}px; height:${branding.size}px; object-fit:contain;" />
+  <img src="${branding.url}" alt="${branding.brandName}" style="width:${branding.size}px; height:${branding.size}px; object-fit:contain;" crossorigin="anonymous" />
   <span style="font-size:16px; font-weight:bold; letter-spacing:0.5px;">${branding.brandName}</span>
 </div>
 
