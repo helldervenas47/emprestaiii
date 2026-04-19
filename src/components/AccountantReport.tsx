@@ -861,7 +861,13 @@ export function AccountantReport({ loans, payments, sales, expenses }: Accountan
 
           <Card>
             <CardHeader>
-              <CardTitle className="text-sm">Movimentações {period === "month" ? "diárias" : "mensais"}</CardTitle>
+              <div className="flex items-start justify-between gap-2">
+                <CardTitle className="text-sm">Movimentações {period === "month" ? "diárias" : "mensais"}</CardTitle>
+                <Button size="sm" variant="outline" onClick={exportCashflowPDF} className="shrink-0 h-8">
+                  <Download className="h-3.5 w-3.5 sm:mr-1" />
+                  <span className="hidden sm:inline">PDF</span>
+                </Button>
+              </div>
             </CardHeader>
             <CardContent>
               {cashflow.rows.length === 0 ? (
