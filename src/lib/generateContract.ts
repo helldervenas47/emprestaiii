@@ -2,7 +2,7 @@ import { Sale, Client } from "@/types/loan";
 import { format, addMonths, addWeeks, addDays } from "date-fns";
 import { LocadorInfo } from "@/hooks/useLocadorInfo";
 import { VehicleInfo } from "@/hooks/useVehicleRegistry";
-import { getBrandingLogoUrl } from "@/lib/pdfBranding";
+
 
 function addByFrequency(date: Date, frequency: string, n: number): Date {
   if (frequency === "Semanal") return addWeeks(date, n);
