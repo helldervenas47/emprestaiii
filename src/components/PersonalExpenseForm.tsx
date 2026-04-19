@@ -320,7 +320,19 @@ export function PersonalExpenseForm({ onAdd, onClose }: Props) {
 
             {!toPiggy && (
               <div>
-                <Label>Categoria</Label>
+                <div className="flex items-center justify-between">
+                  <Label>Categoria</Label>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 px-2 text-xs"
+                    onClick={() => setCreatorOpen(true)}
+                  >
+                    <PlusCircle className="mr-1 h-3.5 w-3.5" />
+                    Nova categoria
+                  </Button>
+                </div>
                 <Select value={form.category} onValueChange={(v) => update("category", v)}>
                   <SelectTrigger>
                     <SelectValue placeholder="Selecione uma categoria" />
@@ -330,6 +342,20 @@ export function PersonalExpenseForm({ onAdd, onClose }: Props) {
                       const Icon = c.icon;
                       return (
                         <SelectItem key={c.name} value={c.name}>
+                          <span className="inline-flex items-center gap-2">
+                            <Icon className="h-3.5 w-3.5" style={{ color: `hsl(${c.color})` }} />
+                            {c.name}
+                          </span>
+                        </SelectItem>
+                      );
+                    })}
+                    {customCategories.length > 0 && (
+                      <div className="my-1 border-t border-border" />
+                    )}
+                    {customCategories.map((c) => {
+                      const Icon = resolvePersonalIcon(c.icon);
+                      return (
+                        <SelectItem key={c.id} value={c.name}>
                           <span className="inline-flex items-center gap-2">
                             <Icon className="h-3.5 w-3.5" style={{ color: `hsl(${c.color})` }} />
                             {c.name}
