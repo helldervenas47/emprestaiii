@@ -1,0 +1,307 @@
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+const GATEWAY_URL = "https://connector-gateway.lovable.dev/telegram";
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+};
+
+function fmtBRL(n: number) {
+  return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(n);
+}
+
+function nowInTZ(tz = "America/Sao_Paulo") {
+  const fmt = new Intl.DateTimeFormat("en-CA", {
+    timeZone: tz, year: "numeric", month: "2-digit", day: "2-digit",
+    hour: "2-digit", minute: "2-digit", hour12: false,
+  });
+  const parts = fmt.formatToParts(new Date());
+  const get = (t: string) => parts.find(p => p.type === t)?.value ?? "";
+  return {
+    date: `${get("year")}-${get("month")}-${get("day")}`,
+    hhmm: `${get("hour")}:${get("minute")}`,
+  };
+}
+
+function fmtDateBR(iso: string) {
+  return iso.split("-").reverse().join("/");
+}
+
+function calcLoanTotal(amount: number, rate: number, installments: number) {
+  return amount * (1 + (rate / 100) * installments);
+}
+
+async function tgSend(chatId: number, text: string, lovableKey: string, telegramKey: string) {
+  const r = await fetch(`${GATEWAY_URL}/sendMessage`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${lovableKey}`,
+      "X-Connection-Api-Key": telegramKey,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ chat_id: chatId, text, parse_mode: "Markdown" }),
+  });
+  if (!r.ok) console.error("sendMessage failed", r.status, await r.text());
+}
+
+interface Row { origin: string; description: string; amount: number; }
+
+async function buildAndSend(
+  admin: ReturnType<typeof createClient>,
+  userId: string,
+  date: string,
+  lovableKey: string,
+  telegramKey: string,
+  brandName: string,
+): Promise<boolean> {
+  // Resolve report bot chat
+  const { data: link } = await admin.from("telegram_reports_links")
+    .select("chat_id").eq("user_id", userId).maybeSingle();
+  if (!link) return false;
+
+  const chatId = Number((link as any).chat_id);
+  const day = Number(date.slice(8, 10));
+
+  // Loans + schedules
+  const { data: loans } = await admin.from("loans")
+    .select("id, borrower_name, installments, paid_installments, amount, interest_rate, custom_installment_value, due_date, status")
+    .eq("user_id", userId);
+
+  const loanIds = (loans ?? []).map((l: any) => l.id);
+  let schedules: any[] = [];
+  if (loanIds.length > 0) {
+    const { data } = await admin.from("loan_installments")
+      .select("loan_id, installment_number, due_date, amount")
+      .in("loan_id", loanIds)
+      .eq("due_date", date);
+    schedules = data ?? [];
+  }
+
+  const incomeRows: Row[] = [];
+  for (const loan of (loans ?? [])) {
+    if ((loan as any).status === "paid") continue;
+    const sched = schedules.filter(s => s.loan_id === (loan as any).id);
+    if (sched.length > 0) {
+      for (const s of sched) {
+        if (s.installment_number <= (loan as any).paid_installments) continue;
+        incomeRows.push({
+          origin: "Empréstimo",
+          description: `${(loan as any).borrower_name} — ${s.installment_number}/${(loan as any).installments}`,
+          amount: Number(s.amount || 0),
+        });
+      }
+    } else if ((loan as any).due_date === date && (loan as any).paid_installments < (loan as any).installments) {
+      const total = calcLoanTotal(Number((loan as any).amount), Number((loan as any).interest_rate), (loan as any).installments);
+      const perInst = total / (loan as any).installments;
+      const amt = (loan as any).custom_installment_value != null ? Number((loan as any).custom_installment_value) : perInst;
+      incomeRows.push({
+        origin: "Empréstimo",
+        description: `${(loan as any).borrower_name} — ${(loan as any).paid_installments + 1}/${(loan as any).installments}`,
+        amount: amt,
+      });
+    }
+  }
+
+  // Sales: parcelas com vencimento no dia
+  const { data: sales } = await admin.from("sales")
+    .select("customer_name, description, business_type, installments, paid_installments, installment_value, installment_amounts, installment_dates, total")
+    .eq("user_id", userId);
+
+  for (const sale of (sales ?? [])) {
+    const dates = ((sale as any).installment_dates ?? []) as string[];
+    const amounts = ((sale as any).installment_amounts ?? []) as number[];
+    const total = (sale as any).installments || 1;
+    const fallback = (sale as any).installment_value != null
+      ? Number((sale as any).installment_value)
+      : Number((sale as any).total) / Math.max(1, total);
+    for (let i = 0; i < total; i++) {
+      const dueDate = dates[i];
+      if (!dueDate || dueDate !== date) continue;
+      const num = i + 1;
+      if (num <= (sale as any).paid_installments) continue;
+      const amt = amounts[i] != null ? Number(amounts[i]) : fallback;
+      incomeRows.push({
+        origin: (sale as any).business_type === "aluguel_veiculo" ? "Aluguel" : "Venda",
+        description: `${(sale as any).customer_name || (sale as any).description} — ${num}/${total}`,
+        amount: amt,
+      });
+    }
+  }
+
+  // Expenses (business + personal) due today, not paid
+  const { data: expenses } = await admin.from("expenses")
+    .select("description, amount, category, scope, paid")
+    .eq("user_id", userId)
+    .eq("due_date", date)
+    .eq("paid", false);
+
+  const expenseRows: Row[] = (expenses ?? []).map((e: any) => ({
+    origin: e.scope === "personal" ? "Pessoal" : "Empresa",
+    description: e.description,
+    amount: Number(e.amount || 0),
+  }));
+
+  // Credit card invoices due today
+  const { data: cards } = await admin.from("credit_cards")
+    .select("nickname, bank, last_four, due_day, active")
+    .eq("user_id", userId)
+    .eq("active", true)
+    .eq("due_day", day);
+
+  for (const c of (cards ?? [])) {
+    expenseRows.push({
+      origin: "Cartão",
+      description: `Fatura ${(c as any).nickname || (c as any).bank}${(c as any).last_four ? " •••• " + (c as any).last_four : ""}`,
+      amount: 0,
+    });
+  }
+
+  const totalIncome = incomeRows.reduce((s, r) => s + r.amount, 0);
+  const totalExpense = expenseRows.reduce((s, r) => s + r.amount, 0);
+  const balance = totalIncome - totalExpense;
+  const negative = balance < 0;
+
+  const lines: string[] = [];
+  lines.push(`📅 *${brandName} — Planejamento do Dia*`);
+  lines.push(`🗓️ ${fmtDateBR(date)}`);
+  lines.push("");
+  lines.push(`🟢 *Receitas:* ${fmtBRL(totalIncome)}  _(${incomeRows.length})_`);
+  lines.push(`🔴 *Despesas:* ${fmtBRL(totalExpense)}  _(${expenseRows.length})_`);
+  lines.push(`${negative ? "⚠️" : "💰"} *Saldo previsto:* ${fmtBRL(balance)}`);
+  if (negative) lines.push(`_Atenção: saldo negativo previsto para o dia._`);
+
+  if (incomeRows.length > 0) {
+    lines.push("");
+    lines.push("*🟢 Receitas:*");
+    const sorted = [...incomeRows].sort((a, b) => b.amount - a.amount);
+    for (const r of sorted) {
+      lines.push(`• [${r.origin}] ${r.description} — *${fmtBRL(r.amount)}*`);
+    }
+  }
+
+  if (expenseRows.length > 0) {
+    lines.push("");
+    lines.push("*🔴 Despesas:*");
+    const sorted = [...expenseRows].sort((a, b) => b.amount - a.amount);
+    for (const r of sorted) {
+      lines.push(`• [${r.origin}] ${r.description} — *${r.amount > 0 ? fmtBRL(r.amount) : "—"}*`);
+    }
+  }
+
+  if (incomeRows.length === 0 && expenseRows.length === 0) {
+    lines.push("");
+    lines.push("_Nenhum lançamento previsto para este dia._");
+  }
+
+  await tgSend(chatId, lines.join("\n"), lovableKey, telegramKey);
+  return true;
+}
+
+Deno.serve(async (req) => {
+  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+
+  const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY")!;
+  const TELEGRAM_API_KEY = Deno.env.get("TELEGRAM_API_KEY_1")!;
+  const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
+  const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+
+  const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+
+  let brandName = "EmprestAI";
+  try {
+    const { data: bRow } = await admin.from("app_branding").select("brand_name").limit(1).maybeSingle();
+    if ((bRow as any)?.brand_name) brandName = (bRow as any).brand_name;
+  } catch (_) { /* ignore */ }
+
+  const url = new URL(req.url);
+  const queryUserId = url.searchParams.get("user_id");
+  const { date: today, hhmm } = nowInTZ();
+
+  // Manual/on-demand mode (called from app with auth)
+  const authHeader = req.headers.get("Authorization") ?? "";
+  const token = authHeader.replace(/^Bearer\s+/i, "");
+
+  if (token && req.method === "POST") {
+    const userClient = createClient(SUPABASE_URL, Deno.env.get("SUPABASE_ANON_KEY")!, {
+      global: { headers: { Authorization: `Bearer ${token}` } },
+    });
+    const { data: { user }, error: userErr } = await userClient.auth.getUser();
+    if (!userErr && user) {
+      let body: any = {};
+      try { body = await req.json(); } catch (_) {}
+      const date = (body?.date as string) || today;
+      const ok = await buildAndSend(admin, user.id, date, LOVABLE_API_KEY, TELEGRAM_API_KEY, brandName);
+      return new Response(JSON.stringify({ ok: true, sent: ok ? 1 : 0, date }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+  }
+
+  // Forced via query string (also requires auth match)
+  if (queryUserId) {
+    if (!token) return new Response(JSON.stringify({ error: "Auth required" }), { status: 401, headers: corsHeaders });
+    const userClient = createClient(SUPABASE_URL, Deno.env.get("SUPABASE_ANON_KEY")!, {
+      global: { headers: { Authorization: `Bearer ${token}` } },
+    });
+    const { data: { user }, error: userErr } = await userClient.auth.getUser();
+    if (userErr || !user) return new Response(JSON.stringify({ error: "Invalid token" }), { status: 401, headers: corsHeaders });
+    if (user.id !== queryUserId) return new Response(JSON.stringify({ error: "Forbidden" }), { status: 403, headers: corsHeaders });
+
+    const ok = await buildAndSend(admin, queryUserId, today, LOVABLE_API_KEY, TELEGRAM_API_KEY, brandName);
+    return new Response(JSON.stringify({ ok: true, sent: ok ? 1 : 0 }), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
+  // Cron mode — iterate enabled prefs and check time window
+  const [hh, mm] = hhmm.split(":").map(Number);
+  const nowMin = hh * 60 + mm;
+
+  const { data: prefs, error } = await admin
+    .from("daily_planning_telegram_prefs")
+    .select("user_id, enabled, send_time_1, send_time_2, send_time_3, last_sent")
+    .eq("enabled", true);
+
+  if (error) return new Response(JSON.stringify({ error: error.message }), { status: 500, headers: corsHeaders });
+
+  let sent = 0;
+  for (const pref of (prefs ?? [])) {
+    try {
+      const slots: { key: string; time: string | null }[] = [
+        { key: "send_time_1", time: (pref as any).send_time_1 },
+        { key: "send_time_2", time: (pref as any).send_time_2 },
+        { key: "send_time_3", time: (pref as any).send_time_3 },
+      ];
+      const lastSent = ((pref as any).last_sent ?? {}) as Record<string, string>;
+
+      let firedSlot: string | null = null;
+      for (const slot of slots) {
+        if (!slot.time) continue;
+        const [ph, pm] = slot.time.split(":").map(Number);
+        const target = ph * 60 + pm;
+        // 5-minute trigger window (cron runs every 5 min)
+        if (nowMin < target || nowMin >= target + 5) continue;
+        if (lastSent[slot.key] === today) continue;
+        firedSlot = slot.key;
+        break;
+      }
+      if (!firedSlot) continue;
+
+      const ok = await buildAndSend(admin, (pref as any).user_id, today, LOVABLE_API_KEY, TELEGRAM_API_KEY, brandName);
+      if (ok) {
+        const newLast = { ...lastSent, [firedSlot]: today };
+        await admin.from("daily_planning_telegram_prefs")
+          .update({ last_sent: newLast })
+          .eq("user_id", (pref as any).user_id);
+        sent++;
+      }
+    } catch (e) {
+      console.error("daily-planning error for", (pref as any).user_id, e);
+    }
+  }
+
+  return new Response(JSON.stringify({ ok: true, sent, checked: prefs?.length ?? 0, hhmm }), {
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
+});
