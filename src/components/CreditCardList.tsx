@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import React, { useState, useMemo } from "react";
 import { Plus, CreditCard as CreditCardIcon, Wifi, Pencil, Trash2, Receipt, CheckCircle, EyeOff, RotateCcw } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -90,7 +90,7 @@ interface MiniCardProps {
   readOnly?: boolean;
 }
 
-function MiniCreditCard({
+const MiniCreditCard = React.forwardRef<HTMLDivElement, MiniCardProps>(({
   card,
   invoiceTotal,
   pendingTotal,
@@ -106,7 +106,7 @@ function MiniCreditCard({
   onAddOpening,
   onPayInvoice,
   readOnly,
-}: MiniCardProps) {
+}, ref) => {
   const bank = getBank(card.bank);
   const { mask } = useHideValues();
   const utilization =
@@ -120,6 +120,7 @@ function MiniCreditCard({
 
   return (
     <Card
+      ref={ref}
       no3d
       className={`group relative overflow-hidden cursor-pointer hover:shadow-md transition-shadow ${
         hasActiveInvoice
@@ -267,7 +268,9 @@ function MiniCreditCard({
       </CardContent>
     </Card>
   );
-}
+});
+
+MiniCreditCard.displayName = "MiniCreditCard";
 
 export function CreditCardList({ readOnly = false, referenceMonth }: Props) {
   const { cards: allCards, loading, addCard, updateCard, deleteCard } = useCreditCards();
