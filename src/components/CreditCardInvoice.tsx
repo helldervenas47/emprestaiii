@@ -219,9 +219,11 @@ export function CreditCardInvoice({ card, onClose, referenceMonth, originRect }:
   const isOverdue = isClosed && today > cycle.dueDate && total > 0;
   const daysToDue = Math.ceil((cycle.dueDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
 
-  // Fatura quitada: tem lançamentos no ciclo, todos os itens estão pagos e não há saldo inicial em aberto
+  // Fatura quitada: existem itens no ciclo, todos pagos, e o saldo inicial está zerado.
+  // Se não houver nenhum item nem saldo inicial (cycleEverHadValue=false), é "Sem lançamentos".
   const cycleHasPending = items.some((e) => !e.paid) || openingAmount > 0;
-  const isPaid = transactionsTotal > 0 && !cycleHasPending;
+  const cycleEverHadValue = items.length > 0 || openingAmount > 0;
+  const isPaid = cycleEverHadValue && !cycleHasPending;
 
   const status: { label: string; tone: string; icon: typeof Clock } = isPaid
     ? { label: isClosed ? "Fechada — Paga" : "Paga", tone: "bg-success/15 text-success border-success/30", icon: CheckCircle2 }
@@ -229,7 +231,7 @@ export function CreditCardInvoice({ card, onClose, referenceMonth, originRect }:
     ? { label: "Em atraso", tone: "bg-destructive/15 text-destructive border-destructive/30", icon: AlertTriangle }
     : isClosed
     ? { label: "Fechada — aguardando pagamento", tone: "bg-warning/15 text-warning border-warning/30", icon: Clock }
-    : total === 0
+    : !cycleEverHadValue
     ? { label: "Sem lançamentos", tone: "bg-muted text-muted-foreground border-border", icon: CheckCircle2 }
     : { label: "Em aberto", tone: "bg-primary/15 text-primary border-primary/30", icon: Sparkles };
 
