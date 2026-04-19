@@ -305,7 +305,9 @@ function GoalDetailDialog({ open, onClose, goal, viewingMonth }: DialogProps) {
 
   const analysis = useMemo(() => {
     if (!goal) return null;
-    const { meta, actual, targetValue, pct, month } = goal;
+    const { meta, actual, targetValue, pct } = goal;
+    // Para análise temporal (ritmo, projeção), usa o mês visualizado, não o mês de origem da meta herdada
+    const month = viewingMonth || goal.month;
     const unit = meta.unit;
     const inverse = !!meta.inverse;
     const diff = inverse ? targetValue - actual : actual - targetValue;
