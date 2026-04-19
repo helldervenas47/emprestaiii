@@ -383,14 +383,35 @@ export function AccountantReport({ loans, payments, sales, expenses }: Accountan
     }
   };
 
-  const pdfHeader = (doc: jsPDF, title: string) => {
+  const drawBrandingLogo = (
+    doc: jsPDF,
+    branding: { logoDataUrl: string | null; logoSize: number; brandName: string },
+  ) => {
+    if (!branding.logoDataUrl) return;
+    // Convert configured px (report area) to mm. 1 px ≈ 0.2645 mm.
+    const sizeMm = Math.max(12, Math.min(40, branding.logoSize * 0.2645));
+    const pageW = doc.internal.pageSize.getWidth();
+    try {
+      doc.addImage(branding.logoDataUrl, "PNG", pageW - sizeMm - 14, 10, sizeMm, sizeMm, undefined, "FAST");
+    } catch {
+      // ignore image errors
+    }
+  };
+
+  const pdfHeader = (
+    doc: jsPDF,
+    title: string,
+    branding?: { logoDataUrl: string | null; logoSize: number; brandName: string },
+  ) => {
     const periodLabel = period === "month" ? formatDate(monthFilter) : yearFilter;
+    if (branding) drawBrandingLogo(doc, branding);
     doc.setFontSize(16);
     doc.setFont("helvetica", "bold");
     doc.text(title, 14, 18);
     doc.setFontSize(10);
     doc.setFont("helvetica", "normal");
     doc.setTextColor(100);
+    if (branding?.brandName) doc.text(branding.brandName, 14, 13);
     doc.text(`Período: ${periodLabel} (${period === "month" ? "Mensal" : "Anual"})`, 14, 25);
     doc.text(`Gerado em: ${new Date().toLocaleString("pt-BR")}`, 14, 31);
     doc.setTextColor(0);
