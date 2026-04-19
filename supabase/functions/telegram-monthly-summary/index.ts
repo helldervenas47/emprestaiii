@@ -72,6 +72,7 @@ async function buildAndSendMonthly(
   today: string,
   lovableKey: string,
   telegramKey: string,
+  brandName: string,
 ): Promise<boolean> {
   const { data: link } = await admin.from("telegram_links")
     .select("chat_id").eq("user_id", userId).maybeSingle();
@@ -115,7 +116,7 @@ async function buildAndSendMonthly(
   const dailyAvg = currS.total / Math.max(1, daysElapsed);
 
   const lines: string[] = [];
-  lines.push(`📆 *Resumo mensal* — ${monthNamePt(currMonth)}`);
+  lines.push(`📆 *${brandName} — Resumo mensal* — ${monthNamePt(currMonth)}`);
   lines.push("");
   lines.push(`💸 Total: *${fmtBRL(currS.total)}*  ${variation(currS.total, prevS.total)}`);
   lines.push(`   Mês passado: ${fmtBRL(prevS.total)}`);
@@ -165,6 +166,13 @@ Deno.serve(async (req) => {
 
   const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
+  // Fetch brand name once for this invocation
+  let brandName = "EmprestAI";
+  try {
+    const { data: bRow } = await admin.from("app_branding").select("brand_name").limit(1).maybeSingle();
+    if ((bRow as any)?.brand_name) brandName = (bRow as any).brand_name;
+  } catch (_) { /* ignore */ }
+
   const url = new URL(req.url);
   const forceUserId = url.searchParams.get("user_id");
   const { date: today, hhmm, day } = nowInTZ();
@@ -181,7 +189,7 @@ Deno.serve(async (req) => {
     if (userErr || !user) return new Response(JSON.stringify({ error: "Invalid token" }), { status: 401, headers: corsHeaders });
     if (user.id !== forceUserId) return new Response(JSON.stringify({ error: "Forbidden" }), { status: 403, headers: corsHeaders });
 
-    const ok = await buildAndSendMonthly(admin, forceUserId, today, LOVABLE_API_KEY, TELEGRAM_API_KEY);
+    const ok = await buildAndSendMonthly(admin, forceUserId, today, LOVABLE_API_KEY, TELEGRAM_API_KEY, brandName);
     return new Response(JSON.stringify({ ok: true, sent: ok ? 1 : 0 }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
@@ -212,7 +220,7 @@ Deno.serve(async (req) => {
       if (nowMin < target || nowMin >= target + 5) continue;
       if ((pref as any).last_monthly_sent_month === currMonth) continue;
 
-      const ok = await buildAndSendMonthly(admin, (pref as any).user_id, today, LOVABLE_API_KEY, TELEGRAM_API_KEY);
+      const ok = await buildAndSendMonthly(admin, (pref as any).user_id, today, LOVABLE_API_KEY, TELEGRAM_API_KEY, brandName);
       if (ok) {
         await admin.from("telegram_summary_prefs")
           .update({ last_monthly_sent_month: currMonth })
