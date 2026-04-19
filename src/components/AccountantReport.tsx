@@ -421,11 +421,12 @@ export function AccountantReport({ loans, payments, sales, expenses }: Accountan
     return periodLabel;
   };
 
-  const exportDREPDF = () => {
+  const exportDREPDF = async () => {
     try {
+      const branding = await getPdfBranding();
       const doc = new jsPDF();
       const fmtBRL = (n: number) => n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-      const periodLabel = pdfHeader(doc, "Demonstrativo de Resultado (DRE)");
+      const periodLabel = pdfHeader(doc, "Demonstrativo de Resultado (DRE)", branding);
 
       autoTable(doc, {
         startY: 40,
@@ -469,11 +470,12 @@ export function AccountantReport({ loans, payments, sales, expenses }: Accountan
     }
   };
 
-  const exportCashflowPDF = () => {
+  const exportCashflowPDF = async () => {
     try {
+      const branding = await getPdfBranding();
       const doc = new jsPDF();
       const fmtBRL = (n: number) => n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-      const periodLabel = pdfHeader(doc, "Fluxo de Caixa");
+      const periodLabel = pdfHeader(doc, "Fluxo de Caixa", branding);
 
       autoTable(doc, {
         startY: 40,
@@ -529,20 +531,23 @@ export function AccountantReport({ loans, payments, sales, expenses }: Accountan
     }
   };
 
-  const exportConsolidatedPDF = () => {
+  const exportConsolidatedPDF = async () => {
     try {
+      const branding = await getPdfBranding();
       const doc = new jsPDF();
       const fmtBRL = (n: number) => n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
       const pct = (n: number) => `${(n * 100).toFixed(2)}%`;
       const periodLabel = period === "month" ? formatDate(monthFilter) : yearFilter;
 
       // ===== Capa =====
+      drawBrandingLogo(doc, branding);
       doc.setFontSize(20);
       doc.setFont("helvetica", "bold");
       doc.text("Relatório Contábil Consolidado", 14, 25);
       doc.setFontSize(11);
       doc.setFont("helvetica", "normal");
       doc.setTextColor(80);
+      if (branding.brandName) doc.text(branding.brandName, 14, 15);
       doc.text(`Período: ${periodLabel} (${period === "month" ? "Mensal" : "Anual"})`, 14, 34);
       doc.text(`Gerado em: ${new Date().toLocaleString("pt-BR")}`, 14, 40);
       doc.setTextColor(0);
