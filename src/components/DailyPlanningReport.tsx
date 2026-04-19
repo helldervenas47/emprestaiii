@@ -290,6 +290,33 @@ export function DailyPlanningReport({ loans, payments, installmentSchedules, sal
 
             {prefs.enabled && (
               <>
+                <div className="space-y-1.5">
+                  <Label className="text-[10px] text-muted-foreground">Referência do envio</Label>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => save({ send_target: "today" })}
+                      className={`text-xs px-3 py-2 rounded-md border transition-colors ${
+                        prefs.send_target === "today"
+                          ? "bg-primary text-primary-foreground border-primary"
+                          : "bg-background border-border hover:bg-muted"
+                      }`}
+                    >
+                      Dia atual
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => save({ send_target: "tomorrow" })}
+                      className={`text-xs px-3 py-2 rounded-md border transition-colors ${
+                        prefs.send_target === "tomorrow"
+                          ? "bg-primary text-primary-foreground border-primary"
+                          : "bg-background border-border hover:bg-muted"
+                      }`}
+                    >
+                      Dia seguinte
+                    </button>
+                  </div>
+                </div>
                 <div className="grid grid-cols-3 gap-2">
                   {[1, 2, 3].map((slot) => {
                     const key = `send_time_${slot}` as "send_time_1" | "send_time_2" | "send_time_3";
