@@ -5,9 +5,9 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Slider } from "@/components/ui/slider";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { Image as ImageIcon, Upload, Trash2, Loader2, Monitor, Tablet, Smartphone, RotateCcw } from "lucide-react";
+import { Image as ImageIcon, Upload, Trash2, Loader2, Monitor, Tablet, Smartphone, RotateCcw, Type } from "lucide-react";
 import { toast } from "sonner";
-import { useAppBranding, DEFAULT_SIZES, FALLBACK_LOGO, type LogoArea, type LogoDevice, type LogoSizes } from "@/hooks/useAppBranding";
+import { useAppBranding, DEFAULT_SIZES, FALLBACK_LOGO, DEFAULT_BRAND_NAME, type LogoArea, type LogoDevice, type LogoSizes } from "@/hooks/useAppBranding";
 
 const AREA_LABELS: Record<LogoArea, { title: string; description: string }> = {
   header: { title: "Cabeçalho / menu lateral", description: "Logo no topo do app e na navegação." },
@@ -23,16 +23,22 @@ const DEVICES: { key: LogoDevice; label: string; Icon: typeof Monitor; min: numb
 ];
 
 export function BrandingSettings() {
-  const { branding, loading, uploadLogo, removeLogo, saveSizes } = useAppBranding();
+  const { branding, loading, uploadLogo, removeLogo, saveSizes, saveBrandName } = useAppBranding();
   const fileRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [removing, setRemoving] = useState(false);
   const [savingSizes, setSavingSizes] = useState(false);
+  const [savingName, setSavingName] = useState(false);
   const [draftSizes, setDraftSizes] = useState<LogoSizes>(branding.sizes);
+  const [draftName, setDraftName] = useState<string>(branding.brand_name);
 
   useEffect(() => {
     setDraftSizes(branding.sizes);
   }, [branding.sizes]);
+
+  useEffect(() => {
+    setDraftName(branding.brand_name);
+  }, [branding.brand_name]);
 
   const handleFile = async (file: File | null) => {
     if (!file) return;
