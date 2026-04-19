@@ -506,7 +506,7 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, onUpda
                         >
                           {Math.round(pct)}% utilizado
                         </span>
-                      </div>
+                      </button>
                     );
                   })}
               </div>
