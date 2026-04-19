@@ -219,12 +219,12 @@ export function CreditCardInvoice({ card, onClose, referenceMonth, originRect }:
   const isOverdue = isClosed && today > cycle.dueDate && total > 0;
   const daysToDue = Math.ceil((cycle.dueDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
 
-  // Fatura fechada e quitada: nenhum item pendente neste ciclo e sem saldo inicial em aberto
+  // Fatura quitada: tem lançamentos no ciclo, todos os itens estão pagos e não há saldo inicial em aberto
   const cycleHasPending = items.some((e) => !e.paid) || openingAmount > 0;
-  const isClosedPaid = isClosed && transactionsTotal > 0 && !cycleHasPending;
+  const isPaid = transactionsTotal > 0 && !cycleHasPending;
 
-  const status: { label: string; tone: string; icon: typeof Clock } = isClosedPaid
-    ? { label: "Fechada — Paga", tone: "bg-success/15 text-success border-success/30", icon: CheckCircle2 }
+  const status: { label: string; tone: string; icon: typeof Clock } = isPaid
+    ? { label: isClosed ? "Fechada — Paga" : "Paga", tone: "bg-success/15 text-success border-success/30", icon: CheckCircle2 }
     : isOverdue
     ? { label: "Em atraso", tone: "bg-destructive/15 text-destructive border-destructive/30", icon: AlertTriangle }
     : isClosed
