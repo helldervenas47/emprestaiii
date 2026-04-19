@@ -5,6 +5,7 @@ import { Switch } from "@/components/ui/switch";
 import { useHideValues } from "@/contexts/HideValuesContext";
 import { Loan, Sale, Payment, Expense, InstallmentSchedule, Client } from "@/types/loan";
 import { ManagerCommissionsChart } from "@/components/ManagerCommissionsChart";
+import { GoalsCard } from "@/components/GoalsCard";
 import { calculateInstallment, calculateTotalWithInterest } from "@/hooks/useLoans";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -1044,6 +1045,9 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
           </>
         );
       })()}
+
+      {/* Goals Card - placed above Health Score */}
+      <GoalsCard loans={loans} payments={payments} expenses={expenses} clients={clients ?? []} />
 
       {/* Health Score Gauge */}
       <Card no3d>
