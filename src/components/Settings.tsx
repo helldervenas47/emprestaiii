@@ -48,7 +48,22 @@ export function Settings({ backup, locadores, onSaveLocador, onRemoveLocador, is
   const { subscription, isActive } = useSubscription();
   const [clearing, setClearing] = useState(false);
   const [confirmClear, setConfirmClear] = useState(false);
+  const [confirmGlobalSignOut, setConfirmGlobalSignOut] = useState(false);
+  const [signingOutGlobal, setSigningOutGlobal] = useState(false);
   const isAdmin = role === "admin";
+
+  const handleGlobalSignOut = async () => {
+    setSigningOutGlobal(true);
+    try {
+      const { error } = await supabase.auth.signOut({ scope: "global" });
+      if (error) throw error;
+      toast.success("Sessão encerrada em todos os dispositivos.");
+      setTimeout(() => navigate("/auth", { replace: true }), 400);
+    } catch (e: any) {
+      toast.error("Falha ao encerrar sessões: " + (e?.message || "erro desconhecido"));
+      setSigningOutGlobal(false);
+    }
+  };
 
   const planLabel = isActive && subscription
     ? subscription.product_id === "basico_plan" ? "Básico"
