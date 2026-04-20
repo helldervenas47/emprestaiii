@@ -190,7 +190,8 @@ export function useLoans() {
     };
     setLoans((prev) => [optimistic, ...prev]);
 
-    const { data, error } = await supabase.from("loans").insert({
+    const insertPayload = {
+      id: tempId,
       user_id: dataOwnerId, borrower_name: loan.borrowerName, borrower_id: loan.borrowerId,
       amount: loan.amount, interest_rate: loan.interestRate,
       interest_type: loan.interestType || "Mensal", payment_type: loan.paymentType || "Parcelado",
@@ -202,13 +203,31 @@ export function useLoans() {
       has_manager: loan.hasManager ?? false,
       manager_id: loan.managerId ?? null,
       manager_commission_rate: loan.managerCommissionRate ?? 10,
-    } as any).select().single();
+    };
+
+    await upsertCachedRow("loans", { ...insertPayload, created_at: optimistic.createdAt });
+
+    if (!isOnline()) {
+      await enqueueMutation({ table: "loans", op: "insert", recordId: tempId, payload: insertPayload });
+      // Balance adjust will sync next time online via realtime/refresh; skip here
+      return tempId;
+    }
+
+    const { data, error } = await supabase.from("loans").insert(insertPayload as any).select().single();
 
     if (error) {
+      if (!error.message.toLowerCase().includes("row-level")) {
+        await enqueueMutation({ table: "loans", op: "insert", recordId: tempId, payload: insertPayload });
+        return tempId;
+      }
       setLoans((prev) => prev.filter((l) => l.id !== tempId));
+      await removeCachedRow("loans", tempId);
       return null;
     } else if (data) {
       setLoans((prev) => prev.map((l) => l.id === tempId ? { ...l, id: data.id, createdAt: data.created_at } : l));
+      await removeCachedRow("loans", tempId);
+      await upsertCachedRow("loans", data);
+      await rewritePendingRecordId("loans", tempId, data.id);
       if (status === "paid") {
         const totalReceived = calculateTotalWithInterest(loan.amount, loan.interestRate, loan.installments);
         await adjustBalance(totalReceived - loan.amount);
