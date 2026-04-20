@@ -99,6 +99,21 @@ export function ClientForm({ onAdd, onClose }: Props) {
               </div>
             </div>
             <div>
+              <Label htmlFor="defaultInterestRate">Taxa de juros padrão (% ao mês)</Label>
+              <Input
+                id="defaultInterestRate"
+                type="number"
+                step="0.1"
+                min="0"
+                value={form.defaultInterestRate}
+                onChange={(e) => update("defaultInterestRate", e.target.value)}
+                placeholder="30"
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                Se vazio, será usado 30% ao criar novos empréstimos para este cliente.
+              </p>
+            </div>
+            <div>
               <Label htmlFor="notes">Observações</Label>
               <Textarea id="notes" value={form.notes} onChange={(e) => update("notes", e.target.value)} placeholder="Notas sobre o cliente..." rows={2} />
             </div>
