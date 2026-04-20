@@ -61,6 +61,7 @@ const App = () => (
       <Toaster />
       <Sonner />
       <PWAInstallPrompt />
+      <OfflineBadge />
       <BrowserRouter>
         <AuthProvider>
           <BrandTitleSync />
