@@ -263,8 +263,11 @@ export function wireAutoSync() {
   // Light periodic retry for cases where browser misses the online event
   setInterval(() => {
     if (isOnline()) {
-      offlineDB.pending_mutations.count().then((c) => {
-        if (c > 0) flushQueue().catch(() => { /* noop */ });
+      Promise.all([
+        offlineDB.pending_mutations.count(),
+        getPendingBalanceDelta(),
+      ]).then(([c, bd]) => {
+        if (c > 0 || bd !== 0) flushQueue().catch(() => { /* noop */ });
       });
     }
   }, 30000);
