@@ -9,6 +9,7 @@ import PWAInstallPrompt from "./components/PWAInstallPrompt";
 import { BrandTitleSync } from "./components/BrandTitleSync";
 import { BrandFaviconSync } from "./components/BrandFaviconSync";
 import { OfflineBadge } from "./components/OfflineBadge";
+import { AppTimezoneSync } from "./components/AppTimezoneSync";
 import { wireAutoSync } from "./lib/offline/sync";
 
 wireAutoSync();
@@ -66,6 +67,7 @@ const App = () => (
         <AuthProvider>
           <BrandTitleSync />
           <BrandFaviconSync />
+          <AppTimezoneSync />
           <Suspense fallback={<PageLoader />}>
             <Routes>
               <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
