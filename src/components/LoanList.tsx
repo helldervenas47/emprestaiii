@@ -398,11 +398,11 @@ function LoanCardView({
       }
     } else if (paymentDialog.type === "installment") onPayment(dateStr);
     else if (paymentDialog.type === "interest") {
-      const baseInterest = loan.customInterestValue != null && loan.customInterestValue > 0
-        ? loan.customInterestValue
-        : loan.amount * (loan.interestRate / 100);
-      const custom = interestSelection === "withFees" && lateFees > 0 ? baseInterest + lateFees : undefined;
-      onInterestPayment(dateStr, custom);
+      if (interestSelection === "withFees" && lateFees > 0) {
+        onInterestPayment(dateStr, undefined, lateFees);
+      } else {
+        onInterestPayment(dateStr);
+      }
     }
     else if (paymentDialog.type === "partial" && paymentDialog.amount) onPartialPayment(paymentDialog.amount, dateStr);
     setPayoffAmount("");
