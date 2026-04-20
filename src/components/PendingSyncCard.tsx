@@ -16,7 +16,7 @@ const TABLE_LABELS: Record<string, string> = {
 
 export function PendingSyncCard() {
   const online = useOnlineStatus();
-  const { count, byTable } = usePendingCount();
+  const { count, byTable, balanceDelta } = usePendingCount();
   const [syncing, setSyncing] = useState(false);
 
   const handleSync = async () => {
