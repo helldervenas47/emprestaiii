@@ -22,6 +22,7 @@ function rowToClient(c: any): Client {
     isVehicleRental: c.is_vehicle_rental, nacionalidade: c.nacionalidade,
     estadoCivil: c.estado_civil, profissao: c.profissao, bairro: c.bairro,
     isManager: c.is_manager ?? false,
+    defaultInterestRate: c.default_interest_rate ?? null,
   };
 }
 
@@ -88,6 +89,7 @@ export function useClients() {
       nacionalidade: client.nacionalidade || '', estado_civil: client.estadoCivil || '',
       profissao: client.profissao || '', bairro: client.bairro || '',
       is_manager: client.isManager || false,
+      default_interest_rate: client.defaultInterestRate ?? null,
     };
 
     // Local cache write — always
@@ -137,6 +139,7 @@ export function useClients() {
       is_vehicle_rental: data.isVehicleRental, nacionalidade: data.nacionalidade,
       estado_civil: data.estadoCivil, profissao: data.profissao, bairro: data.bairro,
       is_manager: data.isManager,
+      default_interest_rate: data.defaultInterestRate,
     };
     Object.keys(updatePayload).forEach(k => updatePayload[k] === undefined && delete updatePayload[k]);
 

@@ -134,6 +134,7 @@ export type Database = {
           cnpj: string
           cpf: string
           created_at: string
+          default_interest_rate: number | null
           email: string
           estado_civil: string
           id: string
@@ -157,6 +158,7 @@ export type Database = {
           cnpj?: string
           cpf?: string
           created_at?: string
+          default_interest_rate?: number | null
           email?: string
           estado_civil?: string
           id?: string
@@ -180,6 +182,7 @@ export type Database = {
           cnpj?: string
           cpf?: string
           created_at?: string
+          default_interest_rate?: number | null
           email?: string
           estado_civil?: string
           id?: string

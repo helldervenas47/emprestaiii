@@ -32,12 +32,19 @@ export function ClientForm({ onAdd, onClose }: Props) {
     profissao: "",
     bairro: "",
     isManager: false,
+    defaultInterestRate: "",
   });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.name) return;
-    onAdd({ ...form, active: true });
+    const { defaultInterestRate, ...rest } = form;
+    const parsedRate = defaultInterestRate.trim() === "" ? null : parseFloat(defaultInterestRate);
+    onAdd({
+      ...rest,
+      active: true,
+      defaultInterestRate: parsedRate !== null && !isNaN(parsedRate) ? parsedRate : null,
+    });
     onClose();
   };
 
@@ -90,6 +97,21 @@ export function ClientForm({ onAdd, onClose }: Props) {
                 <Label htmlFor="score">Score</Label>
                 <Input id="score" value={form.score} onChange={(e) => update("score", e.target.value)} placeholder="0-1000" />
               </div>
+            </div>
+            <div>
+              <Label htmlFor="defaultInterestRate">Taxa de juros padrão (% ao mês)</Label>
+              <Input
+                id="defaultInterestRate"
+                type="number"
+                step="0.1"
+                min="0"
+                value={form.defaultInterestRate}
+                onChange={(e) => update("defaultInterestRate", e.target.value)}
+                placeholder="30"
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                Se vazio, será usado 30% ao criar novos empréstimos para este cliente.
+              </p>
             </div>
             <div>
               <Label htmlFor="notes">Observações</Label>

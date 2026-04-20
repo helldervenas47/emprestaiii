@@ -121,7 +121,7 @@ export function ClientList({ clients, loans, payments, onDelete, onUpdate, readO
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [sortOption, setSortOption] = useState<SortOption>("name-asc");
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [editForm, setEditForm] = useState<Record<string, any>>({ name: "", phone: "", email: "", cpf: "", cnpj: "", rg: "", address: "", city: "", state: "", score: "", notes: "", isVehicleRental: false, nacionalidade: "", estadoCivil: "", profissao: "", bairro: "", isManager: false });
+  const [editForm, setEditForm] = useState<Record<string, any>>({ name: "", phone: "", email: "", cpf: "", cnpj: "", rg: "", address: "", city: "", state: "", score: "", notes: "", isVehicleRental: false, nacionalidade: "", estadoCivil: "", profissao: "", bairro: "", isManager: false, defaultInterestRate: "" });
   const [deleteClientId, setDeleteClientId] = useState<string | null>(null);
 
   const creditScores = useMemo(() => {
@@ -161,11 +161,13 @@ export function ClientList({ clients, loans, payments, onDelete, onUpdate, readO
 
   const startEdit = (client: Client) => {
     setEditingId(client.id);
-    setEditForm({ name: client.name, phone: client.phone, email: client.email, cpf: client.cpf, cnpj: client.cnpj || "", rg: client.rg || "", address: client.address, city: client.city || "", state: client.state || "", score: client.score || "", notes: client.notes || "", isVehicleRental: client.isVehicleRental || false, nacionalidade: client.nacionalidade || "", estadoCivil: client.estadoCivil || "", profissao: client.profissao || "", bairro: client.bairro || "", isManager: client.isManager || false });
+    setEditForm({ name: client.name, phone: client.phone, email: client.email, cpf: client.cpf, cnpj: client.cnpj || "", rg: client.rg || "", address: client.address, city: client.city || "", state: client.state || "", score: client.score || "", notes: client.notes || "", isVehicleRental: client.isVehicleRental || false, nacionalidade: client.nacionalidade || "", estadoCivil: client.estadoCivil || "", profissao: client.profissao || "", bairro: client.bairro || "", isManager: client.isManager || false, defaultInterestRate: client.defaultInterestRate != null ? String(client.defaultInterestRate) : "" });
   };
 
   const saveEdit = (id: string) => {
-    onUpdate(id, editForm);
+    const { defaultInterestRate, ...rest } = editForm;
+    const parsedRate = (defaultInterestRate ?? "").toString().trim() === "" ? null : parseFloat(defaultInterestRate);
+    onUpdate(id, { ...rest, defaultInterestRate: parsedRate !== null && !isNaN(parsedRate) ? parsedRate : null });
     setEditingId(null);
   };
 
@@ -265,6 +267,20 @@ export function ClientList({ clients, loans, payments, onDelete, onUpdate, readO
                     <div>
                       <Label className="text-xs">Endereço</Label>
                       <Input value={editForm.address} onChange={(e) => updateField("address", e.target.value)} />
+                    </div>
+                    <div>
+                      <Label className="text-xs">Taxa de juros padrão (% ao mês)</Label>
+                      <Input
+                        type="number"
+                        step="0.1"
+                        min="0"
+                        value={editForm.defaultInterestRate}
+                        onChange={(e) => updateField("defaultInterestRate", e.target.value)}
+                        placeholder="30"
+                      />
+                      <p className="text-[10px] text-muted-foreground mt-1">
+                        Se vazio, será usado 30% em novos empréstimos.
+                      </p>
                     </div>
                     <div>
                       <Label className="text-xs">Observações</Label>

@@ -71,15 +71,19 @@ export function LoanForm({ onAdd, onSaveSchedule, onClose, clients, existingTags
   const managerClients = activeClients.filter((c) => c.isManager);
 
   // Auto-toggle: when selected client is a manager, default hasManager=true
+  // Also pre-fill interest rate from client's defaultInterestRate (fallback 30 / 20 with manager)
   useEffect(() => {
     const selected = activeClients.find((c) => c.id === form.borrowerName);
-    if (selected?.isManager) {
+    if (!selected) return;
+    if (selected.isManager) {
       setHasManager(true);
-      // Pre-select self if no manager chosen yet
       if (!managerId && managerClients.length > 0) {
         setManagerId(selected.id);
       }
     }
+    const fallback = (selected.isManager || hasManager) ? 20 : 30;
+    const rateToUse = selected.defaultInterestRate != null ? selected.defaultInterestRate : fallback;
+    setForm((prev) => ({ ...prev, interestRate: String(rateToUse) }));
   }, [form.borrowerName]);
 
   const amount = parseFloat(form.amount) || 0;
