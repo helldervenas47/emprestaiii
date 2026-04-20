@@ -732,6 +732,14 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, onUpda
                             >
                               {expense.category}
                             </Badge>
+                            {(() => {
+                              const badge = getDueStatusBadge(expense.dueDate, expense.paid, { overdue: "Atrasada" });
+                              return (
+                                <Badge variant={badge.variant} className={`${badge.className} text-[10px] px-1.5 py-0`}>
+                                  {badge.label}
+                                </Badge>
+                              );
+                            })()}
                             <span className="inline-flex items-center gap-1">
                               <Calendar className="h-3 w-3" />
                               {format(new Date(expense.dueDate + "T00:00:00"), "dd/MM/yyyy")}
