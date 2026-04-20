@@ -122,6 +122,7 @@ export function useExpenses(enabled = true) {
 
     const today = payDate || new Date().toISOString().split("T")[0];
     const isRecorrenteParcelada = expense.type === "recorrente" && expense.installments && expense.installments > 1;
+    const online = isOnline();
 
     if (isRecorrenteParcelada) {
       const originalInstallment = expense.amount / expense.installments!;
@@ -141,8 +142,9 @@ export function useExpenses(enabled = true) {
         paidDate: fullyPaid ? today : undefined,
       } : e));
 
-      // Insert historical record (paid installment snapshot) using actual paid amount
-      await supabase.from("expenses").insert({
+      const childTempId = crypto.randomUUID();
+      const childPayload = {
+        id: childTempId,
         user_id: dataOwnerId,
         description: `${expense.description} (${newPaid}/${expense.installments})`,
         amount: installmentAmount,
@@ -156,15 +158,24 @@ export function useExpenses(enabled = true) {
         notes: expense.notes,
         parent_expense_id: id,
         scope: expense.scope ?? "business",
-      } as any);
-
-      // Update parent recurring expense
-      await supabase.from("expenses").update({
+      };
+      const parentUpdate = {
         paid_installments: newPaid,
         paid: fullyPaid,
         due_date: fullyPaid ? expense.dueDate : nextDueDate,
         paid_date: fullyPaid ? today : null,
-      }).eq("id", id);
+      };
+
+      await upsertCachedRow("expenses", { ...childPayload, created_at: new Date().toISOString() });
+
+      if (!online) {
+        await enqueueMutation({ table: "expenses", op: "insert", recordId: childTempId, payload: childPayload });
+        await enqueueMutation({ table: "expenses", op: "update", recordId: id, payload: parentUpdate });
+        return;
+      }
+
+      await supabase.from("expenses").insert(childPayload as any);
+      await supabase.from("expenses").update(parentUpdate).eq("id", id);
     } else {
       // Simple fixa expense — if a different paid amount was provided, update the amount
       // and stash the original in notes so we can restore it on unpay.
@@ -178,9 +189,16 @@ export function useExpenses(enabled = true) {
       setExpenses((prev) => prev.map((e) => e.id === id ? {
         ...e, paid: true, paidDate: today, amount: finalAmount, notes: finalNotes,
       } : e));
-      await supabase.from("expenses").update({
-        paid: true, paid_date: today, amount: finalAmount, notes: finalNotes,
-      }).eq("id", id);
+
+      const updatePayload = { paid: true, paid_date: today, amount: finalAmount, notes: finalNotes };
+      await upsertCachedRow("expenses", { ...expense, ...updatePayload, id });
+
+      if (!online) {
+        await enqueueMutation({ table: "expenses", op: "update", recordId: id, payload: updatePayload });
+        return;
+      }
+
+      await supabase.from("expenses").update(updatePayload).eq("id", id);
 
       // Piggy bank credit: only when the piggy expense is paid.
       const piggyId = extractPiggyId(expense.notes);
@@ -205,7 +223,7 @@ export function useExpenses(enabled = true) {
     }
 
     // Trigger budget overrun alert (push + Telegram) for personal expenses
-    if (expense.scope === "personal") {
+    if (expense.scope === "personal" && online) {
       supabase.functions.invoke("notify-budget-overrun").catch(() => { /* silent */ });
     }
   }, [expenses, dataOwnerId]);
@@ -215,24 +233,26 @@ export function useExpenses(enabled = true) {
     if (!expense) return;
 
     const isRecorrenteParcelada = expense.type === "recorrente" && expense.installments && expense.installments > 1;
+    const online = isOnline();
 
     if (isRecorrenteParcelada && (expense.paidInstallments || 0) > 0) {
-      const installmentAmount = expense.amount / expense.installments!;
       const newPaid = (expense.paidInstallments || 0) - 1;
       const wasFullyPaid = expense.paid;
-      // If was fully paid, dueDate already points to last installment; otherwise step back one month
       const currentDue = new Date(expense.dueDate + "T00:00:00");
       if (!wasFullyPaid) currentDue.setMonth(currentDue.getMonth() - 1);
       const newDueDate = currentDue.toISOString().split("T")[0];
 
-      // Find latest historical child record
-      const { data: children } = await supabase
-        .from("expenses")
-        .select("id, paid_date, created_at")
-        .eq("parent_expense_id", id)
-        .order("created_at", { ascending: false })
-        .limit(1);
-      const latestChildId = children?.[0]?.id;
+      // Find latest historical child record (online only — offline we can only update parent)
+      let latestChildId: string | undefined;
+      if (online) {
+        const { data: children } = await supabase
+          .from("expenses")
+          .select("id, paid_date, created_at")
+          .eq("parent_expense_id", id)
+          .order("created_at", { ascending: false })
+          .limit(1);
+        latestChildId = children?.[0]?.id;
+      }
 
       // Optimistic update
       setExpenses((prev) => prev
@@ -245,15 +265,22 @@ export function useExpenses(enabled = true) {
           dueDate: newDueDate,
         } : e));
 
-      if (latestChildId) {
-        await supabase.from("expenses").delete().eq("id", latestChildId);
-      }
-      await supabase.from("expenses").update({
+      const parentUpdate = {
         paid_installments: newPaid,
         paid: false,
         paid_date: null,
         due_date: newDueDate,
-      }).eq("id", id);
+      };
+
+      if (!online) {
+        await enqueueMutation({ table: "expenses", op: "update", recordId: id, payload: parentUpdate });
+        return;
+      }
+
+      if (latestChildId) {
+        await supabase.from("expenses").delete().eq("id", latestChildId);
+      }
+      await supabase.from("expenses").update(parentUpdate).eq("id", id);
     } else if (expense.paid) {
       // Restore original amount if we stashed it on pay.
       const m = (expense.notes ?? "").match(/\[Original:\s*([\d.]+)\]/i);
@@ -263,9 +290,15 @@ export function useExpenses(enabled = true) {
       setExpenses((prev) => prev.map((e) => e.id === id ? {
         ...e, paid: false, paidDate: undefined, amount: restoredAmount, notes: restoredNotes,
       } : e));
-      await supabase.from("expenses").update({
-        paid: false, paid_date: null, amount: restoredAmount, notes: restoredNotes,
-      }).eq("id", id);
+      const updatePayload = { paid: false, paid_date: null, amount: restoredAmount, notes: restoredNotes };
+      await upsertCachedRow("expenses", { ...expense, ...updatePayload, id });
+
+      if (!online) {
+        await enqueueMutation({ table: "expenses", op: "update", recordId: id, payload: updatePayload });
+        return;
+      }
+
+      await supabase.from("expenses").update(updatePayload).eq("id", id);
 
       // Reverse piggy bank credit when unpaying a piggy expense.
       if (extractPiggyId(expense.notes)) {
