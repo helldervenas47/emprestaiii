@@ -12,6 +12,7 @@ import { BrandTitleSync } from "./components/BrandTitleSync";
 import { BrandFaviconSync } from "./components/BrandFaviconSync";
 import { OfflineBadge } from "./components/OfflineBadge";
 import { AppTimezoneSync } from "./components/AppTimezoneSync";
+import { StatusBarScrollSync } from "./components/StatusBarScrollSync";
 import { wireAutoSync } from "./lib/offline/sync";
 
 wireAutoSync();
@@ -73,6 +74,7 @@ const App = () => (
           <BrandTitleSync />
           <BrandFaviconSync />
           <AppTimezoneSync />
+          <StatusBarScrollSync />
           <Suspense fallback={<PageLoader />}>
             <Routes>
               <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
