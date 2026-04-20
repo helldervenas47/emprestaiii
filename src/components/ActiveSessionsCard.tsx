@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Monitor, Smartphone, Tablet, Loader2, RefreshCw, LogOut, Globe, MapPin } from "lucide-react";
+import { Monitor, Smartphone, Tablet, Loader2, RefreshCw, LogOut, Globe, MapPin, ExternalLink } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
@@ -14,7 +14,7 @@ interface SessionItem {
   user_agent: string | null;
   ip: string | null;
   not_after: string | null;
-  geo?: { city: string | null; region: string | null; country: string | null } | null;
+  geo?: { city: string | null; region: string | null; country: string | null; lat?: number | null; lon?: number | null } | null;
 }
 
 function detectDevice(ua: string | null): { icon: typeof Monitor; label: string } {
@@ -157,9 +157,23 @@ export function ActiveSessionsCard() {
                         {s.ip ? ` · ${s.ip}` : ""}
                       </p>
                       {s.geo && (s.geo.city || s.geo.country) && (
-                        <p className="text-xs text-muted-foreground mt-0.5 flex items-center gap-1">
+                        <p className="text-xs text-muted-foreground mt-0.5 flex items-center gap-1 flex-wrap">
                           <MapPin className="h-3 w-3" />
-                          {[s.geo.city, s.geo.region, s.geo.country].filter(Boolean).join(", ")}
+                          <span>{[s.geo.city, s.geo.region, s.geo.country].filter(Boolean).join(", ")}</span>
+                          <a
+                            href={
+                              s.geo.lat != null && s.geo.lon != null
+                                ? `https://www.google.com/maps?q=${s.geo.lat},${s.geo.lon}`
+                                : `https://www.google.com/maps?q=${encodeURIComponent(
+                                    [s.geo.city, s.geo.region, s.geo.country].filter(Boolean).join(", "),
+                                  )}`
+                            }
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-0.5 text-primary hover:underline"
+                          >
+                            <ExternalLink className="h-3 w-3" /> Ver no mapa
+                          </a>
                         </p>
                       )}
                       <p className="text-xs text-muted-foreground mt-0.5">
