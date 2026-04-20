@@ -372,6 +372,7 @@ function LoanCardView({
   const openPaymentDialog = (type: "installment" | "interest" | "partial" | "full" | "payoff", amount?: number) => {
     setPaymentDate(new Date());
     setPayoffAmount("");
+    setInterestSelection("normal");
     setPaymentDialog({ type, amount });
   };
 
@@ -396,7 +397,13 @@ function LoanCardView({
         onUpdate({ paidInstallments: loan.installments, status: "paid" });
       }
     } else if (paymentDialog.type === "installment") onPayment(dateStr);
-    else if (paymentDialog.type === "interest") onInterestPayment(dateStr);
+    else if (paymentDialog.type === "interest") {
+      const baseInterest = loan.customInterestValue != null && loan.customInterestValue > 0
+        ? loan.customInterestValue
+        : loan.amount * (loan.interestRate / 100);
+      const custom = interestSelection === "withFees" && lateFees > 0 ? baseInterest + lateFees : undefined;
+      onInterestPayment(dateStr, custom);
+    }
     else if (paymentDialog.type === "partial" && paymentDialog.amount) onPartialPayment(paymentDialog.amount, dateStr);
     setPayoffAmount("");
     setPaymentDialog(null);
@@ -1557,7 +1564,13 @@ function LoanRowView({
         onUpdate({ paidInstallments: loan.installments, status: "paid" });
       }
     } else if (paymentDialog.type === "installment") onPayment(dateStr);
-    else if (paymentDialog.type === "interest") onInterestPayment(dateStr);
+    else if (paymentDialog.type === "interest") {
+      const baseInterest = loan.customInterestValue != null && loan.customInterestValue > 0
+        ? loan.customInterestValue
+        : loan.amount * (loan.interestRate / 100);
+      const custom = interestSelection === "withFees" && lateFees > 0 ? baseInterest + lateFees : undefined;
+      onInterestPayment(dateStr, custom);
+    }
     else if (paymentDialog.type === "partial" && paymentDialog.amount) onPartialPayment(paymentDialog.amount, dateStr);
     setPayoffAmount("");
     setPaymentDialog(null);
