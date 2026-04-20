@@ -253,46 +253,76 @@ export function useLoans() {
       : calculatedInstallment;
     const newPaid = loan.paidInstallments + 1;
     const newRemaining = Math.max(0, remaining - installmentAmount);
+    const online = isOnline();
 
     // Calculate next due date from schedule or by frequency
     let nextDueDate = loan.dueDate;
     if (newPaid < loan.installments) {
-      // Try to get next due date from installment schedule
-      const { data: nextSchedule } = await supabase
-        .from("loan_installments")
-        .select("due_date")
-        .eq("loan_id", loanId)
-        .eq("installment_number", newPaid + 1)
-        .maybeSingle();
-      if (nextSchedule?.due_date) {
-        nextDueDate = nextSchedule.due_date;
+      const fromSchedule = installmentSchedules.find(
+        (s) => s.loanId === loanId && s.installmentNumber === newPaid + 1,
+      );
+      if (fromSchedule?.dueDate) {
+        nextDueDate = fromSchedule.dueDate;
+      } else if (online) {
+        const { data: nextSchedule } = await supabase
+          .from("loan_installments")
+          .select("due_date")
+          .eq("loan_id", loanId)
+          .eq("installment_number", newPaid + 1)
+          .maybeSingle();
+        if (nextSchedule?.due_date) {
+          nextDueDate = nextSchedule.due_date;
+        } else {
+          nextDueDate = computeNextDueDate(loan.dueDate, loan.interestType || "Mensal", newPaid);
+        }
       } else {
-        // Fallback: calculate from frequency
-        const freq = loan.interestType || "Mensal";
-        const base = new Date(loan.dueDate + "T00:00:00");
-        if (freq === "Semanal") base.setDate(base.getDate() + 7 * newPaid);
-        else if (freq === "Quinzenal") base.setDate(base.getDate() + 15 * newPaid);
-        else base.setMonth(base.getMonth() + newPaid);
-        nextDueDate = base.toISOString().split("T")[0];
+        nextDueDate = computeNextDueDate(loan.dueDate, loan.interestType || "Mensal", newPaid);
       }
     }
 
+    const newStatus = newPaid >= loan.installments ? "paid" : loan.status;
+    const tempPaymentId = crypto.randomUUID();
+    const paymentPayload = {
+      id: tempPaymentId,
+      user_id: dataOwnerId,
+      loan_id: loanId,
+      amount: installmentAmount,
+      date: dateStr,
+      installment_number: newPaid,
+    };
+    const loanUpdate = {
+      paid_installments: newPaid,
+      status: newStatus,
+      remaining_amount: newRemaining,
+      due_date: nextDueDate,
+    };
+
+    // Optimistic state
+    setPayments((prev) => [
+      { id: tempPaymentId, loanId, amount: installmentAmount, date: dateStr, installmentNumber: newPaid },
+      ...prev,
+    ]);
+    setLoans((prev) => prev.map((l) => l.id === loanId ? {
+      ...l, paidInstallments: newPaid, status: newStatus as Loan["status"],
+      remainingAmount: newRemaining, dueDate: nextDueDate,
+    } : l));
+    await upsertCachedRow("payments", { ...paymentPayload, created_at: new Date().toISOString() });
+
+    if (!online) {
+      await enqueueMutation({ table: "payments", op: "insert", recordId: tempPaymentId, payload: paymentPayload });
+      await enqueueMutation({ table: "loans", op: "update", recordId: loanId, payload: loanUpdate });
+      await adjustBalanceOffline(installmentAmount);
+      return;
+    }
+
     await Promise.all([
-      supabase.from("payments").insert({
-        user_id: dataOwnerId, loan_id: loanId, amount: installmentAmount,
-        date: dateStr, installment_number: newPaid,
-      }),
-      supabase.from("loans").update({
-        paid_installments: newPaid,
-        status: newPaid >= loan.installments ? "paid" : loan.status,
-        remaining_amount: newRemaining,
-        due_date: nextDueDate,
-      }).eq("id", loanId),
+      supabase.from("payments").insert(paymentPayload as any),
+      supabase.from("loans").update(loanUpdate).eq("id", loanId),
       adjustBalance(installmentAmount),
     ]);
     await fetchPayments();
     await fetchLoans();
-  }, [user, dataOwnerId, loans, payments, fetchLoans, fetchPayments]);
+  }, [user, dataOwnerId, loans, payments, installmentSchedules, fetchLoans, fetchPayments]);
 
   const addPartialPayment = useCallback(async (loanId: string, amount: number, paymentDate?: string) => {
     if (!user || !dataOwnerId || amount <= 0) return;
@@ -300,14 +330,32 @@ export function useLoans() {
     const loan = loans.find((l) => l.id === loanId);
     if (!loan) return;
     const newRemaining = Math.max(0, getLoanRemainingAmount(loan, payments) - amount);
+    const online = isOnline();
+
+    const tempPaymentId = crypto.randomUUID();
+    const paymentPayload = {
+      id: tempPaymentId,
+      user_id: dataOwnerId, loan_id: loanId, amount, date: dateStr, installment_number: -1,
+    };
+    const loanUpdate = { remaining_amount: newRemaining };
+
+    setPayments((prev) => [
+      { id: tempPaymentId, loanId, amount, date: dateStr, installmentNumber: -1 },
+      ...prev,
+    ]);
+    setLoans((prev) => prev.map((l) => l.id === loanId ? { ...l, remainingAmount: newRemaining } : l));
+    await upsertCachedRow("payments", { ...paymentPayload, created_at: new Date().toISOString() });
+
+    if (!online) {
+      await enqueueMutation({ table: "payments", op: "insert", recordId: tempPaymentId, payload: paymentPayload });
+      await enqueueMutation({ table: "loans", op: "update", recordId: loanId, payload: loanUpdate });
+      await adjustBalanceOffline(amount);
+      return;
+    }
 
     await Promise.all([
-      supabase.from("payments").insert({
-        user_id: dataOwnerId, loan_id: loanId, amount, date: dateStr, installment_number: -1,
-      }),
-      supabase.from("loans").update({
-        remaining_amount: newRemaining,
-      }).eq("id", loanId),
+      supabase.from("payments").insert(paymentPayload as any),
+      supabase.from("loans").update(loanUpdate).eq("id", loanId),
       adjustBalance(amount),
     ]);
     await fetchPayments();
@@ -322,22 +370,43 @@ export function useLoans() {
     const remaining = getLoanRemainingAmount(loan, payments);
     if (remaining <= 0 && !(typeof customAmount === "number" && customAmount > 0)) return;
 
-    // "Valor para quitar" personalizado: usa exatamente o valor informado como pagamento
-    // de quitação, marcando o contrato como totalmente pago independentemente do restante.
     const payAmount = typeof customAmount === "number" && customAmount > 0
       ? customAmount
       : remaining;
+    const online = isOnline();
+
+    const tempPaymentId = crypto.randomUUID();
+    const paymentPayload = {
+      id: tempPaymentId,
+      user_id: dataOwnerId, loan_id: loanId, amount: payAmount,
+      date: dateStr, installment_number: loan.installments,
+    };
+    const loanUpdate = {
+      paid_installments: loan.installments,
+      status: "paid",
+      remaining_amount: 0,
+    };
+
+    setPayments((prev) => [
+      { id: tempPaymentId, loanId, amount: payAmount, date: dateStr, installmentNumber: loan.installments },
+      ...prev,
+    ]);
+    setLoans((prev) => prev.map((l) => l.id === loanId ? {
+      ...l, paidInstallments: loan.installments, status: "paid", remainingAmount: 0,
+    } : l));
+    await upsertCachedRow("payments", { ...paymentPayload, created_at: new Date().toISOString() });
+
+    if (!online) {
+      await enqueueMutation({ table: "payments", op: "insert", recordId: tempPaymentId, payload: paymentPayload });
+      await enqueueMutation({ table: "loans", op: "update", recordId: loanId, payload: loanUpdate });
+      await adjustBalanceOffline(payAmount);
+      // Manager commission é pulada offline; será criada manualmente ao reconectar pelo usuário se necessário.
+      return;
+    }
 
     const [paymentInsert] = await Promise.all([
-      supabase.from("payments").insert({
-        user_id: dataOwnerId, loan_id: loanId, amount: payAmount,
-        date: dateStr, installment_number: loan.installments,
-      }).select().single(),
-      supabase.from("loans").update({
-        paid_installments: loan.installments,
-        status: "paid",
-        remaining_amount: 0,
-      }).eq("id", loanId),
+      supabase.from("payments").insert(paymentPayload as any).select().single(),
+      supabase.from("loans").update(loanUpdate).eq("id", loanId),
       adjustBalance(payAmount),
     ]);
 
@@ -376,7 +445,29 @@ export function useLoans() {
     else if (freq === "Quinzenal") currentDue.setDate(currentDue.getDate() + 15);
     else currentDue.setMonth(currentDue.getMonth() + 1);
     const newDueDate = currentDue.toISOString().split("T")[0];
-    
+    const online = isOnline();
+
+    const tempPaymentId = crypto.randomUUID();
+    const paymentPayload = {
+      id: tempPaymentId,
+      user_id: dataOwnerId, loan_id: loanId, amount: interestAmount,
+      date: dateStr, installment_number: 0, previous_due_date: loan.dueDate,
+    };
+    const loanUpdate = { due_date: newDueDate };
+
+    setPayments((prev) => [
+      { id: tempPaymentId, loanId, amount: interestAmount, date: dateStr, installmentNumber: 0, previousDueDate: loan.dueDate },
+      ...prev,
+    ]);
+    setLoans((prev) => prev.map((l) => l.id === loanId ? { ...l, dueDate: newDueDate } : l));
+    await upsertCachedRow("payments", { ...paymentPayload, created_at: new Date().toISOString() });
+
+    if (!online) {
+      await enqueueMutation({ table: "payments", op: "insert", recordId: tempPaymentId, payload: paymentPayload });
+      await enqueueMutation({ table: "loans", op: "update", recordId: loanId, payload: loanUpdate });
+      await adjustBalanceOffline(interestAmount);
+      return;
+    }
 
     const nextNum = loan.paidInstallments + 1;
     const scheduleUpdate = supabase.from("loan_installments")
@@ -385,11 +476,8 @@ export function useLoans() {
       .eq("installment_number", nextNum);
 
     const [paymentInsert] = await Promise.all([
-      supabase.from("payments").insert({
-        user_id: dataOwnerId, loan_id: loanId, amount: interestAmount,
-        date: dateStr, installment_number: 0, previous_due_date: loan.dueDate,
-      }).select().single(),
-      supabase.from("loans").update({ due_date: newDueDate }).eq("id", loanId),
+      supabase.from("payments").insert(paymentPayload as any).select().single(),
+      supabase.from("loans").update(loanUpdate).eq("id", loanId),
       scheduleUpdate,
       adjustBalance(interestAmount),
     ]);
