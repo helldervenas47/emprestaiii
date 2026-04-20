@@ -10,7 +10,7 @@ export function PendingApprovalScreen({ rejected = false }: { rejected?: boolean
   const { branding } = useAppBranding();
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center p-6">
+    <div className="min-h-screen bg-background flex items-center justify-center p-6 pt-safe">
       <Card className="w-full max-w-md">
         <CardContent className="p-8 space-y-6 text-center">
           <div className="flex justify-center">
