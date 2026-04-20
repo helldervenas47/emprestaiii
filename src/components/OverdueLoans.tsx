@@ -9,6 +9,7 @@ import { AlertTriangle, Search, Phone, Calendar, DollarSign, Clock } from "lucid
 import { DetailedReport } from "@/components/DetailedReport";
 import { TelegramBillingScheduleCard } from "@/components/TelegramBillingScheduleCard";
 import { TelegramReportsConnectCard } from "@/components/TelegramReportsConnectCard";
+import { todayInAppTz } from "@/lib/timezone";
 
 interface Props {
   loans: Loan[];
@@ -22,8 +23,7 @@ function rawFormatCurrency(v: number) {
 }
 
 function getTodayStr(): string {
-  const now = new Date();
-  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+  return todayInAppTz();
 }
 
 function getDaysOverdue(dueDate: string): number {
