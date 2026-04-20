@@ -1715,7 +1715,7 @@ export function ProductSalesView({ sales, onDeleteSale, onUpdateSale, clients = 
                 <Receipt className="h-5 w-5" />
                 Despesas de Veículos ({vehicleExpenses.length})
               </h3>
-              {vehicleExpenses.some(e => e.paid || (e.paidInstallments && e.paidInstallments > 0)) && onUpdateExpense && (
+              {allVehicleExpenses.some(e => e.paid || (e.paidInstallments && e.paidInstallments > 0)) && onUpdateExpense && (
                 <Button
                   size="sm"
                   variant="ghost"
@@ -1740,7 +1740,7 @@ export function ProductSalesView({ sales, onDeleteSale, onUpdateSale, clients = 
                 <DialogFooter>
                   <Button variant="outline" onClick={() => setShowDeleteAllExpenses(false)}>Cancelar</Button>
                   <Button variant="destructive" onClick={() => {
-                    vehicleExpenses.forEach(exp => {
+                    allVehicleExpenses.forEach(exp => {
                       if (exp.paid || (exp.paidInstallments && exp.paidInstallments > 0)) {
                         handleVehicleUpdateExpense(exp.id, { paid: false, paidDate: undefined, paidInstallments: 0 });
                       }
