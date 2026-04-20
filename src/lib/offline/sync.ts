@@ -92,14 +92,20 @@ function notifyPendingChanged() {
 export function usePendingCount() {
   const [count, setCount] = useState(0);
   const [byTable, setByTable] = useState<Record<string, number>>({});
+  const [balanceDelta, setBalanceDelta] = useState(0);
 
   useEffect(() => {
     let alive = true;
     const refresh = async () => {
-      const [c, bt] = await Promise.all([getPendingCount(), getPendingByTable()]);
+      const [c, bt, bd] = await Promise.all([
+        getPendingCount(),
+        getPendingByTable(),
+        getPendingBalanceDelta(),
+      ]);
       if (alive) {
-        setCount(c);
+        setCount(c + (bd !== 0 ? 1 : 0));
         setByTable(bt);
+        setBalanceDelta(bd);
       }
     };
     refresh();
@@ -112,7 +118,7 @@ export function usePendingCount() {
     };
   }, []);
 
-  return { count, byTable };
+  return { count, byTable, balanceDelta };
 }
 
 // ---------- Pending balance delta ----------
