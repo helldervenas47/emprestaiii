@@ -29,6 +29,16 @@ export function useClients() {
 
   useEffect(() => { fetchClients(); }, [fetchClients]);
 
+  // Realtime: sincroniza alterações feitas em outros dispositivos
+  useEffect(() => {
+    if (!user) return;
+    const channel = supabase
+      .channel(`clients-realtime-${user.id}-${Math.random().toString(36).slice(2, 8)}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'clients' }, () => { fetchClients(); })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [user, fetchClients]);
+
   const addClient = useCallback(async (client: Omit<Client, "id" | "createdAt">) => {
     if (!user || !dataOwnerId) return;
     const tempId = crypto.randomUUID();
