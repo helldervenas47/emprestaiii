@@ -23,6 +23,7 @@ const UserManagement = lazy(() => import("@/components/UserManagement").then(m =
 const BackupExport = lazy(() => import("@/components/BackupExport").then(m => ({ default: m.BackupExport })));
 const LocadorList = lazy(() => import("@/components/LocadorList").then(m => ({ default: m.LocadorList })));
 const BrandingSettings = lazy(() => import("@/components/BrandingSettings").then(m => ({ default: m.BrandingSettings })));
+const ActiveSessionsCard = lazy(() => import("@/components/ActiveSessionsCard").then(m => ({ default: m.ActiveSessionsCard })));
 
 const SectionLoader = () => (
   <div className="flex justify-center py-8"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>
@@ -299,6 +300,11 @@ export function Settings({ backup, locadores, onSaveLocador, onRemoveLocador, is
           </Button>
         </CardContent>
       </Card>
+
+      {/* Sessões ativas */}
+      <Suspense fallback={<SectionLoader />}>
+        <ActiveSessionsCard />
+      </Suspense>
 
       {/* Segurança da conta */}
       <Card className="border-destructive/30">
