@@ -38,17 +38,16 @@ export function useAccountSettings() {
   // Realtime: pick up changes done from another device/user in the account.
   useEffect(() => {
     if (!dataOwnerId) return;
-    const channel = supabase
-      .channel(`account-settings-${dataOwnerId}`)
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "account_settings", filter: `owner_id=eq.${dataOwnerId}` },
-        (payload: any) => {
-          const tz = (payload.new as any)?.timezone;
-          if (tz) setAppTimezone(tz);
-        },
-      )
-      .subscribe();
+    const channel = supabase.channel(`account-settings-${dataOwnerId}-${Math.random().toString(36).slice(2)}`);
+    channel.on(
+      "postgres_changes" as any,
+      { event: "*", schema: "public", table: "account_settings", filter: `owner_id=eq.${dataOwnerId}` },
+      (payload: any) => {
+        const tz = (payload.new as any)?.timezone;
+        if (tz) setAppTimezone(tz);
+      },
+    );
+    channel.subscribe();
     return () => { supabase.removeChannel(channel); };
   }, [dataOwnerId]);
 
