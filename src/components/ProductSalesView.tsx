@@ -1325,6 +1325,74 @@ function VehicleExpenseEditDialog({ expense, open, onOpenChange, onSave, formatC
   );
 }
 
+function VehiclePayExpenseDialog({ expense, open, onOpenChange, onConfirm, formatCurrency }: {
+  expense: Expense;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onConfirm: (payDate: string, paidAmount: number) => void;
+  formatCurrency: (v: number) => string;
+}) {
+  const isRecorrente = expense.type === "recorrente" && expense.installments && expense.installments > 1;
+  const defaultAmount = isRecorrente ? expense.amount / expense.installments! : expense.amount;
+  const [payDate, setPayDate] = useState(todayInAppTz());
+  const [amountStr, setAmountStr] = useState(String(defaultAmount.toFixed(2)));
+
+  useEffect(() => {
+    if (open) {
+      setPayDate(todayInAppTz());
+      setAmountStr(String(defaultAmount.toFixed(2)));
+    }
+  }, [open, defaultAmount]);
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const parsed = parseFloat(amountStr);
+    if (isNaN(parsed) || parsed <= 0) return;
+    onConfirm(payDate, parsed);
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Confirmar Pagamento</DialogTitle>
+          <DialogDescription>
+            Informe a data e o valor efetivamente pago{isRecorrente ? " desta parcela" : ""}.
+          </DialogDescription>
+        </DialogHeader>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <Label htmlFor="pay-date">Data do pagamento</Label>
+            <DatePickerField id="pay-date" value={payDate} onChange={setPayDate} />
+          </div>
+          <div>
+            <Label htmlFor="pay-amount">Valor pago (R$)</Label>
+            <Input
+              id="pay-amount"
+              type="number"
+              step="0.01"
+              min="0.01"
+              value={amountStr}
+              onChange={(e) => setAmountStr(e.target.value)}
+              required
+            />
+            <p className="text-xs text-muted-foreground mt-1">
+              Valor original: {formatCurrency(defaultAmount)}
+            </p>
+          </div>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
+            <Button type="submit">
+              <CheckCircle className="h-4 w-4 mr-1" />
+              Confirmar pagamento
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 export function ProductSalesView({ sales, onDeleteSale, onUpdateSale, clients = [], expenses = [], onAddExpense, onPayExpense, onDeleteExpense, onUpdateExpense, readOnly = false, isVehicleView = false, locadores: locadoresProp, onSaveLocador: onSaveLocadorProp }: Props) {
   const [showVehicleExpenseForm, setShowVehicleExpenseForm] = useState(false);
   const { mask } = useHideValues();
