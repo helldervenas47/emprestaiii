@@ -68,7 +68,7 @@ Deno.serve(async (req) => {
           const ctrl = new AbortController();
           const t = setTimeout(() => ctrl.abort(), 2500);
           const res = await fetch(
-            `http://ip-api.com/json/${encodeURIComponent(ip)}?fields=status,country,city,regionName&lang=pt-BR`,
+            `http://ip-api.com/json/${encodeURIComponent(ip)}?fields=status,country,city,regionName,lat,lon&lang=pt-BR`,
             { signal: ctrl.signal },
           );
           clearTimeout(t);
@@ -79,6 +79,8 @@ Deno.serve(async (req) => {
             city: j.city ?? null,
             region: j.regionName ?? null,
             country: j.country ?? null,
+            lat: typeof j.lat === "number" ? j.lat : null,
+            lon: typeof j.lon === "number" ? j.lon : null,
           };
         } catch {
           return null;
