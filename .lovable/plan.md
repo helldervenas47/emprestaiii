@@ -1,56 +1,81 @@
 
+Plano: Modo Offline com Dexie + Fila de Sincronização
 
-## Diagnóstico
+## Escopo
+Cobrir **despesas**, **clientes** e **empréstimos** (+ `loan_installments` e `payments` por dependência) com leitura offline e fila de escrita que sincroniza ao reconectar. Conflito = last-write-wins.
 
-O sistema **já permite login simultâneo em vários dispositivos no nível do Supabase** (cada device guarda seu próprio refresh token em `localStorage`). O problema está na lógica custom de `src/hooks/useAuth.tsx`:
+## Arquitetura
 
-```ts
-// Hoje: se sessionStorage não tiver a flag, força signOut
-} else if (!sessionStorage.getItem("hvcred_session")) {
-  await supabase.auth.signOut();
-}
+```text
+UI (hooks)
+   │
+   ▼
+offlineSync layer ──► IndexedDB (Dexie)
+   │                    ├── tables_cache (espelho)
+   │                    └── pending_mutations (fila)
+   │
+   ▼ (quando online)
+Supabase
 ```
 
-Isso causa três problemas práticos para uso multi-device:
+## Mudanças
 
-1. **Nova aba / nova janela** → `sessionStorage` é por aba. Abrir o app numa segunda aba do mesmo navegador faz logout forçado, mesmo com sessão válida no `localStorage`.
-2. **PWA reaberto / app fechado e reaberto** → mesma coisa: a flag de sessão some e o usuário é deslogado mesmo tendo refresh token válido.
-3. **Refresh token rotativo falhando** (visto nos logs: `refresh_token_not_found` retornando 400) → o handler atual não trata isso de forma graciosa, e combinado com a flag de `sessionStorage` derruba a sessão de forma agressiva.
+### 1. Dependência
+- Adicionar `dexie` ao `package.json`.
 
-Logs confirmam: `400 Invalid Refresh Token: Refresh Token Not Found` aparece logo após o usuário tentar abrir o app em outro contexto.
+### 2. Camada offline (novos arquivos)
+- `src/lib/offline/db.ts` — schema Dexie:
+  - `clients`, `expenses`, `loans`, `loan_installments`, `payments` (espelhos)
+  - `pending_mutations` `{id, table, op: insert|update|delete, payload, recordId, createdAt, retries, lastError}`
+  - `meta` `{key, value}` (ex: `lastSync:expenses`)
+- `src/lib/offline/sync.ts`:
+  - `cacheRows(table, rows)` — popula espelho
+  - `enqueueMutation(...)` — adiciona à fila + aplica no espelho local
+  - `flushQueue()` — drena FIFO chamando Supabase; em sucesso remove; em erro de rede mantém; em erro lógico (RLS, dup) descarta + log
+  - `getPendingCount()` / hook `usePendingCount()`
+  - Listeners: `online`, foco da janela, retry exponencial
+- `src/lib/offline/status.ts` — hook `useOnlineStatus()` (true/false) baseado em `navigator.onLine` + ping leve opcional.
 
-## Solução proposta
+### 3. Hooks adaptados
+Modificar `useClients`, `useExpenses`, `useLoans` para:
+- **Fetch**: tentar Supabase → on success cachear no Dexie; on fail carregar do Dexie.
+- **Mutações**: se online → caminho atual + cachear; se offline → atualização otimista (já existe) + `enqueueMutation`.
+- IDs temporários (`crypto.randomUUID()`) já usados; manter mapeamento `tempId → realId` para que mutações subsequentes do mesmo registro funcionem offline (rewrite do `recordId` na fila quando o insert é confirmado).
 
-### 1. Remover a trava de `sessionStorage` no `useAuth.tsx`
-Deixar o Supabase gerenciar a sessão pelo `localStorage` (que já é compartilhado entre abas e persiste entre fechamentos). Cada dispositivo continua com seu próprio refresh token independente — múltiplos devices ficam logados simultaneamente sem se derrubarem.
+### 4. UI
+- `src/components/OfflineBadge.tsx` — badge fixo top (canto) "Modo offline" quando `!online`. Sumir quando online.
+- Renderizado no `App.tsx` (junto com Toasters).
+- `src/components/PendingSyncCard.tsx` em **Settings**:
+  - Mostra contador de pendências por tabela
+  - Botão "Sincronizar agora" → `flushQueue()`
+  - Toast de progresso/sucesso
+- Toast automático "X alterações sincronizadas" quando fila esvazia ao voltar online.
 
-### 2. Tratamento gracioso de refresh token inválido
-Se o refresh token expirou em um device específico (ex: ficou offline muito tempo), apenas redirecionar para `/auth` naquele device, sem afetar os outros. Não chamar `signOut()` global.
+### 5. Estratégia de conflito (last-write-wins)
+- Inserts: sempre vencem (UUID novo, sem colisão).
+- Updates: enviam payload bruto; servidor sobrescreve. Se Supabase devolver erro de RLS, descartar + toast "alteração descartada".
+- Deletes: replay direto; se já apagado no servidor, ignorar erro 404.
+- Realtime ao voltar online: refetch completo das tabelas afetadas após `flushQueue()` para reconciliar.
 
-### 3. Sincronização entre abas do mesmo navegador
-Adicionar listener no evento `storage` do `window` para que, quando o usuário fizer login/logout em uma aba, as outras abas reflitam imediatamente sem precisar recarregar.
+### 6. Limitações documentadas
+- Auth precisa estar logado antes de ficar offline (sessão em cache do Supabase).
+- Service worker do PWA já está desabilitado em iframe — testes offline reais só no app publicado/instalado.
+- Outras tabelas (sales, products, credit_cards, etc.) continuam online-only.
 
-### 4. Habilitar `multiTab: true` no client Supabase
-Garantir que múltiplas abas compartilhem corretamente o estado de auth via `BroadcastChannel`.
+## Arquivos a criar
+- `src/lib/offline/db.ts`
+- `src/lib/offline/sync.ts`
+- `src/lib/offline/status.ts`
+- `src/components/OfflineBadge.tsx`
+- `src/components/PendingSyncCard.tsx`
 
-### 5. (Opcional, mas recomendado) Sincronização de dados em tempo real
-Para que mudanças feitas no celular apareçam no desktop sem refresh, habilitar Supabase Realtime nas tabelas principais (`loans`, `payments`, `expenses`, `clients`, `sales`, `personal_expense_categories`) e adicionar listeners nos hooks correspondentes para revalidar dados quando outro device alterar.
+## Arquivos a editar
+- `package.json` (adicionar `dexie`)
+- `src/hooks/useClients.ts`
+- `src/hooks/useExpenses.ts`
+- `src/hooks/useLoans.ts`
+- `src/App.tsx` (mount OfflineBadge)
+- `src/components/Settings.tsx` (mount PendingSyncCard)
 
-## Arquivos a modificar
-
-| Arquivo | Mudança |
-|---|---|
-| `src/hooks/useAuth.tsx` | Remover lógica de `sessionStorage`; tratar refresh token inválido apenas localmente; manter hidratação atual |
-| `src/integrations/supabase/client.ts` | **Não pode editar** — é gerado. A config padrão já é suficiente. |
-| `src/hooks/useLoans.ts`, `useExpenses.ts`, `usePayments` (etc., se #5) | Adicionar canal Realtime para refetch em mudanças remotas |
-| Migration SQL (se #5) | `ALTER PUBLICATION supabase_realtime ADD TABLE ...` para tabelas chave |
-
-## Pergunta para você
-
-Quero confirmar 2 coisas antes de implementar:
-
-1. **Quer só permitir login simultâneo** (passos 1–4, mais leve e seguro)?  
-   **Ou também sincronização instantânea de dados** entre os aparelhos (passo 5, requer Realtime)?
-
-2. Você quer que **logout em um aparelho desconecte os outros** também (modo "segurança máxima"), ou que **cada aparelho seja independente** (logout só onde foi clicado — recomendado e padrão)?
-
+## Sem mudanças no banco
+Tudo client-side. Nenhuma migration necessária.
