@@ -121,7 +121,13 @@ const Auth = () => {
   if (isForgot) {
     return (
       <div className="min-h-screen bg-background flex flex-col items-center justify-center px-6 py-8 pt-safe">
-
+        <div className="w-full max-w-sm space-y-6">
+          <div className="text-center space-y-2">
+            <div className="mx-auto rounded-2xl overflow-hidden flex items-center justify-center -mb-2">
+              <AppLogo area="auth" alt={brandName} rounded />
+            </div>
+            <h1 className="text-2xl font-bold text-foreground">{brandName}</h1>
+            <p className="text-muted-foreground">Digite seu email para receber o link de recuperação</p>
           </div>
           <form onSubmit={handleForgotPassword} className="space-y-5">
             <div className="space-y-2">
@@ -145,7 +151,13 @@ const Auth = () => {
 
   return (
     <div className="min-h-screen bg-background flex flex-col items-center justify-center px-6 py-8 pt-safe">
-
+      <div className="w-full max-w-sm space-y-6">
+        <div className="text-center space-y-2">
+          <div className="mx-auto rounded-2xl overflow-hidden flex items-center justify-center -mb-2">
+            <AppLogo area="auth" alt={brandName} rounded />
+          </div>
+          <h1 className="text-2xl font-bold text-foreground">{brandName}</h1>
+          <p className="text-muted-foreground">Entre na sua conta</p>
         </div>
         <form onSubmit={handleLogin} className="space-y-5">
           <div className="space-y-2">
