@@ -25,12 +25,12 @@ Deno.serve(async (req) => {
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
-    const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
-    // Validate the caller's token
+    // Use the user's token so SECURITY DEFINER funcs see auth.uid()
     const userClient = createClient(supabaseUrl, anonKey, {
       global: { headers: { Authorization: authHeader } },
     });
+
     const { data: claimsData, error: claimsErr } =
       await userClient.auth.getClaims(token);
     if (claimsErr || !claimsData?.claims) {
@@ -39,40 +39,28 @@ Deno.serve(async (req) => {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-    const userId = claimsData.claims.sub as string;
     const currentSessionId = (claimsData.claims as any).session_id as
       | string
       | undefined;
-
-    const admin = createClient(supabaseUrl, serviceKey, {
-      auth: { persistSession: false },
-      db: { schema: "auth" as any },
-    });
 
     const body = await req.json().catch(() => ({}));
     const action = body?.action as "list" | "revoke" | undefined;
 
     if (action === "list") {
-      const { data: sessions, error } = await (admin as any)
-        .from("sessions")
-        .select("id, created_at, updated_at, user_agent, ip, not_after")
-        .eq("user_id", userId)
-        .order("updated_at", { ascending: false });
+      const { data: sessions, error } = await userClient.rpc(
+        "list_my_sessions" as any,
+      );
 
       if (error) {
-        return new Response(
-          JSON.stringify({ error: error.message }),
-          {
-            status: 500,
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          },
-        );
+        return new Response(JSON.stringify({ error: error.message }), {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
       }
 
       // Geolocate IPs in parallel via ip-api.com (free, no key, pt-BR)
       const lookupGeo = async (ip: string | null) => {
         if (!ip) return null;
-        // Skip private/loopback IPs
         if (
           /^(10\.|127\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.|::1|fc|fd)/i.test(ip)
         ) return null;
@@ -87,14 +75,18 @@ Deno.serve(async (req) => {
           if (!res.ok) return null;
           const j = await res.json();
           if (j?.status !== "success") return null;
-          return { city: j.city ?? null, region: j.regionName ?? null, country: j.country ?? null };
+          return {
+            city: j.city ?? null,
+            region: j.regionName ?? null,
+            country: j.country ?? null,
+          };
         } catch {
           return null;
         }
       };
 
       const enriched = await Promise.all(
-        (sessions ?? []).map(async (s: any) => ({
+        ((sessions as any[]) ?? []).map(async (s: any) => ({
           ...s,
           geo: await lookupGeo(s.ip),
         })),
@@ -124,36 +116,23 @@ Deno.serve(async (req) => {
         );
       }
 
-      // Verify the session belongs to the caller before deleting
-      const { data: existing, error: lookupErr } = await (admin as any)
-        .from("sessions")
-        .select("id, user_id")
-        .eq("id", sessionId)
-        .maybeSingle();
+      const { data: ok, error: rpcErr } = await userClient.rpc(
+        "revoke_my_session" as any,
+        { _session_id: sessionId },
+      );
 
-      if (lookupErr || !existing || existing.user_id !== userId) {
-        return new Response(
-          JSON.stringify({ error: "Session not found" }),
-          {
-            status: 404,
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          },
-        );
+      if (rpcErr) {
+        return new Response(JSON.stringify({ error: rpcErr.message }), {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
       }
 
-      const { error: delErr } = await (admin as any)
-        .from("sessions")
-        .delete()
-        .eq("id", sessionId);
-
-      if (delErr) {
-        return new Response(
-          JSON.stringify({ error: delErr.message }),
-          {
-            status: 500,
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          },
-        );
+      if (!ok) {
+        return new Response(JSON.stringify({ error: "Session not found" }), {
+          status: 404,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
       }
 
       return new Response(JSON.stringify({ ok: true }), {
