@@ -269,6 +269,20 @@ export function ClientList({ clients, loans, payments, onDelete, onUpdate, readO
                       <Input value={editForm.address} onChange={(e) => updateField("address", e.target.value)} />
                     </div>
                     <div>
+                      <Label className="text-xs">Taxa de juros padrão (% ao mês)</Label>
+                      <Input
+                        type="number"
+                        step="0.1"
+                        min="0"
+                        value={editForm.defaultInterestRate}
+                        onChange={(e) => updateField("defaultInterestRate", e.target.value)}
+                        placeholder="30"
+                      />
+                      <p className="text-[10px] text-muted-foreground mt-1">
+                        Se vazio, será usado 30% em novos empréstimos.
+                      </p>
+                    </div>
+                    <div>
                       <Label className="text-xs">Observações</Label>
                       <Textarea value={editForm.notes} onChange={(e) => updateField("notes", e.target.value)} rows={2} />
                     </div>
