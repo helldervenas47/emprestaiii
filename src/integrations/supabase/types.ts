@@ -295,6 +295,36 @@ export type Database = {
         }
         Relationships: []
       }
+      expense_category_hints: {
+        Row: {
+          category: string
+          created_at: string
+          hits: number
+          id: string
+          keyword: string
+          last_used: string
+          user_id: string
+        }
+        Insert: {
+          category: string
+          created_at?: string
+          hits?: number
+          id?: string
+          keyword: string
+          last_used?: string
+          user_id: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          hits?: number
+          id?: string
+          keyword?: string
+          last_used?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       expenses: {
         Row: {
           amount: number
