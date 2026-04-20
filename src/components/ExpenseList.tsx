@@ -1,5 +1,6 @@
 import { useState, useCallback, useMemo, useEffect } from "react";
 import { todayInAppTz } from "@/lib/timezone";
+import { getDueStatusBadge } from "@/lib/dueStatus";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useHideValues } from "@/contexts/HideValuesContext";
@@ -461,12 +462,14 @@ export function ExpenseList({ expenses, onPay, onUnpay, onDelete, onUpdate, read
                         <Badge variant="outline" className="text-[10px] px-1.5 py-0 shrink-0">
                           {expense.type === "fixa" ? "Fixa" : "Recorrente"}
                         </Badge>
-                        {expense.paid && (
-                          <Badge className="bg-success/10 text-success border-success/20 text-[10px] px-1.5 py-0 shrink-0">Paga</Badge>
-                        )}
-                        {overdue && (
-                          <Badge className="bg-destructive/10 text-destructive border-destructive/20 text-[10px] px-1.5 py-0 shrink-0">Atrasada</Badge>
-                        )}
+                        {(() => {
+                          const badge = getDueStatusBadge(expense.dueDate, expense.paid);
+                          return (
+                            <Badge className={`${badge.className} text-[10px] px-1.5 py-0 shrink-0`}>
+                              {badge.label}
+                            </Badge>
+                          );
+                        })()}
                       </div>
                       <div className="flex flex-wrap items-center gap-2 sm:gap-4 text-xs text-muted-foreground mt-1">
                         <span className="flex items-center gap-1"><Tag className="h-3 w-3" />{expense.category}</span>
