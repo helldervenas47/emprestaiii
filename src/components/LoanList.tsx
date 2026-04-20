@@ -2167,7 +2167,7 @@ function LoanRowView({
       </tr>
     )}
     <Dialog open={!!paymentDialog} onOpenChange={(open) => !open && setPaymentDialog(null)}>
-      <DialogContent className="sm:max-w-[340px]">
+      <DialogContent className={cn("sm:max-w-[340px]", paymentDialog?.type === "interest" && lateFees > 0 && "sm:max-w-[460px]")}>
         <DialogHeader>
           <DialogTitle>
             {paymentDialog?.type === "full" ? "Pagamento Total" :
@@ -2208,6 +2208,87 @@ function LoanRowView({
               </div>
             </div>
           )}
+          {paymentDialog?.type === "interest" && lateFees > 0 && (() => {
+            const baseInterest = loan.customInterestValue != null && loan.customInterestValue > 0
+              ? loan.customInterestValue
+              : loan.amount * (loan.interestRate / 100);
+            const totalWithFees = baseInterest + lateFees;
+            return (
+              <div className="w-full space-y-2.5">
+                <p className="text-xs font-medium text-foreground">Como deseja receber?</p>
+                <button
+                  type="button"
+                  onClick={() => setInterestSelection("normal")}
+                  className={cn(
+                    "w-full text-left p-3 rounded-lg border transition-all",
+                    interestSelection === "normal"
+                      ? "border-primary bg-primary/5 ring-1 ring-primary"
+                      : "border-border bg-card hover:border-primary/40"
+                  )}
+                >
+                  <div className="flex items-start gap-3">
+                    <div className={cn(
+                      "shrink-0 size-4 rounded-full border-2 mt-0.5 flex items-center justify-center",
+                      interestSelection === "normal" ? "border-primary" : "border-muted-foreground/40"
+                    )}>
+                      {interestSelection === "normal" && <div className="size-2 rounded-full bg-primary" />}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex justify-between items-baseline gap-2">
+                        <span className="text-sm font-medium text-foreground">Apenas juros</span>
+                        <span className="text-sm font-semibold text-foreground tabular-nums">{rawFormatCurrency(baseInterest)}</span>
+                      </div>
+                      <p className="text-[11px] text-muted-foreground mt-0.5">Recebe somente o juros do mês. Multa/atraso continuam pendentes.</p>
+                    </div>
+                  </div>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setInterestSelection("withFees")}
+                  className={cn(
+                    "w-full text-left p-3 rounded-lg border transition-all",
+                    interestSelection === "withFees"
+                      ? "border-warning bg-warning/5 ring-1 ring-warning"
+                      : "border-border bg-card hover:border-warning/40"
+                  )}
+                >
+                  <div className="flex items-start gap-3">
+                    <div className={cn(
+                      "shrink-0 size-4 rounded-full border-2 mt-0.5 flex items-center justify-center",
+                      interestSelection === "withFees" ? "border-warning" : "border-muted-foreground/40"
+                    )}>
+                      {interestSelection === "withFees" && <div className="size-2 rounded-full bg-warning" />}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex justify-between items-baseline gap-2">
+                        <span className="text-sm font-medium text-foreground">Juros + multa/atraso</span>
+                        <span className="text-sm font-semibold text-foreground tabular-nums">{rawFormatCurrency(totalWithFees)}</span>
+                      </div>
+                      <p className="text-[11px] text-muted-foreground mt-0.5">Quita juros e regulariza encargos de atraso.</p>
+                      <div className="mt-2 pt-2 border-t border-border/60 space-y-1">
+                        <div className="flex justify-between text-[11px]">
+                          <span className="text-muted-foreground">Juros do mês</span>
+                          <span className="text-foreground tabular-nums">{rawFormatCurrency(baseInterest)}</span>
+                        </div>
+                        {penaltyTotal > 0 && (
+                          <div className="flex justify-between text-[11px]">
+                            <span className="text-muted-foreground">Multa</span>
+                            <span className="text-warning tabular-nums">{rawFormatCurrency(penaltyTotal)}</span>
+                          </div>
+                        )}
+                        {lateInterestTotal > 0 && (
+                          <div className="flex justify-between text-[11px]">
+                            <span className="text-muted-foreground">Juros de atraso ({effectiveDaysLate}d)</span>
+                            <span className="text-warning tabular-nums">{rawFormatCurrency(lateInterestTotal)}</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </button>
+              </div>
+            );
+          })()}
           <Label className="text-sm text-muted-foreground">Selecione a data do pagamento</Label>
           <CalendarUI
             mode="single"
