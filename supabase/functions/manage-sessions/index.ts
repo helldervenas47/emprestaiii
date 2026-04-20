@@ -46,15 +46,14 @@ Deno.serve(async (req) => {
 
     const admin = createClient(supabaseUrl, serviceKey, {
       auth: { persistSession: false },
+      db: { schema: "auth" as any },
     });
 
     const body = await req.json().catch(() => ({}));
     const action = body?.action as "list" | "revoke" | undefined;
 
     if (action === "list") {
-      // Query auth.sessions + auth.refresh_tokens for richer metadata
       const { data: sessions, error } = await (admin as any)
-        .schema("auth")
         .from("sessions")
         .select("id, created_at, updated_at, user_agent, ip, not_after")
         .eq("user_id", userId)
