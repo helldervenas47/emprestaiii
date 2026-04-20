@@ -81,6 +81,205 @@ function detectCategory(description: string): string {
 }
 
 // ============================================================
+// 🧠 Learned categorization (per-user keyword cache + LLM few-shot)
+// ============================================================
+
+const STOPWORDS = new Set([
+  "a","o","as","os","de","da","do","das","dos","e","em","na","no","nas","nos",
+  "para","pra","pro","por","com","sem","um","uma","uns","umas","que","ao","à",
+  "às","aos","ou","se","minha","meu","meus","minhas","sua","seu","seus","suas",
+  "isso","esse","essa","este","esta","aqui","ali","la","lá","muito","muita",
+  "bem","mal","ja","já","hoje","ontem","amanha","amanhã","r","rs","reais","real",
+  "comprei","gastei","paguei","fiz","tomei","fui","ir","vim","ter","tive","fiz",
+  "the","of","and","for","to","in","on","at",
+]);
+
+function tokensFromDescription(desc: string): string[] {
+  const norm = normalize(desc); // lowercase, strip accents/punct (already defined below)
+  const raw = norm.split(" ").filter(Boolean);
+  const out: string[] = [];
+  for (const w of raw) {
+    if (w.length < 3) continue;
+    if (/^\d+$/.test(w)) continue;
+    if (STOPWORDS.has(w)) continue;
+    out.push(w);
+  }
+  // Also include adjacent bigrams (e.g. "burger king", "lava jato")
+  for (let i = 0; i < raw.length - 1; i++) {
+    const a = raw[i], b = raw[i + 1];
+    if (a.length < 3 || b.length < 3) continue;
+    if (STOPWORDS.has(a) || STOPWORDS.has(b)) continue;
+    out.push(`${a} ${b}`);
+  }
+  return Array.from(new Set(out));
+}
+
+/** Look up the best learned category for this description from the user's own history. */
+async function suggestCategoryFromHints(
+  admin: any,
+  userId: string,
+  description: string,
+): Promise<{ category: string; hits: number } | null> {
+  const tokens = tokensFromDescription(description);
+  if (tokens.length === 0) return null;
+  const { data } = await admin
+    .from("expense_category_hints")
+    .select("keyword, category, hits")
+    .eq("user_id", userId)
+    .in("keyword", tokens);
+  if (!data || data.length === 0) return null;
+
+  // Aggregate hits per category across all matched keywords
+  const byCat = new Map<string, number>();
+  for (const r of data) {
+    byCat.set(r.category, (byCat.get(r.category) || 0) + (Number(r.hits) || 1));
+  }
+  let best: { category: string; hits: number } | null = null;
+  for (const [cat, hits] of byCat) {
+    if (!best || hits > best.hits) best = { category: cat, hits };
+  }
+  return best;
+}
+
+/** Reinforce learning: increment hit count for every token in the description for the chosen category. */
+async function learnCategoryFromExpense(
+  admin: any,
+  userId: string,
+  description: string,
+  category: string,
+) {
+  if (!CATEGORIES.includes(category)) return;
+  const tokens = tokensFromDescription(description);
+  if (tokens.length === 0) return;
+  const nowIso = new Date().toISOString();
+
+  // Read existing rows for these tokens to decide insert vs increment
+  const { data: existing } = await admin
+    .from("expense_category_hints")
+    .select("id, keyword, category, hits")
+    .eq("user_id", userId)
+    .in("keyword", tokens);
+
+  const map = new Map<string, { id: string; category: string; hits: number }>();
+  for (const r of existing ?? []) {
+    map.set(`${r.keyword}::${r.category}`, { id: r.id, category: r.category, hits: Number(r.hits) || 1 });
+  }
+
+  const toInsert: any[] = [];
+  const toUpdate: Array<{ id: string; hits: number }> = [];
+  for (const kw of tokens) {
+    const key = `${kw}::${category}`;
+    const row = map.get(key);
+    if (row) {
+      toUpdate.push({ id: row.id, hits: row.hits + 1 });
+    } else {
+      toInsert.push({ user_id: userId, keyword: kw, category, hits: 1, last_used: nowIso });
+    }
+  }
+  if (toInsert.length > 0) {
+    await admin.from("expense_category_hints").insert(toInsert);
+  }
+  for (const u of toUpdate) {
+    await admin.from("expense_category_hints")
+      .update({ hits: u.hits, last_used: nowIso })
+      .eq("id", u.id);
+  }
+}
+
+/** Few-shot LLM classifier using the user's own recent confirmed expenses. */
+async function suggestCategoryWithLLM(
+  admin: any,
+  userId: string,
+  description: string,
+  lovableKey: string,
+): Promise<string | null> {
+  // Pull recent confirmed expenses (descriptive examples)
+  const { data: recent } = await admin
+    .from("expenses")
+    .select("description, category")
+    .eq("user_id", userId)
+    .eq("scope", "personal")
+    .order("created_at", { ascending: false })
+    .limit(30);
+
+  const examples = (recent ?? [])
+    .filter((e: any) => e.description && e.category && CATEGORIES.includes(e.category))
+    .slice(0, 20)
+    .map((e: any) => `- "${e.description}" → ${e.category}`)
+    .join("\n");
+
+  if (!examples) return null;
+
+  try {
+    const resp = await fetch(AI_GATEWAY, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${lovableKey}`, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: "google/gemini-3-flash-preview",
+        messages: [
+          {
+            role: "system",
+            content: `Classifique a despesa em UMA das categorias: ${CATEGORIES.join(", ")}.
+Use os exemplos pessoais do usuário abaixo como referência principal. Se nada parecer próximo, use "Outros".
+
+Exemplos do usuário:
+${examples}`,
+          },
+          { role: "user", content: `Despesa: "${description}"` },
+        ],
+        tools: [{
+          type: "function",
+          function: {
+            name: "pick_category",
+            description: "Escolhe a melhor categoria",
+            parameters: {
+              type: "object",
+              properties: { category: { type: "string", enum: CATEGORIES } },
+              required: ["category"],
+              additionalProperties: false,
+            },
+          },
+        }],
+        tool_choice: { type: "function", function: { name: "pick_category" } },
+      }),
+    });
+    if (!resp.ok) return null;
+    const data = await resp.json();
+    const call = data.choices?.[0]?.message?.tool_calls?.[0];
+    if (!call) return null;
+    const args = JSON.parse(call.function.arguments);
+    return CATEGORIES.includes(args.category) ? args.category : null;
+  } catch (e) {
+    console.error("suggestCategoryWithLLM err", e);
+    return null;
+  }
+}
+
+/**
+ * Hybrid resolver: returns the best category for a description using
+ * (1) per-user learned hints, (2) LLM few-shot fallback, (3) the AI/regex initial guess.
+ */
+async function resolveCategoryHybrid(
+  admin: any,
+  userId: string,
+  description: string,
+  initialGuess: string,
+  lovableKey: string,
+): Promise<string> {
+  // 1) Cache hit (instant, free)
+  const learned = await suggestCategoryFromHints(admin, userId, description);
+  if (learned && learned.hits >= 1) return learned.category;
+
+  // 2) If the initial guess is "Outros" (i.e. heuristic gave up), try the LLM few-shot.
+  if (!initialGuess || initialGuess === "Outros") {
+    const llm = await suggestCategoryWithLLM(admin, userId, description, lovableKey);
+    if (llm) return llm;
+  }
+
+  return initialGuess && CATEGORIES.includes(initialGuess) ? initialGuess : "Outros";
+}
+
+// ============================================================
 // Credit card detection
 // ============================================================
 
