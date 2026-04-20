@@ -1,81 +1,24 @@
 
-Plano: Modo Offline com Dexie + Fila de Sincronização
+User asks if it's possible to open a map to see where the session is located. Currently the ActiveSessionsCard shows city/region/country text from ip-api.com but no map link.
 
-## Escopo
-Cobrir **despesas**, **clientes** e **empréstimos** (+ `loan_installments` e `payments` por dependência) com leitura offline e fila de escrita que sincroniza ao reconectar. Conflito = last-write-wins.
+Plan: add a clickable "Ver no mapa" link/button next to the location info that opens Google Maps in a new tab with the location query (city, region, country) — or coordinates if we fetch lat/lon from ip-api.
 
-## Arquitetura
+Better: extend `manage-sessions` edge function to also request `lat,lon` from ip-api (already free, just add fields) and store in the geo object. Then the frontend renders a small "Ver no mapa" link using `https://www.google.com/maps?q=lat,lon` (more precise) with fallback to text query.
 
-```text
-UI (hooks)
-   │
-   ▼
-offlineSync layer ──► IndexedDB (Dexie)
-   │                    ├── tables_cache (espelho)
-   │                    └── pending_mutations (fila)
-   │
-   ▼ (quando online)
-Supabase
-```
+## Plan
 
-## Mudanças
+**1. `supabase/functions/manage-sessions/index.ts`**
+- Update the `fields` query param of ip-api to include `lat,lon`: `fields=status,country,city,regionName,lat,lon`
+- Include `lat` and `lon` in the returned geo object
 
-### 1. Dependência
-- Adicionar `dexie` ao `package.json`.
+**2. `src/components/ActiveSessionsCard.tsx`**
+- Extend `SessionItem.geo` type with optional `lat?: number; lon?: number`
+- Next to the location line (MapPin), add an external link button "Ver no mapa" that opens:
+  - `https://www.google.com/maps?q=${lat},${lon}` if coords exist
+  - else `https://www.google.com/maps?q=${encodeURIComponent("city, region, country")}`
+- Open in new tab (`target="_blank" rel="noopener noreferrer"`), with an `ExternalLink` icon
+- Only show when there's any geo info
 
-### 2. Camada offline (novos arquivos)
-- `src/lib/offline/db.ts` — schema Dexie:
-  - `clients`, `expenses`, `loans`, `loan_installments`, `payments` (espelhos)
-  - `pending_mutations` `{id, table, op: insert|update|delete, payload, recordId, createdAt, retries, lastError}`
-  - `meta` `{key, value}` (ex: `lastSync:expenses`)
-- `src/lib/offline/sync.ts`:
-  - `cacheRows(table, rows)` — popula espelho
-  - `enqueueMutation(...)` — adiciona à fila + aplica no espelho local
-  - `flushQueue()` — drena FIFO chamando Supabase; em sucesso remove; em erro de rede mantém; em erro lógico (RLS, dup) descarta + log
-  - `getPendingCount()` / hook `usePendingCount()`
-  - Listeners: `online`, foco da janela, retry exponencial
-- `src/lib/offline/status.ts` — hook `useOnlineStatus()` (true/false) baseado em `navigator.onLine` + ping leve opcional.
-
-### 3. Hooks adaptados
-Modificar `useClients`, `useExpenses`, `useLoans` para:
-- **Fetch**: tentar Supabase → on success cachear no Dexie; on fail carregar do Dexie.
-- **Mutações**: se online → caminho atual + cachear; se offline → atualização otimista (já existe) + `enqueueMutation`.
-- IDs temporários (`crypto.randomUUID()`) já usados; manter mapeamento `tempId → realId` para que mutações subsequentes do mesmo registro funcionem offline (rewrite do `recordId` na fila quando o insert é confirmado).
-
-### 4. UI
-- `src/components/OfflineBadge.tsx` — badge fixo top (canto) "Modo offline" quando `!online`. Sumir quando online.
-- Renderizado no `App.tsx` (junto com Toasters).
-- `src/components/PendingSyncCard.tsx` em **Settings**:
-  - Mostra contador de pendências por tabela
-  - Botão "Sincronizar agora" → `flushQueue()`
-  - Toast de progresso/sucesso
-- Toast automático "X alterações sincronizadas" quando fila esvazia ao voltar online.
-
-### 5. Estratégia de conflito (last-write-wins)
-- Inserts: sempre vencem (UUID novo, sem colisão).
-- Updates: enviam payload bruto; servidor sobrescreve. Se Supabase devolver erro de RLS, descartar + toast "alteração descartada".
-- Deletes: replay direto; se já apagado no servidor, ignorar erro 404.
-- Realtime ao voltar online: refetch completo das tabelas afetadas após `flushQueue()` para reconciliar.
-
-### 6. Limitações documentadas
-- Auth precisa estar logado antes de ficar offline (sessão em cache do Supabase).
-- Service worker do PWA já está desabilitado em iframe — testes offline reais só no app publicado/instalado.
-- Outras tabelas (sales, products, credit_cards, etc.) continuam online-only.
-
-## Arquivos a criar
-- `src/lib/offline/db.ts`
-- `src/lib/offline/sync.ts`
-- `src/lib/offline/status.ts`
-- `src/components/OfflineBadge.tsx`
-- `src/components/PendingSyncCard.tsx`
-
-## Arquivos a editar
-- `package.json` (adicionar `dexie`)
-- `src/hooks/useClients.ts`
-- `src/hooks/useExpenses.ts`
-- `src/hooks/useLoans.ts`
-- `src/App.tsx` (mount OfflineBadge)
-- `src/components/Settings.tsx` (mount PendingSyncCard)
-
-## Sem mudanças no banco
-Tudo client-side. Nenhuma migration necessária.
+**Notes / limitations to mention to user:**
+- Localização vem do IP via ip-api.com — é aproximada (geralmente cidade do provedor de internet, não endereço exato). VPN/4G/proxy pode mostrar outra cidade.
+- Não dá para ter localização precisa (GPS) sem pedir permissão ao dispositivo no momento do login, o que não é prático para sessões já existentes.
