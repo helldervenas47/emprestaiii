@@ -1413,6 +1413,7 @@ export function ProductSalesView({ sales, onDeleteSale, onUpdateSale, clients = 
   const [viewPaymentsExpenseId, setViewPaymentsExpenseId] = useState<string | null>(null);
   const [editingExpenseId, setEditingExpenseId] = useState<string | null>(null);
   const [deleteExpenseId, setDeleteExpenseId] = useState<string | null>(null);
+  const [payingExpenseId, setPayingExpenseId] = useState<string | null>(null);
 
   useEffect(() => {
     (async () => {
