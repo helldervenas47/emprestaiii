@@ -140,6 +140,21 @@
     padding-bottom: env(safe-area-inset-bottom);
   }
 
+  /* Translucent bar behind iOS status bar — matches background, blurs scrolled content */
+  body::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: env(safe-area-inset-top);
+    background: hsl(var(--background) / 0.75);
+    backdrop-filter: blur(16px) saturate(180%);
+    -webkit-backdrop-filter: blur(16px) saturate(180%);
+    z-index: 100;
+    pointer-events: none;
+  }
+
   ::-webkit-scrollbar {
     width: 5px;
     height: 5px;
