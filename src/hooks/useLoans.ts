@@ -4,6 +4,7 @@ import { adjustBalance } from "@/lib/balance";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
 import { toast } from "sonner";
+import { notifyRemoteUpdate } from "@/lib/realtimeToast";
 
 export function useLoans() {
   const { user, dataOwnerId } = useAuth();

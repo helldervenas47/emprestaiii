@@ -3,6 +3,7 @@ import { Expense } from "@/types/loan";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
 import { extractPiggyId } from "./usePiggyBanks";
+import { notifyRemoteUpdate } from "@/lib/realtimeToast";
 
 export function useExpenses(enabled = true) {
   const { user, dataOwnerId } = useAuth();

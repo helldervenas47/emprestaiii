@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "@/hooks/use-toast";
+import { notifyRemoteUpdate } from "@/lib/realtimeToast";
 
 export interface CustomPersonalCategory {
   id: string;
