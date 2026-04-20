@@ -19,6 +19,7 @@ export type Database = {
           created_at: string
           id: string
           owner_id: string
+          require_approval: boolean
           timezone: string
           updated_at: string
         }
@@ -26,6 +27,7 @@ export type Database = {
           created_at?: string
           id?: string
           owner_id: string
+          require_approval?: boolean
           timezone?: string
           updated_at?: string
         }
@@ -33,6 +35,7 @@ export type Database = {
           created_at?: string
           id?: string
           owner_id?: string
+          require_approval?: boolean
           timezone?: string
           updated_at?: string
         }
@@ -413,6 +416,42 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      invite_codes: {
+        Row: {
+          active: boolean
+          code: string
+          created_at: string
+          expires_at: string | null
+          id: string
+          max_uses: number | null
+          owner_id: string
+          updated_at: string
+          uses_count: number
+        }
+        Insert: {
+          active?: boolean
+          code: string
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          max_uses?: number | null
+          owner_id: string
+          updated_at?: string
+          uses_count?: number
+        }
+        Update: {
+          active?: boolean
+          code?: string
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          max_uses?: number | null
+          owner_id?: string
+          updated_at?: string
+          uses_count?: number
+        }
+        Relationships: []
       }
       loan_installments: {
         Row: {
@@ -1581,6 +1620,51 @@ export type Database = {
         }
         Relationships: []
       }
+      user_approvals: {
+        Row: {
+          created_at: string
+          display_name: string | null
+          email: string | null
+          id: string
+          invite_code: string | null
+          owner_id: string
+          rejection_reason: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          display_name?: string | null
+          email?: string | null
+          id?: string
+          invite_code?: string | null
+          owner_id: string
+          rejection_reason?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          display_name?: string | null
+          email?: string | null
+          id?: string
+          invite_code?: string | null
+          owner_id?: string
+          rejection_reason?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_client_permissions: {
         Row: {
           client_id: string
@@ -1781,6 +1865,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_user_pending: { Args: { _user_id: string }; Returns: boolean }
       list_my_sessions: {
         Args: never
         Returns: {
