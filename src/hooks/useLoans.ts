@@ -5,6 +5,37 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
 import { toast } from "sonner";
 import { notifyRemoteUpdate } from "@/lib/realtimeToast";
+import {
+  cacheRows, getCachedRows, upsertCachedRow, removeCachedRow,
+  enqueueMutation, rewritePendingRecordId,
+} from "@/lib/offline/sync";
+import { isOnline } from "@/lib/offline/status";
+
+function rowToLoan(l: any): Loan {
+  return {
+    id: l.id, borrowerName: l.borrower_name, borrowerId: l.borrower_id,
+    amount: Number(l.amount), interestRate: Number(l.interest_rate),
+    interestType: l.interest_type, paymentType: l.payment_type,
+    startDate: l.start_date, dueDate: l.due_date, installments: l.installments,
+    paidInstallments: l.paid_installments, status: l.status as Loan["status"],
+    remainingAmount: l.remaining_amount != null ? Number(l.remaining_amount) : undefined,
+    customInstallmentValue: l.custom_installment_value != null ? Number(l.custom_installment_value) : null,
+    customInterestValue: l.custom_interest_value != null ? Number(l.custom_interest_value) : null,
+    tags: l.tags, notes: l.notes, createdAt: l.created_at,
+    lateInterestType: l.late_interest_type, lateInterestValue: l.late_interest_value != null ? Number(l.late_interest_value) : null,
+    penaltyValue: l.penalty_value != null ? Number(l.penalty_value) : null,
+    hasManager: l.has_manager ?? false,
+    managerId: l.manager_id ?? null,
+    managerCommissionRate: l.manager_commission_rate != null ? Number(l.manager_commission_rate) : 10,
+  };
+}
+
+function rowToPayment(p: any): Payment {
+  return {
+    id: p.id, loanId: p.loan_id, amount: Number(p.amount), date: p.date,
+    installmentNumber: p.installment_number, previousDueDate: p.previous_due_date,
+  };
+}
 
 export function useLoans() {
   const { user, dataOwnerId } = useAuth();
@@ -14,49 +45,62 @@ export function useLoans() {
 
   const fetchLoans = useCallback(async () => {
     if (!user) return;
-    const { data } = await supabase
-      .from("loans").select("*")
-      .order("created_at", { ascending: false });
-    if (data) {
-      setLoans(data.map((l: any) => ({
-        id: l.id, borrowerName: l.borrower_name, borrowerId: l.borrower_id,
-        amount: Number(l.amount), interestRate: Number(l.interest_rate),
-        interestType: l.interest_type, paymentType: l.payment_type,
-        startDate: l.start_date, dueDate: l.due_date, installments: l.installments,
-        paidInstallments: l.paid_installments, status: l.status as Loan["status"],
-        remainingAmount: l.remaining_amount != null ? Number(l.remaining_amount) : undefined,
-        customInstallmentValue: l.custom_installment_value != null ? Number(l.custom_installment_value) : null,
-        customInterestValue: l.custom_interest_value != null ? Number(l.custom_interest_value) : null,
-        tags: l.tags, notes: l.notes, createdAt: l.created_at,
-        lateInterestType: l.late_interest_type, lateInterestValue: l.late_interest_value != null ? Number(l.late_interest_value) : null,
-        penaltyValue: l.penalty_value != null ? Number(l.penalty_value) : null,
-        hasManager: (l as any).has_manager ?? false,
-        managerId: (l as any).manager_id ?? null,
-        managerCommissionRate: (l as any).manager_commission_rate != null ? Number((l as any).manager_commission_rate) : 10,
-      })));
+    if (isOnline()) {
+      const { data, error } = await supabase
+        .from("loans").select("*")
+        .order("created_at", { ascending: false });
+      if (!error && data) {
+        setLoans(data.map(rowToLoan));
+        cacheRows("loans", data).catch(() => { /* noop */ });
+        return;
+      }
+    }
+    const cached = await getCachedRows("loans");
+    if (cached.length > 0) {
+      setLoans(cached
+        .sort((a, b) => (b.created_at || "").localeCompare(a.created_at || ""))
+        .map(rowToLoan));
     }
   }, [user]);
 
   const fetchPayments = useCallback(async () => {
     if (!user) return;
-    const { data } = await supabase
-      .from("payments").select("*")
-      .order("created_at", { ascending: false });
-    if (data) {
-      setPayments(data.map((p: any) => ({
-        id: p.id, loanId: p.loan_id, amount: Number(p.amount), date: p.date,
-        installmentNumber: p.installment_number, previousDueDate: p.previous_due_date,
-      })));
+    if (isOnline()) {
+      const { data, error } = await supabase
+        .from("payments").select("*")
+        .order("created_at", { ascending: false });
+      if (!error && data) {
+        setPayments(data.map(rowToPayment));
+        cacheRows("payments", data).catch(() => { /* noop */ });
+        return;
+      }
+    }
+    const cached = await getCachedRows("payments");
+    if (cached.length > 0) {
+      setPayments(cached
+        .sort((a, b) => (b.created_at || "").localeCompare(a.created_at || ""))
+        .map(rowToPayment));
     }
   }, [user]);
 
   const fetchSchedules = useCallback(async () => {
     if (!user) return;
-    const { data } = await supabase
-      .from("loan_installments").select("*")
-      .order("installment_number", { ascending: true });
-    if (data) {
-      setInstallmentSchedules(data.map((s: any) => ({
+    if (isOnline()) {
+      const { data, error } = await supabase
+        .from("loan_installments").select("*")
+        .order("installment_number", { ascending: true });
+      if (!error && data) {
+        setInstallmentSchedules(data.map((s: any) => ({
+          id: s.id, loanId: s.loan_id, installmentNumber: s.installment_number,
+          dueDate: s.due_date, amount: Number(s.amount),
+        })));
+        cacheRows("loan_installments", data).catch(() => { /* noop */ });
+        return;
+      }
+    }
+    const cached = await getCachedRows("loan_installments");
+    if (cached.length > 0) {
+      setInstallmentSchedules(cached.map((s: any) => ({
         id: s.id, loanId: s.loan_id, installmentNumber: s.installment_number,
         dueDate: s.due_date, amount: Number(s.amount),
       })));
@@ -64,6 +108,18 @@ export function useLoans() {
   }, [user]);
 
   useEffect(() => { fetchLoans(); fetchPayments(); fetchSchedules(); }, [fetchLoans, fetchPayments, fetchSchedules]);
+
+  // Refetch after offline queue flush
+  useEffect(() => {
+    const handler = (e: any) => {
+      const tables: string[] = e.detail?.tables || [];
+      if (tables.includes("loans")) fetchLoans();
+      if (tables.includes("payments")) fetchPayments();
+      if (tables.includes("loan_installments")) fetchSchedules();
+    };
+    window.addEventListener("offline-sync:flushed", handler);
+    return () => window.removeEventListener("offline-sync:flushed", handler);
+  }, [fetchLoans, fetchPayments, fetchSchedules]);
 
   // Realtime subscriptions for auto-refresh
   useEffect(() => {
@@ -134,7 +190,8 @@ export function useLoans() {
     };
     setLoans((prev) => [optimistic, ...prev]);
 
-    const { data, error } = await supabase.from("loans").insert({
+    const insertPayload = {
+      id: tempId,
       user_id: dataOwnerId, borrower_name: loan.borrowerName, borrower_id: loan.borrowerId,
       amount: loan.amount, interest_rate: loan.interestRate,
       interest_type: loan.interestType || "Mensal", payment_type: loan.paymentType || "Parcelado",
@@ -146,13 +203,31 @@ export function useLoans() {
       has_manager: loan.hasManager ?? false,
       manager_id: loan.managerId ?? null,
       manager_commission_rate: loan.managerCommissionRate ?? 10,
-    } as any).select().single();
+    };
+
+    await upsertCachedRow("loans", { ...insertPayload, created_at: optimistic.createdAt });
+
+    if (!isOnline()) {
+      await enqueueMutation({ table: "loans", op: "insert", recordId: tempId, payload: insertPayload });
+      // Balance adjust will sync next time online via realtime/refresh; skip here
+      return tempId;
+    }
+
+    const { data, error } = await supabase.from("loans").insert(insertPayload as any).select().single();
 
     if (error) {
+      if (!error.message.toLowerCase().includes("row-level")) {
+        await enqueueMutation({ table: "loans", op: "insert", recordId: tempId, payload: insertPayload });
+        return tempId;
+      }
       setLoans((prev) => prev.filter((l) => l.id !== tempId));
+      await removeCachedRow("loans", tempId);
       return null;
     } else if (data) {
       setLoans((prev) => prev.map((l) => l.id === tempId ? { ...l, id: data.id, createdAt: data.created_at } : l));
+      await removeCachedRow("loans", tempId);
+      await upsertCachedRow("loans", data);
+      await rewritePendingRecordId("loans", tempId, data.id);
       if (status === "paid") {
         const totalReceived = calculateTotalWithInterest(loan.amount, loan.interestRate, loan.installments);
         await adjustBalance(totalReceived - loan.amount);
@@ -375,12 +450,19 @@ export function useLoans() {
     if (data.hasManager !== undefined) (updateData as any).has_manager = data.hasManager;
     if (data.managerId !== undefined) (updateData as any).manager_id = data.managerId;
     if (data.managerCommissionRate !== undefined) (updateData as any).manager_commission_rate = data.managerCommissionRate ?? 10;
+    if (!isOnline()) {
+      await enqueueMutation({ table: "loans", op: "update", recordId: id, payload: updateData });
+      return;
+    }
     const { error: updateErr } = await supabase.from("loans").update(updateData).eq("id", id);
     if (updateErr) {
-      console.error("[updateLoan] Falha ao salvar:", updateErr);
-      toast.error("Falha ao salvar alterações: " + updateErr.message);
-      // refetch to revert optimistic state
-      await fetchLoans();
+      if (!updateErr.message.toLowerCase().includes("row-level")) {
+        await enqueueMutation({ table: "loans", op: "update", recordId: id, payload: updateData });
+      } else {
+        console.error("[updateLoan] Falha ao salvar:", updateErr);
+        toast.error("Falha ao salvar alterações: " + updateErr.message);
+        await fetchLoans();
+      }
     }
   }, [loans, fetchLoans]);
 
@@ -389,10 +471,16 @@ export function useLoans() {
     const loanPayments = payments.filter((p) => p.loanId === id);
     setLoans((prev) => prev.filter((l) => l.id !== id));
     setPayments((prev) => prev.filter((p) => p.loanId !== id));
+    await removeCachedRow("loans", id);
 
+    if (!isOnline()) {
+      await enqueueMutation({ table: "loans", op: "delete", recordId: id });
+      return;
+    }
     if (loan) await adjustBalance(loan.amount);
     for (const p of loanPayments) await adjustBalance(-p.amount);
-    await supabase.from("loans").delete().eq("id", id);
+    const { error } = await supabase.from("loans").delete().eq("id", id);
+    if (error) await enqueueMutation({ table: "loans", op: "delete", recordId: id });
   }, [loans, payments]);
 
   const deletePayment = useCallback(async (id: string) => {

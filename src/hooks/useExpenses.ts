@@ -4,6 +4,23 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
 import { extractPiggyId } from "./usePiggyBanks";
 import { notifyRemoteUpdate } from "@/lib/realtimeToast";
+import {
+  cacheRows, getCachedRows, upsertCachedRow, removeCachedRow,
+  enqueueMutation, rewritePendingRecordId,
+} from "@/lib/offline/sync";
+import { isOnline } from "@/lib/offline/status";
+
+function rowToExpense(e: any): Expense {
+  return {
+    id: e.id, description: e.description, amount: Number(e.amount),
+    type: e.type as "fixa" | "recorrente", category: e.category,
+    installments: e.installments, paidInstallments: e.paid_installments,
+    dueDate: e.due_date, paid: e.paid, paidDate: e.paid_date,
+    notes: e.notes, createdAt: e.created_at,
+    parentExpenseId: e.parent_expense_id ?? undefined,
+    scope: (e.scope as "business" | "personal") ?? "business",
+  };
+}
 
 export function useExpenses(enabled = true) {
   const { user, dataOwnerId } = useAuth();
@@ -11,21 +28,22 @@ export function useExpenses(enabled = true) {
 
   const fetchExpenses = useCallback(async () => {
     if (!user) return;
-    const { data } = await supabase
-      .from("expenses")
-      .select("*")
-      .order("created_at", { ascending: false });
-
-    if (data) {
-      setExpenses(data.map((e: any) => ({
-        id: e.id, description: e.description, amount: Number(e.amount),
-        type: e.type as "fixa" | "recorrente", category: e.category,
-        installments: e.installments, paidInstallments: e.paid_installments,
-        dueDate: e.due_date, paid: e.paid, paidDate: e.paid_date,
-        notes: e.notes, createdAt: e.created_at,
-        parentExpenseId: e.parent_expense_id ?? undefined,
-        scope: (e.scope as "business" | "personal") ?? "business",
-      })));
+    if (isOnline()) {
+      const { data, error } = await supabase
+        .from("expenses")
+        .select("*")
+        .order("created_at", { ascending: false });
+      if (!error && data) {
+        setExpenses(data.map(rowToExpense));
+        cacheRows("expenses", data).catch(() => { /* noop */ });
+        return;
+      }
+    }
+    const cached = await getCachedRows("expenses");
+    if (cached.length > 0) {
+      setExpenses(cached
+        .sort((a, b) => (b.created_at || "").localeCompare(a.created_at || ""))
+        .map(rowToExpense));
     }
   }, [user]);
 
@@ -39,7 +57,16 @@ export function useExpenses(enabled = true) {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'expenses' }, () => { fetchExpenses(); notifyRemoteUpdate('expenses'); })
       .subscribe();
     return () => { supabase.removeChannel(channel); };
-  }, [user, fetchExpenses]);
+  }, [user, fetchExpenses, enabled]);
+
+  // Refetch after offline queue flush
+  useEffect(() => {
+    const handler = (e: any) => {
+      if (e.detail?.tables?.includes("expenses")) fetchExpenses();
+    };
+    window.addEventListener("offline-sync:flushed", handler);
+    return () => window.removeEventListener("offline-sync:flushed", handler);
+  }, [fetchExpenses]);
 
   const addExpense = useCallback(async (expense: Omit<Expense, "id" | "paid" | "paidDate" | "createdAt">) => {
     if (!user || !dataOwnerId) return;
@@ -51,18 +78,36 @@ export function useExpenses(enabled = true) {
     };
     setExpenses((prev) => [optimistic, ...prev]);
 
-    const { data, error } = await supabase.from("expenses").insert({
+    const insertPayload = {
+      id: tempId,
       user_id: dataOwnerId, description: expense.description, amount: expense.amount,
       type: expense.type, category: expense.category, installments: expense.installments,
       paid_installments: 0, due_date: expense.dueDate, paid: false,
       notes: expense.notes ?? null,
       scope: expense.scope ?? "business",
-    } as any).select().single();
+    };
+
+    await upsertCachedRow("expenses", { ...insertPayload, created_at: optimistic.createdAt });
+
+    if (!isOnline()) {
+      await enqueueMutation({ table: "expenses", op: "insert", recordId: tempId, payload: insertPayload });
+      return;
+    }
+
+    const { data, error } = await supabase.from("expenses").insert(insertPayload as any).select().single();
 
     if (error) {
-      setExpenses((prev) => prev.filter((e) => e.id !== tempId));
+      if (!error.message.toLowerCase().includes("row-level")) {
+        await enqueueMutation({ table: "expenses", op: "insert", recordId: tempId, payload: insertPayload });
+      } else {
+        setExpenses((prev) => prev.filter((e) => e.id !== tempId));
+        await removeCachedRow("expenses", tempId);
+      }
     } else if (data) {
       setExpenses((prev) => prev.map((e) => e.id === tempId ? { ...e, id: data.id, createdAt: data.created_at } : e));
+      await removeCachedRow("expenses", tempId);
+      await upsertCachedRow("expenses", data);
+      await rewritePendingRecordId("expenses", tempId, data.id);
       // Trigger budget overrun push notification check (personal scope only)
       if ((expense.scope ?? "business") === "personal") {
         supabase.functions.invoke("notify-budget-overrun").catch(() => { /* silent */ });
@@ -231,19 +276,32 @@ export function useExpenses(enabled = true) {
 
   const deleteExpense = useCallback(async (id: string, skipBalanceAdjust = false) => {
     setExpenses((prev) => prev.filter((e) => e.id !== id));
+    await removeCachedRow("expenses", id);
+    if (!isOnline()) {
+      await enqueueMutation({ table: "expenses", op: "delete", recordId: id });
+      return;
+    }
     // Remove any piggy deposit linked to this expense (no-op if none).
     await supabase.from("piggy_bank_deposits" as any).delete().eq("expense_id", id);
-    await supabase.from("expenses").delete().eq("id", id);
+    const { error } = await supabase.from("expenses").delete().eq("id", id);
+    if (error) await enqueueMutation({ table: "expenses", op: "delete", recordId: id });
   }, [expenses]);
 
   const updateExpense = useCallback(async (id: string, data: Partial<Omit<Expense, "id" | "createdAt">>) => {
     setExpenses((prev) => prev.map((e) => e.id === id ? { ...e, ...data } : e));
-    await supabase.from("expenses").update({
+    const updatePayload: any = {
       description: data.description, amount: data.amount, type: data.type,
       category: data.category, installments: data.installments,
       paid_installments: data.paidInstallments, due_date: data.dueDate,
       paid: data.paid, paid_date: data.paidDate, notes: data.notes,
-    }).eq("id", id);
+    };
+    Object.keys(updatePayload).forEach(k => updatePayload[k] === undefined && delete updatePayload[k]);
+    if (!isOnline()) {
+      await enqueueMutation({ table: "expenses", op: "update", recordId: id, payload: updatePayload });
+      return;
+    }
+    const { error } = await supabase.from("expenses").update(updatePayload).eq("id", id);
+    if (error) await enqueueMutation({ table: "expenses", op: "update", recordId: id, payload: updatePayload });
   }, []);
 
   return { expenses, addExpense, payExpense, unpayExpense, deleteExpense, updateExpense };
