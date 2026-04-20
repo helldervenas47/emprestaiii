@@ -1540,6 +1540,7 @@ function LoanRowView({
   const openPaymentDialog = (type: "installment" | "interest" | "partial" | "full" | "payoff", amount?: number) => {
     setPaymentDate(new Date());
     setPayoffAmount("");
+    setInterestSelection("normal");
     setPaymentDialog({ type, amount });
   };
 
