@@ -207,12 +207,13 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
 
     // Juros previstos do período — porção de juros das parcelas com vencimento no período
     // Inclui TODOS os contratos (ativos, atrasados E quitados) — bruto, sem subtrair pagamentos.
-    const interestExpectedRecords: { borrowerName: string; dueDate: string; installmentNumber: number; totalInstallments: number; installmentAmount: number; interestPortion: number; loanStatus: string }[] = [];
+    const interestExpectedRecords: { borrowerName: string; dueDate: string; installmentNumber: number; totalInstallments: number; installmentAmount: number; interestPortion: number; loanStatus: string; paid: boolean }[] = [];
     const periodProfitExpected = loans.reduce((sum, loan) => {
       const totalWithInterest = calculateTotalWithInterest(loan.amount, loan.interestRate, loan.installments);
       const totalInterest = Math.max(0, totalWithInterest - loan.amount);
       if (totalInterest <= 0) return sum;
       const interestRatio = totalWithInterest > 0 ? 1 - (loan.amount / totalWithInterest) : 0;
+      const isInstallmentPaid = (n: number) => loan.status === "paid" || n <= (loan.paidInstallments || 0);
 
       if (loan.installments >= 2) {
         const interestPerInstallment = totalInterest / loan.installments;
@@ -224,11 +225,10 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
             .forEach((sc) => {
               const interest = sc.amount * interestRatio;
               acc += interest;
-              interestExpectedRecords.push({ borrowerName: loan.borrowerName, dueDate: sc.dueDate, installmentNumber: sc.installmentNumber, totalInstallments: loan.installments, installmentAmount: sc.amount, interestPortion: interest, loanStatus: loan.status });
+              interestExpectedRecords.push({ borrowerName: loan.borrowerName, dueDate: sc.dueDate, installmentNumber: sc.installmentNumber, totalInstallments: loan.installments, installmentAmount: sc.amount, interestPortion: interest, loanStatus: loan.status, paid: isInstallmentPaid(sc.installmentNumber) });
             });
           return sum + acc;
         }
-        // Sem schedules (ex.: contratos quitados antigos): gera datas virtuais a partir de dueDate (1ª parcela)
         if (!loan.dueDate) return sum;
         const baseDate = new Date(loan.dueDate + "T00:00:00");
         if (isNaN(baseDate.getTime())) return sum;
@@ -239,14 +239,14 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
           const dStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
           if (isInRange(dStr, range.start, range.end)) {
             acc += interestPerInstallment;
-            interestExpectedRecords.push({ borrowerName: loan.borrowerName, dueDate: dStr, installmentNumber: i + 1, totalInstallments: loan.installments, installmentAmount, interestPortion: interestPerInstallment, loanStatus: loan.status });
+            interestExpectedRecords.push({ borrowerName: loan.borrowerName, dueDate: dStr, installmentNumber: i + 1, totalInstallments: loan.installments, installmentAmount, interestPortion: interestPerInstallment, loanStatus: loan.status, paid: isInstallmentPaid(i + 1) });
           }
         }
         return sum + acc;
       }
       // Parcela única
       if (loan.dueDate && isInRange(loan.dueDate, range.start, range.end)) {
-        interestExpectedRecords.push({ borrowerName: loan.borrowerName, dueDate: loan.dueDate, installmentNumber: 1, totalInstallments: 1, installmentAmount: totalWithInterest, interestPortion: totalInterest, loanStatus: loan.status });
+        interestExpectedRecords.push({ borrowerName: loan.borrowerName, dueDate: loan.dueDate, installmentNumber: 1, totalInstallments: 1, installmentAmount: totalWithInterest, interestPortion: totalInterest, loanStatus: loan.status, paid: isInstallmentPaid(1) });
         return sum + totalInterest;
       }
       return sum;
