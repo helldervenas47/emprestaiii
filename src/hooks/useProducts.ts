@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Product, Sale, BusinessType, SalePaymentRecord } from "@/types/loan";
 import { useAuth } from "@/hooks/useAuth";
+import { notifyRemoteUpdate } from "@/lib/realtimeToast";
 
 
 export function useProducts(enabled = true) {
@@ -104,8 +105,8 @@ export function useProducts(enabled = true) {
     };
     const channel = supabase
       .channel(`products-sales-realtime-${user.id}-${Math.random().toString(36).slice(2, 8)}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'products' }, () => { fetchData(); })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'sales' }, () => { fetchData(); })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'products' }, () => { fetchData(); notifyRemoteUpdate('products'); })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'sales' }, () => { fetchData(); notifyRemoteUpdate('sales'); })
       .subscribe();
     return () => { supabase.removeChannel(channel); };
   }, [user, enabled]);

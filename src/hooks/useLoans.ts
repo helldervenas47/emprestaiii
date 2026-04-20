@@ -4,6 +4,7 @@ import { adjustBalance } from "@/lib/balance";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
 import { toast } from "sonner";
+import { notifyRemoteUpdate } from "@/lib/realtimeToast";
 
 export function useLoans() {
   const { user, dataOwnerId } = useAuth();
@@ -69,8 +70,8 @@ export function useLoans() {
     if (!user) return;
     const channel = supabase
       .channel(`loans-realtime-${user.id}-${Math.random().toString(36).slice(2)}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'loans' }, () => { fetchLoans(); })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'payments' }, () => { fetchPayments(); })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'loans' }, () => { fetchLoans(); notifyRemoteUpdate('loans'); })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'payments' }, () => { fetchPayments(); notifyRemoteUpdate('payments'); })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'loan_installments' }, () => { fetchSchedules(); })
       .subscribe();
     return () => { supabase.removeChannel(channel); };
