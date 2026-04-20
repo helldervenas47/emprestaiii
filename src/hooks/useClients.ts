@@ -2,6 +2,7 @@ import { useState, useCallback, useEffect } from "react";
 import { Client } from "@/types/loan";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
+import { notifyRemoteUpdate } from "@/lib/realtimeToast";
 
 export function useClients() {
   const { user, dataOwnerId } = useAuth();
@@ -34,7 +35,7 @@ export function useClients() {
     if (!user) return;
     const channel = supabase
       .channel(`clients-realtime-${user.id}-${Math.random().toString(36).slice(2, 8)}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'clients' }, () => { fetchClients(); })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'clients' }, () => { fetchClients(); notifyRemoteUpdate('clients'); })
       .subscribe();
     return () => { supabase.removeChannel(channel); };
   }, [user, fetchClients]);

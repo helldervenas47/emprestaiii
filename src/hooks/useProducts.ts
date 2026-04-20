@@ -104,8 +104,8 @@ export function useProducts(enabled = true) {
     };
     const channel = supabase
       .channel(`products-sales-realtime-${user.id}-${Math.random().toString(36).slice(2, 8)}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'products' }, () => { fetchData(); })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'sales' }, () => { fetchData(); })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'products' }, () => { fetchData(); notifyRemoteUpdate('products'); })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'sales' }, () => { fetchData(); notifyRemoteUpdate('sales'); })
       .subscribe();
     return () => { supabase.removeChannel(channel); };
   }, [user, enabled]);

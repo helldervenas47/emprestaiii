@@ -35,7 +35,7 @@ export function useExpenses(enabled = true) {
     if (!user || !enabled) return;
     const channel = supabase
       .channel(`expenses-realtime-${crypto.randomUUID()}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'expenses' }, () => { fetchExpenses(); })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'expenses' }, () => { fetchExpenses(); notifyRemoteUpdate('expenses'); })
       .subscribe();
     return () => { supabase.removeChannel(channel); };
   }, [user, fetchExpenses]);
