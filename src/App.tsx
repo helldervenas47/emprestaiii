@@ -5,6 +5,8 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { useAuth, AuthProvider } from "@/hooks/useAuth";
+import { useUserApproval } from "@/hooks/useUserApproval";
+import { PendingApprovalScreen } from "./components/PendingApprovalScreen";
 import PWAInstallPrompt from "./components/PWAInstallPrompt";
 import { BrandTitleSync } from "./components/BrandTitleSync";
 import { BrandFaviconSync } from "./components/BrandFaviconSync";
@@ -44,8 +46,11 @@ const PageLoader = () => (
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
-  if (loading) return <PageLoader />;
+  const { status, loading: approvalLoading } = useUserApproval();
+  if (loading || approvalLoading) return <PageLoader />;
   if (!user) return <Navigate to="/auth" replace />;
+  if (status === "pending") return <PendingApprovalScreen />;
+  if (status === "rejected") return <PendingApprovalScreen rejected />;
   return <>{children}</>;
 }
 

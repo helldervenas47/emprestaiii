@@ -1,31 +1,54 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable/index";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Mail, Lock, User, Eye, EyeOff, ArrowLeft } from "lucide-react";
+import { Mail, Lock, User, Eye, EyeOff, ArrowLeft, Loader2, CheckCircle2, AlertCircle } from "lucide-react";
 import { AppLogo } from "@/components/AppLogo";
 import { useAppBranding } from "@/hooks/useAppBranding";
+import { validateInviteCode } from "@/hooks/useInviteCodes";
 import { toast } from "sonner";
 
 const Cadastro = () => {
   const [searchParams] = useSearchParams();
   const planName = searchParams.get("plan") || "";
+  const inviteCode = searchParams.get("invite") || "";
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [displayName, setDisplayName] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
+  const [inviteState, setInviteState] = useState<{ checking: boolean; valid: boolean; owner_id?: string; require_approval?: boolean; reason?: string }>({ checking: !!inviteCode, valid: false });
   const navigate = useNavigate();
   const { branding } = useAppBranding();
   const brandName = branding.brand_name;
 
+  // Validate invite code on mount
+  useEffect(() => {
+    if (!inviteCode) {
+      setInviteState({ checking: false, valid: false });
+      return;
+    }
+    (async () => {
+      const result = await validateInviteCode(inviteCode);
+      setInviteState({ checking: false, ...result });
+    })();
+  }, [inviteCode]);
+
   const handleGoogleSignup = async () => {
+    if (inviteCode && !inviteState.valid) {
+      toast.error("Código de convite inválido");
+      return;
+    }
     setGoogleLoading(true);
     try {
+      // Store invite context so we can apply it after OAuth redirect
+      if (inviteCode && inviteState.valid) {
+        sessionStorage.setItem("pending_invite_code", inviteCode);
+      }
       const result = await lovable.auth.signInWithOAuth("google", {
         redirect_uri: window.location.origin,
       });
@@ -39,14 +62,55 @@ const Cadastro = () => {
     }
   };
 
+  const applyInviteAfterSignup = async (userId: string) => {
+    if (!inviteCode || !inviteState.valid || !inviteState.owner_id) return;
+
+    if (inviteState.require_approval) {
+      // Create pending approval entry
+      await (supabase as any).from("user_approvals").insert({
+        user_id: userId,
+        owner_id: inviteState.owner_id,
+        status: "pending",
+        email,
+        display_name: displayName,
+        invite_code: inviteCode,
+      });
+    } else {
+      // Auto-link as sub-user with default viewer role
+      await (supabase as any).from("user_owner").upsert(
+        { user_id: userId, owner_id: inviteState.owner_id },
+        { onConflict: "user_id" },
+      );
+      await supabase.from("user_roles").insert({ user_id: userId, role: "visualizador" as any });
+    }
+
+    // Increment code usage (best-effort, non-blocking)
+    await (supabase as any).rpc("noop").catch(() => {});
+    const { data: current } = await (supabase as any)
+      .from("invite_codes")
+      .select("uses_count")
+      .eq("code", inviteCode)
+      .maybeSingle();
+    if (current) {
+      await (supabase as any)
+        .from("invite_codes")
+        .update({ uses_count: (current.uses_count || 0) + 1 })
+        .eq("code", inviteCode);
+    }
+  };
+
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
     if (password.length < 6) {
       toast.error("A senha deve ter pelo menos 6 caracteres");
       return;
     }
+    if (inviteCode && !inviteState.valid) {
+      toast.error("Código de convite inválido");
+      return;
+    }
     setLoading(true);
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
@@ -54,13 +118,24 @@ const Cadastro = () => {
         emailRedirectTo: window.location.origin,
       },
     });
-    setLoading(false);
     if (error) {
+      setLoading(false);
       toast.error(error.message);
-    } else {
-      toast.success("Conta criada! Verifique seu email para confirmar o cadastro.");
-      navigate("/auth");
+      return;
     }
+
+    // Apply invite (approval or direct link)
+    if (data.user) {
+      await applyInviteAfterSignup(data.user.id);
+    }
+
+    setLoading(false);
+    if (inviteCode && inviteState.require_approval) {
+      toast.success("Cadastro enviado para aprovação do administrador!");
+    } else {
+      toast.success("Conta criada! Verifique seu email para confirmar.");
+    }
+    navigate("/auth");
   };
 
   return (
@@ -75,6 +150,29 @@ const Cadastro = () => {
             Crie sua conta{planName ? ` — Plano ${planName}` : ""}
           </p>
         </div>
+
+        {inviteCode && (
+          <div className={`rounded-lg border p-3 text-sm flex items-start gap-2 ${
+            inviteState.checking ? "border-border bg-muted/50" :
+            inviteState.valid ? "border-success/40 bg-success/5" : "border-destructive/40 bg-destructive/5"
+          }`}>
+            {inviteState.checking ? (
+              <><Loader2 className="h-4 w-4 animate-spin mt-0.5" /><span>Validando convite…</span></>
+            ) : inviteState.valid ? (
+              <><CheckCircle2 className="h-4 w-4 mt-0.5 text-success" />
+                <span>
+                  Convite válido. {inviteState.require_approval
+                    ? "Seu cadastro ficará pendente até aprovação do administrador."
+                    : "Você terá acesso imediato após o cadastro."}
+                </span>
+              </>
+            ) : (
+              <><AlertCircle className="h-4 w-4 mt-0.5 text-destructive" />
+                <span>Convite inválido: {inviteState.reason || "código não aceito"}</span>
+              </>
+            )}
+          </div>
+        )}
 
         <form onSubmit={handleSignup} className="space-y-5">
           <div className="space-y-2">
@@ -109,7 +207,7 @@ const Cadastro = () => {
               </button>
             </div>
           </div>
-          <Button type="submit" className="w-full h-12 rounded-xl text-base font-semibold" disabled={loading}>
+          <Button type="submit" className="w-full h-12 rounded-xl text-base font-semibold" disabled={loading || (!!inviteCode && !inviteState.valid)}>
             {loading ? "Aguarde..." : "Criar conta"}
           </Button>
         </form>
@@ -127,7 +225,7 @@ const Cadastro = () => {
           variant="outline"
           className="w-full h-12 rounded-xl text-base font-medium gap-3 border-input hover:bg-gradient-to-r hover:from-[#4285F4] hover:via-[#34A853] hover:via-[#FBBC05] hover:to-[#EA4335] hover:text-white hover:border-transparent hover:shadow-lg transition-all duration-300"
           onClick={handleGoogleSignup}
-          disabled={googleLoading}
+          disabled={googleLoading || (!!inviteCode && !inviteState.valid)}
         >
           <svg className="h-5 w-5" viewBox="0 0 24 24">
             <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="currentColor"/>
