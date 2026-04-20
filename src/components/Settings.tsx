@@ -4,8 +4,9 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Switch } from "@/components/ui/switch";
-import { Bell, Send, Webhook, MessageSquare, CreditCard, Users as UsersIcon, DatabaseBackup, User as UserIcon, Sun, Moon, Eye, EyeOff, Trash2, Loader2, BarChart3, Sparkles, Image as ImageIcon } from "lucide-react";
+import { Bell, Send, Webhook, MessageSquare, CreditCard, Users as UsersIcon, DatabaseBackup, User as UserIcon, Sun, Moon, Eye, EyeOff, Trash2, Loader2, BarChart3, Sparkles, Image as ImageIcon, LogOut } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
 import { useHideValues } from "@/contexts/HideValuesContext";
 import { useNavigate } from "react-router-dom";
 import { useSubscription } from "@/hooks/useSubscription";
@@ -47,7 +48,22 @@ export function Settings({ backup, locadores, onSaveLocador, onRemoveLocador, is
   const { subscription, isActive } = useSubscription();
   const [clearing, setClearing] = useState(false);
   const [confirmClear, setConfirmClear] = useState(false);
+  const [confirmGlobalSignOut, setConfirmGlobalSignOut] = useState(false);
+  const [signingOutGlobal, setSigningOutGlobal] = useState(false);
   const isAdmin = role === "admin";
+
+  const handleGlobalSignOut = async () => {
+    setSigningOutGlobal(true);
+    try {
+      const { error } = await supabase.auth.signOut({ scope: "global" });
+      if (error) throw error;
+      toast.success("Sessão encerrada em todos os dispositivos.");
+      setTimeout(() => navigate("/auth", { replace: true }), 400);
+    } catch (e: any) {
+      toast.error("Falha ao encerrar sessões: " + (e?.message || "erro desconhecido"));
+      setSigningOutGlobal(false);
+    }
+  };
 
   const planLabel = isActive && subscription
     ? subscription.product_id === "basico_plan" ? "Básico"
@@ -284,12 +300,47 @@ export function Settings({ backup, locadores, onSaveLocador, onRemoveLocador, is
         </CardContent>
       </Card>
 
+      {/* Segurança da conta */}
+      <Card className="border-destructive/30">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-base">
+            <LogOut className="h-4 w-4 text-destructive" /> Segurança da conta
+          </CardTitle>
+          <CardDescription>
+            Encerre a sessão em todos os dispositivos onde você está logado. Útil em caso de perda, roubo
+            ou suspeita de acesso não autorizado.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Button
+            variant="destructive"
+            onClick={() => setConfirmGlobalSignOut(true)}
+            disabled={signingOutGlobal}
+            size="sm"
+          >
+            {signingOutGlobal ? (
+              <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Encerrando…</>
+            ) : (
+              <><LogOut className="h-4 w-4 mr-2" /> Sair de todos os dispositivos</>
+            )}
+          </Button>
+        </CardContent>
+      </Card>
+
       <ConfirmDeleteDialog
         open={confirmClear}
         onOpenChange={setConfirmClear}
         title="Limpar cache do navegador"
         description="O app vai recarregar para baixar a versão mais recente. Seus dados e login serão preservados."
         onConfirm={handleClearCache}
+      />
+
+      <ConfirmDeleteDialog
+        open={confirmGlobalSignOut}
+        onOpenChange={setConfirmGlobalSignOut}
+        title="Sair de todos os dispositivos"
+        description="Você será deslogado em todos os celulares, tablets e computadores onde está logado. Será necessário entrar novamente em cada um."
+        onConfirm={handleGlobalSignOut}
       />
     </div>
   );
