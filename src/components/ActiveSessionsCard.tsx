@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Monitor, Smartphone, Tablet, Loader2, RefreshCw, LogOut, Globe } from "lucide-react";
+import { Monitor, Smartphone, Tablet, Loader2, RefreshCw, LogOut, Globe, MapPin } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
@@ -156,6 +156,12 @@ export function ActiveSessionsCard() {
                         {browser}
                         {s.ip ? ` · ${s.ip}` : ""}
                       </p>
+                      {s.geo && (s.geo.city || s.geo.country) && (
+                        <p className="text-xs text-muted-foreground mt-0.5 flex items-center gap-1">
+                          <MapPin className="h-3 w-3" />
+                          {[s.geo.city, s.geo.region, s.geo.country].filter(Boolean).join(", ")}
+                        </p>
+                      )}
                       <p className="text-xs text-muted-foreground mt-0.5">
                         Último acesso: {formatDate(s.updated_at || s.created_at)}
                       </p>
