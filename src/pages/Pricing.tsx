@@ -120,7 +120,7 @@ const Pricing = () => {
       <PaymentTestModeBanner />
 
       {/* Header */}
-      <header className="border-b border-border/30 backdrop-blur-sm bg-background/80 sticky top-0 z-50">
+      <header className="border-b border-border/30 backdrop-blur-sm bg-background/80 sticky top-0 z-50 pt-safe">
         <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
           <button onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })} className="flex items-center gap-2">
             <img src={logoIcon} alt="EmprestAI" className="h-9 w-9 rounded-xl" width={36} height={36} />

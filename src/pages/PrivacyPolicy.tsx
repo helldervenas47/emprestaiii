@@ -8,7 +8,7 @@ const PrivacyPolicy = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <header className="border-b border-border/30 backdrop-blur-sm bg-background/80 sticky top-0 z-50">
+      <header className="border-b border-border/30 backdrop-blur-sm bg-background/80 sticky top-0 z-50 pt-safe">
         <div className="max-w-4xl mx-auto px-6 h-16 flex items-center gap-4">
           <Button variant="ghost" size="icon" onClick={() => navigate("/planos")}>
             <ArrowLeft className="h-5 w-5" />

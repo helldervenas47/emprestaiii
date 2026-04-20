@@ -146,7 +146,7 @@ const Cadastro = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background flex flex-col items-center justify-center px-6 py-8">
+    <div className="min-h-screen bg-background flex flex-col items-center justify-center px-6 py-8 pt-safe">
       <div className="w-full max-w-sm space-y-6">
         <div className="text-center space-y-2">
           <div className="mx-auto rounded-2xl overflow-hidden flex items-center justify-center">
