@@ -300,12 +300,47 @@ export function Settings({ backup, locadores, onSaveLocador, onRemoveLocador, is
         </CardContent>
       </Card>
 
+      {/* Segurança da conta */}
+      <Card className="border-destructive/30">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-base">
+            <LogOut className="h-4 w-4 text-destructive" /> Segurança da conta
+          </CardTitle>
+          <CardDescription>
+            Encerre a sessão em todos os dispositivos onde você está logado. Útil em caso de perda, roubo
+            ou suspeita de acesso não autorizado.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Button
+            variant="destructive"
+            onClick={() => setConfirmGlobalSignOut(true)}
+            disabled={signingOutGlobal}
+            size="sm"
+          >
+            {signingOutGlobal ? (
+              <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Encerrando…</>
+            ) : (
+              <><LogOut className="h-4 w-4 mr-2" /> Sair de todos os dispositivos</>
+            )}
+          </Button>
+        </CardContent>
+      </Card>
+
       <ConfirmDeleteDialog
         open={confirmClear}
         onOpenChange={setConfirmClear}
         title="Limpar cache do navegador"
         description="O app vai recarregar para baixar a versão mais recente. Seus dados e login serão preservados."
         onConfirm={handleClearCache}
+      />
+
+      <ConfirmDeleteDialog
+        open={confirmGlobalSignOut}
+        onOpenChange={setConfirmGlobalSignOut}
+        title="Sair de todos os dispositivos"
+        description="Você será deslogado em todos os celulares, tablets e computadores onde está logado. Será necessário entrar novamente em cada um."
+        onConfirm={handleGlobalSignOut}
       />
     </div>
   );
