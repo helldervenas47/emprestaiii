@@ -1447,8 +1447,8 @@ export function ProductSalesView({ sales, onDeleteSale, onUpdateSale, clients = 
   const now = new Date();
   const [selectedMonth, setSelectedMonth] = useState(`${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`);
 
-  // Filter vehicle-related expenses
-  const vehicleExpenses = expenses.filter(e => vehicleExpenseCategories.includes(e.category));
+  // All vehicle-related expenses (used for "Limpar Pagamentos" actions)
+  const allVehicleExpenses = expenses.filter(e => vehicleExpenseCategories.includes(e.category));
 
   // Monthly vehicle expenses - consider installment due dates
   const [selYear, selMonthNum] = selectedMonth.split("-").map(Number);
@@ -1457,25 +1457,29 @@ export function ProductSalesView({ sales, onDeleteSale, onUpdateSale, clients = 
   const monthStartStr = format(monthStart, "yyyy-MM-dd");
   const monthEndStr = format(monthEnd, "yyyy-MM-dd");
 
-  // For recurring expenses, calculate which installments fall in the selected month
+  // Filter expenses that have at least one due date inside the selected month
+  // (considers recurring installments). Sum monthly total in the same pass.
   let monthlyTotal = 0;
-  vehicleExpenses.forEach(exp => {
+  const vehicleExpenses = allVehicleExpenses.filter(exp => {
     const isRecorrente = exp.type === "recorrente" && exp.installments && exp.installments > 1;
     if (isRecorrente) {
       const baseDate = new Date(exp.dueDate + "T00:00:00");
       const installmentAmount = exp.amount / exp.installments!;
+      let hit = false;
       for (let i = 0; i < exp.installments!; i++) {
-        const instDate = addMonths(baseDate, i);
-        const instDateStr = format(instDate, "yyyy-MM-dd");
+        const instDateStr = format(addMonths(baseDate, i), "yyyy-MM-dd");
         if (instDateStr >= monthStartStr && instDateStr <= monthEndStr) {
           monthlyTotal += installmentAmount;
+          hit = true;
         }
       }
-    } else {
-      if (exp.dueDate >= monthStartStr && exp.dueDate <= monthEndStr) {
-        monthlyTotal += exp.amount;
-      }
+      return hit;
     }
+    if (exp.dueDate >= monthStartStr && exp.dueDate <= monthEndStr) {
+      monthlyTotal += exp.amount;
+      return true;
+    }
+    return false;
   });
 
   // Generate month options (last 12 months + current)
