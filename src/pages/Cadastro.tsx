@@ -75,6 +75,13 @@ const Cadastro = () => {
         display_name: displayName,
         invite_code: inviteCode,
       });
+
+      // Notify admin via Telegram (best-effort, non-blocking)
+      supabase.functions
+        .invoke("notify-approval-request", {
+          body: { owner_id: inviteState.owner_id, display_name: displayName, email },
+        })
+        .catch(() => {});
     } else {
       // Auto-link as sub-user with default viewer role
       await (supabase as any).from("user_owner").upsert(
