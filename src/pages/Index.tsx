@@ -50,6 +50,7 @@ const Settings = lazy(() => import("@/components/Settings").then(m => ({ default
 // Direct import for the constant used at render time
 import { vehicleExpenseCategories } from "@/components/VehicleExpenseForm";
 import { PushNotificationToggle } from "@/components/PushNotificationToggle";
+import { ApprovalRequestsButton } from "@/components/ApprovalRequestsButton";
 
 // Prefetch most-used chunks after idle
 const prefetchChunks = () => {
@@ -501,6 +502,7 @@ const Index = () => {
               <RefreshCw className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`} />
             </Button>
             <HideValuesToggle />
+            {role === "admin" && <ApprovalRequestsButton />}
             <Button variant="ghost" size="icon" onClick={toggleTheme} className="h-8 w-8 sm:h-9 sm:w-9" title={dark ? "Modo claro" : "Modo escuro"}>
               {dark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
             </Button>
