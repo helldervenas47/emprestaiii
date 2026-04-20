@@ -1893,6 +1893,18 @@ export function ProductSalesView({ sales, onDeleteSale, onUpdateSale, clients = 
                         }}
                         formatCurrency={formatCurrency}
                       />
+
+                      {/* Dialog de pagamento (data + valor pago) */}
+                      <VehiclePayExpenseDialog
+                        expense={exp}
+                        open={payingExpenseId === exp.id}
+                        onOpenChange={(open) => { if (!open) setPayingExpenseId(null); }}
+                        onConfirm={(payDate, paidAmount) => {
+                          handleVehiclePayExpense(exp.id, payDate, paidAmount);
+                          setPayingExpenseId(null);
+                        }}
+                        formatCurrency={formatCurrency}
+                      />
                     </Card>
                   );
                 })}
@@ -1901,6 +1913,18 @@ export function ProductSalesView({ sales, onDeleteSale, onUpdateSale, clients = 
           </div>
         )}
 
+        <ConfirmDeleteDialog
+          open={!!deleteExpenseId}
+          onOpenChange={() => setDeleteExpenseId(null)}
+          onConfirm={() => {
+            if (deleteExpenseId) {
+              handleVehicleDeleteExpense(deleteExpenseId);
+              setDeleteExpenseId(null);
+            }
+          }}
+          title="Excluir despesa"
+          description="Tem certeza que deseja excluir esta despesa? Se ela já estava paga, o valor será devolvido ao saldo da conta."
+        />
       </div>
     );
   }
