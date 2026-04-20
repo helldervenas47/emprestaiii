@@ -5,6 +5,37 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
 import { toast } from "sonner";
 import { notifyRemoteUpdate } from "@/lib/realtimeToast";
+import {
+  cacheRows, getCachedRows, upsertCachedRow, removeCachedRow,
+  enqueueMutation, rewritePendingRecordId,
+} from "@/lib/offline/sync";
+import { isOnline } from "@/lib/offline/status";
+
+function rowToLoan(l: any): Loan {
+  return {
+    id: l.id, borrowerName: l.borrower_name, borrowerId: l.borrower_id,
+    amount: Number(l.amount), interestRate: Number(l.interest_rate),
+    interestType: l.interest_type, paymentType: l.payment_type,
+    startDate: l.start_date, dueDate: l.due_date, installments: l.installments,
+    paidInstallments: l.paid_installments, status: l.status as Loan["status"],
+    remainingAmount: l.remaining_amount != null ? Number(l.remaining_amount) : undefined,
+    customInstallmentValue: l.custom_installment_value != null ? Number(l.custom_installment_value) : null,
+    customInterestValue: l.custom_interest_value != null ? Number(l.custom_interest_value) : null,
+    tags: l.tags, notes: l.notes, createdAt: l.created_at,
+    lateInterestType: l.late_interest_type, lateInterestValue: l.late_interest_value != null ? Number(l.late_interest_value) : null,
+    penaltyValue: l.penalty_value != null ? Number(l.penalty_value) : null,
+    hasManager: l.has_manager ?? false,
+    managerId: l.manager_id ?? null,
+    managerCommissionRate: l.manager_commission_rate != null ? Number(l.manager_commission_rate) : 10,
+  };
+}
+
+function rowToPayment(p: any): Payment {
+  return {
+    id: p.id, loanId: p.loan_id, amount: Number(p.amount), date: p.date,
+    installmentNumber: p.installment_number, previousDueDate: p.previous_due_date,
+  };
+}
 
 export function useLoans() {
   const { user, dataOwnerId } = useAuth();
