@@ -74,7 +74,7 @@ export function PendingSyncCard() {
 
         {count === 0 && online && (
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <CheckCircle2 className="h-4 w-4 text-green-600" />
+            <CheckCircle2 className="h-4 w-4 text-primary" />
             Tudo sincronizado.
           </div>
         )}

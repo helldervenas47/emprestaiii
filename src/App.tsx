@@ -8,6 +8,10 @@ import { useAuth, AuthProvider } from "@/hooks/useAuth";
 import PWAInstallPrompt from "./components/PWAInstallPrompt";
 import { BrandTitleSync } from "./components/BrandTitleSync";
 import { BrandFaviconSync } from "./components/BrandFaviconSync";
+import { OfflineBadge } from "./components/OfflineBadge";
+import { wireAutoSync } from "./lib/offline/sync";
+
+wireAutoSync();
 
 const Index = lazy(() => import("./pages/Index.tsx"));
 const Auth = lazy(() => import("./pages/Auth.tsx"));
