@@ -69,9 +69,40 @@ Deno.serve(async (req) => {
         );
       }
 
+      // Geolocate IPs in parallel via ip-api.com (free, no key, pt-BR)
+      const lookupGeo = async (ip: string | null) => {
+        if (!ip) return null;
+        // Skip private/loopback IPs
+        if (
+          /^(10\.|127\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.|::1|fc|fd)/i.test(ip)
+        ) return null;
+        try {
+          const ctrl = new AbortController();
+          const t = setTimeout(() => ctrl.abort(), 2500);
+          const res = await fetch(
+            `http://ip-api.com/json/${encodeURIComponent(ip)}?fields=status,country,city,regionName&lang=pt-BR`,
+            { signal: ctrl.signal },
+          );
+          clearTimeout(t);
+          if (!res.ok) return null;
+          const j = await res.json();
+          if (j?.status !== "success") return null;
+          return { city: j.city ?? null, region: j.regionName ?? null, country: j.country ?? null };
+        } catch {
+          return null;
+        }
+      };
+
+      const enriched = await Promise.all(
+        (sessions ?? []).map(async (s: any) => ({
+          ...s,
+          geo: await lookupGeo(s.ip),
+        })),
+      );
+
       return new Response(
         JSON.stringify({
-          sessions: sessions ?? [],
+          sessions: enriched,
           current_session_id: currentSessionId ?? null,
         }),
         {
