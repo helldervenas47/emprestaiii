@@ -485,6 +485,25 @@ export function useLoans() {
       adjustBalance(interestAmount),
     ]);
 
+    // If paying interest + late fees, record the fees as a separate payment entry for traceability
+    if (feesExtra > 0) {
+      const feesPaymentId = crypto.randomUUID();
+      const feesPayload = {
+        id: feesPaymentId,
+        user_id: dataOwnerId, loan_id: loanId, amount: feesExtra,
+        date: dateStr, installment_number: -2, previous_due_date: loan.dueDate,
+      };
+      setPayments((prev) => [
+        { id: feesPaymentId, loanId, amount: feesExtra, date: dateStr, installmentNumber: -2, previousDueDate: loan.dueDate },
+        ...prev,
+      ]);
+      await upsertCachedRow("payments", { ...feesPayload, created_at: new Date().toISOString() });
+      await Promise.all([
+        supabase.from("payments").insert(feesPayload as any),
+        adjustBalance(feesExtra),
+      ]);
+    }
+
     // Manager commission on interest payments — 10% of ORIGINAL loan amount, isolated
     if (loan.hasManager && loan.managerId && loan.status !== "paid") {
       const rate = loan.managerCommissionRate ?? 10;
