@@ -11,6 +11,7 @@ import { Calendar as CalendarUI } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
 import { ChevronLeft, ChevronRight, CalendarDays, User, DollarSign, CheckCircle, Percent, HandCoins, ChevronDown, ChevronUp, Calendar as CalendarIcon } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { getDueStatusBadge } from "@/lib/dueStatus";
 
 interface Props {
   loans: Loan[];
@@ -261,12 +262,17 @@ export function BillingCalendar({ loans, payments, installmentSchedules, onPayme
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <div className="text-right">
-              <p className={`text-sm font-bold ${amountColor}`}>{formatCurrency(installment)}</p>
-              <Badge variant={isOverdue ? "destructive" : "outline"} className={`text-[10px] ${!isOverdue ? `text-warning border-warning` : ""}`}>
-                {isOverdue ? "Atrasado" : "A vencer"}
-              </Badge>
-            </div>
+            {(() => {
+              const badge = getDueStatusBadge(item.date, item.paid, { overdue: "Atrasado" });
+              return (
+                <div className="text-right">
+                  <p className={`text-sm font-bold ${amountColor}`}>{formatCurrency(installment)}</p>
+                  <Badge variant={badge.variant} className={`text-[10px] ${badge.className}`}>
+                    {badge.label}
+                  </Badge>
+                </div>
+              );
+            })()}
             {isExpanded ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
           </div>
         </button>
