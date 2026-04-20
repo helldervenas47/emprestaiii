@@ -14,6 +14,7 @@ interface SessionItem {
   user_agent: string | null;
   ip: string | null;
   not_after: string | null;
+  geo?: { city: string | null; region: string | null; country: string | null } | null;
 }
 
 function detectDevice(ua: string | null): { icon: typeof Monitor; label: string } {
