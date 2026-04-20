@@ -469,6 +469,21 @@ export function useLoans() {
       await enqueueMutation({ table: "payments", op: "insert", recordId: tempPaymentId, payload: paymentPayload });
       await enqueueMutation({ table: "loans", op: "update", recordId: loanId, payload: loanUpdate });
       await adjustBalanceOffline(interestAmount);
+      if (feesExtra > 0) {
+        const feesPaymentId = crypto.randomUUID();
+        const feesPayload = {
+          id: feesPaymentId,
+          user_id: dataOwnerId, loan_id: loanId, amount: feesExtra,
+          date: dateStr, installment_number: -2, previous_due_date: loan.dueDate,
+        };
+        setPayments((prev) => [
+          { id: feesPaymentId, loanId, amount: feesExtra, date: dateStr, installmentNumber: -2, previousDueDate: loan.dueDate },
+          ...prev,
+        ]);
+        await upsertCachedRow("payments", { ...feesPayload, created_at: new Date().toISOString() });
+        await enqueueMutation({ table: "payments", op: "insert", recordId: feesPaymentId, payload: feesPayload });
+        await adjustBalanceOffline(feesExtra);
+      }
       return;
     }
 
