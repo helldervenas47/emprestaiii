@@ -4,6 +4,23 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
 import { extractPiggyId } from "./usePiggyBanks";
 import { notifyRemoteUpdate } from "@/lib/realtimeToast";
+import {
+  cacheRows, getCachedRows, upsertCachedRow, removeCachedRow,
+  enqueueMutation, rewritePendingRecordId,
+} from "@/lib/offline/sync";
+import { isOnline } from "@/lib/offline/status";
+
+function rowToExpense(e: any): Expense {
+  return {
+    id: e.id, description: e.description, amount: Number(e.amount),
+    type: e.type as "fixa" | "recorrente", category: e.category,
+    installments: e.installments, paidInstallments: e.paid_installments,
+    dueDate: e.due_date, paid: e.paid, paidDate: e.paid_date,
+    notes: e.notes, createdAt: e.created_at,
+    parentExpenseId: e.parent_expense_id ?? undefined,
+    scope: (e.scope as "business" | "personal") ?? "business",
+  };
+}
 
 export function useExpenses(enabled = true) {
   const { user, dataOwnerId } = useAuth();
