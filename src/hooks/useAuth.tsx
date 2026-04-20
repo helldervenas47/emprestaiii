@@ -79,12 +79,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     ]);
   };
 
+  const clearUserState = () => {
+    setRole(null);
+    setDataOwnerId(null);
+    setAllowedTabs(null);
+    setLinkedClientIds(null);
+  };
+
   useEffect(() => {
     let mounted = true;
     let hydratedForUserId: string | null = null;
 
     const doHydrate = async (userId: string, showLoading: boolean) => {
-      // Only skip if we already hydrated for THIS exact user id
       if (hydratedForUserId === userId) return;
       hydratedForUserId = userId;
       if (showLoading) setLoading(true);
@@ -92,56 +98,83 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (mounted) setLoading(false);
     };
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, nextSession) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, nextSession) => {
       if (!mounted) return;
+
+      // Graceful handling of refresh token failures: clear local state only,
+      // do NOT call signOut() globally — that would invalidate other devices.
+      if (event === "TOKEN_REFRESHED" && !nextSession) {
+        setSession(null);
+        setUser(null);
+        hydratedForUserId = null;
+        clearUserState();
+        setLoading(false);
+        return;
+      }
 
       setSession(nextSession);
       setUser(nextSession?.user ?? null);
 
       if (nextSession?.user) {
-        sessionStorage.setItem("hvcred_session", "1");
-
-        if (_event === "SIGNED_IN" || _event === "INITIAL_SESSION") {
+        if (event === "SIGNED_IN" || event === "INITIAL_SESSION" || event === "USER_UPDATED") {
+          // Defer to avoid deadlock with onAuthStateChange
           setTimeout(() => {
             if (!mounted) return;
-            doHydrate(nextSession.user.id, _event === "SIGNED_IN");
+            doHydrate(nextSession.user.id, event === "SIGNED_IN");
           }, 0);
         }
-        // TOKEN_REFRESHED: no re-hydrate needed
+        // TOKEN_REFRESHED with valid session: no re-hydrate needed
       } else {
-        sessionStorage.removeItem("hvcred_session");
         hydratedForUserId = null;
-        setRole(null);
-        setDataOwnerId(null);
-        setAllowedTabs(null);
-        setLinkedClientIds(null);
+        clearUserState();
         setLoading(false);
       }
     });
 
+    // Initial session check — trust localStorage (Supabase manages it).
+    // Each device has its own refresh token, so multiple devices can stay logged in.
     supabase.auth.getSession().then(async ({ data: { session: currentSession } }) => {
       if (!mounted) return;
 
-      if (currentSession && sessionStorage.getItem("hvcred_session")) {
+      if (currentSession) {
         setSession(currentSession);
         setUser(currentSession.user);
         await doHydrate(currentSession.user.id, false);
-      } else if (!sessionStorage.getItem("hvcred_session")) {
-        await supabase.auth.signOut();
       }
 
       if (mounted) setLoading(false);
     });
 
+    // Cross-tab sync: when auth changes in another tab of the same browser,
+    // Supabase updates localStorage. Listen and refresh our state.
+    const onStorage = (e: StorageEvent) => {
+      if (!mounted) return;
+      if (e.key && e.key.includes("auth-token")) {
+        supabase.auth.getSession().then(({ data: { session: s } }) => {
+          if (!mounted) return;
+          setSession(s);
+          setUser(s?.user ?? null);
+          if (s?.user) {
+            doHydrate(s.user.id, false);
+          } else {
+            hydratedForUserId = null;
+            clearUserState();
+          }
+        });
+      }
+    };
+    window.addEventListener("storage", onStorage);
+
     return () => {
       mounted = false;
       subscription.unsubscribe();
+      window.removeEventListener("storage", onStorage);
     };
   }, []);
 
   const signOut = async () => {
-    sessionStorage.removeItem("hvcred_session");
-    await supabase.auth.signOut();
+    // scope: 'local' ensures other devices remain logged in
+    await supabase.auth.signOut({ scope: "local" });
   };
 
   return (
@@ -156,4 +189,3 @@ export function useAuth() {
   if (!ctx) throw new Error("useAuth must be used within AuthProvider");
   return ctx;
 }
-
