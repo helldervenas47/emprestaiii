@@ -79,6 +79,8 @@ Deno.serve(async (req) => {
             city: j.city ?? null,
             region: j.regionName ?? null,
             country: j.country ?? null,
+            lat: typeof j.lat === "number" ? j.lat : null,
+            lon: typeof j.lon === "number" ? j.lon : null,
           };
         } catch {
           return null;
