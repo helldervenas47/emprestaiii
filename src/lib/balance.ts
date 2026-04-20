@@ -47,3 +47,22 @@ export async function adjustBalance(delta: number) {
   const current = await getBalance();
   await setBalance(current + delta);
 }
+
+/**
+ * Offline-aware balance adjust. If offline (or server fails), the delta is
+ * stored locally and applied once the connection is restored.
+ */
+export async function adjustBalanceOffline(delta: number) {
+  if (!delta) return;
+  const { isOnline } = await import("@/lib/offline/status");
+  const { enqueueBalanceAdjust } = await import("@/lib/offline/sync");
+  if (!isOnline()) {
+    await enqueueBalanceAdjust(delta);
+    return;
+  }
+  try {
+    await adjustBalance(delta);
+  } catch {
+    await enqueueBalanceAdjust(delta);
+  }
+}
