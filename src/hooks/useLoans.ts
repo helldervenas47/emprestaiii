@@ -432,7 +432,7 @@ export function useLoans() {
     await fetchLoans();
   }, [user, dataOwnerId, loans, payments, fetchLoans, fetchPayments]);
 
-  const addInterestOnlyPayment = useCallback(async (loanId: string, paymentDate?: string, customAmount?: number) => {
+  const addInterestOnlyPayment = useCallback(async (loanId: string, paymentDate?: string, customAmount?: number, feesAmount?: number) => {
     if (!user || !dataOwnerId) return;
     const loan = loans.find((l) => l.id === loanId);
     if (!loan) return;
@@ -441,6 +441,7 @@ export function useLoans() {
       ? loan.customInterestValue
       : loan.amount * (loan.interestRate / 100);
     const interestAmount = customAmount != null && customAmount > 0 ? customAmount : baseInterest;
+    const feesExtra = feesAmount != null && feesAmount > 0 ? feesAmount : 0;
     const currentDue = new Date(loan.dueDate + "T00:00:00");
     const freq = loan.interestType || "Mensal";
     if (freq === "Semanal") currentDue.setDate(currentDue.getDate() + 7);
@@ -468,6 +469,21 @@ export function useLoans() {
       await enqueueMutation({ table: "payments", op: "insert", recordId: tempPaymentId, payload: paymentPayload });
       await enqueueMutation({ table: "loans", op: "update", recordId: loanId, payload: loanUpdate });
       await adjustBalanceOffline(interestAmount);
+      if (feesExtra > 0) {
+        const feesPaymentId = crypto.randomUUID();
+        const feesPayload = {
+          id: feesPaymentId,
+          user_id: dataOwnerId, loan_id: loanId, amount: feesExtra,
+          date: dateStr, installment_number: -2, previous_due_date: loan.dueDate,
+        };
+        setPayments((prev) => [
+          { id: feesPaymentId, loanId, amount: feesExtra, date: dateStr, installmentNumber: -2, previousDueDate: loan.dueDate },
+          ...prev,
+        ]);
+        await upsertCachedRow("payments", { ...feesPayload, created_at: new Date().toISOString() });
+        await enqueueMutation({ table: "payments", op: "insert", recordId: feesPaymentId, payload: feesPayload });
+        await adjustBalanceOffline(feesExtra);
+      }
       return;
     }
 
@@ -483,6 +499,25 @@ export function useLoans() {
       scheduleUpdate,
       adjustBalance(interestAmount),
     ]);
+
+    // If paying interest + late fees, record the fees as a separate payment entry for traceability
+    if (feesExtra > 0) {
+      const feesPaymentId = crypto.randomUUID();
+      const feesPayload = {
+        id: feesPaymentId,
+        user_id: dataOwnerId, loan_id: loanId, amount: feesExtra,
+        date: dateStr, installment_number: -2, previous_due_date: loan.dueDate,
+      };
+      setPayments((prev) => [
+        { id: feesPaymentId, loanId, amount: feesExtra, date: dateStr, installmentNumber: -2, previousDueDate: loan.dueDate },
+        ...prev,
+      ]);
+      await upsertCachedRow("payments", { ...feesPayload, created_at: new Date().toISOString() });
+      await Promise.all([
+        supabase.from("payments").insert(feesPayload as any),
+        adjustBalance(feesExtra),
+      ]);
+    }
 
     // Manager commission on interest payments — 10% of ORIGINAL loan amount, isolated
     if (loan.hasManager && loan.managerId && loan.status !== "paid") {
