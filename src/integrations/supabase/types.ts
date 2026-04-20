@@ -14,6 +14,30 @@ export type Database = {
   }
   public: {
     Tables: {
+      account_settings: {
+        Row: {
+          created_at: string
+          id: string
+          owner_id: string
+          timezone: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          owner_id: string
+          timezone?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          owner_id?: string
+          timezone?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       app_branding: {
         Row: {
           brand_name: string
