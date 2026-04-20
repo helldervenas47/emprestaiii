@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect } from "react";
 import { Loan, Payment, InstallmentSchedule } from "@/types/loan";
-import { adjustBalance } from "@/lib/balance";
+import { adjustBalance, adjustBalanceOffline } from "@/lib/balance";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
 import { toast } from "sonner";
