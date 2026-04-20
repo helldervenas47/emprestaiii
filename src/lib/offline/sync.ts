@@ -92,14 +92,20 @@ function notifyPendingChanged() {
 export function usePendingCount() {
   const [count, setCount] = useState(0);
   const [byTable, setByTable] = useState<Record<string, number>>({});
+  const [balanceDelta, setBalanceDelta] = useState(0);
 
   useEffect(() => {
     let alive = true;
     const refresh = async () => {
-      const [c, bt] = await Promise.all([getPendingCount(), getPendingByTable()]);
+      const [c, bt, bd] = await Promise.all([
+        getPendingCount(),
+        getPendingByTable(),
+        getPendingBalanceDelta(),
+      ]);
       if (alive) {
-        setCount(c);
+        setCount(c + (bd !== 0 ? 1 : 0));
         setByTable(bt);
+        setBalanceDelta(bd);
       }
     };
     refresh();
@@ -112,7 +118,36 @@ export function usePendingCount() {
     };
   }, []);
 
-  return { count, byTable };
+  return { count, byTable, balanceDelta };
+}
+
+// ---------- Pending balance delta ----------
+// Accumulates balance changes that happened offline (loan/expense payments).
+// Applied once on flush to avoid losing money when reconnecting.
+
+const BALANCE_KEY = "pending_balance_delta";
+
+export async function enqueueBalanceAdjust(delta: number) {
+  if (!delta) return;
+  const entry = await offlineDB.meta.get(BALANCE_KEY);
+  const current = Number(entry?.value ?? 0);
+  await offlineDB.meta.put({ key: BALANCE_KEY, value: current + delta });
+  notifyPendingChanged();
+}
+
+export async function getPendingBalanceDelta(): Promise<number> {
+  const entry = await offlineDB.meta.get(BALANCE_KEY);
+  return Number(entry?.value ?? 0);
+}
+
+async function flushPendingBalance() {
+  const delta = await getPendingBalanceDelta();
+  if (!delta) return;
+  // Lazy import to avoid circular dep with balance.ts → supabase
+  const { adjustBalance } = await import("@/lib/balance");
+  await adjustBalance(delta);
+  await offlineDB.meta.delete(BALANCE_KEY);
+  notifyPendingChanged();
 }
 
 // ---------- Flush queue ----------
@@ -193,6 +228,12 @@ export async function flushQueue(opts: { silent?: boolean } = {}): Promise<{ flu
         break;
       }
     }
+    // After mutations drain, apply any pending balance delta
+    try {
+      await flushPendingBalance();
+    } catch (e) {
+      console.warn("[offline-sync] balance flush failed", e);
+    }
   } finally {
     flushing = false;
   }
@@ -222,8 +263,11 @@ export function wireAutoSync() {
   // Light periodic retry for cases where browser misses the online event
   setInterval(() => {
     if (isOnline()) {
-      offlineDB.pending_mutations.count().then((c) => {
-        if (c > 0) flushQueue().catch(() => { /* noop */ });
+      Promise.all([
+        offlineDB.pending_mutations.count(),
+        getPendingBalanceDelta(),
+      ]).then(([c, bd]) => {
+        if (c > 0 || bd !== 0) flushQueue().catch(() => { /* noop */ });
       });
     }
   }, 30000);

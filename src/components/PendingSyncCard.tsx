@@ -16,7 +16,7 @@ const TABLE_LABELS: Record<string, string> = {
 
 export function PendingSyncCard() {
   const online = useOnlineStatus();
-  const { count, byTable } = usePendingCount();
+  const { count, byTable, balanceDelta } = usePendingCount();
   const [syncing, setSyncing] = useState(false);
 
   const handleSync = async () => {
@@ -69,6 +69,15 @@ export function PendingSyncCard() {
                 <span className="font-medium text-foreground">{n}</span>
               </div>
             ))}
+            {balanceDelta !== 0 && (
+              <div className="flex justify-between text-xs pt-1 border-t border-border/60">
+                <span className="text-muted-foreground">Ajuste de saldo pendente</span>
+                <span className={`font-medium ${balanceDelta >= 0 ? "text-foreground" : "text-destructive"}`}>
+                  {balanceDelta >= 0 ? "+" : ""}
+                  {balanceDelta.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+                </span>
+              </div>
+            )}
           </div>
         )}
 
