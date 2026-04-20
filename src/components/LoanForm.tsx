@@ -97,7 +97,15 @@ export function LoanForm({ onAdd, onSaveSchedule, onClose, clients, existingTags
   const [monthlyOverride, setMonthlyOverride] = useState("");
   const [interestOverride, setInterestOverride] = useState("");
 
+  const skipResetRef = (typeof window !== "undefined") ? (window as any) : null;
+  // Use a ref to skip the reset effect when overrides are the origin of the rate change
+  const skipNextResetRef = useState({ current: false })[0];
+
   useEffect(() => {
+    if (skipNextResetRef.current) {
+      skipNextResetRef.current = false;
+      return;
+    }
     setMonthlyOverride("");
     setInterestOverride("");
   }, [form.amount, form.interestRate, form.installments]);
@@ -138,12 +146,22 @@ export function LoanForm({ onAdd, onSaveSchedule, onClose, clients, existingTags
     setInstallmentRows((prev) => prev.map((r) => ({ ...r, value: calcMonthly.toFixed(2) })));
   }, [calcMonthly]);
 
+  const syncRateFromInterest = (ti: number) => {
+    if (amount > 0) {
+      const newRate = (ti / amount) * 100;
+      skipNextResetRef.current = true;
+      setForm((prev) => ({ ...prev, interestRate: newRate.toFixed(2) }));
+    }
+  };
+
   const handleMonthlyChange = (val: string) => {
     setMonthlyOverride(val);
     const mp = parseFloat(val) || 0;
     if (mp > 0 && installments > 0) {
       const newTotal = mp * installments;
-      setInterestOverride((newTotal - amount).toFixed(2));
+      const ti = newTotal - amount;
+      setInterestOverride(ti.toFixed(2));
+      syncRateFromInterest(ti);
     }
   };
 
@@ -153,6 +171,7 @@ export function LoanForm({ onAdd, onSaveSchedule, onClose, clients, existingTags
     if (installments > 0) {
       setMonthlyOverride(((amount + ti) / installments).toFixed(2));
     }
+    syncRateFromInterest(ti);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
