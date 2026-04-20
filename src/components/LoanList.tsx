@@ -32,7 +32,7 @@ interface Props {
   onPayment: (loanId: string, paymentDate?: string) => void;
   onPartialPayment: (loanId: string, amount: number, paymentDate?: string) => void;
   onFullPayment?: (loanId: string, paymentDate?: string, customAmount?: number) => void;
-  onInterestPayment: (loanId: string, paymentDate?: string) => void;
+  onInterestPayment: (loanId: string, paymentDate?: string, customAmount?: number) => void;
   onUpdate: (id: string, data: Partial<Omit<Loan, "id">>) => void;
   onDelete: (loanId: string) => void;
   onDeletePayment: (paymentId: string) => void;
@@ -167,7 +167,7 @@ function LoanCardView({
   onPayment: (date?: string) => void;
   onPartialPayment: (amount: number, date?: string) => void;
   onFullPayment?: (date?: string, customAmount?: number) => void;
-  onInterestPayment: (date?: string) => void;
+  onInterestPayment: (date?: string, customAmount?: number) => void;
   onUpdate: (data: Partial<Omit<Loan, "id">>) => void;
   onDelete: () => void;
   onDeletePayment: (paymentId: string) => void;
@@ -191,6 +191,7 @@ function LoanCardView({
   const [showTagInput, setShowTagInput] = useState(false);
   const [newTag, setNewTag] = useState("");
   const [paymentDialog, setPaymentDialog] = useState<{ type: "installment" | "interest" | "partial" | "full" | "payoff"; amount?: number } | null>(null);
+  const [interestSelection, setInterestSelection] = useState<"normal" | "withFees">("normal");
   const [payoffAmount, setPayoffAmount] = useState("");
   const [paymentDate, setPaymentDate] = useState<Date>(new Date());
   const [showHistory, setShowHistory] = useState(false);
@@ -371,6 +372,7 @@ function LoanCardView({
   const openPaymentDialog = (type: "installment" | "interest" | "partial" | "full" | "payoff", amount?: number) => {
     setPaymentDate(new Date());
     setPayoffAmount("");
+    setInterestSelection("normal");
     setPaymentDialog({ type, amount });
   };
 
@@ -395,7 +397,13 @@ function LoanCardView({
         onUpdate({ paidInstallments: loan.installments, status: "paid" });
       }
     } else if (paymentDialog.type === "installment") onPayment(dateStr);
-    else if (paymentDialog.type === "interest") onInterestPayment(dateStr);
+    else if (paymentDialog.type === "interest") {
+      const baseInterest = loan.customInterestValue != null && loan.customInterestValue > 0
+        ? loan.customInterestValue
+        : loan.amount * (loan.interestRate / 100);
+      const custom = interestSelection === "withFees" && lateFees > 0 ? baseInterest + lateFees : undefined;
+      onInterestPayment(dateStr, custom);
+    }
     else if (paymentDialog.type === "partial" && paymentDialog.amount) onPartialPayment(paymentDialog.amount, dateStr);
     setPayoffAmount("");
     setPaymentDialog(null);
@@ -1266,7 +1274,7 @@ function LoanCardView({
       </CardContent>
     </Card>
     <Dialog open={!!paymentDialog} onOpenChange={(open) => !open && setPaymentDialog(null)}>
-      <DialogContent className="sm:max-w-[340px]">
+      <DialogContent className={cn("sm:max-w-[340px]", paymentDialog?.type === "interest" && lateFees > 0 && "sm:max-w-[460px]")}>
         <DialogHeader>
           <DialogTitle>
             {paymentDialog?.type === "full" ? "Pagamento Total" :
@@ -1307,6 +1315,87 @@ function LoanCardView({
               </div>
             </div>
           )}
+          {paymentDialog?.type === "interest" && lateFees > 0 && (() => {
+            const baseInterest = loan.customInterestValue != null && loan.customInterestValue > 0
+              ? loan.customInterestValue
+              : loan.amount * (loan.interestRate / 100);
+            const totalWithFees = baseInterest + lateFees;
+            return (
+              <div className="w-full space-y-2.5">
+                <p className="text-xs font-medium text-foreground">Como deseja receber?</p>
+                <button
+                  type="button"
+                  onClick={() => setInterestSelection("normal")}
+                  className={cn(
+                    "w-full text-left p-3 rounded-lg border transition-all",
+                    interestSelection === "normal"
+                      ? "border-primary bg-primary/5 ring-1 ring-primary"
+                      : "border-border bg-card hover:border-primary/40"
+                  )}
+                >
+                  <div className="flex items-start gap-3">
+                    <div className={cn(
+                      "shrink-0 size-4 rounded-full border-2 mt-0.5 flex items-center justify-center",
+                      interestSelection === "normal" ? "border-primary" : "border-muted-foreground/40"
+                    )}>
+                      {interestSelection === "normal" && <div className="size-2 rounded-full bg-primary" />}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex justify-between items-baseline gap-2">
+                        <span className="text-sm font-medium text-foreground">Apenas juros</span>
+                        <span className="text-sm font-semibold text-foreground tabular-nums">{rawFormatCurrency(baseInterest)}</span>
+                      </div>
+                      <p className="text-[11px] text-muted-foreground mt-0.5">Recebe somente o juros do mês. Multa/atraso continuam pendentes.</p>
+                    </div>
+                  </div>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setInterestSelection("withFees")}
+                  className={cn(
+                    "w-full text-left p-3 rounded-lg border transition-all",
+                    interestSelection === "withFees"
+                      ? "border-warning bg-warning/5 ring-1 ring-warning"
+                      : "border-border bg-card hover:border-warning/40"
+                  )}
+                >
+                  <div className="flex items-start gap-3">
+                    <div className={cn(
+                      "shrink-0 size-4 rounded-full border-2 mt-0.5 flex items-center justify-center",
+                      interestSelection === "withFees" ? "border-warning" : "border-muted-foreground/40"
+                    )}>
+                      {interestSelection === "withFees" && <div className="size-2 rounded-full bg-warning" />}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex justify-between items-baseline gap-2">
+                        <span className="text-sm font-medium text-foreground">Juros + multa/atraso</span>
+                        <span className="text-sm font-semibold text-foreground tabular-nums">{rawFormatCurrency(totalWithFees)}</span>
+                      </div>
+                      <p className="text-[11px] text-muted-foreground mt-0.5">Quita juros e regulariza encargos de atraso.</p>
+                      <div className="mt-2 pt-2 border-t border-border/60 space-y-1">
+                        <div className="flex justify-between text-[11px]">
+                          <span className="text-muted-foreground">Juros do mês</span>
+                          <span className="text-foreground tabular-nums">{rawFormatCurrency(baseInterest)}</span>
+                        </div>
+                        {penaltyTotal > 0 && (
+                          <div className="flex justify-between text-[11px]">
+                            <span className="text-muted-foreground">Multa</span>
+                            <span className="text-warning tabular-nums">{rawFormatCurrency(penaltyTotal)}</span>
+                          </div>
+                        )}
+                        {lateInterestTotal > 0 && (
+                          <div className="flex justify-between text-[11px]">
+                            <span className="text-muted-foreground">Juros de atraso ({effectiveDaysLate}d)</span>
+                            <span className="text-warning tabular-nums">{rawFormatCurrency(lateInterestTotal)}</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </button>
+              </div>
+            );
+          })()}
           <Label className="text-sm text-muted-foreground">Selecione a data do pagamento</Label>
           <CalendarUI
             mode="single"
@@ -1402,7 +1491,7 @@ function LoanRowView({
   onPayment: (date?: string) => void;
   onPartialPayment: (amount: number, date?: string) => void;
   onFullPayment?: (date?: string, customAmount?: number) => void;
-  onInterestPayment: (date?: string) => void;
+  onInterestPayment: (date?: string, customAmount?: number) => void;
   onUpdate: (data: Partial<Omit<Loan, "id">>) => void;
   onDelete: () => void;
   onDeletePayment: (paymentId: string) => void;
@@ -1423,6 +1512,7 @@ function LoanRowView({
   const [partialAmount, setPartialAmount] = useState("");
   const [partialDate, setPartialDate] = useState<Date>(new Date());
   const [paymentDialog, setPaymentDialog] = useState<{ type: "installment" | "interest" | "partial" | "full" | "payoff"; amount?: number } | null>(null);
+  const [interestSelection, setInterestSelection] = useState<"normal" | "withFees">("normal");
   const [payoffAmount, setPayoffAmount] = useState("");
   const [showHistory, setShowHistory] = useState(false);
   const [paymentDate, setPaymentDate] = useState<Date>(new Date());
@@ -1531,6 +1621,7 @@ function LoanRowView({
   const openPaymentDialog = (type: "installment" | "interest" | "partial" | "full" | "payoff", amount?: number) => {
     setPaymentDate(new Date());
     setPayoffAmount("");
+    setInterestSelection("normal");
     setPaymentDialog({ type, amount });
   };
 
@@ -1555,7 +1646,13 @@ function LoanRowView({
         onUpdate({ paidInstallments: loan.installments, status: "paid" });
       }
     } else if (paymentDialog.type === "installment") onPayment(dateStr);
-    else if (paymentDialog.type === "interest") onInterestPayment(dateStr);
+    else if (paymentDialog.type === "interest") {
+      const baseInterest = loan.customInterestValue != null && loan.customInterestValue > 0
+        ? loan.customInterestValue
+        : loan.amount * (loan.interestRate / 100);
+      const custom = interestSelection === "withFees" && lateFees > 0 ? baseInterest + lateFees : undefined;
+      onInterestPayment(dateStr, custom);
+    }
     else if (paymentDialog.type === "partial" && paymentDialog.amount) onPartialPayment(paymentDialog.amount, dateStr);
     setPayoffAmount("");
     setPaymentDialog(null);
@@ -2070,7 +2167,7 @@ function LoanRowView({
       </tr>
     )}
     <Dialog open={!!paymentDialog} onOpenChange={(open) => !open && setPaymentDialog(null)}>
-      <DialogContent className="sm:max-w-[340px]">
+      <DialogContent className={cn("sm:max-w-[340px]", paymentDialog?.type === "interest" && lateFees > 0 && "sm:max-w-[460px]")}>
         <DialogHeader>
           <DialogTitle>
             {paymentDialog?.type === "full" ? "Pagamento Total" :
@@ -2111,6 +2208,87 @@ function LoanRowView({
               </div>
             </div>
           )}
+          {paymentDialog?.type === "interest" && lateFees > 0 && (() => {
+            const baseInterest = loan.customInterestValue != null && loan.customInterestValue > 0
+              ? loan.customInterestValue
+              : loan.amount * (loan.interestRate / 100);
+            const totalWithFees = baseInterest + lateFees;
+            return (
+              <div className="w-full space-y-2.5">
+                <p className="text-xs font-medium text-foreground">Como deseja receber?</p>
+                <button
+                  type="button"
+                  onClick={() => setInterestSelection("normal")}
+                  className={cn(
+                    "w-full text-left p-3 rounded-lg border transition-all",
+                    interestSelection === "normal"
+                      ? "border-primary bg-primary/5 ring-1 ring-primary"
+                      : "border-border bg-card hover:border-primary/40"
+                  )}
+                >
+                  <div className="flex items-start gap-3">
+                    <div className={cn(
+                      "shrink-0 size-4 rounded-full border-2 mt-0.5 flex items-center justify-center",
+                      interestSelection === "normal" ? "border-primary" : "border-muted-foreground/40"
+                    )}>
+                      {interestSelection === "normal" && <div className="size-2 rounded-full bg-primary" />}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex justify-between items-baseline gap-2">
+                        <span className="text-sm font-medium text-foreground">Apenas juros</span>
+                        <span className="text-sm font-semibold text-foreground tabular-nums">{rawFormatCurrency(baseInterest)}</span>
+                      </div>
+                      <p className="text-[11px] text-muted-foreground mt-0.5">Recebe somente o juros do mês. Multa/atraso continuam pendentes.</p>
+                    </div>
+                  </div>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setInterestSelection("withFees")}
+                  className={cn(
+                    "w-full text-left p-3 rounded-lg border transition-all",
+                    interestSelection === "withFees"
+                      ? "border-warning bg-warning/5 ring-1 ring-warning"
+                      : "border-border bg-card hover:border-warning/40"
+                  )}
+                >
+                  <div className="flex items-start gap-3">
+                    <div className={cn(
+                      "shrink-0 size-4 rounded-full border-2 mt-0.5 flex items-center justify-center",
+                      interestSelection === "withFees" ? "border-warning" : "border-muted-foreground/40"
+                    )}>
+                      {interestSelection === "withFees" && <div className="size-2 rounded-full bg-warning" />}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex justify-between items-baseline gap-2">
+                        <span className="text-sm font-medium text-foreground">Juros + multa/atraso</span>
+                        <span className="text-sm font-semibold text-foreground tabular-nums">{rawFormatCurrency(totalWithFees)}</span>
+                      </div>
+                      <p className="text-[11px] text-muted-foreground mt-0.5">Quita juros e regulariza encargos de atraso.</p>
+                      <div className="mt-2 pt-2 border-t border-border/60 space-y-1">
+                        <div className="flex justify-between text-[11px]">
+                          <span className="text-muted-foreground">Juros do mês</span>
+                          <span className="text-foreground tabular-nums">{rawFormatCurrency(baseInterest)}</span>
+                        </div>
+                        {penaltyTotal > 0 && (
+                          <div className="flex justify-between text-[11px]">
+                            <span className="text-muted-foreground">Multa</span>
+                            <span className="text-warning tabular-nums">{rawFormatCurrency(penaltyTotal)}</span>
+                          </div>
+                        )}
+                        {lateInterestTotal > 0 && (
+                          <div className="flex justify-between text-[11px]">
+                            <span className="text-muted-foreground">Juros de atraso ({effectiveDaysLate}d)</span>
+                            <span className="text-warning tabular-nums">{rawFormatCurrency(lateInterestTotal)}</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </button>
+              </div>
+            );
+          })()}
           <Label className="text-sm text-muted-foreground">Selecione a data do pagamento</Label>
           <CalendarUI
             mode="single"
@@ -2216,7 +2394,7 @@ function ClientFolder({
   onPayment: (id: string, date?: string) => void;
   onPartialPayment: (id: string, amount: number, date?: string) => void;
   onFullPayment?: (id: string, date?: string, customAmount?: number) => void;
-  onInterestPayment: (id: string, date?: string) => void;
+  onInterestPayment: (id: string, date?: string, customAmount?: number) => void;
   onUpdate: (id: string, data: Partial<Omit<Loan, "id">>) => void;
   onDelete: (id: string) => void;
   onDeletePayment: (paymentId: string) => void;
@@ -2307,7 +2485,7 @@ function ClientFolder({
                 {group.loans.map((loan) => (
                   <LoanRowView key={loan.id} loan={loan} payments={payments} installmentSchedules={installmentSchedules} readOnly={readOnly} existingTags={[...new Set(group.loans.flatMap(l => l.tags || []))]} clients={clients}
                     onPayment={(date) => onPayment(loan.id, date)} onPartialPayment={(amt, date) => onPartialPayment(loan.id, amt, date)} onFullPayment={onFullPayment ? (date, custom) => onFullPayment(loan.id, date, custom) : undefined}
-                    onInterestPayment={(date) => onInterestPayment(loan.id, date)} onUpdate={(d) => onUpdate(loan.id, d)} onDelete={() => onDelete(loan.id)} onDeletePayment={onDeletePayment} />
+                    onInterestPayment={(date, custom) => onInterestPayment(loan.id, date, custom)} onUpdate={(d) => onUpdate(loan.id, d)} onDelete={() => onDelete(loan.id)} onDeletePayment={onDeletePayment} />
                 ))}
               </tbody>
             </table>
@@ -2648,7 +2826,7 @@ export function LoanList({ loans, payments, installmentSchedules, onPayment, onP
                 <div key={loan.id} className="animate-fade-in h-full" style={{ animationDelay: `${i * 60}ms`, animationFillMode: 'backwards' }}>
                 <LoanCardView loan={loan} payments={payments} installmentSchedules={installmentSchedules} readOnly={readOnly} existingTags={loans.flatMap(l => l.tags || []).filter((v, i, a) => a.indexOf(v) === i)} clients={clients}
                   onPayment={(date) => onPayment(loan.id, date)} onPartialPayment={(amt, date) => onPartialPayment(loan.id, amt, date)} onFullPayment={onFullPayment ? (date, custom) => onFullPayment(loan.id, date, custom) : undefined}
-                  onInterestPayment={(date) => onInterestPayment(loan.id, date)} onUpdate={(d) => onUpdate(loan.id, d)} onDelete={() => onDelete(loan.id)} onDeletePayment={onDeletePayment} onSaveSchedule={onSaveSchedule} />
+                  onInterestPayment={(date, custom) => onInterestPayment(loan.id, date, custom)} onUpdate={(d) => onUpdate(loan.id, d)} onDelete={() => onDelete(loan.id)} onDeletePayment={onDeletePayment} onSaveSchedule={onSaveSchedule} />
                 </div>
               ))}
             </div>
@@ -2692,7 +2870,7 @@ export function LoanList({ loans, payments, installmentSchedules, onPayment, onP
                   {categorized.map((loan) => (
                     <LoanRowView key={loan.id} loan={loan} payments={payments} installmentSchedules={installmentSchedules} readOnly={readOnly} existingTags={loans.flatMap(l => l.tags || []).filter((v, i, a) => a.indexOf(v) === i)} clients={clients}
                       onPayment={(date) => onPayment(loan.id, date)} onPartialPayment={(amt, date) => onPartialPayment(loan.id, amt, date)} onFullPayment={onFullPayment ? (date, custom) => onFullPayment(loan.id, date, custom) : undefined}
-                      onInterestPayment={(date) => onInterestPayment(loan.id, date)} onUpdate={(d) => onUpdate(loan.id, d)} onDelete={() => onDelete(loan.id)} onDeletePayment={onDeletePayment} />
+                      onInterestPayment={(date, custom) => onInterestPayment(loan.id, date, custom)} onUpdate={(d) => onUpdate(loan.id, d)} onDelete={() => onDelete(loan.id)} onDeletePayment={onDeletePayment} />
                   ))}
                 </tbody>
               </table>

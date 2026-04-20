@@ -432,14 +432,15 @@ export function useLoans() {
     await fetchLoans();
   }, [user, dataOwnerId, loans, payments, fetchLoans, fetchPayments]);
 
-  const addInterestOnlyPayment = useCallback(async (loanId: string, paymentDate?: string) => {
+  const addInterestOnlyPayment = useCallback(async (loanId: string, paymentDate?: string, customAmount?: number) => {
     if (!user || !dataOwnerId) return;
     const loan = loans.find((l) => l.id === loanId);
     if (!loan) return;
     const dateStr = paymentDate || todayInAppTz();
-    const interestAmount = loan.customInterestValue != null && loan.customInterestValue > 0
+    const baseInterest = loan.customInterestValue != null && loan.customInterestValue > 0
       ? loan.customInterestValue
       : loan.amount * (loan.interestRate / 100);
+    const interestAmount = customAmount != null && customAmount > 0 ? customAmount : baseInterest;
     const currentDue = new Date(loan.dueDate + "T00:00:00");
     const freq = loan.interestType || "Mensal";
     if (freq === "Semanal") currentDue.setDate(currentDue.getDate() + 7);
