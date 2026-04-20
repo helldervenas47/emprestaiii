@@ -1621,15 +1621,30 @@ export function ProductSalesView({ sales, onDeleteSale, onUpdateSale, clients = 
     onUpdateSale(id, data);
   }, [sales, onUpdateSale, updateVehicleBalance]);
 
-  // Wrap onPayExpense to debit vehicle balance
-  const handleVehiclePayExpense = useCallback((id: string, _skip?: boolean, payDate?: string) => {
+  // Wrap onPayExpense to debit vehicle balance using the actual paid amount
+  const handleVehiclePayExpense = useCallback((id: string, payDate: string, paidAmount: number) => {
     const exp = expenses.find(e => e.id === id);
-    if (!exp || exp.paid) { onPayExpense?.(id, true, payDate); return; }
-    const isRecorrente = exp.type === "recorrente" && exp.installments && exp.installments > 1;
-    const debitAmount = isRecorrente ? exp.amount / exp.installments! : exp.amount;
-    updateVehicleBalance(-debitAmount);
-    onPayExpense?.(id, true, payDate);
+    if (!exp || exp.paid) { onPayExpense?.(id, true, payDate, paidAmount); return; }
+    updateVehicleBalance(-paidAmount);
+    onPayExpense?.(id, true, payDate, paidAmount);
   }, [expenses, onPayExpense, updateVehicleBalance]);
+
+  // Wrap onDeleteExpense to restore vehicle balance for any amount that was already paid
+  const handleVehicleDeleteExpense = useCallback((id: string) => {
+    const exp = expenses.find(e => e.id === id);
+    if (exp) {
+      const isRecorrente = exp.type === "recorrente" && exp.installments && exp.installments > 1;
+      let refund = 0;
+      if (isRecorrente) {
+        const installmentAmount = exp.amount / exp.installments!;
+        refund = installmentAmount * (exp.paidInstallments || 0);
+      } else if (exp.paid) {
+        refund = exp.amount;
+      }
+      if (refund > 0) updateVehicleBalance(refund);
+    }
+    onDeleteExpense?.(id, true);
+  }, [expenses, onDeleteExpense, updateVehicleBalance]);
 
   // Wrap onUpdateExpense to restore vehicle balance when payments are removed
   const handleVehicleUpdateExpense = useCallback((id: string, data: Partial<Omit<Expense, "id" | "createdAt">>) => {
