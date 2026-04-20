@@ -42,7 +42,7 @@ interface Props {
   clients?: Client[];
   expenses?: Expense[];
   onAddExpense?: (expense: Omit<Expense, "id" | "paid" | "paidDate" | "createdAt">) => void;
-  onPayExpense?: (id: string, skipBalanceAdjust?: boolean, payDate?: string) => void;
+  onPayExpense?: (id: string, skipBalanceAdjust?: boolean, payDate?: string, paidAmount?: number) => void;
   onDeleteExpense?: (id: string, skipBalanceAdjust?: boolean) => void;
   onUpdateExpense?: (id: string, data: Partial<Omit<Expense, "id" | "createdAt">>) => void;
   readOnly?: boolean;
