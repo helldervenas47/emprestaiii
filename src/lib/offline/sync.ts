@@ -115,6 +115,35 @@ export function usePendingCount() {
   return { count, byTable };
 }
 
+// ---------- Pending balance delta ----------
+// Accumulates balance changes that happened offline (loan/expense payments).
+// Applied once on flush to avoid losing money when reconnecting.
+
+const BALANCE_KEY = "pending_balance_delta";
+
+export async function enqueueBalanceAdjust(delta: number) {
+  if (!delta) return;
+  const entry = await offlineDB.meta.get(BALANCE_KEY);
+  const current = Number(entry?.value ?? 0);
+  await offlineDB.meta.put({ key: BALANCE_KEY, value: current + delta });
+  notifyPendingChanged();
+}
+
+export async function getPendingBalanceDelta(): Promise<number> {
+  const entry = await offlineDB.meta.get(BALANCE_KEY);
+  return Number(entry?.value ?? 0);
+}
+
+async function flushPendingBalance() {
+  const delta = await getPendingBalanceDelta();
+  if (!delta) return;
+  // Lazy import to avoid circular dep with balance.ts → supabase
+  const { adjustBalance } = await import("@/lib/balance");
+  await adjustBalance(delta);
+  await offlineDB.meta.delete(BALANCE_KEY);
+  notifyPendingChanged();
+}
+
 // ---------- Flush queue ----------
 
 let flushing = false;
