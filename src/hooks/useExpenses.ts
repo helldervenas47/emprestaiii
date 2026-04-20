@@ -28,21 +28,22 @@ export function useExpenses(enabled = true) {
 
   const fetchExpenses = useCallback(async () => {
     if (!user) return;
-    const { data } = await supabase
-      .from("expenses")
-      .select("*")
-      .order("created_at", { ascending: false });
-
-    if (data) {
-      setExpenses(data.map((e: any) => ({
-        id: e.id, description: e.description, amount: Number(e.amount),
-        type: e.type as "fixa" | "recorrente", category: e.category,
-        installments: e.installments, paidInstallments: e.paid_installments,
-        dueDate: e.due_date, paid: e.paid, paidDate: e.paid_date,
-        notes: e.notes, createdAt: e.created_at,
-        parentExpenseId: e.parent_expense_id ?? undefined,
-        scope: (e.scope as "business" | "personal") ?? "business",
-      })));
+    if (isOnline()) {
+      const { data, error } = await supabase
+        .from("expenses")
+        .select("*")
+        .order("created_at", { ascending: false });
+      if (!error && data) {
+        setExpenses(data.map(rowToExpense));
+        cacheRows("expenses", data).catch(() => { /* noop */ });
+        return;
+      }
+    }
+    const cached = await getCachedRows("expenses");
+    if (cached.length > 0) {
+      setExpenses(cached
+        .sort((a, b) => (b.created_at || "").localeCompare(a.created_at || ""))
+        .map(rowToExpense));
     }
   }, [user]);
 
@@ -56,7 +57,16 @@ export function useExpenses(enabled = true) {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'expenses' }, () => { fetchExpenses(); notifyRemoteUpdate('expenses'); })
       .subscribe();
     return () => { supabase.removeChannel(channel); };
-  }, [user, fetchExpenses]);
+  }, [user, fetchExpenses, enabled]);
+
+  // Refetch after offline queue flush
+  useEffect(() => {
+    const handler = (e: any) => {
+      if (e.detail?.tables?.includes("expenses")) fetchExpenses();
+    };
+    window.addEventListener("offline-sync:flushed", handler);
+    return () => window.removeEventListener("offline-sync:flushed", handler);
+  }, [fetchExpenses]);
 
   const addExpense = useCallback(async (expense: Omit<Expense, "id" | "paid" | "paidDate" | "createdAt">) => {
     if (!user || !dataOwnerId) return;
