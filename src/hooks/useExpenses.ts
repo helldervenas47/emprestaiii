@@ -276,19 +276,32 @@ export function useExpenses(enabled = true) {
 
   const deleteExpense = useCallback(async (id: string, skipBalanceAdjust = false) => {
     setExpenses((prev) => prev.filter((e) => e.id !== id));
+    await removeCachedRow("expenses", id);
+    if (!isOnline()) {
+      await enqueueMutation({ table: "expenses", op: "delete", recordId: id });
+      return;
+    }
     // Remove any piggy deposit linked to this expense (no-op if none).
     await supabase.from("piggy_bank_deposits" as any).delete().eq("expense_id", id);
-    await supabase.from("expenses").delete().eq("id", id);
+    const { error } = await supabase.from("expenses").delete().eq("id", id);
+    if (error) await enqueueMutation({ table: "expenses", op: "delete", recordId: id });
   }, [expenses]);
 
   const updateExpense = useCallback(async (id: string, data: Partial<Omit<Expense, "id" | "createdAt">>) => {
     setExpenses((prev) => prev.map((e) => e.id === id ? { ...e, ...data } : e));
-    await supabase.from("expenses").update({
+    const updatePayload: any = {
       description: data.description, amount: data.amount, type: data.type,
       category: data.category, installments: data.installments,
       paid_installments: data.paidInstallments, due_date: data.dueDate,
       paid: data.paid, paid_date: data.paidDate, notes: data.notes,
-    }).eq("id", id);
+    };
+    Object.keys(updatePayload).forEach(k => updatePayload[k] === undefined && delete updatePayload[k]);
+    if (!isOnline()) {
+      await enqueueMutation({ table: "expenses", op: "update", recordId: id, payload: updatePayload });
+      return;
+    }
+    const { error } = await supabase.from("expenses").update(updatePayload).eq("id", id);
+    if (error) await enqueueMutation({ table: "expenses", op: "update", recordId: id, payload: updatePayload });
   }, []);
 
   return { expenses, addExpense, payExpense, unpayExpense, deleteExpense, updateExpense };
