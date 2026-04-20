@@ -310,6 +310,35 @@ export function LoanForm({ onAdd, onSaveSchedule, onClose, clients, existingTags
 
             <div className="grid grid-cols-2 gap-4">
               <div>
+                <Label htmlFor="interestOverride">Valor do Juros (R$)</Label>
+                <Input
+                  id="interestOverride"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={interestOverride !== "" ? interestOverride : (calcInterest > 0 ? calcInterest.toFixed(2) : "")}
+                  onChange={(e) => handleInterestChange(e.target.value)}
+                  placeholder="0.00"
+                />
+                <p className="text-[11px] text-muted-foreground mt-1">Total de juros do contrato</p>
+              </div>
+              <div>
+                <Label htmlFor="monthlyOverride">Valor a Pagar (R$)</Label>
+                <Input
+                  id="monthlyOverride"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={monthlyOverride !== "" ? monthlyOverride : (calcMonthly > 0 ? calcMonthly.toFixed(2) : "")}
+                  onChange={(e) => handleMonthlyChange(e.target.value)}
+                  placeholder="0.00"
+                />
+                <p className="text-[11px] text-muted-foreground mt-1">Valor de cada parcela</p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
                 <Label>Tipo de Contrato</Label>
                 <Select value={form.interestType} onValueChange={(v) => update("interestType", v)}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
