@@ -74,6 +74,7 @@ const App = () => (
           <BrandTitleSync />
           <BrandFaviconSync />
           <AppTimezoneSync />
+          <StatusBarScrollSync />
           <Suspense fallback={<PageLoader />}>
             <Routes>
               <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
