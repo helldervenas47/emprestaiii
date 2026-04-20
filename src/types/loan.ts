@@ -63,6 +63,7 @@ export interface Client {
   profissao?: string;
   bairro?: string;
   isManager?: boolean;
+  defaultInterestRate?: number | null;
 }
 
 export interface ManagerCommission {

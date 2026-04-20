@@ -32,12 +32,19 @@ export function ClientForm({ onAdd, onClose }: Props) {
     profissao: "",
     bairro: "",
     isManager: false,
+    defaultInterestRate: "",
   });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.name) return;
-    onAdd({ ...form, active: true });
+    const { defaultInterestRate, ...rest } = form;
+    const parsedRate = defaultInterestRate.trim() === "" ? null : parseFloat(defaultInterestRate);
+    onAdd({
+      ...rest,
+      active: true,
+      defaultInterestRate: parsedRate !== null && !isNaN(parsedRate) ? parsedRate : null,
+    });
     onClose();
   };
 
