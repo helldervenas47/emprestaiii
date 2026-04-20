@@ -114,6 +114,9 @@ export function Settings({ backup, locadores, onSaveLocador, onRemoveLocador, is
         </CardContent>
       </Card>
 
+      {/* Sincronização offline */}
+      <PendingSyncCard />
+
       {/* Preferências de exibição */}
       <Card>
         <CardHeader>
