@@ -13,6 +13,7 @@ import { useSubscription } from "@/hooks/useSubscription";
 import { toast } from "sonner";
 import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
 import { PendingSyncCard } from "@/components/PendingSyncCard";
+import { TimezoneSettingsCard } from "@/components/TimezoneSettingsCard";
 
 const NotificationSettings = lazy(() => import("@/components/NotificationSettings").then(m => ({ default: m.NotificationSettings })));
 const WebhookSettings = lazy(() => import("@/components/WebhookSettings").then(m => ({ default: m.WebhookSettings })));
@@ -147,6 +148,9 @@ export function Settings({ backup, locadores, onSaveLocador, onRemoveLocador, is
           </div>
         </CardContent>
       </Card>
+
+      {/* Fuso horário */}
+      <TimezoneSettingsCard disabled={isReadOnly} />
 
       {/* Notificações e integrações */}
       <Card>

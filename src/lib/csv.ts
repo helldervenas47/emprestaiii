@@ -1,4 +1,5 @@
 import { Loan, Payment, Sale } from "@/types/loan";
+import { todayInAppTz } from "@/lib/timezone";
 import { Client } from "@/types/loan";
 import { calculateInstallment, calculateTotalWithInterest } from "@/hooks/useLoans";
 
@@ -85,13 +86,13 @@ function parseCSVLine(line: string): string[] {
 }
 
 function parseDateBR(dateStr: string): string {
-  if (!dateStr) return new Date().toISOString().split("T")[0];
+  if (!dateStr) return todayInAppTz();
   // Handle DD/MM/YYYY
   const brMatch = dateStr.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
   if (brMatch) return `${brMatch[3]}-${brMatch[2]}-${brMatch[1]}`;
   // Already YYYY-MM-DD
   if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return dateStr;
-  return new Date().toISOString().split("T")[0];
+  return todayInAppTz();
 }
 
 export function importLoansFromCSV(csv: string): (Omit<Loan, "id"> & { totalPaid?: number })[] {

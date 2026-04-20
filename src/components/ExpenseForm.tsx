@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { todayInAppTz } from "@/lib/timezone";
 import { SuccessAnimation } from "@/components/SuccessAnimation";
 import { DatePickerField } from "@/components/ui/date-picker-field";
 import { Button } from "@/components/ui/button";
@@ -35,7 +36,7 @@ export function ExpenseForm({ onAdd, onClose, scope = "business" }: Props) {
     kind: "unica" as ExpenseKind,
     category: "",
     installments: "1",
-    dueDate: new Date().toISOString().split("T")[0],
+    dueDate: todayInAppTz(),
     notes: "",
   });
 

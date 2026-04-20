@@ -1,4 +1,5 @@
 import { DollarSign, TrendingUp, Users, AlertTriangle, Crown, Clock } from "lucide-react";
+import { todayInAppTz } from "@/lib/timezone";
 import { Loan, Payment } from "@/types/loan";
 import { calculateTotalWithInterest } from "@/hooks/useLoans";
 import { useHideValues } from "@/contexts/HideValuesContext";
@@ -48,7 +49,7 @@ export function DashboardCards({ loans, payments }: Props) {
     0
   );
   const activeLoans = activeLoansData.length;
-  const todayStr = new Date().toISOString().split("T")[0];
+  const todayStr = todayInAppTz();
   const overdueLoans = loans.filter((l) => l.status === "overdue" && l.dueDate < todayStr).length;
 
   // Pendente de Recebimento = soma do remaining_amount dos empréstimos ativos

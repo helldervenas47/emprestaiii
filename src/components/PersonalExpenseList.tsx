@@ -1,4 +1,5 @@
 import { useState, useCallback, useMemo, useEffect } from "react";
+import { todayInAppTz } from "@/lib/timezone";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -54,7 +55,7 @@ const fmt = (v: number) =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v);
 
 const isOverdue = (e: Expense) =>
-  !e.paid && e.dueDate < new Date().toISOString().split("T")[0];
+  !e.paid && e.dueDate < todayInAppTz();
 
 export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, onUpdate, readOnly = false, afterEvolution }: Props) {
   const { mask } = useHideValues();
@@ -305,7 +306,7 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, onUpda
 
   const openPayDialog = (id: string) => {
     setPayingId(id);
-    setPayDate(new Date().toISOString().split("T")[0]);
+    setPayDate(todayInAppTz());
     setPaidAmountInput("");
   };
 
@@ -999,7 +1000,7 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, onUpda
                 ) : (
                   <ul className="divide-y divide-border rounded-md border border-border">
                     {items.map(({ e, value }) => {
-                      const overdueItem = !e.paid && e.dueDate < new Date().toISOString().split("T")[0];
+                      const overdueItem = !e.paid && e.dueDate < todayInAppTz();
                       return (
                         <li key={e.id} className="flex items-center gap-3 p-2.5">
                           <div className="flex-1 min-w-0">

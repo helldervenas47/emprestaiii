@@ -1,4 +1,5 @@
 import { useMemo, useState, useEffect, useCallback } from "react";
+import { todayInAppTz } from "@/lib/timezone";
 import { useChartOverrides } from "@/hooks/useChartOverrides";
 import { useMonthlyGoals } from "@/hooks/useMonthlyGoals";
 import { Switch } from "@/components/ui/switch";
@@ -437,7 +438,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
     });
 
     // Overdue — contratos com 1 ou mais dias de atraso (baseado na data atual)
-    const todayStr = new Date().toISOString().split("T")[0];
+    const todayStr = todayInAppTz();
     const overdueLoans = activeLoans.filter((l) => l.dueDate < todayStr);
     const overdueAmount = overdueLoans.reduce((s, l) => {
       let baseRemaining: number;
@@ -1126,7 +1127,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
                   {expandedBreakdown === "overdue" && portfolio.overdueLoans.length > 0 && (
                     <div className="mt-3 pt-3 border-t border-destructive/20 space-y-2 max-h-60 overflow-y-auto">
                       {[...portfolio.overdueLoans].sort((a, b) => a.dueDate.localeCompare(b.dueDate)).map((l) => {
-                        const todayIso = new Date().toISOString().split("T")[0];
+                        const todayIso = todayInAppTz();
                         let remaining: number;
                         if (l.installments >= 2) {
                           const overdueSum = installmentSchedules

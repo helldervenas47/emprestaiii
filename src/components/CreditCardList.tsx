@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from "react";
+import { todayInAppTz } from "@/lib/timezone";
 import { Plus, CreditCard as CreditCardIcon, Wifi, Pencil, Trash2, Receipt, CheckCircle, EyeOff, RotateCcw } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -711,7 +712,7 @@ export function CreditCardList({ readOnly = false, referenceMonth }: Props) {
                     if (paying) return;
                     setPaying(true);
                     try {
-                      const today = new Date().toISOString().split("T")[0];
+                      const today = todayInAppTz();
                       for (const id of ids) {
                         await payExpense(id, false, today);
                       }
