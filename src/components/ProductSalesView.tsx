@@ -42,7 +42,7 @@ interface Props {
   clients?: Client[];
   expenses?: Expense[];
   onAddExpense?: (expense: Omit<Expense, "id" | "paid" | "paidDate" | "createdAt">) => void;
-  onPayExpense?: (id: string, skipBalanceAdjust?: boolean, payDate?: string) => void;
+  onPayExpense?: (id: string, skipBalanceAdjust?: boolean, payDate?: string, paidAmount?: number) => void;
   onDeleteExpense?: (id: string, skipBalanceAdjust?: boolean) => void;
   onUpdateExpense?: (id: string, data: Partial<Omit<Expense, "id" | "createdAt">>) => void;
   readOnly?: boolean;
@@ -1325,6 +1325,74 @@ function VehicleExpenseEditDialog({ expense, open, onOpenChange, onSave, formatC
   );
 }
 
+function VehiclePayExpenseDialog({ expense, open, onOpenChange, onConfirm, formatCurrency }: {
+  expense: Expense;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onConfirm: (payDate: string, paidAmount: number) => void;
+  formatCurrency: (v: number) => string;
+}) {
+  const isRecorrente = expense.type === "recorrente" && expense.installments && expense.installments > 1;
+  const defaultAmount = isRecorrente ? expense.amount / expense.installments! : expense.amount;
+  const [payDate, setPayDate] = useState(todayInAppTz());
+  const [amountStr, setAmountStr] = useState(String(defaultAmount.toFixed(2)));
+
+  useEffect(() => {
+    if (open) {
+      setPayDate(todayInAppTz());
+      setAmountStr(String(defaultAmount.toFixed(2)));
+    }
+  }, [open, defaultAmount]);
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const parsed = parseFloat(amountStr);
+    if (isNaN(parsed) || parsed <= 0) return;
+    onConfirm(payDate, parsed);
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Confirmar Pagamento</DialogTitle>
+          <DialogDescription>
+            Informe a data e o valor efetivamente pago{isRecorrente ? " desta parcela" : ""}.
+          </DialogDescription>
+        </DialogHeader>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <Label htmlFor="pay-date">Data do pagamento</Label>
+            <DatePickerField id="pay-date" value={payDate} onChange={setPayDate} />
+          </div>
+          <div>
+            <Label htmlFor="pay-amount">Valor pago (R$)</Label>
+            <Input
+              id="pay-amount"
+              type="number"
+              step="0.01"
+              min="0.01"
+              value={amountStr}
+              onChange={(e) => setAmountStr(e.target.value)}
+              required
+            />
+            <p className="text-xs text-muted-foreground mt-1">
+              Valor original: {formatCurrency(defaultAmount)}
+            </p>
+          </div>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
+            <Button type="submit">
+              <CheckCircle className="h-4 w-4 mr-1" />
+              Confirmar pagamento
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 export function ProductSalesView({ sales, onDeleteSale, onUpdateSale, clients = [], expenses = [], onAddExpense, onPayExpense, onDeleteExpense, onUpdateExpense, readOnly = false, isVehicleView = false, locadores: locadoresProp, onSaveLocador: onSaveLocadorProp }: Props) {
   const [showVehicleExpenseForm, setShowVehicleExpenseForm] = useState(false);
   const { mask } = useHideValues();
@@ -1345,6 +1413,7 @@ export function ProductSalesView({ sales, onDeleteSale, onUpdateSale, clients = 
   const [viewPaymentsExpenseId, setViewPaymentsExpenseId] = useState<string | null>(null);
   const [editingExpenseId, setEditingExpenseId] = useState<string | null>(null);
   const [deleteExpenseId, setDeleteExpenseId] = useState<string | null>(null);
+  const [payingExpenseId, setPayingExpenseId] = useState<string | null>(null);
 
   useEffect(() => {
     (async () => {
@@ -1552,15 +1621,30 @@ export function ProductSalesView({ sales, onDeleteSale, onUpdateSale, clients = 
     onUpdateSale(id, data);
   }, [sales, onUpdateSale, updateVehicleBalance]);
 
-  // Wrap onPayExpense to debit vehicle balance
-  const handleVehiclePayExpense = useCallback((id: string, _skip?: boolean, payDate?: string) => {
+  // Wrap onPayExpense to debit vehicle balance using the actual paid amount
+  const handleVehiclePayExpense = useCallback((id: string, payDate: string, paidAmount: number) => {
     const exp = expenses.find(e => e.id === id);
-    if (!exp || exp.paid) { onPayExpense?.(id, true, payDate); return; }
-    const isRecorrente = exp.type === "recorrente" && exp.installments && exp.installments > 1;
-    const debitAmount = isRecorrente ? exp.amount / exp.installments! : exp.amount;
-    updateVehicleBalance(-debitAmount);
-    onPayExpense?.(id, true, payDate);
+    if (!exp || exp.paid) { onPayExpense?.(id, true, payDate, paidAmount); return; }
+    updateVehicleBalance(-paidAmount);
+    onPayExpense?.(id, true, payDate, paidAmount);
   }, [expenses, onPayExpense, updateVehicleBalance]);
+
+  // Wrap onDeleteExpense to restore vehicle balance for any amount that was already paid
+  const handleVehicleDeleteExpense = useCallback((id: string) => {
+    const exp = expenses.find(e => e.id === id);
+    if (exp) {
+      const isRecorrente = exp.type === "recorrente" && exp.installments && exp.installments > 1;
+      let refund = 0;
+      if (isRecorrente) {
+        const installmentAmount = exp.amount / exp.installments!;
+        refund = installmentAmount * (exp.paidInstallments || 0);
+      } else if (exp.paid) {
+        refund = exp.amount;
+      }
+      if (refund > 0) updateVehicleBalance(refund);
+    }
+    onDeleteExpense?.(id, true);
+  }, [expenses, onDeleteExpense, updateVehicleBalance]);
 
   // Wrap onUpdateExpense to restore vehicle balance when payments are removed
   const handleVehicleUpdateExpense = useCallback((id: string, data: Partial<Omit<Expense, "id" | "createdAt">>) => {
@@ -1707,7 +1791,7 @@ export function ProductSalesView({ sales, onDeleteSale, onUpdateSale, clients = 
                                   </Button>
                                 )}
                                 {!readOnly && !exp.paid && onPayExpense && (
-                                  <Button size="sm" variant="outline" onClick={() => handleVehiclePayExpense(exp.id)} className="h-7 text-xs">
+                                  <Button size="sm" variant="outline" onClick={() => setPayingExpenseId(exp.id)} className="h-7 text-xs">
                                     <CheckCircle className="h-3.5 w-3.5 mr-1" />
                                     Pagar
                                   </Button>
@@ -1809,6 +1893,18 @@ export function ProductSalesView({ sales, onDeleteSale, onUpdateSale, clients = 
                         }}
                         formatCurrency={formatCurrency}
                       />
+
+                      {/* Dialog de pagamento (data + valor pago) */}
+                      <VehiclePayExpenseDialog
+                        expense={exp}
+                        open={payingExpenseId === exp.id}
+                        onOpenChange={(open) => { if (!open) setPayingExpenseId(null); }}
+                        onConfirm={(payDate, paidAmount) => {
+                          handleVehiclePayExpense(exp.id, payDate, paidAmount);
+                          setPayingExpenseId(null);
+                        }}
+                        formatCurrency={formatCurrency}
+                      />
                     </Card>
                   );
                 })}
@@ -1817,6 +1913,18 @@ export function ProductSalesView({ sales, onDeleteSale, onUpdateSale, clients = 
           </div>
         )}
 
+        <ConfirmDeleteDialog
+          open={!!deleteExpenseId}
+          onOpenChange={() => setDeleteExpenseId(null)}
+          onConfirm={() => {
+            if (deleteExpenseId) {
+              handleVehicleDeleteExpense(deleteExpenseId);
+              setDeleteExpenseId(null);
+            }
+          }}
+          title="Excluir despesa"
+          description="Tem certeza que deseja excluir esta despesa? Se ela já estava paga, o valor será devolvido ao saldo da conta."
+        />
       </div>
     );
   }
