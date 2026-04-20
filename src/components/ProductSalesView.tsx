@@ -1,5 +1,6 @@
 import { useState, useCallback, useEffect, useMemo } from "react";
 import { todayInAppTz } from "@/lib/timezone";
+import { getDueStatusBadge } from "@/lib/dueStatus";
 import { SalePaymentRecord } from "@/types/loan";
 import { DatePickerField } from "@/components/ui/date-picker-field";
 import { Sale, BusinessType, Client, Expense } from "@/types/loan";
