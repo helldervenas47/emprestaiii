@@ -32,7 +32,7 @@ interface Props {
   onPayment: (loanId: string, paymentDate?: string) => void;
   onPartialPayment: (loanId: string, amount: number, paymentDate?: string) => void;
   onFullPayment?: (loanId: string, paymentDate?: string, customAmount?: number) => void;
-  onInterestPayment: (loanId: string, paymentDate?: string) => void;
+  onInterestPayment: (loanId: string, paymentDate?: string, customAmount?: number) => void;
   onUpdate: (id: string, data: Partial<Omit<Loan, "id">>) => void;
   onDelete: (loanId: string) => void;
   onDeletePayment: (paymentId: string) => void;
@@ -167,7 +167,7 @@ function LoanCardView({
   onPayment: (date?: string) => void;
   onPartialPayment: (amount: number, date?: string) => void;
   onFullPayment?: (date?: string, customAmount?: number) => void;
-  onInterestPayment: (date?: string) => void;
+  onInterestPayment: (date?: string, customAmount?: number) => void;
   onUpdate: (data: Partial<Omit<Loan, "id">>) => void;
   onDelete: () => void;
   onDeletePayment: (paymentId: string) => void;
@@ -1402,7 +1402,7 @@ function LoanRowView({
   onPayment: (date?: string) => void;
   onPartialPayment: (amount: number, date?: string) => void;
   onFullPayment?: (date?: string, customAmount?: number) => void;
-  onInterestPayment: (date?: string) => void;
+  onInterestPayment: (date?: string, customAmount?: number) => void;
   onUpdate: (data: Partial<Omit<Loan, "id">>) => void;
   onDelete: () => void;
   onDeletePayment: (paymentId: string) => void;
@@ -2216,7 +2216,7 @@ function ClientFolder({
   onPayment: (id: string, date?: string) => void;
   onPartialPayment: (id: string, amount: number, date?: string) => void;
   onFullPayment?: (id: string, date?: string, customAmount?: number) => void;
-  onInterestPayment: (id: string, date?: string) => void;
+  onInterestPayment: (id: string, date?: string, customAmount?: number) => void;
   onUpdate: (id: string, data: Partial<Omit<Loan, "id">>) => void;
   onDelete: (id: string) => void;
   onDeletePayment: (paymentId: string) => void;
@@ -2307,7 +2307,7 @@ function ClientFolder({
                 {group.loans.map((loan) => (
                   <LoanRowView key={loan.id} loan={loan} payments={payments} installmentSchedules={installmentSchedules} readOnly={readOnly} existingTags={[...new Set(group.loans.flatMap(l => l.tags || []))]} clients={clients}
                     onPayment={(date) => onPayment(loan.id, date)} onPartialPayment={(amt, date) => onPartialPayment(loan.id, amt, date)} onFullPayment={onFullPayment ? (date, custom) => onFullPayment(loan.id, date, custom) : undefined}
-                    onInterestPayment={(date) => onInterestPayment(loan.id, date)} onUpdate={(d) => onUpdate(loan.id, d)} onDelete={() => onDelete(loan.id)} onDeletePayment={onDeletePayment} />
+                    onInterestPayment={(date, custom) => onInterestPayment(loan.id, date, custom)} onUpdate={(d) => onUpdate(loan.id, d)} onDelete={() => onDelete(loan.id)} onDeletePayment={onDeletePayment} />
                 ))}
               </tbody>
             </table>
@@ -2648,7 +2648,7 @@ export function LoanList({ loans, payments, installmentSchedules, onPayment, onP
                 <div key={loan.id} className="animate-fade-in h-full" style={{ animationDelay: `${i * 60}ms`, animationFillMode: 'backwards' }}>
                 <LoanCardView loan={loan} payments={payments} installmentSchedules={installmentSchedules} readOnly={readOnly} existingTags={loans.flatMap(l => l.tags || []).filter((v, i, a) => a.indexOf(v) === i)} clients={clients}
                   onPayment={(date) => onPayment(loan.id, date)} onPartialPayment={(amt, date) => onPartialPayment(loan.id, amt, date)} onFullPayment={onFullPayment ? (date, custom) => onFullPayment(loan.id, date, custom) : undefined}
-                  onInterestPayment={(date) => onInterestPayment(loan.id, date)} onUpdate={(d) => onUpdate(loan.id, d)} onDelete={() => onDelete(loan.id)} onDeletePayment={onDeletePayment} onSaveSchedule={onSaveSchedule} />
+                  onInterestPayment={(date, custom) => onInterestPayment(loan.id, date, custom)} onUpdate={(d) => onUpdate(loan.id, d)} onDelete={() => onDelete(loan.id)} onDeletePayment={onDeletePayment} onSaveSchedule={onSaveSchedule} />
                 </div>
               ))}
             </div>
