@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { todayInAppTz } from "@/lib/timezone";
 import { SuccessAnimation } from "@/components/SuccessAnimation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -51,7 +52,7 @@ export function SaleForm({ onAdd, onClose, defaultBusinessType = "venda", client
     paymentMode: (defaultBusinessType === "aluguel_veiculo" ? "recorrente" : "fixa") as PaymentMode,
     installments: defaultBusinessType === "aluguel_veiculo" ? "1" : "1",
     frequency: defaultBusinessType === "aluguel_veiculo" ? "Mensal" : "Mensal",
-    firstInstallmentDate: new Date().toISOString().split("T")[0],
+    firstInstallmentDate: todayInAppTz(),
     locadorId: defaultLocadorId,
   });
 

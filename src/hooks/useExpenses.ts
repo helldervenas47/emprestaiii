@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect } from "react";
+import { todayInAppTz } from "@/lib/timezone";
 import { Expense } from "@/types/loan";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
@@ -120,7 +121,7 @@ export function useExpenses(enabled = true) {
     const expense = expenses.find((e) => e.id === id);
     if (!expense || expense.paid) return;
 
-    const today = payDate || new Date().toISOString().split("T")[0];
+    const today = payDate || todayInAppTz();
     const isRecorrenteParcelada = expense.type === "recorrente" && expense.installments && expense.installments > 1;
     const online = isOnline();
 

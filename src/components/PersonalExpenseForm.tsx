@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { todayInAppTz } from "@/lib/timezone";
 import { SuccessAnimation } from "@/components/SuccessAnimation";
 import { DatePickerField } from "@/components/ui/date-picker-field";
 import { Button } from "@/components/ui/button";
@@ -52,7 +53,7 @@ export function PersonalExpenseForm({ onAdd, onClose }: Props) {
     category: "",
     paymentMethod: "Pix",
     installments: "1",
-    dueDate: new Date().toISOString().split("T")[0],
+    dueDate: todayInAppTz(),
     notes: "",
   });
   const [cardId, setCardId] = useState<string>("");

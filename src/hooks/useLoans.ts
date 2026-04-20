@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect } from "react";
+import { todayInAppTz } from "@/lib/timezone";
 import { Loan, Payment, InstallmentSchedule } from "@/types/loan";
 import { adjustBalance, adjustBalanceOffline } from "@/lib/balance";
 import { supabase } from "@/integrations/supabase/client";
@@ -241,7 +242,7 @@ export function useLoans() {
 
   const addPayment = useCallback(async (loanId: string, paymentDate?: string) => {
     if (!user || !dataOwnerId) return;
-    const dateStr = paymentDate || new Date().toISOString().split("T")[0];
+    const dateStr = paymentDate || todayInAppTz();
     const loan = loans.find((l) => l.id === loanId);
     if (!loan) return;
 
@@ -326,7 +327,7 @@ export function useLoans() {
 
   const addPartialPayment = useCallback(async (loanId: string, amount: number, paymentDate?: string) => {
     if (!user || !dataOwnerId || amount <= 0) return;
-    const dateStr = paymentDate || new Date().toISOString().split("T")[0];
+    const dateStr = paymentDate || todayInAppTz();
     const loan = loans.find((l) => l.id === loanId);
     if (!loan) return;
     const newRemaining = Math.max(0, getLoanRemainingAmount(loan, payments) - amount);
@@ -364,7 +365,7 @@ export function useLoans() {
 
   const payOffLoan = useCallback(async (loanId: string, paymentDate?: string, customAmount?: number) => {
     if (!user || !dataOwnerId) return;
-    const dateStr = paymentDate || new Date().toISOString().split("T")[0];
+    const dateStr = paymentDate || todayInAppTz();
     const loan = loans.find((l) => l.id === loanId);
     if (!loan) return;
     const remaining = getLoanRemainingAmount(loan, payments);
@@ -435,7 +436,7 @@ export function useLoans() {
     if (!user || !dataOwnerId) return;
     const loan = loans.find((l) => l.id === loanId);
     if (!loan) return;
-    const dateStr = paymentDate || new Date().toISOString().split("T")[0];
+    const dateStr = paymentDate || todayInAppTz();
     const interestAmount = loan.customInterestValue != null && loan.customInterestValue > 0
       ? loan.customInterestValue
       : loan.amount * (loan.interestRate / 100);

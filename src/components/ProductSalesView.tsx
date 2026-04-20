@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect, useMemo } from "react";
+import { todayInAppTz } from "@/lib/timezone";
 import { SalePaymentRecord } from "@/types/loan";
 import { DatePickerField } from "@/components/ui/date-picker-field";
 import { Sale, BusinessType, Client, Expense } from "@/types/loan";
@@ -1673,7 +1674,7 @@ export function ProductSalesView({ sales, onDeleteSale, onUpdateSale, clients = 
             ) : (
               <div className="grid gap-3">
                 {vehicleExpenses.map((exp, idx) => {
-                  const isOverdue = !exp.paid && exp.dueDate < new Date().toISOString().split("T")[0];
+                  const isOverdue = !exp.paid && exp.dueDate < todayInAppTz();
                   const hasPaidSomething = exp.paid || (exp.paidInstallments && exp.paidInstallments > 0);
                   const isRecorrente = exp.type === "recorrente" && exp.installments && exp.installments > 1;
                   const installmentAmount = isRecorrente ? exp.amount / exp.installments! : exp.amount;

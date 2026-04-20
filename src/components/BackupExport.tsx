@@ -1,4 +1,5 @@
 import { useRef } from "react";
+import { todayInAppTz } from "@/lib/timezone";
 import { Download, Upload, FileDown, Database } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -45,7 +46,7 @@ function importExpensesFromCSV(csv: string): Omit<Expense, "id" | "paid" | "paid
       amount: parseFloat(cols[1]) || 0,
       category: cols[2] || "",
       type: (cols[3] || "fixa") as "fixa" | "recorrente",
-      dueDate: cols[4] || new Date().toISOString().split("T")[0],
+      dueDate: cols[4] || todayInAppTz(),
       installments: parseInt(cols[7]) || undefined,
       paidInstallments: parseInt(cols[8]) || 0,
       notes: cols[9] || "",
@@ -115,7 +116,7 @@ export function BackupExport({ loans, payments, clients, sales, expenses, onImpo
       fileRef: loanFileRef,
       onExport: () => {
         if (loans.length === 0) return toast.error("Nenhum empréstimo para exportar");
-        downloadCSV(exportLoansToCSV(loans, payments), `emprestimos_backup_${new Date().toISOString().split("T")[0]}.csv`);
+        downloadCSV(exportLoansToCSV(loans, payments), `emprestimos_backup_${todayInAppTz()}.csv`);
         toast.success("Empréstimos exportados!");
       },
       onImportFile: (csv: string) => {
@@ -132,7 +133,7 @@ export function BackupExport({ loans, payments, clients, sales, expenses, onImpo
       fileRef: clientFileRef,
       onExport: () => {
         if (clients.length === 0) return toast.error("Nenhum cliente para exportar");
-        downloadCSV(exportClientsToCSV(clients), `clientes_backup_${new Date().toISOString().split("T")[0]}.csv`);
+        downloadCSV(exportClientsToCSV(clients), `clientes_backup_${todayInAppTz()}.csv`);
         toast.success("Clientes exportados!");
       },
       onImportFile: (csv: string) => {
@@ -150,7 +151,7 @@ export function BackupExport({ loans, payments, clients, sales, expenses, onImpo
       onExport: () => {
         const filtered = sales.filter(s => s.businessType !== "aluguel_veiculo");
         if (filtered.length === 0) return toast.error("Nenhuma venda para exportar");
-        downloadCSV(exportSalesToCSV(filtered), `vendas_backup_${new Date().toISOString().split("T")[0]}.csv`);
+        downloadCSV(exportSalesToCSV(filtered), `vendas_backup_${todayInAppTz()}.csv`);
         toast.success("Vendas exportadas!");
       },
       onImportFile: (csv: string) => {
@@ -168,7 +169,7 @@ export function BackupExport({ loans, payments, clients, sales, expenses, onImpo
       onExport: () => {
         const filtered = sales.filter(s => s.businessType === "aluguel_veiculo");
         if (filtered.length === 0) return toast.error("Nenhum aluguel para exportar");
-        downloadCSV(exportSalesToCSV(filtered), `veiculos_backup_${new Date().toISOString().split("T")[0]}.csv`);
+        downloadCSV(exportSalesToCSV(filtered), `veiculos_backup_${todayInAppTz()}.csv`);
         toast.success("Aluguéis exportados!");
       },
       onImportFile: (csv: string) => {
@@ -185,7 +186,7 @@ export function BackupExport({ loans, payments, clients, sales, expenses, onImpo
       fileRef: expenseFileRef,
       onExport: () => {
         if (expenses.length === 0) return toast.error("Nenhuma despesa para exportar");
-        downloadCSV(exportExpensesToCSV(expenses), `despesas_backup_${new Date().toISOString().split("T")[0]}.csv`);
+        downloadCSV(exportExpensesToCSV(expenses), `despesas_backup_${todayInAppTz()}.csv`);
         toast.success("Despesas exportadas!");
       },
       onImportFile: (csv: string) => {
@@ -202,7 +203,7 @@ export function BackupExport({ loans, payments, clients, sales, expenses, onImpo
       fileRef: null,
       onExport: () => {
         if (payments.length === 0) return toast.error("Nenhum pagamento para exportar");
-        downloadCSV(exportPaymentsToCSV(payments), `pagamentos_backup_${new Date().toISOString().split("T")[0]}.csv`);
+        downloadCSV(exportPaymentsToCSV(payments), `pagamentos_backup_${todayInAppTz()}.csv`);
         toast.success("Pagamentos exportados!");
       },
       onImportFile: null,
@@ -211,7 +212,7 @@ export function BackupExport({ loans, payments, clients, sales, expenses, onImpo
 
   const handleExportAll = () => {
     let exported = 0;
-    const date = new Date().toISOString().split("T")[0];
+    const date = todayInAppTz();
     if (loans.length > 0) { downloadCSV(exportLoansToCSV(loans, payments), `emprestimos_backup_${date}.csv`); exported++; }
     if (payments.length > 0) { downloadCSV(exportPaymentsToCSV(payments), `pagamentos_backup_${date}.csv`); exported++; }
     if (clients.length > 0) { downloadCSV(exportClientsToCSV(clients), `clientes_backup_${date}.csv`); exported++; }

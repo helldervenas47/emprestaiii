@@ -1,4 +1,5 @@
 import { useState, useCallback, useMemo, useEffect } from "react";
+import { todayInAppTz } from "@/lib/timezone";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useHideValues } from "@/contexts/HideValuesContext";
@@ -40,7 +41,7 @@ function rawFormatCurrency(v: number) {
 
 function isOverdue(expense: Expense): boolean {
   if (expense.paid) return false;
-  const today = new Date().toISOString().split("T")[0];
+  const today = todayInAppTz();
   return expense.dueDate < today;
 }
 
@@ -495,7 +496,7 @@ export function ExpenseList({ expenses, onPay, onUnpay, onDelete, onUpdate, read
                           )}
                           {!readOnly && !expense.paid && (
                             <Button size="sm" variant="outline" className="text-success border-success/30 hover:bg-success hover:text-success-foreground h-7 text-xs" onClick={() => {
-                              setPayDate(new Date().toISOString().split("T")[0]);
+                              setPayDate(todayInAppTz());
                               setPaidAmountInput("");
                               setPayingExpenseId(expense.id);
                             }}>

@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { todayInAppTz } from "@/lib/timezone";
 import { SuccessAnimation } from "@/components/SuccessAnimation";
 import { DatePickerField } from "@/components/ui/date-picker-field";
 import { format } from "date-fns";
@@ -38,7 +39,7 @@ export function LoanForm({ onAdd, onSaveSchedule, onClose, clients, existingTags
   const [submitting, setSubmitting] = useState(false);
   const activeClients = clients.filter((c) => c.active).sort((a, b) => a.name.localeCompare(b.name, "pt-BR"));
 
-  const defaultStart = new Date().toISOString().split("T")[0];
+  const defaultStart = todayInAppTz();
   const defaultFirstDue = new Date();
   defaultFirstDue.setMonth(defaultFirstDue.getMonth() + 1);
 

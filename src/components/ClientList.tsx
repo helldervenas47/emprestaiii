@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { todayInAppTz } from "@/lib/timezone";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Client, Loan, Payment } from "@/types/loan";
 import { Card, CardContent } from "@/components/ui/card";
@@ -54,7 +55,7 @@ function calculateCreditScore(clientId: string, loans: Loan[], payments: Payment
   const overdueLoans = clientLoans.filter((l) => l.status === "overdue").length;
 
   // Check overdue by dueDate for active loans
-  const todayStr = new Date().toISOString().split("T")[0];
+  const todayStr = todayInAppTz();
   const actualOverdue = clientLoans.filter((l) => l.status !== "paid" && l.dueDate < todayStr).length;
   const totalOverdue = Math.max(overdueLoans, actualOverdue);
 
