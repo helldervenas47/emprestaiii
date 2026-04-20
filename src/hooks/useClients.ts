@@ -59,7 +59,7 @@ export function useClients() {
     if (!user) return;
     const channel = supabase
       .channel(`clients-realtime-${user.id}-${Math.random().toString(36).slice(2, 8)}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'clients' }, () => { fetchClients(); notifyRemoteUpdate('clients'); })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'clients' }, () => { fetchClients(); })
       .subscribe();
     return () => { supabase.removeChannel(channel); };
   }, [user, fetchClients]);
