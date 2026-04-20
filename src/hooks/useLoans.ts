@@ -471,10 +471,16 @@ export function useLoans() {
     const loanPayments = payments.filter((p) => p.loanId === id);
     setLoans((prev) => prev.filter((l) => l.id !== id));
     setPayments((prev) => prev.filter((p) => p.loanId !== id));
+    await removeCachedRow("loans", id);
 
+    if (!isOnline()) {
+      await enqueueMutation({ table: "loans", op: "delete", recordId: id });
+      return;
+    }
     if (loan) await adjustBalance(loan.amount);
     for (const p of loanPayments) await adjustBalance(-p.amount);
-    await supabase.from("loans").delete().eq("id", id);
+    const { error } = await supabase.from("loans").delete().eq("id", id);
+    if (error) await enqueueMutation({ table: "loans", op: "delete", recordId: id });
   }, [loans, payments]);
 
   const deletePayment = useCallback(async (id: string) => {
