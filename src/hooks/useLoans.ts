@@ -561,12 +561,15 @@ export function useLoans() {
     setPayments((prev) => prev.filter((p) => p.loanId !== id));
     await removeCachedRow("loans", id);
 
+    // Net balance impact: refund principal, then revert all received payments
+    const netDelta = (loan ? loan.amount : 0) - loanPayments.reduce((s, p) => s + p.amount, 0);
+
     if (!isOnline()) {
       await enqueueMutation({ table: "loans", op: "delete", recordId: id });
+      if (netDelta !== 0) await adjustBalanceOffline(netDelta);
       return;
     }
-    if (loan) await adjustBalance(loan.amount);
-    for (const p of loanPayments) await adjustBalance(-p.amount);
+    if (netDelta !== 0) await adjustBalance(netDelta);
     const { error } = await supabase.from("loans").delete().eq("id", id);
     if (error) await enqueueMutation({ table: "loans", op: "delete", recordId: id });
   }, [loans, payments]);
@@ -574,14 +577,17 @@ export function useLoans() {
   const deletePayment = useCallback(async (id: string) => {
     const payment = payments.find((p) => p.id === id);
     if (!payment) return;
+    const online = isOnline();
 
     setPayments((prev) => prev.filter((p) => p.id !== id));
+    await removeCachedRow("payments", id);
 
     const loan = loans.find((l) => l.id === payment.loanId);
+    let loanUpdates: any = null;
 
     if (loan) {
       const newRemaining = (loan.remainingAmount ?? 0) + payment.amount;
-      const loanUpdates: any = { remaining_amount: newRemaining };
+      loanUpdates = { remaining_amount: newRemaining };
 
       if (payment.installmentNumber > 0) {
         const newPaid = Math.max(0, loan.paidInstallments - 1);
@@ -602,20 +608,32 @@ export function useLoans() {
         setLoans((prev) => prev.map((l) => l.id === payment.loanId ? {
           ...l, dueDate: payment.previousDueDate!,
         } : l));
-        const nextNum = loan.paidInstallments + 1;
-        await supabase.from("loan_installments")
-          .update({ due_date: payment.previousDueDate })
-          .eq("loan_id", payment.loanId)
-          .eq("installment_number", nextNum);
+        if (online) {
+          const nextNum = loan.paidInstallments + 1;
+          await supabase.from("loan_installments")
+            .update({ due_date: payment.previousDueDate })
+            .eq("loan_id", payment.loanId)
+            .eq("installment_number", nextNum);
+        }
       } else {
         setLoans((prev) => prev.map((l) => l.id === payment.loanId ? {
           ...l, remainingAmount: newRemaining,
         } : l));
       }
-
-      await supabase.from("loans").update(loanUpdates).eq("id", payment.loanId);
     }
 
+    if (!online) {
+      if (loan && loanUpdates) {
+        await enqueueMutation({ table: "loans", op: "update", recordId: payment.loanId, payload: loanUpdates });
+      }
+      await enqueueMutation({ table: "payments", op: "delete", recordId: id });
+      await adjustBalanceOffline(-payment.amount);
+      return;
+    }
+
+    if (loan && loanUpdates) {
+      await supabase.from("loans").update(loanUpdates).eq("id", payment.loanId);
+    }
     await adjustBalance(-payment.amount);
     await supabase.from("payments").delete().eq("id", id);
     await fetchSchedules();
