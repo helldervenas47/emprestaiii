@@ -1724,6 +1724,18 @@ export type Database = {
         }
         Returns: boolean
       }
+      list_my_sessions: {
+        Args: never
+        Returns: {
+          created_at: string
+          id: string
+          ip: string
+          not_after: string
+          updated_at: string
+          user_agent: string
+        }[]
+      }
+      revoke_my_session: { Args: { _session_id: string }; Returns: boolean }
     }
     Enums: {
       app_role: "admin" | "operador" | "visualizador"
