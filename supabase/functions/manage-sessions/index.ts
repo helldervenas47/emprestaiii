@@ -95,7 +95,6 @@ Deno.serve(async (req) => {
 
       // Verify the session belongs to the caller before deleting
       const { data: existing, error: lookupErr } = await (admin as any)
-        .schema("auth")
         .from("sessions")
         .select("id, user_id")
         .eq("id", sessionId)
@@ -112,7 +111,6 @@ Deno.serve(async (req) => {
       }
 
       const { error: delErr } = await (admin as any)
-        .schema("auth")
         .from("sessions")
         .delete()
         .eq("id", sessionId);
