@@ -127,7 +127,7 @@ export function useLoans() {
     const channel = supabase
       .channel(`loans-realtime-${user.id}-${Math.random().toString(36).slice(2)}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'loans' }, () => { fetchLoans(); notifyRemoteUpdate('loans'); })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'payments' }, () => { fetchPayments(); notifyRemoteUpdate('payments'); })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'payments' }, () => { fetchPayments(); })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'loan_installments' }, () => { fetchSchedules(); })
       .subscribe();
     return () => { supabase.removeChannel(channel); };
