@@ -1401,6 +1401,10 @@ Deno.serve(async (req) => {
                 LOVABLE_API_KEY, TELEGRAM_API_KEY,
               );
               await checkBudgetAndAlert(admin, link.user_id, chatId, newCat, LOVABLE_API_KEY, TELEGRAM_API_KEY);
+              if (exp.description) {
+                learnCategoryFromExpense(admin, link.user_id, exp.description, newCat)
+                  .catch((e) => console.error("learn (setcat) err", e));
+              }
             }
           }
         } else if (data.startsWith("canc:")) {
@@ -1499,6 +1503,8 @@ Deno.serve(async (req) => {
                 if (!card) {
                   await checkBudgetAndAlert(admin, link.user_id, chatId, finalCategory, LOVABLE_API_KEY, TELEGRAM_API_KEY);
                 }
+                learnCategoryFromExpense(admin, link.user_id, extracted.description || "Comprovante", finalCategory)
+                  .catch((e) => console.error("learn (photo) err", e));
               }
             }
           }
@@ -1593,6 +1599,8 @@ Deno.serve(async (req) => {
                 if (!card) {
                   await checkBudgetAndAlert(admin, link.user_id, chatId, finalCategory, LOVABLE_API_KEY, TELEGRAM_API_KEY);
                 }
+                learnCategoryFromExpense(admin, link.user_id, extracted.description || transcript.slice(0, 80), finalCategory)
+                  .catch((e) => console.error("learn (audio) err", e));
               }
             }
           }
@@ -1820,6 +1828,8 @@ Deno.serve(async (req) => {
                     checkBudgetAndAlert(admin, link.user_id, chatId, finalCategory, LOVABLE_API_KEY, TELEGRAM_API_KEY)
                       .catch((e) => console.error("budget alert bg err", e));
                   }
+                  learnCategoryFromExpense(admin, link.user_id, extracted.description || text.slice(0, 80), finalCategory)
+                    .catch((e) => console.error("learn (text) err", e));
                 }
               }
             }
