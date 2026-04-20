@@ -450,12 +450,19 @@ export function useLoans() {
     if (data.hasManager !== undefined) (updateData as any).has_manager = data.hasManager;
     if (data.managerId !== undefined) (updateData as any).manager_id = data.managerId;
     if (data.managerCommissionRate !== undefined) (updateData as any).manager_commission_rate = data.managerCommissionRate ?? 10;
+    if (!isOnline()) {
+      await enqueueMutation({ table: "loans", op: "update", recordId: id, payload: updateData });
+      return;
+    }
     const { error: updateErr } = await supabase.from("loans").update(updateData).eq("id", id);
     if (updateErr) {
-      console.error("[updateLoan] Falha ao salvar:", updateErr);
-      toast.error("Falha ao salvar alterações: " + updateErr.message);
-      // refetch to revert optimistic state
-      await fetchLoans();
+      if (!updateErr.message.toLowerCase().includes("row-level")) {
+        await enqueueMutation({ table: "loans", op: "update", recordId: id, payload: updateData });
+      } else {
+        console.error("[updateLoan] Falha ao salvar:", updateErr);
+        toast.error("Falha ao salvar alterações: " + updateErr.message);
+        await fetchLoans();
+      }
     }
   }, [loans, fetchLoans]);
 
