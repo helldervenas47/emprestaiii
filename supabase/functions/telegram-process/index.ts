@@ -1452,9 +1452,8 @@ Deno.serve(async (req) => {
               await tgSend(chatId, "🤔 Não consegui ler o comprovante. Tente uma foto mais nítida ou envie por texto.", LOVABLE_API_KEY, TELEGRAM_API_KEY);
             } else {
               const finalDate = sanitizeDate(extracted.date);
-              const finalCategory = CATEGORIES.includes(extracted.category) ? extracted.category : "Outros";
-
-              // 💳 Card detection — uses caption text
+              const initialCat = CATEGORIES.includes(extracted.category) ? extracted.category : "Outros";
+              const finalCategory = await resolveCategoryHybrid(admin, link.user_id, extracted.description || "Comprovante", initialCat, LOVABLE_API_KEY);
               const userCards = await getUserCards(admin, link.user_id);
               const card = caption ? detectCardInText(caption, userCards) : null;
 
