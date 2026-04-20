@@ -78,18 +78,36 @@ export function useExpenses(enabled = true) {
     };
     setExpenses((prev) => [optimistic, ...prev]);
 
-    const { data, error } = await supabase.from("expenses").insert({
+    const insertPayload = {
+      id: tempId,
       user_id: dataOwnerId, description: expense.description, amount: expense.amount,
       type: expense.type, category: expense.category, installments: expense.installments,
       paid_installments: 0, due_date: expense.dueDate, paid: false,
       notes: expense.notes ?? null,
       scope: expense.scope ?? "business",
-    } as any).select().single();
+    };
+
+    await upsertCachedRow("expenses", { ...insertPayload, created_at: optimistic.createdAt });
+
+    if (!isOnline()) {
+      await enqueueMutation({ table: "expenses", op: "insert", recordId: tempId, payload: insertPayload });
+      return;
+    }
+
+    const { data, error } = await supabase.from("expenses").insert(insertPayload as any).select().single();
 
     if (error) {
-      setExpenses((prev) => prev.filter((e) => e.id !== tempId));
+      if (!error.message.toLowerCase().includes("row-level")) {
+        await enqueueMutation({ table: "expenses", op: "insert", recordId: tempId, payload: insertPayload });
+      } else {
+        setExpenses((prev) => prev.filter((e) => e.id !== tempId));
+        await removeCachedRow("expenses", tempId);
+      }
     } else if (data) {
       setExpenses((prev) => prev.map((e) => e.id === tempId ? { ...e, id: data.id, createdAt: data.created_at } : e));
+      await removeCachedRow("expenses", tempId);
+      await upsertCachedRow("expenses", data);
+      await rewritePendingRecordId("expenses", tempId, data.id);
       // Trigger budget overrun push notification check (personal scope only)
       if ((expense.scope ?? "business") === "personal") {
         supabase.functions.invoke("notify-budget-overrun").catch(() => { /* silent */ });
