@@ -228,6 +228,12 @@ export async function flushQueue(opts: { silent?: boolean } = {}): Promise<{ flu
         break;
       }
     }
+    // After mutations drain, apply any pending balance delta
+    try {
+      await flushPendingBalance();
+    } catch (e) {
+      console.warn("[offline-sync] balance flush failed", e);
+    }
   } finally {
     flushing = false;
   }
