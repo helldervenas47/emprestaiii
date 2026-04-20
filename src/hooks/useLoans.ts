@@ -45,49 +45,62 @@ export function useLoans() {
 
   const fetchLoans = useCallback(async () => {
     if (!user) return;
-    const { data } = await supabase
-      .from("loans").select("*")
-      .order("created_at", { ascending: false });
-    if (data) {
-      setLoans(data.map((l: any) => ({
-        id: l.id, borrowerName: l.borrower_name, borrowerId: l.borrower_id,
-        amount: Number(l.amount), interestRate: Number(l.interest_rate),
-        interestType: l.interest_type, paymentType: l.payment_type,
-        startDate: l.start_date, dueDate: l.due_date, installments: l.installments,
-        paidInstallments: l.paid_installments, status: l.status as Loan["status"],
-        remainingAmount: l.remaining_amount != null ? Number(l.remaining_amount) : undefined,
-        customInstallmentValue: l.custom_installment_value != null ? Number(l.custom_installment_value) : null,
-        customInterestValue: l.custom_interest_value != null ? Number(l.custom_interest_value) : null,
-        tags: l.tags, notes: l.notes, createdAt: l.created_at,
-        lateInterestType: l.late_interest_type, lateInterestValue: l.late_interest_value != null ? Number(l.late_interest_value) : null,
-        penaltyValue: l.penalty_value != null ? Number(l.penalty_value) : null,
-        hasManager: (l as any).has_manager ?? false,
-        managerId: (l as any).manager_id ?? null,
-        managerCommissionRate: (l as any).manager_commission_rate != null ? Number((l as any).manager_commission_rate) : 10,
-      })));
+    if (isOnline()) {
+      const { data, error } = await supabase
+        .from("loans").select("*")
+        .order("created_at", { ascending: false });
+      if (!error && data) {
+        setLoans(data.map(rowToLoan));
+        cacheRows("loans", data).catch(() => { /* noop */ });
+        return;
+      }
+    }
+    const cached = await getCachedRows("loans");
+    if (cached.length > 0) {
+      setLoans(cached
+        .sort((a, b) => (b.created_at || "").localeCompare(a.created_at || ""))
+        .map(rowToLoan));
     }
   }, [user]);
 
   const fetchPayments = useCallback(async () => {
     if (!user) return;
-    const { data } = await supabase
-      .from("payments").select("*")
-      .order("created_at", { ascending: false });
-    if (data) {
-      setPayments(data.map((p: any) => ({
-        id: p.id, loanId: p.loan_id, amount: Number(p.amount), date: p.date,
-        installmentNumber: p.installment_number, previousDueDate: p.previous_due_date,
-      })));
+    if (isOnline()) {
+      const { data, error } = await supabase
+        .from("payments").select("*")
+        .order("created_at", { ascending: false });
+      if (!error && data) {
+        setPayments(data.map(rowToPayment));
+        cacheRows("payments", data).catch(() => { /* noop */ });
+        return;
+      }
+    }
+    const cached = await getCachedRows("payments");
+    if (cached.length > 0) {
+      setPayments(cached
+        .sort((a, b) => (b.created_at || "").localeCompare(a.created_at || ""))
+        .map(rowToPayment));
     }
   }, [user]);
 
   const fetchSchedules = useCallback(async () => {
     if (!user) return;
-    const { data } = await supabase
-      .from("loan_installments").select("*")
-      .order("installment_number", { ascending: true });
-    if (data) {
-      setInstallmentSchedules(data.map((s: any) => ({
+    if (isOnline()) {
+      const { data, error } = await supabase
+        .from("loan_installments").select("*")
+        .order("installment_number", { ascending: true });
+      if (!error && data) {
+        setInstallmentSchedules(data.map((s: any) => ({
+          id: s.id, loanId: s.loan_id, installmentNumber: s.installment_number,
+          dueDate: s.due_date, amount: Number(s.amount),
+        })));
+        cacheRows("loan_installments", data).catch(() => { /* noop */ });
+        return;
+      }
+    }
+    const cached = await getCachedRows("loan_installments");
+    if (cached.length > 0) {
+      setInstallmentSchedules(cached.map((s: any) => ({
         id: s.id, loanId: s.loan_id, installmentNumber: s.installment_number,
         dueDate: s.due_date, amount: Number(s.amount),
       })));
@@ -95,6 +108,18 @@ export function useLoans() {
   }, [user]);
 
   useEffect(() => { fetchLoans(); fetchPayments(); fetchSchedules(); }, [fetchLoans, fetchPayments, fetchSchedules]);
+
+  // Refetch after offline queue flush
+  useEffect(() => {
+    const handler = (e: any) => {
+      const tables: string[] = e.detail?.tables || [];
+      if (tables.includes("loans")) fetchLoans();
+      if (tables.includes("payments")) fetchPayments();
+      if (tables.includes("loan_installments")) fetchSchedules();
+    };
+    window.addEventListener("offline-sync:flushed", handler);
+    return () => window.removeEventListener("offline-sync:flushed", handler);
+  }, [fetchLoans, fetchPayments, fetchSchedules]);
 
   // Realtime subscriptions for auto-refresh
   useEffect(() => {
