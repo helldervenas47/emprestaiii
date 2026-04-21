@@ -384,37 +384,47 @@ function LoanCardView({
     setPaymentDialog({ type, amount });
   };
 
-  const confirmPayment = () => {
+  const confirmPayment = async () => {
     if (!paymentDialog) return;
     const dateStr = paymentDate.toISOString().split("T")[0];
-    if (paymentDialog.type === "full") {
-      if (onFullPayment) {
-        onFullPayment(dateStr);
-      } else {
-        onPartialPayment(remaining, dateStr);
-        onUpdate({ paidInstallments: loan.installments, status: "paid" });
-      }
-    } else if (paymentDialog.type === "payoff") {
-      const customRaw = parseFloat(payoffAmount.replace(",", "."));
-      const custom = isFinite(customRaw) && customRaw > 0 ? customRaw : 0;
-      if (custom <= 0) return;
-      if (onFullPayment) {
-        onFullPayment(dateStr, custom);
-      } else {
-        onPartialPayment(custom, dateStr);
-        onUpdate({ paidInstallments: loan.installments, status: "paid" });
-      }
-    } else if (paymentDialog.type === "installment") onPayment(dateStr);
-    else if (paymentDialog.type === "interest") {
-      if (interestSelection === "withFees" && lateFees > 0) {
-        onInterestPayment(dateStr, undefined, lateFees);
-      } else {
-        onInterestPayment(dateStr);
-      }
-    }
-    else if (paymentDialog.type === "partial" && paymentDialog.amount) onPartialPayment(paymentDialog.amount, dateStr);
+    const dialogType = paymentDialog.type;
+    const dialogAmount = paymentDialog.amount;
     setPayoffAmount("");
     setPaymentDialog(null);
+    try {
+      if (dialogType === "full") {
+        if (onFullPayment) {
+          await onFullPayment(dateStr);
+        } else {
+          await onPartialPayment(remaining, dateStr);
+          await onUpdate({ paidInstallments: loan.installments, status: "paid" });
+        }
+      } else if (dialogType === "payoff") {
+        const customRaw = parseFloat(payoffAmount.replace(",", "."));
+        const custom = isFinite(customRaw) && customRaw > 0 ? customRaw : 0;
+        if (custom <= 0) return;
+        if (onFullPayment) {
+          await onFullPayment(dateStr, custom);
+        } else {
+          await onPartialPayment(custom, dateStr);
+          await onUpdate({ paidInstallments: loan.installments, status: "paid" });
+        }
+      } else if (dialogType === "installment") {
+        await onPayment(dateStr);
+      } else if (dialogType === "interest") {
+        if (interestSelection === "withFees" && lateFees > 0) {
+          await onInterestPayment(dateStr, undefined, lateFees);
+        } else {
+          await onInterestPayment(dateStr);
+        }
+      } else if (dialogType === "partial" && dialogAmount) {
+        await onPartialPayment(dialogAmount, dateStr);
+      }
+      toast.success("Pagamento registrado");
+    } catch (err: any) {
+      console.error("[confirmPayment]", err);
+      toast.error(`Falha ao registrar pagamento: ${err?.message ?? "tente novamente"}`);
+    }
   };
 
   const handlePartialSubmit = () => {
@@ -1633,37 +1643,47 @@ function LoanRowView({
     setPaymentDialog({ type, amount });
   };
 
-  const confirmPayment = () => {
+  const confirmPayment = async () => {
     if (!paymentDialog) return;
     const dateStr = paymentDate.toISOString().split("T")[0];
-    if (paymentDialog.type === "full") {
-      if (onFullPayment) {
-        onFullPayment(dateStr);
-      } else {
-        onPartialPayment(remaining, dateStr);
-        onUpdate({ paidInstallments: loan.installments, status: "paid" });
-      }
-    } else if (paymentDialog.type === "payoff") {
-      const customRaw = parseFloat(payoffAmount.replace(",", "."));
-      const custom = isFinite(customRaw) && customRaw > 0 ? customRaw : 0;
-      if (custom <= 0) return;
-      if (onFullPayment) {
-        onFullPayment(dateStr, custom);
-      } else {
-        onPartialPayment(custom, dateStr);
-        onUpdate({ paidInstallments: loan.installments, status: "paid" });
-      }
-    } else if (paymentDialog.type === "installment") onPayment(dateStr);
-    else if (paymentDialog.type === "interest") {
-      const baseInterest = loan.customInterestValue != null && loan.customInterestValue > 0
-        ? loan.customInterestValue
-        : loan.amount * (loan.interestRate / 100);
-      const custom = interestSelection === "withFees" && lateFees > 0 ? baseInterest + lateFees : undefined;
-      onInterestPayment(dateStr, custom);
-    }
-    else if (paymentDialog.type === "partial" && paymentDialog.amount) onPartialPayment(paymentDialog.amount, dateStr);
+    const dialogType = paymentDialog.type;
+    const dialogAmount = paymentDialog.amount;
     setPayoffAmount("");
     setPaymentDialog(null);
+    try {
+      if (dialogType === "full") {
+        if (onFullPayment) {
+          await onFullPayment(dateStr);
+        } else {
+          await onPartialPayment(remaining, dateStr);
+          await onUpdate({ paidInstallments: loan.installments, status: "paid" });
+        }
+      } else if (dialogType === "payoff") {
+        const customRaw = parseFloat(payoffAmount.replace(",", "."));
+        const custom = isFinite(customRaw) && customRaw > 0 ? customRaw : 0;
+        if (custom <= 0) return;
+        if (onFullPayment) {
+          await onFullPayment(dateStr, custom);
+        } else {
+          await onPartialPayment(custom, dateStr);
+          await onUpdate({ paidInstallments: loan.installments, status: "paid" });
+        }
+      } else if (dialogType === "installment") {
+        await onPayment(dateStr);
+      } else if (dialogType === "interest") {
+        const baseInterest = loan.customInterestValue != null && loan.customInterestValue > 0
+          ? loan.customInterestValue
+          : loan.amount * (loan.interestRate / 100);
+        const custom = interestSelection === "withFees" && lateFees > 0 ? baseInterest + lateFees : undefined;
+        await onInterestPayment(dateStr, custom);
+      } else if (dialogType === "partial" && dialogAmount) {
+        await onPartialPayment(dialogAmount, dateStr);
+      }
+      toast.success("Pagamento registrado");
+    } catch (err: any) {
+      console.error("[confirmPayment]", err);
+      toast.error(`Falha ao registrar pagamento: ${err?.message ?? "tente novamente"}`);
+    }
   };
 
   const handlePartialSubmit = () => {
