@@ -18,12 +18,25 @@ export function useTelegramReportsLink() {
 
   useEffect(() => {
     refresh();
-    const channel = supabase
-      .channel("telegram_reports_links_self")
-      .on("postgres_changes", { event: "*", schema: "public", table: "telegram_reports_links" }, () => refresh())
-      .subscribe();
+    const channel = supabase.channel(
+      `telegram_reports_links_self:${user?.id ?? "anonymous"}`,
+    );
+
+    channel.on(
+      "postgres_changes",
+      {
+        event: "*",
+        schema: "public",
+        table: "telegram_reports_links",
+        filter: user ? `user_id=eq.${user.id}` : undefined,
+      },
+      () => refresh(),
+    );
+
+    channel.subscribe();
+
     return () => { supabase.removeChannel(channel); };
-  }, [refresh]);
+  }, [refresh, user]);
 
   const disconnect = useCallback(async () => {
     if (!user) return;
