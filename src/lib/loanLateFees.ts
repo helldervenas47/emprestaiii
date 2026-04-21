@@ -28,7 +28,7 @@ export function getBaseRemainingAmount(loan: Loan, payments: Payment[], schedule
     return loan.remainingAmount;
   }
 
-  const totalExpected = calculateTotalWithInterest(loan.amount, loan.interestRate, loan.installments);
+  const totalExpected = calculateTotalWithInterest(loan.amount, loan.interestRate);
   const totalPaid = payments
     .filter((payment) => payment.loanId === loan.id)
     .reduce((sum, payment) => sum + payment.amount, 0);
