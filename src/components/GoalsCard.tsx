@@ -11,6 +11,7 @@ import { useMonthlyGoals, GoalType, formatMonthLabel } from "@/hooks/useMonthlyG
 import { Loan, Payment, Expense, Client, InstallmentSchedule } from "@/types/loan";
 import { todayInAppTz } from "@/lib/timezone";
 import { useActiveCapitalSnapshots } from "@/hooks/useActiveCapitalSnapshots";
+import { calculateMonthlyInterestRate } from "@/lib/monthlyInterestRate";
 import {
   Target, Percent, TrendingUp, Banknote, FileText,
   HandCoins, Coins, Wallet, PiggyBank, AlertTriangle, UserPlus,
@@ -415,9 +416,8 @@ function computeActual(
         const inst = Number(l.installments) || 1;
         return s + calculateTotalWithInterest(principal, rate, inst);
       }, 0);
-      // Validação de divisão por zero
-      if (totalLent <= 0) return 0;
-      return ((totalToReceive - totalLent) / totalLent) * 100;
+      const summary = calculateMonthlyInterestRate(monthLoans as Loan[]);
+      return summary.rate ?? 0;
     }
     case "profit": {
       // Mesma lógica do campo "% Lucro" / "% Meta" do card "Lucro por Período"
