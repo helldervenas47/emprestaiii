@@ -138,6 +138,15 @@ Deno.serve(async (req) => {
     const now = new Date();
     const expiresAt = new Date(now.getTime() + (1000 * 60 * 60 * 24 * 30)).toISOString();
 
+    await createEvent(adminClient, {
+      owner_id: ownerId,
+      client_id,
+      event_type: "analysis_expiration_scheduled",
+      status: "info",
+      message: "Validade da análise financeira definida",
+      metadata: { expires_at: expiresAt },
+    });
+
     const positiveFactors = [
       external.employmentStability === "estável" ? "Vínculo profissional com sinal de estabilidade." : null,
       external.bankingRelationship === "forte" ? "Bom relacionamento bancário detectado." : null,
@@ -220,6 +229,40 @@ Deno.serve(async (req) => {
   } catch (error) {
     console.error("sync-client-analysis error", error);
     const message = error instanceof Error ? error.message : "Unknown error";
+
+    try {
+      const authHeader = req.headers.get("Authorization");
+      const parsed = BodySchema.safeParse(await req.clone().json());
+
+      if (authHeader?.startsWith("Bearer ") && parsed.success) {
+        const supabaseUrl = Deno.env.get("SUPABASE_URL");
+        const anonKey = Deno.env.get("SUPABASE_ANON_KEY");
+        const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+
+        if (supabaseUrl && anonKey && serviceRoleKey) {
+          const userClient = createClient(supabaseUrl, anonKey, { global: { headers: { Authorization: authHeader } } });
+          const adminClient = createClient(supabaseUrl, serviceRoleKey);
+          const token = authHeader.replace("Bearer ", "");
+          const { data: claimsData } = await userClient.auth.getClaims(token);
+          const userId = claimsData?.claims?.sub;
+
+          if (userId) {
+            const { data: ownerData } = await adminClient.rpc("get_data_owner_id", { _user_id: userId });
+            await createEvent(adminClient, {
+              owner_id: ownerData ?? userId,
+              client_id: parsed.data.client_id,
+              event_type: "sync_failed",
+              status: "error",
+              message,
+              metadata: { requested_by: userId },
+            });
+          }
+        }
+      }
+    } catch (eventError) {
+      console.error("sync-client-analysis error logging failed", eventError);
+    }
+
     return new Response(JSON.stringify({ error: message }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
