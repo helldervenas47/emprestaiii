@@ -23,7 +23,6 @@ const ClientList = lazy(() => import("@/components/ClientList").then(m => ({ def
 const ProductForm = lazy(() => import("@/components/ProductForm").then(m => ({ default: m.ProductForm })));
 const SaleForm = lazy(() => import("@/components/SaleForm").then(m => ({ default: m.SaleForm })));
 const ProductSalesView = lazy(() => import("@/components/ProductSalesView").then(m => ({ default: m.ProductSalesView })));
-const DashboardOverview = lazy(() => import("@/components/DashboardOverview").then(m => ({ default: m.DashboardOverview })));
 const OverdueLoans = lazy(() => import("@/components/OverdueLoans").then(m => ({ default: m.OverdueLoans })));
 const BillingCalendar = lazy(() => import("@/components/BillingCalendar").then(m => ({ default: m.BillingCalendar })));
 const ExpenseForm = lazy(() => import("@/components/ExpenseForm").then(m => ({ default: m.ExpenseForm })));
@@ -53,12 +52,12 @@ const Settings = lazy(() => import("@/components/Settings").then(m => ({ default
 import { vehicleExpenseCategories } from "@/components/VehicleExpenseForm";
 import { PushNotificationToggle } from "@/components/PushNotificationToggle";
 import { ApprovalRequestsButton } from "@/components/ApprovalRequestsButton";
+import { DashboardOverview } from "@/components/DashboardOverview";
 
 // Prefetch most-used chunks after idle
 const prefetchChunks = () => {
   import("@/components/LoanList");
   import("@/components/LoanForm");
-  import("@/components/DashboardOverview");
   import("@/components/BillingCalendar");
   import("@/components/ClientList");
   import("@/components/DashboardCards");
