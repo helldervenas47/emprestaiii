@@ -32,3 +32,6 @@ verify_jwt = false
 
 [functions.telegram-accumulated-delinquency-summary]
 verify_jwt = false
+
+[functions.generate-risk-reduction-report]
+verify_jwt = false
