@@ -46,7 +46,7 @@ const GOAL_EXPLANATIONS: Record<GoalType, {
     measurement: "Quanto maior, mais próximo da meta. Atingimento = (Realizado ÷ Meta) × 100. Resultado em % com 2 casas decimais.",
   },
   profit: {
-    formula: "Lucro do Período (%) = (Lucro Realizado ÷ (Lucro Realizado + Lucro Previsto)) × 100",
+    formula: "Faturamento do Período (%) = (Lucro Realizado ÷ (Lucro Realizado + Lucro Previsto)) × 100",
     indicators: [
       "Lucro Realizado: mesma lógica do gráfico 'Lucro por Período' (Realizado)",
       "Lucro Previsto: parcelas com vencimento no mês × proporção de juros do contrato",
@@ -56,7 +56,7 @@ const GOAL_EXPLANATIONS: Record<GoalType, {
     example: {
       setup: "Lucro Previsto: R$ 2.000. Lucro Realizado: R$ 1.500.",
       calc: "(1.500 ÷ (1.500 + 2.000)) × 100",
-      result: "Lucro do Período = 42,86%",
+      result: "Faturamento do Período = 42,86%",
     },
     measurement: "Espelha o campo '% Lucro' do card 'Lucro por Período' no Dashboard. Resultado em % com 2 casas decimais.",
   },
@@ -163,7 +163,7 @@ type Unit = "%" | "R$" | "qtd";
 
 const GOAL_TYPE_META: Record<GoalType, { label: string; icon: any; unit: Unit; color: string; bgColor: string; description: string; inverse?: boolean }> = {
   interest_rate:      { label: "Taxa de Juros Mensal",            icon: Percent,       unit: "%",   color: "text-warning",     bgColor: "bg-warning/15",     description: "Meta da taxa média de juros aplicada nos contratos." },
-  profit:             { label: "Lucro do Período",                 icon: TrendingUp,    unit: "%",   color: "text-success",     bgColor: "bg-success/15",     description: "Quanto do lucro previsto foi efetivamente realizado." },
+  profit:             { label: "Faturamento do Período",            icon: TrendingUp,    unit: "%",   color: "text-success",     bgColor: "bg-success/15",     description: "Quanto do valor previsto foi efetivamente realizado." },
   loan_volume:        { label: "Volume Emprestado",                icon: Banknote,      unit: "R$",  color: "text-primary",     bgColor: "bg-primary/15",     description: "Soma do valor de novos empréstimos criados no mês." },
   new_loans_count:    { label: "Novos Empréstimos",                icon: FileText,      unit: "qtd", color: "text-primary",     bgColor: "bg-primary/15",     description: "Quantidade de novos contratos criados no mês." },
   received_total:     { label: "Recebimentos no Mês",              icon: HandCoins,     unit: "R$",  color: "text-success",     bgColor: "bg-success/15",     description: "Soma de todos os pagamentos recebidos no mês." },
