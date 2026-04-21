@@ -41,6 +41,42 @@ export type Database = {
         }
         Relationships: []
       }
+      active_capital_snapshots: {
+        Row: {
+          amount: number
+          created_at: string
+          finalized: boolean
+          id: string
+          last_calculated_at: string
+          month: string
+          owner_id: string
+          snapshot_date: string
+          updated_at: string
+        }
+        Insert: {
+          amount?: number
+          created_at?: string
+          finalized?: boolean
+          id?: string
+          last_calculated_at?: string
+          month: string
+          owner_id: string
+          snapshot_date?: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          finalized?: boolean
+          id?: string
+          last_calculated_at?: string
+          month?: string
+          owner_id?: string
+          snapshot_date?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       app_branding: {
         Row: {
           brand_name: string
@@ -2061,6 +2097,32 @@ export type Database = {
         }[]
       }
       revoke_my_session: { Args: { _session_id: string }; Returns: boolean }
+      upsert_active_capital_snapshot: {
+        Args: {
+          _amount: number
+          _finalize?: boolean
+          _month: string
+          _owner_id: string
+          _snapshot_date?: string
+        }
+        Returns: {
+          amount: number
+          created_at: string
+          finalized: boolean
+          id: string
+          last_calculated_at: string
+          month: string
+          owner_id: string
+          snapshot_date: string
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "active_capital_snapshots"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
     }
     Enums: {
       app_role: "admin" | "operador" | "visualizador"

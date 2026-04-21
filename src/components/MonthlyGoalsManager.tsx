@@ -16,6 +16,8 @@ import { useClients } from "@/hooks/useClients";
 import { useExpenses } from "@/hooks/useExpenses";
 import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
 import { useHideValues } from "@/contexts/HideValuesContext";
+import { useActiveCapitalSnapshots } from "@/hooks/useActiveCapitalSnapshots";
+import { todayInAppTz } from "@/lib/timezone";
 
 type Unit = "%" | "R$" | "qtd";
 
@@ -26,7 +28,7 @@ const GOAL_TYPE_META: Record<GoalType, { label: string; icon: any; unit: Unit; c
   new_loans_count:    { label: "Novos Empréstimos no Mês",         icon: FileText,      unit: "qtd", color: "text-primary",     description: "Quantidade de novos contratos criados no mês." },
   received_total:     { label: "Recebimentos no Mês",              icon: HandCoins,     unit: "R$",  color: "text-success",     description: "Soma de todos os pagamentos recebidos no mês." },
   interest_received:  { label: "Juros Recebidos no Mês",           icon: Coins,         unit: "R$",  color: "text-success",     description: "Apenas a parte dos juros dos pagamentos recebidos." },
-  active_capital:     { label: "Capital Ativo / em Circulação",    icon: Wallet,        unit: "R$",  color: "text-primary",     description: "Total ainda a receber em contratos ativos." },
+  active_capital:     { label: "Capital Ativo / em Circulação",    icon: Wallet,        unit: "R$",  color: "text-primary",     description: "Valor mensal congelado no fechamento de cada mês." },
   net_profit:         { label: "Lucro Líquido do Mês",             icon: PiggyBank,     unit: "R$",  color: "text-success",     description: "Juros recebidos menos despesas pagas da empresa." },
   max_default_rate:   { label: "Inadimplência Máxima",             icon: AlertTriangle, unit: "%",   color: "text-destructive", description: "Limite máximo de % de parcelas em atraso (meta inversa).", inverse: true },
   new_clients_count:  { label: "Novos Clientes no Mês",            icon: UserPlus,      unit: "qtd", color: "text-primary",     description: "Clientes cadastrados no período." },
@@ -51,6 +53,12 @@ export function MonthlyGoalsManager() {
   const { clients } = useClients();
   const { expenses } = useExpenses(true);
   const { hidden } = useHideValues();
+  const currentActiveCapital = useMemo(
+    () => loans.filter((l: any) => l.status !== "completed" && l.status !== "paid")
+      .reduce((s: number, l: any) => s + (Number(l.remainingAmount ?? l.remaining_amount) || 0), 0),
+    [loans]
+  );
+  const { currentMonth, getSnapshotAmount } = useActiveCapitalSnapshots(currentActiveCapital);
 
   const [goalType, setGoalType] = useState<GoalType>("loan_volume");
   const [month, setMonth] = useState(currentMonthKey());
@@ -102,8 +110,7 @@ export function MonthlyGoalsManager() {
         }, 0);
       }
       case "active_capital":
-        return loans.filter((l: any) => l.status !== "completed")
-          .reduce((s: number, l: any) => s + (Number(l.remainingAmount ?? l.remaining_amount) || 0), 0);
+        return m === currentMonth ? currentActiveCapital : (getSnapshotAmount(m) ?? 0);
       case "net_profit": {
         const interest = payments.filter((p: any) => inMonth(p.date, m)).reduce((s: number, p: any) => {
           const loan: any = loans.find((l: any) => l.id === p.loan_id);
