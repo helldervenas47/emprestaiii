@@ -82,7 +82,7 @@ export function useClientFinancialAnalysis(clientId?: string | null) {
     const [profileRes, reportRes, eventsRes] = await Promise.all([
       supabase.from("client_financial_profiles" as any).select("*").eq("client_id", clientId).maybeSingle(),
       supabase.from("client_credit_reports" as any).select("*").eq("client_id", clientId).order("fetched_at", { ascending: false }).limit(1).maybeSingle(),
-      supabase.from("client_analysis_events" as any).select("*").eq("client_id", clientId).order("created_at", { ascending: false }).limit(8),
+      supabase.from("client_analysis_events" as any).select("*").eq("client_id", clientId).order("created_at", { ascending: false }).limit(20),
     ]);
 
     setProfile(profileRes.data ? rowToFinancialProfile(profileRes.data) : null);
