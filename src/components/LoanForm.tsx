@@ -76,14 +76,6 @@ export function LoanForm({ onAdd, onSaveSchedule, onClose, clients, loans, payme
 
   const managerClients = activeClients.filter((c) => c.isManager);
   const selectedClient = useMemo(() => activeClients.find((c) => c.id === form.borrowerName), [activeClients, form.borrowerName]);
-  const { profile: selectedClientFinancialProfile } = useClientFinancialAnalysis(selectedClient?.id);
-  const selectedClientRisk = useMemo(() => {
-    if (!selectedClient) return null;
-    return {
-      profile: buildConsolidatedRiskProfile(selectedClient, loans, payments, installmentSchedules, selectedClientFinancialProfile),
-      metrics: getClientRiskMetrics(selectedClient, loans, payments, installmentSchedules),
-    };
-  }, [selectedClient, loans, payments, installmentSchedules, selectedClientFinancialProfile]);
 
   const { getLimitForClient } = useCreditLimits();
   const selectedClientLimit = selectedClient ? getLimitForClient(selectedClient.id) : undefined;
