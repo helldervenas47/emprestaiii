@@ -1671,11 +1671,11 @@ function LoanRowView({
       } else if (dialogType === "installment") {
         await onPayment(dateStr);
       } else if (dialogType === "interest") {
-        const baseInterest = loan.customInterestValue != null && loan.customInterestValue > 0
-          ? loan.customInterestValue
-          : loan.amount * (loan.interestRate / 100);
-        const custom = interestSelection === "withFees" && lateFees > 0 ? baseInterest + lateFees : undefined;
-        await onInterestPayment(dateStr, custom);
+        if (interestSelection === "withFees" && lateFees > 0) {
+          await onInterestPayment(dateStr, undefined, lateFees);
+        } else {
+          await onInterestPayment(dateStr);
+        }
       } else if (dialogType === "partial" && dialogAmount) {
         await onPartialPayment(dialogAmount, dateStr);
       }

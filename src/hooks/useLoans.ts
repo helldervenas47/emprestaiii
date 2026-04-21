@@ -576,13 +576,37 @@ export function useLoans() {
           return;
         }
 
-        await supabase.from("loan_installments").update({ amount: updatedAmount }).eq("id", nextSchedule.id);
+        const { data: updatedSchedule, error: scheduleError } = await supabase
+          .from("loan_installments")
+          .update({ amount: updatedAmount })
+          .eq("id", nextSchedule.id)
+          .select("id")
+          .maybeSingle();
+
+        if (scheduleError || !updatedSchedule) {
+          console.error("[addInterestOnlyPayment] update schedule failed:", scheduleError ?? new Error("Nenhuma parcela foi atualizada"));
+          throw new Error(scheduleError?.message ?? "Falha ao atualizar a parcela");
+        }
+
         await fetchSchedules();
         await fetchLoans();
         return;
       }
 
-      await saveSchedule(loanId, [{ installmentNumber: nextInstallmentNumber, dueDate: loan.dueDate, amount: updatedAmount }]);
+      const { error: insertScheduleError } = await supabase.from("loan_installments").insert({
+        user_id: dataOwnerId,
+        loan_id: loanId,
+        installment_number: nextInstallmentNumber,
+        due_date: loan.dueDate,
+        amount: updatedAmount,
+      } as any);
+
+      if (insertScheduleError) {
+        console.error("[addInterestOnlyPayment] insert schedule failed:", insertScheduleError);
+        throw new Error(insertScheduleError.message);
+      }
+
+      await fetchSchedules();
       await fetchLoans();
       return;
     }
@@ -637,18 +661,66 @@ export function useLoans() {
       return;
     }
 
+    const revertOptimisticState = async () => {
+      setPayments((prev) => prev.filter((p) => p.id !== tempPaymentId));
+      setLoans((prev) => prev.map((l) => l.id === loanId ? loan : l));
+      await removeCachedRow("payments", tempPaymentId);
+    };
+
+    const { data: insertedPayment, error: paymentError } = await supabase
+      .from("payments")
+      .insert(paymentPayload as any)
+      .select("id")
+      .single();
+
+    if (paymentError || !insertedPayment) {
+      console.error("[addInterestOnlyPayment] insert payment failed:", paymentError ?? new Error("Pagamento não retornado"));
+      await revertOptimisticState();
+      throw new Error(paymentError?.message ?? "Falha ao registrar juros");
+    }
+
+    const { data: updatedLoan, error: loanError } = await supabase
+      .from("loans")
+      .update(loanUpdate)
+      .eq("id", loanId)
+      .select("id")
+      .maybeSingle();
+
+    if (loanError || !updatedLoan) {
+      console.error("[addInterestOnlyPayment] update loan failed:", loanError ?? new Error("Nenhum empréstimo foi atualizado"));
+      await supabase.from("payments").delete().eq("id", tempPaymentId);
+      await revertOptimisticState();
+      throw new Error(loanError?.message ?? "Falha ao atualizar o vencimento");
+    }
+
     const nextNum = loan.paidInstallments + 1;
-    const scheduleUpdate = supabase.from("loan_installments")
+    const { error: scheduleError } = await supabase
+      .from("loan_installments")
       .update({ due_date: newDueDate })
       .eq("loan_id", loanId)
       .eq("installment_number", nextNum);
 
-    const [paymentInsert] = await Promise.all([
-      supabase.from("payments").insert(paymentPayload as any).select().single(),
-      supabase.from("loans").update(loanUpdate).eq("id", loanId),
-      scheduleUpdate,
-      adjustBalance(interestAmount),
-    ]);
+    if (scheduleError) {
+      console.error("[addInterestOnlyPayment] update schedule due date failed:", scheduleError);
+      await Promise.all([
+        supabase.from("payments").delete().eq("id", tempPaymentId),
+        supabase.from("loans").update({ due_date: loan.dueDate }).eq("id", loanId),
+      ]);
+      await revertOptimisticState();
+      throw new Error(scheduleError.message);
+    }
+
+    try {
+      await adjustBalance(interestAmount);
+    } catch (balanceError: any) {
+      console.error("[addInterestOnlyPayment] adjust balance failed:", balanceError);
+      await Promise.all([
+        supabase.from("payments").delete().eq("id", tempPaymentId),
+        supabase.from("loans").update({ due_date: loan.dueDate }).eq("id", loanId),
+      ]);
+      await revertOptimisticState();
+      throw new Error(balanceError?.message ?? "Falha ao atualizar saldo");
+    }
 
     // If paying interest + late fees, record the fees as a separate payment entry for traceability
     if (feesExtra > 0) {
@@ -658,15 +730,35 @@ export function useLoans() {
         user_id: dataOwnerId, loan_id: loanId, amount: feesExtra,
         date: dateStr, installment_number: -2, previous_due_date: loan.dueDate,
       };
+      const { error: feeInsertError } = await supabase.from("payments").insert(feesPayload as any);
+      if (feeInsertError) {
+        console.error("[addInterestOnlyPayment] insert fee payment failed:", feeInsertError);
+        await Promise.all([
+          supabase.from("payments").delete().eq("id", tempPaymentId),
+          supabase.from("loans").update({ due_date: loan.dueDate }).eq("id", loanId),
+        ]);
+        await revertOptimisticState();
+        throw new Error(feeInsertError.message);
+      }
+
+      try {
+        await adjustBalance(feesExtra);
+      } catch (feeBalanceError: any) {
+        console.error("[addInterestOnlyPayment] adjust fee balance failed:", feeBalanceError);
+        await Promise.all([
+          supabase.from("payments").delete().eq("id", feesPaymentId),
+          supabase.from("payments").delete().eq("id", tempPaymentId),
+          supabase.from("loans").update({ due_date: loan.dueDate }).eq("id", loanId),
+        ]);
+        await revertOptimisticState();
+        throw new Error(feeBalanceError?.message ?? "Falha ao atualizar saldo das taxas");
+      }
+
       setPayments((prev) => [
         { id: feesPaymentId, loanId, amount: feesExtra, date: dateStr, installmentNumber: -2, previousDueDate: loan.dueDate },
         ...prev,
       ]);
       await upsertCachedRow("payments", { ...feesPayload, created_at: new Date().toISOString() });
-      await Promise.all([
-        supabase.from("payments").insert(feesPayload as any),
-        adjustBalance(feesExtra),
-      ]);
     }
 
     // Manager commission on interest payments — 10% of ORIGINAL loan amount, isolated
@@ -677,7 +769,7 @@ export function useLoans() {
         user_id: dataOwnerId,
         loan_id: loanId,
         manager_id: loan.managerId,
-        payment_id: paymentInsert.data?.id ?? null,
+        payment_id: insertedPayment.id,
         commission_type: "interest",
         base_amount: loan.amount,
         rate,
