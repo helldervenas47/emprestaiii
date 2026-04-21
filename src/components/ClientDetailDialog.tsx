@@ -22,7 +22,7 @@ interface Props {
 
 export function ClientDetailDialog({ open, onOpenChange, client, loans, payments, installmentSchedules }: Props) {
   const clientLoans = useMemo(() => (client ? getClientLoans(client, loans) : []), [client, loans]);
-  const { profile: financialProfile, report, events, refreshing, requestAnalysis } = useClientFinancialAnalysis(client?.id);
+  const { profile: financialProfile, events, refreshing, requestAnalysis } = useClientFinancialAnalysis(client?.id);
   const riskProfile = useMemo(() => (client ? buildConsolidatedRiskProfile(client, loans, payments, installmentSchedules, financialProfile) : null), [client, loans, payments, installmentSchedules, financialProfile]);
   const metrics = useMemo(() => (client ? getClientRiskMetrics(client, loans, payments, installmentSchedules) : null), [client, loans, payments, installmentSchedules]);
   const history = useMemo(() => (client ? buildClientRiskHistory(client, loans, payments, installmentSchedules) : []), [client, loans, payments, installmentSchedules]);
@@ -30,7 +30,6 @@ export function ClientDetailDialog({ open, onOpenChange, client, loans, payments
     const items = events.map((event) => {
       const metadata = event.metadata ?? {};
       const details = [
-        typeof metadata.provider === "string" ? `Provedor: ${metadata.provider}` : null,
         typeof metadata.consolidated_score === "number" ? `Score: ${metadata.consolidated_score}` : null,
         typeof metadata.expires_at === "string" ? `Validade: ${formatDateTime(metadata.expires_at)}` : null,
       ].filter(Boolean) as string[];
@@ -54,25 +53,7 @@ export function ClientDetailDialog({ open, onOpenChange, client, loans, payments
         status: formatAnalysisStatus(financialProfile.analysisStatus),
         tone: getAnalysisTone(financialProfile.analysisStatus),
         description: "Os dados financeiros consolidados foram sincronizados e estão disponíveis para consulta.",
-        details: [
-          financialProfile.provider ? `Fonte: ${financialProfile.provider}` : null,
-          financialProfile.consolidatedScore != null ? `Score consolidado: ${financialProfile.consolidatedScore}` : null,
-        ].filter(Boolean) as string[],
-      });
-    }
-
-    if (report?.fetchedAt) {
-      items.push({
-        id: "snapshot-report",
-        date: report.fetchedAt,
-        title: "Relatório de crédito recebido",
-        status: formatAnalysisStatus(report.sourceStatus),
-        tone: getAnalysisTone(report.sourceStatus),
-        description: report.creditHistorySummary || "Relatório externo consolidado para este cliente.",
-        details: [
-          report.provider ? `Fonte: ${report.provider}` : null,
-          Array.isArray(report.delinquencyHistory) ? `Ocorrências: ${report.delinquencyHistory.length}` : null,
-        ].filter(Boolean) as string[],
+        details: [financialProfile.consolidatedScore != null ? `Score consolidado: ${financialProfile.consolidatedScore}` : null].filter(Boolean) as string[],
       });
     }
 
@@ -92,7 +73,7 @@ export function ClientDetailDialog({ open, onOpenChange, client, loans, payments
     }
 
     return items.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-  }, [events, financialProfile, report]);
+  }, [events, financialProfile]);
 
   if (!client || !riskProfile || !metrics) return null;
 
