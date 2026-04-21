@@ -1750,11 +1750,11 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
                   <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setEditingInterest(false)}><X className="h-3.5 w-3.5 text-destructive" /></Button>
                   <Button variant="ghost" size="icon" className="h-7 w-7" onClick={saveInterestOverrides}><Check className="h-3.5 w-3.5 text-success" /></Button>
                 </>
-              ) : (
+              ) : !readOnly ? (
                 <Button variant="ghost" size="icon" className="h-8 w-8" onClick={startEditInterest} title="Ajustar valores manualmente">
                   <Pencil className="h-4 w-4 text-muted-foreground" />
                 </Button>
-              )}
+              ) : null}
             </div>
           </div>
 
