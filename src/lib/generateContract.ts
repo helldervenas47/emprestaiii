@@ -230,11 +230,11 @@ export async function generateContract(sale: Sale, client?: Client, locador?: Lo
 <h2>CLÁUSULA 1ª – DO OBJETO</h2>
 <p>O LOCADOR entrega ao LOCATÁRIO, em perfeito estado de uso e conservação, a motocicleta descrita abaixo:</p>
 <ul>
-  <li>Marca/Modelo: ${vehicle?.marcaModelo || sale.description || sale.productName || "________________"}</li>
-  <li>Ano/Fabricação: ${vehicle?.ano || "________________"}</li>
-  <li>Cor: ${vehicle?.cor || "________________"}</li>
-  <li>Placa: ${vehicle?.placa || "________________"}</li>
-  <li>Renavam: ${vehicle?.renavam || "________________"}</li>
+  <li>Marca/Modelo: ${e(vehicle?.marcaModelo) || e(sale.description) || e(sale.productName) || "________________"}</li>
+  <li>Ano/Fabricação: ${e(vehicle?.ano) || "________________"}</li>
+  <li>Cor: ${e(vehicle?.cor) || "________________"}</li>
+  <li>Placa: ${e(vehicle?.placa) || "________________"}</li>
+  <li>Renavam: ${e(vehicle?.renavam) || "________________"}</li>
 </ul>
 
 <h2>CLÁUSULA 2ª – DO PRAZO</h2>
