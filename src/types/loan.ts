@@ -66,6 +66,61 @@ export interface Client {
   defaultInterestRate?: number | null;
 }
 
+export type ClientAnalysisStatus = "pending" | "verified" | "unavailable" | "stale";
+
+export interface ClientFinancialProfile {
+  id: string;
+  ownerId: string;
+  clientId: string;
+  analysisStatus: ClientAnalysisStatus;
+  sourceStatus: ClientAnalysisStatus;
+  consentGiven: boolean;
+  consentedAt?: string | null;
+  provider?: string | null;
+  monthlyIncome?: number | null;
+  debtLevel?: number | null;
+  employmentStability?: string | null;
+  industrySector?: string | null;
+  bankingRelationship?: string | null;
+  externalScore?: number | null;
+  internalScore?: number | null;
+  consolidatedScore?: number | null;
+  riskLevel?: "baixo" | "moderado" | "alto" | "critico" | null;
+  positiveFactors: string[];
+  negativeFactors: string[];
+  lastError?: string | null;
+  fetchedAt?: string | null;
+  expiresAt?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ClientCreditReport {
+  id: string;
+  ownerId: string;
+  clientId: string;
+  provider: string;
+  rawSummary: Record<string, unknown>;
+  delinquencyHistory: Array<Record<string, unknown>>;
+  creditHistorySummary?: string | null;
+  sourceStatus: ClientAnalysisStatus;
+  fetchedAt?: string | null;
+  expiresAt?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ClientAnalysisEvent {
+  id: string;
+  ownerId: string;
+  clientId: string;
+  eventType: string;
+  status: string;
+  message?: string | null;
+  metadata: Record<string, unknown>;
+  createdAt: string;
+}
+
 export interface ManagerCommission {
   id: string;
   loanId: string;
