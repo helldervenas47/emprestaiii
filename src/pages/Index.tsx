@@ -53,6 +53,8 @@ import { vehicleExpenseCategories } from "@/components/VehicleExpenseForm";
 import { PushNotificationToggle } from "@/components/PushNotificationToggle";
 import { ApprovalRequestsButton } from "@/components/ApprovalRequestsButton";
 import { DashboardOverview } from "@/components/DashboardOverview";
+import { useApprovalRequests } from "@/hooks/useApprovalRequests";
+import { usePendingCount } from "@/lib/offline/sync";
 
 // Prefetch most-used chunks after idle
 const prefetchChunks = () => {
@@ -298,6 +300,9 @@ const Index = () => {
   const [showVehicleExpenseForm, setShowVehicleExpenseForm] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
+  const { pendingCount: approvalPendingCount } = useApprovalRequests();
+  const { count: offlinePendingCount } = usePendingCount();
+  const morePendingCount = (role === "admin" ? approvalPendingCount : 0) + offlinePendingCount;
   const isMobile = useIsMobile();
   const isMobileOrTablet = useIsMobileOrTablet();
   const isReadOnly = role === "visualizador";
@@ -883,12 +888,20 @@ const Index = () => {
               <button
                 type="button"
                 onClick={() => setMoreOpen(true)}
-                className={`flex-1 flex flex-col items-center justify-center gap-0.5 px-1 transition-all duration-200 touch-manipulation focus-visible:outline-none ${
+                className={`relative flex-1 flex flex-col items-center justify-center gap-0.5 px-1 transition-all duration-200 touch-manipulation focus-visible:outline-none ${
                   moreOpen ? "text-primary" : "text-muted-foreground hover:text-foreground"
                 }`}
               >
-                <div className={`flex items-center justify-center h-6 transition-transform duration-200 ${moreOpen ? "scale-110" : ""}`}>
+                <div className={`relative flex items-center justify-center h-6 transition-transform duration-200 ${moreOpen ? "scale-110" : ""}`}>
                   <Menu className="h-[22px] w-[22px]" strokeWidth={moreOpen ? 2.4 : 2} />
+                  {morePendingCount > 0 && (
+                    <span
+                      aria-label={`${morePendingCount} pendência${morePendingCount === 1 ? "" : "s"}`}
+                      className="absolute -top-1.5 -right-2 min-w-[18px] h-[18px] px-1 rounded-full bg-destructive text-destructive-foreground text-[10px] font-bold leading-none flex items-center justify-center shadow-[0_2px_6px_-1px_hsl(var(--destructive)/0.6)] ring-2 ring-card animate-fade-in"
+                    >
+                      {morePendingCount > 99 ? "99+" : morePendingCount}
+                    </span>
+                  )}
                 </div>
                 <span className={`text-[10px] leading-none ${moreOpen ? "font-semibold" : "font-medium"}`}>Mais</span>
                 <span className={`block h-0.5 w-6 rounded-full mt-0.5 transition-all ${moreOpen ? "bg-primary" : "bg-transparent"}`} />
