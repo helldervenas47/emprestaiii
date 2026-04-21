@@ -1083,7 +1083,7 @@ const Index = () => {
 
           {/* Editor de atalhos do menu inferior */}
           <Dialog open={shortcutsEditorOpen} onOpenChange={setShortcutsEditorOpen}>
-            <DialogContent className="max-w-md">
+            <DialogContent className="max-w-3xl">
               <DialogHeader>
                 <DialogTitle className="flex items-center gap-2">
                   <Pin className="h-4 w-4 text-primary" /> Personalizar menu inferior
@@ -1092,7 +1092,8 @@ const Index = () => {
                   Escolha até 4 atalhos fixos para o menu inferior. Os demais ficam disponíveis em "Mais".
                 </DialogDescription>
               </DialogHeader>
-              <div className="space-y-3 my-2">
+              <div className="grid md:grid-cols-[1fr_220px] gap-4 my-2">
+              <div className="space-y-3 min-w-0">
                 <div className="flex items-center justify-between text-xs text-muted-foreground">
                   <span>{pinnedTabs.length} de 4 selecionados</span>
                   <button
