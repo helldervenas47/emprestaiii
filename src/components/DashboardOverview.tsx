@@ -786,6 +786,12 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
       }
     }
     try {
+      // Validate session against the server before invoking — cached JWTs may be stale.
+      const { data: userCheck, error: userErr } = await supabase.auth.getUser();
+      if (userErr || !userCheck?.user) {
+        await supabase.auth.signOut({ scope: "local" });
+        throw new Error("Sessão expirada. Faça login novamente.");
+      }
       const { data: result, error } = await supabase.functions.invoke("generate-risk-reduction-report", {
         body: { type, metrics },
       });
