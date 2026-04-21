@@ -1327,7 +1327,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
             </div>
             <div className="space-y-1.5">
               <div className="flex items-center justify-between">
-                <span className="text-xs text-muted-foreground">Previsto</span>
+                <span className="text-xs text-muted-foreground">Previsto restante</span>
                 <span className="text-sm font-bold text-foreground">{formatCurrency(data.periodProfitExpected)}</span>
               </div>
               <div className="flex items-center justify-between">
@@ -1335,7 +1335,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
                 <span className="text-sm font-bold text-success">{formatCurrency(data.periodProfitRealized)}</span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-xs text-muted-foreground">% Lucro</span>
+                <span className="text-xs text-muted-foreground">% lucro realizado</span>
                 <span className={`text-sm font-bold ${data.periodProfitPct >= 100 ? "text-success" : data.periodProfitPct >= 50 ? "text-warning" : "text-foreground"}`}>
                   {data.periodProfitPct}%
                 </span>
@@ -1344,7 +1344,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
                 const metaPct = profitTargetAmount > 0 ? (data.periodProfitRealized / profitTargetAmount) * 100 : 0;
                 return (
                   <div className="flex items-center justify-between">
-                    <span className="text-xs text-muted-foreground">% Meta</span>
+                    <span className="text-xs text-muted-foreground">% atingimento da meta</span>
                     <span className={`text-sm font-bold ${metaPct >= 100 ? "text-success" : "text-destructive"}`}>
                       {metaPct.toFixed(1)}%
                     </span>
@@ -1359,9 +1359,9 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
                   const color = reached ? "text-success" : "text-destructive";
                   return (
                     <>
-                      <div className="flex items-center justify-between text-[10px]">
-                        <span className="flex items-center gap-1 text-muted-foreground"><Target className="h-3 w-3" /> Meta: {profitGoal.targetValue}% ({formatCurrency(profitTargetAmount)})</span>
-                        <span className={`font-bold ${color}`}>{status === "atingida" ? "✓ Atingida" : "Abaixo"}</span>
+                      <div className="flex items-center justify-between gap-2 text-[10px]">
+                        <span className="flex items-center gap-1 text-muted-foreground"><Target className="h-3 w-3" /> Meta do período: {profitGoal.targetValue}% do lucro total ({formatCurrency(profitTargetAmount)})</span>
+                        <span className={`font-bold ${color}`}>{status === "atingida" ? "✓ Meta atingida" : "Em andamento"}</span>
                       </div>
                       <Progress value={Math.min(100, pct)} className="h-1.5 mt-1" />
                     </>
