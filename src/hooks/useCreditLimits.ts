@@ -141,7 +141,12 @@ export function useCreditLimits() {
       if (!existing) return;
 
       const previous = existing.currentLimit;
-      const updates: Record<string, unknown> = {
+      const updates: {
+        current_limit: number;
+        updated_at: string;
+        mode?: "auto" | "manual";
+        last_auto_calculated_at?: string;
+      } = {
         current_limit: newLimit,
         updated_at: new Date().toISOString(),
       };
@@ -157,7 +162,7 @@ export function useCreditLimits() {
 
       if (error) return;
 
-      await supabase.from("credit_limit_history").insert({
+      await supabase.from("credit_limit_history").insert([{
         user_id: dataOwnerId,
         client_id: clientId,
         change_type: opts.changeType,
@@ -165,8 +170,8 @@ export function useCreditLimits() {
         new_limit: newLimit,
         reason: opts.reason ?? null,
         changed_by: user.id,
-        metadata: opts.metadata ?? {},
-      });
+        metadata: (opts.metadata ?? {}) as any,
+      }]);
 
       await fetchLimits();
     },
