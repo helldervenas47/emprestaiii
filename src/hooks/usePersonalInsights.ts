@@ -56,6 +56,8 @@ export function usePersonalInsights(month?: string) {
     setLoading(true);
     setError(null);
     try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error("Sessão expirada. Faça login novamente.");
       const { data: result, error: fnError } = await supabase.functions.invoke(
         "generate-personal-insights",
         { body: { month: targetMonth, force } },
