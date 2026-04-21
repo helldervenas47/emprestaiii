@@ -1,6 +1,9 @@
 import { todayInAppTz } from "@/lib/timezone";
-import { calculateTotalWithInterest } from "@/hooks/useLoans";
 import type { InstallmentSchedule, Loan, Payment } from "@/types/loan";
+
+function calculateTotalWithInterest(principal: number, rate: number) {
+  return Math.round(principal * (1 + rate / 100));
+}
 
 function getFirstPendingDueDate(loan: Loan, schedules: InstallmentSchedule[]) {
   const nextInstallmentNumber = loan.paidInstallments + 1;
