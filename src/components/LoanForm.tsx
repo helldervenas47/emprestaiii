@@ -353,7 +353,7 @@ export function LoanForm({ onAdd, onSaveSchedule, onClose, clients, loans, payme
                 </Label>
               </div>
               {hasManager && (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1 border-t border-border/50">
+                <div className="space-y-3 pt-1 border-t border-border/50">
                   <div>
                     <Label className="text-xs">Gerente</Label>
                     {managerClients.length === 0 ? (
@@ -371,17 +371,53 @@ export function LoanForm({ onAdd, onSaveSchedule, onClose, clients, loans, payme
                       </Select>
                     )}
                   </div>
-                  <div>
-                    <Label className="text-xs">Comissão (%)</Label>
-                    <Input
-                      type="number"
-                      step="0.1"
-                      min="0"
-                      value={commissionRate}
-                      onChange={(e) => setCommissionRate(e.target.value)}
-                      className="h-9 text-sm"
-                    />
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <Label className="text-xs">Comissão (%)</Label>
+                      <Input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        inputMode="decimal"
+                        value={commissionRate}
+                        onChange={(e) => {
+                          setCommissionLastEdited("rate");
+                          setCommissionRate(e.target.value);
+                        }}
+                        className={cn(
+                          "h-9 text-sm",
+                          commissionLastEdited === "rate" && "ring-2 ring-primary/40 border-primary/50",
+                        )}
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-xs">Valor da comissão (R$)</Label>
+                      <Input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        inputMode="decimal"
+                        value={commissionAmount}
+                        onChange={(e) => {
+                          setCommissionLastEdited("amount");
+                          setCommissionAmount(e.target.value);
+                        }}
+                        placeholder="0,00"
+                        className={cn(
+                          "h-9 text-sm",
+                          commissionLastEdited === "amount" && "ring-2 ring-primary/40 border-primary/50",
+                        )}
+                      />
+                    </div>
                   </div>
+                  <p className="text-[11px] text-muted-foreground">
+                    Base: valor do empréstimo {amount > 0 ? `(${formatCurrency(amount)})` : ""}. Os campos são sincronizados em tempo real.
+                  </p>
+                  {commissionExceedsLoan && (
+                    <p className="text-[11px] text-destructive">
+                      A comissão não pode ser maior que o valor do empréstimo.
+                    </p>
+                  )}
                 </div>
               )}
             </div>
