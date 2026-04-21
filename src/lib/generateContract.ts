@@ -14,6 +14,18 @@ function formatCurrencyBR(v: number) {
   return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v);
 }
 
+// Escape any user-controlled string before injecting into HTML to prevent XSS.
+function escapeHtml(s: string | null | undefined): string {
+  return (s ?? "")
+    .toString()
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+const e = escapeHtml;
+
 function numberToWords(n: number): string {
   const units = ["", "Um", "Dois", "Três", "Quatro", "Cinco", "Seis", "Sete", "Oito", "Nove"];
   const teens = ["Dez", "Onze", "Doze", "Treze", "Quatorze", "Quinze", "Dezesseis", "Dezessete", "Dezoito", "Dezenove"];
@@ -109,7 +121,7 @@ export async function generateContract(sale: Sale, client?: Client, locador?: Lo
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<title>Contrato - ${sale.customerName || sale.description}</title>
+<title>Contrato - ${e(sale.customerName) || e(sale.description)}</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body {
@@ -209,20 +221,20 @@ export async function generateContract(sale: Sale, client?: Client, locador?: Lo
 
 <p class="intro">Pelo presente instrumento particular, de um lado:</p>
 
-<p class="party"><strong>LOCADOR:</strong> ${locador?.nome || "____________________________________________"}, ${locador?.nacionalidade || "Brasileiro(a)"}, ${locador?.profissao || "________________"}, portador(a) do RG nº ${locador?.rg || "__________________"}, CPF nº ${locador?.cpf || "__________________"}, residente e domiciliado(a) à ${locador?.endereco ? `${locador.endereco}${locador.cidade ? `, ${locador.cidade}` : ""}` : "____________________________________________"}.</p>
+<p class="party"><strong>LOCADOR:</strong> ${e(locador?.nome) || "____________________________________________"}, ${e(locador?.nacionalidade) || "Brasileiro(a)"}, ${e(locador?.profissao) || "________________"}, portador(a) do RG nº ${e(locador?.rg) || "__________________"}, CPF nº ${e(locador?.cpf) || "__________________"}, residente e domiciliado(a) à ${locador?.endereco ? `${e(locador.endereco)}${locador.cidade ? `, ${e(locador.cidade)}` : ""}` : "____________________________________________"}.</p>
 
-<p class="party"><strong>LOCATÁRIO:</strong> ${sale.customerName || "____________________________________________"}, ${client?.nacionalidade || "Brasileiro(a)"}, ${client?.estadoCivil || "________________"}, ${client?.profissao || "________________"}, portador(a) do RG nº ${client?.rg || "__________________"}, CPF nº ${client?.cpf || "__________________"}, residente e domiciliado(a) à ${client?.address ? `${client.address}${client.bairro ? `, ${client.bairro}` : ""}${client.city ? `, ${client.city}` : ""}` : "____________________________________________"}.</p>
+<p class="party"><strong>LOCATÁRIO:</strong> ${e(sale.customerName) || "____________________________________________"}, ${e(client?.nacionalidade) || "Brasileiro(a)"}, ${e(client?.estadoCivil) || "________________"}, ${e(client?.profissao) || "________________"}, portador(a) do RG nº ${e(client?.rg) || "__________________"}, CPF nº ${e(client?.cpf) || "__________________"}, residente e domiciliado(a) à ${client?.address ? `${e(client.address)}${client.bairro ? `, ${e(client.bairro)}` : ""}${client.city ? `, ${e(client.city)}` : ""}` : "____________________________________________"}.</p>
 
 <p>As partes acima identificadas têm, entre si, justo e acertado o presente Contrato de Locação de Motocicleta, que será regido pelas cláusulas seguintes:</p>
 
 <h2>CLÁUSULA 1ª – DO OBJETO</h2>
 <p>O LOCADOR entrega ao LOCATÁRIO, em perfeito estado de uso e conservação, a motocicleta descrita abaixo:</p>
 <ul>
-  <li>Marca/Modelo: ${vehicle?.marcaModelo || sale.description || sale.productName || "________________"}</li>
-  <li>Ano/Fabricação: ${vehicle?.ano || "________________"}</li>
-  <li>Cor: ${vehicle?.cor || "________________"}</li>
-  <li>Placa: ${vehicle?.placa || "________________"}</li>
-  <li>Renavam: ${vehicle?.renavam || "________________"}</li>
+  <li>Marca/Modelo: ${e(vehicle?.marcaModelo) || e(sale.description) || e(sale.productName) || "________________"}</li>
+  <li>Ano/Fabricação: ${e(vehicle?.ano) || "________________"}</li>
+  <li>Cor: ${e(vehicle?.cor) || "________________"}</li>
+  <li>Placa: ${e(vehicle?.placa) || "________________"}</li>
+  <li>Renavam: ${e(vehicle?.renavam) || "________________"}</li>
 </ul>
 
 <h2>CLÁUSULA 2ª – DO PRAZO</h2>
@@ -258,17 +270,17 @@ export async function generateContract(sale: Sale, client?: Client, locador?: Lo
 <h2>CLÁUSULA 8ª – DO FORO</h2>
 <p>Fica eleito o foro da comarca de São Gonçalo dos Campos-BA para dirimir quaisquer controvérsias oriundas deste contrato.</p>
 
-${sale.notes ? `<h2>OBSERVAÇÕES</h2><p>${sale.notes}</p>` : ""}
+${sale.notes ? `<h2>OBSERVAÇÕES</h2><p>${e(sale.notes).replace(/\n/g, "<br>")}</p>` : ""}
 
 <p class="location-date">São Gonçalo dos Campos - BA, ${today}.</p>
 
 <div class="signatures">
   <div class="sig-row">
     <div class="sig-block">
-      <div class="sig-line"><strong>LOCADOR:</strong> ___________________________<br>${locador?.nome || ""}</div>
+      <div class="sig-line"><strong>LOCADOR:</strong> ___________________________<br>${e(locador?.nome) || ""}</div>
     </div>
     <div class="sig-block">
-      <div class="sig-line"><strong>LOCATÁRIO:</strong> ___________________________<br>${sale.customerName || ""}</div>
+      <div class="sig-line"><strong>LOCATÁRIO:</strong> ___________________________<br>${e(sale.customerName) || ""}</div>
     </div>
   </div>
 
