@@ -937,64 +937,47 @@ const Index = () => {
             style={{ paddingBottom: 'env(safe-area-inset-bottom)', paddingLeft: 'env(safe-area-inset-left)', paddingRight: 'env(safe-area-inset-right)' }}
           >
             <div className="flex items-stretch justify-around h-[60px]">
-              {(() => {
-                // Bottom nav prioriza abas fixadas pelo usuário (DEFAULT_PINNED:
-                // overview, clients, dashboard, expenses) e completa com as
-                // demais abas visíveis na ordem de tabConfig.
-                const pinnedVisible = pinnedTabs
-                  .map((id) => tabConfig.find((t) => t.id === id))
-                  .filter((t): t is typeof tabConfig[number] => !!t && visibleTabs.some((v) => v.id === t.id));
-                const remaining = visibleTabs.filter((v) => !pinnedVisible.some((p) => p.id === v.id));
-                // "Mais" sempre visível: ocupa o 5º slot, então a barra mostra
-                // no máximo 4 abas + Mais, mesmo quando há ≤4 abas liberadas.
-                const bottomItems = [...pinnedVisible, ...remaining].slice(0, 4);
-
+              {bottomItems.map((item) => {
+                const active = tab === item.id;
+                const Icon = item.icon;
                 return (
-                  <>
-                    {bottomItems.map((item) => {
-                      const active = tab === item.id;
-                      const Icon = item.icon;
-                      return (
-                        <button
-                          key={item.id}
-                          type="button"
-                          onClick={() => setTab(item.id)}
-                          className={`flex-1 flex flex-col items-center justify-center gap-0.5 px-1 transition-all duration-200 touch-manipulation focus-visible:outline-none ${
-                            active ? "text-primary" : "text-muted-foreground hover:text-foreground"
-                          }`}
-                        >
-                          <div className={`flex items-center justify-center h-6 transition-transform duration-200 ${active ? "scale-110" : ""}`}>
-                            <Icon className="h-[22px] w-[22px]" strokeWidth={active ? 2.4 : 2} />
-                          </div>
-                          <span className={`text-[10px] leading-none ${active ? "font-semibold" : "font-medium"}`}>{item.label}</span>
-                          <span className={`block h-0.5 w-6 rounded-full mt-0.5 transition-all ${active ? "bg-primary" : "bg-transparent"}`} />
-                        </button>
-                      );
-                    })}
-                    <button
-                      type="button"
-                      onClick={() => setMoreOpen(true)}
-                      className={`relative flex-1 flex flex-col items-center justify-center gap-0.5 px-1 transition-all duration-200 touch-manipulation focus-visible:outline-none ${
-                        moreOpen ? "text-primary" : "text-muted-foreground hover:text-foreground"
-                      }`}
-                    >
-                      <div className={`relative flex items-center justify-center h-6 transition-transform duration-200 ${moreOpen ? "scale-110" : ""}`}>
-                        <Menu className="h-[22px] w-[22px]" strokeWidth={moreOpen ? 2.4 : 2} />
-                        {morePendingCount > 0 && (
-                          <span
-                            aria-label={`${morePendingCount} pendência${morePendingCount === 1 ? "" : "s"}`}
-                            className="absolute -top-1.5 -right-2 min-w-[18px] h-[18px] px-1 rounded-full bg-destructive text-destructive-foreground text-[10px] font-bold leading-none flex items-center justify-center shadow-[0_2px_6px_-1px_hsl(var(--destructive)/0.6)] ring-2 ring-card animate-fade-in"
-                          >
-                            {morePendingCount > 99 ? "99+" : morePendingCount}
-                          </span>
-                        )}
-                      </div>
-                      <span className={`text-[10px] leading-none ${moreOpen ? "font-semibold" : "font-medium"}`}>Mais</span>
-                      <span className={`block h-0.5 w-6 rounded-full mt-0.5 transition-all ${moreOpen ? "bg-primary" : "bg-transparent"}`} />
-                    </button>
-                  </>
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => setTab(item.id)}
+                    className={`flex-1 flex flex-col items-center justify-center gap-0.5 px-1 transition-all duration-200 touch-manipulation focus-visible:outline-none ${
+                      active ? "text-primary" : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    <div className={`flex items-center justify-center h-6 transition-transform duration-200 ${active ? "scale-110" : ""}`}>
+                      <Icon className="h-[22px] w-[22px]" strokeWidth={active ? 2.4 : 2} />
+                    </div>
+                    <span className={`text-[10px] leading-none ${active ? "font-semibold" : "font-medium"}`}>{item.label}</span>
+                    <span className={`block h-0.5 w-6 rounded-full mt-0.5 transition-all ${active ? "bg-primary" : "bg-transparent"}`} />
+                  </button>
                 );
-              })()}
+              })}
+              <button
+                type="button"
+                onClick={() => setMoreOpen(true)}
+                className={`relative flex-1 flex flex-col items-center justify-center gap-0.5 px-1 transition-all duration-200 touch-manipulation focus-visible:outline-none ${
+                  moreOpen ? "text-primary" : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                <div className={`relative flex items-center justify-center h-6 transition-transform duration-200 ${moreOpen ? "scale-110" : ""}`}>
+                  <Menu className="h-[22px] w-[22px]" strokeWidth={moreOpen ? 2.4 : 2} />
+                  {morePendingCount > 0 && (
+                    <span
+                      aria-label={`${morePendingCount} pendência${morePendingCount === 1 ? "" : "s"}`}
+                      className="absolute -top-1.5 -right-2 min-w-[18px] h-[18px] px-1 rounded-full bg-destructive text-destructive-foreground text-[10px] font-bold leading-none flex items-center justify-center shadow-[0_2px_6px_-1px_hsl(var(--destructive)/0.6)] ring-2 ring-card animate-fade-in"
+                    >
+                      {morePendingCount > 99 ? "99+" : morePendingCount}
+                    </span>
+                  )}
+                </div>
+                <span className={`text-[10px] leading-none ${moreOpen ? "font-semibold" : "font-medium"}`}>Mais</span>
+                <span className={`block h-0.5 w-6 rounded-full mt-0.5 transition-all ${moreOpen ? "bg-primary" : "bg-transparent"}`} />
+              </button>
             </div>
           </nav>
 
