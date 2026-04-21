@@ -319,6 +319,43 @@ export function ClientList({ clients, loans, payments, installmentSchedules, onD
                         Se vazio, será usado 30% em novos empréstimos.
                       </p>
                     </div>
+                    {/* Credit Limit edit */}
+                    {(() => {
+                      const used = computeUsedLimit(client.id, loans);
+                      const totalNum = parseFloat(String(editForm.creditLimit).replace(",", ".")) || 0;
+                      const available = computeAvailableLimit(totalNum, used);
+                      return (
+                        <div className="border border-border rounded-lg p-3 space-y-2">
+                          <Label className="text-xs flex items-center gap-1.5">
+                            <Wallet className="h-3.5 w-3.5 text-primary" /> Limite de Crédito
+                          </Label>
+                          <Input
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            value={editForm.creditLimit}
+                            onChange={(e) => updateField("creditLimit", e.target.value)}
+                            placeholder="0,00"
+                            disabled={client.active === false}
+                          />
+                          <div className="grid grid-cols-2 gap-2 text-[10px]">
+                            <div>
+                              <p className="text-muted-foreground">Utilizado</p>
+                              <p className="font-semibold text-warning">{formatBRL(used)}</p>
+                            </div>
+                            <div>
+                              <p className="text-muted-foreground">Disponível</p>
+                              <p className="font-semibold text-success">{formatBRL(available)}</p>
+                            </div>
+                          </div>
+                          {client.active === false && (
+                            <p className="text-[10px] text-destructive">
+                              Cliente inativo — limite zerado e bloqueado para novas operações.
+                            </p>
+                          )}
+                        </div>
+                      );
+                    })()}
                     <div>
                       <Label className="text-xs">Observações</Label>
                       <Textarea value={editForm.notes} onChange={(e) => updateField("notes", e.target.value)} rows={2} />
