@@ -14,6 +14,7 @@ import { OfflineBadge } from "./components/OfflineBadge";
 import { AppTimezoneSync } from "./components/AppTimezoneSync";
 import { StatusBarScrollSync } from "./components/StatusBarScrollSync";
 import { wireAutoSync } from "./lib/offline/sync";
+import { DevCacheErrorBoundary } from "./components/DevCacheErrorBoundary";
 
 wireAutoSync();
 
