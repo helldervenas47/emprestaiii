@@ -261,7 +261,7 @@ export function ManagerCommissionsChart({
               </div>
               <div>
                 <div className="flex items-center justify-center gap-2 sm:justify-start">
-                  <h3 className="text-sm font-semibold text-foreground">Comissões por Gerente</h3>
+                  <h3 className="text-sm font-semibold text-foreground">Comissões por gerente</h3>
                   <Popover open={managerFilterOpen} onOpenChange={setManagerFilterOpen}>
                     <PopoverTrigger asChild>
                       <Button
@@ -301,10 +301,8 @@ export function ManagerCommissionsChart({
                     </PopoverContent>
                   </Popover>
                 </div>
-                <p className="text-[10px] text-muted-foreground mt-0.5">Exibindo: {filterLabel}</p>
-                {rangeLabel && (
-                  <p className="text-[10px] text-muted-foreground">{rangeLabel}</p>
-                )}
+                <p className="text-[10px] text-muted-foreground mt-0.5">Acompanhe o total recebido e pendente das comissões por gerente</p>
+                <p className="text-[10px] text-muted-foreground">Exibindo: {filterLabel}{rangeLabel ? ` • ${rangeLabel}` : ""}</p>
               </div>
             </div>
             <div className="grid grid-cols-3 gap-2 w-full sm:w-auto sm:flex sm:gap-6">
