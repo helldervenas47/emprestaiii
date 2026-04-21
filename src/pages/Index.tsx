@@ -397,6 +397,9 @@ const Index = () => {
     if (loading) return false;
     // Tabs marcadas como adminOnly são exclusivas para administradores
     if ((t as any).adminOnly && role !== "admin") return false;
+    // Visualizador: aba de Configurações é ocultada por completo (apenas leitura
+    // não tem nada acionável aqui; backups, telegram, branding, etc. exigem escrita).
+    if (t.id === "settings" && role === "visualizador") return false;
     if (role === "admin") return true;
     if (!user) return false;
     // Para todas as abas (incluindo "settings"): se houver lista de
