@@ -61,6 +61,7 @@ interface Props {
   onDeletePayment?: (id: string) => void;
   onDeleteSale?: (id: string) => void;
   onDeleteLoan?: (id: string) => void;
+  readOnly?: boolean;
 }
 
 type Period = "day" | "week" | "month";
