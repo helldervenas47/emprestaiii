@@ -1561,7 +1561,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
                           type="button"
                           size="sm"
                           variant="ghost"
-                          className="h-9 w-9 rounded-lg border border-primary/20 bg-gradient-to-br from-primary/10 to-accent/20 backdrop-blur-sm hover:from-primary/20 hover:to-accent/30"
+                          className="h-9 w-9 rounded-lg border border-primary/20 bg-card/70 shadow-[0_8px_24px_-12px_hsl(var(--primary)/0.45)] backdrop-blur-xl backdrop-saturate-150 transition-all hover:bg-card/85 hover:border-primary/30"
                           onClick={(event) => {
                             event.stopPropagation();
                             generateAiReport({
@@ -1630,9 +1630,9 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
             </div>
 
             <div className="space-y-4">
-              <button type="button" onClick={generateRiskAiReport} className="w-full rounded-xl border border-primary/20 bg-gradient-to-br from-primary/10 to-accent/15 p-5 text-left backdrop-blur-sm transition-colors hover:from-primary/15 hover:to-accent/20">
+              <button type="button" onClick={generateRiskAiReport} className="w-full rounded-xl border border-primary/20 bg-card/70 p-5 text-left shadow-[0_16px_40px_-20px_hsl(var(--primary)/0.35)] backdrop-blur-xl backdrop-saturate-150 transition-all hover:bg-card/80 hover:border-primary/30">
                 <div className="mb-3 flex justify-end">
-                  <div className="flex h-9 w-9 items-center justify-center rounded-lg border border-primary/20 bg-background/40 backdrop-blur-md">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-lg border border-primary/20 bg-card/75 shadow-[0_8px_24px_-14px_hsl(var(--primary)/0.4)] backdrop-blur-xl backdrop-saturate-150">
                     <Sparkles className="h-4 w-4 text-primary" />
                   </div>
                 </div>
@@ -2218,10 +2218,10 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
 
       {isMobile ? (
         <Sheet open={riskAiOpen} onOpenChange={setRiskAiOpen}>
-          <SheetContent side="bottom" className="max-h-[85vh] overflow-y-auto rounded-t-2xl">
-            <SheetHeader className="rounded-xl border border-primary/20 bg-gradient-to-br from-primary/10 to-accent/15 p-4">
+          <SheetContent side="bottom" className="max-h-[85vh] overflow-y-auto rounded-t-2xl bg-card/80 backdrop-blur-xl backdrop-saturate-150">
+            <SheetHeader className="rounded-xl border border-primary/20 bg-card/70 p-4 shadow-[0_16px_40px_-20px_hsl(var(--primary)/0.35)] backdrop-blur-xl backdrop-saturate-150">
               <SheetTitle className="flex items-center gap-2 text-foreground">
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-background/50 backdrop-blur-md">
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-primary/20 bg-card/75 shadow-[0_8px_24px_-14px_hsl(var(--primary)/0.4)] backdrop-blur-xl backdrop-saturate-150">
                   <Sparkles className="h-4 w-4 text-primary" />
                 </div>
                 {riskAiTitle}
@@ -2229,7 +2229,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
             </SheetHeader>
 
             <div className="mt-4 space-y-4">
-              <div className="space-y-2 rounded-xl border border-primary/20 bg-gradient-to-br from-primary/5 to-accent/10 p-4 backdrop-blur-sm">
+              <div className="space-y-2 rounded-xl border border-primary/20 bg-card/70 p-4 shadow-[0_12px_32px_-18px_hsl(var(--primary)/0.3)] backdrop-blur-xl backdrop-saturate-150">
                 <p className="text-xs text-muted-foreground">Tom da IA</p>
                 <Select value={riskAiTone} onValueChange={(value) => setRiskAiTone(value as InsightTone)}>
                   <SelectTrigger className="h-9 text-sm">
@@ -2247,7 +2247,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
                 </Button>
               </div>
 
-              <div className="rounded-xl border border-primary/20 bg-gradient-to-br from-primary/5 to-accent/10 p-4 backdrop-blur-sm">
+              <div className="rounded-xl border border-primary/20 bg-card/70 p-4 shadow-[0_12px_32px_-18px_hsl(var(--primary)/0.3)] backdrop-blur-xl backdrop-saturate-150">
                 {riskAiLoading ? (
                   <div className="flex items-center gap-2 text-sm text-muted-foreground"><Sparkles className="h-4 w-4 animate-pulse text-primary" />Analisando risco, retorno e prioridades de ação...</div>
                 ) : (
@@ -2261,10 +2261,10 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
         </Sheet>
       ) : (
         <Dialog open={riskAiOpen} onOpenChange={setRiskAiOpen}>
-          <DialogContent className="max-h-[85vh] max-w-2xl overflow-y-auto border-primary/20 bg-card/80">
-            <DialogHeader className="rounded-xl border border-primary/20 bg-gradient-to-br from-primary/10 to-accent/15 p-4 pr-12 text-left">
+          <DialogContent className="max-h-[85vh] max-w-2xl overflow-y-auto border-primary/20 bg-card/80 backdrop-blur-xl backdrop-saturate-150">
+            <DialogHeader className="rounded-xl border border-primary/20 bg-card/70 p-4 pr-12 text-left shadow-[0_16px_40px_-20px_hsl(var(--primary)/0.35)] backdrop-blur-xl backdrop-saturate-150">
               <DialogTitle className="flex items-center gap-2 text-foreground">
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-background/50 backdrop-blur-md">
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-primary/20 bg-card/75 shadow-[0_8px_24px_-14px_hsl(var(--primary)/0.4)] backdrop-blur-xl backdrop-saturate-150">
                   <Sparkles className="h-4 w-4 text-primary" />
                 </div>
                 {riskAiTitle}
@@ -2272,7 +2272,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
             </DialogHeader>
 
             <div className="space-y-4">
-              <div className="space-y-2 rounded-xl border border-primary/20 bg-gradient-to-br from-primary/5 to-accent/10 p-4 backdrop-blur-sm">
+              <div className="space-y-2 rounded-xl border border-primary/20 bg-card/70 p-4 shadow-[0_12px_32px_-18px_hsl(var(--primary)/0.3)] backdrop-blur-xl backdrop-saturate-150">
                 <p className="text-xs text-muted-foreground">Tom da IA</p>
                 <Select value={riskAiTone} onValueChange={(value) => setRiskAiTone(value as InsightTone)}>
                   <SelectTrigger className="h-9 text-sm">
@@ -2290,7 +2290,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
                 </Button>
               </div>
 
-              <div className="rounded-xl border border-primary/20 bg-gradient-to-br from-primary/5 to-accent/10 p-4 backdrop-blur-sm">
+              <div className="rounded-xl border border-primary/20 bg-card/70 p-4 shadow-[0_12px_32px_-18px_hsl(var(--primary)/0.3)] backdrop-blur-xl backdrop-saturate-150">
                 {riskAiLoading ? (
                   <div className="flex items-center gap-2 text-sm text-muted-foreground"><Sparkles className="h-4 w-4 animate-pulse text-primary" />Analisando risco, retorno e prioridades de ação...</div>
                 ) : (
