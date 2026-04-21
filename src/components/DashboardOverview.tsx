@@ -1219,6 +1219,28 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
                     <p className="text-[10px] text-muted-foreground italic flex items-center gap-1"><Target className="h-3 w-3" /> Defina uma meta em Relatórios → Metas</p>
                   )}
                 </div>
+                <div className="mt-3 pt-3 border-t border-border/30 space-y-2" onClick={(e) => e.stopPropagation()}>
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-[10px] text-muted-foreground">Taxa da simulação</span>
+                    <div className="flex items-center gap-2">
+                      <Input
+                        type="number"
+                        min="0"
+                        step="0.1"
+                        value={simulationInterestRate}
+                        onChange={(e) => setSimulationInterestRate(Math.max(0, Number(e.target.value) || 0))}
+                        className="h-7 w-20 text-xs text-right"
+                      />
+                      <span className="text-[10px] text-muted-foreground">% a.m.</span>
+                    </div>
+                  </div>
+                  <div className="rounded-lg border border-border/30 bg-muted/40 p-2.5">
+                    <p className="text-[10px] text-muted-foreground">Simulação automática</p>
+                    <p className="text-xs font-semibold text-foreground leading-5 mt-1">
+                      Você precisa emprestar {formatCurrency(requiredLoanAmount)} para atingir a meta.
+                    </p>
+                  </div>
+                </div>
                 {/* Histórico — últimos 2 meses */}
                 <div className="mt-3 pt-2 border-t border-border/30 grid grid-cols-2 gap-2" onClick={(e) => e.stopPropagation()}>
                   {[2, 1].map((monthsAgo) => {
@@ -1306,15 +1328,23 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
                 <span className="text-sm font-bold text-success">{formatCurrency(data.periodProfitRealized)}</span>
               </div>
               <div className="flex items-center justify-between">
+                <span className="text-xs text-muted-foreground">Total Recebido</span>
+                <span className="text-sm font-bold text-success">{formatCurrency(totalReceivedForDuePeriod)}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-muted-foreground">Valor Pendente</span>
+                <span className={`text-sm font-bold ${pendingGoalAmount <= 0 ? "text-success" : "text-warning"}`}>
+                  {pendingGoalAmount <= 0 ? "Meta superada" : formatCurrency(pendingGoalAmount)}
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
                 <span className="text-xs text-muted-foreground">% Lucro</span>
                 <span className={`text-sm font-bold ${data.periodProfitPct >= 100 ? "text-success" : data.periodProfitPct >= 50 ? "text-warning" : "text-foreground"}`}>
                   {data.periodProfitPct}%
                 </span>
               </div>
               {profitGoal && (() => {
-                const previstoTotal = data.periodProfitRealized + data.periodProfitExpected;
-                const targetAmount = previstoTotal * (profitGoal.targetValue / 100);
-                const metaPct = targetAmount > 0 ? (data.periodProfitRealized / targetAmount) * 100 : 0;
+                const metaPct = profitTargetAmount > 0 ? (totalReceivedForDuePeriod / profitTargetAmount) * 100 : 0;
                 return (
                   <div className="flex items-center justify-between">
                     <span className="text-xs text-muted-foreground">% Meta</span>
@@ -1326,16 +1356,14 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
               })()}
               <div className="pt-1.5 border-t border-border/30">
                 {profitGoal ? (() => {
-                  const previstoTotal = data.periodProfitRealized + data.periodProfitExpected;
-                  const targetAmount = previstoTotal * (profitGoal.targetValue / 100);
-                  const pct = targetAmount > 0 ? Math.min(150, (data.periodProfitRealized / targetAmount) * 100) : 0;
-                  const reached = data.periodProfitRealized >= targetAmount && targetAmount > 0;
+                  const pct = profitTargetAmount > 0 ? Math.min(150, (totalReceivedForDuePeriod / profitTargetAmount) * 100) : 0;
+                  const reached = totalReceivedForDuePeriod >= profitTargetAmount && profitTargetAmount > 0;
                   const status = reached ? "atingida" : "abaixo";
                   const color = reached ? "text-success" : "text-destructive";
                   return (
                     <>
                       <div className="flex items-center justify-between text-[10px]">
-                        <span className="flex items-center gap-1 text-muted-foreground"><Target className="h-3 w-3" /> Meta: {profitGoal.targetValue}% ({formatCurrency(targetAmount)})</span>
+                        <span className="flex items-center gap-1 text-muted-foreground"><Target className="h-3 w-3" /> Meta: {profitGoal.targetValue}% ({formatCurrency(profitTargetAmount)})</span>
                         <span className={`font-bold ${color}`}>{status === "atingida" ? "✓ Atingida" : "Abaixo"}</span>
                       </div>
                       <Progress value={Math.min(100, pct)} className="h-1.5 mt-1" />
