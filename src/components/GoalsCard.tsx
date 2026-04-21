@@ -435,7 +435,7 @@ function computeActual(
   }
 }
 
-export function GoalsCard({ loans, payments, expenses, clients, selectedMonth, periodLabel }: Props) {
+export function GoalsCard({ loans, payments, expenses, clients, installmentSchedules = [], selectedMonth, periodLabel }: Props) {
   const { goals } = useMonthlyGoals();
   const { hidden } = useHideValues();
   const [selectedGoalId, setSelectedGoalId] = useState<string | null>(null);
@@ -469,7 +469,7 @@ export function GoalsCard({ loans, payments, expenses, clients, selectedMonth, p
       const meta = GOAL_TYPE_META[g.goalType];
       // Para metas sempre visíveis (snapshot atual) e para todas, usar o mês selecionado nos cálculos
       const computeMonth = selectedMonth || g.month;
-      const actual = computeActual(g.goalType, computeMonth, loans, payments, expenses, clients);
+      const actual = computeActual(g.goalType, computeMonth, loans, payments, expenses, clients, installmentSchedules);
       let pct = 0;
       if (g.targetValue > 0) {
         pct = meta?.inverse
@@ -485,7 +485,7 @@ export function GoalsCard({ loans, payments, expenses, clients, selectedMonth, p
       // Ordena por prioridade visual: inverse no fim, demais por % desc
       return b.pct - a.pct;
     });
-  }, [goals, loans, payments, expenses, clients, selectedMonth]);
+  }, [goals, loans, payments, expenses, clients, installmentSchedules, selectedMonth]);
 
   const totalGoals = enriched.length;
   const onTrack = enriched.filter((g) => g.pct >= 80).length;
