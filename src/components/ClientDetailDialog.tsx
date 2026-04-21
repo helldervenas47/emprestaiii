@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { AlertTriangle, BriefcaseBusiness, CalendarClock, CheckCircle2, CircleAlert, Landmark, RefreshCw, ShieldCheck, Wallet } from "lucide-react";
+import { AlertTriangle, ArrowDownRight, ArrowUpRight, BriefcaseBusiness, CalendarClock, CheckCircle2, CircleAlert, Landmark, Minus, RefreshCw, ShieldCheck, Wallet } from "lucide-react";
 import { CartesianGrid, Line, LineChart, XAxis, YAxis } from "recharts";
 import { Client, InstallmentSchedule, Loan, Payment } from "@/types/loan";
 import { buildClientRiskHistory, buildConsolidatedRiskProfile, formatRiskCurrency, getClientLoans, getClientRiskMetrics } from "@/lib/clientRisk";
@@ -119,10 +119,18 @@ export function ClientDetailDialog({ open, onOpenChange, client, loans, payments
               <CardContent className="p-4 space-y-4">
                 <div className="flex items-start justify-between gap-4 flex-wrap">
                   <div>
-                    <p className="text-sm text-muted-foreground">Score de risco atual</p>
+                    <p className="text-sm text-muted-foreground">Score Atual</p>
                     <div className="flex items-end gap-3 mt-1">
-                      <span className="text-4xl font-bold text-foreground">{riskProfile.score}</span>
+                      <span className="text-4xl font-bold text-foreground">{riskProfile.currentScore}</span>
                       <span className="text-sm text-muted-foreground mb-1">/ 100</span>
+                    </div>
+                    <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                      <span className="rounded-md border border-border/40 bg-background px-2 py-1">Score Histórico: {riskProfile.historicalScore}/150</span>
+                      <span className="rounded-md border border-border/40 bg-background px-2 py-1">{riskProfile.classification}</span>
+                      <span className="inline-flex items-center gap-1 rounded-md border border-border/40 bg-background px-2 py-1">
+                        {riskProfile.trend === "improving" ? <ArrowUpRight className="h-3.5 w-3.5 text-success" /> : riskProfile.trend === "worsening" ? <ArrowDownRight className="h-3.5 w-3.5 text-destructive" /> : <Minus className="h-3.5 w-3.5 text-muted-foreground" />}
+                        {riskProfile.trendLabel}
+                      </span>
                     </div>
                   </div>
                   <div className="min-w-[220px] flex-1 max-w-sm">
@@ -142,7 +150,7 @@ export function ClientDetailDialog({ open, onOpenChange, client, loans, payments
                   <MetricCard icon={CalendarClock} label="Contratos em atraso" value={String(metrics.overdueLoans)} helper={metrics.severeOverdueLoans > 0 ? `${metrics.severeOverdueLoans} com 30+ dias` : "Sem atrasos longos"} tone={metrics.overdueLoans > 0 ? "alert" : "default"} />
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   <div className="rounded-xl border border-border/30 p-4 bg-muted/20">
                     <p className="text-sm font-medium text-foreground mb-2">Motivos do score</p>
                     <ul className="space-y-2 text-sm text-muted-foreground">
@@ -155,12 +163,12 @@ export function ClientDetailDialog({ open, onOpenChange, client, loans, payments
                     </ul>
                   </div>
                   <div className="rounded-xl border border-border/30 p-4 bg-muted/20">
-                    <p className="text-sm font-medium text-foreground mb-2">Resumo operacional</p>
+                      <p className="text-sm font-medium text-foreground mb-2">Leitura combinada</p>
                     <div className="space-y-2 text-sm text-muted-foreground">
-                      <div className="flex items-center justify-between"><span>Contratos ativos</span><span className="font-medium text-foreground">{metrics.activeLoans}</span></div>
-                      <div className="flex items-center justify-between"><span>Contratos quitados</span><span className="font-medium text-foreground">{metrics.paidLoans}</span></div>
-                      <div className="flex items-center justify-between"><span>Pagamentos parciais</span><span className="font-medium text-foreground">{metrics.partialPayments}</span></div>
-                      <div className="flex items-center justify-between"><span>Total recebido</span><span className="font-medium text-foreground">{formatRiskCurrency(totalReceived)}</span></div>
+                        <div className="flex items-center justify-between"><span>Classificação</span><span className="font-medium text-foreground">{riskProfile.classification}</span></div>
+                        <div className="flex items-center justify-between"><span>Tendência</span><span className="font-medium text-foreground">{riskProfile.trendLabel}</span></div>
+                        <div className="flex items-center justify-between"><span>Contratos quitados</span><span className="font-medium text-foreground">{metrics.paidLoans}</span></div>
+                        <div className="flex items-center justify-between"><span>Total recebido</span><span className="font-medium text-foreground">{formatRiskCurrency(totalReceived)}</span></div>
                     </div>
                   </div>
                   <div className="rounded-xl border border-border/30 p-4 bg-muted/20 space-y-4">
@@ -173,7 +181,7 @@ export function ClientDetailDialog({ open, onOpenChange, client, loans, payments
                           </Badge>
                         </div>
                         <p className="text-xs text-muted-foreground">
-                          Capacidade financeira, score consolidado e sinais positivos ou de atenção do cliente.
+                          Separação entre histórico acumulado e condição operacional do momento para decisões mais estáveis.
                         </p>
                       </div>
                       <Button size="sm" variant="outline" onClick={() => requestAnalysis()} disabled={refreshing}>
@@ -183,9 +191,9 @@ export function ClientDetailDialog({ open, onOpenChange, client, loans, payments
                     </div>
 
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                      <AnalysisStatCard label="Score consolidado" value={financialProfile?.consolidatedScore ?? "—"} helper={financialProfile?.riskLevel ? `Risco ${financialProfile.riskLevel}` : "Sem classificação"} emphasis />
-                      <AnalysisStatCard label="Score interno" value={financialProfile?.internalScore ?? "—"} helper="Histórico operacional" />
-                      <AnalysisStatCard label="Score externo" value={financialProfile?.externalScore ?? "—"} helper={financialProfile?.provider || "Sem provedor"} />
+                      <AnalysisStatCard label="Score Atual" value={riskProfile.currentScore} helper={riskProfile.label} emphasis />
+                      <AnalysisStatCard label="Score Histórico" value={riskProfile.historicalScore} helper="Base acumulada do relacionamento" />
+                      <AnalysisStatCard label="Score Atual Base" value={riskProfile.currentBaseScore} helper="Antes do ajuste do histórico" />
                     </div>
 
                     <div className="grid grid-cols-2 md:grid-cols-3 gap-3 text-sm text-muted-foreground">
@@ -222,6 +230,7 @@ export function ClientDetailDialog({ open, onOpenChange, client, loans, payments
                     </div>
 
                     {report?.creditHistorySummary ? <p className="text-xs leading-relaxed text-muted-foreground">{report.creditHistorySummary}</p> : null}
+                    {financialProfile?.externalScore != null ? <p className="text-[11px] leading-relaxed text-muted-foreground">Referência externa: {financialProfile.externalScore}/100 via {financialProfile.provider || "provedor externo"}.</p> : null}
                   </div>
                 </div>
               </CardContent>
@@ -232,7 +241,7 @@ export function ClientDetailDialog({ open, onOpenChange, client, loans, payments
                 <div className="flex items-center justify-between gap-3 flex-wrap">
                   <div>
                     <h3 className="text-base font-semibold text-foreground">Evolução do score</h3>
-                    <p className="text-sm text-muted-foreground">Trajetória mensal do risco considerando o histórico acumulado.</p>
+                     <p className="text-sm text-muted-foreground">Trajetória mensal do Score Atual com base histórica acumulada.</p>
                   </div>
                   <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20">{history.length} meses</Badge>
                 </div>
@@ -302,9 +311,10 @@ export function ClientDetailDialog({ open, onOpenChange, client, loans, payments
                     <div key={point.month} className="rounded-xl border border-border/30 p-3 bg-muted/20">
                       <div className="flex items-center justify-between gap-2">
                         <span className="text-sm font-medium text-foreground uppercase">{point.label}</span>
-                        <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20">{point.score}/100</Badge>
+                        <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20">Atual {point.score}/100</Badge>
                       </div>
                       <div className="grid grid-cols-2 gap-2 mt-3 text-xs text-muted-foreground">
+                        <div>Histórico: <span className="text-foreground font-medium">{point.historicalScore}/150</span></div>
                         <div>Em dia: <span className="text-foreground font-medium">{point.onTimePayments}</span></div>
                         <div>Atrasos: <span className="text-foreground font-medium">{point.latePayments}</span></div>
                         <div>Contratos em atraso: <span className="text-foreground font-medium">{point.overdueLoans}</span></div>
