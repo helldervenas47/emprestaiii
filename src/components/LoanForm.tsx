@@ -279,13 +279,17 @@ export function LoanForm({ onAdd, onSaveSchedule, onClose, clients, loans, payme
                 <div className="flex items-center justify-between gap-2 flex-wrap">
                   <div>
                     <p className="text-sm font-medium text-foreground">Análise de risco do cliente</p>
-                    <p className="text-xs text-muted-foreground">Alerta consolidado com histórico interno e consulta automática externa.</p>
+                    <p className="text-xs text-muted-foreground">Leitura operacional com base no Score Atual e sustentação do Score Histórico.</p>
                   </div>
                   <Badge variant="outline" className={selectedClientRisk.profile.badgeClassName}>
-                    {selectedClientRisk.profile.label} · {selectedClientRisk.profile.score}/100
+                    {selectedClientRisk.profile.label} · {selectedClientRisk.profile.currentScore}/100
                   </Badge>
                 </div>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
+                  <div className="rounded-md border border-border/60 bg-background px-2.5 py-2">
+                    <p className="text-muted-foreground">Histórico</p>
+                    <p className="font-semibold text-foreground">{selectedClientRisk.profile.historicalScore}/150</p>
+                  </div>
                   <div className="rounded-md border border-border/60 bg-background px-2.5 py-2">
                     <p className="text-muted-foreground">Em atraso</p>
                     <p className="font-semibold text-foreground">{selectedClientRisk.metrics.overdueLoans}</p>
@@ -302,6 +306,10 @@ export function LoanForm({ onAdd, onSaveSchedule, onClose, clients, loans, payme
                     <p className="text-muted-foreground">Já emprestado</p>
                     <p className="font-semibold text-foreground">{formatCurrency(selectedClientRisk.metrics.totalLent)}</p>
                   </div>
+                </div>
+                <div className="flex flex-wrap gap-2 text-[11px] text-muted-foreground">
+                  <span className="rounded-md border border-border/60 bg-background px-2 py-1">{selectedClientRisk.profile.classification}</span>
+                  <span className="rounded-md border border-border/60 bg-background px-2 py-1">Tendência: {selectedClientRisk.profile.trendLabel}</span>
                 </div>
                 <ul className="space-y-1 text-xs text-muted-foreground list-disc pl-4">
                   {selectedClientRisk.profile.reasons.slice(0, 3).map((reason) => (
