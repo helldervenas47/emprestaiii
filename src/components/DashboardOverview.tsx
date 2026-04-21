@@ -2220,12 +2220,17 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
           side={isMobile ? "bottom" : "right"}
           className={isMobile ? "max-h-[85vh] overflow-y-auto rounded-t-2xl" : "w-full sm:max-w-xl overflow-y-auto"}
         >
-          <SheetHeader>
-            <SheetTitle>{riskAiTitle}</SheetTitle>
+          <SheetHeader className="rounded-xl border border-primary/20 bg-gradient-to-br from-primary/10 to-accent/15 p-4">
+            <SheetTitle className="flex items-center gap-2 text-foreground">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-background/50 backdrop-blur-md">
+                <Sparkles className="h-4 w-4 text-primary" />
+              </div>
+              {riskAiTitle}
+            </SheetTitle>
           </SheetHeader>
 
           <div className="mt-4 space-y-4">
-            <div className="space-y-2">
+            <div className="space-y-2 rounded-xl border border-primary/20 bg-gradient-to-br from-primary/5 to-accent/10 p-4 backdrop-blur-sm">
               <p className="text-xs text-muted-foreground">Tom da IA</p>
               <Select value={riskAiTone} onValueChange={(value) => setRiskAiTone(value as InsightTone)}>
                 <SelectTrigger className="h-9 text-sm">
@@ -2237,14 +2242,15 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
                   ))}
                 </SelectContent>
               </Select>
-              <Button type="button" size="sm" onClick={generateRiskAiReport} disabled={riskAiLoading}>
+              <Button type="button" size="sm" onClick={generateRiskAiReport} disabled={riskAiLoading} className="gap-2">
+                <Sparkles className={`h-3.5 w-3.5 ${riskAiLoading ? "animate-pulse" : ""}`} />
                 {riskAiLoading ? "Gerando..." : "Gerar novamente"}
               </Button>
             </div>
 
-            <div className="rounded-xl border border-border/30 bg-muted/20 p-4">
+            <div className="rounded-xl border border-primary/20 bg-gradient-to-br from-primary/5 to-accent/10 p-4 backdrop-blur-sm">
               {riskAiLoading ? (
-                <p className="text-sm text-muted-foreground">Analisando risco, retorno e prioridades de ação...</p>
+                <div className="flex items-center gap-2 text-sm text-muted-foreground"><Sparkles className="h-4 w-4 animate-pulse text-primary" />Analisando risco, retorno e prioridades de ação...</div>
               ) : (
                 <div className="prose prose-sm max-w-none dark:prose-invert prose-p:text-foreground prose-headings:text-foreground prose-strong:text-foreground">
                   <ReactMarkdown>{riskAiReport}</ReactMarkdown>
