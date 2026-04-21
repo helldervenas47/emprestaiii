@@ -472,9 +472,11 @@ export function GoalsCard({ loans, payments, expenses, clients, installmentSched
       const actual = computeActual(g.goalType, computeMonth, loans, payments, expenses, clients, installmentSchedules);
       let pct = 0;
       if (g.targetValue > 0) {
-        pct = meta?.inverse
-          ? Math.max(0, 100 - (actual / g.targetValue) * 100)
-          : Math.min(100, (actual / g.targetValue) * 100);
+        pct = g.goalType === "max_default_rate"
+          ? (actual <= g.targetValue ? 100 : 0)
+          : meta?.inverse
+            ? Math.max(0, 100 - (actual / g.targetValue) * 100)
+            : Math.min(100, (actual / g.targetValue) * 100);
       }
       const expectedReceivable = g.goalType === "profit" ? computeExpectedReceivable(loans, computeMonth) : null;
       const targetAmount = g.goalType === "profit" && expectedReceivable !== null
@@ -532,9 +534,16 @@ export function GoalsCard({ loans, payments, expenses, clients, installmentSched
           <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-3">
             {enriched.map((g) => {
               const Icon = g.meta?.icon || Target;
-              const status = g.pct >= 80 ? "success" : g.pct >= 50 ? "warning" : "destructive";
+              const status = g.goalType === "max_default_rate"
+                ? (g.pct === 100 ? "success" : "destructive")
+                : g.pct >= 80
+                  ? "success"
+                  : g.pct >= 50
+                    ? "warning"
+                    : "destructive";
               const statusColor =
                 status === "success" ? "text-success" : status === "warning" ? "text-warning" : "text-destructive";
+              const progressClassName = status === "success" ? "h-1.5 [&>div]:bg-success" : status === "destructive" ? "h-1.5 [&>div]:bg-destructive" : "h-1.5 [&>div]:bg-warning";
               return (
                 <button
                   key={g.id}
@@ -583,7 +592,7 @@ export function GoalsCard({ loans, payments, expenses, clients, installmentSched
                     </div>
                     <div className="border-t border-border w-full my-0.5 sm:my-1" />
                     <div className="w-full">
-                      <Progress value={g.pct} className="h-1.5" />
+                      <Progress value={g.pct} className={progressClassName} />
                       <div className="flex flex-col items-center sm:flex-row sm:items-center sm:justify-between mt-1">
                         <span className="text-[10px] sm:text-xs font-medium text-foreground leading-tight">Progresso</span>
                         <span className={`text-sm sm:text-base font-bold ${statusColor} break-all sm:break-normal`}>
