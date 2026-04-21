@@ -230,6 +230,7 @@ export function MonthlyGoalsManager({ readOnly = false }: { readOnly?: boolean }
           </div>
         </CardContent>
       </Card>
+      )}
 
       <Card no3d>
         <CardContent className="p-4">
