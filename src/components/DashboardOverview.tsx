@@ -1616,6 +1616,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
                             generateAiReport({
                               title: `Relatório IA: ${insight.title}`,
                               type: "priority-insight",
+                              cacheKey: insight.id,
                               metrics: {
                                 periodo: range.label,
                                 insightId: insight.id,
@@ -1635,7 +1636,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
                           }}
                           disabled={riskAiLoading}
                         >
-                          {riskAiLoading ? "Gerando..." : "Gerar relatório com IA"}
+                          {riskAiLoading ? "Gerando..." : cachedInsightReports[insight.id] ? "Abrir relatório com IA" : "Gerar relatório com IA"}
                         </Button>
                       </div>
                     </div>
