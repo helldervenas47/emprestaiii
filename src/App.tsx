@@ -14,6 +14,7 @@ import { OfflineBadge } from "./components/OfflineBadge";
 import { AppTimezoneSync } from "./components/AppTimezoneSync";
 import { StatusBarScrollSync } from "./components/StatusBarScrollSync";
 import { wireAutoSync } from "./lib/offline/sync";
+import { DevCacheErrorBoundary } from "./components/DevCacheErrorBoundary";
 
 wireAutoSync();
 
@@ -63,36 +64,38 @@ function PublicRoute({ children }: { children: React.ReactNode }) {
 }
 
 const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <PWAInstallPrompt />
-      <OfflineBadge />
-      <BrowserRouter>
-        <AuthProvider>
-          <BrandTitleSync />
-          <BrandFaviconSync />
-          <AppTimezoneSync />
-          <StatusBarScrollSync />
-          <Suspense fallback={<PageLoader />}>
-            <Routes>
-              <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
-              <Route path="/auth" element={<PublicRoute><Auth /></PublicRoute>} />
-              <Route path="/cadastro" element={<PublicRoute><Cadastro /></PublicRoute>} />
-              <Route path="/planos" element={<Pricing />} />
-              <Route path="/termos" element={<Terms />} />
-              <Route path="/reembolso" element={<RefundPolicy />} />
-              <Route path="/privacidade" element={<PrivacyPolicy />} />
-              <Route path="/reset-password" element={<ResetPassword />} />
-              <Route path="/planejamento-do-dia" element={<ProtectedRoute><DailyPlanning /></ProtectedRoute>} />
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </Suspense>
-        </AuthProvider>
-      </BrowserRouter>
-    </TooltipProvider>
-  </QueryClientProvider>
+  <DevCacheErrorBoundary>
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <PWAInstallPrompt />
+        <OfflineBadge />
+        <BrowserRouter>
+          <AuthProvider>
+            <BrandTitleSync />
+            <BrandFaviconSync />
+            <AppTimezoneSync />
+            <StatusBarScrollSync />
+            <Suspense fallback={<PageLoader />}>
+              <Routes>
+                <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
+                <Route path="/auth" element={<PublicRoute><Auth /></PublicRoute>} />
+                <Route path="/cadastro" element={<PublicRoute><Cadastro /></PublicRoute>} />
+                <Route path="/planos" element={<Pricing />} />
+                <Route path="/termos" element={<Terms />} />
+                <Route path="/reembolso" element={<RefundPolicy />} />
+                <Route path="/privacidade" element={<PrivacyPolicy />} />
+                <Route path="/reset-password" element={<ResetPassword />} />
+                <Route path="/planejamento-do-dia" element={<ProtectedRoute><DailyPlanning /></ProtectedRoute>} />
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </Suspense>
+          </AuthProvider>
+        </BrowserRouter>
+      </TooltipProvider>
+    </QueryClientProvider>
+  </DevCacheErrorBoundary>
 );
 
 export default App;
