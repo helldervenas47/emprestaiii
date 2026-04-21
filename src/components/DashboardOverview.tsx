@@ -284,18 +284,6 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
   );
   const interestGoal = getGoal("interest_rate", goalMonthKey);
   const profitGoal = getGoal("profit", goalMonthKey);
-  const profitTargetAmount = useMemo(() => {
-    if (!profitGoal) return 0;
-    const previstoTotal = data.periodProfitRealized + data.periodProfitExpected;
-    return previstoTotal * (profitGoal.targetValue / 100);
-  }, [data.periodProfitExpected, data.periodProfitRealized, profitGoal]);
-  const totalReceivedForDuePeriod = useMemo(
-    () => data.interestExpectedRecords.filter((record) => record.paid).reduce((sum, record) => sum + record.installmentAmount, 0),
-    [data.interestExpectedRecords]
-  );
-  const pendingGoalAmount = profitTargetAmount - totalReceivedForDuePeriod;
-  const simulationRateDecimal = simulationInterestRate / 100;
-  const requiredLoanAmount = profitTargetAmount > 0 ? profitTargetAmount / (1 + simulationRateDecimal) : 0;
 
   // Helper to get chart month label from a date range
   const getChartLabel = (start: Date) => {
