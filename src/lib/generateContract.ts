@@ -270,7 +270,7 @@ export async function generateContract(sale: Sale, client?: Client, locador?: Lo
 <h2>CLÁUSULA 8ª – DO FORO</h2>
 <p>Fica eleito o foro da comarca de São Gonçalo dos Campos-BA para dirimir quaisquer controvérsias oriundas deste contrato.</p>
 
-${sale.notes ? `<h2>OBSERVAÇÕES</h2><p>${sale.notes}</p>` : ""}
+${sale.notes ? `<h2>OBSERVAÇÕES</h2><p>${e(sale.notes).replace(/\n/g, "<br>")}</p>` : ""}
 
 <p class="location-date">São Gonçalo dos Campos - BA, ${today}.</p>
 
