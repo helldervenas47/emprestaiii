@@ -485,7 +485,7 @@ export function GoalsCard({ loans, payments, expenses, clients, selectedMonth, p
               : "Nenhuma meta cadastrada. Cadastre metas em Configurações → Metas para acompanhar aqui."}
           </div>
         ) : (
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-2 sm:gap-3">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-3">
             {enriched.map((g) => {
               const Icon = g.meta?.icon || Target;
               const status = g.pct >= 80 ? "success" : g.pct >= 50 ? "warning" : "destructive";
