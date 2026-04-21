@@ -414,7 +414,6 @@ const Index = () => {
     }, 150);
   };
 
-  };
 
 
   const handlePrimaryAction = () => {
