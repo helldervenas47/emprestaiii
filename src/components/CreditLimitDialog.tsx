@@ -154,20 +154,23 @@ export function CreditLimitDialog({ client, loans, payments, open, onOpenChange 
         </DialogHeader>
 
         {/* Resumo */}
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-3 gap-2">
           <Card>
-            <CardContent className="p-4">
-              <p className="text-xs text-muted-foreground">Limite total</p>
-              <p className="text-2xl font-bold">{formatBRL(currentLimit)}</p>
+            <CardContent className="p-3">
+              <p className="text-[10px] text-muted-foreground">Total</p>
+              <p className="text-base sm:text-lg font-bold">{formatBRL(currentLimit)}</p>
             </CardContent>
           </Card>
           <Card>
-            <CardContent className="p-4">
-              <p className="text-xs text-muted-foreground">Disponível</p>
-              <p className="text-2xl font-bold text-success">{formatBRL(available)}</p>
-              <p className="text-[10px] text-muted-foreground mt-1">
-                Em uso: {formatBRL(used)}
-              </p>
+            <CardContent className="p-3">
+              <p className="text-[10px] text-muted-foreground">Utilizado</p>
+              <p className="text-base sm:text-lg font-bold text-warning">{formatBRL(used)}</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-3">
+              <p className="text-[10px] text-muted-foreground">Disponível</p>
+              <p className="text-base sm:text-lg font-bold text-success">{formatBRL(available)}</p>
             </CardContent>
           </Card>
         </div>
