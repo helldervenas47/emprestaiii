@@ -511,6 +511,78 @@ export type Database = {
         }
         Relationships: []
       }
+      credit_limit_history: {
+        Row: {
+          change_type: string
+          changed_by: string | null
+          client_id: string
+          created_at: string
+          id: string
+          metadata: Json
+          new_limit: number
+          previous_limit: number
+          reason: string | null
+          user_id: string
+        }
+        Insert: {
+          change_type: string
+          changed_by?: string | null
+          client_id: string
+          created_at?: string
+          id?: string
+          metadata?: Json
+          new_limit?: number
+          previous_limit?: number
+          reason?: string | null
+          user_id: string
+        }
+        Update: {
+          change_type?: string
+          changed_by?: string | null
+          client_id?: string
+          created_at?: string
+          id?: string
+          metadata?: Json
+          new_limit?: number
+          previous_limit?: number
+          reason?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      credit_limits: {
+        Row: {
+          client_id: string
+          created_at: string
+          current_limit: number
+          id: string
+          last_auto_calculated_at: string | null
+          mode: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          client_id: string
+          created_at?: string
+          current_limit?: number
+          id?: string
+          last_auto_calculated_at?: string | null
+          mode?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          client_id?: string
+          created_at?: string
+          current_limit?: number
+          id?: string
+          last_auto_calculated_at?: string | null
+          mode?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       daily_planning_telegram_prefs: {
         Row: {
           created_at: string

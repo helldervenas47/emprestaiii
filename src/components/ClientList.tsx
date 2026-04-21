@@ -10,9 +10,12 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Trash2, User, Phone, Mail, MapPin, Search, Users, Pencil, X, Check, ToggleLeft, ToggleRight, ArrowUpDown, ArrowDownAZ, ArrowUpAZ, Clock, CalendarDays, TrendingUp, AlertTriangle, CheckCircle, ShieldCheck } from "lucide-react";
+import { Trash2, User, Phone, Mail, MapPin, Search, Users, Pencil, X, Check, ToggleLeft, ToggleRight, ArrowUpDown, ArrowDownAZ, ArrowUpAZ, Clock, CalendarDays, TrendingUp, AlertTriangle, CheckCircle, ShieldCheck, Wallet } from "lucide-react";
 import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
 import { ClientDetailDialog } from "@/components/ClientDetailDialog";
+import { CreditLimitDialog } from "@/components/CreditLimitDialog";
+import { useCreditLimits } from "@/hooks/useCreditLimits";
+import { computeAvailableLimit, computeUsedLimit, formatBRL } from "@/lib/creditLimit";
 
 interface Props {
   clients: Client[];
@@ -126,6 +129,8 @@ export function ClientList({ clients, loans, payments, installmentSchedules, onD
   const [editForm, setEditForm] = useState<Record<string, any>>({ name: "", phone: "", email: "", cpf: "", cnpj: "", rg: "", address: "", city: "", state: "", score: "", notes: "", isVehicleRental: false, nacionalidade: "", estadoCivil: "", profissao: "", bairro: "", isManager: false, defaultInterestRate: "" });
   const [deleteClientId, setDeleteClientId] = useState<string | null>(null);
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
+  const [limitClient, setLimitClient] = useState<Client | null>(null);
+  const { getLimitForClient } = useCreditLimits();
 
   const creditScores = useMemo(() => {
     const map: Record<string, CreditScore> = {};
@@ -376,6 +381,9 @@ export function ClientList({ clients, loans, payments, installmentSchedules, onD
                       </div>
                       {!readOnly && (
                       <div className="flex gap-1">
+                        <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => setLimitClient(client)} title="Limite de crédito">
+                          <Wallet className="h-4 w-4 text-primary" />
+                        </Button>
                         <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => setSelectedClient(client)} title="Ver detalhes">
                           <ShieldCheck className="h-4 w-4 text-primary" />
                         </Button>
@@ -427,6 +435,41 @@ export function ClientList({ clients, loans, payments, installmentSchedules, onD
                       </div>
                     </div>
 
+                    {/* Credit Limit */}
+                    {(() => {
+                      const cl = getLimitForClient(client.id);
+                      const total = cl?.currentLimit ?? 0;
+                      const used = computeUsedLimit(client.id, loans);
+                      const available = computeAvailableLimit(total, used);
+                      return (
+                        <button
+                          type="button"
+                          onClick={() => setLimitClient(client)}
+                          className="w-full rounded-xl border border-border/30 p-3 mb-3 text-left hover:bg-accent/30 transition-colors"
+                        >
+                          <div className="flex items-center justify-between mb-1">
+                            <div className="flex items-center gap-2">
+                              <Wallet className="h-4 w-4 text-primary" />
+                              <span className="text-xs font-medium text-muted-foreground">Limite de Crédito</span>
+                            </div>
+                            <Badge variant="outline" className="text-[10px]">
+                              {cl?.mode === "manual" ? "Manual" : "Auto"}
+                            </Badge>
+                          </div>
+                          <div className="grid grid-cols-2 gap-2 text-xs">
+                            <div>
+                              <p className="text-[10px] text-muted-foreground">Total</p>
+                              <p className="font-semibold">{formatBRL(total)}</p>
+                            </div>
+                            <div>
+                              <p className="text-[10px] text-muted-foreground">Disponível</p>
+                              <p className="font-semibold text-success">{formatBRL(available)}</p>
+                            </div>
+                          </div>
+                        </button>
+                      );
+                    })()}
+
                     <div className="space-y-1.5 text-sm text-muted-foreground">
                       {client.phone && <div className="flex items-center gap-2"><Phone className="h-3.5 w-3.5" /><span>{client.phone}</span></div>}
                       {client.email && <div className="flex items-center gap-2"><Mail className="h-3.5 w-3.5" /><span>{client.email}</span></div>}
@@ -457,6 +500,15 @@ export function ClientList({ clients, loans, payments, installmentSchedules, onD
         payments={payments}
         installmentSchedules={installmentSchedules}
       />
+      {limitClient && (
+        <CreditLimitDialog
+          open={!!limitClient}
+          onOpenChange={(open) => !open && setLimitClient(null)}
+          client={limitClient}
+          loans={loans}
+          payments={payments}
+        />
+      )}
     </div>
   );
 }
