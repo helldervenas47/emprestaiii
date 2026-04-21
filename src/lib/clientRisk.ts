@@ -119,7 +119,11 @@ function getLoanCategory(loan: Loan, payments: Payment[], schedules: Installment
   const days = getDaysOverdue(loan, schedules, referenceDate);
   const loanPayments = payments.filter((p) => p.loanId === loan.id);
   const lastPayment = loanPayments.sort((a, b) => b.date.localeCompare(a.date))[0];
-  if (days < 0) return lastPayment && lastPayment.installmentNumber === 0 ? "paid_interest" as const : "on_track" as const;
+  const paidContractualInterestOnTime = lastPayment
+    && lastPayment.installmentNumber === 0
+    && !!lastPayment.previousDueDate
+    && lastPayment.date <= lastPayment.previousDueDate;
+  if (days < 0) return paidContractualInterestOnTime ? "paid_interest" as const : "on_track" as const;
   if (days === 0) return "due_today" as const;
   if (days > 0) return "overdue" as const;
   return "on_track" as const;
@@ -154,12 +158,22 @@ export function getClientRiskMetrics(client: Client, loans: Loan[], payments: Pa
     allowedPayments
       .filter((payment) => payment.loanId === loan.id)
       .forEach((payment) => {
-        if (payment.installmentNumber < 0) {
+        if (payment.installmentNumber === -1) {
           partialPayments += 1;
           return;
         }
 
-        if (payment.installmentNumber <= 0) return;
+        if (payment.installmentNumber === 0) {
+          const contractualDueDate = payment.previousDueDate ?? loan.dueDate;
+          if (payment.date <= contractualDueDate) {
+            onTimePayments += 1;
+          } else {
+            latePayments += 1;
+          }
+          return;
+        }
+
+        if (payment.installmentNumber < 0) return;
 
         const dueDate = getInstallmentDueDate(loan, payment.installmentNumber, installmentSchedules);
         if (payment.date <= dueDate) onTimePayments += 1;
