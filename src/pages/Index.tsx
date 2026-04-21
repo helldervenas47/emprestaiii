@@ -1056,7 +1056,7 @@ const Index = () => {
                     </div>
                     <div className="grid grid-cols-3 gap-2">
                       {visibleTabs
-                        .filter(t => !pinnedTabs.includes(t.id))
+                        .filter(t => !bottomItemIds.includes(t.id))
                         .map(t => {
                           const active = tab === t.id;
                           return (
