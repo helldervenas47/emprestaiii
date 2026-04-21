@@ -316,18 +316,9 @@ export function LoanForm({ onAdd, onSaveSchedule, onClose, clients, loans, payme
                     <li key={reason}>{reason}</li>
                   ))}
                 </ul>
-                {selectedClientFinancialProfile?.monthlyIncome ? (
-                  <div className="grid grid-cols-2 gap-2 text-xs">
-                    <div className="rounded-md border border-border/60 bg-background px-2.5 py-2">
-                      <p className="text-muted-foreground">Renda mensal</p>
-                      <p className="font-semibold text-foreground">{formatCurrency(selectedClientFinancialProfile.monthlyIncome)}</p>
-                    </div>
-                    <div className="rounded-md border border-border/60 bg-background px-2.5 py-2">
-                      <p className="text-muted-foreground">Endividamento</p>
-                      <p className="font-semibold text-foreground">{formatCurrency(selectedClientFinancialProfile.debtLevel ?? 0)}</p>
-                    </div>
-                  </div>
-                ) : null}
+                <div className="rounded-md border border-border/60 bg-background px-2.5 py-2 text-xs text-muted-foreground">
+                  Score calculado apenas com contratos, pagamentos, atrasos, pontualidade e relacionamento registrados no app.
+                </div>
               </div>
             )}
 
