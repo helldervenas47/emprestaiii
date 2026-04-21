@@ -1,4 +1,4 @@
-import { useMemo, useState, useCallback, useRef } from "react";
+import { useMemo, useState, useEffect, useCallback, useRef } from "react";
 import { todayInAppTz } from "@/lib/timezone";
 import { useChartOverrides } from "@/hooks/useChartOverrides";
 import { useMonthlyGoals } from "@/hooks/useMonthlyGoals";
@@ -787,7 +787,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
     }
     try {
       const { data: result, error } = await supabase.functions.invoke("generate-risk-reduction-report", {
-        body: { tone: riskAiTone, type, metrics },
+        body: { type, metrics },
       });
 
       if (error) throw error;
@@ -806,7 +806,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
       if (openSheet) setRiskAiLoading(false);
       if (cacheKey) prefetchingInsightReportsRef.current.delete(cacheKey);
     }
-  }, [cachedInsightReports, riskAiTone]);
+  }, [cachedInsightReports]);
 
   const generateRiskAiReport = useCallback(async () => {
     await generateAiReport({
@@ -2214,17 +2214,6 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
 
             <div className="mt-4 space-y-4">
               <div className="space-y-2 rounded-xl border border-primary/20 bg-card/70 p-4 shadow-[0_12px_32px_-18px_hsl(var(--primary)/0.3)] backdrop-blur-xl backdrop-saturate-150">
-                <p className="text-xs text-muted-foreground">Tom da IA</p>
-                <Select value={riskAiTone} onValueChange={(value) => setRiskAiTone(value as InsightTone)}>
-                  <SelectTrigger className="h-9 text-sm">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {TONE_OPTIONS.map((option) => (
-                      <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
                 <Button type="button" size="sm" onClick={generateRiskAiReport} disabled={riskAiLoading} className="gap-2">
                   <Sparkles className={`h-3.5 w-3.5 ${riskAiLoading ? "animate-pulse" : ""}`} />
                   {riskAiLoading ? "Gerando..." : "Gerar novamente"}
@@ -2257,17 +2246,6 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
 
             <div className="space-y-4">
               <div className="space-y-2 rounded-xl border border-primary/20 bg-card/70 p-4 shadow-[0_12px_32px_-18px_hsl(var(--primary)/0.3)] backdrop-blur-xl backdrop-saturate-150">
-                <p className="text-xs text-muted-foreground">Tom da IA</p>
-                <Select value={riskAiTone} onValueChange={(value) => setRiskAiTone(value as InsightTone)}>
-                  <SelectTrigger className="h-9 text-sm">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {TONE_OPTIONS.map((option) => (
-                      <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
                 <Button type="button" size="sm" onClick={generateRiskAiReport} disabled={riskAiLoading} className="gap-2">
                   <Sparkles className={`h-3.5 w-3.5 ${riskAiLoading ? "animate-pulse" : ""}`} />
                   {riskAiLoading ? "Gerando..." : "Gerar novamente"}
