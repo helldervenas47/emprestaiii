@@ -1633,7 +1633,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
             </div>
 
             <div className="space-y-4">
-              <button type="button" onClick={generateRiskAiReport} className="rounded-xl border border-border/30 bg-muted/20 p-5 text-left transition-colors hover:bg-accent/40">
+              <button type="button" onClick={generateRiskAiReport} className="w-full rounded-xl border border-border/30 bg-muted/20 p-5 text-left transition-colors hover:bg-accent/40">
                 <div className="flex items-center justify-between text-sm text-muted-foreground mb-3">
                   <span>Baixo risco / baixo retorno</span>
                   <span>Alto risco / alto retorno</span>
