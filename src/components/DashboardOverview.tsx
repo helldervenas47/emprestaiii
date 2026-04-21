@@ -1631,13 +1631,13 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
             </div>
 
             <div className="space-y-4">
-              <button type="button" onClick={generateRiskAiReport} className="rounded-xl border border-border/30 bg-muted/20 p-4 text-left transition-colors hover:bg-accent/40">
-                <div className="flex items-center justify-between text-xs text-muted-foreground mb-2">
+              <button type="button" onClick={generateRiskAiReport} className="rounded-xl border border-border/30 bg-muted/20 p-5 text-left transition-colors hover:bg-accent/40">
+                <div className="flex items-center justify-between text-sm text-muted-foreground mb-3">
                   <span>Baixo risco / baixo retorno</span>
                   <span>Alto risco / alto retorno</span>
                 </div>
-                <div className="relative h-4 rounded-full bg-gradient-to-r from-success/40 via-warning/35 to-destructive/45">
-                  <div className="absolute top-1/2 h-6 w-6 -translate-y-1/2 -translate-x-1/2 rounded-full border-2 border-background bg-card shadow" style={{ left: `${riskReturn.axisPosition}%` }} />
+                <div className="relative h-6 rounded-full bg-gradient-to-r from-success/40 via-warning/35 to-destructive/45">
+                  <div className="absolute top-1/2 h-8 w-8 -translate-y-1/2 -translate-x-1/2 rounded-full border-2 border-background bg-card shadow" style={{ left: `${riskReturn.axisPosition}%` }} />
                 </div>
               </button>
 
