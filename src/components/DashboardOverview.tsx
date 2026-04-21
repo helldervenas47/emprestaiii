@@ -1071,7 +1071,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
       })()}
 
       {/* Goals Card - placed above Health Score */}
-      <GoalsCard loans={loans} payments={payments} expenses={expenses} clients={clients ?? []} selectedMonth={goalMonthKey} periodLabel={range.label} />
+      <GoalsCard loans={loans} payments={payments} expenses={expenses} clients={clients ?? []} installmentSchedules={installmentSchedules} selectedMonth={goalMonthKey} periodLabel={range.label} />
 
       {/* Health Score Gauge */}
       <Card no3d>
