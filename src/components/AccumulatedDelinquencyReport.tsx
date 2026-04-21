@@ -164,18 +164,11 @@ export function AccumulatedDelinquencyReport({ loans, clients, installmentSchedu
 
     setSendingNow(true);
     try {
-      const { data: session } = await supabase.auth.getSession();
-      const token = session.session?.access_token;
-      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/telegram-accumulated-delinquency-summary?user_id=${user.id}`, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-        body: "{}",
+      const { data, error } = await supabase.functions.invoke("telegram-accumulated-delinquency-summary", {
+        body: { user_id: user.id },
       });
-      const json = await response.json();
-      if (!response.ok) throw new Error(json.error || "Falha ao enviar relatório");
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
       toast.success("Relatório enviado para o Telegram!");
     } catch (error: any) {
       toast.error(error.message || "Erro ao enviar relatório");

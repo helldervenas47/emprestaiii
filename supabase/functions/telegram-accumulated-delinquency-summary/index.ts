@@ -236,7 +236,8 @@ Deno.serve(async (req) => {
     const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
     const url = new URL(req.url);
     const body = req.method === "POST" ? await req.json().catch(() => ({})) : {};
-    const forceUserId = url.searchParams.get("user_id") ?? body.user_id ?? null;
+    const bodyUserId = typeof body.user_id === "string" ? body.user_id : null;
+    const forceUserId = bodyUserId ?? url.searchParams.get("user_id") ?? null;
 
     if (forceUserId) {
       const authHeader = req.headers.get("Authorization") ?? "";
