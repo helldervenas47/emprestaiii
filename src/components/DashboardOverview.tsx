@@ -488,6 +488,21 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
     return { totalIncome, incomeFromPayments, incomeFromSales, totalOutgoing, totalLoanOutgoing, totalExpenses, balance, transactions, loanCount: filteredLoans.length, saleCount: filteredSales.length, paymentCount: filteredPayments.length, expenseCount: filteredExpenses.length, monthlyInterestRate, filteredPayments, filteredLoans, filteredExpenses, salesWithReceived, periodProfitExpected: totalProfitExpected, periodProfitRealized: totalProfitRealized, periodProfitPct, interestDetailRecords, interestExpectedRecords };
   }, [loans, sales, payments, expenses, range, includeSales, period, chartOverrides, installmentSchedules]);
 
+  const profitTargetAmount = useMemo(() => {
+    if (!profitGoal) return 0;
+    const previstoTotal = data.periodProfitRealized + data.periodProfitExpected;
+    return previstoTotal * (profitGoal.targetValue / 100);
+  }, [data.periodProfitExpected, data.periodProfitRealized, profitGoal]);
+
+  const totalReceivedForDuePeriod = useMemo(
+    () => data.interestExpectedRecords.filter((record) => record.paid).reduce((sum, record) => sum + record.installmentAmount, 0),
+    [data.interestExpectedRecords]
+  );
+
+  const pendingGoalAmount = profitTargetAmount - totalReceivedForDuePeriod;
+  const simulationRateDecimal = simulationInterestRate / 100;
+  const requiredLoanAmount = profitTargetAmount > 0 ? profitTargetAmount / (1 + simulationRateDecimal) : 0;
+
   // Portfolio metrics — global (not filtered by period)
   const portfolio = useMemo(() => {
     const activeLoans = loans.filter((l) => l.status !== "paid");
