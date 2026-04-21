@@ -395,15 +395,14 @@ const Index = () => {
     // Tabs marcadas como adminOnly são exclusivas para administradores
     if ((t as any).adminOnly && role !== "admin") return false;
     if (role === "admin") return true;
-    // Settings sempre disponível para usuários autenticados
-    if (t.id === "settings") return !!user;
-    // Any authenticated user sees all other tabs
-    if (user) {
-      if (Array.isArray(allowedTabs)) return allowedTabs.includes(t.id);
-      return true; // No tab restrictions = full access
-    }
-    return false;
+    if (!user) return false;
+    // Para todas as abas (incluindo "settings"): se houver lista de
+    // permissões definida, exigir presença explícita. Sem lista = acesso total.
+    if (Array.isArray(allowedTabs)) return allowedTabs.includes(t.id);
+    return true;
   });
+
+  const canAccessTab = (id: Tab) => visibleTabs.some((t) => t.id === id);
 
   useEffect(() => {
     if (visibleTabs.length > 0 && !visibleTabs.find((item) => item.id === tab)) {
