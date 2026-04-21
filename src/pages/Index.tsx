@@ -979,12 +979,22 @@ const Index = () => {
                 </div>
 
                 {/* Navegação adicional */}
-                {visibleTabs.filter(t => !["overview","clients","dashboard","expenses"].includes(t.id)).length > 0 && (
+                {visibleTabs.filter(t => !pinnedTabs.includes(t.id)).length > 0 && (
                   <div>
-                    <h3 className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground mb-2">Navegação</h3>
+                    <div className="flex items-center justify-between mb-2">
+                      <h3 className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Navegação</h3>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 px-2 text-[11px] text-primary hover:text-primary"
+                        onClick={() => setShortcutsEditorOpen(true)}
+                      >
+                        <Sliders className="h-3.5 w-3.5 mr-1" /> Editar atalhos
+                      </Button>
+                    </div>
                     <div className="grid grid-cols-3 gap-2">
                       {visibleTabs
-                        .filter(t => !["overview","clients","dashboard","expenses"].includes(t.id))
+                        .filter(t => !pinnedTabs.includes(t.id))
                         .map(t => {
                           const active = tab === t.id;
                           return (
