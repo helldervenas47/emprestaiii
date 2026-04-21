@@ -187,6 +187,15 @@ const tabHelp: Record<Tab, { title: string; items: string[] }> = {
       "Use 'Limpar cache' para forçar atualização do app sem perder dados.",
     ],
   },
+  "system-health": {
+    title: "Saúde do Sistema",
+    items: [
+      "Painel administrativo com indicadores em tempo real.",
+      "Métricas reais: latência do banco, sessões ativas, contagens, status online.",
+      "Métricas marcadas como 'Estimado' são aproximações calculadas no aparelho.",
+      "Use o botão Atualizar ou ative o auto-refresh (30s).",
+    ],
+  },
 };
 function HideValuesToggle() {
   const { hidden, toggle } = useHideValues();
