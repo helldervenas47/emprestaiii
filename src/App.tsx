@@ -2,6 +2,7 @@ import { lazy, Suspense } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Route, Routes, Navigate } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
+import { TooltipProvider } from "@/components/ui/tooltip";
 import { Toaster } from "@/components/ui/toaster";
 import { useAuth, AuthProvider } from "@/hooks/useAuth";
 import { useUserApproval } from "@/hooks/useUserApproval";
@@ -63,32 +64,34 @@ function PublicRoute({ children }: { children: React.ReactNode }) {
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <Toaster />
-    <Sonner />
-    <PWAInstallPrompt />
-    <OfflineBadge />
-    <BrowserRouter>
-      <AuthProvider>
-        <BrandTitleSync />
-        <BrandFaviconSync />
-        <AppTimezoneSync />
-        <StatusBarScrollSync />
-        <Suspense fallback={<PageLoader />}>
-          <Routes>
-            <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
-            <Route path="/auth" element={<PublicRoute><Auth /></PublicRoute>} />
-            <Route path="/cadastro" element={<PublicRoute><Cadastro /></PublicRoute>} />
-            <Route path="/planos" element={<Pricing />} />
-            <Route path="/termos" element={<Terms />} />
-            <Route path="/reembolso" element={<RefundPolicy />} />
-            <Route path="/privacidade" element={<PrivacyPolicy />} />
-            <Route path="/reset-password" element={<ResetPassword />} />
-            <Route path="/planejamento-do-dia" element={<ProtectedRoute><DailyPlanning /></ProtectedRoute>} />
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </Suspense>
-      </AuthProvider>
-    </BrowserRouter>
+    <TooltipProvider>
+      <Toaster />
+      <Sonner />
+      <PWAInstallPrompt />
+      <OfflineBadge />
+      <BrowserRouter>
+        <AuthProvider>
+          <BrandTitleSync />
+          <BrandFaviconSync />
+          <AppTimezoneSync />
+          <StatusBarScrollSync />
+          <Suspense fallback={<PageLoader />}>
+            <Routes>
+              <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
+              <Route path="/auth" element={<PublicRoute><Auth /></PublicRoute>} />
+              <Route path="/cadastro" element={<PublicRoute><Cadastro /></PublicRoute>} />
+              <Route path="/planos" element={<Pricing />} />
+              <Route path="/termos" element={<Terms />} />
+              <Route path="/reembolso" element={<RefundPolicy />} />
+              <Route path="/privacidade" element={<PrivacyPolicy />} />
+              <Route path="/reset-password" element={<ResetPassword />} />
+              <Route path="/planejamento-do-dia" element={<ProtectedRoute><DailyPlanning /></ProtectedRoute>} />
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </Suspense>
+        </AuthProvider>
+      </BrowserRouter>
+    </TooltipProvider>
   </QueryClientProvider>
 );
 
