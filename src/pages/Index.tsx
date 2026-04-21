@@ -969,9 +969,10 @@ const Index = () => {
             <SheetContent
               side="bottom"
               className="rounded-t-2xl max-h-[88vh] overflow-y-auto p-0"
+              style={{ paddingTop: 0 }}
             >
-              <div className="mx-auto mt-2 mb-3 h-1.5 w-12 rounded-full bg-muted-foreground/30" />
-              <div className="px-5 pb-6 space-y-5">
+              <div className="mx-auto mt-2 mb-2 h-1.5 w-12 rounded-full bg-muted-foreground/30" />
+              <div className="px-5 pb-6 pt-1 space-y-4">
                 {/* Branding */}
                 <div className="flex items-center gap-3">
                   <AppLogo area="header" alt={brandName} className="w-auto" />
