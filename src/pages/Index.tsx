@@ -1,5 +1,5 @@
 import { useState, useEffect, lazy, Suspense } from "react";
-import { Plus, Users, LayoutDashboard, ShoppingBag, BarChart3, AlertTriangle, Receipt, CalendarDays, Sun, Moon, LogOut, Info, X, Eye, EyeOff, Car, Wrench, DatabaseBackup, Menu, User, RefreshCw, Bell, Target, Calculator, Settings as SettingsIcon, CalendarClock, Pin, Check, Sliders, Loader2 } from "lucide-react";
+import { Plus, Users, LayoutDashboard, ShoppingBag, BarChart3, AlertTriangle, Receipt, CalendarDays, Sun, Moon, LogOut, Info, X, Eye, EyeOff, Car, Wrench, DatabaseBackup, Menu, User, RefreshCw, Bell, Target, Calculator, Settings as SettingsIcon, CalendarClock, Pin, Check, Sliders, Loader2, GripVertical } from "lucide-react";
 import { AppLogo } from "@/components/AppLogo";
 import { useAppBranding } from "@/hooks/useAppBranding";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -326,6 +326,15 @@ const Index = () => {
     } else if (pinnedTabs.length < 4) {
       persistPinned([...pinnedTabs, id]);
     }
+  };
+  const [dragIndex, setDragIndex] = useState<number | null>(null);
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
+  const reorderPinned = (from: number, to: number) => {
+    if (from === to || from < 0 || to < 0 || from >= pinnedTabs.length || to >= pinnedTabs.length) return;
+    const next = [...pinnedTabs];
+    const [moved] = next.splice(from, 1);
+    next.splice(to, 0, moved);
+    persistPinned(next);
   };
   const { pendingCount: approvalPendingCount } = useApprovalRequests();
   const { count: offlinePendingCount } = usePendingCount();
@@ -1083,7 +1092,7 @@ const Index = () => {
                   Escolha até 4 atalhos fixos para o menu inferior. Os demais ficam disponíveis em "Mais".
                 </DialogDescription>
               </DialogHeader>
-              <div className="space-y-2 my-2">
+              <div className="space-y-3 my-2">
                 <div className="flex items-center justify-between text-xs text-muted-foreground">
                   <span>{pinnedTabs.length} de 4 selecionados</span>
                   <button
@@ -1094,7 +1103,85 @@ const Index = () => {
                     Restaurar padrão
                   </button>
                 </div>
-                <div className="grid grid-cols-1 gap-1.5 max-h-[55vh] overflow-y-auto pr-1">
+
+                {pinnedTabs.length > 1 && (
+                  <div className="rounded-lg border border-border/40 bg-muted/20 p-2">
+                    <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1.5 px-1">
+                      Ordem dos fixados (arraste para reordenar)
+                    </p>
+                    <div className="flex flex-col gap-1">
+                      {pinnedTabs.map((id, idx) => {
+                        const tab = visibleTabs.find((v) => v.id === id);
+                        if (!tab) return null;
+                        const isDragging = dragIndex === idx;
+                        const isOver = dragOverIndex === idx && dragIndex !== null && dragIndex !== idx;
+                        return (
+                          <div
+                            key={id}
+                            draggable
+                            onDragStart={(e) => {
+                              setDragIndex(idx);
+                              e.dataTransfer.effectAllowed = "move";
+                              try { e.dataTransfer.setData("text/plain", String(idx)); } catch { /* noop */ }
+                            }}
+                            onDragOver={(e) => {
+                              e.preventDefault();
+                              e.dataTransfer.dropEffect = "move";
+                              if (dragOverIndex !== idx) setDragOverIndex(idx);
+                            }}
+                            onDragLeave={() => {
+                              if (dragOverIndex === idx) setDragOverIndex(null);
+                            }}
+                            onDrop={(e) => {
+                              e.preventDefault();
+                              if (dragIndex !== null) reorderPinned(dragIndex, idx);
+                              setDragIndex(null);
+                              setDragOverIndex(null);
+                            }}
+                            onDragEnd={() => {
+                              setDragIndex(null);
+                              setDragOverIndex(null);
+                            }}
+                            className={`flex items-center gap-2 rounded-md border bg-card px-2 py-1.5 transition-all cursor-grab active:cursor-grabbing select-none ${
+                              isDragging ? "opacity-40 scale-[0.98]" : ""
+                            } ${isOver ? "border-primary ring-2 ring-primary/30" : "border-border/40"}`}
+                          >
+                            <GripVertical className="h-4 w-4 text-muted-foreground shrink-0" />
+                            <span className="text-[10px] font-semibold rounded-full bg-primary text-primary-foreground h-5 min-w-5 px-1.5 flex items-center justify-center">
+                              {idx + 1}
+                            </span>
+                            <div className="h-7 w-7 rounded-md bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                              <tab.icon className="h-3.5 w-3.5" />
+                            </div>
+                            <span className="text-sm font-medium flex-1 truncate">{tab.label}</span>
+                            <div className="flex items-center gap-0.5">
+                              <button
+                                type="button"
+                                aria-label="Mover para cima"
+                                disabled={idx === 0}
+                                onClick={() => reorderPinned(idx, idx - 1)}
+                                className="h-6 w-6 rounded text-muted-foreground hover:text-foreground hover:bg-muted disabled:opacity-30 disabled:cursor-not-allowed text-xs"
+                              >
+                                ▲
+                              </button>
+                              <button
+                                type="button"
+                                aria-label="Mover para baixo"
+                                disabled={idx === pinnedTabs.length - 1}
+                                onClick={() => reorderPinned(idx, idx + 1)}
+                                className="h-6 w-6 rounded text-muted-foreground hover:text-foreground hover:bg-muted disabled:opacity-30 disabled:cursor-not-allowed text-xs"
+                              >
+                                ▼
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                <div className="grid grid-cols-1 gap-1.5 max-h-[40vh] overflow-y-auto pr-1">
                   {visibleTabs.map((t) => {
                     const checked = pinnedTabs.includes(t.id);
                     const order = checked ? pinnedTabs.indexOf(t.id) + 1 : null;
