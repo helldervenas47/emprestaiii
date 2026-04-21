@@ -56,6 +56,7 @@ import { ApprovalRequestsButton } from "@/components/ApprovalRequestsButton";
 import { DashboardOverview } from "@/components/DashboardOverview";
 import { useApprovalRequests } from "@/hooks/useApprovalRequests";
 import { usePendingCount } from "@/lib/offline/sync";
+import { useApprovalPushAlerts } from "@/hooks/useApprovalPushAlerts";
 
 // Prefetch most-used chunks after idle
 const prefetchChunks = () => {
