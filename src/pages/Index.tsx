@@ -392,11 +392,28 @@ const Index = () => {
     document.documentElement.classList.toggle("dark", dark);
   });
 
+  const [themeSwitching, setThemeSwitching] = useState(false);
+  const [pendingNav, setPendingNav] = useState<string | null>(null);
   const toggleTheme = () => {
+    if (themeSwitching) return;
+    setThemeSwitching(true);
     const next = !dark;
     setDark(next);
     document.documentElement.classList.toggle("dark", next);
     localStorage.setItem("hvcred-theme", next ? "dark" : "light");
+    setTimeout(() => setThemeSwitching(false), 350);
+  };
+
+  const handleQuickNav = (path: string) => {
+    if (pendingNav) return;
+    setPendingNav(path);
+    setMoreOpen(false);
+    setTimeout(() => {
+      navigate(path);
+      setPendingNav(null);
+    }, 150);
+  };
+
   };
 
 
