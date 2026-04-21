@@ -17,8 +17,6 @@ import { Loan, Client } from "@/types/loan";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { buildConsolidatedRiskProfile, getClientRiskMetrics } from "@/lib/clientRisk";
-import { useClientFinancialAnalysis } from "@/hooks/useClientFinancialAnalysis";
 import { useCreditLimits } from "@/hooks/useCreditLimits";
 import { computeAvailableLimit, computeUsedLimit, formatBRL } from "@/lib/creditLimit";
 import { Wallet, AlertTriangle as AlertTriangleIcon } from "lucide-react";
