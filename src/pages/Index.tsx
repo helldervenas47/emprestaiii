@@ -600,6 +600,17 @@ const Index = () => {
       </header>
 
       <main className="max-w-[1920px] mx-auto px-3 sm:px-4 lg:px-8 py-2 sm:py-6 space-y-4 sm:space-y-6">
+        {(() => {
+          const current = tabConfig.find((t) => t.id === tab);
+          if (!current) return null;
+          const Icon = current.icon;
+          return (
+            <div className="flex items-center gap-2 sm:gap-3 pt-1">
+              <Icon className="h-5 w-5 sm:h-6 sm:w-6 text-primary shrink-0" />
+              <h1 className="text-xl sm:text-2xl font-bold text-foreground tracking-tight">{current.label}</h1>
+            </div>
+          );
+        })()}
         <Suspense fallback={<div className="flex justify-center py-12"><div className="animate-spin h-8 w-8 border-2 border-primary border-t-transparent rounded-full" /></div>}>
         {tab === "overview" && (
           <SubscriptionGate requiredTier={1} featureName="Dashboard">
