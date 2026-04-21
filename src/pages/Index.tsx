@@ -297,6 +297,7 @@ const Index = () => {
   const [showPersonalExpenseForm, setShowPersonalExpenseForm] = useState(false);
   const [showVehicleExpenseForm, setShowVehicleExpenseForm] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [moreOpen, setMoreOpen] = useState(false);
   const isMobile = useIsMobile();
   const isMobileOrTablet = useIsMobileOrTablet();
   const isReadOnly = role === "visualizador";
@@ -391,13 +392,13 @@ const Index = () => {
 
   return (
     <HideValuesProvider>
-    <div className="min-h-screen bg-background" style={{ paddingBottom: 'env(safe-area-inset-bottom)', paddingLeft: 'env(safe-area-inset-left)', paddingRight: 'env(safe-area-inset-right)' }}>
+    <div className="min-h-screen bg-background" style={{ paddingBottom: `calc(env(safe-area-inset-bottom) + ${isMobile ? '72px' : '0px'})`, paddingLeft: 'env(safe-area-inset-left)', paddingRight: 'env(safe-area-inset-right)' }}>
       <SubscriptionBanner />
 
       <header className="border-b border-border/30 glass sticky top-0 z-40" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
         <div className="max-w-[1920px] mx-auto px-3 sm:px-4 lg:px-8 py-2 sm:py-3 flex items-center justify-between gap-2">
           <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-            {isMobileOrTablet && (
+            {isMobileOrTablet && !isMobile && (
               <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
                 <SheetTrigger asChild>
                   <Button variant="ghost" size="icon" className="h-8 w-8">
@@ -829,8 +830,8 @@ const Index = () => {
           onClick={() => setShowLoanForm(true)}
           aria-label="Novo Empréstimo"
           title="Novo Empréstimo"
-          className="fixed z-50 bottom-6 right-6 md:bottom-8 md:right-8 h-14 w-14 md:h-16 md:w-16 rounded-full bg-primary text-primary-foreground shadow-[0_8px_24px_-4px_hsl(var(--primary)/0.55)] hover:shadow-[0_12px_32px_-4px_hsl(var(--primary)/0.7)] hover:scale-105 active:scale-95 transition-all duration-200 flex items-center justify-center animate-fade-in touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-          style={{ marginBottom: 'env(safe-area-inset-bottom)' }}
+          className="fixed z-50 right-6 md:right-8 h-14 w-14 md:h-16 md:w-16 rounded-full bg-primary text-primary-foreground shadow-[0_8px_24px_-4px_hsl(var(--primary)/0.55)] hover:shadow-[0_12px_32px_-4px_hsl(var(--primary)/0.7)] hover:scale-105 active:scale-95 transition-all duration-200 flex items-center justify-center animate-fade-in touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+          style={{ bottom: isMobile ? `calc(env(safe-area-inset-bottom) + 80px)` : `calc(env(safe-area-inset-bottom) + 24px)` }}
         >
           <Plus className="h-6 w-6 md:h-7 md:w-7" strokeWidth={2.5} />
         </button>
@@ -843,6 +844,163 @@ const Index = () => {
       {showExpenseForm && <ExpenseForm onAdd={addExpense} onClose={() => setShowExpenseForm(false)} scope="business" />}
       {showPersonalExpenseForm && <PersonalExpenseForm onAdd={addExpense} onClose={() => setShowPersonalExpenseForm(false)} />}
       {showVehicleExpenseForm && <VehicleExpenseForm onAdd={addExpense} onClose={() => setShowVehicleExpenseForm(false)} />}
+
+      {/* Mobile Bottom Navigation */}
+      {isMobile && (
+        <>
+          <nav
+            className="fixed bottom-0 left-0 right-0 z-40 border-t border-border/40 bg-card/90 backdrop-blur-xl backdrop-saturate-150 shadow-[0_-4px_20px_-8px_hsl(0_0%_0%/0.25)] animate-fade-in"
+            style={{ paddingBottom: 'env(safe-area-inset-bottom)', paddingLeft: 'env(safe-area-inset-left)', paddingRight: 'env(safe-area-inset-right)' }}
+          >
+            <div className="flex items-stretch justify-around h-[60px]">
+              {([
+                { id: "overview" as Tab, label: "Dashboard", icon: BarChart3 },
+                { id: "clients" as Tab, label: "Cadastro", icon: Users },
+                { id: "dashboard" as Tab, label: "Empréstimos", icon: LayoutDashboard },
+                { id: "expenses" as Tab, label: "Despesas", icon: Receipt },
+              ] as const)
+                .filter(item => visibleTabs.some(v => v.id === item.id))
+                .map(item => {
+                  const active = tab === item.id;
+                  const Icon = item.icon;
+                  return (
+                    <button
+                      key={item.id}
+                      type="button"
+                      onClick={() => setTab(item.id)}
+                      className={`flex-1 flex flex-col items-center justify-center gap-0.5 px-1 transition-all duration-200 touch-manipulation focus-visible:outline-none ${
+                        active ? "text-primary" : "text-muted-foreground hover:text-foreground"
+                      }`}
+                    >
+                      <div className={`flex items-center justify-center h-6 transition-transform duration-200 ${active ? "scale-110" : ""}`}>
+                        <Icon className="h-[22px] w-[22px]" strokeWidth={active ? 2.4 : 2} />
+                      </div>
+                      <span className={`text-[10px] leading-none ${active ? "font-semibold" : "font-medium"}`}>{item.label}</span>
+                      <span className={`block h-0.5 w-6 rounded-full mt-0.5 transition-all ${active ? "bg-primary" : "bg-transparent"}`} />
+                    </button>
+                  );
+                })}
+              <button
+                type="button"
+                onClick={() => setMoreOpen(true)}
+                className={`flex-1 flex flex-col items-center justify-center gap-0.5 px-1 transition-all duration-200 touch-manipulation focus-visible:outline-none ${
+                  moreOpen ? "text-primary" : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                <div className={`flex items-center justify-center h-6 transition-transform duration-200 ${moreOpen ? "scale-110" : ""}`}>
+                  <Menu className="h-[22px] w-[22px]" strokeWidth={moreOpen ? 2.4 : 2} />
+                </div>
+                <span className={`text-[10px] leading-none ${moreOpen ? "font-semibold" : "font-medium"}`}>Mais</span>
+                <span className={`block h-0.5 w-6 rounded-full mt-0.5 transition-all ${moreOpen ? "bg-primary" : "bg-transparent"}`} />
+              </button>
+            </div>
+          </nav>
+
+          {/* Mais — Bottom Sheet */}
+          <Sheet open={moreOpen} onOpenChange={setMoreOpen}>
+            <SheetContent
+              side="bottom"
+              className="rounded-t-2xl max-h-[88vh] overflow-y-auto p-0"
+            >
+              <div className="mx-auto mt-2 mb-3 h-1.5 w-12 rounded-full bg-muted-foreground/30" />
+              <div className="px-5 pb-6 space-y-5">
+                {/* Branding */}
+                <div className="flex items-center gap-3">
+                  <AppLogo area="header" alt={brandName} className="w-auto" />
+                  <div>
+                    <h2 className="text-base font-bold text-foreground tracking-tight">{brandName}</h2>
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-widest">Controle de empréstimos</p>
+                  </div>
+                </div>
+
+                {/* Conta / Usuário */}
+                <div className="rounded-xl border border-border/40 bg-muted/30 p-3">
+                  <div className="flex items-center gap-3">
+                    <div className="h-10 w-10 rounded-full bg-primary/15 flex items-center justify-center shrink-0">
+                      <User className="h-5 w-5 text-primary" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-semibold text-foreground truncate">{user?.user_metadata?.display_name || user?.email || "—"}</p>
+                      <div className="flex items-center gap-1.5 mt-0.5">
+                        {role && (
+                          <Badge variant="outline" className="text-[9px] px-1.5 py-0">
+                            {role === "admin" ? "Administrador" : role === "operador" ? "Operador" : "Visualizador"}
+                          </Badge>
+                        )}
+                        <Badge
+                          variant="outline"
+                          className="text-[9px] px-1.5 py-0 border-primary/40 text-primary cursor-pointer"
+                          onClick={() => { setMoreOpen(false); navigate("/planos"); }}
+                        >
+                          {hasActiveSub && subscription ? (
+                            subscription.product_id === "basico_plan" ? "Básico" :
+                            subscription.product_id === "profissional_plan" ? "Profissional" :
+                            subscription.product_id === "empresarial_plan" ? "Empresarial" : "Plano"
+                          ) : "Sem Plano"}
+                        </Badge>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Navegação adicional */}
+                {visibleTabs.filter(t => !["overview","clients","dashboard","expenses"].includes(t.id)).length > 0 && (
+                  <div>
+                    <h3 className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground mb-2">Navegação</h3>
+                    <div className="grid grid-cols-3 gap-2">
+                      {visibleTabs
+                        .filter(t => !["overview","clients","dashboard","expenses"].includes(t.id))
+                        .map(t => {
+                          const active = tab === t.id;
+                          return (
+                            <button
+                              key={t.id}
+                              type="button"
+                              onClick={() => { setTab(t.id); setMoreOpen(false); }}
+                              className={`flex flex-col items-center gap-1.5 rounded-xl border p-3 transition-all touch-manipulation ${
+                                active
+                                  ? "border-primary/50 bg-primary/10 text-primary"
+                                  : "border-border/40 bg-card/50 text-foreground hover:border-primary/30 hover:bg-muted/40"
+                              }`}
+                            >
+                              <t.icon className="h-5 w-5" />
+                              <span className="text-[11px] font-medium text-center leading-tight">{t.label}</span>
+                            </button>
+                          );
+                        })}
+                    </div>
+                  </div>
+                )}
+
+                {/* Ações rápidas */}
+                <div>
+                  <h3 className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground mb-2">Ações rápidas</h3>
+                  <div className="grid grid-cols-2 gap-2">
+                    <Button variant="outline" size="sm" onClick={() => { handleHardRefresh(); setMoreOpen(false); }} disabled={refreshing} className="justify-start">
+                      <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? "animate-spin" : ""}`} /> Atualizar
+                    </Button>
+                    <Button variant="outline" size="sm" onClick={() => { toggleTheme(); }} className="justify-start">
+                      {dark ? <Sun className="h-4 w-4 mr-2" /> : <Moon className="h-4 w-4 mr-2" />}
+                      {dark ? "Modo claro" : "Modo escuro"}
+                    </Button>
+                    <Button variant="outline" size="sm" onClick={() => { setMoreOpen(false); navigate("/planejamento-do-dia"); }} className="justify-start">
+                      <CalendarClock className="h-4 w-4 mr-2" /> Planejamento
+                    </Button>
+                    <Button variant="outline" size="sm" onClick={() => { setMoreOpen(false); navigate("/planos"); }} className="justify-start">
+                      <Target className="h-4 w-4 mr-2" /> Planos
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Sair */}
+                <Button variant="destructive" className="w-full" onClick={() => { setMoreOpen(false); signOut(); }}>
+                  <LogOut className="h-4 w-4 mr-2" /> Sair
+                </Button>
+              </div>
+            </SheetContent>
+          </Sheet>
+        </>
+      )}
     </div>
     </HideValuesProvider>
   );
