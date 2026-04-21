@@ -72,6 +72,12 @@ function clamp(value: number, min: number, max: number) {
   return Math.max(min, Math.min(max, value));
 }
 
+function getDiffInDays(startDate: string, endDate: string) {
+  const start = new Date(`${startDate}T00:00:00`);
+  const end = new Date(`${endDate}T00:00:00`);
+  return Math.max(0, Math.floor((end.getTime() - start.getTime()) / 86400000));
+}
+
 function getNextDate(base: Date, frequency: string, periods: number) {
   const d = new Date(base);
   if (frequency === "Semanal") d.setDate(d.getDate() + 7 * periods);
@@ -146,10 +152,6 @@ export function getClientRiskMetrics(client: Client, loans: Loan[], payments: Pa
   const allowedPayments = payments.filter((payment) => payment.date <= referenceDate.toISOString().split("T")[0]);
   const totalLent = clientLoans.reduce((sum, loan) => sum + loan.amount, 0);
   const overdueLoans = clientLoans.filter((loan) => getLoanCategory(loan, allowedPayments, installmentSchedules, referenceDate) === "overdue");
-  const overdueDays = overdueLoans.map((loan) => getDaysOverdue(loan, installmentSchedules, referenceDate));
-  const severeOverdueLoans = overdueLoans.filter((loan) => getDaysOverdue(loan, installmentSchedules, referenceDate) >= 30);
-  const highOverdueLoans = overdueDays.filter((days) => days >= 16).length;
-  const maxOverdueDays = overdueDays.length > 0 ? Math.max(...overdueDays) : 0;
   const paidLoans = clientLoans.filter((loan) => loan.status === "paid").length;
   const activeLoans = clientLoans.filter((loan) => loan.status !== "paid").length;
 
@@ -183,6 +185,33 @@ export function getClientRiskMetrics(client: Client, loans: Loan[], payments: Pa
         else latePayments += 1;
       });
   });
+
+  const historicalOverdueDays = clientLoans.map((loan) => {
+    const currentOverdueDays = getLoanCategory(loan, allowedPayments, installmentSchedules, referenceDate) === "overdue"
+      ? getDaysOverdue(loan, installmentSchedules, referenceDate)
+      : 0;
+
+    const paidDelayDays = allowedPayments
+      .filter((payment) => payment.loanId === loan.id)
+      .reduce((maxDelay, payment) => {
+        if (payment.installmentNumber === -1) return maxDelay;
+
+        const dueDate = payment.installmentNumber === 0
+          ? (payment.previousDueDate ?? loan.dueDate)
+          : payment.installmentNumber > 0
+            ? getInstallmentDueDate(loan, payment.installmentNumber, installmentSchedules)
+            : null;
+
+        if (!dueDate) return maxDelay;
+        return Math.max(maxDelay, getDiffInDays(dueDate, payment.date));
+      }, 0);
+
+    return Math.max(currentOverdueDays, paidDelayDays);
+  });
+
+  const highOverdueLoans = historicalOverdueDays.filter((days) => days >= 16).length;
+  const severeOverdueLoans = historicalOverdueDays.filter((days) => days > 30).length;
+  const maxOverdueDays = historicalOverdueDays.length > 0 ? Math.max(...historicalOverdueDays) : 0;
 
   const totalTimedPayments = onTimePayments + latePayments;
   const onTimeRatio = totalTimedPayments > 0 ? onTimePayments / totalTimedPayments : 0;
