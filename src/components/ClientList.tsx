@@ -472,36 +472,16 @@ export function ClientList({ clients, loans, payments, installmentSchedules, onD
                       )}
                     </div>
 
-                    {/* Credit Score */}
-                    <div className="rounded-xl border border-border/30 p-3 mb-3 space-y-2">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <ShieldCheck className={`h-4 w-4 ${cs.color}`} />
-                          <span className="text-xs font-medium text-muted-foreground">Score de Crédito</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <span className={`text-lg font-bold ${cs.color}`}>{cs.score}</span>
-                          <Badge className={`${cs.bgColor} text-white text-[10px] border-0`}>{cs.label}</Badge>
-                        </div>
+                    {/* Credit Score — compact */}
+                    <div className="flex items-center justify-between rounded-xl border border-border/30 px-3 py-2 mb-3">
+                      <div className="flex items-center gap-2">
+                        <span className={`h-2 w-2 rounded-full ${cs.bgColor}`} />
+                        <span className="text-xs text-muted-foreground">Score</span>
                       </div>
-                      <Progress value={(cs.score / 150) * 100} className="h-1.5" />
-                      <div className="grid grid-cols-3 gap-2 text-[10px] text-muted-foreground">
-                        <div className="flex items-center gap-1">
-                          <CheckCircle className="h-3 w-3 text-success" />
-                          <span>{cs.onTimePayments} em dia</span>
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <AlertTriangle className="h-3 w-3 text-destructive" />
-                          <span>{cs.latePayments} atraso(s)</span>
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <TrendingUp className="h-3 w-3 text-primary" />
-                          <span>{cs.paidLoans}/{cs.totalLoans} quitado(s)</span>
-                        </div>
-                      </div>
+                      <span className={`text-sm font-bold ${cs.color}`}>{cs.score}</span>
                     </div>
 
-                    {/* Credit Limit */}
+                    {/* Credit Limit — Total / Utilizado / Disponível */}
                     {(() => {
                       const cl = getLimitForClient(client.id);
                       const total = cl?.currentLimit ?? 0;
@@ -513,7 +493,7 @@ export function ClientList({ clients, loans, payments, installmentSchedules, onD
                           onClick={() => setLimitClient(client)}
                           className="w-full rounded-xl border border-border/30 p-3 mb-3 text-left hover:bg-accent/30 transition-colors"
                         >
-                          <div className="flex items-center justify-between mb-1">
+                          <div className="flex items-center justify-between mb-2">
                             <div className="flex items-center gap-2">
                               <Wallet className="h-4 w-4 text-primary" />
                               <span className="text-xs font-medium text-muted-foreground">Limite de Crédito</span>
@@ -522,10 +502,14 @@ export function ClientList({ clients, loans, payments, installmentSchedules, onD
                               {cl?.mode === "manual" ? "Manual" : "Auto"}
                             </Badge>
                           </div>
-                          <div className="grid grid-cols-2 gap-2 text-xs">
+                          <div className="grid grid-cols-3 gap-2 text-xs">
                             <div>
                               <p className="text-[10px] text-muted-foreground">Total</p>
                               <p className="font-semibold">{formatBRL(total)}</p>
+                            </div>
+                            <div>
+                              <p className="text-[10px] text-muted-foreground">Utilizado</p>
+                              <p className="font-semibold text-warning">{formatBRL(used)}</p>
                             </div>
                             <div>
                               <p className="text-[10px] text-muted-foreground">Disponível</p>
