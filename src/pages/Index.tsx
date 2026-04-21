@@ -900,11 +900,10 @@ const Index = () => {
           onClick={handlePrimaryAction}
           aria-label={primaryLabel}
           title={primaryLabel}
-          className="group fixed z-50 right-4 md:right-8 h-12 md:h-14 pl-4 pr-5 rounded-full bg-primary text-primary-foreground shadow-[0_8px_24px_-4px_hsl(var(--primary)/0.55)] hover:shadow-[0_12px_32px_-4px_hsl(var(--primary)/0.7)] hover:scale-[1.03] active:scale-95 transition-all duration-200 flex items-center gap-2 animate-fade-in touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+          className="group fixed z-50 right-4 md:right-8 h-12 w-12 md:h-14 md:w-14 rounded-full bg-primary text-primary-foreground shadow-[0_8px_24px_-4px_hsl(var(--primary)/0.55)] hover:shadow-[0_12px_32px_-4px_hsl(var(--primary)/0.7)] hover:scale-[1.03] active:scale-95 transition-all duration-200 flex items-center justify-center animate-fade-in touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
           style={{ bottom: isMobile ? `calc(env(safe-area-inset-bottom) + 80px)` : `calc(env(safe-area-inset-bottom) + 24px)` }}
         >
           <Plus className="h-5 w-5 md:h-6 md:w-6" strokeWidth={2.5} />
-          <span className="text-sm md:text-base font-semibold whitespace-nowrap">{primaryLabel}</span>
         </button>
       )}
       {!isReadOnly && tab === "vehicles" && (
@@ -913,11 +912,10 @@ const Index = () => {
           onClick={() => setShowVehicleExpenseForm(true)}
           aria-label="Registrar Despesa"
           title="Registrar Despesa"
-          className="fixed z-40 right-4 md:right-8 h-11 md:h-12 pl-3 pr-4 rounded-full bg-secondary text-secondary-foreground border border-border/60 shadow-md hover:shadow-lg hover:scale-[1.03] active:scale-95 transition-all duration-200 flex items-center gap-2 animate-fade-in touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+          className="fixed z-40 right-4 md:right-8 h-11 w-11 md:h-12 md:w-12 rounded-full bg-secondary text-secondary-foreground border border-border/60 shadow-md hover:shadow-lg hover:scale-[1.03] active:scale-95 transition-all duration-200 flex items-center justify-center animate-fade-in touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
           style={{ bottom: isMobile ? `calc(env(safe-area-inset-bottom) + 80px + 64px)` : `calc(env(safe-area-inset-bottom) + 24px + 72px)` }}
         >
           <Receipt className="h-4 w-4 md:h-5 md:w-5" strokeWidth={2.5} />
-          <span className="text-sm font-semibold whitespace-nowrap">Despesa</span>
         </button>
       )}
 
