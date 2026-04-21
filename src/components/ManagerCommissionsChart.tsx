@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
@@ -9,7 +9,9 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { useManagerCommissions } from "@/hooks/useManagerCommissions";
 import { Client, Loan, InstallmentSchedule, Payment, ManagerCommission } from "@/types/loan";
 import { useHideValues } from "@/contexts/HideValuesContext";
-import { Briefcase, UserCog, CalendarDays, Check, CheckCircle2, ChevronDown, Clock } from "lucide-react";
+import { Briefcase, UserCog, CalendarDays, Check, CheckCircle2, Clock, Pencil } from "lucide-react";
+
+const MANAGER_FILTER_STORAGE_KEY = "manager-commissions-visible-managers";
 
 interface Props {
   clients: Client[];
@@ -94,7 +96,17 @@ export function ManagerCommissionsChart({
   const { commissions } = useManagerCommissions(true);
   const { mask } = useHideValues();
   const [selectedManagerId, setSelectedManagerId] = useState<string | null>(null);
-  const [selectedManagerIds, setSelectedManagerIds] = useState<string[]>([]);
+  const [selectedManagerIds, setSelectedManagerIds] = useState<string[]>(() => {
+    if (typeof window === "undefined") return [];
+    try {
+      const saved = window.localStorage.getItem(MANAGER_FILTER_STORAGE_KEY);
+      if (!saved) return [];
+      const parsed = JSON.parse(saved);
+      return Array.isArray(parsed) ? parsed.filter((value): value is string => typeof value === "string") : [];
+    } catch {
+      return [];
+    }
+  });
   const [managerFilterOpen, setManagerFilterOpen] = useState(false);
 
   const managers = useMemo(
@@ -207,6 +219,19 @@ export function ManagerCommissionsChart({
     return data.filter((item) => selectedSet.has(item.id));
   }, [data, selectedManagerIds]);
 
+  useEffect(() => {
+    const validManagerIds = new Set(managers.map((manager) => manager.id));
+    setSelectedManagerIds((current) => {
+      const filtered = current.filter((id) => validManagerIds.has(id));
+      return filtered.length === current.length ? current : filtered;
+    });
+  }, [managers]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    window.localStorage.setItem(MANAGER_FILTER_STORAGE_KEY, JSON.stringify(selectedManagerIds));
+  }, [selectedManagerIds]);
+
   const totalPaid = filteredData.reduce((s, d) => s + d.paid, 0);
   const totalProjected = filteredData.reduce((s, d) => s + d.projected, 0);
   const totalGeneral = totalPaid + totalProjected;
@@ -233,7 +258,48 @@ export function ManagerCommissionsChart({
                 <Briefcase className="h-4 w-4 text-primary" />
               </div>
               <div>
-                <h3 className="text-sm font-semibold text-foreground">Comissões por Gerente</h3>
+                <div className="flex items-center justify-center gap-2 sm:justify-start">
+                  <h3 className="text-sm font-semibold text-foreground">Comissões por Gerente</h3>
+                  <Popover open={managerFilterOpen} onOpenChange={setManagerFilterOpen}>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 rounded-md"
+                        aria-label="Editar gerentes exibidos"
+                      >
+                        <Pencil className="h-4 w-4 text-muted-foreground" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-[280px] p-0" align="start">
+                      <Command>
+                        <CommandInput placeholder="Buscar gerente..." />
+                        <CommandList>
+                          <CommandEmpty>Nenhum gerente encontrado.</CommandEmpty>
+                          <CommandGroup>
+                            {managers.map((manager) => {
+                              const isSelected = selectedManagerIds.includes(manager.id);
+                              return (
+                                <CommandItem key={manager.id} value={manager.name} onSelect={() => toggleManagerFilter(manager.id)}>
+                                  <Check className={`mr-2 h-4 w-4 ${isSelected ? "opacity-100 text-primary" : "opacity-0"}`} />
+                                  <span className="flex-1 truncate">{manager.name}</span>
+                                </CommandItem>
+                              );
+                            })}
+                          </CommandGroup>
+                        </CommandList>
+                      </Command>
+                      {selectedManagerIds.length > 0 ? (
+                        <div className="border-t border-border p-2">
+                          <Button variant="ghost" size="sm" className="w-full" onClick={() => setSelectedManagerIds([])}>
+                            Limpar seleção
+                          </Button>
+                        </div>
+                      ) : null}
+                    </PopoverContent>
+                  </Popover>
+                </div>
+                <p className="text-[10px] text-muted-foreground mt-0.5">Exibindo: {filterLabel}</p>
                 {rangeLabel && (
                   <p className="text-[10px] text-muted-foreground">{rangeLabel}</p>
                 )}
@@ -253,42 +319,6 @@ export function ManagerCommissionsChart({
                 <p className="text-xs sm:text-sm font-bold text-foreground leading-tight">{mask(rawFormatCurrency(totalGeneral))}</p>
               </div>
             </div>
-          </div>
-          <div className="flex justify-start">
-            <Popover open={managerFilterOpen} onOpenChange={setManagerFilterOpen}>
-              <PopoverTrigger asChild>
-                <Button variant="outline" className="justify-between min-w-[240px] max-w-full">
-                  <span className="truncate text-left">Gerentes: {filterLabel}</span>
-                  <ChevronDown className="h-4 w-4 text-muted-foreground" />
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-[280px] p-0" align="start">
-                <Command>
-                  <CommandInput placeholder="Buscar gerente..." />
-                  <CommandList>
-                    <CommandEmpty>Nenhum gerente encontrado.</CommandEmpty>
-                    <CommandGroup>
-                      {managers.map((manager) => {
-                        const isSelected = selectedManagerIds.includes(manager.id);
-                        return (
-                          <CommandItem key={manager.id} value={manager.name} onSelect={() => toggleManagerFilter(manager.id)}>
-                            <Check className={`mr-2 h-4 w-4 ${isSelected ? "opacity-100 text-primary" : "opacity-0"}`} />
-                            <span className="flex-1 truncate">{manager.name}</span>
-                          </CommandItem>
-                        );
-                      })}
-                    </CommandGroup>
-                  </CommandList>
-                </Command>
-                {selectedManagerIds.length > 0 ? (
-                  <div className="border-t border-border p-2">
-                    <Button variant="ghost" size="sm" className="w-full" onClick={() => setSelectedManagerIds([])}>
-                      Limpar seleção
-                    </Button>
-                  </div>
-                ) : null}
-              </PopoverContent>
-            </Popover>
           </div>
         </div>
 
