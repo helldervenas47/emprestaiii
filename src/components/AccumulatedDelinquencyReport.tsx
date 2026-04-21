@@ -14,6 +14,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { todayInAppTz } from "@/lib/timezone";
+import { TelegramReportsConnectCard } from "@/components/TelegramReportsConnectCard";
 
 interface Props {
   loans: Loan[];
@@ -187,6 +188,8 @@ export function AccumulatedDelinquencyReport({ loans, clients, installmentSchedu
 
   return (
     <div className="space-y-6">
+      <TelegramReportsConnectCard />
+
       <div className="grid gap-3 md:grid-cols-3">
         <Card no3d className="border-destructive/30">
           <CardContent className="p-4 space-y-1">
