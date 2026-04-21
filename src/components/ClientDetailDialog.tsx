@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { CartesianGrid, Line, LineChart, XAxis, YAxis } from "recharts";
 import { Client, InstallmentSchedule, Loan, Payment } from "@/types/loan";
-import { buildClientRiskHistory, buildConsolidatedRiskProfile, formatRiskCurrency, getClientLoans, getClientRiskMetrics } from "@/lib/clientRisk";
+import { buildClientRiskHistory, buildConsolidatedRiskProfile, formatRiskCurrency, getClientRiskMetrics } from "@/lib/clientRisk";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -19,8 +19,7 @@ interface Props {
 }
 
 export function ClientDetailDialog({ open, onOpenChange, client, loans, payments, installmentSchedules }: Props) {
-  const clientLoans = useMemo(() => (client ? getClientLoans(client, loans) : []), [client, loans]);
-  const { profile: financialProfile, events, refreshing, requestAnalysis } = useClientFinancialAnalysis(client?.id);
+  const { profile: financialProfile, events } = useClientFinancialAnalysis(client?.id);
   const riskProfile = useMemo(() => (client ? buildConsolidatedRiskProfile(client, loans, payments, installmentSchedules, financialProfile) : null), [client, loans, payments, installmentSchedules, financialProfile]);
   const metrics = useMemo(() => (client ? getClientRiskMetrics(client, loans, payments, installmentSchedules) : null), [client, loans, payments, installmentSchedules]);
   const history = useMemo(() => (client ? buildClientRiskHistory(client, loans, payments, installmentSchedules) : []), [client, loans, payments, installmentSchedules]);
