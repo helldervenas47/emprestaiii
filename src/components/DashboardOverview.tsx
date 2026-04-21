@@ -978,6 +978,37 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
     return visible;
   }, [interestGoal, monthComparison, role]);
 
+  useEffect(() => {
+    const negativeInsights = prioritizedInsights.filter((insight) => insight.tone === "negative");
+
+    negativeInsights.forEach((insight) => {
+      if (cachedInsightReports[insight.id] || prefetchingInsightReportsRef.current.has(insight.id)) return;
+      prefetchingInsightReportsRef.current.add(insight.id);
+
+      void generateAiReport({
+        title: `Relatório IA: ${insight.title}`,
+        type: "priority-insight",
+        cacheKey: insight.id,
+        openSheet: false,
+        metrics: {
+          periodo: range.label,
+          insightId: insight.id,
+          insightTitulo: insight.title,
+          insightResumo: insight.body,
+          detalhe: insight.detail,
+          recomendacaoAtual: insight.recommendation,
+          classificacao: insight.tone,
+          scorePrioridade: insight.score,
+          scoreRiscoAtual: riskReturn.riskScore,
+          scoreRetornoAtual: riskReturn.returnScore,
+          inadimplenciaPercentual: portfolio.defaultRate,
+          taxaJurosMedia: data.monthlyInterestRate.rate,
+          lucroGerado: data.periodProfitRealized,
+        },
+      });
+    });
+  }, [cachedInsightReports, data.monthlyInterestRate.rate, data.periodProfitRealized, generateAiReport, portfolio.defaultRate, prioritizedInsights, range.label, riskReturn]);
+
   // Manual overrides for monthly chart values
   // chartOverrides already declared above
   const [editingChart, setEditingChart] = useState(false);
