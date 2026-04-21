@@ -4,6 +4,10 @@ import { useChartOverrides } from "@/hooks/useChartOverrides";
 import { useMonthlyGoals } from "@/hooks/useMonthlyGoals";
 import { calculateMonthlyInterestRate } from "@/lib/monthlyInterestRate";
 import { useAuth } from "@/hooks/useAuth";
+import { usePersonalInsightsTelegramPrefs, type InsightTone } from "@/hooks/usePersonalInsightsTelegramPrefs";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+import ReactMarkdown from "react-markdown";
 import { Switch } from "@/components/ui/switch";
 import { useHideValues } from "@/contexts/HideValuesContext";
 import { Loan, Sale, Payment, Expense, InstallmentSchedule, Client } from "@/types/loan";
@@ -13,6 +17,7 @@ import { calculateInstallment, calculateTotalWithInterest } from "@/hooks/useLoa
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Progress } from "@/components/ui/progress";
 import { getBalance, setBalance } from "@/lib/balance";
 import {
@@ -63,6 +68,14 @@ type Period = "day" | "week" | "month";
 const periodLabels: Record<Period, string> = { day: "Dia", week: "Semana", month: "Mês" };
 
 const monthNames = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
+
+const TONE_OPTIONS: { value: InsightTone; label: string }[] = [
+  { value: "balanced", label: "Equilibrado" },
+  { value: "strict", label: "Direto" },
+  { value: "motivational", label: "Motivacional" },
+  { value: "technical", label: "Técnico" },
+  { value: "friendly", label: "Amigável" },
+];
 
 function isInRange(dateStr: string, start: Date, end: Date): boolean {
   const date = new Date(dateStr + "T00:00:00");
@@ -237,8 +250,17 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
   const [showInterestDetail, setShowInterestDetail] = useState(false);
   const [showInterestExpectedDetail, setShowInterestExpectedDetail] = useState(false);
   const [interestExpectedFilter, setInterestExpectedFilter] = useState<"pending" | "paid">("pending");
+  const [riskAiTone, setRiskAiTone] = useState<InsightTone>("balanced");
+  const [riskAiOpen, setRiskAiOpen] = useState(false);
+  const [riskAiLoading, setRiskAiLoading] = useState(false);
+  const [riskAiReport, setRiskAiReport] = useState("");
   const { chartOverrides, setChartOverrides, interestOverrides, setInterestOverrides } = useChartOverrides();
   const { getGoal } = useMonthlyGoals();
+  const { prefs: personalInsightPrefs } = usePersonalInsightsTelegramPrefs();
+
+  useEffect(() => {
+    setRiskAiTone(personalInsightPrefs.tone ?? "balanced");
+  }, [personalInsightPrefs.tone]);
 
   const range = useMemo(() => getRange(period, offset), [period, offset]);
 
@@ -755,6 +777,38 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
       concentrationShare,
     };
   }, [data.monthlyInterestRate.rate, data.periodProfitRealized, data.totalIncome, loans, portfolio.defaultRate]);
+
+  const generateRiskAiReport = useCallback(async () => {
+    setRiskAiOpen(true);
+    setRiskAiLoading(true);
+    try {
+      const metrics = {
+        periodo: range.label,
+        scoreRisco: riskReturn.riskScore,
+        scoreRetorno: riskReturn.returnScore,
+        classificacao: riskReturn.classification,
+        inadimplenciaPercentual: portfolio.defaultRate,
+        atrasoMedioDias: Math.round(riskReturn.averageDelayDays),
+        concentracaoReceitaPercentual: Number(riskReturn.concentrationShare.toFixed(1)),
+        taxaJurosMedia: data.monthlyInterestRate.rate,
+        lucroGerado: data.periodProfitRealized,
+        insightAtual: riskReturn.insight,
+      };
+
+      const { data: result, error } = await supabase.functions.invoke("generate-risk-reduction-report", {
+        body: { tone: riskAiTone, metrics },
+      });
+
+      if (error) throw error;
+      setRiskAiReport((result as { report?: string })?.report ?? "Não foi possível gerar o relatório.");
+    } catch (error: any) {
+      const message = error?.message || "Erro ao gerar relatório com IA";
+      toast.error("Falha ao gerar relatório", { description: message });
+      setRiskAiReport("Não foi possível gerar o relatório agora.");
+    } finally {
+      setRiskAiLoading(false);
+    }
+  }, [data.monthlyInterestRate.rate, data.periodProfitRealized, portfolio.defaultRate, range.label, riskAiTone, riskReturn]);
 
   const prioritizedInsights = useMemo(() => {
     const current = monthComparison.current;
@@ -1477,7 +1531,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
             </div>
 
             <div className="space-y-4">
-              <div className="rounded-xl border border-border/30 bg-muted/20 p-4">
+              <button type="button" onClick={generateRiskAiReport} className="rounded-xl border border-border/30 bg-muted/20 p-4 text-left transition-colors hover:bg-accent/40">
                 <div className="flex items-center justify-between text-xs text-muted-foreground mb-2">
                   <span>Baixo risco / baixo retorno</span>
                   <span>Alto risco / alto retorno</span>
@@ -1485,7 +1539,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
                 <div className="relative h-4 rounded-full bg-gradient-to-r from-success/40 via-warning/35 to-destructive/45">
                   <div className="absolute top-1/2 h-6 w-6 -translate-y-1/2 -translate-x-1/2 rounded-full border-2 border-background bg-card shadow" style={{ left: `${riskReturn.axisPosition}%` }} />
                 </div>
-              </div>
+              </button>
 
               <div className="grid grid-cols-2 gap-3">
                 <div className="rounded-xl border border-border/30 bg-muted/20 p-4">
@@ -2057,6 +2111,43 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
               </>
             );
           })()}
+        </SheetContent>
+      </Sheet>
+
+      <Sheet open={riskAiOpen} onOpenChange={setRiskAiOpen}>
+        <SheetContent side="right" className="w-full sm:max-w-xl overflow-y-auto">
+          <SheetHeader>
+            <SheetTitle>Relatório IA para reduzir risco</SheetTitle>
+          </SheetHeader>
+
+          <div className="mt-4 space-y-4">
+            <div className="space-y-2">
+              <p className="text-xs text-muted-foreground">Tom da IA</p>
+              <Select value={riskAiTone} onValueChange={(value) => setRiskAiTone(value as InsightTone)}>
+                <SelectTrigger className="h-9 text-sm">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {TONE_OPTIONS.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Button type="button" size="sm" onClick={generateRiskAiReport} disabled={riskAiLoading}>
+                {riskAiLoading ? "Gerando..." : "Gerar novamente"}
+              </Button>
+            </div>
+
+            <div className="rounded-xl border border-border/30 bg-muted/20 p-4">
+              {riskAiLoading ? (
+                <p className="text-sm text-muted-foreground">Analisando risco, retorno e prioridades de ação...</p>
+              ) : (
+                <div className="prose prose-sm max-w-none dark:prose-invert prose-p:text-foreground prose-headings:text-foreground prose-strong:text-foreground">
+                  <ReactMarkdown>{riskAiReport}</ReactMarkdown>
+                </div>
+              )}
+            </div>
+          </div>
         </SheetContent>
       </Sheet>
     </div>
