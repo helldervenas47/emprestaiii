@@ -362,11 +362,18 @@ export function useLoans() {
       return;
     }
 
-    await Promise.all([
+    const [paymentRes, loanRes] = await Promise.all([
       supabase.from("payments").insert(paymentPayload as any),
       supabase.from("loans").update(loanUpdate).eq("id", loanId),
       adjustBalance(amount),
     ]);
+    if (paymentRes.error) {
+      console.error("[addPartialPayment] insert payment failed:", paymentRes.error);
+      setPayments((prev) => prev.filter((p) => p.id !== tempPaymentId));
+      setLoans((prev) => prev.map((l) => l.id === loanId ? loan : l));
+      throw new Error(paymentRes.error.message);
+    }
+    if (loanRes.error) console.error("[addPartialPayment] update loan failed:", loanRes.error);
     await fetchPayments();
     await fetchLoans();
   }, [user, dataOwnerId, loans, payments, fetchLoans, fetchPayments]);
