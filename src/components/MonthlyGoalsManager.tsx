@@ -175,6 +175,7 @@ export function MonthlyGoalsManager({ readOnly = false }: { readOnly?: boolean }
 
   return (
     <div className="space-y-4">
+      {!readOnly && (
       <Card no3d>
         <CardContent className="p-4 space-y-4">
           <div className="flex items-center gap-2">
