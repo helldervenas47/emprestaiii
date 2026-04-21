@@ -1339,16 +1339,6 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
                 <span className="text-sm font-bold text-success">{formatCurrency(data.periodProfitRealized)}</span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-xs text-muted-foreground">Total Recebido</span>
-                <span className="text-sm font-bold text-success">{formatCurrency(totalReceivedForDuePeriod)}</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-xs text-muted-foreground">Valor Pendente</span>
-                <span className={`text-sm font-bold ${pendingGoalAmount <= 0 ? "text-success" : "text-warning"}`}>
-                  {pendingGoalAmount <= 0 ? "Meta superada" : formatCurrency(pendingGoalAmount)}
-                </span>
-              </div>
-              <div className="flex items-center justify-between">
                 <span className="text-xs text-muted-foreground">% Lucro</span>
                 <span className={`text-sm font-bold ${data.periodProfitPct >= 100 ? "text-success" : data.periodProfitPct >= 50 ? "text-warning" : "text-foreground"}`}>
                   {data.periodProfitPct}%
