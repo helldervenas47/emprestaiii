@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { AlertTriangle, CalendarClock, CheckCircle2, ShieldCheck, Wallet } from "lucide-react";
+import { AlertTriangle, BriefcaseBusiness, CalendarClock, CheckCircle2, CircleAlert, Landmark, RefreshCw, ShieldCheck, Wallet } from "lucide-react";
 import { CartesianGrid, Line, LineChart, XAxis, YAxis } from "recharts";
 import { Client, InstallmentSchedule, Loan, Payment } from "@/types/loan";
 import { buildClientRiskHistory, buildConsolidatedRiskProfile, formatRiskCurrency, getClientLoans, getClientRiskMetrics } from "@/lib/clientRisk";
@@ -163,22 +163,65 @@ export function ClientDetailDialog({ open, onOpenChange, client, loans, payments
                       <div className="flex items-center justify-between"><span>Total recebido</span><span className="font-medium text-foreground">{formatRiskCurrency(totalReceived)}</span></div>
                     </div>
                   </div>
-                  <div className="rounded-xl border border-border/30 p-4 bg-muted/20 space-y-3">
-                    <div className="flex items-center justify-between gap-3">
-                      <p className="text-sm font-medium text-foreground">Perfil de crédito e capacidade</p>
+                  <div className="rounded-xl border border-border/30 p-4 bg-muted/20 space-y-4">
+                    <div className="flex items-start justify-between gap-3 flex-wrap">
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                          <p className="text-sm font-medium text-foreground">Análise de crédito</p>
+                          <Badge variant="outline" className={getAnalysisBadgeClass(financialProfile?.analysisStatus)}>
+                            {formatAnalysisStatus(financialProfile?.analysisStatus ?? "pending")}
+                          </Badge>
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          Capacidade financeira, score consolidado e sinais positivos ou de atenção do cliente.
+                        </p>
+                      </div>
                       <Button size="sm" variant="outline" onClick={() => requestAnalysis()} disabled={refreshing}>
+                        <RefreshCw className={refreshing ? "mr-2 h-4 w-4 animate-spin" : "mr-2 h-4 w-4"} />
                         {refreshing ? "Atualizando..." : "Atualizar análise"}
                       </Button>
                     </div>
-                    <div className="grid grid-cols-2 gap-3 text-sm text-muted-foreground">
-                      <div><span className="block text-xs">Renda mensal</span><span className="text-foreground font-medium">{financialProfile?.monthlyIncome ? formatRiskCurrency(financialProfile.monthlyIncome) : "—"}</span></div>
-                      <div><span className="block text-xs">Endividamento</span><span className="text-foreground font-medium">{financialProfile?.debtLevel ? formatRiskCurrency(financialProfile.debtLevel) : "—"}</span></div>
-                      <div><span className="block text-xs">Estabilidade</span><span className="text-foreground font-medium">{financialProfile?.employmentStability || "—"}</span></div>
-                      <div><span className="block text-xs">Setor</span><span className="text-foreground font-medium">{financialProfile?.industrySector || "—"}</span></div>
-                      <div><span className="block text-xs">Bancarização</span><span className="text-foreground font-medium">{financialProfile?.bankingRelationship || "—"}</span></div>
-                      <div><span className="block text-xs">Score externo</span><span className="text-foreground font-medium">{financialProfile?.externalScore ?? "—"}</span></div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                      <AnalysisStatCard label="Score consolidado" value={financialProfile?.consolidatedScore ?? "—"} helper={financialProfile?.riskLevel ? `Risco ${financialProfile.riskLevel}` : "Sem classificação"} emphasis />
+                      <AnalysisStatCard label="Score interno" value={financialProfile?.internalScore ?? "—"} helper="Histórico operacional" />
+                      <AnalysisStatCard label="Score externo" value={financialProfile?.externalScore ?? "—"} helper={financialProfile?.provider || "Sem provedor"} />
                     </div>
-                    {report?.creditHistorySummary ? <p className="text-xs text-muted-foreground">{report.creditHistorySummary}</p> : null}
+
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-3 text-sm text-muted-foreground">
+                      <AnalysisInfoItem icon={Wallet} label="Renda mensal" value={financialProfile?.monthlyIncome ? formatRiskCurrency(financialProfile.monthlyIncome) : "—"} />
+                      <AnalysisInfoItem icon={CircleAlert} label="Endividamento" value={financialProfile?.debtLevel ? formatRiskCurrency(financialProfile.debtLevel) : "—"} />
+                      <AnalysisInfoItem icon={BriefcaseBusiness} label="Estabilidade" value={financialProfile?.employmentStability || "—"} />
+                      <AnalysisInfoItem icon={BriefcaseBusiness} label="Setor" value={financialProfile?.industrySector || "—"} />
+                      <AnalysisInfoItem icon={Landmark} label="Bancarização" value={financialProfile?.bankingRelationship || "—"} />
+                      <AnalysisInfoItem icon={ShieldCheck} label="Consentimento" value={financialProfile?.consentGiven ? "Confirmado" : "Pendente"} />
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <AnalysisFactorsCard
+                        title="Sinais positivos"
+                        items={financialProfile?.positiveFactors ?? []}
+                        emptyLabel="Nenhum sinal positivo destacado nesta consulta."
+                        tone="success"
+                      />
+                      <AnalysisFactorsCard
+                        title="Pontos de atenção"
+                        items={financialProfile?.negativeFactors ?? []}
+                        emptyLabel="Nenhum alerta relevante identificado nesta consulta."
+                        tone="alert"
+                      />
+                    </div>
+
+                    <div className="flex flex-wrap gap-2 text-[11px] text-muted-foreground">
+                      <span className="rounded-md border border-border/40 bg-background px-2 py-1">
+                        Última atualização: {financialProfile?.fetchedAt ? formatDateTime(financialProfile.fetchedAt) : "—"}
+                      </span>
+                      <span className="rounded-md border border-border/40 bg-background px-2 py-1">
+                        Validade: {financialProfile?.expiresAt ? formatDateTime(financialProfile.expiresAt) : "—"}
+                      </span>
+                    </div>
+
+                    {report?.creditHistorySummary ? <p className="text-xs leading-relaxed text-muted-foreground">{report.creditHistorySummary}</p> : null}
                   </div>
                 </div>
               </CardContent>
@@ -224,13 +267,13 @@ export function ClientDetailDialog({ open, onOpenChange, client, loans, payments
                 </div>
                 <div className="space-y-3 max-h-[520px] overflow-y-auto pr-1">
                   {analysisTimeline.map((item) => (
-                    <div key={item.id} className="rounded-xl border border-border/30 p-3 bg-muted/20">
+                    <div key={item.id} className="rounded-xl border border-border/30 bg-muted/20 p-3">
                       <div className="flex items-center justify-between gap-2">
                         <span className="text-sm font-medium text-foreground">{item.title}</span>
                         <Badge variant="outline" className={item.tone === "error" ? "bg-destructive/10 text-destructive border-destructive/20" : item.tone === "success" ? "bg-success/10 text-success border-success/20" : "bg-primary/10 text-primary border-primary/20"}>{item.status}</Badge>
                       </div>
                       <p className="text-[11px] text-muted-foreground mt-1">{formatDateTime(item.date)}</p>
-                      <p className="text-xs text-muted-foreground mt-2">{item.description}</p>
+                      <p className="text-xs leading-relaxed text-muted-foreground mt-2">{item.description}</p>
                       {item.details.length > 0 ? (
                         <div className="flex flex-wrap gap-2 mt-3">
                           {item.details.map((detail) => (
@@ -305,6 +348,48 @@ function MetricCard({ icon: Icon, label, value, helper, tone = "default" }: { ic
   );
 }
 
+function AnalysisStatCard({ label, value, helper, emphasis = false }: { label: string; value: string | number; helper: string; emphasis?: boolean }) {
+  return (
+    <div className="rounded-xl border border-border/30 bg-background/80 p-3">
+      <p className="text-[11px] text-muted-foreground">{label}</p>
+      <div className={emphasis ? "mt-1 text-2xl font-semibold text-foreground" : "mt-1 text-xl font-semibold text-foreground"}>{value}</div>
+      <p className="mt-1 text-[11px] text-muted-foreground">{helper}</p>
+    </div>
+  );
+}
+
+function AnalysisInfoItem({ icon: Icon, label, value }: { icon: typeof ShieldCheck; label: string; value: string }) {
+  return (
+    <div className="rounded-xl border border-border/30 bg-background/70 p-3">
+      <div className="mb-2 flex items-center gap-2 text-[11px] text-muted-foreground">
+        <Icon className="h-4 w-4 text-primary" />
+        <span>{label}</span>
+      </div>
+      <p className="text-sm font-medium text-foreground">{value}</p>
+    </div>
+  );
+}
+
+function AnalysisFactorsCard({ title, items, emptyLabel, tone }: { title: string; items: string[]; emptyLabel: string; tone: "success" | "alert" }) {
+  return (
+    <div className="rounded-xl border border-border/30 bg-background/70 p-3">
+      <p className="text-sm font-medium text-foreground mb-2">{title}</p>
+      {items.length > 0 ? (
+        <ul className="space-y-2 text-xs text-muted-foreground">
+          {items.map((item) => (
+            <li key={item} className="flex gap-2 leading-relaxed">
+              <span className={tone === "success" ? "mt-1 h-1.5 w-1.5 rounded-full bg-success shrink-0" : "mt-1 h-1.5 w-1.5 rounded-full bg-destructive shrink-0"} />
+              <span>{item}</span>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="text-xs text-muted-foreground">{emptyLabel}</p>
+      )}
+    </div>
+  );
+}
+
 function formatAnalysisEventTitle(eventType: string) {
   const titles: Record<string, string> = {
     manual_refresh: "Consulta manual solicitada",
@@ -335,6 +420,13 @@ function getAnalysisTone(status: string) {
   if (["error", "unavailable", "stale"].includes(status)) return "error" as const;
   if (["success", "verified"].includes(status)) return "success" as const;
   return "info" as const;
+}
+
+function getAnalysisBadgeClass(status?: string) {
+  const tone = getAnalysisTone(status ?? "pending");
+  if (tone === "error") return "bg-destructive/10 text-destructive border-destructive/20";
+  if (tone === "success") return "bg-success/10 text-success border-success/20";
+  return "bg-primary/10 text-primary border-primary/20";
 }
 
 function formatDateTime(value: string) {
