@@ -2,10 +2,16 @@ import { Client, ClientFinancialProfile, InstallmentSchedule, Loan, Payment } fr
 
 export interface RiskProfile {
   score: number;
+  currentScore: number;
+  currentBaseScore: number;
+  historicalScore: number;
   level: "baixo" | "moderado" | "alto" | "critico";
   label: string;
+  classification: string;
   badgeClassName: string;
   reasons: string[];
+  trend: "improving" | "worsening" | "stable";
+  trendLabel: string;
   internalScore?: number;
   externalScore?: number | null;
   positiveFactors?: string[];
@@ -30,10 +36,18 @@ export interface ClientRiskHistoryPoint {
   month: string;
   label: string;
   score: number;
+  historicalScore: number;
   latePayments: number;
   onTimePayments: number;
   overdueLoans: number;
   totalLent: number;
+}
+
+interface ScoreSnapshot {
+  currentScore: number;
+  currentBaseScore: number;
+  historicalScore: number;
+  metrics: ClientRiskMetrics;
 }
 
 const currencyFormatter = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
@@ -54,6 +68,10 @@ export function getLoanClientKey(loan: Loan) {
   return loan.borrowerId || normalizeClientKey(loan.borrowerName);
 }
 
+function clamp(value: number, min: number, max: number) {
+  return Math.max(min, Math.min(max, value));
+}
+
 function getNextDate(base: Date, frequency: string, periods: number) {
   const d = new Date(base);
   if (frequency === "Semanal") d.setDate(d.getDate() + 7 * periods);
@@ -70,6 +88,24 @@ function getFirstPendingDate(loan: Loan, schedules: InstallmentSchedule[]) {
   const saved = loanSchedules.find((s) => s.installmentNumber === nextNum);
   if (saved) return new Date(saved.dueDate + "T00:00:00");
   return new Date(loan.dueDate + "T00:00:00");
+}
+
+function getMonthsBetween(startDate: string, referenceDate: Date) {
+  const start = new Date(`${startDate}T00:00:00`);
+  let months = (referenceDate.getFullYear() - start.getFullYear()) * 12;
+  months += referenceDate.getMonth() - start.getMonth();
+
+  if (referenceDate.getDate() < start.getDate()) {
+    months -= 1;
+  }
+
+  return Math.max(0, months);
+}
+
+function getClientRelationshipMonths(clientLoans: Loan[], referenceDate: Date) {
+  if (clientLoans.length === 0) return 0;
+  const firstLoan = [...clientLoans].sort((a, b) => a.startDate.localeCompare(b.startDate))[0];
+  return getMonthsBetween(firstLoan.startDate, referenceDate);
 }
 
 export function getDaysOverdue(loan: Loan, schedules: InstallmentSchedule[] = [], referenceDate = new Date()) {
@@ -122,7 +158,9 @@ export function getClientRiskMetrics(client: Client, loans: Loan[], payments: Pa
           partialPayments += 1;
           return;
         }
+
         if (payment.installmentNumber <= 0) return;
+
         const dueDate = getInstallmentDueDate(loan, payment.installmentNumber, installmentSchedules);
         if (payment.date <= dueDate) onTimePayments += 1;
         else latePayments += 1;
@@ -148,41 +186,143 @@ export function getClientRiskMetrics(client: Client, loans: Loan[], payments: Pa
   };
 }
 
-export function buildRiskProfile(client: Client, loans: Loan[], payments: Payment[], installmentSchedules: InstallmentSchedule[], referenceDate = new Date()): RiskProfile {
+function getPunctualityBonus(metrics: ClientRiskMetrics) {
+  const punctuality = metrics.totalTimedPayments > 0 ? metrics.onTimeRatio * 100 : 0;
+  if (punctuality >= 95) return 40;
+  if (punctuality >= 85) return 30;
+  if (punctuality >= 70) return 20;
+  return metrics.totalTimedPayments > 0 ? 5 : 0;
+}
+
+function getRelationshipBonus(relationshipMonths: number) {
+  if (relationshipMonths >= 12) return 30;
+  if (relationshipMonths >= 6) return 20;
+  if (relationshipMonths >= 3) return 10;
+  return 0;
+}
+
+function getHealthyVolumeBonus(metrics: ClientRiskMetrics) {
+  if (metrics.totalLent >= 30000 && metrics.onTimeRatio >= 0.95) return 15;
+  if (metrics.totalLent >= 15000 && metrics.onTimeRatio >= 0.9) return 10;
+  if (metrics.totalLent >= 5000 && metrics.onTimeRatio >= 0.85) return 6;
+  return 0;
+}
+
+function getRecentRecurrencePenalty(client: Client, loans: Loan[], payments: Payment[], installmentSchedules: InstallmentSchedule[], referenceDate: Date) {
+  const recentReference = new Date(referenceDate);
+  recentReference.setMonth(recentReference.getMonth() - 3);
+
+  const previousReference = new Date(recentReference);
+  previousReference.setMonth(previousReference.getMonth() - 3);
+
+  const recentMetrics = getClientRiskMetrics(client, loans, payments, installmentSchedules, referenceDate);
+  const previousMetrics = getClientRiskMetrics(client, loans, payments, installmentSchedules, previousReference);
+
+  const hadGoodPeriod = previousMetrics.totalTimedPayments > 0 && previousMetrics.onTimeRatio >= 0.9 && previousMetrics.severeOverdueLoans === 0;
+  const relapsedNow = recentMetrics.latePayments > previousMetrics.latePayments && (recentMetrics.overdueLoans > 0 || recentMetrics.lateRatio > 0.2);
+
+  return hadGoodPeriod && relapsedNow ? 30 : 0;
+}
+
+function buildScoreSnapshot(client: Client, loans: Loan[], payments: Payment[], installmentSchedules: InstallmentSchedule[], referenceDate = new Date()): ScoreSnapshot {
   const metrics = getClientRiskMetrics(client, loans, payments, installmentSchedules, referenceDate);
-  const parsedClientScore = Number((client.score || "").replace(/[^\d.]/g, ""));
+  const clientLoans = getClientLoans(client, loans).filter((loan) => loan.startDate <= referenceDate.toISOString().split("T")[0]);
+  const relationshipMonths = getClientRelationshipMonths(clientLoans, referenceDate);
 
-  let score = 18;
-  score += metrics.overdueLoans * 18;
-  score += metrics.severeOverdueLoans * 12;
-  score += metrics.lateRatio * 28;
-  score += Math.min(12, metrics.partialPayments * 4);
-  score += metrics.activeLoans >= 3 ? 8 : metrics.activeLoans === 2 ? 4 : 0;
-  score += metrics.totalLent >= 50000 ? 15 : metrics.totalLent >= 20000 ? 10 : metrics.totalLent >= 10000 ? 6 : metrics.totalLent >= 5000 ? 3 : 0;
-  score -= Math.min(18, metrics.paidLoans * 4);
-  score -= metrics.onTimeRatio * 16;
+  let historicalScore = 75;
+  historicalScore += getPunctualityBonus(metrics);
+  historicalScore += getRelationshipBonus(relationshipMonths);
+  historicalScore += getHealthyVolumeBonus(metrics);
 
-  if (!Number.isNaN(parsedClientScore) && parsedClientScore > 0) {
-    if (parsedClientScore < 400) score += 12;
-    else if (parsedClientScore < 700) score += 5;
-    else if (parsedClientScore >= 850) score -= 8;
-    else if (parsedClientScore >= 750) score -= 4;
+  if (metrics.severeOverdueLoans > 0) {
+    historicalScore -= 30;
   }
 
-  score = Math.max(0, Math.min(100, Math.round(score)));
+  if (metrics.latePayments >= 2 || metrics.overdueLoans >= 2) {
+    historicalScore -= 20;
+  }
 
-  const reasons: string[] = [];
-  if (metrics.overdueLoans > 0) reasons.push(`${metrics.overdueLoans} contrato${metrics.overdueLoans > 1 ? "s" : ""} em atraso`);
-  if (metrics.latePayments > 0) reasons.push(`${Math.round(metrics.lateRatio * 100)}% dos pagamentos com atraso`);
-  if (metrics.totalLent >= 5000) reasons.push(`${formatRiskCurrency(metrics.totalLent)} já emprestados ao cliente`);
-  if (metrics.partialPayments > 0) reasons.push(`${metrics.partialPayments} pagamento${metrics.partialPayments > 1 ? "s" : ""} parcial${metrics.partialPayments > 1 ? "s" : ""}`);
-  if (reasons.length === 0 && metrics.paidLoans > 0) reasons.push(`${metrics.paidLoans} contrato${metrics.paidLoans > 1 ? "s" : ""} quitado${metrics.paidLoans > 1 ? "s" : ""} com bom histórico`);
-  if (reasons.length === 0) reasons.push("Cliente com histórico inicial e sem sinais fortes de risco.");
+  historicalScore -= getRecentRecurrencePenalty(client, loans, payments, installmentSchedules, referenceDate);
+  historicalScore = clamp(Math.round(historicalScore), 0, 150);
 
-  if (score >= 75) return { score, level: "critico", label: "Risco crítico", badgeClassName: "bg-destructive/15 text-destructive border-destructive/30", reasons };
-  if (score >= 55) return { score, level: "alto", label: "Risco alto", badgeClassName: "bg-destructive/10 text-destructive border-destructive/20", reasons };
-  if (score >= 35) return { score, level: "moderado", label: "Risco moderado", badgeClassName: "bg-warning/10 text-warning border-warning/20", reasons };
-  return { score, level: "baixo", label: "Risco baixo", badgeClassName: "bg-success/10 text-success border-success/20", reasons };
+  let currentBaseScore = 100;
+  currentBaseScore -= metrics.overdueLoans * 18;
+  currentBaseScore -= metrics.severeOverdueLoans * 18;
+  currentBaseScore -= metrics.lateRatio * 35;
+  currentBaseScore -= Math.min(12, metrics.partialPayments * 4);
+  currentBaseScore -= metrics.activeLoans >= 4 ? 6 : 0;
+  currentBaseScore += metrics.totalTimedPayments > 0 ? metrics.onTimeRatio * 8 : 0;
+  currentBaseScore += Math.min(6, metrics.paidLoans * 2);
+  currentBaseScore = clamp(Math.round(currentBaseScore), 0, 100);
+
+  let currentScore = currentBaseScore + (historicalScore - 75) * 0.3;
+
+  if (metrics.severeOverdueLoans > 0) {
+    currentScore = Math.min(currentScore, 50);
+  }
+
+  if (historicalScore < 50) {
+    currentScore = Math.min(currentScore, 60);
+  }
+
+  return {
+    currentScore: clamp(Math.round(currentScore), 0, 100),
+    currentBaseScore,
+    historicalScore,
+    metrics,
+  };
+}
+
+function getTrendLabel(trend: RiskProfile["trend"]) {
+  if (trend === "improving") return "Melhorando";
+  if (trend === "worsening") return "Piorando";
+  return "Estável";
+}
+
+function getCombinedClassification(currentScore: number, historicalScore: number) {
+  if (currentScore >= 80 && historicalScore >= 110) return "Cliente excelente";
+  if (currentScore < 60 && historicalScore >= 110) return "Queda recente";
+  if (currentScore >= 75 && historicalScore < 75) return "Risco oculto";
+  if (currentScore < 60 && historicalScore < 75) return "Alto risco crítico";
+  if (currentScore >= 70) return "Bom momento";
+  if (historicalScore >= 100) return "Histórico consistente";
+  return "Em observação";
+}
+
+function getProfileVisual(currentScore: number) {
+  if (currentScore >= 80) {
+    return {
+      level: "baixo" as const,
+      label: "Saudável",
+      badgeClassName: "bg-success/10 text-success border-success/20",
+    };
+  }
+
+  if (currentScore >= 60) {
+    return {
+      level: "moderado" as const,
+      label: "Atenção",
+      badgeClassName: "bg-warning/10 text-warning border-warning/20",
+    };
+  }
+
+  if (currentScore >= 40) {
+    return {
+      level: "alto" as const,
+      label: "Risco alto",
+      badgeClassName: "bg-destructive/10 text-destructive border-destructive/20",
+    };
+  }
+
+  return {
+    level: "critico" as const,
+    label: "Risco crítico",
+    badgeClassName: "bg-destructive/15 text-destructive border-destructive/30",
+  };
+}
+
+export function buildRiskProfile(client: Client, loans: Loan[], payments: Payment[], installmentSchedules: InstallmentSchedule[], referenceDate = new Date()): RiskProfile {
+  return buildConsolidatedRiskProfile(client, loans, payments, installmentSchedules, null, referenceDate);
 }
 
 export function buildConsolidatedRiskProfile(
@@ -193,71 +333,56 @@ export function buildConsolidatedRiskProfile(
   financialProfile?: ClientFinancialProfile | null,
   referenceDate = new Date(),
 ): RiskProfile {
-  const internalProfile = buildRiskProfile(client, loans, payments, installmentSchedules, referenceDate);
-  const externalScore = financialProfile?.externalScore ?? null;
-  const internalScore = financialProfile?.internalScore ?? internalProfile.score;
-  const consolidatedScore = financialProfile?.consolidatedScore ?? (
-    externalScore == null
-      ? internalScore
-      : Math.round((internalScore * 0.4) + (externalScore * 0.6))
-  );
+  const snapshot = buildScoreSnapshot(client, loans, payments, installmentSchedules, referenceDate);
+  const previousReference = new Date(referenceDate);
+  previousReference.setMonth(previousReference.getMonth() - 1);
+  const previousSnapshot = buildScoreSnapshot(client, loans, payments, installmentSchedules, previousReference);
+
+  const trendDelta = snapshot.currentScore - previousSnapshot.currentScore;
+  const trend: RiskProfile["trend"] = trendDelta >= 4 ? "improving" : trendDelta <= -4 ? "worsening" : "stable";
+  const visual = getProfileVisual(snapshot.currentScore);
 
   const positiveFactors = financialProfile?.positiveFactors?.length
     ? financialProfile.positiveFactors
-    : internalProfile.level === "baixo"
-      ? ["Histórico interno com poucos sinais de atraso."]
-      : [];
+    : [
+        snapshot.metrics.onTimeRatio >= 0.95 ? "Pontualidade histórica em nível excelente." : null,
+        snapshot.historicalScore >= 110 ? "Base histórica forte e consistente." : null,
+        snapshot.metrics.paidLoans > 0 ? `${snapshot.metrics.paidLoans} contrato${snapshot.metrics.paidLoans > 1 ? "s" : ""} já foi(foram) quitado(s).` : null,
+      ].filter(Boolean) as string[];
 
   const negativeFactors = financialProfile?.negativeFactors?.length
     ? financialProfile.negativeFactors
-    : internalProfile.reasons;
+    : [
+        snapshot.metrics.overdueLoans > 0 ? `${snapshot.metrics.overdueLoans} contrato${snapshot.metrics.overdueLoans > 1 ? "s" : ""} em atraso no momento.` : null,
+        snapshot.metrics.severeOverdueLoans > 0 ? "Há atraso atual acima de 30 dias." : null,
+        snapshot.metrics.latePayments > 0 ? `${Math.round(snapshot.metrics.lateRatio * 100)}% dos pagamentos tiveram atraso.` : null,
+        snapshot.historicalScore < 50 ? "O histórico acumulado limita a confiança operacional." : null,
+      ].filter(Boolean) as string[];
 
-  const baseReasons = [...negativeFactors];
-  if (financialProfile?.monthlyIncome && financialProfile?.debtLevel != null) {
-    const debtCommitment = financialProfile.monthlyIncome > 0
-      ? Math.round((financialProfile.debtLevel / financialProfile.monthlyIncome) * 100)
-      : null;
-    if (debtCommitment != null) {
-      baseReasons.unshift(`Comprometimento de renda estimado em ${debtCommitment}%.`);
-    }
-  }
-  if (financialProfile?.employmentStability) {
-    baseReasons.push(`Estabilidade profissional: ${financialProfile.employmentStability}.`);
-  }
-  if (financialProfile?.bankingRelationship) {
-    baseReasons.push(`Relacionamento bancário: ${financialProfile.bankingRelationship}.`);
-  }
-
-  let level: RiskProfile["level"] = internalProfile.level;
-  let label = internalProfile.label;
-  let badgeClassName = internalProfile.badgeClassName;
-
-  if (consolidatedScore >= 75) {
-    level = "critico";
-    label = "Risco crítico";
-    badgeClassName = "bg-destructive/15 text-destructive border-destructive/30";
-  } else if (consolidatedScore >= 55) {
-    level = "alto";
-    label = "Risco alto";
-    badgeClassName = "bg-destructive/10 text-destructive border-destructive/20";
-  } else if (consolidatedScore >= 35) {
-    level = "moderado";
-    label = "Risco moderado";
-    badgeClassName = "bg-warning/10 text-warning border-warning/20";
-  } else {
-    level = "baixo";
-    label = "Risco baixo";
-    badgeClassName = "bg-success/10 text-success border-success/20";
-  }
+  const reasons = [
+    `Score Histórico em ${snapshot.historicalScore}/150.` ,
+    `Score Atual em ${snapshot.currentScore}/100.` ,
+    snapshot.metrics.totalTimedPayments > 0 ? `${Math.round(snapshot.metrics.onTimeRatio * 100)}% de pagamentos em dia no histórico.` : "Ainda sem histórico suficiente de pagamentos.",
+    snapshot.metrics.severeOverdueLoans > 0 ? "Limite de proteção aplicado por atraso acima de 30 dias." : null,
+    snapshot.historicalScore < 50 ? "Limite de proteção aplicado por histórico abaixo do neutro." : null,
+    financialProfile?.employmentStability ? `Estabilidade profissional: ${financialProfile.employmentStability}.` : null,
+    financialProfile?.bankingRelationship ? `Relacionamento bancário: ${financialProfile.bankingRelationship}.` : null,
+  ].filter(Boolean) as string[];
 
   return {
-    score: Math.max(0, Math.min(100, Math.round(consolidatedScore))),
-    level,
-    label,
-    badgeClassName,
-    reasons: Array.from(new Set(baseReasons)).slice(0, 6),
-    internalScore,
-    externalScore,
+    score: snapshot.currentScore,
+    currentScore: snapshot.currentScore,
+    currentBaseScore: snapshot.currentBaseScore,
+    historicalScore: snapshot.historicalScore,
+    level: visual.level,
+    label: visual.label,
+    classification: getCombinedClassification(snapshot.currentScore, snapshot.historicalScore),
+    badgeClassName: visual.badgeClassName,
+    reasons: Array.from(new Set(reasons)).slice(0, 6),
+    trend,
+    trendLabel: getTrendLabel(trend),
+    internalScore: snapshot.historicalScore,
+    externalScore: financialProfile?.externalScore ?? financialProfile?.consolidatedScore ?? null,
     positiveFactors,
     negativeFactors,
   };
@@ -274,17 +399,17 @@ export function buildClientRiskHistory(client: Client, loans: Loan[], payments: 
 
   while (cursor <= current) {
     const monthEnd = new Date(cursor.getFullYear(), cursor.getMonth() + 1, 0, 23, 59, 59);
-    const profile = buildRiskProfile(client, loans, payments, installmentSchedules, monthEnd);
-    const metrics = getClientRiskMetrics(client, loans, payments, installmentSchedules, monthEnd);
+    const snapshot = buildScoreSnapshot(client, loans, payments, installmentSchedules, monthEnd);
     const month = `${cursor.getFullYear()}-${String(cursor.getMonth() + 1).padStart(2, "0")}`;
     points.push({
       month,
       label: cursor.toLocaleDateString("pt-BR", { month: "short", year: "2-digit" }),
-      score: profile.score,
-      latePayments: metrics.latePayments,
-      onTimePayments: metrics.onTimePayments,
-      overdueLoans: metrics.overdueLoans,
-      totalLent: metrics.totalLent,
+      score: snapshot.currentScore,
+      historicalScore: snapshot.historicalScore,
+      latePayments: snapshot.metrics.latePayments,
+      onTimePayments: snapshot.metrics.onTimePayments,
+      overdueLoans: snapshot.metrics.overdueLoans,
+      totalLent: snapshot.metrics.totalLent,
     });
     cursor.setMonth(cursor.getMonth() + 1);
   }
