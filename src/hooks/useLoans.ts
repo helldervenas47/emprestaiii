@@ -420,11 +420,18 @@ export function useLoans() {
       return;
     }
 
-    const [paymentInsert] = await Promise.all([
+    const [paymentInsert, loanUpdateRes] = await Promise.all([
       supabase.from("payments").insert(paymentPayload as any).select().single(),
       supabase.from("loans").update(loanUpdate).eq("id", loanId),
       adjustBalance(payAmount),
     ]);
+    if (paymentInsert.error) {
+      console.error("[payOffLoan] insert payment failed:", paymentInsert.error);
+      setPayments((prev) => prev.filter((p) => p.id !== tempPaymentId));
+      setLoans((prev) => prev.map((l) => l.id === loanId ? loan : l));
+      throw new Error(paymentInsert.error.message);
+    }
+    if (loanUpdateRes.error) console.error("[payOffLoan] update loan failed:", loanUpdateRes.error);
 
     // Manager commission (isolated — does NOT affect balance/profit/expenses)
     if (loan.hasManager && loan.managerId) {
