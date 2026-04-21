@@ -33,12 +33,13 @@ interface ManagedUser {
 const ALL_TABS = [
   { id: "overview", label: "Dashboard" },
   { id: "dashboard", label: "Empréstimos" },
-  { id: "calendar", label: "Calendário" },
-  { id: "clients", label: "Clientes" },
   { id: "products", label: "Vendas" },
   { id: "vehicles", label: "Veículos" },
+  { id: "calendar", label: "Calendário" },
+  { id: "clients", label: "Cadastro" },
   { id: "expenses", label: "Despesas" },
   { id: "overdue", label: "Relatório" },
+  { id: "settings", label: "Configurações" },
 ];
 
 export function UserManagement() {
