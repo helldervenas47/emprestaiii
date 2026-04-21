@@ -242,10 +242,10 @@ export function useLoans() {
   }, [user, dataOwnerId]);
 
   const addPayment = useCallback(async (loanId: string, paymentDate?: string) => {
-    if (!user || !dataOwnerId) return;
+    if (!user || !dataOwnerId) throw new Error("Sessão ainda não carregada");
     const dateStr = paymentDate || todayInAppTz();
     const loan = loans.find((l) => l.id === loanId);
-    if (!loan) return;
+    if (!loan) throw new Error("Empréstimo não encontrado");
 
     const remaining = getLoanRemainingAmount(loan, payments);
     const remainingInstallments = Math.max(1, loan.installments - loan.paidInstallments);
@@ -365,10 +365,11 @@ export function useLoans() {
   }, [user, dataOwnerId, loans, payments, installmentSchedules, fetchLoans, fetchPayments]);
 
   const addPartialPayment = useCallback(async (loanId: string, amount: number, paymentDate?: string) => {
-    if (!user || !dataOwnerId || amount <= 0) return;
+    if (!user || !dataOwnerId) throw new Error("Sessão ainda não carregada");
+    if (amount <= 0) throw new Error("Informe um valor de pagamento válido");
     const dateStr = paymentDate || todayInAppTz();
     const loan = loans.find((l) => l.id === loanId);
-    if (!loan) return;
+    if (!loan) throw new Error("Empréstimo não encontrado");
     const newRemaining = Math.max(0, getLoanRemainingAmount(loan, payments) - amount);
     const online = isOnline();
 
@@ -549,9 +550,9 @@ export function useLoans() {
   }, [user, dataOwnerId, loans, payments, fetchLoans, fetchPayments]);
 
   const addInterestOnlyPayment = useCallback(async (loanId: string, paymentDate?: string, customAmount?: number, feesAmount?: number) => {
-    if (!user || !dataOwnerId) return;
+    if (!user || !dataOwnerId) throw new Error("Sessão ainda não carregada");
     const loan = loans.find((l) => l.id === loanId);
-    if (!loan) return;
+    if (!loan) throw new Error("Empréstimo não encontrado");
     const dateStr = paymentDate || todayInAppTz();
     const isInstallmentLoan = loan.paymentType === "Parcelado" || loan.installments >= 2;
     const { lateFees } = getLoanLateFees(loan, payments, installmentSchedules);
