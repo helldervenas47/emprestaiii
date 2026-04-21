@@ -551,22 +551,23 @@ const Index = () => {
                 </div>
               </PopoverContent>
             </Popover>
+            {/* Acessos rápidos do topo: ocultos no mobile (disponíveis em "Mais") */}
             <Button
               variant="ghost"
               size="icon"
               onClick={handleHardRefresh}
               disabled={refreshing}
-              className="h-8 w-8 sm:h-9 sm:w-9"
+              className="hidden sm:inline-flex h-8 w-8 sm:h-9 sm:w-9"
               title="Atualizar"
             >
               <RefreshCw className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`} />
             </Button>
             <HideValuesToggle />
-            {role === "admin" && <ApprovalRequestsButton />}
-            <Button variant="ghost" size="icon" onClick={toggleTheme} className="h-8 w-8 sm:h-9 sm:w-9" title={dark ? "Modo claro" : "Modo escuro"}>
+            {role === "admin" && <div className="hidden sm:inline-flex"><ApprovalRequestsButton /></div>}
+            <Button variant="ghost" size="icon" onClick={toggleTheme} className="hidden sm:inline-flex h-8 w-8 sm:h-9 sm:w-9" title={dark ? "Modo claro" : "Modo escuro"}>
               {dark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
             </Button>
-            <Button variant="ghost" size="icon" onClick={signOut} className="h-8 w-8 sm:h-9 sm:w-9" title="Sair">
+            <Button variant="ghost" size="icon" onClick={signOut} className="hidden sm:inline-flex h-8 w-8 sm:h-9 sm:w-9" title="Sair">
               <LogOut className="h-4 w-4" />
             </Button>
             {!isReadOnly && tab === "vehicles" && (
