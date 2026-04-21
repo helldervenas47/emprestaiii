@@ -121,7 +121,7 @@ export async function generateContract(sale: Sale, client?: Client, locador?: Lo
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<title>Contrato - ${sale.customerName || sale.description}</title>
+<title>Contrato - ${e(sale.customerName) || e(sale.description)}</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body {
