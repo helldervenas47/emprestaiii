@@ -1041,7 +1041,7 @@ const Index = () => {
                 </div>
 
                 {/* Navegação adicional */}
-                {visibleTabs.filter(t => !pinnedTabs.includes(t.id)).length > 0 && (
+                {visibleTabs.filter(t => !bottomItemIds.includes(t.id)).length > 0 && (
                   <div>
                     <div className="flex items-center justify-between mb-2">
                       <h3 className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Navegação</h3>
