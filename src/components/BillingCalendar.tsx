@@ -400,6 +400,21 @@ export function BillingCalendar({ loans, payments, installmentSchedules, onPayme
     );
   };
 
+  // Sort selected items by priority: overdue > today > future, then desc value
+  const sortedSelectedItems = useMemo(() => {
+    const priority = (d: string) => {
+      if (d < todayStr) return 0;
+      if (d === todayStr) return 1;
+      return 2;
+    };
+    return [...selectedItems].sort((a, b) => {
+      const pa = priority(a.date);
+      const pb = priority(b.date);
+      if (pa !== pb) return pa - pb;
+      return b.amount - a.amount;
+    });
+  }, [selectedItems, todayStr]);
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
@@ -409,7 +424,8 @@ export function BillingCalendar({ loans, payments, installmentSchedules, onPayme
         <Button variant="outline" size="sm" onClick={goToToday}>Hoje</Button>
       </div>
 
-      <Card no3d>
+      <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)]">
+      <Card no3d className="md:sticky md:top-4 md:self-start">
         <CardContent className="p-4">
           {/* Month navigation */}
           <div className="flex items-center justify-between mb-4">
