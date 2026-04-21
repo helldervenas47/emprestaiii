@@ -300,6 +300,31 @@ const Index = () => {
   const [showVehicleExpenseForm, setShowVehicleExpenseForm] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
+  const [shortcutsEditorOpen, setShortcutsEditorOpen] = useState(false);
+  const DEFAULT_PINNED: Tab[] = ["overview", "clients", "dashboard", "expenses"];
+  const [pinnedTabs, setPinnedTabs] = useState<Tab[]>(() => {
+    try {
+      const raw = localStorage.getItem("hvcred-pinned-tabs");
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed) && parsed.every((x) => typeof x === "string")) {
+          return parsed.slice(0, 4) as Tab[];
+        }
+      }
+    } catch { /* noop */ }
+    return DEFAULT_PINNED;
+  });
+  const persistPinned = (next: Tab[]) => {
+    setPinnedTabs(next);
+    try { localStorage.setItem("hvcred-pinned-tabs", JSON.stringify(next)); } catch { /* noop */ }
+  };
+  const togglePinned = (id: Tab) => {
+    if (pinnedTabs.includes(id)) {
+      persistPinned(pinnedTabs.filter((t) => t !== id));
+    } else if (pinnedTabs.length < 4) {
+      persistPinned([...pinnedTabs, id]);
+    }
+  };
   const { pendingCount: approvalPendingCount } = useApprovalRequests();
   const { count: offlinePendingCount } = usePendingCount();
   const morePendingCount = (role === "admin" ? approvalPendingCount : 0) + offlinePendingCount;
