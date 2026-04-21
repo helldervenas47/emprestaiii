@@ -8,6 +8,9 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { Progress } from "@/components/ui/progress";
+import { Button } from "@/components/ui/button";
+import { useClientFinancialAnalysis } from "@/hooks/useClientFinancialAnalysis";
+import { buildConsolidatedRiskProfile } from "@/lib/clientRisk";
 
 interface Props {
   open: boolean;
@@ -20,7 +23,8 @@ interface Props {
 
 export function ClientDetailDialog({ open, onOpenChange, client, loans, payments, installmentSchedules }: Props) {
   const clientLoans = useMemo(() => (client ? getClientLoans(client, loans) : []), [client, loans]);
-  const riskProfile = useMemo(() => (client ? buildRiskProfile(client, loans, payments, installmentSchedules) : null), [client, loans, payments, installmentSchedules]);
+  const { profile: financialProfile, report, events, refreshing, requestAnalysis } = useClientFinancialAnalysis(client?.id);
+  const riskProfile = useMemo(() => (client ? buildConsolidatedRiskProfile(client, loans, payments, installmentSchedules, financialProfile) : null), [client, loans, payments, installmentSchedules, financialProfile]);
   const metrics = useMemo(() => (client ? getClientRiskMetrics(client, loans, payments, installmentSchedules) : null), [client, loans, payments, installmentSchedules]);
   const history = useMemo(() => (client ? buildClientRiskHistory(client, loans, payments, installmentSchedules) : []), [client, loans, payments, installmentSchedules]);
 
@@ -93,6 +97,23 @@ export function ClientDetailDialog({ open, onOpenChange, client, loans, payments
                       <div className="flex items-center justify-between"><span>Total recebido</span><span className="font-medium text-foreground">{formatRiskCurrency(totalReceived)}</span></div>
                     </div>
                   </div>
+                  <div className="rounded-xl border border-border/30 p-4 bg-muted/20 space-y-3">
+                    <div className="flex items-center justify-between gap-3">
+                      <p className="text-sm font-medium text-foreground">Perfil de crédito e capacidade</p>
+                      <Button size="sm" variant="outline" onClick={() => requestAnalysis()} disabled={refreshing}>
+                        {refreshing ? "Atualizando..." : "Atualizar análise"}
+                      </Button>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3 text-sm text-muted-foreground">
+                      <div><span className="block text-xs">Renda mensal</span><span className="text-foreground font-medium">{financialProfile?.monthlyIncome ? formatRiskCurrency(financialProfile.monthlyIncome) : "—"}</span></div>
+                      <div><span className="block text-xs">Endividamento</span><span className="text-foreground font-medium">{financialProfile?.debtLevel ? formatRiskCurrency(financialProfile.debtLevel) : "—"}</span></div>
+                      <div><span className="block text-xs">Estabilidade</span><span className="text-foreground font-medium">{financialProfile?.employmentStability || "—"}</span></div>
+                      <div><span className="block text-xs">Setor</span><span className="text-foreground font-medium">{financialProfile?.industrySector || "—"}</span></div>
+                      <div><span className="block text-xs">Bancarização</span><span className="text-foreground font-medium">{financialProfile?.bankingRelationship || "—"}</span></div>
+                      <div><span className="block text-xs">Score externo</span><span className="text-foreground font-medium">{financialProfile?.externalScore ?? "—"}</span></div>
+                    </div>
+                    {report?.creditHistorySummary ? <p className="text-xs text-muted-foreground">{report.creditHistorySummary}</p> : null}
+                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -130,6 +151,15 @@ export function ClientDetailDialog({ open, onOpenChange, client, loans, payments
               <CardContent className="p-4 space-y-3">
                 <h3 className="text-base font-semibold text-foreground">Linha do tempo recente</h3>
                 <div className="space-y-3 max-h-[520px] overflow-y-auto pr-1">
+                  {events.slice(0, 3).map((event) => (
+                    <div key={event.id} className="rounded-xl border border-border/30 p-3 bg-muted/20">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-sm font-medium text-foreground uppercase">{event.eventType.replace(/_/g, " ")}</span>
+                        <Badge variant="outline">{event.status}</Badge>
+                      </div>
+                      {event.message ? <p className="text-xs text-muted-foreground mt-2">{event.message}</p> : null}
+                    </div>
+                  ))}
                   {history.slice(-6).reverse().map((point) => (
                     <div key={point.month} className="rounded-xl border border-border/30 p-3 bg-muted/20">
                       <div className="flex items-center justify-between gap-2">
