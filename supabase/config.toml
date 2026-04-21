@@ -29,3 +29,6 @@ verify_jwt = false
 
 [functions.notify-approval-request]
 verify_jwt = false
+
+[functions.telegram-accumulated-delinquency-summary]
+verify_jwt = false
