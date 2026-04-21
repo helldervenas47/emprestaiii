@@ -254,6 +254,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
   const [riskAiOpen, setRiskAiOpen] = useState(false);
   const [riskAiLoading, setRiskAiLoading] = useState(false);
   const [riskAiReport, setRiskAiReport] = useState("");
+  const [riskAiTitle, setRiskAiTitle] = useState("Relatório IA para reduzir risco");
   const { chartOverrides, setChartOverrides, interestOverrides, setInterestOverrides } = useChartOverrides();
   const { getGoal } = useMonthlyGoals();
   const { prefs: personalInsightPrefs } = usePersonalInsightsTelegramPrefs();
@@ -778,25 +779,13 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
     };
   }, [data.monthlyInterestRate.rate, data.periodProfitRealized, data.totalIncome, loans, portfolio.defaultRate]);
 
-  const generateRiskAiReport = useCallback(async () => {
+  const generateAiReport = useCallback(async ({ title, type, metrics }: { title: string; type: "risk-reduction" | "priority-insight"; metrics: Record<string, unknown> }) => {
     setRiskAiOpen(true);
     setRiskAiLoading(true);
+    setRiskAiTitle(title);
     try {
-      const metrics = {
-        periodo: range.label,
-        scoreRisco: riskReturn.riskScore,
-        scoreRetorno: riskReturn.returnScore,
-        classificacao: riskReturn.classification,
-        inadimplenciaPercentual: portfolio.defaultRate,
-        atrasoMedioDias: Math.round(riskReturn.averageDelayDays),
-        concentracaoReceitaPercentual: Number(riskReturn.concentrationShare.toFixed(1)),
-        taxaJurosMedia: data.monthlyInterestRate.rate,
-        lucroGerado: data.periodProfitRealized,
-        insightAtual: riskReturn.insight,
-      };
-
       const { data: result, error } = await supabase.functions.invoke("generate-risk-reduction-report", {
-        body: { tone: riskAiTone, metrics },
+        body: { tone: riskAiTone, type, metrics },
       });
 
       if (error) throw error;
@@ -808,7 +797,26 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
     } finally {
       setRiskAiLoading(false);
     }
-  }, [data.monthlyInterestRate.rate, data.periodProfitRealized, portfolio.defaultRate, range.label, riskAiTone, riskReturn]);
+  }, [riskAiTone]);
+
+  const generateRiskAiReport = useCallback(async () => {
+    await generateAiReport({
+      title: "Relatório IA para reduzir risco",
+      type: "risk-reduction",
+      metrics: {
+        periodo: range.label,
+        scoreRisco: riskReturn.riskScore,
+        scoreRetorno: riskReturn.returnScore,
+        classificacao: riskReturn.classification,
+        inadimplenciaPercentual: portfolio.defaultRate,
+        atrasoMedioDias: Math.round(riskReturn.averageDelayDays),
+        concentracaoReceitaPercentual: Number(riskReturn.concentrationShare.toFixed(1)),
+        taxaJurosMedia: data.monthlyInterestRate.rate,
+        lucroGerado: data.periodProfitRealized,
+        insightAtual: riskReturn.insight,
+      },
+    });
+  }, [data.monthlyInterestRate.rate, data.periodProfitRealized, generateAiReport, portfolio.defaultRate, range.label, riskReturn]);
 
   const prioritizedInsights = useMemo(() => {
     const current = monthComparison.current;
