@@ -10,6 +10,7 @@ import { useHideValues } from "@/contexts/HideValuesContext";
 import { useMonthlyGoals, GoalType, formatMonthLabel } from "@/hooks/useMonthlyGoals";
 import { Loan, Payment, Expense, Client, InstallmentSchedule } from "@/types/loan";
 import { todayInAppTz } from "@/lib/timezone";
+import { useActiveCapitalSnapshots } from "@/hooks/useActiveCapitalSnapshots";
 import {
   Target, Percent, TrendingUp, Banknote, FileText,
   HandCoins, Coins, Wallet, PiggyBank, AlertTriangle, UserPlus,
@@ -109,15 +110,15 @@ const GOAL_EXPLANATIONS: Record<GoalType, {
     measurement: "Atingimento = (Juros recebidos ÷ Meta) × 100. Resultado em R$.",
   },
   active_capital: {
-    formula: "Capital Ativo = Soma do 'restante a receber' de todos os contratos não finalizados (snapshot atual)",
-    indicators: ["Saldo devedor (remaining_amount) de cada empréstimo ativo", "Status diferente de 'completed' ou 'paid'"],
-    dataSource: ["Tabela de Empréstimos (loans)", "Campo: remaining_amount", "Filtro: status ativo (independe do mês)"],
+    formula: "Capital Ativo = Soma do 'restante a receber' dos contratos ativos, congelada no fechamento de cada mês",
+    indicators: ["Durante o mês, mostra o valor parcial atualizado", "No fechamento do mês, o valor é congelado como snapshot", "Meses já fechados não são recalculados retroativamente"],
+    dataSource: ["Tabela de Empréstimos (loans)", "Snapshots mensais de capital ativo", "Filtro: mês selecionado"],
     example: {
       setup: "3 contratos ativos com restante: R$ 800, R$ 1.500 e R$ 2.200.",
       calc: "800 + 1.500 + 2.200",
       result: "Capital ativo = R$ 4.500",
     },
-    measurement: "Esta meta é sempre calculada com a foto atual da carteira, independente do mês selecionado.",
+    measurement: "Para mês em aberto, usa o valor parcial atual. Para mês fechado, usa apenas o snapshot congelado no fechamento.",
   },
   net_profit: {
     formula: "Lucro Líquido = Juros recebidos no mês − Despesas pagas no mês (escopo empresa)",
@@ -183,9 +184,6 @@ interface Props {
   selectedMonth?: string; // YYYY-MM — filtra metas exibidas (exceto active_capital)
   periodLabel?: string;
 }
-
-// Metas que NÃO devem ser filtradas pelo mês (sempre visíveis)
-const ALWAYS_VISIBLE_GOALS: GoalType[] = ["active_capital"];
 
 function inMonth(dateStr: string | undefined | null, month: string): boolean {
   if (!dateStr) return false;
@@ -439,6 +437,12 @@ export function GoalsCard({ loans, payments, expenses, clients, installmentSched
   const { goals } = useMonthlyGoals();
   const { hidden } = useHideValues();
   const [selectedGoalId, setSelectedGoalId] = useState<string | null>(null);
+  const currentActiveCapital = useMemo(
+    () => loans.filter((l: any) => l.status !== "completed" && l.status !== "paid")
+      .reduce((s: number, l: any) => s + (Number(l.remainingAmount ?? l.remaining_amount) || 0), 0),
+    [loans]
+  );
+  const { currentMonth, getSnapshotAmount } = useActiveCapitalSnapshots(currentActiveCapital);
 
   const enriched = useMemo(() => {
     // Para cada tipo de meta cadastrada, escolhe a melhor meta para o mês selecionado:
@@ -469,7 +473,9 @@ export function GoalsCard({ loans, payments, expenses, clients, installmentSched
       const meta = GOAL_TYPE_META[g.goalType];
       // Para metas sempre visíveis (snapshot atual) e para todas, usar o mês selecionado nos cálculos
       const computeMonth = selectedMonth || g.month;
-      const actual = computeActual(g.goalType, computeMonth, loans, payments, expenses, clients, installmentSchedules);
+      const actual = g.goalType === "active_capital"
+        ? (computeMonth === currentMonth ? currentActiveCapital : (getSnapshotAmount(computeMonth) ?? 0))
+        : computeActual(g.goalType, computeMonth, loans, payments, expenses, clients, installmentSchedules);
       let pct = 0;
       if (g.targetValue > 0) {
         pct = g.goalType === "max_default_rate"
@@ -487,7 +493,7 @@ export function GoalsCard({ loans, payments, expenses, clients, installmentSched
       // Ordena por prioridade visual: inverse no fim, demais por % desc
       return b.pct - a.pct;
     });
-  }, [goals, loans, payments, expenses, clients, installmentSchedules, selectedMonth]);
+  }, [goals, loans, payments, expenses, clients, installmentSchedules, selectedMonth, currentMonth, currentActiveCapital, getSnapshotAmount]);
 
   const totalGoals = enriched.length;
   const onTrack = enriched.filter((g) => g.pct >= 80).length;
@@ -560,11 +566,7 @@ export function GoalsCard({ loans, payments, expenses, clients, installmentSched
                         {g.meta?.label || g.goalType}
                       </p>
                       <div className="flex items-center justify-center sm:justify-start gap-1 mt-0.5 flex-wrap">
-                        {ALWAYS_VISIBLE_GOALS.includes(g.goalType) ? (
-                          <Badge variant="outline" className="text-[8px] sm:text-[9px] px-1 py-0 h-3.5 border-primary/40 text-primary bg-primary/5 uppercase tracking-wide leading-none">
-                            Sempre
-                          </Badge>
-                        ) : selectedMonth && g.month !== selectedMonth ? (
+                        {selectedMonth && g.month !== selectedMonth ? (
                           <Badge variant="outline" className="text-[8px] sm:text-[9px] px-1 py-0 h-3.5 border-warning/40 text-warning bg-warning/5 uppercase tracking-wide leading-none" title={`Meta herdada de ${formatMonthLabel(g.month)}`}>
                             Herdada · {formatMonthLabel(g.month)}
                           </Badge>
