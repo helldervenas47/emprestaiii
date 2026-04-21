@@ -330,6 +330,7 @@ const Index = () => {
   const { pendingCount: approvalPendingCount } = useApprovalRequests();
   const { count: offlinePendingCount } = usePendingCount();
   const morePendingCount = (role === "admin" ? approvalPendingCount : 0) + offlinePendingCount;
+  useApprovalPushAlerts();
   const isMobile = useIsMobile();
   const isMobileOrTablet = useIsMobileOrTablet();
   const isReadOnly = role === "visualizador";
