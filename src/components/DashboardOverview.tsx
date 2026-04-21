@@ -1506,8 +1506,18 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
 
       {/* Health Score Gauge - placed above Goals */}
       <Card no3d>
-        <CardContent className="p-4 sm:p-6">
-          <h3 className="text-sm font-semibold text-foreground mb-4">Saúde da Operação</h3>
+        <CardContent className="p-3 sm:p-6">
+          <div className="flex flex-col items-center text-center gap-3 mb-4 sm:flex-row sm:items-center sm:justify-between sm:text-left sm:gap-4">
+            <div className="flex items-center gap-2">
+              <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                <Sparkles className="h-4 w-4 text-primary" />
+              </div>
+              <div>
+                <h3 className="text-sm font-semibold text-foreground">Saúde da Operação</h3>
+                <p className="text-[10px] text-muted-foreground">Indicadores principais da carteira no período</p>
+              </div>
+            </div>
+          </div>
           <div className="flex flex-col items-center gap-4 sm:flex-row sm:gap-6">
             {/* Gauge */}
             <div className="relative w-28 h-28 sm:w-40 sm:h-40 shrink-0">
