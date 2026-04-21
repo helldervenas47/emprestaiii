@@ -56,8 +56,13 @@ export function usePersonalInsights(month?: string) {
     setLoading(true);
     setError(null);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) throw new Error("Sessão expirada. Faça login novamente.");
+      // Validate the session against the server (not just the cached JWT).
+      // The cached session can be stale (deleted server-side) and would cause 401.
+      const { data: userCheck, error: userErr } = await supabase.auth.getUser();
+      if (userErr || !userCheck?.user) {
+        await supabase.auth.signOut({ scope: "local" });
+        throw new Error("Sessão expirada. Faça login novamente.");
+      }
       const { data: result, error: fnError } = await supabase.functions.invoke(
         "generate-personal-insights",
         { body: { month: targetMonth, force } },
