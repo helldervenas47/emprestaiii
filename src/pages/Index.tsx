@@ -531,26 +531,6 @@ const Index = () => {
                 </Badge>
               </div>
             )}
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-8 w-8 sm:h-9 sm:w-9" title="Ajuda">
-                  <Info className="h-4 w-4" />
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-72 sm:w-80" align="end">
-                <div className="space-y-2">
-                  <h3 className="font-semibold text-sm text-foreground">{tabHelp[tab].title}</h3>
-                  <ul className="space-y-1.5">
-                    {tabHelp[tab].items.map((item, i) => (
-                      <li key={i} className="text-xs text-muted-foreground flex gap-2">
-                        <span className="text-primary mt-0.5">•</span>
-                        <span>{item}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              </PopoverContent>
-            </Popover>
             {/* Acessos rápidos do topo: ocultos no mobile (disponíveis em "Mais") */}
             <Button
               variant="ghost"
@@ -562,7 +542,6 @@ const Index = () => {
             >
               <RefreshCw className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`} />
             </Button>
-            <HideValuesToggle />
             {role === "admin" && <div className="hidden sm:inline-flex"><ApprovalRequestsButton /></div>}
             <Button variant="ghost" size="icon" onClick={toggleTheme} className="hidden sm:inline-flex h-8 w-8 sm:h-9 sm:w-9" title={dark ? "Modo claro" : "Modo escuro"}>
               {dark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
@@ -570,16 +549,6 @@ const Index = () => {
             <Button variant="ghost" size="icon" onClick={signOut} className="hidden sm:inline-flex h-8 w-8 sm:h-9 sm:w-9" title="Sair">
               <LogOut className="h-4 w-4" />
             </Button>
-            {!isReadOnly && tab === "vehicles" && (
-              <Button variant="outline" size="sm" onClick={() => setShowVehicleExpenseForm(true)} className="h-8 px-2 sm:px-3">
-                <Receipt className="h-4 w-4 sm:mr-1" /><span className="hidden sm:inline">Registrar Despesa</span>
-              </Button>
-            )}
-            {!isReadOnly && tab !== "overview" && tab !== "overdue" && tab !== "calendar" && tab !== "settings" && tab !== "dashboard" && !(tab === "clients" && clientSubTab === "veiculos") && (
-              <Button onClick={handlePrimaryAction} size="sm" className="h-8 px-2 sm:px-3">
-                <Plus className="h-4 w-4 sm:mr-1" /><span className="hidden sm:inline">{primaryLabel}</span>
-              </Button>
-            )}
           </div>
         </div>
 
