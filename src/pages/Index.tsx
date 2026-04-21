@@ -852,16 +852,28 @@ const Index = () => {
         </Suspense>
       </main>
 
-      {!isReadOnly && tab === "dashboard" && (
+      {!isReadOnly && primaryLabel && (tab === "dashboard" || tab === "expenses" || tab === "products" || tab === "vehicles" || (tab === "clients" && clientSubTab === "clientes")) && (
         <button
           type="button"
-          onClick={() => setShowLoanForm(true)}
-          aria-label="Novo Empréstimo"
-          title="Novo Empréstimo"
+          onClick={handlePrimaryAction}
+          aria-label={primaryLabel}
+          title={primaryLabel}
           className="fixed z-50 right-6 md:right-8 h-14 w-14 md:h-16 md:w-16 rounded-full bg-primary text-primary-foreground shadow-[0_8px_24px_-4px_hsl(var(--primary)/0.55)] hover:shadow-[0_12px_32px_-4px_hsl(var(--primary)/0.7)] hover:scale-105 active:scale-95 transition-all duration-200 flex items-center justify-center animate-fade-in touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
           style={{ bottom: isMobile ? `calc(env(safe-area-inset-bottom) + 80px)` : `calc(env(safe-area-inset-bottom) + 24px)` }}
         >
           <Plus className="h-6 w-6 md:h-7 md:w-7" strokeWidth={2.5} />
+        </button>
+      )}
+      {!isReadOnly && tab === "vehicles" && (
+        <button
+          type="button"
+          onClick={() => setShowVehicleExpenseForm(true)}
+          aria-label="Registrar Despesa"
+          title="Registrar Despesa"
+          className="fixed z-40 right-6 md:right-8 h-12 w-12 md:h-14 md:w-14 rounded-full bg-secondary text-secondary-foreground border border-border shadow-lg hover:scale-105 active:scale-95 transition-all duration-200 flex items-center justify-center animate-fade-in touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+          style={{ bottom: isMobile ? `calc(env(safe-area-inset-bottom) + 80px + 72px)` : `calc(env(safe-area-inset-bottom) + 24px + 80px)` }}
+        >
+          <Receipt className="h-5 w-5 md:h-6 md:w-6" strokeWidth={2.5} />
         </button>
       )}
 
