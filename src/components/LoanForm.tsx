@@ -19,6 +19,9 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { buildConsolidatedRiskProfile, getClientRiskMetrics } from "@/lib/clientRisk";
 import { useClientFinancialAnalysis } from "@/hooks/useClientFinancialAnalysis";
+import { useCreditLimits } from "@/hooks/useCreditLimits";
+import { computeAvailableLimit, computeUsedLimit, formatBRL } from "@/lib/creditLimit";
+import { Wallet, AlertTriangle as AlertTriangleIcon } from "lucide-react";
 
 interface Props {
   onAdd: (loan: Omit<Loan, "id" | "status" | "paidInstallments">) => Promise<string | null>;
@@ -83,6 +86,19 @@ export function LoanForm({ onAdd, onSaveSchedule, onClose, clients, loans, payme
       metrics: getClientRiskMetrics(selectedClient, loans, payments, installmentSchedules),
     };
   }, [selectedClient, loans, payments, installmentSchedules, selectedClientFinancialProfile]);
+
+  const { getLimitForClient } = useCreditLimits();
+  const selectedClientLimit = selectedClient ? getLimitForClient(selectedClient.id) : undefined;
+  const selectedClientUsed = useMemo(
+    () => (selectedClient ? computeUsedLimit(selectedClient.id, loans) : 0),
+    [selectedClient, loans],
+  );
+  const selectedClientAvailable = computeAvailableLimit(
+    selectedClientLimit?.currentLimit ?? 0,
+    selectedClientUsed,
+  );
+  const requestedAmount = parseFloat(form.amount.replace(",", ".")) || 0;
+  const exceedsLimit = !!selectedClient && requestedAmount > selectedClientAvailable && (selectedClientLimit?.currentLimit ?? 0) > 0;
 
   // Auto-toggle: when selected client is a manager, default hasManager=true
   // Also pre-fill interest rate from client's defaultInterestRate (fallback 30 / 20 with manager)
@@ -319,6 +335,43 @@ export function LoanForm({ onAdd, onSaveSchedule, onClose, clients, loans, payme
                 <div className="rounded-md border border-border/60 bg-background px-2.5 py-2 text-xs text-muted-foreground">
                   Score calculado apenas com contratos, pagamentos, atrasos, pontualidade e relacionamento registrados no app.
                 </div>
+              </div>
+            )}
+
+            {selectedClient && (
+              <div className={`rounded-lg border p-3 space-y-2 ${exceedsLimit ? "border-warning bg-warning/10" : "border-border bg-muted/20"}`}>
+                <div className="flex items-center justify-between gap-2 flex-wrap">
+                  <div className="flex items-center gap-2">
+                    <Wallet className={`h-4 w-4 ${exceedsLimit ? "text-warning" : "text-primary"}`} />
+                    <p className="text-sm font-medium">Limite de crédito do cliente</p>
+                  </div>
+                  <Badge variant="outline" className="text-[10px]">
+                    {selectedClientLimit?.mode === "manual" ? "Manual" : "Auto"}
+                  </Badge>
+                </div>
+                <div className="grid grid-cols-3 gap-2 text-xs">
+                  <div className="rounded-md border border-border/60 bg-background px-2.5 py-2">
+                    <p className="text-muted-foreground">Total</p>
+                    <p className="font-semibold">{formatBRL(selectedClientLimit?.currentLimit ?? 0)}</p>
+                  </div>
+                  <div className="rounded-md border border-border/60 bg-background px-2.5 py-2">
+                    <p className="text-muted-foreground">Em uso</p>
+                    <p className="font-semibold">{formatBRL(selectedClientUsed)}</p>
+                  </div>
+                  <div className="rounded-md border border-border/60 bg-background px-2.5 py-2">
+                    <p className="text-muted-foreground">Disponível</p>
+                    <p className="font-semibold text-success">{formatBRL(selectedClientAvailable)}</p>
+                  </div>
+                </div>
+                {exceedsLimit && (
+                  <div className="flex items-start gap-2 text-xs text-warning">
+                    <AlertTriangleIcon className="h-4 w-4 shrink-0 mt-0.5" />
+                    <p>
+                      Atenção: este empréstimo de {formatBRL(requestedAmount)} ultrapassa o limite disponível
+                      de {formatBRL(selectedClientAvailable)}. Você ainda pode prosseguir.
+                    </p>
+                  </div>
+                )}
               </div>
             )}
 
