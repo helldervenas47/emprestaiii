@@ -5,6 +5,7 @@ import { adjustBalance, adjustBalanceOffline } from "@/lib/balance";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
 import { toast } from "sonner";
+import { getLoanLateFees } from "@/lib/loanLateFees";
 import { notifyRemoteUpdate } from "@/lib/realtimeToast";
 import {
   cacheRows, getCachedRows, upsertCachedRow, removeCachedRow,
@@ -437,6 +438,39 @@ export function useLoans() {
     const loan = loans.find((l) => l.id === loanId);
     if (!loan) return;
     const dateStr = paymentDate || todayInAppTz();
+    const isInstallmentLoan = loan.paymentType === "Parcelado" || loan.installments >= 2;
+    const { lateFees } = getLoanLateFees(loan, payments, installmentSchedules);
+    const appliedFees = feesAmount != null && feesAmount > 0 ? feesAmount : lateFees;
+
+    if (isInstallmentLoan) {
+      const nextInstallmentNumber = loan.paidInstallments + 1;
+      const nextSchedule = installmentSchedules.find(
+        (schedule) => schedule.loanId === loanId && schedule.installmentNumber === nextInstallmentNumber,
+      );
+      const currentAmount = nextSchedule?.amount
+        ?? (loan.customInstallmentValue != null && loan.customInstallmentValue > 0
+          ? loan.customInstallmentValue
+          : calculateTotalWithInterest(loan.amount, loan.interestRate, loan.installments) / Math.max(1, loan.installments));
+      const updatedAmount = Math.round((currentAmount + appliedFees) * 100) / 100;
+
+      if (nextSchedule?.id) {
+        if (!isOnline()) {
+          setInstallmentSchedules((prev) => prev.map((schedule) => schedule.id === nextSchedule.id ? { ...schedule, amount: updatedAmount } : schedule));
+          await enqueueMutation({ table: "loan_installments", op: "update", recordId: nextSchedule.id, payload: { amount: updatedAmount } });
+          return;
+        }
+
+        await supabase.from("loan_installments").update({ amount: updatedAmount }).eq("id", nextSchedule.id);
+        await fetchSchedules();
+        await fetchLoans();
+        return;
+      }
+
+      await saveSchedule(loanId, [{ installmentNumber: nextInstallmentNumber, dueDate: loan.dueDate, amount: updatedAmount }]);
+      await fetchLoans();
+      return;
+    }
+
     const baseInterest = loan.customInterestValue != null && loan.customInterestValue > 0
       ? loan.customInterestValue
       : loan.amount * (loan.interestRate / 100);
