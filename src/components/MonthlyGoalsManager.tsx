@@ -47,7 +47,7 @@ function fmtValue(v: number, unit: Unit, hidden: boolean): string {
   return Math.round(v).toString();
 }
 
-export function MonthlyGoalsManager() {
+export function MonthlyGoalsManager({ readOnly = false }: { readOnly?: boolean } = {}) {
   const { goals, upsertGoal, deleteGoal, loading } = useMonthlyGoals();
   const { loans, payments } = useLoans();
   const { clients } = useClients();
