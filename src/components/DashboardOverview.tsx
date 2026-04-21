@@ -20,7 +20,7 @@ import {
 } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, ComposedChart, Line } from "recharts";
 
 const InfoPopover = ({ text }: { text: string }) => (
   <Popover>
@@ -100,6 +100,74 @@ function rawFormatCurrency(v: number) {
   return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v);
 }
 
+function formatDelta(value: number | null, suffix = "%") {
+  if (value === null || !Number.isFinite(value)) return "—";
+  const sign = value > 0 ? "+" : "";
+  return `${sign}${value.toFixed(1)}${suffix}`;
+}
+
+function getSaleReceivedAmount(sale: Sale) {
+  let received = 0;
+  if (sale.installmentAmounts && sale.installmentAmounts.length > 0) {
+    for (let i = 0; i < sale.paidInstallments; i++) received += sale.installmentAmounts[i] || 0;
+  } else if (sale.installmentValue) {
+    received = sale.paidInstallments * sale.installmentValue;
+  } else if (sale.installments > 0) {
+    received = sale.paidInstallments * (sale.total / sale.installments);
+  }
+  return received + (sale.partialPaid || 0);
+}
+
+function calculateRealizedProfitForRange(loans: Loan[], payments: Payment[], start: Date, end: Date) {
+  const paymentsInPeriod = payments.filter((p) => isInRange(p.date, start, end));
+  const quitadoLoanIds = new Set<string>();
+
+  loans.forEach((loan) => {
+    if (loan.status !== "paid") return;
+    const loanPays = payments.filter((payment) => payment.loanId === loan.id);
+    if (loanPays.length === 0) return;
+    const lastPayDate = loanPays.reduce((max, payment) => payment.date > max ? payment.date : max, loanPays[0].date);
+    if (isInRange(lastPayDate, start, end)) quitadoLoanIds.add(loan.id);
+  });
+
+  const interestOnlyProfit = paymentsInPeriod
+    .filter((payment) => payment.installmentNumber === 0 && !quitadoLoanIds.has(payment.loanId))
+    .reduce((sum, payment) => sum + payment.amount, 0);
+
+  const quitadoProfit = Array.from(quitadoLoanIds).reduce((sum, loanId) => {
+    const loan = loans.find((item) => item.id === loanId);
+    if (!loan) return sum;
+    const totalPaid = payments.filter((payment) => payment.loanId === loanId).reduce((acc, payment) => acc + payment.amount, 0);
+    return sum + Math.max(0, totalPaid - loan.amount);
+  }, 0);
+
+  const activeInstallmentProfit = paymentsInPeriod
+    .filter((payment) => payment.installmentNumber !== 0 && !quitadoLoanIds.has(payment.loanId))
+    .reduce((sum, payment) => {
+      const loan = loans.find((item) => item.id === payment.loanId);
+      if (!loan) return sum;
+      const totalWithInterest = calculateTotalWithInterest(loan.amount, loan.interestRate, loan.installments);
+      const interestRatio = totalWithInterest > 0 ? 1 - (loan.amount / totalWithInterest) : 0;
+      return sum + (payment.amount * interestRatio);
+    }, 0);
+
+  return interestOnlyProfit + quitadoProfit + activeInstallmentProfit;
+}
+
+function summarizeMonthMetrics(loans: Loan[], sales: Sale[], payments: Payment[], includeSales: boolean, start: Date, end: Date) {
+  const monthPayments = payments.filter((payment) => isInRange(payment.date, start, end));
+  const monthSales = sales.filter((sale) => isInRange(sale.date, start, end));
+  const monthLoans = loans.filter((loan) => isInRange(loan.startDate, start, end));
+  const revenue = monthPayments.reduce((sum, payment) => sum + payment.amount, 0)
+    + (includeSales ? monthSales.reduce((sum, sale) => sum + getSaleReceivedAmount(sale), 0) : 0);
+
+  return {
+    revenue,
+    profit: calculateRealizedProfitForRange(loans, payments, start, end),
+    interestRate: calculateMonthlyInterestRate(monthLoans).rate,
+  };
+}
+
 
 // Subscribe to balance changes via storage events + polling
 function useAccountBalance(): [number, (v: number) => void] {
@@ -120,6 +188,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
   const [period, setPeriod] = useState<Period>("month");
   const [offset, setOffset] = useState(0);
   const [txFilter, setTxFilter] = useState<"all" | "in" | "out">("all");
+  const [comparisonWindow, setComparisonWindow] = useState<3 | 6 | 12>(6);
   const [showAllTx, setShowAllTx] = useState(false);
   const [expandedBreakdown, setExpandedBreakdown] = useState<string | null>(null);
   
@@ -534,6 +603,120 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
       forecastEndMonth,
     };
   }, [loans, payments, installmentSchedules]);
+
+  const monthComparison = useMemo(() => {
+    const anchor = new Date(range.start.getFullYear(), range.start.getMonth(), 1);
+    const series = Array.from({ length: comparisonWindow }, (_, index) => {
+      const monthDate = new Date(anchor.getFullYear(), anchor.getMonth() - (comparisonWindow - 1 - index), 1);
+      const monthStart = new Date(monthDate.getFullYear(), monthDate.getMonth(), 1);
+      const monthEnd = new Date(monthDate.getFullYear(), monthDate.getMonth() + 1, 0, 23, 59, 59, 999);
+      const metrics = summarizeMonthMetrics(loans, sales, payments, includeSales, monthStart, monthEnd);
+
+      return {
+        key: `${monthDate.getFullYear()}-${String(monthDate.getMonth() + 1).padStart(2, "0")}`,
+        label: `${monthNames[monthDate.getMonth()].slice(0, 3)}/${String(monthDate.getFullYear()).slice(2)}`,
+        ...metrics,
+      };
+    });
+
+    const current = series[series.length - 1];
+    const previous = series[series.length - 2];
+    const revenueDelta = previous ? (previous.revenue > 0 ? ((current.revenue - previous.revenue) / previous.revenue) * 100 : null) : null;
+    const profitDelta = previous ? (previous.profit > 0 ? ((current.profit - previous.profit) / previous.profit) * 100 : null) : null;
+    const interestDelta = previous && current.interestRate !== null && previous.interestRate !== null
+      ? current.interestRate - previous.interestRate
+      : null;
+
+    const insightCandidates = [
+      {
+        weight: Math.abs(revenueDelta ?? 0),
+        text: revenueDelta === null
+          ? "Ainda não há base suficiente para comparar o faturamento com o mês anterior."
+          : revenueDelta >= 0
+            ? `Seu faturamento cresceu ${Math.abs(revenueDelta).toFixed(1)}% em relação ao mês passado.`
+            : `Seu faturamento caiu ${Math.abs(revenueDelta).toFixed(1)}% em relação ao mês passado.`
+      },
+      {
+        weight: Math.abs(interestDelta ?? 0),
+        text: interestDelta === null
+          ? "A taxa de juros ainda não tem base suficiente para comparação mês a mês."
+          : interestDelta >= 0
+            ? `A taxa de juros subiu ${Math.abs(interestDelta).toFixed(1)} p.p., reforçando a rentabilidade do mês.`
+            : `A taxa de juros caiu ${Math.abs(interestDelta).toFixed(1)} p.p., atenção à rentabilidade.`
+      },
+      {
+        weight: Math.abs(profitDelta ?? 0),
+        text: profitDelta === null
+          ? "Ainda não há base suficiente para comparar o lucro com o mês anterior."
+          : profitDelta >= 0
+            ? `Seu lucro avançou ${Math.abs(profitDelta).toFixed(1)}% contra o mês anterior.`
+            : `Seu lucro recuou ${Math.abs(profitDelta).toFixed(1)}% contra o mês anterior.`
+      },
+    ].sort((a, b) => b.weight - a.weight);
+
+    return {
+      series,
+      current,
+      previous,
+      revenueDelta,
+      profitDelta,
+      interestDelta,
+      insight: insightCandidates[0]?.text ?? "Sem dados suficientes para gerar insight no período.",
+    };
+  }, [comparisonWindow, includeSales, loans, payments, range.start, sales]);
+
+  const riskReturn = useMemo(() => {
+    const activeLoans = loans.filter((loan) => loan.status !== "paid");
+    const today = new Date(`${todayInAppTz()}T00:00:00`);
+    const overdueLoans = activeLoans.filter((loan) => new Date(`${loan.dueDate}T00:00:00`) < today);
+    const averageDelayDays = overdueLoans.length > 0
+      ? overdueLoans.reduce((sum, loan) => {
+          const dueDate = new Date(`${loan.dueDate}T00:00:00`);
+          const diff = Math.max(0, Math.floor((today.getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24)));
+          return sum + diff;
+        }, 0) / overdueLoans.length
+      : 0;
+
+    const clientExposure = activeLoans.reduce<Record<string, number>>((acc, loan) => {
+      const key = loan.borrowerId || loan.borrowerName;
+      acc[key] = (acc[key] ?? 0) + (loan.remainingAmount || loan.amount);
+      return acc;
+    }, {});
+    const totalExposure = Object.values(clientExposure).reduce((sum, value) => sum + value, 0);
+    const topExposure = Object.values(clientExposure).sort((a, b) => b - a).slice(0, 3).reduce((sum, value) => sum + value, 0);
+    const concentrationShare = totalExposure > 0 ? (topExposure / totalExposure) * 100 : 0;
+
+    const defaultScore = Math.min(100, portfolio.defaultRate * 2.2);
+    const delayScore = Math.min(100, (averageDelayDays / 30) * 100);
+    const concentrationScore = Math.min(100, Math.max(0, ((concentrationShare - 35) / 40) * 100));
+    const riskScore = Math.round((defaultScore * 0.45) + (delayScore * 0.3) + (concentrationScore * 0.25));
+
+    const interestScore = Math.min(100, Math.max(0, ((data.monthlyInterestRate.rate ?? 0) / 25) * 100));
+    const profitMargin = data.totalIncome > 0 ? (data.periodProfitRealized / data.totalIncome) * 100 : 0;
+    const profitScore = Math.min(100, Math.max(0, (profitMargin / 20) * 100));
+    const returnScore = Math.round((interestScore * 0.55) + (profitScore * 0.45));
+    const axisPosition = Math.round((riskScore * 0.5) + (returnScore * 0.5));
+
+    const classification = riskScore < 35 ? "Baixo risco" : riskScore < 70 ? "Médio risco" : "Alto risco";
+    const classificationColor = riskScore < 35 ? "text-success" : riskScore < 70 ? "text-warning" : "text-destructive";
+
+    let insight = "Risco e retorno estão equilibrados; mantenha atenção na inadimplência para sustentar a margem.";
+    if (riskScore >= 70 && returnScore >= 65) insight = "Você está operando com alto retorno, porém com risco elevado.";
+    else if (riskScore < 35 && returnScore >= 65) insight = "Você mantém bom retorno com risco controlado.";
+    else if (riskScore < 35 && returnScore < 50) insight = "Seu risco está controlado, mas o retorno pode ser melhorado.";
+    else if (riskScore >= 70 && returnScore < 50) insight = "O risco está alto para o retorno atual; revise inadimplência e concentração.";
+
+    return {
+      riskScore,
+      returnScore,
+      axisPosition,
+      classification,
+      classificationColor,
+      insight,
+      averageDelayDays,
+      concentrationShare,
+    };
+  }, [data.monthlyInterestRate.rate, data.periodProfitRealized, data.totalIncome, loans, portfolio.defaultRate]);
 
   // Manual overrides for monthly chart values
   // chartOverrides already declared above
@@ -1070,6 +1253,128 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
 
       {/* Goals Card - placed above Health Score */}
       <GoalsCard loans={loans} payments={payments} expenses={expenses} clients={clients ?? []} installmentSchedules={installmentSchedules} selectedMonth={goalMonthKey} periodLabel={range.label} />
+
+      <Card no3d>
+        <CardContent className="p-4 sm:p-6 space-y-4">
+          <div className="flex items-start justify-between gap-3 flex-wrap">
+            <div>
+              <h3 className="text-sm font-semibold text-foreground">Comparativo mês a mês</h3>
+              <p className="text-xs text-muted-foreground">Resumo rápido, tendência visual e leitura automática do período.</p>
+            </div>
+            <div className="flex bg-muted/60 rounded-xl p-0.5 border border-border/30">
+              {[3, 6, 12].map((months) => (
+                <button
+                  key={months}
+                  type="button"
+                  onClick={() => setComparisonWindow(months as 3 | 6 | 12)}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${comparisonWindow === months ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
+                >
+                  {months} meses
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            {[
+              { label: "Faturamento", value: formatCurrency(monthComparison.current?.revenue ?? 0), delta: formatDelta(monthComparison.revenueDelta), positive: (monthComparison.revenueDelta ?? 0) >= 0 },
+              { label: "Juros", value: monthComparison.current?.interestRate !== null && monthComparison.current?.interestRate !== undefined ? `${monthComparison.current.interestRate.toFixed(2)}%` : "Sem dados", delta: formatDelta(monthComparison.interestDelta), positive: (monthComparison.interestDelta ?? 0) >= 0 },
+              { label: "Lucro", value: formatCurrency(monthComparison.current?.profit ?? 0), delta: formatDelta(monthComparison.profitDelta), positive: (monthComparison.profitDelta ?? 0) >= 0 },
+            ].map((item) => (
+              <div key={item.label} className="rounded-xl border border-border/30 bg-muted/30 p-4">
+                <p className="text-xs text-muted-foreground">{item.label}</p>
+                <p className="text-lg font-bold text-foreground mt-1">{item.value}</p>
+                <div className={`mt-2 inline-flex items-center gap-1 text-xs font-medium ${item.positive ? "text-success" : "text-destructive"}`}>
+                  {item.positive ? <TrendingUp className="h-3.5 w-3.5" /> : <TrendingDown className="h-3.5 w-3.5" />}
+                  <span>{item.delta}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="h-64">
+            <ResponsiveContainer width="100%" height="100%">
+              <ComposedChart data={monthComparison.series} margin={{ top: 8, right: 8, left: 8, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" className="stroke-muted/30" />
+                <XAxis dataKey="label" tick={{ fontSize: 11 }} className="text-muted-foreground" />
+                <YAxis yAxisId="currency" tickFormatter={(value) => `R$ ${Math.round(value / 1000)}k`} tick={{ fontSize: 11 }} className="text-muted-foreground" />
+                <YAxis yAxisId="percent" orientation="right" tickFormatter={(value) => `${value}%`} tick={{ fontSize: 11 }} className="text-muted-foreground" />
+                <Tooltip
+                  formatter={(value: number, name: string) => {
+                    if (name === "Juros") return [`${Number(value).toFixed(2)}%`, name];
+                    return [rawFormatCurrency(Number(value)), name];
+                  }}
+                  contentStyle={{ backgroundColor: "hsl(var(--card))", borderColor: "hsl(var(--border))", borderRadius: "12px" }}
+                />
+                <Legend />
+                <Bar yAxisId="currency" dataKey="revenue" name="Faturamento" fill="hsl(var(--success))" radius={[4, 4, 0, 0]} />
+                <Bar yAxisId="currency" dataKey="profit" name="Lucro" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
+                <Line yAxisId="percent" type="monotone" dataKey="interestRate" name="Juros" stroke="hsl(var(--warning))" strokeWidth={2.5} dot={{ r: 3 }} connectNulls />
+              </ComposedChart>
+            </ResponsiveContainer>
+          </div>
+
+          <div className="rounded-xl border border-border/30 bg-muted/20 p-4">
+            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">Insight</p>
+            <p className="text-sm text-foreground">{monthComparison.insight}</p>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card no3d>
+        <CardContent className="p-4 sm:p-6 space-y-4">
+          <div>
+            <h3 className="text-sm font-semibold text-foreground">Indicador risco vs retorno</h3>
+            <p className="text-xs text-muted-foreground">Score simples, classificação e alerta visual da operação atual.</p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-[240px_1fr] gap-4 items-center">
+            <div className="rounded-xl border border-border/30 bg-muted/20 p-4 space-y-3">
+              <div>
+                <p className="text-xs text-muted-foreground">Score de risco</p>
+                <p className="text-3xl font-bold text-foreground">{riskReturn.riskScore}</p>
+              </div>
+              <div className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold bg-muted ${riskReturn.classificationColor}`}>
+                {riskReturn.classification}
+              </div>
+              <div className="space-y-2 text-xs text-muted-foreground">
+                <div className="flex items-center justify-between"><span>Inadimplência</span><span>{portfolio.defaultRate.toFixed(1)}%</span></div>
+                <div className="flex items-center justify-between"><span>Atraso médio</span><span>{Math.round(riskReturn.averageDelayDays)} dias</span></div>
+                <div className="flex items-center justify-between"><span>Concentração</span><span>{riskReturn.concentrationShare.toFixed(1)}%</span></div>
+                <div className="flex items-center justify-between"><span>Retorno</span><span>{riskReturn.returnScore}/100</span></div>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <div className="rounded-xl border border-border/30 bg-muted/20 p-4">
+                <div className="flex items-center justify-between text-xs text-muted-foreground mb-2">
+                  <span>Baixo risco / baixo retorno</span>
+                  <span>Alto risco / alto retorno</span>
+                </div>
+                <div className="relative h-4 rounded-full bg-gradient-to-r from-success/40 via-warning/35 to-destructive/45">
+                  <div className="absolute top-1/2 h-6 w-6 -translate-y-1/2 -translate-x-1/2 rounded-full border-2 border-background bg-card shadow" style={{ left: `${riskReturn.axisPosition}%` }} />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="rounded-xl border border-border/30 bg-muted/20 p-4">
+                  <p className="text-xs text-muted-foreground">Taxa de juros média</p>
+                  <p className="text-lg font-bold text-foreground mt-1">{data.monthlyInterestRate.rate !== null ? `${data.monthlyInterestRate.rate.toFixed(2)}%` : "Sem dados"}</p>
+                </div>
+                <div className="rounded-xl border border-border/30 bg-muted/20 p-4">
+                  <p className="text-xs text-muted-foreground">Lucro gerado</p>
+                  <p className="text-lg font-bold text-foreground mt-1">{formatCurrency(data.periodProfitRealized)}</p>
+                </div>
+              </div>
+
+              <div className="rounded-xl border border-border/30 bg-muted/20 p-4">
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">Insight</p>
+                <p className="text-sm text-foreground">{riskReturn.insight}</p>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Health Score Gauge */}
       <Card no3d>
