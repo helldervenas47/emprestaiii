@@ -15,23 +15,25 @@ Deno.serve(async (req) => {
   const authHeader = req.headers.get("Authorization");
   if (!authHeader) return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: corsHeaders });
 
-  const userClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-    global: { headers: { Authorization: authHeader } },
-  });
-  const { data: { user }, error: userErr } = await userClient.auth.getUser();
-  if (userErr || !user) return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: corsHeaders });
+  const userClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  const token = authHeader.replace(/^Bearer\s+/i, "");
+  const { data: claimsData, error: claimsErr } = await userClient.auth.getClaims(token);
+  const userId = claimsData?.claims?.sub;
+  if (claimsErr || !userId) {
+    return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: corsHeaders });
+  }
 
   const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
   const { data: existing } = await admin.from("telegram_reports_links")
-    .select("chat_id").eq("user_id", user.id).maybeSingle();
+    .select("chat_id").eq("user_id", userId).maybeSingle();
   if (existing) {
     return new Response(JSON.stringify({ alreadyLinked: true, chat_id: existing.chat_id }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
 
-  await admin.from("telegram_reports_link_codes").delete().eq("user_id", user.id);
+  await admin.from("telegram_reports_link_codes").delete().eq("user_id", userId);
 
   let code = "";
   for (let i = 0; i < 5; i++) {
@@ -42,7 +44,7 @@ Deno.serve(async (req) => {
 
   const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString();
   const { error: insErr } = await admin.from("telegram_reports_link_codes").insert({
-    code, user_id: user.id, expires_at: expiresAt,
+    code, user_id: userId, expires_at: expiresAt,
   });
   if (insErr) return new Response(JSON.stringify({ error: insErr.message }), { status: 500, headers: corsHeaders });
 

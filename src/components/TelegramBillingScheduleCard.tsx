@@ -40,6 +40,7 @@ export function TelegramBillingScheduleCard() {
     try {
       const { data: session } = await supabase.auth.getSession();
       const token = session.session?.access_token;
+      if (!token) throw new Error("Faça login novamente para enviar o relatório");
       const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/telegram-billing-summary?user_id=${user.id}`;
       const res = await fetch(url, {
         method: "POST",
