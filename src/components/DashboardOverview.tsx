@@ -18,6 +18,7 @@ import { calculateInstallment, calculateTotalWithInterest } from "@/hooks/useLoa
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Progress } from "@/components/ui/progress";
 import { getBalance, setBalance } from "@/lib/balance";
@@ -252,7 +253,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
   const [showInterestDetail, setShowInterestDetail] = useState(false);
   const [showInterestExpectedDetail, setShowInterestExpectedDetail] = useState(false);
   const [interestExpectedFilter, setInterestExpectedFilter] = useState<"pending" | "paid">("pending");
-  const [riskAiTone, setRiskAiTone] = useState<InsightTone>("balanced");
+  const [riskAiTone, setRiskAiTone] = useState<InsightTone>("strict");
   const [riskAiOpen, setRiskAiOpen] = useState(false);
   const [riskAiLoading, setRiskAiLoading] = useState(false);
   const [riskAiReport, setRiskAiReport] = useState("");
@@ -264,7 +265,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
   const { prefs: personalInsightPrefs } = usePersonalInsightsTelegramPrefs();
 
   useEffect(() => {
-    setRiskAiTone(personalInsightPrefs.tone ?? "balanced");
+    setRiskAiTone(personalInsightPrefs.tone ?? "strict");
   }, [personalInsightPrefs.tone]);
 
   const range = useMemo(() => getRange(period, offset), [period, offset]);
@@ -2215,51 +2216,93 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
         </SheetContent>
       </Sheet>
 
-      <Sheet open={riskAiOpen} onOpenChange={setRiskAiOpen}>
-        <SheetContent
-          side={isMobile ? "bottom" : "right"}
-          className={isMobile ? "max-h-[85vh] overflow-y-auto rounded-t-2xl" : "w-full sm:max-w-xl overflow-y-auto"}
-        >
-          <SheetHeader className="rounded-xl border border-primary/20 bg-gradient-to-br from-primary/10 to-accent/15 p-4">
-            <SheetTitle className="flex items-center gap-2 text-foreground">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-background/50 backdrop-blur-md">
-                <Sparkles className="h-4 w-4 text-primary" />
-              </div>
-              {riskAiTitle}
-            </SheetTitle>
-          </SheetHeader>
-
-          <div className="mt-4 space-y-4">
-            <div className="space-y-2 rounded-xl border border-primary/20 bg-gradient-to-br from-primary/5 to-accent/10 p-4 backdrop-blur-sm">
-              <p className="text-xs text-muted-foreground">Tom da IA</p>
-              <Select value={riskAiTone} onValueChange={(value) => setRiskAiTone(value as InsightTone)}>
-                <SelectTrigger className="h-9 text-sm">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {TONE_OPTIONS.map((option) => (
-                    <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Button type="button" size="sm" onClick={generateRiskAiReport} disabled={riskAiLoading} className="gap-2">
-                <Sparkles className={`h-3.5 w-3.5 ${riskAiLoading ? "animate-pulse" : ""}`} />
-                {riskAiLoading ? "Gerando..." : "Gerar novamente"}
-              </Button>
-            </div>
-
-            <div className="rounded-xl border border-primary/20 bg-gradient-to-br from-primary/5 to-accent/10 p-4 backdrop-blur-sm">
-              {riskAiLoading ? (
-                <div className="flex items-center gap-2 text-sm text-muted-foreground"><Sparkles className="h-4 w-4 animate-pulse text-primary" />Analisando risco, retorno e prioridades de ação...</div>
-              ) : (
-                <div className="prose prose-sm max-w-none dark:prose-invert prose-p:text-foreground prose-headings:text-foreground prose-strong:text-foreground">
-                  <ReactMarkdown>{riskAiReport}</ReactMarkdown>
+      {isMobile ? (
+        <Sheet open={riskAiOpen} onOpenChange={setRiskAiOpen}>
+          <SheetContent side="bottom" className="max-h-[85vh] overflow-y-auto rounded-t-2xl">
+            <SheetHeader className="rounded-xl border border-primary/20 bg-gradient-to-br from-primary/10 to-accent/15 p-4">
+              <SheetTitle className="flex items-center gap-2 text-foreground">
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-background/50 backdrop-blur-md">
+                  <Sparkles className="h-4 w-4 text-primary" />
                 </div>
-              )}
+                {riskAiTitle}
+              </SheetTitle>
+            </SheetHeader>
+
+            <div className="mt-4 space-y-4">
+              <div className="space-y-2 rounded-xl border border-primary/20 bg-gradient-to-br from-primary/5 to-accent/10 p-4 backdrop-blur-sm">
+                <p className="text-xs text-muted-foreground">Tom da IA</p>
+                <Select value={riskAiTone} onValueChange={(value) => setRiskAiTone(value as InsightTone)}>
+                  <SelectTrigger className="h-9 text-sm">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {TONE_OPTIONS.map((option) => (
+                      <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Button type="button" size="sm" onClick={generateRiskAiReport} disabled={riskAiLoading} className="gap-2">
+                  <Sparkles className={`h-3.5 w-3.5 ${riskAiLoading ? "animate-pulse" : ""}`} />
+                  {riskAiLoading ? "Gerando..." : "Gerar novamente"}
+                </Button>
+              </div>
+
+              <div className="rounded-xl border border-primary/20 bg-gradient-to-br from-primary/5 to-accent/10 p-4 backdrop-blur-sm">
+                {riskAiLoading ? (
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground"><Sparkles className="h-4 w-4 animate-pulse text-primary" />Analisando risco, retorno e prioridades de ação...</div>
+                ) : (
+                  <div className="prose prose-sm max-w-none dark:prose-invert prose-p:text-foreground prose-headings:text-foreground prose-strong:text-foreground">
+                    <ReactMarkdown>{riskAiReport}</ReactMarkdown>
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
-        </SheetContent>
-      </Sheet>
+          </SheetContent>
+        </Sheet>
+      ) : (
+        <Dialog open={riskAiOpen} onOpenChange={setRiskAiOpen}>
+          <DialogContent className="max-h-[85vh] max-w-2xl overflow-y-auto border-primary/20 bg-card/80">
+            <DialogHeader className="rounded-xl border border-primary/20 bg-gradient-to-br from-primary/10 to-accent/15 p-4 pr-12 text-left">
+              <DialogTitle className="flex items-center gap-2 text-foreground">
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-background/50 backdrop-blur-md">
+                  <Sparkles className="h-4 w-4 text-primary" />
+                </div>
+                {riskAiTitle}
+              </DialogTitle>
+            </DialogHeader>
+
+            <div className="space-y-4">
+              <div className="space-y-2 rounded-xl border border-primary/20 bg-gradient-to-br from-primary/5 to-accent/10 p-4 backdrop-blur-sm">
+                <p className="text-xs text-muted-foreground">Tom da IA</p>
+                <Select value={riskAiTone} onValueChange={(value) => setRiskAiTone(value as InsightTone)}>
+                  <SelectTrigger className="h-9 text-sm">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {TONE_OPTIONS.map((option) => (
+                      <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Button type="button" size="sm" onClick={generateRiskAiReport} disabled={riskAiLoading} className="gap-2">
+                  <Sparkles className={`h-3.5 w-3.5 ${riskAiLoading ? "animate-pulse" : ""}`} />
+                  {riskAiLoading ? "Gerando..." : "Gerar novamente"}
+                </Button>
+              </div>
+
+              <div className="rounded-xl border border-primary/20 bg-gradient-to-br from-primary/5 to-accent/10 p-4 backdrop-blur-sm">
+                {riskAiLoading ? (
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground"><Sparkles className="h-4 w-4 animate-pulse text-primary" />Analisando risco, retorno e prioridades de ação...</div>
+                ) : (
+                  <div className="prose prose-sm max-w-none dark:prose-invert prose-p:text-foreground prose-headings:text-foreground prose-strong:text-foreground">
+                    <ReactMarkdown>{riskAiReport}</ReactMarkdown>
+                  </div>
+                )}
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 }
