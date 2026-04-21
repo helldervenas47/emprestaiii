@@ -3,6 +3,7 @@ import { todayInAppTz } from "@/lib/timezone";
 import { useChartOverrides } from "@/hooks/useChartOverrides";
 import { useMonthlyGoals } from "@/hooks/useMonthlyGoals";
 import { calculateMonthlyInterestRate } from "@/lib/monthlyInterestRate";
+import { useAuth } from "@/hooks/useAuth";
 import { Switch } from "@/components/ui/switch";
 import { useHideValues } from "@/contexts/HideValuesContext";
 import { Loan, Sale, Payment, Expense, InstallmentSchedule, Client } from "@/types/loan";
@@ -118,6 +119,10 @@ function getSaleReceivedAmount(sale: Sale) {
   return received + (sale.partialPaid || 0);
 }
 
+function getClientKey(loan: Loan) {
+  return loan.borrowerId || loan.borrowerName.trim().toLocaleLowerCase("pt-BR");
+}
+
 function calculateRealizedProfitForRange(loans: Loan[], payments: Payment[], start: Date, end: Date) {
   const paymentsInPeriod = payments.filter((p) => isInRange(p.date, start, end));
   const quitadoLoanIds = new Set<string>();
@@ -158,13 +163,44 @@ function summarizeMonthMetrics(loans: Loan[], sales: Sale[], payments: Payment[]
   const monthPayments = payments.filter((payment) => isInRange(payment.date, start, end));
   const monthSales = sales.filter((sale) => isInRange(sale.date, start, end));
   const monthLoans = loans.filter((loan) => isInRange(loan.startDate, start, end));
+  const activeLoans = loans.filter((loan) => loan.status !== "paid");
   const revenue = monthPayments.reduce((sum, payment) => sum + payment.amount, 0)
     + (includeSales ? monthSales.reduce((sum, sale) => sum + getSaleReceivedAmount(sale), 0) : 0);
+  const serviceVolume = monthPayments.length + (includeSales ? monthSales.length : 0);
+  const ticketAverage = serviceVolume > 0 ? revenue / serviceVolume : 0;
+  const clientRevenue = new Map<string, number>();
+
+  monthPayments.forEach((payment) => {
+    const loan = loans.find((item) => item.id === payment.loanId);
+    const key = loan ? getClientKey(loan) : payment.loanId;
+    clientRevenue.set(key, (clientRevenue.get(key) ?? 0) + payment.amount);
+  });
+
+  if (includeSales) {
+    monthSales.forEach((sale) => {
+      const key = sale.customerName.trim().toLocaleLowerCase("pt-BR");
+      clientRevenue.set(key, (clientRevenue.get(key) ?? 0) + getSaleReceivedAmount(sale));
+    });
+  }
+
+  const overdueBase = activeLoans.filter((loan) => isInRange(loan.dueDate, start, end));
+  const todayStr = todayInAppTz();
+  const overdueLoans = overdueBase.filter((loan) => loan.dueDate < todayStr);
+  const overdueAmount = overdueLoans.reduce((sum, loan) => sum + (loan.remainingAmount ?? 0), 0);
+  const overdueRate = overdueBase.length > 0 ? overdueLoans.length / overdueBase.length : 0;
+  const top3Share = revenue > 0
+    ? Array.from(clientRevenue.values()).sort((a, b) => b - a).slice(0, 3).reduce((sum, value) => sum + value, 0) / revenue
+    : 0;
 
   return {
     revenue,
     profit: calculateRealizedProfitForRange(loans, payments, start, end),
     interestRate: calculateMonthlyInterestRate(monthLoans).rate,
+    serviceVolume,
+    ticketAverage,
+    overdueRate,
+    overdueAmount,
+    top3Share,
   };
 }
 
@@ -184,6 +220,7 @@ function useAccountBalance(): [number, (v: number) => void] {
 
 export function DashboardOverview({ loans, sales, payments, expenses, installmentSchedules = [], clients = [], onDeletePayment, onDeleteSale, onDeleteLoan }: Props) {
   const { mask } = useHideValues();
+  const { role } = useAuth();
   const formatCurrency = useCallback((v: number) => mask(rawFormatCurrency(v)), [mask]);
   const [period, setPeriod] = useState<Period>("month");
   const [offset, setOffset] = useState(0);
@@ -717,6 +754,111 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
       concentrationShare,
     };
   }, [data.monthlyInterestRate.rate, data.periodProfitRealized, data.totalIncome, loans, portfolio.defaultRate]);
+
+  const prioritizedInsights = useMemo(() => {
+    const current = monthComparison.current;
+    const previous = monthComparison.previous;
+    if (!current) return [] as { id: string; title: string; body: string; score: number; tone: "positive" | "warning" | "negative"; }[];
+
+    const averageLast3 = monthComparison.series.slice(-3).reduce((acc, item) => ({
+      revenue: acc.revenue + item.revenue,
+      profit: acc.profit + item.profit,
+      interestRate: acc.interestRate + (item.interestRate ?? 0),
+      ticketAverage: acc.ticketAverage + item.ticketAverage,
+      serviceVolume: acc.serviceVolume + item.serviceVolume,
+      overdueRate: acc.overdueRate + item.overdueRate,
+      overdueAmount: acc.overdueAmount + item.overdueAmount,
+      top3Share: acc.top3Share + item.top3Share,
+    }), { revenue: 0, profit: 0, interestRate: 0, ticketAverage: 0, serviceVolume: 0, overdueRate: 0, overdueAmount: 0, top3Share: 0 });
+
+    const divisor = Math.max(1, monthComparison.series.slice(-3).length);
+    const avg3 = {
+      revenue: averageLast3.revenue / divisor,
+      profit: averageLast3.profit / divisor,
+      interestRate: averageLast3.interestRate / divisor,
+      ticketAverage: averageLast3.ticketAverage / divisor,
+      serviceVolume: averageLast3.serviceVolume / divisor,
+      overdueRate: averageLast3.overdueRate / divisor,
+      overdueAmount: averageLast3.overdueAmount / divisor,
+      top3Share: averageLast3.top3Share / divisor,
+    };
+
+    const insights: { id: string; title: string; body: string; score: number; tone: "positive" | "warning" | "negative"; }[] = [];
+    const revenueVariation = monthComparison.revenueDelta;
+    if (revenueVariation !== null && Math.abs(revenueVariation) > 10) {
+      insights.push({
+        id: "revenue-variation",
+        title: revenueVariation > 0 ? "Crescimento de faturamento" : "Queda de faturamento",
+        body: revenueVariation > 0
+          ? `Seu faturamento cresceu ${Math.abs(revenueVariation).toFixed(1)}% em relação ao mês passado. Continue focando nos contratos e recebimentos que mais puxaram esse avanço.`
+          : `Seu faturamento caiu ${Math.abs(revenueVariation).toFixed(1)}% em relação ao mês passado. Revise a entrada de novos contratos e a cadência de recebimentos para reagir rápido.`,
+        score: Math.abs(current.revenue - (previous?.revenue ?? 0)) + (revenueVariation < 0 ? 35 : 20),
+        tone: revenueVariation > 0 ? "positive" : "negative",
+      });
+    }
+
+    if (interestGoal && current.interestRate !== null) {
+      const diff = current.interestRate - interestGoal.targetValue;
+      insights.push({
+        id: "interest-goal",
+        title: diff >= 0 ? "Rentabilidade acima da meta" : "Rentabilidade abaixo da meta",
+        body: diff >= 0
+          ? `Você está ${Math.abs(diff).toFixed(1)} p.p. acima da meta de juros do mês. Mantenha o mix atual dos contratos mais rentáveis.`
+          : `Sua taxa de juros está ${Math.abs(diff).toFixed(1)} p.p. abaixo da meta do mês. Reavalie preço, prazo e condições dos novos empréstimos.`,
+        score: Math.abs(diff) * 30 + (diff < 0 ? 30 : 18),
+        tone: diff >= 0 ? "positive" : "warning",
+      });
+    }
+
+    if (current.overdueRate > 0.2 || (previous && current.overdueRate > previous.overdueRate)) {
+      const overdueDelta = previous ? (current.overdueRate - previous.overdueRate) * 100 : current.overdueRate * 100;
+      insights.push({
+        id: "default-risk",
+        title: "Alerta de inadimplência",
+        body: current.overdueRate > 0.2
+          ? `A inadimplência do período está em ${(current.overdueRate * 100).toFixed(1)}%, sinalizando risco elevado. Priorize cobrança e renegociação dos contratos atrasados.`
+          : `A inadimplência aumentou ${Math.abs(overdueDelta).toFixed(1)} p.p. versus o mês anterior. Vale revisar sua política de cobrança antes que isso pressione o caixa.`,
+        score: (current.overdueAmount || 0) + (current.overdueRate * 1000),
+        tone: "negative",
+      });
+    }
+
+    if (current.ticketAverage > avg3.ticketAverage && current.serviceVolume < avg3.serviceVolume) {
+      insights.push({
+        id: "efficiency-up",
+        title: "Eficiência por cliente maior",
+        body: `Seu ticket médio subiu para ${rawFormatCurrency(current.ticketAverage)}, mas o volume caiu para ${current.serviceVolume} atendimentos. Você está ganhando mais por cliente, porém atendendo menos.`,
+        score: Math.abs(current.ticketAverage - avg3.ticketAverage) + Math.abs(current.serviceVolume - avg3.serviceVolume) * 20,
+        tone: "warning",
+      });
+    }
+
+    if (current.ticketAverage < avg3.ticketAverage && current.serviceVolume > avg3.serviceVolume) {
+      insights.push({
+        id: "efficiency-down",
+        title: "Mais volume com menor ticket",
+        body: `O volume subiu para ${current.serviceVolume} atendimentos, mas o ticket médio caiu para ${rawFormatCurrency(current.ticketAverage)}. Você vendeu mais, porém com menor valor por atendimento.`,
+        score: Math.abs(current.ticketAverage - avg3.ticketAverage) + Math.abs(current.serviceVolume - avg3.serviceVolume) * 20,
+        tone: "warning",
+      });
+    }
+
+    if (current.top3Share > 0.5) {
+      insights.push({
+        id: "concentration-risk",
+        title: "Dependência de poucos clientes",
+        body: `${(current.top3Share * 100).toFixed(1)}% da receita do período veio dos 3 principais clientes. Diversificar a carteira reduz o risco de concentração.`,
+        score: current.top3Share * 1000,
+        tone: "warning",
+      });
+    }
+
+    const visible = insights.sort((a, b) => b.score - a.score).slice(0, 3);
+    if (role === "visualizador") {
+      return visible.map((item) => ({ ...item, body: item.body.replace(/meta|inadimplência|rentabilidade|carteira/gi, "desempenho") }));
+    }
+    return visible;
+  }, [interestGoal, monthComparison, role]);
 
   // Manual overrides for monthly chart values
   // chartOverrides already declared above
@@ -1253,6 +1395,33 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
 
       {/* Goals Card - placed above Health Score */}
       <GoalsCard loans={loans} payments={payments} expenses={expenses} clients={clients ?? []} installmentSchedules={installmentSchedules} selectedMonth={goalMonthKey} periodLabel={range.label} />
+
+      <Card no3d>
+        <CardContent className="p-4 sm:p-6 space-y-4">
+          <div>
+            <h3 className="text-sm font-semibold text-foreground">Insights prioritários</h3>
+            <p className="text-xs text-muted-foreground">Top 3 alertas e oportunidades com maior impacto no período.</p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            {prioritizedInsights.length > 0 ? prioritizedInsights.map((insight) => (
+              <div key={insight.id} className="rounded-xl border border-border/30 bg-muted/20 p-4 space-y-2">
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-sm font-semibold text-foreground">{insight.title}</p>
+                  <span className={`text-[10px] font-semibold px-2 py-1 rounded-full ${insight.tone === "positive" ? "bg-success/15 text-success" : insight.tone === "negative" ? "bg-destructive/15 text-destructive" : "bg-warning/15 text-warning"}`}>
+                    Prioridade
+                  </span>
+                </div>
+                <p className="text-sm text-foreground leading-6">{insight.body}</p>
+              </div>
+            )) : (
+              <div className="rounded-xl border border-border/30 bg-muted/20 p-4 text-sm text-muted-foreground md:col-span-3">
+                Sem dados suficientes para gerar insights relevantes neste período.
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
 
       <Card no3d>
         <CardContent className="p-4 sm:p-6 space-y-4">
