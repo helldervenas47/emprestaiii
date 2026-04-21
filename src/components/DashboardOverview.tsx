@@ -61,6 +61,7 @@ interface Props {
   onDeletePayment?: (id: string) => void;
   onDeleteSale?: (id: string) => void;
   onDeleteLoan?: (id: string) => void;
+  readOnly?: boolean;
 }
 
 type Period = "day" | "week" | "month";
@@ -223,7 +224,7 @@ function useAccountBalance(): [number, (v: number) => void] {
   return [bal, update];
 }
 
-export function DashboardOverview({ loans, sales, payments, expenses, installmentSchedules = [], clients = [], onDeletePayment, onDeleteSale, onDeleteLoan }: Props) {
+export function DashboardOverview({ loans, sales, payments, expenses, installmentSchedules = [], clients = [], onDeletePayment, onDeleteSale, onDeleteLoan, readOnly = false }: Props) {
   const { mask } = useHideValues();
   const { role } = useAuth();
   const isMobile = useIsMobile();
@@ -1161,7 +1162,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <Card no3d className="animate-fade-in" style={{ animationDelay: '80ms', animationFillMode: 'backwards' }}>
           <CardContent className="p-4 h-full relative flex flex-col">
-            {!editingBalance && (
+            {!editingBalance && !readOnly && (
               <Button variant="ghost" size="icon" className="h-7 w-7 absolute top-2 right-2 z-10" onClick={startEditBalance}>
                 <Pencil className="h-3.5 w-3.5 text-muted-foreground" />
               </Button>
@@ -1670,11 +1671,11 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
                     <Check className="h-3.5 w-3.5 text-success" />
                   </Button>
                 </>
-              ) : (
+              ) : !readOnly ? (
                 <Button variant="ghost" size="icon" className="h-8 w-8" onClick={startEditChart} title="Ajustar valores manualmente">
                   <Pencil className="h-4 w-4 text-muted-foreground" />
                 </Button>
-              )}
+              ) : null}
             </div>
           </div>
 
@@ -1749,11 +1750,11 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
                   <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setEditingInterest(false)}><X className="h-3.5 w-3.5 text-destructive" /></Button>
                   <Button variant="ghost" size="icon" className="h-7 w-7" onClick={saveInterestOverrides}><Check className="h-3.5 w-3.5 text-success" /></Button>
                 </>
-              ) : (
+              ) : !readOnly ? (
                 <Button variant="ghost" size="icon" className="h-8 w-8" onClick={startEditInterest} title="Ajustar valores manualmente">
                   <Pencil className="h-4 w-4 text-muted-foreground" />
                 </Button>
-              )}
+              ) : null}
             </div>
           </div>
 
@@ -1984,18 +1985,20 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
                       <span className={`text-sm font-semibold shrink-0 ${t.type === "in" ? "text-success" : "text-destructive"}`}>
                         {t.type === "in" ? "+" : "−"}{formatCurrency(t.amount)}
                       </span>
-                      <Button
-                        size="icon" variant="ghost"
-                        className="h-7 w-7 shrink-0 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
-                        onClick={() => {
-                          if (t.source === "payment" && onDeletePayment) onDeletePayment(t.id);
-                          else if (t.source === "sale" && onDeleteSale) onDeleteSale(t.id);
-                          else if (t.source === "loan" && onDeleteLoan) onDeleteLoan(t.id);
-                        }}
-                        title="Excluir lançamento"
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </Button>
+                      {!readOnly && (
+                        <Button
+                          size="icon" variant="ghost"
+                          className="h-7 w-7 shrink-0 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                          onClick={() => {
+                            if (t.source === "payment" && onDeletePayment) onDeletePayment(t.id);
+                            else if (t.source === "sale" && onDeleteSale) onDeleteSale(t.id);
+                            else if (t.source === "loan" && onDeleteLoan) onDeleteLoan(t.id);
+                          }}
+                          title="Excluir lançamento"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      )}
                     </div>
                   ))}
                 </div>

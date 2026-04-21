@@ -397,6 +397,9 @@ const Index = () => {
     if (loading) return false;
     // Tabs marcadas como adminOnly são exclusivas para administradores
     if ((t as any).adminOnly && role !== "admin") return false;
+    // Visualizador: aba de Configurações é ocultada por completo (apenas leitura
+    // não tem nada acionável aqui; backups, telegram, branding, etc. exigem escrita).
+    if (t.id === "settings" && role === "visualizador") return false;
     if (role === "admin") return true;
     if (!user) return false;
     // Para todas as abas (incluindo "settings"): se houver lista de
@@ -627,7 +630,7 @@ const Index = () => {
         <Suspense fallback={<div className="flex justify-center py-12"><div className="animate-spin h-8 w-8 border-2 border-primary border-t-transparent rounded-full" /></div>}>
         {tab === "overview" && (
           <SubscriptionGate requiredTier={1} featureName="Dashboard">
-          <DashboardOverview loans={filteredLoans} sales={filteredSales} payments={filteredPayments} expenses={expenses.filter(e => (e.scope ?? "business") === "business")} installmentSchedules={filteredInstallments} clients={clients} onDeletePayment={deletePayment} onDeleteSale={deleteSale} onDeleteLoan={deleteLoan} />
+          <DashboardOverview loans={filteredLoans} sales={filteredSales} payments={filteredPayments} expenses={expenses.filter(e => (e.scope ?? "business") === "business")} installmentSchedules={filteredInstallments} clients={clients} onDeletePayment={deletePayment} onDeleteSale={deleteSale} onDeleteLoan={deleteLoan} readOnly={isReadOnly} />
           </SubscriptionGate>
         )}
         {tab === "dashboard" && (
@@ -815,7 +818,7 @@ const Index = () => {
               <AccountantReport loans={filteredLoans} payments={filteredPayments} sales={sales} expenses={expenses} />
             )}
             {overdueSubTab === "metas" && (
-              <MonthlyGoalsManager />
+              <MonthlyGoalsManager readOnly={isReadOnly} />
             )}
             {overdueSubTab === "planejamento" && (
               <DailyPlanningReport
