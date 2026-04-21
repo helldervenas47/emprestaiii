@@ -2,11 +2,14 @@ import { useMemo, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useManagerCommissions } from "@/hooks/useManagerCommissions";
 import { Client, Loan, InstallmentSchedule, Payment, ManagerCommission } from "@/types/loan";
 import { useHideValues } from "@/contexts/HideValuesContext";
-import { Briefcase, UserCog, CalendarDays, CheckCircle2, Clock } from "lucide-react";
+import { Briefcase, UserCog, CalendarDays, Check, CheckCircle2, ChevronDown, Clock } from "lucide-react";
 
 interface Props {
   clients: Client[];
@@ -91,6 +94,8 @@ export function ManagerCommissionsChart({
   const { commissions } = useManagerCommissions(true);
   const { mask } = useHideValues();
   const [selectedManagerId, setSelectedManagerId] = useState<string | null>(null);
+  const [selectedManagerIds, setSelectedManagerIds] = useState<string[]>([]);
+  const [managerFilterOpen, setManagerFilterOpen] = useState(false);
 
   const managers = useMemo(
     () => clients.filter((c) => c.isManager).sort((a, b) => a.name.localeCompare(b.name)),
@@ -196,48 +201,106 @@ export function ManagerCommissionsChart({
       .sort((a, b) => a.name.localeCompare(b.name, "pt-BR", { sensitivity: "base" }));
   }, [commissions, clients, loans, managers, range, installmentSchedules, payments]);
 
-  const totalPaid = data.reduce((s, d) => s + d.paid, 0);
-  const totalProjected = data.reduce((s, d) => s + d.projected, 0);
+  const filteredData = useMemo(() => {
+    if (selectedManagerIds.length === 0) return data;
+    const selectedSet = new Set(selectedManagerIds);
+    return data.filter((item) => selectedSet.has(item.id));
+  }, [data, selectedManagerIds]);
+
+  const totalPaid = filteredData.reduce((s, d) => s + d.paid, 0);
+  const totalProjected = filteredData.reduce((s, d) => s + d.projected, 0);
   const totalGeneral = totalPaid + totalProjected;
+  const filterLabel = selectedManagerIds.length === 0
+    ? "Todos os gerentes"
+    : selectedManagerIds.length === 1
+      ? managers.find((manager) => manager.id === selectedManagerIds[0])?.name ?? "1 gerente"
+      : `${selectedManagerIds.length} gerentes`;
+
+  const toggleManagerFilter = (managerId: string) => {
+    setSelectedManagerIds((current) => current.includes(managerId)
+      ? current.filter((id) => id !== managerId)
+      : [...current, managerId]
+    );
+  };
 
   return (
     <Card no3d>
       <CardContent className="p-3 sm:p-6">
-        <div className="flex flex-col items-center text-center gap-3 mb-4 sm:flex-row sm:items-center sm:justify-between sm:text-left sm:gap-4">
-          <div className="flex items-center gap-2">
-            <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-              <Briefcase className="h-4 w-4 text-primary" />
+        <div className="flex flex-col gap-3 mb-4">
+          <div className="flex flex-col items-center text-center gap-3 sm:flex-row sm:items-center sm:justify-between sm:text-left sm:gap-4">
+            <div className="flex items-center gap-2">
+              <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                <Briefcase className="h-4 w-4 text-primary" />
+              </div>
+              <div>
+                <h3 className="text-sm font-semibold text-foreground">Comissões por Gerente</h3>
+                {rangeLabel && (
+                  <p className="text-[10px] text-muted-foreground">{rangeLabel}</p>
+                )}
+              </div>
             </div>
-            <div>
-              <h3 className="text-sm font-semibold text-foreground">Comissões por Gerente</h3>
-              {rangeLabel && (
-                <p className="text-[10px] text-muted-foreground">{rangeLabel}</p>
-              )}
+            <div className="grid grid-cols-3 gap-2 w-full sm:w-auto sm:flex sm:gap-6">
+              <div className="rounded-md bg-muted/40 sm:bg-transparent px-2 py-1 sm:p-0 text-center sm:text-right">
+                <p className="text-[9px] sm:text-[10px] text-muted-foreground uppercase leading-tight">Pendente</p>
+                <p className="text-xs sm:text-sm font-bold text-primary leading-tight">{mask(rawFormatCurrency(totalProjected))}</p>
+              </div>
+              <div className="rounded-md bg-muted/40 sm:bg-transparent px-2 py-1 sm:p-0 text-center sm:text-right">
+                <p className="text-[9px] sm:text-[10px] text-muted-foreground uppercase leading-tight">Recebido</p>
+                <p className="text-xs sm:text-sm font-bold text-success leading-tight">{mask(rawFormatCurrency(totalPaid))}</p>
+              </div>
+              <div className="rounded-md bg-muted/40 sm:bg-transparent px-2 py-1 sm:p-0 text-center sm:text-right">
+                <p className="text-[9px] sm:text-[10px] text-muted-foreground uppercase leading-tight">Total</p>
+                <p className="text-xs sm:text-sm font-bold text-foreground leading-tight">{mask(rawFormatCurrency(totalGeneral))}</p>
+              </div>
             </div>
           </div>
-          <div className="grid grid-cols-3 gap-2 w-full sm:w-auto sm:flex sm:gap-6">
-            <div className="rounded-md bg-muted/40 sm:bg-transparent px-2 py-1 sm:p-0 text-center sm:text-right">
-              <p className="text-[9px] sm:text-[10px] text-muted-foreground uppercase leading-tight">Pendente</p>
-              <p className="text-xs sm:text-sm font-bold text-primary leading-tight">{mask(rawFormatCurrency(totalProjected))}</p>
-            </div>
-            <div className="rounded-md bg-muted/40 sm:bg-transparent px-2 py-1 sm:p-0 text-center sm:text-right">
-              <p className="text-[9px] sm:text-[10px] text-muted-foreground uppercase leading-tight">Recebido</p>
-              <p className="text-xs sm:text-sm font-bold text-success leading-tight">{mask(rawFormatCurrency(totalPaid))}</p>
-            </div>
-            <div className="rounded-md bg-muted/40 sm:bg-transparent px-2 py-1 sm:p-0 text-center sm:text-right">
-              <p className="text-[9px] sm:text-[10px] text-muted-foreground uppercase leading-tight">Total</p>
-              <p className="text-xs sm:text-sm font-bold text-foreground leading-tight">{mask(rawFormatCurrency(totalGeneral))}</p>
-            </div>
+          <div className="flex justify-start">
+            <Popover open={managerFilterOpen} onOpenChange={setManagerFilterOpen}>
+              <PopoverTrigger asChild>
+                <Button variant="outline" className="justify-between min-w-[240px] max-w-full">
+                  <span className="truncate text-left">Gerentes: {filterLabel}</span>
+                  <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-[280px] p-0" align="start">
+                <Command>
+                  <CommandInput placeholder="Buscar gerente..." />
+                  <CommandList>
+                    <CommandEmpty>Nenhum gerente encontrado.</CommandEmpty>
+                    <CommandGroup>
+                      {managers.map((manager) => {
+                        const isSelected = selectedManagerIds.includes(manager.id);
+                        return (
+                          <CommandItem key={manager.id} value={manager.name} onSelect={() => toggleManagerFilter(manager.id)}>
+                            <Check className={`mr-2 h-4 w-4 ${isSelected ? "opacity-100 text-primary" : "opacity-0"}`} />
+                            <span className="flex-1 truncate">{manager.name}</span>
+                          </CommandItem>
+                        );
+                      })}
+                    </CommandGroup>
+                  </CommandList>
+                </Command>
+                {selectedManagerIds.length > 0 ? (
+                  <div className="border-t border-border p-2">
+                    <Button variant="ghost" size="sm" className="w-full" onClick={() => setSelectedManagerIds([])}>
+                      Limpar seleção
+                    </Button>
+                  </div>
+                ) : null}
+              </PopoverContent>
+            </Popover>
           </div>
         </div>
 
-        {data.length === 0 ? (
+        {filteredData.length === 0 ? (
           <div className="text-center py-8 text-sm text-muted-foreground">
-            Nenhum gerente cadastrado. Marque um cliente como "Gerente" para acompanhar as comissões aqui.
+            {data.length === 0
+              ? 'Nenhum gerente cadastrado. Marque um cliente como "Gerente" para acompanhar as comissões aqui.'
+              : "Nenhum gerente corresponde ao filtro selecionado."}
           </div>
         ) : (
           <div className="grid grid-cols-2 md:grid-cols-3 gap-2 sm:gap-3">
-            {data.map((m) => (
+            {filteredData.map((m) => (
               <button
                 key={m.id}
                 type="button"
