@@ -264,14 +264,16 @@ export function MonthlyGoalsManager({ readOnly = false }: { readOnly?: boolean }
                         {g.notes && <p className="text-xs text-muted-foreground mt-0.5 truncate">{g.notes}</p>}
                       </div>
                     </div>
-                    <div className="flex gap-1 shrink-0">
-                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleEdit(g)}>
-                        <Pencil className="h-3.5 w-3.5" />
-                      </Button>
-                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setDeleteId(g.id)}>
-                        <Trash2 className="h-3.5 w-3.5 text-destructive" />
-                      </Button>
-                    </div>
+                    {!readOnly && (
+                      <div className="flex gap-1 shrink-0">
+                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleEdit(g)}>
+                          <Pencil className="h-3.5 w-3.5" />
+                        </Button>
+                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setDeleteId(g.id)}>
+                          <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                        </Button>
+                      </div>
+                    )}
                   </div>
                   <div className="space-y-1">
                     <div className="flex justify-between text-xs">
