@@ -602,7 +602,7 @@ const Index = () => {
         )}
       </header>
 
-      <main className="max-w-[1920px] mx-auto px-3 sm:px-4 lg:px-8 py-4 sm:py-6 space-y-4 sm:space-y-6">
+      <main className="max-w-[1920px] mx-auto px-3 sm:px-4 lg:px-8 py-2 sm:py-6 space-y-4 sm:space-y-6">
         <Suspense fallback={<div className="flex justify-center py-12"><div className="animate-spin h-8 w-8 border-2 border-primary border-t-transparent rounded-full" /></div>}>
         {tab === "overview" && (
           <SubscriptionGate requiredTier={1} featureName="Dashboard">
