@@ -486,13 +486,6 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
     return previstoTotal * (profitGoal.targetValue / 100);
   }, [data.periodProfitExpected, data.periodProfitRealized, profitGoal]);
 
-  const totalReceivedForDuePeriod = useMemo(
-    () => data.interestExpectedRecords.filter((record) => record.paid).reduce((sum, record) => sum + record.installmentAmount, 0),
-    [data.interestExpectedRecords]
-  );
-
-  const pendingGoalAmount = profitTargetAmount - totalReceivedForDuePeriod;
-
   // Portfolio metrics — global (not filtered by period)
   const portfolio = useMemo(() => {
     const activeLoans = loans.filter((l) => l.status !== "paid");
@@ -1347,7 +1340,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
                 </span>
               </div>
               {profitGoal && (() => {
-                const metaPct = profitTargetAmount > 0 ? (totalReceivedForDuePeriod / profitTargetAmount) * 100 : 0;
+                const metaPct = profitTargetAmount > 0 ? (data.periodProfitRealized / profitTargetAmount) * 100 : 0;
                 return (
                   <div className="flex items-center justify-between">
                     <span className="text-xs text-muted-foreground">% Meta</span>
@@ -1359,8 +1352,8 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
               })()}
               <div className="pt-1.5 border-t border-border/30">
                 {profitGoal ? (() => {
-                  const pct = profitTargetAmount > 0 ? Math.min(150, (totalReceivedForDuePeriod / profitTargetAmount) * 100) : 0;
-                  const reached = totalReceivedForDuePeriod >= profitTargetAmount && profitTargetAmount > 0;
+                  const pct = profitTargetAmount > 0 ? Math.min(150, (data.periodProfitRealized / profitTargetAmount) * 100) : 0;
+                  const reached = data.periodProfitRealized >= profitTargetAmount && profitTargetAmount > 0;
                   const status = reached ? "atingida" : "abaixo";
                   const color = reached ? "text-success" : "text-destructive";
                   return (
