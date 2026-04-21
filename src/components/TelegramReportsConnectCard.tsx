@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { forwardRef, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,7 +19,7 @@ const TONE_OPTIONS: { value: InsightTone; label: string; hint: string }[] = [
   { value: "friendly", label: "😊 Amigável", hint: "Informal, como um amigo" },
 ];
 
-export function TelegramReportsConnectCard() {
+export const TelegramReportsConnectCard = forwardRef<HTMLDivElement, Record<string, never>>(function TelegramReportsConnectCard(_, ref) {
   const { linked, loading, disconnect } = useTelegramReportsLink();
   const { prefs, loading: prefsLoading, save } = usePersonalInsightsTelegramPrefs();
   const [code, setCode] = useState<string | null>(null);
@@ -57,7 +57,7 @@ export function TelegramReportsConnectCard() {
   if (loading) return null;
 
   return (
-    <Card no3d>
+    <Card ref={ref} no3d>
       <CardContent className="p-4 space-y-3">
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-2 min-w-0">
@@ -203,4 +203,4 @@ export function TelegramReportsConnectCard() {
       </CardContent>
     </Card>
   );
-}
+});
