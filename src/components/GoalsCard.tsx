@@ -307,62 +307,11 @@ function computeActual(
       return interest - exp;
     }
     case "max_default_rate": {
-      // Considerar dados até o último dia do mês selecionado.
-      // Contrato ATIVO no período: começou até o fim do mês E não foi quitado antes do fim do mês.
-      // Contrato EM ATRASO: ativo no período E possui ao menos 1 parcela vencida e não paga até o fim do mês.
-      const [yy, mm] = m.split("-").map(Number);
-      const periodEnd = new Date(yy, mm, 0); // último dia do mês
-      const periodEndStr = `${yy}-${String(mm).padStart(2, "0")}-${String(periodEnd.getDate()).padStart(2, "0")}`;
+      const loansDueInMonth = loans.filter((l: any) => inMonth(l.dueDate || l.due_date, m));
+      if (loansDueInMonth.length === 0) return 0;
 
-      let activeCount = 0;
-      let lateCount = 0;
-
-      loans.forEach((l: any) => {
-        const startDate = (l.startDate || l.start_date || "").slice(0, 10);
-        if (!startDate || startDate > periodEndStr) return; // ainda não existia
-
-        const inst = Number(l.installments) || 1;
-        const principal = Number(l.amount) || 0;
-
-        // Pagamentos do contrato até o fim do período
-        const loanPays = payments.filter((p: any) =>
-          (p.loanId || p.loan_id) === l.id && (p.date || "").slice(0, 10) <= periodEndStr
-        );
-        const paidInstallmentsUpTo = loanPays.filter((p: any) =>
-          (p.installmentNumber ?? p.installment_number) !== 0
-        ).length;
-
-        // Considerado quitado até o fim do período se status=paid e último pagamento <= fim, OU todas as parcelas pagas
-        const isPaidStatus = l.status === "paid" || l.status === "completed";
-        const lastPayDate = loanPays.length
-          ? loanPays.reduce((max: string, p: any) => (p.date > max ? p.date : max), loanPays[0].date)
-          : "";
-        const quitadoAteFim = (isPaidStatus && lastPayDate && lastPayDate <= periodEndStr) || paidInstallmentsUpTo >= inst;
-        if (quitadoAteFim) return; // não conta como ativo
-
-        activeCount++;
-
-        // Verifica se há parcela vencida e não paga até o fim do período
-        const [sy, smo, sd] = startDate.split("-").map(Number);
-        let hasOverdue = false;
-        if (inst <= 1) {
-          const due = (l.dueDate || l.due_date || "").slice(0, 10);
-          if (due && due <= periodEndStr && paidInstallmentsUpTo < 1) hasOverdue = true;
-        } else {
-          for (let i = 1; i <= inst; i++) {
-            const dueDt = new Date(sy, (smo - 1) + i, sd);
-            const dueKey = `${dueDt.getFullYear()}-${String(dueDt.getMonth() + 1).padStart(2, "0")}-${String(dueDt.getDate()).padStart(2, "0")}`;
-            if (dueKey <= periodEndStr && i > paidInstallmentsUpTo) {
-              hasOverdue = true;
-              break;
-            }
-          }
-        }
-        if (hasOverdue) lateCount++;
-      });
-
-      if (activeCount === 0) return 0; // tratamento divisão por zero
-      return (lateCount / activeCount) * 100;
+      const lateCount = loansDueInMonth.filter((l: any) => String(l.status || "").toLowerCase() === "overdue").length;
+      return (lateCount / loansDueInMonth.length) * 100;
     }
     case "new_clients_count":
       return clients.filter((c: any) => inMonth(c.created_at || c.createdAt, m)).length;
