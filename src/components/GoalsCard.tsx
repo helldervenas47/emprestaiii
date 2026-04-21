@@ -8,7 +8,8 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { useHideValues } from "@/contexts/HideValuesContext";
 import { useMonthlyGoals, GoalType, formatMonthLabel } from "@/hooks/useMonthlyGoals";
-import { Loan, Payment, Expense, Client } from "@/types/loan";
+import { Loan, Payment, Expense, Client, InstallmentSchedule } from "@/types/loan";
+import { todayInAppTz } from "@/lib/timezone";
 import {
   Target, Percent, TrendingUp, Banknote, FileText,
   HandCoins, Coins, Wallet, PiggyBank, AlertTriangle, UserPlus,
@@ -130,17 +131,17 @@ const GOAL_EXPLANATIONS: Record<GoalType, {
     measurement: "Atingimento = (Lucro líquido ÷ Meta) × 100.",
   },
   max_default_rate: {
-    formula: "Inadimplência (%) = (Empréstimos em atraso com vencimento no mês ÷ Total de empréstimos com vencimento no mês) × 100",
+    formula: "Inadimplência (%) = (Valor vencido em atraso no mês ÷ Valor total da carteira com vencimento no mês) × 100",
     indicators: [
-      "Considera apenas empréstimos com vencimento dentro do mês selecionado",
-      "Total do período = quantidade de empréstimos cujo vencimento cai no mês",
-      "Em atraso = empréstimo com vencimento no mês e status de atraso no período",
-      "Validação: se não houver empréstimos com vencimento no período, resultado = 0%",
+      "Considera apenas valores com vencimento dentro do mês selecionado",
+      "Total do período = soma das parcelas/contratos com vencimento no mês",
+      "Em atraso = saldo vencido até a data atual e ainda não quitado",
+      "Validação: se não houver carteira com vencimento no período, resultado = 0%",
     ],
     dataSource: ["Tabela de Empréstimos (loans)", "Tabela de Pagamentos (payments)", "Filtro: período do mês selecionado"],
     example: {
-      setup: "No mês há 50 empréstimos com vencimento e 10 estão em atraso.",
-      calc: "(10 ÷ 50) × 100",
+      setup: "No mês há R$ 10.000,00 a vencer na carteira e R$ 2.000,00 estão vencidos em atraso.",
+      calc: "(2.000 ÷ 10.000) × 100",
       result: "Inadimplência = 20,00%",
     },
     measurement: "Meta INVERSA: quanto menor, melhor. Atingimento = máx(0, 100 − (Realizado ÷ Meta) × 100). Resultado em % com 2 casas decimais.",
@@ -178,6 +179,7 @@ interface Props {
   payments: Payment[];
   expenses: Expense[];
   clients: Client[];
+  installmentSchedules?: InstallmentSchedule[];
   selectedMonth?: string; // YYYY-MM — filtra metas exibidas (exceto active_capital)
   periodLabel?: string;
 }
@@ -305,13 +307,77 @@ function computeExpectedReceivable(loans: Loan[], m: string): number {
   }, 0);
 }
 
+function computeDefaultRate(loans: Loan[], payments: Payment[], installmentSchedules: InstallmentSchedule[], m: string): number {
+  const today = todayInAppTz();
+
+  const totalPaidByLoan = payments.reduce<Record<string, number>>((acc, payment: any) => {
+    const loanId = payment.loanId || payment.loan_id;
+    if (!loanId) return acc;
+    acc[loanId] = (acc[loanId] || 0) + (Number(payment.amount) || 0);
+    return acc;
+  }, {});
+
+  let periodPortfolio = 0;
+  let overdueAmount = 0;
+
+  loans.forEach((loan: any) => {
+    const installments = Math.max(1, Number(loan.installments) || 1);
+    const principal = Number(loan.amount) || 0;
+    const rate = Number(loan.interestRate ?? loan.interest_rate) || 0;
+    const totalWithInterest = calculateTotalWithInterest(principal, rate, installments);
+    const installmentValue = totalWithInterest / installments;
+    const paidInstallments = Number(loan.paidInstallments ?? loan.paid_installments) || 0;
+    const loanSchedules = installmentSchedules
+      .filter((schedule) => schedule.loanId === loan.id)
+      .sort((a, b) => a.installmentNumber - b.installmentNumber);
+
+    const dueEntries = loanSchedules.length > 0
+      ? loanSchedules.map((schedule) => ({
+          installmentNumber: schedule.installmentNumber,
+          dueDate: schedule.dueDate,
+          amount: Number(schedule.amount) || installmentValue,
+        }))
+      : installments <= 1
+        ? [{ installmentNumber: 1, dueDate: loan.dueDate || loan.due_date, amount: totalWithInterest }]
+        : Array.from({ length: installments }, (_, index) => {
+            const base = new Date(`${(loan.dueDate || loan.due_date).slice(0, 10)}T00:00:00`);
+            const due = new Date(base.getFullYear(), base.getMonth() + index, base.getDate());
+            return {
+              installmentNumber: index + 1,
+              dueDate: `${due.getFullYear()}-${String(due.getMonth() + 1).padStart(2, "0")}-${String(due.getDate()).padStart(2, "0")}`,
+              amount: installmentValue,
+            };
+          });
+
+    dueEntries.forEach((entry) => {
+      if (!inMonth(entry.dueDate, m)) return;
+      periodPortfolio += entry.amount;
+
+      const isPaid = String(loan.status || "").toLowerCase() === "paid" || entry.installmentNumber <= paidInstallments;
+      if (isPaid || entry.dueDate >= today) return;
+
+      if (installments === 1) {
+        const remaining = Number(loan.remainingAmount ?? loan.remaining_amount);
+        const fallbackRemaining = Math.max(0, totalWithInterest - (totalPaidByLoan[loan.id] || 0));
+        overdueAmount += Math.max(0, remaining || fallbackRemaining);
+        return;
+      }
+
+      overdueAmount += entry.amount;
+    });
+  });
+
+  return periodPortfolio > 0 ? (overdueAmount / periodPortfolio) * 100 : 0;
+}
+
 function computeActual(
   type: GoalType,
   m: string,
   loans: Loan[],
   payments: Payment[],
   expenses: Expense[],
-  clients: Client[]
+  clients: Client[],
+  installmentSchedules: InstallmentSchedule[]
 ): number {
   switch (type) {
     case "loan_volume":
@@ -336,11 +402,7 @@ function computeActual(
       return interest - exp;
     }
     case "max_default_rate": {
-      const loansDueInMonth = loans.filter((l: any) => inMonth(l.dueDate || l.due_date, m));
-      if (loansDueInMonth.length === 0) return 0;
-
-      const lateCount = loansDueInMonth.filter((l: any) => String(l.status || "").toLowerCase() === "overdue").length;
-      return (lateCount / loansDueInMonth.length) * 100;
+      return computeDefaultRate(loans, payments, installmentSchedules, m);
     }
     case "new_clients_count":
       return clients.filter((c: any) => inMonth(c.created_at || c.createdAt, m)).length;
