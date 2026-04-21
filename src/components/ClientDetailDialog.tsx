@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { AlertTriangle, ArrowDownRight, ArrowUpRight, BriefcaseBusiness, CalendarClock, CheckCircle2, CircleAlert, Landmark, Minus, RefreshCw, ShieldCheck, Wallet } from "lucide-react";
+import { AlertTriangle, ArrowDownRight, ArrowUpRight, CalendarClock, CheckCircle2, Minus, RefreshCw, ShieldCheck, Wallet } from "lucide-react";
 import { CartesianGrid, Line, LineChart, XAxis, YAxis } from "recharts";
 import { Client, InstallmentSchedule, Loan, Payment } from "@/types/loan";
 import { buildClientRiskHistory, buildConsolidatedRiskProfile, formatRiskCurrency, getClientLoans, getClientRiskMetrics } from "@/lib/clientRisk";
@@ -181,12 +181,12 @@ export function ClientDetailDialog({ open, onOpenChange, client, loans, payments
                           </Badge>
                         </div>
                         <p className="text-xs text-muted-foreground">
-                          Separação entre histórico acumulado e condição operacional do momento para decisões mais estáveis.
+                          Cálculo baseado somente no histórico interno do cliente dentro do app.
                         </p>
                       </div>
                       <Button size="sm" variant="outline" onClick={() => requestAnalysis()} disabled={refreshing}>
                         <RefreshCw className={refreshing ? "mr-2 h-4 w-4 animate-spin" : "mr-2 h-4 w-4"} />
-                        {refreshing ? "Atualizando..." : "Atualizar análise"}
+                        {refreshing ? "Atualizando..." : "Reprocessar análise"}
                       </Button>
                     </div>
 
@@ -197,12 +197,12 @@ export function ClientDetailDialog({ open, onOpenChange, client, loans, payments
                     </div>
 
                     <div className="grid grid-cols-2 md:grid-cols-3 gap-3 text-sm text-muted-foreground">
-                      <AnalysisInfoItem icon={Wallet} label="Renda mensal" value={financialProfile?.monthlyIncome ? formatRiskCurrency(financialProfile.monthlyIncome) : "—"} />
-                      <AnalysisInfoItem icon={CircleAlert} label="Endividamento" value={financialProfile?.debtLevel ? formatRiskCurrency(financialProfile.debtLevel) : "—"} />
-                      <AnalysisInfoItem icon={BriefcaseBusiness} label="Estabilidade" value={financialProfile?.employmentStability || "—"} />
-                      <AnalysisInfoItem icon={BriefcaseBusiness} label="Setor" value={financialProfile?.industrySector || "—"} />
-                      <AnalysisInfoItem icon={Landmark} label="Bancarização" value={financialProfile?.bankingRelationship || "—"} />
-                      <AnalysisInfoItem icon={ShieldCheck} label="Consentimento" value={financialProfile?.consentGiven ? "Confirmado" : "Pendente"} />
+                      <AnalysisInfoItem icon={Wallet} label="Volume movimentado" value={formatRiskCurrency(metrics.totalLent)} />
+                      <AnalysisInfoItem icon={CheckCircle2} label="Pontualidade" value={`${Math.round(metrics.onTimeRatio * 100)}%`} />
+                      <AnalysisInfoItem icon={AlertTriangle} label="Pagamentos em atraso" value={String(metrics.latePayments)} />
+                      <AnalysisInfoItem icon={CalendarClock} label="Maior atraso" value={metrics.maxOverdueDays > 0 ? `${metrics.maxOverdueDays} dias` : "Sem atraso"} />
+                      <AnalysisInfoItem icon={ShieldCheck} label="Tempo de relacionamento" value={`${Math.max(history.length, 1)} ${Math.max(history.length, 1) === 1 ? "mês" : "meses"}`} />
+                      <AnalysisInfoItem icon={ShieldCheck} label="Contratos quitados" value={String(metrics.paidLoans)} />
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -229,8 +229,7 @@ export function ClientDetailDialog({ open, onOpenChange, client, loans, payments
                       </span>
                     </div>
 
-                    {report?.creditHistorySummary ? <p className="text-xs leading-relaxed text-muted-foreground">{report.creditHistorySummary}</p> : null}
-                    {financialProfile?.externalScore != null ? <p className="text-[11px] leading-relaxed text-muted-foreground">Referência externa: {financialProfile.externalScore}/100 via {financialProfile.provider || "provedor externo"}.</p> : null}
+                    <p className="text-[11px] leading-relaxed text-muted-foreground">Esta análise considera somente contratos, pagamentos, atrasos, pontualidade, reincidência e relacionamento registrados no app.</p>
                   </div>
                 </div>
               </CardContent>
