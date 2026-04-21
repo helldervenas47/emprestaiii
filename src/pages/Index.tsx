@@ -56,6 +56,7 @@ import { ApprovalRequestsButton } from "@/components/ApprovalRequestsButton";
 import { DashboardOverview } from "@/components/DashboardOverview";
 import { useApprovalRequests } from "@/hooks/useApprovalRequests";
 import { usePendingCount } from "@/lib/offline/sync";
+import { useApprovalPushAlerts } from "@/hooks/useApprovalPushAlerts";
 
 // Prefetch most-used chunks after idle
 const prefetchChunks = () => {
@@ -329,6 +330,7 @@ const Index = () => {
   const { pendingCount: approvalPendingCount } = useApprovalRequests();
   const { count: offlinePendingCount } = usePendingCount();
   const morePendingCount = (role === "admin" ? approvalPendingCount : 0) + offlinePendingCount;
+  useApprovalPushAlerts();
   const isMobile = useIsMobile();
   const isMobileOrTablet = useIsMobileOrTablet();
   const isReadOnly = role === "visualizador";
