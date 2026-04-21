@@ -170,7 +170,7 @@ export function CreditLimitDialog({ client, loans, payments, open, onOpenChange 
           <Card>
             <CardContent className="p-3">
               <p className="text-[10px] text-muted-foreground">Disponível</p>
-              <p className="text-base sm:text-lg font-bold text-success">{formatBRL(available)}</p>
+              <p className={`text-base sm:text-lg font-bold ${available < 0 ? "text-destructive" : "text-success"}`}>{formatBRL(available)}</p>
             </CardContent>
           </Card>
         </div>

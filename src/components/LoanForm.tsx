@@ -360,7 +360,7 @@ export function LoanForm({ onAdd, onSaveSchedule, onClose, clients, loans, payme
                   </div>
                   <div className="rounded-md border border-border/60 bg-background px-2.5 py-2">
                     <p className="text-muted-foreground">Disponível</p>
-                    <p className="font-semibold text-success">{formatBRL(selectedClientAvailable)}</p>
+                    <p className={`font-semibold ${selectedClientAvailable < 0 ? "text-destructive" : "text-success"}`}>{formatBRL(selectedClientAvailable)}</p>
                   </div>
                 </div>
                 {exceedsLimit && (
