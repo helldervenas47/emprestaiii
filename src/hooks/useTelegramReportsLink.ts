@@ -19,7 +19,7 @@ export function useTelegramReportsLink() {
   useEffect(() => {
     refresh();
     const channel = supabase.channel(
-      `telegram_reports_links_self:${user?.id ?? "anonymous"}`,
+      `telegram_reports_links_self:${user?.id ?? "anonymous"}:${Math.random().toString(36).slice(2)}`,
     );
 
     channel.on(
