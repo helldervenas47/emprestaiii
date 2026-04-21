@@ -56,59 +56,59 @@
   }
 
   .dark {
-    /* Background principal — cinza escuro com leve tint azulado (#0F1115) */
-    --background: 220 14% 7%;
-    /* Texto primário — off-white (#E4E6EB) */
-    --foreground: 220 10% 91%;
+    /* Background principal — mais suave (#15181D) */
+    --background: 220 12% 10%;
+    /* Texto primário — off-white levemente atenuado */
+    --foreground: 220 10% 88%;
 
-    /* Cards / superfícies (#1E2228) */
-    --card: 220 12% 14%;
-    --card-foreground: 220 10% 91%;
+    /* Cards / superfícies (~#21252C) */
+    --card: 220 11% 16%;
+    --card-foreground: 220 10% 88%;
 
-    --popover: 220 12% 14%;
-    --popover-foreground: 220 10% 91%;
+    --popover: 220 11% 16%;
+    --popover-foreground: 220 10% 88%;
 
-    --primary: 220 100% 64%;
+    --primary: 220 95% 68%;
     --primary-foreground: 0 0% 100%;
 
-    /* Superfícies elevadas / hover (#262B33) */
-    --secondary: 220 11% 18%;
-    --secondary-foreground: 220 8% 78%;
+    /* Superfícies elevadas / hover (~#2A2F37) */
+    --secondary: 220 10% 21%;
+    --secondary-foreground: 220 8% 75%;
 
-    /* Muted (#1A1D21) e texto secundário (#B0B3B8) */
-    --muted: 220 10% 12%;
-    --muted-foreground: 220 6% 70%;
+    /* Muted (~#1D2026) e texto secundário */
+    --muted: 220 10% 15%;
+    --muted-foreground: 220 6% 65%;
 
-    --accent: 168 70% 46%;
+    --accent: 168 60% 50%;
     --accent-foreground: 0 0% 100%;
 
-    --destructive: 0 78% 60%;
+    --destructive: 0 70% 62%;
     --destructive-foreground: 220 10% 96%;
 
-    /* Bordas / divisores (#2A2F36) */
-    --border: 220 10% 19%;
-    --input: 220 10% 17%;
-    --ring: 220 100% 64%;
+    /* Bordas / divisores (~#2E333B) — mais suaves */
+    --border: 220 9% 22%;
+    --input: 220 9% 20%;
+    --ring: 220 95% 68%;
 
     --radius: 0.875rem;
 
-    --warning: 38 90% 58%;
+    --warning: 38 85% 62%;
     --warning-foreground: 220 10% 96%;
 
-    --success: 158 70% 48%;
+    --success: 158 60% 52%;
     --success-foreground: 0 0% 100%;
 
-    --purple: 262 70% 72%;
+    --purple: 262 65% 75%;
     --purple-foreground: 220 10% 96%;
 
-    --sidebar-background: 220 13% 8%;
-    --sidebar-foreground: 220 8% 78%;
-    --sidebar-primary: 220 100% 64%;
+    --sidebar-background: 220 11% 11%;
+    --sidebar-foreground: 220 8% 75%;
+    --sidebar-primary: 220 95% 68%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 220 11% 14%;
-    --sidebar-accent-foreground: 220 10% 91%;
-    --sidebar-border: 220 10% 19%;
-    --sidebar-ring: 220 100% 64%;
+    --sidebar-accent: 220 11% 16%;
+    --sidebar-accent-foreground: 220 10% 88%;
+    --sidebar-border: 220 9% 22%;
+    --sidebar-ring: 220 95% 68%;
   }
 }
 
