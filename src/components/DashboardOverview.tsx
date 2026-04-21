@@ -1504,50 +1504,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
         );
       })()}
 
-      {/* Goals Card - placed above Health Score */}
-      <GoalsCard loans={loans} payments={payments} expenses={expenses} clients={clients ?? []} installmentSchedules={installmentSchedules} selectedMonth={goalMonthKey} periodLabel={range.label} />
-
-      {/* Manager Commissions Chart - isolated, view-only */}
-      <ManagerCommissionsChart clients={clients} loans={loans} installmentSchedules={installmentSchedules} payments={payments} range={{ start: range.start, end: range.end }} rangeLabel={range.label} />
-
-      <Card no3d>
-        <CardContent className="p-4 sm:p-6 space-y-4">
-          <div>
-            <h3 className="text-sm font-semibold text-foreground">Indicador risco vs retorno</h3>
-            <p className="text-xs text-muted-foreground">Score simples, classificação e alerta visual da operação atual.</p>
-          </div>
-
-          <div className="space-y-4">
-            <button type="button" onClick={generateRiskAiReport} className="w-full rounded-xl border border-primary/20 bg-card/70 p-5 text-left shadow-[0_16px_40px_-20px_hsl(var(--primary)/0.35)] backdrop-blur-xl backdrop-saturate-150 transition-all hover:bg-card/80 hover:border-primary/30">
-              <div className="mb-3 flex justify-end">
-                <div className="flex h-9 w-9 items-center justify-center rounded-lg border border-primary/20 bg-card/75 shadow-[0_8px_24px_-14px_hsl(var(--primary)/0.4)] backdrop-blur-xl backdrop-saturate-150">
-                  <Sparkles className="h-4 w-4 text-primary" />
-                </div>
-              </div>
-              <div className="flex items-center justify-between text-sm text-muted-foreground mb-3">
-                <span>Baixo risco / baixo retorno</span>
-                <span>Alto risco / alto retorno</span>
-              </div>
-              <div className="relative h-6 rounded-full bg-gradient-to-r from-success/40 via-warning/35 to-destructive/45">
-                <div className="absolute top-1/2 h-8 w-8 -translate-y-1/2 -translate-x-1/2 rounded-full border-2 border-background bg-card shadow" style={{ left: `${riskReturn.axisPosition}%` }} />
-              </div>
-            </button>
-
-            <div className="grid grid-cols-2 gap-3">
-              <div className="rounded-xl border border-border/30 bg-muted/20 p-4">
-                <p className="text-xs text-muted-foreground">Taxa de juros média</p>
-                <p className="text-lg font-bold text-foreground mt-1">{data.monthlyInterestRate.rate !== null ? `${data.monthlyInterestRate.rate.toFixed(2)}%` : "Sem dados"}</p>
-              </div>
-              <div className="rounded-xl border border-border/30 bg-muted/20 p-4">
-                <p className="text-xs text-muted-foreground">Lucro gerado</p>
-                <p className="text-lg font-bold text-foreground mt-1">{formatCurrency(data.periodProfitRealized)}</p>
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Health Score Gauge */}
+      {/* Health Score Gauge - placed above Goals */}
       <Card no3d>
         <CardContent className="p-4 sm:p-6">
           <h3 className="text-sm font-semibold text-foreground mb-4">Saúde da Operação</h3>
@@ -1632,6 +1589,49 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
                   )}
                 </CardContent>
               </Card>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Goals Card */}
+      <GoalsCard loans={loans} payments={payments} expenses={expenses} clients={clients ?? []} installmentSchedules={installmentSchedules} selectedMonth={goalMonthKey} periodLabel={range.label} />
+
+      {/* Manager Commissions Chart - isolated, view-only */}
+      <ManagerCommissionsChart clients={clients} loans={loans} installmentSchedules={installmentSchedules} payments={payments} range={{ start: range.start, end: range.end }} rangeLabel={range.label} />
+
+      <Card no3d>
+        <CardContent className="p-4 sm:p-6 space-y-4">
+          <div>
+            <h3 className="text-sm font-semibold text-foreground">Indicador risco vs retorno</h3>
+            <p className="text-xs text-muted-foreground">Score simples, classificação e alerta visual da operação atual.</p>
+          </div>
+
+          <div className="space-y-4">
+            <button type="button" onClick={generateRiskAiReport} className="w-full rounded-xl border border-primary/20 bg-card/70 p-5 text-left shadow-[0_16px_40px_-20px_hsl(var(--primary)/0.35)] backdrop-blur-xl backdrop-saturate-150 transition-all hover:bg-card/80 hover:border-primary/30">
+              <div className="mb-3 flex justify-end">
+                <div className="flex h-9 w-9 items-center justify-center rounded-lg border border-primary/20 bg-card/75 shadow-[0_8px_24px_-14px_hsl(var(--primary)/0.4)] backdrop-blur-xl backdrop-saturate-150">
+                  <Sparkles className="h-4 w-4 text-primary" />
+                </div>
+              </div>
+              <div className="flex items-center justify-between text-sm text-muted-foreground mb-3">
+                <span>Baixo risco / baixo retorno</span>
+                <span>Alto risco / alto retorno</span>
+              </div>
+              <div className="relative h-6 rounded-full bg-gradient-to-r from-success/40 via-warning/35 to-destructive/45">
+                <div className="absolute top-1/2 h-8 w-8 -translate-y-1/2 -translate-x-1/2 rounded-full border-2 border-background bg-card shadow" style={{ left: `${riskReturn.axisPosition}%` }} />
+              </div>
+            </button>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div className="rounded-xl border border-border/30 bg-muted/20 p-4">
+                <p className="text-xs text-muted-foreground">Taxa de juros média</p>
+                <p className="text-lg font-bold text-foreground mt-1">{data.monthlyInterestRate.rate !== null ? `${data.monthlyInterestRate.rate.toFixed(2)}%` : "Sem dados"}</p>
+              </div>
+              <div className="rounded-xl border border-border/30 bg-muted/20 p-4">
+                <p className="text-xs text-muted-foreground">Lucro gerado</p>
+                <p className="text-lg font-bold text-foreground mt-1">{formatCurrency(data.periodProfitRealized)}</p>
+              </div>
             </div>
           </div>
         </CardContent>
