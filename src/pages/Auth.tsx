@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useInRouterContext, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable/index";
 import { Button } from "@/components/ui/button";
@@ -18,7 +18,8 @@ const Auth = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
-  const navigate = useNavigate();
+  const inRouter = useInRouterContext();
+  const navigate = inRouter ? useNavigate() : null;
   const { branding } = useAppBranding();
   const brandName = branding.brand_name;
 
@@ -39,7 +40,8 @@ const Auth = () => {
         // New user via Google on login page — block and sign out
         await supabase.auth.signOut();
         toast.error("Você ainda não tem uma conta. Crie uma conta primeiro escolhendo um plano.");
-        navigate("/planos");
+        if (navigate) navigate("/planos");
+        else window.location.assign("/planos");
       }
     };
 

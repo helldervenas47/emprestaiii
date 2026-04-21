@@ -1,6 +1,6 @@
 import { useMemo } from "react";
-import { AlertTriangle, CalendarClock, CheckCircle2, ShieldCheck, TrendingUp, Wallet } from "lucide-react";
-import { CartesianGrid, Line, LineChart, ResponsiveContainer, XAxis, YAxis } from "recharts";
+import { AlertTriangle, CalendarClock, CheckCircle2, ShieldCheck, Wallet } from "lucide-react";
+import { CartesianGrid, Line, LineChart, XAxis, YAxis } from "recharts";
 import { Client, InstallmentSchedule, Loan, Payment } from "@/types/loan";
 import { buildClientRiskHistory, buildRiskProfile, formatRiskCurrency, getClientLoans, getClientRiskMetrics } from "@/lib/clientRisk";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -113,15 +113,13 @@ export function ClientDetailDialog({ open, onOpenChange, client, loans, payments
                     atraso: { label: "Atrasos", color: "hsl(var(--destructive))" },
                   }}
                 >
-                  <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={history} margin={{ left: 8, right: 8, top: 16, bottom: 8 }}>
-                      <CartesianGrid vertical={false} strokeDasharray="3 3" />
-                      <XAxis dataKey="label" tickLine={false} axisLine={false} minTickGap={24} />
-                      <YAxis tickLine={false} axisLine={false} width={34} domain={[0, 100]} />
-                      <ChartTooltip content={<ChartTooltipContent />} />
-                      <Line type="monotone" dataKey="score" stroke="var(--color-score)" strokeWidth={3} dot={false} activeDot={{ r: 4 }} />
-                    </LineChart>
-                  </ResponsiveContainer>
+                  <LineChart data={history} margin={{ left: 8, right: 8, top: 16, bottom: 8 }}>
+                    <CartesianGrid vertical={false} strokeDasharray="3 3" />
+                    <XAxis dataKey="label" tickLine={false} axisLine={false} minTickGap={24} />
+                    <YAxis tickLine={false} axisLine={false} width={34} domain={[0, 100]} />
+                    <ChartTooltip content={<ChartTooltipContent />} />
+                    <Line type="monotone" dataKey="score" stroke="var(--color-score)" strokeWidth={3} dot={false} activeDot={{ r: 4 }} />
+                  </LineChart>
                 </ChartContainer>
               </CardContent>
             </Card>
