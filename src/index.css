@@ -125,6 +125,18 @@
     letter-spacing: -0.01em;
   }
 
+  /* Estado disabled acessível no modo escuro: opacidade controlada + cor mínima legível
+     (~4.5:1 sobre o background) sem parecer “apagado”. */
+  .dark :disabled,
+  .dark [aria-disabled="true"],
+  .dark [data-disabled="true"] {
+    color: hsl(220 7% 58%);
+  }
+  .dark .text-muted-foreground {
+    /* Garantia extra: nunca cair abaixo do limite de leitura confortável */
+    color: hsl(220 8% 72%);
+  }
+
   /* iOS safe-area utilities — work in browser & PWA standalone (viewport-fit=cover) */
   .pt-safe { padding-top: env(safe-area-inset-top); }
   .pb-safe { padding-bottom: env(safe-area-inset-bottom); }
