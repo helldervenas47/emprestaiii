@@ -1980,7 +1980,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium text-foreground truncate">{t.description}</p>
-                        <p className="text-xs text-muted-foreground">{new Date(t.date).toLocaleDateString("pt-BR")}</p>
+                        <p className="text-xs text-muted-foreground">{new Date(`${t.date}T00:00:00`).toLocaleDateString("pt-BR")}</p>
                       </div>
                       <span className={`text-sm font-semibold shrink-0 ${t.type === "in" ? "text-success" : "text-destructive"}`}>
                         {t.type === "in" ? "+" : "−"}{formatCurrency(t.amount)}
