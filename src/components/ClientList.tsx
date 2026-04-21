@@ -430,45 +430,51 @@ export function ClientList({ clients, loans, payments, installmentSchedules, onD
                   </div>
                 ) : (
                   <>
-                    <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2 mb-3">
-                      <div className="flex items-center gap-3 min-w-0">
-                        <div className="h-10 w-10 shrink-0 rounded-full gradient-primary flex items-center justify-center">
-                          <User className="h-5 w-5 text-primary-foreground" />
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <h3 className="font-semibold text-foreground break-words">{client.name}</h3>
-                            <Badge variant="outline" className={client.active ? "bg-success/10 text-success border-success/20 text-xs" : "bg-muted text-muted-foreground border-border text-xs"}>
-                              {client.active ? "Ativo" : "Inativo"}
-                            </Badge>
+                    <div className="mb-3 space-y-2">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex items-center gap-3 min-w-0 flex-1">
+                          <div className="h-10 w-10 shrink-0 rounded-full gradient-primary flex items-center justify-center">
+                            <User className="h-5 w-5 text-primary-foreground" />
                           </div>
-                          {client.cpf && <p className="text-xs text-muted-foreground break-words">CPF: {client.cpf}</p>}
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <h3 className="font-semibold text-foreground break-words">{client.name}</h3>
+                              <Badge variant="outline" className={client.active ? "bg-success/10 text-success border-success/20 text-xs" : "bg-muted text-muted-foreground border-border text-xs"}>
+                                {client.active ? "Ativo" : "Inativo"}
+                              </Badge>
+                            </div>
+                            {client.cpf && <p className="text-xs text-muted-foreground break-words">CPF: {client.cpf}</p>}
+                          </div>
                         </div>
+                        {!readOnly && (
+                          <div className="flex gap-0.5 shrink-0">
+                            <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => setLimitClient(client)} title="Limite de crédito">
+                              <Wallet className="h-4 w-4 text-primary" />
+                            </Button>
+                            <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => setSelectedClient(client)} title="Análise financeira">
+                              <ShieldCheck className="h-4 w-4 text-primary" />
+                            </Button>
+                          </div>
+                        )}
                       </div>
                       {!readOnly && (
-                      <div className="flex gap-0.5 sm:gap-1 flex-wrap justify-end -mx-1 sm:mx-0 shrink-0">
-                        <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => setLimitClient(client)} title="Limite de crédito">
-                          <Wallet className="h-4 w-4 text-primary" />
-                        </Button>
-                        <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => setSelectedClient(client)} title="Ver detalhes">
-                          <ShieldCheck className="h-4 w-4 text-primary" />
-                        </Button>
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          className="h-8 w-8"
-                          onClick={() => handleToggleActive(client)}
-                          title={client.active ? "Desativar" : "Ativar"}
-                        >
-                          {client.active ? <ToggleRight className="h-4 w-4 text-success" /> : <ToggleLeft className="h-4 w-4 text-muted-foreground" />}
-                        </Button>
-                        <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => startEdit(client)} title="Editar">
-                          <Pencil className="h-4 w-4 text-muted-foreground" />
-                        </Button>
-                        <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive hover:bg-destructive hover:text-destructive-foreground" onClick={() => setDeleteClientId(client.id)} title="Excluir">
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
+                        <div className="flex gap-0.5 sm:gap-1 justify-end">
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="h-8 w-8"
+                            onClick={() => handleToggleActive(client)}
+                            title={client.active ? "Desativar" : "Ativar"}
+                          >
+                            {client.active ? <ToggleRight className="h-4 w-4 text-success" /> : <ToggleLeft className="h-4 w-4 text-muted-foreground" />}
+                          </Button>
+                          <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => startEdit(client)} title="Editar">
+                            <Pencil className="h-4 w-4 text-muted-foreground" />
+                          </Button>
+                          <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive hover:bg-destructive hover:text-destructive-foreground" onClick={() => setDeleteClientId(client.id)} title="Excluir">
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
                       )}
                     </div>
 
