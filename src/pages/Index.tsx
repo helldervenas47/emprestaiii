@@ -829,8 +829,8 @@ const Index = () => {
           onClick={() => setShowLoanForm(true)}
           aria-label="Novo Empréstimo"
           title="Novo Empréstimo"
-          className="fixed z-50 bottom-6 right-6 md:bottom-8 md:right-8 h-14 w-14 md:h-16 md:w-16 rounded-full bg-primary text-primary-foreground shadow-[0_8px_24px_-4px_hsl(var(--primary)/0.55)] hover:shadow-[0_12px_32px_-4px_hsl(var(--primary)/0.7)] hover:scale-105 active:scale-95 transition-all duration-200 flex items-center justify-center animate-fade-in touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-          style={{ marginBottom: 'env(safe-area-inset-bottom)' }}
+          className="fixed z-50 right-6 md:right-8 h-14 w-14 md:h-16 md:w-16 rounded-full bg-primary text-primary-foreground shadow-[0_8px_24px_-4px_hsl(var(--primary)/0.55)] hover:shadow-[0_12px_32px_-4px_hsl(var(--primary)/0.7)] hover:scale-105 active:scale-95 transition-all duration-200 flex items-center justify-center animate-fade-in touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+          style={{ bottom: isMobile ? `calc(env(safe-area-inset-bottom) + 80px)` : `calc(env(safe-area-inset-bottom) + 24px)` }}
         >
           <Plus className="h-6 w-6 md:h-7 md:w-7" strokeWidth={2.5} />
         </button>
