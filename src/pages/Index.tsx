@@ -205,6 +205,15 @@ function HideValuesToggle() {
     </Button>
   );
 }
+function HideValuesQuickAction() {
+  const { hidden, toggle } = useHideValues();
+  return (
+    <Button variant="outline" size="sm" onClick={toggle} className="justify-start">
+      {hidden ? <EyeOff className="h-4 w-4 mr-2" /> : <Eye className="h-4 w-4 mr-2" />}
+      {hidden ? "Mostrar valores" : "Ocultar valores"}
+    </Button>
+  );
+}
 
 const Index = () => {
   const { signOut, role, allowedTabs, linkedClientIds, loading, user } = useAuth();
