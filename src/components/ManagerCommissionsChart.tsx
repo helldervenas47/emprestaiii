@@ -110,13 +110,14 @@ export function ManagerCommissionsChart({
   const [managerFilterOpen, setManagerFilterOpen] = useState(false);
 
   const managers = useMemo(
-    () => clients.filter((c) => c.isManager).sort((a, b) => a.name.localeCompare(b.name)),
+    () => clients.filter((c) => c.isManager && c.active !== false).sort((a, b) => a.name.localeCompare(b.name)),
     [clients]
   );
 
   const data = useMemo(() => {
     const byManager: Record<string, { paid: number; projected: number }> = {};
     const loanIdsByManager: Record<string, Set<string>> = {};
+    const activeManagerIds = new Set(managers.map((manager) => manager.id));
 
     const ensureManagerBucket = (managerId: string) => {
       if (!byManager[managerId]) byManager[managerId] = { paid: 0, projected: 0 };
@@ -135,6 +136,7 @@ export function ManagerCommissionsChart({
     });
 
     commissions.forEach((c) => {
+      if (!activeManagerIds.has(c.managerId)) return;
       if (range && !inRange(c.generatedAt, range.start, range.end)) return;
       ensureManagerBucket(c.managerId);
       byManager[c.managerId].paid += c.amount;
@@ -199,7 +201,7 @@ export function ManagerCommissionsChart({
 
     return Object.entries(byManager)
       .map(([id, v]) => {
-        const client = clients.find((c) => c.id === id);
+        const client = managers.find((c) => c.id === id);
         return {
           id,
           name: client?.name ?? "",
@@ -211,7 +213,7 @@ export function ManagerCommissionsChart({
       })
       .filter((m) => m.name.trim().length > 0)
       .sort((a, b) => a.name.localeCompare(b.name, "pt-BR", { sensitivity: "base" }));
-  }, [commissions, clients, loans, managers, range, installmentSchedules, payments]);
+  }, [commissions, loans, managers, range, installmentSchedules, payments]);
 
   const filteredData = useMemo(() => {
     if (selectedManagerIds.length === 0) return data;
