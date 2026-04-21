@@ -945,10 +945,9 @@ const Index = () => {
                   .map((id) => tabConfig.find((t) => t.id === id))
                   .filter((t): t is typeof tabConfig[number] => !!t && visibleTabs.some((v) => v.id === t.id));
                 const remaining = visibleTabs.filter((v) => !pinnedVisible.some((p) => p.id === v.id));
-                const showMore = visibleTabs.length > 4;
-                const bottomItems = showMore
-                  ? [...pinnedVisible, ...remaining].slice(0, 4)
-                  : [...pinnedVisible, ...remaining];
+                // "Mais" sempre visível: ocupa o 5º slot, então a barra mostra
+                // no máximo 4 abas + Mais, mesmo quando há ≤4 abas liberadas.
+                const bottomItems = [...pinnedVisible, ...remaining].slice(0, 4);
 
                 return (
                   <>
