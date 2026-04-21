@@ -1504,6 +1504,38 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
                     <div className="border-t border-border/40 pt-3 space-y-2">
                       <p className="text-xs text-muted-foreground leading-5">{insight.detail}</p>
                       <p className="text-xs font-medium text-foreground leading-5">{insight.recommendation}</p>
+                      <div className="pt-1">
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            generateAiReport({
+                              title: `Relatório IA: ${insight.title}`,
+                              type: "priority-insight",
+                              metrics: {
+                                periodo: range.label,
+                                insightId: insight.id,
+                                insightTitulo: insight.title,
+                                insightResumo: insight.body,
+                                detalhe: insight.detail,
+                                recomendacaoAtual: insight.recommendation,
+                                classificacao: insight.tone,
+                                scorePrioridade: insight.score,
+                                scoreRiscoAtual: riskReturn.riskScore,
+                                scoreRetornoAtual: riskReturn.returnScore,
+                                inadimplenciaPercentual: portfolio.defaultRate,
+                                taxaJurosMedia: data.monthlyInterestRate.rate,
+                                lucroGerado: data.periodProfitRealized,
+                              },
+                            });
+                          }}
+                          disabled={riskAiLoading}
+                        >
+                          {riskAiLoading ? "Gerando..." : "Gerar relatório com IA"}
+                        </Button>
+                      </div>
                     </div>
                   )}
                 </button>
@@ -2126,7 +2158,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
       <Sheet open={riskAiOpen} onOpenChange={setRiskAiOpen}>
         <SheetContent side="right" className="w-full sm:max-w-xl overflow-y-auto">
           <SheetHeader>
-            <SheetTitle>Relatório IA para reduzir risco</SheetTitle>
+            <SheetTitle>{riskAiTitle}</SheetTitle>
           </SheetHeader>
 
           <div className="mt-4 space-y-4">
