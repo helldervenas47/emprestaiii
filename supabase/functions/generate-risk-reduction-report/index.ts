@@ -6,6 +6,7 @@ const corsHeaders = {
 };
 
 type InsightTone = "balanced" | "strict" | "motivational" | "technical" | "friendly";
+type ReportType = "risk-reduction" | "priority-insight";
 
 const toneGuide: Record<InsightTone, string> = {
   balanced: "Tom equilibrado, claro, executivo e prático.",
@@ -44,6 +45,7 @@ Deno.serve(async (req) => {
 
     const body = await req.json();
     const tone = ((body?.tone as InsightTone) ?? "balanced");
+    const reportType = ((body?.type as ReportType) ?? "risk-reduction");
     const metrics = body?.metrics;
 
     if (!metrics) {
@@ -53,16 +55,34 @@ Deno.serve(async (req) => {
       });
     }
 
-    const systemPrompt = [
-      "Você é um consultor financeiro especialista em crédito e cobrança.",
-      toneGuide[tone] ?? toneGuide.balanced,
-      "Analise o risco da operação e gere um relatório em markdown.",
-      "Objetivo: dizer o que fazer para diminuir o risco sem destruir o retorno.",
-      "Estruture a resposta com estes blocos: Resumo executivo, Principais riscos, Plano de ação prioritário (curto prazo, médio prazo), Ajustes de política de crédito, Alertas finais.",
-      "Seja específico com base nos números recebidos. Não invente dados. Use bullets curtos.",
-    ].join(" ");
+    const promptByType: Record<ReportType, { system: string[]; userIntro: string }> = {
+      "risk-reduction": {
+        system: [
+          "Você é um consultor financeiro especialista em crédito e cobrança.",
+          toneGuide[tone] ?? toneGuide.balanced,
+          "Analise o risco da operação e gere um relatório em markdown.",
+          "Objetivo: dizer o que fazer para diminuir o risco sem destruir o retorno.",
+          "Estruture a resposta com estes blocos: Resumo executivo, Principais riscos, Plano de ação prioritário (curto prazo, médio prazo), Ajustes de política de crédito, Alertas finais.",
+          "Seja específico com base nos números recebidos. Não invente dados. Use bullets curtos.",
+        ],
+        userIntro: "Dados atuais da operação:",
+      },
+      "priority-insight": {
+        system: [
+          "Você é um consultor financeiro especialista em performance, risco e cobrança.",
+          toneGuide[tone] ?? toneGuide.balanced,
+          "Analise o insight prioritário recebido e gere um relatório executivo em markdown.",
+          "Objetivo: explicar o problema ou oportunidade, apontar prováveis causas e orientar o que fazer agora.",
+          "Estruture a resposta com estes blocos: Leitura do insight, Diagnóstico, O que fazer imediatamente, Plano de 7 a 30 dias, Indicadores para acompanhar.",
+          "Seja específico com base nos números recebidos. Não invente dados. Use bullets curtos e acionáveis.",
+        ],
+        userIntro: "Contexto do insight prioritário:",
+      },
+    };
 
-    const userPrompt = `Dados atuais da operação:\n${JSON.stringify(metrics, null, 2)}\n\nGere um relatório prático focado em redução de risco.`;
+    const promptConfig = promptByType[reportType] ?? promptByType["risk-reduction"];
+    const systemPrompt = promptConfig.system.join(" ");
+    const userPrompt = `${promptConfig.userIntro}\n${JSON.stringify(metrics, null, 2)}\n\nGere um relatório prático e acionável.`;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
