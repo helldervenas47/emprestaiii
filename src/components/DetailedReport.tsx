@@ -54,6 +54,25 @@ function calcLateFees(loan: Loan, baseAmount: number): number {
   return lateInterestTotal + penaltyTotal;
 }
 
+function hasConfiguredCharges(loan: Loan): boolean {
+  return (loan.lateInterestValue != null && loan.lateInterestValue > 0) || (loan.penaltyValue != null && loan.penaltyValue > 0);
+}
+
+function formatChargeRules(loan: Loan): string {
+  const parts: string[] = [];
+  if (loan.lateInterestValue != null && loan.lateInterestValue > 0) {
+    parts.push(
+      loan.lateInterestType === "fixed"
+        ? `Juros atraso: ${rawFormatCurrency(loan.lateInterestValue)}/dia`
+        : `Juros atraso: ${loan.lateInterestValue}%/dia`
+    );
+  }
+  if (loan.penaltyValue != null && loan.penaltyValue > 0) {
+    parts.push(`Multa: ${rawFormatCurrency(loan.penaltyValue)}`);
+  }
+  return parts.join(" • ");
+}
+
 function getPaymentType(loan: Loan): string {
   const types: Record<string, string> = {
     monthly: "Mensal", biweekly: "Quinzenal", weekly: "Semanal", daily: "Diário",
@@ -100,6 +119,16 @@ export function DetailedReport({ loans, payments, installmentSchedules }: Props)
       const lateFees = calcLateFees(loan, base);
       return { loan, amount: base + lateFees, baseAmount: base, lateFees };
     })
+    .sort(sortByNameThenDate),
+    [activeLoans, payments, installmentSchedules, todayStr]);
+
+  const configuredChargeLoans = useMemo(() => activeLoans
+    .filter((loan) => loan.dueDate > todayStr && hasConfiguredCharges(loan))
+    .map((loan) => ({
+      loan,
+      amount: getLoanRemaining(loan, payments, installmentSchedules, todayStr),
+      rules: formatChargeRules(loan),
+    }))
     .sort(sortByNameThenDate),
     [activeLoans, payments, installmentSchedules, todayStr]);
 
@@ -168,6 +197,24 @@ export function DetailedReport({ loans, payments, installmentSchedules }: Props)
                       {lateFees > 0 && <span className="text-destructive"> (inclui {rawFormatCurrency(lateFees)} juros/multa)</span>}
                     </p>
                     <p className="text-muted-foreground ml-3">└ {getPaymentType(loan)} • Venc. {formatDateBR(loan.dueDate)}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <hr className="border-border" />
+
+          <div>
+            <p className="font-bold">⚙️ EM DIA COM ENCARGOS CONFIGURADOS — {configuredChargeLoans.length} contrato(s)</p>
+            {configuredChargeLoans.length === 0 ? (
+              <p className="text-muted-foreground">Nenhum contrato em dia com juros/multa configurados.</p>
+            ) : (
+              <div className="mt-1">
+                {configuredChargeLoans.map(({ loan, amount, rules }) => (
+                  <div key={loan.id} className="ml-2">
+                    <p>• <strong>{loan.borrowerName}</strong> — {rawFormatCurrency(amount)} <span className="text-muted-foreground">(em dia)</span></p>
+                    <p className="text-muted-foreground ml-3">└ {rules} • Venc. {formatDateBR(loan.dueDate)}</p>
                   </div>
                 ))}
               </div>
