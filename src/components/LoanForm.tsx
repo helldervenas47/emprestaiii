@@ -145,6 +145,24 @@ export function LoanForm({ onAdd, onSaveSchedule, onClose, clients, loans, payme
     }
   }, [form.startDate, form.interestType]);
 
+  // Commission sync: base = loan principal (amount). Keeps % and R$ in sync.
+  useEffect(() => {
+    if (!hasManager || amount <= 0) return;
+    if (commissionLastEdited === "rate") {
+      const r = parseFloat(commissionRate) || 0;
+      const v = (amount * r) / 100;
+      const formatted = v > 0 ? v.toFixed(2) : "";
+      if (formatted !== commissionAmount) setCommissionAmount(formatted);
+    } else {
+      const v = parseFloat(commissionAmount) || 0;
+      const r = (v / amount) * 100;
+      const formatted = r > 0 ? r.toFixed(2) : "";
+      if (formatted !== commissionRate) setCommissionRate(formatted);
+    }
+  }, [hasManager, amount, commissionRate, commissionAmount, commissionLastEdited]);
+
+  const commissionExceedsLoan = hasManager && (parseFloat(commissionAmount) || 0) > amount && amount > 0;
+
   // Generate schedule rows with editable values
   const [installmentRows, setInstallmentRows] = useState<{ date: Date; value: string }[]>([]);
 
