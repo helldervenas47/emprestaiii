@@ -300,6 +300,9 @@ const Index = () => {
   const [showVehicleExpenseForm, setShowVehicleExpenseForm] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
+  const { pendingCount: approvalPendingCount } = useApprovalRequests();
+  const { count: offlinePendingCount } = usePendingCount();
+  const morePendingCount = (role === "admin" ? approvalPendingCount : 0) + offlinePendingCount;
   const isMobile = useIsMobile();
   const isMobileOrTablet = useIsMobileOrTablet();
   const isReadOnly = role === "visualizador";
