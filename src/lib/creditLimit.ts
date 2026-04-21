@@ -145,7 +145,7 @@ export function computeUsedLimit(client: Pick<Client, "id" | "name">, loans: Loa
 }
 
 export function computeAvailableLimit(currentLimit: number, used: number): number {
-  return Math.max(0, currentLimit - used);
+  return currentLimit - used;
 }
 
 export function formatBRL(value: number): string {

@@ -345,7 +345,7 @@ export function ClientList({ clients, loans, payments, installmentSchedules, onD
                             </div>
                             <div>
                               <p className="text-muted-foreground">Disponível</p>
-                              <p className="font-semibold text-success">{formatBRL(available)}</p>
+                              <p className={`font-semibold ${available < 0 ? "text-destructive" : "text-success"}`}>{formatBRL(available)}</p>
                             </div>
                           </div>
                           {client.active === false && (
@@ -513,7 +513,7 @@ export function ClientList({ clients, loans, payments, installmentSchedules, onD
                             </div>
                             <div>
                               <p className="text-[10px] text-muted-foreground">Disponível</p>
-                              <p className="font-semibold text-success">{formatBRL(available)}</p>
+                              <p className={`font-semibold ${available < 0 ? "text-destructive" : "text-success"}`}>{formatBRL(available)}</p>
                             </div>
                           </div>
                         </button>
