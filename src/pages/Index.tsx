@@ -818,7 +818,7 @@ const Index = () => {
               <AccountantReport loans={filteredLoans} payments={filteredPayments} sales={sales} expenses={expenses} />
             )}
             {overdueSubTab === "metas" && (
-              <MonthlyGoalsManager />
+              <MonthlyGoalsManager readOnly={isReadOnly} />
             )}
             {overdueSubTab === "planejamento" && (
               <DailyPlanningReport
