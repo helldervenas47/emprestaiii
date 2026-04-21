@@ -1517,53 +1517,30 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
             <p className="text-xs text-muted-foreground">Score simples, classificação e alerta visual da operação atual.</p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-[240px_1fr] gap-4 items-center">
-            <div className="rounded-xl border border-border/30 bg-muted/20 p-4 space-y-3">
-              <div>
-                <p className="text-xs text-muted-foreground">Score de risco</p>
-                <p className="text-3xl font-bold text-foreground">{riskReturn.riskScore}</p>
+          <div className="space-y-4">
+            <button type="button" onClick={generateRiskAiReport} className="w-full rounded-xl border border-primary/20 bg-card/70 p-5 text-left shadow-[0_16px_40px_-20px_hsl(var(--primary)/0.35)] backdrop-blur-xl backdrop-saturate-150 transition-all hover:bg-card/80 hover:border-primary/30">
+              <div className="mb-3 flex justify-end">
+                <div className="flex h-9 w-9 items-center justify-center rounded-lg border border-primary/20 bg-card/75 shadow-[0_8px_24px_-14px_hsl(var(--primary)/0.4)] backdrop-blur-xl backdrop-saturate-150">
+                  <Sparkles className="h-4 w-4 text-primary" />
+                </div>
               </div>
-              <div className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold bg-muted ${riskReturn.classificationColor}`}>
-                {riskReturn.classification}
+              <div className="flex items-center justify-between text-sm text-muted-foreground mb-3">
+                <span>Baixo risco / baixo retorno</span>
+                <span>Alto risco / alto retorno</span>
               </div>
-              <div className="space-y-2 text-xs text-muted-foreground">
-                <div className="flex items-center justify-between"><span>Inadimplência</span><span>{portfolio.defaultRate.toFixed(1)}%</span></div>
-                <div className="flex items-center justify-between"><span>Atraso médio</span><span>{Math.round(riskReturn.averageDelayDays)} dias</span></div>
-                <div className="flex items-center justify-between"><span>Concentração</span><span>{riskReturn.concentrationShare.toFixed(1)}%</span></div>
-                <div className="flex items-center justify-between"><span>Retorno</span><span>{riskReturn.returnScore}/100</span></div>
+              <div className="relative h-6 rounded-full bg-gradient-to-r from-success/40 via-warning/35 to-destructive/45">
+                <div className="absolute top-1/2 h-8 w-8 -translate-y-1/2 -translate-x-1/2 rounded-full border-2 border-background bg-card shadow" style={{ left: `${riskReturn.axisPosition}%` }} />
               </div>
-            </div>
+            </button>
 
-            <div className="space-y-4">
-              <button type="button" onClick={generateRiskAiReport} className="w-full rounded-xl border border-primary/20 bg-card/70 p-5 text-left shadow-[0_16px_40px_-20px_hsl(var(--primary)/0.35)] backdrop-blur-xl backdrop-saturate-150 transition-all hover:bg-card/80 hover:border-primary/30">
-                <div className="mb-3 flex justify-end">
-                  <div className="flex h-9 w-9 items-center justify-center rounded-lg border border-primary/20 bg-card/75 shadow-[0_8px_24px_-14px_hsl(var(--primary)/0.4)] backdrop-blur-xl backdrop-saturate-150">
-                    <Sparkles className="h-4 w-4 text-primary" />
-                  </div>
-                </div>
-                <div className="flex items-center justify-between text-sm text-muted-foreground mb-3">
-                  <span>Baixo risco / baixo retorno</span>
-                  <span>Alto risco / alto retorno</span>
-                </div>
-                <div className="relative h-6 rounded-full bg-gradient-to-r from-success/40 via-warning/35 to-destructive/45">
-                  <div className="absolute top-1/2 h-8 w-8 -translate-y-1/2 -translate-x-1/2 rounded-full border-2 border-background bg-card shadow" style={{ left: `${riskReturn.axisPosition}%` }} />
-                </div>
-              </button>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div className="rounded-xl border border-border/30 bg-muted/20 p-4">
-                  <p className="text-xs text-muted-foreground">Taxa de juros média</p>
-                  <p className="text-lg font-bold text-foreground mt-1">{data.monthlyInterestRate.rate !== null ? `${data.monthlyInterestRate.rate.toFixed(2)}%` : "Sem dados"}</p>
-                </div>
-                <div className="rounded-xl border border-border/30 bg-muted/20 p-4">
-                  <p className="text-xs text-muted-foreground">Lucro gerado</p>
-                  <p className="text-lg font-bold text-foreground mt-1">{formatCurrency(data.periodProfitRealized)}</p>
-                </div>
-              </div>
-
+            <div className="grid grid-cols-2 gap-3">
               <div className="rounded-xl border border-border/30 bg-muted/20 p-4">
-                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">Insight</p>
-                <p className="text-sm text-foreground">{riskReturn.insight}</p>
+                <p className="text-xs text-muted-foreground">Taxa de juros média</p>
+                <p className="text-lg font-bold text-foreground mt-1">{data.monthlyInterestRate.rate !== null ? `${data.monthlyInterestRate.rate.toFixed(2)}%` : "Sem dados"}</p>
+              </div>
+              <div className="rounded-xl border border-border/30 bg-muted/20 p-4">
+                <p className="text-xs text-muted-foreground">Lucro gerado</p>
+                <p className="text-lg font-bold text-foreground mt-1">{formatCurrency(data.periodProfitRealized)}</p>
               </div>
             </div>
           </div>
