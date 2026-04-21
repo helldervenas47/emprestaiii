@@ -297,6 +297,7 @@ const Index = () => {
   const [showPersonalExpenseForm, setShowPersonalExpenseForm] = useState(false);
   const [showVehicleExpenseForm, setShowVehicleExpenseForm] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [moreOpen, setMoreOpen] = useState(false);
   const isMobile = useIsMobile();
   const isMobileOrTablet = useIsMobileOrTablet();
   const isReadOnly = role === "visualizador";
