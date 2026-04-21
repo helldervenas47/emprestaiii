@@ -1044,6 +1044,71 @@ const Index = () => {
               </div>
             </SheetContent>
           </Sheet>
+
+          {/* Editor de atalhos do menu inferior */}
+          <Dialog open={shortcutsEditorOpen} onOpenChange={setShortcutsEditorOpen}>
+            <DialogContent className="max-w-md">
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2">
+                  <Pin className="h-4 w-4 text-primary" /> Personalizar menu inferior
+                </DialogTitle>
+                <DialogDescription>
+                  Escolha até 4 atalhos fixos para o menu inferior. Os demais ficam disponíveis em "Mais".
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-2 my-2">
+                <div className="flex items-center justify-between text-xs text-muted-foreground">
+                  <span>{pinnedTabs.length} de 4 selecionados</span>
+                  <button
+                    type="button"
+                    className="text-primary hover:underline"
+                    onClick={() => persistPinned(DEFAULT_PINNED)}
+                  >
+                    Restaurar padrão
+                  </button>
+                </div>
+                <div className="grid grid-cols-1 gap-1.5 max-h-[55vh] overflow-y-auto pr-1">
+                  {visibleTabs.map((t) => {
+                    const checked = pinnedTabs.includes(t.id);
+                    const order = checked ? pinnedTabs.indexOf(t.id) + 1 : null;
+                    const disabled = !checked && pinnedTabs.length >= 4;
+                    return (
+                      <button
+                        key={t.id}
+                        type="button"
+                        onClick={() => !disabled && togglePinned(t.id)}
+                        disabled={disabled}
+                        className={`flex items-center gap-3 rounded-lg border px-3 py-2.5 text-left transition-all ${
+                          checked
+                            ? "border-primary/50 bg-primary/10 text-foreground"
+                            : disabled
+                            ? "border-border/30 bg-muted/20 text-muted-foreground opacity-50 cursor-not-allowed"
+                            : "border-border/40 bg-card/50 text-foreground hover:border-primary/30 hover:bg-muted/40"
+                        }`}
+                      >
+                        <div className={`h-8 w-8 rounded-md flex items-center justify-center shrink-0 ${checked ? "bg-primary/20 text-primary" : "bg-muted/50 text-muted-foreground"}`}>
+                          <t.icon className="h-4 w-4" />
+                        </div>
+                        <span className="flex-1 text-sm font-medium">{t.label}</span>
+                        {checked && order !== null && (
+                          <span className="text-[10px] font-semibold rounded-full bg-primary text-primary-foreground h-5 min-w-5 px-1.5 flex items-center justify-center">
+                            {order}
+                          </span>
+                        )}
+                        <div className={`h-5 w-5 rounded border flex items-center justify-center ${checked ? "border-primary bg-primary text-primary-foreground" : "border-border"}`}>
+                          {checked && <Check className="h-3.5 w-3.5" />}
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setShortcutsEditorOpen(false)}>Fechar</Button>
+                <Button onClick={() => setShortcutsEditorOpen(false)}>Concluído</Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
         </>
       )}
     </div>
