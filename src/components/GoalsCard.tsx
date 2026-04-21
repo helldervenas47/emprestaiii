@@ -276,6 +276,35 @@ function computeProfitExpected(loans: Loan[], m: string): number {
   }, 0);
 }
 
+function computeExpectedReceivable(loans: Loan[], m: string): number {
+  return loans.reduce((s: number, l: any) => {
+    const principal = Number(l.amount) || 0;
+    const rate = Number(l.interestRate ?? l.interest_rate) || 0;
+    const inst = Number(l.installments) || 1;
+    const totalWithInterest = calculateTotalWithInterest(principal, rate, inst);
+
+    const startDate = (l.startDate || l.start_date || "").slice(0, 10);
+    if (!startDate) return s;
+
+    if (inst <= 1) {
+      const due = (l.dueDate || l.due_date || "").slice(0, 10);
+      return inMonth(due, m) ? s + totalWithInterest : s;
+    }
+
+    const installmentValue = totalWithInterest / Math.max(1, inst);
+    const [sy, smo, sd] = startDate.split("-").map(Number);
+    let monthlyTotal = 0;
+
+    for (let i = 0; i < inst; i++) {
+      const dueDt = new Date(sy, (smo - 1) + (i + 1), sd);
+      const dueKey = `${dueDt.getFullYear()}-${String(dueDt.getMonth() + 1).padStart(2, "0")}`;
+      if (dueKey === m) monthlyTotal += installmentValue;
+    }
+
+    return s + monthlyTotal;
+  }, 0);
+}
+
 function computeActual(
   type: GoalType,
   m: string,
@@ -385,7 +414,11 @@ export function GoalsCard({ loans, payments, expenses, clients, selectedMonth, p
           ? Math.max(0, 100 - (actual / g.targetValue) * 100)
           : Math.min(100, (actual / g.targetValue) * 100);
       }
-      return { ...g, actual, pct, meta };
+      const expectedReceivable = g.goalType === "profit" ? computeExpectedReceivable(loans, computeMonth) : null;
+      const targetAmount = g.goalType === "profit" && expectedReceivable !== null
+        ? expectedReceivable * (g.targetValue / 100)
+        : null;
+      return { ...g, actual, pct, meta, expectedReceivable, targetAmount };
     }).sort((a, b) => {
       // Ordena por prioridade visual: inverse no fim, demais por % desc
       return b.pct - a.pct;
@@ -520,7 +553,7 @@ export function GoalsCard({ loans, payments, expenses, clients, selectedMonth, p
 interface DialogProps {
   open: boolean;
   onClose: () => void;
-  goal: (ReturnType<typeof useMonthlyGoals>["goals"][number] & { actual: number; pct: number; meta: typeof GOAL_TYPE_META[GoalType] }) | null;
+  goal: (ReturnType<typeof useMonthlyGoals>["goals"][number] & { actual: number; pct: number; meta: typeof GOAL_TYPE_META[GoalType]; expectedReceivable: number | null; targetAmount: number | null }) | null;
   viewingMonth?: string;
 }
 
@@ -802,6 +835,18 @@ function GoalDetailDialog({ open, onClose, goal, viewingMonth }: DialogProps) {
                     </p>
                   </div>
                 </div>
+                {goal.goalType === "profit" && goal.expectedReceivable !== null && goal.targetAmount !== null && (
+                  <div className="mt-3 grid grid-cols-2 gap-2 text-center">
+                    <div className="rounded-md border border-border bg-card/60 p-2">
+                      <p className="text-[10px] text-muted-foreground uppercase">Previsto a receber</p>
+                      <p className="text-sm font-bold text-foreground">{fmtValue(goal.expectedReceivable, "R$", hidden)}</p>
+                    </div>
+                    <div className="rounded-md border border-success/30 bg-success/5 p-2">
+                      <p className="text-[10px] text-muted-foreground uppercase">Meta em valor</p>
+                      <p className="text-sm font-bold text-success">{fmtValue(goal.targetAmount, "R$", hidden)}</p>
+                    </div>
+                  </div>
+                )}
               </CardContent>
             </Card>
 
