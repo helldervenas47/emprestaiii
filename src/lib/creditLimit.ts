@@ -1,5 +1,5 @@
 import { todayInAppTz } from "@/lib/timezone";
-import type { Loan, Payment } from "@/types/loan";
+import type { Client, Loan, Payment } from "@/types/loan";
 
 export const DEFAULT_INITIAL_LIMIT = 300;
 export const MIN_LIMIT = 0;
@@ -126,13 +126,21 @@ export function computeAutoLimitAdjustment(
   return { newLimit, delta: newLimit - currentLimit, pct, reason, metrics };
 }
 
+function loanBelongsToClient(client: Pick<Client, "id" | "name">, loan: Loan): boolean {
+  if (loan.borrowerId === client.id) return true;
+
+  const loanName = (loan.borrowerName || "").trim().toLocaleLowerCase("pt-BR");
+  const clientName = (client.name || "").trim().toLocaleLowerCase("pt-BR");
+  return !loan.borrowerId && !!loanName && loanName === clientName;
+}
+
 /**
  * Used limit = sum of the full principal amount for every loan still open.
- * Considers only the original borrowed principal (not interest), without prorating by installments.
+ * Considers every open loan for the client, including older records linked only by name.
  */
-export function computeUsedLimit(clientId: string, loans: Loan[]): number {
+export function computeUsedLimit(client: Pick<Client, "id" | "name">, loans: Loan[]): number {
   return loans
-    .filter((l) => l.borrowerId === clientId && l.status !== "paid")
+    .filter((l) => loanBelongsToClient(client, l) && l.status !== "paid")
     .reduce((sum, l) => sum + (l.amount ?? 0), 0);
 }
 
