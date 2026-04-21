@@ -137,9 +137,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (!mounted) return;
 
       if (currentSession) {
-        setSession(currentSession);
-        setUser(currentSession.user);
-        await doHydrate(currentSession.user.id, false);
+        // Verify with the server that this session is still valid.
+        // Cached sessions can be stale (deleted server-side), causing 401s.
+        const { data: userCheck, error: userErr } = await supabase.auth.getUser();
+        if (userErr || !userCheck?.user) {
+          await supabase.auth.signOut({ scope: "local" });
+          setSession(null);
+          setUser(null);
+          clearUserState();
+        } else {
+          setSession(currentSession);
+          setUser(currentSession.user);
+          await doHydrate(currentSession.user.id, false);
+        }
       }
 
       if (mounted) setLoading(false);
