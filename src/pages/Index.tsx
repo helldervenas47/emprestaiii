@@ -228,7 +228,10 @@ const Index = () => {
     const urlTab = params.get("tab");
     if (urlTab && tabConfig.some(t => t.id === urlTab)) return urlTab as Tab;
     const saved = sessionStorage.getItem("activeTab");
-    return saved && tabConfig.some(t => t.id === saved) ? saved as Tab : "overview";
+    if (saved && tabConfig.some(t => t.id === saved)) return saved as Tab;
+    // Mobile: abrir direto em "Empréstimos" (fluxo principal). Desktop: "overview".
+    const isMobileViewport = typeof window !== "undefined" && window.innerWidth < 768;
+    return isMobileViewport ? "dashboard" : "overview";
   });
   const setTab = (t: Tab) => { sessionStorage.setItem("activeTab", t); setTabState(t); };
 
