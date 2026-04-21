@@ -21,7 +21,7 @@ type Unit = "%" | "R$" | "qtd";
 
 const GOAL_TYPE_META: Record<GoalType, { label: string; icon: any; unit: Unit; color: string; description: string; inverse?: boolean }> = {
   interest_rate:      { label: "Taxa de Juros Mensal",            icon: Percent,       unit: "%",   color: "text-warning",     description: "Meta da taxa média de juros aplicada nos contratos." },
-  profit:             { label: "Lucro do Período (% do Previsto)", icon: TrendingUp,    unit: "%",   color: "text-success",     description: "Quanto do lucro previsto foi efetivamente realizado." },
+  profit:             { label: "Faturamento do Período (% do Previsto)", icon: TrendingUp,    unit: "%",   color: "text-success",     description: "Quanto do valor previsto foi efetivamente realizado." },
   loan_volume:        { label: "Volume Emprestado no Mês",         icon: Banknote,      unit: "R$",  color: "text-primary",     description: "Soma do valor de novos empréstimos criados no mês." },
   new_loans_count:    { label: "Novos Empréstimos no Mês",         icon: FileText,      unit: "qtd", color: "text-primary",     description: "Quantidade de novos contratos criados no mês." },
   received_total:     { label: "Recebimentos no Mês",              icon: HandCoins,     unit: "R$",  color: "text-success",     description: "Soma de todos os pagamentos recebidos no mês." },

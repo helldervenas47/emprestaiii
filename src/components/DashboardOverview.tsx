@@ -869,7 +869,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
               <div className="h-10 w-10 rounded-full bg-success/10 flex items-center justify-center shrink-0">
                 <TrendingUp className="h-5 w-5 text-success" />
               </div>
-              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Lucro do Período</p>
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Faturamento do Período</p>
             </div>
             <div className="space-y-1.5">
               <div className="flex items-center justify-between">
