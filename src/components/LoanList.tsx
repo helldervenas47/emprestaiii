@@ -109,10 +109,6 @@ const statusMap = {
   on_track: { label: "Em Dia", className: "bg-primary/10 text-primary border-primary/20" },
 };
 
-function hasConfiguredCharges(loan: Loan): boolean {
-  return (loan.lateInterestValue != null && loan.lateInterestValue > 0) || (loan.penaltyValue != null && loan.penaltyValue > 0);
-}
-
 function getInstallmentDueDate(loan: Loan, installmentNumber: number, schedules: InstallmentSchedule[]) {
   const savedSchedule = schedules.find((s) => s.loanId === loan.id && s.installmentNumber === installmentNumber);
   if (savedSchedule?.dueDate) return savedSchedule.dueDate;
@@ -823,11 +819,6 @@ function LoanCardView({
             <Badge variant="outline" className="text-xs bg-primary/10 text-primary border-primary/20 uppercase">
               {loan.interestType}
             </Badge>
-            {hasConfiguredCharges(loan) && loan.status !== "paid" && (
-              <Badge variant="outline" className="text-xs bg-warning/10 text-warning border-warning/30">
-                Encargos configurados
-              </Badge>
-            )}
             {loan.hasManager && (
               <Badge variant="outline" className="text-xs bg-[#009C3B]/15 text-[#009C3B] dark:bg-emerald-500/25 dark:text-emerald-300 border-[#009C3B]/60 dark:border-emerald-500/60 gap-1">
                 <UserCog className="h-3 w-3" />Com gerente
@@ -1733,11 +1724,6 @@ function LoanRowView({
           <div className="min-w-0">
             <div className="flex items-center gap-1 flex-wrap">
               <span className="font-medium text-[11px] sm:text-sm text-foreground truncate block max-w-[80px] sm:max-w-none">{loan.borrowerName}</span>
-              {hasConfiguredCharges(loan) && loan.status !== "paid" && (
-                <Badge variant="outline" className="bg-warning/10 text-warning border-warning/30 text-[9px] sm:text-[10px] px-1 py-0 shrink-0">
-                  Encargos
-                </Badge>
-              )}
               {loan.hasManager && (
                 <Badge variant="outline" className="bg-[#009C3B]/15 text-[#009C3B] dark:bg-emerald-500/25 dark:text-emerald-300 border-[#009C3B]/60 dark:border-emerald-500/60 text-[9px] sm:text-[10px] px-1 py-0 gap-0.5 shrink-0" title="Com gerente">
                   <UserCog className="h-3 w-3" /><span className="hidden sm:inline">Gerente</span>
