@@ -127,12 +127,21 @@ export function computeAutoLimitAdjustment(
 }
 
 /**
- * Used limit = sum of remainingAmount for active+overdue loans of the client.
+ * Used limit = sum of the principal still open for active+overdue loans.
+ * Considers only the loaned principal (not interest), proportional to unpaid installments.
  */
 export function computeUsedLimit(clientId: string, loans: Loan[]): number {
   return loans
     .filter((l) => l.borrowerId === clientId && l.status !== "paid")
-    .reduce((sum, l) => sum + (l.remainingAmount ?? l.amount ?? 0), 0);
+    .reduce((sum, l) => {
+      const principal = l.amount ?? 0;
+      const totalInstallments = l.installments ?? 1;
+      const paid = l.paidInstallments ?? 0;
+      const unpaid = Math.max(0, totalInstallments - paid);
+      const openPrincipal =
+        totalInstallments > 0 ? (principal * unpaid) / totalInstallments : principal;
+      return sum + openPrincipal;
+    }, 0);
 }
 
 export function computeAvailableLimit(currentLimit: number, used: number): number {
