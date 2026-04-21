@@ -1,8 +1,9 @@
 import { useState, useEffect, lazy, Suspense } from "react";
-import { Plus, Users, LayoutDashboard, ShoppingBag, BarChart3, AlertTriangle, Receipt, CalendarDays, Sun, Moon, LogOut, Info, X, Eye, EyeOff, Car, Wrench, DatabaseBackup, Menu, User, RefreshCw, Bell, Target, Calculator, Settings as SettingsIcon, CalendarClock } from "lucide-react";
+import { Plus, Users, LayoutDashboard, ShoppingBag, BarChart3, AlertTriangle, Receipt, CalendarDays, Sun, Moon, LogOut, Info, X, Eye, EyeOff, Car, Wrench, DatabaseBackup, Menu, User, RefreshCw, Bell, Target, Calculator, Settings as SettingsIcon, CalendarClock, Pin, Check, Sliders } from "lucide-react";
 import { AppLogo } from "@/components/AppLogo";
 import { useAppBranding } from "@/hooks/useAppBranding";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { useIsMobile, useIsMobileOrTablet } from "@/hooks/use-mobile";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useAuth } from "@/hooks/useAuth";
@@ -300,6 +301,31 @@ const Index = () => {
   const [showVehicleExpenseForm, setShowVehicleExpenseForm] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
+  const [shortcutsEditorOpen, setShortcutsEditorOpen] = useState(false);
+  const DEFAULT_PINNED: Tab[] = ["overview", "clients", "dashboard", "expenses"];
+  const [pinnedTabs, setPinnedTabs] = useState<Tab[]>(() => {
+    try {
+      const raw = localStorage.getItem("hvcred-pinned-tabs");
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed) && parsed.every((x) => typeof x === "string")) {
+          return parsed.slice(0, 4) as Tab[];
+        }
+      }
+    } catch { /* noop */ }
+    return DEFAULT_PINNED;
+  });
+  const persistPinned = (next: Tab[]) => {
+    setPinnedTabs(next);
+    try { localStorage.setItem("hvcred-pinned-tabs", JSON.stringify(next)); } catch { /* noop */ }
+  };
+  const togglePinned = (id: Tab) => {
+    if (pinnedTabs.includes(id)) {
+      persistPinned(pinnedTabs.filter((t) => t !== id));
+    } else if (pinnedTabs.length < 4) {
+      persistPinned([...pinnedTabs, id]);
+    }
+  };
   const { pendingCount: approvalPendingCount } = useApprovalRequests();
   const { count: offlinePendingCount } = usePendingCount();
   const morePendingCount = (role === "admin" ? approvalPendingCount : 0) + offlinePendingCount;
@@ -858,14 +884,10 @@ const Index = () => {
             style={{ paddingBottom: 'env(safe-area-inset-bottom)', paddingLeft: 'env(safe-area-inset-left)', paddingRight: 'env(safe-area-inset-right)' }}
           >
             <div className="flex items-stretch justify-around h-[60px]">
-              {([
-                { id: "overview" as Tab, label: "Dashboard", icon: BarChart3 },
-                { id: "clients" as Tab, label: "Cadastro", icon: Users },
-                { id: "dashboard" as Tab, label: "Empréstimos", icon: LayoutDashboard },
-                { id: "expenses" as Tab, label: "Despesas", icon: Receipt },
-              ] as const)
-                .filter(item => visibleTabs.some(v => v.id === item.id))
-                .map(item => {
+              {pinnedTabs
+                .map((id) => tabConfig.find((t) => t.id === id))
+                .filter((t): t is typeof tabConfig[number] => !!t && visibleTabs.some((v) => v.id === t.id))
+                .map((item) => {
                   const active = tab === item.id;
                   const Icon = item.icon;
                   return (
@@ -957,12 +979,22 @@ const Index = () => {
                 </div>
 
                 {/* Navegação adicional */}
-                {visibleTabs.filter(t => !["overview","clients","dashboard","expenses"].includes(t.id)).length > 0 && (
+                {visibleTabs.filter(t => !pinnedTabs.includes(t.id)).length > 0 && (
                   <div>
-                    <h3 className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground mb-2">Navegação</h3>
+                    <div className="flex items-center justify-between mb-2">
+                      <h3 className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Navegação</h3>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 px-2 text-[11px] text-primary hover:text-primary"
+                        onClick={() => setShortcutsEditorOpen(true)}
+                      >
+                        <Sliders className="h-3.5 w-3.5 mr-1" /> Editar atalhos
+                      </Button>
+                    </div>
                     <div className="grid grid-cols-3 gap-2">
                       {visibleTabs
-                        .filter(t => !["overview","clients","dashboard","expenses"].includes(t.id))
+                        .filter(t => !pinnedTabs.includes(t.id))
                         .map(t => {
                           const active = tab === t.id;
                           return (
@@ -1012,6 +1044,71 @@ const Index = () => {
               </div>
             </SheetContent>
           </Sheet>
+
+          {/* Editor de atalhos do menu inferior */}
+          <Dialog open={shortcutsEditorOpen} onOpenChange={setShortcutsEditorOpen}>
+            <DialogContent className="max-w-md">
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2">
+                  <Pin className="h-4 w-4 text-primary" /> Personalizar menu inferior
+                </DialogTitle>
+                <DialogDescription>
+                  Escolha até 4 atalhos fixos para o menu inferior. Os demais ficam disponíveis em "Mais".
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-2 my-2">
+                <div className="flex items-center justify-between text-xs text-muted-foreground">
+                  <span>{pinnedTabs.length} de 4 selecionados</span>
+                  <button
+                    type="button"
+                    className="text-primary hover:underline"
+                    onClick={() => persistPinned(DEFAULT_PINNED)}
+                  >
+                    Restaurar padrão
+                  </button>
+                </div>
+                <div className="grid grid-cols-1 gap-1.5 max-h-[55vh] overflow-y-auto pr-1">
+                  {visibleTabs.map((t) => {
+                    const checked = pinnedTabs.includes(t.id);
+                    const order = checked ? pinnedTabs.indexOf(t.id) + 1 : null;
+                    const disabled = !checked && pinnedTabs.length >= 4;
+                    return (
+                      <button
+                        key={t.id}
+                        type="button"
+                        onClick={() => !disabled && togglePinned(t.id)}
+                        disabled={disabled}
+                        className={`flex items-center gap-3 rounded-lg border px-3 py-2.5 text-left transition-all ${
+                          checked
+                            ? "border-primary/50 bg-primary/10 text-foreground"
+                            : disabled
+                            ? "border-border/30 bg-muted/20 text-muted-foreground opacity-50 cursor-not-allowed"
+                            : "border-border/40 bg-card/50 text-foreground hover:border-primary/30 hover:bg-muted/40"
+                        }`}
+                      >
+                        <div className={`h-8 w-8 rounded-md flex items-center justify-center shrink-0 ${checked ? "bg-primary/20 text-primary" : "bg-muted/50 text-muted-foreground"}`}>
+                          <t.icon className="h-4 w-4" />
+                        </div>
+                        <span className="flex-1 text-sm font-medium">{t.label}</span>
+                        {checked && order !== null && (
+                          <span className="text-[10px] font-semibold rounded-full bg-primary text-primary-foreground h-5 min-w-5 px-1.5 flex items-center justify-center">
+                            {order}
+                          </span>
+                        )}
+                        <div className={`h-5 w-5 rounded border flex items-center justify-center ${checked ? "border-primary bg-primary text-primary-foreground" : "border-border"}`}>
+                          {checked && <Check className="h-3.5 w-3.5" />}
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setShortcutsEditorOpen(false)}>Fechar</Button>
+                <Button onClick={() => setShortcutsEditorOpen(false)}>Concluído</Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
         </>
       )}
     </div>
