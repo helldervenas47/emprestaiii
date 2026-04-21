@@ -75,9 +75,6 @@ export function ClientDetailDialog({ open, onOpenChange, client, loans, payments
 
   if (!client || !riskProfile || !metrics) return null;
 
-  const totalReceived = clientLoans.reduce((sum, loan) => sum + payments.filter((payment) => payment.loanId === loan.id).reduce((acc, payment) => acc + payment.amount, 0), 0);
-  const scoreProgress = riskProfile.score;
-
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-5xl max-h-[85vh] overflow-y-auto">

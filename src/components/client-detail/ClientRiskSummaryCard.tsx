@@ -1,5 +1,4 @@
 import { AlertTriangle, CheckCircle2, CircleDot } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
 import { ClientRiskMetrics, RiskProfile } from "@/lib/clientRisk";
 
 interface ClientRiskSummaryCardProps {
@@ -13,32 +12,30 @@ export function ClientRiskSummaryCard({ metrics, riskProfile }: ClientRiskSummar
   const criticalIndicator = getCriticalIndicator(metrics);
 
   return (
-    <Card no3d>
-      <CardContent className="p-4">
-        <div className="flex items-start justify-between gap-4">
-          <div className="space-y-3">
-            <div className="flex items-start gap-3">
-              <span className={`text-5xl font-bold leading-none ${tone.scoreClass}`}>{riskProfile.currentScore}</span>
-              <span className={`mt-1 inline-flex h-7 w-7 items-center justify-center rounded-full border ${tone.dotClass}`}>
-                <CircleDot className="h-4 w-4" />
-              </span>
-            </div>
-
-            <div className="space-y-1">
-              <p className={`text-base font-semibold ${tone.statusClass}`}>{status}</p>
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                {tone.icon === "alert" ? <AlertTriangle className="h-4 w-4 text-warning" /> : <CheckCircle2 className="h-4 w-4 text-success" />}
-                <span>{criticalIndicator}</span>
-              </div>
-            </div>
-
-            <p className="text-sm text-muted-foreground">
-              Histórico: <span className="font-medium text-foreground">{riskProfile.historicalScore} / 150</span>
-            </p>
+    <div className="p-4">
+      <div className="flex items-start justify-between gap-4">
+        <div className="space-y-3">
+          <div className="flex items-start gap-3">
+            <span className={`text-5xl font-bold leading-none ${tone.scoreClass}`}>{riskProfile.currentScore}</span>
+            <span className={`mt-1 inline-flex h-7 w-7 items-center justify-center rounded-full border ${tone.dotClass}`}>
+              <CircleDot className="h-4 w-4" />
+            </span>
           </div>
+
+          <div className="space-y-1">
+            <p className={`text-base font-semibold ${tone.statusClass}`}>{status}</p>
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              {tone.icon === "alert" ? <AlertTriangle className="h-4 w-4 text-warning" /> : <CheckCircle2 className="h-4 w-4 text-success" />}
+              <span>{criticalIndicator}</span>
+            </div>
+          </div>
+
+          <p className="text-sm text-muted-foreground">
+            Histórico: <span className="font-medium text-foreground">{riskProfile.historicalScore} / 150</span>
+          </p>
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 }
 
