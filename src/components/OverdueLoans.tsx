@@ -49,6 +49,10 @@ function getInstallmentAmount(loan: Loan, schedules: InstallmentSchedule[]): num
   return loan.customInstallmentValue || calculateInstallment(loan.amount, loan.interestRate, loan.installments);
 }
 
+function hasConfiguredCharges(loan: Loan): boolean {
+  return (loan.lateInterestValue != null && loan.lateInterestValue > 0) || (loan.penaltyValue != null && loan.penaltyValue > 0);
+}
+
 interface LoanItem {
   loan: Loan;
   client: Client | undefined;
@@ -173,6 +177,28 @@ export function OverdueLoans({ loans, payments, clients, installmentSchedules }:
       .filter(Boolean) as LoanItem[];
   }, [activeLoans, clients, installmentSchedules, todayStr]);
 
+  const configuredChargesData = useMemo<LoanItem[]>(() => {
+    return activeLoans
+      .map((loan) => {
+        if (loan.dueDate <= todayStr || !hasConfiguredCharges(loan)) return null;
+        const amount = getInstallmentAmount(loan, installmentSchedules);
+        const nextInst = loan.paidInstallments + 1;
+        const installments = [{
+          number: nextInst,
+          dueDate: loan.dueDate,
+          amount,
+        }];
+        const client = clients.find((c) => c.id === loan.borrowerId);
+        return {
+          loan, client, phone: client?.phone || "",
+          installments,
+          daysOverdue: 0,
+          totalAmount: amount,
+        };
+      })
+      .filter(Boolean) as LoanItem[];
+  }, [activeLoans, clients, installmentSchedules, todayStr]);
+
   const totalOverdueAmount = overdueData.reduce((s, d) => s + d.totalAmount, 0);
   const totalDueTodayAmount = dueTodayData.reduce((s, d) => s + d.totalAmount, 0);
 
@@ -211,6 +237,20 @@ export function OverdueLoans({ loans, payments, clients, installmentSchedules }:
           </CardContent>
         </Card>
       </div>
+
+      {configuredChargesData.length > 0 && (
+        <div className="space-y-3">
+          <div>
+            <p className="text-sm font-semibold text-foreground">Contratos em dia com encargos configurados</p>
+            <p className="text-xs text-muted-foreground">Juros e/ou multa já definidos, mesmo sem atraso.</p>
+          </div>
+          <div className="space-y-3">
+            {configuredChargesData.map((item) => (
+              <LoanItemCard key={item.loan.id} item={item} isOverdue={false} />
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Bot de Relatórios (independente) */}
       <div id="telegram-reports-config" className="rounded-lg transition-all duration-500 scroll-mt-24">
