@@ -168,14 +168,44 @@ export function ClientList({ clients, loans, payments, installmentSchedules, onD
 
   const startEdit = (client: Client) => {
     setEditingId(client.id);
-    setEditForm({ name: client.name, phone: client.phone, email: client.email, cpf: client.cpf, cnpj: client.cnpj || "", rg: client.rg || "", address: client.address, city: client.city || "", state: client.state || "", score: client.score || "", notes: client.notes || "", isVehicleRental: client.isVehicleRental || false, nacionalidade: client.nacionalidade || "", estadoCivil: client.estadoCivil || "", profissao: client.profissao || "", bairro: client.bairro || "", isManager: client.isManager || false, defaultInterestRate: client.defaultInterestRate != null ? String(client.defaultInterestRate) : "" });
+    const cl = getLimitForClient(client.id);
+    setEditForm({ name: client.name, phone: client.phone, email: client.email, cpf: client.cpf, cnpj: client.cnpj || "", rg: client.rg || "", address: client.address, city: client.city || "", state: client.state || "", score: client.score || "", notes: client.notes || "", isVehicleRental: client.isVehicleRental || false, nacionalidade: client.nacionalidade || "", estadoCivil: client.estadoCivil || "", profissao: client.profissao || "", bairro: client.bairro || "", isManager: client.isManager || false, defaultInterestRate: client.defaultInterestRate != null ? String(client.defaultInterestRate) : "", creditLimit: cl?.currentLimit != null ? String(cl.currentLimit) : "" });
   };
 
-  const saveEdit = (id: string) => {
-    const { defaultInterestRate, ...rest } = editForm;
+  const saveEdit = async (id: string) => {
+    const { defaultInterestRate, creditLimit, ...rest } = editForm;
     const parsedRate = (defaultInterestRate ?? "").toString().trim() === "" ? null : parseFloat(defaultInterestRate);
     onUpdate(id, { ...rest, defaultInterestRate: parsedRate !== null && !isNaN(parsedRate) ? parsedRate : null });
+    // Update credit limit if changed
+    const parsedLimit = (creditLimit ?? "").toString().trim() === "" ? null : parseFloat(String(creditLimit).replace(",", "."));
+    if (parsedLimit !== null && !isNaN(parsedLimit) && parsedLimit >= 0) {
+      const existing = getLimitForClient(id);
+      if (!existing) await ensureLimit(id);
+      const current = getLimitForClient(id)?.currentLimit ?? 0;
+      if (Math.abs(current - parsedLimit) > 0.001) {
+        await updateLimit(id, parsedLimit, {
+          mode: "manual",
+          changeType: "manual",
+          reason: "Ajuste manual via edição do cliente",
+        });
+      }
+    }
     setEditingId(null);
+  };
+
+  const handleToggleActive = async (client: Client) => {
+    const becomingInactive = client.active !== false;
+    onUpdate(client.id, { active: !client.active });
+    if (becomingInactive) {
+      const existing = getLimitForClient(client.id);
+      if (existing && existing.currentLimit > 0) {
+        await updateLimit(client.id, 0, {
+          mode: "manual",
+          changeType: "manual",
+          reason: "Cliente inativado — limite zerado automaticamente",
+        });
+      }
+    }
   };
 
   const updateField = (field: string, value: string | boolean) => setEditForm((prev) => ({ ...prev, [field]: value }));
