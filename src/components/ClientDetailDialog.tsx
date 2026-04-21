@@ -147,7 +147,7 @@ export function ClientDetailDialog({ open, onOpenChange, client, loans, payments
                   <MetricCard icon={Wallet} label="Total emprestado" value={formatRiskCurrency(metrics.totalLent)} />
                   <MetricCard icon={CheckCircle2} label="Pagamentos em dia" value={String(metrics.onTimePayments)} helper={`${Math.round(metrics.onTimeRatio * 100)}% de pontualidade`} />
                   <MetricCard icon={AlertTriangle} label="Pagamentos em atraso" value={String(metrics.latePayments)} helper={`${Math.round(metrics.lateRatio * 100)}% do histórico`} tone="alert" />
-                  <MetricCard icon={CalendarClock} label="Contratos em atraso" value={String(metrics.overdueLoans)} helper={metrics.severeOverdueLoans > 0 ? `${metrics.severeOverdueLoans} com 30+ dias` : "Sem atrasos longos"} tone={metrics.overdueLoans > 0 ? "alert" : "default"} />
+                  <MetricCard icon={CalendarClock} label="Pior atraso" value={metrics.maxOverdueDays > 0 ? `${metrics.maxOverdueDays} dias` : "0 dia"} helper={metrics.severeOverdueLoans > 0 ? `${metrics.severeOverdueLoans} contrato(s) com 30+ dias` : metrics.highOverdueLoans > 0 ? `${metrics.highOverdueLoans} contrato(s) com 16+ dias` : "Sem atrasos longos"} tone={metrics.maxOverdueDays > 0 ? "alert" : "default"} />
                 </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">

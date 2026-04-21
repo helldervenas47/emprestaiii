@@ -22,6 +22,8 @@ export interface ClientRiskMetrics {
   totalLent: number;
   overdueLoans: number;
   severeOverdueLoans: number;
+  highOverdueLoans: number;
+  maxOverdueDays: number;
   paidLoans: number;
   activeLoans: number;
   onTimePayments: number;
@@ -146,7 +148,10 @@ export function getClientRiskMetrics(client: Client, loans: Loan[], payments: Pa
   const allowedPayments = payments.filter((payment) => payment.date <= referenceDate.toISOString().split("T")[0]);
   const totalLent = clientLoans.reduce((sum, loan) => sum + loan.amount, 0);
   const overdueLoans = clientLoans.filter((loan) => getLoanCategory(loan, allowedPayments, installmentSchedules, referenceDate) === "overdue");
+  const overdueDays = overdueLoans.map((loan) => getDaysOverdue(loan, installmentSchedules, referenceDate));
   const severeOverdueLoans = overdueLoans.filter((loan) => getDaysOverdue(loan, installmentSchedules, referenceDate) >= 30);
+  const highOverdueLoans = overdueDays.filter((days) => days >= 16).length;
+  const maxOverdueDays = overdueDays.length > 0 ? Math.max(...overdueDays) : 0;
   const paidLoans = clientLoans.filter((loan) => loan.status === "paid").length;
   const activeLoans = clientLoans.filter((loan) => loan.status !== "paid").length;
 
@@ -189,6 +194,8 @@ export function getClientRiskMetrics(client: Client, loans: Loan[], payments: Pa
     totalLent,
     overdueLoans: overdueLoans.length,
     severeOverdueLoans: severeOverdueLoans.length,
+    highOverdueLoans,
+    maxOverdueDays,
     paidLoans,
     activeLoans,
     onTimePayments,
@@ -248,11 +255,18 @@ function buildScoreSnapshot(client: Client, loans: Loan[], payments: Payment[], 
   historicalScore += getRelationshipBonus(relationshipMonths);
   historicalScore += getHealthyVolumeBonus(metrics);
 
+  if (metrics.maxOverdueDays > 30) historicalScore -= 45;
+  else if (metrics.maxOverdueDays >= 16) historicalScore -= 28;
+  else if (metrics.maxOverdueDays >= 6) historicalScore -= 16;
+  else if (metrics.maxOverdueDays >= 1) historicalScore -= 8;
+
   if (metrics.severeOverdueLoans > 0) {
-    historicalScore -= 30;
+    historicalScore -= 20;
   }
 
-  if (metrics.latePayments >= 2 || metrics.overdueLoans >= 2) {
+  if (metrics.highOverdueLoans > 1 || metrics.severeOverdueLoans > 1) {
+    historicalScore -= 20;
+  } else if (metrics.latePayments >= 2 || metrics.overdueLoans >= 2) {
     historicalScore -= 20;
   }
 
@@ -260,8 +274,12 @@ function buildScoreSnapshot(client: Client, loans: Loan[], payments: Payment[], 
   historicalScore = clamp(Math.round(historicalScore), 0, 150);
 
   let currentBaseScore = 100;
-  currentBaseScore -= metrics.overdueLoans * 18;
-  currentBaseScore -= metrics.severeOverdueLoans * 18;
+  if (metrics.maxOverdueDays > 30) currentBaseScore -= 55;
+  else if (metrics.maxOverdueDays >= 16) currentBaseScore -= 35;
+  else if (metrics.maxOverdueDays >= 6) currentBaseScore -= 22;
+  else if (metrics.maxOverdueDays >= 1) currentBaseScore -= 10;
+  currentBaseScore -= metrics.overdueLoans * 10;
+  currentBaseScore -= metrics.severeOverdueLoans * 12;
   currentBaseScore -= metrics.lateRatio * 35;
   currentBaseScore -= Math.min(12, metrics.partialPayments * 4);
   currentBaseScore -= metrics.activeLoans >= 4 ? 6 : 0;
@@ -273,6 +291,10 @@ function buildScoreSnapshot(client: Client, loans: Loan[], payments: Payment[], 
 
   if (metrics.severeOverdueLoans > 0) {
     currentScore = Math.min(currentScore, 50);
+  }
+
+  if (metrics.maxOverdueDays > 30) {
+    currentScore = Math.min(currentScore, 35);
   }
 
   if (historicalScore < 50) {
@@ -294,6 +316,7 @@ function getTrendLabel(trend: RiskProfile["trend"]) {
 }
 
 function getCombinedClassification(currentScore: number, historicalScore: number) {
+  if (currentScore <= 35) return "Alto risco crítico";
   if (currentScore >= 80 && historicalScore >= 110) return "Cliente excelente";
   if (currentScore < 60 && historicalScore >= 110) return "Queda recente";
   if (currentScore >= 75 && historicalScore < 75) return "Risco oculto";
@@ -303,7 +326,15 @@ function getCombinedClassification(currentScore: number, historicalScore: number
   return "Em observação";
 }
 
-function getProfileVisual(currentScore: number) {
+function getProfileVisual(currentScore: number, maxOverdueDays: number) {
+  if (maxOverdueDays > 30) {
+    return {
+      level: "critico" as const,
+      label: "Risco crítico",
+      badgeClassName: "bg-destructive/15 text-destructive border-destructive/30",
+    };
+  }
+
   if (currentScore >= 80) {
     return {
       level: "baixo" as const,
@@ -354,7 +385,7 @@ export function buildConsolidatedRiskProfile(
 
   const trendDelta = snapshot.currentScore - previousSnapshot.currentScore;
   const trend: RiskProfile["trend"] = trendDelta >= 4 ? "improving" : trendDelta <= -4 ? "worsening" : "stable";
-  const visual = getProfileVisual(snapshot.currentScore);
+  const visual = getProfileVisual(snapshot.currentScore, snapshot.metrics.maxOverdueDays);
 
   const positiveFactors = financialProfile?.positiveFactors?.length
     ? financialProfile.positiveFactors
@@ -368,6 +399,7 @@ export function buildConsolidatedRiskProfile(
     ? financialProfile.negativeFactors
     : [
         snapshot.metrics.overdueLoans > 0 ? `${snapshot.metrics.overdueLoans} contrato${snapshot.metrics.overdueLoans > 1 ? "s" : ""} em atraso no momento.` : null,
+        snapshot.metrics.maxOverdueDays > 30 ? `Maior atraso registrado: ${snapshot.metrics.maxOverdueDays} dias.` : null,
         snapshot.metrics.severeOverdueLoans > 0 ? "Há atraso atual acima de 30 dias." : null,
         snapshot.metrics.latePayments > 0 ? `${Math.round(snapshot.metrics.lateRatio * 100)}% dos pagamentos tiveram atraso.` : null,
         snapshot.historicalScore < 50 ? "O histórico acumulado limita a confiança operacional." : null,
@@ -376,6 +408,7 @@ export function buildConsolidatedRiskProfile(
   const reasons = [
     `Score Histórico em ${snapshot.historicalScore}/150.` ,
     `Score Atual em ${snapshot.currentScore}/100.` ,
+    snapshot.metrics.maxOverdueDays > 0 ? `Pior atraso observado: ${snapshot.metrics.maxOverdueDays} dias.` : null,
     snapshot.metrics.totalTimedPayments > 0 ? `${Math.round(snapshot.metrics.onTimeRatio * 100)}% de pagamentos em dia no histórico.` : "Ainda sem histórico suficiente de pagamentos.",
     snapshot.metrics.severeOverdueLoans > 0 ? "Limite de proteção aplicado por atraso acima de 30 dias." : null,
     snapshot.historicalScore < 50 ? "Limite de proteção aplicado por histórico abaixo do neutro." : null,
