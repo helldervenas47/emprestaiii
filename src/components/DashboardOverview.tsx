@@ -1254,6 +1254,128 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
       {/* Goals Card - placed above Health Score */}
       <GoalsCard loans={loans} payments={payments} expenses={expenses} clients={clients ?? []} installmentSchedules={installmentSchedules} selectedMonth={goalMonthKey} periodLabel={range.label} />
 
+      <Card no3d>
+        <CardContent className="p-4 sm:p-6 space-y-4">
+          <div className="flex items-start justify-between gap-3 flex-wrap">
+            <div>
+              <h3 className="text-sm font-semibold text-foreground">Comparativo mês a mês</h3>
+              <p className="text-xs text-muted-foreground">Resumo rápido, tendência visual e leitura automática do período.</p>
+            </div>
+            <div className="flex bg-muted/60 rounded-xl p-0.5 border border-border/30">
+              {[3, 6, 12].map((months) => (
+                <button
+                  key={months}
+                  type="button"
+                  onClick={() => setComparisonWindow(months as 3 | 6 | 12)}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${comparisonWindow === months ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
+                >
+                  {months} meses
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            {[
+              { label: "Faturamento", value: formatCurrency(monthComparison.current?.revenue ?? 0), delta: formatDelta(monthComparison.revenueDelta), positive: (monthComparison.revenueDelta ?? 0) >= 0 },
+              { label: "Juros", value: monthComparison.current?.interestRate !== null && monthComparison.current?.interestRate !== undefined ? `${monthComparison.current.interestRate.toFixed(2)}%` : "Sem dados", delta: formatDelta(monthComparison.interestDelta), positive: (monthComparison.interestDelta ?? 0) >= 0 },
+              { label: "Lucro", value: formatCurrency(monthComparison.current?.profit ?? 0), delta: formatDelta(monthComparison.profitDelta), positive: (monthComparison.profitDelta ?? 0) >= 0 },
+            ].map((item) => (
+              <div key={item.label} className="rounded-xl border border-border/30 bg-muted/30 p-4">
+                <p className="text-xs text-muted-foreground">{item.label}</p>
+                <p className="text-lg font-bold text-foreground mt-1">{item.value}</p>
+                <div className={`mt-2 inline-flex items-center gap-1 text-xs font-medium ${item.positive ? "text-success" : "text-destructive"}`}>
+                  {item.positive ? <TrendingUp className="h-3.5 w-3.5" /> : <TrendingDown className="h-3.5 w-3.5" />}
+                  <span>{item.delta}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="h-64">
+            <ResponsiveContainer width="100%" height="100%">
+              <ComposedChart data={monthComparison.series} margin={{ top: 8, right: 8, left: 8, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" className="stroke-muted/30" />
+                <XAxis dataKey="label" tick={{ fontSize: 11 }} className="text-muted-foreground" />
+                <YAxis yAxisId="currency" tickFormatter={(value) => `R$ ${Math.round(value / 1000)}k`} tick={{ fontSize: 11 }} className="text-muted-foreground" />
+                <YAxis yAxisId="percent" orientation="right" tickFormatter={(value) => `${value}%`} tick={{ fontSize: 11 }} className="text-muted-foreground" />
+                <Tooltip
+                  formatter={(value: number, name: string) => {
+                    if (name === "Juros") return [`${Number(value).toFixed(2)}%`, name];
+                    return [rawFormatCurrency(Number(value)), name];
+                  }}
+                  contentStyle={{ backgroundColor: "hsl(var(--card))", borderColor: "hsl(var(--border))", borderRadius: "12px" }}
+                />
+                <Legend />
+                <Bar yAxisId="currency" dataKey="revenue" name="Faturamento" fill="hsl(var(--success))" radius={[4, 4, 0, 0]} />
+                <Bar yAxisId="currency" dataKey="profit" name="Lucro" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
+                <Line yAxisId="percent" type="monotone" dataKey="interestRate" name="Juros" stroke="hsl(var(--warning))" strokeWidth={2.5} dot={{ r: 3 }} connectNulls />
+              </ComposedChart>
+            </ResponsiveContainer>
+          </div>
+
+          <div className="rounded-xl border border-border/30 bg-muted/20 p-4">
+            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">Insight</p>
+            <p className="text-sm text-foreground">{monthComparison.insight}</p>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card no3d>
+        <CardContent className="p-4 sm:p-6 space-y-4">
+          <div>
+            <h3 className="text-sm font-semibold text-foreground">Indicador risco vs retorno</h3>
+            <p className="text-xs text-muted-foreground">Score simples, classificação e alerta visual da operação atual.</p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-[240px_1fr] gap-4 items-center">
+            <div className="rounded-xl border border-border/30 bg-muted/20 p-4 space-y-3">
+              <div>
+                <p className="text-xs text-muted-foreground">Score de risco</p>
+                <p className="text-3xl font-bold text-foreground">{riskReturn.riskScore}</p>
+              </div>
+              <div className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold bg-muted ${riskReturn.classificationColor}`}>
+                {riskReturn.classification}
+              </div>
+              <div className="space-y-2 text-xs text-muted-foreground">
+                <div className="flex items-center justify-between"><span>Inadimplência</span><span>{portfolio.defaultRate.toFixed(1)}%</span></div>
+                <div className="flex items-center justify-between"><span>Atraso médio</span><span>{Math.round(riskReturn.averageDelayDays)} dias</span></div>
+                <div className="flex items-center justify-between"><span>Concentração</span><span>{riskReturn.concentrationShare.toFixed(1)}%</span></div>
+                <div className="flex items-center justify-between"><span>Retorno</span><span>{riskReturn.returnScore}/100</span></div>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <div className="rounded-xl border border-border/30 bg-muted/20 p-4">
+                <div className="flex items-center justify-between text-xs text-muted-foreground mb-2">
+                  <span>Baixo risco / baixo retorno</span>
+                  <span>Alto risco / alto retorno</span>
+                </div>
+                <div className="relative h-4 rounded-full bg-gradient-to-r from-success/40 via-warning/35 to-destructive/45">
+                  <div className="absolute top-1/2 h-6 w-6 -translate-y-1/2 -translate-x-1/2 rounded-full border-2 border-background bg-card shadow" style={{ left: `${riskReturn.axisPosition}%` }} />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="rounded-xl border border-border/30 bg-muted/20 p-4">
+                  <p className="text-xs text-muted-foreground">Taxa de juros média</p>
+                  <p className="text-lg font-bold text-foreground mt-1">{data.monthlyInterestRate.rate !== null ? `${data.monthlyInterestRate.rate.toFixed(2)}%` : "Sem dados"}</p>
+                </div>
+                <div className="rounded-xl border border-border/30 bg-muted/20 p-4">
+                  <p className="text-xs text-muted-foreground">Lucro gerado</p>
+                  <p className="text-lg font-bold text-foreground mt-1">{formatCurrency(data.periodProfitRealized)}</p>
+                </div>
+              </div>
+
+              <div className="rounded-xl border border-border/30 bg-muted/20 p-4">
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">Insight</p>
+                <p className="text-sm text-foreground">{riskReturn.insight}</p>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Health Score Gauge */}
       <Card no3d>
         <CardContent className="p-4 sm:p-6">
