@@ -1985,18 +1985,20 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
                       <span className={`text-sm font-semibold shrink-0 ${t.type === "in" ? "text-success" : "text-destructive"}`}>
                         {t.type === "in" ? "+" : "−"}{formatCurrency(t.amount)}
                       </span>
-                      <Button
-                        size="icon" variant="ghost"
-                        className="h-7 w-7 shrink-0 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
-                        onClick={() => {
-                          if (t.source === "payment" && onDeletePayment) onDeletePayment(t.id);
-                          else if (t.source === "sale" && onDeleteSale) onDeleteSale(t.id);
-                          else if (t.source === "loan" && onDeleteLoan) onDeleteLoan(t.id);
-                        }}
-                        title="Excluir lançamento"
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </Button>
+                      {!readOnly && (
+                        <Button
+                          size="icon" variant="ghost"
+                          className="h-7 w-7 shrink-0 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                          onClick={() => {
+                            if (t.source === "payment" && onDeletePayment) onDeletePayment(t.id);
+                            else if (t.source === "sale" && onDeleteSale) onDeleteSale(t.id);
+                            else if (t.source === "loan" && onDeleteLoan) onDeleteLoan(t.id);
+                          }}
+                          title="Excluir lançamento"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      )}
                     </div>
                   ))}
                 </div>
