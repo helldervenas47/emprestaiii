@@ -217,7 +217,7 @@ const Auth = () => {
 
         <div className="text-center text-sm text-muted-foreground">
           Não tem conta?{" "}
-          <button onClick={() => navigate("/planos")} className="text-primary hover:underline font-medium">
+          <button onClick={() => window.location.assign("/planos")} className="text-primary hover:underline font-medium">
             Criar conta
           </button>
         </div>
@@ -225,7 +225,7 @@ const Auth = () => {
           <Button
             variant="outline"
             className="w-full h-11 rounded-xl text-sm font-semibold border-primary text-primary hover:bg-primary hover:text-primary-foreground transition-colors"
-            onClick={() => navigate("/planos")}
+            onClick={() => window.location.assign("/planos")}
           >
             Ver planos e preços
           </Button>
