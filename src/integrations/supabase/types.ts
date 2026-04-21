@@ -1572,6 +1572,42 @@ export type Database = {
         }
         Relationships: []
       }
+      telegram_accumulated_delinquency_prefs: {
+        Row: {
+          created_at: string
+          enabled: boolean
+          id: string
+          last_sent: Json
+          send_time_1: string | null
+          send_time_2: string | null
+          send_time_3: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          enabled?: boolean
+          id?: string
+          last_sent?: Json
+          send_time_1?: string | null
+          send_time_2?: string | null
+          send_time_3?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          enabled?: boolean
+          id?: string
+          last_sent?: Json
+          send_time_1?: string | null
+          send_time_2?: string | null
+          send_time_3?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       telegram_billing_prefs: {
         Row: {
           created_at: string

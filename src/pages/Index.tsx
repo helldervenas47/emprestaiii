@@ -47,6 +47,7 @@ const NotificationSettings = lazy(() => import("@/components/NotificationSetting
 const MonthlyGoalsManager = lazy(() => import("@/components/MonthlyGoalsManager").then(m => ({ default: m.MonthlyGoalsManager })));
 const AccountantReport = lazy(() => import("@/components/AccountantReport").then(m => ({ default: m.AccountantReport })));
 const DailyPlanningReport = lazy(() => import("@/components/DailyPlanningReport").then(m => ({ default: m.DailyPlanningReport })));
+const AccumulatedDelinquencyReport = lazy(() => import("@/components/AccumulatedDelinquencyReport").then(m => ({ default: m.AccumulatedDelinquencyReport })));
 const Settings = lazy(() => import("@/components/Settings").then(m => ({ default: m.Settings })));
 // Direct import for the constant used at render time
 import { vehicleExpenseCategories } from "@/components/VehicleExpenseForm";
@@ -84,7 +85,7 @@ type Tab = "overview" | "dashboard" | "clients" | "products" | "vehicles" | "ove
 type ClientSubTab = "clientes" | "veiculos";
 type VehicleSubTab = "veiculos" | "locadores";
 type PlanMgmtSubTab = "subscribers" | "plans";
-type OverdueSubTab = "cobrancas" | "contador" | "metas" | "planejamento";
+type OverdueSubTab = "cobrancas" | "inadimplencia-acumulada" | "contador" | "metas" | "planejamento";
 type ExpenseSubTab = "business" | "personal";
 type PersonalSubTab = "expenses" | "cards";
 
@@ -696,6 +697,13 @@ const Index = () => {
                 <AlertTriangle className="h-4 w-4 mr-1" /> Cobranças
               </Button>
               <Button
+                variant={overdueSubTab === "inadimplencia-acumulada" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setOverdueSubTab("inadimplencia-acumulada")}
+              >
+                <AlertTriangle className="h-4 w-4 mr-1" /> Inadimplência Acumulada
+              </Button>
+              <Button
                 variant={overdueSubTab === "contador" ? "default" : "outline"}
                 size="sm"
                 onClick={() => setOverdueSubTab("contador")}
@@ -719,6 +727,9 @@ const Index = () => {
             </div>
             {overdueSubTab === "cobrancas" && (
               <OverdueLoans loans={filteredLoans} payments={filteredPayments} clients={filteredClients} installmentSchedules={filteredInstallments} />
+            )}
+            {overdueSubTab === "inadimplencia-acumulada" && (
+              <AccumulatedDelinquencyReport loans={filteredLoans} clients={filteredClients} installmentSchedules={filteredInstallments} />
             )}
             {overdueSubTab === "contador" && (
               <AccountantReport loans={filteredLoans} payments={filteredPayments} sales={sales} expenses={expenses} />
