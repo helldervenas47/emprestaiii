@@ -1,4 +1,4 @@
-import { useMemo, useState, useEffect, useCallback } from "react";
+import { useMemo, useState, useEffect, useCallback, useRef } from "react";
 import { todayInAppTz } from "@/lib/timezone";
 import { useChartOverrides } from "@/hooks/useChartOverrides";
 import { useMonthlyGoals } from "@/hooks/useMonthlyGoals";
@@ -256,6 +256,8 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
   const [riskAiReport, setRiskAiReport] = useState("");
   const [riskAiTitle, setRiskAiTitle] = useState("Relatório IA para reduzir risco");
   const [simulationInterestRate, setSimulationInterestRate] = useState(30);
+  const [cachedInsightReports, setCachedInsightReports] = useState<Record<string, string>>({});
+  const prefetchingInsightReportsRef = useRef<Set<string>>(new Set());
   const { chartOverrides, setChartOverrides, interestOverrides, setInterestOverrides } = useChartOverrides();
   const { getGoal } = useMonthlyGoals();
   const { prefs: personalInsightPrefs } = usePersonalInsightsTelegramPrefs();
@@ -806,25 +808,39 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
     };
   }, [data.monthlyInterestRate.rate, data.periodProfitRealized, data.totalIncome, loans, portfolio.defaultRate]);
 
-  const generateAiReport = useCallback(async ({ title, type, metrics }: { title: string; type: "risk-reduction" | "priority-insight"; metrics: Record<string, unknown> }) => {
-    setRiskAiOpen(true);
-    setRiskAiLoading(true);
-    setRiskAiTitle(title);
+  const generateAiReport = useCallback(async ({ title, type, metrics, cacheKey, openSheet = true }: { title: string; type: "risk-reduction" | "priority-insight"; metrics: Record<string, unknown>; cacheKey?: string; openSheet?: boolean }) => {
+    if (openSheet) {
+      setRiskAiOpen(true);
+      setRiskAiLoading(true);
+      setRiskAiTitle(title);
+      if (cacheKey && cachedInsightReports[cacheKey]) {
+        setRiskAiReport(cachedInsightReports[cacheKey]);
+        setRiskAiLoading(false);
+        return;
+      }
+    }
     try {
       const { data: result, error } = await supabase.functions.invoke("generate-risk-reduction-report", {
         body: { tone: riskAiTone, type, metrics },
       });
 
       if (error) throw error;
-      setRiskAiReport((result as { report?: string })?.report ?? "Não foi possível gerar o relatório.");
+      const report = (result as { report?: string })?.report ?? "Não foi possível gerar o relatório.";
+      if (cacheKey) {
+        setCachedInsightReports((current) => ({ ...current, [cacheKey]: report }));
+      }
+      if (openSheet) setRiskAiReport(report);
     } catch (error: any) {
       const message = error?.message || "Erro ao gerar relatório com IA";
-      toast.error("Falha ao gerar relatório", { description: message });
-      setRiskAiReport("Não foi possível gerar o relatório agora.");
+      if (openSheet) {
+        toast.error("Falha ao gerar relatório", { description: message });
+        setRiskAiReport("Não foi possível gerar o relatório agora.");
+      }
     } finally {
-      setRiskAiLoading(false);
+      if (openSheet) setRiskAiLoading(false);
+      if (cacheKey) prefetchingInsightReportsRef.current.delete(cacheKey);
     }
-  }, [riskAiTone]);
+  }, [cachedInsightReports, riskAiTone]);
 
   const generateRiskAiReport = useCallback(async () => {
     await generateAiReport({
