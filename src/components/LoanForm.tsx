@@ -222,6 +222,10 @@ export function LoanForm({ onAdd, onSaveSchedule, onClose, clients, loans, payme
       toast.error("Selecione um gerente para o empréstimo com gerente.");
       return;
     }
+    if (hasManager && commissionExceedsLoan) {
+      toast.error("A comissão não pode ser maior que o valor do empréstimo.");
+      return;
+    }
     setSubmitting(true);
 
     const totalWithInterest = calculateTotalWithInterest(amount, rate, installments);
