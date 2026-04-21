@@ -326,6 +326,15 @@ const Index = () => {
       persistPinned([...pinnedTabs, id]);
     }
   };
+  const [dragIndex, setDragIndex] = useState<number | null>(null);
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
+  const reorderPinned = (from: number, to: number) => {
+    if (from === to || from < 0 || to < 0 || from >= pinnedTabs.length || to >= pinnedTabs.length) return;
+    const next = [...pinnedTabs];
+    const [moved] = next.splice(from, 1);
+    next.splice(to, 0, moved);
+    persistPinned(next);
+  };
   const { pendingCount: approvalPendingCount } = useApprovalRequests();
   const { count: offlinePendingCount } = usePendingCount();
   const morePendingCount = (role === "admin" ? approvalPendingCount : 0) + offlinePendingCount;
