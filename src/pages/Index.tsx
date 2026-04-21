@@ -1037,18 +1037,27 @@ const Index = () => {
                 <div>
                   <h3 className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground mb-2">Ações rápidas</h3>
                   <div className="grid grid-cols-2 gap-2">
-                    <Button variant="outline" size="sm" onClick={() => { handleHardRefresh(); setMoreOpen(false); }} disabled={refreshing} className="justify-start">
-                      <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? "animate-spin" : ""}`} /> Atualizar
+                    <Button variant="outline" size="sm" onClick={() => { handleHardRefresh(); setMoreOpen(false); }} disabled={refreshing || !!pendingNav} className="justify-start">
+                      {refreshing ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <RefreshCw className="h-4 w-4 mr-2" />}
+                      {refreshing ? "Atualizando..." : "Atualizar"}
                     </Button>
-                    <Button variant="outline" size="sm" onClick={() => { toggleTheme(); }} className="justify-start">
-                      {dark ? <Sun className="h-4 w-4 mr-2" /> : <Moon className="h-4 w-4 mr-2" />}
-                      {dark ? "Modo claro" : "Modo escuro"}
+                    <Button variant="outline" size="sm" onClick={toggleTheme} disabled={themeSwitching} className="justify-start">
+                      {themeSwitching ? (
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      ) : dark ? (
+                        <Sun className="h-4 w-4 mr-2" />
+                      ) : (
+                        <Moon className="h-4 w-4 mr-2" />
+                      )}
+                      {themeSwitching ? "Aplicando..." : dark ? "Modo claro" : "Modo escuro"}
                     </Button>
-                    <Button variant="outline" size="sm" onClick={() => { setMoreOpen(false); navigate("/planejamento-do-dia"); }} className="justify-start">
-                      <CalendarClock className="h-4 w-4 mr-2" /> Planejamento
+                    <Button variant="outline" size="sm" onClick={() => handleQuickNav("/planejamento-do-dia")} disabled={!!pendingNav} className="justify-start">
+                      {pendingNav === "/planejamento-do-dia" ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <CalendarClock className="h-4 w-4 mr-2" />}
+                      {pendingNav === "/planejamento-do-dia" ? "Abrindo..." : "Planejamento"}
                     </Button>
-                    <Button variant="outline" size="sm" onClick={() => { setMoreOpen(false); navigate("/planos"); }} className="justify-start">
-                      <Target className="h-4 w-4 mr-2" /> Planos
+                    <Button variant="outline" size="sm" onClick={() => handleQuickNav("/planos")} disabled={!!pendingNav} className="justify-start">
+                      {pendingNav === "/planos" ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Target className="h-4 w-4 mr-2" />}
+                      {pendingNav === "/planos" ? "Abrindo..." : "Planos"}
                     </Button>
                   </div>
                 </div>
