@@ -653,13 +653,15 @@ const Index = () => {
               >
                 <Users className="h-4 w-4 mr-1" /> Clientes
               </Button>
-              <Button
-                variant={clientSubTab === "veiculos" ? "default" : "outline"}
-                size="sm"
-                onClick={() => setClientSubTab("veiculos")}
-              >
-                <Car className="h-4 w-4 mr-1" /> Veículos
-              </Button>
+              {!isReadOnly && (
+                <Button
+                  variant={clientSubTab === "veiculos" ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setClientSubTab("veiculos")}
+                >
+                  <Car className="h-4 w-4 mr-1" /> Veículos
+                </Button>
+              )}
             </div>
             {clientSubTab === "clientes" && (
               <>
