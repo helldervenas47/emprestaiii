@@ -53,6 +53,8 @@ import { vehicleExpenseCategories } from "@/components/VehicleExpenseForm";
 import { PushNotificationToggle } from "@/components/PushNotificationToggle";
 import { ApprovalRequestsButton } from "@/components/ApprovalRequestsButton";
 import { DashboardOverview } from "@/components/DashboardOverview";
+import { useApprovalRequests } from "@/hooks/useApprovalRequests";
+import { usePendingCount } from "@/lib/offline/sync";
 
 // Prefetch most-used chunks after idle
 const prefetchChunks = () => {
