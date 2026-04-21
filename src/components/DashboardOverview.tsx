@@ -5,7 +5,6 @@ import { useMonthlyGoals } from "@/hooks/useMonthlyGoals";
 import { calculateMonthlyInterestRate } from "@/lib/monthlyInterestRate";
 import { useAuth } from "@/hooks/useAuth";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { usePersonalInsightsTelegramPrefs, type InsightTone } from "@/hooks/usePersonalInsightsTelegramPrefs";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import ReactMarkdown from "react-markdown";
@@ -19,7 +18,6 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Progress } from "@/components/ui/progress";
 import { getBalance, setBalance } from "@/lib/balance";
 import {
@@ -70,14 +68,6 @@ type Period = "day" | "week" | "month";
 const periodLabels: Record<Period, string> = { day: "Dia", week: "Semana", month: "Mês" };
 
 const monthNames = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
-
-const TONE_OPTIONS: { value: InsightTone; label: string }[] = [
-  { value: "balanced", label: "Equilibrado" },
-  { value: "strict", label: "Direto" },
-  { value: "motivational", label: "Motivacional" },
-  { value: "technical", label: "Técnico" },
-  { value: "friendly", label: "Amigável" },
-];
 
 function isInRange(dateStr: string, start: Date, end: Date): boolean {
   const date = new Date(dateStr + "T00:00:00");
@@ -253,7 +243,6 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
   const [showInterestDetail, setShowInterestDetail] = useState(false);
   const [showInterestExpectedDetail, setShowInterestExpectedDetail] = useState(false);
   const [interestExpectedFilter, setInterestExpectedFilter] = useState<"pending" | "paid">("pending");
-  const [riskAiTone, setRiskAiTone] = useState<InsightTone>("strict");
   const [riskAiOpen, setRiskAiOpen] = useState(false);
   const [riskAiLoading, setRiskAiLoading] = useState(false);
   const [riskAiReport, setRiskAiReport] = useState("");
@@ -262,11 +251,6 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
   const prefetchingInsightReportsRef = useRef<Set<string>>(new Set());
   const { chartOverrides, setChartOverrides, interestOverrides, setInterestOverrides } = useChartOverrides();
   const { getGoal } = useMonthlyGoals();
-  const { prefs: personalInsightPrefs } = usePersonalInsightsTelegramPrefs();
-
-  useEffect(() => {
-    setRiskAiTone(personalInsightPrefs.tone ?? "strict");
-  }, [personalInsightPrefs.tone]);
 
   const range = useMemo(() => getRange(period, offset), [period, offset]);
 
@@ -803,7 +787,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
     }
     try {
       const { data: result, error } = await supabase.functions.invoke("generate-risk-reduction-report", {
-        body: { tone: riskAiTone, type, metrics },
+        body: { type, metrics },
       });
 
       if (error) throw error;
@@ -822,7 +806,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
       if (openSheet) setRiskAiLoading(false);
       if (cacheKey) prefetchingInsightReportsRef.current.delete(cacheKey);
     }
-  }, [cachedInsightReports, riskAiTone]);
+  }, [cachedInsightReports]);
 
   const generateRiskAiReport = useCallback(async () => {
     await generateAiReport({
@@ -2230,17 +2214,6 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
 
             <div className="mt-4 space-y-4">
               <div className="space-y-2 rounded-xl border border-primary/20 bg-card/70 p-4 shadow-[0_12px_32px_-18px_hsl(var(--primary)/0.3)] backdrop-blur-xl backdrop-saturate-150">
-                <p className="text-xs text-muted-foreground">Tom da IA</p>
-                <Select value={riskAiTone} onValueChange={(value) => setRiskAiTone(value as InsightTone)}>
-                  <SelectTrigger className="h-9 text-sm">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {TONE_OPTIONS.map((option) => (
-                      <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
                 <Button type="button" size="sm" onClick={generateRiskAiReport} disabled={riskAiLoading} className="gap-2">
                   <Sparkles className={`h-3.5 w-3.5 ${riskAiLoading ? "animate-pulse" : ""}`} />
                   {riskAiLoading ? "Gerando..." : "Gerar novamente"}
@@ -2273,17 +2246,6 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
 
             <div className="space-y-4">
               <div className="space-y-2 rounded-xl border border-primary/20 bg-card/70 p-4 shadow-[0_12px_32px_-18px_hsl(var(--primary)/0.3)] backdrop-blur-xl backdrop-saturate-150">
-                <p className="text-xs text-muted-foreground">Tom da IA</p>
-                <Select value={riskAiTone} onValueChange={(value) => setRiskAiTone(value as InsightTone)}>
-                  <SelectTrigger className="h-9 text-sm">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {TONE_OPTIONS.map((option) => (
-                      <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
                 <Button type="button" size="sm" onClick={generateRiskAiReport} disabled={riskAiLoading} className="gap-2">
                   <Sparkles className={`h-3.5 w-3.5 ${riskAiLoading ? "animate-pulse" : ""}`} />
                   {riskAiLoading ? "Gerando..." : "Gerar novamente"}

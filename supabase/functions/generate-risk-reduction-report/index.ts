@@ -44,7 +44,6 @@ Deno.serve(async (req) => {
     }
 
     const body = await req.json();
-    const tone = ((body?.tone as InsightTone) ?? "balanced");
     const reportType = ((body?.type as ReportType) ?? "risk-reduction");
     const metrics = body?.metrics;
 
@@ -59,7 +58,7 @@ Deno.serve(async (req) => {
       "risk-reduction": {
         system: [
           "Você é um consultor financeiro especialista em crédito e cobrança.",
-          toneGuide[tone] ?? toneGuide.balanced,
+          toneGuide.balanced,
           "Analise o risco da operação e gere um relatório em markdown.",
           "Objetivo: dizer o que fazer para diminuir o risco sem destruir o retorno.",
           "Estruture a resposta com apenas estes blocos: Resumo executivo e Ações imediatas.",
@@ -72,11 +71,12 @@ Deno.serve(async (req) => {
       "priority-insight": {
         system: [
           "Você é um consultor financeiro especialista em performance, risco e cobrança.",
-          toneGuide[tone] ?? toneGuide.balanced,
+          toneGuide.balanced,
           "Analise o insight prioritário recebido e gere um relatório executivo em markdown.",
-          "Objetivo: explicar o problema ou oportunidade, apontar prováveis causas e orientar o que fazer agora.",
-          "Estruture a resposta com estes blocos: Leitura do insight, Diagnóstico, O que fazer imediatamente, Plano de 7 a 30 dias, Indicadores para acompanhar.",
-          "Seja específico com base nos números recebidos. Não invente dados. Use bullets curtos e acionáveis.",
+          "Objetivo: resumir o problema ou oportunidade e dizer o que fazer agora.",
+          "Estruture a resposta com apenas estes blocos: Resumo executivo e Ação imediata.",
+          "Cada bloco deve ter no máximo 2 bullets bem curtos, claros e diretos.",
+          "Seja específico com base nos números recebidos. Não invente dados. Corte contexto desnecessário.",
         ],
         userIntro: "Contexto do insight prioritário:",
       },
