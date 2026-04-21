@@ -12,11 +12,13 @@ import { Progress } from "@/components/ui/progress";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Trash2, User, Phone, Mail, MapPin, Search, Users, Pencil, X, Check, ToggleLeft, ToggleRight, ArrowUpDown, ArrowDownAZ, ArrowUpAZ, Clock, CalendarDays, TrendingUp, AlertTriangle, CheckCircle, ShieldCheck } from "lucide-react";
 import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
+import { ClientDetailDialog } from "@/components/ClientDetailDialog";
 
 interface Props {
   clients: Client[];
   loans: Loan[];
   payments: Payment[];
+  installmentSchedules: import("@/types/loan").InstallmentSchedule[];
   onDelete: (id: string) => void;
   onUpdate: (id: string, data: Partial<Omit<Client, "id" | "createdAt">>) => void;
 }
@@ -116,13 +118,14 @@ function calculateCreditScore(clientId: string, loans: Loan[], payments: Payment
   return { score, label, color, bgColor, totalLoans, paidLoans, activeLoans, overdueLoans: totalOverdue, onTimePayments, latePayments, totalPayments };
 }
 
-export function ClientList({ clients, loans, payments, onDelete, onUpdate, readOnly = false }: Props & { readOnly?: boolean }) {
+export function ClientList({ clients, loans, payments, installmentSchedules, onDelete, onUpdate, readOnly = false }: Props & { readOnly?: boolean }) {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [sortOption, setSortOption] = useState<SortOption>("name-asc");
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState<Record<string, any>>({ name: "", phone: "", email: "", cpf: "", cnpj: "", rg: "", address: "", city: "", state: "", score: "", notes: "", isVehicleRental: false, nacionalidade: "", estadoCivil: "", profissao: "", bairro: "", isManager: false, defaultInterestRate: "" });
   const [deleteClientId, setDeleteClientId] = useState<string | null>(null);
+  const [selectedClient, setSelectedClient] = useState<Client | null>(null);
 
   const creditScores = useMemo(() => {
     const map: Record<string, CreditScore> = {};
@@ -373,6 +376,9 @@ export function ClientList({ clients, loans, payments, onDelete, onUpdate, readO
                       </div>
                       {!readOnly && (
                       <div className="flex gap-1">
+                        <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => setSelectedClient(client)} title="Ver detalhes">
+                          <ShieldCheck className="h-4 w-4 text-primary" />
+                        </Button>
                         <Button
                           size="icon"
                           variant="ghost"
@@ -442,6 +448,14 @@ export function ClientList({ clients, loans, payments, onDelete, onUpdate, readO
         onConfirm={() => { if (deleteClientId) { onDelete(deleteClientId); setDeleteClientId(null); } }}
         title="Excluir cliente"
         description="Tem certeza que deseja excluir este cliente?"
+      />
+      <ClientDetailDialog
+        open={!!selectedClient}
+        onOpenChange={(open) => !open && setSelectedClient(null)}
+        client={selectedClient}
+        loans={loans}
+        payments={payments}
+        installmentSchedules={installmentSchedules}
       />
     </div>
   );
