@@ -365,7 +365,9 @@ const Index = () => {
   useApprovalPushAlerts();
   const isMobile = useIsMobile();
   const isMobileOrTablet = useIsMobileOrTablet();
-  const isReadOnly = role === "visualizador";
+  // Treat unresolved role as read-only to prevent flashing create buttons
+  // before the role loads (defensive — viewers should never see write actions).
+  const isReadOnly = loading || role === null || role === "visualizador";
 
   // Swipe from left edge to open sidebar on mobile
   useEffect(() => {
