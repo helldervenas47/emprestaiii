@@ -159,7 +159,7 @@ export function BillingCalendar({ loans, payments, installmentSchedules, onPayme
     setPaymentDialog({ loanId, type, amount, borrowerName });
   };
 
-  const confirmPayment = () => {
+  const confirmPayment = async () => {
     if (!paymentDialog) return;
     const dateStr = paymentDate.toISOString().split("T")[0];
     const loan = loans.find(l => l.id === paymentDialog.loanId);
@@ -171,28 +171,28 @@ export function BillingCalendar({ loans, payments, installmentSchedules, onPayme
 
     if (paymentDialog.type === "full") {
       if (onFullPayment) {
-        onFullPayment(paymentDialog.loanId, dateStr);
+        await onFullPayment(paymentDialog.loanId, dateStr);
       } else {
-        onPartialPayment?.(paymentDialog.loanId, remaining, dateStr);
-        onUpdate?.(paymentDialog.loanId, { paidInstallments: loan.installments, status: "paid" });
+        await onPartialPayment?.(paymentDialog.loanId, remaining, dateStr);
+        await onUpdate?.(paymentDialog.loanId, { paidInstallments: loan.installments, status: "paid" });
       }
     } else if (paymentDialog.type === "payoff") {
       const customRaw = parseFloat(payoffAmount.replace(",", "."));
       const custom = isFinite(customRaw) && customRaw > 0 ? customRaw : 0;
       if (custom <= 0) return;
       if (onFullPayment) {
-        onFullPayment(paymentDialog.loanId, dateStr, custom);
+        await onFullPayment(paymentDialog.loanId, dateStr, custom);
       } else {
-        onPartialPayment?.(paymentDialog.loanId, custom, dateStr);
-        onUpdate?.(paymentDialog.loanId, { paidInstallments: loan.installments, status: "paid" });
+        await onPartialPayment?.(paymentDialog.loanId, custom, dateStr);
+        await onUpdate?.(paymentDialog.loanId, { paidInstallments: loan.installments, status: "paid" });
       }
       setPayoffAmount("");
     } else if (paymentDialog.type === "installment") {
-      onPayment?.(paymentDialog.loanId, dateStr);
+      await onPayment?.(paymentDialog.loanId, dateStr);
     } else if (paymentDialog.type === "interest") {
-      onInterestPayment?.(paymentDialog.loanId, dateStr);
+      await onInterestPayment?.(paymentDialog.loanId, dateStr);
     } else if (paymentDialog.type === "partial" && paymentDialog.amount) {
-      onPartialPayment?.(paymentDialog.loanId, paymentDialog.amount, dateStr);
+      await onPartialPayment?.(paymentDialog.loanId, paymentDialog.amount, dateStr);
     }
     setPaymentDialog(null);
     setExpandedItem(null);

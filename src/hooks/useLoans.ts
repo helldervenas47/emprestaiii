@@ -330,12 +330,17 @@ export function useLoans() {
       throw new Error(paymentError.message);
     }
 
-    const { error: loanError } = await supabase.from("loans").update(loanUpdate).eq("id", loanId);
-    if (loanError) {
-      console.error("[addPayment] update loan failed:", loanError);
+    const { data: updatedLoan, error: loanError } = await supabase
+      .from("loans")
+      .update(loanUpdate)
+      .eq("id", loanId)
+      .select("id")
+      .maybeSingle();
+    if (loanError || !updatedLoan) {
+      console.error("[addPayment] update loan failed:", loanError ?? new Error("Nenhum empréstimo foi atualizado"));
       await supabase.from("payments").delete().eq("id", tempPaymentId);
       await revertOptimisticState();
-      throw new Error(loanError.message);
+      throw new Error(loanError?.message ?? "Falha ao atualizar o empréstimo");
     }
 
     try {
@@ -401,12 +406,17 @@ export function useLoans() {
       throw new Error(paymentError.message);
     }
 
-    const { error: loanError } = await supabase.from("loans").update(loanUpdate).eq("id", loanId);
-    if (loanError) {
-      console.error("[addPartialPayment] update loan failed:", loanError);
+    const { data: updatedLoan, error: loanError } = await supabase
+      .from("loans")
+      .update(loanUpdate)
+      .eq("id", loanId)
+      .select("id")
+      .maybeSingle();
+    if (loanError || !updatedLoan) {
+      console.error("[addPartialPayment] update loan failed:", loanError ?? new Error("Nenhum empréstimo foi atualizado"));
       await supabase.from("payments").delete().eq("id", tempPaymentId);
       await revertOptimisticState();
-      throw new Error(loanError.message);
+      throw new Error(loanError?.message ?? "Falha ao atualizar o empréstimo");
     }
 
     try {
