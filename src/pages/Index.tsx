@@ -205,6 +205,15 @@ function HideValuesToggle() {
     </Button>
   );
 }
+function HideValuesQuickAction() {
+  const { hidden, toggle } = useHideValues();
+  return (
+    <Button variant="outline" size="sm" onClick={toggle} className="justify-start">
+      {hidden ? <EyeOff className="h-4 w-4 mr-2" /> : <Eye className="h-4 w-4 mr-2" />}
+      {hidden ? "Mostrar valores" : "Ocultar valores"}
+    </Button>
+  );
+}
 
 const Index = () => {
   const { signOut, role, allowedTabs, linkedClientIds, loading, user } = useAuth();
@@ -969,9 +978,10 @@ const Index = () => {
             <SheetContent
               side="bottom"
               className="rounded-t-2xl max-h-[88vh] overflow-y-auto p-0"
+              style={{ paddingTop: 0 }}
             >
-              <div className="mx-auto mt-2 mb-3 h-1.5 w-12 rounded-full bg-muted-foreground/30" />
-              <div className="px-5 pb-6 space-y-5">
+              <div className="mx-auto mt-2 mb-2 h-1.5 w-12 rounded-full bg-muted-foreground/30" />
+              <div className="px-5 pb-6 pt-1 space-y-4">
                 {/* Branding */}
                 <div className="flex items-center gap-3">
                   <AppLogo area="header" alt={brandName} className="w-auto" />
@@ -1072,10 +1082,8 @@ const Index = () => {
                       {pendingNav === "/planejamento-do-dia" ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <CalendarClock className="h-4 w-4 mr-2" />}
                       {pendingNav === "/planejamento-do-dia" ? "Abrindo..." : "Planejamento"}
                     </Button>
-                    <Button variant="outline" size="sm" onClick={() => handleQuickNav("/planos")} disabled={!!pendingNav} className="justify-start">
-                      {pendingNav === "/planos" ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Target className="h-4 w-4 mr-2" />}
-                      {pendingNav === "/planos" ? "Abrindo..." : "Planos"}
-                    </Button>
+                    <HideValuesQuickAction />
+
                   </div>
                 </div>
 
