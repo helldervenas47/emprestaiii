@@ -436,12 +436,14 @@ export function useLoans() {
   }, [user, dataOwnerId, loans, payments, fetchLoans, fetchPayments]);
 
   const payOffLoan = useCallback(async (loanId: string, paymentDate?: string, customAmount?: number) => {
-    if (!user || !dataOwnerId) return;
+    if (!user || !dataOwnerId) throw new Error("Usuário não autenticado");
     const dateStr = paymentDate || todayInAppTz();
     const loan = loans.find((l) => l.id === loanId);
-    if (!loan) return;
+    if (!loan) throw new Error("Empréstimo não encontrado");
     const remaining = getLoanRemainingAmount(loan, payments);
-    if (remaining <= 0 && !(typeof customAmount === "number" && customAmount > 0)) return;
+    if (remaining <= 0 && !(typeof customAmount === "number" && customAmount > 0)) {
+      throw new Error("Não há saldo restante para quitar");
+    }
 
     const payAmount = typeof customAmount === "number" && customAmount > 0
       ? customAmount
@@ -477,18 +479,53 @@ export function useLoans() {
       return;
     }
 
-    const [paymentInsert, loanUpdateRes] = await Promise.all([
-      supabase.from("payments").insert(paymentPayload as any).select().single(),
-      supabase.from("loans").update(loanUpdate).eq("id", loanId),
-      adjustBalance(payAmount),
-    ]);
-    if (paymentInsert.error) {
-      console.error("[payOffLoan] insert payment failed:", paymentInsert.error);
+    const revertOptimisticState = async () => {
       setPayments((prev) => prev.filter((p) => p.id !== tempPaymentId));
       setLoans((prev) => prev.map((l) => l.id === loanId ? loan : l));
-      throw new Error(paymentInsert.error.message);
+      await removeCachedRow("payments", tempPaymentId);
+    };
+
+    const { data: insertedPayment, error: paymentError } = await supabase
+      .from("payments")
+      .insert(paymentPayload as any)
+      .select("id")
+      .single();
+
+    if (paymentError || !insertedPayment) {
+      console.error("[payOffLoan] insert payment failed:", paymentError ?? new Error("Pagamento não retornado"));
+      await revertOptimisticState();
+      throw new Error(paymentError?.message ?? "Falha ao registrar pagamento");
     }
-    if (loanUpdateRes.error) console.error("[payOffLoan] update loan failed:", loanUpdateRes.error);
+
+    const { data: updatedLoan, error: loanError } = await supabase
+      .from("loans")
+      .update(loanUpdate)
+      .eq("id", loanId)
+      .select("id")
+      .maybeSingle();
+
+    if (loanError || !updatedLoan) {
+      console.error("[payOffLoan] update loan failed:", loanError ?? new Error("Nenhum empréstimo foi atualizado"));
+      await supabase.from("payments").delete().eq("id", tempPaymentId);
+      await revertOptimisticState();
+      throw new Error(loanError?.message ?? "Falha ao atualizar o empréstimo");
+    }
+
+    try {
+      await adjustBalance(payAmount);
+    } catch (balanceError: any) {
+      console.error("[payOffLoan] adjust balance failed:", balanceError);
+      await Promise.all([
+        supabase.from("payments").delete().eq("id", tempPaymentId),
+        supabase.from("loans").update({
+          paid_installments: loan.paidInstallments,
+          status: loan.status,
+          remaining_amount: loan.remainingAmount ?? remaining,
+        }).eq("id", loanId),
+      ]);
+      await revertOptimisticState();
+      throw new Error(balanceError?.message ?? "Falha ao atualizar saldo");
+    }
 
     // Manager commission (isolated — does NOT affect balance/profit/expenses)
     if (loan.hasManager && loan.managerId) {
@@ -498,7 +535,7 @@ export function useLoans() {
         user_id: dataOwnerId,
         loan_id: loanId,
         manager_id: loan.managerId,
-        payment_id: paymentInsert.data?.id ?? null,
+        payment_id: insertedPayment.id,
         commission_type: "full",
         base_amount: loan.amount,
         rate,
