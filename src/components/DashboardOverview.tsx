@@ -2,6 +2,7 @@ import { useMemo, useState, useEffect, useCallback } from "react";
 import { todayInAppTz } from "@/lib/timezone";
 import { useChartOverrides } from "@/hooks/useChartOverrides";
 import { useMonthlyGoals } from "@/hooks/useMonthlyGoals";
+import { calculateMonthlyInterestRate } from "@/lib/monthlyInterestRate";
 import { Switch } from "@/components/ui/switch";
 import { useHideValues } from "@/contexts/HideValuesContext";
 import { Loan, Sale, Payment, Expense, InstallmentSchedule, Client } from "@/types/loan";
@@ -200,11 +201,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
     });
     transactions.sort((a, b) => b.date.localeCompare(a.date));
 
-    const totalLentInPeriod = filteredLoans.reduce((s, l) => s + l.amount, 0);
-    const totalToReceiveInPeriod = filteredLoans.reduce((s, l) => s + calculateTotalWithInterest(l.amount, l.interestRate, l.installments), 0);
-    const avgInterestRate = totalLentInPeriod > 0
-      ? ((totalToReceiveInPeriod - totalLentInPeriod) / totalLentInPeriod) * 100
-      : 0;
+    const monthlyInterestRate = calculateMonthlyInterestRate(filteredLoans);
 
     // Juros previstos do período — porção de juros das parcelas com vencimento no período
     // Inclui TODOS os contratos (ativos, atrasados E quitados) — bruto, sem subtrair pagamentos.
@@ -346,7 +343,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
       return { ...sale, received };
     });
 
-    return { totalIncome, incomeFromPayments, incomeFromSales, totalOutgoing, totalLoanOutgoing, totalExpenses, balance, transactions, loanCount: filteredLoans.length, saleCount: filteredSales.length, paymentCount: filteredPayments.length, expenseCount: filteredExpenses.length, avgInterestRate, filteredPayments, filteredLoans, filteredExpenses, salesWithReceived, periodProfitExpected: totalProfitExpected, periodProfitRealized: totalProfitRealized, periodProfitPct, interestDetailRecords, interestExpectedRecords };
+    return { totalIncome, incomeFromPayments, incomeFromSales, totalOutgoing, totalLoanOutgoing, totalExpenses, balance, transactions, loanCount: filteredLoans.length, saleCount: filteredSales.length, paymentCount: filteredPayments.length, expenseCount: filteredExpenses.length, monthlyInterestRate, filteredPayments, filteredLoans, filteredExpenses, salesWithReceived, periodProfitExpected: totalProfitExpected, periodProfitRealized: totalProfitRealized, periodProfitPct, interestDetailRecords, interestExpectedRecords };
   }, [loans, sales, payments, expenses, range, includeSales, period, chartOverrides, installmentSchedules]);
 
   // Portfolio metrics — global (not filtered by period)
@@ -768,7 +765,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-xs text-muted-foreground">Taxa de Juros Mensal</p>
-                <p className="text-lg font-bold text-foreground">{data.avgInterestRate.toFixed(1)}%</p>
+                <p className="text-lg font-bold text-foreground">{data.monthlyInterestRate.hasData && data.monthlyInterestRate.rate !== null ? `${data.monthlyInterestRate.rate.toFixed(2)}%` : "Sem dados no período"}</p>
                 <div className="flex items-center justify-between gap-2 text-[10px] text-muted-foreground">
                   <span>{data.loanCount} no período</span>
                   <span>Geral: <span className="font-bold text-warning">{portfolio.globalInterestRate.toFixed(1)}%</span></span>
@@ -776,15 +773,17 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
                 {/* Meta */}
                 <div className="mt-2 pt-2 border-t border-border/30">
                   {interestGoal ? (() => {
-                    const pct = interestGoal.targetValue > 0 ? Math.min(150, (data.avgInterestRate / interestGoal.targetValue) * 100) : 0;
-                    const reached = data.avgInterestRate >= interestGoal.targetValue;
+                    const currentRate = data.monthlyInterestRate.rate;
+                    const hasRate = currentRate !== null;
+                    const pct = hasRate && interestGoal.targetValue > 0 ? Math.min(150, (currentRate / interestGoal.targetValue) * 100) : 0;
+                    const reached = hasRate && currentRate >= interestGoal.targetValue;
                     const status = reached ? "atingida" : pct >= 80 ? "perto" : "abaixo";
                     const color = reached ? "text-success" : pct >= 80 ? "text-warning" : "text-destructive";
                     return (
                       <>
                         <div className="flex items-center justify-between text-[10px]">
                           <span className="flex items-center gap-1 text-muted-foreground"><Target className="h-3 w-3" /> Meta: {interestGoal.targetValue.toFixed(1)}%</span>
-                          <span className={`font-bold ${color}`}>{status === "atingida" ? "✓ Atingida" : status === "perto" ? "Quase lá" : "Abaixo"}</span>
+                          <span className={`font-bold ${hasRate ? color : "text-muted-foreground"}`}>{hasRate ? (status === "atingida" ? "✓ Atingida" : status === "perto" ? "Quase lá" : "Abaixo") : "Sem dados"}</span>
                         </div>
                         <Progress value={Math.min(100, pct)} className="h-1.5 mt-1" />
                       </>
@@ -803,13 +802,12 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
                     const mStart = new Date(d.getFullYear(), d.getMonth(), 1);
                     const mEnd = new Date(d.getFullYear(), d.getMonth() + 1, 0, 23, 59, 59);
                     const mLoans = loans.filter((l) => isInRange(l.startDate, mStart, mEnd));
-                    const lent = mLoans.reduce((s, l) => s + l.amount, 0);
-                    const toReceive = mLoans.reduce((s, l) => s + calculateTotalWithInterest(l.amount, l.interestRate, l.installments), 0);
-                    const realized = lent > 0 ? ((toReceive - lent) / lent) * 100 : 0;
+                    const summary = calculateMonthlyInterestRate(mLoans);
+                    const realized = summary.rate ?? 0;
                     const goal = getGoal("interest_rate", mKey);
                     const target = goal?.targetValue ?? 0;
-                    const pct = target > 0 ? Math.min(100, (realized / target) * 100) : 0;
-                    const reached = target > 0 && realized >= target;
+                    const pct = target > 0 && summary.rate !== null ? Math.min(100, (realized / target) * 100) : 0;
+                    const reached = target > 0 && summary.rate !== null && realized >= target;
                     const colorVar = reached ? "hsl(var(--success))" : "hsl(var(--destructive))";
                     const trackVar = "hsl(var(--muted))";
                     const monthShort = monthNames[d.getMonth()].slice(0, 3);
@@ -822,7 +820,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
                         >
                           <div className="absolute inset-1 rounded-full bg-card flex items-center justify-center">
                             <span className={`text-[10px] font-bold ${reached ? "text-success" : "text-destructive"}`}>
-                              {realized.toFixed(1)}%
+                              {summary.rate !== null ? `${realized.toFixed(1)}%` : "--"}
                             </span>
                           </div>
                         </div>
