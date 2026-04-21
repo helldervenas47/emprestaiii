@@ -1083,7 +1083,7 @@ const Index = () => {
 
           {/* Editor de atalhos do menu inferior */}
           <Dialog open={shortcutsEditorOpen} onOpenChange={setShortcutsEditorOpen}>
-            <DialogContent className="max-w-md">
+            <DialogContent className="max-w-3xl">
               <DialogHeader>
                 <DialogTitle className="flex items-center gap-2">
                   <Pin className="h-4 w-4 text-primary" /> Personalizar menu inferior
@@ -1092,7 +1092,8 @@ const Index = () => {
                   Escolha até 4 atalhos fixos para o menu inferior. Os demais ficam disponíveis em "Mais".
                 </DialogDescription>
               </DialogHeader>
-              <div className="space-y-3 my-2">
+              <div className="grid md:grid-cols-[1fr_220px] gap-4 my-2">
+              <div className="space-y-3 min-w-0">
                 <div className="flex items-center justify-between text-xs text-muted-foreground">
                   <span>{pinnedTabs.length} de 4 selecionados</span>
                   <button
@@ -1216,6 +1217,64 @@ const Index = () => {
                     );
                   })}
                 </div>
+              </div>
+
+              {/* Preview ao vivo do menu inferior */}
+              <aside className="hidden md:flex flex-col items-center gap-2">
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Pré-visualização</p>
+                <div className="relative w-[200px] h-[380px] rounded-[28px] border-4 border-border/60 bg-background shadow-xl overflow-hidden flex flex-col">
+                  <div className="h-5 bg-card/80 border-b border-border/30 flex items-center justify-center">
+                    <div className="w-12 h-1 rounded-full bg-muted-foreground/30" />
+                  </div>
+                  <div className="flex-1 bg-gradient-to-b from-muted/20 to-card/40 p-2 space-y-1.5 overflow-hidden">
+                    <div className="h-2 w-2/3 rounded bg-muted/60" />
+                    <div className="h-2 w-1/2 rounded bg-muted/40" />
+                    <div className="mt-2 h-12 rounded-md bg-card/70 border border-border/30" />
+                    <div className="h-12 rounded-md bg-card/70 border border-border/30" />
+                    <div className="h-12 rounded-md bg-card/70 border border-border/30" />
+                  </div>
+                  <div className="border-t border-border/40 bg-card/95 backdrop-blur">
+                    <div className="flex items-stretch justify-around h-[52px]">
+                      {pinnedTabs
+                        .map((id) => visibleTabs.find((v) => v.id === id))
+                        .filter((t): t is typeof visibleTabs[number] => !!t)
+                        .map((item, idx) => {
+                          const Icon = item.icon;
+                          const active = idx === 0;
+                          return (
+                            <div
+                              key={item.id}
+                              className={`flex-1 flex flex-col items-center justify-center gap-0.5 px-0.5 ${
+                                active ? "text-primary" : "text-muted-foreground"
+                              }`}
+                            >
+                              <Icon className="h-4 w-4" strokeWidth={active ? 2.4 : 2} />
+                              <span className={`text-[8px] leading-none truncate max-w-full ${active ? "font-semibold" : "font-medium"}`}>
+                                {item.label}
+                              </span>
+                              <span className={`block h-0.5 w-3 rounded-full ${active ? "bg-primary" : "bg-transparent"}`} />
+                            </div>
+                          );
+                        })}
+                      <div className="relative flex-1 flex flex-col items-center justify-center gap-0.5 px-0.5 text-muted-foreground">
+                        <div className="relative">
+                          <Menu className="h-4 w-4" />
+                          {morePendingCount > 0 && (
+                            <span className="absolute -top-1 -right-1.5 min-w-[12px] h-[12px] px-0.5 rounded-full bg-destructive text-destructive-foreground text-[7px] font-bold leading-none flex items-center justify-center ring-1 ring-card">
+                              {morePendingCount > 9 ? "9+" : morePendingCount}
+                            </span>
+                          )}
+                        </div>
+                        <span className="text-[8px] leading-none font-medium">Mais</span>
+                        <span className="block h-0.5 w-3 rounded-full bg-transparent" />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <p className="text-[10px] text-muted-foreground text-center max-w-[200px]">
+                  Reflete a ordem e os atalhos atualmente selecionados.
+                </p>
+              </aside>
               </div>
               <DialogFooter>
                 <Button variant="outline" onClick={() => setShortcutsEditorOpen(false)}>Fechar</Button>
