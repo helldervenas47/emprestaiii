@@ -4,6 +4,7 @@ import { useChartOverrides } from "@/hooks/useChartOverrides";
 import { useMonthlyGoals } from "@/hooks/useMonthlyGoals";
 import { calculateMonthlyInterestRate } from "@/lib/monthlyInterestRate";
 import { useAuth } from "@/hooks/useAuth";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { usePersonalInsightsTelegramPrefs, type InsightTone } from "@/hooks/usePersonalInsightsTelegramPrefs";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -234,6 +235,7 @@ function useAccountBalance(): [number, (v: number) => void] {
 export function DashboardOverview({ loans, sales, payments, expenses, installmentSchedules = [], clients = [], onDeletePayment, onDeleteSale, onDeleteLoan }: Props) {
   const { mask } = useHideValues();
   const { role } = useAuth();
+  const isMobile = useIsMobile();
   const formatCurrency = useCallback((v: number) => mask(rawFormatCurrency(v)), [mask]);
   const [period, setPeriod] = useState<Period>("month");
   const [offset, setOffset] = useState(0);
@@ -2213,7 +2215,10 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
       </Sheet>
 
       <Sheet open={riskAiOpen} onOpenChange={setRiskAiOpen}>
-        <SheetContent side="right" className="w-full sm:max-w-xl overflow-y-auto">
+        <SheetContent
+          side={isMobile ? "bottom" : "right"}
+          className={isMobile ? "max-h-[85vh] overflow-y-auto rounded-t-2xl" : "w-full sm:max-w-xl overflow-y-auto"}
+        >
           <SheetHeader>
             <SheetTitle>{riskAiTitle}</SheetTitle>
           </SheetHeader>
