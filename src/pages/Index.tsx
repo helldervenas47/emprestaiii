@@ -1073,10 +1073,8 @@ const Index = () => {
                       {pendingNav === "/planejamento-do-dia" ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <CalendarClock className="h-4 w-4 mr-2" />}
                       {pendingNav === "/planejamento-do-dia" ? "Abrindo..." : "Planejamento"}
                     </Button>
-                    <Button variant="outline" size="sm" onClick={() => handleQuickNav("/planos")} disabled={!!pendingNav} className="justify-start">
-                      {pendingNav === "/planos" ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Target className="h-4 w-4 mr-2" />}
-                      {pendingNav === "/planos" ? "Abrindo..." : "Planos"}
-                    </Button>
+                    <HideValuesQuickAction />
+
                   </div>
                 </div>
 
