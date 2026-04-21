@@ -3,6 +3,7 @@ import { todayInAppTz } from "@/lib/timezone";
 import { useChartOverrides } from "@/hooks/useChartOverrides";
 import { useMonthlyGoals } from "@/hooks/useMonthlyGoals";
 import { calculateMonthlyInterestRate } from "@/lib/monthlyInterestRate";
+import { useAuth } from "@/hooks/useAuth";
 import { Switch } from "@/components/ui/switch";
 import { useHideValues } from "@/contexts/HideValuesContext";
 import { Loan, Sale, Payment, Expense, InstallmentSchedule, Client } from "@/types/loan";
@@ -118,6 +119,10 @@ function getSaleReceivedAmount(sale: Sale) {
   return received + (sale.partialPaid || 0);
 }
 
+function getClientKey(loan: Loan) {
+  return loan.borrowerId || loan.borrowerName.trim().toLocaleLowerCase("pt-BR");
+}
+
 function calculateRealizedProfitForRange(loans: Loan[], payments: Payment[], start: Date, end: Date) {
   const paymentsInPeriod = payments.filter((p) => isInRange(p.date, start, end));
   const quitadoLoanIds = new Set<string>();
@@ -158,13 +163,44 @@ function summarizeMonthMetrics(loans: Loan[], sales: Sale[], payments: Payment[]
   const monthPayments = payments.filter((payment) => isInRange(payment.date, start, end));
   const monthSales = sales.filter((sale) => isInRange(sale.date, start, end));
   const monthLoans = loans.filter((loan) => isInRange(loan.startDate, start, end));
+  const activeLoans = loans.filter((loan) => loan.status !== "paid");
   const revenue = monthPayments.reduce((sum, payment) => sum + payment.amount, 0)
     + (includeSales ? monthSales.reduce((sum, sale) => sum + getSaleReceivedAmount(sale), 0) : 0);
+  const serviceVolume = monthPayments.length + (includeSales ? monthSales.length : 0);
+  const ticketAverage = serviceVolume > 0 ? revenue / serviceVolume : 0;
+  const clientRevenue = new Map<string, number>();
+
+  monthPayments.forEach((payment) => {
+    const loan = loans.find((item) => item.id === payment.loanId);
+    const key = loan ? getClientKey(loan) : payment.loanId;
+    clientRevenue.set(key, (clientRevenue.get(key) ?? 0) + payment.amount);
+  });
+
+  if (includeSales) {
+    monthSales.forEach((sale) => {
+      const key = sale.customerName.trim().toLocaleLowerCase("pt-BR");
+      clientRevenue.set(key, (clientRevenue.get(key) ?? 0) + getSaleReceivedAmount(sale));
+    });
+  }
+
+  const overdueBase = activeLoans.filter((loan) => isInRange(loan.dueDate, start, end));
+  const todayStr = todayInAppTz();
+  const overdueLoans = overdueBase.filter((loan) => loan.dueDate < todayStr);
+  const overdueAmount = overdueLoans.reduce((sum, loan) => sum + (loan.remainingAmount ?? 0), 0);
+  const overdueRate = overdueBase.length > 0 ? overdueLoans.length / overdueBase.length : 0;
+  const top3Share = revenue > 0
+    ? Array.from(clientRevenue.values()).sort((a, b) => b - a).slice(0, 3).reduce((sum, value) => sum + value, 0) / revenue
+    : 0;
 
   return {
     revenue,
     profit: calculateRealizedProfitForRange(loans, payments, start, end),
     interestRate: calculateMonthlyInterestRate(monthLoans).rate,
+    serviceVolume,
+    ticketAverage,
+    overdueRate,
+    overdueAmount,
+    top3Share,
   };
 }
 
