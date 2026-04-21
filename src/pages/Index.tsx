@@ -383,6 +383,8 @@ const Index = () => {
 
   const visibleTabs = tabConfig.filter((t) => {
     if (loading) return false;
+    // Tabs marcadas como adminOnly são exclusivas para administradores
+    if ((t as any).adminOnly && role !== "admin") return false;
     if (role === "admin") return true;
     // Settings sempre disponível para usuários autenticados
     if (t.id === "settings") return !!user;
@@ -865,6 +867,9 @@ const Index = () => {
             dark={dark}
             onToggleTheme={toggleTheme}
           />
+        )}
+        {tab === "system-health" && role === "admin" && (
+          <SystemHealth />
         )}
         </Suspense>
       </main>
