@@ -884,14 +884,10 @@ const Index = () => {
             style={{ paddingBottom: 'env(safe-area-inset-bottom)', paddingLeft: 'env(safe-area-inset-left)', paddingRight: 'env(safe-area-inset-right)' }}
           >
             <div className="flex items-stretch justify-around h-[60px]">
-              {([
-                { id: "overview" as Tab, label: "Dashboard", icon: BarChart3 },
-                { id: "clients" as Tab, label: "Cadastro", icon: Users },
-                { id: "dashboard" as Tab, label: "Empréstimos", icon: LayoutDashboard },
-                { id: "expenses" as Tab, label: "Despesas", icon: Receipt },
-              ] as const)
-                .filter(item => visibleTabs.some(v => v.id === item.id))
-                .map(item => {
+              {pinnedTabs
+                .map((id) => tabConfig.find((t) => t.id === id))
+                .filter((t): t is typeof tabConfig[number] => !!t && visibleTabs.some((v) => v.id === t.id))
+                .map((item) => {
                   const active = tab === item.id;
                   const Icon = item.icon;
                   return (
