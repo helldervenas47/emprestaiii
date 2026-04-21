@@ -12,8 +12,6 @@ export interface RiskProfile {
   reasons: string[];
   trend: "improving" | "worsening" | "stable";
   trendLabel: string;
-  internalScore?: number;
-  externalScore?: number | null;
   positiveFactors?: string[];
   negativeFactors?: string[];
 }
@@ -387,13 +385,12 @@ export function buildConsolidatedRiskProfile(
   const trend: RiskProfile["trend"] = trendDelta >= 4 ? "improving" : trendDelta <= -4 ? "worsening" : "stable";
   const visual = getProfileVisual(snapshot.currentScore, snapshot.metrics.maxOverdueDays);
 
-  const positiveFactors = financialProfile?.positiveFactors?.length
-    ? financialProfile.positiveFactors
-    : [
-        snapshot.metrics.onTimeRatio >= 0.95 ? "Pontualidade histórica em nível excelente." : null,
-        snapshot.historicalScore >= 110 ? "Base histórica forte e consistente." : null,
-        snapshot.metrics.paidLoans > 0 ? `${snapshot.metrics.paidLoans} contrato${snapshot.metrics.paidLoans > 1 ? "s" : ""} já foi(foram) quitado(s).` : null,
-      ].filter(Boolean) as string[];
+  const positiveFactors = [
+    snapshot.metrics.onTimeRatio >= 0.95 ? "Pontualidade histórica em nível excelente." : null,
+    snapshot.historicalScore >= 110 ? "Base histórica forte e consistente dentro do app." : null,
+    snapshot.metrics.paidLoans > 0 ? `${snapshot.metrics.paidLoans} contrato${snapshot.metrics.paidLoans > 1 ? "s" : ""} já foi(foram) quitado(s).` : null,
+    snapshot.metrics.totalLent > 0 ? `Volume movimentado no app: ${formatRiskCurrency(snapshot.metrics.totalLent)}.` : null,
+  ].filter(Boolean) as string[];
 
   const negativeFactors = financialProfile?.negativeFactors?.length
     ? financialProfile.negativeFactors
@@ -412,8 +409,6 @@ export function buildConsolidatedRiskProfile(
     snapshot.metrics.totalTimedPayments > 0 ? `${Math.round(snapshot.metrics.onTimeRatio * 100)}% de pagamentos em dia no histórico.` : "Ainda sem histórico suficiente de pagamentos.",
     snapshot.metrics.severeOverdueLoans > 0 ? "Limite de proteção aplicado por atraso acima de 30 dias." : null,
     snapshot.historicalScore < 50 ? "Limite de proteção aplicado por histórico abaixo do neutro." : null,
-    financialProfile?.employmentStability ? `Estabilidade profissional: ${financialProfile.employmentStability}.` : null,
-    financialProfile?.bankingRelationship ? `Relacionamento bancário: ${financialProfile.bankingRelationship}.` : null,
   ].filter(Boolean) as string[];
 
   return {
@@ -428,8 +423,6 @@ export function buildConsolidatedRiskProfile(
     reasons: Array.from(new Set(reasons)).slice(0, 6),
     trend,
     trendLabel: getTrendLabel(trend),
-    internalScore: snapshot.historicalScore,
-    externalScore: financialProfile?.externalScore ?? financialProfile?.consolidatedScore ?? null,
     positiveFactors,
     negativeFactors,
   };
