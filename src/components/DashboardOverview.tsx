@@ -1230,7 +1230,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
                         min="0"
                         step="0.1"
                         value={simulationInterestRate}
-                        onChange={(e) => setSimulationInterestRate(Math.max(0, Number(e.target.value) || 0))}
+                        onChange={(e) => handleSimulationInterestRateChange(Number(e.target.value) || 0)}
                         className="h-7 w-20 text-xs text-right"
                       />
                       <span className="text-[10px] text-muted-foreground">% a.m.</span>
