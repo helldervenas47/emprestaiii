@@ -8,9 +8,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Trash2, User, Phone, Mail, MapPin, Search, Users, Pencil, X, Check, ToggleLeft, ToggleRight, ArrowUpDown, ArrowDownAZ, ArrowUpAZ, Clock, CalendarDays, TrendingUp, AlertTriangle, CheckCircle, ShieldCheck, Wallet } from "lucide-react";
+import { Trash2, User, Phone, Mail, MapPin, Search, Users, Pencil, X, Check, ToggleLeft, ToggleRight, ArrowUpDown, ArrowDownAZ, ArrowUpAZ, Clock, CalendarDays, TrendingUp, AlertTriangle, ShieldCheck, Wallet } from "lucide-react";
 import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
 import { ClientDetailDialog } from "@/components/ClientDetailDialog";
 import { CreditLimitDialog } from "@/components/CreditLimitDialog";
@@ -126,11 +125,11 @@ export function ClientList({ clients, loans, payments, installmentSchedules, onD
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [sortOption, setSortOption] = useState<SortOption>("name-asc");
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [editForm, setEditForm] = useState<Record<string, any>>({ name: "", phone: "", email: "", cpf: "", cnpj: "", rg: "", address: "", city: "", state: "", score: "", notes: "", isVehicleRental: false, nacionalidade: "", estadoCivil: "", profissao: "", bairro: "", isManager: false, defaultInterestRate: "" });
+  const [editForm, setEditForm] = useState<Record<string, any>>({ name: "", phone: "", email: "", cpf: "", cnpj: "", rg: "", address: "", city: "", state: "", score: "", notes: "", isVehicleRental: false, nacionalidade: "", estadoCivil: "", profissao: "", bairro: "", isManager: false, defaultInterestRate: "", creditLimit: "" });
   const [deleteClientId, setDeleteClientId] = useState<string | null>(null);
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
   const [limitClient, setLimitClient] = useState<Client | null>(null);
-  const { getLimitForClient } = useCreditLimits();
+  const { getLimitForClient, updateLimit, ensureLimit } = useCreditLimits();
 
   const creditScores = useMemo(() => {
     const map: Record<string, CreditScore> = {};
@@ -169,14 +168,44 @@ export function ClientList({ clients, loans, payments, installmentSchedules, onD
 
   const startEdit = (client: Client) => {
     setEditingId(client.id);
-    setEditForm({ name: client.name, phone: client.phone, email: client.email, cpf: client.cpf, cnpj: client.cnpj || "", rg: client.rg || "", address: client.address, city: client.city || "", state: client.state || "", score: client.score || "", notes: client.notes || "", isVehicleRental: client.isVehicleRental || false, nacionalidade: client.nacionalidade || "", estadoCivil: client.estadoCivil || "", profissao: client.profissao || "", bairro: client.bairro || "", isManager: client.isManager || false, defaultInterestRate: client.defaultInterestRate != null ? String(client.defaultInterestRate) : "" });
+    const cl = getLimitForClient(client.id);
+    setEditForm({ name: client.name, phone: client.phone, email: client.email, cpf: client.cpf, cnpj: client.cnpj || "", rg: client.rg || "", address: client.address, city: client.city || "", state: client.state || "", score: client.score || "", notes: client.notes || "", isVehicleRental: client.isVehicleRental || false, nacionalidade: client.nacionalidade || "", estadoCivil: client.estadoCivil || "", profissao: client.profissao || "", bairro: client.bairro || "", isManager: client.isManager || false, defaultInterestRate: client.defaultInterestRate != null ? String(client.defaultInterestRate) : "", creditLimit: cl?.currentLimit != null ? String(cl.currentLimit) : "" });
   };
 
-  const saveEdit = (id: string) => {
-    const { defaultInterestRate, ...rest } = editForm;
+  const saveEdit = async (id: string) => {
+    const { defaultInterestRate, creditLimit, ...rest } = editForm;
     const parsedRate = (defaultInterestRate ?? "").toString().trim() === "" ? null : parseFloat(defaultInterestRate);
     onUpdate(id, { ...rest, defaultInterestRate: parsedRate !== null && !isNaN(parsedRate) ? parsedRate : null });
+    // Update credit limit if changed
+    const parsedLimit = (creditLimit ?? "").toString().trim() === "" ? null : parseFloat(String(creditLimit).replace(",", "."));
+    if (parsedLimit !== null && !isNaN(parsedLimit) && parsedLimit >= 0) {
+      const existing = getLimitForClient(id);
+      if (!existing) await ensureLimit(id);
+      const current = getLimitForClient(id)?.currentLimit ?? 0;
+      if (Math.abs(current - parsedLimit) > 0.001) {
+        await updateLimit(id, parsedLimit, {
+          mode: "manual",
+          changeType: "manual",
+          reason: "Ajuste manual via edição do cliente",
+        });
+      }
+    }
     setEditingId(null);
+  };
+
+  const handleToggleActive = async (client: Client) => {
+    const becomingInactive = client.active !== false;
+    onUpdate(client.id, { active: !client.active });
+    if (becomingInactive) {
+      const existing = getLimitForClient(client.id);
+      if (existing && existing.currentLimit > 0) {
+        await updateLimit(client.id, 0, {
+          mode: "manual",
+          changeType: "manual",
+          reason: "Cliente inativado — limite zerado automaticamente",
+        });
+      }
+    }
   };
 
   const updateField = (field: string, value: string | boolean) => setEditForm((prev) => ({ ...prev, [field]: value }));
@@ -290,6 +319,43 @@ export function ClientList({ clients, loans, payments, installmentSchedules, onD
                         Se vazio, será usado 30% em novos empréstimos.
                       </p>
                     </div>
+                    {/* Credit Limit edit */}
+                    {(() => {
+                      const used = computeUsedLimit(client.id, loans);
+                      const totalNum = parseFloat(String(editForm.creditLimit).replace(",", ".")) || 0;
+                      const available = computeAvailableLimit(totalNum, used);
+                      return (
+                        <div className="border border-border rounded-lg p-3 space-y-2">
+                          <Label className="text-xs flex items-center gap-1.5">
+                            <Wallet className="h-3.5 w-3.5 text-primary" /> Limite de Crédito
+                          </Label>
+                          <Input
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            value={editForm.creditLimit}
+                            onChange={(e) => updateField("creditLimit", e.target.value)}
+                            placeholder="0,00"
+                            disabled={client.active === false}
+                          />
+                          <div className="grid grid-cols-2 gap-2 text-[10px]">
+                            <div>
+                              <p className="text-muted-foreground">Utilizado</p>
+                              <p className="font-semibold text-warning">{formatBRL(used)}</p>
+                            </div>
+                            <div>
+                              <p className="text-muted-foreground">Disponível</p>
+                              <p className="font-semibold text-success">{formatBRL(available)}</p>
+                            </div>
+                          </div>
+                          {client.active === false && (
+                            <p className="text-[10px] text-destructive">
+                              Cliente inativo — limite zerado e bloqueado para novas operações.
+                            </p>
+                          )}
+                        </div>
+                      );
+                    })()}
                     <div>
                       <Label className="text-xs">Observações</Label>
                       <Textarea value={editForm.notes} onChange={(e) => updateField("notes", e.target.value)} rows={2} />
@@ -391,7 +457,7 @@ export function ClientList({ clients, loans, payments, installmentSchedules, onD
                           size="icon"
                           variant="ghost"
                           className="h-8 w-8"
-                          onClick={() => onUpdate(client.id, { active: !client.active })}
+                          onClick={() => handleToggleActive(client)}
                           title={client.active ? "Desativar" : "Ativar"}
                         >
                           {client.active ? <ToggleRight className="h-4 w-4 text-success" /> : <ToggleLeft className="h-4 w-4 text-muted-foreground" />}
@@ -406,36 +472,16 @@ export function ClientList({ clients, loans, payments, installmentSchedules, onD
                       )}
                     </div>
 
-                    {/* Credit Score */}
-                    <div className="rounded-xl border border-border/30 p-3 mb-3 space-y-2">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <ShieldCheck className={`h-4 w-4 ${cs.color}`} />
-                          <span className="text-xs font-medium text-muted-foreground">Score de Crédito</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <span className={`text-lg font-bold ${cs.color}`}>{cs.score}</span>
-                          <Badge className={`${cs.bgColor} text-white text-[10px] border-0`}>{cs.label}</Badge>
-                        </div>
+                    {/* Credit Score — compact */}
+                    <div className="flex items-center justify-between rounded-xl border border-border/30 px-3 py-2 mb-3">
+                      <div className="flex items-center gap-2">
+                        <span className={`h-2 w-2 rounded-full ${cs.bgColor}`} />
+                        <span className="text-xs text-muted-foreground">Score</span>
                       </div>
-                      <Progress value={(cs.score / 150) * 100} className="h-1.5" />
-                      <div className="grid grid-cols-3 gap-2 text-[10px] text-muted-foreground">
-                        <div className="flex items-center gap-1">
-                          <CheckCircle className="h-3 w-3 text-success" />
-                          <span>{cs.onTimePayments} em dia</span>
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <AlertTriangle className="h-3 w-3 text-destructive" />
-                          <span>{cs.latePayments} atraso(s)</span>
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <TrendingUp className="h-3 w-3 text-primary" />
-                          <span>{cs.paidLoans}/{cs.totalLoans} quitado(s)</span>
-                        </div>
-                      </div>
+                      <span className={`text-sm font-bold ${cs.color}`}>{cs.score}</span>
                     </div>
 
-                    {/* Credit Limit */}
+                    {/* Credit Limit — Total / Utilizado / Disponível */}
                     {(() => {
                       const cl = getLimitForClient(client.id);
                       const total = cl?.currentLimit ?? 0;
@@ -447,7 +493,7 @@ export function ClientList({ clients, loans, payments, installmentSchedules, onD
                           onClick={() => setLimitClient(client)}
                           className="w-full rounded-xl border border-border/30 p-3 mb-3 text-left hover:bg-accent/30 transition-colors"
                         >
-                          <div className="flex items-center justify-between mb-1">
+                          <div className="flex items-center justify-between mb-2">
                             <div className="flex items-center gap-2">
                               <Wallet className="h-4 w-4 text-primary" />
                               <span className="text-xs font-medium text-muted-foreground">Limite de Crédito</span>
@@ -456,10 +502,14 @@ export function ClientList({ clients, loans, payments, installmentSchedules, onD
                               {cl?.mode === "manual" ? "Manual" : "Auto"}
                             </Badge>
                           </div>
-                          <div className="grid grid-cols-2 gap-2 text-xs">
+                          <div className="grid grid-cols-3 gap-2 text-xs">
                             <div>
                               <p className="text-[10px] text-muted-foreground">Total</p>
                               <p className="font-semibold">{formatBRL(total)}</p>
+                            </div>
+                            <div>
+                              <p className="text-[10px] text-muted-foreground">Utilizado</p>
+                              <p className="font-semibold text-warning">{formatBRL(used)}</p>
                             </div>
                             <div>
                               <p className="text-[10px] text-muted-foreground">Disponível</p>
