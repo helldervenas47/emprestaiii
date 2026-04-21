@@ -40,7 +40,7 @@ export function CreditLimitDialog({ client, loans, payments, open, onOpenChange 
 
   const limit = getLimitForClient(client.id);
   const currentLimit = limit?.currentLimit ?? 0;
-  const used = useMemo(() => computeUsedLimit(client.id, loans), [client.id, loans]);
+  const used = useMemo(() => computeUsedLimit(client, loans), [client, loans]);
   const available = computeAvailableLimit(currentLimit, used);
   const metrics = useMemo(
     () => computeClientCreditMetrics(client.id, loans, payments),
