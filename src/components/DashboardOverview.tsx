@@ -1398,6 +1398,33 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
 
       <Card no3d>
         <CardContent className="p-4 sm:p-6 space-y-4">
+          <div>
+            <h3 className="text-sm font-semibold text-foreground">Insights prioritários</h3>
+            <p className="text-xs text-muted-foreground">Top 3 alertas e oportunidades com maior impacto no período.</p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            {prioritizedInsights.length > 0 ? prioritizedInsights.map((insight) => (
+              <div key={insight.id} className="rounded-xl border border-border/30 bg-muted/20 p-4 space-y-2">
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-sm font-semibold text-foreground">{insight.title}</p>
+                  <span className={`text-[10px] font-semibold px-2 py-1 rounded-full ${insight.tone === "positive" ? "bg-success/15 text-success" : insight.tone === "negative" ? "bg-destructive/15 text-destructive" : "bg-warning/15 text-warning"}`}>
+                    Prioridade
+                  </span>
+                </div>
+                <p className="text-sm text-foreground leading-6">{insight.body}</p>
+              </div>
+            )) : (
+              <div className="rounded-xl border border-border/30 bg-muted/20 p-4 text-sm text-muted-foreground md:col-span-3">
+                Sem dados suficientes para gerar insights relevantes neste período.
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card no3d>
+        <CardContent className="p-4 sm:p-6 space-y-4">
           <div className="flex items-start justify-between gap-3 flex-wrap">
             <div>
               <h3 className="text-sm font-semibold text-foreground">Comparativo mês a mês</h3>
