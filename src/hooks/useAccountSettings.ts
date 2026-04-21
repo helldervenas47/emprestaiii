@@ -5,11 +5,12 @@ import { setAppTimezone, getAppTimezone, subscribeAppTimezone } from "@/lib/time
 
 export interface AccountSettings {
   timezone: string;
+  simulationInterestRate: number;
 }
 
 export function useAccountSettings() {
   const { user, dataOwnerId } = useAuth();
-  const [settings, setSettings] = useState<AccountSettings>({ timezone: getAppTimezone() });
+  const [settings, setSettings] = useState<AccountSettings>({ timezone: getAppTimezone(), simulationInterestRate: 30 });
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
 
@@ -24,12 +25,13 @@ export function useAccountSettings() {
     setLoading(true);
     const { data } = await (supabase as any)
       .from("account_settings")
-      .select("timezone")
+      .select("timezone, simulation_interest_rate")
       .eq("owner_id", dataOwnerId)
       .maybeSingle();
     const tz = data?.timezone || "America/Sao_Paulo";
+    const simulationInterestRate = Number(data?.simulation_interest_rate ?? 30);
     setAppTimezone(tz);
-    setSettings({ timezone: tz });
+    setSettings({ timezone: tz, simulationInterestRate: Number.isFinite(simulationInterestRate) ? simulationInterestRate : 30 });
     setLoading(false);
   }, [user, dataOwnerId]);
 
@@ -45,6 +47,12 @@ export function useAccountSettings() {
       (payload: any) => {
         const tz = (payload.new as any)?.timezone;
         if (tz) setAppTimezone(tz);
+        if (payload.new) {
+          setSettings({
+            timezone: (payload.new as any)?.timezone || getAppTimezone(),
+            simulationInterestRate: Number((payload.new as any)?.simulation_interest_rate ?? 30) || 30,
+          });
+        }
       },
     );
     channel.subscribe();
@@ -55,7 +63,7 @@ export function useAccountSettings() {
     if (!user || !dataOwnerId) return false;
     setSaving(true);
     setAppTimezone(timezone); // optimistic
-    setSettings({ timezone });
+    setSettings((current) => ({ ...current, timezone }));
     const { error } = await (supabase as any)
       .from("account_settings")
       .upsert({ owner_id: dataOwnerId, timezone }, { onConflict: "owner_id" });
@@ -63,5 +71,16 @@ export function useAccountSettings() {
     return !error;
   }, [user, dataOwnerId]);
 
-  return { settings, loading, saving, updateTimezone };
+  const updateSimulationInterestRate = useCallback(async (simulationInterestRate: number) => {
+    if (!user || !dataOwnerId) return false;
+    setSaving(true);
+    setSettings((current) => ({ ...current, simulationInterestRate }));
+    const { error } = await (supabase as any)
+      .from("account_settings")
+      .upsert({ owner_id: dataOwnerId, simulation_interest_rate: simulationInterestRate }, { onConflict: "owner_id" });
+    setSaving(false);
+    return !error;
+  }, [user, dataOwnerId]);
+
+  return { settings, loading, saving, updateTimezone, updateSimulationInterestRate };
 }

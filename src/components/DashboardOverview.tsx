@@ -2,6 +2,7 @@ import { useMemo, useState, useEffect, useCallback, useRef } from "react";
 import { todayInAppTz } from "@/lib/timezone";
 import { useChartOverrides } from "@/hooks/useChartOverrides";
 import { useMonthlyGoals } from "@/hooks/useMonthlyGoals";
+import { useAccountSettings } from "@/hooks/useAccountSettings";
 import { calculateMonthlyInterestRate } from "@/lib/monthlyInterestRate";
 import { useAuth } from "@/hooks/useAuth";
 import { usePersonalInsightsTelegramPrefs, type InsightTone } from "@/hooks/usePersonalInsightsTelegramPrefs";
@@ -260,6 +261,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
   const prefetchingInsightReportsRef = useRef<Set<string>>(new Set());
   const { chartOverrides, setChartOverrides, interestOverrides, setInterestOverrides } = useChartOverrides();
   const { getGoal } = useMonthlyGoals();
+  const { settings: accountSettings, updateSimulationInterestRate } = useAccountSettings();
   const { prefs: personalInsightPrefs } = usePersonalInsightsTelegramPrefs();
 
   useEffect(() => {
@@ -267,15 +269,15 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
   }, [personalInsightPrefs.tone]);
 
   useEffect(() => {
-    const storedRate = localStorage.getItem("dashboard-interest-simulation-rate");
-    if (!storedRate) return;
-    const parsed = Number(storedRate);
-    if (Number.isFinite(parsed) && parsed >= 0) setSimulationInterestRate(parsed);
-  }, []);
+    const backendRate = Number(accountSettings.simulationInterestRate ?? 30);
+    if (Number.isFinite(backendRate) && backendRate >= 0) setSimulationInterestRate(backendRate);
+  }, [accountSettings.simulationInterestRate]);
 
-  useEffect(() => {
-    localStorage.setItem("dashboard-interest-simulation-rate", String(simulationInterestRate));
-  }, [simulationInterestRate]);
+  const handleSimulationInterestRateChange = useCallback((value: number) => {
+    const nextRate = Math.max(0, value);
+    setSimulationInterestRate(nextRate);
+    void updateSimulationInterestRate(nextRate);
+  }, [updateSimulationInterestRate]);
 
   const range = useMemo(() => getRange(period, offset), [period, offset]);
 
@@ -1275,7 +1277,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
                         min="0"
                         step="0.1"
                         value={simulationInterestRate}
-                        onChange={(e) => setSimulationInterestRate(Math.max(0, Number(e.target.value) || 0))}
+                        onChange={(e) => handleSimulationInterestRateChange(Number(e.target.value) || 0)}
                         className="h-7 w-20 text-xs text-right"
                       />
                       <span className="text-[10px] text-muted-foreground">% a.m.</span>

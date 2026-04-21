@@ -20,6 +20,7 @@ export type Database = {
           id: string
           owner_id: string
           require_approval: boolean
+          simulation_interest_rate: number
           timezone: string
           updated_at: string
         }
@@ -28,6 +29,7 @@ export type Database = {
           id?: string
           owner_id: string
           require_approval?: boolean
+          simulation_interest_rate?: number
           timezone?: string
           updated_at?: string
         }
@@ -36,6 +38,7 @@ export type Database = {
           id?: string
           owner_id?: string
           require_approval?: boolean
+          simulation_interest_rate?: number
           timezone?: string
           updated_at?: string
         }
