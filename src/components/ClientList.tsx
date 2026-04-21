@@ -321,7 +321,7 @@ export function ClientList({ clients, loans, payments, installmentSchedules, onD
                     </div>
                     {/* Credit Limit edit */}
                     {(() => {
-                      const used = computeUsedLimit(client.id, loans);
+                      const used = computeUsedLimit(client, loans);
                       const totalNum = parseFloat(String(editForm.creditLimit).replace(",", ".")) || 0;
                       const available = computeAvailableLimit(totalNum, used);
                       return (
@@ -485,7 +485,7 @@ export function ClientList({ clients, loans, payments, installmentSchedules, onD
                     {(() => {
                       const cl = getLimitForClient(client.id);
                       const total = cl?.currentLimit ?? 0;
-                      const used = computeUsedLimit(client.id, loans);
+                      const used = computeUsedLimit(client, loans);
                       const available = computeAvailableLimit(total, used);
                       return (
                         <button

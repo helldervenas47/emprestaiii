@@ -90,7 +90,7 @@ export function LoanForm({ onAdd, onSaveSchedule, onClose, clients, loans, payme
   const { getLimitForClient } = useCreditLimits();
   const selectedClientLimit = selectedClient ? getLimitForClient(selectedClient.id) : undefined;
   const selectedClientUsed = useMemo(
-    () => (selectedClient ? computeUsedLimit(selectedClient.id, loans) : 0),
+    () => (selectedClient ? computeUsedLimit(selectedClient, loans) : 0),
     [selectedClient, loans],
   );
   const selectedClientAvailable = computeAvailableLimit(
