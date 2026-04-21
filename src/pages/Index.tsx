@@ -848,7 +848,7 @@ const Index = () => {
           />
           </SubscriptionGate>
         )}
-        {tab === "settings" && (
+        {tab === "settings" && canAccessTab("settings") && (
           <Settings
             backup={{
               loans,
