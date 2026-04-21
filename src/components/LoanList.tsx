@@ -1653,7 +1653,7 @@ function LoanCardView({
 }
 
 function LoanRowView({
-  loan, payments: allPayments, installmentSchedules = [], onPayment, onPartialPayment, onFullPayment, onInterestPayment, onUpdate, onDelete, onDeletePayment, readOnly = false, existingTags = [], clients = [],
+  loan, payments: allPayments, installmentSchedules = [], onPayment, onPartialPayment, onFullPayment, onInterestPayment, onUpdate, onDelete, onDeletePayment, readOnly = false, existingTags = [], clients = [], riskProfile,
 }: {
   loan: Loan;
   payments: Payment[];
@@ -1668,6 +1668,7 @@ function LoanRowView({
   readOnly?: boolean;
   existingTags?: string[];
   clients?: Client[];
+  riskProfile?: RiskProfile;
 }) {
   const [expanded, setExpanded] = useState(false);
   const [editing, setEditing] = useState(false);
@@ -1886,6 +1887,7 @@ function LoanRowView({
           <div className="min-w-0">
             <div className="flex items-center gap-1 flex-wrap">
               <span className="font-medium text-[11px] sm:text-sm text-foreground truncate block max-w-[80px] sm:max-w-none">{loan.borrowerName}</span>
+              {riskProfile && <RiskIndicator profile={riskProfile} compact />}
               {loan.hasManager && (
                 <Badge variant="outline" className="bg-[#009C3B]/15 text-[#009C3B] dark:bg-emerald-500/25 dark:text-emerald-300 border-[#009C3B]/60 dark:border-emerald-500/60 text-[9px] sm:text-[10px] px-1 py-0 gap-0.5 shrink-0" title="Com gerente">
                   <UserCog className="h-3 w-3" /><span className="hidden sm:inline">Gerente</span>
@@ -2553,6 +2555,7 @@ interface ClientGroup {
   totalPaid: number;
   totalReceivable: number;
   hasOverdue: boolean;
+  riskProfile?: RiskProfile;
 }
 
 function ClientFolder({
@@ -2591,6 +2594,7 @@ function ClientFolder({
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
             <h3 className="font-bold text-foreground text-sm truncate">{group.name}</h3>
+            {group.riskProfile && <RiskIndicator profile={group.riskProfile} compact />}
             {group.hasOverdue && <Badge className="bg-destructive/10 text-destructive border-destructive/20 text-[10px]">Atrasado</Badge>}
             {managerCount > 0 && (
               <Badge variant="outline" className="bg-[#009C3B]/15 text-[#009C3B] dark:bg-emerald-500/25 dark:text-emerald-300 border-[#009C3B]/60 dark:border-emerald-500/60 text-[10px] gap-0.5">
@@ -2680,6 +2684,40 @@ export function LoanList({ loans, payments, installmentSchedules, onPayment, onP
   const [amountMax, setAmountMax] = useState("");
   const [tagFilter, setTagFilter] = useState("");
   const [sortBy, setSortBy] = useState<"dueDate" | "startDate" | "amount" | "name">("dueDate");
+
+  const riskProfiles = useMemo(() => {
+    const entries = new Map<string, RiskProfile>();
+    clients.forEach((client) => {
+      entries.set(client.id, buildRiskProfile({
+        clientKey: client.id,
+        clientScore: client.score,
+        loans,
+        payments,
+        installmentSchedules,
+      }));
+      entries.set(normalizeClientKey(client.name), buildRiskProfile({
+        clientKey: client.id,
+        clientScore: client.score,
+        loans,
+        payments,
+        installmentSchedules,
+      }));
+    });
+
+    loans.forEach((loan) => {
+      const key = getLoanClientKey(loan);
+      if (!entries.has(key)) {
+        entries.set(key, buildRiskProfile({
+          clientKey: key,
+          loans,
+          payments,
+          installmentSchedules,
+        }));
+      }
+    });
+
+    return entries;
+  }, [clients, loans, payments, installmentSchedules]);
 
   const allTags = useMemo(() => {
     const tags = new Set<string>();
@@ -2782,7 +2820,7 @@ export function LoanList({ loans, payments, installmentSchedules, onPayment, onP
            return s + Math.max(0, (l.remainingAmount != null && l.remainingAmount > 0 ? l.remainingAmount : t - paid));
          }, 0);
          const hasOverdue = loans.some((l) => l.status !== "paid" && getLoanCategory(l, payments, installmentSchedules) === "overdue");
-         grouped.push({ name, loans, totalAmount: loans.reduce((s, l) => s + l.amount, 0), totalPaid, totalReceivable, hasOverdue });
+          grouped.push({ name, loans, totalAmount: loans.reduce((s, l) => s + l.amount, 0), totalPaid, totalReceivable, hasOverdue, riskProfile: riskProfiles.get(getLoanClientKey(loans[0])) });
       } else {
         singles.push(loans[0]);
       }
@@ -2800,7 +2838,7 @@ export function LoanList({ loans, payments, installmentSchedules, onPayment, onP
        return getEarliestDue(a).localeCompare(getEarliestDue(b));
      });
     return { grouped, singles };
-  }, [categorized, payments]);
+   }, [categorized, payments, installmentSchedules, riskProfiles]);
 
   const summaryData = useMemo(() => {
     const source = categorized;
@@ -2994,7 +3032,7 @@ export function LoanList({ loans, payments, installmentSchedules, onPayment, onP
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {categorized.map((loan, i) => (
                 <div key={loan.id} className="animate-fade-in h-full" style={{ animationDelay: `${i * 60}ms`, animationFillMode: 'backwards' }}>
-                <LoanCardView loan={loan} payments={payments} installmentSchedules={installmentSchedules} readOnly={readOnly} existingTags={loans.flatMap(l => l.tags || []).filter((v, i, a) => a.indexOf(v) === i)} clients={clients}
+                <LoanCardView loan={loan} payments={payments} installmentSchedules={installmentSchedules} readOnly={readOnly} existingTags={loans.flatMap(l => l.tags || []).filter((v, i, a) => a.indexOf(v) === i)} clients={clients} riskProfile={riskProfiles.get(getLoanClientKey(loan))}
                   onPayment={(date) => onPayment(loan.id, date)} onPartialPayment={(amt, date) => onPartialPayment(loan.id, amt, date)} onFullPayment={onFullPayment ? (date, custom) => onFullPayment(loan.id, date, custom) : undefined}
                   onInterestPayment={(date, custom) => onInterestPayment(loan.id, date, custom)} onUpdate={(d) => onUpdate(loan.id, d)} onDelete={() => onDelete(loan.id)} onDeletePayment={onDeletePayment} onSaveSchedule={onSaveSchedule} />
                 </div>
@@ -3038,7 +3076,7 @@ export function LoanList({ loans, payments, installmentSchedules, onPayment, onP
                 </thead>
                 <tbody>
                   {categorized.map((loan) => (
-                    <LoanRowView key={loan.id} loan={loan} payments={payments} installmentSchedules={installmentSchedules} readOnly={readOnly} existingTags={loans.flatMap(l => l.tags || []).filter((v, i, a) => a.indexOf(v) === i)} clients={clients}
+                    <LoanRowView key={loan.id} loan={loan} payments={payments} installmentSchedules={installmentSchedules} readOnly={readOnly} existingTags={loans.flatMap(l => l.tags || []).filter((v, i, a) => a.indexOf(v) === i)} clients={clients} riskProfile={riskProfiles.get(getLoanClientKey(loan))}
                       onPayment={(date) => onPayment(loan.id, date)} onPartialPayment={(amt, date) => onPartialPayment(loan.id, amt, date)} onFullPayment={onFullPayment ? (date, custom) => onFullPayment(loan.id, date, custom) : undefined}
                       onInterestPayment={(date, custom) => onInterestPayment(loan.id, date, custom)} onUpdate={(d) => onUpdate(loan.id, d)} onDelete={() => onDelete(loan.id)} onDeletePayment={onDeletePayment} />
                   ))}
