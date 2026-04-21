@@ -1463,6 +1463,9 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
       {/* Goals Card - placed above Health Score */}
       <GoalsCard loans={loans} payments={payments} expenses={expenses} clients={clients ?? []} installmentSchedules={installmentSchedules} selectedMonth={goalMonthKey} periodLabel={range.label} />
 
+      {/* Manager Commissions Chart - isolated, view-only */}
+      <ManagerCommissionsChart clients={clients} loans={loans} installmentSchedules={installmentSchedules} payments={payments} range={{ start: range.start, end: range.end }} rangeLabel={range.label} />
+
       <Card no3d>
         <CardContent className="p-4 sm:p-6 space-y-4">
           <div>
@@ -1651,8 +1654,6 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
         </CardContent>
       </Card>
 
-      {/* Manager Commissions Chart - isolated, view-only */}
-      <ManagerCommissionsChart clients={clients} loans={loans} installmentSchedules={installmentSchedules} payments={payments} range={{ start: range.start, end: range.end }} rangeLabel={range.label} />
       <Card no3d>
         <CardContent className="p-6">
           <div className="flex items-center justify-between mb-4">
