@@ -407,6 +407,17 @@ const Index = () => {
 
   const canAccessTab = (id: Tab) => visibleTabs.some((t) => t.id === id);
 
+  // Itens da barra inferior mobile: prioriza pinnedTabs (ordem do usuário),
+  // completa com as demais abas visíveis e limita a 4 (o 5º slot é "Mais").
+  const bottomItems = (() => {
+    const pinnedVisible = pinnedTabs
+      .map((id) => tabConfig.find((t) => t.id === id))
+      .filter((t): t is typeof tabConfig[number] => !!t && visibleTabs.some((v) => v.id === t.id));
+    const remaining = visibleTabs.filter((v) => !pinnedVisible.some((p) => p.id === v.id));
+    return [...pinnedVisible, ...remaining].slice(0, 4);
+  })();
+  const bottomItemIds = bottomItems.map((i) => i.id);
+
   useEffect(() => {
     if (visibleTabs.length > 0 && !visibleTabs.find((item) => item.id === tab)) {
       setTab(visibleTabs[0].id);
