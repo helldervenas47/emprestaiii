@@ -228,6 +228,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
   const [comparisonWindow, setComparisonWindow] = useState<3 | 6 | 12>(6);
   const [showAllTx, setShowAllTx] = useState(false);
   const [expandedBreakdown, setExpandedBreakdown] = useState<string | null>(null);
+  const [expandedInsightId, setExpandedInsightId] = useState<string | null>(null);
   
   const [accountBalance, setAccountBalance] = useAccountBalance();
   const [editingBalance, setEditingBalance] = useState(false);
@@ -758,7 +759,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
   const prioritizedInsights = useMemo(() => {
     const current = monthComparison.current;
     const previous = monthComparison.previous;
-    if (!current) return [] as { id: string; title: string; body: string; score: number; tone: "positive" | "warning" | "negative"; }[];
+    if (!current) return [] as { id: string; title: string; body: string; detail: string; recommendation: string; score: number; tone: "positive" | "warning" | "negative"; }[];
 
     const averageLast3 = monthComparison.series.slice(-3).reduce((acc, item) => ({
       revenue: acc.revenue + item.revenue,
@@ -783,7 +784,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
       top3Share: averageLast3.top3Share / divisor,
     };
 
-    const insights: { id: string; title: string; body: string; score: number; tone: "positive" | "warning" | "negative"; }[] = [];
+    const insights: { id: string; title: string; body: string; detail: string; recommendation: string; score: number; tone: "positive" | "warning" | "negative"; }[] = [];
     const revenueVariation = monthComparison.revenueDelta;
     if (revenueVariation !== null && Math.abs(revenueVariation) > 10) {
       insights.push({
@@ -792,6 +793,8 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
         body: revenueVariation > 0
           ? `Seu faturamento cresceu ${Math.abs(revenueVariation).toFixed(1)}% em relação ao mês passado. Continue focando nos contratos e recebimentos que mais puxaram esse avanço.`
           : `Seu faturamento caiu ${Math.abs(revenueVariation).toFixed(1)}% em relação ao mês passado. Revise a entrada de novos contratos e a cadência de recebimentos para reagir rápido.`,
+        detail: `Atual: ${rawFormatCurrency(current.revenue)} • Anterior: ${rawFormatCurrency(previous?.revenue ?? 0)} • Média 3 meses: ${rawFormatCurrency(avg3.revenue)}.`,
+        recommendation: revenueVariation > 0 ? "Mantenha foco nos produtos, clientes ou contratos que mais contribuíram para esse crescimento." : "Revise originação, cobrança e recorrência de entradas para recuperar ritmo no próximo ciclo.",
         score: Math.abs(current.revenue - (previous?.revenue ?? 0)) + (revenueVariation < 0 ? 35 : 20),
         tone: revenueVariation > 0 ? "positive" : "negative",
       });
@@ -805,6 +808,8 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
         body: diff >= 0
           ? `Você está ${Math.abs(diff).toFixed(1)} p.p. acima da meta de juros do mês. Mantenha o mix atual dos contratos mais rentáveis.`
           : `Sua taxa de juros está ${Math.abs(diff).toFixed(1)} p.p. abaixo da meta do mês. Reavalie preço, prazo e condições dos novos empréstimos.`,
+        detail: `Taxa atual: ${current.interestRate.toFixed(2)}% • Meta: ${interestGoal.targetValue.toFixed(2)}% • Diferença: ${diff >= 0 ? "+" : "-"}${Math.abs(diff).toFixed(2)} p.p.`,
+        recommendation: diff >= 0 ? "Preserve as condições que estão sustentando a rentabilidade sem elevar demais o risco da carteira." : "Ajuste taxa, prazo e seleção de contratos novos para aproximar a rentabilidade da meta.",
         score: Math.abs(diff) * 30 + (diff < 0 ? 30 : 18),
         tone: diff >= 0 ? "positive" : "warning",
       });
@@ -818,6 +823,8 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
         body: current.overdueRate > 0.2
           ? `A inadimplência do período está em ${(current.overdueRate * 100).toFixed(1)}%, sinalizando risco elevado. Priorize cobrança e renegociação dos contratos atrasados.`
           : `A inadimplência aumentou ${Math.abs(overdueDelta).toFixed(1)} p.p. versus o mês anterior. Vale revisar sua política de cobrança antes que isso pressione o caixa.`,
+        detail: `Inadimplência atual: ${(current.overdueRate * 100).toFixed(1)}% • Anterior: ${((previous?.overdueRate ?? 0) * 100).toFixed(1)}% • Valor em atraso: ${rawFormatCurrency(current.overdueAmount)}.`,
+        recommendation: "Ataque primeiro os maiores atrasos e contratos com maior saldo pendente para aliviar o caixa mais rápido.",
         score: (current.overdueAmount || 0) + (current.overdueRate * 1000),
         tone: "negative",
       });
@@ -828,6 +835,8 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
         id: "efficiency-up",
         title: "Eficiência por cliente maior",
         body: `Seu ticket médio subiu para ${rawFormatCurrency(current.ticketAverage)}, mas o volume caiu para ${current.serviceVolume} atendimentos. Você está ganhando mais por cliente, porém atendendo menos.`,
+        detail: `Ticket médio atual: ${rawFormatCurrency(current.ticketAverage)} • Média 3 meses: ${rawFormatCurrency(avg3.ticketAverage)} • Volume atual: ${current.serviceVolume} • Média 3 meses: ${avg3.serviceVolume.toFixed(1)}.`,
+        recommendation: "Tente manter o ticket atual enquanto recupera volume com ofertas ou reativação de clientes recorrentes.",
         score: Math.abs(current.ticketAverage - avg3.ticketAverage) + Math.abs(current.serviceVolume - avg3.serviceVolume) * 20,
         tone: "warning",
       });
@@ -838,6 +847,8 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
         id: "efficiency-down",
         title: "Mais volume com menor ticket",
         body: `O volume subiu para ${current.serviceVolume} atendimentos, mas o ticket médio caiu para ${rawFormatCurrency(current.ticketAverage)}. Você vendeu mais, porém com menor valor por atendimento.`,
+        detail: `Volume atual: ${current.serviceVolume} • Média 3 meses: ${avg3.serviceVolume.toFixed(1)} • Ticket médio atual: ${rawFormatCurrency(current.ticketAverage)} • Média 3 meses: ${rawFormatCurrency(avg3.ticketAverage)}.`,
+        recommendation: "Avalie combos, reajustes ou upsell para aumentar valor médio sem perder o fluxo atual.",
         score: Math.abs(current.ticketAverage - avg3.ticketAverage) + Math.abs(current.serviceVolume - avg3.serviceVolume) * 20,
         tone: "warning",
       });
@@ -848,6 +859,8 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
         id: "concentration-risk",
         title: "Dependência de poucos clientes",
         body: `${(current.top3Share * 100).toFixed(1)}% da receita do período veio dos 3 principais clientes. Diversificar a carteira reduz o risco de concentração.`,
+        detail: `Top 3 clientes representam ${(current.top3Share * 100).toFixed(1)}% da receita no período, acima do nível saudável para uma carteira equilibrada.`,
+        recommendation: "Busque distribuir melhor a receita entre mais clientes para reduzir dependência e volatilidade.",
         score: current.top3Share * 1000,
         tone: "warning",
       });
