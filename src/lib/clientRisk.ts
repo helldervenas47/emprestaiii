@@ -1,4 +1,4 @@
-import { Client, InstallmentSchedule, Loan, Payment } from "@/types/loan";
+import { Client, ClientFinancialProfile, InstallmentSchedule, Loan, Payment } from "@/types/loan";
 
 export interface RiskProfile {
   score: number;
@@ -6,6 +6,10 @@ export interface RiskProfile {
   label: string;
   badgeClassName: string;
   reasons: string[];
+  internalScore?: number;
+  externalScore?: number | null;
+  positiveFactors?: string[];
+  negativeFactors?: string[];
 }
 
 export interface ClientRiskMetrics {
@@ -179,6 +183,84 @@ export function buildRiskProfile(client: Client, loans: Loan[], payments: Paymen
   if (score >= 55) return { score, level: "alto", label: "Risco alto", badgeClassName: "bg-destructive/10 text-destructive border-destructive/20", reasons };
   if (score >= 35) return { score, level: "moderado", label: "Risco moderado", badgeClassName: "bg-warning/10 text-warning border-warning/20", reasons };
   return { score, level: "baixo", label: "Risco baixo", badgeClassName: "bg-success/10 text-success border-success/20", reasons };
+}
+
+export function buildConsolidatedRiskProfile(
+  client: Client,
+  loans: Loan[],
+  payments: Payment[],
+  installmentSchedules: InstallmentSchedule[],
+  financialProfile?: ClientFinancialProfile | null,
+  referenceDate = new Date(),
+): RiskProfile {
+  const internalProfile = buildRiskProfile(client, loans, payments, installmentSchedules, referenceDate);
+  const externalScore = financialProfile?.externalScore ?? null;
+  const internalScore = financialProfile?.internalScore ?? internalProfile.score;
+  const consolidatedScore = financialProfile?.consolidatedScore ?? (
+    externalScore == null
+      ? internalScore
+      : Math.round((internalScore * 0.4) + (externalScore * 0.6))
+  );
+
+  const positiveFactors = financialProfile?.positiveFactors?.length
+    ? financialProfile.positiveFactors
+    : internalProfile.level === "baixo"
+      ? ["Histórico interno com poucos sinais de atraso."]
+      : [];
+
+  const negativeFactors = financialProfile?.negativeFactors?.length
+    ? financialProfile.negativeFactors
+    : internalProfile.reasons;
+
+  const baseReasons = [...negativeFactors];
+  if (financialProfile?.monthlyIncome && financialProfile?.debtLevel != null) {
+    const debtCommitment = financialProfile.monthlyIncome > 0
+      ? Math.round((financialProfile.debtLevel / financialProfile.monthlyIncome) * 100)
+      : null;
+    if (debtCommitment != null) {
+      baseReasons.unshift(`Comprometimento de renda estimado em ${debtCommitment}%.`);
+    }
+  }
+  if (financialProfile?.employmentStability) {
+    baseReasons.push(`Estabilidade profissional: ${financialProfile.employmentStability}.`);
+  }
+  if (financialProfile?.bankingRelationship) {
+    baseReasons.push(`Relacionamento bancário: ${financialProfile.bankingRelationship}.`);
+  }
+
+  let level: RiskProfile["level"] = internalProfile.level;
+  let label = internalProfile.label;
+  let badgeClassName = internalProfile.badgeClassName;
+
+  if (consolidatedScore >= 75) {
+    level = "critico";
+    label = "Risco crítico";
+    badgeClassName = "bg-destructive/15 text-destructive border-destructive/30";
+  } else if (consolidatedScore >= 55) {
+    level = "alto";
+    label = "Risco alto";
+    badgeClassName = "bg-destructive/10 text-destructive border-destructive/20";
+  } else if (consolidatedScore >= 35) {
+    level = "moderado";
+    label = "Risco moderado";
+    badgeClassName = "bg-warning/10 text-warning border-warning/20";
+  } else {
+    level = "baixo";
+    label = "Risco baixo";
+    badgeClassName = "bg-success/10 text-success border-success/20";
+  }
+
+  return {
+    score: Math.max(0, Math.min(100, Math.round(consolidatedScore))),
+    level,
+    label,
+    badgeClassName,
+    reasons: Array.from(new Set(baseReasons)).slice(0, 6),
+    internalScore,
+    externalScore,
+    positiveFactors,
+    negativeFactors,
+  };
 }
 
 export function buildClientRiskHistory(client: Client, loans: Loan[], payments: Payment[], installmentSchedules: InstallmentSchedule[]): ClientRiskHistoryPoint[] {

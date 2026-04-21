@@ -17,7 +17,8 @@ import { Loan, Client } from "@/types/loan";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { buildRiskProfile, getClientRiskMetrics } from "@/lib/clientRisk";
+import { buildConsolidatedRiskProfile, getClientRiskMetrics } from "@/lib/clientRisk";
+import { useClientFinancialAnalysis } from "@/hooks/useClientFinancialAnalysis";
 
 interface Props {
   onAdd: (loan: Omit<Loan, "id" | "status" | "paidInstallments">) => Promise<string | null>;
@@ -74,13 +75,14 @@ export function LoanForm({ onAdd, onSaveSchedule, onClose, clients, loans, payme
 
   const managerClients = activeClients.filter((c) => c.isManager);
   const selectedClient = useMemo(() => activeClients.find((c) => c.id === form.borrowerName), [activeClients, form.borrowerName]);
+  const { profile: selectedClientFinancialProfile } = useClientFinancialAnalysis(selectedClient?.id);
   const selectedClientRisk = useMemo(() => {
     if (!selectedClient) return null;
     return {
-      profile: buildRiskProfile(selectedClient, loans, payments, installmentSchedules),
+      profile: buildConsolidatedRiskProfile(selectedClient, loans, payments, installmentSchedules, selectedClientFinancialProfile),
       metrics: getClientRiskMetrics(selectedClient, loans, payments, installmentSchedules),
     };
-  }, [selectedClient, loans, payments, installmentSchedules]);
+  }, [selectedClient, loans, payments, installmentSchedules, selectedClientFinancialProfile]);
 
   // Auto-toggle: when selected client is a manager, default hasManager=true
   // Also pre-fill interest rate from client's defaultInterestRate (fallback 30 / 20 with manager)
@@ -277,7 +279,7 @@ export function LoanForm({ onAdd, onSaveSchedule, onClose, clients, loans, payme
                 <div className="flex items-center justify-between gap-2 flex-wrap">
                   <div>
                     <p className="text-sm font-medium text-foreground">Análise de risco do cliente</p>
-                    <p className="text-xs text-muted-foreground">Considere este histórico antes de registrar o novo empréstimo.</p>
+                    <p className="text-xs text-muted-foreground">Alerta consolidado com histórico interno e consulta automática externa.</p>
                   </div>
                   <Badge variant="outline" className={selectedClientRisk.profile.badgeClassName}>
                     {selectedClientRisk.profile.label} · {selectedClientRisk.profile.score}/100
@@ -306,6 +308,18 @@ export function LoanForm({ onAdd, onSaveSchedule, onClose, clients, loans, payme
                     <li key={reason}>{reason}</li>
                   ))}
                 </ul>
+                {selectedClientFinancialProfile?.monthlyIncome ? (
+                  <div className="grid grid-cols-2 gap-2 text-xs">
+                    <div className="rounded-md border border-border/60 bg-background px-2.5 py-2">
+                      <p className="text-muted-foreground">Renda mensal</p>
+                      <p className="font-semibold text-foreground">{formatCurrency(selectedClientFinancialProfile.monthlyIncome)}</p>
+                    </div>
+                    <div className="rounded-md border border-border/60 bg-background px-2.5 py-2">
+                      <p className="text-muted-foreground">Endividamento</p>
+                      <p className="font-semibold text-foreground">{formatCurrency(selectedClientFinancialProfile.debtLevel ?? 0)}</p>
+                    </div>
+                  </div>
+                ) : null}
               </div>
             )}
 

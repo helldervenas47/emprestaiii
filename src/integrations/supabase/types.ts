@@ -128,6 +128,189 @@ export type Database = {
         }
         Relationships: []
       }
+      client_analysis_events: {
+        Row: {
+          client_id: string
+          created_at: string
+          event_type: string
+          id: string
+          message: string | null
+          metadata: Json
+          owner_id: string
+          status: string
+        }
+        Insert: {
+          client_id: string
+          created_at?: string
+          event_type: string
+          id?: string
+          message?: string | null
+          metadata?: Json
+          owner_id: string
+          status?: string
+        }
+        Update: {
+          client_id?: string
+          created_at?: string
+          event_type?: string
+          id?: string
+          message?: string | null
+          metadata?: Json
+          owner_id?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_analysis_events_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      client_credit_reports: {
+        Row: {
+          client_id: string
+          created_at: string
+          credit_history_summary: string | null
+          delinquency_history: Json
+          expires_at: string | null
+          fetched_at: string | null
+          id: string
+          owner_id: string
+          provider: string
+          raw_summary: Json
+          source_status: string
+          updated_at: string
+        }
+        Insert: {
+          client_id: string
+          created_at?: string
+          credit_history_summary?: string | null
+          delinquency_history?: Json
+          expires_at?: string | null
+          fetched_at?: string | null
+          id?: string
+          owner_id: string
+          provider: string
+          raw_summary?: Json
+          source_status?: string
+          updated_at?: string
+        }
+        Update: {
+          client_id?: string
+          created_at?: string
+          credit_history_summary?: string | null
+          delinquency_history?: Json
+          expires_at?: string | null
+          fetched_at?: string | null
+          id?: string
+          owner_id?: string
+          provider?: string
+          raw_summary?: Json
+          source_status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_credit_reports_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      client_financial_profiles: {
+        Row: {
+          analysis_status: string
+          banking_relationship: string | null
+          client_id: string
+          consent_given: boolean
+          consented_at: string | null
+          consolidated_score: number | null
+          created_at: string
+          debt_level: number | null
+          employment_stability: string | null
+          expires_at: string | null
+          external_score: number | null
+          fetched_at: string | null
+          id: string
+          industry_sector: string | null
+          internal_score: number | null
+          last_error: string | null
+          monthly_income: number | null
+          negative_factors: string[]
+          owner_id: string
+          positive_factors: string[]
+          provider: string | null
+          risk_level: string | null
+          source_status: string
+          updated_at: string
+        }
+        Insert: {
+          analysis_status?: string
+          banking_relationship?: string | null
+          client_id: string
+          consent_given?: boolean
+          consented_at?: string | null
+          consolidated_score?: number | null
+          created_at?: string
+          debt_level?: number | null
+          employment_stability?: string | null
+          expires_at?: string | null
+          external_score?: number | null
+          fetched_at?: string | null
+          id?: string
+          industry_sector?: string | null
+          internal_score?: number | null
+          last_error?: string | null
+          monthly_income?: number | null
+          negative_factors?: string[]
+          owner_id: string
+          positive_factors?: string[]
+          provider?: string | null
+          risk_level?: string | null
+          source_status?: string
+          updated_at?: string
+        }
+        Update: {
+          analysis_status?: string
+          banking_relationship?: string | null
+          client_id?: string
+          consent_given?: boolean
+          consented_at?: string | null
+          consolidated_score?: number | null
+          created_at?: string
+          debt_level?: number | null
+          employment_stability?: string | null
+          expires_at?: string | null
+          external_score?: number | null
+          fetched_at?: string | null
+          id?: string
+          industry_sector?: string | null
+          internal_score?: number | null
+          last_error?: string | null
+          monthly_income?: number | null
+          negative_factors?: string[]
+          owner_id?: string
+          positive_factors?: string[]
+          provider?: string | null
+          risk_level?: string | null
+          source_status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_financial_profiles_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: true
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       clients: {
         Row: {
           active: boolean

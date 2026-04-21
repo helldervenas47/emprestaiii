@@ -13,6 +13,12 @@ import {
 } from "@/lib/offline/sync";
 import { isOnline } from "@/lib/offline/status";
 
+async function triggerClientAnalysis(clientId: string) {
+  await supabase.functions.invoke("sync-client-analysis", {
+    body: { client_id: clientId, force: true },
+  }).catch(() => { /* noop */ });
+}
+
 function rowToClient(c: any): Client {
   return {
     id: c.id, name: c.name, phone: c.phone, email: c.email,
@@ -114,6 +120,7 @@ export function useClients() {
       await removeCachedRow("clients", tempId);
       await upsertCachedRow("clients", data);
       await rewritePendingRecordId("clients", tempId, data.id);
+      await triggerClientAnalysis(data.id);
     }
   }, [user, dataOwnerId]);
 
@@ -150,6 +157,8 @@ export function useClients() {
     const { error } = await supabase.from("clients").update(updatePayload).eq("id", id);
     if (error) {
       await enqueueMutation({ table: "clients", op: "update", recordId: id, payload: updatePayload });
+    } else {
+      await triggerClientAnalysis(id);
     }
   }, []);
 
