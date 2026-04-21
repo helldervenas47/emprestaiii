@@ -844,6 +844,163 @@ const Index = () => {
       {showExpenseForm && <ExpenseForm onAdd={addExpense} onClose={() => setShowExpenseForm(false)} scope="business" />}
       {showPersonalExpenseForm && <PersonalExpenseForm onAdd={addExpense} onClose={() => setShowPersonalExpenseForm(false)} />}
       {showVehicleExpenseForm && <VehicleExpenseForm onAdd={addExpense} onClose={() => setShowVehicleExpenseForm(false)} />}
+
+      {/* Mobile Bottom Navigation */}
+      {isMobile && (
+        <>
+          <nav
+            className="fixed bottom-0 left-0 right-0 z-40 border-t border-border/40 bg-card/90 backdrop-blur-xl backdrop-saturate-150 shadow-[0_-4px_20px_-8px_hsl(0_0%_0%/0.25)] animate-fade-in"
+            style={{ paddingBottom: 'env(safe-area-inset-bottom)', paddingLeft: 'env(safe-area-inset-left)', paddingRight: 'env(safe-area-inset-right)' }}
+          >
+            <div className="flex items-stretch justify-around h-[60px]">
+              {([
+                { id: "overview" as Tab, label: "Dashboard", icon: BarChart3 },
+                { id: "clients" as Tab, label: "Cadastro", icon: Users },
+                { id: "dashboard" as Tab, label: "Empréstimos", icon: LayoutDashboard },
+                { id: "expenses" as Tab, label: "Despesas", icon: Receipt },
+              ] as const)
+                .filter(item => visibleTabs.some(v => v.id === item.id))
+                .map(item => {
+                  const active = tab === item.id;
+                  const Icon = item.icon;
+                  return (
+                    <button
+                      key={item.id}
+                      type="button"
+                      onClick={() => setTab(item.id)}
+                      className={`flex-1 flex flex-col items-center justify-center gap-0.5 px-1 transition-all duration-200 touch-manipulation focus-visible:outline-none ${
+                        active ? "text-primary" : "text-muted-foreground hover:text-foreground"
+                      }`}
+                    >
+                      <div className={`flex items-center justify-center h-6 transition-transform duration-200 ${active ? "scale-110" : ""}`}>
+                        <Icon className="h-[22px] w-[22px]" strokeWidth={active ? 2.4 : 2} />
+                      </div>
+                      <span className={`text-[10px] leading-none ${active ? "font-semibold" : "font-medium"}`}>{item.label}</span>
+                      <span className={`block h-0.5 w-6 rounded-full mt-0.5 transition-all ${active ? "bg-primary" : "bg-transparent"}`} />
+                    </button>
+                  );
+                })}
+              <button
+                type="button"
+                onClick={() => setMoreOpen(true)}
+                className={`flex-1 flex flex-col items-center justify-center gap-0.5 px-1 transition-all duration-200 touch-manipulation focus-visible:outline-none ${
+                  moreOpen ? "text-primary" : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                <div className={`flex items-center justify-center h-6 transition-transform duration-200 ${moreOpen ? "scale-110" : ""}`}>
+                  <Menu className="h-[22px] w-[22px]" strokeWidth={moreOpen ? 2.4 : 2} />
+                </div>
+                <span className={`text-[10px] leading-none ${moreOpen ? "font-semibold" : "font-medium"}`}>Mais</span>
+                <span className={`block h-0.5 w-6 rounded-full mt-0.5 transition-all ${moreOpen ? "bg-primary" : "bg-transparent"}`} />
+              </button>
+            </div>
+          </nav>
+
+          {/* Mais — Bottom Sheet */}
+          <Sheet open={moreOpen} onOpenChange={setMoreOpen}>
+            <SheetContent
+              side="bottom"
+              className="rounded-t-2xl max-h-[88vh] overflow-y-auto p-0"
+            >
+              <div className="mx-auto mt-2 mb-3 h-1.5 w-12 rounded-full bg-muted-foreground/30" />
+              <div className="px-5 pb-6 space-y-5">
+                {/* Branding */}
+                <div className="flex items-center gap-3">
+                  <AppLogo area="header" alt={brandName} className="w-auto" />
+                  <div>
+                    <h2 className="text-base font-bold text-foreground tracking-tight">{brandName}</h2>
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-widest">Controle de empréstimos</p>
+                  </div>
+                </div>
+
+                {/* Conta / Usuário */}
+                <div className="rounded-xl border border-border/40 bg-muted/30 p-3">
+                  <div className="flex items-center gap-3">
+                    <div className="h-10 w-10 rounded-full bg-primary/15 flex items-center justify-center shrink-0">
+                      <User className="h-5 w-5 text-primary" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-semibold text-foreground truncate">{user?.user_metadata?.display_name || user?.email || "—"}</p>
+                      <div className="flex items-center gap-1.5 mt-0.5">
+                        {role && (
+                          <Badge variant="outline" className="text-[9px] px-1.5 py-0">
+                            {role === "admin" ? "Administrador" : role === "operador" ? "Operador" : "Visualizador"}
+                          </Badge>
+                        )}
+                        <Badge
+                          variant="outline"
+                          className="text-[9px] px-1.5 py-0 border-primary/40 text-primary cursor-pointer"
+                          onClick={() => { setMoreOpen(false); navigate("/planos"); }}
+                        >
+                          {hasActiveSub && subscription ? (
+                            subscription.product_id === "basico_plan" ? "Básico" :
+                            subscription.product_id === "profissional_plan" ? "Profissional" :
+                            subscription.product_id === "empresarial_plan" ? "Empresarial" : "Plano"
+                          ) : "Sem Plano"}
+                        </Badge>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Navegação adicional */}
+                {visibleTabs.filter(t => !["overview","clients","dashboard","expenses"].includes(t.id)).length > 0 && (
+                  <div>
+                    <h3 className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground mb-2">Navegação</h3>
+                    <div className="grid grid-cols-3 gap-2">
+                      {visibleTabs
+                        .filter(t => !["overview","clients","dashboard","expenses"].includes(t.id))
+                        .map(t => {
+                          const active = tab === t.id;
+                          return (
+                            <button
+                              key={t.id}
+                              type="button"
+                              onClick={() => { setTab(t.id); setMoreOpen(false); }}
+                              className={`flex flex-col items-center gap-1.5 rounded-xl border p-3 transition-all touch-manipulation ${
+                                active
+                                  ? "border-primary/50 bg-primary/10 text-primary"
+                                  : "border-border/40 bg-card/50 text-foreground hover:border-primary/30 hover:bg-muted/40"
+                              }`}
+                            >
+                              <t.icon className="h-5 w-5" />
+                              <span className="text-[11px] font-medium text-center leading-tight">{t.label}</span>
+                            </button>
+                          );
+                        })}
+                    </div>
+                  </div>
+                )}
+
+                {/* Ações rápidas */}
+                <div>
+                  <h3 className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground mb-2">Ações rápidas</h3>
+                  <div className="grid grid-cols-2 gap-2">
+                    <Button variant="outline" size="sm" onClick={() => { handleHardRefresh(); setMoreOpen(false); }} disabled={refreshing} className="justify-start">
+                      <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? "animate-spin" : ""}`} /> Atualizar
+                    </Button>
+                    <Button variant="outline" size="sm" onClick={() => { toggleTheme(); }} className="justify-start">
+                      {dark ? <Sun className="h-4 w-4 mr-2" /> : <Moon className="h-4 w-4 mr-2" />}
+                      {dark ? "Modo claro" : "Modo escuro"}
+                    </Button>
+                    <Button variant="outline" size="sm" onClick={() => { setMoreOpen(false); navigate("/planejamento-do-dia"); }} className="justify-start">
+                      <CalendarClock className="h-4 w-4 mr-2" /> Planejamento
+                    </Button>
+                    <Button variant="outline" size="sm" onClick={() => { setMoreOpen(false); navigate("/planos"); }} className="justify-start">
+                      <Target className="h-4 w-4 mr-2" /> Planos
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Sair */}
+                <Button variant="destructive" className="w-full" onClick={() => { setMoreOpen(false); signOut(); }}>
+                  <LogOut className="h-4 w-4 mr-2" /> Sair
+                </Button>
+              </div>
+            </SheetContent>
+          </Sheet>
+        </>
+      )}
     </div>
     </HideValuesProvider>
   );
