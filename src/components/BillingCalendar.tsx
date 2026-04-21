@@ -400,6 +400,21 @@ export function BillingCalendar({ loans, payments, installmentSchedules, onPayme
     );
   };
 
+  // Sort selected items by priority: overdue > today > future, then desc value
+  const sortedSelectedItems = useMemo(() => {
+    const priority = (d: string) => {
+      if (d < todayStr) return 0;
+      if (d === todayStr) return 1;
+      return 2;
+    };
+    return [...selectedItems].sort((a, b) => {
+      const pa = priority(a.date);
+      const pb = priority(b.date);
+      if (pa !== pb) return pa - pb;
+      return b.amount - a.amount;
+    });
+  }, [selectedItems, todayStr]);
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
@@ -409,7 +424,8 @@ export function BillingCalendar({ loans, payments, installmentSchedules, onPayme
         <Button variant="outline" size="sm" onClick={goToToday}>Hoje</Button>
       </div>
 
-      <Card no3d>
+      <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)]">
+      <Card no3d className="md:sticky md:top-4 md:self-start">
         <CardContent className="p-4">
           {/* Month navigation */}
           <div className="flex items-center justify-between mb-4">
@@ -488,59 +504,47 @@ export function BillingCalendar({ loans, payments, installmentSchedules, onPayme
         </CardContent>
       </Card>
 
-      {/* Selected day details */}
-      {selectedDate && (
-        <Card no3d>
-          <CardContent className="p-4">
-            <h3 className="text-sm font-semibold text-foreground mb-3">
-              {new Date(selectedDate + "T00:00:00").toLocaleDateString("pt-BR", {
-                weekday: "long",
-                day: "2-digit",
-                month: "long",
-                year: "numeric",
-              })}
-            </h3>
+      {/* Selected day details — split view on desktop/tablet, stacked on mobile */}
+      <Card no3d className="md:max-h-[calc(100vh-8rem)] md:flex md:flex-col animate-fade-in">
+        <CardContent className="p-4 md:flex-1 md:overflow-y-auto">
+          {!selectedDate ? (
+            <div className="flex h-full min-h-[200px] flex-col items-center justify-center text-center">
+              <CalendarDays className="h-8 w-8 text-muted-foreground mb-2" />
+              <p className="text-sm text-muted-foreground">Selecione uma data no calendário para ver os contratos a receber.</p>
+            </div>
+          ) : (
+            <>
+              <h3 className="text-sm font-semibold text-foreground mb-3">
+                {new Date(selectedDate + "T00:00:00").toLocaleDateString("pt-BR", {
+                  weekday: "long",
+                  day: "2-digit",
+                  month: "long",
+                  year: "numeric",
+                })}
+              </h3>
 
-            {selectedItems.length === 0 ? (
-              <p className="text-sm text-muted-foreground">Nenhuma cobrança para este dia.</p>
-            ) : (
-              <div className="space-y-2">
-                {overdueSelected.length > 0 && (
-                  <>
-                    <p className="text-xs font-medium text-destructive mb-1">
-                      Atrasado ({overdueSelected.length})
-                    </p>
-                    <div className="space-y-3">
-                      {overdueSelected.map((item) => renderItemWithActions(item, true))}
+              {sortedSelectedItems.length === 0 ? (
+                <p className="text-sm text-muted-foreground">Nenhum contrato a receber nesta data.</p>
+              ) : (
+                <div className="space-y-3 animate-fade-in">
+                  {sortedSelectedItems.map((item) => renderItemWithActions(item, item.date < todayStr))}
+
+                  {/* Total */}
+                  <div className="flex items-center justify-between pt-2 border-t mt-2">
+                    <div className="flex items-center gap-2 text-sm font-medium text-foreground">
+                      <DollarSign className="h-4 w-4" /> Total a cobrar
                     </div>
-                  </>
-                )}
-
-                {upcomingSelected.length > 0 && (
-                  <>
-                    <p className="text-xs font-medium text-warning mt-3 mb-1">
-                      A vencer ({upcomingSelected.length})
+                    <p className="text-sm font-bold text-foreground">
+                      {formatCurrency(sortedSelectedItems.reduce((s, i) => s + i.amount, 0))}
                     </p>
-                    <div className="space-y-3">
-                      {upcomingSelected.map((item) => renderItemWithActions(item, false))}
-                    </div>
-                  </>
-                )}
-
-                {/* Total */}
-                <div className="flex items-center justify-between pt-2 border-t mt-2">
-                  <div className="flex items-center gap-2 text-sm font-medium text-foreground">
-                    <DollarSign className="h-4 w-4" /> Total a cobrar
                   </div>
-                  <p className="text-sm font-bold text-foreground">
-                    {formatCurrency(selectedItems.reduce((s, i) => s + i.amount, 0))}
-                  </p>
                 </div>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      )}
+              )}
+            </>
+          )}
+        </CardContent>
+      </Card>
+      </div>
 
       {/* Payment confirmation dialog */}
       <Dialog open={!!paymentDialog} onOpenChange={(open) => !open && setPaymentDialog(null)}>
