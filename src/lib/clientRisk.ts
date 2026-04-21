@@ -220,7 +220,7 @@ export function getClientRiskMetrics(client: Client, loans: Loan[], payments: Pa
   return {
     totalLent,
     overdueLoans: overdueLoans.length,
-    severeOverdueLoans: severeOverdueLoans.length,
+    severeOverdueLoans,
     highOverdueLoans,
     maxOverdueDays,
     paidLoans,
