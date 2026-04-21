@@ -1097,10 +1097,12 @@ const Index = () => {
                       )}
                       {themeSwitching ? "Aplicando..." : dark ? "Modo claro" : "Modo escuro"}
                     </Button>
-                    <Button variant="outline" size="sm" onClick={() => handleQuickNav("/planejamento-do-dia")} disabled={!!pendingNav} className="justify-start">
-                      {pendingNav === "/planejamento-do-dia" ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <CalendarClock className="h-4 w-4 mr-2" />}
-                      {pendingNav === "/planejamento-do-dia" ? "Abrindo..." : "Planejamento"}
-                    </Button>
+                    {role === "admin" && (
+                      <Button variant="outline" size="sm" onClick={() => handleQuickNav("/planejamento-do-dia")} disabled={!!pendingNav} className="justify-start">
+                        {pendingNav === "/planejamento-do-dia" ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <CalendarClock className="h-4 w-4 mr-2" />}
+                        {pendingNav === "/planejamento-do-dia" ? "Abrindo..." : "Planejamento"}
+                      </Button>
+                    )}
                     <HideValuesQuickAction />
 
                   </div>
