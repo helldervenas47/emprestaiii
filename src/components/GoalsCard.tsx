@@ -5,9 +5,11 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { useHideValues } from "@/contexts/HideValuesContext";
 import { useMonthlyGoals, GoalType, formatMonthLabel } from "@/hooks/useMonthlyGoals";
+import { useAccountSettings } from "@/hooks/useAccountSettings";
 import { Loan, Payment, Expense, Client, InstallmentSchedule } from "@/types/loan";
 import { todayInAppTz } from "@/lib/timezone";
 import { useActiveCapitalSnapshots } from "@/hooks/useActiveCapitalSnapshots";
@@ -633,6 +635,7 @@ interface DialogProps {
 function GoalDetailDialog({ open, onClose, goal, viewingMonth }: DialogProps) {
   const { hidden } = useHideValues();
   const { upsertGoal } = useMonthlyGoals();
+  const { settings, updateSimulationInterestRate } = useAccountSettings();
   const [creating, setCreating] = useState(false);
   const [editingCreate, setEditingCreate] = useState(false);
   const [newTarget, setNewTarget] = useState<string>("");
@@ -793,6 +796,10 @@ function GoalDetailDialog({ open, onClose, goal, viewingMonth }: DialogProps) {
   if (!goal || !analysis) return null;
 
   const Icon = goal.meta.icon;
+  const simulationInterestRate = Math.max(0, Number(settings.simulationInterestRate ?? 30) || 0);
+  const requiredLoanAmount = goal.goalType === "profit" && goal.targetAmount !== null
+    ? goal.targetAmount / (1 + simulationInterestRate / 100)
+    : 0;
   const statusBadge = {
     excellent: { label: "Meta superada", className: "bg-success/15 text-success border-success/30" },
     ontrack: { label: "No caminho", className: "bg-success/15 text-success border-success/30" },
@@ -909,14 +916,35 @@ function GoalDetailDialog({ open, onClose, goal, viewingMonth }: DialogProps) {
                   </div>
                 </div>
                 {goal.goalType === "profit" && goal.expectedReceivable !== null && goal.targetAmount !== null && (
-                  <div className="mt-3 grid grid-cols-2 gap-2 text-center">
-                    <div className="rounded-md border border-border bg-card/60 p-2">
-                      <p className="text-[10px] text-muted-foreground uppercase">Previsto a receber</p>
-                      <p className="text-sm font-bold text-foreground">{fmtValue(goal.expectedReceivable, "R$", hidden)}</p>
+                  <div className="mt-3 space-y-2">
+                    <div className="grid grid-cols-2 gap-2 text-center">
+                      <div className="rounded-md border border-border bg-card/60 p-2">
+                        <p className="text-[10px] text-muted-foreground uppercase">Previsto a receber</p>
+                        <p className="text-sm font-bold text-foreground">{fmtValue(goal.expectedReceivable, "R$", hidden)}</p>
+                      </div>
+                      <div className="rounded-md border border-success/30 bg-success/5 p-2">
+                        <p className="text-[10px] text-muted-foreground uppercase">Meta em valor</p>
+                        <p className="text-sm font-bold text-success">{fmtValue(goal.targetAmount, "R$", hidden)}</p>
+                      </div>
                     </div>
-                    <div className="rounded-md border border-success/30 bg-success/5 p-2">
-                      <p className="text-[10px] text-muted-foreground uppercase">Meta em valor</p>
-                      <p className="text-sm font-bold text-success">{fmtValue(goal.targetAmount, "R$", hidden)}</p>
+                    <div className="rounded-md border border-border bg-card/60 p-3 text-left">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-[11px] text-muted-foreground">Taxa da simulação</span>
+                        <div className="flex items-center gap-2">
+                          <Input
+                            type="number"
+                            min="0"
+                            step="0.1"
+                            value={simulationInterestRate}
+                            onChange={(e) => void updateSimulationInterestRate(Math.max(0, Number(e.target.value) || 0))}
+                            className="h-7 w-20 text-xs text-right"
+                          />
+                          <span className="text-[10px] text-muted-foreground">% a.m.</span>
+                        </div>
+                      </div>
+                      <p className="text-xs font-semibold text-foreground leading-5 mt-3">
+                        Você precisa emprestar {fmtValue(requiredLoanAmount, "R$", hidden)} para atingir a meta.
+                      </p>
                     </div>
                   </div>
                 )}

@@ -2,7 +2,6 @@ import { useMemo, useState, useEffect, useCallback, useRef } from "react";
 import { todayInAppTz } from "@/lib/timezone";
 import { useChartOverrides } from "@/hooks/useChartOverrides";
 import { useMonthlyGoals } from "@/hooks/useMonthlyGoals";
-import { useAccountSettings } from "@/hooks/useAccountSettings";
 import { calculateMonthlyInterestRate } from "@/lib/monthlyInterestRate";
 import { useAuth } from "@/hooks/useAuth";
 import { usePersonalInsightsTelegramPrefs, type InsightTone } from "@/hooks/usePersonalInsightsTelegramPrefs";
@@ -256,28 +255,15 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
   const [riskAiLoading, setRiskAiLoading] = useState(false);
   const [riskAiReport, setRiskAiReport] = useState("");
   const [riskAiTitle, setRiskAiTitle] = useState("Relatório IA para reduzir risco");
-  const [simulationInterestRate, setSimulationInterestRate] = useState(30);
   const [cachedInsightReports, setCachedInsightReports] = useState<Record<string, string>>({});
   const prefetchingInsightReportsRef = useRef<Set<string>>(new Set());
   const { chartOverrides, setChartOverrides, interestOverrides, setInterestOverrides } = useChartOverrides();
   const { getGoal } = useMonthlyGoals();
-  const { settings: accountSettings, updateSimulationInterestRate } = useAccountSettings();
   const { prefs: personalInsightPrefs } = usePersonalInsightsTelegramPrefs();
 
   useEffect(() => {
     setRiskAiTone(personalInsightPrefs.tone ?? "balanced");
   }, [personalInsightPrefs.tone]);
-
-  useEffect(() => {
-    const backendRate = Number(accountSettings.simulationInterestRate ?? 30);
-    if (Number.isFinite(backendRate) && backendRate >= 0) setSimulationInterestRate(backendRate);
-  }, [accountSettings.simulationInterestRate]);
-
-  const handleSimulationInterestRateChange = useCallback((value: number) => {
-    const nextRate = Math.max(0, value);
-    setSimulationInterestRate(nextRate);
-    void updateSimulationInterestRate(nextRate);
-  }, [updateSimulationInterestRate]);
 
   const range = useMemo(() => getRange(period, offset), [period, offset]);
 
@@ -504,8 +490,6 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
   );
 
   const pendingGoalAmount = profitTargetAmount - totalReceivedForDuePeriod;
-  const simulationRateDecimal = simulationInterestRate / 100;
-  const requiredLoanAmount = profitTargetAmount > 0 ? profitTargetAmount / (1 + simulationRateDecimal) : 0;
 
   // Portfolio metrics — global (not filtered by period)
   const portfolio = useMemo(() => {
@@ -1267,28 +1251,6 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
                   })() : (
                     <p className="text-[10px] text-muted-foreground italic flex items-center gap-1"><Target className="h-3 w-3" /> Defina uma meta em Relatórios → Metas</p>
                   )}
-                </div>
-                <div className="mt-3 pt-3 border-t border-border/30 space-y-2" onClick={(e) => e.stopPropagation()}>
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="text-[10px] text-muted-foreground">Taxa da simulação</span>
-                    <div className="flex items-center gap-2">
-                      <Input
-                        type="number"
-                        min="0"
-                        step="0.1"
-                        value={simulationInterestRate}
-                        onChange={(e) => handleSimulationInterestRateChange(Number(e.target.value) || 0)}
-                        className="h-7 w-20 text-xs text-right"
-                      />
-                      <span className="text-[10px] text-muted-foreground">% a.m.</span>
-                    </div>
-                  </div>
-                  <div className="rounded-lg border border-border/30 bg-muted/40 p-2.5">
-                    <p className="text-[10px] text-muted-foreground">Simulação automática</p>
-                    <p className="text-xs font-semibold text-foreground leading-5 mt-1">
-                      Você precisa emprestar {formatCurrency(requiredLoanAmount)} para atingir a meta.
-                    </p>
-                  </div>
                 </div>
                 {/* Histórico — últimos 2 meses */}
                 <div className="mt-3 pt-2 border-t border-border/30 grid grid-cols-2 gap-2" onClick={(e) => e.stopPropagation()}>
