@@ -16,30 +16,20 @@ function hashString(input: string) {
   return Array.from(input).reduce((acc, char) => acc + char.charCodeAt(0), 0);
 }
 
-function mockExternalAnalysis(client: any) {
+function buildInternalAnalysis(client: any) {
   const seed = hashString(`${client.id}:${client.cpf}:${client.email}:${client.name}`);
-  const monthlyIncome = 3500 + (seed % 9500);
-  const debtLevel = Math.round(monthlyIncome * (0.18 + ((seed % 30) / 100)));
-  const externalScore = Math.max(320, Math.min(940, 420 + (seed % 480)));
-  const stableEmployment = seed % 3 !== 0;
-  const hasDelinquency = seed % 5 === 0;
-  const bankingRelationship = seed % 4 === 0 ? "forte" : seed % 4 === 1 ? "moderado" : "essencial";
-  const sector = client.profissao || (seed % 2 === 0 ? "Serviços" : "Comércio");
+  const relationshipBand = seed % 3;
 
   return {
-    provider: "mock-credit-bureau",
-    monthlyIncome,
-    debtLevel,
-    employmentStability: stableEmployment ? "estável" : "oscilante",
-    industrySector: sector,
-    bankingRelationship,
-    externalScore,
-    delinquencyHistory: hasDelinquency
-      ? [{ status: "inadimplencia", month: "2026-02", amount: Math.round(debtLevel * 0.35) }]
-      : [],
-    creditHistorySummary: hasDelinquency
-      ? "Há registro recente de inadimplência com regularização parcial."
-      : "Sem registros relevantes de inadimplência recente.",
+    provider: "internal-app-history",
+    monthlyIncome: null,
+    debtLevel: null,
+    employmentStability: relationshipBand === 0 ? "em observação" : relationshipBand === 1 ? "recorrente" : "consistente",
+    industrySector: null,
+    bankingRelationship: null,
+    externalScore: null,
+    delinquencyHistory: [],
+    creditHistorySummary: "Análise baseada exclusivamente no histórico interno do cliente dentro do app.",
   };
 }
 
@@ -132,8 +122,8 @@ Deno.serve(async (req) => {
     const totalLent = clientLoans.reduce((sum: number, loan: any) => sum + Number(loan.amount || 0), 0);
     const internalScore = Math.max(5, Math.min(100, Math.round(18 + overdueLoans * 18 + latePayments * 5 + (totalLent >= 10000 ? 8 : 0))));
 
-    const external = mockExternalAnalysis(client);
-    const consolidatedScore = Math.max(0, Math.min(100, Math.round((internalScore * 0.4) + ((external.externalScore / 10) * 0.6))));
+    const external = buildInternalAnalysis(client);
+    const consolidatedScore = Math.max(0, Math.min(100, Math.round(internalScore)));
     const riskLevel = toRiskLevel(consolidatedScore);
     const now = new Date();
     const expiresAt = new Date(now.getTime() + (1000 * 60 * 60 * 24 * 30)).toISOString();
@@ -173,7 +163,7 @@ Deno.serve(async (req) => {
       employment_stability: external.employmentStability,
       industry_sector: external.industrySector,
       banking_relationship: external.bankingRelationship,
-      external_score: Math.round(external.externalScore / 10),
+      external_score: null,
       internal_score: internalScore,
       consolidated_score: consolidatedScore,
       risk_level: riskLevel,
@@ -202,9 +192,10 @@ Deno.serve(async (req) => {
       provider: external.provider,
       raw_summary: {
         external_score: external.externalScore,
-        monthly_income: external.monthlyIncome,
-        debt_level: external.debtLevel,
-        banking_relationship: external.bankingRelationship,
+        monthly_income: null,
+        debt_level: null,
+        banking_relationship: null,
+        source: "internal-app-history",
       },
       delinquency_history: external.delinquencyHistory,
       credit_history_summary: external.creditHistorySummary,
