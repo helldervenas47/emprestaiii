@@ -224,7 +224,7 @@ function useAccountBalance(): [number, (v: number) => void] {
   return [bal, update];
 }
 
-export function DashboardOverview({ loans, sales, payments, expenses, installmentSchedules = [], clients = [], onDeletePayment, onDeleteSale, onDeleteLoan }: Props) {
+export function DashboardOverview({ loans, sales, payments, expenses, installmentSchedules = [], clients = [], onDeletePayment, onDeleteSale, onDeleteLoan, readOnly = false }: Props) {
   const { mask } = useHideValues();
   const { role } = useAuth();
   const isMobile = useIsMobile();
