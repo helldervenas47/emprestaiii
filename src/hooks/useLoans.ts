@@ -554,7 +554,7 @@ export function useLoans() {
     const loan = loans.find((l) => l.id === loanId);
     if (!loan) throw new Error("Empréstimo não encontrado");
     const dateStr = paymentDate || todayInAppTz();
-    const isInstallmentLoan = loan.paymentType === "Parcelado" || loan.installments >= 2;
+    const isInstallmentLoan = loan.installments >= 2;
     const { lateFees } = getLoanLateFees(loan, payments, installmentSchedules);
     const appliedFees = feesAmount != null && feesAmount > 0 ? feesAmount : lateFees;
 

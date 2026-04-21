@@ -244,7 +244,7 @@ export function LoanForm({ onAdd, onSaveSchedule, onClose, clients, loans, payme
       amount,
       interestRate: rate,
       interestType: form.interestType,
-      paymentType: "Parcelado",
+      paymentType: installments >= 2 ? "Parcelado" : "Juros",
       installments,
       startDate: form.startDate,
       dueDate,
