@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { todayInAppTz } from "@/lib/timezone";
 import { SuccessAnimation } from "@/components/SuccessAnimation";
 import { DatePickerField } from "@/components/ui/date-picker-field";
@@ -17,12 +17,16 @@ import { Loan, Client } from "@/types/loan";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
+import { buildRiskProfile, getClientRiskMetrics } from "@/lib/clientRisk";
 
 interface Props {
   onAdd: (loan: Omit<Loan, "id" | "status" | "paidInstallments">) => Promise<string | null>;
   onSaveSchedule: (loanId: string, rows: { installmentNumber: number; dueDate: string; amount: number }[]) => Promise<void>;
   onClose: () => void;
   clients: Client[];
+  loans: Loan[];
+  payments: { id: string; loanId: string; amount: number; date: string; installmentNumber: number; previousDueDate?: string }[];
+  installmentSchedules: { id?: string; loanId: string; installmentNumber: number; dueDate: string; amount: number }[];
   existingTags?: string[];
 }
 
@@ -34,7 +38,7 @@ function getNextDate(base: Date, frequency: string, periods: number): Date {
   return d;
 }
 
-export function LoanForm({ onAdd, onSaveSchedule, onClose, clients, existingTags = [] }: Props) {
+export function LoanForm({ onAdd, onSaveSchedule, onClose, clients, loans, payments, installmentSchedules, existingTags = [] }: Props) {
   const [showSuccess, setShowSuccess] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const activeClients = clients.filter((c) => c.active).sort((a, b) => a.name.localeCompare(b.name, "pt-BR"));
@@ -69,6 +73,14 @@ export function LoanForm({ onAdd, onSaveSchedule, onClose, clients, existingTags
   const [showSchedule, setShowSchedule] = useState(false);
 
   const managerClients = activeClients.filter((c) => c.isManager);
+  const selectedClient = useMemo(() => activeClients.find((c) => c.id === form.borrowerName), [activeClients, form.borrowerName]);
+  const selectedClientRisk = useMemo(() => {
+    if (!selectedClient) return null;
+    return {
+      profile: buildRiskProfile(selectedClient, loans, payments, installmentSchedules),
+      metrics: getClientRiskMetrics(selectedClient, loans, payments, installmentSchedules),
+    };
+  }, [selectedClient, loans, payments, installmentSchedules]);
 
   // Auto-toggle: when selected client is a manager, default hasManager=true
   // Also pre-fill interest rate from client's defaultInterestRate (fallback 30 / 20 with manager)
@@ -176,7 +188,6 @@ export function LoanForm({ onAdd, onSaveSchedule, onClose, clients, existingTags
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const selectedClient = activeClients.find((c) => c.id === form.borrowerName);
     if (!selectedClient || !amount || !installments || isNaN(rate) || rate < 0) return;
     if (hasManager && !managerId) {
       toast.error("Selecione um gerente para o empréstimo com gerente.");
@@ -260,6 +271,43 @@ export function LoanForm({ onAdd, onSaveSchedule, onClose, clients, existingTags
                 </Select>
               )}
             </div>
+
+            {selectedClientRisk && (
+              <div className="rounded-lg border border-border bg-muted/20 p-3 space-y-2">
+                <div className="flex items-center justify-between gap-2 flex-wrap">
+                  <div>
+                    <p className="text-sm font-medium text-foreground">Análise de risco do cliente</p>
+                    <p className="text-xs text-muted-foreground">Considere este histórico antes de registrar o novo empréstimo.</p>
+                  </div>
+                  <Badge variant="outline" className={selectedClientRisk.profile.badgeClassName}>
+                    {selectedClientRisk.profile.label} · {selectedClientRisk.profile.score}/100
+                  </Badge>
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
+                  <div className="rounded-md border border-border/60 bg-background px-2.5 py-2">
+                    <p className="text-muted-foreground">Em atraso</p>
+                    <p className="font-semibold text-foreground">{selectedClientRisk.metrics.overdueLoans}</p>
+                  </div>
+                  <div className="rounded-md border border-border/60 bg-background px-2.5 py-2">
+                    <p className="text-muted-foreground">Pontuais</p>
+                    <p className="font-semibold text-foreground">{Math.round(selectedClientRisk.metrics.onTimeRatio * 100)}%</p>
+                  </div>
+                  <div className="rounded-md border border-border/60 bg-background px-2.5 py-2">
+                    <p className="text-muted-foreground">Pag. atrasados</p>
+                    <p className="font-semibold text-foreground">{selectedClientRisk.metrics.latePayments}</p>
+                  </div>
+                  <div className="rounded-md border border-border/60 bg-background px-2.5 py-2">
+                    <p className="text-muted-foreground">Já emprestado</p>
+                    <p className="font-semibold text-foreground">{formatCurrency(selectedClientRisk.metrics.totalLent)}</p>
+                  </div>
+                </div>
+                <ul className="space-y-1 text-xs text-muted-foreground list-disc pl-4">
+                  {selectedClientRisk.profile.reasons.slice(0, 3).map((reason) => (
+                    <li key={reason}>{reason}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
 
             {/* Manager section */}
             <div className="border border-border rounded-lg p-3 space-y-3 bg-muted/20">
