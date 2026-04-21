@@ -317,18 +317,44 @@ export function useLoans() {
       return;
     }
 
-    const [paymentRes, loanRes] = await Promise.all([
-      supabase.from("payments").insert(paymentPayload as any),
-      supabase.from("loans").update(loanUpdate).eq("id", loanId),
-      adjustBalance(installmentAmount),
-    ]);
-    if (paymentRes.error) {
-      console.error("[addPayment] insert payment failed:", paymentRes.error);
+    const revertOptimisticState = async () => {
       setPayments((prev) => prev.filter((p) => p.id !== tempPaymentId));
       setLoans((prev) => prev.map((l) => l.id === loanId ? loan : l));
-      throw new Error(paymentRes.error.message);
+      await removeCachedRow("payments", tempPaymentId);
+    };
+
+    const { error: paymentError } = await supabase.from("payments").insert(paymentPayload as any);
+    if (paymentError) {
+      console.error("[addPayment] insert payment failed:", paymentError);
+      await revertOptimisticState();
+      throw new Error(paymentError.message);
     }
-    if (loanRes.error) console.error("[addPayment] update loan failed:", loanRes.error);
+
+    const { error: loanError } = await supabase.from("loans").update(loanUpdate).eq("id", loanId);
+    if (loanError) {
+      console.error("[addPayment] update loan failed:", loanError);
+      await supabase.from("payments").delete().eq("id", tempPaymentId);
+      await revertOptimisticState();
+      throw new Error(loanError.message);
+    }
+
+    try {
+      await adjustBalance(installmentAmount);
+    } catch (balanceError: any) {
+      console.error("[addPayment] adjust balance failed:", balanceError);
+      await Promise.all([
+        supabase.from("payments").delete().eq("id", tempPaymentId),
+        supabase.from("loans").update({
+          paid_installments: loan.paidInstallments,
+          status: loan.status,
+          remaining_amount: loan.remainingAmount ?? 0,
+          due_date: loan.dueDate,
+        }).eq("id", loanId),
+      ]);
+      await revertOptimisticState();
+      throw new Error(balanceError?.message ?? "Falha ao atualizar saldo");
+    }
+
     await fetchPayments();
     await fetchLoans();
   }, [user, dataOwnerId, loans, payments, installmentSchedules, fetchLoans, fetchPayments]);
@@ -362,18 +388,39 @@ export function useLoans() {
       return;
     }
 
-    const [paymentRes, loanRes] = await Promise.all([
-      supabase.from("payments").insert(paymentPayload as any),
-      supabase.from("loans").update(loanUpdate).eq("id", loanId),
-      adjustBalance(amount),
-    ]);
-    if (paymentRes.error) {
-      console.error("[addPartialPayment] insert payment failed:", paymentRes.error);
+    const revertOptimisticState = async () => {
       setPayments((prev) => prev.filter((p) => p.id !== tempPaymentId));
       setLoans((prev) => prev.map((l) => l.id === loanId ? loan : l));
-      throw new Error(paymentRes.error.message);
+      await removeCachedRow("payments", tempPaymentId);
+    };
+
+    const { error: paymentError } = await supabase.from("payments").insert(paymentPayload as any);
+    if (paymentError) {
+      console.error("[addPartialPayment] insert payment failed:", paymentError);
+      await revertOptimisticState();
+      throw new Error(paymentError.message);
     }
-    if (loanRes.error) console.error("[addPartialPayment] update loan failed:", loanRes.error);
+
+    const { error: loanError } = await supabase.from("loans").update(loanUpdate).eq("id", loanId);
+    if (loanError) {
+      console.error("[addPartialPayment] update loan failed:", loanError);
+      await supabase.from("payments").delete().eq("id", tempPaymentId);
+      await revertOptimisticState();
+      throw new Error(loanError.message);
+    }
+
+    try {
+      await adjustBalance(amount);
+    } catch (balanceError: any) {
+      console.error("[addPartialPayment] adjust balance failed:", balanceError);
+      await Promise.all([
+        supabase.from("payments").delete().eq("id", tempPaymentId),
+        supabase.from("loans").update({ remaining_amount: loan.remainingAmount ?? 0 }).eq("id", loanId),
+      ]);
+      await revertOptimisticState();
+      throw new Error(balanceError?.message ?? "Falha ao atualizar saldo");
+    }
+
     await fetchPayments();
     await fetchLoans();
   }, [user, dataOwnerId, loans, payments, fetchLoans, fetchPayments]);
