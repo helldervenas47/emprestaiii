@@ -2234,6 +2234,15 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      validate_invite_code: {
+        Args: { _code: string }
+        Returns: {
+          owner_id: string
+          reason: string
+          require_approval: boolean
+          valid: boolean
+        }[]
+      }
     }
     Enums: {
       app_role: "admin" | "operador" | "visualizador"

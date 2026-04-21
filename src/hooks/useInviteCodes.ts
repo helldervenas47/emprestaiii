@@ -77,26 +77,14 @@ export function useInviteCodes() {
 }
 
 export async function validateInviteCode(code: string): Promise<{ valid: boolean; owner_id?: string; require_approval?: boolean; reason?: string }> {
-  const { data: invite } = await (supabase as any)
-    .from("invite_codes")
-    .select("owner_id, active, expires_at, uses_count, max_uses")
-    .eq("code", code)
-    .maybeSingle();
-
-  if (!invite) return { valid: false, reason: "Código não encontrado" };
-  if (!invite.active) return { valid: false, reason: "Código desativado" };
-  if (invite.expires_at && new Date(invite.expires_at) < new Date()) return { valid: false, reason: "Código expirado" };
-  if (invite.max_uses != null && invite.uses_count >= invite.max_uses) return { valid: false, reason: "Código esgotado" };
-
-  const { data: settings } = await (supabase as any)
-    .from("account_settings")
-    .select("require_approval")
-    .eq("owner_id", invite.owner_id)
-    .maybeSingle();
-
+  const { data, error } = await (supabase as any).rpc("validate_invite_code", { _code: code });
+  if (error) return { valid: false, reason: "Erro ao validar código" };
+  const row = Array.isArray(data) ? data[0] : data;
+  if (!row) return { valid: false, reason: "Código não encontrado" };
+  if (!row.valid) return { valid: false, reason: row.reason || "Código inválido" };
   return {
     valid: true,
-    owner_id: invite.owner_id,
-    require_approval: settings?.require_approval ?? false,
+    owner_id: row.owner_id,
+    require_approval: !!row.require_approval,
   };
 }
