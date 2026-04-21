@@ -17,8 +17,6 @@ import { Loan, Client } from "@/types/loan";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { buildConsolidatedRiskProfile, getClientRiskMetrics } from "@/lib/clientRisk";
-import { useClientFinancialAnalysis } from "@/hooks/useClientFinancialAnalysis";
 import { useCreditLimits } from "@/hooks/useCreditLimits";
 import { computeAvailableLimit, computeUsedLimit, formatBRL } from "@/lib/creditLimit";
 import { Wallet, AlertTriangle as AlertTriangleIcon } from "lucide-react";
@@ -67,6 +65,9 @@ export function LoanForm({ onAdd, onSaveSchedule, onClose, clients, loans, payme
   const [hasManager, setHasManager] = useState(false);
   const [managerId, setManagerId] = useState<string>("");
   const [commissionRate, setCommissionRate] = useState<string>("10");
+  const [commissionAmount, setCommissionAmount] = useState<string>("");
+  // Tracks which commission field was last edited so we can highlight it and avoid loops
+  const [commissionLastEdited, setCommissionLastEdited] = useState<"rate" | "amount">("rate");
 
   const toggleHasManager = (checked: boolean) => {
     setHasManager(checked);
@@ -78,14 +79,6 @@ export function LoanForm({ onAdd, onSaveSchedule, onClose, clients, loans, payme
 
   const managerClients = activeClients.filter((c) => c.isManager);
   const selectedClient = useMemo(() => activeClients.find((c) => c.id === form.borrowerName), [activeClients, form.borrowerName]);
-  const { profile: selectedClientFinancialProfile } = useClientFinancialAnalysis(selectedClient?.id);
-  const selectedClientRisk = useMemo(() => {
-    if (!selectedClient) return null;
-    return {
-      profile: buildConsolidatedRiskProfile(selectedClient, loans, payments, installmentSchedules, selectedClientFinancialProfile),
-      metrics: getClientRiskMetrics(selectedClient, loans, payments, installmentSchedules),
-    };
-  }, [selectedClient, loans, payments, installmentSchedules, selectedClientFinancialProfile]);
 
   const { getLimitForClient } = useCreditLimits();
   const selectedClientLimit = selectedClient ? getLimitForClient(selectedClient.id) : undefined;
@@ -152,6 +145,24 @@ export function LoanForm({ onAdd, onSaveSchedule, onClose, clients, loans, payme
     }
   }, [form.startDate, form.interestType]);
 
+  // Commission sync: base = loan principal (amount). Keeps % and R$ in sync.
+  useEffect(() => {
+    if (!hasManager || amount <= 0) return;
+    if (commissionLastEdited === "rate") {
+      const r = parseFloat(commissionRate) || 0;
+      const v = (amount * r) / 100;
+      const formatted = v > 0 ? v.toFixed(2) : "";
+      if (formatted !== commissionAmount) setCommissionAmount(formatted);
+    } else {
+      const v = parseFloat(commissionAmount) || 0;
+      const r = (v / amount) * 100;
+      const formatted = r > 0 ? r.toFixed(2) : "";
+      if (formatted !== commissionRate) setCommissionRate(formatted);
+    }
+  }, [hasManager, amount, commissionRate, commissionAmount, commissionLastEdited]);
+
+  const commissionExceedsLoan = hasManager && (parseFloat(commissionAmount) || 0) > amount && amount > 0;
+
   // Generate schedule rows with editable values
   const [installmentRows, setInstallmentRows] = useState<{ date: Date; value: string }[]>([]);
 
@@ -209,6 +220,10 @@ export function LoanForm({ onAdd, onSaveSchedule, onClose, clients, loans, payme
     if (!selectedClient || !amount || !installments || isNaN(rate) || rate < 0) return;
     if (hasManager && !managerId) {
       toast.error("Selecione um gerente para o empréstimo com gerente.");
+      return;
+    }
+    if (hasManager && commissionExceedsLoan) {
+      toast.error("A comissão não pode ser maior que o valor do empréstimo.");
       return;
     }
     setSubmitting(true);
@@ -290,54 +305,6 @@ export function LoanForm({ onAdd, onSaveSchedule, onClose, clients, loans, payme
               )}
             </div>
 
-            {selectedClientRisk && (
-              <div className="rounded-lg border border-border bg-muted/20 p-3 space-y-2">
-                <div className="flex items-center justify-between gap-2 flex-wrap">
-                  <div>
-                    <p className="text-sm font-medium text-foreground">Análise de risco do cliente</p>
-                    <p className="text-xs text-muted-foreground">Leitura operacional com base no Score Atual e sustentação do Score Histórico.</p>
-                  </div>
-                  <Badge variant="outline" className={selectedClientRisk.profile.badgeClassName}>
-                    {selectedClientRisk.profile.label} · {selectedClientRisk.profile.currentScore}/100
-                  </Badge>
-                </div>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
-                  <div className="rounded-md border border-border/60 bg-background px-2.5 py-2">
-                    <p className="text-muted-foreground">Histórico</p>
-                    <p className="font-semibold text-foreground">{selectedClientRisk.profile.historicalScore}/150</p>
-                  </div>
-                  <div className="rounded-md border border-border/60 bg-background px-2.5 py-2">
-                    <p className="text-muted-foreground">Em atraso</p>
-                    <p className="font-semibold text-foreground">{selectedClientRisk.metrics.overdueLoans}</p>
-                  </div>
-                  <div className="rounded-md border border-border/60 bg-background px-2.5 py-2">
-                    <p className="text-muted-foreground">Pontuais</p>
-                    <p className="font-semibold text-foreground">{Math.round(selectedClientRisk.metrics.onTimeRatio * 100)}%</p>
-                  </div>
-                  <div className="rounded-md border border-border/60 bg-background px-2.5 py-2">
-                    <p className="text-muted-foreground">Pag. atrasados</p>
-                    <p className="font-semibold text-foreground">{selectedClientRisk.metrics.latePayments}</p>
-                  </div>
-                  <div className="rounded-md border border-border/60 bg-background px-2.5 py-2">
-                    <p className="text-muted-foreground">Já emprestado</p>
-                    <p className="font-semibold text-foreground">{formatCurrency(selectedClientRisk.metrics.totalLent)}</p>
-                  </div>
-                </div>
-                <div className="flex flex-wrap gap-2 text-[11px] text-muted-foreground">
-                  <span className="rounded-md border border-border/60 bg-background px-2 py-1">{selectedClientRisk.profile.classification}</span>
-                  <span className="rounded-md border border-border/60 bg-background px-2 py-1">Tendência: {selectedClientRisk.profile.trendLabel}</span>
-                </div>
-                <ul className="space-y-1 text-xs text-muted-foreground list-disc pl-4">
-                  {selectedClientRisk.profile.reasons.slice(0, 3).map((reason) => (
-                    <li key={reason}>{reason}</li>
-                  ))}
-                </ul>
-                <div className="rounded-md border border-border/60 bg-background px-2.5 py-2 text-xs text-muted-foreground">
-                  Score calculado apenas com contratos, pagamentos, atrasos, pontualidade e relacionamento registrados no app.
-                </div>
-              </div>
-            )}
-
             {selectedClient && (
               <div className={`rounded-lg border p-3 space-y-2 ${exceedsLimit ? "border-warning bg-warning/10" : "border-border bg-muted/20"}`}>
                 <div className="flex items-center justify-between gap-2 flex-wrap">
@@ -390,7 +357,7 @@ export function LoanForm({ onAdd, onSaveSchedule, onClose, clients, loans, payme
                 </Label>
               </div>
               {hasManager && (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1 border-t border-border/50">
+                <div className="space-y-3 pt-1 border-t border-border/50">
                   <div>
                     <Label className="text-xs">Gerente</Label>
                     {managerClients.length === 0 ? (
@@ -408,17 +375,53 @@ export function LoanForm({ onAdd, onSaveSchedule, onClose, clients, loans, payme
                       </Select>
                     )}
                   </div>
-                  <div>
-                    <Label className="text-xs">Comissão (%)</Label>
-                    <Input
-                      type="number"
-                      step="0.1"
-                      min="0"
-                      value={commissionRate}
-                      onChange={(e) => setCommissionRate(e.target.value)}
-                      className="h-9 text-sm"
-                    />
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <Label className="text-xs">Comissão (%)</Label>
+                      <Input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        inputMode="decimal"
+                        value={commissionRate}
+                        onChange={(e) => {
+                          setCommissionLastEdited("rate");
+                          setCommissionRate(e.target.value);
+                        }}
+                        className={cn(
+                          "h-9 text-sm",
+                          commissionLastEdited === "rate" && "ring-2 ring-primary/40 border-primary/50",
+                        )}
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-xs">Valor da comissão (R$)</Label>
+                      <Input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        inputMode="decimal"
+                        value={commissionAmount}
+                        onChange={(e) => {
+                          setCommissionLastEdited("amount");
+                          setCommissionAmount(e.target.value);
+                        }}
+                        placeholder="0,00"
+                        className={cn(
+                          "h-9 text-sm",
+                          commissionLastEdited === "amount" && "ring-2 ring-primary/40 border-primary/50",
+                        )}
+                      />
+                    </div>
                   </div>
+                  <p className="text-[11px] text-muted-foreground">
+                    Base: valor do empréstimo {amount > 0 ? `(${formatCurrency(amount)})` : ""}. Os campos são sincronizados em tempo real.
+                  </p>
+                  {commissionExceedsLoan && (
+                    <p className="text-[11px] text-destructive">
+                      A comissão não pode ser maior que o valor do empréstimo.
+                    </p>
+                  )}
                 </div>
               )}
             </div>
