@@ -279,8 +279,8 @@ export function ClientList({ clients, loans, payments, installmentSchedules, onD
             const cs = creditScores[client.id];
             return (
             <div key={client.id} className="animate-fade-in" style={{ animationDelay: `${i * 60}ms`, animationFillMode: 'backwards' }}>
-            <Card className={`hover:shadow-[0_4px_16px_-6px_hsl(0_0%_0%/0.08)] hover:-translate-y-[1px] transition-all duration-400 ease-out ${!client.active ? "opacity-60" : ""}`}>
-              <CardContent className="p-5">
+            <Card className={`hover:shadow-[0_4px_16px_-6px_hsl(0_0%_0%/0.08)] hover:-translate-y-[1px] transition-all duration-400 ease-out overflow-hidden ${!client.active ? "opacity-60" : ""}`}>
+              <CardContent className="p-3 sm:p-5">
                 {editingId === client.id ? (
                   <div className="space-y-3">
                     <div>
@@ -430,23 +430,23 @@ export function ClientList({ clients, loans, payments, installmentSchedules, onD
                   </div>
                 ) : (
                   <>
-                    <div className="flex items-start justify-between mb-3">
-                      <div className="flex items-center gap-3">
-                        <div className="h-10 w-10 rounded-full gradient-primary flex items-center justify-center">
+                    <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2 mb-3">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className="h-10 w-10 shrink-0 rounded-full gradient-primary flex items-center justify-center">
                           <User className="h-5 w-5 text-primary-foreground" />
                         </div>
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <h3 className="font-semibold text-foreground">{client.name}</h3>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <h3 className="font-semibold text-foreground break-words">{client.name}</h3>
                             <Badge variant="outline" className={client.active ? "bg-success/10 text-success border-success/20 text-xs" : "bg-muted text-muted-foreground border-border text-xs"}>
                               {client.active ? "Ativo" : "Inativo"}
                             </Badge>
                           </div>
-                          {client.cpf && <p className="text-xs text-muted-foreground">CPF: {client.cpf}</p>}
+                          {client.cpf && <p className="text-xs text-muted-foreground break-words">CPF: {client.cpf}</p>}
                         </div>
                       </div>
                       {!readOnly && (
-                      <div className="flex gap-1">
+                      <div className="flex gap-0.5 sm:gap-1 flex-wrap justify-end -mx-1 sm:mx-0 shrink-0">
                         <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => setLimitClient(client)} title="Limite de crédito">
                           <Wallet className="h-4 w-4 text-primary" />
                         </Button>
