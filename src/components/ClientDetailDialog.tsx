@@ -2,7 +2,7 @@ import { useMemo } from "react";
 import { AlertTriangle, CalendarClock, CheckCircle2, ShieldCheck, Wallet } from "lucide-react";
 import { CartesianGrid, Line, LineChart, XAxis, YAxis } from "recharts";
 import { Client, InstallmentSchedule, Loan, Payment } from "@/types/loan";
-import { buildClientRiskHistory, buildRiskProfile, formatRiskCurrency, getClientLoans, getClientRiskMetrics } from "@/lib/clientRisk";
+import { buildClientRiskHistory, buildConsolidatedRiskProfile, formatRiskCurrency, getClientLoans, getClientRiskMetrics } from "@/lib/clientRisk";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -10,7 +10,6 @@ import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
 import { useClientFinancialAnalysis } from "@/hooks/useClientFinancialAnalysis";
-import { buildConsolidatedRiskProfile } from "@/lib/clientRisk";
 
 interface Props {
   open: boolean;
