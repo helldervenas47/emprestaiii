@@ -409,10 +409,16 @@ const Index = () => {
     if (themeSwitching) return;
     setThemeSwitching(true);
     const next = !dark;
+    const root = document.documentElement;
+    // Ativa transição suave de cores/sombras apenas durante a troca
+    root.classList.add("theme-transitioning");
     setDark(next);
-    document.documentElement.classList.toggle("dark", next);
+    root.classList.toggle("dark", next);
     localStorage.setItem("hvcred-theme", next ? "dark" : "light");
-    setTimeout(() => setThemeSwitching(false), 350);
+    window.setTimeout(() => {
+      root.classList.remove("theme-transitioning");
+      setThemeSwitching(false);
+    }, 380);
   };
 
   const handleQuickNav = (path: string) => {
