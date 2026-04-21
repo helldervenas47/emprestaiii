@@ -1217,7 +1217,6 @@ const Index = () => {
                     );
                   })}
                 </div>
-                </div>
               </div>
 
               {/* Preview ao vivo do menu inferior */}
