@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { forwardRef, useMemo, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -58,7 +58,7 @@ function getLoanFallbackAmount(loan: Loan) {
   return total / Math.max(1, loan.installments);
 }
 
-export function AccumulatedDelinquencyReport({ loans, clients, installmentSchedules }: Props) {
+export const AccumulatedDelinquencyReport = forwardRef<HTMLDivElement, Props>(function AccumulatedDelinquencyReport({ loans, clients, installmentSchedules }, ref) {
   const { mask } = useHideValues();
   const { linked } = useTelegramReportsLink();
   const { prefs, loading: prefsLoading, save } = useTelegramAccumulatedDelinquencyPrefs();
@@ -180,7 +180,7 @@ export function AccumulatedDelinquencyReport({ loans, clients, installmentSchedu
   if (prefsLoading) return null;
 
   return (
-    <div className="space-y-6">
+    <div ref={ref} className="space-y-6">
       <TelegramReportsConnectCard />
 
       <div className="grid gap-3 md:grid-cols-3">
@@ -326,4 +326,4 @@ export function AccumulatedDelinquencyReport({ loans, clients, installmentSchedu
       </div>
     </div>
   );
-}
+});
