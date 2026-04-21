@@ -1,5 +1,5 @@
 import { useState, useEffect, lazy, Suspense } from "react";
-import { Plus, Users, LayoutDashboard, ShoppingBag, BarChart3, AlertTriangle, Receipt, CalendarDays, Sun, Moon, LogOut, Info, X, Eye, EyeOff, Car, Wrench, DatabaseBackup, Menu, User, RefreshCw, Bell, Target, Calculator, Settings as SettingsIcon, CalendarClock, Pin, Check, Sliders, Loader2, GripVertical } from "lucide-react";
+import { Plus, Users, LayoutDashboard, ShoppingBag, BarChart3, AlertTriangle, Receipt, CalendarDays, Sun, Moon, LogOut, Info, X, Eye, EyeOff, Car, Wrench, DatabaseBackup, Menu, User, RefreshCw, Bell, Target, Calculator, Settings as SettingsIcon, CalendarClock, Pin, Check, Sliders, Loader2, GripVertical, Activity } from "lucide-react";
 import { AppLogo } from "@/components/AppLogo";
 import { useAppBranding } from "@/hooks/useAppBranding";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -49,6 +49,7 @@ const AccountantReport = lazy(() => import("@/components/AccountantReport").then
 const DailyPlanningReport = lazy(() => import("@/components/DailyPlanningReport").then(m => ({ default: m.DailyPlanningReport })));
 const AccumulatedDelinquencyReport = lazy(() => import("@/components/AccumulatedDelinquencyReport").then(m => ({ default: m.AccumulatedDelinquencyReport })));
 const Settings = lazy(() => import("@/components/Settings").then(m => ({ default: m.Settings })));
+const SystemHealth = lazy(() => import("@/components/SystemHealth").then(m => ({ default: m.SystemHealth })));
 // Direct import for the constant used at render time
 import { vehicleExpenseCategories } from "@/components/VehicleExpenseForm";
 import { PushNotificationToggle } from "@/components/PushNotificationToggle";
@@ -84,7 +85,7 @@ import { useExpenses } from "@/hooks/useExpenses";
 import { useVehicleRegistry } from "@/hooks/useVehicleRegistry";
 import { useLocadorInfo } from "@/hooks/useLocadorInfo";
 
-type Tab = "overview" | "dashboard" | "clients" | "products" | "vehicles" | "overdue" | "expenses" | "calendar" | "settings";
+type Tab = "overview" | "dashboard" | "clients" | "products" | "vehicles" | "overdue" | "expenses" | "calendar" | "settings" | "system-health";
 type ClientSubTab = "clientes" | "veiculos";
 type VehicleSubTab = "veiculos" | "locadores";
 type PlanMgmtSubTab = "subscribers" | "plans";
@@ -102,6 +103,7 @@ const tabConfig = [
   { id: "expenses" as Tab, label: "Despesas", icon: Receipt },
   { id: "overdue" as Tab, label: "Relatório", icon: AlertTriangle },
   { id: "settings" as Tab, label: "Configurações", icon: SettingsIcon },
+  { id: "system-health" as Tab, label: "Saúde do Sistema", icon: Activity, adminOnly: true },
 ];
 
 const tabHelp: Record<Tab, { title: string; items: string[] }> = {
