@@ -105,7 +105,7 @@ export function useCreditLimits() {
 
       if (error || !data) return null;
 
-      await supabase.from("credit_limit_history").insert({
+      await supabase.from("credit_limit_history").insert([{
         user_id: dataOwnerId,
         client_id: clientId,
         change_type: "initial",
@@ -113,7 +113,7 @@ export function useCreditLimits() {
         new_limit: DEFAULT_INITIAL_LIMIT,
         reason: "Limite inicial",
         changed_by: user.id,
-      });
+      }]);
 
       const created = rowToLimit(data);
       setLimits((prev) => [...prev, created]);
