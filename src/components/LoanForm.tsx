@@ -65,6 +65,9 @@ export function LoanForm({ onAdd, onSaveSchedule, onClose, clients, loans, payme
   const [hasManager, setHasManager] = useState(false);
   const [managerId, setManagerId] = useState<string>("");
   const [commissionRate, setCommissionRate] = useState<string>("10");
+  const [commissionAmount, setCommissionAmount] = useState<string>("");
+  // Tracks which commission field was last edited so we can highlight it and avoid loops
+  const [commissionLastEdited, setCommissionLastEdited] = useState<"rate" | "amount">("rate");
 
   const toggleHasManager = (checked: boolean) => {
     setHasManager(checked);
