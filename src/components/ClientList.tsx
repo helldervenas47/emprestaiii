@@ -457,7 +457,7 @@ export function ClientList({ clients, loans, payments, installmentSchedules, onD
                           size="icon"
                           variant="ghost"
                           className="h-8 w-8"
-                          onClick={() => onUpdate(client.id, { active: !client.active })}
+                          onClick={() => handleToggleActive(client)}
                           title={client.active ? "Desativar" : "Ativar"}
                         >
                           {client.active ? <ToggleRight className="h-4 w-4 text-success" /> : <ToggleLeft className="h-4 w-4 text-muted-foreground" />}
