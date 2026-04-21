@@ -531,26 +531,6 @@ const Index = () => {
                 </Badge>
               </div>
             )}
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-8 w-8 sm:h-9 sm:w-9" title="Ajuda">
-                  <Info className="h-4 w-4" />
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-72 sm:w-80" align="end">
-                <div className="space-y-2">
-                  <h3 className="font-semibold text-sm text-foreground">{tabHelp[tab].title}</h3>
-                  <ul className="space-y-1.5">
-                    {tabHelp[tab].items.map((item, i) => (
-                      <li key={i} className="text-xs text-muted-foreground flex gap-2">
-                        <span className="text-primary mt-0.5">•</span>
-                        <span>{item}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              </PopoverContent>
-            </Popover>
             {/* Acessos rápidos do topo: ocultos no mobile (disponíveis em "Mais") */}
             <Button
               variant="ghost"
@@ -562,7 +542,6 @@ const Index = () => {
             >
               <RefreshCw className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`} />
             </Button>
-            <HideValuesToggle />
             {role === "admin" && <div className="hidden sm:inline-flex"><ApprovalRequestsButton /></div>}
             <Button variant="ghost" size="icon" onClick={toggleTheme} className="hidden sm:inline-flex h-8 w-8 sm:h-9 sm:w-9" title={dark ? "Modo claro" : "Modo escuro"}>
               {dark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
@@ -570,16 +549,6 @@ const Index = () => {
             <Button variant="ghost" size="icon" onClick={signOut} className="hidden sm:inline-flex h-8 w-8 sm:h-9 sm:w-9" title="Sair">
               <LogOut className="h-4 w-4" />
             </Button>
-            {!isReadOnly && tab === "vehicles" && (
-              <Button variant="outline" size="sm" onClick={() => setShowVehicleExpenseForm(true)} className="h-8 px-2 sm:px-3">
-                <Receipt className="h-4 w-4 sm:mr-1" /><span className="hidden sm:inline">Registrar Despesa</span>
-              </Button>
-            )}
-            {!isReadOnly && tab !== "overview" && tab !== "overdue" && tab !== "calendar" && tab !== "settings" && tab !== "dashboard" && !(tab === "clients" && clientSubTab === "veiculos") && (
-              <Button onClick={handlePrimaryAction} size="sm" className="h-8 px-2 sm:px-3">
-                <Plus className="h-4 w-4 sm:mr-1" /><span className="hidden sm:inline">{primaryLabel}</span>
-              </Button>
-            )}
           </div>
         </div>
 
@@ -883,16 +852,28 @@ const Index = () => {
         </Suspense>
       </main>
 
-      {!isReadOnly && tab === "dashboard" && (
+      {!isReadOnly && primaryLabel && (tab === "dashboard" || tab === "expenses" || tab === "products" || tab === "vehicles" || (tab === "clients" && clientSubTab === "clientes")) && (
         <button
           type="button"
-          onClick={() => setShowLoanForm(true)}
-          aria-label="Novo Empréstimo"
-          title="Novo Empréstimo"
+          onClick={handlePrimaryAction}
+          aria-label={primaryLabel}
+          title={primaryLabel}
           className="fixed z-50 right-6 md:right-8 h-14 w-14 md:h-16 md:w-16 rounded-full bg-primary text-primary-foreground shadow-[0_8px_24px_-4px_hsl(var(--primary)/0.55)] hover:shadow-[0_12px_32px_-4px_hsl(var(--primary)/0.7)] hover:scale-105 active:scale-95 transition-all duration-200 flex items-center justify-center animate-fade-in touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
           style={{ bottom: isMobile ? `calc(env(safe-area-inset-bottom) + 80px)` : `calc(env(safe-area-inset-bottom) + 24px)` }}
         >
           <Plus className="h-6 w-6 md:h-7 md:w-7" strokeWidth={2.5} />
+        </button>
+      )}
+      {!isReadOnly && tab === "vehicles" && (
+        <button
+          type="button"
+          onClick={() => setShowVehicleExpenseForm(true)}
+          aria-label="Registrar Despesa"
+          title="Registrar Despesa"
+          className="fixed z-40 right-6 md:right-8 h-12 w-12 md:h-14 md:w-14 rounded-full bg-secondary text-secondary-foreground border border-border shadow-lg hover:scale-105 active:scale-95 transition-all duration-200 flex items-center justify-center animate-fade-in touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+          style={{ bottom: isMobile ? `calc(env(safe-area-inset-bottom) + 80px + 72px)` : `calc(env(safe-area-inset-bottom) + 24px + 80px)` }}
+        >
+          <Receipt className="h-5 w-5 md:h-6 md:w-6" strokeWidth={2.5} />
         </button>
       )}
 
