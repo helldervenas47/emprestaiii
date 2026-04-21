@@ -46,6 +46,7 @@ const VehicleExpenseForm = lazy(() => import("@/components/VehicleExpenseForm").
 const NotificationSettings = lazy(() => import("@/components/NotificationSettings").then(m => ({ default: m.NotificationSettings })));
 const MonthlyGoalsManager = lazy(() => import("@/components/MonthlyGoalsManager").then(m => ({ default: m.MonthlyGoalsManager })));
 const AccountantReport = lazy(() => import("@/components/AccountantReport").then(m => ({ default: m.AccountantReport })));
+const DailyPlanningReport = lazy(() => import("@/components/DailyPlanningReport").then(m => ({ default: m.DailyPlanningReport })));
 const Settings = lazy(() => import("@/components/Settings").then(m => ({ default: m.Settings })));
 // Direct import for the constant used at render time
 import { vehicleExpenseCategories } from "@/components/VehicleExpenseForm";
@@ -83,7 +84,7 @@ type Tab = "overview" | "dashboard" | "clients" | "products" | "vehicles" | "ove
 type ClientSubTab = "clientes" | "veiculos";
 type VehicleSubTab = "veiculos" | "locadores";
 type PlanMgmtSubTab = "subscribers" | "plans";
-type OverdueSubTab = "cobrancas" | "contador" | "metas";
+type OverdueSubTab = "cobrancas" | "contador" | "metas" | "planejamento";
 type ExpenseSubTab = "business" | "personal";
 type PersonalSubTab = "expenses" | "cards";
 
@@ -709,9 +710,9 @@ const Index = () => {
                 <Target className="h-4 w-4 mr-1" /> Metas
               </Button>
               <Button
-                variant="outline"
+                variant={overdueSubTab === "planejamento" ? "default" : "outline"}
                 size="sm"
-                onClick={() => navigate("/planejamento-do-dia")}
+                onClick={() => setOverdueSubTab("planejamento")}
               >
                 <CalendarClock className="h-4 w-4 mr-1" /> Planejamento do Dia
               </Button>
@@ -724,6 +725,15 @@ const Index = () => {
             )}
             {overdueSubTab === "metas" && (
               <MonthlyGoalsManager />
+            )}
+            {overdueSubTab === "planejamento" && (
+              <DailyPlanningReport
+                loans={filteredLoans}
+                payments={filteredPayments}
+                installmentSchedules={filteredInstallments}
+                sales={filteredSales}
+                expenses={expenses}
+              />
             )}
           </div>
           </SubscriptionGate>
