@@ -23,7 +23,7 @@ import { Progress } from "@/components/ui/progress";
 import { getBalance, setBalance } from "@/lib/balance";
 import {
   TrendingUp, TrendingDown, DollarSign, ArrowUpRight, ArrowDownRight,
-  ChevronLeft, ChevronRight, ChevronDown, Percent, Wallet, Pencil, Check, X, Trash2, Calendar, Eye, Target, Info,
+  ChevronLeft, ChevronRight, ChevronDown, Percent, Wallet, Pencil, Check, X, Trash2, Calendar, Eye, Target, Info, Sparkles,
 } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
@@ -1555,11 +1555,12 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
                     <div className="border-t border-border/40 pt-3 space-y-2">
                       <p className="text-xs text-muted-foreground leading-5">{insight.detail}</p>
                       <p className="text-xs font-medium text-foreground leading-5">{insight.recommendation}</p>
-                      <div className="pt-1">
+                      <div className="pt-1 flex justify-end">
                         <Button
                           type="button"
                           size="sm"
-                          variant="outline"
+                          variant="ghost"
+                          className="h-9 w-9 rounded-lg border border-primary/20 bg-gradient-to-br from-primary/10 to-accent/20 backdrop-blur-sm hover:from-primary/20 hover:to-accent/30"
                           onClick={(event) => {
                             event.stopPropagation();
                             generateAiReport({
@@ -1584,8 +1585,10 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
                             });
                           }}
                           disabled={riskAiLoading}
+                          aria-label={cachedInsightReports[insight.id] ? "Abrir relatório com IA" : "Gerar relatório com IA"}
+                          title={cachedInsightReports[insight.id] ? "Abrir relatório com IA" : "Gerar relatório com IA"}
                         >
-                          {riskAiLoading ? "Gerando..." : cachedInsightReports[insight.id] ? "Abrir relatório com IA" : "Gerar relatório com IA"}
+                          <Sparkles className={`h-4 w-4 text-primary ${riskAiLoading ? "animate-pulse" : ""}`} />
                         </Button>
                       </div>
                     </div>
@@ -1626,7 +1629,12 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
             </div>
 
             <div className="space-y-4">
-              <button type="button" onClick={generateRiskAiReport} className="w-full rounded-xl border border-border/30 bg-muted/20 p-5 text-left transition-colors hover:bg-accent/40">
+              <button type="button" onClick={generateRiskAiReport} className="w-full rounded-xl border border-primary/20 bg-gradient-to-br from-primary/10 to-accent/15 p-5 text-left backdrop-blur-sm transition-colors hover:from-primary/15 hover:to-accent/20">
+                <div className="mb-3 flex justify-end">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-lg border border-primary/20 bg-background/40 backdrop-blur-md">
+                    <Sparkles className="h-4 w-4 text-primary" />
+                  </div>
+                </div>
                 <div className="flex items-center justify-between text-sm text-muted-foreground mb-3">
                   <span>Baixo risco / baixo retorno</span>
                   <span>Alto risco / alto retorno</span>
