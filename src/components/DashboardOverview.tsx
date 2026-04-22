@@ -27,6 +27,7 @@ import {
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, ComposedChart, Line } from "recharts";
+import { AIReportAudioPlayer } from "@/components/AIReportAudioPlayer";
 
 const InfoPopover = ({ text }: { text: string }) => (
   <Popover>
