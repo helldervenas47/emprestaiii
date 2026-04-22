@@ -25,6 +25,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
+import { AdjustDueDateDialog } from "@/components/AdjustDueDateDialog";
 
 interface Props {
   loans: Loan[];
@@ -215,6 +216,7 @@ function LoanCardView({
   const [penaltyValue, setPenaltyValue] = useState<string>(loan.penaltyValue != null ? String(loan.penaltyValue) : "");
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deletePaymentId, setDeletePaymentId] = useState<string | null>(null);
+  const [showAdjustDueDate, setShowAdjustDueDate] = useState(false);
   const [editHasManager, setEditHasManager] = useState<boolean>(loan.hasManager ?? false);
   const [editManagerId, setEditManagerId] = useState<string>(loan.managerId ?? "");
   const [editCommissionRate, setEditCommissionRate] = useState<string>(String(loan.managerCommissionRate ?? 10));
@@ -934,59 +936,72 @@ function LoanCardView({
 
         {/* Vencimento / Pago */}
         <div className="grid grid-cols-2 gap-3">
-          <Popover>
-            <PopoverTrigger asChild>
-              <button className="flex items-center gap-2 bg-muted/30 rounded-lg px-3 py-2 hover:bg-muted/50 transition-colors cursor-pointer text-left w-full">
-                <CalendarIcon className="h-4 w-4 text-muted-foreground shrink-0" />
-                <div>
-                  <p className="text-[10px] text-muted-foreground">Venc: <Pencil className="inline h-2.5 w-2.5 ml-0.5" /></p>
-                  <p className="text-sm font-semibold text-foreground">{getFirstPendingDate(loan, installmentSchedules).toLocaleDateString("pt-BR")}</p>
-                </div>
-              </button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0" align="start">
-              <CalendarUI
-                mode="single"
-                selected={getFirstPendingDate(loan, installmentSchedules)}
-                onSelect={async (d) => {
-                  if (d) {
-                    const newDate = new Date(d.getFullYear(), d.getMonth(), d.getDate());
-                    const newDateStr = newDate.toISOString().split("T")[0];
-                    const nextNum = loan.paidInstallments + 1;
-                    // If editing the first installment, also update loan.dueDate so reports stay in sync
-                    if (nextNum === 1) {
-                      onUpdate({ dueDate: newDateStr });
-                    }
-                    const freq = loan.interestType || "Mensal";
-                    const loanSchedules = installmentSchedules
-                      .filter((s) => s.loanId === loan.id)
-                      .sort((a, b) => a.installmentNumber - b.installmentNumber);
-                    const defaultAmount = calculateInstallment(loan.amount, loan.interestRate, loan.installments);
-                    // Build full schedule: keep paid installments untouched, recalc pending from newDate
-                    const totalInstallments = loan.installments;
-                    const updatedRows = Array.from({ length: totalInstallments }, (_, i) => {
-                      const num = i + 1;
-                      const existing = loanSchedules.find((s) => s.installmentNumber === num);
-                      const amount = existing?.amount ?? defaultAmount;
-                      if (num < nextNum) {
-                        // Paid installment — preserve original date
-                        const firstDue = new Date(loan.dueDate + "T00:00:00");
-                        const fallback = getNextDate(firstDue, freq, num - 1).toISOString().split("T")[0];
-                        return { installmentNumber: num, dueDate: existing?.dueDate ?? fallback, amount };
+          <div className="space-y-1.5">
+            <Popover>
+              <PopoverTrigger asChild>
+                <button className="flex items-center gap-2 bg-muted/30 rounded-lg px-3 py-2 hover:bg-muted/50 transition-colors cursor-pointer text-left w-full">
+                  <CalendarIcon className="h-4 w-4 text-muted-foreground shrink-0" />
+                  <div>
+                    <p className="text-[10px] text-muted-foreground">Venc: <Pencil className="inline h-2.5 w-2.5 ml-0.5" /></p>
+                    <p className="text-sm font-semibold text-foreground">{getFirstPendingDate(loan, installmentSchedules).toLocaleDateString("pt-BR")}</p>
+                  </div>
+                </button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <CalendarUI
+                  mode="single"
+                  selected={getFirstPendingDate(loan, installmentSchedules)}
+                  onSelect={async (d) => {
+                    if (d) {
+                      const newDate = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+                      const newDateStr = newDate.toISOString().split("T")[0];
+                      const nextNum = loan.paidInstallments + 1;
+                      // If editing the first installment, also update loan.dueDate so reports stay in sync
+                      if (nextNum === 1) {
+                        onUpdate({ dueDate: newDateStr });
                       }
-                      // Pending — recompute from newDate using the contract cadence
-                      const offset = num - nextNum;
-                      const computed = getNextDate(newDate, freq, offset).toISOString().split("T")[0];
-                      return { installmentNumber: num, dueDate: computed, amount };
-                    });
-                    await onSaveSchedule(loan.id, updatedRows);
-                  }
-                }}
-                initialFocus
-                className="p-3 pointer-events-auto"
-              />
-            </PopoverContent>
-          </Popover>
+                      const freq = loan.interestType || "Mensal";
+                      const loanSchedules = installmentSchedules
+                        .filter((s) => s.loanId === loan.id)
+                        .sort((a, b) => a.installmentNumber - b.installmentNumber);
+                      const defaultAmount = calculateInstallment(loan.amount, loan.interestRate, loan.installments);
+                      // Build full schedule: keep paid installments untouched, recalc pending from newDate
+                      const totalInstallments = loan.installments;
+                      const updatedRows = Array.from({ length: totalInstallments }, (_, i) => {
+                        const num = i + 1;
+                        const existing = loanSchedules.find((s) => s.installmentNumber === num);
+                        const amount = existing?.amount ?? defaultAmount;
+                        if (num < nextNum) {
+                          // Paid installment — preserve original date
+                          const firstDue = new Date(loan.dueDate + "T00:00:00");
+                          const fallback = getNextDate(firstDue, freq, num - 1).toISOString().split("T")[0];
+                          return { installmentNumber: num, dueDate: existing?.dueDate ?? fallback, amount };
+                        }
+                        // Pending — recompute from newDate using the contract cadence
+                        const offset = num - nextNum;
+                        const computed = getNextDate(newDate, freq, offset).toISOString().split("T")[0];
+                        return { installmentNumber: num, dueDate: computed, amount };
+                      });
+                      await onSaveSchedule(loan.id, updatedRows);
+                    }
+                  }}
+                  initialFocus
+                  className="p-3 pointer-events-auto"
+                />
+              </PopoverContent>
+            </Popover>
+            {loan.status !== "paid" && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowAdjustDueDate(true)}
+                className="w-full h-7 text-[11px] gap-1"
+              >
+                <CalendarIcon className="h-3 w-3" />
+                Ajustar data de vencimento
+              </Button>
+            )}
+          </div>
           <div className="flex items-center gap-2 bg-success/5 border border-success/20 rounded-lg px-3 py-2">
             <DollarSign className="h-4 w-4 text-success shrink-0" />
             <div>
@@ -995,6 +1010,15 @@ function LoanCardView({
             </div>
           </div>
         </div>
+
+        <AdjustDueDateDialog
+          open={showAdjustDueDate}
+          onOpenChange={setShowAdjustDueDate}
+          loan={loan}
+          installmentSchedules={installmentSchedules}
+          onSaveSchedule={onSaveSchedule}
+          onUpdate={onUpdate}
+        />
 
         {/* Só Juros (por parcela) */}
         <div className="flex items-center justify-between bg-muted/50 rounded-lg px-4 py-3 border border-border/50">
