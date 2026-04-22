@@ -2577,7 +2577,7 @@ function ClientFolder({
                 {group.loans.map((loan) => (
                   <LoanRowView key={loan.id} loan={loan} payments={payments} installmentSchedules={installmentSchedules} readOnly={readOnly} existingTags={[...new Set(group.loans.flatMap(l => l.tags || []))]} clients={clients}
                     onPayment={(date) => onPayment(loan.id, date)} onPartialPayment={(amt, date) => onPartialPayment(loan.id, amt, date)} onFullPayment={onFullPayment ? (date, custom) => onFullPayment(loan.id, date, custom) : undefined}
-                    onInterestPayment={(date, custom) => onInterestPayment(loan.id, date, custom)} onUpdate={(d) => onUpdate(loan.id, d)} onDelete={() => onDelete(loan.id)} onDeletePayment={onDeletePayment} />
+                    onInterestPayment={(date, custom) => onInterestPayment(loan.id, date, custom)} onUpdate={(d) => onUpdate(loan.id, d)} onDelete={() => onDelete(loan.id)} onDeletePayment={onDeletePayment} onSaveSchedule={onSaveSchedule} />
                 ))}
               </tbody>
             </table>
