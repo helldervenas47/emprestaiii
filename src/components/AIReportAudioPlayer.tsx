@@ -10,6 +10,7 @@ import {
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { resolveVoice, subscribeVoiceURI } from "@/lib/ttsVoice";
 
 interface Props {
   /** Markdown or plain text content of the AI report. */
@@ -86,17 +87,10 @@ export function AIReportAudioPlayer({
     }
   }, []);
 
-  // Pick the best pt-BR voice when available
+  // Pick the user-selected (or best fallback) voice
   const pickVoice = useCallback(() => {
     if (!supported) return;
-    const voices = window.speechSynthesis.getVoices();
-    if (!voices.length) return;
-    const preferred =
-      voices.find((v) => v.lang?.toLowerCase() === lang.toLowerCase() && /natural|google|microsoft|neural/i.test(v.name)) ||
-      voices.find((v) => v.lang?.toLowerCase() === lang.toLowerCase()) ||
-      voices.find((v) => v.lang?.toLowerCase().startsWith(lang.split("-")[0].toLowerCase())) ||
-      null;
-    voiceRef.current = preferred;
+    voiceRef.current = resolveVoice(lang);
   }, [supported, lang]);
 
   useEffect(() => {
@@ -104,8 +98,10 @@ export function AIReportAudioPlayer({
     pickVoice();
     const handler = () => pickVoice();
     window.speechSynthesis.addEventListener?.("voiceschanged", handler);
+    const unsub = subscribeVoiceURI(() => pickVoice());
     return () => {
       window.speechSynthesis.removeEventListener?.("voiceschanged", handler);
+      unsub();
     };
   }, [supported, pickVoice]);
 
