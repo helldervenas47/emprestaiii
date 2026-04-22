@@ -593,9 +593,17 @@ export function PersonalAIInsightsCard({
                 </div>
               )}
               {catReport && !catReportLoading && (
-                <div className={proseClasses}>
-                  <ReactMarkdown>{catReport}</ReactMarkdown>
-                </div>
+                <>
+                  <div className="flex justify-end">
+                    <AIReportAudioPlayer
+                      text={catReport}
+                      cacheKey={`personal-cat-${month}-${reportCategory}`}
+                    />
+                  </div>
+                  <div className={proseClasses}>
+                    <ReactMarkdown>{catReport}</ReactMarkdown>
+                  </div>
+                </>
               )}
               {catReport && !catReportLoading && (
                 <div className="pt-2 border-t border-border">
