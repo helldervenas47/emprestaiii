@@ -624,6 +624,12 @@ export function PersonalAIInsightsCard({
           ) : (
             data && (
               <div className="space-y-3">
+                <div className="flex justify-end">
+                  <AIReportAudioPlayer
+                    text={restContent || data.content}
+                    cacheKey={`personal-full-${month}-${data.generated_at ?? ""}`}
+                  />
+                </div>
                 <div className={proseClasses}>
                   <ReactMarkdown>{restContent || data.content}</ReactMarkdown>
                 </div>
