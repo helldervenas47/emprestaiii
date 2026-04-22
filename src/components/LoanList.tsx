@@ -2001,9 +2001,22 @@ function LoanRowView({
               </div>
               <div>
                 <p className="text-[10px] text-muted-foreground uppercase">Vencimento</p>
-                <p className="text-xs font-medium">
-                  {getFirstPendingDate(loan, installmentSchedules).toLocaleDateString("pt-BR")}
-                </p>
+                <div className="flex items-center gap-2">
+                  <p className="text-xs font-medium">
+                    {getFirstPendingDate(loan, installmentSchedules).toLocaleDateString("pt-BR")}
+                  </p>
+                  {!readOnly && loan.status !== "paid" && onSaveSchedule && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-6 px-2 text-[10px] gap-1"
+                      onClick={(e) => { e.stopPropagation(); setShowAdjustDueDateRow(true); }}
+                    >
+                      <CalendarIcon className="h-3 w-3" />
+                      Ajustar
+                    </Button>
+                  )}
+                </div>
               </div>
             </div>
             {daysOverdue > 0 && loan.status !== "paid" && (
