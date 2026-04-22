@@ -13,6 +13,7 @@ import { getPersonalCategory } from "@/lib/personalExpenseCategories";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
+import { AIReportAudioPlayer } from "@/components/AIReportAudioPlayer";
 
 export interface CategoryStat {
   category: string;
