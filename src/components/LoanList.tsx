@@ -2973,7 +2973,7 @@ export function LoanList({ loans, payments, installmentSchedules, onPayment, onP
                   {categorized.map((loan) => (
                     <LoanRowView key={loan.id} loan={loan} payments={payments} installmentSchedules={installmentSchedules} readOnly={readOnly} existingTags={loans.flatMap(l => l.tags || []).filter((v, i, a) => a.indexOf(v) === i)} clients={clients}
                       onPayment={(date) => onPayment(loan.id, date)} onPartialPayment={(amt, date) => onPartialPayment(loan.id, amt, date)} onFullPayment={onFullPayment ? (date, custom) => onFullPayment(loan.id, date, custom) : undefined}
-                      onInterestPayment={(date, custom) => onInterestPayment(loan.id, date, custom)} onUpdate={(d) => onUpdate(loan.id, d)} onDelete={() => onDelete(loan.id)} onDeletePayment={onDeletePayment} />
+                      onInterestPayment={(date, custom) => onInterestPayment(loan.id, date, custom)} onUpdate={(d) => onUpdate(loan.id, d)} onDelete={() => onDelete(loan.id)} onDeletePayment={onDeletePayment} onSaveSchedule={onSaveSchedule} />
                   ))}
                 </tbody>
               </table>
