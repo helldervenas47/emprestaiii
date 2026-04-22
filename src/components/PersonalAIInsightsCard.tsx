@@ -243,6 +243,13 @@ export function PersonalAIInsightsCard({
               <RefreshCw className={`h-3.5 w-3.5 ${loading ? "animate-spin" : ""}`} />
               <span className="hidden sm:inline ml-1">Atualizar</span>
             </Button>
+            {data?.content && (
+              <AIReportAudioPlayer
+                text={data.content}
+                cacheKey={`personal-${month}-${data.generated_at ?? ""}`}
+                compact
+              />
+            )}
           </div>
         </div>
 
