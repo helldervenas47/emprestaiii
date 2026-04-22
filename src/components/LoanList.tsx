@@ -1540,7 +1540,7 @@ function LoanCardView({
 }
 
 function LoanRowView({
-  loan, payments: allPayments, installmentSchedules = [], onPayment, onPartialPayment, onFullPayment, onInterestPayment, onUpdate, onDelete, onDeletePayment, readOnly = false, existingTags = [], clients = [],
+  loan, payments: allPayments, installmentSchedules = [], onPayment, onPartialPayment, onFullPayment, onInterestPayment, onUpdate, onDelete, onDeletePayment, onSaveSchedule, readOnly = false, existingTags = [], clients = [],
 }: {
   loan: Loan;
   payments: Payment[];
@@ -1552,10 +1552,12 @@ function LoanRowView({
   onUpdate: (data: Partial<Omit<Loan, "id">>) => void;
   onDelete: () => void;
   onDeletePayment: (paymentId: string) => void;
+  onSaveSchedule?: (loanId: string, rows: { installmentNumber: number; dueDate: string; amount: number }[]) => Promise<void>;
   readOnly?: boolean;
   existingTags?: string[];
   clients?: Client[];
 }) {
+  const [showAdjustDueDateRow, setShowAdjustDueDateRow] = useState(false);
   const [expanded, setExpanded] = useState(false);
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState<EditForm>(loanToForm(loan));
