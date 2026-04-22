@@ -950,20 +950,35 @@ function LoanCardView({
                 selected={getFirstPendingDate(loan, installmentSchedules)}
                 onSelect={async (d) => {
                   if (d) {
-                    const newDateStr = d.toISOString().split("T")[0];
-                    onUpdate({ dueDate: newDateStr });
-                    // Also persist to loan_installments for the next pending installment
+                    const newDate = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+                    const newDateStr = newDate.toISOString().split("T")[0];
                     const nextNum = loan.paidInstallments + 1;
+                    // If editing the first installment, also update loan.dueDate so reports stay in sync
+                    if (nextNum === 1) {
+                      onUpdate({ dueDate: newDateStr });
+                    }
+                    const freq = loan.interestType || "Mensal";
                     const loanSchedules = installmentSchedules
                       .filter((s) => s.loanId === loan.id)
                       .sort((a, b) => a.installmentNumber - b.installmentNumber);
-                    const updatedRows = loanSchedules.length > 0
-                      ? loanSchedules.map((s) =>
-                          s.installmentNumber === nextNum
-                            ? { installmentNumber: s.installmentNumber, dueDate: newDateStr, amount: s.amount }
-                            : { installmentNumber: s.installmentNumber, dueDate: s.dueDate, amount: s.amount }
-                        )
-                      : [{ installmentNumber: nextNum, dueDate: newDateStr, amount: calculateInstallment(loan.amount, loan.interestRate, loan.installments) }];
+                    const defaultAmount = calculateInstallment(loan.amount, loan.interestRate, loan.installments);
+                    // Build full schedule: keep paid installments untouched, recalc pending from newDate
+                    const totalInstallments = loan.installments;
+                    const updatedRows = Array.from({ length: totalInstallments }, (_, i) => {
+                      const num = i + 1;
+                      const existing = loanSchedules.find((s) => s.installmentNumber === num);
+                      const amount = existing?.amount ?? defaultAmount;
+                      if (num < nextNum) {
+                        // Paid installment — preserve original date
+                        const firstDue = new Date(loan.dueDate + "T00:00:00");
+                        const fallback = getNextDate(firstDue, freq, num - 1).toISOString().split("T")[0];
+                        return { installmentNumber: num, dueDate: existing?.dueDate ?? fallback, amount };
+                      }
+                      // Pending — recompute from newDate using the contract cadence
+                      const offset = num - nextNum;
+                      const computed = getNextDate(newDate, freq, offset).toISOString().split("T")[0];
+                      return { installmentNumber: num, dueDate: computed, amount };
+                    });
                     await onSaveSchedule(loan.id, updatedRows);
                   }
                 }}
