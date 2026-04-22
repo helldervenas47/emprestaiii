@@ -2453,6 +2453,16 @@ function LoanRowView({
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>
+    {onSaveSchedule && (
+      <AdjustDueDateDialog
+        open={showAdjustDueDateRow}
+        onOpenChange={setShowAdjustDueDateRow}
+        loan={loan}
+        installmentSchedules={installmentSchedules}
+        onSaveSchedule={onSaveSchedule}
+        onUpdate={onUpdate}
+      />
+    )}
     </>
   );
 }
