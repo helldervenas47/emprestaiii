@@ -143,12 +143,22 @@ export function AdjustDueDateDialog({
       return { installmentNumber: num, dueDate: existing?.dueDate ?? fallback, amount };
     });
 
-    // If editing the first installment, sync loan.dueDate so reports stay aligned
-    if (nextNum === 1) {
-      onUpdate({ dueDate: newDate });
+    try {
+      await onSaveSchedule(loan.id, updatedRows);
+    } catch (err: any) {
+      console.error("[AdjustDueDate] Failed to save schedule", err);
+      toast.error("Erro ao salvar", { description: err?.message ?? "Tente novamente." });
+      return;
     }
 
-    await onSaveSchedule(loan.id, updatedRows);
+    // If editing the first installment, sync loan.dueDate so reports stay aligned
+    if (nextNum === 1) {
+      try {
+        onUpdate({ dueDate: newDate });
+      } catch (err) {
+        console.error("[AdjustDueDate] Failed to update loan.dueDate", err);
+      }
+    }
 
     appendLog({
       loanId: loan.id,
