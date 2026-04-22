@@ -1540,7 +1540,7 @@ function LoanCardView({
 }
 
 function LoanRowView({
-  loan, payments: allPayments, installmentSchedules = [], onPayment, onPartialPayment, onFullPayment, onInterestPayment, onUpdate, onDelete, onDeletePayment, readOnly = false, existingTags = [], clients = [],
+  loan, payments: allPayments, installmentSchedules = [], onPayment, onPartialPayment, onFullPayment, onInterestPayment, onUpdate, onDelete, onDeletePayment, onSaveSchedule, readOnly = false, existingTags = [], clients = [],
 }: {
   loan: Loan;
   payments: Payment[];
@@ -1552,10 +1552,12 @@ function LoanRowView({
   onUpdate: (data: Partial<Omit<Loan, "id">>) => void;
   onDelete: () => void;
   onDeletePayment: (paymentId: string) => void;
+  onSaveSchedule?: (loanId: string, rows: { installmentNumber: number; dueDate: string; amount: number }[]) => Promise<void>;
   readOnly?: boolean;
   existingTags?: string[];
   clients?: Client[];
 }) {
+  const [showAdjustDueDateRow, setShowAdjustDueDateRow] = useState(false);
   const [expanded, setExpanded] = useState(false);
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState<EditForm>(loanToForm(loan));
@@ -1999,9 +2001,22 @@ function LoanRowView({
               </div>
               <div>
                 <p className="text-[10px] text-muted-foreground uppercase">Vencimento</p>
-                <p className="text-xs font-medium">
-                  {getFirstPendingDate(loan, installmentSchedules).toLocaleDateString("pt-BR")}
-                </p>
+                <div className="flex items-center gap-2">
+                  <p className="text-xs font-medium">
+                    {getFirstPendingDate(loan, installmentSchedules).toLocaleDateString("pt-BR")}
+                  </p>
+                  {!readOnly && loan.status !== "paid" && onSaveSchedule && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-6 px-2 text-[10px] gap-1"
+                      onClick={(e) => { e.stopPropagation(); setShowAdjustDueDateRow(true); }}
+                    >
+                      <CalendarIcon className="h-3 w-3" />
+                      Ajustar
+                    </Button>
+                  )}
+                </div>
               </div>
             </div>
             {daysOverdue > 0 && loan.status !== "paid" && (
@@ -2438,6 +2453,16 @@ function LoanRowView({
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>
+    {onSaveSchedule && (
+      <AdjustDueDateDialog
+        open={showAdjustDueDateRow}
+        onOpenChange={setShowAdjustDueDateRow}
+        loan={loan}
+        installmentSchedules={installmentSchedules}
+        onSaveSchedule={onSaveSchedule}
+        onUpdate={onUpdate}
+      />
+    )}
     </>
   );
 }
@@ -2552,7 +2577,7 @@ function ClientFolder({
                 {group.loans.map((loan) => (
                   <LoanRowView key={loan.id} loan={loan} payments={payments} installmentSchedules={installmentSchedules} readOnly={readOnly} existingTags={[...new Set(group.loans.flatMap(l => l.tags || []))]} clients={clients}
                     onPayment={(date) => onPayment(loan.id, date)} onPartialPayment={(amt, date) => onPartialPayment(loan.id, amt, date)} onFullPayment={onFullPayment ? (date, custom) => onFullPayment(loan.id, date, custom) : undefined}
-                    onInterestPayment={(date, custom) => onInterestPayment(loan.id, date, custom)} onUpdate={(d) => onUpdate(loan.id, d)} onDelete={() => onDelete(loan.id)} onDeletePayment={onDeletePayment} />
+                    onInterestPayment={(date, custom) => onInterestPayment(loan.id, date, custom)} onUpdate={(d) => onUpdate(loan.id, d)} onDelete={() => onDelete(loan.id)} onDeletePayment={onDeletePayment} onSaveSchedule={onSaveSchedule} />
                 ))}
               </tbody>
             </table>
@@ -2948,7 +2973,7 @@ export function LoanList({ loans, payments, installmentSchedules, onPayment, onP
                   {categorized.map((loan) => (
                     <LoanRowView key={loan.id} loan={loan} payments={payments} installmentSchedules={installmentSchedules} readOnly={readOnly} existingTags={loans.flatMap(l => l.tags || []).filter((v, i, a) => a.indexOf(v) === i)} clients={clients}
                       onPayment={(date) => onPayment(loan.id, date)} onPartialPayment={(amt, date) => onPartialPayment(loan.id, amt, date)} onFullPayment={onFullPayment ? (date, custom) => onFullPayment(loan.id, date, custom) : undefined}
-                      onInterestPayment={(date, custom) => onInterestPayment(loan.id, date, custom)} onUpdate={(d) => onUpdate(loan.id, d)} onDelete={() => onDelete(loan.id)} onDeletePayment={onDeletePayment} />
+                      onInterestPayment={(date, custom) => onInterestPayment(loan.id, date, custom)} onUpdate={(d) => onUpdate(loan.id, d)} onDelete={() => onDelete(loan.id)} onDeletePayment={onDeletePayment} onSaveSchedule={onSaveSchedule} />
                   ))}
                 </tbody>
               </table>
