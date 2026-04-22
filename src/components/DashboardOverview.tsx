@@ -2166,11 +2166,14 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
             </DialogHeader>
 
             <div className="space-y-4">
-              <div className="space-y-2 rounded-xl border border-primary/20 bg-card/70 p-4 shadow-[0_12px_32px_-18px_hsl(var(--primary)/0.3)] backdrop-blur-xl backdrop-saturate-150">
+              <div className="flex flex-wrap items-center gap-2 rounded-xl border border-primary/20 bg-card/70 p-4 shadow-[0_12px_32px_-18px_hsl(var(--primary)/0.3)] backdrop-blur-xl backdrop-saturate-150">
                 <Button type="button" size="sm" onClick={generateRiskAiReport} disabled={riskAiLoading} className="gap-2">
                   <Sparkles className={`h-3.5 w-3.5 ${riskAiLoading ? "animate-pulse" : ""}`} />
                   {riskAiLoading ? "Gerando..." : "Gerar novamente"}
                 </Button>
+                {!riskAiLoading && riskAiReport && (
+                  <AIReportAudioPlayer text={riskAiReport} cacheKey={`risk-ai-desktop-${riskAiTitle}-${riskAiReport.length}`} />
+                )}
               </div>
 
               <div className="rounded-xl border border-primary/20 bg-card/70 p-4 shadow-[0_12px_32px_-18px_hsl(var(--primary)/0.3)] backdrop-blur-xl backdrop-saturate-150">
