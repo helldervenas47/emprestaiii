@@ -1945,6 +1945,42 @@ function LoanRowView({
                     </SelectContent>
                   </Select>
                 </div>
+                <div>
+                  <Label className="text-xs">Data Vencimento Final</Label>
+                  {(() => {
+                    const totalInst = parseInt(form.installments) || loan.installments;
+                    const lastDate = form.dueDate
+                      ? getNextDate(new Date(form.dueDate + "T00:00:00"), form.interestType, Math.max(0, totalInst - 1))
+                      : undefined;
+                    return (
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button variant="outline" className={cn("w-full justify-start text-left font-normal h-8 text-sm")}>
+                            <CalendarIcon className="mr-2 h-3.5 w-3.5" />
+                            {lastDate ? format(lastDate, "dd/MM/yyyy") : "Selecione"}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <CalendarUI
+                            mode="single"
+                            selected={lastDate}
+                            onSelect={(d) => {
+                              if (!d) return;
+                              const periods = Math.max(0, totalInst - 1);
+                              const firstDue = new Date(d);
+                              if (form.interestType === "Semanal") firstDue.setDate(firstDue.getDate() - 7 * periods);
+                              else if (form.interestType === "Quinzenal") firstDue.setDate(firstDue.getDate() - 15 * periods);
+                              else firstDue.setMonth(firstDue.getMonth() - periods);
+                              updateField("dueDate", firstDue.toISOString().split("T")[0]);
+                            }}
+                            initialFocus
+                            className={cn("p-3 pointer-events-auto")}
+                          />
+                        </PopoverContent>
+                      </Popover>
+                    );
+                  })()}
+                </div>
               </div>
               {/* Manager edit block */}
               <div className="border border-border rounded-lg p-3 space-y-2 bg-muted/20">
