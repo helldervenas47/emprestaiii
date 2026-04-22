@@ -136,10 +136,17 @@ export function useLoans() {
   }, [user, fetchLoans, fetchPayments, fetchSchedules]);
 
   const saveSchedule = useCallback(async (loanId: string, rows: { installmentNumber: number; dueDate: string; amount: number }[]) => {
-    if (!user || !dataOwnerId) return;
-    await supabase.from("loan_installments").delete().eq("loan_id", loanId);
+    if (!user || !dataOwnerId) {
+      console.warn("[saveSchedule] Skipped: missing user or dataOwnerId", { user: !!user, dataOwnerId });
+      throw new Error("Usuário não autenticado");
+    }
+    const { error: delErr } = await supabase.from("loan_installments").delete().eq("loan_id", loanId);
+    if (delErr) {
+      console.error("[saveSchedule] delete error", delErr);
+      throw delErr;
+    }
     if (rows.length > 0) {
-      await supabase.from("loan_installments").insert(
+      const { error: insErr } = await supabase.from("loan_installments").insert(
         rows.map((r) => ({
           user_id: dataOwnerId,
           loan_id: loanId,
@@ -148,6 +155,10 @@ export function useLoans() {
           amount: r.amount,
         }))
       );
+      if (insErr) {
+        console.error("[saveSchedule] insert error", insErr);
+        throw insErr;
+      }
     }
     await fetchSchedules();
   }, [user, dataOwnerId, fetchSchedules]);
