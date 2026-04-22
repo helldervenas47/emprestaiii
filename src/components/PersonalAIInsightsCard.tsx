@@ -13,6 +13,7 @@ import { getPersonalCategory } from "@/lib/personalExpenseCategories";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
+import { AIReportAudioPlayer } from "@/components/AIReportAudioPlayer";
 
 export interface CategoryStat {
   category: string;
@@ -242,6 +243,13 @@ export function PersonalAIInsightsCard({
               <RefreshCw className={`h-3.5 w-3.5 ${loading ? "animate-spin" : ""}`} />
               <span className="hidden sm:inline ml-1">Atualizar</span>
             </Button>
+            {data?.content && (
+              <AIReportAudioPlayer
+                text={data.content}
+                cacheKey={`personal-${month}-${data.generated_at ?? ""}`}
+                compact
+              />
+            )}
           </div>
         </div>
 
@@ -585,9 +593,17 @@ export function PersonalAIInsightsCard({
                 </div>
               )}
               {catReport && !catReportLoading && (
-                <div className={proseClasses}>
-                  <ReactMarkdown>{catReport}</ReactMarkdown>
-                </div>
+                <>
+                  <div className="flex justify-end">
+                    <AIReportAudioPlayer
+                      text={catReport}
+                      cacheKey={`personal-cat-${month}-${reportCategory}`}
+                    />
+                  </div>
+                  <div className={proseClasses}>
+                    <ReactMarkdown>{catReport}</ReactMarkdown>
+                  </div>
+                </>
               )}
               {catReport && !catReportLoading && (
                 <div className="pt-2 border-t border-border">
@@ -608,6 +624,12 @@ export function PersonalAIInsightsCard({
           ) : (
             data && (
               <div className="space-y-3">
+                <div className="flex justify-end">
+                  <AIReportAudioPlayer
+                    text={restContent || data.content}
+                    cacheKey={`personal-full-${month}-${data.generated_at ?? ""}`}
+                  />
+                </div>
                 <div className={proseClasses}>
                   <ReactMarkdown>{restContent || data.content}</ReactMarkdown>
                 </div>
