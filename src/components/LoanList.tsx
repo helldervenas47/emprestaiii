@@ -31,10 +31,10 @@ interface Props {
   loans: Loan[];
   payments: Payment[];
   installmentSchedules: InstallmentSchedule[];
-  onPayment: (loanId: string, paymentDate?: string) => void;
-  onPartialPayment: (loanId: string, amount: number, paymentDate?: string) => void;
-  onFullPayment?: (loanId: string, paymentDate?: string, customAmount?: number) => void;
-  onInterestPayment: (loanId: string, paymentDate?: string, customAmount?: number, feesAmount?: number) => void;
+  onPayment: (loanId: string, paymentDate?: string, paymentMethodId?: string | null) => void;
+  onPartialPayment: (loanId: string, amount: number, paymentDate?: string, paymentMethodId?: string | null) => void;
+  onFullPayment?: (loanId: string, paymentDate?: string, customAmount?: number, paymentMethodId?: string | null) => void;
+  onInterestPayment: (loanId: string, paymentDate?: string, customAmount?: number, feesAmount?: number, paymentMethodId?: string | null) => void;
   onUpdate: (id: string, data: Partial<Omit<Loan, "id">>) => void;
   onDelete: (loanId: string) => void;
   onDeletePayment: (paymentId: string) => void;
