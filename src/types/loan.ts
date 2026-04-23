@@ -33,6 +33,18 @@ export interface InstallmentSchedule {
   amount: number;
 }
 
+export interface PaymentMetadata {
+  kind?: "amortization" | string;
+  old_principal?: number;
+  new_principal?: number;
+  old_interest_total?: number;
+  new_interest_total?: number;
+  interest_saved?: number;
+  new_remaining?: number;
+  interest_rate?: number;
+  [key: string]: any;
+}
+
 export interface Payment {
   id: string;
   loanId: string;
@@ -41,6 +53,7 @@ export interface Payment {
   installmentNumber: number;
   previousDueDate?: string;
   paymentMethodId?: string | null;
+  metadata?: PaymentMetadata | null;
 }
 
 export interface Client {
