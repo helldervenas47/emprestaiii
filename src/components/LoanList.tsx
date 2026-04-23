@@ -1666,6 +1666,13 @@ function LoanCardView({
         </DialogFooter>
       </DialogContent>
     </Dialog>
+    <AmortizationSimulator
+      loan={loan}
+      payments={allPayments}
+      open={showSimulator}
+      onOpenChange={setShowSimulator}
+      onApply={onAmortize ? (amount, date) => onAmortize(amount, date, null) : undefined}
+    />
     <Dialog open={showHistory} onOpenChange={setShowHistory}>
       <DialogContent className="sm:max-w-[440px]">
         <DialogHeader>
