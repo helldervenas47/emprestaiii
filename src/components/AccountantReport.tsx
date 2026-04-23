@@ -81,7 +81,7 @@ export function AccountantReport({ loans, payments, sales, expenses }: Accountan
     periodPayments.forEach((p) => {
       const amt = Number(p.amount) || 0;
       totalReceived += amt;
-      const loan = loans.find((l) => l.id === p.loan_id);
+      const loan = loans.find((l) => l.id === (p.loanId || p.loan_id));
       if (loan) {
         const principalPerInstall = Number(loan.amount) / Math.max(1, Number(loan.installments) || 1);
         interestRevenue += Math.max(0, amt - principalPerInstall);
