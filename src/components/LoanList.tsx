@@ -28,6 +28,71 @@ import { toast } from "sonner";
 import { AdjustDueDateDialog } from "@/components/AdjustDueDateDialog";
 import { AmortizationSimulator } from "@/components/AmortizationSimulator";
 import { usePaymentMethods } from "@/hooks/usePaymentMethods";
+import { useWhatsappBillingMessages } from "@/hooks/useWhatsappBillingMessages";
+import { buildBillingWhatsappLink } from "@/lib/whatsappBilling";
+
+function WhatsappBillButton({
+  loan,
+  clients,
+  payments,
+  installmentSchedules,
+  variant = "icon",
+}: {
+  loan: Loan;
+  clients: Client[];
+  payments: Payment[];
+  installmentSchedules: InstallmentSchedule[];
+  variant?: "icon" | "compact";
+}) {
+  const { messages } = useWhatsappBillingMessages();
+  const client = clients.find(
+    (c) => c.name.trim().toLowerCase() === loan.borrowerName.trim().toLowerCase(),
+  );
+  const phone = client?.phone || "";
+
+  const handleClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!phone) {
+      toast.error("Cliente sem telefone cadastrado");
+      return;
+    }
+    const { url } = buildBillingWhatsappLink({
+      client,
+      loan,
+      schedules: installmentSchedules,
+      payments,
+      messages,
+    });
+    window.open(url, "_blank", "noopener,noreferrer");
+  };
+
+  if (variant === "compact") {
+    return (
+      <Button
+        variant="ghost"
+        className="flex-1 h-9 text-xs gap-1.5 text-success hover:text-success"
+        onClick={handleClick}
+        title={phone ? "Cobrar via WhatsApp" : "Cliente sem telefone"}
+        disabled={!phone}
+      >
+        <MessageCircle className="h-3.5 w-3.5" /> WhatsApp
+      </Button>
+    );
+  }
+
+  return (
+    <Button
+      size="icon"
+      variant="ghost"
+      className="h-8 w-8 text-success hover:text-success"
+      onClick={handleClick}
+      title={phone ? "Cobrar via WhatsApp" : "Cliente sem telefone"}
+      disabled={!phone}
+    >
+      <MessageCircle className="h-4 w-4" />
+    </Button>
+  );
+}
 
 interface Props {
   loans: Loan[];
