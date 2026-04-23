@@ -1465,6 +1465,37 @@ Deno.serve(async (req) => {
             await tgEditReplyMarkup(chatId, messageId, [], LOVABLE_API_KEY, TELEGRAM_API_KEY);
             await tgSend(chatId, "✏️ *Editar valor*\nEnvie o novo valor (ex: `45,90`) ou `/cancelar`.", LOVABLE_API_KEY, TELEGRAM_API_KEY);
           }
+        } else if (data.startsWith("pgapt:")) {
+          // User chose a piggy bank — store pending state and ask for amount.
+          const piggyBankId = data.slice(6);
+          const expiresAt = new Date(Date.now() + 5 * 60 * 1000).toISOString();
+          // Validate the piggy bank still exists for this user (or owner).
+          const { banks } = await listUserPiggyBanks(admin, link.user_id);
+          const bank = banks.find((b) => b.id === piggyBankId);
+          if (!bank) {
+            await tgAnswerCallback(cbId, "Caixinha não encontrada", LOVABLE_API_KEY, TELEGRAM_API_KEY);
+          } else {
+            const { error: upErr } = await admin.from("telegram_pending_piggy_aporte").upsert({
+              chat_id: chatId,
+              user_id: link.user_id,
+              piggy_bank_id: piggyBankId,
+              expires_at: expiresAt,
+            }, { onConflict: "chat_id" });
+            if (upErr) {
+              await tgAnswerCallback(cbId, "Erro ao iniciar aporte", LOVABLE_API_KEY, TELEGRAM_API_KEY);
+            } else {
+              await tgAnswerCallback(cbId, "Envie o valor do aporte", LOVABLE_API_KEY, TELEGRAM_API_KEY);
+              await tgEditMessage(
+                chatId, messageId,
+                `🐷 *Aporte na caixinha "${bank.name}"*\n\nEnvie o valor do aporte (ex: \`200\` ou \`200,50\`) ou \`/cancelar\` para sair.`,
+                null, LOVABLE_API_KEY, TELEGRAM_API_KEY,
+              );
+            }
+          }
+        } else if (data === "pgaptc") {
+          await admin.from("telegram_pending_piggy_aporte").delete().eq("chat_id", chatId);
+          await tgAnswerCallback(cbId, "Aporte cancelado", LOVABLE_API_KEY, TELEGRAM_API_KEY);
+          await tgEditMessage(chatId, messageId, "❌ Aporte cancelado.", null, LOVABLE_API_KEY, TELEGRAM_API_KEY);
         } else {
           await tgAnswerCallback(cbId, undefined, LOVABLE_API_KEY, TELEGRAM_API_KEY);
         }
