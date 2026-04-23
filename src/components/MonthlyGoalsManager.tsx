@@ -171,6 +171,20 @@ export function MonthlyGoalsManager({ readOnly = false }: { readOnly?: boolean }
     [goals, loans, payments, clients, expenses]
   );
 
+  // Agrupa metas pelo tipo (nome), ordenando os meses de cada grupo (mais recente primeiro)
+  const groupedGoals = useMemo(() => {
+    const map = new Map<GoalType, typeof enrichedGoals>();
+    enrichedGoals.forEach((g) => {
+      const arr = map.get(g.goalType) || [];
+      arr.push(g);
+      map.set(g.goalType, arr);
+    });
+    return Array.from(map.entries()).map(([type, items]) => ({
+      type,
+      items: [...items].sort((a, b) => b.month.localeCompare(a.month)),
+    }));
+  }, [enrichedGoals]);
+
   const selectedMeta = GOAL_TYPE_META[goalType];
 
   return (
