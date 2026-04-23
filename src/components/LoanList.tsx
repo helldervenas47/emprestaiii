@@ -1640,7 +1640,7 @@ function LoanCardView({
 }
 
 function LoanRowView({
-  loan, payments: allPayments, installmentSchedules = [], onPayment, onPartialPayment, onFullPayment, onInterestPayment, onUpdate, onDelete, onDeletePayment, onSaveSchedule, readOnly = false, existingTags = [], clients = [],
+  loan, payments: allPayments, installmentSchedules = [], onPayment, onPartialPayment, onFullPayment, onInterestPayment, onAmortize, onUpdate, onDelete, onDeletePayment, onSaveSchedule, readOnly = false, existingTags = [], clients = [],
 }: {
   loan: Loan;
   payments: Payment[];
@@ -1649,6 +1649,7 @@ function LoanRowView({
   onPartialPayment: (amount: number, date?: string, paymentMethodId?: string | null) => void;
   onFullPayment?: (date?: string, customAmount?: number, paymentMethodId?: string | null) => void;
   onInterestPayment: (date?: string, customAmount?: number, feesAmount?: number, paymentMethodId?: string | null) => void;
+  onAmortize?: (amount: number, date?: string, paymentMethodId?: string | null) => Promise<void> | void;
   onUpdate: (data: Partial<Omit<Loan, "id">>) => void;
   onDelete: () => void;
   onDeletePayment: (paymentId: string) => void;
@@ -1670,9 +1671,10 @@ function LoanRowView({
   const [showPartial, setShowPartial] = useState(false);
   const [partialAmount, setPartialAmount] = useState("");
   const [partialDate, setPartialDate] = useState<Date>(new Date());
-  const [paymentDialog, setPaymentDialog] = useState<{ type: "installment" | "interest" | "partial" | "full" | "payoff"; amount?: number } | null>(null);
+  const [paymentDialog, setPaymentDialog] = useState<{ type: "installment" | "interest" | "partial" | "full" | "payoff" | "amortize"; amount?: number } | null>(null);
   const [interestSelection, setInterestSelection] = useState<"normal" | "withFees">("normal");
   const [payoffAmount, setPayoffAmount] = useState("");
+  const [amortizeAmount, setAmortizeAmount] = useState("");
   const [showHistory, setShowHistory] = useState(false);
   const [paymentDate, setPaymentDate] = useState<Date>(new Date());
   const [confirmDelete, setConfirmDelete] = useState(false);
