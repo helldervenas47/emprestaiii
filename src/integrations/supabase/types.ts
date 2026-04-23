@@ -1884,21 +1884,27 @@ export type Database = {
           chat_id: number
           created_at: string
           expires_at: string
-          piggy_bank_id: string
+          notes: string | null
+          pending_amount: number | null
+          piggy_bank_id: string | null
           user_id: string
         }
         Insert: {
           chat_id: number
           created_at?: string
           expires_at?: string
-          piggy_bank_id: string
+          notes?: string | null
+          pending_amount?: number | null
+          piggy_bank_id?: string | null
           user_id: string
         }
         Update: {
           chat_id?: number
           created_at?: string
           expires_at?: string
-          piggy_bank_id?: string
+          notes?: string | null
+          pending_amount?: number | null
+          piggy_bank_id?: string | null
           user_id?: string
         }
         Relationships: []
