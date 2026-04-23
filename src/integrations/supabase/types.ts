@@ -1885,7 +1885,8 @@ export type Database = {
           created_at: string
           expires_at: string
           notes: string | null
-          piggy_bank_id: string
+          pending_amount: number | null
+          piggy_bank_id: string | null
           user_id: string
         }
         Insert: {
@@ -1893,7 +1894,8 @@ export type Database = {
           created_at?: string
           expires_at?: string
           notes?: string | null
-          piggy_bank_id: string
+          pending_amount?: number | null
+          piggy_bank_id?: string | null
           user_id: string
         }
         Update: {
@@ -1901,7 +1903,8 @@ export type Database = {
           created_at?: string
           expires_at?: string
           notes?: string | null
-          piggy_bank_id?: string
+          pending_amount?: number | null
+          piggy_bank_id?: string | null
           user_id?: string
         }
         Relationships: []
