@@ -1915,6 +1915,9 @@ Deno.serve(async (req) => {
                   LOVABLE_API_KEY, TELEGRAM_API_KEY,
                 );
               }
+            } else if (/^\/(meus[_-]?aportes|meusaportes)(?:@\w+)?\b/i.test(text)) {
+              const reply = await handleMeusAportes(admin, link.user_id);
+              await tgSend(chatId, reply, LOVABLE_API_KEY, TELEGRAM_API_KEY);
             } else {
               // Regex-first: skip AI for clear "<amount> <description>" or "<description> <amount>" inputs.
               const quick = quickParseExpense(text);
