@@ -2645,8 +2645,10 @@ export function LoanList({ loans, payments, installmentSchedules, onPayment, onP
       filtered = filtered.filter((l) => l.tags?.includes(tagFilter));
     }
 
-    if (onlyWithNotes) {
+    if (notesFilter === "with") {
       filtered = filtered.filter((l) => Boolean(l.notes?.trim()));
+    } else if (notesFilter === "without") {
+      filtered = filtered.filter((l) => !l.notes?.trim());
     }
 
     // Quick due date filter (only applies to rows view)
