@@ -1919,6 +1919,9 @@ Deno.serve(async (req) => {
               const reply = await handleApagar(admin, link.user_id);
               await tgSend(chatId, reply, LOVABLE_API_KEY, TELEGRAM_API_KEY);
             } else if (/^\/aporte(?:@\w+)?\b/i.test(text)) {
+              // Optional inline payload: /aporte <amount> <note>
+              const rest = text.replace(/^\/aporte(?:@\w+)?\s*/i, "").trim();
+              const inline = rest ? parseAmountWithNote(rest) : null;
               const { banks } = await listUserPiggyBanks(admin, link.user_id);
               if (banks.length === 0) {
                 await tgSend(
@@ -1927,12 +1930,37 @@ Deno.serve(async (req) => {
                   LOVABLE_API_KEY, TELEGRAM_API_KEY,
                 );
               } else {
+                const promptSuffix = inline?.note
+                  ? `\n\n📝 Nota: _${inline.note}_`
+                  : "";
+                const promptAmount = inline ? `\n💰 Valor: *${fmtBRL(inline.amount)}*` : "";
+                // Persist pending state with the optional amount/note pre-filled
+                const expiresAt = new Date(Date.now() + 5 * 60 * 1000).toISOString();
+                await admin.from("telegram_pending_piggy_aporte").upsert({
+                  chat_id: chatId,
+                  user_id: link.user_id,
+                  // piggy_bank_id is NOT NULL — we set a placeholder later when bank is chosen.
+                  // Keep the previous behavior: only persist note here, picker stores piggy_bank_id.
+                  piggy_bank_id: banks[0].id, // placeholder; will be overwritten on selection
+                  notes: inline?.note ?? null,
+                  expires_at: expiresAt,
+                }, { onConflict: "chat_id" });
                 await tgSendWithKeyboard(
                   chatId,
-                  "🐷 *Aporte em caixinha*\n\nEscolha em qual caixinha você quer fazer o aporte:",
+                  `🐷 *Aporte em caixinha*${promptAmount}${promptSuffix}\n\nEscolha em qual caixinha você quer fazer o aporte:`,
                   buildPiggyBanksKeyboard(banks),
                   LOVABLE_API_KEY, TELEGRAM_API_KEY,
                 );
+                // If amount was given inline, skip the amount prompt by storing it as a "pre-filled" reply.
+                // We piggyback on the pending row by encoding the amount in notes? No — instead, we
+                // rely on the user simply tapping a bank and then replying with /confirmar. Simpler:
+                // when amount is provided inline, we still ask them to pick a bank, but on selection
+                // we'll auto-process using the stored amount via the notes->amount marker below.
+                if (inline) {
+                  await admin.from("telegram_pending_piggy_aporte")
+                    .update({ notes: `__amt:${inline.amount}__${inline.note ? `|${inline.note}` : ""}` })
+                    .eq("chat_id", chatId);
+                }
               }
             } else if (/^\/(meus[_-]?aportes|meusaportes)(?:@\w+)?\b/i.test(text)) {
               const reply = await handleMeusAportes(admin, link.user_id);
