@@ -643,7 +643,63 @@ async function handleMeusAportes(admin: any, userId: string): Promise<string> {
   return msg;
 }
 
-function ymd(d: Date): string {
+// Creates the expense + piggy_bank_deposit pair for a confirmed contribution.
+// Returns a user-facing message string ready to send via Telegram.
+async function finalizePiggyAporte(
+  admin: any,
+  userId: string,
+  bank: { id: string; name: string },
+  amount: number,
+  note: string | null,
+): Promise<string> {
+  const { data: ownerData } = await admin.rpc("get_data_owner_id", { _user_id: userId });
+  const ownerId = (typeof ownerData === "string" && ownerData) ? ownerData : userId;
+  const today = todayBR();
+  const description = `Aporte cofrinho — ${bank.name}`;
+  const piggyTag = `[cofrinho:${bank.id}]`;
+  const trimmedNote = note ? note.trim().slice(0, 280) : "";
+  const expenseNotes = trimmedNote ? `${piggyTag}\n${trimmedNote}` : piggyTag;
+
+  const { data: exp, error: expErr } = await admin
+    .from("expenses")
+    .insert({
+      user_id: userId,
+      description,
+      amount,
+      category: "Cofrinho",
+      type: "fixa",
+      scope: "personal",
+      due_date: today,
+      paid: true,
+      paid_date: today,
+      notes: expenseNotes,
+    })
+    .select("id")
+    .single();
+
+  if (expErr || !exp) {
+    return "❌ Erro ao registrar aporte: " + (expErr?.message ?? "desconhecido");
+  }
+
+  const { error: depErr } = await admin
+    .from("piggy_bank_deposits")
+    .insert({
+      user_id: ownerId,
+      piggy_bank_id: bank.id,
+      expense_id: exp.id,
+      amount,
+      deposit_date: today,
+      source: "expense",
+    });
+
+  if (depErr) {
+    await admin.from("expenses").delete().eq("id", exp.id);
+    return "❌ Erro ao creditar a caixinha: " + depErr.message;
+  }
+
+  const noteLine = trimmedNote ? `\n📝 _${trimmedNote}_` : "";
+  return `🐷 *Aporte registrado!*\n\n💰 ${fmtBRL(amount)}\n📦 Caixinha: *${bank.name}*\n📅 ${today}${noteLine}`;
+}
   return d.toISOString().slice(0, 10);
 }
 
