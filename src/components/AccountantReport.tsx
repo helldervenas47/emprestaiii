@@ -244,7 +244,57 @@ export function AccountantReport({ loans, payments, sales, expenses }: Accountan
     return { rows, totalIn, totalOut, net: totalIn - totalOut, paymentCount, saleCount, loanCount, expenseCount, totalLoanOutgoing };
   }, [payments, sales, expenses, loans, period, monthFilter, yearFilter]);
 
-  const formatDate = (k: string) => {
+  // Aggregation: payments by payment method for current period
+  const methodsBreakdown = useMemo(() => {
+    const periodPayments = payments.filter((p) => matchPeriod(p.date));
+    const loanById = new Map<string, any>();
+    loans.forEach((l) => loanById.set(l.id, l));
+    type ContractAgg = { loanId: string; borrowerName: string; total: number; count: number };
+    type MethodAgg = { id: string; name: string; icon: string | null; total: number; count: number; contracts: Map<string, ContractAgg> };
+    const map = new Map<string, MethodAgg>();
+    const methodById = new Map(paymentMethods.map((m) => [m.id, m] as const));
+    let grandTotal = 0;
+    for (const p of periodPayments) {
+      const mid = p.paymentMethodId || "__unset__";
+      const meta = methodById.get(p.paymentMethodId || "");
+      if (!map.has(mid)) {
+        map.set(mid, {
+          id: mid,
+          name: meta ? meta.name : "Não informado",
+          icon: meta ? meta.icon : null,
+          total: 0,
+          count: 0,
+          contracts: new Map(),
+        });
+      }
+      const agg = map.get(mid)!;
+      const amt = Number(p.amount) || 0;
+      agg.total += amt;
+      agg.count += 1;
+      grandTotal += amt;
+      const loan = loanById.get(p.loanId);
+      const lid = p.loanId || "__noloan__";
+      if (!agg.contracts.has(lid)) {
+        agg.contracts.set(lid, {
+          loanId: lid,
+          borrowerName: loan?.borrowerName || "Sem contrato",
+          total: 0,
+          count: 0,
+        });
+      }
+      const c = agg.contracts.get(lid)!;
+      c.total += amt;
+      c.count += 1;
+    }
+    const rows = Array.from(map.values())
+      .map((m) => ({
+        ...m,
+        contracts: Array.from(m.contracts.values()).sort((a, b) => b.total - a.total),
+      }))
+      .sort((a, b) => b.total - a.total);
+    return { rows, grandTotal };
+  }, [payments, paymentMethods, loans, period, monthFilter, yearFilter]);
+
     if (k.length === 10) return new Date(k + "T00:00:00").toLocaleDateString("pt-BR");
     if (k.length === 7) {
       const [y, m] = k.split("-");
