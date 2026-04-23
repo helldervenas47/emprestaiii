@@ -36,6 +36,7 @@ interface Props {
   onPartialPayment: (loanId: string, amount: number, paymentDate?: string, paymentMethodId?: string | null) => void;
   onFullPayment?: (loanId: string, paymentDate?: string, customAmount?: number, paymentMethodId?: string | null) => void;
   onInterestPayment: (loanId: string, paymentDate?: string, customAmount?: number, feesAmount?: number, paymentMethodId?: string | null) => void;
+  onAmortize?: (loanId: string, amount: number, paymentDate?: string, paymentMethodId?: string | null) => Promise<void> | void;
   onUpdate: (id: string, data: Partial<Omit<Loan, "id">>) => void;
   onDelete: (loanId: string) => void;
   onDeletePayment: (paymentId: string) => void;
