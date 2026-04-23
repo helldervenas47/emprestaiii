@@ -71,9 +71,9 @@ export function applyMessageVariables(
   ctx: { name: string; amount: number; dueDate: string },
 ): string {
   return message
-    .replaceAll("{nome}", ctx.name || "")
-    .replaceAll("{valor}", formatBRL(ctx.amount))
-    .replaceAll("{data_vencimento}", formatBR(ctx.dueDate));
+    .replace(/\{nome\}/g, ctx.name || "")
+    .replace(/\{valor\}/g, formatBRL(ctx.amount))
+    .replace(/\{data_vencimento\}/g, formatBR(ctx.dueDate));
 }
 
 export function pickMessage(messages: WhatsappBillingMessages, status: BillingMessageStatus): string {
