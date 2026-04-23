@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import {
   Target, Pencil, Trash2, Plus, Percent, TrendingUp, Banknote, FileText,
   HandCoins, Coins, Wallet, PiggyBank, AlertTriangle, UserPlus, Copy,
+  ChevronLeft, ChevronRight,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useMonthlyGoals, GoalType, currentMonthKey, formatMonthLabel } from "@/hooks/useMonthlyGoals";
@@ -173,20 +174,15 @@ export function MonthlyGoalsManager({ readOnly = false }: { readOnly?: boolean }
     [goals, loans, payments, clients, expenses]
   );
 
-  // Helper: mês anterior no formato YYYY-MM
-  const prevMonthKey = (m: string) => {
+  // Helpers de mês
+  const shiftMonthKey = (m: string, delta: number) => {
     const [y, mm] = m.split("-").map(Number);
-    const d = new Date(y, mm - 2, 1);
+    const d = new Date(y, mm - 1 + delta, 1);
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
   };
-
-  // Lista única de meses com metas (para o filtro)
-  const availableMonths = useMemo(() => {
-    const set = new Set<string>(goals.map((g) => g.month));
-    set.add(filterMonth);
-    set.add(currentMonthKey());
-    return Array.from(set).sort((a, b) => b.localeCompare(a));
-  }, [goals, filterMonth]);
+  const prevMonthKey = (m: string) => shiftMonthKey(m, -1);
+  const goPrevMonth = () => setFilterMonth((m) => shiftMonthKey(m, -1));
+  const goNextMonth = () => setFilterMonth((m) => shiftMonthKey(m, 1));
 
   // Agrupa metas do mês filtrado pelo tipo (nome)
   const groupedGoals = useMemo(() => {
@@ -287,18 +283,33 @@ export function MonthlyGoalsManager({ readOnly = false }: { readOnly?: boolean }
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-3">
             <h3 className="font-semibold text-foreground">Metas cadastradas</h3>
             <div className="flex flex-wrap items-center gap-2">
-              <div className="flex items-center gap-2">
-                <Label className="text-xs text-muted-foreground whitespace-nowrap">Mês:</Label>
-                <Select value={filterMonth} onValueChange={setFilterMonth}>
-                  <SelectTrigger className="h-8 w-[180px]">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent className="max-h-72">
-                    {availableMonths.map((m) => (
-                      <SelectItem key={m} value={m}>{formatMonthLabel(m)}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+              <div className="flex items-center gap-1 rounded-lg border border-border/50 bg-muted/30 p-0.5">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7 hover:bg-background"
+                  onClick={goPrevMonth}
+                  title="Mês anterior"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+                <button
+                  type="button"
+                  onClick={() => setFilterMonth(currentMonthKey())}
+                  className="text-xs font-medium text-foreground px-3 min-w-[140px] text-center hover:text-primary transition-colors"
+                  title="Voltar para o mês atual"
+                >
+                  {formatMonthLabel(filterMonth)}
+                </button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7 hover:bg-background"
+                  onClick={goNextMonth}
+                  title="Próximo mês"
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
               </div>
               {!readOnly && (
                 <Button
@@ -323,69 +334,88 @@ export function MonthlyGoalsManager({ readOnly = false }: { readOnly?: boolean }
               Nenhuma meta cadastrada para {formatMonthLabel(filterMonth)}.
             </p>
           )}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             {groupedGoals.map(({ type, items }) => {
               const meta = GOAL_TYPE_META[type];
               if (!meta) return null;
               const Icon = meta.icon;
+              // bg do ícone com base na cor semântica
+              const iconBg =
+                meta.color.includes("primary") ? "bg-primary/10 dark:bg-primary/15" :
+                meta.color.includes("success") ? "bg-success/10 dark:bg-success/15" :
+                meta.color.includes("warning") ? "bg-warning/10 dark:bg-warning/15" :
+                meta.color.includes("destructive") ? "bg-destructive/10 dark:bg-destructive/15" :
+                "bg-muted";
               return (
                 <div
                   key={type}
-                  className="rounded-2xl p-4 bg-card border border-border/20 shadow-[0_1px_8px_-4px_hsl(0_0%_0%/0.05)] backdrop-blur-sm transition-all duration-300 hover:shadow-[0_4px_16px_-6px_hsl(0_0%_0%/0.08)] hover:-translate-y-[1px] flex flex-col"
+                  className="rounded-2xl p-4 bg-card border border-border shadow-sm hover:shadow-md hover:-translate-y-[1px] transition-all duration-300 flex flex-col"
                 >
-                  <div className="flex items-center justify-center mb-2">
-                    <div className="h-8 w-8 rounded-lg bg-muted flex items-center justify-center">
-                      <Icon className={`h-4 w-4 ${meta.color}`} />
+                  <div className="flex flex-col items-center text-center mb-3">
+                    <div className={`h-10 w-10 rounded-xl ${iconBg} flex items-center justify-center mb-2 ring-1 ring-border/50`}>
+                      <Icon className={`h-5 w-5 ${meta.color}`} />
                     </div>
+                    <p className="text-[11px] font-semibold text-foreground uppercase tracking-wider leading-tight">
+                      {meta.label}
+                    </p>
+                    <p className="text-[10px] text-muted-foreground mt-0.5">
+                      {items.length} {items.length === 1 ? "registro" : "registros"}
+                    </p>
                   </div>
-                  <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider text-center leading-tight">
-                    {meta.label}
-                  </p>
-                  <p className="text-[10px] text-muted-foreground text-center mt-0.5">
-                    {items.length} {items.length === 1 ? "meta" : "metas"}
-                  </p>
 
-                  <div className="mt-3 space-y-2 flex-1">
+                  <div className="space-y-2 flex-1">
                     {items.map((g) => {
                       const targetStr = fmtValue(g.targetValue, meta.unit, hidden);
                       const actualStr = fmtValue(g.actual, meta.unit, hidden);
                       const pctRound = Math.round(g.pct);
                       const reached = meta.inverse ? g.actual <= g.targetValue : g.actual >= g.targetValue;
                       return (
-                        <div key={g.id} className="rounded-lg border border-border/30 bg-muted/20 p-2 space-y-1.5">
+                        <div
+                          key={g.id}
+                          className="rounded-lg border border-border bg-background/60 dark:bg-background/40 p-2.5 space-y-2 hover:border-primary/40 transition-colors"
+                        >
                           <div className="flex items-center justify-between gap-1">
-                            <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
+                            <Badge
+                              variant="outline"
+                              className="text-[10px] px-1.5 py-0 h-5 bg-muted/50 border-border/60 font-medium"
+                            >
                               {formatMonthLabel(g.month)}
                             </Badge>
                             {!readOnly && (
-                              <div className="flex gap-0.5 shrink-0">
-                                <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleEdit(g)}>
+                              <div className="flex gap-0.5 shrink-0 -mr-1">
+                                <Button variant="ghost" size="icon" className="h-6 w-6 hover:bg-muted" onClick={() => handleEdit(g)}>
                                   <Pencil className="h-3 w-3" />
                                 </Button>
-                                <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setDeleteId(g.id)}>
+                                <Button variant="ghost" size="icon" className="h-6 w-6 hover:bg-destructive/10" onClick={() => setDeleteId(g.id)}>
                                   <Trash2 className="h-3 w-3 text-destructive" />
                                 </Button>
                               </div>
                             )}
                           </div>
-                          <div className="flex items-baseline justify-between gap-1">
-                            <span className="text-[10px] text-muted-foreground">Meta</span>
-                            <span className={`text-xs font-bold ${meta.color} truncate`}>{targetStr}</span>
+
+                          <div className="flex items-baseline justify-between gap-1 border-b border-border/50 pb-1.5">
+                            <span className="text-[10px] uppercase tracking-wide text-muted-foreground">Meta</span>
+                            <span className={`text-sm font-bold ${meta.color} truncate`}>{targetStr}</span>
                           </div>
                           <div className="flex items-baseline justify-between gap-1">
-                            <span className="text-[10px] text-muted-foreground">Real</span>
-                            <span className="text-xs font-semibold text-foreground truncate">{actualStr}</span>
+                            <span className="text-[10px] uppercase tracking-wide text-muted-foreground">Real</span>
+                            <span className="text-sm font-semibold text-foreground truncate">{actualStr}</span>
                           </div>
+
                           <div className="space-y-1">
-                            <div className="flex justify-end text-[10px]">
-                              <span className={reached ? "text-success font-semibold" : "text-muted-foreground"}>
+                            <div className="flex justify-between text-[10px]">
+                              <span className="text-muted-foreground">Progresso</span>
+                              <span className={reached ? "text-success font-bold" : "text-muted-foreground font-medium"}>
                                 {pctRound}% {reached && "✓"}
                               </span>
                             </div>
-                            <Progress value={Math.max(0, Math.min(100, g.pct))} className="h-1" />
+                            <Progress
+                              value={Math.max(0, Math.min(100, g.pct))}
+                              className={`h-1.5 ${reached ? "[&>div]:bg-success" : ""}`}
+                            />
                           </div>
                           {g.notes && (
-                            <p className="text-[10px] text-muted-foreground truncate" title={g.notes}>
+                            <p className="text-[10px] text-muted-foreground truncate italic" title={g.notes}>
                               {g.notes}
                             </p>
                           )}
