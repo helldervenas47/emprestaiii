@@ -18,8 +18,10 @@ import { calculateInstallment, calculateTotalWithInterest } from "@/hooks/useLoa
 import { cn } from "@/lib/utils";
 import {
   CheckCircle, Trash2, DollarSign, User, Calendar as CalendarIcon, LayoutGrid, List,
-  Search, Percent, Pencil, Check, X, ChevronDown, ChevronRight, FolderOpen, Folder, HandCoins, Tag, MoreHorizontal, MessageCircle, Filter, SlidersHorizontal, History, UserCog, Calculator,
+  Search, Percent, Pencil, Check, X, ChevronDown, ChevronRight, FolderOpen, Folder, HandCoins, Tag, MoreHorizontal, MessageCircle, Filter, SlidersHorizontal, History, UserCog, Calculator, FileText,
 } from "lucide-react";
+import { generateLoanContract } from "@/lib/generateLoanContract";
+import { useLocadorInfo } from "@/hooks/useLocadorInfo";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -256,7 +258,7 @@ function PaymentHistoryItem({
 
 
 function LoanCardView({
-  loan, payments: allPayments, installmentSchedules, onPayment, onPartialPayment, onFullPayment, onInterestPayment, onAmortize, onUpdate, onDelete, onDeletePayment, onSaveSchedule, readOnly = false, no3d = false, existingTags = [], clients = [],
+  loan, payments: allPayments, installmentSchedules, onPayment, onPartialPayment, onFullPayment, onInterestPayment, onAmortize, onUpdate, onDelete, onDeletePayment, onSaveSchedule, readOnly = false, no3d = false, existingTags = [], clients = [], locador,
 }: {
   loan: Loan;
   payments: Payment[];
@@ -274,6 +276,7 @@ function LoanCardView({
   no3d?: boolean;
   existingTags?: string[];
   clients?: Client[];
+  locador?: import("@/hooks/useLocadorInfo").LocadorInfo;
 }) {
   const { mask } = useHideValues();
   const formatCurrency = useCallback((v: number) => mask(rawFormatCurrency(v)), [mask]);
@@ -1441,6 +1444,18 @@ function LoanCardView({
             <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => setShowHistory(true)} title="Histórico de Pagamentos">
               <History className="h-4 w-4 text-muted-foreground" />
             </Button>
+            <Button
+              size="icon"
+              variant="ghost"
+              className="h-8 w-8"
+              onClick={() => {
+                const matchedClient = clients.find((c) => c.name?.toLowerCase().trim() === loan.borrowerName?.toLowerCase().trim());
+                generateLoanContract(loan, allPayments, installmentSchedules, matchedClient, locador);
+              }}
+              title="Gerar Contrato"
+            >
+              <FileText className="h-4 w-4 text-muted-foreground" />
+            </Button>
             {!readOnly && (
               <>
                 <Button size="icon" variant="ghost" className="h-8 w-8" onClick={startEdit} title="Editar">
@@ -1704,7 +1719,7 @@ function LoanCardView({
 }
 
 function LoanRowView({
-  loan, payments: allPayments, installmentSchedules = [], onPayment, onPartialPayment, onFullPayment, onInterestPayment, onAmortize, onUpdate, onDelete, onDeletePayment, onSaveSchedule, readOnly = false, existingTags = [], clients = [],
+  loan, payments: allPayments, installmentSchedules = [], onPayment, onPartialPayment, onFullPayment, onInterestPayment, onAmortize, onUpdate, onDelete, onDeletePayment, onSaveSchedule, readOnly = false, existingTags = [], clients = [], locador,
 }: {
   loan: Loan;
   payments: Payment[];
@@ -1721,6 +1736,7 @@ function LoanRowView({
   readOnly?: boolean;
   existingTags?: string[];
   clients?: Client[];
+  locador?: import("@/hooks/useLocadorInfo").LocadorInfo;
 }) {
   const [showAdjustDueDateRow, setShowAdjustDueDateRow] = useState(false);
   const [expanded, setExpanded] = useState(false);
@@ -2400,6 +2416,17 @@ function LoanRowView({
                 <Button variant="ghost" className="flex-1 h-9 text-xs gap-1.5" onClick={(e) => { e.stopPropagation(); setShowHistory(true); }}>
                   <History className="h-3.5 w-3.5" /> Histórico
                 </Button>
+                <Button
+                  variant="ghost"
+                  className="flex-1 h-9 text-xs gap-1.5"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    const matchedClient = clients.find((c) => c.name?.toLowerCase().trim() === loan.borrowerName?.toLowerCase().trim());
+                    generateLoanContract(loan, allPayments, installmentSchedules, matchedClient, locador);
+                  }}
+                >
+                  <FileText className="h-3.5 w-3.5" /> Contrato
+                </Button>
                 {!readOnly && (
                   <>
                     <Button variant="ghost" className="flex-1 h-9 text-xs gap-1.5" onClick={(e) => { e.stopPropagation(); startEdit(); }}>
@@ -2718,7 +2745,7 @@ interface ClientGroup {
 }
 
 function ClientFolder({
-  group, payments, installmentSchedules, onPayment, onPartialPayment, onFullPayment, onInterestPayment, onAmortize, onUpdate, onDelete, onDeletePayment, onSaveSchedule, readOnly = false, clients = [],
+  group, payments, installmentSchedules, onPayment, onPartialPayment, onFullPayment, onInterestPayment, onAmortize, onUpdate, onDelete, onDeletePayment, onSaveSchedule, readOnly = false, clients = [], locador,
 }: {
   group: ClientGroup;
   payments: Payment[];
@@ -2734,6 +2761,7 @@ function ClientFolder({
   onSaveSchedule: (loanId: string, rows: { installmentNumber: number; dueDate: string; amount: number }[]) => Promise<void>;
   readOnly?: boolean;
   clients?: Client[];
+  locador?: import("@/hooks/useLocadorInfo").LocadorInfo;
 }) {
   const { mask } = useHideValues();
   const formatCurrency = useCallback((v: number) => mask(rawFormatCurrency(v)), [mask]);
@@ -2816,7 +2844,7 @@ function ClientFolder({
               </thead>
               <tbody>
                 {group.loans.map((loan) => (
-                  <LoanRowView key={loan.id} loan={loan} payments={payments} installmentSchedules={installmentSchedules} readOnly={readOnly} existingTags={[...new Set(group.loans.flatMap(l => l.tags || []))]} clients={clients}
+                  <LoanRowView key={loan.id} loan={loan} payments={payments} installmentSchedules={installmentSchedules} readOnly={readOnly} existingTags={[...new Set(group.loans.flatMap(l => l.tags || []))]} clients={clients} locador={locador}
                     onPayment={(date, mid) => onPayment(loan.id, date, mid)} onPartialPayment={(amt, date, mid) => onPartialPayment(loan.id, amt, date, mid)} onFullPayment={onFullPayment ? (date, custom, mid) => onFullPayment(loan.id, date, custom, mid) : undefined}
                     onInterestPayment={(date, custom, fees, mid) => onInterestPayment(loan.id, date, custom, fees, mid)} onAmortize={onAmortize ? (amt, date, mid) => onAmortize(loan.id, amt, date, mid) : undefined} onUpdate={(d) => onUpdate(loan.id, d)} onDelete={() => onDelete(loan.id)} onDeletePayment={onDeletePayment} onSaveSchedule={onSaveSchedule} />
                 ))}
@@ -2832,6 +2860,7 @@ function ClientFolder({
 export function LoanList({ loans, payments, installmentSchedules, onPayment, onPartialPayment, onFullPayment, onInterestPayment, onAmortize, onUpdate, onDelete, onDeletePayment, onSaveSchedule, readOnly = false, initialCategory, initialView, clients = [] }: Props) {
   const { mask } = useHideValues();
   const formatCurrency = useCallback((v: number) => mask(rawFormatCurrency(v)), [mask]);
+  const { locador } = useLocadorInfo();
   const [view, setView] = useState<"cards" | "rows" | "folders">(initialView ?? "rows");
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState<Category>(initialCategory ?? "all");
@@ -3175,7 +3204,7 @@ export function LoanList({ loans, payments, installmentSchedules, onPayment, onP
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {categorized.map((loan, i) => (
                 <div key={loan.id} className="animate-fade-in h-full" style={{ animationDelay: `${i * 60}ms`, animationFillMode: 'backwards' }}>
-                <LoanCardView loan={loan} payments={payments} installmentSchedules={installmentSchedules} readOnly={readOnly} existingTags={loans.flatMap(l => l.tags || []).filter((v, i, a) => a.indexOf(v) === i)} clients={clients}
+                <LoanCardView loan={loan} payments={payments} installmentSchedules={installmentSchedules} readOnly={readOnly} existingTags={loans.flatMap(l => l.tags || []).filter((v, i, a) => a.indexOf(v) === i)} clients={clients} locador={locador}
                   onPayment={(date, mid) => onPayment(loan.id, date, mid)} onPartialPayment={(amt, date, mid) => onPartialPayment(loan.id, amt, date, mid)} onFullPayment={onFullPayment ? (date, custom, mid) => onFullPayment(loan.id, date, custom, mid) : undefined}
                   onInterestPayment={(date, custom, fees, mid) => onInterestPayment(loan.id, date, custom, fees, mid)} onAmortize={onAmortize ? (amt, date, mid) => onAmortize(loan.id, amt, date, mid) : undefined} onUpdate={(d) => onUpdate(loan.id, d)} onDelete={() => onDelete(loan.id)} onDeletePayment={onDeletePayment} onSaveSchedule={onSaveSchedule} />
                 </div>
@@ -3185,7 +3214,7 @@ export function LoanList({ loans, payments, installmentSchedules, onPayment, onP
             <>
             <div className="space-y-4">
               {grouped.map((g) => (
-                <ClientFolder key={g.name} group={g} payments={payments} installmentSchedules={installmentSchedules} readOnly={readOnly} clients={clients}
+                <ClientFolder key={g.name} group={g} payments={payments} installmentSchedules={installmentSchedules} readOnly={readOnly} clients={clients} locador={locador}
                   onPayment={onPayment} onPartialPayment={onPartialPayment} onFullPayment={onFullPayment}
                   onInterestPayment={onInterestPayment} onAmortize={onAmortize} onUpdate={onUpdate} onDelete={onDelete} onDeletePayment={onDeletePayment} onSaveSchedule={onSaveSchedule} />
               ))}
@@ -3219,7 +3248,7 @@ export function LoanList({ loans, payments, installmentSchedules, onPayment, onP
                 </thead>
                 <tbody>
                   {categorized.map((loan) => (
-                    <LoanRowView key={loan.id} loan={loan} payments={payments} installmentSchedules={installmentSchedules} readOnly={readOnly} existingTags={loans.flatMap(l => l.tags || []).filter((v, i, a) => a.indexOf(v) === i)} clients={clients}
+                    <LoanRowView key={loan.id} loan={loan} payments={payments} installmentSchedules={installmentSchedules} readOnly={readOnly} existingTags={loans.flatMap(l => l.tags || []).filter((v, i, a) => a.indexOf(v) === i)} clients={clients} locador={locador}
                       onPayment={(date, mid) => onPayment(loan.id, date, mid)} onPartialPayment={(amt, date, mid) => onPartialPayment(loan.id, amt, date, mid)} onFullPayment={onFullPayment ? (date, custom, mid) => onFullPayment(loan.id, date, custom, mid) : undefined}
                       onInterestPayment={(date, custom, fees, mid) => onInterestPayment(loan.id, date, custom, fees, mid)} onAmortize={onAmortize ? (amt, date, mid) => onAmortize(loan.id, amt, date, mid) : undefined} onUpdate={(d) => onUpdate(loan.id, d)} onDelete={() => onDelete(loan.id)} onDeletePayment={onDeletePayment} onSaveSchedule={onSaveSchedule} />
                   ))}
