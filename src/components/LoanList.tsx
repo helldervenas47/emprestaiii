@@ -1500,8 +1500,29 @@ function LoanCardView({
           )}
           {paymentDialog?.type === "amortize" && (() => {
             const oldPrincipal = Number(loan.amount) || 0;
+            const rate = Number(loan.interestRate) || 0;
+            const oldInterest = loan.customInterestValue != null && loan.customInterestValue > 0
+              ? Number(loan.customInterestValue)
+              : oldPrincipal * (rate / 100);
+            const oldTotal = oldPrincipal + oldInterest;
+            const paidPrincipalAndInstallments = allPayments
+              .filter((p) => p.loanId === loan.id && p.installmentNumber !== 0 && p.installmentNumber !== -2)
+              .reduce((sum, p) => sum + Number(p.amount), 0);
+            const oldRemaining = Math.max(0, oldTotal - paidPrincipalAndInstallments);
+            const remainingInst = Math.max(1, loan.installments - loan.paidInstallments);
+            const oldInstallment = oldRemaining / remainingInst;
             const amortRaw = parseFloat(amortizeAmount.replace(",", "."));
             const v = isFinite(amortRaw) && amortRaw > 0 ? amortRaw : 0;
+            const validV = v > 0 && v <= oldPrincipal;
+            const newPrincipal = Math.max(0, oldPrincipal - v);
+            const newCustomInterest = loan.customInterestValue != null && loan.customInterestValue > 0 && oldPrincipal > 0
+              ? loan.customInterestValue * (newPrincipal / oldPrincipal)
+              : null;
+            const newInterest = newCustomInterest != null ? newCustomInterest : newPrincipal * (rate / 100);
+            const newTotal = newPrincipal + newInterest;
+            const newRemaining = Math.max(0, newTotal - paidPrincipalAndInstallments);
+            const newInstallment = newRemaining / remainingInst;
+            const interestSaved = Math.max(0, oldInterest - newInterest);
             return (
               <div className="w-full space-y-2">
                 <div className="text-center p-3 bg-muted/50 rounded-lg w-full">
@@ -1524,6 +1545,38 @@ function LoanCardView({
                 </div>
                 {v > oldPrincipal && (
                   <p className="text-[11px] text-destructive">O valor não pode ser maior que o principal.</p>
+                )}
+                {validV && (
+                  <div className="rounded-md bg-muted/40 p-2.5 text-[11px] space-y-2">
+                    <div className="grid grid-cols-3 gap-2">
+                      <div>
+                        <p className="text-muted-foreground">Principal</p>
+                        <p className="line-through text-muted-foreground tabular-nums">{rawFormatCurrency(oldPrincipal)}</p>
+                        <p className="font-semibold text-primary tabular-nums">{rawFormatCurrency(newPrincipal)}</p>
+                      </div>
+                      <div>
+                        <p className="text-muted-foreground">Juros total</p>
+                        <p className="line-through text-muted-foreground tabular-nums">{rawFormatCurrency(oldInterest)}</p>
+                        <p className="font-semibold text-primary tabular-nums">{rawFormatCurrency(newInterest)}</p>
+                      </div>
+                      <div>
+                        <p className="text-muted-foreground">Restante</p>
+                        <p className="line-through text-muted-foreground tabular-nums">{rawFormatCurrency(oldRemaining)}</p>
+                        <p className="font-semibold text-primary tabular-nums">{rawFormatCurrency(newRemaining)}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center justify-between border-t border-border/40 pt-2">
+                      <span className="text-muted-foreground">Juros economizados</span>
+                      <span className="font-semibold text-success tabular-nums">{rawFormatCurrency(interestSaved)}</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-muted-foreground">Parcela estimada</span>
+                      <span className="tabular-nums">
+                        <span className="line-through text-muted-foreground mr-2">{rawFormatCurrency(oldInstallment)}</span>
+                        <span className="font-semibold text-primary">{rawFormatCurrency(newInstallment)}</span>
+                      </span>
+                    </div>
+                  </div>
                 )}
                 <p className="text-[10px] text-muted-foreground">A amortização reduz o saldo devedor e recalcula os juros e parcelas futuras proporcionalmente.</p>
               </div>
