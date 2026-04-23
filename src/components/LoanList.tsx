@@ -1838,11 +1838,10 @@ function LoanRowView({
     .filter((s) => s.loanId === loan.id && s.installmentNumber > loan.paidInstallments)
     .sort((a, b) => a.installmentNumber - b.installmentNumber);
   const allUnpaidScheduleSum = unpaidSchedules.reduce((sum, s) => sum + s.amount, 0);
+  const reconciledRemainingRow = getReconciledRemaining(loan, allPayments, total);
   const baseRemaining = loan.installments >= 2 && allUnpaidScheduleSum > 0
     ? allUnpaidScheduleSum
-    : loan.remainingAmount != null && loan.remainingAmount > 0
-      ? loan.remainingAmount
-      : Math.max(0, total - totalPaid);
+    : reconciledRemainingRow;
 
   const daysOverdue = getDaysOverdue(loan, installmentSchedules);
 
