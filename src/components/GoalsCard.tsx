@@ -637,8 +637,7 @@ interface DialogProps {
 function GoalDetailDialog({ open, onClose, goal, viewingMonth, payments }: DialogProps) {
   const { hidden } = useHideValues();
   const { upsertGoal } = useMonthlyGoals();
-  const { upsertGoal: _upsertGoal } = { upsertGoal };
-  void _upsertGoal;
+  const { settings } = useAccountSettings();
   const [creating, setCreating] = useState(false);
   const [editingCreate, setEditingCreate] = useState(false);
   const [newTarget, setNewTarget] = useState<string>("");
@@ -799,10 +798,7 @@ function GoalDetailDialog({ open, onClose, goal, viewingMonth, payments }: Dialo
   if (!goal || !analysis) return null;
 
   const Icon = goal.meta.icon;
-  const simulationInterestRate = Math.max(0, Number(settings.simulationInterestRate ?? 30) || 0);
-  const requiredLoanAmount = goal.goalType === "profit" && goal.targetAmount !== null
-    ? goal.targetAmount / (1 + simulationInterestRate / 100)
-    : 0;
+  void settings;
   const statusBadge = {
     excellent: { label: "Meta superada", className: "bg-success/15 text-success border-success/30" },
     ontrack: { label: "No caminho", className: "bg-success/15 text-success border-success/30" },
