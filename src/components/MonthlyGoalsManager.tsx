@@ -8,8 +8,9 @@ import { Progress } from "@/components/ui/progress";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Target, Pencil, Trash2, Plus, Percent, TrendingUp, Banknote, FileText,
-  HandCoins, Coins, Wallet, PiggyBank, AlertTriangle, UserPlus,
+  HandCoins, Coins, Wallet, PiggyBank, AlertTriangle, UserPlus, Copy,
 } from "lucide-react";
+import { toast } from "sonner";
 import { useMonthlyGoals, GoalType, currentMonthKey, formatMonthLabel } from "@/hooks/useMonthlyGoals";
 import { useLoans } from "@/hooks/useLoans";
 import { useClients } from "@/hooks/useClients";
