@@ -1025,6 +1025,39 @@ export type Database = {
         }
         Relationships: []
       }
+      payment_methods: {
+        Row: {
+          active: boolean
+          created_at: string
+          icon: string | null
+          id: string
+          name: string
+          sort_order: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          icon?: string | null
+          id?: string
+          name: string
+          sort_order?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          icon?: string | null
+          id?: string
+          name?: string
+          sort_order?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       payments: {
         Row: {
           amount: number
@@ -1033,6 +1066,7 @@ export type Database = {
           id: string
           installment_number: number
           loan_id: string
+          payment_method_id: string | null
           previous_due_date: string | null
           user_id: string
         }
@@ -1043,6 +1077,7 @@ export type Database = {
           id?: string
           installment_number?: number
           loan_id: string
+          payment_method_id?: string | null
           previous_due_date?: string | null
           user_id: string
         }
@@ -1053,6 +1088,7 @@ export type Database = {
           id?: string
           installment_number?: number
           loan_id?: string
+          payment_method_id?: string | null
           previous_due_date?: string | null
           user_id?: string
         }
@@ -1062,6 +1098,13 @@ export type Database = {
             columns: ["loan_id"]
             isOneToOne: false
             referencedRelation: "loans"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payments_payment_method_id_fkey"
+            columns: ["payment_method_id"]
+            isOneToOne: false
+            referencedRelation: "payment_methods"
             referencedColumns: ["id"]
           },
         ]
@@ -2208,6 +2251,10 @@ export type Database = {
         }[]
       }
       revoke_my_session: { Args: { _session_id: string }; Returns: boolean }
+      seed_default_payment_methods: {
+        Args: { _owner_id: string }
+        Returns: undefined
+      }
       upsert_active_capital_snapshot: {
         Args: {
           _amount: number
