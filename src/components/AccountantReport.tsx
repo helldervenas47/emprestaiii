@@ -36,6 +36,8 @@ function getYearKey(dateStr: string): string {
 
 export function AccountantReport({ loans, payments, sales, expenses }: AccountantReportProps) {
   const { hidden } = useHideValues();
+  const { methods: paymentMethods } = usePaymentMethods();
+  const [expandedMethod, setExpandedMethod] = useState<string | null>(null);
   const now = new Date();
   const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
   const currentYear = String(now.getFullYear());
