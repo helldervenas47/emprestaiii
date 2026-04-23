@@ -2255,6 +2255,7 @@ function LoanRowView({
                       </div>
                     </DropdownMenuItem>
                     )}
+                  </DropdownMenuContent>
                 </DropdownMenu>
               )}
               {!readOnly && loan.status !== "paid" && (
