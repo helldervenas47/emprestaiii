@@ -1270,6 +1270,100 @@ export function AccountantReport({ loans, payments, sales, expenses }: Accountan
             </CardContent>
           </Card>
         </TabsContent>
+
+        {/* Formas de pagamento */}
+        <TabsContent value="methods" className="space-y-3 mt-4">
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-xs text-muted-foreground flex items-center gap-1">
+                <DollarSign className="h-3 w-3 text-success" /> Total recebido por forma
+              </CardTitle>
+              <CardDescription className="text-base font-bold text-foreground">
+                {fmt(methodsBreakdown.grandTotal, hidden)}
+              </CardDescription>
+            </CardHeader>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-sm">Detalhamento por forma de pagamento</CardTitle>
+              <CardDescription className="text-xs">
+                Período: {period === "month" ? formatDate(monthFilter) : yearFilter}
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {methodsBreakdown.rows.length === 0 ? (
+                <p className="text-sm text-muted-foreground text-center py-6">
+                  Sem pagamentos registrados no período.
+                </p>
+              ) : (
+                <div className="space-y-2">
+                  {methodsBreakdown.rows.map((m) => {
+                    const isOpen = expandedMethod === m.id;
+                    const pct = methodsBreakdown.grandTotal > 0
+                      ? (m.total / methodsBreakdown.grandTotal) * 100
+                      : 0;
+                    return (
+                      <Collapsible
+                        key={m.id}
+                        open={isOpen}
+                        onOpenChange={(o) => setExpandedMethod(o ? m.id : null)}
+                      >
+                        <div className="border rounded-lg overflow-hidden">
+                          <CollapsibleTrigger className="w-full">
+                            <div className="flex items-center justify-between gap-2 p-3 hover:bg-muted/40 transition-colors">
+                              <div className="flex items-center gap-2 min-w-0">
+                                {isOpen ? (
+                                  <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0" />
+                                ) : (
+                                  <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
+                                )}
+                                <CreditCard className="h-4 w-4 text-primary shrink-0" />
+                                <div className="text-left min-w-0">
+                                  <p className="text-sm font-medium truncate">{m.name}</p>
+                                  <p className="text-xs text-muted-foreground">
+                                    {m.count} pagamento{m.count !== 1 ? "s" : ""} · {pct.toFixed(1)}%
+                                  </p>
+                                </div>
+                              </div>
+                              <p className="text-sm font-bold text-success shrink-0">
+                                {fmt(m.total, hidden)}
+                              </p>
+                            </div>
+                          </CollapsibleTrigger>
+                          <CollapsibleContent>
+                            <div className="border-t bg-muted/20 px-3 py-2 space-y-1">
+                              <div className="grid grid-cols-3 gap-2 text-xs font-semibold text-muted-foreground border-b pb-1">
+                                <span className="col-span-2">Contrato</span>
+                                <span className="text-right">Total</span>
+                              </div>
+                              {m.contracts.map((c) => (
+                                <div
+                                  key={c.loanId}
+                                  className="grid grid-cols-3 gap-2 py-1.5 text-sm border-b last:border-b-0"
+                                >
+                                  <div className="col-span-2 min-w-0">
+                                    <p className="truncate font-medium">{c.borrowerName}</p>
+                                    <p className="text-xs text-muted-foreground">
+                                      {c.count} pagamento{c.count !== 1 ? "s" : ""}
+                                    </p>
+                                  </div>
+                                  <span className="text-right font-medium text-success self-center">
+                                    {fmt(c.total, hidden)}
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
+                          </CollapsibleContent>
+                        </div>
+                      </Collapsible>
+                    );
+                  })}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
       </Tabs>
     </div>
   );
