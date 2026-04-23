@@ -801,6 +801,151 @@ export function useLoans() {
     await fetchSchedules();
   }, [user, dataOwnerId, loans, payments, fetchLoans, fetchPayments]);
 
+  /**
+   * Amortizar contrato: reduz o principal do empréstimo pelo valor informado,
+   * reduzindo proporcionalmente os juros futuros (juros são recalculados sobre
+   * o novo principal). Atualiza o saldo restante e o cronograma de parcelas
+   * pendentes. Registra a operação no histórico (installment_number = -3).
+   */
+  const amortizeLoan = useCallback(async (
+    loanId: string,
+    amortizeAmount: number,
+    paymentDate?: string,
+    paymentMethodId?: string | null,
+  ) => {
+    if (!user || !dataOwnerId) throw new Error("Sessão ainda não carregada");
+    if (!(amortizeAmount > 0)) throw new Error("Informe um valor de amortização válido");
+    const loan = loans.find((l) => l.id === loanId);
+    if (!loan) throw new Error("Empréstimo não encontrado");
+    if (loan.status === "paid") throw new Error("Não é possível amortizar um contrato quitado");
+
+    const dateStr = paymentDate || todayInAppTz();
+    const rate = Number(loan.interestRate) || 0;
+    const oldPrincipal = Number(loan.amount) || 0;
+    if (amortizeAmount > oldPrincipal) {
+      throw new Error("O valor da amortização não pode ser maior que o saldo principal");
+    }
+    const newPrincipal = Math.max(0, oldPrincipal - amortizeAmount);
+
+    // Recalcula juros proporcionalmente ao novo principal
+    const newCustomInterest = loan.customInterestValue != null && loan.customInterestValue > 0 && oldPrincipal > 0
+      ? (loan.customInterestValue * (newPrincipal / oldPrincipal))
+      : null;
+    const newInterestTotal = newCustomInterest != null
+      ? newCustomInterest
+      : newPrincipal * (rate / 100);
+    const newTotalContract = newPrincipal + newInterestTotal;
+
+    // Quanto já foi pago em parcelas/quitações (exclui juros-only e taxas)
+    const paidPrincipalAndInstallments = payments
+      .filter((p) => p.loanId === loanId && p.installmentNumber !== 0 && p.installmentNumber !== -2)
+      .reduce((sum, p) => sum + Number(p.amount), 0);
+
+    const newRemaining = Math.max(0, newTotalContract - paidPrincipalAndInstallments);
+    const remainingInst = Math.max(1, loan.installments - loan.paidInstallments);
+    const newInstallmentValue = Math.round((newRemaining / remainingInst) * 100) / 100;
+
+    const online = isOnline();
+    const tempPaymentId = crypto.randomUUID();
+    const paymentPayload = {
+      id: tempPaymentId,
+      user_id: dataOwnerId,
+      loan_id: loanId,
+      amount: amortizeAmount,
+      date: dateStr,
+      installment_number: -3, // marcador de amortização
+      payment_method_id: paymentMethodId ?? null,
+    };
+    const loanUpdate: any = {
+      amount: newPrincipal,
+      remaining_amount: newRemaining,
+      custom_interest_value: newCustomInterest,
+      custom_installment_value: newInstallmentValue,
+    };
+
+    // Atualização otimista
+    setPayments((prev) => [
+      { id: tempPaymentId, loanId, amount: amortizeAmount, date: dateStr, installmentNumber: -3, paymentMethodId: paymentMethodId ?? null },
+      ...prev,
+    ]);
+    setLoans((prev) => prev.map((l) => l.id === loanId ? {
+      ...l,
+      amount: newPrincipal,
+      remainingAmount: newRemaining,
+      customInterestValue: newCustomInterest,
+      customInstallmentValue: newInstallmentValue,
+    } : l));
+    await upsertCachedRow("payments", { ...paymentPayload, created_at: new Date().toISOString() });
+
+    if (!online) {
+      await enqueueMutation({ table: "payments", op: "insert", recordId: tempPaymentId, payload: paymentPayload });
+      await enqueueMutation({ table: "loans", op: "update", recordId: loanId, payload: loanUpdate });
+      await adjustBalanceOffline(amortizeAmount);
+      toast.success("Amortização registrada (offline)");
+      return;
+    }
+
+    const revert = async () => {
+      setPayments((prev) => prev.filter((p) => p.id !== tempPaymentId));
+      setLoans((prev) => prev.map((l) => l.id === loanId ? loan : l));
+      await removeCachedRow("payments", tempPaymentId);
+    };
+
+    const { error: payErr } = await supabase.from("payments").insert(paymentPayload as any);
+    if (payErr) {
+      await revert();
+      throw new Error(payErr.message);
+    }
+
+    const { data: updLoan, error: loanErr } = await supabase
+      .from("loans").update(loanUpdate).eq("id", loanId).select("id").maybeSingle();
+    if (loanErr || !updLoan) {
+      await supabase.from("payments").delete().eq("id", tempPaymentId);
+      await revert();
+      throw new Error(loanErr?.message ?? "Falha ao atualizar empréstimo");
+    }
+
+    // Atualiza valores das parcelas futuras (não pagas) proporcionalmente
+    const unpaidScheds = installmentSchedules
+      .filter((s) => s.loanId === loanId && s.installmentNumber > loan.paidInstallments)
+      .sort((a, b) => a.installmentNumber - b.installmentNumber);
+    if (unpaidScheds.length > 0) {
+      const evenValue = Math.round((newRemaining / unpaidScheds.length) * 100) / 100;
+      // ajusta a última parcela para fechar a soma exata
+      const total = evenValue * unpaidScheds.length;
+      const diff = Math.round((newRemaining - total) * 100) / 100;
+      for (let i = 0; i < unpaidScheds.length; i++) {
+        const sched = unpaidScheds[i];
+        const isLast = i === unpaidScheds.length - 1;
+        const amt = isLast ? Math.max(0, evenValue + diff) : evenValue;
+        if (sched.id) {
+          await supabase.from("loan_installments").update({ amount: amt }).eq("id", sched.id);
+        }
+      }
+    }
+
+    try {
+      await adjustBalance(amortizeAmount);
+    } catch (balErr: any) {
+      // reverter
+      await Promise.all([
+        supabase.from("payments").delete().eq("id", tempPaymentId),
+        supabase.from("loans").update({
+          amount: oldPrincipal,
+          remaining_amount: loan.remainingAmount ?? null,
+          custom_interest_value: loan.customInterestValue ?? null,
+          custom_installment_value: loan.customInstallmentValue ?? null,
+        }).eq("id", loanId),
+      ]);
+      await revert();
+      throw new Error(balErr?.message ?? "Falha ao atualizar saldo");
+    }
+
+    await fetchPayments();
+    await fetchLoans();
+    await fetchSchedules();
+  }, [user, dataOwnerId, loans, payments, installmentSchedules, fetchPayments, fetchLoans, fetchSchedules]);
+
   const updateLoan = useCallback(async (id: string, data: Partial<Omit<Loan, "id">>) => {
     if (data.remainingAmount !== undefined) {
       const oldLoan = loans.find((l) => l.id === id);
