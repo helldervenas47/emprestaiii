@@ -370,6 +370,15 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
       }
       return sum;
     }, 0);
+
+    // Pagamentos somente de juros (installmentNumber === 0) feitos no período empurram
+    // a parcela seguinte para o próximo vencimento, removendo-a do "Previsto" do período.
+    // Para manter o Previsto estável, somamos de volta o valor desses juros pagos no período.
+    const interestOnlyInPeriod = payments
+      .filter((p) => p.installmentNumber === 0 && isInRange(p.date, range.start, range.end))
+      .reduce((s, p) => s + Number(p.amount || 0), 0);
+    const periodProfitExpectedWithInterestOnly = periodProfitExpected + interestOnlyInPeriod;
+
     interestExpectedRecords.sort((a, b) => a.dueDate.localeCompare(b.dueDate));
     
     // Lucro Realizado — 3 componentes:
@@ -443,7 +452,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
     });
     interestDetailRecords.sort((a, b) => b.date.localeCompare(a.date));
     
-    const totalProfitExpected = periodProfitExpected;
+    const totalProfitExpected = periodProfitExpectedWithInterestOnly;
     const totalProfitRealized = periodProfitRealized;
     const previstoTotal = totalProfitRealized + totalProfitExpected;
     const periodProfitPct = previstoTotal > 0 ? Math.round((totalProfitRealized / previstoTotal) * 100) : 0;
