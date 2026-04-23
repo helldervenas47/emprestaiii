@@ -173,10 +173,26 @@ export function MonthlyGoalsManager({ readOnly = false }: { readOnly?: boolean }
     [goals, loans, payments, clients, expenses]
   );
 
-  // Agrupa metas pelo tipo (nome), ordenando os meses de cada grupo (mais recente primeiro)
+  // Helper: mês anterior no formato YYYY-MM
+  const prevMonthKey = (m: string) => {
+    const [y, mm] = m.split("-").map(Number);
+    const d = new Date(y, mm - 2, 1);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+  };
+
+  // Lista única de meses com metas (para o filtro)
+  const availableMonths = useMemo(() => {
+    const set = new Set<string>(goals.map((g) => g.month));
+    set.add(filterMonth);
+    set.add(currentMonthKey());
+    return Array.from(set).sort((a, b) => b.localeCompare(a));
+  }, [goals, filterMonth]);
+
+  // Agrupa metas do mês filtrado pelo tipo (nome)
   const groupedGoals = useMemo(() => {
+    const filtered = enrichedGoals.filter((g) => g.month === filterMonth);
     const map = new Map<GoalType, typeof enrichedGoals>();
-    enrichedGoals.forEach((g) => {
+    filtered.forEach((g) => {
       const arr = map.get(g.goalType) || [];
       arr.push(g);
       map.set(g.goalType, arr);
@@ -185,7 +201,25 @@ export function MonthlyGoalsManager({ readOnly = false }: { readOnly?: boolean }
       type,
       items: [...items].sort((a, b) => b.month.localeCompare(a.month)),
     }));
-  }, [enrichedGoals]);
+  }, [enrichedGoals, filterMonth]);
+
+  // Tipos cadastrados no mês anterior mas não no atual filtrado
+  const prevMonth = prevMonthKey(filterMonth);
+  const missingFromPrev = useMemo(() => {
+    const currentTypes = new Set(goals.filter((g) => g.month === filterMonth).map((g) => g.goalType));
+    return goals.filter((g) => g.month === prevMonth && !currentTypes.has(g.goalType));
+  }, [goals, filterMonth, prevMonth]);
+
+  const copyFromPrevMonth = async () => {
+    if (missingFromPrev.length === 0) {
+      toast.info("Nenhuma meta nova para copiar do mês anterior");
+      return;
+    }
+    for (const g of missingFromPrev) {
+      await upsertGoal(g.goalType, filterMonth, g.targetValue, g.notes || undefined);
+    }
+    toast.success(`${missingFromPrev.length} meta(s) copiada(s) do mês anterior`);
+  };
 
   const selectedMeta = GOAL_TYPE_META[goalType];
 
