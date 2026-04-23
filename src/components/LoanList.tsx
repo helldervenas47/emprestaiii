@@ -170,7 +170,7 @@ function getTotalPaid(loan: Loan, payments: Payment[]): number {
 }
 
 function LoanCardView({
-  loan, payments: allPayments, installmentSchedules, onPayment, onPartialPayment, onFullPayment, onInterestPayment, onUpdate, onDelete, onDeletePayment, onSaveSchedule, readOnly = false, no3d = false, existingTags = [], clients = [],
+  loan, payments: allPayments, installmentSchedules, onPayment, onPartialPayment, onFullPayment, onInterestPayment, onAmortize, onUpdate, onDelete, onDeletePayment, onSaveSchedule, readOnly = false, no3d = false, existingTags = [], clients = [],
 }: {
   loan: Loan;
   payments: Payment[];
@@ -179,6 +179,7 @@ function LoanCardView({
   onPartialPayment: (amount: number, date?: string, paymentMethodId?: string | null) => void;
   onFullPayment?: (date?: string, customAmount?: number, paymentMethodId?: string | null) => void;
   onInterestPayment: (date?: string, customAmount?: number, feesAmount?: number, paymentMethodId?: string | null) => void;
+  onAmortize?: (amount: number, date?: string, paymentMethodId?: string | null) => Promise<void> | void;
   onUpdate: (data: Partial<Omit<Loan, "id">>) => void;
   onDelete: () => void;
   onDeletePayment: (paymentId: string) => void;
@@ -201,9 +202,10 @@ function LoanCardView({
   const [partialDate, setPartialDate] = useState<Date>(new Date());
   const [showTagInput, setShowTagInput] = useState(false);
   const [newTag, setNewTag] = useState("");
-  const [paymentDialog, setPaymentDialog] = useState<{ type: "installment" | "interest" | "partial" | "full" | "payoff"; amount?: number } | null>(null);
+  const [paymentDialog, setPaymentDialog] = useState<{ type: "installment" | "interest" | "partial" | "full" | "payoff" | "amortize"; amount?: number } | null>(null);
   const [interestSelection, setInterestSelection] = useState<"normal" | "withFees">("normal");
   const [payoffAmount, setPayoffAmount] = useState("");
+  const [amortizeAmount, setAmortizeAmount] = useState("");
   const [paymentDate, setPaymentDate] = useState<Date>(new Date());
   const [showHistory, setShowHistory] = useState(false);
   const [showDetails, setShowDetails] = useState(false);
@@ -388,9 +390,10 @@ function LoanCardView({
     setEditing(false);
   };
 
-  const openPaymentDialog = (type: "installment" | "interest" | "partial" | "full" | "payoff", amount?: number) => {
+  const openPaymentDialog = (type: "installment" | "interest" | "partial" | "full" | "payoff" | "amortize", amount?: number) => {
     setPaymentDate(new Date());
     setPayoffAmount("");
+    setAmortizeAmount("");
     setInterestSelection("normal");
     setPaymentDialog({ type, amount });
   };
@@ -406,6 +409,8 @@ function LoanCardView({
     const dialogAmount = paymentDialog.amount;
     const mid = selectedMethodId || null;
     setPayoffAmount("");
+    const amortRaw = parseFloat(amortizeAmount.replace(",", "."));
+    setAmortizeAmount("");
     setPaymentDialog(null);
     try {
       if (dialogType === "full") {
@@ -425,6 +430,11 @@ function LoanCardView({
           await onPartialPayment(custom, dateStr, mid);
           await onUpdate({ paidInstallments: loan.installments, status: "paid" });
         }
+      } else if (dialogType === "amortize") {
+        if (!onAmortize) { toast.error("Amortização indisponível"); return; }
+        const val = isFinite(amortRaw) && amortRaw > 0 ? amortRaw : 0;
+        if (val <= 0) { toast.error("Informe um valor válido"); return; }
+        await onAmortize(val, dateStr, mid);
       } else if (dialogType === "installment") {
         await onPayment(dateStr, mid);
       } else if (dialogType === "interest") {
@@ -436,10 +446,10 @@ function LoanCardView({
       } else if (dialogType === "partial" && dialogAmount) {
         await onPartialPayment(dialogAmount, dateStr, mid);
       }
-      toast.success("Pagamento registrado");
+      toast.success(dialogType === "amortize" ? "Amortização registrada" : "Pagamento registrado");
     } catch (err: any) {
       console.error("[confirmPayment]", err);
-      toast.error(`Falha ao registrar pagamento: ${err?.message ?? "tente novamente"}`);
+      toast.error(`Falha ao registrar: ${err?.message ?? "tente novamente"}`);
     }
   };
 
