@@ -1327,8 +1327,32 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
               <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Faturamento do Período</p>
             </div>
             <div className="space-y-1.5">
-              <div className="flex items-center justify-between">
-                <span className="text-xs text-muted-foreground">Previsto restante</span>
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-1 min-w-0">
+                  <span className="text-xs text-muted-foreground">Previsto restante</span>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <button
+                        type="button"
+                        aria-label="Como o Previsto restante é calculado"
+                        className="text-muted-foreground hover:text-foreground transition-colors"
+                      >
+                        <Info className="h-3 w-3" />
+                      </button>
+                    </PopoverTrigger>
+                    <PopoverContent side="top" align="start" className="w-72 text-xs leading-relaxed">
+                      <p className="font-semibold text-foreground mb-1">Como é calculado</p>
+                      <p className="text-muted-foreground">
+                        Soma a porção de juros das parcelas com vencimento no período (pagas ou não)
+                        e <strong>inclui também os pagamentos somente de juros</strong> feitos no período.
+                      </p>
+                      <p className="text-muted-foreground mt-2">
+                        Isso evita que o valor oscile quando uma parcela é re-agendada para o próximo
+                        vencimento após o pagamento de juros.
+                      </p>
+                    </PopoverContent>
+                  </Popover>
+                </div>
                 <span className="text-sm font-bold text-foreground">{formatCurrency(data.periodProfitExpected)}</span>
               </div>
               <div className="flex items-center justify-between">
