@@ -1492,6 +1492,14 @@ function LoanCardView({
                 <CheckCircle className="h-4 w-4" />
               </Button>
             )}
+            {loan.status !== "paid" && (
+              <WhatsappBillButton
+                loan={loan}
+                clients={clients}
+                payments={allPayments}
+                installmentSchedules={installmentSchedules}
+              />
+            )}
             <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => setShowHistory(true)} title="Histórico de Pagamentos">
               <History className="h-4 w-4 text-muted-foreground" />
             </Button>
@@ -2492,7 +2500,16 @@ function LoanRowView({
                   <X className="h-4 w-4" /> Marcar como não pago
                 </Button>
               )}
-              <div className="flex gap-2 w-full">
+              <div className="flex gap-2 w-full flex-wrap">
+                {loan.status !== "paid" && (
+                  <WhatsappBillButton
+                    loan={loan}
+                    clients={clients}
+                    payments={allPayments}
+                    installmentSchedules={installmentSchedules}
+                    variant="compact"
+                  />
+                )}
                 <Button variant="ghost" className="flex-1 h-9 text-xs gap-1.5" onClick={(e) => { e.stopPropagation(); setShowHistory(true); }}>
                   <History className="h-3.5 w-3.5" /> Histórico
                 </Button>
