@@ -295,6 +295,7 @@ export function AccountantReport({ loans, payments, sales, expenses }: Accountan
     return { rows, grandTotal };
   }, [payments, paymentMethods, loans, period, monthFilter, yearFilter]);
 
+  const formatDate = (k: string) => {
     if (k.length === 10) return new Date(k + "T00:00:00").toLocaleDateString("pt-BR");
     if (k.length === 7) {
       const [y, m] = k.split("-");
