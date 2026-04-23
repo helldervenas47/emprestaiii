@@ -93,70 +93,12 @@ export function MonthlyGoalsManager({ readOnly = false }: { readOnly?: boolean }
     setNotes(g.notes || "");
   };
 
-  // Computa o valor realizado para uma meta
+  // Computa o valor realizado para uma meta — usa exatamente a mesma lógica do GoalsCard (Dashboard)
   const computeActual = (type: GoalType, m: string): number => {
-    switch (type) {
-      case "loan_volume":
-        return loans.filter((l: any) => inMonth(l.startDate || l.start_date, m))
-          .reduce((s: number, l: any) => s + (Number(l.amount) || 0), 0);
-      case "new_loans_count":
-        return loans.filter((l: any) => inMonth(l.startDate || l.start_date, m)).length;
-      case "received_total":
-        return payments.filter((p: any) => inMonth(p.date, m))
-          .reduce((s: number, p: any) => s + (Number(p.amount) || 0), 0);
-      case "interest_received": {
-        return payments.filter((p: any) => inMonth(p.date, m)).reduce((s: number, p: any) => {
-          const loan: any = loans.find((l: any) => l.id === p.loan_id);
-          if (!loan) return s;
-          const principalPerInstall = Number(loan.amount) / Math.max(1, Number(loan.installments) || 1);
-          return s + Math.max(0, (Number(p.amount) || 0) - principalPerInstall);
-        }, 0);
-      }
-      case "active_capital":
-        return m === currentMonth ? currentActiveCapital : (getSnapshotAmount(m) ?? 0);
-      case "net_profit": {
-        const interest = payments.filter((p: any) => inMonth(p.date, m)).reduce((s: number, p: any) => {
-          const loan: any = loans.find((l: any) => l.id === p.loan_id);
-          if (!loan) return s;
-          const principalPerInstall = Number(loan.amount) / Math.max(1, Number(loan.installments) || 1);
-          return s + Math.max(0, (Number(p.amount) || 0) - principalPerInstall);
-        }, 0);
-        const exp = expenses.filter((e: any) => e.paid && e.scope !== "personal" && inMonth(e.paid_date || e.paidDate || e.due_date || e.dueDate, m))
-          .reduce((s: number, e: any) => s + (Number(e.amount) || 0), 0);
-        return interest - exp;
-      }
-      case "max_default_rate": {
-        // % de parcelas vencidas e não pagas até hoje
-        const today = new Date().toISOString().slice(0, 10);
-        let total = 0, late = 0;
-        loans.forEach((l: any) => {
-          const inst = Number(l.installments) || 1;
-          const paid = Number(l.paidInstallments ?? l.paid_installments) || 0;
-          total += inst;
-          // estimativa simples: parcelas vencidas baseadas em dueDate + paid
-          const due = (l.dueDate || l.due_date || "").slice(0, 10);
-          if (due && due < today) {
-            const overdue = Math.max(0, inst - paid);
-            late += overdue;
-          }
-        });
-        return total === 0 ? 0 : (late / total) * 100;
-      }
-      case "new_clients_count":
-        return clients.filter((c: any) => inMonth(c.created_at || c.createdAt, m)).length;
-      case "interest_rate": {
-        const monthLoans = loans.filter((l: any) => inMonth(l.startDate || l.start_date, m));
-        if (monthLoans.length === 0) return 0;
-        const sum = monthLoans.reduce((s: number, l: any) => s + (Number(l.interestRate ?? l.interest_rate) || 0), 0);
-        return sum / monthLoans.length;
-      }
-      case "profit": {
-        // Aproximação: % lucro líquido do mês sobre meta cadastrada
-        return 0;
-      }
-      default:
-        return 0;
+    if (type === "active_capital") {
+      return m === currentMonth ? currentActiveCapital : (getSnapshotAmount(m) ?? 0);
     }
+    return computeActualFromGoalsCard(type, m, loans, payments, expenses, clients, installmentSchedules);
   };
 
   const enrichedGoals = useMemo(() =>
