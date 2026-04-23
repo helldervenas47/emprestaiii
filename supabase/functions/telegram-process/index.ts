@@ -492,6 +492,7 @@ Vou interpretar e cadastrar automaticamente.
 /ultimas — últimas 5 despesas
 /apagar — apaga a despesa mais recente
 /aporte — fazer um aporte em uma caixinha (cofrinho)
+/meus\_aportes — últimos 10 aportes nas caixinhas
 /help — esta mensagem
 /start CODIGO — vincular conta`;
 
@@ -603,6 +604,43 @@ async function handleApagar(admin: any, userId: string): Promise<string> {
   const date = e.paid_date || e.due_date || "";
   const dateStr = date ? fmtDayMonth(date) : "—";
   return `🗑️ *Despesa removida:*\n${fmtBRL(Number(e.amount) || 0)} — ${e.description} (${e.category}) — ${dateStr}`;
+}
+
+async function handleMeusAportes(admin: any, userId: string): Promise<string> {
+  const { data: ownerData } = await admin.rpc("get_data_owner_id", { _user_id: userId });
+  const ownerId = (typeof ownerData === "string" && ownerData) ? ownerData : userId;
+
+  const { data: deposits } = await admin
+    .from("piggy_bank_deposits")
+    .select("amount, deposit_date, piggy_bank_id, created_at")
+    .eq("user_id", ownerId)
+    .order("deposit_date", { ascending: false })
+    .order("created_at", { ascending: false })
+    .limit(10);
+
+  if (!deposits || deposits.length === 0) {
+    return "ℹ️ Nenhum aporte em caixinhas registrado ainda.\nUse /aporte para fazer o primeiro.";
+  }
+
+  const ids = Array.from(new Set(deposits.map((d: any) => d.piggy_bank_id)));
+  const { data: banks } = await admin
+    .from("piggy_banks")
+    .select("id, name")
+    .in("id", ids);
+  const nameById = new Map<string, string>();
+  for (const b of (banks ?? []) as any[]) nameById.set(b.id, b.name);
+
+  let total = 0;
+  let msg = "🐷 *Últimos aportes*\n";
+  deposits.forEach((d: any, i: number) => {
+    const amt = Number(d.amount) || 0;
+    total += amt;
+    const dateStr = d.deposit_date ? fmtDayMonth(d.deposit_date) : "—";
+    const sign = amt < 0 ? "↓ " : "";
+    msg += `${i + 1}. ${sign}${fmtBRL(amt)} — ${nameById.get(d.piggy_bank_id) ?? "Caixinha"} — ${dateStr}\n`;
+  });
+  msg += `\n*Total exibido:* ${fmtBRL(total)}`;
+  return msg;
 }
 
 function ymd(d: Date): string {
@@ -1879,6 +1917,9 @@ Deno.serve(async (req) => {
                   LOVABLE_API_KEY, TELEGRAM_API_KEY,
                 );
               }
+            } else if (/^\/(meus[_-]?aportes|meusaportes)(?:@\w+)?\b/i.test(text)) {
+              const reply = await handleMeusAportes(admin, link.user_id);
+              await tgSend(chatId, reply, LOVABLE_API_KEY, TELEGRAM_API_KEY);
             } else {
               // Regex-first: skip AI for clear "<amount> <description>" or "<description> <amount>" inputs.
               const quick = quickParseExpense(text);

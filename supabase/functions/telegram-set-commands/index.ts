@@ -14,6 +14,7 @@ const COMMANDS = [
   { command: 'ultimas', description: 'Últimas 5 despesas' },
   { command: 'apagar', description: 'Apaga a despesa mais recente' },
   { command: 'aporte', description: 'Fazer aporte em uma caixinha (cofrinho)' },
+  { command: 'meus_aportes', description: 'Últimos 10 aportes nas caixinhas' },
   { command: 'help', description: 'Mostra ajuda' },
   { command: 'start', description: 'Vincular conta com código' },
 ];
