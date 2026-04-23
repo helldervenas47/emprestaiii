@@ -1066,6 +1066,7 @@ export type Database = {
           id: string
           installment_number: number
           loan_id: string
+          metadata: Json
           payment_method_id: string | null
           previous_due_date: string | null
           user_id: string
@@ -1077,6 +1078,7 @@ export type Database = {
           id?: string
           installment_number?: number
           loan_id: string
+          metadata?: Json
           payment_method_id?: string | null
           previous_due_date?: string | null
           user_id: string
@@ -1088,6 +1090,7 @@ export type Database = {
           id?: string
           installment_number?: number
           loan_id?: string
+          metadata?: Json
           payment_method_id?: string | null
           previous_due_date?: string | null
           user_id?: string
