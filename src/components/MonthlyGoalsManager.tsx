@@ -51,7 +51,7 @@ function fmtValue(v: number, unit: Unit, hidden: boolean): string {
 
 export function MonthlyGoalsManager({ readOnly = false }: { readOnly?: boolean } = {}) {
   const { goals, upsertGoal, deleteGoal, loading } = useMonthlyGoals();
-  const { loans, payments } = useLoans();
+  const { loans, payments, installmentSchedules } = useLoans();
   const { clients } = useClients();
   const { expenses } = useExpenses(true);
   const { hidden } = useHideValues();
