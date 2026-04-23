@@ -1101,17 +1101,6 @@ function LoanCardView({
                 />
               </PopoverContent>
             </Popover>
-            {loan.status !== "paid" && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setShowAdjustDueDate(true)}
-                className="w-full h-7 text-[11px] gap-1"
-              >
-                <CalendarIcon className="h-3 w-3" />
-                Ajustar data de vencimento
-              </Button>
-            )}
           </div>
           <div className="flex items-center gap-2 bg-success/5 border border-success/20 rounded-lg px-3 py-2">
             <DollarSign className="h-4 w-4 text-success shrink-0" />
@@ -2245,17 +2234,6 @@ function LoanRowView({
                   <p className="text-xs font-medium">
                     {getFirstPendingDate(loan, installmentSchedules).toLocaleDateString("pt-BR")}
                   </p>
-                  {!readOnly && loan.status !== "paid" && onSaveSchedule && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="h-6 px-2 text-[10px] gap-1"
-                      onClick={(e) => { e.stopPropagation(); setShowAdjustDueDateRow(true); }}
-                    >
-                      <CalendarIcon className="h-3 w-3" />
-                      Ajustar
-                    </Button>
-                  )}
                 </div>
               </div>
             </div>
