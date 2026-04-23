@@ -65,10 +65,12 @@ export function BillingCalendar({ loans, payments, installmentSchedules, onPayme
   const [paymentDate, setPaymentDate] = useState<Date>(new Date());
   const { activeMethods } = usePaymentMethods();
   const [selectedMethodId, setSelectedMethodId] = useState<string>("");
-  // Auto-select first method when dialog opens
-  if (paymentDialog && !selectedMethodId && activeMethods.length > 0) {
-    queueMicrotask(() => setSelectedMethodId(activeMethods[0].id));
-  }
+  useMemo(() => {
+    if (paymentDialog && !selectedMethodId && activeMethods.length > 0) {
+      setSelectedMethodId(activeMethods[0].id);
+    }
+    return null;
+  }, [paymentDialog, activeMethods, selectedMethodId]);
 
   // Build a map of date -> due items
   const dueMap = useMemo(() => {
