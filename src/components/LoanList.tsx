@@ -18,7 +18,7 @@ import { calculateInstallment, calculateTotalWithInterest } from "@/hooks/useLoa
 import { cn } from "@/lib/utils";
 import {
   CheckCircle, Trash2, DollarSign, User, Calendar as CalendarIcon, LayoutGrid, List,
-  Search, Percent, Pencil, Check, X, ChevronDown, ChevronRight, FolderOpen, Folder, HandCoins, Tag, MoreHorizontal, MessageCircle, Filter, SlidersHorizontal, History, UserCog,
+  Search, Percent, Pencil, Check, X, ChevronDown, ChevronRight, FolderOpen, Folder, HandCoins, Tag, MoreHorizontal, MessageCircle, Filter, SlidersHorizontal, History, UserCog, Calculator,
 } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -26,6 +26,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { AdjustDueDateDialog } from "@/components/AdjustDueDateDialog";
+import { AmortizationSimulator } from "@/components/AmortizationSimulator";
 import { usePaymentMethods } from "@/hooks/usePaymentMethods";
 
 interface Props {
@@ -293,6 +294,7 @@ function LoanCardView({
   const [amortizeAmount, setAmortizeAmount] = useState("");
   const [paymentDate, setPaymentDate] = useState<Date>(new Date());
   const [showHistory, setShowHistory] = useState(false);
+  const [showSimulator, setShowSimulator] = useState(false);
   const [showDetails, setShowDetails] = useState(false);
   const [editingInstallment, setEditingInstallment] = useState(false);
   const [installmentInput, setInstallmentInput] = useState("");
@@ -1351,6 +1353,18 @@ function LoanCardView({
                   </div>
                 </DropdownMenuItem>
                 )}
+                <DropdownMenuItem
+                  onClick={() => setShowSimulator(true)}
+                  className="flex items-center gap-3 px-3 py-2.5 rounded-lg cursor-pointer hover:bg-primary/10 focus:bg-primary/10"
+                >
+                  <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                    <Calculator className="h-4 w-4 text-primary" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-foreground">Simular amortização</p>
+                    <p className="text-[11px] text-muted-foreground">Compare valores e datas sem salvar</p>
+                  </div>
+                </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
            )}
@@ -1652,6 +1666,13 @@ function LoanCardView({
         </DialogFooter>
       </DialogContent>
     </Dialog>
+    <AmortizationSimulator
+      loan={loan}
+      payments={allPayments}
+      open={showSimulator}
+      onOpenChange={setShowSimulator}
+      onApply={onAmortize ? (amount, date) => onAmortize(amount, date, null) : undefined}
+    />
     <Dialog open={showHistory} onOpenChange={setShowHistory}>
       <DialogContent className="sm:max-w-[440px]">
         <DialogHeader>
@@ -1748,6 +1769,7 @@ function LoanRowView({
   const [payoffAmount, setPayoffAmount] = useState("");
   const [amortizeAmount, setAmortizeAmount] = useState("");
   const [showHistory, setShowHistory] = useState(false);
+  const [showSimulator, setShowSimulator] = useState(false);
   const [paymentDate, setPaymentDate] = useState<Date>(new Date());
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deletePaymentId, setDeletePaymentId] = useState<string | null>(null);
@@ -2327,6 +2349,18 @@ function LoanRowView({
                       </div>
                     </DropdownMenuItem>
                     )}
+                    <DropdownMenuItem
+                      onClick={() => setShowSimulator(true)}
+                      className="flex items-center gap-3 px-3 py-2.5 rounded-lg cursor-pointer hover:bg-primary/10 focus:bg-primary/10"
+                    >
+                      <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                        <Calculator className="h-4 w-4 text-primary" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-foreground">Simular amortização</p>
+                        <p className="text-[11px] text-muted-foreground">Compare valores e datas sem salvar</p>
+                      </div>
+                    </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
               )}
@@ -2655,6 +2689,13 @@ function LoanRowView({
         </DialogFooter>
       </DialogContent>
     </Dialog>
+    <AmortizationSimulator
+      loan={loan}
+      payments={allPayments}
+      open={showSimulator}
+      onOpenChange={setShowSimulator}
+      onApply={onAmortize ? (amount, date) => onAmortize(amount, date, null) : undefined}
+    />
     <Dialog open={showHistory} onOpenChange={setShowHistory}>
       <DialogContent className="sm:max-w-[440px]">
         <DialogHeader>
