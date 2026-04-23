@@ -1884,6 +1884,7 @@ export type Database = {
           chat_id: number
           created_at: string
           expires_at: string
+          notes: string | null
           piggy_bank_id: string
           user_id: string
         }
@@ -1891,6 +1892,7 @@ export type Database = {
           chat_id: number
           created_at?: string
           expires_at?: string
+          notes?: string | null
           piggy_bank_id: string
           user_id: string
         }
@@ -1898,6 +1900,7 @@ export type Database = {
           chat_id?: number
           created_at?: string
           expires_at?: string
+          notes?: string | null
           piggy_bank_id?: string
           user_id?: string
         }
