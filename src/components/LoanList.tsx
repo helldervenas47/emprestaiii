@@ -2342,6 +2342,18 @@ function LoanRowView({
                       </div>
                     </DropdownMenuItem>
                     )}
+                    <DropdownMenuItem
+                      onClick={() => setShowSimulator(true)}
+                      className="flex items-center gap-3 px-3 py-2.5 rounded-lg cursor-pointer hover:bg-primary/10 focus:bg-primary/10"
+                    >
+                      <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                        <Calculator className="h-4 w-4 text-primary" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-foreground">Simular amortização</p>
+                        <p className="text-[11px] text-muted-foreground">Compare valores e datas sem salvar</p>
+                      </div>
+                    </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
               )}
