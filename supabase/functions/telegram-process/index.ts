@@ -1914,6 +1914,7 @@ Deno.serve(async (req) => {
               }
             }
           }
+          }
 
           // ✏️ Pending edit interception (before any other text handling)
           const { data: pending } = pendingHandled
