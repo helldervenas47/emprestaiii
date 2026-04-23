@@ -1786,9 +1786,10 @@ function LoanRowView({
     setEditing(false);
   };
 
-  const openPaymentDialog = (type: "installment" | "interest" | "partial" | "full" | "payoff", amount?: number) => {
+  const openPaymentDialog = (type: "installment" | "interest" | "partial" | "full" | "payoff" | "amortize", amount?: number) => {
     setPaymentDate(new Date());
     setPayoffAmount("");
+    setAmortizeAmount("");
     setInterestSelection("normal");
     setPaymentDialog({ type, amount });
   };
@@ -1804,6 +1805,8 @@ function LoanRowView({
     const dialogAmount = paymentDialog.amount;
     const mid = rowSelectedMethodId || null;
     setPayoffAmount("");
+    const amortRaw = parseFloat(amortizeAmount.replace(",", "."));
+    setAmortizeAmount("");
     setPaymentDialog(null);
     try {
       if (dialogType === "full") {
@@ -1823,6 +1826,11 @@ function LoanRowView({
           await onPartialPayment(custom, dateStr, mid);
           await onUpdate({ paidInstallments: loan.installments, status: "paid" });
         }
+      } else if (dialogType === "amortize") {
+        if (!onAmortize) { toast.error("Amortização indisponível"); return; }
+        const val = isFinite(amortRaw) && amortRaw > 0 ? amortRaw : 0;
+        if (val <= 0) { toast.error("Informe um valor válido"); return; }
+        await onAmortize(val, dateStr, mid);
       } else if (dialogType === "installment") {
         await onPayment(dateStr, mid);
       } else if (dialogType === "interest") {
@@ -1834,10 +1842,10 @@ function LoanRowView({
       } else if (dialogType === "partial" && dialogAmount) {
         await onPartialPayment(dialogAmount, dateStr, mid);
       }
-      toast.success("Pagamento registrado");
+      toast.success(dialogType === "amortize" ? "Amortização registrada" : "Pagamento registrado");
     } catch (err: any) {
       console.error("[confirmPayment]", err);
-      toast.error(`Falha ao registrar pagamento: ${err?.message ?? "tente novamente"}`);
+      toast.error(`Falha ao registrar: ${err?.message ?? "tente novamente"}`);
     }
   };
 
