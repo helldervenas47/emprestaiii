@@ -8,8 +8,9 @@ import { Progress } from "@/components/ui/progress";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Target, Pencil, Trash2, Plus, Percent, TrendingUp, Banknote, FileText,
-  HandCoins, Coins, Wallet, PiggyBank, AlertTriangle, UserPlus,
+  HandCoins, Coins, Wallet, PiggyBank, AlertTriangle, UserPlus, Copy,
 } from "lucide-react";
+import { toast } from "sonner";
 import { useMonthlyGoals, GoalType, currentMonthKey, formatMonthLabel } from "@/hooks/useMonthlyGoals";
 import { useLoans } from "@/hooks/useLoans";
 import { useClients } from "@/hooks/useClients";
@@ -66,6 +67,7 @@ export function MonthlyGoalsManager({ readOnly = false }: { readOnly?: boolean }
   const [notes, setNotes] = useState("");
   const [editId, setEditId] = useState<string | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [filterMonth, setFilterMonth] = useState<string>(currentMonthKey());
 
   const reset = () => {
     setEditId(null);
@@ -171,10 +173,26 @@ export function MonthlyGoalsManager({ readOnly = false }: { readOnly?: boolean }
     [goals, loans, payments, clients, expenses]
   );
 
-  // Agrupa metas pelo tipo (nome), ordenando os meses de cada grupo (mais recente primeiro)
+  // Helper: mês anterior no formato YYYY-MM
+  const prevMonthKey = (m: string) => {
+    const [y, mm] = m.split("-").map(Number);
+    const d = new Date(y, mm - 2, 1);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+  };
+
+  // Lista única de meses com metas (para o filtro)
+  const availableMonths = useMemo(() => {
+    const set = new Set<string>(goals.map((g) => g.month));
+    set.add(filterMonth);
+    set.add(currentMonthKey());
+    return Array.from(set).sort((a, b) => b.localeCompare(a));
+  }, [goals, filterMonth]);
+
+  // Agrupa metas do mês filtrado pelo tipo (nome)
   const groupedGoals = useMemo(() => {
+    const filtered = enrichedGoals.filter((g) => g.month === filterMonth);
     const map = new Map<GoalType, typeof enrichedGoals>();
-    enrichedGoals.forEach((g) => {
+    filtered.forEach((g) => {
       const arr = map.get(g.goalType) || [];
       arr.push(g);
       map.set(g.goalType, arr);
@@ -183,7 +201,25 @@ export function MonthlyGoalsManager({ readOnly = false }: { readOnly?: boolean }
       type,
       items: [...items].sort((a, b) => b.month.localeCompare(a.month)),
     }));
-  }, [enrichedGoals]);
+  }, [enrichedGoals, filterMonth]);
+
+  // Tipos cadastrados no mês anterior mas não no atual filtrado
+  const prevMonth = prevMonthKey(filterMonth);
+  const missingFromPrev = useMemo(() => {
+    const currentTypes = new Set(goals.filter((g) => g.month === filterMonth).map((g) => g.goalType));
+    return goals.filter((g) => g.month === prevMonth && !currentTypes.has(g.goalType));
+  }, [goals, filterMonth, prevMonth]);
+
+  const copyFromPrevMonth = async () => {
+    if (missingFromPrev.length === 0) {
+      toast.info("Nenhuma meta nova para copiar do mês anterior");
+      return;
+    }
+    for (const g of missingFromPrev) {
+      await upsertGoal(g.goalType, filterMonth, g.targetValue, g.notes || undefined);
+    }
+    toast.success(`${missingFromPrev.length} meta(s) copiada(s) do mês anterior`);
+  };
 
   const selectedMeta = GOAL_TYPE_META[goalType];
 
@@ -248,10 +284,44 @@ export function MonthlyGoalsManager({ readOnly = false }: { readOnly?: boolean }
 
       <Card no3d>
         <CardContent className="p-4">
-          <h3 className="font-semibold text-foreground mb-3">Metas cadastradas</h3>
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-3">
+            <h3 className="font-semibold text-foreground">Metas cadastradas</h3>
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="flex items-center gap-2">
+                <Label className="text-xs text-muted-foreground whitespace-nowrap">Mês:</Label>
+                <Select value={filterMonth} onValueChange={setFilterMonth}>
+                  <SelectTrigger className="h-8 w-[180px]">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="max-h-72">
+                    {availableMonths.map((m) => (
+                      <SelectItem key={m} value={m}>{formatMonthLabel(m)}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              {!readOnly && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={copyFromPrevMonth}
+                  disabled={missingFromPrev.length === 0}
+                  title={missingFromPrev.length === 0 ? "Nada novo para copiar do mês anterior" : `Copiar ${missingFromPrev.length} meta(s) de ${formatMonthLabel(prevMonth)}`}
+                >
+                  <Copy className="h-3.5 w-3.5" />
+                  Copiar do mês anterior
+                  {missingFromPrev.length > 0 && (
+                    <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-[10px]">{missingFromPrev.length}</Badge>
+                  )}
+                </Button>
+              )}
+            </div>
+          </div>
           {loading && <p className="text-sm text-muted-foreground">Carregando...</p>}
           {!loading && groupedGoals.length === 0 && (
-            <p className="text-sm text-muted-foreground text-center py-6">Nenhuma meta cadastrada ainda.</p>
+            <p className="text-sm text-muted-foreground text-center py-6">
+              Nenhuma meta cadastrada para {formatMonthLabel(filterMonth)}.
+            </p>
           )}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {groupedGoals.map(({ type, items }) => {
