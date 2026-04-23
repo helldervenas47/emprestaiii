@@ -28,6 +28,7 @@ const LocadorList = lazy(() => import("@/components/LocadorList").then(m => ({ d
 const BrandingSettings = lazy(() => import("@/components/BrandingSettings").then(m => ({ default: m.BrandingSettings })));
 const ActiveSessionsCard = lazy(() => import("@/components/ActiveSessionsCard").then(m => ({ default: m.ActiveSessionsCard })));
 const InviteAndApprovalSettings = lazy(() => import("@/components/InviteAndApprovalSettings").then(m => ({ default: m.InviteAndApprovalSettings })));
+const PaymentMethodsManager = lazy(() => import("@/components/PaymentMethodsManager").then(m => ({ default: m.PaymentMethodsManager })));
 
 const SectionLoader = () => (
   <div className="flex justify-center py-8"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>
