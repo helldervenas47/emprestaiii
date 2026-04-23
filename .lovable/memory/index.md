@@ -9,6 +9,5 @@ Portuguese (pt-BR) interface. localStorage persistence. Loan startDate is immuta
 ## Memories
 - [Loan start date constraint](mem://constraints/loan-start-date) — Never modify the initial contract date after creation
 - [Loan schedule dates](mem://features/loan-schedule-dates) — Paying an installment must not shift future due dates; schedule stays anchored to first due date by contract type
-- [Loan remaining amount source](mem://features/loan-remaining-amount-source) — Cap the saved remaining_amount by total - deductible payments to avoid stale inflated "restante"
 - [Multi-user access](mem://features/multi-user-access) — Sub-users share admin data via user_owner; roles admin/operador/visualizador
 - [User approval system](mem://features/user-approval-system) — Per-admin approval toggle + invite codes; pending users see waiting screen

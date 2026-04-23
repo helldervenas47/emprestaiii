@@ -170,27 +170,6 @@ function getTotalPaid(loan: Loan, payments: Payment[]): number {
   return payments.filter((p) => p.loanId === loan.id).reduce((s, p) => s + p.amount, 0);
 }
 
-/**
- * Reconciles the saved `remainingAmount` against the deductible payments already
- * registered (installments, partials, payoffs and amortizations — i.e. anything
- * that is NOT an interest-only payment with installmentNumber === 0 or a
- * non-deductible marker like -2).
- *
- * The saved value is the source of truth EXCEPT when it is clearly stale
- * (greater than what could possibly remain after the recorded deductible
- * payments). In that case we cap it at the calculated remaining so the UI
- * stops showing inflated "restante" values for legacy or out-of-sync rows.
- */
-function getReconciledRemaining(loan: Loan, payments: Payment[], total: number): number {
-  const deductiblePaid = payments
-    .filter((p) => p.loanId === loan.id && p.installmentNumber !== 0 && p.installmentNumber !== -2)
-    .reduce((s, p) => s + p.amount, 0);
-  const calculated = Math.max(0, total - deductiblePaid);
-  if (loan.remainingAmount == null || loan.remainingAmount <= 0) return calculated;
-  // If saved value is bigger than what's mathematically possible, it's stale.
-  return Math.min(loan.remainingAmount, calculated);
-}
-
 function PaymentHistoryItem({
   payment, formatCurrency, onDelete, readOnly,
 }: {
@@ -348,10 +327,11 @@ function LoanCardView({
     .sort((a, b) => a.installmentNumber - b.installmentNumber);
   const nextSchedule = unpaidSchedules[0];
   const allUnpaidScheduleSum = unpaidSchedules.reduce((sum, s) => sum + s.amount, 0);
-  const reconciledRemaining = getReconciledRemaining(loan, allPayments, total);
   const baseRemaining = loan.installments >= 2 && allUnpaidScheduleSum > 0
     ? allUnpaidScheduleSum
-    : reconciledRemaining;
+    : loan.remainingAmount != null && loan.remainingAmount > 0
+      ? loan.remainingAmount
+      : Math.max(0, total - totalPaid);
   const category = getLoanCategory(loan, allPayments, installmentSchedules);
   const daysOverdue = getDaysOverdue(loan, installmentSchedules);
 
@@ -380,7 +360,9 @@ function LoanCardView({
     : loan.customInstallmentValue != null && loan.customInstallmentValue > 0
       ? loan.customInstallmentValue
       : (loan.installments >= 2 ? total / loan.installments : baseRemaining);
-  const actualRemaining = reconciledRemaining;
+  const actualRemaining = loan.remainingAmount != null && loan.remainingAmount > 0
+    ? loan.remainingAmount
+    : Math.max(0, total - totalPaid);
   const expectedRemainingForUnpaid = nextSchedule
     ? allUnpaidScheduleSum
     : fullInstallment * remainingInstallments;
@@ -1838,10 +1820,11 @@ function LoanRowView({
     .filter((s) => s.loanId === loan.id && s.installmentNumber > loan.paidInstallments)
     .sort((a, b) => a.installmentNumber - b.installmentNumber);
   const allUnpaidScheduleSum = unpaidSchedules.reduce((sum, s) => sum + s.amount, 0);
-  const reconciledRemainingRow = getReconciledRemaining(loan, allPayments, total);
   const baseRemaining = loan.installments >= 2 && allUnpaidScheduleSum > 0
     ? allUnpaidScheduleSum
-    : reconciledRemainingRow;
+    : loan.remainingAmount != null && loan.remainingAmount > 0
+      ? loan.remainingAmount
+      : Math.max(0, total - totalPaid);
 
   const daysOverdue = getDaysOverdue(loan, installmentSchedules);
 
@@ -1868,7 +1851,9 @@ function LoanRowView({
     : loan.customInstallmentValue != null && loan.customInstallmentValue > 0
       ? loan.customInstallmentValue
       : (loan.installments >= 2 ? total / loan.installments : baseRemaining);
-  const actualRemainingRow = reconciledRemainingRow;
+  const actualRemainingRow = loan.remainingAmount != null && loan.remainingAmount > 0
+    ? loan.remainingAmount
+    : Math.max(0, total - totalPaid);
   const expectedRemainingRow = nextSchedule
     ? allUnpaidScheduleSum
     : fullInstallmentValue * remainingInstallments;
