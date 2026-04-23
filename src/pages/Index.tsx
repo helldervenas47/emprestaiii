@@ -1,5 +1,5 @@
 import { useState, useEffect, lazy, Suspense } from "react";
-import { Plus, Users, LayoutDashboard, ShoppingBag, BarChart3, AlertTriangle, Receipt, CalendarDays, Sun, Moon, LogOut, Info, X, Eye, EyeOff, Car, Wrench, DatabaseBackup, Menu, User, RefreshCw, Bell, Target, Calculator, Settings as SettingsIcon, CalendarClock, Pin, Check, Sliders, Loader2, GripVertical, Activity } from "lucide-react";
+import { Plus, Users, LayoutDashboard, ShoppingBag, BarChart3, AlertTriangle, Receipt, CalendarDays, Sun, Moon, LogOut, Info, X, Eye, EyeOff, Car, Wrench, DatabaseBackup, Menu, User, RefreshCw, Bell, Target, Calculator, Settings as SettingsIcon, CalendarClock, Pin, Check, Sliders, Loader2, GripVertical, Activity, Send } from "lucide-react";
 import { AppLogo } from "@/components/AppLogo";
 import { useAppBranding } from "@/hooks/useAppBranding";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -812,6 +812,13 @@ const Index = () => {
               >
                 <CalendarClock className="h-4 w-4 mr-1" /> Planejamento do Dia
               </Button>
+              <Button
+                variant={overdueSubTab === "bot-telegram" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setOverdueSubTab("bot-telegram")}
+              >
+                <Send className="h-4 w-4 mr-1" /> Bot Telegram
+              </Button>
             </div>
             {overdueSubTab === "cobrancas" && (
               <OverdueLoans loans={filteredLoans} payments={filteredPayments} clients={filteredClients} installmentSchedules={filteredInstallments} />
@@ -833,6 +840,9 @@ const Index = () => {
                 sales={filteredSales}
                 expenses={expenses}
               />
+            )}
+            {overdueSubTab === "bot-telegram" && (
+              <TelegramBotsHub />
             )}
           </div>
           </SubscriptionGate>
