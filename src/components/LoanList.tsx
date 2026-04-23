@@ -2601,7 +2601,7 @@ export function LoanList({ loans, payments, installmentSchedules, onPayment, onP
   const [amountMin, setAmountMin] = useState("");
   const [amountMax, setAmountMax] = useState("");
   const [tagFilter, setTagFilter] = useState("");
-  const [onlyWithNotes, setOnlyWithNotes] = useState(false);
+  const [notesFilter, setNotesFilter] = useState<"all" | "with" | "without">("all");
   const [sortBy, setSortBy] = useState<"dueDate" | "startDate" | "amount" | "name">("dueDate");
 
   const allTags = useMemo(() => {
@@ -2645,8 +2645,10 @@ export function LoanList({ loans, payments, installmentSchedules, onPayment, onP
       filtered = filtered.filter((l) => l.tags?.includes(tagFilter));
     }
 
-    if (onlyWithNotes) {
+    if (notesFilter === "with") {
       filtered = filtered.filter((l) => Boolean(l.notes?.trim()));
+    } else if (notesFilter === "without") {
+      filtered = filtered.filter((l) => !l.notes?.trim());
     }
 
     // Quick due date filter (only applies to rows view)
@@ -2671,7 +2673,7 @@ export function LoanList({ loans, payments, installmentSchedules, onPayment, onP
       if (sortBy === "amount") return b.amount - a.amount;
       return a.borrowerName.localeCompare(b.borrowerName);
     });
-  }, [loans, payments, installmentSchedules, search, category, dateFrom, dateTo, amountMin, amountMax, tagFilter, onlyWithNotes, sortBy, dueDateQuick, view]);
+  }, [loans, payments, installmentSchedules, search, category, dateFrom, dateTo, amountMin, amountMax, tagFilter, notesFilter, sortBy, dueDateQuick, view]);
 
   const folderCount = useMemo(() => {
     const byName: Record<string, number> = {};
@@ -2810,7 +2812,7 @@ export function LoanList({ loans, payments, installmentSchedules, onPayment, onP
         </div>
         <Button variant={showFilters ? "default" : "outline"} size="sm" onClick={() => setShowFilters(!showFilters)} className="gap-1.5">
           <SlidersHorizontal className="h-3.5 w-3.5" />Filtros
-          {(dateFrom || dateTo || amountMin || amountMax || tagFilter || onlyWithNotes) && (
+          {(dateFrom || dateTo || amountMin || amountMax || tagFilter || notesFilter !== "all") && (
             <Badge className="bg-destructive text-destructive-foreground h-4 w-4 p-0 flex items-center justify-center text-[10px] rounded-full">!</Badge>
           )}
         </Button>
@@ -2900,14 +2902,19 @@ export function LoanList({ loans, payments, installmentSchedules, onPayment, onP
                 </select>
               </div>
               <div className="col-span-2 sm:col-span-3 lg:col-span-2 flex items-end">
-                <label className="flex h-8 w-full items-center gap-2 rounded-md border border-input bg-background px-3 text-sm ring-offset-background">
-                  <Checkbox checked={onlyWithNotes} onCheckedChange={(checked) => setOnlyWithNotes(checked === true)} />
-                  <span className="text-foreground">Apenas com observação</span>
-                </label>
+                <select
+                  value={notesFilter}
+                  onChange={(e) => setNotesFilter(e.target.value as "all" | "with" | "without")}
+                  className="flex h-8 w-full rounded-md border border-input bg-background px-3 py-1 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  <option value="all">Observação: todos</option>
+                  <option value="with">Apenas com observação</option>
+                  <option value="without">Apenas sem observação</option>
+                </select>
               </div>
             </div>
             <div className="flex justify-end mt-3">
-              <Button variant="ghost" size="sm" className="text-xs" onClick={() => { setDateFrom(""); setDateTo(""); setAmountMin(""); setAmountMax(""); setTagFilter(""); setOnlyWithNotes(false); setSortBy("dueDate"); }}>
+              <Button variant="ghost" size="sm" className="text-xs" onClick={() => { setDateFrom(""); setDateTo(""); setAmountMin(""); setAmountMax(""); setTagFilter(""); setNotesFilter("all"); setSortBy("dueDate"); }}>
                 <X className="h-3 w-3 mr-1" />Limpar filtros
               </Button>
             </div>
