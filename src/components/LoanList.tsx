@@ -2427,6 +2427,54 @@ function LoanRowView({
               </div>
             </div>
           )}
+          {paymentDialog?.type === "amortize" && (() => {
+            const rate = Number(loan.interestRate) || 0;
+            const oldPrincipal = Number(loan.amount) || 0;
+            const amortRaw = parseFloat(amortizeAmount.replace(",", "."));
+            const v = isFinite(amortRaw) && amortRaw > 0 ? amortRaw : 0;
+            const newPrincipal = Math.max(0, oldPrincipal - v);
+            const oldInterest = loan.customInterestValue != null && loan.customInterestValue > 0
+              ? loan.customInterestValue
+              : oldPrincipal * (rate / 100);
+            const newInterest = loan.customInterestValue != null && loan.customInterestValue > 0 && oldPrincipal > 0
+              ? loan.customInterestValue * (newPrincipal / oldPrincipal)
+              : newPrincipal * (rate / 100);
+            const interestSaved = Math.max(0, oldInterest - newInterest);
+            return (
+              <div className="w-full space-y-2">
+                <div className="text-center p-3 bg-muted/50 rounded-lg w-full">
+                  <p className="text-xs text-muted-foreground">Saldo principal atual</p>
+                  <p className="text-xl font-bold text-foreground">{formatCurrency(oldPrincipal)}</p>
+                </div>
+                <div className="space-y-1">
+                  <Label htmlFor="amort-amount-row" className="text-xs">Valor da amortização (R$)</Label>
+                  <Input
+                    id="amort-amount-row"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    inputMode="decimal"
+                    value={amortizeAmount}
+                    onChange={(e) => setAmortizeAmount(e.target.value)}
+                    placeholder="Ex: 500.00"
+                    autoFocus
+                  />
+                </div>
+                {v > 0 && v <= oldPrincipal && (
+                  <div className="rounded-lg border border-border/60 p-2.5 space-y-1 text-[11px]">
+                    <div className="flex justify-between"><span className="text-muted-foreground">Novo principal</span><span className="font-semibold tabular-nums">{rawFormatCurrency(newPrincipal)}</span></div>
+                    <div className="flex justify-between"><span className="text-muted-foreground">Juros antes</span><span className="tabular-nums">{rawFormatCurrency(oldInterest)}</span></div>
+                    <div className="flex justify-between"><span className="text-muted-foreground">Novo juros total</span><span className="font-semibold text-primary tabular-nums">{rawFormatCurrency(newInterest)}</span></div>
+                    <div className="flex justify-between"><span className="text-muted-foreground">Juros economizados</span><span className="font-semibold text-success tabular-nums">{rawFormatCurrency(interestSaved)}</span></div>
+                  </div>
+                )}
+                {v > oldPrincipal && (
+                  <p className="text-[11px] text-destructive">O valor não pode ser maior que o principal.</p>
+                )}
+                <p className="text-[10px] text-muted-foreground">A amortização reduz o saldo devedor e recalcula os juros e parcelas futuras proporcionalmente.</p>
+              </div>
+            );
+          })()}
           {paymentDialog?.type === "interest" && lateFees > 0 && (() => {
             const baseInterest = loan.customInterestValue != null && loan.customInterestValue > 0
               ? loan.customInterestValue
@@ -2531,7 +2579,7 @@ function LoanRowView({
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => setPaymentDialog(null)}>Cancelar</Button>
-          <Button onClick={confirmPayment} disabled={paymentDialog?.type === "payoff" && !(parseFloat(payoffAmount.replace(",", ".")) > 0)}>Confirmar</Button>
+          <Button onClick={confirmPayment} disabled={(paymentDialog?.type === "payoff" && !(parseFloat(payoffAmount.replace(",", ".")) > 0)) || (paymentDialog?.type === "amortize" && !(parseFloat(amortizeAmount.replace(",", ".")) > 0 && parseFloat(amortizeAmount.replace(",", ".")) <= (Number(loan.amount) || 0)))}>Confirmar</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
@@ -2628,7 +2676,7 @@ interface ClientGroup {
 }
 
 function ClientFolder({
-  group, payments, installmentSchedules, onPayment, onPartialPayment, onFullPayment, onInterestPayment, onUpdate, onDelete, onDeletePayment, onSaveSchedule, readOnly = false, clients = [],
+  group, payments, installmentSchedules, onPayment, onPartialPayment, onFullPayment, onInterestPayment, onAmortize, onUpdate, onDelete, onDeletePayment, onSaveSchedule, readOnly = false, clients = [],
 }: {
   group: ClientGroup;
   payments: Payment[];
@@ -2637,6 +2685,7 @@ function ClientFolder({
   onPartialPayment: (id: string, amount: number, date?: string, paymentMethodId?: string | null) => void;
   onFullPayment?: (id: string, date?: string, customAmount?: number, paymentMethodId?: string | null) => void;
   onInterestPayment: (id: string, date?: string, customAmount?: number, feesAmount?: number, paymentMethodId?: string | null) => void;
+  onAmortize?: (loanId: string, amount: number, paymentDate?: string, paymentMethodId?: string | null) => Promise<void> | void;
   onUpdate: (id: string, data: Partial<Omit<Loan, "id">>) => void;
   onDelete: (id: string) => void;
   onDeletePayment: (paymentId: string) => void;
@@ -2727,7 +2776,7 @@ function ClientFolder({
                 {group.loans.map((loan) => (
                   <LoanRowView key={loan.id} loan={loan} payments={payments} installmentSchedules={installmentSchedules} readOnly={readOnly} existingTags={[...new Set(group.loans.flatMap(l => l.tags || []))]} clients={clients}
                     onPayment={(date, mid) => onPayment(loan.id, date, mid)} onPartialPayment={(amt, date, mid) => onPartialPayment(loan.id, amt, date, mid)} onFullPayment={onFullPayment ? (date, custom, mid) => onFullPayment(loan.id, date, custom, mid) : undefined}
-                    onInterestPayment={(date, custom, fees, mid) => onInterestPayment(loan.id, date, custom, fees, mid)} onUpdate={(d) => onUpdate(loan.id, d)} onDelete={() => onDelete(loan.id)} onDeletePayment={onDeletePayment} onSaveSchedule={onSaveSchedule} />
+                    onInterestPayment={(date, custom, fees, mid) => onInterestPayment(loan.id, date, custom, fees, mid)} onAmortize={onAmortize ? (amt, date, mid) => onAmortize(loan.id, amt, date, mid) : undefined} onUpdate={(d) => onUpdate(loan.id, d)} onDelete={() => onDelete(loan.id)} onDeletePayment={onDeletePayment} onSaveSchedule={onSaveSchedule} />
                 ))}
               </tbody>
             </table>
@@ -2738,7 +2787,7 @@ function ClientFolder({
   );
 }
 
-export function LoanList({ loans, payments, installmentSchedules, onPayment, onPartialPayment, onFullPayment, onInterestPayment, onUpdate, onDelete, onDeletePayment, onSaveSchedule, readOnly = false, initialCategory, initialView, clients = [] }: Props) {
+export function LoanList({ loans, payments, installmentSchedules, onPayment, onPartialPayment, onFullPayment, onInterestPayment, onAmortize, onUpdate, onDelete, onDeletePayment, onSaveSchedule, readOnly = false, initialCategory, initialView, clients = [] }: Props) {
   const { mask } = useHideValues();
   const formatCurrency = useCallback((v: number) => mask(rawFormatCurrency(v)), [mask]);
   const [view, setView] = useState<"cards" | "rows" | "folders">(initialView ?? "rows");
@@ -3086,7 +3135,7 @@ export function LoanList({ loans, payments, installmentSchedules, onPayment, onP
                 <div key={loan.id} className="animate-fade-in h-full" style={{ animationDelay: `${i * 60}ms`, animationFillMode: 'backwards' }}>
                 <LoanCardView loan={loan} payments={payments} installmentSchedules={installmentSchedules} readOnly={readOnly} existingTags={loans.flatMap(l => l.tags || []).filter((v, i, a) => a.indexOf(v) === i)} clients={clients}
                   onPayment={(date, mid) => onPayment(loan.id, date, mid)} onPartialPayment={(amt, date, mid) => onPartialPayment(loan.id, amt, date, mid)} onFullPayment={onFullPayment ? (date, custom, mid) => onFullPayment(loan.id, date, custom, mid) : undefined}
-                  onInterestPayment={(date, custom, fees, mid) => onInterestPayment(loan.id, date, custom, fees, mid)} onUpdate={(d) => onUpdate(loan.id, d)} onDelete={() => onDelete(loan.id)} onDeletePayment={onDeletePayment} onSaveSchedule={onSaveSchedule} />
+                  onInterestPayment={(date, custom, fees, mid) => onInterestPayment(loan.id, date, custom, fees, mid)} onAmortize={onAmortize ? (amt, date, mid) => onAmortize(loan.id, amt, date, mid) : undefined} onUpdate={(d) => onUpdate(loan.id, d)} onDelete={() => onDelete(loan.id)} onDeletePayment={onDeletePayment} onSaveSchedule={onSaveSchedule} />
                 </div>
               ))}
             </div>
@@ -3096,7 +3145,7 @@ export function LoanList({ loans, payments, installmentSchedules, onPayment, onP
               {grouped.map((g) => (
                 <ClientFolder key={g.name} group={g} payments={payments} installmentSchedules={installmentSchedules} readOnly={readOnly} clients={clients}
                   onPayment={onPayment} onPartialPayment={onPartialPayment} onFullPayment={onFullPayment}
-                  onInterestPayment={onInterestPayment} onUpdate={onUpdate} onDelete={onDelete} onDeletePayment={onDeletePayment} onSaveSchedule={onSaveSchedule} />
+                  onInterestPayment={onInterestPayment} onAmortize={onAmortize} onUpdate={onUpdate} onDelete={onDelete} onDeletePayment={onDeletePayment} onSaveSchedule={onSaveSchedule} />
               ))}
               {grouped.length === 0 && (
                 <Card>
@@ -3130,7 +3179,7 @@ export function LoanList({ loans, payments, installmentSchedules, onPayment, onP
                   {categorized.map((loan) => (
                     <LoanRowView key={loan.id} loan={loan} payments={payments} installmentSchedules={installmentSchedules} readOnly={readOnly} existingTags={loans.flatMap(l => l.tags || []).filter((v, i, a) => a.indexOf(v) === i)} clients={clients}
                       onPayment={(date, mid) => onPayment(loan.id, date, mid)} onPartialPayment={(amt, date, mid) => onPartialPayment(loan.id, amt, date, mid)} onFullPayment={onFullPayment ? (date, custom, mid) => onFullPayment(loan.id, date, custom, mid) : undefined}
-                      onInterestPayment={(date, custom, fees, mid) => onInterestPayment(loan.id, date, custom, fees, mid)} onUpdate={(d) => onUpdate(loan.id, d)} onDelete={() => onDelete(loan.id)} onDeletePayment={onDeletePayment} onSaveSchedule={onSaveSchedule} />
+                      onInterestPayment={(date, custom, fees, mid) => onInterestPayment(loan.id, date, custom, fees, mid)} onAmortize={onAmortize ? (amt, date, mid) => onAmortize(loan.id, amt, date, mid) : undefined} onUpdate={(d) => onUpdate(loan.id, d)} onDelete={() => onDelete(loan.id)} onDeletePayment={onDeletePayment} onSaveSchedule={onSaveSchedule} />
                   ))}
                 </tbody>
               </table>
