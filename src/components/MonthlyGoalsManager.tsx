@@ -67,6 +67,7 @@ export function MonthlyGoalsManager({ readOnly = false }: { readOnly?: boolean }
   const [notes, setNotes] = useState("");
   const [editId, setEditId] = useState<string | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [filterMonth, setFilterMonth] = useState<string>(currentMonthKey());
 
   const reset = () => {
     setEditId(null);
