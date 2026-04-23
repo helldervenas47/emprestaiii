@@ -2902,14 +2902,19 @@ export function LoanList({ loans, payments, installmentSchedules, onPayment, onP
                 </select>
               </div>
               <div className="col-span-2 sm:col-span-3 lg:col-span-2 flex items-end">
-                <label className="flex h-8 w-full items-center gap-2 rounded-md border border-input bg-background px-3 text-sm ring-offset-background">
-                  <Checkbox checked={onlyWithNotes} onCheckedChange={(checked) => setOnlyWithNotes(checked === true)} />
-                  <span className="text-foreground">Apenas com observação</span>
-                </label>
+                <select
+                  value={notesFilter}
+                  onChange={(e) => setNotesFilter(e.target.value as "all" | "with" | "without")}
+                  className="flex h-8 w-full rounded-md border border-input bg-background px-3 py-1 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  <option value="all">Observação: todos</option>
+                  <option value="with">Apenas com observação</option>
+                  <option value="without">Apenas sem observação</option>
+                </select>
               </div>
             </div>
             <div className="flex justify-end mt-3">
-              <Button variant="ghost" size="sm" className="text-xs" onClick={() => { setDateFrom(""); setDateTo(""); setAmountMin(""); setAmountMax(""); setTagFilter(""); setOnlyWithNotes(false); setSortBy("dueDate"); }}>
+              <Button variant="ghost" size="sm" className="text-xs" onClick={() => { setDateFrom(""); setDateTo(""); setAmountMin(""); setAmountMax(""); setTagFilter(""); setNotesFilter("all"); setSortBy("dueDate"); }}>
                 <X className="h-3 w-3 mr-1" />Limpar filtros
               </Button>
             </div>
