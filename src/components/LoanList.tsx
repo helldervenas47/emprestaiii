@@ -1612,6 +1612,13 @@ function LoanRowView({
   const [showPenalty, setShowPenalty] = useState(false);
   const [penaltyValue, setPenaltyValue] = useState<string>(loan.penaltyValue != null ? String(loan.penaltyValue) : "");
   const managerOptions = useMemo(() => clients.filter((c) => c.isManager && c.active !== false), [clients]);
+  const { activeMethods: rowActiveMethods } = usePaymentMethods();
+  const [rowSelectedMethodId, setRowSelectedMethodId] = useState<string>("");
+  React.useEffect(() => {
+    if (paymentDialog && !rowSelectedMethodId && rowActiveMethods.length > 0) {
+      setRowSelectedMethodId(rowActiveMethods[0].id);
+    }
+  }, [paymentDialog, rowActiveMethods, rowSelectedMethodId]);
 
   const total = calculateTotalWithInterest(loan.amount, loan.interestRate, loan.installments);
   const totalPaid = getTotalPaid(loan, allPayments);
@@ -1712,17 +1719,22 @@ function LoanRowView({
 
   const confirmPayment = async () => {
     if (!paymentDialog) return;
+    if (rowActiveMethods.length > 0 && !rowSelectedMethodId) {
+      toast.error("Selecione a forma de pagamento");
+      return;
+    }
     const dateStr = paymentDate.toISOString().split("T")[0];
     const dialogType = paymentDialog.type;
     const dialogAmount = paymentDialog.amount;
+    const mid = rowSelectedMethodId || null;
     setPayoffAmount("");
     setPaymentDialog(null);
     try {
       if (dialogType === "full") {
         if (onFullPayment) {
-          await onFullPayment(dateStr);
+          await onFullPayment(dateStr, undefined, mid);
         } else {
-          await onPartialPayment(remaining, dateStr);
+          await onPartialPayment(remaining, dateStr, mid);
           await onUpdate({ paidInstallments: loan.installments, status: "paid" });
         }
       } else if (dialogType === "payoff") {
@@ -1730,21 +1742,21 @@ function LoanRowView({
         const custom = isFinite(customRaw) && customRaw > 0 ? customRaw : 0;
         if (custom <= 0) return;
         if (onFullPayment) {
-          await onFullPayment(dateStr, custom);
+          await onFullPayment(dateStr, custom, mid);
         } else {
-          await onPartialPayment(custom, dateStr);
+          await onPartialPayment(custom, dateStr, mid);
           await onUpdate({ paidInstallments: loan.installments, status: "paid" });
         }
       } else if (dialogType === "installment") {
-        await onPayment(dateStr);
+        await onPayment(dateStr, mid);
       } else if (dialogType === "interest") {
         if (interestSelection === "withFees" && lateFees > 0) {
-          await onInterestPayment(dateStr, undefined, lateFees);
+          await onInterestPayment(dateStr, undefined, lateFees, mid);
         } else {
-          await onInterestPayment(dateStr);
+          await onInterestPayment(dateStr, undefined, undefined, mid);
         }
       } else if (dialogType === "partial" && dialogAmount) {
-        await onPartialPayment(dialogAmount, dateStr);
+        await onPartialPayment(dialogAmount, dateStr, mid);
       }
       toast.success("Pagamento registrado");
     } catch (err: any) {
@@ -2397,6 +2409,19 @@ function LoanRowView({
               </div>
             );
           })()}
+          {rowActiveMethods.length > 0 && (
+            <div className="w-full space-y-1">
+              <Label className="text-sm text-muted-foreground">Forma de pagamento</Label>
+              <Select value={rowSelectedMethodId} onValueChange={setRowSelectedMethodId}>
+                <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                <SelectContent>
+                  {rowActiveMethods.map((m) => (
+                    <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
           <Label className="text-sm text-muted-foreground">Selecione a data do pagamento</Label>
           <CalendarUI
             mode="single"
