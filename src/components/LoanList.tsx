@@ -396,17 +396,22 @@ function LoanCardView({
 
   const confirmPayment = async () => {
     if (!paymentDialog) return;
+    if (activeMethods.length > 0 && !selectedMethodId) {
+      toast.error("Selecione a forma de pagamento");
+      return;
+    }
     const dateStr = paymentDate.toISOString().split("T")[0];
     const dialogType = paymentDialog.type;
     const dialogAmount = paymentDialog.amount;
+    const mid = selectedMethodId || null;
     setPayoffAmount("");
     setPaymentDialog(null);
     try {
       if (dialogType === "full") {
         if (onFullPayment) {
-          await onFullPayment(dateStr);
+          await onFullPayment(dateStr, undefined, mid);
         } else {
-          await onPartialPayment(remaining, dateStr);
+          await onPartialPayment(remaining, dateStr, mid);
           await onUpdate({ paidInstallments: loan.installments, status: "paid" });
         }
       } else if (dialogType === "payoff") {
@@ -414,21 +419,21 @@ function LoanCardView({
         const custom = isFinite(customRaw) && customRaw > 0 ? customRaw : 0;
         if (custom <= 0) return;
         if (onFullPayment) {
-          await onFullPayment(dateStr, custom);
+          await onFullPayment(dateStr, custom, mid);
         } else {
-          await onPartialPayment(custom, dateStr);
+          await onPartialPayment(custom, dateStr, mid);
           await onUpdate({ paidInstallments: loan.installments, status: "paid" });
         }
       } else if (dialogType === "installment") {
-        await onPayment(dateStr);
+        await onPayment(dateStr, mid);
       } else if (dialogType === "interest") {
         if (interestSelection === "withFees" && lateFees > 0) {
-          await onInterestPayment(dateStr, undefined, lateFees);
+          await onInterestPayment(dateStr, undefined, lateFees, mid);
         } else {
-          await onInterestPayment(dateStr);
+          await onInterestPayment(dateStr, undefined, undefined, mid);
         }
       } else if (dialogType === "partial" && dialogAmount) {
-        await onPartialPayment(dialogAmount, dateStr);
+        await onPartialPayment(dialogAmount, dateStr, mid);
       }
       toast.success("Pagamento registrado");
     } catch (err: any) {
