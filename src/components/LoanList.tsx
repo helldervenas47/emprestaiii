@@ -294,6 +294,7 @@ function LoanCardView({
   const [amortizeAmount, setAmortizeAmount] = useState("");
   const [paymentDate, setPaymentDate] = useState<Date>(new Date());
   const [showHistory, setShowHistory] = useState(false);
+  const [showSimulator, setShowSimulator] = useState(false);
   const [showDetails, setShowDetails] = useState(false);
   const [editingInstallment, setEditingInstallment] = useState(false);
   const [installmentInput, setInstallmentInput] = useState("");
