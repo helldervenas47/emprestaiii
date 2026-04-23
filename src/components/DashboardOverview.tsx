@@ -452,7 +452,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
     });
     interestDetailRecords.sort((a, b) => b.date.localeCompare(a.date));
     
-    const totalProfitExpected = periodProfitExpected;
+    const totalProfitExpected = periodProfitExpectedWithInterestOnly;
     const totalProfitRealized = periodProfitRealized;
     const previstoTotal = totalProfitRealized + totalProfitExpected;
     const periodProfitPct = previstoTotal > 0 ? Math.round((totalProfitRealized / previstoTotal) * 100) : 0;
