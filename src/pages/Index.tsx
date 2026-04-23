@@ -1,5 +1,5 @@
 import { useState, useEffect, lazy, Suspense } from "react";
-import { Plus, Users, LayoutDashboard, ShoppingBag, BarChart3, AlertTriangle, Receipt, CalendarDays, Sun, Moon, LogOut, Info, X, Eye, EyeOff, Car, Wrench, DatabaseBackup, Menu, User, RefreshCw, Bell, Target, Calculator, Settings as SettingsIcon, CalendarClock, Pin, Check, Sliders, Loader2, GripVertical, Activity } from "lucide-react";
+import { Plus, Users, LayoutDashboard, ShoppingBag, BarChart3, AlertTriangle, Receipt, CalendarDays, Sun, Moon, LogOut, Info, X, Eye, EyeOff, Car, Wrench, DatabaseBackup, Menu, User, RefreshCw, Bell, Target, Calculator, Settings as SettingsIcon, CalendarClock, Pin, Check, Sliders, Loader2, GripVertical, Activity, Send } from "lucide-react";
 import { AppLogo } from "@/components/AppLogo";
 import { useAppBranding } from "@/hooks/useAppBranding";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -48,6 +48,7 @@ const MonthlyGoalsManager = lazy(() => import("@/components/MonthlyGoalsManager"
 const AccountantReport = lazy(() => import("@/components/AccountantReport").then(m => ({ default: m.AccountantReport })));
 const DailyPlanningReport = lazy(() => import("@/components/DailyPlanningReport").then(m => ({ default: m.DailyPlanningReport })));
 const AccumulatedDelinquencyReport = lazy(() => import("@/components/AccumulatedDelinquencyReport").then(m => ({ default: m.AccumulatedDelinquencyReport })));
+const TelegramBotsHub = lazy(() => import("@/components/TelegramBotsHub").then(m => ({ default: m.TelegramBotsHub })));
 const Settings = lazy(() => import("@/components/Settings").then(m => ({ default: m.Settings })));
 const SystemHealth = lazy(() => import("@/components/SystemHealth").then(m => ({ default: m.SystemHealth })));
 // Direct import for the constant used at render time
@@ -89,7 +90,7 @@ type Tab = "overview" | "dashboard" | "clients" | "products" | "vehicles" | "ove
 type ClientSubTab = "clientes" | "veiculos";
 type VehicleSubTab = "veiculos" | "locadores";
 type PlanMgmtSubTab = "subscribers" | "plans";
-type OverdueSubTab = "cobrancas" | "inadimplencia-acumulada" | "contador" | "metas" | "planejamento";
+type OverdueSubTab = "cobrancas" | "inadimplencia-acumulada" | "contador" | "metas" | "planejamento" | "bot-telegram";
 type ExpenseSubTab = "business" | "personal";
 type PersonalSubTab = "expenses" | "cards";
 
@@ -811,6 +812,13 @@ const Index = () => {
               >
                 <CalendarClock className="h-4 w-4 mr-1" /> Planejamento do Dia
               </Button>
+              <Button
+                variant={overdueSubTab === "bot-telegram" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setOverdueSubTab("bot-telegram")}
+              >
+                <Send className="h-4 w-4 mr-1" /> Bot Telegram
+              </Button>
             </div>
             {overdueSubTab === "cobrancas" && (
               <OverdueLoans loans={filteredLoans} payments={filteredPayments} clients={filteredClients} installmentSchedules={filteredInstallments} />
@@ -832,6 +840,9 @@ const Index = () => {
                 sales={filteredSales}
                 expenses={expenses}
               />
+            )}
+            {overdueSubTab === "bot-telegram" && (
+              <TelegramBotsHub />
             )}
           </div>
           </SubscriptionGate>
