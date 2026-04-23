@@ -698,8 +698,8 @@ async function finalizePiggyAporte(
   }
 
   const noteLine = trimmedNote ? `\n📝 _${trimmedNote}_` : "";
-  return `🐷 *Aporte registrado!*\n\n💰 ${fmtBRL(amount)}\n📦 Caixinha: *${bank.name}*\n📅 ${today}${noteLine}`;
-}
+
+function ymd(d: Date): string {
   return d.toISOString().slice(0, 10);
 }
 
