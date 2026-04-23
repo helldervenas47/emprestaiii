@@ -36,6 +36,7 @@ interface Props {
   onPartialPayment: (loanId: string, amount: number, paymentDate?: string, paymentMethodId?: string | null) => void;
   onFullPayment?: (loanId: string, paymentDate?: string, customAmount?: number, paymentMethodId?: string | null) => void;
   onInterestPayment: (loanId: string, paymentDate?: string, customAmount?: number, feesAmount?: number, paymentMethodId?: string | null) => void;
+  onAmortize?: (loanId: string, amount: number, paymentDate?: string, paymentMethodId?: string | null) => Promise<void> | void;
   onUpdate: (id: string, data: Partial<Omit<Loan, "id">>) => void;
   onDelete: (loanId: string) => void;
   onDeletePayment: (paymentId: string) => void;
@@ -169,7 +170,7 @@ function getTotalPaid(loan: Loan, payments: Payment[]): number {
 }
 
 function LoanCardView({
-  loan, payments: allPayments, installmentSchedules, onPayment, onPartialPayment, onFullPayment, onInterestPayment, onUpdate, onDelete, onDeletePayment, onSaveSchedule, readOnly = false, no3d = false, existingTags = [], clients = [],
+  loan, payments: allPayments, installmentSchedules, onPayment, onPartialPayment, onFullPayment, onInterestPayment, onAmortize, onUpdate, onDelete, onDeletePayment, onSaveSchedule, readOnly = false, no3d = false, existingTags = [], clients = [],
 }: {
   loan: Loan;
   payments: Payment[];
@@ -178,6 +179,7 @@ function LoanCardView({
   onPartialPayment: (amount: number, date?: string, paymentMethodId?: string | null) => void;
   onFullPayment?: (date?: string, customAmount?: number, paymentMethodId?: string | null) => void;
   onInterestPayment: (date?: string, customAmount?: number, feesAmount?: number, paymentMethodId?: string | null) => void;
+  onAmortize?: (amount: number, date?: string, paymentMethodId?: string | null) => Promise<void> | void;
   onUpdate: (data: Partial<Omit<Loan, "id">>) => void;
   onDelete: () => void;
   onDeletePayment: (paymentId: string) => void;
@@ -200,9 +202,10 @@ function LoanCardView({
   const [partialDate, setPartialDate] = useState<Date>(new Date());
   const [showTagInput, setShowTagInput] = useState(false);
   const [newTag, setNewTag] = useState("");
-  const [paymentDialog, setPaymentDialog] = useState<{ type: "installment" | "interest" | "partial" | "full" | "payoff"; amount?: number } | null>(null);
+  const [paymentDialog, setPaymentDialog] = useState<{ type: "installment" | "interest" | "partial" | "full" | "payoff" | "amortize"; amount?: number } | null>(null);
   const [interestSelection, setInterestSelection] = useState<"normal" | "withFees">("normal");
   const [payoffAmount, setPayoffAmount] = useState("");
+  const [amortizeAmount, setAmortizeAmount] = useState("");
   const [paymentDate, setPaymentDate] = useState<Date>(new Date());
   const [showHistory, setShowHistory] = useState(false);
   const [showDetails, setShowDetails] = useState(false);
@@ -387,9 +390,10 @@ function LoanCardView({
     setEditing(false);
   };
 
-  const openPaymentDialog = (type: "installment" | "interest" | "partial" | "full" | "payoff", amount?: number) => {
+  const openPaymentDialog = (type: "installment" | "interest" | "partial" | "full" | "payoff" | "amortize", amount?: number) => {
     setPaymentDate(new Date());
     setPayoffAmount("");
+    setAmortizeAmount("");
     setInterestSelection("normal");
     setPaymentDialog({ type, amount });
   };
@@ -405,6 +409,8 @@ function LoanCardView({
     const dialogAmount = paymentDialog.amount;
     const mid = selectedMethodId || null;
     setPayoffAmount("");
+    const amortRaw = parseFloat(amortizeAmount.replace(",", "."));
+    setAmortizeAmount("");
     setPaymentDialog(null);
     try {
       if (dialogType === "full") {
@@ -424,6 +430,11 @@ function LoanCardView({
           await onPartialPayment(custom, dateStr, mid);
           await onUpdate({ paidInstallments: loan.installments, status: "paid" });
         }
+      } else if (dialogType === "amortize") {
+        if (!onAmortize) { toast.error("Amortização indisponível"); return; }
+        const val = isFinite(amortRaw) && amortRaw > 0 ? amortRaw : 0;
+        if (val <= 0) { toast.error("Informe um valor válido"); return; }
+        await onAmortize(val, dateStr, mid);
       } else if (dialogType === "installment") {
         await onPayment(dateStr, mid);
       } else if (dialogType === "interest") {
@@ -435,10 +446,10 @@ function LoanCardView({
       } else if (dialogType === "partial" && dialogAmount) {
         await onPartialPayment(dialogAmount, dateStr, mid);
       }
-      toast.success("Pagamento registrado");
+      toast.success(dialogType === "amortize" ? "Amortização registrada" : "Pagamento registrado");
     } catch (err: any) {
       console.error("[confirmPayment]", err);
-      toast.error(`Falha ao registrar pagamento: ${err?.message ?? "tente novamente"}`);
+      toast.error(`Falha ao registrar: ${err?.message ?? "tente novamente"}`);
     }
   };
 
@@ -1241,6 +1252,20 @@ function LoanCardView({
                     <p className="text-[11px] text-muted-foreground">Definir valor de quitação</p>
                   </div>
                 </DropdownMenuItem>
+                {onAmortize && (
+                <DropdownMenuItem
+                  onClick={() => openPaymentDialog("amortize")}
+                  className="flex items-center gap-3 px-3 py-2.5 rounded-lg cursor-pointer hover:bg-purple/10 focus:bg-purple/10"
+                >
+                  <div className="h-8 w-8 rounded-full bg-purple/15 flex items-center justify-center shrink-0">
+                    <Percent className="h-4 w-4 text-purple" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-foreground">Amortizar</p>
+                    <p className="text-[11px] text-muted-foreground">Reduz principal e juros</p>
+                  </div>
+                </DropdownMenuItem>
+                )}
               </DropdownMenuContent>
             </DropdownMenu>
            )}
@@ -1349,6 +1374,7 @@ function LoanCardView({
           <DialogTitle>
             {paymentDialog?.type === "full" ? "Pagamento Total" :
              paymentDialog?.type === "payoff" ? "Quitar Contrato" :
+             paymentDialog?.type === "amortize" ? "Amortizar Contrato" :
              paymentDialog?.type === "installment" ? "Receber Parcela" :
              paymentDialog?.type === "interest" ? "Pagar Juros" : "Pagamento Parcial"}
           </DialogTitle>
@@ -1385,6 +1411,54 @@ function LoanCardView({
               </div>
             </div>
           )}
+          {paymentDialog?.type === "amortize" && (() => {
+            const rate = Number(loan.interestRate) || 0;
+            const oldPrincipal = Number(loan.amount) || 0;
+            const amortRaw = parseFloat(amortizeAmount.replace(",", "."));
+            const v = isFinite(amortRaw) && amortRaw > 0 ? amortRaw : 0;
+            const newPrincipal = Math.max(0, oldPrincipal - v);
+            const oldInterest = loan.customInterestValue != null && loan.customInterestValue > 0
+              ? loan.customInterestValue
+              : oldPrincipal * (rate / 100);
+            const newInterest = loan.customInterestValue != null && loan.customInterestValue > 0 && oldPrincipal > 0
+              ? loan.customInterestValue * (newPrincipal / oldPrincipal)
+              : newPrincipal * (rate / 100);
+            const interestSaved = Math.max(0, oldInterest - newInterest);
+            return (
+              <div className="w-full space-y-2">
+                <div className="text-center p-3 bg-muted/50 rounded-lg w-full">
+                  <p className="text-xs text-muted-foreground">Saldo principal atual</p>
+                  <p className="text-xl font-bold text-foreground">{formatCurrency(oldPrincipal)}</p>
+                </div>
+                <div className="space-y-1">
+                  <Label htmlFor="amort-amount" className="text-xs">Valor da amortização (R$)</Label>
+                  <Input
+                    id="amort-amount"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    inputMode="decimal"
+                    value={amortizeAmount}
+                    onChange={(e) => setAmortizeAmount(e.target.value)}
+                    placeholder="Ex: 500.00"
+                    autoFocus
+                  />
+                </div>
+                {v > 0 && v <= oldPrincipal && (
+                  <div className="rounded-lg border border-border/60 p-2.5 space-y-1 text-[11px]">
+                    <div className="flex justify-between"><span className="text-muted-foreground">Novo principal</span><span className="font-semibold tabular-nums">{rawFormatCurrency(newPrincipal)}</span></div>
+                    <div className="flex justify-between"><span className="text-muted-foreground">Juros antes</span><span className="tabular-nums">{rawFormatCurrency(oldInterest)}</span></div>
+                    <div className="flex justify-between"><span className="text-muted-foreground">Novo juros total</span><span className="font-semibold text-primary tabular-nums">{rawFormatCurrency(newInterest)}</span></div>
+                    <div className="flex justify-between"><span className="text-muted-foreground">Juros economizados</span><span className="font-semibold text-success tabular-nums">{rawFormatCurrency(interestSaved)}</span></div>
+                  </div>
+                )}
+                {v > oldPrincipal && (
+                  <p className="text-[11px] text-destructive">O valor não pode ser maior que o principal.</p>
+                )}
+                <p className="text-[10px] text-muted-foreground">A amortização reduz o saldo devedor e recalcula os juros e parcelas futuras proporcionalmente.</p>
+              </div>
+            );
+          })()}
           {paymentDialog?.type === "interest" && lateFees > 0 && (() => {
             const baseInterest = loan.customInterestValue != null && loan.customInterestValue > 0
               ? loan.customInterestValue
@@ -1489,7 +1563,7 @@ function LoanCardView({
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => setPaymentDialog(null)}>Cancelar</Button>
-          <Button onClick={confirmPayment} disabled={paymentDialog?.type === "payoff" && !(parseFloat(payoffAmount.replace(",", ".")) > 0)}>Confirmar</Button>
+          <Button onClick={confirmPayment} disabled={(paymentDialog?.type === "payoff" && !(parseFloat(payoffAmount.replace(",", ".")) > 0)) || (paymentDialog?.type === "amortize" && !(parseFloat(amortizeAmount.replace(",", ".")) > 0 && parseFloat(amortizeAmount.replace(",", ".")) <= (Number(loan.amount) || 0)))}>Confirmar</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
@@ -1566,7 +1640,7 @@ function LoanCardView({
 }
 
 function LoanRowView({
-  loan, payments: allPayments, installmentSchedules = [], onPayment, onPartialPayment, onFullPayment, onInterestPayment, onUpdate, onDelete, onDeletePayment, onSaveSchedule, readOnly = false, existingTags = [], clients = [],
+  loan, payments: allPayments, installmentSchedules = [], onPayment, onPartialPayment, onFullPayment, onInterestPayment, onAmortize, onUpdate, onDelete, onDeletePayment, onSaveSchedule, readOnly = false, existingTags = [], clients = [],
 }: {
   loan: Loan;
   payments: Payment[];
@@ -1575,6 +1649,7 @@ function LoanRowView({
   onPartialPayment: (amount: number, date?: string, paymentMethodId?: string | null) => void;
   onFullPayment?: (date?: string, customAmount?: number, paymentMethodId?: string | null) => void;
   onInterestPayment: (date?: string, customAmount?: number, feesAmount?: number, paymentMethodId?: string | null) => void;
+  onAmortize?: (amount: number, date?: string, paymentMethodId?: string | null) => Promise<void> | void;
   onUpdate: (data: Partial<Omit<Loan, "id">>) => void;
   onDelete: () => void;
   onDeletePayment: (paymentId: string) => void;
@@ -1596,9 +1671,10 @@ function LoanRowView({
   const [showPartial, setShowPartial] = useState(false);
   const [partialAmount, setPartialAmount] = useState("");
   const [partialDate, setPartialDate] = useState<Date>(new Date());
-  const [paymentDialog, setPaymentDialog] = useState<{ type: "installment" | "interest" | "partial" | "full" | "payoff"; amount?: number } | null>(null);
+  const [paymentDialog, setPaymentDialog] = useState<{ type: "installment" | "interest" | "partial" | "full" | "payoff" | "amortize"; amount?: number } | null>(null);
   const [interestSelection, setInterestSelection] = useState<"normal" | "withFees">("normal");
   const [payoffAmount, setPayoffAmount] = useState("");
+  const [amortizeAmount, setAmortizeAmount] = useState("");
   const [showHistory, setShowHistory] = useState(false);
   const [paymentDate, setPaymentDate] = useState<Date>(new Date());
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -1710,9 +1786,10 @@ function LoanRowView({
     setEditing(false);
   };
 
-  const openPaymentDialog = (type: "installment" | "interest" | "partial" | "full" | "payoff", amount?: number) => {
+  const openPaymentDialog = (type: "installment" | "interest" | "partial" | "full" | "payoff" | "amortize", amount?: number) => {
     setPaymentDate(new Date());
     setPayoffAmount("");
+    setAmortizeAmount("");
     setInterestSelection("normal");
     setPaymentDialog({ type, amount });
   };
@@ -1728,6 +1805,8 @@ function LoanRowView({
     const dialogAmount = paymentDialog.amount;
     const mid = rowSelectedMethodId || null;
     setPayoffAmount("");
+    const amortRaw = parseFloat(amortizeAmount.replace(",", "."));
+    setAmortizeAmount("");
     setPaymentDialog(null);
     try {
       if (dialogType === "full") {
@@ -1747,6 +1826,11 @@ function LoanRowView({
           await onPartialPayment(custom, dateStr, mid);
           await onUpdate({ paidInstallments: loan.installments, status: "paid" });
         }
+      } else if (dialogType === "amortize") {
+        if (!onAmortize) { toast.error("Amortização indisponível"); return; }
+        const val = isFinite(amortRaw) && amortRaw > 0 ? amortRaw : 0;
+        if (val <= 0) { toast.error("Informe um valor válido"); return; }
+        await onAmortize(val, dateStr, mid);
       } else if (dialogType === "installment") {
         await onPayment(dateStr, mid);
       } else if (dialogType === "interest") {
@@ -1758,10 +1842,10 @@ function LoanRowView({
       } else if (dialogType === "partial" && dialogAmount) {
         await onPartialPayment(dialogAmount, dateStr, mid);
       }
-      toast.success("Pagamento registrado");
+      toast.success(dialogType === "amortize" ? "Amortização registrada" : "Pagamento registrado");
     } catch (err: any) {
       console.error("[confirmPayment]", err);
-      toast.error(`Falha ao registrar pagamento: ${err?.message ?? "tente novamente"}`);
+      toast.error(`Falha ao registrar: ${err?.message ?? "tente novamente"}`);
     }
   };
 
@@ -2157,6 +2241,20 @@ function LoanRowView({
                         <p className="text-[11px] text-muted-foreground">Definir valor de quitação</p>
                       </div>
                     </DropdownMenuItem>
+                    {onAmortize && (
+                    <DropdownMenuItem
+                      onClick={() => openPaymentDialog("amortize")}
+                      className="flex items-center gap-3 px-3 py-2.5 rounded-lg cursor-pointer hover:bg-purple/10 focus:bg-purple/10"
+                    >
+                      <div className="h-8 w-8 rounded-full bg-purple/15 flex items-center justify-center shrink-0">
+                        <Percent className="h-4 w-4 text-purple" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-foreground">Amortizar</p>
+                        <p className="text-[11px] text-muted-foreground">Reduz principal e juros</p>
+                      </div>
+                    </DropdownMenuItem>
+                    )}
                   </DropdownMenuContent>
                 </DropdownMenu>
               )}
@@ -2292,6 +2390,7 @@ function LoanRowView({
           <DialogTitle>
             {paymentDialog?.type === "full" ? "Pagamento Total" :
              paymentDialog?.type === "payoff" ? "Quitar Contrato" :
+             paymentDialog?.type === "amortize" ? "Amortizar Contrato" :
              paymentDialog?.type === "installment" ? "Receber Parcela" :
              paymentDialog?.type === "interest" ? "Pagar Juros" : "Pagamento Parcial"}
           </DialogTitle>
