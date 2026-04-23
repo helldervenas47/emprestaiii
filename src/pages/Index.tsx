@@ -474,18 +474,17 @@ const Index = () => {
 
 
   const handlePrimaryAction = () => {
-    if (tab === "dashboard" || tab === "overview") setShowLoanForm(true);
+    if (tab === "dashboard") setShowLoanForm(true);
     else if (tab === "clients" && clientSubTab === "clientes") setShowClientForm(true);
     else if (tab === "expenses") {
       if (expenseSubTab === "personal") setShowPersonalExpenseForm(true);
       else setShowExpenseForm(true);
     }
     else if (tab === "products" || tab === "vehicles") setShowSaleForm(true);
-    else if (tab === "overdue" || tab === "calendar") setShowLoanForm(true);
   };
 
   const primaryLabel =
-    tab === "dashboard" || tab === "overview" ? "Novo Empréstimo" :
+    tab === "dashboard" ? "Novo Empréstimo" :
     tab === "clients" && clientSubTab === "clientes" ? "Novo Cliente" :
     tab === "expenses"
       ? expenseSubTab === "personal"
@@ -493,8 +492,7 @@ const Index = () => {
         : "Nova Despesa"
       :
     tab === "products" ? "Novo Lançamento" :
-    tab === "vehicles" ? "Novo Aluguel" :
-    tab === "overdue" || tab === "calendar" ? "Novo Empréstimo" : "";
+    tab === "vehicles" ? "Novo Aluguel" : "";
 
   return (
     <HideValuesProvider>
@@ -916,7 +914,7 @@ const Index = () => {
         </Suspense>
       </main>
 
-      {!isReadOnly && primaryLabel && (tab === "overview" || tab === "dashboard" || tab === "expenses" || tab === "products" || tab === "vehicles" || tab === "overdue" || tab === "calendar" || (tab === "clients" && clientSubTab === "clientes")) && (
+      {!isReadOnly && primaryLabel && (tab === "dashboard" || tab === "expenses" || tab === "products" || tab === "vehicles" || (tab === "clients" && clientSubTab === "clientes")) && (
         <button
           type="button"
           onClick={handlePrimaryAction}
