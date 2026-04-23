@@ -814,16 +814,36 @@ export function useLoans() {
     paymentMethodId?: string | null,
   ) => {
     if (!user || !dataOwnerId) throw new Error("Sessão ainda não carregada");
-    if (!(amortizeAmount > 0)) throw new Error("Informe um valor de amortização válido");
+    if (amortizeAmount == null || isNaN(Number(amortizeAmount)) || Number(amortizeAmount) <= 0) {
+      throw new Error("Informe um valor de amortização válido (maior que zero)");
+    }
     const loan = loans.find((l) => l.id === loanId);
     if (!loan) throw new Error("Empréstimo não encontrado");
-    if (loan.status === "paid") throw new Error("Não é possível amortizar um contrato quitado");
+    if (loan.status === "paid") {
+      throw new Error("Este contrato já está quitado e não pode ser amortizado");
+    }
+    if (loan.status !== "active" && loan.status !== "overdue") {
+      throw new Error("Apenas contratos em aberto podem ser amortizados");
+    }
+    const remainingBalance = getLoanRemainingAmount(loan, payments);
+    if (remainingBalance <= 0) {
+      throw new Error("Este contrato já está quitado e não pode ser amortizado");
+    }
 
     const dateStr = paymentDate || todayInAppTz();
+    // Valida data dentro do período do contrato
+    const startStr = loan.startDate;
+    const endStr = loan.dueDate;
+    if (startStr && dateStr < startStr) {
+      throw new Error(`A data da amortização não pode ser anterior ao início do contrato (${startStr})`);
+    }
+    if (endStr && dateStr > endStr) {
+      throw new Error(`A data da amortização não pode ser posterior ao vencimento do contrato (${endStr})`);
+    }
     const rate = Number(loan.interestRate) || 0;
     const oldPrincipal = Number(loan.amount) || 0;
     if (amortizeAmount > oldPrincipal) {
-      throw new Error("O valor da amortização não pode ser maior que o saldo principal");
+      throw new Error(`O valor da amortização não pode ser maior que o saldo principal (R$ ${oldPrincipal.toFixed(2)})`);
     }
     const newPrincipal = Math.max(0, oldPrincipal - amortizeAmount);
 
