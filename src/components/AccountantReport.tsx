@@ -2,13 +2,15 @@ import { useMemo, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Calculator, TrendingUp, TrendingDown, Receipt, Wallet, FileBarChart, Sparkles, Download, DollarSign } from "lucide-react";
+import { Calculator, TrendingUp, TrendingDown, Receipt, Wallet, FileBarChart, Sparkles, Download, DollarSign, CreditCard, ChevronDown, ChevronRight } from "lucide-react";
 import { useHideValues } from "@/contexts/HideValuesContext";
 import { Button } from "@/components/ui/button";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { toast } from "sonner";
 import { getPdfBranding } from "@/lib/pdfBranding";
+import { usePaymentMethods } from "@/hooks/usePaymentMethods";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
 interface AccountantReportProps {
   loans: any[];
@@ -34,6 +36,8 @@ function getYearKey(dateStr: string): string {
 
 export function AccountantReport({ loans, payments, sales, expenses }: AccountantReportProps) {
   const { hidden } = useHideValues();
+  const { methods: paymentMethods } = usePaymentMethods();
+  const [expandedMethod, setExpandedMethod] = useState<string | null>(null);
   const now = new Date();
   const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
   const currentYear = String(now.getFullYear());
@@ -239,6 +243,57 @@ export function AccountantReport({ loans, payments, sales, expenses }: Accountan
     const totalOut = rows.reduce((s, r) => s + r.out, 0);
     return { rows, totalIn, totalOut, net: totalIn - totalOut, paymentCount, saleCount, loanCount, expenseCount, totalLoanOutgoing };
   }, [payments, sales, expenses, loans, period, monthFilter, yearFilter]);
+
+  // Aggregation: payments by payment method for current period
+  const methodsBreakdown = useMemo(() => {
+    const periodPayments = payments.filter((p) => matchPeriod(p.date));
+    const loanById = new Map<string, any>();
+    loans.forEach((l) => loanById.set(l.id, l));
+    type ContractAgg = { loanId: string; borrowerName: string; total: number; count: number };
+    type MethodAgg = { id: string; name: string; icon: string | null; total: number; count: number; contracts: Map<string, ContractAgg> };
+    const map = new Map<string, MethodAgg>();
+    const methodById = new Map(paymentMethods.map((m) => [m.id, m] as const));
+    let grandTotal = 0;
+    for (const p of periodPayments) {
+      const mid = p.paymentMethodId || "__unset__";
+      const meta = methodById.get(p.paymentMethodId || "");
+      if (!map.has(mid)) {
+        map.set(mid, {
+          id: mid,
+          name: meta ? meta.name : "Não informado",
+          icon: meta ? meta.icon : null,
+          total: 0,
+          count: 0,
+          contracts: new Map(),
+        });
+      }
+      const agg = map.get(mid)!;
+      const amt = Number(p.amount) || 0;
+      agg.total += amt;
+      agg.count += 1;
+      grandTotal += amt;
+      const loan = loanById.get(p.loanId);
+      const lid = p.loanId || "__noloan__";
+      if (!agg.contracts.has(lid)) {
+        agg.contracts.set(lid, {
+          loanId: lid,
+          borrowerName: loan?.borrowerName || "Sem contrato",
+          total: 0,
+          count: 0,
+        });
+      }
+      const c = agg.contracts.get(lid)!;
+      c.total += amt;
+      c.count += 1;
+    }
+    const rows = Array.from(map.values())
+      .map((m) => ({
+        ...m,
+        contracts: Array.from(m.contracts.values()).sort((a, b) => b.total - a.total),
+      }))
+      .sort((a, b) => b.total - a.total);
+    return { rows, grandTotal };
+  }, [payments, paymentMethods, loans, period, monthFilter, yearFilter]);
 
   const formatDate = (k: string) => {
     if (k.length === 10) return new Date(k + "T00:00:00").toLocaleDateString("pt-BR");
@@ -853,11 +908,12 @@ export function AccountantReport({ loans, payments, sales, expenses }: Accountan
       })()}
 
       <Tabs defaultValue="dre" className="w-full">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="dre" className="text-xs sm:text-sm"><FileBarChart className="h-4 w-4 mr-1 hidden sm:inline" /> DRE</TabsTrigger>
           <TabsTrigger value="taxes" className="text-xs sm:text-sm"><Receipt className="h-4 w-4 mr-1 hidden sm:inline" /> Impostos</TabsTrigger>
           <TabsTrigger value="simulation" className="text-xs sm:text-sm"><Sparkles className="h-4 w-4 mr-1 hidden sm:inline" /> Simulação</TabsTrigger>
           <TabsTrigger value="cashflow" className="text-xs sm:text-sm"><Wallet className="h-4 w-4 mr-1 hidden sm:inline" /> Fluxo</TabsTrigger>
+          <TabsTrigger value="methods" className="text-xs sm:text-sm"><CreditCard className="h-4 w-4 mr-1 hidden sm:inline" /> Formas</TabsTrigger>
         </TabsList>
 
         {/* DRE */}
@@ -1209,6 +1265,100 @@ export function AccountantReport({ loans, payments, sales, expenses }: Accountan
                       <span className={`text-right font-medium ${r.net >= 0 ? "text-success" : "text-destructive"}`}>{fmt(r.net, hidden)}</span>
                     </div>
                   ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Formas de pagamento */}
+        <TabsContent value="methods" className="space-y-3 mt-4">
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-xs text-muted-foreground flex items-center gap-1">
+                <DollarSign className="h-3 w-3 text-success" /> Total recebido por forma
+              </CardTitle>
+              <CardDescription className="text-base font-bold text-foreground">
+                {fmt(methodsBreakdown.grandTotal, hidden)}
+              </CardDescription>
+            </CardHeader>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-sm">Detalhamento por forma de pagamento</CardTitle>
+              <CardDescription className="text-xs">
+                Período: {period === "month" ? formatDate(monthFilter) : yearFilter}
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {methodsBreakdown.rows.length === 0 ? (
+                <p className="text-sm text-muted-foreground text-center py-6">
+                  Sem pagamentos registrados no período.
+                </p>
+              ) : (
+                <div className="space-y-2">
+                  {methodsBreakdown.rows.map((m) => {
+                    const isOpen = expandedMethod === m.id;
+                    const pct = methodsBreakdown.grandTotal > 0
+                      ? (m.total / methodsBreakdown.grandTotal) * 100
+                      : 0;
+                    return (
+                      <Collapsible
+                        key={m.id}
+                        open={isOpen}
+                        onOpenChange={(o) => setExpandedMethod(o ? m.id : null)}
+                      >
+                        <div className="border rounded-lg overflow-hidden">
+                          <CollapsibleTrigger className="w-full">
+                            <div className="flex items-center justify-between gap-2 p-3 hover:bg-muted/40 transition-colors">
+                              <div className="flex items-center gap-2 min-w-0">
+                                {isOpen ? (
+                                  <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0" />
+                                ) : (
+                                  <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
+                                )}
+                                <CreditCard className="h-4 w-4 text-primary shrink-0" />
+                                <div className="text-left min-w-0">
+                                  <p className="text-sm font-medium truncate">{m.name}</p>
+                                  <p className="text-xs text-muted-foreground">
+                                    {m.count} pagamento{m.count !== 1 ? "s" : ""} · {pct.toFixed(1)}%
+                                  </p>
+                                </div>
+                              </div>
+                              <p className="text-sm font-bold text-success shrink-0">
+                                {fmt(m.total, hidden)}
+                              </p>
+                            </div>
+                          </CollapsibleTrigger>
+                          <CollapsibleContent>
+                            <div className="border-t bg-muted/20 px-3 py-2 space-y-1">
+                              <div className="grid grid-cols-3 gap-2 text-xs font-semibold text-muted-foreground border-b pb-1">
+                                <span className="col-span-2">Contrato</span>
+                                <span className="text-right">Total</span>
+                              </div>
+                              {m.contracts.map((c) => (
+                                <div
+                                  key={c.loanId}
+                                  className="grid grid-cols-3 gap-2 py-1.5 text-sm border-b last:border-b-0"
+                                >
+                                  <div className="col-span-2 min-w-0">
+                                    <p className="truncate font-medium">{c.borrowerName}</p>
+                                    <p className="text-xs text-muted-foreground">
+                                      {c.count} pagamento{c.count !== 1 ? "s" : ""}
+                                    </p>
+                                  </div>
+                                  <span className="text-right font-medium text-success self-center">
+                                    {fmt(c.total, hidden)}
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
+                          </CollapsibleContent>
+                        </div>
+                      </Collapsible>
+                    );
+                  })}
                 </div>
               )}
             </CardContent>
