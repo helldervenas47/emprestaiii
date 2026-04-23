@@ -253,7 +253,7 @@ export function useLoans() {
     return null;
   }, [user, dataOwnerId]);
 
-  const addPayment = useCallback(async (loanId: string, paymentDate?: string) => {
+  const addPayment = useCallback(async (loanId: string, paymentDate?: string, paymentMethodId?: string | null) => {
     if (!user || !dataOwnerId) throw new Error("Sessão ainda não carregada");
     const dateStr = paymentDate || todayInAppTz();
     const loan = loans.find((l) => l.id === loanId);
@@ -303,6 +303,7 @@ export function useLoans() {
       amount: installmentAmount,
       date: dateStr,
       installment_number: newPaid,
+      payment_method_id: paymentMethodId ?? null,
     };
     const loanUpdate = {
       paid_installments: newPaid,
@@ -313,7 +314,7 @@ export function useLoans() {
 
     // Optimistic state
     setPayments((prev) => [
-      { id: tempPaymentId, loanId, amount: installmentAmount, date: dateStr, installmentNumber: newPaid },
+      { id: tempPaymentId, loanId, amount: installmentAmount, date: dateStr, installmentNumber: newPaid, paymentMethodId: paymentMethodId ?? null },
       ...prev,
     ]);
     setLoans((prev) => prev.map((l) => l.id === loanId ? {
@@ -376,7 +377,7 @@ export function useLoans() {
     await fetchLoans();
   }, [user, dataOwnerId, loans, payments, installmentSchedules, fetchLoans, fetchPayments]);
 
-  const addPartialPayment = useCallback(async (loanId: string, amount: number, paymentDate?: string) => {
+  const addPartialPayment = useCallback(async (loanId: string, amount: number, paymentDate?: string, paymentMethodId?: string | null) => {
     if (!user || !dataOwnerId) throw new Error("Sessão ainda não carregada");
     if (amount <= 0) throw new Error("Informe um valor de pagamento válido");
     const dateStr = paymentDate || todayInAppTz();
@@ -389,11 +390,12 @@ export function useLoans() {
     const paymentPayload = {
       id: tempPaymentId,
       user_id: dataOwnerId, loan_id: loanId, amount, date: dateStr, installment_number: -1,
+      payment_method_id: paymentMethodId ?? null,
     };
     const loanUpdate = { remaining_amount: newRemaining };
 
     setPayments((prev) => [
-      { id: tempPaymentId, loanId, amount, date: dateStr, installmentNumber: -1 },
+      { id: tempPaymentId, loanId, amount, date: dateStr, installmentNumber: -1, paymentMethodId: paymentMethodId ?? null },
       ...prev,
     ]);
     setLoans((prev) => prev.map((l) => l.id === loanId ? { ...l, remainingAmount: newRemaining } : l));
@@ -448,7 +450,7 @@ export function useLoans() {
     await fetchLoans();
   }, [user, dataOwnerId, loans, payments, fetchLoans, fetchPayments]);
 
-  const payOffLoan = useCallback(async (loanId: string, paymentDate?: string, customAmount?: number) => {
+  const payOffLoan = useCallback(async (loanId: string, paymentDate?: string, customAmount?: number, paymentMethodId?: string | null) => {
     if (!user || !dataOwnerId) throw new Error("Usuário não autenticado");
     const dateStr = paymentDate || todayInAppTz();
     const loan = loans.find((l) => l.id === loanId);
@@ -468,6 +470,7 @@ export function useLoans() {
       id: tempPaymentId,
       user_id: dataOwnerId, loan_id: loanId, amount: payAmount,
       date: dateStr, installment_number: loan.installments,
+      payment_method_id: paymentMethodId ?? null,
     };
     const loanUpdate = {
       paid_installments: loan.installments,
@@ -476,7 +479,7 @@ export function useLoans() {
     };
 
     setPayments((prev) => [
-      { id: tempPaymentId, loanId, amount: payAmount, date: dateStr, installmentNumber: loan.installments },
+      { id: tempPaymentId, loanId, amount: payAmount, date: dateStr, installmentNumber: loan.installments, paymentMethodId: paymentMethodId ?? null },
       ...prev,
     ]);
     setLoans((prev) => prev.map((l) => l.id === loanId ? {
