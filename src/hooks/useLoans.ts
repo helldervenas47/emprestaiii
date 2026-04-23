@@ -564,7 +564,7 @@ export function useLoans() {
     await fetchLoans();
   }, [user, dataOwnerId, loans, payments, fetchLoans, fetchPayments]);
 
-  const addInterestOnlyPayment = useCallback(async (loanId: string, paymentDate?: string, customAmount?: number, feesAmount?: number) => {
+  const addInterestOnlyPayment = useCallback(async (loanId: string, paymentDate?: string, customAmount?: number, feesAmount?: number, paymentMethodId?: string | null) => {
     if (!user || !dataOwnerId) throw new Error("Sessão ainda não carregada");
     const loan = loans.find((l) => l.id === loanId);
     if (!loan) throw new Error("Empréstimo não encontrado");
@@ -644,11 +644,12 @@ export function useLoans() {
       id: tempPaymentId,
       user_id: dataOwnerId, loan_id: loanId, amount: interestAmount,
       date: dateStr, installment_number: 0, previous_due_date: loan.dueDate,
+      payment_method_id: paymentMethodId ?? null,
     };
     const loanUpdate = { due_date: newDueDate };
 
     setPayments((prev) => [
-      { id: tempPaymentId, loanId, amount: interestAmount, date: dateStr, installmentNumber: 0, previousDueDate: loan.dueDate },
+      { id: tempPaymentId, loanId, amount: interestAmount, date: dateStr, installmentNumber: 0, previousDueDate: loan.dueDate, paymentMethodId: paymentMethodId ?? null },
       ...prev,
     ]);
     setLoans((prev) => prev.map((l) => l.id === loanId ? { ...l, dueDate: newDueDate } : l));
@@ -664,9 +665,10 @@ export function useLoans() {
           id: feesPaymentId,
           user_id: dataOwnerId, loan_id: loanId, amount: feesExtra,
           date: dateStr, installment_number: -2, previous_due_date: loan.dueDate,
+          payment_method_id: paymentMethodId ?? null,
         };
         setPayments((prev) => [
-          { id: feesPaymentId, loanId, amount: feesExtra, date: dateStr, installmentNumber: -2, previousDueDate: loan.dueDate },
+          { id: feesPaymentId, loanId, amount: feesExtra, date: dateStr, installmentNumber: -2, previousDueDate: loan.dueDate, paymentMethodId: paymentMethodId ?? null },
           ...prev,
         ]);
         await upsertCachedRow("payments", { ...feesPayload, created_at: new Date().toISOString() });
@@ -744,6 +746,7 @@ export function useLoans() {
         id: feesPaymentId,
         user_id: dataOwnerId, loan_id: loanId, amount: feesExtra,
         date: dateStr, installment_number: -2, previous_due_date: loan.dueDate,
+        payment_method_id: paymentMethodId ?? null,
       };
       const { error: feeInsertError } = await supabase.from("payments").insert(feesPayload as any);
       if (feeInsertError) {
@@ -770,7 +773,7 @@ export function useLoans() {
       }
 
       setPayments((prev) => [
-        { id: feesPaymentId, loanId, amount: feesExtra, date: dateStr, installmentNumber: -2, previousDueDate: loan.dueDate },
+        { id: feesPaymentId, loanId, amount: feesExtra, date: dateStr, installmentNumber: -2, previousDueDate: loan.dueDate, paymentMethodId: paymentMethodId ?? null },
         ...prev,
       ]);
       await upsertCachedRow("payments", { ...feesPayload, created_at: new Date().toISOString() });
