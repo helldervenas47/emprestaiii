@@ -1132,6 +1132,23 @@ function parseAmount(input: string): number | null {
   return Math.round(n * 100) / 100;
 }
 
+// Parse "<amount> <optional note>" — note may be wrapped in quotes.
+// Returns { amount, note } or null when no amount is found at the start.
+function parseAmountWithNote(input: string): { amount: number; note: string | null } | null {
+  const trimmed = input.trim();
+  const m = trimmed.match(/^R?\$?\s*([\d.,]+)\s*(.*)$/i);
+  if (!m) return null;
+  const amount = parseAmount(m[1]);
+  if (amount === null) return null;
+  let rest = (m[2] || "").trim();
+  // Strip surrounding quotes if present
+  const q = rest.match(/^(["'“”‘’])([\s\S]*)\1$/);
+  if (q) rest = q[2].trim();
+  // Cap length to protect DB / UI
+  if (rest.length > 280) rest = rest.slice(0, 280);
+  return { amount, note: rest.length > 0 ? rest : null };
+}
+
 function buildCategoryKeyboard(expenseId: string) {
   const rows: any[] = [];
   for (let i = 0; i < CATEGORIES.length; i += 2) {
