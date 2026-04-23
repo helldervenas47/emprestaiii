@@ -1863,6 +1863,22 @@ Deno.serve(async (req) => {
             } else if (/^\/apagar(?:@\w+)?\b/i.test(text)) {
               const reply = await handleApagar(admin, link.user_id);
               await tgSend(chatId, reply, LOVABLE_API_KEY, TELEGRAM_API_KEY);
+            } else if (/^\/aporte(?:@\w+)?\b/i.test(text)) {
+              const { banks } = await listUserPiggyBanks(admin, link.user_id);
+              if (banks.length === 0) {
+                await tgSend(
+                  chatId,
+                  "🐷 Você ainda não tem nenhuma caixinha (cofrinho).\nCrie uma no app e tente novamente.",
+                  LOVABLE_API_KEY, TELEGRAM_API_KEY,
+                );
+              } else {
+                await tgSendWithKeyboard(
+                  chatId,
+                  "🐷 *Aporte em caixinha*\n\nEscolha em qual caixinha você quer fazer o aporte:",
+                  buildPiggyBanksKeyboard(banks),
+                  LOVABLE_API_KEY, TELEGRAM_API_KEY,
+                );
+              }
             } else {
               // Regex-first: skip AI for clear "<amount> <description>" or "<description> <amount>" inputs.
               const quick = quickParseExpense(text);
