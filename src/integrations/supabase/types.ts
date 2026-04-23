@@ -1879,6 +1879,30 @@ export type Database = {
         }
         Relationships: []
       }
+      telegram_pending_piggy_aporte: {
+        Row: {
+          chat_id: number
+          created_at: string
+          expires_at: string
+          piggy_bank_id: string
+          user_id: string
+        }
+        Insert: {
+          chat_id: number
+          created_at?: string
+          expires_at?: string
+          piggy_bank_id: string
+          user_id: string
+        }
+        Update: {
+          chat_id?: number
+          created_at?: string
+          expires_at?: string
+          piggy_bank_id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       telegram_reports_bot_state: {
         Row: {
           id: number
