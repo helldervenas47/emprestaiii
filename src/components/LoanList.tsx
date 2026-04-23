@@ -1868,9 +1868,7 @@ function LoanRowView({
     : loan.customInstallmentValue != null && loan.customInstallmentValue > 0
       ? loan.customInstallmentValue
       : (loan.installments >= 2 ? total / loan.installments : baseRemaining);
-  const actualRemainingRow = loan.remainingAmount != null && loan.remainingAmount > 0
-    ? loan.remainingAmount
-    : Math.max(0, total - totalPaid);
+  const actualRemainingRow = reconciledRemainingRow;
   const expectedRemainingRow = nextSchedule
     ? allUnpaidScheduleSum
     : fullInstallmentValue * remainingInstallments;
