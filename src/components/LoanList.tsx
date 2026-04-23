@@ -170,6 +170,27 @@ function getTotalPaid(loan: Loan, payments: Payment[]): number {
   return payments.filter((p) => p.loanId === loan.id).reduce((s, p) => s + p.amount, 0);
 }
 
+/**
+ * Reconciles the saved `remainingAmount` against the deductible payments already
+ * registered (installments, partials, payoffs and amortizations — i.e. anything
+ * that is NOT an interest-only payment with installmentNumber === 0 or a
+ * non-deductible marker like -2).
+ *
+ * The saved value is the source of truth EXCEPT when it is clearly stale
+ * (greater than what could possibly remain after the recorded deductible
+ * payments). In that case we cap it at the calculated remaining so the UI
+ * stops showing inflated "restante" values for legacy or out-of-sync rows.
+ */
+function getReconciledRemaining(loan: Loan, payments: Payment[], total: number): number {
+  const deductiblePaid = payments
+    .filter((p) => p.loanId === loan.id && p.installmentNumber !== 0 && p.installmentNumber !== -2)
+    .reduce((s, p) => s + p.amount, 0);
+  const calculated = Math.max(0, total - deductiblePaid);
+  if (loan.remainingAmount == null || loan.remainingAmount <= 0) return calculated;
+  // If saved value is bigger than what's mathematically possible, it's stale.
+  return Math.min(loan.remainingAmount, calculated);
+}
+
 function PaymentHistoryItem({
   payment, formatCurrency, onDelete, readOnly,
 }: {
