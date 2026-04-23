@@ -491,7 +491,7 @@ Vou interpretar e cadastrar automaticamente.
 /orcamento — status dos orçamentos do mês
 /ultimas — últimas 5 despesas
 /apagar — apaga a despesa mais recente
-/aporte — fazer um aporte em uma caixinha (cofrinho)
+/aporte — fazer um aporte em uma caixinha (cofrinho). Você pode passar valor e nota: \`/aporte 200 aniversário\`
 /meus\_aportes — últimos 10 aportes nas caixinhas
 /help — esta mensagem
 /start CODIGO — vincular conta`;
