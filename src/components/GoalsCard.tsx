@@ -637,7 +637,8 @@ interface DialogProps {
 function GoalDetailDialog({ open, onClose, goal, viewingMonth, payments }: DialogProps) {
   const { hidden } = useHideValues();
   const { upsertGoal } = useMonthlyGoals();
-  const { settings, updateSimulationInterestRate } = useAccountSettings();
+  const { upsertGoal: _upsertGoal } = { upsertGoal };
+  void _upsertGoal;
   const [creating, setCreating] = useState(false);
   const [editingCreate, setEditingCreate] = useState(false);
   const [newTarget, setNewTarget] = useState<string>("");
