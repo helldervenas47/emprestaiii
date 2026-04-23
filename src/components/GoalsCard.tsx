@@ -620,6 +620,7 @@ export function GoalsCard({ loans, payments, expenses, clients, installmentSched
         onClose={() => setSelectedGoalId(null)}
         goal={selected}
         viewingMonth={selectedMonth}
+        payments={payments}
       />
     </Card>
   );
@@ -630,9 +631,10 @@ interface DialogProps {
   onClose: () => void;
   goal: (ReturnType<typeof useMonthlyGoals>["goals"][number] & { actual: number; pct: number; meta: typeof GOAL_TYPE_META[GoalType]; expectedReceivable: number | null; targetAmount: number | null }) | null;
   viewingMonth?: string;
+  payments: Payment[];
 }
 
-function GoalDetailDialog({ open, onClose, goal, viewingMonth }: DialogProps) {
+function GoalDetailDialog({ open, onClose, goal, viewingMonth, payments }: DialogProps) {
   const { hidden } = useHideValues();
   const { upsertGoal } = useMonthlyGoals();
   const { settings, updateSimulationInterestRate } = useAccountSettings();
@@ -916,7 +918,7 @@ function GoalDetailDialog({ open, onClose, goal, viewingMonth }: DialogProps) {
                   </div>
                 </div>
                 {goal.goalType === "profit" && goal.expectedReceivable !== null && goal.targetAmount !== null && (() => {
-                  const computeMonth = selectedMonth || goal.month;
+                  const computeMonth = viewingMonth || goal.month;
                   const receivedTotal = payments
                     .filter((p: any) => inMonth(p.date, computeMonth))
                     .reduce((s: number, p: any) => s + (Number(p.amount) || 0), 0);
