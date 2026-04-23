@@ -642,6 +642,8 @@ async function handleMeusAportes(admin: any, userId: string): Promise<string> {
   msg += `\n*Total exibido:* ${fmtBRL(total)}`;
   return msg;
 }
+
+function ymd(d: Date): string {
   return d.toISOString().slice(0, 10);
 }
 
