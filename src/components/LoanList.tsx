@@ -218,6 +218,13 @@ function LoanCardView({
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deletePaymentId, setDeletePaymentId] = useState<string | null>(null);
   const [showAdjustDueDate, setShowAdjustDueDate] = useState(false);
+  const { activeMethods } = usePaymentMethods();
+  const [selectedMethodId, setSelectedMethodId] = useState<string>("");
+  React.useEffect(() => {
+    if (paymentDialog && !selectedMethodId && activeMethods.length > 0) {
+      setSelectedMethodId(activeMethods[0].id);
+    }
+  }, [paymentDialog, activeMethods, selectedMethodId]);
   const [editHasManager, setEditHasManager] = useState<boolean>(loan.hasManager ?? false);
   const [editManagerId, setEditManagerId] = useState<string>(loan.managerId ?? "");
   const [editCommissionRate, setEditCommissionRate] = useState<string>(String(loan.managerCommissionRate ?? 10));
