@@ -1466,6 +1466,19 @@ function LoanCardView({
               </div>
             );
           })()}
+          {activeMethods.length > 0 && (
+            <div className="w-full space-y-1">
+              <Label className="text-sm text-muted-foreground">Forma de pagamento</Label>
+              <Select value={selectedMethodId} onValueChange={setSelectedMethodId}>
+                <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                <SelectContent>
+                  {activeMethods.map((m) => (
+                    <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
           <Label className="text-sm text-muted-foreground">Selecione a data do pagamento</Label>
           <CalendarUI
             mode="single"
