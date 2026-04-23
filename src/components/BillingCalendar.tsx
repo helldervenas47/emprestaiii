@@ -13,14 +13,18 @@ import { ChevronLeft, ChevronRight, CalendarDays, User, DollarSign, CheckCircle,
 import { Badge } from "@/components/ui/badge";
 import { getDueStatusBadge } from "@/lib/dueStatus";
 
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { usePaymentMethods } from "@/hooks/usePaymentMethods";
+import { toast } from "sonner";
+
 interface Props {
   loans: Loan[];
   payments: Payment[];
   installmentSchedules: InstallmentSchedule[];
-  onPayment?: (loanId: string, paymentDate?: string) => void;
-  onPartialPayment?: (loanId: string, amount: number, paymentDate?: string) => void;
-  onFullPayment?: (loanId: string, paymentDate?: string, customAmount?: number) => void;
-  onInterestPayment?: (loanId: string, paymentDate?: string) => void;
+  onPayment?: (loanId: string, paymentDate?: string, paymentMethodId?: string | null) => void;
+  onPartialPayment?: (loanId: string, amount: number, paymentDate?: string, paymentMethodId?: string | null) => void;
+  onFullPayment?: (loanId: string, paymentDate?: string, customAmount?: number, paymentMethodId?: string | null) => void;
+  onInterestPayment?: (loanId: string, paymentDate?: string, customAmount?: number, feesAmount?: number, paymentMethodId?: string | null) => void;
   onUpdate?: (id: string, data: Partial<Omit<Loan, "id">>) => void;
   readOnly?: boolean;
 }
@@ -59,6 +63,12 @@ export function BillingCalendar({ loans, payments, installmentSchedules, onPayme
   const [paymentDialog, setPaymentDialog] = useState<{ loanId: string; type: "installment" | "interest" | "partial" | "full" | "payoff"; amount?: number; borrowerName: string } | null>(null);
   const [payoffAmount, setPayoffAmount] = useState("");
   const [paymentDate, setPaymentDate] = useState<Date>(new Date());
+  const { activeMethods } = usePaymentMethods();
+  const [selectedMethodId, setSelectedMethodId] = useState<string>("");
+  // Auto-select first method when dialog opens
+  if (paymentDialog && !selectedMethodId && activeMethods.length > 0) {
+    queueMicrotask(() => setSelectedMethodId(activeMethods[0].id));
+  }
 
   // Build a map of date -> due items
   const dueMap = useMemo(() => {
@@ -161,9 +171,14 @@ export function BillingCalendar({ loans, payments, installmentSchedules, onPayme
 
   const confirmPayment = async () => {
     if (!paymentDialog) return;
+    if (activeMethods.length > 0 && !selectedMethodId) {
+      toast.error("Selecione a forma de pagamento");
+      return;
+    }
     const dateStr = paymentDate.toISOString().split("T")[0];
     const loan = loans.find(l => l.id === paymentDialog.loanId);
     if (!loan) return;
+    const mid = selectedMethodId || null;
 
     const total = calculateTotalWithInterest(loan.amount, loan.interestRate, loan.installments);
     const totalPaid = payments.filter(p => p.loanId === loan.id).reduce((s, p) => s + p.amount, 0);
@@ -171,9 +186,9 @@ export function BillingCalendar({ loans, payments, installmentSchedules, onPayme
 
     if (paymentDialog.type === "full") {
       if (onFullPayment) {
-        await onFullPayment(paymentDialog.loanId, dateStr);
+        await onFullPayment(paymentDialog.loanId, dateStr, undefined, mid);
       } else {
-        await onPartialPayment?.(paymentDialog.loanId, remaining, dateStr);
+        await onPartialPayment?.(paymentDialog.loanId, remaining, dateStr, mid);
         await onUpdate?.(paymentDialog.loanId, { paidInstallments: loan.installments, status: "paid" });
       }
     } else if (paymentDialog.type === "payoff") {
@@ -181,18 +196,18 @@ export function BillingCalendar({ loans, payments, installmentSchedules, onPayme
       const custom = isFinite(customRaw) && customRaw > 0 ? customRaw : 0;
       if (custom <= 0) return;
       if (onFullPayment) {
-        await onFullPayment(paymentDialog.loanId, dateStr, custom);
+        await onFullPayment(paymentDialog.loanId, dateStr, custom, mid);
       } else {
-        await onPartialPayment?.(paymentDialog.loanId, custom, dateStr);
+        await onPartialPayment?.(paymentDialog.loanId, custom, dateStr, mid);
         await onUpdate?.(paymentDialog.loanId, { paidInstallments: loan.installments, status: "paid" });
       }
       setPayoffAmount("");
     } else if (paymentDialog.type === "installment") {
-      await onPayment?.(paymentDialog.loanId, dateStr);
+      await onPayment?.(paymentDialog.loanId, dateStr, mid);
     } else if (paymentDialog.type === "interest") {
-      await onInterestPayment?.(paymentDialog.loanId, dateStr);
+      await onInterestPayment?.(paymentDialog.loanId, dateStr, undefined, undefined, mid);
     } else if (paymentDialog.type === "partial" && paymentDialog.amount) {
-      await onPartialPayment?.(paymentDialog.loanId, paymentDialog.amount, dateStr);
+      await onPartialPayment?.(paymentDialog.loanId, paymentDialog.amount, dateStr, mid);
     }
     setPaymentDialog(null);
     setExpandedItem(null);
@@ -608,6 +623,19 @@ export function BillingCalendar({ loans, payments, installmentSchedules, onPayme
               <div className="text-center p-3 bg-muted/50 rounded-lg w-full">
                 <p className="text-xs text-muted-foreground">Valor parcial</p>
                 <p className="text-2xl font-bold text-warning">{formatCurrency(paymentDialog.amount)}</p>
+              </div>
+            )}
+            {activeMethods.length > 0 && (
+              <div className="w-full space-y-1">
+                <Label className="text-sm text-muted-foreground">Forma de pagamento</Label>
+                <Select value={selectedMethodId} onValueChange={setSelectedMethodId}>
+                  <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                  <SelectContent>
+                    {activeMethods.map((m) => (
+                      <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             )}
             <Label className="text-sm text-muted-foreground">Selecione a data do pagamento</Label>
