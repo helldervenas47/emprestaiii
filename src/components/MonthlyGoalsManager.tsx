@@ -284,10 +284,44 @@ export function MonthlyGoalsManager({ readOnly = false }: { readOnly?: boolean }
 
       <Card no3d>
         <CardContent className="p-4">
-          <h3 className="font-semibold text-foreground mb-3">Metas cadastradas</h3>
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-3">
+            <h3 className="font-semibold text-foreground">Metas cadastradas</h3>
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="flex items-center gap-2">
+                <Label className="text-xs text-muted-foreground whitespace-nowrap">Mês:</Label>
+                <Select value={filterMonth} onValueChange={setFilterMonth}>
+                  <SelectTrigger className="h-8 w-[180px]">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="max-h-72">
+                    {availableMonths.map((m) => (
+                      <SelectItem key={m} value={m}>{formatMonthLabel(m)}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              {!readOnly && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={copyFromPrevMonth}
+                  disabled={missingFromPrev.length === 0}
+                  title={missingFromPrev.length === 0 ? "Nada novo para copiar do mês anterior" : `Copiar ${missingFromPrev.length} meta(s) de ${formatMonthLabel(prevMonth)}`}
+                >
+                  <Copy className="h-3.5 w-3.5" />
+                  Copiar do mês anterior
+                  {missingFromPrev.length > 0 && (
+                    <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-[10px]">{missingFromPrev.length}</Badge>
+                  )}
+                </Button>
+              )}
+            </div>
+          </div>
           {loading && <p className="text-sm text-muted-foreground">Carregando...</p>}
           {!loading && groupedGoals.length === 0 && (
-            <p className="text-sm text-muted-foreground text-center py-6">Nenhuma meta cadastrada ainda.</p>
+            <p className="text-sm text-muted-foreground text-center py-6">
+              Nenhuma meta cadastrada para {formatMonthLabel(filterMonth)}.
+            </p>
           )}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {groupedGoals.map(({ type, items }) => {
