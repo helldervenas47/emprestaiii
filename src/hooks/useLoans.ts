@@ -36,6 +36,7 @@ function rowToPayment(p: any): Payment {
   return {
     id: p.id, loanId: p.loan_id, amount: Number(p.amount), date: p.date,
     installmentNumber: p.installment_number, previousDueDate: p.previous_due_date,
+    paymentMethodId: p.payment_method_id ?? null,
   };
 }
 
