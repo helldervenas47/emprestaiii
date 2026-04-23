@@ -2140,6 +2140,7 @@ Deno.serve(async (req) => {
             }
           }
         }
+        }
       }
     } catch (e) {
       console.error("processing error", e);
