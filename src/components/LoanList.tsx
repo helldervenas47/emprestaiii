@@ -26,15 +26,16 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { AdjustDueDateDialog } from "@/components/AdjustDueDateDialog";
+import { usePaymentMethods } from "@/hooks/usePaymentMethods";
 
 interface Props {
   loans: Loan[];
   payments: Payment[];
   installmentSchedules: InstallmentSchedule[];
-  onPayment: (loanId: string, paymentDate?: string) => void;
-  onPartialPayment: (loanId: string, amount: number, paymentDate?: string) => void;
-  onFullPayment?: (loanId: string, paymentDate?: string, customAmount?: number) => void;
-  onInterestPayment: (loanId: string, paymentDate?: string, customAmount?: number, feesAmount?: number) => void;
+  onPayment: (loanId: string, paymentDate?: string, paymentMethodId?: string | null) => void;
+  onPartialPayment: (loanId: string, amount: number, paymentDate?: string, paymentMethodId?: string | null) => void;
+  onFullPayment?: (loanId: string, paymentDate?: string, customAmount?: number, paymentMethodId?: string | null) => void;
+  onInterestPayment: (loanId: string, paymentDate?: string, customAmount?: number, feesAmount?: number, paymentMethodId?: string | null) => void;
   onUpdate: (id: string, data: Partial<Omit<Loan, "id">>) => void;
   onDelete: (loanId: string) => void;
   onDeletePayment: (paymentId: string) => void;
@@ -173,10 +174,10 @@ function LoanCardView({
   loan: Loan;
   payments: Payment[];
   installmentSchedules: InstallmentSchedule[];
-  onPayment: (date?: string) => void;
-  onPartialPayment: (amount: number, date?: string) => void;
-  onFullPayment?: (date?: string, customAmount?: number) => void;
-  onInterestPayment: (date?: string, customAmount?: number, feesAmount?: number) => void;
+  onPayment: (date?: string, paymentMethodId?: string | null) => void;
+  onPartialPayment: (amount: number, date?: string, paymentMethodId?: string | null) => void;
+  onFullPayment?: (date?: string, customAmount?: number, paymentMethodId?: string | null) => void;
+  onInterestPayment: (date?: string, customAmount?: number, feesAmount?: number, paymentMethodId?: string | null) => void;
   onUpdate: (data: Partial<Omit<Loan, "id">>) => void;
   onDelete: () => void;
   onDeletePayment: (paymentId: string) => void;
@@ -217,6 +218,13 @@ function LoanCardView({
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deletePaymentId, setDeletePaymentId] = useState<string | null>(null);
   const [showAdjustDueDate, setShowAdjustDueDate] = useState(false);
+  const { activeMethods } = usePaymentMethods();
+  const [selectedMethodId, setSelectedMethodId] = useState<string>("");
+  React.useEffect(() => {
+    if (paymentDialog && !selectedMethodId && activeMethods.length > 0) {
+      setSelectedMethodId(activeMethods[0].id);
+    }
+  }, [paymentDialog, activeMethods, selectedMethodId]);
   const [editHasManager, setEditHasManager] = useState<boolean>(loan.hasManager ?? false);
   const [editManagerId, setEditManagerId] = useState<string>(loan.managerId ?? "");
   const [editCommissionRate, setEditCommissionRate] = useState<string>(String(loan.managerCommissionRate ?? 10));
@@ -388,17 +396,22 @@ function LoanCardView({
 
   const confirmPayment = async () => {
     if (!paymentDialog) return;
+    if (activeMethods.length > 0 && !selectedMethodId) {
+      toast.error("Selecione a forma de pagamento");
+      return;
+    }
     const dateStr = paymentDate.toISOString().split("T")[0];
     const dialogType = paymentDialog.type;
     const dialogAmount = paymentDialog.amount;
+    const mid = selectedMethodId || null;
     setPayoffAmount("");
     setPaymentDialog(null);
     try {
       if (dialogType === "full") {
         if (onFullPayment) {
-          await onFullPayment(dateStr);
+          await onFullPayment(dateStr, undefined, mid);
         } else {
-          await onPartialPayment(remaining, dateStr);
+          await onPartialPayment(remaining, dateStr, mid);
           await onUpdate({ paidInstallments: loan.installments, status: "paid" });
         }
       } else if (dialogType === "payoff") {
@@ -406,21 +419,21 @@ function LoanCardView({
         const custom = isFinite(customRaw) && customRaw > 0 ? customRaw : 0;
         if (custom <= 0) return;
         if (onFullPayment) {
-          await onFullPayment(dateStr, custom);
+          await onFullPayment(dateStr, custom, mid);
         } else {
-          await onPartialPayment(custom, dateStr);
+          await onPartialPayment(custom, dateStr, mid);
           await onUpdate({ paidInstallments: loan.installments, status: "paid" });
         }
       } else if (dialogType === "installment") {
-        await onPayment(dateStr);
+        await onPayment(dateStr, mid);
       } else if (dialogType === "interest") {
         if (interestSelection === "withFees" && lateFees > 0) {
-          await onInterestPayment(dateStr, undefined, lateFees);
+          await onInterestPayment(dateStr, undefined, lateFees, mid);
         } else {
-          await onInterestPayment(dateStr);
+          await onInterestPayment(dateStr, undefined, undefined, mid);
         }
       } else if (dialogType === "partial" && dialogAmount) {
-        await onPartialPayment(dialogAmount, dateStr);
+        await onPartialPayment(dialogAmount, dateStr, mid);
       }
       toast.success("Pagamento registrado");
     } catch (err: any) {
@@ -1453,6 +1466,19 @@ function LoanCardView({
               </div>
             );
           })()}
+          {activeMethods.length > 0 && (
+            <div className="w-full space-y-1">
+              <Label className="text-sm text-muted-foreground">Forma de pagamento</Label>
+              <Select value={selectedMethodId} onValueChange={setSelectedMethodId}>
+                <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                <SelectContent>
+                  {activeMethods.map((m) => (
+                    <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
           <Label className="text-sm text-muted-foreground">Selecione a data do pagamento</Label>
           <CalendarUI
             mode="single"
@@ -1545,10 +1571,10 @@ function LoanRowView({
   loan: Loan;
   payments: Payment[];
   installmentSchedules?: InstallmentSchedule[];
-  onPayment: (date?: string) => void;
-  onPartialPayment: (amount: number, date?: string) => void;
-  onFullPayment?: (date?: string, customAmount?: number) => void;
-  onInterestPayment: (date?: string, customAmount?: number, feesAmount?: number) => void;
+  onPayment: (date?: string, paymentMethodId?: string | null) => void;
+  onPartialPayment: (amount: number, date?: string, paymentMethodId?: string | null) => void;
+  onFullPayment?: (date?: string, customAmount?: number, paymentMethodId?: string | null) => void;
+  onInterestPayment: (date?: string, customAmount?: number, feesAmount?: number, paymentMethodId?: string | null) => void;
   onUpdate: (data: Partial<Omit<Loan, "id">>) => void;
   onDelete: () => void;
   onDeletePayment: (paymentId: string) => void;
@@ -1586,6 +1612,13 @@ function LoanRowView({
   const [showPenalty, setShowPenalty] = useState(false);
   const [penaltyValue, setPenaltyValue] = useState<string>(loan.penaltyValue != null ? String(loan.penaltyValue) : "");
   const managerOptions = useMemo(() => clients.filter((c) => c.isManager && c.active !== false), [clients]);
+  const { activeMethods: rowActiveMethods } = usePaymentMethods();
+  const [rowSelectedMethodId, setRowSelectedMethodId] = useState<string>("");
+  React.useEffect(() => {
+    if (paymentDialog && !rowSelectedMethodId && rowActiveMethods.length > 0) {
+      setRowSelectedMethodId(rowActiveMethods[0].id);
+    }
+  }, [paymentDialog, rowActiveMethods, rowSelectedMethodId]);
 
   const total = calculateTotalWithInterest(loan.amount, loan.interestRate, loan.installments);
   const totalPaid = getTotalPaid(loan, allPayments);
@@ -1686,17 +1719,22 @@ function LoanRowView({
 
   const confirmPayment = async () => {
     if (!paymentDialog) return;
+    if (rowActiveMethods.length > 0 && !rowSelectedMethodId) {
+      toast.error("Selecione a forma de pagamento");
+      return;
+    }
     const dateStr = paymentDate.toISOString().split("T")[0];
     const dialogType = paymentDialog.type;
     const dialogAmount = paymentDialog.amount;
+    const mid = rowSelectedMethodId || null;
     setPayoffAmount("");
     setPaymentDialog(null);
     try {
       if (dialogType === "full") {
         if (onFullPayment) {
-          await onFullPayment(dateStr);
+          await onFullPayment(dateStr, undefined, mid);
         } else {
-          await onPartialPayment(remaining, dateStr);
+          await onPartialPayment(remaining, dateStr, mid);
           await onUpdate({ paidInstallments: loan.installments, status: "paid" });
         }
       } else if (dialogType === "payoff") {
@@ -1704,21 +1742,21 @@ function LoanRowView({
         const custom = isFinite(customRaw) && customRaw > 0 ? customRaw : 0;
         if (custom <= 0) return;
         if (onFullPayment) {
-          await onFullPayment(dateStr, custom);
+          await onFullPayment(dateStr, custom, mid);
         } else {
-          await onPartialPayment(custom, dateStr);
+          await onPartialPayment(custom, dateStr, mid);
           await onUpdate({ paidInstallments: loan.installments, status: "paid" });
         }
       } else if (dialogType === "installment") {
-        await onPayment(dateStr);
+        await onPayment(dateStr, mid);
       } else if (dialogType === "interest") {
         if (interestSelection === "withFees" && lateFees > 0) {
-          await onInterestPayment(dateStr, undefined, lateFees);
+          await onInterestPayment(dateStr, undefined, lateFees, mid);
         } else {
-          await onInterestPayment(dateStr);
+          await onInterestPayment(dateStr, undefined, undefined, mid);
         }
       } else if (dialogType === "partial" && dialogAmount) {
-        await onPartialPayment(dialogAmount, dateStr);
+        await onPartialPayment(dialogAmount, dateStr, mid);
       }
       toast.success("Pagamento registrado");
     } catch (err: any) {
@@ -2371,6 +2409,19 @@ function LoanRowView({
               </div>
             );
           })()}
+          {rowActiveMethods.length > 0 && (
+            <div className="w-full space-y-1">
+              <Label className="text-sm text-muted-foreground">Forma de pagamento</Label>
+              <Select value={rowSelectedMethodId} onValueChange={setRowSelectedMethodId}>
+                <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                <SelectContent>
+                  {rowActiveMethods.map((m) => (
+                    <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
           <Label className="text-sm text-muted-foreground">Selecione a data do pagamento</Label>
           <CalendarUI
             mode="single"
@@ -2483,10 +2534,10 @@ function ClientFolder({
   group: ClientGroup;
   payments: Payment[];
   installmentSchedules: InstallmentSchedule[];
-  onPayment: (id: string, date?: string) => void;
-  onPartialPayment: (id: string, amount: number, date?: string) => void;
-  onFullPayment?: (id: string, date?: string, customAmount?: number) => void;
-  onInterestPayment: (id: string, date?: string, customAmount?: number, feesAmount?: number) => void;
+  onPayment: (id: string, date?: string, paymentMethodId?: string | null) => void;
+  onPartialPayment: (id: string, amount: number, date?: string, paymentMethodId?: string | null) => void;
+  onFullPayment?: (id: string, date?: string, customAmount?: number, paymentMethodId?: string | null) => void;
+  onInterestPayment: (id: string, date?: string, customAmount?: number, feesAmount?: number, paymentMethodId?: string | null) => void;
   onUpdate: (id: string, data: Partial<Omit<Loan, "id">>) => void;
   onDelete: (id: string) => void;
   onDeletePayment: (paymentId: string) => void;
@@ -2576,8 +2627,8 @@ function ClientFolder({
               <tbody>
                 {group.loans.map((loan) => (
                   <LoanRowView key={loan.id} loan={loan} payments={payments} installmentSchedules={installmentSchedules} readOnly={readOnly} existingTags={[...new Set(group.loans.flatMap(l => l.tags || []))]} clients={clients}
-                    onPayment={(date) => onPayment(loan.id, date)} onPartialPayment={(amt, date) => onPartialPayment(loan.id, amt, date)} onFullPayment={onFullPayment ? (date, custom) => onFullPayment(loan.id, date, custom) : undefined}
-                    onInterestPayment={(date, custom) => onInterestPayment(loan.id, date, custom)} onUpdate={(d) => onUpdate(loan.id, d)} onDelete={() => onDelete(loan.id)} onDeletePayment={onDeletePayment} onSaveSchedule={onSaveSchedule} />
+                    onPayment={(date, mid) => onPayment(loan.id, date, mid)} onPartialPayment={(amt, date, mid) => onPartialPayment(loan.id, amt, date, mid)} onFullPayment={onFullPayment ? (date, custom, mid) => onFullPayment(loan.id, date, custom, mid) : undefined}
+                    onInterestPayment={(date, custom, fees, mid) => onInterestPayment(loan.id, date, custom, fees, mid)} onUpdate={(d) => onUpdate(loan.id, d)} onDelete={() => onDelete(loan.id)} onDeletePayment={onDeletePayment} onSaveSchedule={onSaveSchedule} />
                 ))}
               </tbody>
             </table>
@@ -2935,8 +2986,8 @@ export function LoanList({ loans, payments, installmentSchedules, onPayment, onP
               {categorized.map((loan, i) => (
                 <div key={loan.id} className="animate-fade-in h-full" style={{ animationDelay: `${i * 60}ms`, animationFillMode: 'backwards' }}>
                 <LoanCardView loan={loan} payments={payments} installmentSchedules={installmentSchedules} readOnly={readOnly} existingTags={loans.flatMap(l => l.tags || []).filter((v, i, a) => a.indexOf(v) === i)} clients={clients}
-                  onPayment={(date) => onPayment(loan.id, date)} onPartialPayment={(amt, date) => onPartialPayment(loan.id, amt, date)} onFullPayment={onFullPayment ? (date, custom) => onFullPayment(loan.id, date, custom) : undefined}
-                  onInterestPayment={(date, custom) => onInterestPayment(loan.id, date, custom)} onUpdate={(d) => onUpdate(loan.id, d)} onDelete={() => onDelete(loan.id)} onDeletePayment={onDeletePayment} onSaveSchedule={onSaveSchedule} />
+                  onPayment={(date, mid) => onPayment(loan.id, date, mid)} onPartialPayment={(amt, date, mid) => onPartialPayment(loan.id, amt, date, mid)} onFullPayment={onFullPayment ? (date, custom, mid) => onFullPayment(loan.id, date, custom, mid) : undefined}
+                  onInterestPayment={(date, custom, fees, mid) => onInterestPayment(loan.id, date, custom, fees, mid)} onUpdate={(d) => onUpdate(loan.id, d)} onDelete={() => onDelete(loan.id)} onDeletePayment={onDeletePayment} onSaveSchedule={onSaveSchedule} />
                 </div>
               ))}
             </div>
@@ -2979,8 +3030,8 @@ export function LoanList({ loans, payments, installmentSchedules, onPayment, onP
                 <tbody>
                   {categorized.map((loan) => (
                     <LoanRowView key={loan.id} loan={loan} payments={payments} installmentSchedules={installmentSchedules} readOnly={readOnly} existingTags={loans.flatMap(l => l.tags || []).filter((v, i, a) => a.indexOf(v) === i)} clients={clients}
-                      onPayment={(date) => onPayment(loan.id, date)} onPartialPayment={(amt, date) => onPartialPayment(loan.id, amt, date)} onFullPayment={onFullPayment ? (date, custom) => onFullPayment(loan.id, date, custom) : undefined}
-                      onInterestPayment={(date, custom) => onInterestPayment(loan.id, date, custom)} onUpdate={(d) => onUpdate(loan.id, d)} onDelete={() => onDelete(loan.id)} onDeletePayment={onDeletePayment} onSaveSchedule={onSaveSchedule} />
+                      onPayment={(date, mid) => onPayment(loan.id, date, mid)} onPartialPayment={(amt, date, mid) => onPartialPayment(loan.id, amt, date, mid)} onFullPayment={onFullPayment ? (date, custom, mid) => onFullPayment(loan.id, date, custom, mid) : undefined}
+                      onInterestPayment={(date, custom, fees, mid) => onInterestPayment(loan.id, date, custom, fees, mid)} onUpdate={(d) => onUpdate(loan.id, d)} onDelete={() => onDelete(loan.id)} onDeletePayment={onDeletePayment} onSaveSchedule={onSaveSchedule} />
                   ))}
                 </tbody>
               </table>
