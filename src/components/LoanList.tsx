@@ -26,6 +26,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { AdjustDueDateDialog } from "@/components/AdjustDueDateDialog";
+import { usePaymentMethods } from "@/hooks/usePaymentMethods";
 
 interface Props {
   loans: Loan[];
