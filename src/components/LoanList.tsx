@@ -258,7 +258,7 @@ function PaymentHistoryItem({
 
 
 function LoanCardView({
-  loan, payments: allPayments, installmentSchedules, onPayment, onPartialPayment, onFullPayment, onInterestPayment, onAmortize, onUpdate, onDelete, onDeletePayment, onSaveSchedule, readOnly = false, no3d = false, existingTags = [], clients = [],
+  loan, payments: allPayments, installmentSchedules, onPayment, onPartialPayment, onFullPayment, onInterestPayment, onAmortize, onUpdate, onDelete, onDeletePayment, onSaveSchedule, readOnly = false, no3d = false, existingTags = [], clients = [], locador,
 }: {
   loan: Loan;
   payments: Payment[];
@@ -276,6 +276,7 @@ function LoanCardView({
   no3d?: boolean;
   existingTags?: string[];
   clients?: Client[];
+  locador?: import("@/hooks/useLocadorInfo").LocadorInfo;
 }) {
   const { mask } = useHideValues();
   const formatCurrency = useCallback((v: number) => mask(rawFormatCurrency(v)), [mask]);
@@ -1706,7 +1707,7 @@ function LoanCardView({
 }
 
 function LoanRowView({
-  loan, payments: allPayments, installmentSchedules = [], onPayment, onPartialPayment, onFullPayment, onInterestPayment, onAmortize, onUpdate, onDelete, onDeletePayment, onSaveSchedule, readOnly = false, existingTags = [], clients = [],
+  loan, payments: allPayments, installmentSchedules = [], onPayment, onPartialPayment, onFullPayment, onInterestPayment, onAmortize, onUpdate, onDelete, onDeletePayment, onSaveSchedule, readOnly = false, existingTags = [], clients = [], locador,
 }: {
   loan: Loan;
   payments: Payment[];
@@ -1723,6 +1724,7 @@ function LoanRowView({
   readOnly?: boolean;
   existingTags?: string[];
   clients?: Client[];
+  locador?: import("@/hooks/useLocadorInfo").LocadorInfo;
 }) {
   const [showAdjustDueDateRow, setShowAdjustDueDateRow] = useState(false);
   const [expanded, setExpanded] = useState(false);
