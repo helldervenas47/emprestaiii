@@ -2601,7 +2601,7 @@ export function LoanList({ loans, payments, installmentSchedules, onPayment, onP
   const [amountMin, setAmountMin] = useState("");
   const [amountMax, setAmountMax] = useState("");
   const [tagFilter, setTagFilter] = useState("");
-  const [onlyWithNotes, setOnlyWithNotes] = useState(false);
+  const [notesFilter, setNotesFilter] = useState<"all" | "with" | "without">("all");
   const [sortBy, setSortBy] = useState<"dueDate" | "startDate" | "amount" | "name">("dueDate");
 
   const allTags = useMemo(() => {
