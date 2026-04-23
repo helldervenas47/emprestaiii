@@ -1716,11 +1716,92 @@ Deno.serve(async (req) => {
         if (!link) {
           await tgSend(chatId, "🔒 Conta não vinculada. Use o app para gerar um código e envie `/start CODIGO`.", LOVABLE_API_KEY, TELEGRAM_API_KEY);
         } else {
-          // ✏️ Pending edit interception (before any other text handling)
-          const { data: pending } = await admin.from("telegram_pending_edits")
+          // 🐷 Pending piggy-bank aporte interception (highest priority)
+          const { data: pendingPiggy } = await admin.from("telegram_pending_piggy_aporte")
             .select("*").eq("chat_id", chatId).maybeSingle();
 
           let pendingHandled = false;
+
+          if (pendingPiggy) {
+            const expiredP = new Date(pendingPiggy.expires_at).getTime() < Date.now();
+            if (expiredP) {
+              await admin.from("telegram_pending_piggy_aporte").delete().eq("chat_id", chatId);
+            } else if (/^\/cancelar\b/i.test(text)) {
+              await admin.from("telegram_pending_piggy_aporte").delete().eq("chat_id", chatId);
+              await tgSend(chatId, "❌ Aporte cancelado.", LOVABLE_API_KEY, TELEGRAM_API_KEY);
+              pendingHandled = true;
+            } else {
+              const aporteAmount = parseAmount(text);
+              if (aporteAmount === null) {
+                await tgSend(chatId, "❌ Não entendi o valor. Envie só o número (ex: `200` ou `200,50`) ou `/cancelar` para sair.", LOVABLE_API_KEY, TELEGRAM_API_KEY);
+                pendingHandled = true;
+              } else {
+                const ownerId = await resolvePiggyOwner(admin, link.user_id);
+                const { data: bank } = await admin
+                  .from("piggy_banks")
+                  .select("id, name")
+                  .eq("id", pendingPiggy.piggy_bank_id)
+                  .eq("user_id", ownerId)
+                  .maybeSingle();
+                await admin.from("telegram_pending_piggy_aporte").delete().eq("chat_id", chatId);
+                if (!bank) {
+                  await tgSend(chatId, "❌ Caixinha não encontrada.", LOVABLE_API_KEY, TELEGRAM_API_KEY);
+                } else {
+                  const today = todayBR();
+                  const description = `Aporte cofrinho — ${bank.name}`;
+                  const piggyTag = `[cofrinho:${bank.id}]`;
+                  const { data: exp, error: expErr } = await admin
+                    .from("expenses")
+                    .insert({
+                      user_id: link.user_id,
+                      description,
+                      amount: aporteAmount,
+                      category: "Cofrinho",
+                      type: "fixa",
+                      scope: "personal",
+                      due_date: today,
+                      paid: true,
+                      paid_date: today,
+                      notes: piggyTag,
+                    })
+                    .select("id")
+                    .single();
+                  if (expErr || !exp) {
+                    await tgSend(chatId, "❌ Erro ao registrar aporte: " + (expErr?.message ?? "desconhecido"), LOVABLE_API_KEY, TELEGRAM_API_KEY);
+                  } else {
+                    const { error: depErr } = await admin
+                      .from("piggy_bank_deposits")
+                      .insert({
+                        user_id: ownerId,
+                        piggy_bank_id: bank.id,
+                        expense_id: exp.id,
+                        amount: aporteAmount,
+                        deposit_date: today,
+                        source: "expense",
+                      });
+                    if (depErr) {
+                      await admin.from("expenses").delete().eq("id", exp.id);
+                      await tgSend(chatId, "❌ Erro ao creditar a caixinha: " + depErr.message, LOVABLE_API_KEY, TELEGRAM_API_KEY);
+                    } else {
+                      await tgSend(
+                        chatId,
+                        `🐷 *Aporte registrado!*\n\n💰 ${fmtBRL(aporteAmount)}\n📦 Caixinha: *${bank.name}*\n📅 ${today}`,
+                        LOVABLE_API_KEY, TELEGRAM_API_KEY,
+                      );
+                    }
+                  }
+                }
+                pendingHandled = true;
+              }
+            }
+          }
+
+          // ✏️ Pending edit interception (before any other text handling)
+          const { data: pending } = pendingHandled
+            ? { data: null as any }
+            : await admin.from("telegram_pending_edits")
+                .select("*").eq("chat_id", chatId).maybeSingle();
+
           if (pending) {
             const expired = new Date(pending.expires_at).getTime() < Date.now();
             if (expired) {
