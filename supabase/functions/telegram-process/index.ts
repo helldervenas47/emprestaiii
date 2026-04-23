@@ -2140,7 +2140,6 @@ Deno.serve(async (req) => {
             }
           }
         }
-        }
       }
     } catch (e) {
       console.error("processing error", e);
@@ -2160,3 +2159,4 @@ Deno.serve(async (req) => {
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
 });
+}
