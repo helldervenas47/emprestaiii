@@ -915,39 +915,38 @@ function GoalDetailDialog({ open, onClose, goal, viewingMonth }: DialogProps) {
                     </p>
                   </div>
                 </div>
-                {goal.goalType === "profit" && goal.expectedReceivable !== null && goal.targetAmount !== null && (
-                  <div className="mt-3 space-y-2">
-                    <div className="grid grid-cols-2 gap-2 text-center">
-                      <div className="rounded-md border border-border bg-card/60 p-2">
-                        <p className="text-[10px] text-muted-foreground uppercase">Previsto a receber</p>
-                        <p className="text-sm font-bold text-foreground">{fmtValue(goal.expectedReceivable, "R$", hidden)}</p>
-                      </div>
-                      <div className="rounded-md border border-success/30 bg-success/5 p-2">
-                        <p className="text-[10px] text-muted-foreground uppercase">Meta em valor</p>
-                        <p className="text-sm font-bold text-success">{fmtValue(goal.targetAmount, "R$", hidden)}</p>
-                      </div>
-                    </div>
-                    <div className="rounded-md border border-border bg-card/60 p-3 text-left">
-                      <div className="flex items-center justify-between gap-2">
-                        <span className="text-[11px] text-muted-foreground">Taxa da simulação</span>
-                        <div className="flex items-center gap-2">
-                          <Input
-                            type="number"
-                            min="0"
-                            step="0.1"
-                            value={simulationInterestRate}
-                            onChange={(e) => void updateSimulationInterestRate(Math.max(0, Number(e.target.value) || 0))}
-                            className="h-7 w-20 text-xs text-right"
-                          />
-                          <span className="text-[10px] text-muted-foreground">% a.m.</span>
+                {goal.goalType === "profit" && goal.expectedReceivable !== null && goal.targetAmount !== null && (() => {
+                  const computeMonth = selectedMonth || goal.month;
+                  const receivedTotal = payments
+                    .filter((p: any) => inMonth(p.date, computeMonth))
+                    .reduce((s: number, p: any) => s + (Number(p.amount) || 0), 0);
+                  const diffToTarget = Math.max(0, goal.targetAmount - receivedTotal);
+                  const targetReached = receivedTotal >= goal.targetAmount;
+                  return (
+                    <div className="mt-3 space-y-2">
+                      <div className="grid grid-cols-2 gap-2 text-center">
+                        <div className="rounded-md border border-border bg-card/60 p-2">
+                          <p className="text-[10px] text-muted-foreground uppercase">Previsto a receber</p>
+                          <p className="text-sm font-bold text-foreground">{fmtValue(goal.expectedReceivable, "R$", hidden)}</p>
+                        </div>
+                        <div className="rounded-md border border-success/30 bg-success/5 p-2">
+                          <p className="text-[10px] text-muted-foreground uppercase">Meta em valor</p>
+                          <p className="text-sm font-bold text-success">{fmtValue(goal.targetAmount, "R$", hidden)}</p>
+                        </div>
+                        <div className="rounded-md border border-border bg-card/60 p-2">
+                          <p className="text-[10px] text-muted-foreground uppercase">Recebido total</p>
+                          <p className="text-sm font-bold text-foreground">{fmtValue(receivedTotal, "R$", hidden)}</p>
+                        </div>
+                        <div className={`rounded-md border p-2 ${targetReached ? "border-success/30 bg-success/5" : "border-destructive/30 bg-destructive/5"}`}>
+                          <p className="text-[10px] text-muted-foreground uppercase">{targetReached ? "Meta atingida" : "Falta para a meta"}</p>
+                          <p className={`text-sm font-bold ${targetReached ? "text-success" : "text-destructive"}`}>
+                            {targetReached ? "✓" : fmtValue(diffToTarget, "R$", hidden)}
+                          </p>
                         </div>
                       </div>
-                      <p className="text-xs font-semibold text-foreground leading-5 mt-3">
-                        Você precisa emprestar {fmtValue(requiredLoanAmount, "R$", hidden)} para atingir a meta.
-                      </p>
                     </div>
-                  </div>
-                )}
+                  );
+                })()}
               </CardContent>
             </Card>
 
