@@ -1444,6 +1444,18 @@ function LoanCardView({
             <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => setShowHistory(true)} title="Histórico de Pagamentos">
               <History className="h-4 w-4 text-muted-foreground" />
             </Button>
+            <Button
+              size="icon"
+              variant="ghost"
+              className="h-8 w-8"
+              onClick={() => {
+                const matchedClient = clients.find((c) => c.name?.toLowerCase().trim() === loan.borrowerName?.toLowerCase().trim());
+                generateLoanContract(loan, allPayments, installmentSchedules, matchedClient, locador);
+              }}
+              title="Gerar Contrato"
+            >
+              <FileText className="h-4 w-4 text-muted-foreground" />
+            </Button>
             {!readOnly && (
               <>
                 <Button size="icon" variant="ghost" className="h-8 w-8" onClick={startEdit} title="Editar">
@@ -2403,6 +2415,17 @@ function LoanRowView({
               <div className="flex gap-2 w-full">
                 <Button variant="ghost" className="flex-1 h-9 text-xs gap-1.5" onClick={(e) => { e.stopPropagation(); setShowHistory(true); }}>
                   <History className="h-3.5 w-3.5" /> Histórico
+                </Button>
+                <Button
+                  variant="ghost"
+                  className="flex-1 h-9 text-xs gap-1.5"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    const matchedClient = clients.find((c) => c.name?.toLowerCase().trim() === loan.borrowerName?.toLowerCase().trim());
+                    generateLoanContract(loan, allPayments, installmentSchedules, matchedClient, locador);
+                  }}
+                >
+                  <FileText className="h-3.5 w-3.5" /> Contrato
                 </Button>
                 {!readOnly && (
                   <>
