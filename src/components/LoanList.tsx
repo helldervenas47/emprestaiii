@@ -2427,6 +2427,54 @@ function LoanRowView({
               </div>
             </div>
           )}
+          {paymentDialog?.type === "amortize" && (() => {
+            const rate = Number(loan.interestRate) || 0;
+            const oldPrincipal = Number(loan.amount) || 0;
+            const amortRaw = parseFloat(amortizeAmount.replace(",", "."));
+            const v = isFinite(amortRaw) && amortRaw > 0 ? amortRaw : 0;
+            const newPrincipal = Math.max(0, oldPrincipal - v);
+            const oldInterest = loan.customInterestValue != null && loan.customInterestValue > 0
+              ? loan.customInterestValue
+              : oldPrincipal * (rate / 100);
+            const newInterest = loan.customInterestValue != null && loan.customInterestValue > 0 && oldPrincipal > 0
+              ? loan.customInterestValue * (newPrincipal / oldPrincipal)
+              : newPrincipal * (rate / 100);
+            const interestSaved = Math.max(0, oldInterest - newInterest);
+            return (
+              <div className="w-full space-y-2">
+                <div className="text-center p-3 bg-muted/50 rounded-lg w-full">
+                  <p className="text-xs text-muted-foreground">Saldo principal atual</p>
+                  <p className="text-xl font-bold text-foreground">{formatCurrency(oldPrincipal)}</p>
+                </div>
+                <div className="space-y-1">
+                  <Label htmlFor="amort-amount-row" className="text-xs">Valor da amortização (R$)</Label>
+                  <Input
+                    id="amort-amount-row"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    inputMode="decimal"
+                    value={amortizeAmount}
+                    onChange={(e) => setAmortizeAmount(e.target.value)}
+                    placeholder="Ex: 500.00"
+                    autoFocus
+                  />
+                </div>
+                {v > 0 && v <= oldPrincipal && (
+                  <div className="rounded-lg border border-border/60 p-2.5 space-y-1 text-[11px]">
+                    <div className="flex justify-between"><span className="text-muted-foreground">Novo principal</span><span className="font-semibold tabular-nums">{rawFormatCurrency(newPrincipal)}</span></div>
+                    <div className="flex justify-between"><span className="text-muted-foreground">Juros antes</span><span className="tabular-nums">{rawFormatCurrency(oldInterest)}</span></div>
+                    <div className="flex justify-between"><span className="text-muted-foreground">Novo juros total</span><span className="font-semibold text-primary tabular-nums">{rawFormatCurrency(newInterest)}</span></div>
+                    <div className="flex justify-between"><span className="text-muted-foreground">Juros economizados</span><span className="font-semibold text-success tabular-nums">{rawFormatCurrency(interestSaved)}</span></div>
+                  </div>
+                )}
+                {v > oldPrincipal && (
+                  <p className="text-[11px] text-destructive">O valor não pode ser maior que o principal.</p>
+                )}
+                <p className="text-[10px] text-muted-foreground">A amortização reduz o saldo devedor e recalcula os juros e parcelas futuras proporcionalmente.</p>
+              </div>
+            );
+          })()}
           {paymentDialog?.type === "interest" && lateFees > 0 && (() => {
             const baseInterest = loan.customInterestValue != null && loan.customInterestValue > 0
               ? loan.customInterestValue
