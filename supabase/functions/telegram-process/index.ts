@@ -1577,7 +1577,7 @@ Deno.serve(async (req) => {
             await tgSend(chatId, "✏️ *Editar valor*\nEnvie o novo valor (ex: `45,90`) ou `/cancelar`.", LOVABLE_API_KEY, TELEGRAM_API_KEY);
           }
         } else if (data.startsWith("pgapt:")) {
-          // User chose a piggy bank — store pending state and ask for amount.
+          // User chose a piggy bank.
           const piggyBankId = data.slice(6);
           const expiresAt = new Date(Date.now() + 5 * 60 * 1000).toISOString();
           // Validate the piggy bank still exists for this user (or owner).
@@ -1586,21 +1586,48 @@ Deno.serve(async (req) => {
           if (!bank) {
             await tgAnswerCallback(cbId, "Caixinha não encontrada", LOVABLE_API_KEY, TELEGRAM_API_KEY);
           } else {
-            const { error: upErr } = await admin.from("telegram_pending_piggy_aporte").upsert({
-              chat_id: chatId,
-              user_id: link.user_id,
-              piggy_bank_id: piggyBankId,
-              expires_at: expiresAt,
-            }, { onConflict: "chat_id" });
-            if (upErr) {
-              await tgAnswerCallback(cbId, "Erro ao iniciar aporte", LOVABLE_API_KEY, TELEGRAM_API_KEY);
-            } else {
-              await tgAnswerCallback(cbId, "Envie o valor do aporte", LOVABLE_API_KEY, TELEGRAM_API_KEY);
+            // Read any pre-filled amount/note from the pending row (set by /aporte <amount> <note>).
+            const { data: existingPending } = await admin
+              .from("telegram_pending_piggy_aporte")
+              .select("pending_amount, notes")
+              .eq("chat_id", chatId)
+              .maybeSingle();
+            const preAmount = existingPending?.pending_amount != null
+              ? Number(existingPending.pending_amount)
+              : null;
+            const preNote: string | null = existingPending?.notes ?? null;
+
+            if (preAmount && preAmount > 0) {
+              // Auto-finalize: amount was provided inline with /aporte.
+              await admin.from("telegram_pending_piggy_aporte").delete().eq("chat_id", chatId);
+              await tgAnswerCallback(cbId, "Registrando aporte…", LOVABLE_API_KEY, TELEGRAM_API_KEY);
+              const reply = await finalizePiggyAporte(admin, link.user_id, bank, preAmount, preNote);
               await tgEditMessage(
                 chatId, messageId,
-                `🐷 *Aporte na caixinha "${bank.name}"*\n\nEnvie o valor do aporte (ex: \`200\` ou \`200,50\`) ou \`/cancelar\` para sair.`,
+                `🐷 *Aporte na caixinha "${bank.name}"*`,
                 null, LOVABLE_API_KEY, TELEGRAM_API_KEY,
               );
+              await tgSend(chatId, reply, LOVABLE_API_KEY, TELEGRAM_API_KEY);
+            } else {
+              const { error: upErr } = await admin.from("telegram_pending_piggy_aporte").upsert({
+                chat_id: chatId,
+                user_id: link.user_id,
+                piggy_bank_id: piggyBankId,
+                pending_amount: null,
+                notes: preNote, // preserve any note already typed
+                expires_at: expiresAt,
+              }, { onConflict: "chat_id" });
+              if (upErr) {
+                await tgAnswerCallback(cbId, "Erro ao iniciar aporte", LOVABLE_API_KEY, TELEGRAM_API_KEY);
+              } else {
+                await tgAnswerCallback(cbId, "Envie o valor do aporte", LOVABLE_API_KEY, TELEGRAM_API_KEY);
+                const noteLine = preNote ? `\n📝 Nota: _${preNote}_` : "";
+                await tgEditMessage(
+                  chatId, messageId,
+                  `🐷 *Aporte na caixinha "${bank.name}"*${noteLine}\n\nEnvie o valor do aporte (ex: \`200\` ou \`200,50 nota opcional\`) ou \`/cancelar\` para sair.`,
+                  null, LOVABLE_API_KEY, TELEGRAM_API_KEY,
+                );
+              }
             }
           }
         } else if (data === "pgaptc") {
@@ -1842,9 +1869,29 @@ Deno.serve(async (req) => {
               await tgSend(chatId, "❌ Aporte cancelado.", LOVABLE_API_KEY, TELEGRAM_API_KEY);
               pendingHandled = true;
             } else {
-              const aporteAmount = parseAmount(text);
-              if (aporteAmount === null) {
-                await tgSend(chatId, "❌ Não entendi o valor. Envie só o número (ex: `200` ou `200,50`) ou `/cancelar` para sair.", LOVABLE_API_KEY, TELEGRAM_API_KEY);
+              const parsed = parseAmountWithNote(text);
+              if (!parsed) {
+                await tgSend(chatId, "❌ Não entendi o valor. Envie `200`, `200,50` ou `200 aniversário` (ou `/cancelar`).", LOVABLE_API_KEY, TELEGRAM_API_KEY);
+                pendingHandled = true;
+              } else if (!pendingPiggy.piggy_bank_id) {
+                // Bank not yet picked — store amount/note and re-ask the user to pick one.
+                const { banks } = await listUserPiggyBanks(admin, link.user_id);
+                if (banks.length === 0) {
+                  await admin.from("telegram_pending_piggy_aporte").delete().eq("chat_id", chatId);
+                  await tgSend(chatId, "🐷 Você ainda não tem nenhuma caixinha. Crie uma no app.", LOVABLE_API_KEY, TELEGRAM_API_KEY);
+                } else {
+                  await admin.from("telegram_pending_piggy_aporte").update({
+                    pending_amount: parsed.amount,
+                    notes: parsed.note,
+                  }).eq("chat_id", chatId);
+                  const noteLine = parsed.note ? `\n📝 Nota: _${parsed.note}_` : "";
+                  await tgSendWithKeyboard(
+                    chatId,
+                    `🐷 *Aporte em caixinha*\n💰 Valor: *${fmtBRL(parsed.amount)}*${noteLine}\n\nEscolha em qual caixinha:`,
+                    buildPiggyBanksKeyboard(banks),
+                    LOVABLE_API_KEY, TELEGRAM_API_KEY,
+                  );
+                }
                 pendingHandled = true;
               } else {
                 const ownerId = await resolvePiggyOwner(admin, link.user_id);
@@ -1858,49 +1905,10 @@ Deno.serve(async (req) => {
                 if (!bank) {
                   await tgSend(chatId, "❌ Caixinha não encontrada.", LOVABLE_API_KEY, TELEGRAM_API_KEY);
                 } else {
-                  const today = todayBR();
-                  const description = `Aporte cofrinho — ${bank.name}`;
-                  const piggyTag = `[cofrinho:${bank.id}]`;
-                  const { data: exp, error: expErr } = await admin
-                    .from("expenses")
-                    .insert({
-                      user_id: link.user_id,
-                      description,
-                      amount: aporteAmount,
-                      category: "Cofrinho",
-                      type: "fixa",
-                      scope: "personal",
-                      due_date: today,
-                      paid: true,
-                      paid_date: today,
-                      notes: piggyTag,
-                    })
-                    .select("id")
-                    .single();
-                  if (expErr || !exp) {
-                    await tgSend(chatId, "❌ Erro ao registrar aporte: " + (expErr?.message ?? "desconhecido"), LOVABLE_API_KEY, TELEGRAM_API_KEY);
-                  } else {
-                    const { error: depErr } = await admin
-                      .from("piggy_bank_deposits")
-                      .insert({
-                        user_id: ownerId,
-                        piggy_bank_id: bank.id,
-                        expense_id: exp.id,
-                        amount: aporteAmount,
-                        deposit_date: today,
-                        source: "expense",
-                      });
-                    if (depErr) {
-                      await admin.from("expenses").delete().eq("id", exp.id);
-                      await tgSend(chatId, "❌ Erro ao creditar a caixinha: " + depErr.message, LOVABLE_API_KEY, TELEGRAM_API_KEY);
-                    } else {
-                      await tgSend(
-                        chatId,
-                        `🐷 *Aporte registrado!*\n\n💰 ${fmtBRL(aporteAmount)}\n📦 Caixinha: *${bank.name}*\n📅 ${today}`,
-                        LOVABLE_API_KEY, TELEGRAM_API_KEY,
-                      );
-                    }
-                  }
+                  // Note priority: inline note (this message) overrides any previously stored note.
+                  const finalNote = parsed.note ?? (pendingPiggy.notes ?? null);
+                  const reply = await finalizePiggyAporte(admin, link.user_id, bank, parsed.amount, finalNote);
+                  await tgSend(chatId, reply, LOVABLE_API_KEY, TELEGRAM_API_KEY);
                 }
                 pendingHandled = true;
               }
