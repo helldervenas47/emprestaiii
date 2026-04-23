@@ -283,18 +283,33 @@ export function MonthlyGoalsManager({ readOnly = false }: { readOnly?: boolean }
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-3">
             <h3 className="font-semibold text-foreground">Metas cadastradas</h3>
             <div className="flex flex-wrap items-center gap-2">
-              <div className="flex items-center gap-2">
-                <Label className="text-xs text-muted-foreground whitespace-nowrap">Mês:</Label>
-                <Select value={filterMonth} onValueChange={setFilterMonth}>
-                  <SelectTrigger className="h-8 w-[180px]">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent className="max-h-72">
-                    {availableMonths.map((m) => (
-                      <SelectItem key={m} value={m}>{formatMonthLabel(m)}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+              <div className="flex items-center gap-1 rounded-lg border border-border/50 bg-muted/30 p-0.5">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7 hover:bg-background"
+                  onClick={goPrevMonth}
+                  title="Mês anterior"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+                <button
+                  type="button"
+                  onClick={() => setFilterMonth(currentMonthKey())}
+                  className="text-xs font-medium text-foreground px-3 min-w-[140px] text-center hover:text-primary transition-colors"
+                  title="Voltar para o mês atual"
+                >
+                  {formatMonthLabel(filterMonth)}
+                </button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7 hover:bg-background"
+                  onClick={goNextMonth}
+                  title="Próximo mês"
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
               </div>
               {!readOnly && (
                 <Button
