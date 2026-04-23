@@ -174,20 +174,15 @@ export function MonthlyGoalsManager({ readOnly = false }: { readOnly?: boolean }
     [goals, loans, payments, clients, expenses]
   );
 
-  // Helper: mês anterior no formato YYYY-MM
-  const prevMonthKey = (m: string) => {
+  // Helpers de mês
+  const shiftMonthKey = (m: string, delta: number) => {
     const [y, mm] = m.split("-").map(Number);
-    const d = new Date(y, mm - 2, 1);
+    const d = new Date(y, mm - 1 + delta, 1);
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
   };
-
-  // Lista única de meses com metas (para o filtro)
-  const availableMonths = useMemo(() => {
-    const set = new Set<string>(goals.map((g) => g.month));
-    set.add(filterMonth);
-    set.add(currentMonthKey());
-    return Array.from(set).sort((a, b) => b.localeCompare(a));
-  }, [goals, filterMonth]);
+  const prevMonthKey = (m: string) => shiftMonthKey(m, -1);
+  const goPrevMonth = () => setFilterMonth((m) => shiftMonthKey(m, -1));
+  const goNextMonth = () => setFilterMonth((m) => shiftMonthKey(m, 1));
 
   // Agrupa metas do mês filtrado pelo tipo (nome)
   const groupedGoals = useMemo(() => {
