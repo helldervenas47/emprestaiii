@@ -2812,7 +2812,7 @@ export function LoanList({ loans, payments, installmentSchedules, onPayment, onP
         </div>
         <Button variant={showFilters ? "default" : "outline"} size="sm" onClick={() => setShowFilters(!showFilters)} className="gap-1.5">
           <SlidersHorizontal className="h-3.5 w-3.5" />Filtros
-          {(dateFrom || dateTo || amountMin || amountMax || tagFilter || onlyWithNotes) && (
+          {(dateFrom || dateTo || amountMin || amountMax || tagFilter || notesFilter !== "all") && (
             <Badge className="bg-destructive text-destructive-foreground h-4 w-4 p-0 flex items-center justify-center text-[10px] rounded-full">!</Badge>
           )}
         </Button>
