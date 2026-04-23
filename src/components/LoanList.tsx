@@ -173,10 +173,10 @@ function LoanCardView({
   loan: Loan;
   payments: Payment[];
   installmentSchedules: InstallmentSchedule[];
-  onPayment: (date?: string) => void;
-  onPartialPayment: (amount: number, date?: string) => void;
-  onFullPayment?: (date?: string, customAmount?: number) => void;
-  onInterestPayment: (date?: string, customAmount?: number, feesAmount?: number) => void;
+  onPayment: (date?: string, paymentMethodId?: string | null) => void;
+  onPartialPayment: (amount: number, date?: string, paymentMethodId?: string | null) => void;
+  onFullPayment?: (date?: string, customAmount?: number, paymentMethodId?: string | null) => void;
+  onInterestPayment: (date?: string, customAmount?: number, feesAmount?: number, paymentMethodId?: string | null) => void;
   onUpdate: (data: Partial<Omit<Loan, "id">>) => void;
   onDelete: () => void;
   onDeletePayment: (paymentId: string) => void;
