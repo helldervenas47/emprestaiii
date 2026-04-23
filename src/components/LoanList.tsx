@@ -380,9 +380,7 @@ function LoanCardView({
     : loan.customInstallmentValue != null && loan.customInstallmentValue > 0
       ? loan.customInstallmentValue
       : (loan.installments >= 2 ? total / loan.installments : baseRemaining);
-  const actualRemaining = loan.remainingAmount != null && loan.remainingAmount > 0
-    ? loan.remainingAmount
-    : Math.max(0, total - totalPaid);
+  const actualRemaining = reconciledRemaining;
   const expectedRemainingForUnpaid = nextSchedule
     ? allUnpaidScheduleSum
     : fullInstallment * remainingInstallments;
