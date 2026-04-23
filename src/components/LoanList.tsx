@@ -327,11 +327,11 @@ function LoanCardView({
     .sort((a, b) => a.installmentNumber - b.installmentNumber);
   const nextSchedule = unpaidSchedules[0];
   const allUnpaidScheduleSum = unpaidSchedules.reduce((sum, s) => sum + s.amount, 0);
-  const baseRemaining = loan.installments >= 2 && allUnpaidScheduleSum > 0
-    ? allUnpaidScheduleSum
-    : loan.remainingAmount != null && loan.remainingAmount > 0
-      ? loan.remainingAmount
-      : Math.max(0, total - totalPaid);
+  // Source of truth: loan.remainingAmount (same value shown in the create/edit form).
+  // Fallback to total - totalPaid only when the saved field is missing.
+  const baseRemaining = loan.remainingAmount != null && loan.remainingAmount > 0
+    ? loan.remainingAmount
+    : Math.max(0, total - totalPaid);
   const category = getLoanCategory(loan, allPayments, installmentSchedules);
   const daysOverdue = getDaysOverdue(loan, installmentSchedules);
 
