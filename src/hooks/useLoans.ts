@@ -865,6 +865,22 @@ export function useLoans() {
     const remainingInst = Math.max(1, loan.installments - loan.paidInstallments);
     const newInstallmentValue = Math.round((newRemaining / remainingInst) * 100) / 100;
 
+    const oldInterestTotal = loan.customInterestValue != null && loan.customInterestValue > 0
+      ? Number(loan.customInterestValue)
+      : oldPrincipal * (rate / 100);
+    const interestSaved = Math.max(0, oldInterestTotal - newInterestTotal);
+
+    const amortizationMetadata = {
+      kind: "amortization" as const,
+      old_principal: oldPrincipal,
+      new_principal: newPrincipal,
+      old_interest_total: oldInterestTotal,
+      new_interest_total: newInterestTotal,
+      interest_saved: interestSaved,
+      new_remaining: newRemaining,
+      interest_rate: rate,
+    };
+
     const online = isOnline();
     const tempPaymentId = crypto.randomUUID();
     const paymentPayload = {
@@ -875,6 +891,7 @@ export function useLoans() {
       date: dateStr,
       installment_number: -3, // marcador de amortização
       payment_method_id: paymentMethodId ?? null,
+      metadata: amortizationMetadata,
     };
     const loanUpdate: any = {
       amount: newPrincipal,
@@ -885,7 +902,7 @@ export function useLoans() {
 
     // Atualização otimista
     setPayments((prev) => [
-      { id: tempPaymentId, loanId, amount: amortizeAmount, date: dateStr, installmentNumber: -3, paymentMethodId: paymentMethodId ?? null },
+      { id: tempPaymentId, loanId, amount: amortizeAmount, date: dateStr, installmentNumber: -3, paymentMethodId: paymentMethodId ?? null, metadata: amortizationMetadata as any },
       ...prev,
     ]);
     setLoans((prev) => prev.map((l) => l.id === loanId ? {
