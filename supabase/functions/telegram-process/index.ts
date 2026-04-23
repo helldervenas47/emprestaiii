@@ -605,7 +605,42 @@ async function handleApagar(admin: any, userId: string): Promise<string> {
   return `🗑️ *Despesa removida:*\n${fmtBRL(Number(e.amount) || 0)} — ${e.description} (${e.category}) — ${dateStr}`;
 }
 
-function ymd(d: Date): string {
+async function handleMeusAportes(admin: any, userId: string): Promise<string> {
+  const { data: ownerData } = await admin.rpc("get_data_owner_id", { _user_id: userId });
+  const ownerId = (typeof ownerData === "string" && ownerData) ? ownerData : userId;
+
+  const { data: deposits } = await admin
+    .from("piggy_bank_deposits")
+    .select("amount, deposit_date, piggy_bank_id, created_at")
+    .eq("user_id", ownerId)
+    .order("deposit_date", { ascending: false })
+    .order("created_at", { ascending: false })
+    .limit(10);
+
+  if (!deposits || deposits.length === 0) {
+    return "ℹ️ Nenhum aporte em caixinhas registrado ainda.\nUse /aporte para fazer o primeiro.";
+  }
+
+  const ids = Array.from(new Set(deposits.map((d: any) => d.piggy_bank_id)));
+  const { data: banks } = await admin
+    .from("piggy_banks")
+    .select("id, name")
+    .in("id", ids);
+  const nameById = new Map<string, string>();
+  for (const b of (banks ?? []) as any[]) nameById.set(b.id, b.name);
+
+  let total = 0;
+  let msg = "🐷 *Últimos aportes*\n";
+  deposits.forEach((d: any, i: number) => {
+    const amt = Number(d.amount) || 0;
+    total += amt;
+    const dateStr = d.deposit_date ? fmtDayMonth(d.deposit_date) : "—";
+    const sign = amt < 0 ? "↓ " : "";
+    msg += `${i + 1}. ${sign}${fmtBRL(amt)} — ${nameById.get(d.piggy_bank_id) ?? "Caixinha"} — ${dateStr}\n`;
+  });
+  msg += `\n*Total exibido:* ${fmtBRL(total)}`;
+  return msg;
+}
   return d.toISOString().slice(0, 10);
 }
 
