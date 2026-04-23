@@ -246,6 +246,11 @@ export function Settings({ backup, locadores, onSaveLocador, onRemoveLocador, is
         </CardContent>
       </Card>
 
+      {/* Formas de pagamento */}
+      <Suspense fallback={<SectionLoader />}>
+        <PaymentMethodsManager readOnly={isReadOnly} />
+      </Suspense>
+
       {/* Backup e exportação */}
       <Card>
         <CardHeader>
