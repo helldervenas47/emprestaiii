@@ -1042,6 +1042,42 @@ function buildExpenseKeyboard(expenseId: string) {
   ];
 }
 
+/**
+ * Resolve the data owner id (used by piggy banks). Falls back to the user id
+ * itself if the user has no explicit owner mapping.
+ */
+async function resolvePiggyOwner(admin: any, userId: string): Promise<string> {
+  try {
+    const { data } = await admin.rpc("get_data_owner_id", { _user_id: userId });
+    if (typeof data === "string" && data) return data;
+  } catch (_) { /* ignore */ }
+  return userId;
+}
+
+/** List the caixinhas (piggy banks) the user can deposit into. */
+async function listUserPiggyBanks(admin: any, userId: string) {
+  const ownerId = await resolvePiggyOwner(admin, userId);
+  const { data } = await admin
+    .from("piggy_banks")
+    .select("id, name")
+    .eq("user_id", ownerId)
+    .order("created_at");
+  return { ownerId, banks: (data ?? []) as { id: string; name: string }[] };
+}
+
+function buildPiggyBanksKeyboard(banks: { id: string; name: string }[]) {
+  const rows: any[] = [];
+  for (let i = 0; i < banks.length; i += 2) {
+    const row = [{ text: `🐷 ${banks[i].name}`, callback_data: `pgapt:${banks[i].id}` }];
+    if (banks[i + 1]) {
+      row.push({ text: `🐷 ${banks[i + 1].name}`, callback_data: `pgapt:${banks[i + 1].id}` });
+    }
+    rows.push(row);
+  }
+  rows.push([{ text: "❌ Cancelar", callback_data: "pgaptc" }]);
+  return rows;
+}
+
 function parseAmount(input: string): number | null {
   const m = input.trim().match(/^R?\$?\s*([\d.,]+)\s*$/i);
   if (!m) return null;
