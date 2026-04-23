@@ -2390,6 +2390,7 @@ function LoanRowView({
           <DialogTitle>
             {paymentDialog?.type === "full" ? "Pagamento Total" :
              paymentDialog?.type === "payoff" ? "Quitar Contrato" :
+             paymentDialog?.type === "amortize" ? "Amortizar Contrato" :
              paymentDialog?.type === "installment" ? "Receber Parcela" :
              paymentDialog?.type === "interest" ? "Pagar Juros" : "Pagamento Parcial"}
           </DialogTitle>
