@@ -1252,6 +1252,20 @@ function LoanCardView({
                     <p className="text-[11px] text-muted-foreground">Definir valor de quitação</p>
                   </div>
                 </DropdownMenuItem>
+                {onAmortize && (
+                <DropdownMenuItem
+                  onClick={() => openPaymentDialog("amortize")}
+                  className="flex items-center gap-3 px-3 py-2.5 rounded-lg cursor-pointer hover:bg-purple/10 focus:bg-purple/10"
+                >
+                  <div className="h-8 w-8 rounded-full bg-purple/15 flex items-center justify-center shrink-0">
+                    <Percent className="h-4 w-4 text-purple" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-foreground">Amortizar</p>
+                    <p className="text-[11px] text-muted-foreground">Reduz principal e juros</p>
+                  </div>
+                </DropdownMenuItem>
+                )}
               </DropdownMenuContent>
             </DropdownMenu>
            )}
