@@ -2483,10 +2483,10 @@ function ClientFolder({
   group: ClientGroup;
   payments: Payment[];
   installmentSchedules: InstallmentSchedule[];
-  onPayment: (id: string, date?: string) => void;
-  onPartialPayment: (id: string, amount: number, date?: string) => void;
-  onFullPayment?: (id: string, date?: string, customAmount?: number) => void;
-  onInterestPayment: (id: string, date?: string, customAmount?: number, feesAmount?: number) => void;
+  onPayment: (id: string, date?: string, paymentMethodId?: string | null) => void;
+  onPartialPayment: (id: string, amount: number, date?: string, paymentMethodId?: string | null) => void;
+  onFullPayment?: (id: string, date?: string, customAmount?: number, paymentMethodId?: string | null) => void;
+  onInterestPayment: (id: string, date?: string, customAmount?: number, feesAmount?: number, paymentMethodId?: string | null) => void;
   onUpdate: (id: string, data: Partial<Omit<Loan, "id">>) => void;
   onDelete: (id: string) => void;
   onDeletePayment: (paymentId: string) => void;
