@@ -1750,6 +1750,7 @@ function LoanRowView({
   const [payoffAmount, setPayoffAmount] = useState("");
   const [amortizeAmount, setAmortizeAmount] = useState("");
   const [showHistory, setShowHistory] = useState(false);
+  const [showSimulator, setShowSimulator] = useState(false);
   const [paymentDate, setPaymentDate] = useState<Date>(new Date());
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deletePaymentId, setDeletePaymentId] = useState<string | null>(null);
