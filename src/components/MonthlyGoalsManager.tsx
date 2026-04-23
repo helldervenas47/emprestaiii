@@ -171,6 +171,20 @@ export function MonthlyGoalsManager({ readOnly = false }: { readOnly?: boolean }
     [goals, loans, payments, clients, expenses]
   );
 
+  // Agrupa metas pelo tipo (nome), ordenando os meses de cada grupo (mais recente primeiro)
+  const groupedGoals = useMemo(() => {
+    const map = new Map<GoalType, typeof enrichedGoals>();
+    enrichedGoals.forEach((g) => {
+      const arr = map.get(g.goalType) || [];
+      arr.push(g);
+      map.set(g.goalType, arr);
+    });
+    return Array.from(map.entries()).map(([type, items]) => ({
+      type,
+      items: [...items].sort((a, b) => b.month.localeCompare(a.month)),
+    }));
+  }, [enrichedGoals]);
+
   const selectedMeta = GOAL_TYPE_META[goalType];
 
   return (
@@ -236,53 +250,78 @@ export function MonthlyGoalsManager({ readOnly = false }: { readOnly?: boolean }
         <CardContent className="p-4">
           <h3 className="font-semibold text-foreground mb-3">Metas cadastradas</h3>
           {loading && <p className="text-sm text-muted-foreground">Carregando...</p>}
-          {!loading && enrichedGoals.length === 0 && (
+          {!loading && groupedGoals.length === 0 && (
             <p className="text-sm text-muted-foreground text-center py-6">Nenhuma meta cadastrada ainda.</p>
           )}
-          <div className="space-y-2">
-            {enrichedGoals.map((g) => {
-              const meta = GOAL_TYPE_META[g.goalType];
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {groupedGoals.map(({ type, items }) => {
+              const meta = GOAL_TYPE_META[type];
               if (!meta) return null;
               const Icon = meta.icon;
-              const targetStr = fmtValue(g.targetValue, meta.unit, hidden);
-              const actualStr = fmtValue(g.actual, meta.unit, hidden);
-              const pctRound = Math.round(g.pct);
-              const reached = meta.inverse ? g.actual <= g.targetValue : g.actual >= g.targetValue;
               return (
-                <div key={g.id} className="p-3 rounded-lg border border-border/30 bg-muted/20 space-y-2">
-                  <div className="flex items-center justify-between gap-3">
-                    <div className="flex items-center gap-3 min-w-0 flex-1">
-                      <div className="h-9 w-9 rounded-full bg-muted flex items-center justify-center shrink-0">
-                        <Icon className={`h-4 w-4 ${meta.color}`} />
-                      </div>
-                      <div className="min-w-0">
-                        <p className="text-sm font-medium text-foreground truncate">{meta.label}</p>
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <Badge variant="secondary" className="text-[10px]">{formatMonthLabel(g.month)}</Badge>
-                          <span className={`text-xs font-bold ${meta.color}`}>Meta: {targetStr}</span>
-                        </div>
-                        {g.notes && <p className="text-xs text-muted-foreground mt-0.5 truncate">{g.notes}</p>}
-                      </div>
+                <div
+                  key={type}
+                  className="rounded-2xl p-4 bg-card border border-border/20 shadow-[0_1px_8px_-4px_hsl(0_0%_0%/0.05)] backdrop-blur-sm transition-all duration-300 hover:shadow-[0_4px_16px_-6px_hsl(0_0%_0%/0.08)] hover:-translate-y-[1px] flex flex-col"
+                >
+                  <div className="flex items-center justify-center mb-2">
+                    <div className="h-8 w-8 rounded-lg bg-muted flex items-center justify-center">
+                      <Icon className={`h-4 w-4 ${meta.color}`} />
                     </div>
-                    {!readOnly && (
-                      <div className="flex gap-1 shrink-0">
-                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleEdit(g)}>
-                          <Pencil className="h-3.5 w-3.5" />
-                        </Button>
-                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setDeleteId(g.id)}>
-                          <Trash2 className="h-3.5 w-3.5 text-destructive" />
-                        </Button>
-                      </div>
-                    )}
                   </div>
-                  <div className="space-y-1">
-                    <div className="flex justify-between text-xs">
-                      <span className="text-muted-foreground">Realizado: <span className="font-semibold text-foreground">{actualStr}</span></span>
-                      <span className={reached ? "text-success font-semibold" : "text-muted-foreground"}>
-                        {pctRound}% {reached && "✓"}
-                      </span>
-                    </div>
-                    <Progress value={Math.max(0, Math.min(100, g.pct))} className="h-1.5" />
+                  <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider text-center leading-tight">
+                    {meta.label}
+                  </p>
+                  <p className="text-[10px] text-muted-foreground text-center mt-0.5">
+                    {items.length} {items.length === 1 ? "meta" : "metas"}
+                  </p>
+
+                  <div className="mt-3 space-y-2 flex-1">
+                    {items.map((g) => {
+                      const targetStr = fmtValue(g.targetValue, meta.unit, hidden);
+                      const actualStr = fmtValue(g.actual, meta.unit, hidden);
+                      const pctRound = Math.round(g.pct);
+                      const reached = meta.inverse ? g.actual <= g.targetValue : g.actual >= g.targetValue;
+                      return (
+                        <div key={g.id} className="rounded-lg border border-border/30 bg-muted/20 p-2 space-y-1.5">
+                          <div className="flex items-center justify-between gap-1">
+                            <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
+                              {formatMonthLabel(g.month)}
+                            </Badge>
+                            {!readOnly && (
+                              <div className="flex gap-0.5 shrink-0">
+                                <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleEdit(g)}>
+                                  <Pencil className="h-3 w-3" />
+                                </Button>
+                                <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setDeleteId(g.id)}>
+                                  <Trash2 className="h-3 w-3 text-destructive" />
+                                </Button>
+                              </div>
+                            )}
+                          </div>
+                          <div className="flex items-baseline justify-between gap-1">
+                            <span className="text-[10px] text-muted-foreground">Meta</span>
+                            <span className={`text-xs font-bold ${meta.color} truncate`}>{targetStr}</span>
+                          </div>
+                          <div className="flex items-baseline justify-between gap-1">
+                            <span className="text-[10px] text-muted-foreground">Real</span>
+                            <span className="text-xs font-semibold text-foreground truncate">{actualStr}</span>
+                          </div>
+                          <div className="space-y-1">
+                            <div className="flex justify-end text-[10px]">
+                              <span className={reached ? "text-success font-semibold" : "text-muted-foreground"}>
+                                {pctRound}% {reached && "✓"}
+                              </span>
+                            </div>
+                            <Progress value={Math.max(0, Math.min(100, g.pct))} className="h-1" />
+                          </div>
+                          {g.notes && (
+                            <p className="text-[10px] text-muted-foreground truncate" title={g.notes}>
+                              {g.notes}
+                            </p>
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               );
