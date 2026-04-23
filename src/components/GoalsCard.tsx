@@ -371,7 +371,7 @@ function computeDefaultRate(loans: Loan[], payments: Payment[], installmentSched
   return periodPortfolio > 0 ? (overdueAmount / periodPortfolio) * 100 : 0;
 }
 
-function computeActual(
+export function computeActual(
   type: GoalType,
   m: string,
   loans: Loan[],
