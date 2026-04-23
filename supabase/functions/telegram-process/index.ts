@@ -491,6 +491,7 @@ Vou interpretar e cadastrar automaticamente.
 /orcamento — status dos orçamentos do mês
 /ultimas — últimas 5 despesas
 /apagar — apaga a despesa mais recente
+/aporte — fazer um aporte em uma caixinha (cofrinho)
 /help — esta mensagem
 /start CODIGO — vincular conta`;
 
@@ -1041,6 +1042,42 @@ function buildExpenseKeyboard(expenseId: string) {
   ];
 }
 
+/**
+ * Resolve the data owner id (used by piggy banks). Falls back to the user id
+ * itself if the user has no explicit owner mapping.
+ */
+async function resolvePiggyOwner(admin: any, userId: string): Promise<string> {
+  try {
+    const { data } = await admin.rpc("get_data_owner_id", { _user_id: userId });
+    if (typeof data === "string" && data) return data;
+  } catch (_) { /* ignore */ }
+  return userId;
+}
+
+/** List the caixinhas (piggy banks) the user can deposit into. */
+async function listUserPiggyBanks(admin: any, userId: string) {
+  const ownerId = await resolvePiggyOwner(admin, userId);
+  const { data } = await admin
+    .from("piggy_banks")
+    .select("id, name")
+    .eq("user_id", ownerId)
+    .order("created_at");
+  return { ownerId, banks: (data ?? []) as { id: string; name: string }[] };
+}
+
+function buildPiggyBanksKeyboard(banks: { id: string; name: string }[]) {
+  const rows: any[] = [];
+  for (let i = 0; i < banks.length; i += 2) {
+    const row = [{ text: `🐷 ${banks[i].name}`, callback_data: `pgapt:${banks[i].id}` }];
+    if (banks[i + 1]) {
+      row.push({ text: `🐷 ${banks[i + 1].name}`, callback_data: `pgapt:${banks[i + 1].id}` });
+    }
+    rows.push(row);
+  }
+  rows.push([{ text: "❌ Cancelar", callback_data: "pgaptc" }]);
+  return rows;
+}
+
 function parseAmount(input: string): number | null {
   const m = input.trim().match(/^R?\$?\s*([\d.,]+)\s*$/i);
   if (!m) return null;
@@ -1428,6 +1465,37 @@ Deno.serve(async (req) => {
             await tgEditReplyMarkup(chatId, messageId, [], LOVABLE_API_KEY, TELEGRAM_API_KEY);
             await tgSend(chatId, "✏️ *Editar valor*\nEnvie o novo valor (ex: `45,90`) ou `/cancelar`.", LOVABLE_API_KEY, TELEGRAM_API_KEY);
           }
+        } else if (data.startsWith("pgapt:")) {
+          // User chose a piggy bank — store pending state and ask for amount.
+          const piggyBankId = data.slice(6);
+          const expiresAt = new Date(Date.now() + 5 * 60 * 1000).toISOString();
+          // Validate the piggy bank still exists for this user (or owner).
+          const { banks } = await listUserPiggyBanks(admin, link.user_id);
+          const bank = banks.find((b) => b.id === piggyBankId);
+          if (!bank) {
+            await tgAnswerCallback(cbId, "Caixinha não encontrada", LOVABLE_API_KEY, TELEGRAM_API_KEY);
+          } else {
+            const { error: upErr } = await admin.from("telegram_pending_piggy_aporte").upsert({
+              chat_id: chatId,
+              user_id: link.user_id,
+              piggy_bank_id: piggyBankId,
+              expires_at: expiresAt,
+            }, { onConflict: "chat_id" });
+            if (upErr) {
+              await tgAnswerCallback(cbId, "Erro ao iniciar aporte", LOVABLE_API_KEY, TELEGRAM_API_KEY);
+            } else {
+              await tgAnswerCallback(cbId, "Envie o valor do aporte", LOVABLE_API_KEY, TELEGRAM_API_KEY);
+              await tgEditMessage(
+                chatId, messageId,
+                `🐷 *Aporte na caixinha "${bank.name}"*\n\nEnvie o valor do aporte (ex: \`200\` ou \`200,50\`) ou \`/cancelar\` para sair.`,
+                null, LOVABLE_API_KEY, TELEGRAM_API_KEY,
+              );
+            }
+          }
+        } else if (data === "pgaptc") {
+          await admin.from("telegram_pending_piggy_aporte").delete().eq("chat_id", chatId);
+          await tgAnswerCallback(cbId, "Aporte cancelado", LOVABLE_API_KEY, TELEGRAM_API_KEY);
+          await tgEditMessage(chatId, messageId, "❌ Aporte cancelado.", null, LOVABLE_API_KEY, TELEGRAM_API_KEY);
         } else {
           await tgAnswerCallback(cbId, undefined, LOVABLE_API_KEY, TELEGRAM_API_KEY);
         }
@@ -1648,11 +1716,92 @@ Deno.serve(async (req) => {
         if (!link) {
           await tgSend(chatId, "🔒 Conta não vinculada. Use o app para gerar um código e envie `/start CODIGO`.", LOVABLE_API_KEY, TELEGRAM_API_KEY);
         } else {
-          // ✏️ Pending edit interception (before any other text handling)
-          const { data: pending } = await admin.from("telegram_pending_edits")
+          // 🐷 Pending piggy-bank aporte interception (highest priority)
+          const { data: pendingPiggy } = await admin.from("telegram_pending_piggy_aporte")
             .select("*").eq("chat_id", chatId).maybeSingle();
 
           let pendingHandled = false;
+
+          if (pendingPiggy) {
+            const expiredP = new Date(pendingPiggy.expires_at).getTime() < Date.now();
+            if (expiredP) {
+              await admin.from("telegram_pending_piggy_aporte").delete().eq("chat_id", chatId);
+            } else if (/^\/cancelar\b/i.test(text)) {
+              await admin.from("telegram_pending_piggy_aporte").delete().eq("chat_id", chatId);
+              await tgSend(chatId, "❌ Aporte cancelado.", LOVABLE_API_KEY, TELEGRAM_API_KEY);
+              pendingHandled = true;
+            } else {
+              const aporteAmount = parseAmount(text);
+              if (aporteAmount === null) {
+                await tgSend(chatId, "❌ Não entendi o valor. Envie só o número (ex: `200` ou `200,50`) ou `/cancelar` para sair.", LOVABLE_API_KEY, TELEGRAM_API_KEY);
+                pendingHandled = true;
+              } else {
+                const ownerId = await resolvePiggyOwner(admin, link.user_id);
+                const { data: bank } = await admin
+                  .from("piggy_banks")
+                  .select("id, name")
+                  .eq("id", pendingPiggy.piggy_bank_id)
+                  .eq("user_id", ownerId)
+                  .maybeSingle();
+                await admin.from("telegram_pending_piggy_aporte").delete().eq("chat_id", chatId);
+                if (!bank) {
+                  await tgSend(chatId, "❌ Caixinha não encontrada.", LOVABLE_API_KEY, TELEGRAM_API_KEY);
+                } else {
+                  const today = todayBR();
+                  const description = `Aporte cofrinho — ${bank.name}`;
+                  const piggyTag = `[cofrinho:${bank.id}]`;
+                  const { data: exp, error: expErr } = await admin
+                    .from("expenses")
+                    .insert({
+                      user_id: link.user_id,
+                      description,
+                      amount: aporteAmount,
+                      category: "Cofrinho",
+                      type: "fixa",
+                      scope: "personal",
+                      due_date: today,
+                      paid: true,
+                      paid_date: today,
+                      notes: piggyTag,
+                    })
+                    .select("id")
+                    .single();
+                  if (expErr || !exp) {
+                    await tgSend(chatId, "❌ Erro ao registrar aporte: " + (expErr?.message ?? "desconhecido"), LOVABLE_API_KEY, TELEGRAM_API_KEY);
+                  } else {
+                    const { error: depErr } = await admin
+                      .from("piggy_bank_deposits")
+                      .insert({
+                        user_id: ownerId,
+                        piggy_bank_id: bank.id,
+                        expense_id: exp.id,
+                        amount: aporteAmount,
+                        deposit_date: today,
+                        source: "expense",
+                      });
+                    if (depErr) {
+                      await admin.from("expenses").delete().eq("id", exp.id);
+                      await tgSend(chatId, "❌ Erro ao creditar a caixinha: " + depErr.message, LOVABLE_API_KEY, TELEGRAM_API_KEY);
+                    } else {
+                      await tgSend(
+                        chatId,
+                        `🐷 *Aporte registrado!*\n\n💰 ${fmtBRL(aporteAmount)}\n📦 Caixinha: *${bank.name}*\n📅 ${today}`,
+                        LOVABLE_API_KEY, TELEGRAM_API_KEY,
+                      );
+                    }
+                  }
+                }
+                pendingHandled = true;
+              }
+            }
+          }
+
+          // ✏️ Pending edit interception (before any other text handling)
+          const { data: pending } = pendingHandled
+            ? { data: null as any }
+            : await admin.from("telegram_pending_edits")
+                .select("*").eq("chat_id", chatId).maybeSingle();
+
           if (pending) {
             const expired = new Date(pending.expires_at).getTime() < Date.now();
             if (expired) {
@@ -1714,6 +1863,22 @@ Deno.serve(async (req) => {
             } else if (/^\/apagar(?:@\w+)?\b/i.test(text)) {
               const reply = await handleApagar(admin, link.user_id);
               await tgSend(chatId, reply, LOVABLE_API_KEY, TELEGRAM_API_KEY);
+            } else if (/^\/aporte(?:@\w+)?\b/i.test(text)) {
+              const { banks } = await listUserPiggyBanks(admin, link.user_id);
+              if (banks.length === 0) {
+                await tgSend(
+                  chatId,
+                  "🐷 Você ainda não tem nenhuma caixinha (cofrinho).\nCrie uma no app e tente novamente.",
+                  LOVABLE_API_KEY, TELEGRAM_API_KEY,
+                );
+              } else {
+                await tgSendWithKeyboard(
+                  chatId,
+                  "🐷 *Aporte em caixinha*\n\nEscolha em qual caixinha você quer fazer o aporte:",
+                  buildPiggyBanksKeyboard(banks),
+                  LOVABLE_API_KEY, TELEGRAM_API_KEY,
+                );
+              }
             } else {
               // Regex-first: skip AI for clear "<amount> <description>" or "<description> <amount>" inputs.
               const quick = quickParseExpense(text);

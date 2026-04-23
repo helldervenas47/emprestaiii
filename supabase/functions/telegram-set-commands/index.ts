@@ -13,6 +13,7 @@ const COMMANDS = [
   { command: 'orcamento', description: 'Status dos orçamentos do mês' },
   { command: 'ultimas', description: 'Últimas 5 despesas' },
   { command: 'apagar', description: 'Apaga a despesa mais recente' },
+  { command: 'aporte', description: 'Fazer aporte em uma caixinha (cofrinho)' },
   { command: 'help', description: 'Mostra ajuda' },
   { command: 'start', description: 'Vincular conta com código' },
 ];
