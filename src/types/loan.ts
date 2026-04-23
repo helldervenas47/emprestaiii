@@ -40,6 +40,7 @@ export interface Payment {
   date: string;
   installmentNumber: number;
   previousDueDate?: string;
+  paymentMethodId?: string | null;
 }
 
 export interface Client {
