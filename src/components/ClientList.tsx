@@ -125,7 +125,7 @@ export function ClientList({ clients, loans, payments, installmentSchedules, onD
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [sortOption, setSortOption] = useState<SortOption>("name-asc");
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [editForm, setEditForm] = useState<Record<string, any>>({ name: "", phone: "", email: "", cpf: "", cnpj: "", rg: "", address: "", city: "", state: "", score: "", notes: "", isVehicleRental: false, nacionalidade: "", estadoCivil: "", profissao: "", bairro: "", isManager: false, defaultInterestRate: "", creditLimit: "" });
+  const [editForm, setEditForm] = useState<Record<string, any>>({ name: "", phone: "", email: "", cpf: "", cnpj: "", rg: "", address: "", city: "", state: "", score: "", notes: "", isVehicleRental: false, nacionalidade: "", estadoCivil: "", profissao: "", bairro: "", isManager: false, defaultInterestRate: "", creditLimit: "", autoBillingEnabled: true });
   const [deleteClientId, setDeleteClientId] = useState<string | null>(null);
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
   const [limitClient, setLimitClient] = useState<Client | null>(null);
@@ -169,7 +169,7 @@ export function ClientList({ clients, loans, payments, installmentSchedules, onD
   const startEdit = (client: Client) => {
     setEditingId(client.id);
     const cl = getLimitForClient(client.id);
-    setEditForm({ name: client.name, phone: client.phone, email: client.email, cpf: client.cpf, cnpj: client.cnpj || "", rg: client.rg || "", address: client.address, city: client.city || "", state: client.state || "", score: client.score || "", notes: client.notes || "", isVehicleRental: client.isVehicleRental || false, nacionalidade: client.nacionalidade || "", estadoCivil: client.estadoCivil || "", profissao: client.profissao || "", bairro: client.bairro || "", isManager: client.isManager || false, defaultInterestRate: client.defaultInterestRate != null ? String(client.defaultInterestRate) : "", creditLimit: cl?.currentLimit != null ? String(cl.currentLimit) : "" });
+    setEditForm({ name: client.name, phone: client.phone, email: client.email, cpf: client.cpf, cnpj: client.cnpj || "", rg: client.rg || "", address: client.address, city: client.city || "", state: client.state || "", score: client.score || "", notes: client.notes || "", isVehicleRental: client.isVehicleRental || false, nacionalidade: client.nacionalidade || "", estadoCivil: client.estadoCivil || "", profissao: client.profissao || "", bairro: client.bairro || "", isManager: client.isManager || false, defaultInterestRate: client.defaultInterestRate != null ? String(client.defaultInterestRate) : "", creditLimit: cl?.currentLimit != null ? String(cl.currentLimit) : "", autoBillingEnabled: client.autoBillingEnabled ?? true });
   };
 
   const saveEdit = async (id: string) => {
@@ -373,6 +373,21 @@ export function ClientList({ clients, loans, payments, installmentSchedules, onD
                       </div>
                       <p className="text-[10px] text-muted-foreground mt-1 ml-6">
                         Habilita receber comissão sobre empréstimos atrelados.
+                      </p>
+                    </div>
+                    <div className="border border-border rounded-lg p-3">
+                      <div className="flex items-center space-x-2">
+                        <Checkbox
+                          id={`edit-autobilling-${client.id}`}
+                          checked={editForm.autoBillingEnabled}
+                          onCheckedChange={(checked) => updateField("autoBillingEnabled", !!checked)}
+                        />
+                        <Label htmlFor={`edit-autobilling-${client.id}`} className="text-xs font-medium cursor-pointer">
+                          Receber cobrança automática por WhatsApp
+                        </Label>
+                      </div>
+                      <p className="text-[10px] text-muted-foreground mt-1 ml-6">
+                        Se desmarcado, nenhum contrato deste cliente será cobrado automaticamente.
                       </p>
                     </div>
                     <div className="border border-border rounded-lg p-3 space-y-3">

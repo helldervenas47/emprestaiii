@@ -139,7 +139,7 @@ Deno.serve(async (req: Request) => {
       const borrowerIds = Array.from(new Set(loans.map((l: any) => l.borrower_id).filter(Boolean)));
 
       const { data: clients } = borrowerIds.length
-        ? await admin.from("clients").select("id, name, phone").in("id", borrowerIds)
+        ? await admin.from("clients").select("id, name, phone, auto_billing_enabled").in("id", borrowerIds)
         : { data: [] as any[] };
       const clientById = new Map((clients ?? []).map((c: any) => [c.id, c]));
 
@@ -166,6 +166,8 @@ Deno.serve(async (req: Request) => {
           const client = loan.borrower_id ? clientById.get(loan.borrower_id) : null;
           const phoneRaw = client?.phone || "";
           if (!phoneRaw) continue;
+          // Skip clients that have automatic billing disabled at client level
+          if (client && client.auto_billing_enabled === false) continue;
 
           const paid = loan.paid_installments ?? 0;
           const total = loan.installments ?? 1;
