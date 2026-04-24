@@ -1,213 +1,79 @@
 
-Objetivo
 
-Adicionar uma análise ampliada de crédito no app para cada cliente, alimentada automaticamente por fontes externas, cobrindo:
-- renda mensal
-- histórico de crédito
-- score
-- nível de endividamento
-- estabilidade de emprego
-- setor de atuação
-- histórico de inadimplência
-- relacionamento bancário
+## Cobrança automática por WhatsApp
 
-O que será construído
+### Como funcionaria
 
-1. Cadastro de perfil financeiro do cliente
-- Expandir o cadastro do cliente para incluir um bloco de “Análise financeira”.
-- Exibir os dados coletados automaticamente com status visual:
-  - verificado
-  - pendente
-  - indisponível
-  - desatualizado
-- Permitir atualização manual apenas como fallback, sem quebrar a automação.
+Usaremos a **WhatsApp Cloud API (oficial da Meta)** ou um provedor compatível (Z-API / Evolution API) através de uma edge function agendada que roda diariamente e envia mensagens para os contratos elegíveis.
 
-2. Tela detalhada de análise do cliente
-- Criar uma seção dedicada dentro do detalhe do cliente com:
-  - score consolidado
-  - faixas de risco
-  - renda estimada/verificada
-  - exposição/endividamento
-  - histórico de atrasos e inadimplência
-  - estabilidade profissional
-  - setor de atuação
-  - relacionamento bancário
-  - origem e data da última atualização de cada dado
-- Manter o padrão visual já usado na tela de detalhes e nos cards de risco.
+### Pré-requisitos do usuário
 
-3. Motor de risco unificado
-- Evoluir a lógica atual de risco para combinar:
-  - comportamento interno no app
-  - sinais externos recebidos dos provedores
-- Produzir:
-  - score interno
-  - score externo
-  - score consolidado
-  - motivos principais do alerta
-  - fatores positivos e negativos
+Você precisará fornecer (via Secrets):
+- **Opção A — Meta Cloud API (oficial, gratuita até 1.000 conversas/mês)**: `WHATSAPP_PHONE_NUMBER_ID` + `WHATSAPP_ACCESS_TOKEN`. Exige número verificado no Meta Business e templates aprovados.
+- **Opção B — Z-API / Evolution API (não oficial, mais simples)**: `ZAPI_INSTANCE_ID` + `ZAPI_TOKEN` (ou URL + token da Evolution). Usa seu próprio número WhatsApp conectado por QR Code.
 
-4. Atualização automática
-- Criar fluxo de consulta automática quando:
-  - um cliente for criado
-  - um cliente for atualizado
-  - o usuário solicitar nova consulta
-  - houver vencimento da validade da análise
-- Exibir carregamento, último sync e erros de consulta sem travar a interface.
+> A Opção B é mais rápida de configurar e não exige aprovação de templates, mas é não oficial e pode ter o número bloqueado pela Meta se mal usado.
 
-Mudanças de backend
+### Mudanças no banco
 
-1. Novas estruturas de dados
-Criar tabelas separadas para não misturar dados cadastrais com dados sensíveis de análise:
-- client_financial_profiles
-  - client_id
-  - monthly_income
-  - debt_level
-  - employment_stability
-  - industry_sector
-  - banking_relationship
-  - external_score
-  - internal_score
-  - consolidated_score
-  - risk_level
-  - fetched_at
-  - expires_at
-- client_credit_reports
-  - client_id
-  - provider
-  - raw_summary
-  - delinquency_history
-  - credit_history_summary
-  - source_status
-  - fetched_at
-- client_analysis_events
-  - client_id
-  - event_type
-  - status
-  - message
-  - created_at
+Nova tabela `whatsapp_billing_schedule` (configuração global por usuário):
+- `enabled` (on/off geral)
+- `provider` ('meta' | 'zapi' | 'evolution')
+- `send_time` (horário diário, ex: 09:00)
+- `days_before_due` (quantos dias antes do vencimento avisar, padrão 1)
+- `send_on_due_day` (avisar no próprio dia)
+- `send_when_overdue` (reenviar quando vencido)
+- `overdue_repeat_days` (a cada quantos dias reenviar para vencidos)
 
-2. Segurança e acesso
-- Aplicar políticas para que cada conta veja apenas seus próprios clientes e análises.
-- Restringir escrita automática aos processos de backend.
-- Não salvar segredos nem credenciais no frontend.
-- Registrar auditoria de consultas e falhas.
+Nova tabela `whatsapp_billing_log` para registrar envios (evitar duplicatas):
+- `loan_id`, `installment_number`, `status_when_sent`, `sent_at`, `success`, `error_message`
 
-3. Funções de backend
-Criar funções para:
-- consultar provedores externos
-- normalizar respostas diferentes
-- consolidar dados em formato único
-- recalcular score consolidado
-- registrar erros e tentativas
-- permitir reconsulta sob demanda
+A flag por contrato `auto_billing_enabled` (que já existe) continua sendo respeitada — contratos desligados não recebem.
 
-Integrações externas
+### Edge function
 
-Como você pediu automação com fontes externas, essa parte depende de integração com provedores especializados. O app pode ser preparado para isso, mas a qualidade dos dados depende do serviço contratado.
+`send-whatsapp-billing` — agendada via `pg_cron` para rodar de hora em hora:
+1. Busca configurações com `enabled = true` no horário atual (±1h)
+2. Para cada owner, busca contratos ativos com `auto_billing_enabled = true`
+3. Calcula status da próxima parcela (a vencer / vence hoje / vencida)
+4. Filtra pelas regras (dias antes, vencido, etc.)
+5. Verifica `whatsapp_billing_log` para não enviar duas vezes no mesmo dia
+6. Aplica variáveis `{nome}`, `{valor}`, `{data_vencimento}` no template já cadastrado em "Cobrança WhatsApp"
+7. Envia via provedor configurado e registra no log
 
-Escopo da integração:
-- score e histórico de crédito: bureau/antifraude/credit scoring
-- renda, vínculo e estabilidade: provedor com validação de renda/emprego
-- relacionamento bancário e endividamento: Open Finance/Open Banking ou provedor equivalente
-- inadimplência: bureau ou serviço de cobrança/análise cadastral
+### UI
 
-Abordagem de implementação:
-- usar integrações de backend com secrets seguros
-- criar adaptadores por provedor para trocar o fornecedor sem reescrever a UI
-- padronizar tudo em um modelo único antes de mostrar no app
+Novo card na aba **Relatórios → Cobrança WhatsApp**:
+- Toggle "Ativar cobrança automática"
+- Seleção de provedor + campos de credenciais (com botão "Testar conexão")
+- Horário diário de envio
+- Checkboxes: "Avisar X dias antes", "Avisar no dia do vencimento", "Reenviar para vencidos a cada X dias"
+- Lista dos últimos envios (sucesso/erro)
 
-UI e experiência
+### Fluxo
 
-1. Cliente
-- No formulário de cliente:
-  - botão “Analisar automaticamente”
-  - indicador de status da análise
-  - consentimento/ciência quando necessário
+```text
+Cron (a cada hora)
+   → edge function lê configs ativas
+   → para cada contrato com auto_billing_enabled=true
+      → checa parcela próxima/vencida
+      → checa se já enviou hoje (log)
+      → renderiza template ({nome}/{valor}/{data})
+      → envia via Meta/Z-API/Evolution
+      → grava resultado no log
+```
 
-2. Detalhe do cliente
-- Novo bloco “Perfil de crédito e capacidade”
-- Cards resumidos com semáforo:
-  - renda
-  - endividamento
-  - estabilidade
-  - inadimplência
-  - bancarização
-- Timeline de atualizações e alterações do score
+### Detalhes técnicos
 
-3. Novo empréstimo
-- Aproveitar o alerta de risco já existente e enriquecer com dados externos:
-  - “Renda incompatível com valor solicitado”
-  - “Histórico recente de inadimplência”
-  - “Endividamento elevado”
-  - “Relacionamento bancário fraco”
-- Sugerir ação:
-  - prosseguir
-  - exigir entrada maior
-  - reduzir valor
-  - revisar manualmente
+- **Cron**: `pg_cron` + `pg_net` rodando hourly job que invoca a edge function com o anon key.
+- **Idempotência**: chave única `(loan_id, installment_number, date_part('day', sent_at))` no log.
+- **RLS**: tabelas com `owner_id = get_data_owner_id(auth.uid())`.
+- **Telefone**: reaproveita `normalizePhoneBR` de `src/lib/whatsappBilling.ts`.
+- **Templates**: reaproveita os já cadastrados em `whatsapp_billing_messages`.
+- **Secrets**: usa `secrets--add_secret` para pedir as credenciais antes de implementar a edge function.
 
-Lógica de risco proposta
+### O que vou precisar de você antes de começar
 
-Peso base do score consolidado:
-- 40% comportamento interno no app
-- 60% dados externos
+1. Escolher **Opção A (Meta oficial)** ou **Opção B (Z-API/Evolution)**
+2. Após aprovar o plano, te pedirei as credenciais correspondentes via Secrets
 
-Critérios considerados:
-- pontualidade e atrasos no histórico interno
-- inadimplência recorrente
-- volume já emprestado
-- score externo
-- renda mensal versus parcela proposta
-- comprometimento de renda
-- estabilidade de emprego
-- setor de atuação
-- relacionamento bancário
-- sinais negativos recentes
-
-Saídas do motor:
-- Baixo
-- Moderado
-- Alto
-- Crítico
-
-Critérios de viabilidade
-
-É possível implementar no app, mas alguns dados não existem hoje no projeto e não podem ser inferidos com confiabilidade apenas pelo que já está salvo.
-Então a solução completa exige:
-- novas tabelas
-- novas funções de backend
-- integração com um ou mais provedores externos
-- configuração segura de credenciais
-- regras de consentimento e atualização
-
-Detalhes técnicos
-
-Arquivos mais impactados:
-- src/types/loan.ts
-- src/hooks/useClients.ts
-- src/components/ClientForm.tsx
-- src/components/ClientList.tsx
-- src/components/ClientDetailDialog.tsx
-- src/components/LoanForm.tsx
-- src/lib/clientRisk.ts
-
-Novos elementos prováveis:
-- hook para análise financeira do cliente
-- componentes de cards de análise
-- funções de backend para consulta externa
-- migração de banco para novas tabelas de análise
-
-Ordem de execução
-
-1. Modelar dados de análise no backend com segurança
-2. Criar funções de backend para consulta e normalização
-3. Expandir tipos e hooks no frontend
-4. Adicionar status de análise no cadastro e na lista de clientes
-5. Criar seção completa de análise no detalhe do cliente
-6. Integrar esses dados ao alerta de novo empréstimo
-7. Tratar reconsulta, cache, expiração e erros
-8. Validar o fluxo completo ponta a ponta com clientes reais de teste
-
-Resultado final esperado
-
-O usuário conseguirá abrir o cliente e ver uma análise automática consolidada, com dados internos e externos, além de receber alertas mais inteligentes no momento de criar um novo empréstimo.
