@@ -88,7 +88,7 @@ export function useWhatsappBillingSchedule() {
   const runNow = useCallback(async () => {
     if (!dataOwnerId) return null;
     const { data, error } = await supabase.functions.invoke("send-whatsapp-billing", {
-      body: { owner_id: dataOwnerId },
+      body: { owner_id: dataOwnerId, manual_run: true },
     });
     await fetchAll();
     if (error) throw error;

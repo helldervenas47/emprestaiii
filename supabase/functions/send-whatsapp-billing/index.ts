@@ -97,9 +97,11 @@ Deno.serve(async (req: Request) => {
     const admin = createClient(SUPABASE_URL, SERVICE_KEY);
 
     let forceOwner: string | null = null;
+    let manualRun = false;
     try {
       const json = await req.json();
       if (json?.owner_id) forceOwner = json.owner_id;
+      manualRun = json?.manual_run === true;
     } catch { /* no body */ }
 
     const today = todayStr();
@@ -209,7 +211,7 @@ Deno.serve(async (req: Request) => {
             if (sched.send_when_overdue) {
               const overdueDays = Math.abs(daysDiff);
               const repeat = Math.max(1, sched.overdue_repeat_days ?? 3);
-              shouldSend = overdueDays === 0 || overdueDays % repeat === 0;
+              shouldSend = manualRun ? overdueDays > 0 : overdueDays === 0 || overdueDays % repeat === 0;
             }
           }
           if (!shouldSend) continue;
