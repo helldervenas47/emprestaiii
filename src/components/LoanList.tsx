@@ -2512,7 +2512,7 @@ function LoanRowView({
                 </Button>
               )}
               <div className="flex gap-2 w-full flex-wrap">
-                {loan.status !== "paid" && (
+                {loan.status !== "paid" && (loan.autoBillingEnabled ?? true) && (
                   <WhatsappBillButton
                     loan={loan}
                     clients={clients}
@@ -2520,6 +2520,18 @@ function LoanRowView({
                     installmentSchedules={installmentSchedules}
                     variant="compact"
                   />
+                )}
+                {!readOnly && loan.status !== "paid" && (
+                  <Button
+                    variant="ghost"
+                    className={cn("flex-1 h-9 text-xs gap-1.5", (loan.autoBillingEnabled ?? true) ? "text-primary" : "text-muted-foreground")}
+                    onClick={(e) => { e.stopPropagation(); onUpdate({ autoBillingEnabled: !(loan.autoBillingEnabled ?? true) }); }}
+                    title={(loan.autoBillingEnabled ?? true) ? "Desativar cobrança automática" : "Ativar cobrança automática"}
+                  >
+                    {(loan.autoBillingEnabled ?? true)
+                      ? <><BellRing className="h-3.5 w-3.5" /> Cobrança ativa</>
+                      : <><BellOff className="h-3.5 w-3.5" /> Cobrança off</>}
+                  </Button>
                 )}
                 <Button variant="ghost" className="flex-1 h-9 text-xs gap-1.5" onClick={(e) => { e.stopPropagation(); setShowHistory(true); }}>
                   <History className="h-3.5 w-3.5" /> Histórico
