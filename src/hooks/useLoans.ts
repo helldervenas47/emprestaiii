@@ -29,6 +29,7 @@ function rowToLoan(l: any): Loan {
     hasManager: l.has_manager ?? false,
     managerId: l.manager_id ?? null,
     managerCommissionRate: l.manager_commission_rate != null ? Number(l.manager_commission_rate) : 10,
+    autoBillingEnabled: l.auto_billing_enabled ?? true,
   };
 }
 
@@ -1018,6 +1019,7 @@ export function useLoans() {
     if (data.hasManager !== undefined) (updateData as any).has_manager = data.hasManager;
     if (data.managerId !== undefined) (updateData as any).manager_id = data.managerId;
     if (data.managerCommissionRate !== undefined) (updateData as any).manager_commission_rate = data.managerCommissionRate ?? 10;
+    if (data.autoBillingEnabled !== undefined) (updateData as any).auto_billing_enabled = data.autoBillingEnabled;
     if (!isOnline()) {
       await enqueueMutation({ table: "loans", op: "update", recordId: id, payload: updateData });
       return;
