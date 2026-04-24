@@ -2256,6 +2256,51 @@ export type Database = {
         }
         Relationships: []
       }
+      whatsapp_billing_log: {
+        Row: {
+          client_id: string | null
+          created_at: string
+          error_message: string | null
+          id: string
+          installment_number: number
+          loan_id: string
+          message: string
+          owner_id: string
+          phone: string
+          sent_date: string
+          status_when_sent: string
+          success: boolean
+        }
+        Insert: {
+          client_id?: string | null
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          installment_number?: number
+          loan_id: string
+          message: string
+          owner_id: string
+          phone: string
+          sent_date: string
+          status_when_sent: string
+          success?: boolean
+        }
+        Update: {
+          client_id?: string | null
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          installment_number?: number
+          loan_id?: string
+          message?: string
+          owner_id?: string
+          phone?: string
+          sent_date?: string
+          status_when_sent?: string
+          success?: boolean
+        }
+        Relationships: []
+      }
       whatsapp_billing_messages: {
         Row: {
           created_at: string
@@ -2282,6 +2327,57 @@ export type Database = {
           message_overdue?: string
           message_upcoming?: string
           owner_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      whatsapp_billing_schedule: {
+        Row: {
+          base_url: string
+          created_at: string
+          days_before_due: number
+          enabled: boolean
+          id: string
+          instance_id: string
+          last_run_at: string | null
+          overdue_repeat_days: number
+          owner_id: string
+          provider: string
+          send_on_due_day: boolean
+          send_time: string
+          send_when_overdue: boolean
+          updated_at: string
+        }
+        Insert: {
+          base_url?: string
+          created_at?: string
+          days_before_due?: number
+          enabled?: boolean
+          id?: string
+          instance_id?: string
+          last_run_at?: string | null
+          overdue_repeat_days?: number
+          owner_id: string
+          provider?: string
+          send_on_due_day?: boolean
+          send_time?: string
+          send_when_overdue?: boolean
+          updated_at?: string
+        }
+        Update: {
+          base_url?: string
+          created_at?: string
+          days_before_due?: number
+          enabled?: boolean
+          id?: string
+          instance_id?: string
+          last_run_at?: string | null
+          overdue_repeat_days?: number
+          owner_id?: string
+          provider?: string
+          send_on_due_day?: boolean
+          send_time?: string
+          send_when_overdue?: boolean
           updated_at?: string
         }
         Relationships: []
