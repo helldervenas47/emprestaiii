@@ -22,6 +22,7 @@ export interface Loan {
   hasManager?: boolean;
   managerId?: string | null;
   managerCommissionRate?: number | null;
+  autoBillingEnabled?: boolean;
   createdAt: string;
 }
 
