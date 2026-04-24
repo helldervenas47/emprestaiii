@@ -621,6 +621,8 @@ export function GoalsCard({ loans, payments, expenses, clients, installmentSched
         goal={selected}
         viewingMonth={selectedMonth}
         payments={payments}
+        loans={loans}
+        installmentSchedules={installmentSchedules}
       />
     </Card>
   );
@@ -632,9 +634,35 @@ interface DialogProps {
   goal: (ReturnType<typeof useMonthlyGoals>["goals"][number] & { actual: number; pct: number; meta: typeof GOAL_TYPE_META[GoalType]; expectedReceivable: number | null; targetAmount: number | null }) | null;
   viewingMonth?: string;
   payments: Payment[];
+  loans: Loan[];
+  installmentSchedules: InstallmentSchedule[];
 }
 
-function GoalDetailDialog({ open, onClose, goal, viewingMonth, payments }: DialogProps) {
+// Calcula o mês de vencimento (YYYY-MM) de uma parcela específica de um empréstimo.
+// Usa o cronograma personalizado quando existir; caso contrário, calcula a partir do start_date.
+function getInstallmentDueMonth(
+  loan: any,
+  installmentNumber: number,
+  schedules: InstallmentSchedule[]
+): string | null {
+  if (!loan || !installmentNumber || installmentNumber < 1) return null;
+  const sched = schedules.find(
+    (s) => s.loanId === loan.id && s.installmentNumber === installmentNumber
+  );
+  if (sched?.dueDate) return String(sched.dueDate).slice(0, 7);
+  const inst = Number(loan.installments) || 1;
+  if (inst <= 1) {
+    const due = (loan.dueDate || loan.due_date || "").slice(0, 7);
+    return due || null;
+  }
+  const startDate = (loan.startDate || loan.start_date || "").slice(0, 10);
+  if (!startDate) return null;
+  const [sy, smo, sd] = startDate.split("-").map(Number);
+  const dueDt = new Date(sy, (smo - 1) + installmentNumber, sd);
+  return `${dueDt.getFullYear()}-${String(dueDt.getMonth() + 1).padStart(2, "0")}`;
+}
+
+function GoalDetailDialog({ open, onClose, goal, viewingMonth, payments, loans, installmentSchedules }: DialogProps) {
   const { hidden } = useHideValues();
   const { upsertGoal } = useMonthlyGoals();
   const { settings } = useAccountSettings();
@@ -916,9 +944,19 @@ function GoalDetailDialog({ open, onClose, goal, viewingMonth, payments }: Dialo
                 </div>
                 {goal.goalType === "profit" && goal.expectedReceivable !== null && goal.targetAmount !== null && (() => {
                   const computeMonth = viewingMonth || goal.month;
-                  const receivedTotal = payments
-                    .filter((p: any) => inMonth(p.date, computeMonth))
-                    .reduce((s: number, p: any) => s + (Number(p.amount) || 0), 0);
+                  // "Recebido total" deve refletir os pagamentos das PARCELAS que vencem no mês,
+                  // alinhando com "Previsto a receber" (que também é por vencimento da parcela),
+                  // independentemente da data em que o pagamento foi efetivamente registrado.
+                  const receivedTotal = payments.reduce((s: number, p: any) => {
+                    const loanId = p.loanId || p.loan_id;
+                    const instNum = Number(p.installmentNumber ?? p.installment_number) || 0;
+                    if (!loanId || !instNum) return s;
+                    const loan = loans.find((l: any) => l.id === loanId);
+                    if (!loan) return s;
+                    const dueMonth = getInstallmentDueMonth(loan, instNum, installmentSchedules);
+                    if (dueMonth !== computeMonth) return s;
+                    return s + (Number(p.amount) || 0);
+                  }, 0);
                   const diffToTarget = Math.max(0, goal.targetAmount - receivedTotal);
                   const targetReached = receivedTotal >= goal.targetAmount;
                   return (
