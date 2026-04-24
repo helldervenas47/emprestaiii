@@ -166,6 +166,8 @@ Deno.serve(async (req: Request) => {
           const client = loan.borrower_id ? clientById.get(loan.borrower_id) : null;
           const phoneRaw = client?.phone || "";
           if (!phoneRaw) continue;
+          // Skip clients that have automatic billing disabled at client level
+          if (client && client.auto_billing_enabled === false) continue;
 
           const paid = loan.paid_installments ?? 0;
           const total = loan.installments ?? 1;
