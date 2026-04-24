@@ -57,6 +57,15 @@ function applyVariables(message: string, ctx: { name: string; amount: number; du
     .replace(/{data_vencimento}/g, formatBR(ctx.dueDate));
 }
 
+const DEFAULT_MESSAGES = {
+  a_vencer:
+    "Olá {nome}, seu pagamento de {valor} vence em {data_vencimento}. Evite juros pagando antecipadamente.",
+  vence_hoje:
+    "Olá {nome}, seu pagamento de {valor} vence hoje ({data_vencimento}). Por favor, regularize para evitar encargos.",
+  vencida:
+    "Olá {nome}, identificamos um pagamento de {valor} em atraso desde {data_vencimento}. Entre em contato para regularização.",
+};
+
 type DueStatus = "vencida" | "vence_hoje" | "a_vencer";
 
 function getDueStatus(dueDate: string, today: string): DueStatus {
@@ -120,12 +129,16 @@ Deno.serve(async (req: Request) => {
 
       const ownerId = sched.owner_id;
 
-      const { data: tplRows } = await admin
+      const { data: tplRow } = await admin
         .from("whatsapp_billing_messages")
-        .select("status, message")
-        .eq("owner_id", ownerId);
-      const templates: Record<string, string> = {};
-      for (const r of tplRows ?? []) templates[r.status] = r.message;
+        .select("message_upcoming, message_due_today, message_overdue")
+        .eq("owner_id", ownerId)
+        .maybeSingle();
+      const templates: Record<DueStatus, string> = {
+        a_vencer: tplRow?.message_upcoming?.trim() || DEFAULT_MESSAGES.a_vencer,
+        vence_hoje: tplRow?.message_due_today?.trim() || DEFAULT_MESSAGES.vence_hoje,
+        vencida: tplRow?.message_overdue?.trim() || DEFAULT_MESSAGES.vencida,
+      };
 
       const { data: loans } = await admin
         .from("loans").select("*")
