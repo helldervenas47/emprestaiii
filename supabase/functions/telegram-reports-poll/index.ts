@@ -127,10 +127,10 @@ Deno.serve(async () => {
           await supabase.from("telegram_reports_link_codes").delete().eq("code", code);
         } else {
           await supabase.from("telegram_reports_links").upsert(
-            { user_id: codeRow.user_id, chat_id: chatId },
+            { user_id: (codeRow as any).user_id, chat_id: chatId },
             { onConflict: "user_id" }
           );
-          await supabase.from("telegram_reports_link_codes").delete().eq("user_id", codeRow.user_id);
+          await supabase.from("telegram_reports_link_codes").delete().eq("user_id", (codeRow as any).user_id);
           await tgSend(chatId, "✅ *Bot de Relatórios conectado!*\n\nVocê receberá os relatórios diários de cobrança nos horários configurados.", LOVABLE_API_KEY, TELEGRAM_REPORTS_KEY);
         }
       } else if (text === "/start" || text === "/help") {
