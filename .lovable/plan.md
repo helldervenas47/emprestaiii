@@ -1,79 +1,70 @@
 
+# Como configurar o Assistente Financeiro do WhatsApp
 
-## Cobrança automática por WhatsApp
+Aqui está o passo a passo para deixar o assistente respondendo no seu WhatsApp. A infraestrutura já está pronta no app — falta só conectar ao painel da Whatsmiau e autorizar seu número.
 
-### Como funcionaria
+## Passo 1 — Abrir o card do Assistente no app
 
-Usaremos a **WhatsApp Cloud API (oficial da Meta)** ou um provedor compatível (Z-API / Evolution API) através de uma edge function agendada que roda diariamente e envia mensagens para os contratos elegíveis.
+1. Vá em **Relatórios** (no menu principal)
+2. Aba **Cobrança WhatsApp**
+3. Role até o card **"Assistente Financeiro WhatsApp"** (ícone de robô 🤖)
 
-### Pré-requisitos do usuário
+## Passo 2 — Autorizar seu número
 
-Você precisará fornecer (via Secrets):
-- **Opção A — Meta Cloud API (oficial, gratuita até 1.000 conversas/mês)**: `WHATSAPP_PHONE_NUMBER_ID` + `WHATSAPP_ACCESS_TOKEN`. Exige número verificado no Meta Business e templates aprovados.
-- **Opção B — Z-API / Evolution API (não oficial, mais simples)**: `ZAPI_INSTANCE_ID` + `ZAPI_TOKEN` (ou URL + token da Evolution). Usa seu próprio número WhatsApp conectado por QR Code.
+No card, na seção **"Adicionar número autorizado"**:
 
-> A Opção B é mais rápida de configurar e não exige aprovação de templates, mas é não oficial e pode ter o número bloqueado pela Meta se mal usado.
+1. Digite seu telefone com **DDD** (ex: `11999999999`) — o `+55` é adicionado automaticamente
+2. Apelido é opcional (ex: "Meu celular")
+3. Clique em **Autorizar**
 
-### Mudanças no banco
+⚠️ Só números nessa lista conseguem conversar com a IA. Mantenha curto por segurança (você pediu modo só-admin).
 
-Nova tabela `whatsapp_billing_schedule` (configuração global por usuário):
-- `enabled` (on/off geral)
-- `provider` ('meta' | 'zapi' | 'evolution')
-- `send_time` (horário diário, ex: 09:00)
-- `days_before_due` (quantos dias antes do vencimento avisar, padrão 1)
-- `send_on_due_day` (avisar no próprio dia)
-- `send_when_overdue` (reenviar quando vencido)
-- `overdue_repeat_days` (a cada quantos dias reenviar para vencidos)
+## Passo 3 — Copiar a URL do Webhook
 
-Nova tabela `whatsapp_billing_log` para registrar envios (evitar duplicatas):
-- `loan_id`, `installment_number`, `status_when_sent`, `sent_at`, `success`, `error_message`
+Ainda no card, há uma caixa cinza no topo com a **URL do Webhook**:
 
-A flag por contrato `auto_billing_enabled` (que já existe) continua sendo respeitada — contratos desligados não recebem.
-
-### Edge function
-
-`send-whatsapp-billing` — agendada via `pg_cron` para rodar de hora em hora:
-1. Busca configurações com `enabled = true` no horário atual (±1h)
-2. Para cada owner, busca contratos ativos com `auto_billing_enabled = true`
-3. Calcula status da próxima parcela (a vencer / vence hoje / vencida)
-4. Filtra pelas regras (dias antes, vencido, etc.)
-5. Verifica `whatsapp_billing_log` para não enviar duas vezes no mesmo dia
-6. Aplica variáveis `{nome}`, `{valor}`, `{data_vencimento}` no template já cadastrado em "Cobrança WhatsApp"
-7. Envia via provedor configurado e registra no log
-
-### UI
-
-Novo card na aba **Relatórios → Cobrança WhatsApp**:
-- Toggle "Ativar cobrança automática"
-- Seleção de provedor + campos de credenciais (com botão "Testar conexão")
-- Horário diário de envio
-- Checkboxes: "Avisar X dias antes", "Avisar no dia do vencimento", "Reenviar para vencidos a cada X dias"
-- Lista dos últimos envios (sucesso/erro)
-
-### Fluxo
-
-```text
-Cron (a cada hora)
-   → edge function lê configs ativas
-   → para cada contrato com auto_billing_enabled=true
-      → checa parcela próxima/vencida
-      → checa se já enviou hoje (log)
-      → renderiza template ({nome}/{valor}/{data})
-      → envia via Meta/Z-API/Evolution
-      → grava resultado no log
+```
+https://tovwnqbjeaecwtymbncy.supabase.co/functions/v1/whatsapp-assistant-webhook
 ```
 
-### Detalhes técnicos
+Clique no botão de **copiar** (ícone 📋) ao lado.
 
-- **Cron**: `pg_cron` + `pg_net` rodando hourly job que invoca a edge function com o anon key.
-- **Idempotência**: chave única `(loan_id, installment_number, date_part('day', sent_at))` no log.
-- **RLS**: tabelas com `owner_id = get_data_owner_id(auth.uid())`.
-- **Telefone**: reaproveita `normalizePhoneBR` de `src/lib/whatsappBilling.ts`.
-- **Templates**: reaproveita os já cadastrados em `whatsapp_billing_messages`.
-- **Secrets**: usa `secrets--add_secret` para pedir as credenciais antes de implementar a edge function.
+## Passo 4 — Configurar o Webhook na Whatsmiau
 
-### O que vou precisar de você antes de começar
+1. Acesse o painel da **Whatsmiau / Evolution API** (onde sua instância de WhatsApp está)
+2. Entre na sua **instância conectada**
+3. Procure o menu **"Webhook"** (ou Configurações → Webhook)
+4. Configure:
+   - **URL**: cole a URL copiada no passo 3
+   - **Eventos**: marque **`messages.upsert`** (mensagem recebida)
+   - **Webhook by Events**: pode deixar desativado (mandamos tudo pra mesma URL)
+   - **Salvar**
 
-1. Escolher **Opção A (Meta oficial)** ou **Opção B (Z-API/Evolution)**
-2. Após aprovar o plano, te pedirei as credenciais correspondentes via Secrets
+## Passo 5 — Testar
 
+Pelo seu WhatsApp (do número autorizado), envie uma mensagem para o **número da sua instância Whatsmiau** (não para você mesmo). Exemplos:
+
+- "Quanto tenho a receber esse mês?"
+- "Quais contratos estão vencidos?"
+- "Qual meu lucro de hoje?"
+- "Mostra os 5 maiores devedores"
+
+A IA responde em alguns segundos com base nos seus dados reais (contratos, pagamentos, despesas, metas).
+
+## Se não funcionar
+
+| Sintoma | Causa provável | O que fazer |
+|---|---|---|
+| Bot não responde nada | Webhook não chegou | Verifique no painel Whatsmiau se o evento `messages.upsert` está ativo e a URL está correta |
+| "Número não autorizado" | Número diferente do cadastrado | Confira se o DDD+número no card bate com o que você usa no WhatsApp |
+| Resposta com erro | Cobrança ainda com URL errada | A URL base da Whatsmiau (cobrança) ainda precisa ser corrigida — ver pendência anterior |
+| Mensagem chega mas IA falha | Limite de IA / token | Veja logs da função `whatsapp-assistant-webhook` |
+
+## Observação
+
+O assistente usa a **mesma instância Whatsmiau** já cadastrada no app — não precisa criar instância nova. Ele só **lê mensagens recebidas** e **responde** usando a API que já está conectada.
+
+Se quiser, depois posso:
+- Adicionar comandos rápidos (ex: `/resumo`, `/vencidos`)
+- Adicionar log visual das conversas no app
+- Permitir que clientes consultem o próprio contrato
