@@ -102,7 +102,7 @@ async function buildContext(admin: any, ownerId: string) {
     instByLoan.set(i.loan_id, arr);
   }
 
-  const clientById = new Map((clients ?? []).map((c: any) => [c.id, c]));
+  const clientById = new Map<string, any>((clients ?? []).map((c: any) => [c.id, c]));
 
   const overdue: any[] = [];
   const dueToday: any[] = [];
@@ -268,7 +268,7 @@ DADOS DE HOJE (${ctx.today}) — mês ${ctx.month}:
 • Recebido no mês: ${formatBRL(ctx.summary.receivedThisMonth)}
 • Despesas no mês: ${formatBRL(ctx.summary.expensesThisMonth)} (pagas: ${formatBRL(ctx.summary.expensesPaid)}, pendentes: ${formatBRL(ctx.summary.expensesPending)})
 • Lucro do mês (recebido - despesas pagas): ${formatBRL(ctx.summary.profitMonth)}
-${ctx.goals.length ? `• Metas do mês: ${ctx.goals.map((g) => `${g.type}=${formatBRL(g.target)}`).join(", ")}` : ""}
+${ctx.goals.length ? `• Metas do mês: ${ctx.goals.map((g: any) => `${g.type}=${formatBRL(g.target)}`).join(", ")}` : ""}
 
 CONTRATOS VENCIDOS (${ctx.overdue.length}):
 ${ctx.overdue.map((o) => `- ${o.name}: ${formatBRL(o.amount)} venceu em ${o.due} (${o.daysOverdue}d atraso)`).join("\n") || "Nenhum"}

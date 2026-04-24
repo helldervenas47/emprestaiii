@@ -51,7 +51,7 @@ async function tgSend(chatId: number, text: string, lovableKey: string, telegram
 }
 
 async function buildAndSendWeekly(
-  admin: ReturnType<typeof createClient>,
+  admin: any,
   userId: string,
   today: string,
   lovableKey: string,

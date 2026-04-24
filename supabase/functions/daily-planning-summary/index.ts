@@ -54,7 +54,7 @@ async function tgSend(chatId: number, text: string, lovableKey: string, telegram
 interface Row { origin: string; description: string; amount: number; }
 
 async function buildAndSend(
-  admin: ReturnType<typeof createClient>,
+  admin: any,
   userId: string,
   date: string,
   lovableKey: string,
@@ -254,7 +254,7 @@ Deno.serve(async (req) => {
         manualLabel = "Planejamento do Dia";
       }
       const ok = await buildAndSend(admin, user.id, manualTarget, LOVABLE_API_KEY, TELEGRAM_API_KEY, brandName, manualLabel);
-      return new Response(JSON.stringify({ ok: true, sent: ok ? 1 : 0, date }), {
+      return new Response(JSON.stringify({ ok: true, sent: ok ? 1 : 0, date: manualTarget }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
