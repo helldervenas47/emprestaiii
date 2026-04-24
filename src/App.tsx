@@ -15,6 +15,7 @@ import { AppTimezoneSync } from "./components/AppTimezoneSync";
 import { StatusBarScrollSync } from "./components/StatusBarScrollSync";
 import { wireAutoSync } from "./lib/offline/sync";
 import { DevCacheErrorBoundary } from "./components/DevCacheErrorBoundary";
+import { FinancialAssistant } from "./components/FinancialAssistant";
 
 wireAutoSync();
 
@@ -77,6 +78,7 @@ const App = () => (
             <BrandFaviconSync />
             <AppTimezoneSync />
             <StatusBarScrollSync />
+            <FinancialAssistant />
             <Suspense fallback={<PageLoader />}>
               <Routes>
                 <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
