@@ -35,3 +35,6 @@ verify_jwt = false
 
 [functions.generate-risk-reduction-report]
 verify_jwt = false
+
+[functions.whatsapp-assistant-webhook]
+verify_jwt = false
