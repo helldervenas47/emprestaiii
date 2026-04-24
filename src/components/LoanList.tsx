@@ -1492,13 +1492,24 @@ function LoanCardView({
                 <CheckCircle className="h-4 w-4" />
               </Button>
             )}
-            {loan.status !== "paid" && (
+            {loan.status !== "paid" && (loan.autoBillingEnabled ?? true) && (
               <WhatsappBillButton
                 loan={loan}
                 clients={clients}
                 payments={allPayments}
                 installmentSchedules={installmentSchedules}
               />
+            )}
+            {!readOnly && loan.status !== "paid" && (
+              <Button
+                size="icon"
+                variant="ghost"
+                className={cn("h-8 w-8", (loan.autoBillingEnabled ?? true) ? "text-primary" : "text-muted-foreground")}
+                onClick={() => onUpdate({ autoBillingEnabled: !(loan.autoBillingEnabled ?? true) })}
+                title={(loan.autoBillingEnabled ?? true) ? "Desativar cobrança automática" : "Ativar cobrança automática"}
+              >
+                {(loan.autoBillingEnabled ?? true) ? <BellRing className="h-4 w-4" /> : <BellOff className="h-4 w-4" />}
+              </Button>
             )}
             <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => setShowHistory(true)} title="Histórico de Pagamentos">
               <History className="h-4 w-4 text-muted-foreground" />
