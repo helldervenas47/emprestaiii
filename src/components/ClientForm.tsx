@@ -33,6 +33,7 @@ export function ClientForm({ onAdd, onClose }: Props) {
     bairro: "",
     isManager: false,
     defaultInterestRate: "",
+    autoBillingEnabled: true,
   });
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -196,6 +197,24 @@ export function ClientForm({ onAdd, onClose }: Props) {
                   </div>
                 </div>
               )}
+            </div>
+
+            {/* Auto Billing Section */}
+            <div className="border border-border rounded-lg p-3 sm:p-4">
+              <div className="flex items-start gap-2">
+                <Checkbox
+                  id="autoBillingEnabled"
+                  checked={form.autoBillingEnabled}
+                  onCheckedChange={(checked) => update("autoBillingEnabled", !!checked)}
+                  className="mt-0.5"
+                />
+                <Label htmlFor="autoBillingEnabled" className="font-medium cursor-pointer text-sm leading-tight">
+                  Receber cobrança automática por WhatsApp
+                </Label>
+              </div>
+              <p className="text-[11px] sm:text-xs text-muted-foreground mt-1.5 ml-6 break-words">
+                Se desmarcado, nenhum contrato deste cliente será cobrado automaticamente.
+              </p>
             </div>
 
             <Button type="submit" className="w-full h-11 sm:h-11">
