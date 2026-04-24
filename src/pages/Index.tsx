@@ -856,9 +856,7 @@ const Index = () => {
             )}
             {overdueSubTab === "whatsapp-cobranca" && (
               <div className="space-y-4">
-                <WhatsappAutoBillingCard />
                 <WhatsappBillingCard />
-                <WhatsappAssistantCard />
               </div>
             )}
           </div>
