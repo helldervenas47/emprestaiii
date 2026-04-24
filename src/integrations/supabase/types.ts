@@ -354,6 +354,7 @@ export type Database = {
         Row: {
           active: boolean
           address: string
+          auto_billing_enabled: boolean
           bairro: string
           city: string
           cnpj: string
@@ -378,6 +379,7 @@ export type Database = {
         Insert: {
           active?: boolean
           address?: string
+          auto_billing_enabled?: boolean
           bairro?: string
           city?: string
           cnpj?: string
@@ -402,6 +404,7 @@ export type Database = {
         Update: {
           active?: boolean
           address?: string
+          auto_billing_enabled?: boolean
           bairro?: string
           city?: string
           cnpj?: string
