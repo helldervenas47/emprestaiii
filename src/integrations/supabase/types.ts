@@ -2259,6 +2259,66 @@ export type Database = {
         }
         Relationships: []
       }
+      whatsapp_assistant_authorized: {
+        Row: {
+          created_at: string
+          enabled: boolean
+          id: string
+          label: string | null
+          owner_id: string
+          phone: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          enabled?: boolean
+          id?: string
+          label?: string | null
+          owner_id: string
+          phone: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          enabled?: boolean
+          id?: string
+          label?: string | null
+          owner_id?: string
+          phone?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      whatsapp_assistant_log: {
+        Row: {
+          created_at: string
+          direction: string
+          id: string
+          message: string
+          metadata: Json
+          owner_id: string
+          phone: string
+        }
+        Insert: {
+          created_at?: string
+          direction: string
+          id?: string
+          message: string
+          metadata?: Json
+          owner_id: string
+          phone: string
+        }
+        Update: {
+          created_at?: string
+          direction?: string
+          id?: string
+          message?: string
+          metadata?: Json
+          owner_id?: string
+          phone?: string
+        }
+        Relationships: []
+      }
       whatsapp_billing_log: {
         Row: {
           client_id: string | null
