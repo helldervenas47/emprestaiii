@@ -50,6 +50,7 @@ const DailyPlanningReport = lazy(() => import("@/components/DailyPlanningReport"
 const AccumulatedDelinquencyReport = lazy(() => import("@/components/AccumulatedDelinquencyReport").then(m => ({ default: m.AccumulatedDelinquencyReport })));
 const TelegramBotsHub = lazy(() => import("@/components/TelegramBotsHub").then(m => ({ default: m.TelegramBotsHub })));
 const WhatsappBillingCard = lazy(() => import("@/components/WhatsappBillingCard").then(m => ({ default: m.WhatsappBillingCard })));
+const WhatsappAutoBillingCard = lazy(() => import("@/components/WhatsappAutoBillingCard").then(m => ({ default: m.WhatsappAutoBillingCard })));
 const Settings = lazy(() => import("@/components/Settings").then(m => ({ default: m.Settings })));
 const SystemHealth = lazy(() => import("@/components/SystemHealth").then(m => ({ default: m.SystemHealth })));
 // Direct import for the constant used at render time
@@ -853,7 +854,10 @@ const Index = () => {
               <TelegramBotsHub />
             )}
             {overdueSubTab === "whatsapp-cobranca" && (
-              <WhatsappBillingCard />
+              <div className="space-y-4">
+                <WhatsappAutoBillingCard />
+                <WhatsappBillingCard />
+              </div>
             )}
           </div>
           </SubscriptionGate>
