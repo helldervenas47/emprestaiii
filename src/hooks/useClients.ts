@@ -29,6 +29,7 @@ function rowToClient(c: any): Client {
     estadoCivil: c.estado_civil, profissao: c.profissao, bairro: c.bairro,
     isManager: c.is_manager ?? false,
     defaultInterestRate: c.default_interest_rate ?? null,
+    autoBillingEnabled: c.auto_billing_enabled ?? true,
   };
 }
 
@@ -96,6 +97,7 @@ export function useClients() {
       profissao: client.profissao || '', bairro: client.bairro || '',
       is_manager: client.isManager || false,
       default_interest_rate: client.defaultInterestRate ?? null,
+      auto_billing_enabled: client.autoBillingEnabled ?? true,
     };
 
     // Local cache write — always
@@ -147,6 +149,7 @@ export function useClients() {
       estado_civil: data.estadoCivil, profissao: data.profissao, bairro: data.bairro,
       is_manager: data.isManager,
       default_interest_rate: data.defaultInterestRate,
+      auto_billing_enabled: data.autoBillingEnabled,
     };
     Object.keys(updatePayload).forEach(k => updatePayload[k] === undefined && delete updatePayload[k]);
 

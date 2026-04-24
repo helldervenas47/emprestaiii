@@ -79,6 +79,7 @@ export interface Client {
   bairro?: string;
   isManager?: boolean;
   defaultInterestRate?: number | null;
+  autoBillingEnabled?: boolean;
 }
 
 export type ClientAnalysisStatus = "pending" | "verified" | "unavailable" | "stale";
