@@ -698,6 +698,8 @@ async function finalizePiggyAporte(
   }
 
   const noteLine = trimmedNote ? `\n📝 _${trimmedNote}_` : "";
+  return `✅ Aporte de ${fmtBRL(amount)} registrado em *${bank.name}*${noteLine}`;
+}
 
 function ymd(d: Date): string {
   return d.toISOString().slice(0, 10);
@@ -949,7 +951,7 @@ async function handleOrcamento(admin: any, userId: string): Promise<string> {
     const dailyAllowance = daysLeft > 0 && remaining > 0 ? remaining / (daysLeft + 1) : 0;
     return { category: b.category, budget, spent, remaining, pct, dailyAllowance };
   });
-  rows.sort((a, b) => b.pct - a.pct);
+  rows.sort((a: any, b: any) => b.pct - a.pct);
 
   let totalBudget = 0, totalSpent = 0;
   for (const r of rows) { totalBudget += r.budget; totalSpent += r.spent; }
@@ -2159,4 +2161,4 @@ Deno.serve(async (req) => {
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
 });
-}
+

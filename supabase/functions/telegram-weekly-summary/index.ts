@@ -51,7 +51,7 @@ async function tgSend(chatId: number, text: string, lovableKey: string, telegram
 }
 
 async function buildAndSendWeekly(
-  admin: ReturnType<typeof createClient>,
+  admin: any,
   userId: string,
   today: string,
   lovableKey: string,
@@ -72,7 +72,7 @@ async function buildAndSendWeekly(
     .gte("paid_date", weekStart)
     .lte("paid_date", today);
 
-  const totalWeek = (expenses ?? []).reduce((s, e: any) => s + Number(e.amount || 0), 0);
+  const totalWeek = (expenses ?? []).reduce((s: number, e: any) => s + Number(e.amount || 0), 0);
 
   const byDay = new Map<string, number>();
   for (let i = 0; i < 7; i++) byDay.set(addDaysISO(weekStart, i), 0);

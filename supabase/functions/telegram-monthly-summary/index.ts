@@ -67,7 +67,7 @@ async function tgSend(chatId: number, text: string, lovableKey: string, telegram
 }
 
 async function buildAndSendMonthly(
-  admin: ReturnType<typeof createClient>,
+  admin: any,
   userId: string,
   today: string,
   lovableKey: string,
@@ -152,7 +152,7 @@ async function buildAndSendMonthly(
     }
   }
 
-  await tgSend(Number(link.chat_id), lines.join("\n"), lovableKey, telegramKey);
+  await tgSend(Number((link as any).chat_id), lines.join("\n"), lovableKey, telegramKey);
   return true;
 }
 
