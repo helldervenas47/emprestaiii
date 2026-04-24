@@ -1771,18 +1771,24 @@ export type Database = {
       telegram_bot_state: {
         Row: {
           id: number
+          last_webhook_recovery_at: string | null
           update_offset: number
           updated_at: string
+          webhook_recovery_count: number
         }
         Insert: {
           id: number
+          last_webhook_recovery_at?: string | null
           update_offset?: number
           updated_at?: string
+          webhook_recovery_count?: number
         }
         Update: {
           id?: number
+          last_webhook_recovery_at?: string | null
           update_offset?: number
           updated_at?: string
+          webhook_recovery_count?: number
         }
         Relationships: []
       }
@@ -1921,18 +1927,24 @@ export type Database = {
       telegram_reports_bot_state: {
         Row: {
           id: number
+          last_webhook_recovery_at: string | null
           update_offset: number
           updated_at: string
+          webhook_recovery_count: number
         }
         Insert: {
           id: number
+          last_webhook_recovery_at?: string | null
           update_offset?: number
           updated_at?: string
+          webhook_recovery_count?: number
         }
         Update: {
           id?: number
+          last_webhook_recovery_at?: string | null
           update_offset?: number
           updated_at?: string
+          webhook_recovery_count?: number
         }
         Relationships: []
       }
