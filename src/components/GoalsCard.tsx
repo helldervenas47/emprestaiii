@@ -621,6 +621,8 @@ export function GoalsCard({ loans, payments, expenses, clients, installmentSched
         goal={selected}
         viewingMonth={selectedMonth}
         payments={payments}
+        loans={loans}
+        installmentSchedules={installmentSchedules}
       />
     </Card>
   );
