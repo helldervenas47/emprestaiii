@@ -52,13 +52,21 @@ export function PiggyBankList({ readOnly = false }: Props) {
     setEditDeposit(null);
   };
 
+  // Returns the smallest unused short_id (1..99) for this account.
+  const nextAvailableShortId = (): number | null => {
+    const taken = new Set(piggyBanks.map((p) => p.shortId).filter((n): n is number => !!n));
+    for (let i = 1; i <= 99; i++) if (!taken.has(i)) return i;
+    return null;
+  };
+
   const openCreate = () => {
-    setDraft({ name: "", color: PALETTE[0], annualRate: "11.15" });
+    const next = nextAvailableShortId();
+    setDraft({ name: "", color: PALETTE[0], annualRate: "11.15", shortId: next ? String(next) : "" });
     setEditing(null);
     setCreateOpen(true);
   };
   const openEdit = (pb: PiggyBankType) => {
-    setDraft({ name: pb.name, color: pb.color, annualRate: String(pb.annualRate) });
+    setDraft({ name: pb.name, color: pb.color, annualRate: String(pb.annualRate), shortId: pb.shortId ? String(pb.shortId) : "" });
     setEditing(pb);
     setCreateOpen(true);
   };
