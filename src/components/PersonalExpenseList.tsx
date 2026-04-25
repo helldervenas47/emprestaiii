@@ -28,6 +28,13 @@ import { usePersonalExpenseCategories } from "@/hooks/usePersonalExpenseCategori
 import { Progress } from "@/components/ui/progress";
 import { usePersonalBudgets } from "@/hooks/usePersonalBudgets";
 import { isPiggyExpense } from "@/hooks/usePiggyBanks";
+import { useCreditCards } from "@/hooks/useCreditCards";
+import { useCreditCardOpenings } from "@/hooks/useCreditCardOpenings";
+import {
+  isCreditCardExpense,
+  getCardInvoiceTotalsForMonth,
+  CREDIT_CARD_INVOICE_CATEGORY,
+} from "@/lib/creditCardInvoiceTotals";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as ReTooltip, LineChart, Line, XAxis, YAxis, CartesianGrid, Legend } from "recharts";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -175,10 +182,28 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, onUpda
     e.type === "recorrente" && !!e.installments && e.installments > 1 && e.paid;
   // Cofrinho expenses (savings transfers) stay in the list but must NOT count as monthly spending.
   const visibleMonth = monthFiltered.filter((e) => !isRecFullyPaid(e));
-  const spendingMonth = visibleMonth.filter((e) => !isPiggyExpense(e.notes));
+  // Para o cálculo do mês: excluímos despesas individuais de cartão de crédito —
+  // elas são contabilizadas apenas via o total da fatura (ver invoiceTotals abaixo)
+  // para evitar duplicidade entre compras e pagamento da fatura.
+  const spendingMonth = visibleMonth.filter(
+    (e) => !isPiggyExpense(e.notes) && !isCreditCardExpense(e),
+  );
+
+  // Faturas de cartão cujo vencimento está dentro do mês selecionado.
+  const { cards } = useCreditCards();
+  const { openings } = useCreditCardOpenings();
+  const cardInvoiceTotalsMonth = useMemo(
+    () => getCardInvoiceTotalsForMonth(expenses, cards, openings, selectedMonth),
+    [expenses, cards, openings, selectedMonth],
+  );
+  const cardInvoiceMonthTotal = useMemo(
+    () => cardInvoiceTotalsMonth.reduce((s, x) => s + x.total, 0),
+    [cardInvoiceTotalsMonth],
+  );
 
   const totalPending = spendingMonth.filter((e) => !e.paid).reduce((s, e) => s + getInstallmentAmount(e), 0);
-  const totalPaid = spendingMonth.reduce((s, e) => s + getInstallmentAmount(e), 0);
+  const totalPaid =
+    spendingMonth.reduce((s, e) => s + getInstallmentAmount(e), 0) + cardInvoiceMonthTotal;
   const totalOverdue = spendingMonth.filter(isOverdue).reduce((s, e) => s + getInstallmentAmount(e), 0);
 
   // Daily average + projection — only meaningful for current month
@@ -199,6 +224,12 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, onUpda
       if (v <= 0) return;
       map.set(e.category, (map.get(e.category) || 0) + v);
     });
+    if (cardInvoiceMonthTotal > 0) {
+      map.set(
+        CREDIT_CARD_INVOICE_CATEGORY,
+        (map.get(CREDIT_CARD_INVOICE_CATEGORY) || 0) + cardInvoiceMonthTotal,
+      );
+    }
     const arr = [...map.entries()]
       .filter(([, value]) => value > 0)
       .map(([name, value]) => ({ name, value, cat: resolveCategory(name) }))
@@ -207,7 +238,7 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, onUpda
     const top = arr.slice(0, 5);
     const rest = arr.slice(5).reduce((s, it) => s + it.value, 0);
     return [...top, { name: "Outros", value: rest, cat: resolveCategory("Outros") }];
-  }, [spendingMonth, getInstallmentAmount, resolveCategory]);
+  }, [spendingMonth, getInstallmentAmount, resolveCategory, cardInvoiceMonthTotal]);
 
   const totalCategorized = categoryData.reduce((s, it) => s + it.value, 0);
 
@@ -218,8 +249,14 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, onUpda
     spendingMonth.forEach((e) => {
       map.set(e.category, (map.get(e.category) || 0) + getInstallmentAmount(e));
     });
+    if (cardInvoiceMonthTotal > 0) {
+      map.set(
+        CREDIT_CARD_INVOICE_CATEGORY,
+        (map.get(CREDIT_CARD_INVOICE_CATEGORY) || 0) + cardInvoiceMonthTotal,
+      );
+    }
     return map;
-  }, [spendingMonth, getInstallmentAmount]);
+  }, [spendingMonth, getInstallmentAmount, cardInvoiceMonthTotal]);
 
   // Committed per category — used to sort budget subcards.
   // Inclui pagos no mês + pendentes cuja data de vencimento esteja no mês selecionado.
