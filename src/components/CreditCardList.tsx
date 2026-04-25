@@ -483,6 +483,7 @@ export function CreditCardList({ readOnly = false, referenceMonth }: Props) {
                       key={card.id}
                       card={card}
                       invoiceTotal={inv.total}
+                      paidTotal={inv.paidTotal}
                       pendingTotal={inv.pendingTotal}
                       cyclePendingTotal={inv.cyclePendingTotal}
                       openingAmount={inv.opening}
