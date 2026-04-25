@@ -63,6 +63,46 @@ function hasNaturalLanguageHint(text: string): boolean {
   return NATURAL_LANGUAGE_HINT.test(text);
 }
 
+async function handleAportesSaldo(admin: any, userId: string): Promise<string> {
+  const { data: ownerData } = await admin.rpc("get_data_owner_id", { _user_id: userId });
+  const ownerId = (typeof ownerData === "string" && ownerData) ? ownerData : userId;
+
+  const { data: banks, error: banksErr } = await admin
+    .from("piggy_banks")
+    .select("id, name, short_id")
+    .eq("user_id", ownerId)
+    .order("short_id", { ascending: true, nullsFirst: false })
+    .order("name", { ascending: true });
+
+  if (banksErr) return "❌ Erro ao buscar caixinhas: " + banksErr.message;
+  if (!banks || banks.length === 0) {
+    return "ℹ️ Nenhuma caixinha cadastrada ainda.";
+  }
+
+  const ids = banks.map((b: any) => b.id);
+  const { data: deposits } = await admin
+    .from("piggy_bank_deposits")
+    .select("piggy_bank_id, amount")
+    .eq("user_id", ownerId)
+    .in("piggy_bank_id", ids);
+
+  const balanceById = new Map<string, number>();
+  for (const d of (deposits ?? []) as any[]) {
+    balanceById.set(d.piggy_bank_id, (balanceById.get(d.piggy_bank_id) ?? 0) + (Number(d.amount) || 0));
+  }
+
+  let total = 0;
+  let msg = "🐷 *Saldo das caixinhas*\n";
+  for (const b of banks as any[]) {
+    const bal = balanceById.get(b.id) ?? 0;
+    total += bal;
+    const tag = b.short_id ? `#${b.short_id}` : `#${String(b.id).slice(0, 4)}`;
+    msg += `${tag} ${b.name} — *${fmtBRL(bal)}*\n`;
+  }
+  msg += `\n*Total geral:* ${fmtBRL(total)}`;
+  return msg;
+}
+
 
 function detectCategory(description: string): string {
   const lower = description.toLowerCase();
@@ -492,6 +532,7 @@ Vou interpretar e cadastrar automaticamente.
 /ultimas — últimas 5 despesas
 /apagar — apaga a despesa mais recente
 /aporte — fazer um aporte em uma caixinha (cofrinho). Você pode passar valor e nota: \`/aporte 200 aniversário\`
+/aportes\_saldo — saldo atual de todas as caixinhas
 /meus\_aportes — últimos 10 aportes nas caixinhas
 /help — esta mensagem
 /start CODIGO — vincular conta`;
@@ -2046,6 +2087,9 @@ Deno.serve(async (req) => {
               await tgSend(chatId, reply, LOVABLE_API_KEY, TELEGRAM_API_KEY);
             } else if (/^\/apagar(?:@\w+)?\b/i.test(text)) {
               const reply = await handleApagar(admin, link.user_id);
+              await tgSend(chatId, reply, LOVABLE_API_KEY, TELEGRAM_API_KEY);
+            } else if (/^\/?aportes?[_\s-]*(saldo|saldos)(?:@\w+)?\b/i.test(text)) {
+              const reply = await handleAportesSaldo(admin, link.user_id);
               await tgSend(chatId, reply, LOVABLE_API_KEY, TELEGRAM_API_KEY);
             } else if (/^\/?aporte(?:@\w+)?\b/i.test(text)) {
               // Accepts both /aporte and plain "aporte" (any message containing
