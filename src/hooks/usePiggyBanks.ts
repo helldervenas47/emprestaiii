@@ -6,6 +6,7 @@ import { toast } from "sonner";
 
 export interface PiggyBank {
   id: string;
+  shortId: number | null;
   name: string;
   color: string;
   icon: string;
