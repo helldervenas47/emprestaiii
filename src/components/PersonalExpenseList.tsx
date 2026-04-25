@@ -182,10 +182,28 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, onUpda
     e.type === "recorrente" && !!e.installments && e.installments > 1 && e.paid;
   // Cofrinho expenses (savings transfers) stay in the list but must NOT count as monthly spending.
   const visibleMonth = monthFiltered.filter((e) => !isRecFullyPaid(e));
-  const spendingMonth = visibleMonth.filter((e) => !isPiggyExpense(e.notes));
+  // Para o cálculo do mês: excluímos despesas individuais de cartão de crédito —
+  // elas são contabilizadas apenas via o total da fatura (ver invoiceTotals abaixo)
+  // para evitar duplicidade entre compras e pagamento da fatura.
+  const spendingMonth = visibleMonth.filter(
+    (e) => !isPiggyExpense(e.notes) && !isCreditCardExpense(e),
+  );
+
+  // Faturas de cartão cujo vencimento está dentro do mês selecionado.
+  const { cards } = useCreditCards();
+  const { openings } = useCreditCardOpenings();
+  const cardInvoiceTotalsMonth = useMemo(
+    () => getCardInvoiceTotalsForMonth(expenses, cards, openings, selectedMonth),
+    [expenses, cards, openings, selectedMonth],
+  );
+  const cardInvoiceMonthTotal = useMemo(
+    () => cardInvoiceTotalsMonth.reduce((s, x) => s + x.total, 0),
+    [cardInvoiceTotalsMonth],
+  );
 
   const totalPending = spendingMonth.filter((e) => !e.paid).reduce((s, e) => s + getInstallmentAmount(e), 0);
-  const totalPaid = spendingMonth.reduce((s, e) => s + getInstallmentAmount(e), 0);
+  const totalPaid =
+    spendingMonth.reduce((s, e) => s + getInstallmentAmount(e), 0) + cardInvoiceMonthTotal;
   const totalOverdue = spendingMonth.filter(isOverdue).reduce((s, e) => s + getInstallmentAmount(e), 0);
 
   // Daily average + projection — only meaningful for current month
