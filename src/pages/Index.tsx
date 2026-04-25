@@ -581,24 +581,44 @@ const Index = () => {
                 </Badge>
               </div>
             )}
-            {/* Acessos rápidos do topo: ocultos no mobile (disponíveis em "Mais") */}
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={handleHardRefresh}
-              disabled={refreshing}
-              className="hidden sm:inline-flex h-8 w-8 sm:h-9 sm:w-9"
-              title="Atualizar"
-            >
-              <RefreshCw className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`} />
-            </Button>
-            {role === "admin" && <div className="hidden sm:inline-flex"><ApprovalRequestsButton /></div>}
-            <Button variant="ghost" size="icon" onClick={toggleTheme} className="hidden sm:inline-flex h-8 w-8 sm:h-9 sm:w-9" title={dark ? "Modo claro" : "Modo escuro"}>
-              {dark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-            </Button>
-            <Button variant="ghost" size="icon" onClick={signOut} className="hidden sm:inline-flex h-8 w-8 sm:h-9 sm:w-9" title="Sair">
-              <LogOut className="h-4 w-4" />
-            </Button>
+            {/* Acessos rápidos do topo: visíveis em tablet e desktop; em mobile ficam disponíveis em "Mais" */}
+            {!isMobile && (
+              <>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={handleHardRefresh}
+                  disabled={refreshing}
+                  className="inline-flex h-9 w-9"
+                  title="Atualizar"
+                >
+                  <RefreshCw className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`} />
+                </Button>
+                {role === "admin" && (
+                  <div className="inline-flex">
+                    <ApprovalRequestsButton />
+                  </div>
+                )}
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={toggleTheme}
+                  className="inline-flex h-9 w-9"
+                  title={dark ? "Modo claro" : "Modo escuro"}
+                >
+                  {dark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={signOut}
+                  className="inline-flex h-9 w-9"
+                  title="Sair"
+                >
+                  <LogOut className="h-4 w-4" />
+                </Button>
+              </>
+            )}
           </div>
         </div>
 
