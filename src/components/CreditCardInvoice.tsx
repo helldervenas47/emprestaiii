@@ -182,7 +182,8 @@ export function CreditCardInvoice({ card, onClose, referenceMonth, originRect }:
   const transactionsTotal = sumItems(items);
   const total = transactionsTotal + openingAmount;
   const prevTotal = sumItems(prevItems) + (prevOpening?.openingAmount ?? 0);
-  const paidTotal = sumItems(items.filter((e) => e.paid));
+  const paidOverride = readPaidOverride(opening?.notes);
+  const paidTotal = paidOverride ?? sumItems(items.filter((e) => e.paid));
 
   // Limite disponível = limite total - (despesas pendentes do cartão + saldos iniciais de
   // faturas em aberto). Reflete tudo que ainda foi gasto e não pago neste cartão.
