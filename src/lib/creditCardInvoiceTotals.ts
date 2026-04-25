@@ -69,8 +69,10 @@ export interface CardInvoiceMonthTotal {
   total: number;
   /** True se a fatura do ciclo está totalmente paga. */
   paid: boolean;
-  /** Valor efetivamente pago (soma dos amounts pagos do ciclo). Só faz sentido quando paid=true. */
+  /** Valor efetivamente pago (soma dos amounts pagos do ciclo, ou override). */
   paidTotal: number;
+  /** True quando o usuário definiu manualmente o valor pago via [PAID:xxx]. */
+  hasPaidOverride: boolean;
 }
 
 /**
@@ -135,8 +137,8 @@ export function getCardInvoiceTotalsForMonth(
     const override = readPaidOverride(opening?.notes);
     const paidTotal = override ?? itemsPaidTotal;
 
-    if (total > 0 || (paid && paidTotal > 0)) {
-      result.push({ card, total, paid, paidTotal });
+    if (total > 0 || (paid && paidTotal > 0) || override !== null) {
+      result.push({ card, total, paid, paidTotal, hasPaidOverride: override !== null });
     }
   }
   return result;

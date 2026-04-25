@@ -197,11 +197,19 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, onUpda
     () => getCardInvoiceTotalsForMonth(expenses, cards, openings, selectedMonth),
     [expenses, cards, openings, selectedMonth],
   );
-  // Para cada fatura: se está paga, considera o valor efetivamente pago;
-  // se está em aberto, considera o total atual (compras do ciclo + saldo inicial).
+  // Para cada fatura no resumo mensal:
+  //  1. Se o usuário definiu manualmente o "valor pago da fatura", esse ajuste
+  //     SEMPRE prevalece — reflete a saída real de caixa (juros, descontos, etc).
+  //  2. Caso contrário, se a fatura está totalmente paga, usa o valor pago automático.
+  //  3. Caso contrário, usa o total atual (compras do ciclo + saldo inicial).
   // Sempre apenas uma vez no mês de vencimento da fatura.
   const cardInvoiceMonthTotal = useMemo(
-    () => cardInvoiceTotalsMonth.reduce((s, x) => s + (x.paid ? x.paidTotal : x.total), 0),
+    () =>
+      cardInvoiceTotalsMonth.reduce((s, x) => {
+        if (x.hasPaidOverride) return s + x.paidTotal;
+        if (x.paid) return s + x.paidTotal;
+        return s + x.total;
+      }, 0),
     [cardInvoiceTotalsMonth],
   );
 
