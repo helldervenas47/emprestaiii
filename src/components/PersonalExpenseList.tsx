@@ -242,7 +242,7 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, onUpda
 
   const openBudgetEdit = () => {
     const draft: Record<string, string> = {};
-    personalCategories.forEach((c) => {
+    allBudgetCategories.forEach((c) => {
       // Pré-preenche com o limite do próprio mês; se não houver, usa o herdado
       // (assim editar gera um novo registro próprio sem alterar o mês de origem).
       const own = monthBudgets.find((b) => b.category === c.name);
@@ -255,7 +255,7 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, onUpda
   };
 
   const saveBudgets = async () => {
-    for (const c of personalCategories) {
+    for (const c of allBudgetCategories) {
       const raw = budgetDraft[c.name] ?? "";
       const num = Number(raw.replace(",", "."));
       const value = isNaN(num) ? 0 : num;
@@ -663,7 +663,7 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, onUpda
           </SelectTrigger>
           <SelectContent className="max-h-72">
             <SelectItem value="__all__">Todas categorias</SelectItem>
-            {personalCategories.map((c) => {
+            {allBudgetCategories.map((c) => {
               const Icon = c.icon;
               return (
                 <SelectItem key={c.name} value={c.name}>
@@ -968,7 +968,7 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, onUpda
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-2.5 py-2">
-            {personalCategories
+            {allBudgetCategories
               .slice()
               .sort((a, b) => {
                 const sa = committedByCategory.get(a.name) || 0;
