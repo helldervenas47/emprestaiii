@@ -196,8 +196,11 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, onUpda
     () => getCardInvoiceTotalsForMonth(expenses, cards, openings, selectedMonth),
     [expenses, cards, openings, selectedMonth],
   );
+  // Para cada fatura: se está paga, considera o valor efetivamente pago;
+  // se está em aberto, considera o total atual (compras do ciclo + saldo inicial).
+  // Sempre apenas uma vez no mês de vencimento da fatura.
   const cardInvoiceMonthTotal = useMemo(
-    () => cardInvoiceTotalsMonth.reduce((s, x) => s + x.total, 0),
+    () => cardInvoiceTotalsMonth.reduce((s, x) => s + (x.paid ? x.paidTotal : x.total), 0),
     [cardInvoiceTotalsMonth],
   );
 
