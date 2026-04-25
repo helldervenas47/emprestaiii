@@ -24,20 +24,36 @@ import { Expense } from "@/types/loan";
 import { personalCategories, resolvePersonalIcon } from "@/lib/personalExpenseCategories";
 import { usePersonalExpenseCategories } from "@/hooks/usePersonalExpenseCategories";
 import { useCreditCards } from "@/hooks/useCreditCards";
-import { Package } from "lucide-react";
+import { Package, AlertTriangle } from "lucide-react";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+
+export type EditScope = "this" | "pending" | "all";
 
 interface Props {
   open: boolean;
   onOpenChange: (v: boolean) => void;
   expense: Expense | null;
   warning?: string | null;
-  onSave: (patch: {
-    description: string;
-    amount: number;
-    dueDate: string;
-    category: string;
-    notes: string | null;
-  }) => Promise<void> | void;
+  onSave: (
+    patch: {
+      description: string;
+      amount: number;
+      dueDate: string;
+      category: string;
+      notes: string | null;
+    },
+    scope: EditScope,
+  ) => Promise<void> | void;
 }
 
 const PAYMENT_METHODS = ["Dinheiro", "Pix", "Débito", "Crédito", "Boleto", "Débito automático"] as const;
