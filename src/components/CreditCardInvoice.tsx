@@ -757,6 +757,70 @@ export function CreditCardInvoice({ card, onClose, referenceMonth, originRect }:
         }}
       />
 
+      {/* Editar valor pago da fatura */}
+      <Dialog open={editPaidOpen} onOpenChange={setEditPaidOpen}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Pencil className="h-4 w-4 text-primary" />
+              Editar valor pago da fatura
+            </DialogTitle>
+            <DialogDescription>
+              Ajuste o valor efetivamente pago desta fatura. Útil para registrar juros, descontos ou pagamentos parciais.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            <div className="space-y-1.5">
+              <Label htmlFor="paid-value">Valor pago (R$)</Label>
+              <Input
+                id="paid-value"
+                type="number"
+                inputMode="decimal"
+                step="0.01"
+                min="0"
+                placeholder="0,00"
+                value={editPaidValue}
+                onChange={(e) => setEditPaidValue(e.target.value)}
+              />
+              <p className="text-[11px] text-muted-foreground">
+                Deixe vazio para voltar ao cálculo automático (soma dos lançamentos pagos).
+              </p>
+            </div>
+          </div>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setEditPaidOpen(false)} disabled={savingPaid}>
+              Cancelar
+            </Button>
+            <Button
+              disabled={savingPaid}
+              onClick={async () => {
+                setSavingPaid(true);
+                try {
+                  const raw = editPaidValue.replace(",", ".").trim();
+                  const parsed = raw === "" ? null : Number(raw);
+                  if (parsed !== null && (!Number.isFinite(parsed) || parsed < 0)) {
+                    toast.error("Valor inválido");
+                    setSavingPaid(false);
+                    return;
+                  }
+                  const newNotes = writePaidOverride(opening?.notes, parsed);
+                  const baseAmount = opening?.openingAmount ?? 0;
+                  await upsertOpening(card.id, cycleKey, baseAmount, newNotes);
+                  toast.success(parsed === null ? "Valor pago restaurado" : "Valor pago atualizado");
+                  setEditPaidOpen(false);
+                } catch {
+                  toast.error("Erro ao salvar valor pago");
+                } finally {
+                  setSavingPaid(false);
+                }
+              }}
+            >
+              {savingPaid ? "Salvando..." : "Salvar"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <Dialog open={payDialogOpen} onOpenChange={setPayDialogOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
