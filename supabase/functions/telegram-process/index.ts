@@ -69,7 +69,7 @@ async function handleAportesSaldo(admin: any, userId: string): Promise<string> {
 
   const { data: banks, error: banksErr } = await admin
     .from("piggy_banks")
-    .select("id, name, short_id, target_amount")
+    .select("id, name, short_id")
     .eq("user_id", ownerId)
     .order("short_id", { ascending: true, nullsFirst: false })
     .order("name", { ascending: true });
