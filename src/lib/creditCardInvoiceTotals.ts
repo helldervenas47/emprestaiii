@@ -130,7 +130,10 @@ export function getCardInvoiceTotalsForMonth(
     // (reflete ajustes/edições). O opening, quando pago, foi zerado e marcado [PAGA],
     // por isso não somamos seu valor original (que se perdeu) — o que importa é
     // o fluxo real de saída registrado nos itens.
-    const paidTotal = items.filter((e) => e.paid).reduce((s, e) => s + installmentValue(e), 0);
+    // Override manual em opening.notes ([PAID:xxx]) tem precedência.
+    const itemsPaidTotal = items.filter((e) => e.paid).reduce((s, e) => s + installmentValue(e), 0);
+    const override = readPaidOverride(opening?.notes);
+    const paidTotal = override ?? itemsPaidTotal;
 
     if (total > 0 || (paid && paidTotal > 0)) {
       result.push({ card, total, paid, paidTotal });
