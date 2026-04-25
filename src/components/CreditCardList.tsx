@@ -313,6 +313,7 @@ export function CreditCardList({ readOnly = false, referenceMonth }: Props) {
         transactions: number;
         opening: number;
         total: number;
+        paidTotal: number;
         pendingTotal: number;
         cyclePendingTotal: number;
         dueDate: Date;
