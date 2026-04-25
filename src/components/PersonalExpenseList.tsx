@@ -71,6 +71,18 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, onUpda
     (name: string) => getPersonalCategory(name, customCategoryList),
     [customCategoryList],
   );
+  // Lista unificada para limites de gastos: built-in + customizadas (sem duplicar por nome).
+  const allBudgetCategories = useMemo<PersonalCategory[]>(() => {
+    const seen = new Set<string>();
+    const out: PersonalCategory[] = [];
+    for (const c of [...personalCategories, ...customCategoryList]) {
+      const key = c.name.trim().toLowerCase();
+      if (seen.has(key)) continue;
+      seen.add(key);
+      out.push(c);
+    }
+    return out;
+  }, [customCategoryList]);
 
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<Filter>("all");
@@ -230,7 +242,7 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, onUpda
 
   const openBudgetEdit = () => {
     const draft: Record<string, string> = {};
-    personalCategories.forEach((c) => {
+    allBudgetCategories.forEach((c) => {
       // Pré-preenche com o limite do próprio mês; se não houver, usa o herdado
       // (assim editar gera um novo registro próprio sem alterar o mês de origem).
       const own = monthBudgets.find((b) => b.category === c.name);
@@ -243,7 +255,7 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, onUpda
   };
 
   const saveBudgets = async () => {
-    for (const c of personalCategories) {
+    for (const c of allBudgetCategories) {
       const raw = budgetDraft[c.name] ?? "";
       const num = Number(raw.replace(",", "."));
       const value = isNaN(num) ? 0 : num;
@@ -651,7 +663,7 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, onUpda
           </SelectTrigger>
           <SelectContent className="max-h-72">
             <SelectItem value="__all__">Todas categorias</SelectItem>
-            {personalCategories.map((c) => {
+            {allBudgetCategories.map((c) => {
               const Icon = c.icon;
               return (
                 <SelectItem key={c.name} value={c.name}>
@@ -956,7 +968,7 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, onUpda
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-2.5 py-2">
-            {personalCategories
+            {allBudgetCategories
               .slice()
               .sort((a, b) => {
                 const sa = committedByCategory.get(a.name) || 0;
