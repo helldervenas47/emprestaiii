@@ -28,6 +28,13 @@ import { usePersonalExpenseCategories } from "@/hooks/usePersonalExpenseCategori
 import { Progress } from "@/components/ui/progress";
 import { usePersonalBudgets } from "@/hooks/usePersonalBudgets";
 import { isPiggyExpense } from "@/hooks/usePiggyBanks";
+import { useCreditCards } from "@/hooks/useCreditCards";
+import { useCreditCardOpenings } from "@/hooks/useCreditCardOpenings";
+import {
+  isCreditCardExpense,
+  getCardInvoiceTotalsForMonth,
+  CREDIT_CARD_INVOICE_CATEGORY,
+} from "@/lib/creditCardInvoiceTotals";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as ReTooltip, LineChart, Line, XAxis, YAxis, CartesianGrid, Legend } from "recharts";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
