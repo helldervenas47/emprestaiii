@@ -709,6 +709,16 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, onUpda
             const overdue = isOverdue(expense);
             const isRecorrente = expense.type === "recorrente" && expense.installments && expense.installments > 1;
             const installmentAmount = isRecorrente ? expense.amount / expense.installments! : expense.amount;
+            // Find parent for child rows (existing installments are stored as separate "fixa" rows linked via parentExpenseId)
+            const parentExpense = expense.parentExpenseId
+              ? expenses.find((p) => p.id === expense.parentExpenseId)
+              : null;
+            const parentIsParcelada =
+              !!parentExpense &&
+              parentExpense.type === "recorrente" &&
+              !!parentExpense.installments &&
+              parentExpense.installments > 1 &&
+              parentExpense.installments !== FIXED_RECURRING_INSTALLMENTS;
             const cat = resolveCategory(expense.category);
             const Icon = cat.icon;
 
@@ -716,13 +726,15 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, onUpda
               <Card no3d key={expense.id} className={overdue ? "border-destructive/50" : ""}>
                 <CardContent className="p-3 sm:p-4">
                   {(() => {
-                    const isParceladaFinita =
+                    const isParceladaFinitaSelf =
                       isRecorrente && expense.installments !== FIXED_RECURRING_INSTALLMENTS;
+                    const isParceladaFinita = isParceladaFinitaSelf || parentIsParcelada;
+                    const summaryTarget = isParceladaFinitaSelf ? expense : parentExpense;
                     const InnerWrapper: any = isParceladaFinita ? "button" : "div";
                     const wrapperProps = isParceladaFinita
                       ? {
                           type: "button",
-                          onClick: () => setSummaryExpense(expense),
+                          onClick: () => summaryTarget && setSummaryExpense(summaryTarget),
                           className:
                             "flex items-start gap-3 w-full text-left rounded-lg -m-1 p-1 hover:bg-muted/40 transition-colors cursor-pointer",
                           "aria-label": `Ver resumo de ${expense.description}`,
