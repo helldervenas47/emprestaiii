@@ -149,7 +149,8 @@ export function ExpenseEditDialog({
   const [cardId, setCardId] = useState<string>("");
   const [freeNotes, setFreeNotes] = useState("");
   const [saving, setSaving] = useState(false);
-
+  const [scope, setScope] = useState<EditScope>("this");
+  const [confirmAllOpen, setConfirmAllOpen] = useState(false);
   // Hydrate from expense
   useEffect(() => {
     if (!expense) return;
