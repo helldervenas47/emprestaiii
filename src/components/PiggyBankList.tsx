@@ -210,6 +210,11 @@ export function PiggyBankList({ readOnly = false }: Props) {
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-1.5 min-w-0">
+                    {pb.shortId != null && (
+                      <span className="text-[10px] font-mono font-semibold text-muted-foreground bg-muted px-1.5 py-0.5 rounded shrink-0">
+                        #{pb.shortId}
+                      </span>
+                    )}
                     <p className="text-sm font-semibold text-foreground truncate">{pb.name}</p>
                     <Badge variant="outline" className="text-[9px] px-1 py-0 h-4 shrink-0">
                       {pb.annualRate.toFixed(2)}% a.a.
