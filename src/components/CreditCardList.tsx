@@ -76,6 +76,7 @@ function getCycleForDueMonth(yyyymm: string, closingDay: number, dueDay: number)
 interface MiniCardProps {
   card: CreditCard;
   invoiceTotal: number;
+  paidTotal: number;
   pendingTotal: number;
   cyclePendingTotal: number;
   openingAmount: number;
@@ -94,6 +95,7 @@ interface MiniCardProps {
 const MiniCreditCard = React.forwardRef<HTMLDivElement, MiniCardProps>(({
   card,
   invoiceTotal,
+  paidTotal,
   pendingTotal,
   cyclePendingTotal,
   openingAmount,
@@ -211,6 +213,13 @@ const MiniCreditCard = React.forwardRef<HTMLDivElement, MiniCardProps>(({
           )}
 
           <div className="flex items-baseline justify-between gap-2">
+            <span className="text-[10px] text-muted-foreground">Valor pago da fatura</span>
+            <span className={`text-[11px] font-semibold tabular-nums ${paidTotal > 0 ? "text-success" : "text-muted-foreground"}`}>
+              {mask(fmt(paidTotal))}
+            </span>
+          </div>
+
+          <div className="flex items-baseline justify-between gap-2">
             <span className="text-[10px] text-muted-foreground">Disponível</span>
             <span className="text-[11px] font-semibold text-success tabular-nums">
               {mask(fmt(Math.max(0, card.creditLimit - pendingTotal)))}
@@ -313,6 +322,7 @@ export function CreditCardList({ readOnly = false, referenceMonth }: Props) {
         transactions: number;
         opening: number;
         total: number;
+        paidTotal: number;
         pendingTotal: number;
         cyclePendingTotal: number;
         dueDate: Date;
@@ -373,10 +383,18 @@ export function CreditCardList({ readOnly = false, referenceMonth }: Props) {
           return s + (isRec ? e.amount / e.installments! : e.amount);
         }, 0);
       const cyclePendingTotal = cycleExpensesPending + opening;
+      // Soma dos itens já pagos dentro do ciclo (refletindo ajustes/edições).
+      const paidTotal = inCycle
+        .filter((e) => e.paid)
+        .reduce((s, e) => {
+          const isRec = e.type === "recorrente" && e.installments && e.installments > 1;
+          return s + (isRec ? e.amount / e.installments! : e.amount);
+        }, 0);
       map.set(card.id, {
         transactions,
         opening,
         total: transactions + opening,
+        paidTotal,
         pendingTotal,
         cyclePendingTotal,
         dueDate: cycle.dueDate,
@@ -461,7 +479,7 @@ export function CreditCardList({ readOnly = false, referenceMonth }: Props) {
               <div className="grid gap-3 grid-cols-2 sm:hidden">
                 {mobileVisible.map((card) => {
                   const inv = invoiceByCard.get(card.id) ?? {
-                    transactions: 0, opening: 0, total: 0, pendingTotal: 0, cyclePendingTotal: 0,
+                    transactions: 0, opening: 0, total: 0, paidTotal: 0, pendingTotal: 0, cyclePendingTotal: 0,
                     dueDate: getCurrentCycle(card.closingDay, card.dueDay).dueDate,
                     cycleKey: "", openingNotes: null, hasOpening: false,
                     unpaidExpenseIds: [] as string[],
@@ -472,6 +490,7 @@ export function CreditCardList({ readOnly = false, referenceMonth }: Props) {
                       key={card.id}
                       card={card}
                       invoiceTotal={inv.total}
+                      paidTotal={inv.paidTotal}
                       pendingTotal={inv.pendingTotal}
                       cyclePendingTotal={inv.cyclePendingTotal}
                       openingAmount={inv.opening}
@@ -515,6 +534,7 @@ export function CreditCardList({ readOnly = false, referenceMonth }: Props) {
               transactions: 0,
               opening: 0,
               total: 0,
+              paidTotal: 0,
               pendingTotal: 0,
               cyclePendingTotal: 0,
               dueDate: getCurrentCycle(card.closingDay, card.dueDay).dueDate,
@@ -529,6 +549,7 @@ export function CreditCardList({ readOnly = false, referenceMonth }: Props) {
                 key={card.id}
                 card={card}
                 invoiceTotal={inv.total}
+                paidTotal={inv.paidTotal}
                 pendingTotal={inv.pendingTotal}
                 cyclePendingTotal={inv.cyclePendingTotal}
                 openingAmount={inv.opening}
