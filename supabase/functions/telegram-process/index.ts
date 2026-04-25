@@ -2020,39 +2020,100 @@ Deno.serve(async (req) => {
             } else if (/^\/apagar(?:@\w+)?\b/i.test(text)) {
               const reply = await handleApagar(admin, link.user_id);
               await tgSend(chatId, reply, LOVABLE_API_KEY, TELEGRAM_API_KEY);
-            } else if (/^\/aporte(?:@\w+)?\b/i.test(text)) {
-              // Optional inline payload: /aporte <amount> <note>
-              const rest = text.replace(/^\/aporte(?:@\w+)?\s*/i, "").trim();
-              const inline = rest ? parseAmountWithNote(rest) : null;
+            } else if (/^\/?aporte(?:@\w+)?\b/i.test(text)) {
+              // Accepts both /aporte and plain "aporte" (any message containing
+              // the word at the start). Supported forms:
+              //   aporte                              → list available caixinhas
+              //   aporte <valor>                      → ask which caixinha (picker)
+              //   aporte <id|nome> <valor> [nota]     → finalize directly
+              //   /aporte <valor> [nota]              → legacy picker flow
+              const rest = text.replace(/^\/?aporte(?:@\w+)?\s*/i, "").trim();
               const { banks } = await listUserPiggyBanks(admin, link.user_id);
+
               if (banks.length === 0) {
                 await tgSend(
                   chatId,
                   "🐷 Você ainda não tem nenhuma caixinha (cofrinho).\nCrie uma no app e tente novamente.",
                   LOVABLE_API_KEY, TELEGRAM_API_KEY,
                 );
+              } else if (!rest) {
+                // No args → list available caixinhas with short IDs.
+                await tgSend(chatId, formatPiggyBanksList(banks), LOVABLE_API_KEY, TELEGRAM_API_KEY);
               } else {
-                const expiresAt = new Date(Date.now() + 5 * 60 * 1000).toISOString();
-                // Pre-fill amount/note in pending row so the picker can finalize without extra prompts.
-                await admin.from("telegram_pending_piggy_aporte").upsert({
-                  chat_id: chatId,
-                  user_id: link.user_id,
-                  piggy_bank_id: null,
-                  pending_amount: inline?.amount ?? null,
-                  notes: inline?.note ?? null,
-                  expires_at: expiresAt,
-                }, { onConflict: "chat_id" });
-                const headerLines = ["🐷 *Aporte em caixinha*"];
-                if (inline) headerLines.push(`💰 Valor: *${fmtBRL(inline.amount)}*`);
-                if (inline?.note) headerLines.push(`📝 Nota: _${inline.note}_`);
-                headerLines.push("");
-                headerLines.push("Escolha em qual caixinha você quer fazer o aporte:");
-                await tgSendWithKeyboard(
-                  chatId,
-                  headerLines.join("\n"),
-                  buildPiggyBanksKeyboard(banks),
-                  LOVABLE_API_KEY, TELEGRAM_API_KEY,
-                );
+                // Try to parse "<id|nome> <valor> [nota]" first.
+                // Strategy: if first token looks like amount → fall back to picker.
+                const tokens = rest.split(/\s+/);
+                const firstAsAmount = parseAmount(tokens[0]);
+                let resolvedBank: { id: string; name: string } | null = null;
+                let amount: number | null = null;
+                let note: string | null = null;
+
+                if (firstAsAmount === null) {
+                  // First token is the bank reference. Greedily try 1..N tokens
+                  // as the bank name so multi-word names like "Reserva Casa" work,
+                  // stopping at the largest prefix that still leaves an amount.
+                  for (let take = Math.min(tokens.length - 1, 5); take >= 1; take--) {
+                    const candidate = tokens.slice(0, take).join(" ");
+                    const remaining = tokens.slice(take).join(" ").trim();
+                    if (!remaining) continue;
+                    const parsedRem = parseAmountWithNote(remaining);
+                    if (!parsedRem) continue;
+                    const r = resolvePiggyBankByToken(banks, candidate);
+                    if (r.bank) {
+                      resolvedBank = r.bank;
+                      amount = parsedRem.amount;
+                      note = parsedRem.note;
+                      break;
+                    }
+                    if (r.ambiguous && r.ambiguous.length > 0) {
+                      const list = r.ambiguous.map((b) => `• *${b.name}* — \`${b.id.slice(0, 8)}\``).join("\n");
+                      await tgSend(
+                        chatId,
+                        `⚠️ Encontrei mais de uma caixinha com "${candidate}":\n${list}\n\nUse o ID curto, ex: \`aporte ${r.ambiguous[0].id.slice(0, 8)} <valor>\``,
+                        LOVABLE_API_KEY, TELEGRAM_API_KEY,
+                      );
+                      return;
+                    }
+                  }
+
+                  if (!resolvedBank || amount === null) {
+                    // Bank token didn't match anything.
+                    const firstTok = tokens[0];
+                    await tgSend(
+                      chatId,
+                      `❌ Caixinha "${firstTok}" não encontrada.\n\n${formatPiggyBanksList(banks)}`,
+                      LOVABLE_API_KEY, TELEGRAM_API_KEY,
+                    );
+                    return;
+                  }
+
+                  // Direct finalize — no extra prompts, no expense created.
+                  const reply = await finalizePiggyAporte(admin, link.user_id, resolvedBank, amount, note);
+                  await tgSend(chatId, reply, LOVABLE_API_KEY, TELEGRAM_API_KEY);
+                } else {
+                  // Legacy flow: only amount given → show picker.
+                  const inline = parseAmountWithNote(rest);
+                  const expiresAt = new Date(Date.now() + 5 * 60 * 1000).toISOString();
+                  await admin.from("telegram_pending_piggy_aporte").upsert({
+                    chat_id: chatId,
+                    user_id: link.user_id,
+                    piggy_bank_id: null,
+                    pending_amount: inline?.amount ?? null,
+                    notes: inline?.note ?? null,
+                    expires_at: expiresAt,
+                  }, { onConflict: "chat_id" });
+                  const headerLines = ["🐷 *Aporte em caixinha*"];
+                  if (inline) headerLines.push(`💰 Valor: *${fmtBRL(inline.amount)}*`);
+                  if (inline?.note) headerLines.push(`📝 Nota: _${inline.note}_`);
+                  headerLines.push("");
+                  headerLines.push("Escolha em qual caixinha você quer fazer o aporte:");
+                  await tgSendWithKeyboard(
+                    chatId,
+                    headerLines.join("\n"),
+                    buildPiggyBanksKeyboard(banks),
+                    LOVABLE_API_KEY, TELEGRAM_API_KEY,
+                  );
+                }
               }
             } else if (/^\/(meus[_-]?aportes|meusaportes)(?:@\w+)?\b/i.test(text)) {
               const reply = await handleMeusAportes(admin, link.user_id);
