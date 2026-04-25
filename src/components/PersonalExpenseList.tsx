@@ -880,6 +880,11 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, onUpda
         title="Excluir despesa"
         description="Tem certeza? Esta ação não pode ser desfeita."
       />
+      <InstallmentSummaryDialog
+        open={!!summaryExpense}
+        onOpenChange={(o) => !o && setSummaryExpense(null)}
+        expense={summaryExpense}
+      />
 
       {/* Unpay confirm */}
       <Dialog open={!!unpayingId} onOpenChange={(o) => !o && setUnpayingId(null)}>
