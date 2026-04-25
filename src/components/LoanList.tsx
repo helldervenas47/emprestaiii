@@ -1232,6 +1232,7 @@ function LoanCardView({
                       })()
                     : fallbackDate;
                 const instDateStr = instDate.toLocaleDateString("pt-BR");
+                const instAmount = savedSchedule?.amount ?? installment;
                 const isPaid = i <= loan.paidInstallments;
                 const todayNorm = new Date();
                 const todayStr = `${todayNorm.getFullYear()}-${String(todayNorm.getMonth() + 1).padStart(2, "0")}-${String(todayNorm.getDate()).padStart(2, "0")}`;
@@ -1242,7 +1243,7 @@ function LoanCardView({
                   <React.Fragment key={i}>
                     <span className="text-muted-foreground">{i}</span>
                     <span className="text-foreground">{instDateStr}</span>
-                    <span className="text-foreground font-medium">{formatCurrency(installment)}</span>
+                    <span className="text-foreground font-medium">{formatCurrency(instAmount)}</span>
                     <span>
                       {isPaid ? (
                         <Badge className="bg-success/20 text-success border-success/30 text-[10px]">Pago</Badge>
