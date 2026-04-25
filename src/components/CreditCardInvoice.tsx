@@ -178,6 +178,7 @@ export function CreditCardInvoice({ card, onClose, referenceMonth, originRect }:
   const transactionsTotal = sumItems(items);
   const total = transactionsTotal + openingAmount;
   const prevTotal = sumItems(prevItems) + (prevOpening?.openingAmount ?? 0);
+  const paidTotal = sumItems(items.filter((e) => e.paid));
 
   // Limite disponível = limite total - (despesas pendentes do cartão + saldos iniciais de
   // faturas em aberto). Reflete tudo que ainda foi gasto e não pago neste cartão.
@@ -461,7 +462,14 @@ export function CreditCardInvoice({ card, onClose, referenceMonth, originRect }:
               </span>
             </div>
 
-            {/* Limite progress */}
+            {/* Valor pago da fatura */}
+            <div className="mt-2 flex justify-center">
+              <span className="inline-flex items-center gap-1.5 text-[11px] px-2.5 py-1 rounded-full bg-white/15 border border-white/25">
+                <span className="opacity-80">Valor pago da fatura</span>
+                <span className="font-semibold tabular-nums">{mask(fmt(paidTotal))}</span>
+              </span>
+            </div>
+
             {card.creditLimit > 0 && (
               <div className="mt-4 mx-auto max-w-sm">
                 <div className="flex items-center justify-between text-[11px] opacity-90 mb-1.5">
