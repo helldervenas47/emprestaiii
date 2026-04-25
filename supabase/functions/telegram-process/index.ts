@@ -2105,13 +2105,45 @@ Deno.serve(async (req) => {
                   }
 
                   if (!aporteHandled && (!resolvedBank || amount === null)) {
-                    const firstTok = tokens[0];
-                    await tgSend(
-                      chatId,
-                      `❌ Caixinha "${firstTok}" não encontrada.\n\n${formatPiggyBanksList(banks)}`,
-                      LOVABLE_API_KEY, TELEGRAM_API_KEY,
-                    );
-                    aporteHandled = true;
+                    // No bank resolved. If the very first token looks like a plain
+                    // amount (e.g. "aporte 200 obs"), fall through to the picker
+                    // flow rather than treating it as a missing-bank error.
+                    const firstAsAmount = parseAmount(tokens[0]);
+                    if (firstAsAmount !== null) {
+                      // Intentionally do nothing here — handled by the legacy
+                      // picker block below by leaving aporteHandled=false and
+                      // amount/resolvedBank null. We re-enter that flow now:
+                      const inline = parseAmountWithNote(rest);
+                      const expiresAt = new Date(Date.now() + 5 * 60 * 1000).toISOString();
+                      await admin.from("telegram_pending_piggy_aporte").upsert({
+                        chat_id: chatId,
+                        user_id: link.user_id,
+                        piggy_bank_id: null,
+                        pending_amount: inline?.amount ?? null,
+                        notes: inline?.note ?? null,
+                        expires_at: expiresAt,
+                      }, { onConflict: "chat_id" });
+                      const headerLines = ["🐷 *Aporte em caixinha*"];
+                      if (inline) headerLines.push(`💰 Valor: *${fmtBRL(inline.amount)}*`);
+                      if (inline?.note) headerLines.push(`📝 Nota: _${inline.note}_`);
+                      headerLines.push("");
+                      headerLines.push("Escolha em qual caixinha você quer fazer o aporte:");
+                      await tgSendWithKeyboard(
+                        chatId,
+                        headerLines.join("\n"),
+                        buildPiggyBanksKeyboard(banks),
+                        LOVABLE_API_KEY, TELEGRAM_API_KEY,
+                      );
+                      aporteHandled = true;
+                    } else {
+                      const firstTok = tokens[0];
+                      await tgSend(
+                        chatId,
+                        `❌ Caixinha "${firstTok}" não encontrada.\n\n${formatPiggyBanksList(banks)}`,
+                        LOVABLE_API_KEY, TELEGRAM_API_KEY,
+                      );
+                      aporteHandled = true;
+                    }
                   }
 
                   if (!aporteHandled && resolvedBank && amount !== null) {
