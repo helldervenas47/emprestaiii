@@ -25,6 +25,7 @@ interface ChildPayment {
   paid_date: string | null;
   description: string;
   created_at: string;
+  paid: boolean;
 }
 
 export function InstallmentSummaryDialog({ open, onOpenChange, expense }: Props) {
@@ -39,9 +40,9 @@ export function InstallmentSummaryDialog({ open, onOpenChange, expense }: Props)
     setLoading(true);
     supabase
       .from("expenses")
-      .select("id, amount, paid_date, description, created_at")
+      .select("id, amount, paid_date, description, created_at, paid")
       .eq("parent_expense_id", expense.id)
-      .order("paid_date", { ascending: true })
+      .order("paid_date", { ascending: true, nullsFirst: false })
       .then(({ data }) => {
         if (cancelled) return;
         setHistory(
@@ -51,6 +52,7 @@ export function InstallmentSummaryDialog({ open, onOpenChange, expense }: Props)
             paid_date: r.paid_date,
             description: r.description,
             created_at: r.created_at,
+            paid: !!r.paid,
           })),
         );
         setLoading(false);
@@ -64,14 +66,18 @@ export function InstallmentSummaryDialog({ open, onOpenChange, expense }: Props)
     if (!expense || !expense.installments) return null;
     const total = expense.amount;
     const totalInstallments = expense.installments;
-    const paidCount = expense.paidInstallments ?? 0;
+    // Source of truth: actually paid child rows. Fall back to parent counter only if no children loaded yet.
+    const paidChildren = history.filter((h) => h.paid);
+    const paidCount = history.length > 0
+      ? paidChildren.length
+      : (expense.paidInstallments ?? 0);
     const pendingCount = Math.max(totalInstallments - paidCount, 0);
     const installmentValue = total / totalInstallments;
-    const paidFromHistory = history.reduce((s, h) => s + h.amount, 0);
+    const paidFromHistory = paidChildren.reduce((s, h) => s + h.amount, 0);
     const paid = history.length > 0 ? paidFromHistory : installmentValue * paidCount;
     const pending = Math.max(total - paid, 0);
     const today = todayInAppTz();
-    const fullyPaid = expense.paid;
+    const fullyPaid = paidCount >= totalInstallments;
     const overdue = !fullyPaid && expense.dueDate < today;
     const dueToday = !fullyPaid && expense.dueDate === today;
     const status: "concluido" | "atrasado" | "vence_hoje" | "em_dia" = fullyPaid
@@ -93,6 +99,7 @@ export function InstallmentSummaryDialog({ open, onOpenChange, expense }: Props)
       nextDueDate: fullyPaid ? null : expense.dueDate,
       status,
       progress,
+      paidChildren,
     };
   }, [expense, history]);
 
@@ -247,13 +254,13 @@ export function InstallmentSummaryDialog({ open, onOpenChange, expense }: Props)
           </div>
           {loading ? (
             <p className="text-xs text-muted-foreground py-3 text-center">Carregando…</p>
-          ) : history.length === 0 ? (
+          ) : summary.paidChildren.length === 0 ? (
             <p className="text-xs text-muted-foreground py-3 text-center">
               Nenhum pagamento registrado ainda.
             </p>
           ) : (
             <ul className="divide-y divide-border rounded-md border border-border">
-              {history.map((h, idx) => (
+              {summary.paidChildren.map((h, idx) => (
                 <li key={h.id} className="flex items-center justify-between p-2.5">
                   <div className="min-w-0">
                     <div className="text-sm font-medium text-foreground truncate">

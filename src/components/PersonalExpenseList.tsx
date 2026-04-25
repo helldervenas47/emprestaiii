@@ -768,11 +768,16 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, onUpda
                                 </Badge>
                               );
                             })()}
-                            {isParceladaFinita && summaryTarget && (
-                              <Badge variant="outline" className="text-[10px] px-1.5 py-0">
-                                {(summaryTarget.paidInstallments ?? 0)}/{summaryTarget.installments} parcelas
-                              </Badge>
-                            )}
+                            {isParceladaFinita && summaryTarget && (() => {
+                              const realPaidCount = expenses.filter(
+                                (c) => c.parentExpenseId === summaryTarget.id && c.paid,
+                              ).length;
+                              return (
+                                <Badge variant="outline" className="text-[10px] px-1.5 py-0">
+                                  {realPaidCount}/{summaryTarget.installments} parcelas
+                                </Badge>
+                              );
+                            })()}
                             <span className="inline-flex items-center gap-1">
                               <Calendar className="h-3 w-3" />
                               {format(new Date(expense.dueDate + "T00:00:00"), "dd/MM/yyyy")}
