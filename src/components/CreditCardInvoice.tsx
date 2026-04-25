@@ -472,8 +472,21 @@ export function CreditCardInvoice({ card, onClose, referenceMonth, originRect }:
               <span className="inline-flex items-center gap-1.5 text-[11px] px-2.5 py-1 rounded-full bg-white/15 border border-white/25">
                 <span className="opacity-80">Valor pago da fatura</span>
                 <span className="font-semibold tabular-nums">{mask(fmt(paidTotal))}</span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEditPaidValue(paidTotal > 0 ? paidTotal.toFixed(2) : "");
+                    setEditPaidOpen(true);
+                  }}
+                  className="ml-0.5 inline-flex h-4 w-4 items-center justify-center rounded-full hover:bg-white/20 transition-colors"
+                  aria-label="Editar valor pago da fatura"
+                  title="Editar valor pago"
+                >
+                  <Pencil className="h-2.5 w-2.5" />
+                </button>
               </span>
             </div>
+
 
             {card.creditLimit > 0 && (
               <div className="mt-4 mx-auto max-w-sm">
