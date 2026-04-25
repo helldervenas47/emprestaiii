@@ -71,6 +71,18 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, onUpda
     (name: string) => getPersonalCategory(name, customCategoryList),
     [customCategoryList],
   );
+  // Lista unificada para limites de gastos: built-in + customizadas (sem duplicar por nome).
+  const allBudgetCategories = useMemo<PersonalCategory[]>(() => {
+    const seen = new Set<string>();
+    const out: PersonalCategory[] = [];
+    for (const c of [...personalCategories, ...customCategoryList]) {
+      const key = c.name.trim().toLowerCase();
+      if (seen.has(key)) continue;
+      seen.add(key);
+      out.push(c);
+    }
+    return out;
+  }, [customCategoryList]);
 
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<Filter>("all");
