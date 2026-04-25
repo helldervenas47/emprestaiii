@@ -134,6 +134,7 @@ export function usePiggyBanks() {
     if (!pbRes.error) {
       setPiggyBanks(((pbRes.data as any[]) || []).map((r) => ({
         id: r.id,
+        shortId: r.short_id ?? null,
         name: r.name,
         color: r.color,
         icon: r.icon,
