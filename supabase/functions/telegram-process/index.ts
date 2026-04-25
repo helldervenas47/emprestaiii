@@ -63,6 +63,48 @@ function hasNaturalLanguageHint(text: string): boolean {
   return NATURAL_LANGUAGE_HINT.test(text);
 }
 
+async function handleAportesSaldo(admin: any, userId: string): Promise<string> {
+  const { data: ownerData } = await admin.rpc("get_data_owner_id", { _user_id: userId });
+  const ownerId = (typeof ownerData === "string" && ownerData) ? ownerData : userId;
+
+  const { data: banks, error: banksErr } = await admin
+    .from("piggy_banks")
+    .select("id, name, short_id, target_amount")
+    .eq("user_id", ownerId)
+    .order("short_id", { ascending: true, nullsFirst: false })
+    .order("name", { ascending: true });
+
+  if (banksErr) return "❌ Erro ao buscar caixinhas: " + banksErr.message;
+  if (!banks || banks.length === 0) {
+    return "ℹ️ Nenhuma caixinha cadastrada ainda.";
+  }
+
+  const ids = banks.map((b: any) => b.id);
+  const { data: deposits } = await admin
+    .from("piggy_bank_deposits")
+    .select("piggy_bank_id, amount")
+    .eq("user_id", ownerId)
+    .in("piggy_bank_id", ids);
+
+  const balanceById = new Map<string, number>();
+  for (const d of (deposits ?? []) as any[]) {
+    balanceById.set(d.piggy_bank_id, (balanceById.get(d.piggy_bank_id) ?? 0) + (Number(d.amount) || 0));
+  }
+
+  let total = 0;
+  let msg = "🐷 *Saldo das caixinhas*\n";
+  for (const b of banks as any[]) {
+    const bal = balanceById.get(b.id) ?? 0;
+    total += bal;
+    const tag = b.short_id ? `#${b.short_id}` : `#${String(b.id).slice(0, 4)}`;
+    const target = Number(b.target_amount) || 0;
+    const meta = target > 0 ? ` _(meta ${fmtBRL(target)})_` : "";
+    msg += `${tag} ${b.name} — *${fmtBRL(bal)}*${meta}\n`;
+  }
+  msg += `\n*Total geral:* ${fmtBRL(total)}`;
+  return msg;
+}
+
 
 function detectCategory(description: string): string {
   const lower = description.toLowerCase();
