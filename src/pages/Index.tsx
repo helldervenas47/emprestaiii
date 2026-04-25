@@ -584,6 +584,7 @@ const Index = () => {
             {/* Acessos rápidos do topo: visíveis em tablet e desktop; em mobile ficam disponíveis em "Mais" */}
             {!isMobile && (
               <>
+                <HideValuesToggle />
                 <Button
                   variant="ghost"
                   size="icon"
