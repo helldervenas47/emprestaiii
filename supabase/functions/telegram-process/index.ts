@@ -97,9 +97,7 @@ async function handleAportesSaldo(admin: any, userId: string): Promise<string> {
     const bal = balanceById.get(b.id) ?? 0;
     total += bal;
     const tag = b.short_id ? `#${b.short_id}` : `#${String(b.id).slice(0, 4)}`;
-    const target = Number(b.target_amount) || 0;
-    const meta = target > 0 ? ` _(meta ${fmtBRL(target)})_` : "";
-    msg += `${tag} ${b.name} — *${fmtBRL(bal)}*${meta}\n`;
+    msg += `${tag} ${b.name} — *${fmtBRL(bal)}*\n`;
   }
   msg += `\n*Total geral:* ${fmtBRL(total)}`;
   return msg;
