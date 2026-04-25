@@ -224,6 +224,12 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, onUpda
       if (v <= 0) return;
       map.set(e.category, (map.get(e.category) || 0) + v);
     });
+    if (cardInvoiceMonthTotal > 0) {
+      map.set(
+        CREDIT_CARD_INVOICE_CATEGORY,
+        (map.get(CREDIT_CARD_INVOICE_CATEGORY) || 0) + cardInvoiceMonthTotal,
+      );
+    }
     const arr = [...map.entries()]
       .filter(([, value]) => value > 0)
       .map(([name, value]) => ({ name, value, cat: resolveCategory(name) }))
@@ -232,7 +238,7 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, onUpda
     const top = arr.slice(0, 5);
     const rest = arr.slice(5).reduce((s, it) => s + it.value, 0);
     return [...top, { name: "Outros", value: rest, cat: resolveCategory("Outros") }];
-  }, [spendingMonth, getInstallmentAmount, resolveCategory]);
+  }, [spendingMonth, getInstallmentAmount, resolveCategory, cardInvoiceMonthTotal]);
 
   const totalCategorized = categoryData.reduce((s, it) => s + it.value, 0);
 
@@ -243,8 +249,14 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, onUpda
     spendingMonth.forEach((e) => {
       map.set(e.category, (map.get(e.category) || 0) + getInstallmentAmount(e));
     });
+    if (cardInvoiceMonthTotal > 0) {
+      map.set(
+        CREDIT_CARD_INVOICE_CATEGORY,
+        (map.get(CREDIT_CARD_INVOICE_CATEGORY) || 0) + cardInvoiceMonthTotal,
+      );
+    }
     return map;
-  }, [spendingMonth, getInstallmentAmount]);
+  }, [spendingMonth, getInstallmentAmount, cardInvoiceMonthTotal]);
 
   // Committed per category — used to sort budget subcards.
   // Inclui pagos no mês + pendentes cuja data de vencimento esteja no mês selecionado.
