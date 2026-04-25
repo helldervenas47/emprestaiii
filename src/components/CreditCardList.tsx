@@ -374,10 +374,18 @@ export function CreditCardList({ readOnly = false, referenceMonth }: Props) {
           return s + (isRec ? e.amount / e.installments! : e.amount);
         }, 0);
       const cyclePendingTotal = cycleExpensesPending + opening;
+      // Soma dos itens já pagos dentro do ciclo (refletindo ajustes/edições).
+      const paidTotal = inCycle
+        .filter((e) => e.paid)
+        .reduce((s, e) => {
+          const isRec = e.type === "recorrente" && e.installments && e.installments > 1;
+          return s + (isRec ? e.amount / e.installments! : e.amount);
+        }, 0);
       map.set(card.id, {
         transactions,
         opening,
         total: transactions + opening,
+        paidTotal,
         pendingTotal,
         cyclePendingTotal,
         dueDate: cycle.dueDate,
