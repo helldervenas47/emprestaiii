@@ -213,6 +213,13 @@ const MiniCreditCard = React.forwardRef<HTMLDivElement, MiniCardProps>(({
           )}
 
           <div className="flex items-baseline justify-between gap-2">
+            <span className="text-[10px] text-muted-foreground">Valor pago da fatura</span>
+            <span className={`text-[11px] font-semibold tabular-nums ${paidTotal > 0 ? "text-success" : "text-muted-foreground"}`}>
+              {mask(fmt(paidTotal))}
+            </span>
+          </div>
+
+          <div className="flex items-baseline justify-between gap-2">
             <span className="text-[10px] text-muted-foreground">Disponível</span>
             <span className="text-[11px] font-semibold text-success tabular-nums">
               {mask(fmt(Math.max(0, card.creditLimit - pendingTotal)))}
