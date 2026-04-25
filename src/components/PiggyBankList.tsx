@@ -273,15 +273,34 @@ export function PiggyBankList({ readOnly = false }: Props) {
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3 py-1">
-            <div>
-              <Label htmlFor="pb-name">Nome</Label>
-              <Input
-                id="pb-name"
-                placeholder="Ex: Reserva de emergência"
-                value={draft.name}
-                onChange={(e) => setDraft((p) => ({ ...p, name: e.target.value }))}
-              />
+            <div className="grid grid-cols-[1fr_90px] gap-2">
+              <div>
+                <Label htmlFor="pb-name">Nome</Label>
+                <Input
+                  id="pb-name"
+                  placeholder="Ex: Reserva de emergência"
+                  value={draft.name}
+                  onChange={(e) => setDraft((p) => ({ ...p, name: e.target.value }))}
+                />
+              </div>
+              <div>
+                <Label htmlFor="pb-shortid">Nº (1-99)</Label>
+                <Input
+                  id="pb-shortid"
+                  type="number"
+                  min={1}
+                  max={99}
+                  step={1}
+                  inputMode="numeric"
+                  placeholder="Ex: 1"
+                  value={draft.shortId}
+                  onChange={(e) => setDraft((p) => ({ ...p, shortId: e.target.value.replace(/[^\d]/g, "").slice(0, 2) }))}
+                />
+              </div>
             </div>
+            <p className="text-[10px] text-muted-foreground -mt-2">
+              O número permite usar atalhos no bot, ex: <code>aporte {draft.shortId || "1"} 200</code>.
+            </p>
             <div>
               <Label>Cor</Label>
               <div className="flex flex-wrap gap-1.5 mt-1.5">
