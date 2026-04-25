@@ -137,8 +137,8 @@ export function getCardInvoiceTotalsForMonth(
     const override = readPaidOverride(opening?.notes);
     const paidTotal = override ?? itemsPaidTotal;
 
-    if (total > 0 || (paid && paidTotal > 0)) {
-      result.push({ card, total, paid, paidTotal });
+    if (total > 0 || (paid && paidTotal > 0) || override !== null) {
+      result.push({ card, total, paid, paidTotal, hasPaidOverride: override !== null });
     }
   }
   return result;
