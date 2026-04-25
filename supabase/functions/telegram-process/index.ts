@@ -1151,12 +1151,14 @@ async function listUserPiggyBanks(admin: any, userId: string) {
   return { ownerId, banks };
 }
 
-function buildPiggyBanksKeyboard(banks: { id: string; name: string }[]) {
+function buildPiggyBanksKeyboard(banks: { id: string; name: string; shortId?: number | null }[]) {
   const rows: any[] = [];
   for (let i = 0; i < banks.length; i += 2) {
-    const row = [{ text: `🐷 ${banks[i].name}`, callback_data: `pgapt:${banks[i].id}` }];
+    const labelFor = (b: { name: string; shortId?: number | null }) =>
+      b.shortId != null ? `🐷 #${b.shortId} ${b.name}` : `🐷 ${b.name}`;
+    const row = [{ text: labelFor(banks[i]), callback_data: `pgapt:${banks[i].id}` }];
     if (banks[i + 1]) {
-      row.push({ text: `🐷 ${banks[i + 1].name}`, callback_data: `pgapt:${banks[i + 1].id}` });
+      row.push({ text: labelFor(banks[i + 1]), callback_data: `pgapt:${banks[i + 1].id}` });
     }
     rows.push(row);
   }
