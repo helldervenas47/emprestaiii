@@ -52,12 +52,17 @@ function cycleKeyFromDate(closingTo: Date): string {
 
 export interface CardInvoiceMonthTotal {
   card: CreditCard;
+  /** Total atual da fatura (compras do ciclo + saldo inicial). */
   total: number;
+  /** True se a fatura do ciclo está totalmente paga. */
+  paid: boolean;
+  /** Valor efetivamente pago (soma dos amounts pagos do ciclo). Só faz sentido quando paid=true. */
+  paidTotal: number;
 }
 
 /**
  * Para um mês YYYY-MM, calcula o total de cada fatura (uma por cartão) cujo
- * vencimento cai dentro desse mês. Total = compras do ciclo + saldo inicial do ciclo.
+ * vencimento cai dentro desse mês. Inclui status de pagamento e valor pago.
  */
 export function getCardInvoiceTotalsForMonth(
   expenses: Expense[],
@@ -88,17 +93,35 @@ export function getCardInvoiceTotalsForMonth(
       return due >= cycle.from && due <= cycle.to;
     });
 
-    const itemsTotal = items.reduce((s, e) => {
+    const installmentValue = (e: Expense) => {
       const isRec = e.type === "recorrente" && !!e.installments && e.installments > 1;
-      return s + (isRec ? e.amount / e.installments! : e.amount);
-    }, 0);
+      return isRec ? e.amount / e.installments! : e.amount;
+    };
+    const itemsTotal = items.reduce((s, e) => s + installmentValue(e), 0);
 
     const cycleKey = cycleKeyFromDate(cycle.to);
     const opening = openings.find((o) => o.cardId === card.id && o.cycleKey === cycleKey);
     const openingAmount = opening?.openingAmount ?? 0;
+    const openingPaidFlag = /\[PAGA\]/i.test(opening?.notes ?? "");
 
     const total = itemsTotal + openingAmount;
-    if (total > 0) result.push({ card, total });
+
+    // Mesmo critério usado no CreditCardInvoice.tsx para "fatura paga":
+    // - houve algum lançamento ou saldo inicial em algum momento
+    // - e nada está pendente (nenhum item sem pagar e nenhum opening com saldo).
+    const cycleHasPending = items.some((e) => !e.paid) || openingAmount > 0;
+    const cycleEverHadValue = items.length > 0 || openingAmount > 0 || openingPaidFlag;
+    const paid = cycleEverHadValue && !cycleHasPending;
+
+    // Valor efetivamente pago = soma dos lançamentos pagos do ciclo
+    // (reflete ajustes/edições). O opening, quando pago, foi zerado e marcado [PAGA],
+    // por isso não somamos seu valor original (que se perdeu) — o que importa é
+    // o fluxo real de saída registrado nos itens.
+    const paidTotal = items.filter((e) => e.paid).reduce((s, e) => s + installmentValue(e), 0);
+
+    if (total > 0 || (paid && paidTotal > 0)) {
+      result.push({ card, total, paid, paidTotal });
+    }
   }
   return result;
 }
