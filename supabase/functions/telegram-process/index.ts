@@ -2088,6 +2088,9 @@ Deno.serve(async (req) => {
             } else if (/^\/apagar(?:@\w+)?\b/i.test(text)) {
               const reply = await handleApagar(admin, link.user_id);
               await tgSend(chatId, reply, LOVABLE_API_KEY, TELEGRAM_API_KEY);
+            } else if (/^\/?aportes?[_\s-]*(saldo|saldos)(?:@\w+)?\b/i.test(text)) {
+              const reply = await handleAportesSaldo(admin, link.user_id);
+              await tgSend(chatId, reply, LOVABLE_API_KEY, TELEGRAM_API_KEY);
             } else if (/^\/?aporte(?:@\w+)?\b/i.test(text)) {
               // Accepts both /aporte and plain "aporte" (any message containing
               // the word at the start). Supported forms:
