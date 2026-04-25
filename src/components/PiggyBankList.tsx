@@ -122,10 +122,27 @@ export function PiggyBankList({ readOnly = false }: Props) {
   const save = async () => {
     if (!draft.name.trim()) return;
     const rate = Number(draft.annualRate.replace(",", ".")) || 11.15;
+
+    // Validate short id (1..99, unique within this account).
+    let shortId: number | null = null;
+    if (draft.shortId.trim()) {
+      const n = Number(draft.shortId.trim());
+      if (!Number.isInteger(n) || n < 1 || n > 99) {
+        toast.error("O número da caixinha deve ser inteiro entre 1 e 99");
+        return;
+      }
+      const conflict = piggyBanks.find((p) => p.shortId === n && p.id !== editing?.id);
+      if (conflict) {
+        toast.error(`O número ${n} já está em uso pela caixinha "${conflict.name}"`);
+        return;
+      }
+      shortId = n;
+    }
+
     if (editing) {
-      await updatePiggyBank(editing.id, { name: draft.name.trim(), color: draft.color, annualRate: rate });
+      await updatePiggyBank(editing.id, { name: draft.name.trim(), color: draft.color, annualRate: rate, shortId });
     } else {
-      await createPiggyBank({ name: draft.name.trim(), color: draft.color, annualRate: rate });
+      await createPiggyBank({ name: draft.name.trim(), color: draft.color, annualRate: rate, shortId });
     }
     setCreateOpen(false);
   };
