@@ -21,8 +21,10 @@ import {
 } from "@/components/ui/select";
 import { DatePickerField } from "@/components/ui/date-picker-field";
 import { Expense } from "@/types/loan";
-import { personalCategories } from "@/lib/personalExpenseCategories";
+import { personalCategories, resolvePersonalIcon } from "@/lib/personalExpenseCategories";
+import { usePersonalExpenseCategories } from "@/hooks/usePersonalExpenseCategories";
 import { useCreditCards } from "@/hooks/useCreditCards";
+import { Package } from "lucide-react";
 
 interface Props {
   open: boolean;
