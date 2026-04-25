@@ -254,13 +254,13 @@ export function InstallmentSummaryDialog({ open, onOpenChange, expense }: Props)
           </div>
           {loading ? (
             <p className="text-xs text-muted-foreground py-3 text-center">Carregando…</p>
-          ) : history.length === 0 ? (
+          ) : summary.paidChildren.length === 0 ? (
             <p className="text-xs text-muted-foreground py-3 text-center">
               Nenhum pagamento registrado ainda.
             </p>
           ) : (
             <ul className="divide-y divide-border rounded-md border border-border">
-              {history.map((h, idx) => (
+              {summary.paidChildren.map((h, idx) => (
                 <li key={h.id} className="flex items-center justify-between p-2.5">
                   <div className="min-w-0">
                     <div className="text-sm font-medium text-foreground truncate">
