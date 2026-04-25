@@ -1139,10 +1139,16 @@ async function listUserPiggyBanks(admin: any, userId: string) {
   const ownerId = await resolvePiggyOwner(admin, userId);
   const { data } = await admin
     .from("piggy_banks")
-    .select("id, name")
+    .select("id, name, short_id")
     .eq("user_id", ownerId)
+    .order("short_id", { ascending: true, nullsFirst: false })
     .order("created_at");
-  return { ownerId, banks: (data ?? []) as { id: string; name: string }[] };
+  const banks = ((data ?? []) as any[]).map((b) => ({
+    id: b.id as string,
+    name: b.name as string,
+    shortId: (b.short_id ?? null) as number | null,
+  }));
+  return { ownerId, banks };
 }
 
 function buildPiggyBanksKeyboard(banks: { id: string; name: string }[]) {
