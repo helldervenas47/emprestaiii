@@ -1197,36 +1197,49 @@ function parseAmountWithNote(input: string): { amount: number; note: string | nu
   return { amount, note: rest.length > 0 ? rest : null };
 }
 
-// Resolve a piggy bank from a user-supplied token (UUID full/prefix or fuzzy name).
-// Returns:
-//  - { bank }           when exactly one match
-//  - { ambiguous: [...] } when multiple banks match by name
-//  - { bank: null }     when nothing matched
+type PiggyBankRef = { id: string; name: string; shortId?: number | null };
+
+// Resolve a piggy bank from a user-supplied token. Match priority:
+//   1) short_id number (1..99) — preferred shortcut
+//   2) exact UUID / UUID prefix (>=4 chars)
+//   3) exact name / substring (case-insensitive)
 function resolvePiggyBankByToken(
-  banks: { id: string; name: string }[],
+  banks: PiggyBankRef[],
   token: string,
-): { bank?: { id: string; name: string } | null; ambiguous?: { id: string; name: string }[] } {
+): { bank?: PiggyBankRef | null; ambiguous?: PiggyBankRef[] } {
   const t = token.trim();
   if (!t) return { bank: null };
 
-  // 1) exact UUID
+  // 1) short_id (1..99) — accept "5", "#5", "n5"
+  const numMatch = t.match(/^#?n?(\d{1,2})$/i);
+  if (numMatch) {
+    const n = Number(numMatch[1]);
+    if (n >= 1 && n <= 99) {
+      const byShort = banks.find((b) => b.shortId === n);
+      if (byShort) return { bank: byShort };
+      // Numeric tokens are unambiguous: if not found, don't fall through to name search.
+      return { bank: null };
+    }
+  }
+
+  // 2) exact UUID
   const byId = banks.find((b) => b.id.toLowerCase() === t.toLowerCase());
   if (byId) return { bank: byId };
 
-  // 2) UUID prefix (>=4 chars, hex-only)
+  // 3) UUID prefix (>=4 chars, hex-only)
   if (/^[0-9a-f-]{4,}$/i.test(t)) {
     const prefMatches = banks.filter((b) => b.id.toLowerCase().startsWith(t.toLowerCase()));
     if (prefMatches.length === 1) return { bank: prefMatches[0] };
     if (prefMatches.length > 1) return { ambiguous: prefMatches };
   }
 
-  // 3) exact name (case-insensitive)
+  // 4) exact name (case-insensitive)
   const lower = t.toLowerCase();
   const exactName = banks.filter((b) => b.name.toLowerCase() === lower);
   if (exactName.length === 1) return { bank: exactName[0] };
   if (exactName.length > 1) return { ambiguous: exactName };
 
-  // 4) substring/contains
+  // 5) substring/contains
   const contains = banks.filter((b) => b.name.toLowerCase().includes(lower));
   if (contains.length === 1) return { bank: contains[0] };
   if (contains.length > 1) return { ambiguous: contains };
@@ -1234,18 +1247,24 @@ function resolvePiggyBankByToken(
   return { bank: null };
 }
 
-// Format the list of available piggy banks with short IDs for quick reference.
-function formatPiggyBanksList(banks: { id: string; name: string }[]): string {
+// Format the list of available piggy banks with short numbers for quick reference.
+function formatPiggyBanksList(banks: PiggyBankRef[]): string {
   if (banks.length === 0) {
     return "🐷 Você ainda não tem nenhuma caixinha. Crie uma no app primeiro.";
   }
-  const lines = banks.map((b, i) => `${i + 1}. *${b.name}* — \`${b.id.slice(0, 8)}\``);
+  const lines = banks.map((b) => {
+    const tag = b.shortId != null ? `\`#${b.shortId}\`` : `\`${b.id.slice(0, 8)}\``;
+    return `${tag} — *${b.name}*`;
+  });
+  const example = banks[0].shortId != null
+    ? `aporte ${banks[0].shortId} 200`
+    : `aporte ${banks[0].id.slice(0, 8)} 200`;
   return [
     "🐷 *Suas caixinhas*",
     ...lines,
     "",
-    "Use: `aporte <id|nome> <valor>`",
-    "Ex.: `aporte " + (banks[0].id.slice(0, 8)) + " 200`  ou  `aporte " + banks[0].name.split(/\s+/)[0] + " 200`",
+    "Use: `aporte <nº|nome> <valor>`",
+    `Ex.: \`${example}\``,
   ].join("\n");
 }
 
