@@ -76,6 +76,7 @@ function getCycleForDueMonth(yyyymm: string, closingDay: number, dueDay: number)
 interface MiniCardProps {
   card: CreditCard;
   invoiceTotal: number;
+  paidTotal: number;
   pendingTotal: number;
   cyclePendingTotal: number;
   openingAmount: number;
@@ -94,6 +95,7 @@ interface MiniCardProps {
 const MiniCreditCard = React.forwardRef<HTMLDivElement, MiniCardProps>(({
   card,
   invoiceTotal,
+  paidTotal,
   pendingTotal,
   cyclePendingTotal,
   openingAmount,
