@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
 import { ExpenseEditDialog } from "@/components/ExpenseEditDialog";
+import { supabase } from "@/integrations/supabase/client";
 import { InstallmentSummaryDialog } from "@/components/InstallmentSummaryDialog";
 import { personalCategories, getPersonalCategory, resolvePersonalIcon, type PersonalCategory } from "@/lib/personalExpenseCategories";
 import { usePersonalExpenseCategories } from "@/hooks/usePersonalExpenseCategories";
@@ -984,16 +985,72 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, onUpda
         open={!!editingExpense}
         onOpenChange={(o) => !o && setEditingExpense(null)}
         expense={editingExpense}
-        onSave={async (patch) => {
+        onSave={async (patch, scope) => {
           if (!editingExpense || !onUpdate) return;
-          await onUpdate(editingExpense.id, {
+          const exp = editingExpense;
+          const isParcelada = exp.type === "recorrente" && (exp.installments ?? 0) > 1;
+          const isChild = !!exp.parentExpenseId;
+
+          await onUpdate(exp.id, {
             description: patch.description,
             amount: patch.amount,
             dueDate: patch.dueDate,
             category: patch.category,
             notes: patch.notes ?? undefined,
           });
-          toast.success("Despesa atualizada");
+
+          if (scope !== "this" && (isParcelada || isChild)) {
+            try {
+              const parentId = isChild ? exp.parentExpenseId! : exp.id;
+              const totalInstallments = isParcelada ? (exp.installments ?? 1) : 1;
+              const perInstallment = isChild
+                ? patch.amount
+                : totalInstallments > 0
+                  ? patch.amount / totalInstallments
+                  : patch.amount;
+
+              let q = supabase
+                .from("expenses")
+                .select("id, paid")
+                .eq("parent_expense_id", parentId);
+              if (scope === "pending") q = q.eq("paid", false);
+              const { data: siblings } = await q;
+
+              const updates = (siblings ?? []).filter((s: any) => s.id !== exp.id);
+              for (const s of updates) {
+                await supabase
+                  .from("expenses")
+                  .update({
+                    description: patch.description,
+                    amount: perInstallment,
+                    category: patch.category,
+                    notes: patch.notes ?? null,
+                  })
+                  .eq("id", s.id);
+              }
+
+              if (isChild) {
+                await supabase
+                  .from("expenses")
+                  .update({
+                    description: patch.description,
+                    category: patch.category,
+                    notes: patch.notes ?? null,
+                  })
+                  .eq("id", parentId);
+              }
+            } catch (err) {
+              console.error("[scope-edit] propagation failed", err);
+            }
+          }
+
+          toast.success(
+            scope === "all"
+              ? "Despesa e histórico atualizados"
+              : scope === "pending"
+                ? "Parcelas pendentes atualizadas"
+                : "Despesa atualizada",
+          );
         }}
       />
       <Dialog open={budgetEditOpen} onOpenChange={setBudgetEditOpen}>

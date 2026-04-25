@@ -24,20 +24,36 @@ import { Expense } from "@/types/loan";
 import { personalCategories, resolvePersonalIcon } from "@/lib/personalExpenseCategories";
 import { usePersonalExpenseCategories } from "@/hooks/usePersonalExpenseCategories";
 import { useCreditCards } from "@/hooks/useCreditCards";
-import { Package } from "lucide-react";
+import { Package, AlertTriangle } from "lucide-react";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+
+export type EditScope = "this" | "pending" | "all";
 
 interface Props {
   open: boolean;
   onOpenChange: (v: boolean) => void;
   expense: Expense | null;
   warning?: string | null;
-  onSave: (patch: {
-    description: string;
-    amount: number;
-    dueDate: string;
-    category: string;
-    notes: string | null;
-  }) => Promise<void> | void;
+  onSave: (
+    patch: {
+      description: string;
+      amount: number;
+      dueDate: string;
+      category: string;
+      notes: string | null;
+    },
+    scope: EditScope,
+  ) => Promise<void> | void;
 }
 
 const PAYMENT_METHODS = ["Dinheiro", "Pix", "Débito", "Crédito", "Boleto", "Débito automático"] as const;
@@ -133,7 +149,8 @@ export function ExpenseEditDialog({
   const [cardId, setCardId] = useState<string>("");
   const [freeNotes, setFreeNotes] = useState("");
   const [saving, setSaving] = useState(false);
-
+  const [scope, setScope] = useState<EditScope>("this");
+  const [confirmAllOpen, setConfirmAllOpen] = useState(false);
   // Hydrate from expense
   useEffect(() => {
     if (!expense) return;
@@ -172,10 +189,18 @@ export function ExpenseEditDialog({
     [expense],
   );
 
+  // Reset scope whenever a different expense is loaded
+  useEffect(() => {
+    setScope("this");
+  }, [expense?.id]);
+
   if (!expense) return null;
 
   const isParcelada =
     expense.type === "recorrente" && (expense.installments ?? 0) > 1;
+  const isChildInstallment = !!(expense as any).parentExpenseId;
+  // Show scope selector for installment parents OR for paid child installments
+  const showScopeSelector = isParcelada || isChildInstallment;
 
   const selectedCard = cards.find((c) => c.id === cardId) ?? null;
 
@@ -379,6 +404,57 @@ export function ExpenseEditDialog({
               placeholder="Detalhes adicionais (opcional)"
             />
           </div>
+
+          {showScopeSelector && (
+            <div className="rounded-lg border border-border/60 bg-muted/30 p-3 space-y-2">
+              <Label className="text-xs font-semibold">Aplicar alteração em</Label>
+              <RadioGroup
+                value={scope}
+                onValueChange={(v) => setScope(v as EditScope)}
+                className="gap-2"
+              >
+                <label
+                  htmlFor="scope-this"
+                  className={`flex items-start gap-2.5 rounded-md border p-2.5 cursor-pointer transition-colors ${
+                    scope === "this" ? "border-primary bg-primary/5" : "border-border/50 hover:bg-muted/40"
+                  }`}
+                >
+                  <RadioGroupItem value="this" id="scope-this" className="mt-0.5" />
+                  <div className="flex-1 min-w-0">
+                    <div className="text-xs font-medium text-foreground">Apenas esta despesa</div>
+                    <div className="text-[11px] text-muted-foreground">Altera somente o lançamento selecionado.</div>
+                  </div>
+                </label>
+                <label
+                  htmlFor="scope-pending"
+                  className={`flex items-start gap-2.5 rounded-md border p-2.5 cursor-pointer transition-colors ${
+                    scope === "pending" ? "border-primary bg-primary/5" : "border-border/50 hover:bg-muted/40"
+                  }`}
+                >
+                  <RadioGroupItem value="pending" id="scope-pending" className="mt-0.5" />
+                  <div className="flex-1 min-w-0">
+                    <div className="text-xs font-medium text-foreground">Todas as parcelas pendentes</div>
+                    <div className="text-[11px] text-muted-foreground">Mantém o histórico de parcelas já pagas inalterado.</div>
+                  </div>
+                </label>
+                <label
+                  htmlFor="scope-all"
+                  className={`flex items-start gap-2.5 rounded-md border p-2.5 cursor-pointer transition-colors ${
+                    scope === "all" ? "border-destructive bg-destructive/5" : "border-border/50 hover:bg-muted/40"
+                  }`}
+                >
+                  <RadioGroupItem value="all" id="scope-all" className="mt-0.5" />
+                  <div className="flex-1 min-w-0">
+                    <div className="text-xs font-medium text-foreground flex items-center gap-1.5">
+                      <AlertTriangle className="h-3 w-3 text-destructive" />
+                      Todas as despesas (incluindo pagas)
+                    </div>
+                    <div className="text-[11px] text-muted-foreground">Reescreve também o histórico de parcelas já quitadas.</div>
+                  </div>
+                </label>
+              </RadioGroup>
+            </div>
+          )}
         </div>
 
         <DialogFooter>
@@ -394,33 +470,72 @@ export function ExpenseEditDialog({
               (paymentMethod === "Crédito" && !cardId)
             }
             onClick={async () => {
-              setSaving(true);
-              try {
-                const cardTag = selectedCard
-                  ? selectedCard.nickname || selectedCard.lastFour || selectedCard.bank
-                  : null;
-                const notes = buildNotes({
-                  paymentMethod,
-                  cardTag: paymentMethod === "Crédito" ? cardTag : null,
-                  freeNotes,
-                });
-                await onSave({
-                  description,
-                  amount: Number(amount),
-                  dueDate,
-                  category,
-                  notes,
-                });
-                onOpenChange(false);
-              } finally {
-                setSaving(false);
+              if (showScopeSelector && scope === "all") {
+                setConfirmAllOpen(true);
+                return;
               }
+              await doSave(scope);
             }}
           >
             {saving ? "Salvando..." : "Salvar"}
           </Button>
         </DialogFooter>
       </DialogContent>
+
+      <AlertDialog open={confirmAllOpen} onOpenChange={setConfirmAllOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-destructive" />
+              Confirmar alteração no histórico
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Você está prestes a alterar <strong>todas as despesas relacionadas, incluindo as parcelas já pagas</strong>.
+              Esta ação reescreve registros históricos do seu fluxo financeiro e não pode ser desfeita automaticamente.
+              Tem certeza que deseja continuar?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={async () => {
+                setConfirmAllOpen(false);
+                await doSave("all");
+              }}
+            >
+              Sim, alterar tudo
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Dialog>
   );
+
+  async function doSave(effectiveScope: EditScope) {
+    setSaving(true);
+    try {
+      const cardTag = selectedCard
+        ? selectedCard.nickname || selectedCard.lastFour || selectedCard.bank
+        : null;
+      const notes = buildNotes({
+        paymentMethod,
+        cardTag: paymentMethod === "Crédito" ? cardTag : null,
+        freeNotes,
+      });
+      await onSave(
+        {
+          description,
+          amount: Number(amount),
+          dueDate,
+          category,
+          notes,
+        },
+        showScopeSelector ? effectiveScope : "this",
+      );
+      onOpenChange(false);
+    } finally {
+      setSaving(false);
+    }
+  }
 }
