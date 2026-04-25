@@ -7,6 +7,19 @@ export function isCreditCardExpense(e: Pick<Expense, "notes">): boolean {
   return /\[\s*cr[eé]dito\s*\]/i.test(e?.notes ?? "");
 }
 
+/** Lê uma override manual do "Valor pago da fatura" gravada em opening.notes como [PAID:1234.56]. */
+export function readPaidOverride(notes: string | null | undefined): number | null {
+  const m = /\[PAID:([0-9]+(?:\.[0-9]+)?)\]/i.exec(notes ?? "");
+  return m ? Number(m[1]) : null;
+}
+
+/** Atualiza o trecho [PAID:xxx] dentro de um notes existente. Passe null para remover. */
+export function writePaidOverride(notes: string | null | undefined, value: number | null): string {
+  const base = (notes ?? "").replace(/\s*\[PAID:[0-9]+(?:\.[0-9]+)?\]/gi, "").trim();
+  if (value === null || !Number.isFinite(value)) return base;
+  return base ? `${base} [PAID:${value.toFixed(2)}]` : `[PAID:${value.toFixed(2)}]`;
+}
+
 /** Reconstrói o ciclo (from, to, dueDate) ancorado em uma data de referência. */
 function getCycleForRef(ref: Date, closingDay: number, dueDay: number) {
   const y = ref.getFullYear();
@@ -117,7 +130,10 @@ export function getCardInvoiceTotalsForMonth(
     // (reflete ajustes/edições). O opening, quando pago, foi zerado e marcado [PAGA],
     // por isso não somamos seu valor original (que se perdeu) — o que importa é
     // o fluxo real de saída registrado nos itens.
-    const paidTotal = items.filter((e) => e.paid).reduce((s, e) => s + installmentValue(e), 0);
+    // Override manual em opening.notes ([PAID:xxx]) tem precedência.
+    const itemsPaidTotal = items.filter((e) => e.paid).reduce((s, e) => s + installmentValue(e), 0);
+    const override = readPaidOverride(opening?.notes);
+    const paidTotal = override ?? itemsPaidTotal;
 
     if (total > 0 || (paid && paidTotal > 0)) {
       result.push({ card, total, paid, paidTotal });

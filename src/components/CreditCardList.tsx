@@ -13,6 +13,7 @@ import {
 import { useCreditCards, CreditCard } from "@/hooks/useCreditCards";
 import { useExpenses } from "@/hooks/useExpenses";
 import { useCreditCardOpenings, cycleKeyFromDate } from "@/hooks/useCreditCardOpenings";
+import { readPaidOverride } from "@/lib/creditCardInvoiceTotals";
 import { useHideValues } from "@/contexts/HideValuesContext";
 import { getBank, brandLabel } from "@/lib/creditCardBanks";
 import { CreditCardForm } from "./CreditCardForm";
@@ -384,12 +385,15 @@ export function CreditCardList({ readOnly = false, referenceMonth }: Props) {
         }, 0);
       const cyclePendingTotal = cycleExpensesPending + opening;
       // Soma dos itens já pagos dentro do ciclo (refletindo ajustes/edições).
-      const paidTotal = inCycle
+      // Override manual em opening.notes ([PAID:xxx]) tem precedência.
+      const itemsPaidTotal = inCycle
         .filter((e) => e.paid)
         .reduce((s, e) => {
           const isRec = e.type === "recorrente" && e.installments && e.installments > 1;
           return s + (isRec ? e.amount / e.installments! : e.amount);
         }, 0);
+      const paidOverride = readPaidOverride(op?.notes);
+      const paidTotal = paidOverride ?? itemsPaidTotal;
       map.set(card.id, {
         transactions,
         opening,
