@@ -11,6 +11,7 @@ import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
 import { useHideValues } from "@/contexts/HideValuesContext";
 import { usePiggyBanks, type PiggyBank as PiggyBankType, type PiggyBankDeposit } from "@/hooks/usePiggyBanks";
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 const fmt = (v: number) =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v);
@@ -31,7 +32,7 @@ export function PiggyBankList({ readOnly = false }: Props) {
   const [createOpen, setCreateOpen] = useState(false);
   const [editing, setEditing] = useState<PiggyBankType | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
-  const [draft, setDraft] = useState({ name: "", color: PALETTE[0], annualRate: "11.15" });
+  const [draft, setDraft] = useState({ name: "", color: PALETTE[0], annualRate: "11.15", shortId: "" });
   const [adjustTarget, setAdjustTarget] = useState<PiggyBankType | null>(null);
   const [adjustValue, setAdjustValue] = useState("");
   const [historyTarget, setHistoryTarget] = useState<PiggyBankType | null>(null);
@@ -52,13 +53,21 @@ export function PiggyBankList({ readOnly = false }: Props) {
     setEditDeposit(null);
   };
 
+  // Returns the smallest unused short_id (1..99) for this account.
+  const nextAvailableShortId = (): number | null => {
+    const taken = new Set(piggyBanks.map((p) => p.shortId).filter((n): n is number => !!n));
+    for (let i = 1; i <= 99; i++) if (!taken.has(i)) return i;
+    return null;
+  };
+
   const openCreate = () => {
-    setDraft({ name: "", color: PALETTE[0], annualRate: "11.15" });
+    const next = nextAvailableShortId();
+    setDraft({ name: "", color: PALETTE[0], annualRate: "11.15", shortId: next ? String(next) : "" });
     setEditing(null);
     setCreateOpen(true);
   };
   const openEdit = (pb: PiggyBankType) => {
-    setDraft({ name: pb.name, color: pb.color, annualRate: String(pb.annualRate) });
+    setDraft({ name: pb.name, color: pb.color, annualRate: String(pb.annualRate), shortId: pb.shortId ? String(pb.shortId) : "" });
     setEditing(pb);
     setCreateOpen(true);
   };
@@ -114,10 +123,27 @@ export function PiggyBankList({ readOnly = false }: Props) {
   const save = async () => {
     if (!draft.name.trim()) return;
     const rate = Number(draft.annualRate.replace(",", ".")) || 11.15;
+
+    // Validate short id (1..99, unique within this account).
+    let shortId: number | null = null;
+    if (draft.shortId.trim()) {
+      const n = Number(draft.shortId.trim());
+      if (!Number.isInteger(n) || n < 1 || n > 99) {
+        toast.error("O número da caixinha deve ser inteiro entre 1 e 99");
+        return;
+      }
+      const conflict = piggyBanks.find((p) => p.shortId === n && p.id !== editing?.id);
+      if (conflict) {
+        toast.error(`O número ${n} já está em uso pela caixinha "${conflict.name}"`);
+        return;
+      }
+      shortId = n;
+    }
+
     if (editing) {
-      await updatePiggyBank(editing.id, { name: draft.name.trim(), color: draft.color, annualRate: rate });
+      await updatePiggyBank(editing.id, { name: draft.name.trim(), color: draft.color, annualRate: rate, shortId });
     } else {
-      await createPiggyBank({ name: draft.name.trim(), color: draft.color, annualRate: rate });
+      await createPiggyBank({ name: draft.name.trim(), color: draft.color, annualRate: rate, shortId });
     }
     setCreateOpen(false);
   };
@@ -184,6 +210,11 @@ export function PiggyBankList({ readOnly = false }: Props) {
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-1.5 min-w-0">
+                    {pb.shortId != null && (
+                      <span className="text-[10px] font-mono font-semibold text-muted-foreground bg-muted px-1.5 py-0.5 rounded shrink-0">
+                        #{pb.shortId}
+                      </span>
+                    )}
                     <p className="text-sm font-semibold text-foreground truncate">{pb.name}</p>
                     <Badge variant="outline" className="text-[9px] px-1 py-0 h-4 shrink-0">
                       {pb.annualRate.toFixed(2)}% a.a.
@@ -247,15 +278,34 @@ export function PiggyBankList({ readOnly = false }: Props) {
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3 py-1">
-            <div>
-              <Label htmlFor="pb-name">Nome</Label>
-              <Input
-                id="pb-name"
-                placeholder="Ex: Reserva de emergência"
-                value={draft.name}
-                onChange={(e) => setDraft((p) => ({ ...p, name: e.target.value }))}
-              />
+            <div className="grid grid-cols-[1fr_90px] gap-2">
+              <div>
+                <Label htmlFor="pb-name">Nome</Label>
+                <Input
+                  id="pb-name"
+                  placeholder="Ex: Reserva de emergência"
+                  value={draft.name}
+                  onChange={(e) => setDraft((p) => ({ ...p, name: e.target.value }))}
+                />
+              </div>
+              <div>
+                <Label htmlFor="pb-shortid">Nº (1-99)</Label>
+                <Input
+                  id="pb-shortid"
+                  type="number"
+                  min={1}
+                  max={99}
+                  step={1}
+                  inputMode="numeric"
+                  placeholder="Ex: 1"
+                  value={draft.shortId}
+                  onChange={(e) => setDraft((p) => ({ ...p, shortId: e.target.value.replace(/[^\d]/g, "").slice(0, 2) }))}
+                />
+              </div>
             </div>
+            <p className="text-[10px] text-muted-foreground -mt-2">
+              O número permite usar atalhos no bot, ex: <code>aporte {draft.shortId || "1"} 200</code>.
+            </p>
             <div>
               <Label>Cor</Label>
               <div className="flex flex-wrap gap-1.5 mt-1.5">

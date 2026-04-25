@@ -6,6 +6,7 @@ import { toast } from "sonner";
 
 export interface PiggyBank {
   id: string;
+  shortId: number | null;
   name: string;
   color: string;
   icon: string;
@@ -133,6 +134,7 @@ export function usePiggyBanks() {
     if (!pbRes.error) {
       setPiggyBanks(((pbRes.data as any[]) || []).map((r) => ({
         id: r.id,
+        shortId: r.short_id ?? null,
         name: r.name,
         color: r.color,
         icon: r.icon,
@@ -213,28 +215,47 @@ export function usePiggyBanks() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [recurrences, dataOwnerId]);
 
-  const createPiggyBank = useCallback(async (data: { name: string; color?: string; icon?: string; annualRate?: number }) => {
+  const createPiggyBank = useCallback(async (data: { name: string; color?: string; icon?: string; annualRate?: number; shortId?: number | null }) => {
     if (!user || !dataOwnerId) return null;
-    const { data: row, error } = await (supabase as any).from("piggy_banks").insert({
+    const payload: any = {
       user_id: dataOwnerId,
       name: data.name,
       color: data.color ?? "210 80% 55%",
       icon: data.icon ?? "PiggyBank",
       annual_rate: data.annualRate ?? 11.15,
-    }).select().single();
-    if (error) { toast.error("Erro ao criar cofrinho"); return null; }
+    };
+    if (data.shortId !== undefined && data.shortId !== null) payload.short_id = data.shortId;
+    const { data: row, error } = await (supabase as any).from("piggy_banks").insert(payload).select().single();
+    if (error) {
+      const msg = error.message?.includes("piggy_banks_user_short_id_uniq")
+        ? `Já existe uma caixinha com o número ${data.shortId}`
+        : error.message?.includes("piggy_banks_short_id_range")
+          ? "O número da caixinha deve estar entre 1 e 99"
+          : "Erro ao criar cofrinho";
+      toast.error(msg);
+      return null;
+    }
     await reload();
     return (row as any)?.id as string;
   }, [user, dataOwnerId, reload]);
 
-  const updatePiggyBank = useCallback(async (id: string, patch: Partial<{ name: string; color: string; icon: string; annualRate: number }>) => {
+  const updatePiggyBank = useCallback(async (id: string, patch: Partial<{ name: string; color: string; icon: string; annualRate: number; shortId: number | null }>) => {
     const dbPatch: any = {};
     if (patch.name !== undefined) dbPatch.name = patch.name;
     if (patch.color !== undefined) dbPatch.color = patch.color;
     if (patch.icon !== undefined) dbPatch.icon = patch.icon;
     if (patch.annualRate !== undefined) dbPatch.annual_rate = patch.annualRate;
+    if (patch.shortId !== undefined) dbPatch.short_id = patch.shortId;
     const { error } = await supabase.from("piggy_banks" as any).update(dbPatch).eq("id", id);
-    if (error) { toast.error("Erro ao atualizar"); return; }
+    if (error) {
+      const msg = error.message?.includes("piggy_banks_user_short_id_uniq")
+        ? `Já existe uma caixinha com o número ${patch.shortId}`
+        : error.message?.includes("piggy_banks_short_id_range")
+          ? "O número da caixinha deve estar entre 1 e 99"
+          : "Erro ao atualizar";
+      toast.error(msg);
+      return;
+    }
     await reload();
   }, [reload]);
 
