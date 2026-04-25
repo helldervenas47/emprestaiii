@@ -253,20 +253,72 @@ export function ExpenseEditDialog({
                 <SelectValue placeholder="Selecione a categoria" />
               </SelectTrigger>
               <SelectContent className="max-h-72">
-                {personalCategories.map((c) => {
-                  const Icon = c.icon;
+                <div className="p-2 sticky top-0 bg-popover z-10">
+                  <Input
+                    autoFocus={false}
+                    placeholder="Buscar categoria..."
+                    value={categorySearch}
+                    onChange={(e) => setCategorySearch(e.target.value)}
+                    onKeyDown={(e) => e.stopPropagation()}
+                    className="h-8 text-xs"
+                  />
+                </div>
+                {(() => {
+                  const q = categorySearch.trim().toLowerCase();
+                  type Item = { key: string; name: string; Icon: any; color: string; group: "builtin" | "custom" };
+                  const builtin: Item[] = personalCategories.map((c) => ({
+                    key: `b-${c.name}`, name: c.name, Icon: c.icon, color: c.color, group: "builtin",
+                  }));
+                  const custom: Item[] = customCategories.map((c) => ({
+                    key: `c-${c.id}`, name: c.name, Icon: resolvePersonalIcon(c.icon), color: c.color, group: "custom",
+                  }));
+                  // Ensure the currently selected category is always available, even if it
+                  // was deleted or renamed (legacy contracts).
+                  const all = [...builtin, ...custom];
+                  if (category && !all.some((i) => i.name === category)) {
+                    all.push({ key: `legacy-${category}`, name: category, Icon: Package, color: "215 15% 55%", group: "custom" });
+                  }
+                  const filtered = q
+                    ? all.filter((i) => i.name.toLowerCase().includes(q))
+                    : all;
+                  // Sort each group alphabetically (pt-BR), keep builtins first.
+                  const builtinFiltered = filtered
+                    .filter((i) => i.group === "builtin")
+                    .sort((a, b) => a.name.localeCompare(b.name, "pt-BR"));
+                  const customFiltered = filtered
+                    .filter((i) => i.group === "custom")
+                    .sort((a, b) => a.name.localeCompare(b.name, "pt-BR"));
+                  if (builtinFiltered.length === 0 && customFiltered.length === 0) {
+                    return (
+                      <div className="px-3 py-4 text-xs text-muted-foreground text-center">
+                        Nenhuma categoria encontrada
+                      </div>
+                    );
+                  }
                   return (
-                    <SelectItem key={c.name} value={c.name}>
-                      <span className="inline-flex items-center gap-2">
-                        <Icon
-                          className="h-3.5 w-3.5"
-                          style={{ color: `hsl(${c.color})` }}
-                        />
-                        {c.name}
-                      </span>
-                    </SelectItem>
+                    <>
+                      {builtinFiltered.map((i) => (
+                        <SelectItem key={i.key} value={i.name}>
+                          <span className="inline-flex items-center gap-2">
+                            <i.Icon className="h-3.5 w-3.5" style={{ color: `hsl(${i.color})` }} />
+                            {i.name}
+                          </span>
+                        </SelectItem>
+                      ))}
+                      {builtinFiltered.length > 0 && customFiltered.length > 0 && (
+                        <div className="my-1 border-t border-border" />
+                      )}
+                      {customFiltered.map((i) => (
+                        <SelectItem key={i.key} value={i.name}>
+                          <span className="inline-flex items-center gap-2">
+                            <i.Icon className="h-3.5 w-3.5" style={{ color: `hsl(${i.color})` }} />
+                            {i.name}
+                          </span>
+                        </SelectItem>
+                      ))}
+                    </>
                   );
-                })}
+                })()}
               </SelectContent>
             </Select>
           </div>
