@@ -112,6 +112,18 @@ export function ExpenseEditDialog({
   onSave,
 }: Props) {
   const { cards } = useCreditCards();
+  const { categories: customCategories, reload: reloadCategories } = usePersonalExpenseCategories();
+  const [categorySearch, setCategorySearch] = useState("");
+
+  // Re-fetch categories whenever the dialog opens, to pick up any newly created
+  // categories without needing to reload the page.
+  useEffect(() => {
+    if (open) {
+      reloadCategories();
+      setCategorySearch("");
+    }
+  }, [open, reloadCategories]);
+
 
   const [description, setDescription] = useState("");
   const [amount, setAmount] = useState("");
