@@ -643,62 +643,46 @@ async function handleMeusAportes(admin: any, userId: string): Promise<string> {
   return msg;
 }
 
-// Creates the expense + piggy_bank_deposit pair for a confirmed contribution.
-// Returns a user-facing message string ready to send via Telegram.
+// Registers an internal contribution (aporte) to a piggy bank.
+// IMPORTANT: aportes are pure internal balance movements — they MUST NOT create
+// an expense, since they are not a real cash outflow (just moving money between
+// the user's own balances). Only `piggy_bank_deposits` is touched.
 async function finalizePiggyAporte(
   admin: any,
   userId: string,
   bank: { id: string; name: string },
   amount: number,
-  note: string | null,
+  _note: string | null,
 ): Promise<string> {
   const { data: ownerData } = await admin.rpc("get_data_owner_id", { _user_id: userId });
   const ownerId = (typeof ownerData === "string" && ownerData) ? ownerData : userId;
   const today = todayBR();
-  const description = `Aporte cofrinho — ${bank.name}`;
-  const piggyTag = `[cofrinho:${bank.id}]`;
-  const trimmedNote = note ? note.trim().slice(0, 280) : "";
-  const expenseNotes = trimmedNote ? `${piggyTag}\n${trimmedNote}` : piggyTag;
-
-  const { data: exp, error: expErr } = await admin
-    .from("expenses")
-    .insert({
-      user_id: userId,
-      description,
-      amount,
-      category: "Cofrinho",
-      type: "fixa",
-      scope: "personal",
-      due_date: today,
-      paid: true,
-      paid_date: today,
-      notes: expenseNotes,
-    })
-    .select("id")
-    .single();
-
-  if (expErr || !exp) {
-    return "❌ Erro ao registrar aporte: " + (expErr?.message ?? "desconhecido");
-  }
 
   const { error: depErr } = await admin
     .from("piggy_bank_deposits")
     .insert({
       user_id: ownerId,
       piggy_bank_id: bank.id,
-      expense_id: exp.id,
+      expense_id: null,
       amount,
       deposit_date: today,
-      source: "expense",
+      source: "manual",
     });
 
   if (depErr) {
-    await admin.from("expenses").delete().eq("id", exp.id);
-    return "❌ Erro ao creditar a caixinha: " + depErr.message;
+    return "❌ Erro ao registrar aporte: " + depErr.message;
   }
 
-  const noteLine = trimmedNote ? `\n📝 _${trimmedNote}_` : "";
-  return `✅ Aporte de ${fmtBRL(amount)} registrado em *${bank.name}*${noteLine}`;
+  // Compute updated balance for confirmation feedback.
+  const { data: allDeposits } = await admin
+    .from("piggy_bank_deposits")
+    .select("amount")
+    .eq("user_id", ownerId)
+    .eq("piggy_bank_id", bank.id);
+  const balance = ((allDeposits ?? []) as any[])
+    .reduce((s: number, d: any) => s + (Number(d.amount) || 0), 0);
+
+  return `✅ Aporte de ${fmtBRL(amount)} adicionado em *${bank.name}*\n💰 Saldo atual: *${fmtBRL(balance)}*`;
 }
 
 function ymd(d: Date): string {
