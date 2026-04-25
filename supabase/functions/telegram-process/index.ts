@@ -492,6 +492,7 @@ Vou interpretar e cadastrar automaticamente.
 /ultimas — últimas 5 despesas
 /apagar — apaga a despesa mais recente
 /aporte — fazer um aporte em uma caixinha (cofrinho). Você pode passar valor e nota: \`/aporte 200 aniversário\`
+/aportes\_saldo — saldo atual de todas as caixinhas
 /meus\_aportes — últimos 10 aportes nas caixinhas
 /help — esta mensagem
 /start CODIGO — vincular conta`;
