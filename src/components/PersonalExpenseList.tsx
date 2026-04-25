@@ -768,9 +768,9 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, onUpda
                                 </Badge>
                               );
                             })()}
-                            {isParceladaFinita && (
+                            {isParceladaFinita && summaryTarget && (
                               <Badge variant="outline" className="text-[10px] px-1.5 py-0">
-                                {(expense.paidInstallments ?? 0)}/{expense.installments} parcelas
+                                {(summaryTarget.paidInstallments ?? 0)}/{summaryTarget.installments} parcelas
                               </Badge>
                             )}
                             <span className="inline-flex items-center gap-1">
