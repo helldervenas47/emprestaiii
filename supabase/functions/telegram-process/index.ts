@@ -2047,6 +2047,7 @@ Deno.serve(async (req) => {
                 let resolvedBank: { id: string; name: string } | null = null;
                 let amount: number | null = null;
                 let note: string | null = null;
+                let aporteHandled = false;
 
                 if (firstAsAmount === null) {
                   // First token is the bank reference. Greedily try 1..N tokens
@@ -2072,24 +2073,26 @@ Deno.serve(async (req) => {
                         `⚠️ Encontrei mais de uma caixinha com "${candidate}":\n${list}\n\nUse o ID curto, ex: \`aporte ${r.ambiguous[0].id.slice(0, 8)} <valor>\``,
                         LOVABLE_API_KEY, TELEGRAM_API_KEY,
                       );
-                      return;
+                      aporteHandled = true;
+                      break;
                     }
                   }
 
-                  if (!resolvedBank || amount === null) {
-                    // Bank token didn't match anything.
+                  if (!aporteHandled && (!resolvedBank || amount === null)) {
                     const firstTok = tokens[0];
                     await tgSend(
                       chatId,
                       `❌ Caixinha "${firstTok}" não encontrada.\n\n${formatPiggyBanksList(banks)}`,
                       LOVABLE_API_KEY, TELEGRAM_API_KEY,
                     );
-                    return;
+                    aporteHandled = true;
                   }
 
-                  // Direct finalize — no extra prompts, no expense created.
-                  const reply = await finalizePiggyAporte(admin, link.user_id, resolvedBank, amount, note);
-                  await tgSend(chatId, reply, LOVABLE_API_KEY, TELEGRAM_API_KEY);
+                  if (!aporteHandled && resolvedBank && amount !== null) {
+                    // Direct finalize — no extra prompts, no expense created.
+                    const reply = await finalizePiggyAporte(admin, link.user_id, resolvedBank, amount, note);
+                    await tgSend(chatId, reply, LOVABLE_API_KEY, TELEGRAM_API_KEY);
+                  }
                 } else {
                   // Legacy flow: only amount given → show picker.
                   const inline = parseAmountWithNote(rest);
