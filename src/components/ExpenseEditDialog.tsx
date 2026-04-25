@@ -189,10 +189,18 @@ export function ExpenseEditDialog({
     [expense],
   );
 
+  // Reset scope whenever a different expense is loaded
+  useEffect(() => {
+    setScope("this");
+  }, [expense?.id]);
+
   if (!expense) return null;
 
   const isParcelada =
     expense.type === "recorrente" && (expense.installments ?? 0) > 1;
+  const isChildInstallment = !!(expense as any).parentExpenseId;
+  // Show scope selector for installment parents OR for paid child installments
+  const showScopeSelector = isParcelada || isChildInstallment;
 
   const selectedCard = cards.find((c) => c.id === cardId) ?? null;
 
