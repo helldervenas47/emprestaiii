@@ -2065,16 +2065,17 @@ Deno.serve(async (req) => {
                 // No args → list available caixinhas with short IDs.
                 await tgSend(chatId, formatPiggyBanksList(banks), LOVABLE_API_KEY, TELEGRAM_API_KEY);
               } else {
-                // Try to parse "<id|nome> <valor> [nota]" first.
-                // Strategy: if first token looks like amount → fall back to picker.
+                // Try "<ref> <valor> [nota]" first when there are >=2 tokens.
+                // A short_id like "5" looks like a valid amount on its own, so we
+                // can't decide based on the first token alone — we must try the
+                // structured parse first and only fall back to picker on failure.
                 const tokens = rest.split(/\s+/);
-                const firstAsAmount = parseAmount(tokens[0]);
-                let resolvedBank: { id: string; name: string } | null = null;
+                let resolvedBank: PiggyBankRef | null = null;
                 let amount: number | null = null;
                 let note: string | null = null;
                 let aporteHandled = false;
 
-                if (firstAsAmount === null) {
+                if (tokens.length >= 2) {
                   // First token is the bank reference. Greedily try 1..N tokens
                   // as the bank name so multi-word names like "Reserva Casa" work,
                   // stopping at the largest prefix that still leaves an amount.
