@@ -69,8 +69,10 @@ export interface CardInvoiceMonthTotal {
   total: number;
   /** True se a fatura do ciclo está totalmente paga. */
   paid: boolean;
-  /** Valor efetivamente pago (soma dos amounts pagos do ciclo). Só faz sentido quando paid=true. */
+  /** Valor efetivamente pago (soma dos amounts pagos do ciclo, ou override). */
   paidTotal: number;
+  /** True quando o usuário definiu manualmente o valor pago via [PAID:xxx]. */
+  hasPaidOverride: boolean;
 }
 
 /**
