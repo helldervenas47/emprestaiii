@@ -715,7 +715,21 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, onUpda
             return (
               <Card no3d key={expense.id} className={overdue ? "border-destructive/50" : ""}>
                 <CardContent className="p-3 sm:p-4">
-                  <div className="flex items-start gap-3">
+                  {(() => {
+                    const isParceladaFinita =
+                      isRecorrente && expense.installments !== FIXED_RECURRING_INSTALLMENTS;
+                    const InnerWrapper: any = isParceladaFinita ? "button" : "div";
+                    const wrapperProps = isParceladaFinita
+                      ? {
+                          type: "button",
+                          onClick: () => setSummaryExpense(expense),
+                          className:
+                            "flex items-start gap-3 w-full text-left rounded-lg -m-1 p-1 hover:bg-muted/40 transition-colors cursor-pointer",
+                          "aria-label": `Ver resumo de ${expense.description}`,
+                        }
+                      : { className: "flex items-start gap-3" };
+                    return (
+                      <InnerWrapper {...wrapperProps}>
                     <div
                       className="h-10 w-10 rounded-xl flex items-center justify-center shrink-0"
                       style={{ backgroundColor: `hsl(${cat.color} / 0.15)` }}
@@ -742,6 +756,11 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, onUpda
                                 </Badge>
                               );
                             })()}
+                            {isParceladaFinita && (
+                              <Badge variant="outline" className="text-[10px] px-1.5 py-0">
+                                {(expense.paidInstallments ?? 0)}/{expense.installments} parcelas
+                              </Badge>
+                            )}
                             <span className="inline-flex items-center gap-1">
                               <Calendar className="h-3 w-3" />
                               {format(new Date(expense.dueDate + "T00:00:00"), "dd/MM/yyyy")}
@@ -760,7 +779,10 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, onUpda
                         </div>
                       </div>
                       {!readOnly && (
-                        <div className="flex items-center gap-1.5 mt-3">
+                        <div
+                          className="flex items-center gap-1.5 mt-3"
+                          onClick={(e) => e.stopPropagation()}
+                        >
                           {!expense.paid && (
                             <Button size="sm" className="h-7 text-xs" onClick={() => openPayDialog(expense.id)}>
                               <CheckCircle className="h-3 w-3 mr-1" />
@@ -786,7 +808,9 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, onUpda
                         </div>
                       )}
                     </div>
-                  </div>
+                      </InnerWrapper>
+                    );
+                  })()}
                 </CardContent>
               </Card>
             );
