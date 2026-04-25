@@ -7,6 +7,19 @@ export function isCreditCardExpense(e: Pick<Expense, "notes">): boolean {
   return /\[\s*cr[eé]dito\s*\]/i.test(e?.notes ?? "");
 }
 
+/** Lê uma override manual do "Valor pago da fatura" gravada em opening.notes como [PAID:1234.56]. */
+export function readPaidOverride(notes: string | null | undefined): number | null {
+  const m = /\[PAID:([0-9]+(?:\.[0-9]+)?)\]/i.exec(notes ?? "");
+  return m ? Number(m[1]) : null;
+}
+
+/** Atualiza o trecho [PAID:xxx] dentro de um notes existente. Passe null para remover. */
+export function writePaidOverride(notes: string | null | undefined, value: number | null): string {
+  const base = (notes ?? "").replace(/\s*\[PAID:[0-9]+(?:\.[0-9]+)?\]/gi, "").trim();
+  if (value === null || !Number.isFinite(value)) return base;
+  return base ? `${base} [PAID:${value.toFixed(2)}]` : `[PAID:${value.toFixed(2)}]`;
+}
+
 /** Reconstrói o ciclo (from, to, dueDate) ancorado em uma data de referência. */
 function getCycleForRef(ref: Date, closingDay: number, dueDay: number) {
   const y = ref.getFullYear();
