@@ -109,13 +109,19 @@ export const AccumulatedDelinquencyReport = forwardRef<HTMLDivElement, Props>(fu
 
       if (unpaidSchedules.length > 0) {
         unpaidSchedules.forEach((schedule) => {
+          const base = Number(schedule.amount || 0);
+          const days = getDaysOverdue(schedule.dueDate, today);
+          const fees = calcLateFeesFor(loan, base, days);
           rows.push({
             clientKey,
             clientName,
             phone,
-            amount: Number(schedule.amount || 0),
+            baseAmount: base,
+            lateInterest: fees.lateInterest,
+            penalty: fees.penalty,
+            amount: base + fees.lateInterest + fees.penalty,
             dueDate: schedule.dueDate,
-            daysOverdue: getDaysOverdue(schedule.dueDate, today),
+            daysOverdue: days,
           });
         });
         return;
@@ -123,14 +129,22 @@ export const AccumulatedDelinquencyReport = forwardRef<HTMLDivElement, Props>(fu
 
       if (loan.dueDate >= currentMonthStart) return;
 
-      rows.push({
-        clientKey,
-        clientName,
-        phone,
-        amount: getLoanFallbackAmount(loan),
-        dueDate: loan.dueDate,
-        daysOverdue: getDaysOverdue(loan.dueDate, today),
-      });
+      {
+        const base = getLoanFallbackAmount(loan);
+        const days = getDaysOverdue(loan.dueDate, today);
+        const fees = calcLateFeesFor(loan, base, days);
+        rows.push({
+          clientKey,
+          clientName,
+          phone,
+          baseAmount: base,
+          lateInterest: fees.lateInterest,
+          penalty: fees.penalty,
+          amount: base + fees.lateInterest + fees.penalty,
+          dueDate: loan.dueDate,
+          daysOverdue: days,
+        });
+      }
     });
 
     return rows.sort((a, b) => b.daysOverdue - a.daysOverdue || a.clientName.localeCompare(b.clientName, "pt-BR"));
