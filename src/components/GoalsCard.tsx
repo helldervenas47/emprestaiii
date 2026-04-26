@@ -882,7 +882,7 @@ function CustomizeGoalsDialog({
           <Button variant="ghost" size="sm" type="button" onClick={reset} className="h-7 px-2 text-[11px]">Restaurar padrão</Button>
         </div>
 
-        <ScrollArea className="flex-1 min-h-0 -mx-2 px-2 max-h-[55vh]">
+        <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain -mx-2 px-2" style={{ WebkitOverflowScrolling: "touch" }}>
           <ul className="space-y-1.5 py-2">
             {draft.order.map((type, idx) => {
               const meta = GOAL_TYPE_META[type];
