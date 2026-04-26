@@ -376,6 +376,7 @@ function LoanCardView({
   const [lateInterestValue, setLateInterestValue] = useState<string>(loan.lateInterestValue != null ? String(loan.lateInterestValue) : "");
   const [showPenalty, setShowPenalty] = useState(false);
   const [penaltyValue, setPenaltyValue] = useState<string>(loan.penaltyValue != null ? String(loan.penaltyValue) : "");
+  const [showRenegotiateDialog, setShowRenegotiateDialog] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deletePaymentId, setDeletePaymentId] = useState<string | null>(null);
   const [showAdjustDueDate, setShowAdjustDueDate] = useState(false);
@@ -1901,6 +1902,7 @@ function LoanRowView({
   const [lateInterestValue, setLateInterestValue] = useState<string>(loan.lateInterestValue != null ? String(loan.lateInterestValue) : "");
   const [showPenalty, setShowPenalty] = useState(false);
   const [penaltyValue, setPenaltyValue] = useState<string>(loan.penaltyValue != null ? String(loan.penaltyValue) : "");
+  const [showRenegotiateDialog, setShowRenegotiateDialog] = useState(false);
   const managerOptions = useMemo(() => clients.filter((c) => c.isManager && c.active !== false), [clients]);
   const { activeMethods: rowActiveMethods } = usePaymentMethods();
   const [rowSelectedMethodId, setRowSelectedMethodId] = useState<string>("");
