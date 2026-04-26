@@ -3037,27 +3037,13 @@ function LoanRowView({
               const totalInterest = total - loan.amount;
               return (
                 <>
-                  <div className="flex items-center justify-center gap-2 py-1">
-                    <button
-                      onClick={() => setShowRowDetails(!showRowDetails)}
-                      className="flex items-center gap-1 text-xs text-primary hover:underline"
-                    >
-                      {showRowDetails ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
-                      {showRowDetails ? "Ocultar detalhes" : "Mais detalhes"}
-                    </button>
-                    {showRowDetails && (
-                      <>
-                        <span className="text-muted-foreground/50 text-xs">|</span>
-                        <button
-                          onClick={() => setShowRowDetails(false)}
-                          className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground hover:underline"
-                        >
-                          <ChevronUp className="h-3.5 w-3.5" />
-                          Recolher
-                        </button>
-                      </>
-                    )}
-                  </div>
+                  <button
+                    onClick={() => setShowRowDetails(!showRowDetails)}
+                    className="flex items-center gap-1 text-xs text-primary hover:underline w-full justify-center py-1"
+                  >
+                    {showRowDetails ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
+                    {showRowDetails ? "Ocultar detalhes" : "Mais detalhes"}
+                  </button>
 
                   {showRowDetails && (
                     <div className="space-y-2 bg-muted/30 rounded-lg p-2 sm:p-3 border border-border/50">
