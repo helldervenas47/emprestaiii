@@ -381,6 +381,7 @@ function LoanCardView({
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deletePaymentId, setDeletePaymentId] = useState<string | null>(null);
   const [showAdjustDueDate, setShowAdjustDueDate] = useState(false);
+  const [showAccountModal, setShowAccountModal] = useState(false);
   const { activeMethods } = usePaymentMethods();
   const [selectedMethodId, setSelectedMethodId] = useState<string>("");
   const [splitEnabled, setSplitEnabled] = useState(false);
