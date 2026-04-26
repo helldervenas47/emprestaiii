@@ -1140,6 +1140,7 @@ export function useLoans() {
       newInstallments?: number | null;
       notes?: string | null;
       selectedInstallmentNumbers?: number[] | null;
+      firstDueDate?: string | null;
     }
   ) => {
     if (!user || !dataOwnerId) throw new Error("Sessão ainda não carregada");
