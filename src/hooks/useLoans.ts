@@ -1226,6 +1226,8 @@ export function useLoans() {
       notes?: string | null;
       selectedInstallmentNumbers?: number[] | null;
       firstDueDate?: string | null;
+      frequency?: "monthly" | "biweekly" | "weekly" | "daily" | null;
+      customDates?: string[] | null;
     }
   ) => {
     if (!user || !dataOwnerId) throw new Error("Sessão ainda não carregada");
