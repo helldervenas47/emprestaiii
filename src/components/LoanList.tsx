@@ -2941,6 +2941,16 @@ function LoanRowView({
         onUpdate={onUpdate}
       />
     )}
+    {onRenegotiate && (
+      <RenegotiateLoanDialog
+        open={showRenegotiateDialog}
+        onOpenChange={setShowRenegotiateDialog}
+        loan={loan}
+        payments={allPayments}
+        history={renegotiations}
+        onConfirm={async (params) => { await onRenegotiate(params); }}
+      />
+    )}
     </>
   );
 }
