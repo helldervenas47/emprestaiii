@@ -934,7 +934,7 @@ function CustomizeGoalsDialog({
               );
             })}
           </ul>
-        </ScrollArea>
+        </div>
 
         <div className="flex justify-end gap-2 pt-2 border-t border-border/40">
           <Button variant="outline" type="button" onClick={onClose}>Cancelar</Button>
