@@ -1696,6 +1696,26 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
                   )}
                 </CardContent>
               </Card>
+              <Card
+                no3d
+                className={`col-span-2 border-0 bg-gradient-to-br ${renegotiationRate.rate <= 10 ? "from-success/15 to-success/5" : renegotiationRate.rate <= 25 ? "from-warning/20 to-warning/5" : "from-destructive/20 to-destructive/5"}`}
+              >
+                <CardContent className="p-3 sm:p-4">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <p className="text-[10px] sm:text-xs text-muted-foreground">Taxa de Renegociação (mês)</p>
+                      <p className={`text-base sm:text-xl font-bold ${renegotiationRate.rate <= 10 ? "text-success" : renegotiationRate.rate <= 25 ? "text-warning" : "text-destructive"}`}>
+                        {renegotiationRate.rate.toFixed(1)}%
+                      </p>
+                      <p className="text-[10px] text-muted-foreground mt-0.5 truncate">
+                        {formatCurrency(renegotiationRate.renegotiatedAmount)} de {formatCurrency(renegotiationRate.totalReceivableMonth)}
+                        {renegotiationRate.contracts > 0 ? ` • ${renegotiationRate.contracts} contrato${renegotiationRate.contracts !== 1 ? "s" : ""}` : ""}
+                      </p>
+                    </div>
+                    <InfoPopover text="Percentual do valor a receber no mês corrente que foi renegociado. Considera o valor original da dívida (antes da renegociação) e conta cada contrato apenas uma vez. Quanto menor, melhor." />
+                  </div>
+                </CardContent>
+              </Card>
             </div>
           </div>
         </CardContent>
