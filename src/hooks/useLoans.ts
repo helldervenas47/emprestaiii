@@ -277,7 +277,7 @@ export function useLoans() {
     return null;
   }, [user, dataOwnerId]);
 
-  const addPayment = useCallback(async (loanId: string, paymentDate?: string, paymentMethodId?: string | null) => {
+  const addPayment = useCallback(async (loanId: string, paymentDate?: string, paymentMethodId?: string | null, paymentSplit?: PaymentSplit | null) => {
     if (!user || !dataOwnerId) throw new Error("Sessão ainda não carregada");
     const dateStr = paymentDate || todayInAppTz();
     const loan = loans.find((l) => l.id === loanId);
@@ -320,7 +320,9 @@ export function useLoans() {
 
     const newStatus = newPaid >= loan.installments ? "paid" : loan.status;
     const tempPaymentId = crypto.randomUUID();
-    const paymentPayload = {
+    const normalizedSplit = normalizeSplit(paymentSplit ?? null, installmentAmount);
+    const splitMetadata = withSplit(null, normalizedSplit);
+    const paymentPayload: any = {
       id: tempPaymentId,
       user_id: dataOwnerId,
       loan_id: loanId,
@@ -329,6 +331,7 @@ export function useLoans() {
       installment_number: newPaid,
       payment_method_id: paymentMethodId ?? null,
     };
+    if (splitMetadata) paymentPayload.metadata = splitMetadata;
     const loanUpdate = {
       paid_installments: newPaid,
       status: newStatus,
@@ -338,7 +341,7 @@ export function useLoans() {
 
     // Optimistic state
     setPayments((prev) => [
-      { id: tempPaymentId, loanId, amount: installmentAmount, date: dateStr, installmentNumber: newPaid, paymentMethodId: paymentMethodId ?? null },
+      { id: tempPaymentId, loanId, amount: installmentAmount, date: dateStr, installmentNumber: newPaid, paymentMethodId: paymentMethodId ?? null, metadata: (splitMetadata as any) ?? null },
       ...prev,
     ]);
     setLoans((prev) => prev.map((l) => l.id === loanId ? {
