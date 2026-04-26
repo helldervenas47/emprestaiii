@@ -18,8 +18,9 @@ import {
 import {
   Search, Trash2, CheckCircle, Receipt, Calendar,
   CircleDollarSign, ChevronLeft, ChevronRight, Undo2, TrendingUp, CalendarDays, Target, Pencil,
-  Sparkles,
+  Sparkles, Plus,
 } from "lucide-react";
+import { PersonalCategoryCreator } from "@/components/PersonalCategoryCreator";
 import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
 import { ExpenseEditDialog } from "@/components/ExpenseEditDialog";
 import { supabase } from "@/integrations/supabase/client";
