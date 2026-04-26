@@ -1349,8 +1349,10 @@ function LoanCardView({
             return `${d}/${m}/${y}`;
           };
           const currentDueIso = loan.dueDate;
-          const originalDueIso = loan.originalDueDate || loan.dueDate;
-          const wasRenegotiated = !!loan.originalDueDate && loan.originalDueDate !== loan.dueDate;
+          const rawOriginal = loan.originalDueDate || loan.dueDate;
+          // Proteção: se "original" > due_date atual, está corrompido — usa due_date como âncora.
+          const originalDueIso = rawOriginal > currentDueIso ? currentDueIso : rawOriginal;
+          const wasRenegotiated = !!loan.originalDueDate && loan.originalDueDate !== loan.dueDate && loan.originalDueDate <= loan.dueDate;
           const freq = loan.interestType || "Mensal";
           // Replica regra de addInterestOnlyPayment: avança 1 período a partir do dueDate atual
           // e, no caso Mensal, "snap" para o dia da âncora (originalDueDate)
