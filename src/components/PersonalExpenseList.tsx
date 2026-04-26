@@ -74,6 +74,7 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, onUpda
   const { categories: customCategories, create: createCustomCategory, update: updateCustomCategory, remove: removeCustomCategory } = usePersonalExpenseCategories();
   const [categoryEditorOpen, setCategoryEditorOpen] = useState(false);
   const [editingCategory, setEditingCategory] = useState<{ id: string; name: string; icon: string; color: string } | null>(null);
+  const [creatorInitial, setCreatorInitial] = useState<{ name: string; icon: string; color: string } | null>(null);
   const customCategoryList = useMemo<PersonalCategory[]>(
     () => customCategories.map((c) => ({ name: c.name, icon: resolvePersonalIcon(c.icon), color: c.color, id: c.id, custom: true })),
     [customCategories],
