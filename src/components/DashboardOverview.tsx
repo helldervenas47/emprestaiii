@@ -673,7 +673,59 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
     };
   }, [loans, payments, installmentSchedules]);
 
-  const monthComparison = useMemo(() => {
+  // Taxa de Renegociação Mensal: % do valor a receber no mês atual que foi renegociado.
+  // - Base: parcelas/contratos com vencimento dentro do mês corrente (antes da renegociação)
+  // - Numerador: soma do valor original (previousAmount) dos contratos renegociados no mês,
+  //   contando cada contrato apenas uma vez (a renegociação mais recente do mês)
+  const renegotiationRate = useMemo(() => {
+    const now = new Date();
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+
+    // Valor Total a Receber no mês: soma de parcelas/contratos com vencimento no mês
+    let totalReceivableMonth = 0;
+    loans.forEach((l) => {
+      if (l.installments >= 2) {
+        installmentSchedules
+          .filter((sc) => {
+            if (sc.loanId !== l.id) return false;
+            const d = new Date(sc.dueDate + "T00:00:00");
+            return d >= monthStart && d <= monthEnd;
+          })
+          .forEach((sc) => { totalReceivableMonth += sc.amount; });
+      } else {
+        const d = new Date(l.dueDate + "T00:00:00");
+        if (d >= monthStart && d <= monthEnd) {
+          totalReceivableMonth += calculateTotalWithInterest(l.amount, l.interestRate, l.installments);
+        }
+      }
+    });
+
+    // Renegociações no mês — pela data do registro. Um contrato entra uma única vez (mantém a primeira do mês).
+    const seen = new Set<string>();
+    let renegotiatedAmount = 0;
+    const inMonth = (renegotiations ?? [])
+      .filter((r) => {
+        const ts = r.renegotiatedAt || r.createdAt;
+        if (!ts) return false;
+        const d = new Date(ts);
+        return d >= monthStart && d <= monthEnd;
+      })
+      .sort((a, b) => (a.renegotiatedAt || a.createdAt).localeCompare(b.renegotiatedAt || b.createdAt));
+    inMonth.forEach((r) => {
+      if (seen.has(r.loanId)) return;
+      seen.add(r.loanId);
+      renegotiatedAmount += Number(r.previousAmount ?? 0);
+    });
+
+    const rate = totalReceivableMonth > 0 ? (renegotiatedAmount / totalReceivableMonth) * 100 : 0;
+    return {
+      rate,
+      renegotiatedAmount,
+      totalReceivableMonth,
+      contracts: seen.size,
+    };
+  }, [loans, installmentSchedules, renegotiations]);
     const anchor = new Date(range.start.getFullYear(), range.start.getMonth(), 1);
     const series = Array.from({ length: comparisonWindow }, (_, index) => {
       const monthDate = new Date(anchor.getFullYear(), anchor.getMonth() - (comparisonWindow - 1 - index), 1);
