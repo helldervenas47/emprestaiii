@@ -1988,11 +1988,21 @@ function LoanRowView({
   const managerOptions = useMemo(() => clients.filter((c) => c.isManager && c.active !== false), [clients]);
   const { activeMethods: rowActiveMethods } = usePaymentMethods();
   const [rowSelectedMethodId, setRowSelectedMethodId] = useState<string>("");
+  const [rowSplitEnabled, setRowSplitEnabled] = useState(false);
+  const [rowSplitMethod2Id, setRowSplitMethod2Id] = useState<string>("");
+  const [rowSplitAmount1Input, setRowSplitAmount1Input] = useState<string>("");
   React.useEffect(() => {
     if (paymentDialog && !rowSelectedMethodId && rowActiveMethods.length > 0) {
       setRowSelectedMethodId(rowActiveMethods[0].id);
     }
   }, [paymentDialog, rowActiveMethods, rowSelectedMethodId]);
+  React.useEffect(() => {
+    if (!paymentDialog) {
+      setRowSplitEnabled(false);
+      setRowSplitMethod2Id("");
+      setRowSplitAmount1Input("");
+    }
+  }, [paymentDialog]);
 
   const total = calculateTotalWithInterest(loan.amount, loan.interestRate, loan.installments);
   const totalPaid = getTotalPaid(loan, allPayments);
