@@ -433,7 +433,13 @@ function LoanCardView({
   const penaltyTotal = (loan.penaltyValue != null && loan.penaltyValue > 0 && effectiveDaysLate > 0 && loan.status !== "paid")
     ? loan.penaltyValue
     : 0;
-  const lateFees = lateInterestTotal + penaltyTotal;
+  // Multa de renegociação pendente — para contratos de parcela única, é cobrada junto
+  // com o pagamento de juros (opção "Juros + multa/atraso"). Em parcelados, ela já está
+  // diluída nas próximas parcelas.
+  const renegPenaltyPending = (loan.installments < 2 && loan.status !== "paid")
+    ? Number(loan.renegotiationPenaltyTotal || 0)
+    : 0;
+  const lateFees = lateInterestTotal + penaltyTotal + renegPenaltyPending;
   const interestPaymentsReceived = allPayments
     .filter((p) => p.loanId === loan.id && p.installmentNumber === 0)
     .reduce((sum, p) => sum + p.amount, 0);
@@ -2008,6 +2014,12 @@ function LoanCardView({
                             <span className="text-warning tabular-nums">{rawFormatCurrency(lateInterestTotal)}</span>
                           </div>
                         )}
+                        {renegPenaltyPending > 0 && (
+                          <div className="flex justify-between text-[11px]">
+                            <span className="text-muted-foreground">Multa de renegociação</span>
+                            <span className="text-warning tabular-nums">{rawFormatCurrency(renegPenaltyPending)}</span>
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -2264,7 +2276,10 @@ function LoanRowView({
     }
   }
   const penaltyTotal = (loan.penaltyValue != null && loan.penaltyValue > 0 && effectiveDaysLate > 0 && loan.status !== "paid") ? loan.penaltyValue : 0;
-  const lateFees = lateInterestTotal + penaltyTotal;
+  const renegPenaltyPending = (loan.installments < 2 && loan.status !== "paid")
+    ? Number(loan.renegotiationPenaltyTotal || 0)
+    : 0;
+  const lateFees = lateInterestTotal + penaltyTotal + renegPenaltyPending;
   const interestPaymentsReceived = allPayments
     .filter((p) => p.loanId === loan.id && p.installmentNumber === 0)
     .reduce((sum, p) => sum + p.amount, 0);
@@ -3208,6 +3223,12 @@ function LoanRowView({
                           <div className="flex justify-between text-[11px]">
                             <span className="text-muted-foreground">Juros de atraso ({effectiveDaysLate}d)</span>
                             <span className="text-warning tabular-nums">{rawFormatCurrency(lateInterestTotal)}</span>
+                          </div>
+                        )}
+                        {renegPenaltyPending > 0 && (
+                          <div className="flex justify-between text-[11px]">
+                            <span className="text-muted-foreground">Multa de renegociação</span>
+                            <span className="text-warning tabular-nums">{rawFormatCurrency(renegPenaltyPending)}</span>
                           </div>
                         )}
                       </div>

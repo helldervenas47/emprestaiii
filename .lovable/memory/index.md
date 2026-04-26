@@ -11,3 +11,4 @@ Portuguese (pt-BR) interface. localStorage persistence. Loan startDate is immuta
 - [Loan schedule dates](mem://features/loan-schedule-dates) — Paying an installment must not shift future due dates; schedule stays anchored to first due date by contract type
 - [Multi-user access](mem://features/multi-user-access) — Sub-users share admin data via user_owner; roles admin/operador/visualizador
 - [User approval system](mem://features/user-approval-system) — Per-admin approval toggle + invite codes; pending users see waiting screen
+- [Loan renegotiation penalty](mem://features/loan-renegotiation-penalty) — Penalty diluted in installments for parcelado; cobrada com pagamento de juros em parcela única

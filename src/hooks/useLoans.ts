@@ -708,13 +708,29 @@ export function useLoans() {
       payment_method_id: paymentMethodId ?? null,
     };
     if (splitMetadata) paymentPayload.metadata = splitMetadata;
-    const loanUpdate = { due_date: newDueDate };
+    // Se o usuário escolheu pagar "Juros + multa/atraso" e há multa de renegociação
+    // pendente, ela está incluída em feesExtra → quitamos no contrato (zera o saldo
+    // de multa de renegociação e abate do remaining_amount).
+    const renegPenaltyPending = Number(loan.renegotiationPenaltyTotal || 0);
+    const shouldClearRenegPenalty = feesExtra > 0 && renegPenaltyPending > 0;
+    const loanUpdate: any = { due_date: newDueDate };
+    if (shouldClearRenegPenalty) {
+      loanUpdate.renegotiation_penalty_total = 0;
+      loanUpdate.remaining_amount = Math.max(0, Math.round((Number(loan.remainingAmount || 0) - renegPenaltyPending) * 100) / 100);
+    }
 
     setPayments((prev) => [
       { id: tempPaymentId, loanId, amount: interestAmount, date: dateStr, installmentNumber: 0, previousDueDate: loan.dueDate, paymentMethodId: paymentMethodId ?? null, metadata: (splitMetadata as any) ?? null },
       ...prev,
     ]);
-    setLoans((prev) => prev.map((l) => l.id === loanId ? { ...l, dueDate: newDueDate } : l));
+    setLoans((prev) => prev.map((l) => l.id === loanId ? {
+      ...l,
+      dueDate: newDueDate,
+      ...(shouldClearRenegPenalty ? {
+        renegotiationPenaltyTotal: 0,
+        remainingAmount: Math.max(0, Math.round((Number(l.remainingAmount || 0) - renegPenaltyPending) * 100) / 100),
+      } : {}),
+    } : l));
     await upsertCachedRow("payments", { ...paymentPayload, created_at: new Date().toISOString() });
 
     if (!online) {
@@ -738,6 +754,12 @@ export function useLoans() {
         await adjustBalanceOffline(feesExtra);
       }
       return;
+    }
+
+    const loanRollback: any = { due_date: loan.dueDate };
+    if (shouldClearRenegPenalty) {
+      loanRollback.renegotiation_penalty_total = renegPenaltyPending;
+      loanRollback.remaining_amount = Number(loan.remainingAmount || 0);
     }
 
     const revertOptimisticState = async () => {
@@ -783,7 +805,7 @@ export function useLoans() {
       console.error("[addInterestOnlyPayment] update schedule due date failed:", scheduleError);
       await Promise.all([
         supabase.from("payments").delete().eq("id", tempPaymentId),
-        supabase.from("loans").update({ due_date: loan.dueDate }).eq("id", loanId),
+        supabase.from("loans").update(loanRollback).eq("id", loanId),
       ]);
       await revertOptimisticState();
       throw new Error(scheduleError.message);
@@ -795,7 +817,7 @@ export function useLoans() {
       console.error("[addInterestOnlyPayment] adjust balance failed:", balanceError);
       await Promise.all([
         supabase.from("payments").delete().eq("id", tempPaymentId),
-        supabase.from("loans").update({ due_date: loan.dueDate }).eq("id", loanId),
+        supabase.from("loans").update(loanRollback).eq("id", loanId),
       ]);
       await revertOptimisticState();
       throw new Error(balanceError?.message ?? "Falha ao atualizar saldo");
@@ -815,7 +837,7 @@ export function useLoans() {
         console.error("[addInterestOnlyPayment] insert fee payment failed:", feeInsertError);
         await Promise.all([
           supabase.from("payments").delete().eq("id", tempPaymentId),
-          supabase.from("loans").update({ due_date: loan.dueDate }).eq("id", loanId),
+          supabase.from("loans").update(loanRollback).eq("id", loanId),
         ]);
         await revertOptimisticState();
         throw new Error(feeInsertError.message);
@@ -828,7 +850,7 @@ export function useLoans() {
         await Promise.all([
           supabase.from("payments").delete().eq("id", feesPaymentId),
           supabase.from("payments").delete().eq("id", tempPaymentId),
-          supabase.from("loans").update({ due_date: loan.dueDate }).eq("id", loanId),
+          supabase.from("loans").update(loanRollback).eq("id", loanId),
         ]);
         await revertOptimisticState();
         throw new Error(feeBalanceError?.message ?? "Falha ao atualizar saldo das taxas");
