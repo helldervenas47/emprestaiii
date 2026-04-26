@@ -1414,6 +1414,20 @@ function LoanCardView({
                   </div>
                 </DropdownMenuItem>
                 )}
+                {onRenegotiate && (
+                <DropdownMenuItem
+                  onClick={() => setShowRenegotiateDialog(true)}
+                  className="flex items-center gap-3 px-3 py-2.5 rounded-lg cursor-pointer hover:bg-warning/10 focus:bg-warning/10"
+                >
+                  <div className="h-8 w-8 rounded-full bg-warning/15 flex items-center justify-center shrink-0">
+                    <RefreshCw className="h-4 w-4 text-warning" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-foreground">Renegociar</p>
+                    <p className="text-[11px] text-muted-foreground">Sem juros ou com multa</p>
+                  </div>
+                </DropdownMenuItem>
+                )}
               </DropdownMenuContent>
             </DropdownMenu>
            )}
