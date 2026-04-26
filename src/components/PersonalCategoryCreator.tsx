@@ -41,6 +41,7 @@ export function PersonalCategoryCreator({
   updateCategory,
   deleteCategory,
   editing,
+  initial,
 }: Props) {
   const isEdit = !!editing;
   const [name, setName] = useState("");
@@ -56,13 +57,17 @@ export function PersonalCategoryCreator({
       setName(editing.name);
       setIcon(editing.icon);
       setColor(editing.color);
+    } else if (initial) {
+      setName(initial.name);
+      setIcon(initial.icon);
+      setColor(initial.color);
     } else {
       setName("");
       setIcon("Package");
       setColor(personalCategoryColors[0]);
     }
     setConfirmDelete(false);
-  }, [open, editing]);
+  }, [open, editing, initial]);
 
   const handleSave = async () => {
     if (!name.trim() || saving) return;
