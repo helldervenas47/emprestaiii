@@ -1450,9 +1450,7 @@ export function useLoans() {
           amt = baseInstallmentValue;
         }
         acc += amt;
-        newScheds.push({ dueStr, amount: amt } as any);
-        // Garantir nome correto:
-        newScheds[newScheds.length - 1] = { dueDate: dueStr, amount: amt };
+        newScheds.push({ dueDate: dueStr, amount: amt });
       }
 
       // 4) Renumera tudo: pegamos as parcelas pagas + não selecionadas + novas (ordenadas por data)
