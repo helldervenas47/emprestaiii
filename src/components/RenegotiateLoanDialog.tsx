@@ -40,6 +40,17 @@ const formatDateBR = (iso: string) => {
   return `${d}/${m}/${y}`;
 };
 
+const stepDate = (baseISO: string, freq: "monthly" | "biweekly" | "weekly" | "daily", n: number): string => {
+  if (!baseISO || !/^\d{4}-\d{2}-\d{2}/.test(baseISO)) return baseISO;
+  const d = new Date(baseISO.slice(0, 10) + "T00:00:00");
+  if (isNaN(d.getTime())) return baseISO;
+  if (freq === "monthly") d.setMonth(d.getMonth() + n);
+  else if (freq === "biweekly") d.setDate(d.getDate() + 15 * n);
+  else if (freq === "weekly") d.setDate(d.getDate() + 7 * n);
+  else d.setDate(d.getDate() + n);
+  return d.toISOString().slice(0, 10);
+};
+
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
