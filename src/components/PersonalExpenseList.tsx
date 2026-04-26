@@ -1116,20 +1116,31 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, onUpda
                     <div className="flex-1 min-w-0">
                       <div className="text-sm text-foreground truncate flex items-center gap-1.5">
                         {c.name}
-                        {customMatch && (
-                          <button
-                            type="button"
-                            onClick={() => {
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (customMatch) {
                               setEditingCategory(customMatch);
-                              setCategoryEditorOpen(true);
-                            }}
-                            className="text-muted-foreground hover:text-foreground transition-colors"
-                            title="Editar categoria"
-                            aria-label={`Editar ${c.name}`}
-                          >
-                            <Pencil className="h-3 w-3" />
-                          </button>
-                        )}
+                              setCreatorInitial(null);
+                            } else {
+                              // Built-in: abre como nova categoria pré-preenchida.
+                              // Salvar com o mesmo nome cria um override custom que
+                              // assume a posição no limite de gastos.
+                              setEditingCategory(null);
+                              setCreatorInitial({
+                                name: c.name,
+                                icon: getIconName(c.icon),
+                                color: c.color,
+                              });
+                            }
+                            setCategoryEditorOpen(true);
+                          }}
+                          className="text-muted-foreground hover:text-foreground transition-colors"
+                          title="Editar categoria"
+                          aria-label={`Editar ${c.name}`}
+                        >
+                          <Pencil className="h-3 w-3" />
+                        </button>
                       </div>
                       <div className="text-[11px] text-muted-foreground tabular-nums">
                         Gasto: {formatCurrency(spent)}
