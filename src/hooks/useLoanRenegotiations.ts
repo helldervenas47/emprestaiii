@@ -40,6 +40,32 @@ export function useLoanRenegotiations() {
     fetchAll();
   }, [fetchAll, dataOwnerId]);
 
+  // Refetch quando o evento de sync local for disparado (ex: após criar/excluir renegociação)
+  useEffect(() => {
+    const handler = (e: any) => {
+      const tables: string[] = e?.detail?.tables || [];
+      if (tables.includes("loan_renegotiations") || tables.includes("loans")) {
+        fetchAll();
+      }
+    };
+    window.addEventListener("offline-sync:flushed", handler);
+    return () => window.removeEventListener("offline-sync:flushed", handler);
+  }, [fetchAll]);
+
+  // Realtime: atualiza quando outra aba/dispositivo inserir/alterar renegociações
+  useEffect(() => {
+    if (!user) return;
+    const channel = supabase
+      .channel(`loan-renegotiations-${user.id}-${Math.random().toString(36).slice(2)}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "loan_renegotiations" },
+        () => { fetchAll(); },
+      )
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [user, fetchAll]);
+
   const updateRenegotiation = useCallback(
     async (
       id: string,
