@@ -2112,6 +2112,43 @@ function LoanRowView({
     const dialogType = paymentDialog.type;
     const dialogAmount = paymentDialog.amount;
     const mid = rowSelectedMethodId || null;
+
+    const baseInterestForSplit = loan.customInterestValue != null && loan.customInterestValue > 0
+      ? loan.customInterestValue
+      : loan.amount * (loan.interestRate / 100);
+    const customRawForSplit = parseFloat(payoffAmount.replace(",", "."));
+    const amortRawForSplit = parseFloat(amortizeAmount.replace(",", "."));
+    let expectedTotal = 0;
+    if (dialogType === "full") expectedTotal = remaining;
+    else if (dialogType === "payoff") expectedTotal = isFinite(customRawForSplit) && customRawForSplit > 0 ? customRawForSplit : 0;
+    else if (dialogType === "amortize") expectedTotal = isFinite(amortRawForSplit) && amortRawForSplit > 0 ? amortRawForSplit : 0;
+    else if (dialogType === "installment") expectedTotal = installmentValue;
+    else if (dialogType === "interest") {
+      expectedTotal = interestSelection === "withFees" && lateFees > 0
+        ? baseInterestForSplit + lateFees
+        : baseInterestForSplit;
+    } else if (dialogType === "partial" && dialogAmount) expectedTotal = dialogAmount;
+
+    let split: PaymentSplit | null = null;
+    if (rowSplitEnabled && expectedTotal > 0) {
+      if (!rowSplitMethod2Id || rowSplitMethod2Id === rowSelectedMethodId) {
+        toast.error("Selecione um segundo meio de pagamento diferente");
+        return;
+      }
+      const a1 = parseFloat(rowSplitAmount1Input.replace(",", "."));
+      if (!isFinite(a1) || a1 <= 0 || a1 >= expectedTotal) {
+        toast.error("Informe o valor do primeiro meio (entre 0 e o total)");
+        return;
+      }
+      const a2 = Math.round((expectedTotal - a1) * 100) / 100;
+      split = {
+        parts: [
+          { paymentMethodId: mid, amount: Math.round(a1 * 100) / 100 },
+          { paymentMethodId: rowSplitMethod2Id, amount: a2 },
+        ],
+      };
+    }
+
     setPayoffAmount("");
     const amortRaw = parseFloat(amortizeAmount.replace(",", "."));
     setAmortizeAmount("");
@@ -2119,36 +2156,36 @@ function LoanRowView({
     try {
       if (dialogType === "full") {
         if (onFullPayment) {
-          await onFullPayment(dateStr, undefined, mid);
+          await onFullPayment(dateStr, undefined, mid, split);
         } else {
-          await onPartialPayment(remaining, dateStr, mid);
+          await onPartialPayment(remaining, dateStr, mid, split);
           await onUpdate({ paidInstallments: loan.installments, status: "paid" });
         }
       } else if (dialogType === "payoff") {
-        const customRaw = parseFloat(payoffAmount.replace(",", "."));
-        const custom = isFinite(customRaw) && customRaw > 0 ? customRaw : 0;
+        const customRaw = parseFloat(payoffAmount.replace(",", ".") || String(customRawForSplit));
+        const custom = isFinite(customRaw) && customRaw > 0 ? customRaw : (customRawForSplit > 0 ? customRawForSplit : 0);
         if (custom <= 0) return;
         if (onFullPayment) {
-          await onFullPayment(dateStr, custom, mid);
+          await onFullPayment(dateStr, custom, mid, split);
         } else {
-          await onPartialPayment(custom, dateStr, mid);
+          await onPartialPayment(custom, dateStr, mid, split);
           await onUpdate({ paidInstallments: loan.installments, status: "paid" });
         }
       } else if (dialogType === "amortize") {
         if (!onAmortize) { toast.error("Amortização indisponível"); return; }
         const val = isFinite(amortRaw) && amortRaw > 0 ? amortRaw : 0;
         if (val <= 0) { toast.error("Informe um valor válido"); return; }
-        await onAmortize(val, dateStr, mid);
+        await onAmortize(val, dateStr, mid, split);
       } else if (dialogType === "installment") {
-        await onPayment(dateStr, mid);
+        await onPayment(dateStr, mid, split);
       } else if (dialogType === "interest") {
         if (interestSelection === "withFees" && lateFees > 0) {
-          await onInterestPayment(dateStr, undefined, lateFees, mid);
+          await onInterestPayment(dateStr, undefined, lateFees, mid, split);
         } else {
-          await onInterestPayment(dateStr, undefined, undefined, mid);
+          await onInterestPayment(dateStr, undefined, undefined, mid, split);
         }
       } else if (dialogType === "partial" && dialogAmount) {
-        await onPartialPayment(dialogAmount, dateStr, mid);
+        await onPartialPayment(dialogAmount, dateStr, mid, split);
       }
       toast.success(dialogType === "amortize" ? "Amortização registrada" : "Pagamento registrado");
     } catch (err: any) {
