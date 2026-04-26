@@ -2,7 +2,7 @@ import React, { useState, useMemo, useCallback } from "react";
 import { DatePickerField } from "@/components/ui/date-picker-field";
 import { useHideValues } from "@/contexts/HideValuesContext";
 import { format } from "date-fns";
-import { Loan, Payment, InstallmentSchedule, Client } from "@/types/loan";
+import { Loan, Payment, InstallmentSchedule, Client, PaymentSplit } from "@/types/loan";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
