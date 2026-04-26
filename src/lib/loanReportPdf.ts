@@ -38,7 +38,6 @@ export async function generateLoanReportPdf({
   const doc = new jsPDF({ unit: "mm", format: "a4" });
   const pageW = doc.internal.pageSize.getWidth();
 
-  // Cabeçalho
   if (branding.logoDataUrl) {
     const sizeMm = Math.max(12, Math.min(40, branding.logoSize * 0.2645));
     try {
@@ -62,7 +61,6 @@ export async function generateLoanReportPdf({
   doc.text(`Gerado em: ${new Date().toLocaleString("pt-BR")}`, 14, 26);
   doc.setTextColor(0);
 
-  // Dados do contrato
   const loanPayments = payments.filter((p) => p.loanId === loan.id);
   const totalPaid = loanPayments.reduce((acc, p) => acc + Number(p.amount || 0), 0);
   const remaining = getLoanRemainingAmount(loan, payments);
@@ -93,7 +91,6 @@ export async function generateLoanReportPdf({
 
   let y = (doc as any).lastAutoTable.finalY + 6;
 
-  // Resumo financeiro destacado
   doc.setDrawColor(220);
   doc.setFillColor(248, 250, 252);
   doc.roundedRect(14, y, pageW - 28, 26, 2, 2, "FD");
@@ -123,7 +120,6 @@ export async function generateLoanReportPdf({
   doc.setTextColor(0);
   y += 32;
 
-  // Cronograma de parcelas
   const scheds = installmentSchedules
     .filter((s) => s.loanId === loan.id)
     .sort((a, b) => a.installmentNumber - b.installmentNumber);
@@ -167,7 +163,6 @@ export async function generateLoanReportPdf({
     y = (doc as any).lastAutoTable.finalY + 6;
   }
 
-  // Pagamentos
   if (y > 240) { doc.addPage(); y = 20; }
   doc.setFontSize(11);
   doc.setFont("helvetica", "bold");
@@ -208,7 +203,6 @@ export async function generateLoanReportPdf({
   }
   y = (doc as any).lastAutoTable.finalY + 6;
 
-  // Histórico de Renegociações
   if (y > 230) { doc.addPage(); y = 20; }
   doc.setFontSize(11);
   doc.setFont("helvetica", "bold");
@@ -259,7 +253,6 @@ export async function generateLoanReportPdf({
     y = (doc as any).lastAutoTable.finalY + 6;
   }
 
-  // Evolução do saldo (linha do tempo combinando pagamentos e renegociações)
   if (y > 220) { doc.addPage(); y = 20; }
   doc.setFontSize(11);
   doc.setFont("helvetica", "bold");
@@ -286,7 +279,6 @@ export async function generateLoanReportPdf({
     })),
   ].sort((a, b) => (a.date || "").localeCompare(b.date || ""));
 
-  // Saldo inicial estimado: total contrato + multas (já que pagamentos somados ao restante = total)
   let runningBalance = totalContract;
   const evoRows: string[][] = [];
   evoRows.push([fmtDateBR(loan.startDate), "Início do contrato", "-", fmtCurrency(runningBalance)]);
@@ -328,7 +320,6 @@ export async function generateLoanReportPdf({
     },
   });
 
-  // Rodapé com paginação
   const pageCount = doc.getNumberOfPages();
   for (let i = 1; i <= pageCount; i++) {
     doc.setPage(i);
