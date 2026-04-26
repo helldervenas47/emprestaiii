@@ -23,6 +23,27 @@ export interface Loan {
   managerId?: string | null;
   managerCommissionRate?: number | null;
   autoBillingEnabled?: boolean;
+  renegotiationPenaltyTotal?: number;
+  createdAt: string;
+}
+
+export type LoanRenegotiationType = "no_interest" | "with_penalty";
+export type LoanRenegotiationPenaltyMode = "fixed" | "percentage";
+
+export interface LoanRenegotiation {
+  id: string;
+  loanId: string;
+  userId: string;
+  renegotiatedAt: string;
+  type: LoanRenegotiationType;
+  previousAmount: number;
+  newAmount: number;
+  penaltyAmount: number;
+  penaltyMode?: LoanRenegotiationPenaltyMode | null;
+  penaltyInput?: number | null;
+  previousInstallments?: number | null;
+  newInstallments?: number | null;
+  notes?: string | null;
   createdAt: string;
 }
 
