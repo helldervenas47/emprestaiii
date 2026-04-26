@@ -16,7 +16,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Loan, LoanRenegotiation, Payment, InstallmentSchedule } from "@/types/loan";
 import { getLoanRemainingAmount } from "@/hooks/useLoans";
 import { toast } from "sonner";
-import { History, AlertTriangle, ListChecks } from "lucide-react";
+import { History, AlertTriangle, ListChecks, CalendarDays } from "lucide-react";
 
 const formatCurrency = (v: number) =>
   v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -121,6 +121,95 @@ export function RenegotiateLoanDialog({
   const newInstallmentValue = installmentsCount > 0
     ? Math.round((newTotal / installmentsCount) * 100) / 100
     : 0;
+
+  // Simula o novo cronograma de parcelas pendentes (não selecionadas + novas geradas)
+  const simulatedSchedule = useMemo(() => {
+    if (!isInstallmentLoan || pendingInstallments.length === 0) {
+      // Modo simples: gera N parcelas mensais a partir do dueDate
+      const result: { number: number; dueDate: string; amount: number; isNew: boolean }[] = [];
+      const baseDate = loan.dueDate;
+      let acc = 0;
+      for (let i = 0; i < installmentsCount; i++) {
+        const d = new Date(baseDate + "T00:00:00");
+        if (!isNaN(d.getTime())) d.setMonth(d.getMonth() + i);
+        const dueStr = !isNaN(d.getTime()) ? d.toISOString().slice(0, 10) : baseDate;
+        const isLast = i === installmentsCount - 1;
+        const amt = isLast
+          ? Math.round((newTotal - acc) * 100) / 100
+          : newInstallmentValue;
+        acc += amt;
+        result.push({
+          number: loan.paidInstallments + i + 1,
+          dueDate: dueStr,
+          amount: amt,
+          isNew: true,
+        });
+      }
+      return result;
+    }
+
+    const remainingPendingScheds = pendingInstallments.filter(
+      (s) => !selectedNumbers.has(s.installmentNumber)
+    );
+    const isPartial = selectedNumbers.size < pendingInstallments.length;
+
+    // Determina data base para as novas parcelas
+    const lastDate = remainingPendingScheds.length > 0
+      ? remainingPendingScheds[remainingPendingScheds.length - 1].dueDate
+      : (pendingInstallments[pendingInstallments.length - 1]?.dueDate || loan.dueDate);
+
+    const firstSelectedDate = !isPartial
+      ? (pendingInstallments.find((s) => selectedNumbers.has(s.installmentNumber))?.dueDate || loan.dueDate)
+      : null;
+
+    // Gera novas parcelas
+    const newScheds: { dueDate: string; amount: number }[] = [];
+    let acc = 0;
+    for (let i = 0; i < installmentsCount; i++) {
+      let dueStr: string;
+      if (!isPartial && i === 0 && firstSelectedDate) {
+        dueStr = firstSelectedDate;
+      } else {
+        const baseDate = !isPartial && firstSelectedDate ? firstSelectedDate : lastDate;
+        const offsetMonths = !isPartial && firstSelectedDate ? i : (i + 1);
+        const d = new Date(baseDate + "T00:00:00");
+        if (!isNaN(d.getTime())) d.setMonth(d.getMonth() + offsetMonths);
+        dueStr = !isNaN(d.getTime()) ? d.toISOString().slice(0, 10) : baseDate;
+      }
+      const isLast = i === installmentsCount - 1;
+      const amt = isLast
+        ? Math.round((newTotal - acc) * 100) / 100
+        : newInstallmentValue;
+      acc += amt;
+      newScheds.push({ dueDate: dueStr, amount: amt });
+    }
+
+    // Combina + ordena por data + renumera
+    const combined = [
+      ...remainingPendingScheds.map((s) => ({
+        dueDate: s.dueDate,
+        amount: Number(s.amount || 0),
+        isNew: false,
+      })),
+      ...newScheds.map((s) => ({ dueDate: s.dueDate, amount: s.amount, isNew: true })),
+    ].sort((a, b) => a.dueDate.localeCompare(b.dueDate));
+
+    return combined.map((item, i) => ({
+      number: loan.paidInstallments + i + 1,
+      dueDate: item.dueDate,
+      amount: item.amount,
+      isNew: item.isNew,
+    }));
+  }, [
+    isInstallmentLoan,
+    pendingInstallments,
+    selectedNumbers,
+    installmentsCount,
+    newInstallmentValue,
+    newTotal,
+    loan.dueDate,
+    loan.paidInstallments,
+  ]);
 
   const reset = () => {
     setType("no_interest");
@@ -399,6 +488,49 @@ export function RenegotiateLoanDialog({
               </span>
             </div>
           </div>
+
+          {simulatedSchedule.length > 0 && (
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <p className="text-xs font-semibold flex items-center gap-1.5 text-foreground">
+                  <CalendarDays className="h-3.5 w-3.5" /> Novo cronograma de parcelas pendentes
+                </p>
+                <span className="text-[10px] text-muted-foreground">
+                  {simulatedSchedule.length} parcela{simulatedSchedule.length > 1 ? "s" : ""}
+                </span>
+              </div>
+              <div className="rounded-lg border border-border/60 max-h-48 overflow-y-auto divide-y divide-border/40">
+                {simulatedSchedule.map((row) => (
+                  <div
+                    key={`${row.number}-${row.dueDate}-${row.isNew}`}
+                    className={`flex items-center justify-between gap-2 px-2.5 py-1.5 text-xs ${
+                      row.isNew ? "bg-primary/5" : ""
+                    }`}
+                  >
+                    <div className="flex items-center gap-2 min-w-0">
+                      <span className="font-medium tabular-nums">#{row.number}</span>
+                      {row.isNew && (
+                        <span className="text-[9px] uppercase tracking-wide bg-primary/15 text-primary rounded px-1 py-0.5 font-semibold">
+                          Nova
+                        </span>
+                      )}
+                    </div>
+                    <span className="text-muted-foreground tabular-nums">
+                      {formatDateBR(row.dueDate)}
+                    </span>
+                    <span className="font-semibold tabular-nums">
+                      {formatCurrency(row.amount)}
+                    </span>
+                  </div>
+                ))}
+              </div>
+              {isInstallmentLoan && pendingInstallments.length > 0 && (
+                <p className="text-[10px] text-muted-foreground italic">
+                  Parcelas marcadas como "Nova" substituirão as selecionadas. As demais permanecem inalteradas.
+                </p>
+              )}
+            </div>
+          )}
 
           {sortedHistory.length > 0 && (
             <div className="space-y-2">
