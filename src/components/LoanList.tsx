@@ -1145,6 +1145,9 @@ function LoanCardView({
               {penaltyTotal > 0 && (
                 <p>+ Multa: {rawFormatCurrency(penaltyTotal)}</p>
               )}
+              {renegPenaltyPending > 0 && (
+                <p>+ Multa de renegociação: {rawFormatCurrency(renegPenaltyPending)}</p>
+              )}
             </div>
           )}
         </div>
