@@ -13,10 +13,22 @@ import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Loan, LoanRenegotiation, Payment, InstallmentSchedule } from "@/types/loan";
 import { getLoanRemainingAmount } from "@/hooks/useLoans";
+import { useLoanRenegotiations } from "@/hooks/useLoanRenegotiations";
 import { toast } from "sonner";
-import { History, AlertTriangle, ListChecks, CalendarDays } from "lucide-react";
+import { History, AlertTriangle, ListChecks, CalendarDays, Pencil, Trash2, Save, X } from "lucide-react";
 
 const formatCurrency = (v: number) =>
   v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
