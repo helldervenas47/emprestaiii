@@ -1139,6 +1139,7 @@ export function useLoans() {
       penaltyInput?: number | null;
       newInstallments?: number | null;
       notes?: string | null;
+      selectedInstallmentNumbers?: number[] | null;
     }
   ) => {
     if (!user || !dataOwnerId) throw new Error("Sessão ainda não carregada");
@@ -1146,8 +1147,40 @@ export function useLoans() {
     if (!loan) throw new Error("Empréstimo não encontrado");
     if (loan.status === "paid") throw new Error("Contratos quitados não podem ser renegociados");
 
-    const remaining = getLoanRemainingAmount(loan, payments);
-    if (remaining <= 0) throw new Error("Não há saldo a renegociar");
+    const totalRemaining = getLoanRemainingAmount(loan, payments);
+    if (totalRemaining <= 0) throw new Error("Não há saldo a renegociar");
+
+    // Cronograma atual de parcelas
+    const allScheds = installmentSchedules
+      .filter((s) => s.loanId === loanId)
+      .sort((a, b) => a.installmentNumber - b.installmentNumber);
+    const pendingScheds = allScheds.filter((s) => s.installmentNumber > loan.paidInstallments);
+
+    const isInstallmentLoan = loan.paymentType === "Parcelado" && loan.installments > 1;
+    const hasSchedule = pendingScheds.length > 0;
+
+    // Determina parcelas selecionadas (somente para parcelado com cronograma)
+    const selectedSet = new Set<number>(
+      isInstallmentLoan && hasSchedule && params.selectedInstallmentNumbers && params.selectedInstallmentNumbers.length > 0
+        ? params.selectedInstallmentNumbers.filter(
+            (n) => n > loan.paidInstallments && n <= loan.installments
+          )
+        : pendingScheds.map((s) => s.installmentNumber)
+    );
+
+    const isPartialReneg = isInstallmentLoan && hasSchedule && selectedSet.size < pendingScheds.length;
+
+    // Saldo a renegociar = soma das parcelas selecionadas (parcelado) ou saldo total
+    let remaining: number;
+    if (isInstallmentLoan && hasSchedule) {
+      const sum = pendingScheds
+        .filter((s) => selectedSet.has(s.installmentNumber))
+        .reduce((acc, s) => acc + Number(s.amount || 0), 0);
+      remaining = Math.round(sum * 100) / 100;
+    } else {
+      remaining = totalRemaining;
+    }
+    if (remaining <= 0) throw new Error("Selecione ao menos uma parcela com saldo");
 
     let penaltyAmount = 0;
     if (params.type === "with_penalty") {
@@ -1162,13 +1195,25 @@ export function useLoans() {
 
     const newAmount = Math.round((remaining + penaltyAmount) * 100) / 100;
 
-    // Calcular nova quantidade de parcelas pendentes
-    const remainingInstCount = Math.max(1, loan.installments - loan.paidInstallments);
+    // Quantas parcelas substituirão as selecionadas
     const desiredNewPending = params.newInstallments && params.newInstallments > 0
       ? Math.floor(params.newInstallments)
-      : remainingInstCount;
-    const newInstallmentsTotal = loan.paidInstallments + desiredNewPending;
+      : (isInstallmentLoan && hasSchedule
+          ? Math.max(1, selectedSet.size)
+          : Math.max(1, loan.installments - loan.paidInstallments));
+
     const newInstallmentValue = Math.round((newAmount / desiredNewPending) * 100) / 100;
+
+    // Saldo total novo do contrato (parcelas pagas + não selecionadas + novas renegociadas)
+    const unselectedPendingTotal = pendingScheds
+      .filter((s) => !selectedSet.has(s.installmentNumber))
+      .reduce((acc, s) => acc + Number(s.amount || 0), 0);
+    const newLoanRemaining = Math.round((unselectedPendingTotal + newAmount) * 100) / 100;
+
+    // Total de parcelas do contrato após a renegociação
+    const newInstallmentsTotal = isInstallmentLoan && hasSchedule
+      ? loan.paidInstallments + (pendingScheds.length - selectedSet.size) + desiredNewPending
+      : loan.paidInstallments + desiredNewPending;
 
     const renegotiatedAt = todayInAppTz();
     const renegRow = {
@@ -1183,7 +1228,9 @@ export function useLoans() {
       penalty_input: params.type === "with_penalty" ? Number(params.penaltyInput ?? 0) : null,
       previous_installments: loan.installments,
       new_installments: newInstallmentsTotal,
-      notes: params.notes ?? null,
+      notes: isPartialReneg
+        ? `[Parcelas ${Array.from(selectedSet).sort((a, b) => a - b).join(", ")}] ${params.notes ?? ""}`.trim()
+        : (params.notes ?? null),
     };
 
     const { error: renegErr } = await supabase
@@ -1192,9 +1239,10 @@ export function useLoans() {
     if (renegErr) throw new Error(renegErr.message);
 
     const loanUpdate: any = {
-      remaining_amount: newAmount,
+      remaining_amount: newLoanRemaining,
       installments: newInstallmentsTotal,
-      custom_installment_value: newInstallmentValue,
+      // custom_installment_value só faz sentido se TODAS as pendentes têm o mesmo valor
+      custom_installment_value: isPartialReneg ? null : newInstallmentValue,
       renegotiation_penalty_total: (Number(loan.renegotiationPenaltyTotal) || 0) + penaltyAmount,
     };
 
@@ -1202,61 +1250,91 @@ export function useLoans() {
       .from("loans").update(loanUpdate).eq("id", loanId);
     if (loanErr) throw new Error(loanErr.message);
 
-    // Atualiza/recalcula parcelas pendentes mantendo as já pagas intactas
-    const paidScheds = installmentSchedules
-      .filter((s) => s.loanId === loanId && s.installmentNumber <= loan.paidInstallments);
-    const pendingScheds = installmentSchedules
-      .filter((s) => s.loanId === loanId && s.installmentNumber > loan.paidInstallments)
-      .sort((a, b) => a.installmentNumber - b.installmentNumber);
+    if (hasSchedule) {
+      // Estratégia: remover as parcelas selecionadas, depois reinserir desiredNewPending novas parcelas
+      // mantendo as não selecionadas. Por fim, renumerar todas as pendentes em ordem cronológica
+      // para manter integridade de installment_number sequencial.
 
-    if (pendingScheds.length > 0) {
-      // Distribui valor uniformemente; última parcela ajusta diferença
-      const evenValue = Math.round((newAmount / desiredNewPending) * 100) / 100;
-      const limit = Math.min(desiredNewPending, pendingScheds.length);
-      let acc = 0;
-      for (let i = 0; i < limit; i++) {
-        const sched = pendingScheds[i];
-        const isLast = i === desiredNewPending - 1 || i === limit - 1;
-        const amt = isLast ? Math.round((newAmount - acc) * 100) / 100 : evenValue;
-        acc += amt;
-        if (sched.id) {
-          await supabase.from("loan_installments").update({ amount: amt }).eq("id", sched.id);
-        }
+      // 1) Apaga as selecionadas
+      const idsToDelete = pendingScheds
+        .filter((s) => selectedSet.has(s.installmentNumber) && s.id)
+        .map((s) => s.id as string);
+      if (idsToDelete.length > 0) {
+        await supabase.from("loan_installments").delete().in("id", idsToDelete);
       }
-      // Se o usuário aumentou número de parcelas, criar as novas mantendo cadência
-      if (desiredNewPending > pendingScheds.length) {
-        const lastSched = pendingScheds[pendingScheds.length - 1];
-        const baseDate = lastSched?.dueDate || loan.dueDate;
-        for (let i = pendingScheds.length; i < desiredNewPending; i++) {
-          const monthsAhead = i - pendingScheds.length + 1;
+
+      // 2) Calcula datas das novas parcelas: começam após a última parcela existente (paga ou não selecionada)
+      const remainingScheds = pendingScheds.filter((s) => !selectedSet.has(s.installmentNumber));
+      const lastDate = remainingScheds.length > 0
+        ? remainingScheds[remainingScheds.length - 1].dueDate
+        : (allScheds.length > 0 ? allScheds[allScheds.length - 1].dueDate : loan.dueDate);
+
+      // Se substituiu TODAS as pendentes, manter a primeira data igual à primeira selecionada
+      const firstSelectedDate = isPartialReneg
+        ? null
+        : (pendingScheds.find((s) => selectedSet.has(s.installmentNumber))?.dueDate || loan.dueDate);
+
+      // 3) Cria novas parcelas
+      let acc = 0;
+      const newScheds: { dueDate: string; amount: number }[] = [];
+      for (let i = 0; i < desiredNewPending; i++) {
+        let dueStr: string;
+        if (!isPartialReneg && i === 0 && firstSelectedDate) {
+          dueStr = firstSelectedDate;
+        } else {
+          const baseDate = !isPartialReneg && firstSelectedDate ? firstSelectedDate : lastDate;
+          const offsetMonths = !isPartialReneg && firstSelectedDate ? i : (i + 1);
           const d = new Date(baseDate + "T00:00:00");
-          d.setMonth(d.getMonth() + monthsAhead);
-          const dueStr = d.toISOString().slice(0, 10);
-          const isLast = i === desiredNewPending - 1;
-          const amt = isLast ? Math.round((newAmount - acc) * 100) / 100 : evenValue;
-          acc += amt;
+          d.setMonth(d.getMonth() + offsetMonths);
+          dueStr = d.toISOString().slice(0, 10);
+        }
+        const isLast = i === desiredNewPending - 1;
+        const amt = isLast
+          ? Math.round((newAmount - acc) * 100) / 100
+          : newInstallmentValue;
+        acc += amt;
+        newScheds.push({ dueDate: dueStr, amount: amt });
+      }
+
+      // 4) Renumera tudo: pegamos as parcelas pagas + não selecionadas + novas (ordenadas por data)
+      //    e reescrevemos installment_number sequencialmente.
+      const paidScheds = allScheds.filter((s) => s.installmentNumber <= loan.paidInstallments);
+
+      // Atualiza installment_number das pagas (devem manter a ordem)
+      // Não tocamos as pagas — mantêm seus números (1..paidInstallments).
+
+      // Combina pendentes não selecionadas + novas, ordena por data
+      const combinedPending = [
+        ...remainingScheds.map((s) => ({ id: s.id, dueDate: s.dueDate, amount: Number(s.amount || 0), isNew: false })),
+        ...newScheds.map((s) => ({ id: undefined as string | undefined, dueDate: s.dueDate, amount: s.amount, isNew: true })),
+      ].sort((a, b) => a.dueDate.localeCompare(b.dueDate));
+
+      // Atualiza/insere com numeração sequencial após as pagas
+      for (let i = 0; i < combinedPending.length; i++) {
+        const item = combinedPending[i];
+        const newNumber = loan.paidInstallments + i + 1;
+        if (item.isNew) {
           await supabase.from("loan_installments").insert({
             loan_id: loanId,
             user_id: dataOwnerId,
-            installment_number: loan.paidInstallments + i + 1,
-            due_date: dueStr,
-            amount: amt,
+            installment_number: newNumber,
+            due_date: item.dueDate,
+            amount: item.amount,
           } as any);
-        }
-      } else if (desiredNewPending < pendingScheds.length) {
-        // Remover parcelas excedentes
-        for (let i = desiredNewPending; i < pendingScheds.length; i++) {
-          const sched = pendingScheds[i];
-          if (sched.id) await supabase.from("loan_installments").delete().eq("id", sched.id);
+        } else if (item.id) {
+          await supabase.from("loan_installments").update({
+            installment_number: newNumber,
+            amount: item.amount,
+          }).eq("id", item.id);
         }
       }
     }
 
     setLoans((prev) => prev.map((l) => l.id === loanId ? {
       ...l,
-      remainingAmount: newAmount,
+      remainingAmount: newLoanRemaining,
       installments: newInstallmentsTotal,
-      customInstallmentValue: newInstallmentValue,
+      customInstallmentValue: isPartialReneg ? null : newInstallmentValue,
       renegotiationPenaltyTotal: (Number(l.renegotiationPenaltyTotal) || 0) + penaltyAmount,
     } : l));
 
