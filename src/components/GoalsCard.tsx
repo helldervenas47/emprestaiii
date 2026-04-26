@@ -164,6 +164,22 @@ const GOAL_EXPLANATIONS: Record<GoalType, {
     },
     measurement: "Atingimento = (Quantidade realizada ÷ Meta) × 100.",
   },
+  renegotiation_rate: {
+    formula: "Taxa Renegociação (%) = (Valor original renegociado no mês ÷ Valor a receber no mês) × 100",
+    indicators: [
+      "Considera apenas renegociações registradas dentro do mês",
+      "Cada contrato é contado uma única vez (primeira renegociação do mês)",
+      "Numerador: previousAmount (valor original da dívida antes da renegociação)",
+      "Denominador: soma das parcelas/contratos com vencimento no mês",
+    ],
+    dataSource: ["Tabela loan_renegotiations", "Tabela de Empréstimos e Cronograma de Parcelas"],
+    example: {
+      setup: "R$ 10.000 a receber no mês; 1 contrato renegociado com valor original R$ 1.500.",
+      calc: "(1.500 ÷ 10.000) × 100",
+      result: "Taxa de Renegociação = 15,00%",
+    },
+    measurement: "Meta INVERSA: quanto menor, melhor. Atingimento = máx(0, 100 − (Realizado ÷ Meta) × 100).",
+  },
 };
 
 type Unit = "%" | "R$" | "qtd";
