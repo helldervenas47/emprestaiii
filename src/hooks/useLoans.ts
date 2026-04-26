@@ -404,7 +404,7 @@ export function useLoans() {
     await fetchLoans();
   }, [user, dataOwnerId, loans, payments, installmentSchedules, fetchLoans, fetchPayments]);
 
-  const addPartialPayment = useCallback(async (loanId: string, amount: number, paymentDate?: string, paymentMethodId?: string | null) => {
+  const addPartialPayment = useCallback(async (loanId: string, amount: number, paymentDate?: string, paymentMethodId?: string | null, paymentSplit?: PaymentSplit | null) => {
     if (!user || !dataOwnerId) throw new Error("Sessão ainda não carregada");
     if (amount <= 0) throw new Error("Informe um valor de pagamento válido");
     const dateStr = paymentDate || todayInAppTz();
@@ -414,15 +414,18 @@ export function useLoans() {
     const online = isOnline();
 
     const tempPaymentId = crypto.randomUUID();
-    const paymentPayload = {
+    const normalizedSplit = normalizeSplit(paymentSplit ?? null, amount);
+    const splitMetadata = withSplit(null, normalizedSplit);
+    const paymentPayload: any = {
       id: tempPaymentId,
       user_id: dataOwnerId, loan_id: loanId, amount, date: dateStr, installment_number: -1,
       payment_method_id: paymentMethodId ?? null,
     };
+    if (splitMetadata) paymentPayload.metadata = splitMetadata;
     const loanUpdate = { remaining_amount: newRemaining };
 
     setPayments((prev) => [
-      { id: tempPaymentId, loanId, amount, date: dateStr, installmentNumber: -1, paymentMethodId: paymentMethodId ?? null },
+      { id: tempPaymentId, loanId, amount, date: dateStr, installmentNumber: -1, paymentMethodId: paymentMethodId ?? null, metadata: (splitMetadata as any) ?? null },
       ...prev,
     ]);
     setLoans((prev) => prev.map((l) => l.id === loanId ? { ...l, remainingAmount: newRemaining } : l));
