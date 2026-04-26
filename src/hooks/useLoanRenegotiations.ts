@@ -129,8 +129,23 @@ export function useLoanRenegotiations() {
     if (delErr) throw new Error(delErr.message);
 
     setRenegotiations((prev) => prev.filter((r) => r.id !== id));
+
+    // Dispara refresh local imediato dos hooks de loans/parcelas (sem esperar realtime)
+    try {
+      window.dispatchEvent(
+        new CustomEvent("offline-sync:flushed", {
+          detail: { tables: ["loans", "loan_installments", "payments"] },
+        }),
+      );
+    } catch {}
+
+    // Notifica outros dispositivos (toast)
     notifyRemoteUpdate("loans");
     notifyRemoteUpdate("loan_installments");
+
+    // Recarrega o próprio histórico de renegociações
+    await fetchAll();
+
     return { revertedPenalty: penaltyApplied };
   }, [dataOwnerId]);
 
