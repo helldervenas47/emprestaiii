@@ -3046,80 +3046,82 @@ function LoanRowView({
                   </button>
 
                   {showRowDetails && (
-                    <div className="space-y-2 bg-muted/30 rounded-lg p-3 border border-border/50">
-                      <p className="text-xs font-semibold text-foreground mb-2">Cronograma de Parcelas</p>
-                      <div className="grid grid-cols-[auto_1fr_1fr_1fr] gap-x-3 gap-y-1 text-xs">
-                        <span className="font-medium text-muted-foreground">#</span>
-                        <span className="font-medium text-muted-foreground">Vencimento</span>
-                        <span className="font-medium text-muted-foreground">Valor</span>
-                        <span className="font-medium text-muted-foreground">Status</span>
-                        {Array.from({ length: loan.installments }, (_, idx) => {
-                          const i = idx + 1;
-                          const savedSchedule = installmentSchedules.find((s) => s.loanId === loan.id && s.installmentNumber === i);
-                          const firstDueDate = new Date(loan.dueDate + "T00:00:00");
-                          const fallbackDate = getNextDate(firstDueDate, loan.interestType || "Mensal", i - 1);
-                          const instDate = savedSchedule
-                            ? new Date(savedSchedule.dueDate + "T00:00:00")
-                            : i <= loan.paidInstallments
-                              ? (() => {
-                                  const loanPayment = allPayments.find((p) => p.loanId === loan.id && p.installmentNumber === i);
-                                  return loanPayment ? new Date(loanPayment.date + "T00:00:00") : fallbackDate;
-                                })()
-                              : fallbackDate;
-                          const instDateStr = instDate.toLocaleDateString("pt-BR");
-                          const instAmount = savedSchedule?.amount ?? installmentValue;
-                          const isPaid = i <= loan.paidInstallments;
-                          const todayNorm = new Date();
-                          const todayStr = `${todayNorm.getFullYear()}-${String(todayNorm.getMonth() + 1).padStart(2, "0")}-${String(todayNorm.getDate()).padStart(2, "0")}`;
-                          const instIso = instDate.toISOString().split("T")[0];
-                          const isOverdue = !isPaid && instIso < todayStr;
-                          const isDueToday = !isPaid && instIso === todayStr;
-                          return (
-                            <React.Fragment key={i}>
-                              <span className="text-muted-foreground">{i}</span>
-                              <span className="text-foreground">{instDateStr}</span>
-                              <span className="text-foreground font-medium">{formatCurrency(instAmount)}</span>
-                              <span>
-                                {isPaid ? (
-                                  <Badge className="bg-success/20 text-success border-success/30 text-[10px]">Pago</Badge>
-                                ) : isOverdue ? (
-                                  <Badge className="bg-destructive/20 text-destructive border-destructive/30 text-[10px]">Atrasado</Badge>
-                                ) : isDueToday ? (
-                                  <Badge className="bg-warning/20 text-warning border-warning/30 text-[10px]">Hoje</Badge>
-                                ) : (
-                                  <Badge variant="outline" className="text-[10px]">Pendente</Badge>
-                                )}
-                              </span>
-                            </React.Fragment>
-                          );
-                        })}
+                    <div className="space-y-2 bg-muted/30 rounded-lg p-2 sm:p-3 border border-border/50">
+                      <p className="text-xs font-semibold text-foreground mb-1">Cronograma de Parcelas</p>
+                      <div className="max-h-64 sm:max-h-80 overflow-y-auto -mx-1 px-1">
+                        <div className="grid grid-cols-[1.5rem_minmax(0,1fr)_minmax(0,1fr)_auto] gap-x-2 gap-y-1 text-[11px] sm:text-xs items-center">
+                          <span className="font-medium text-muted-foreground">#</span>
+                          <span className="font-medium text-muted-foreground">Venc.</span>
+                          <span className="font-medium text-muted-foreground">Valor</span>
+                          <span className="font-medium text-muted-foreground text-right">Status</span>
+                          {Array.from({ length: loan.installments }, (_, idx) => {
+                            const i = idx + 1;
+                            const savedSchedule = installmentSchedules.find((s) => s.loanId === loan.id && s.installmentNumber === i);
+                            const firstDueDate = new Date(loan.dueDate + "T00:00:00");
+                            const fallbackDate = getNextDate(firstDueDate, loan.interestType || "Mensal", i - 1);
+                            const instDate = savedSchedule
+                              ? new Date(savedSchedule.dueDate + "T00:00:00")
+                              : i <= loan.paidInstallments
+                                ? (() => {
+                                    const loanPayment = allPayments.find((p) => p.loanId === loan.id && p.installmentNumber === i);
+                                    return loanPayment ? new Date(loanPayment.date + "T00:00:00") : fallbackDate;
+                                  })()
+                                : fallbackDate;
+                            const instDateStr = instDate.toLocaleDateString("pt-BR");
+                            const instAmount = savedSchedule?.amount ?? installmentValue;
+                            const isPaid = i <= loan.paidInstallments;
+                            const todayNorm = new Date();
+                            const todayStr = `${todayNorm.getFullYear()}-${String(todayNorm.getMonth() + 1).padStart(2, "0")}-${String(todayNorm.getDate()).padStart(2, "0")}`;
+                            const instIso = instDate.toISOString().split("T")[0];
+                            const isOverdue = !isPaid && instIso < todayStr;
+                            const isDueToday = !isPaid && instIso === todayStr;
+                            return (
+                              <React.Fragment key={i}>
+                                <span className="text-muted-foreground tabular-nums">{i}</span>
+                                <span className="text-foreground tabular-nums truncate">{instDateStr}</span>
+                                <span className="text-foreground font-medium tabular-nums truncate">{formatCurrency(instAmount)}</span>
+                                <span className="justify-self-end">
+                                  {isPaid ? (
+                                    <Badge className="bg-success/20 text-success border-success/30 text-[9px] px-1.5 py-0 h-4">Pago</Badge>
+                                  ) : isOverdue ? (
+                                    <Badge className="bg-destructive/20 text-destructive border-destructive/30 text-[9px] px-1.5 py-0 h-4">Atraso</Badge>
+                                  ) : isDueToday ? (
+                                    <Badge className="bg-warning/20 text-warning border-warning/30 text-[9px] px-1.5 py-0 h-4">Hoje</Badge>
+                                  ) : (
+                                    <Badge variant="outline" className="text-[9px] px-1.5 py-0 h-4">Pend.</Badge>
+                                  )}
+                                </span>
+                              </React.Fragment>
+                            );
+                          })}
+                        </div>
                       </div>
 
-                      <div className="grid grid-cols-2 gap-2 pt-2 mt-2 border-t border-border/30 text-xs">
-                        <div>
-                          <p className="text-muted-foreground">Valor da Parcela</p>
-                          <p className="font-semibold text-foreground">{formatCurrency(installmentValue)}</p>
+                      <div className="grid grid-cols-2 gap-x-2 gap-y-1.5 pt-2 mt-1 border-t border-border/30 text-[11px] sm:text-xs">
+                        <div className="min-w-0">
+                          <p className="text-muted-foreground truncate">Valor da Parcela</p>
+                          <p className="font-semibold text-foreground tabular-nums truncate">{formatCurrency(installmentValue)}</p>
                         </div>
-                        <div>
-                          <p className="text-muted-foreground">Juros por Parcela</p>
-                          <p className="font-semibold text-foreground">{formatCurrency(installmentValue - (loan.amount / Math.max(1, loan.installments)))}</p>
+                        <div className="min-w-0">
+                          <p className="text-muted-foreground truncate">Juros / Parcela</p>
+                          <p className="font-semibold text-foreground tabular-nums truncate">{formatCurrency(installmentValue - (loan.amount / Math.max(1, loan.installments)))}</p>
                         </div>
-                        <div>
-                          <p className="text-muted-foreground">Total de Juros</p>
-                          <p className="font-semibold text-foreground">{formatCurrency(totalInterest)}</p>
+                        <div className="min-w-0">
+                          <p className="text-muted-foreground truncate">Total de Juros</p>
+                          <p className="font-semibold text-foreground tabular-nums truncate">{formatCurrency(totalInterest)}</p>
                         </div>
-                        <div>
-                          <p className="text-muted-foreground">Já Recebido</p>
-                          <p className="font-semibold text-success">{formatCurrency(totalPaid)}</p>
+                        <div className="min-w-0">
+                          <p className="text-muted-foreground truncate">Já Recebido</p>
+                          <p className="font-semibold text-success tabular-nums truncate">{formatCurrency(totalPaid)}</p>
                         </div>
                       </div>
 
                       <div className="pt-2">
-                        <div className="flex justify-between text-xs mb-1">
+                        <div className="flex justify-between text-[11px] sm:text-xs mb-1">
                           <span className="text-muted-foreground">{loan.paidInstallments}/{loan.installments} parcelas</span>
-                          <span className="font-medium text-foreground">{Math.round(progress)}%</span>
+                          <span className="font-medium text-foreground tabular-nums">{Math.round(progress)}%</span>
                         </div>
-                        <Progress value={progress} className="h-2.5" />
+                        <Progress value={progress} className="h-2" />
                       </div>
                     </div>
                   )}
