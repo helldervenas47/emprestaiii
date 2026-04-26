@@ -641,6 +641,7 @@ export function RenegotiateLoanDialog({
                 type="date"
                 value={firstDueDate}
                 onChange={(e) => { setFirstDueDate(e.target.value); setCustomDates({}); setConfirming(false); }}
+                className="h-11 text-sm"
               />
             </div>
             <div className="space-y-1.5">
@@ -649,7 +650,7 @@ export function RenegotiateLoanDialog({
                 value={frequency}
                 onValueChange={(v) => { setFrequency(v as any); setCustomDates({}); setConfirming(false); }}
               >
-                <SelectTrigger className="h-11">
+                <SelectTrigger className="h-11 text-sm">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
