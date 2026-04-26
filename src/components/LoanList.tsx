@@ -1505,6 +1505,7 @@ function LoanCardView({
           </DialogContent>
         </Dialog>
 
+        {loan.notes && (
           <p className="text-xs text-muted-foreground italic bg-muted/30 rounded-lg px-3 py-2">📝 {loan.notes}</p>
         )}
 
