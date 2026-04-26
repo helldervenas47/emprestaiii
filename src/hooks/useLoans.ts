@@ -668,7 +668,21 @@ export function useLoans() {
     const freq = loan.interestType || "Mensal";
     if (freq === "Semanal") currentDue.setDate(currentDue.getDate() + 7);
     else if (freq === "Quinzenal") currentDue.setDate(currentDue.getDate() + 15);
-    else currentDue.setMonth(currentDue.getMonth() + 1);
+    else {
+      currentDue.setMonth(currentDue.getMonth() + 1);
+      // Regra: contratos renegociados preservam a data de vencimento ORIGINAL
+      // como referência fixa de ciclo. O próximo vencimento após pagamento de
+      // juros deve cair no dia original do contrato (ex: original 02/04 →
+      // próximo 02/05), ignorando ajustes pontuais de data feitos na renegociação.
+      const anchorRef = loan.originalDueDate || loan.dueDate;
+      const anchorDay = Number(anchorRef.split("-")[2]);
+      if (Number.isFinite(anchorDay) && anchorDay >= 1 && anchorDay <= 31) {
+        const y = currentDue.getFullYear();
+        const m = currentDue.getMonth();
+        const lastDay = new Date(y, m + 1, 0).getDate();
+        currentDue.setDate(Math.min(anchorDay, lastDay));
+      }
+    }
     const newDueDate = currentDue.toISOString().split("T")[0];
     const online = isOnline();
 
