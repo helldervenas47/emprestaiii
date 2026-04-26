@@ -1477,7 +1477,7 @@ export function useLoans() {
       remainingAmount: newLoanRemaining,
       installments: newInstallmentsTotal,
       customInstallmentValue: (isPartialReneg || useFirstMode) ? null : newInstallmentValue,
-      renegotiationPenaltyTotal: (Number(l.renegotiationPenaltyTotal) || 0) + penaltyAmount,
+      renegotiationPenaltyTotal: Number(l.renegotiationPenaltyTotal) || 0,
       ...(overrideFirstDateTop ? { dueDate: overrideFirstDateTop } : {}),
     } : l));
 
