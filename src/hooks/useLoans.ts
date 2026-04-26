@@ -708,7 +708,16 @@ export function useLoans() {
       payment_method_id: paymentMethodId ?? null,
     };
     if (splitMetadata) paymentPayload.metadata = splitMetadata;
-    const loanUpdate = { due_date: newDueDate };
+    // Se o usuário escolheu pagar "Juros + multa/atraso" e há multa de renegociação
+    // pendente, ela está incluída em feesExtra → quitamos no contrato (zera o saldo
+    // de multa de renegociação e abate do remaining_amount).
+    const renegPenaltyPending = Number(loan.renegotiationPenaltyTotal || 0);
+    const shouldClearRenegPenalty = feesExtra > 0 && renegPenaltyPending > 0;
+    const loanUpdate: any = { due_date: newDueDate };
+    if (shouldClearRenegPenalty) {
+      loanUpdate.renegotiation_penalty_total = 0;
+      loanUpdate.remaining_amount = Math.max(0, Math.round((Number(loan.remainingAmount || 0) - renegPenaltyPending) * 100) / 100);
+    }
 
     setPayments((prev) => [
       { id: tempPaymentId, loanId, amount: interestAmount, date: dateStr, installmentNumber: 0, previousDueDate: loan.dueDate, paymentMethodId: paymentMethodId ?? null, metadata: (splitMetadata as any) ?? null },
