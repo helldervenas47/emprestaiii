@@ -3029,7 +3029,17 @@ function ClientFolder({
   );
 }
 
-export function LoanList({ loans, payments, installmentSchedules, onPayment, onPartialPayment, onFullPayment, onInterestPayment, onAmortize, onUpdate, onDelete, onDeletePayment, onSaveSchedule, readOnly = false, initialCategory, initialView, clients = [] }: Props) {
+export function LoanList({ loans, payments, installmentSchedules, onPayment, onPartialPayment, onFullPayment, onInterestPayment, onAmortize, onRenegotiate, onUpdate, onDelete, onDeletePayment, onSaveSchedule, readOnly = false, initialCategory, initialView, clients = [] }: Props) {
+  const { renegotiations: allRenegotiations } = useLoanRenegotiations();
+  const renegotiationsByLoan = useMemo(() => {
+    const map = new Map<string, LoanRenegotiation[]>();
+    for (const r of allRenegotiations) {
+      const arr = map.get(r.loanId) || [];
+      arr.push(r);
+      map.set(r.loanId, arr);
+    }
+    return map;
+  }, [allRenegotiations]);
   const { mask } = useHideValues();
   const formatCurrency = useCallback((v: number) => mask(rawFormatCurrency(v)), [mask]);
   const [view, setView] = useState<"cards" | "rows" | "folders">(initialView ?? "rows");
