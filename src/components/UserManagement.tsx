@@ -61,6 +61,18 @@ export function UserManagement() {
   const [expandedUserId, setExpandedUserId] = useState<string | null>(null);
   const isMobile = useIsMobileOrTablet();
   const [saving, setSaving] = useState(false);
+  const { user: currentUser } = useAuth();
+  const { startViewing } = useViewAsUser();
+
+  const handleViewAs = async (target: ManagedUser) => {
+    if (target.id === currentUser?.id) {
+      toast.info("Você já está logado nesta conta");
+      return;
+    }
+    if (!confirm(`Entrar em modo visualização (somente leitura) como "${target.display_name}"?\n\nVocê poderá ver todos os dados desta conta, mas não poderá alterar nada.`)) return;
+    const { error } = await startViewing(target.id);
+    if (error) toast.error(error);
+  };
 
   // Plan selection for admins
   const [planUser, setPlanUser] = useState<ManagedUser | null>(null);
