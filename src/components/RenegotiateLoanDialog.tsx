@@ -50,6 +50,7 @@ interface Props {
     type: "no_interest" | "with_penalty";
     penaltyMode?: "fixed" | "percentage" | null;
     penaltyInput?: number | null;
+    penaltyDistribution?: "diluted" | "first" | null;
     newInstallments?: number | null;
     notes?: string | null;
     selectedInstallmentNumbers?: number[] | null;
@@ -69,6 +70,7 @@ export function RenegotiateLoanDialog({
   const [type, setType] = useState<"no_interest" | "with_penalty">("no_interest");
   const [penaltyMode, setPenaltyMode] = useState<"fixed" | "percentage">("fixed");
   const [penaltyInput, setPenaltyInput] = useState("");
+  const [penaltyDistribution, setPenaltyDistribution] = useState<"diluted" | "first">("diluted");
   const [newInstallments, setNewInstallments] = useState("");
   const [notes, setNotes] = useState("");
   const [firstDueDate, setFirstDueDate] = useState("");
@@ -135,9 +137,22 @@ export function RenegotiateLoanDialog({
     return isInstallmentLoan ? Math.max(1, selectedCount) : remainingPending;
   }, [newInstallments, remainingPending, isInstallmentLoan, selectedCount]);
 
-  const newInstallmentValue = installmentsCount > 0
-    ? Math.round((newTotal / installmentsCount) * 100) / 100
+  // Modo "first" só faz sentido com multa > 0 e mais de uma nova parcela
+  const useFirstMode =
+    type === "with_penalty" &&
+    penaltyAmount > 0 &&
+    penaltyDistribution === "first" &&
+    installmentsCount > 1;
+
+  // Valor base da parcela (sem a multa, no modo "first" ela vai inteira na 1ª)
+  const baseInstallmentValue = installmentsCount > 0
+    ? Math.round((useFirstMode ? remaining : newTotal) / installmentsCount * 100) / 100
     : 0;
+  const firstInstallmentValue = useFirstMode
+    ? Math.round((baseInstallmentValue + penaltyAmount) * 100) / 100
+    : baseInstallmentValue;
+  // Mantém compat. com a UI atual ("X parcelas de Y")
+  const newInstallmentValue = baseInstallmentValue;
 
   // Simula o novo cronograma de parcelas pendentes (não selecionadas + novas geradas)
   const simulatedSchedule = useMemo(() => {
@@ -152,9 +167,14 @@ export function RenegotiateLoanDialog({
         if (!isNaN(d.getTime())) d.setMonth(d.getMonth() + i);
         const dueStr = !isNaN(d.getTime()) ? d.toISOString().slice(0, 10) : baseDate;
         const isLast = i === installmentsCount - 1;
-        const amt = isLast
-          ? Math.round((newTotal - acc) * 100) / 100
-          : newInstallmentValue;
+        let amt: number;
+        if (useFirstMode && i === 0) {
+          amt = firstInstallmentValue;
+        } else if (isLast) {
+          amt = Math.round((newTotal - acc) * 100) / 100;
+        } else {
+          amt = baseInstallmentValue;
+        }
         acc += amt;
         result.push({
           number: loan.paidInstallments + i + 1,
@@ -198,9 +218,14 @@ export function RenegotiateLoanDialog({
         dueStr = !isNaN(d.getTime()) ? d.toISOString().slice(0, 10) : baseDate;
       }
       const isLast = i === installmentsCount - 1;
-      const amt = isLast
-        ? Math.round((newTotal - acc) * 100) / 100
-        : newInstallmentValue;
+      let amt: number;
+      if (useFirstMode && i === 0) {
+        amt = firstInstallmentValue;
+      } else if (isLast) {
+        amt = Math.round((newTotal - acc) * 100) / 100;
+      } else {
+        amt = baseInstallmentValue;
+      }
       acc += amt;
       newScheds.push({ dueDate: dueStr, amount: amt });
     }
@@ -226,6 +251,9 @@ export function RenegotiateLoanDialog({
     selectedNumbers,
     installmentsCount,
     newInstallmentValue,
+    baseInstallmentValue,
+    firstInstallmentValue,
+    useFirstMode,
     newTotal,
     loan.dueDate,
     loan.paidInstallments,
@@ -236,6 +264,7 @@ export function RenegotiateLoanDialog({
     setType("no_interest");
     setPenaltyMode("fixed");
     setPenaltyInput("");
+    setPenaltyDistribution("diluted");
     setNewInstallments("");
     setNotes("");
     setConfirming(false);
@@ -287,6 +316,7 @@ export function RenegotiateLoanDialog({
         penaltyInput: type === "with_penalty"
           ? parseFloat(penaltyInput.replace(",", ".")) || 0
           : null,
+        penaltyDistribution: type === "with_penalty" ? penaltyDistribution : null,
         newInstallments: parseInt(newInstallments) || null,
         notes: notes.trim() || null,
         selectedInstallmentNumbers:
@@ -524,6 +554,34 @@ export function RenegotiateLoanDialog({
                 value={penaltyInput}
                 onChange={(e) => { setPenaltyInput(e.target.value); setConfirming(false); }}
               />
+              <div className="space-y-1.5 pt-1">
+                <Label className="text-xs">Cobrança da multa</Label>
+                <div className="flex gap-2">
+                  <Button
+                    size="sm"
+                    type="button"
+                    variant={penaltyDistribution === "diluted" ? "default" : "outline"}
+                    className="flex-1 h-8 text-[11px]"
+                    onClick={() => { setPenaltyDistribution("diluted"); setConfirming(false); }}
+                  >
+                    Diluída nas parcelas
+                  </Button>
+                  <Button
+                    size="sm"
+                    type="button"
+                    variant={penaltyDistribution === "first" ? "default" : "outline"}
+                    className="flex-1 h-8 text-[11px]"
+                    onClick={() => { setPenaltyDistribution("first"); setConfirming(false); }}
+                  >
+                    Só na 1ª parcela
+                  </Button>
+                </div>
+                <p className="text-[10px] text-muted-foreground">
+                  {penaltyDistribution === "diluted"
+                    ? "A multa é dividida igualmente entre todas as novas parcelas."
+                    : "A multa inteira é somada à 1ª nova parcela; as demais ficam sem multa."}
+                </p>
+              </div>
             </div>
           )}
 
@@ -590,7 +648,9 @@ export function RenegotiateLoanDialog({
             <div className="flex justify-between">
               <span className="text-muted-foreground">Parcelas</span>
               <span>
-                {installmentsCount}× de {formatCurrency(newInstallmentValue)}
+                {useFirstMode
+                  ? `1ª: ${formatCurrency(firstInstallmentValue)} + ${installmentsCount - 1}× ${formatCurrency(baseInstallmentValue)}`
+                  : `${installmentsCount}× de ${formatCurrency(newInstallmentValue)}`}
               </span>
             </div>
           </div>

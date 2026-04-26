@@ -1221,6 +1221,7 @@ export function useLoans() {
       type: "no_interest" | "with_penalty";
       penaltyMode?: "fixed" | "percentage" | null;
       penaltyInput?: number | null;
+      penaltyDistribution?: "diluted" | "first" | null;
       newInstallments?: number | null;
       notes?: string | null;
       selectedInstallmentNumbers?: number[] | null;
@@ -1287,7 +1288,22 @@ export function useLoans() {
           ? Math.max(1, selectedSet.size)
           : Math.max(1, loan.installments - loan.paidInstallments));
 
-    const newInstallmentValue = Math.round((newAmount / desiredNewPending) * 100) / 100;
+    // Modo "first": multa inteira na 1ª nova parcela (só faz sentido com multa > 0 e mais de uma parcela).
+    const useFirstMode =
+      params.type === "with_penalty" &&
+      penaltyAmount > 0 &&
+      params.penaltyDistribution === "first" &&
+      desiredNewPending > 1;
+
+    // Valor "base" das novas parcelas. No modo "first", a base ignora a multa.
+    const baseInstallmentValue = useFirstMode
+      ? Math.round((remaining / desiredNewPending) * 100) / 100
+      : Math.round((newAmount / desiredNewPending) * 100) / 100;
+    const firstInstallmentValue = useFirstMode
+      ? Math.round((baseInstallmentValue + penaltyAmount) * 100) / 100
+      : baseInstallmentValue;
+    // Mantém variável original para compatibilidade no resto do fluxo (custom_installment_value etc.)
+    const newInstallmentValue = baseInstallmentValue;
 
     // Saldo total novo do contrato (parcelas pagas + não selecionadas + novas renegociadas)
     const unselectedPendingTotal = pendingScheds
@@ -1349,8 +1365,9 @@ export function useLoans() {
     const loanUpdate: any = {
       remaining_amount: newLoanRemaining,
       installments: newInstallmentsTotal,
-      // custom_installment_value só faz sentido se TODAS as pendentes têm o mesmo valor
-      custom_installment_value: isPartialReneg ? null : newInstallmentValue,
+      // custom_installment_value só faz sentido se TODAS as pendentes têm o mesmo valor.
+      // No modo "first", a 1ª parcela carrega a multa → valores diferentes → null.
+      custom_installment_value: (isPartialReneg || useFirstMode) ? null : newInstallmentValue,
       renegotiation_penalty_total: (Number(loan.renegotiationPenaltyTotal) || 0) + penaltyAmount,
       ...(overrideFirstDateTop ? { due_date: overrideFirstDateTop } : {}),
     };
@@ -1407,9 +1424,14 @@ export function useLoans() {
           dueStr = d.toISOString().slice(0, 10);
         }
         const isLast = i === desiredNewPending - 1;
-        const amt = isLast
-          ? Math.round((newAmount - acc) * 100) / 100
-          : newInstallmentValue;
+        let amt: number;
+        if (useFirstMode && i === 0) {
+          amt = firstInstallmentValue;
+        } else if (isLast) {
+          amt = Math.round((newAmount - acc) * 100) / 100;
+        } else {
+          amt = baseInstallmentValue;
+        }
         acc += amt;
         newScheds.push({ dueDate: dueStr, amount: amt });
       }
@@ -1452,7 +1474,7 @@ export function useLoans() {
       ...l,
       remainingAmount: newLoanRemaining,
       installments: newInstallmentsTotal,
-      customInstallmentValue: isPartialReneg ? null : newInstallmentValue,
+      customInstallmentValue: (isPartialReneg || useFirstMode) ? null : newInstallmentValue,
       renegotiationPenaltyTotal: (Number(l.renegotiationPenaltyTotal) || 0) + penaltyAmount,
       ...(overrideFirstDateTop ? { dueDate: overrideFirstDateTop } : {}),
     } : l));
