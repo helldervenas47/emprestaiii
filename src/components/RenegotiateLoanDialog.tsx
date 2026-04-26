@@ -281,6 +281,7 @@ export function RenegotiateLoanDialog({
           isInstallmentLoan && pendingInstallments.length > 0
             ? Array.from(selectedNumbers).sort((a, b) => a - b)
             : null,
+        firstDueDate: firstDueDate && /^\d{4}-\d{2}-\d{2}$/.test(firstDueDate) ? firstDueDate : null,
       });
       reset();
       onOpenChange(false);
