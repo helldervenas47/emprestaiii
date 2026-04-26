@@ -82,17 +82,18 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, onUpda
     (name: string) => getPersonalCategory(name, customCategoryList),
     [customCategoryList],
   );
-  // Lista unificada para limites de gastos: built-in + customizadas (sem duplicar por nome).
+  // Lista unificada para limites de gastos: customizadas têm prioridade sobre built-ins
+  // (com mesmo nome), permitindo "sobrescrever" uma categoria padrão editando-a.
   const allBudgetCategories = useMemo<PersonalCategory[]>(() => {
     const seen = new Set<string>();
     const out: PersonalCategory[] = [];
-    for (const c of [...personalCategories, ...customCategoryList]) {
+    for (const c of [...customCategoryList, ...personalCategories]) {
       const key = c.name.trim().toLowerCase();
       if (seen.has(key)) continue;
       seen.add(key);
       out.push(c);
     }
-    return out;
+    return out.sort((a, b) => a.name.localeCompare(b.name, "pt-BR"));
   }, [customCategoryList]);
 
   const [search, setSearch] = useState("");
