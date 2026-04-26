@@ -287,6 +287,8 @@ export function RenegotiateLoanDialog({
     setPenaltyDistribution("diluted");
     setNewInstallments("");
     setNotes("");
+    setFrequency("monthly");
+    setCustomDates({});
     setConfirming(false);
   };
 
