@@ -1368,7 +1368,9 @@ export function useLoans() {
       // custom_installment_value só faz sentido se TODAS as pendentes têm o mesmo valor.
       // No modo "first", a 1ª parcela carrega a multa → valores diferentes → null.
       custom_installment_value: (isPartialReneg || useFirstMode) ? null : newInstallmentValue,
-      renegotiation_penalty_total: (Number(loan.renegotiationPenaltyTotal) || 0) + penaltyAmount,
+      // A multa já está embutida em newAmount (e portanto em newLoanRemaining e nas parcelas).
+      // Não acumular em renegotiation_penalty_total para evitar cobrança em dobro.
+      renegotiation_penalty_total: Number(loan.renegotiationPenaltyTotal) || 0,
       ...(overrideFirstDateTop ? { due_date: overrideFirstDateTop } : {}),
     };
 
@@ -1475,7 +1477,7 @@ export function useLoans() {
       remainingAmount: newLoanRemaining,
       installments: newInstallmentsTotal,
       customInstallmentValue: (isPartialReneg || useFirstMode) ? null : newInstallmentValue,
-      renegotiationPenaltyTotal: (Number(l.renegotiationPenaltyTotal) || 0) + penaltyAmount,
+      renegotiationPenaltyTotal: Number(l.renegotiationPenaltyTotal) || 0,
       ...(overrideFirstDateTop ? { dueDate: overrideFirstDateTop } : {}),
     } : l));
 
