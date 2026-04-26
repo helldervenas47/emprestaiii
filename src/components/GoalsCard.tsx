@@ -690,7 +690,133 @@ export function GoalsCard({ loans, payments, expenses, clients, installmentSched
         loans={loans}
         installmentSchedules={installmentSchedules}
       />
+
+      <CustomizeGoalsDialog
+        open={showCustomize}
+        onClose={() => setShowCustomize(false)}
+        prefs={prefs}
+        onSave={(next) => { savePrefs(next); setShowCustomize(false); }}
+      />
     </Card>
+  );
+}
+
+interface CustomizePrefs { selected: GoalType[]; order: GoalType[] }
+
+function CustomizeGoalsDialog({
+  open, onClose, prefs, onSave,
+}: { open: boolean; onClose: () => void; prefs: CustomizePrefs; onSave: (next: CustomizePrefs) => void }) {
+  const [draft, setDraft] = useState<CustomizePrefs>(prefs);
+
+  useEffect(() => { if (open) setDraft(prefs); }, [open, prefs]);
+
+  const toggle = (type: GoalType) => {
+    const isSelected = draft.selected.includes(type);
+    if (isSelected) {
+      setDraft({ ...draft, selected: draft.selected.filter((t) => t !== type) });
+    } else {
+      if (draft.selected.length >= MAX_VISIBLE_GOALS) {
+        toast.warning(`Você pode selecionar até ${MAX_VISIBLE_GOALS} metas.`);
+        return;
+      }
+      setDraft({ ...draft, selected: [...draft.selected, type] });
+    }
+  };
+
+  const move = (type: GoalType, direction: -1 | 1) => {
+    const order = draft.order.slice();
+    const idx = order.indexOf(type);
+    const target = idx + direction;
+    if (idx < 0 || target < 0 || target >= order.length) return;
+    [order[idx], order[target]] = [order[target], order[idx]];
+    setDraft({ ...draft, order });
+  };
+
+  const reset = () => setDraft({
+    selected: ALL_GOAL_TYPES.slice(0, MAX_VISIBLE_GOALS),
+    order: ALL_GOAL_TYPES.slice(),
+  });
+
+  return (
+    <Dialog open={open} onOpenChange={(o) => { if (!o) onClose(); }}>
+      <DialogContent className="max-w-md max-h-[85vh] overflow-hidden flex flex-col">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <Settings2 className="h-4 w-4 text-primary" />
+            Personalizar Metas
+          </DialogTitle>
+          <DialogDescription>
+            Selecione até <strong>{MAX_VISIBLE_GOALS}</strong> metas e ajuste a ordem em que aparecem no painel.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="flex items-center justify-between text-xs text-muted-foreground px-1 py-1 border-b border-border/40">
+          <span>Selecionadas: <strong className={draft.selected.length >= MAX_VISIBLE_GOALS ? "text-warning" : "text-foreground"}>{draft.selected.length}</strong> / {MAX_VISIBLE_GOALS}</span>
+          <Button variant="ghost" size="sm" type="button" onClick={reset} className="h-7 px-2 text-[11px]">Restaurar padrão</Button>
+        </div>
+
+        <ScrollArea className="flex-1 -mx-2 px-2">
+          <ul className="space-y-1.5 py-2">
+            {draft.order.map((type, idx) => {
+              const meta = GOAL_TYPE_META[type];
+              const checked = draft.selected.includes(type);
+              const Icon = meta?.icon || Target;
+              return (
+                <li
+                  key={type}
+                  className={`flex items-center gap-2 rounded-lg border p-2 transition-colors ${checked ? "border-primary/40 bg-primary/5" : "border-border bg-card/50"}`}
+                >
+                  <Checkbox
+                    checked={checked}
+                    onCheckedChange={() => toggle(type)}
+                    aria-label={`Selecionar ${meta?.label}`}
+                  />
+                  <div className={`h-8 w-8 rounded-md ${meta?.bgColor || "bg-muted"} flex items-center justify-center shrink-0`}>
+                    <Icon className={`h-4 w-4 ${meta?.color || "text-foreground"}`} />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-medium text-foreground truncate">{meta?.label || type}</p>
+                    <p className="text-[10px] text-muted-foreground truncate">{meta?.description}</p>
+                  </div>
+                  <div className="flex flex-col gap-0.5 shrink-0">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      type="button"
+                      onClick={() => move(type, -1)}
+                      disabled={idx === 0}
+                      className="h-5 w-5"
+                      aria-label="Mover para cima"
+                    >
+                      <ArrowUp className="h-3 w-3" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      type="button"
+                      onClick={() => move(type, 1)}
+                      disabled={idx === draft.order.length - 1}
+                      className="h-5 w-5"
+                      aria-label="Mover para baixo"
+                    >
+                      <ArrowDown className="h-3 w-3" />
+                    </Button>
+                  </div>
+                  <GripVertical className="h-3.5 w-3.5 text-muted-foreground/40 shrink-0" />
+                </li>
+              );
+            })}
+          </ul>
+        </ScrollArea>
+
+        <div className="flex justify-end gap-2 pt-2 border-t border-border/40">
+          <Button variant="outline" type="button" onClick={onClose}>Cancelar</Button>
+          <Button type="button" onClick={() => onSave(draft)} disabled={draft.selected.length === 0}>
+            Salvar
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }
 
