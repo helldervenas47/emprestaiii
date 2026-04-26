@@ -61,3 +61,11 @@ export const getPersonalCategory = (
 /** Resolve a Lucide component from its string name (custom-category storage). */
 export const resolvePersonalIcon = (iconName: string): LucideIcon =>
   personalIconMap[iconName] ?? Package;
+
+/** Reverse lookup: find the string key in personalIconMap for a given Lucide component. */
+export const getIconName = (icon: LucideIcon): string => {
+  for (const [k, v] of Object.entries(personalIconMap)) {
+    if (v === icon) return k;
+  }
+  return "Package";
+};
