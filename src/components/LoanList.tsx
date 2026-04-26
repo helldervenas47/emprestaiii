@@ -2270,7 +2270,10 @@ function LoanRowView({
     }
   }
   const penaltyTotal = (loan.penaltyValue != null && loan.penaltyValue > 0 && effectiveDaysLate > 0 && loan.status !== "paid") ? loan.penaltyValue : 0;
-  const lateFees = lateInterestTotal + penaltyTotal;
+  const renegPenaltyPending = (loan.installments < 2 && loan.status !== "paid")
+    ? Number(loan.renegotiationPenaltyTotal || 0)
+    : 0;
+  const lateFees = lateInterestTotal + penaltyTotal + renegPenaltyPending;
   const interestPaymentsReceived = allPayments
     .filter((p) => p.loanId === loan.id && p.installmentNumber === 0)
     .reduce((sum, p) => sum + p.amount, 0);
