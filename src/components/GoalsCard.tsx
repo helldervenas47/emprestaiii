@@ -204,6 +204,7 @@ interface Props {
   expenses: Expense[];
   clients: Client[];
   installmentSchedules?: InstallmentSchedule[];
+  renegotiations?: LoanRenegotiation[];
   selectedMonth?: string; // YYYY-MM — filtra metas exibidas (exceto active_capital)
   periodLabel?: string;
 }
