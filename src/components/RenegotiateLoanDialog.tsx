@@ -645,14 +645,38 @@ export function RenegotiateLoanDialog({
               <span>Novo total renegociado</span>
               <span>{formatCurrency(newTotal)}</span>
             </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Parcelas</span>
-              <span>
-                {useFirstMode
-                  ? `1ª: ${formatCurrency(firstInstallmentValue)} + ${installmentsCount - 1}× ${formatCurrency(baseInstallmentValue)}`
-                  : `${installmentsCount}× de ${formatCurrency(newInstallmentValue)}`}
-              </span>
-            </div>
+            {useFirstMode ? (
+              <>
+                <div className="flex justify-between border-t border-border/50 pt-1.5">
+                  <span className="text-muted-foreground">Qtd. de parcelas</span>
+                  <span className="font-medium">{installmentsCount}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">1ª parcela (com multa)</span>
+                  <span className="font-semibold text-warning">{formatCurrency(firstInstallmentValue)}</span>
+                </div>
+                {installmentsCount > 1 && (
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">
+                      Demais ({installmentsCount - 1}× sem multa)
+                    </span>
+                    <span className="font-medium">{formatCurrency(baseInstallmentValue)}</span>
+                  </div>
+                )}
+              </>
+            ) : (
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Parcelas</span>
+                <span className="font-medium">
+                  {installmentsCount}× de {formatCurrency(newInstallmentValue)}
+                  {type === "with_penalty" && penaltyAmount > 0 && installmentsCount > 1 && (
+                    <span className="text-[10px] text-muted-foreground ml-1">
+                      (multa diluída)
+                    </span>
+                  )}
+                </span>
+              </div>
+            )}
           </div>
 
           {simulatedSchedule.length > 0 && (
