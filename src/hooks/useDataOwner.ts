@@ -13,13 +13,13 @@ export function useDataOwner() {
     }
 
     const fetch = async () => {
-      const { data } = await supabase
-        .from("user_owner" as any)
-        .select("owner_id")
-        .eq("user_id", user.id)
-        .maybeSingle();
-
-      setDataOwnerId((data as any)?.owner_id || user.id);
+      // Use SQL function so "view as" sessions and user_owner are both respected.
+      const { data, error } = await supabase.rpc("get_data_owner_id", { _user_id: user.id });
+      if (error || !data) {
+        setDataOwnerId(user.id);
+      } else {
+        setDataOwnerId(data as string);
+      }
     };
 
     fetch();
