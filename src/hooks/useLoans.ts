@@ -1365,8 +1365,9 @@ export function useLoans() {
     const loanUpdate: any = {
       remaining_amount: newLoanRemaining,
       installments: newInstallmentsTotal,
-      // custom_installment_value só faz sentido se TODAS as pendentes têm o mesmo valor
-      custom_installment_value: isPartialReneg ? null : newInstallmentValue,
+      // custom_installment_value só faz sentido se TODAS as pendentes têm o mesmo valor.
+      // No modo "first", a 1ª parcela carrega a multa → valores diferentes → null.
+      custom_installment_value: (isPartialReneg || useFirstMode) ? null : newInstallmentValue,
       renegotiation_penalty_total: (Number(loan.renegotiationPenaltyTotal) || 0) + penaltyAmount,
       ...(overrideFirstDateTop ? { due_date: overrideFirstDateTop } : {}),
     };
