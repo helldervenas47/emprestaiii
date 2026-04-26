@@ -1394,6 +1394,16 @@ function LoanCardView({
                       : `Cálculo: vencimento atual + ${freq === "Semanal" ? "7" : "15"} dias (frequência ${freq}).`}
                   </p>
                 </div>
+                <div className="col-span-2 pt-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-full h-8 text-xs gap-1.5"
+                    onClick={() => setShowAccountModal(true)}
+                  >
+                    📒 Ver conta passo a passo
+                  </Button>
+                </div>
               </div>
             </div>
           );
