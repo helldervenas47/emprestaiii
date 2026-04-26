@@ -664,24 +664,31 @@ export function useLoans() {
       : loan.amount * (loan.interestRate / 100);
     const interestAmount = customAmount != null && customAmount > 0 ? customAmount : baseInterest;
     const feesExtra = feesAmount != null && feesAmount > 0 ? feesAmount : 0;
-    const currentDue = new Date(loan.dueDate + "T00:00:00");
+    // Regra: o próximo vencimento após pagar juros é SEMPRE calculado a partir
+    // da ÂNCORA original (originalDueDate), IGNORANDO qualquer adiamento feito
+    // por renegociação no due_date. Avançamos ciclos a partir da âncora até
+    // ficar estritamente APÓS a data do pagamento.
+    const anchorRef = loan.originalDueDate || loan.dueDate;
     const freq = loan.interestType || "Mensal";
-    if (freq === "Semanal") currentDue.setDate(currentDue.getDate() + 7);
-    else if (freq === "Quinzenal") currentDue.setDate(currentDue.getDate() + 15);
-    else {
-      currentDue.setMonth(currentDue.getMonth() + 1);
-      // Regra: contratos renegociados preservam a data de vencimento ORIGINAL
-      // como referência fixa de ciclo. O próximo vencimento após pagamento de
-      // juros deve cair no dia original do contrato (ex: original 02/04 →
-      // próximo 02/05), ignorando ajustes pontuais de data feitos na renegociação.
-      const anchorRef = loan.originalDueDate || loan.dueDate;
-      const anchorDay = Number(anchorRef.split("-")[2]);
-      if (Number.isFinite(anchorDay) && anchorDay >= 1 && anchorDay <= 31) {
-        const y = currentDue.getFullYear();
-        const m = currentDue.getMonth();
-        const lastDay = new Date(y, m + 1, 0).getDate();
-        currentDue.setDate(Math.min(anchorDay, lastDay));
+    const advance = (d: Date) => {
+      if (freq === "Semanal") d.setDate(d.getDate() + 7);
+      else if (freq === "Quinzenal") d.setDate(d.getDate() + 15);
+      else {
+        const anchorDay = Number(anchorRef.split("-")[2]);
+        d.setMonth(d.getMonth() + 1);
+        if (Number.isFinite(anchorDay) && anchorDay >= 1 && anchorDay <= 31) {
+          const lastDay = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
+          d.setDate(Math.min(anchorDay, lastDay));
+        }
       }
+    };
+    const currentDue = new Date(anchorRef + "T00:00:00");
+    // Avança no mínimo 1 período; continua avançando enquanto for ≤ data do pagamento
+    advance(currentDue);
+    let guard = 0;
+    while (currentDue.toISOString().split("T")[0] <= dateStr && guard < 600) {
+      advance(currentDue);
+      guard += 1;
     }
     const newDueDate = currentDue.toISOString().split("T")[0];
     const online = isOnline();
