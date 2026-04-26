@@ -15,6 +15,8 @@ const STALE_CACHE_PATTERNS = [
   /must be used within/i,
   /Cannot read propert(y|ies) of undefined/i,
   /Loading chunk \d+ failed/i,
+  /Component is not a function/i,
+  /'Component' is (undefined|an instance of Object)/i,
 ];
 
 function isLikelyStaleCacheError(error: Error): boolean {
