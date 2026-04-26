@@ -596,15 +596,17 @@ export function GoalsCard({ loans, payments, expenses, clients, installmentSched
           </div>
         </div>
 
-        {enriched.length === 0 ? (
+        {visibleGoals.length === 0 ? (
           <div className="text-center py-8 text-sm text-muted-foreground">
-            {selectedMonth
-              ? `Nenhuma meta cadastrada para ${periodLabel || formatMonthLabel(selectedMonth)}.`
-              : "Nenhuma meta cadastrada. Cadastre metas em Configurações → Metas para acompanhar aqui."}
+            {enriched.length === 0
+              ? (selectedMonth
+                  ? `Nenhuma meta cadastrada para ${periodLabel || formatMonthLabel(selectedMonth)}.`
+                  : "Nenhuma meta cadastrada. Cadastre metas em Configurações → Metas para acompanhar aqui.")
+              : "Nenhuma meta selecionada para exibição. Clique em \"Personalizar\" para escolher quais aparecem."}
           </div>
         ) : (
           <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-3">
-            {enriched.map((g) => {
+            {visibleGoals.map((g) => {
               const Icon = g.meta?.icon || Target;
               const status = g.goalType === "max_default_rate"
                 ? (g.pct === 100 ? "success" : "destructive")
