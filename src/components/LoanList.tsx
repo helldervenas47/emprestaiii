@@ -1401,8 +1401,8 @@ function LoanCardView({
                   <p className="font-semibold text-primary">{fmt(nextDue)}</p>
                   <p className="text-[10px] text-muted-foreground mt-1">
                     {freq === "Mensal"
-                      ? `Cálculo: vencimento atual + 1 mês, ajustado para o dia ${originalDueIso.split("-")[2]} (âncora original).`
-                      : `Cálculo: vencimento atual + ${freq === "Semanal" ? "7" : "15"} dias (frequência ${freq}).`}
+                      ? `Cálculo: próximo dia ${originalDueIso.split("-")[2]} (âncora original) após hoje. Renegociações no vencimento são ignoradas.`
+                      : `Cálculo: próximo ciclo de ${freq === "Semanal" ? "7" : "15"} dias a partir da âncora, após hoje.`}
                   </p>
                 </div>
                 <div className="col-span-2 pt-2">
