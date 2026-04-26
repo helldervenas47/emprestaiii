@@ -464,6 +464,22 @@ export function RenegotiateLoanDialog({
           </div>
 
           <div className="space-y-1.5">
+            <Label className="text-xs flex items-center gap-1.5">
+              <CalendarDays className="h-3.5 w-3.5" /> Nova data de vencimento
+              {installmentsCount > 1 && (
+                <span className="text-[10px] text-muted-foreground font-normal">
+                  (1ª parcela — demais seguem mensalmente)
+                </span>
+              )}
+            </Label>
+            <Input
+              type="date"
+              value={firstDueDate}
+              onChange={(e) => { setFirstDueDate(e.target.value); setConfirming(false); }}
+            />
+          </div>
+
+          <div className="space-y-1.5">
             <Label className="text-xs">Observações (opcional)</Label>
             <Textarea
               rows={2}
