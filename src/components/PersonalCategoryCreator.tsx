@@ -25,6 +25,8 @@ interface Props {
   deleteCategory?: (id: string) => Promise<void>;
   /** When provided, the dialog runs in edit mode for this category. */
   editing?: ExistingCategory | null;
+  /** When provided (and not editing), pre-fills the create form. */
+  initial?: { name: string; icon: string; color: string } | null;
 }
 
 const iconNames = Object.keys(personalIconMap);
