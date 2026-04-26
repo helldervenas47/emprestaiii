@@ -43,6 +43,27 @@ function rowToPayment(p: any): Payment {
   };
 }
 
+/**
+ * Validates a payment split (must have 2 parts whose amounts sum to expected total).
+ * Returns the normalized split or null if invalid/empty.
+ */
+function normalizeSplit(split: PaymentSplit | null | undefined, expectedTotal: number): PaymentSplit | null {
+  if (!split || !Array.isArray(split.parts) || split.parts.length < 2) return null;
+  const parts = split.parts.filter((p) => p && Number(p.amount) > 0);
+  if (parts.length < 2) return null;
+  const sum = parts.reduce((acc, p) => acc + Number(p.amount), 0);
+  if (Math.abs(sum - expectedTotal) > 0.02) return null;
+  return { parts: parts.map((p) => ({ paymentMethodId: p.paymentMethodId ?? null, amount: Number(p.amount) })) };
+}
+
+/**
+ * Builds metadata object including split info if provided. Preserves existing metadata.
+ */
+function withSplit(base: Record<string, any> | null | undefined, split: PaymentSplit | null): Record<string, any> | undefined {
+  if (!split) return base ?? undefined;
+  return { ...(base ?? {}), split };
+}
+
 export function useLoans() {
   const { user, dataOwnerId } = useAuth();
   const [loans, setLoans] = useState<Loan[]>([]);
