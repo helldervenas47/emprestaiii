@@ -316,6 +316,7 @@ export function RenegotiateLoanDialog({
         penaltyInput: type === "with_penalty"
           ? parseFloat(penaltyInput.replace(",", ".")) || 0
           : null,
+        penaltyDistribution: type === "with_penalty" ? penaltyDistribution : null,
         newInstallments: parseInt(newInstallments) || null,
         notes: notes.trim() || null,
         selectedInstallmentNumbers:
