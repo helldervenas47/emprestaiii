@@ -381,6 +381,7 @@ function LoanCardView({
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deletePaymentId, setDeletePaymentId] = useState<string | null>(null);
   const [showAdjustDueDate, setShowAdjustDueDate] = useState(false);
+  const [showAccountModal, setShowAccountModal] = useState(false);
   const { activeMethods } = usePaymentMethods();
   const [selectedMethodId, setSelectedMethodId] = useState<string>("");
   const [splitEnabled, setSplitEnabled] = useState(false);
@@ -1393,10 +1394,116 @@ function LoanCardView({
                       : `Cálculo: vencimento atual + ${freq === "Semanal" ? "7" : "15"} dias (frequência ${freq}).`}
                   </p>
                 </div>
+                <div className="col-span-2 pt-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-full h-8 text-xs gap-1.5"
+                    onClick={() => setShowAccountModal(true)}
+                  >
+                    📒 Ver conta passo a passo
+                  </Button>
+                </div>
               </div>
             </div>
           );
         })()}
+
+        {/* Modal: Conta passo a passo */}
+        <Dialog open={showAccountModal} onOpenChange={setShowAccountModal}>
+          <DialogContent className="sm:max-w-[480px] max-h-[85vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>📒 Conta passo a passo</DialogTitle>
+            </DialogHeader>
+            {(() => {
+              const fmtBR = (iso: string) => {
+                const [y, m, d] = iso.split("-");
+                return `${d}/${m}/${y}`;
+              };
+              const addPeriod = (iso: string, anchorIso: string, freq: string) => {
+                const d = new Date(iso + "T00:00:00");
+                if (freq === "Semanal") d.setDate(d.getDate() + 7);
+                else if (freq === "Quinzenal") d.setDate(d.getDate() + 15);
+                else {
+                  const anchorDay = Number(anchorIso.split("-")[2]);
+                  d.setMonth(d.getMonth() + 1);
+                  if (Number.isFinite(anchorDay)) {
+                    const lastDay = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
+                    d.setDate(Math.min(anchorDay, lastDay));
+                  }
+                }
+                return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+              };
+              const freq = loan.interestType || "Mensal";
+              const baseIso = loan.originalDueDate || loan.dueDate;
+              const interestPayments = allPayments
+                .filter((p) => p.loanId === loan.id && p.metadata?.kind !== "amortization")
+                .sort((a, b) => a.date.localeCompare(b.date));
+              const steps: { label: string; date: string; detail?: string; highlight?: boolean }[] = [];
+              steps.push({
+                label: "Data base (vencimento original — âncora fixa)",
+                date: fmtBR(baseIso),
+                detail: `Frequência: ${freq}. Esta data nunca muda, mesmo após renegociações.`,
+              });
+              let runningDue = baseIso;
+              interestPayments.forEach((p, idx) => {
+                const prev = p.previousDueDate || runningDue;
+                const next = addPeriod(prev, baseIso, freq);
+                steps.push({
+                  label: `Pagamento de juros #${idx + 1} em ${fmtBR(p.date)}`,
+                  date: `${fmtBR(prev)} → ${fmtBR(next)}`,
+                  detail: `Valor pago: ${formatCurrency(p.amount)}. Novo vencimento = ${fmtBR(prev)} + 1 ${freq.toLowerCase()}${freq === "Mensal" ? `, ajustado para o dia ${baseIso.split("-")[2]}` : ""}.`,
+                });
+                runningDue = next;
+              });
+              steps.push({
+                label: "Vencimento atual no sistema",
+                date: fmtBR(loan.dueDate),
+                detail: loan.originalDueDate && loan.originalDueDate !== loan.dueDate
+                  ? "⚠️ Renegociado — diferente da âncora."
+                  : "Alinhado com a âncora original.",
+              });
+              const nextProj = addPeriod(loan.dueDate, baseIso, freq);
+              steps.push({
+                label: "Se pagar juros agora",
+                date: `${fmtBR(loan.dueDate)} → ${fmtBR(nextProj)}`,
+                detail: `Próximo vencimento = ${fmtBR(loan.dueDate)} + 1 ${freq.toLowerCase()}${freq === "Mensal" ? `, dia ${baseIso.split("-")[2]} (âncora)` : ""}.`,
+                highlight: true,
+              });
+              return (
+                <div className="space-y-3 text-sm">
+                  <p className="text-xs text-muted-foreground">
+                    Linha do tempo do ciclo de vencimentos baseada nos pagamentos reais registrados.
+                  </p>
+                  <ol className="space-y-2">
+                    {steps.map((s, i) => (
+                      <li
+                        key={i}
+                        className={cn(
+                          "rounded-lg border p-3 space-y-1",
+                          s.highlight ? "border-primary/50 bg-primary/5" : "border-border/50 bg-muted/20",
+                        )}
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <span className="text-xs font-semibold text-foreground">
+                            {i + 1}. {s.label}
+                          </span>
+                          <span className={cn("text-xs font-mono tabular-nums shrink-0", s.highlight ? "text-primary font-bold" : "text-foreground")}>
+                            {s.date}
+                          </span>
+                        </div>
+                        {s.detail && <p className="text-[11px] text-muted-foreground">{s.detail}</p>}
+                      </li>
+                    ))}
+                  </ol>
+                </div>
+              );
+            })()}
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setShowAccountModal(false)}>Fechar</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
 
         {loan.notes && (
           <p className="text-xs text-muted-foreground italic bg-muted/30 rounded-lg px-3 py-2">📝 {loan.notes}</p>
