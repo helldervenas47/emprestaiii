@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
 import { LoanRenegotiation } from "@/types/loan";
+import { notifyRemoteUpdate } from "@/lib/realtimeToast";
 
 function rowToRenegotiation(r: any): LoanRenegotiation {
   return {
