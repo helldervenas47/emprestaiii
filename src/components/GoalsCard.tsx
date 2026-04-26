@@ -451,17 +451,24 @@ function loadGoalPrefs(userId: string | null | undefined): { selected: GoalType[
     const raw = window.localStorage.getItem(`goalsCard:prefs:${userId}`);
     if (!raw) return fallback;
     const parsed = JSON.parse(raw) as { selected?: GoalType[]; order?: GoalType[] };
-    const validSelected = (parsed.selected || []).filter((t) => ALL_GOAL_TYPES.includes(t)).slice(0, MAX_VISIBLE_GOALS);
-    const validOrder = (parsed.order || []).filter((t) => ALL_GOAL_TYPES.includes(t));
-    // Garante que todos os tipos apareçam na ordem (anexa novos no fim)
-    ALL_GOAL_TYPES.forEach((t) => { if (!validOrder.includes(t)) validOrder.push(t); });
-    return {
-      selected: validSelected.length > 0 ? validSelected : fallback.selected,
-      order: validOrder,
-    };
+    return normalizePrefs(parsed.selected, parsed.order, fallback);
   } catch {
     return fallback;
   }
+}
+
+function normalizePrefs(
+  rawSelected: string[] | undefined | null,
+  rawOrder: string[] | undefined | null,
+  fallback: { selected: GoalType[]; order: GoalType[] },
+): { selected: GoalType[]; order: GoalType[] } {
+  const validSelected = (rawSelected || []).filter((t): t is GoalType => ALL_GOAL_TYPES.includes(t as GoalType)).slice(0, MAX_VISIBLE_GOALS);
+  const validOrder = (rawOrder || []).filter((t): t is GoalType => ALL_GOAL_TYPES.includes(t as GoalType));
+  ALL_GOAL_TYPES.forEach((t) => { if (!validOrder.includes(t)) validOrder.push(t); });
+  return {
+    selected: validSelected.length > 0 ? validSelected : fallback.selected,
+    order: validOrder,
+  };
 }
 
 export function GoalsCard({ loans, payments, expenses, clients, installmentSchedules = [], selectedMonth, periodLabel }: Props) {
@@ -470,10 +477,40 @@ export function GoalsCard({ loans, payments, expenses, clients, installmentSched
   const { user } = useAuth();
   const [selectedGoalId, setSelectedGoalId] = useState<string | null>(null);
   const [showCustomize, setShowCustomize] = useState(false);
+  // Cache imediato via localStorage (evita flicker enquanto sincroniza com o backend)
   const [prefs, setPrefs] = useState<{ selected: GoalType[]; order: GoalType[] }>(() => loadGoalPrefs(user?.id));
 
+  // Sincroniza preferências do backend ao montar / trocar de usuário
   useEffect(() => {
     setPrefs(loadGoalPrefs(user?.id));
+    if (!user?.id) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const { data, error } = await supabase
+          .from("user_goal_prefs")
+          .select("selected, order_list")
+          .eq("user_id", user.id)
+          .maybeSingle();
+        if (cancelled || error) return;
+        if (data) {
+          const fallback = { selected: ALL_GOAL_TYPES.slice(0, MAX_VISIBLE_GOALS), order: ALL_GOAL_TYPES.slice() };
+          const merged = normalizePrefs(data.selected as string[], data.order_list as string[], fallback);
+          setPrefs(merged);
+          try { window.localStorage.setItem(`goalsCard:prefs:${user.id}`, JSON.stringify(merged)); } catch {}
+        } else {
+          // Sem registro no backend: faz upload do que estiver no cache local (primeira sincronização)
+          const local = loadGoalPrefs(user.id);
+          await supabase.from("user_goal_prefs").upsert(
+            { user_id: user.id, selected: local.selected, order_list: local.order },
+            { onConflict: "user_id" },
+          );
+        }
+      } catch {
+        /* mantém cache local em caso de falha */
+      }
+    })();
+    return () => { cancelled = true; };
   }, [user?.id]);
 
   const savePrefs = (next: { selected: GoalType[]; order: GoalType[] }) => {
@@ -481,7 +518,22 @@ export function GoalsCard({ loans, payments, expenses, clients, installmentSched
     if (typeof window !== "undefined" && user?.id) {
       try { window.localStorage.setItem(`goalsCard:prefs:${user.id}`, JSON.stringify(next)); } catch {}
     }
+    if (user?.id) {
+      // Persiste no backend (fire-and-forget; cache local já foi atualizado)
+      supabase
+        .from("user_goal_prefs")
+        .upsert(
+          { user_id: user.id, selected: next.selected, order_list: next.order },
+          { onConflict: "user_id" },
+        )
+        .then(({ error }) => {
+          if (error) {
+            toast.error("Não foi possível sincronizar suas preferências de metas.");
+          }
+        });
+    }
   };
+
 
   const currentActiveCapital = useMemo(
     () => loans.filter((l: any) => l.status !== "completed" && l.status !== "paid")
