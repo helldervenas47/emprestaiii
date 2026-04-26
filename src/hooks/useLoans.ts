@@ -1268,6 +1268,24 @@ export function useLoans() {
       : loan.paidInstallments + desiredNewPending;
 
     const renegotiatedAt = todayInAppTz();
+
+    // Snapshot do estado anterior do contrato (usado para reverter ao excluir a renegociação)
+    const previousState = {
+      version: 1,
+      loan: {
+        remaining_amount: Number(loan.remainingAmount ?? 0),
+        installments: loan.installments,
+        custom_installment_value: loan.customInstallmentValue ?? null,
+        renegotiation_penalty_total: Number(loan.renegotiationPenaltyTotal ?? 0),
+        due_date: loan.dueDate,
+      },
+      schedules: allScheds.map((s) => ({
+        installment_number: s.installmentNumber,
+        due_date: s.dueDate,
+        amount: Number(s.amount ?? 0),
+      })),
+    };
+
     const renegRow = {
       loan_id: loanId,
       user_id: dataOwnerId,
@@ -1283,6 +1301,7 @@ export function useLoans() {
       notes: isPartialReneg
         ? `[Parcelas ${Array.from(selectedSet).sort((a, b) => a - b).join(", ")}] ${params.notes ?? ""}`.trim()
         : (params.notes ?? null),
+      previous_state: previousState,
     };
 
     const { error: renegErr } = await supabase

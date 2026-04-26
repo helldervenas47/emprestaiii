@@ -819,6 +819,7 @@ export type Database = {
           penalty_mode: string | null
           previous_amount: number
           previous_installments: number | null
+          previous_state: Json | null
           renegotiated_at: string
           type: string
           user_id: string
@@ -835,6 +836,7 @@ export type Database = {
           penalty_mode?: string | null
           previous_amount?: number
           previous_installments?: number | null
+          previous_state?: Json | null
           renegotiated_at: string
           type: string
           user_id: string
@@ -851,6 +853,7 @@ export type Database = {
           penalty_mode?: string | null
           previous_amount?: number
           previous_installments?: number | null
+          previous_state?: Json | null
           renegotiated_at?: string
           type?: string
           user_id?: string
