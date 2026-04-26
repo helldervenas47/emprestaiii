@@ -346,6 +346,15 @@ export function RenegotiateLoanDialog({
             ? Array.from(selectedNumbers).sort((a, b) => a - b)
             : null,
         firstDueDate: firstDueDate && /^\d{4}-\d{2}-\d{2}$/.test(firstDueDate) ? firstDueDate : null,
+        frequency,
+        customDates: (() => {
+          const arr: string[] = [];
+          for (let i = 0; i < installmentsCount; i++) {
+            const row = simulatedSchedule.find((r) => r.isNew && r.newIndex === i);
+            arr.push(row?.dueDate || "");
+          }
+          return arr.length > 0 ? arr : null;
+        })(),
       });
       reset();
       onOpenChange(false);
