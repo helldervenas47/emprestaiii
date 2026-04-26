@@ -107,9 +107,19 @@ export const AccumulatedDelinquencyReport = forwardRef<HTMLDivElement, Props>(fu
       const schedules = (schedulesByLoan.get(loan.id) ?? []).sort((a, b) => a.installmentNumber - b.installmentNumber);
       const unpaidSchedules = schedules.filter((schedule) => schedule.installmentNumber > loan.paidInstallments && schedule.dueDate < currentMonthStart);
 
+      // "Restante a pagar" do contrato — limita o total exibido para refletir
+      // pagamentos parciais, amortizações e quaisquer abatimentos já feitos.
+      const loanRemaining = Math.max(0, Number(loan.remainingAmount ?? 0));
+      let remainingForLoan = loanRemaining;
+
       if (unpaidSchedules.length > 0) {
-        unpaidSchedules.forEach((schedule) => {
-          const base = Number(schedule.amount || 0);
+        for (const schedule of unpaidSchedules) {
+          if (remainingForLoan <= 0) break;
+          const scheduleAmount = Number(schedule.amount || 0);
+          // Cada parcela vencida só conta até o que ainda falta receber do contrato.
+          const base = Math.min(scheduleAmount, remainingForLoan);
+          if (base <= 0) continue;
+          remainingForLoan -= base;
           const days = getDaysOverdue(schedule.dueDate, today);
           const fees = calcLateFeesFor(loan, base, days);
           rows.push({
@@ -123,14 +133,17 @@ export const AccumulatedDelinquencyReport = forwardRef<HTMLDivElement, Props>(fu
             dueDate: schedule.dueDate,
             daysOverdue: days,
           });
-        });
+        }
         return;
       }
 
       if (loan.dueDate >= currentMonthStart) return;
+      if (remainingForLoan <= 0) return;
 
       {
-        const base = getLoanFallbackAmount(loan);
+        const fallbackBase = getLoanFallbackAmount(loan);
+        const base = Math.min(fallbackBase, remainingForLoan);
+        if (base <= 0) return;
         const days = getDaysOverdue(loan.dueDate, today);
         const fees = calcLateFeesFor(loan, base, days);
         rows.push({
