@@ -647,7 +647,9 @@ export function RenegotiateLoanDialog({
             <div className="flex justify-between">
               <span className="text-muted-foreground">Parcelas</span>
               <span>
-                {installmentsCount}× de {formatCurrency(newInstallmentValue)}
+                {useFirstMode
+                  ? `1ª: ${formatCurrency(firstInstallmentValue)} + ${installmentsCount - 1}× ${formatCurrency(baseInstallmentValue)}`
+                  : `${installmentsCount}× de ${formatCurrency(newInstallmentValue)}`}
               </span>
             </div>
           </div>
