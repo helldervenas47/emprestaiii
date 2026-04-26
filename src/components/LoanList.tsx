@@ -3429,9 +3429,9 @@ export function LoanList({ loans, payments, installmentSchedules, onPayment, onP
                 </thead>
                 <tbody>
                   {categorized.map((loan) => (
-                    <LoanRowView key={loan.id} loan={loan} payments={payments} installmentSchedules={installmentSchedules} readOnly={readOnly} existingTags={loans.flatMap(l => l.tags || []).filter((v, i, a) => a.indexOf(v) === i)} clients={clients}
+                    <LoanRowView key={loan.id} loan={loan} payments={payments} installmentSchedules={installmentSchedules} readOnly={readOnly} existingTags={loans.flatMap(l => l.tags || []).filter((v, i, a) => a.indexOf(v) === i)} clients={clients} renegotiations={renegotiationsByLoan.get(loan.id) || []}
                       onPayment={(date, mid) => onPayment(loan.id, date, mid)} onPartialPayment={(amt, date, mid) => onPartialPayment(loan.id, amt, date, mid)} onFullPayment={onFullPayment ? (date, custom, mid) => onFullPayment(loan.id, date, custom, mid) : undefined}
-                      onInterestPayment={(date, custom, fees, mid) => onInterestPayment(loan.id, date, custom, fees, mid)} onAmortize={onAmortize ? (amt, date, mid) => onAmortize(loan.id, amt, date, mid) : undefined} onUpdate={(d) => onUpdate(loan.id, d)} onDelete={() => onDelete(loan.id)} onDeletePayment={onDeletePayment} onSaveSchedule={onSaveSchedule} />
+                      onInterestPayment={(date, custom, fees, mid) => onInterestPayment(loan.id, date, custom, fees, mid)} onAmortize={onAmortize ? (amt, date, mid) => onAmortize(loan.id, amt, date, mid) : undefined} onRenegotiate={onRenegotiate ? (params) => onRenegotiate(loan.id, params) : undefined} onUpdate={(d) => onUpdate(loan.id, d)} onDelete={() => onDelete(loan.id)} onDeletePayment={onDeletePayment} onSaveSchedule={onSaveSchedule} />
                   ))}
                 </tbody>
               </table>
