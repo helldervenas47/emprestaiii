@@ -18,7 +18,7 @@ function rowToLoan(l: any): Loan {
     id: l.id, borrowerName: l.borrower_name, borrowerId: l.borrower_id,
     amount: Number(l.amount), interestRate: Number(l.interest_rate),
     interestType: l.interest_type, paymentType: l.payment_type,
-    startDate: l.start_date, dueDate: l.due_date, installments: l.installments,
+    startDate: l.start_date, dueDate: l.due_date, originalDueDate: l.original_due_date ?? l.due_date, installments: l.installments,
     paidInstallments: l.paid_installments, status: l.status as Loan["status"],
     remainingAmount: l.remaining_amount != null ? Number(l.remaining_amount) : undefined,
     customInstallmentValue: l.custom_installment_value != null ? Number(l.custom_installment_value) : null,
