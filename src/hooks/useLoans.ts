@@ -1351,6 +1351,7 @@ export function useLoans() {
       installments: newInstallmentsTotal,
       customInstallmentValue: isPartialReneg ? null : newInstallmentValue,
       renegotiationPenaltyTotal: (Number(l.renegotiationPenaltyTotal) || 0) + penaltyAmount,
+      ...(overrideFirstDateTop ? { dueDate: overrideFirstDateTop } : {}),
     } : l));
 
     await fetchLoans();
