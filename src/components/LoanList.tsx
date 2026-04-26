@@ -3395,9 +3395,9 @@ export function LoanList({ loans, payments, installmentSchedules, onPayment, onP
             <>
             <div className="space-y-4">
               {grouped.map((g) => (
-                <ClientFolder key={g.name} group={g} payments={payments} installmentSchedules={installmentSchedules} readOnly={readOnly} clients={clients}
+                <ClientFolder key={g.name} group={g} payments={payments} installmentSchedules={installmentSchedules} readOnly={readOnly} clients={clients} renegotiations={allRenegotiations}
                   onPayment={onPayment} onPartialPayment={onPartialPayment} onFullPayment={onFullPayment}
-                  onInterestPayment={onInterestPayment} onAmortize={onAmortize} onUpdate={onUpdate} onDelete={onDelete} onDeletePayment={onDeletePayment} onSaveSchedule={onSaveSchedule} />
+                  onInterestPayment={onInterestPayment} onAmortize={onAmortize} onRenegotiate={onRenegotiate} onUpdate={onUpdate} onDelete={onDelete} onDeletePayment={onDeletePayment} onSaveSchedule={onSaveSchedule} />
               ))}
               {grouped.length === 0 && (
                 <Card>
