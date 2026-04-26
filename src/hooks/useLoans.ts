@@ -805,7 +805,7 @@ export function useLoans() {
       console.error("[addInterestOnlyPayment] update schedule due date failed:", scheduleError);
       await Promise.all([
         supabase.from("payments").delete().eq("id", tempPaymentId),
-        supabase.from("loans").update({ due_date: loan.dueDate }).eq("id", loanId),
+        supabase.from("loans").update(loanRollback).eq("id", loanId),
       ]);
       await revertOptimisticState();
       throw new Error(scheduleError.message);
@@ -817,7 +817,7 @@ export function useLoans() {
       console.error("[addInterestOnlyPayment] adjust balance failed:", balanceError);
       await Promise.all([
         supabase.from("payments").delete().eq("id", tempPaymentId),
-        supabase.from("loans").update({ due_date: loan.dueDate }).eq("id", loanId),
+        supabase.from("loans").update(loanRollback).eq("id", loanId),
       ]);
       await revertOptimisticState();
       throw new Error(balanceError?.message ?? "Falha ao atualizar saldo");
@@ -837,7 +837,7 @@ export function useLoans() {
         console.error("[addInterestOnlyPayment] insert fee payment failed:", feeInsertError);
         await Promise.all([
           supabase.from("payments").delete().eq("id", tempPaymentId),
-          supabase.from("loans").update({ due_date: loan.dueDate }).eq("id", loanId),
+          supabase.from("loans").update(loanRollback).eq("id", loanId),
         ]);
         await revertOptimisticState();
         throw new Error(feeInsertError.message);
@@ -850,7 +850,7 @@ export function useLoans() {
         await Promise.all([
           supabase.from("payments").delete().eq("id", feesPaymentId),
           supabase.from("payments").delete().eq("id", tempPaymentId),
-          supabase.from("loans").update({ due_date: loan.dueDate }).eq("id", loanId),
+          supabase.from("loans").update(loanRollback).eq("id", loanId),
         ]);
         await revertOptimisticState();
         throw new Error(feeBalanceError?.message ?? "Falha ao atualizar saldo das taxas");
