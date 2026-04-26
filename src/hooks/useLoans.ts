@@ -480,7 +480,7 @@ export function useLoans() {
     await fetchLoans();
   }, [user, dataOwnerId, loans, payments, fetchLoans, fetchPayments]);
 
-  const payOffLoan = useCallback(async (loanId: string, paymentDate?: string, customAmount?: number, paymentMethodId?: string | null) => {
+  const payOffLoan = useCallback(async (loanId: string, paymentDate?: string, customAmount?: number, paymentMethodId?: string | null, paymentSplit?: PaymentSplit | null) => {
     if (!user || !dataOwnerId) throw new Error("Usuário não autenticado");
     const dateStr = paymentDate || todayInAppTz();
     const loan = loans.find((l) => l.id === loanId);
@@ -496,12 +496,15 @@ export function useLoans() {
     const online = isOnline();
 
     const tempPaymentId = crypto.randomUUID();
-    const paymentPayload = {
+    const normalizedSplit = normalizeSplit(paymentSplit ?? null, payAmount);
+    const splitMetadata = withSplit(null, normalizedSplit);
+    const paymentPayload: any = {
       id: tempPaymentId,
       user_id: dataOwnerId, loan_id: loanId, amount: payAmount,
       date: dateStr, installment_number: loan.installments,
       payment_method_id: paymentMethodId ?? null,
     };
+    if (splitMetadata) paymentPayload.metadata = splitMetadata;
     const loanUpdate = {
       paid_installments: loan.installments,
       status: "paid",
@@ -509,7 +512,7 @@ export function useLoans() {
     };
 
     setPayments((prev) => [
-      { id: tempPaymentId, loanId, amount: payAmount, date: dateStr, installmentNumber: loan.installments, paymentMethodId: paymentMethodId ?? null },
+      { id: tempPaymentId, loanId, amount: payAmount, date: dateStr, installmentNumber: loan.installments, paymentMethodId: paymentMethodId ?? null, metadata: (splitMetadata as any) ?? null },
       ...prev,
     ]);
     setLoans((prev) => prev.map((l) => l.id === loanId ? {
