@@ -30,6 +30,7 @@ function rowToLoan(l: any): Loan {
     managerId: l.manager_id ?? null,
     managerCommissionRate: l.manager_commission_rate != null ? Number(l.manager_commission_rate) : 10,
     autoBillingEnabled: l.auto_billing_enabled ?? true,
+    renegotiationPenaltyTotal: l.renegotiation_penalty_total != null ? Number(l.renegotiation_penalty_total) : 0,
   };
 }
 
@@ -1123,7 +1124,153 @@ export function useLoans() {
     await fetchPayments();
   }, [payments, loans, fetchSchedules, fetchLoans, fetchPayments]);
 
-  return { loans, payments, installmentSchedules, addLoan, addPayment, addPartialPayment, payOffLoan, addInterestOnlyPayment, amortizeLoan, updateLoan, deleteLoan, deletePayment, saveSchedule };
+  /**
+   * Renegociar contrato:
+   * - "no_interest": apenas ajusta valor/parcelas (sem multa)
+   * - "with_penalty": adiciona multa (R$ fixo ou % do saldo restante) ao valor total.
+   * Preserva start_date (data de saída do contrato).
+   * Registra histórico imutável em loan_renegotiations.
+   */
+  const renegotiateLoan = useCallback(async (
+    loanId: string,
+    params: {
+      type: "no_interest" | "with_penalty";
+      penaltyMode?: "fixed" | "percentage" | null;
+      penaltyInput?: number | null;
+      newInstallments?: number | null;
+      notes?: string | null;
+    }
+  ) => {
+    if (!user || !dataOwnerId) throw new Error("Sessão ainda não carregada");
+    const loan = loans.find((l) => l.id === loanId);
+    if (!loan) throw new Error("Empréstimo não encontrado");
+    if (loan.status === "paid") throw new Error("Contratos quitados não podem ser renegociados");
+
+    const remaining = getLoanRemainingAmount(loan, payments);
+    if (remaining <= 0) throw new Error("Não há saldo a renegociar");
+
+    let penaltyAmount = 0;
+    if (params.type === "with_penalty") {
+      const input = Number(params.penaltyInput ?? 0);
+      if (!input || input <= 0) throw new Error("Informe um valor de multa válido");
+      if (params.penaltyMode === "percentage") {
+        penaltyAmount = Math.round((remaining * input / 100) * 100) / 100;
+      } else {
+        penaltyAmount = Math.round(input * 100) / 100;
+      }
+    }
+
+    const newAmount = Math.round((remaining + penaltyAmount) * 100) / 100;
+
+    // Calcular nova quantidade de parcelas pendentes
+    const remainingInstCount = Math.max(1, loan.installments - loan.paidInstallments);
+    const desiredNewPending = params.newInstallments && params.newInstallments > 0
+      ? Math.floor(params.newInstallments)
+      : remainingInstCount;
+    const newInstallmentsTotal = loan.paidInstallments + desiredNewPending;
+    const newInstallmentValue = Math.round((newAmount / desiredNewPending) * 100) / 100;
+
+    const renegotiatedAt = todayInAppTz();
+    const renegRow = {
+      loan_id: loanId,
+      user_id: dataOwnerId,
+      renegotiated_at: renegotiatedAt,
+      type: params.type,
+      previous_amount: remaining,
+      new_amount: newAmount,
+      penalty_amount: penaltyAmount,
+      penalty_mode: params.type === "with_penalty" ? (params.penaltyMode ?? null) : null,
+      penalty_input: params.type === "with_penalty" ? Number(params.penaltyInput ?? 0) : null,
+      previous_installments: loan.installments,
+      new_installments: newInstallmentsTotal,
+      notes: params.notes ?? null,
+    };
+
+    const { error: renegErr } = await supabase
+      .from("loan_renegotiations" as any)
+      .insert(renegRow as any);
+    if (renegErr) throw new Error(renegErr.message);
+
+    const loanUpdate: any = {
+      remaining_amount: newAmount,
+      installments: newInstallmentsTotal,
+      custom_installment_value: newInstallmentValue,
+      renegotiation_penalty_total: (Number(loan.renegotiationPenaltyTotal) || 0) + penaltyAmount,
+    };
+
+    const { error: loanErr } = await supabase
+      .from("loans").update(loanUpdate).eq("id", loanId);
+    if (loanErr) throw new Error(loanErr.message);
+
+    // Atualiza/recalcula parcelas pendentes mantendo as já pagas intactas
+    const paidScheds = installmentSchedules
+      .filter((s) => s.loanId === loanId && s.installmentNumber <= loan.paidInstallments);
+    const pendingScheds = installmentSchedules
+      .filter((s) => s.loanId === loanId && s.installmentNumber > loan.paidInstallments)
+      .sort((a, b) => a.installmentNumber - b.installmentNumber);
+
+    if (pendingScheds.length > 0) {
+      // Distribui valor uniformemente; última parcela ajusta diferença
+      const evenValue = Math.round((newAmount / desiredNewPending) * 100) / 100;
+      const limit = Math.min(desiredNewPending, pendingScheds.length);
+      let acc = 0;
+      for (let i = 0; i < limit; i++) {
+        const sched = pendingScheds[i];
+        const isLast = i === desiredNewPending - 1 || i === limit - 1;
+        const amt = isLast ? Math.round((newAmount - acc) * 100) / 100 : evenValue;
+        acc += amt;
+        if (sched.id) {
+          await supabase.from("loan_installments").update({ amount: amt }).eq("id", sched.id);
+        }
+      }
+      // Se o usuário aumentou número de parcelas, criar as novas mantendo cadência
+      if (desiredNewPending > pendingScheds.length) {
+        const lastSched = pendingScheds[pendingScheds.length - 1];
+        const baseDate = lastSched?.dueDate || loan.dueDate;
+        for (let i = pendingScheds.length; i < desiredNewPending; i++) {
+          const monthsAhead = i - pendingScheds.length + 1;
+          const d = new Date(baseDate + "T00:00:00");
+          d.setMonth(d.getMonth() + monthsAhead);
+          const dueStr = d.toISOString().slice(0, 10);
+          const isLast = i === desiredNewPending - 1;
+          const amt = isLast ? Math.round((newAmount - acc) * 100) / 100 : evenValue;
+          acc += amt;
+          await supabase.from("loan_installments").insert({
+            loan_id: loanId,
+            user_id: dataOwnerId,
+            installment_number: loan.paidInstallments + i + 1,
+            due_date: dueStr,
+            amount: amt,
+          } as any);
+        }
+      } else if (desiredNewPending < pendingScheds.length) {
+        // Remover parcelas excedentes
+        for (let i = desiredNewPending; i < pendingScheds.length; i++) {
+          const sched = pendingScheds[i];
+          if (sched.id) await supabase.from("loan_installments").delete().eq("id", sched.id);
+        }
+      }
+    }
+
+    setLoans((prev) => prev.map((l) => l.id === loanId ? {
+      ...l,
+      remainingAmount: newAmount,
+      installments: newInstallmentsTotal,
+      customInstallmentValue: newInstallmentValue,
+      renegotiationPenaltyTotal: (Number(l.renegotiationPenaltyTotal) || 0) + penaltyAmount,
+    } : l));
+
+    await fetchLoans();
+    await fetchSchedules();
+    notifyRemoteUpdate("loans");
+    toast.success(
+      params.type === "with_penalty"
+        ? `Renegociação registrada com multa de R$ ${penaltyAmount.toFixed(2)}`
+        : "Renegociação registrada"
+    );
+  }, [user, dataOwnerId, loans, payments, installmentSchedules, fetchLoans, fetchSchedules]);
+
+  return { loans, payments, installmentSchedules, addLoan, addPayment, addPartialPayment, payOffLoan, addInterestOnlyPayment, amortizeLoan, renegotiateLoan, updateLoan, deleteLoan, deletePayment, saveSchedule };
 }
 
 export function calculateInstallment(principal: number, rate: number, months: number): number {

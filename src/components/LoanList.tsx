@@ -18,7 +18,7 @@ import { calculateInstallment, calculateTotalWithInterest } from "@/hooks/useLoa
 import { cn } from "@/lib/utils";
 import {
   CheckCircle, Trash2, DollarSign, User, Calendar as CalendarIcon, LayoutGrid, List,
-  Search, Percent, Pencil, Check, X, ChevronDown, ChevronRight, FolderOpen, Folder, HandCoins, Tag, MoreHorizontal, MessageCircle, Filter, SlidersHorizontal, History, UserCog, Calculator, BellRing, BellOff,
+  Search, Percent, Pencil, Check, X, ChevronDown, ChevronRight, FolderOpen, Folder, HandCoins, Tag, MoreHorizontal, MessageCircle, Filter, SlidersHorizontal, History, UserCog, Calculator, BellRing, BellOff, RefreshCw,
 } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -27,6 +27,9 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { AdjustDueDateDialog } from "@/components/AdjustDueDateDialog";
 import { AmortizationSimulator } from "@/components/AmortizationSimulator";
+import { RenegotiateLoanDialog } from "@/components/RenegotiateLoanDialog";
+import { useLoanRenegotiations } from "@/hooks/useLoanRenegotiations";
+import type { LoanRenegotiation } from "@/types/loan";
 import { usePaymentMethods } from "@/hooks/usePaymentMethods";
 import { useWhatsappBillingMessages } from "@/hooks/useWhatsappBillingMessages";
 import { buildBillingWhatsappLink } from "@/lib/whatsappBilling";
@@ -103,6 +106,7 @@ interface Props {
   onFullPayment?: (loanId: string, paymentDate?: string, customAmount?: number, paymentMethodId?: string | null) => void;
   onInterestPayment: (loanId: string, paymentDate?: string, customAmount?: number, feesAmount?: number, paymentMethodId?: string | null) => void;
   onAmortize?: (loanId: string, amount: number, paymentDate?: string, paymentMethodId?: string | null) => Promise<void> | void;
+  onRenegotiate?: (loanId: string, params: { type: "no_interest" | "with_penalty"; penaltyMode?: "fixed" | "percentage" | null; penaltyInput?: number | null; newInstallments?: number | null; notes?: string | null }) => Promise<void> | void;
   onUpdate: (id: string, data: Partial<Omit<Loan, "id">>) => void;
   onDelete: (loanId: string) => void;
   onDeletePayment: (paymentId: string) => void;
@@ -321,7 +325,7 @@ function PaymentHistoryItem({
 
 
 function LoanCardView({
-  loan, payments: allPayments, installmentSchedules, onPayment, onPartialPayment, onFullPayment, onInterestPayment, onAmortize, onUpdate, onDelete, onDeletePayment, onSaveSchedule, readOnly = false, no3d = false, existingTags = [], clients = [],
+  loan, payments: allPayments, installmentSchedules, onPayment, onPartialPayment, onFullPayment, onInterestPayment, onAmortize, onRenegotiate, renegotiations = [], onUpdate, onDelete, onDeletePayment, onSaveSchedule, readOnly = false, no3d = false, existingTags = [], clients = [],
 }: {
   loan: Loan;
   payments: Payment[];
@@ -331,6 +335,8 @@ function LoanCardView({
   onFullPayment?: (date?: string, customAmount?: number, paymentMethodId?: string | null) => void;
   onInterestPayment: (date?: string, customAmount?: number, feesAmount?: number, paymentMethodId?: string | null) => void;
   onAmortize?: (amount: number, date?: string, paymentMethodId?: string | null) => Promise<void> | void;
+  onRenegotiate?: (params: { type: "no_interest" | "with_penalty"; penaltyMode?: "fixed" | "percentage" | null; penaltyInput?: number | null; newInstallments?: number | null; notes?: string | null }) => Promise<void> | void;
+  renegotiations?: LoanRenegotiation[];
   onUpdate: (data: Partial<Omit<Loan, "id">>) => void;
   onDelete: () => void;
   onDeletePayment: (paymentId: string) => void;
@@ -370,6 +376,7 @@ function LoanCardView({
   const [lateInterestValue, setLateInterestValue] = useState<string>(loan.lateInterestValue != null ? String(loan.lateInterestValue) : "");
   const [showPenalty, setShowPenalty] = useState(false);
   const [penaltyValue, setPenaltyValue] = useState<string>(loan.penaltyValue != null ? String(loan.penaltyValue) : "");
+  const [showRenegotiateDialog, setShowRenegotiateDialog] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deletePaymentId, setDeletePaymentId] = useState<string | null>(null);
   const [showAdjustDueDate, setShowAdjustDueDate] = useState(false);
@@ -1408,6 +1415,20 @@ function LoanCardView({
                   </div>
                 </DropdownMenuItem>
                 )}
+                {onRenegotiate && (
+                <DropdownMenuItem
+                  onClick={() => setShowRenegotiateDialog(true)}
+                  className="flex items-center gap-3 px-3 py-2.5 rounded-lg cursor-pointer hover:bg-warning/10 focus:bg-warning/10"
+                >
+                  <div className="h-8 w-8 rounded-full bg-warning/15 flex items-center justify-center shrink-0">
+                    <RefreshCw className="h-4 w-4 text-warning" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-foreground">Renegociar</p>
+                    <p className="text-[11px] text-muted-foreground">Sem juros ou com multa</p>
+                  </div>
+                </DropdownMenuItem>
+                )}
               </DropdownMenuContent>
             </DropdownMenu>
            )}
@@ -1826,12 +1847,22 @@ function LoanCardView({
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>
+    {onRenegotiate && (
+      <RenegotiateLoanDialog
+        open={showRenegotiateDialog}
+        onOpenChange={setShowRenegotiateDialog}
+        loan={loan}
+        payments={allPayments}
+        history={renegotiations}
+        onConfirm={async (params) => { await onRenegotiate(params); }}
+      />
+    )}
     </>
   );
 }
 
 function LoanRowView({
-  loan, payments: allPayments, installmentSchedules = [], onPayment, onPartialPayment, onFullPayment, onInterestPayment, onAmortize, onUpdate, onDelete, onDeletePayment, onSaveSchedule, readOnly = false, existingTags = [], clients = [],
+  loan, payments: allPayments, installmentSchedules = [], onPayment, onPartialPayment, onFullPayment, onInterestPayment, onAmortize, onRenegotiate, renegotiations = [], onUpdate, onDelete, onDeletePayment, onSaveSchedule, readOnly = false, existingTags = [], clients = [],
 }: {
   loan: Loan;
   payments: Payment[];
@@ -1841,6 +1872,8 @@ function LoanRowView({
   onFullPayment?: (date?: string, customAmount?: number, paymentMethodId?: string | null) => void;
   onInterestPayment: (date?: string, customAmount?: number, feesAmount?: number, paymentMethodId?: string | null) => void;
   onAmortize?: (amount: number, date?: string, paymentMethodId?: string | null) => Promise<void> | void;
+  onRenegotiate?: (params: { type: "no_interest" | "with_penalty"; penaltyMode?: "fixed" | "percentage" | null; penaltyInput?: number | null; newInstallments?: number | null; notes?: string | null }) => Promise<void> | void;
+  renegotiations?: LoanRenegotiation[];
   onUpdate: (data: Partial<Omit<Loan, "id">>) => void;
   onDelete: () => void;
   onDeletePayment: (paymentId: string) => void;
@@ -1879,6 +1912,7 @@ function LoanRowView({
   const [lateInterestValue, setLateInterestValue] = useState<string>(loan.lateInterestValue != null ? String(loan.lateInterestValue) : "");
   const [showPenalty, setShowPenalty] = useState(false);
   const [penaltyValue, setPenaltyValue] = useState<string>(loan.penaltyValue != null ? String(loan.penaltyValue) : "");
+  const [showRenegotiateDialog, setShowRenegotiateDialog] = useState(false);
   const managerOptions = useMemo(() => clients.filter((c) => c.isManager && c.active !== false), [clients]);
   const { activeMethods: rowActiveMethods } = usePaymentMethods();
   const [rowSelectedMethodId, setRowSelectedMethodId] = useState<string>("");
@@ -2436,6 +2470,20 @@ function LoanRowView({
                       </div>
                     </DropdownMenuItem>
                     )}
+                    {onRenegotiate && (
+                    <DropdownMenuItem
+                      onClick={(e) => { e.stopPropagation(); setShowRenegotiateDialog(true); }}
+                      className="flex items-center gap-3 px-3 py-2.5 rounded-lg cursor-pointer hover:bg-warning/10 focus:bg-warning/10"
+                    >
+                      <div className="h-8 w-8 rounded-full bg-warning/15 flex items-center justify-center shrink-0">
+                        <RefreshCw className="h-4 w-4 text-warning" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-foreground">Renegociar</p>
+                        <p className="text-[11px] text-muted-foreground">Sem juros ou com multa</p>
+                      </div>
+                    </DropdownMenuItem>
+                    )}
                   </DropdownMenuContent>
                 </DropdownMenu>
               )}
@@ -2893,6 +2941,16 @@ function LoanRowView({
         onUpdate={onUpdate}
       />
     )}
+    {onRenegotiate && (
+      <RenegotiateLoanDialog
+        open={showRenegotiateDialog}
+        onOpenChange={setShowRenegotiateDialog}
+        loan={loan}
+        payments={allPayments}
+        history={renegotiations}
+        onConfirm={async (params) => { await onRenegotiate(params); }}
+      />
+    )}
     </>
   );
 }
@@ -2908,7 +2966,7 @@ interface ClientGroup {
 }
 
 function ClientFolder({
-  group, payments, installmentSchedules, onPayment, onPartialPayment, onFullPayment, onInterestPayment, onAmortize, onUpdate, onDelete, onDeletePayment, onSaveSchedule, readOnly = false, clients = [],
+  group, payments, installmentSchedules, onPayment, onPartialPayment, onFullPayment, onInterestPayment, onAmortize, onRenegotiate, renegotiations = [], onUpdate, onDelete, onDeletePayment, onSaveSchedule, readOnly = false, clients = [],
 }: {
   group: ClientGroup;
   payments: Payment[];
@@ -2918,6 +2976,8 @@ function ClientFolder({
   onFullPayment?: (id: string, date?: string, customAmount?: number, paymentMethodId?: string | null) => void;
   onInterestPayment: (id: string, date?: string, customAmount?: number, feesAmount?: number, paymentMethodId?: string | null) => void;
   onAmortize?: (loanId: string, amount: number, paymentDate?: string, paymentMethodId?: string | null) => Promise<void> | void;
+  onRenegotiate?: (loanId: string, params: { type: "no_interest" | "with_penalty"; penaltyMode?: "fixed" | "percentage" | null; penaltyInput?: number | null; newInstallments?: number | null; notes?: string | null }) => Promise<void> | void;
+  renegotiations?: LoanRenegotiation[];
   onUpdate: (id: string, data: Partial<Omit<Loan, "id">>) => void;
   onDelete: (id: string) => void;
   onDeletePayment: (paymentId: string) => void;
@@ -3006,9 +3066,9 @@ function ClientFolder({
               </thead>
               <tbody>
                 {group.loans.map((loan) => (
-                  <LoanRowView key={loan.id} loan={loan} payments={payments} installmentSchedules={installmentSchedules} readOnly={readOnly} existingTags={[...new Set(group.loans.flatMap(l => l.tags || []))]} clients={clients}
+                  <LoanRowView key={loan.id} loan={loan} payments={payments} installmentSchedules={installmentSchedules} readOnly={readOnly} existingTags={[...new Set(group.loans.flatMap(l => l.tags || []))]} clients={clients} renegotiations={renegotiations.filter((r) => r.loanId === loan.id)}
                     onPayment={(date, mid) => onPayment(loan.id, date, mid)} onPartialPayment={(amt, date, mid) => onPartialPayment(loan.id, amt, date, mid)} onFullPayment={onFullPayment ? (date, custom, mid) => onFullPayment(loan.id, date, custom, mid) : undefined}
-                    onInterestPayment={(date, custom, fees, mid) => onInterestPayment(loan.id, date, custom, fees, mid)} onAmortize={onAmortize ? (amt, date, mid) => onAmortize(loan.id, amt, date, mid) : undefined} onUpdate={(d) => onUpdate(loan.id, d)} onDelete={() => onDelete(loan.id)} onDeletePayment={onDeletePayment} onSaveSchedule={onSaveSchedule} />
+                    onInterestPayment={(date, custom, fees, mid) => onInterestPayment(loan.id, date, custom, fees, mid)} onAmortize={onAmortize ? (amt, date, mid) => onAmortize(loan.id, amt, date, mid) : undefined} onRenegotiate={onRenegotiate ? (params) => onRenegotiate(loan.id, params) : undefined} onUpdate={(d) => onUpdate(loan.id, d)} onDelete={() => onDelete(loan.id)} onDeletePayment={onDeletePayment} onSaveSchedule={onSaveSchedule} />
                 ))}
               </tbody>
             </table>
@@ -3019,7 +3079,17 @@ function ClientFolder({
   );
 }
 
-export function LoanList({ loans, payments, installmentSchedules, onPayment, onPartialPayment, onFullPayment, onInterestPayment, onAmortize, onUpdate, onDelete, onDeletePayment, onSaveSchedule, readOnly = false, initialCategory, initialView, clients = [] }: Props) {
+export function LoanList({ loans, payments, installmentSchedules, onPayment, onPartialPayment, onFullPayment, onInterestPayment, onAmortize, onRenegotiate, onUpdate, onDelete, onDeletePayment, onSaveSchedule, readOnly = false, initialCategory, initialView, clients = [] }: Props) {
+  const { renegotiations: allRenegotiations } = useLoanRenegotiations();
+  const renegotiationsByLoan = useMemo(() => {
+    const map = new Map<string, LoanRenegotiation[]>();
+    for (const r of allRenegotiations) {
+      const arr = map.get(r.loanId) || [];
+      arr.push(r);
+      map.set(r.loanId, arr);
+    }
+    return map;
+  }, [allRenegotiations]);
   const { mask } = useHideValues();
   const formatCurrency = useCallback((v: number) => mask(rawFormatCurrency(v)), [mask]);
   const [view, setView] = useState<"cards" | "rows" | "folders">(initialView ?? "rows");
@@ -3365,9 +3435,9 @@ export function LoanList({ loans, payments, installmentSchedules, onPayment, onP
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {categorized.map((loan, i) => (
                 <div key={loan.id} className="animate-fade-in h-full" style={{ animationDelay: `${i * 60}ms`, animationFillMode: 'backwards' }}>
-                <LoanCardView loan={loan} payments={payments} installmentSchedules={installmentSchedules} readOnly={readOnly} existingTags={loans.flatMap(l => l.tags || []).filter((v, i, a) => a.indexOf(v) === i)} clients={clients}
+                <LoanCardView loan={loan} payments={payments} installmentSchedules={installmentSchedules} readOnly={readOnly} existingTags={loans.flatMap(l => l.tags || []).filter((v, i, a) => a.indexOf(v) === i)} clients={clients} renegotiations={renegotiationsByLoan.get(loan.id) || []}
                   onPayment={(date, mid) => onPayment(loan.id, date, mid)} onPartialPayment={(amt, date, mid) => onPartialPayment(loan.id, amt, date, mid)} onFullPayment={onFullPayment ? (date, custom, mid) => onFullPayment(loan.id, date, custom, mid) : undefined}
-                  onInterestPayment={(date, custom, fees, mid) => onInterestPayment(loan.id, date, custom, fees, mid)} onAmortize={onAmortize ? (amt, date, mid) => onAmortize(loan.id, amt, date, mid) : undefined} onUpdate={(d) => onUpdate(loan.id, d)} onDelete={() => onDelete(loan.id)} onDeletePayment={onDeletePayment} onSaveSchedule={onSaveSchedule} />
+                  onInterestPayment={(date, custom, fees, mid) => onInterestPayment(loan.id, date, custom, fees, mid)} onAmortize={onAmortize ? (amt, date, mid) => onAmortize(loan.id, amt, date, mid) : undefined} onRenegotiate={onRenegotiate ? (params) => onRenegotiate(loan.id, params) : undefined} onUpdate={(d) => onUpdate(loan.id, d)} onDelete={() => onDelete(loan.id)} onDeletePayment={onDeletePayment} onSaveSchedule={onSaveSchedule} />
                 </div>
               ))}
             </div>
@@ -3375,9 +3445,9 @@ export function LoanList({ loans, payments, installmentSchedules, onPayment, onP
             <>
             <div className="space-y-4">
               {grouped.map((g) => (
-                <ClientFolder key={g.name} group={g} payments={payments} installmentSchedules={installmentSchedules} readOnly={readOnly} clients={clients}
+                <ClientFolder key={g.name} group={g} payments={payments} installmentSchedules={installmentSchedules} readOnly={readOnly} clients={clients} renegotiations={allRenegotiations}
                   onPayment={onPayment} onPartialPayment={onPartialPayment} onFullPayment={onFullPayment}
-                  onInterestPayment={onInterestPayment} onAmortize={onAmortize} onUpdate={onUpdate} onDelete={onDelete} onDeletePayment={onDeletePayment} onSaveSchedule={onSaveSchedule} />
+                  onInterestPayment={onInterestPayment} onAmortize={onAmortize} onRenegotiate={onRenegotiate} onUpdate={onUpdate} onDelete={onDelete} onDeletePayment={onDeletePayment} onSaveSchedule={onSaveSchedule} />
               ))}
               {grouped.length === 0 && (
                 <Card>
@@ -3409,9 +3479,9 @@ export function LoanList({ loans, payments, installmentSchedules, onPayment, onP
                 </thead>
                 <tbody>
                   {categorized.map((loan) => (
-                    <LoanRowView key={loan.id} loan={loan} payments={payments} installmentSchedules={installmentSchedules} readOnly={readOnly} existingTags={loans.flatMap(l => l.tags || []).filter((v, i, a) => a.indexOf(v) === i)} clients={clients}
+                    <LoanRowView key={loan.id} loan={loan} payments={payments} installmentSchedules={installmentSchedules} readOnly={readOnly} existingTags={loans.flatMap(l => l.tags || []).filter((v, i, a) => a.indexOf(v) === i)} clients={clients} renegotiations={renegotiationsByLoan.get(loan.id) || []}
                       onPayment={(date, mid) => onPayment(loan.id, date, mid)} onPartialPayment={(amt, date, mid) => onPartialPayment(loan.id, amt, date, mid)} onFullPayment={onFullPayment ? (date, custom, mid) => onFullPayment(loan.id, date, custom, mid) : undefined}
-                      onInterestPayment={(date, custom, fees, mid) => onInterestPayment(loan.id, date, custom, fees, mid)} onAmortize={onAmortize ? (amt, date, mid) => onAmortize(loan.id, amt, date, mid) : undefined} onUpdate={(d) => onUpdate(loan.id, d)} onDelete={() => onDelete(loan.id)} onDeletePayment={onDeletePayment} onSaveSchedule={onSaveSchedule} />
+                      onInterestPayment={(date, custom, fees, mid) => onInterestPayment(loan.id, date, custom, fees, mid)} onAmortize={onAmortize ? (amt, date, mid) => onAmortize(loan.id, amt, date, mid) : undefined} onRenegotiate={onRenegotiate ? (params) => onRenegotiate(loan.id, params) : undefined} onUpdate={(d) => onUpdate(loan.id, d)} onDelete={() => onDelete(loan.id)} onDeletePayment={onDeletePayment} onSaveSchedule={onSaveSchedule} />
                   ))}
                 </tbody>
               </table>

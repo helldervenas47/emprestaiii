@@ -806,6 +806,57 @@ export type Database = {
           },
         ]
       }
+      loan_renegotiations: {
+        Row: {
+          created_at: string
+          id: string
+          loan_id: string
+          new_amount: number
+          new_installments: number | null
+          notes: string | null
+          penalty_amount: number
+          penalty_input: number | null
+          penalty_mode: string | null
+          previous_amount: number
+          previous_installments: number | null
+          renegotiated_at: string
+          type: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          loan_id: string
+          new_amount?: number
+          new_installments?: number | null
+          notes?: string | null
+          penalty_amount?: number
+          penalty_input?: number | null
+          penalty_mode?: string | null
+          previous_amount?: number
+          previous_installments?: number | null
+          renegotiated_at: string
+          type: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          loan_id?: string
+          new_amount?: number
+          new_installments?: number | null
+          notes?: string | null
+          penalty_amount?: number
+          penalty_input?: number | null
+          penalty_mode?: string | null
+          previous_amount?: number
+          previous_installments?: number | null
+          renegotiated_at?: string
+          type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       loans: {
         Row: {
           amount: number
@@ -830,6 +881,7 @@ export type Database = {
           payment_type: string
           penalty_value: number | null
           remaining_amount: number
+          renegotiation_penalty_total: number
           start_date: string
           status: string
           tags: string[] | null
@@ -858,6 +910,7 @@ export type Database = {
           payment_type?: string
           penalty_value?: number | null
           remaining_amount?: number
+          renegotiation_penalty_total?: number
           start_date: string
           status?: string
           tags?: string[] | null
@@ -886,6 +939,7 @@ export type Database = {
           payment_type?: string
           penalty_value?: number | null
           remaining_amount?: number
+          renegotiation_penalty_total?: number
           start_date?: string
           status?: string
           tags?: string[] | null
