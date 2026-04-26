@@ -334,18 +334,28 @@ export const AccumulatedDelinquencyReport = forwardRef<HTMLDivElement, Props>(fu
                 </div>
 
                 <div className="space-y-2">
-                  {group.items.map((item, index) => (
-                    <div key={`${item.dueDate}-${index}`} className="grid gap-2 rounded-md border border-border/50 bg-muted/20 p-3 md:grid-cols-[1fr_auto_auto] md:items-center">
-                      <div className="space-y-1">
-                        <p className="text-sm font-medium text-foreground">Parcela em aberto</p>
-                        <p className="text-xs text-muted-foreground flex items-center gap-1">
-                          <Calendar className="h-3.5 w-3.5" /> Vencimento: {new Date(`${item.dueDate}T00:00:00`).toLocaleDateString("pt-BR")}
-                        </p>
+                  {group.items.map((item, index) => {
+                    const fees = item.lateInterest + item.penalty;
+                    return (
+                      <div key={`${item.dueDate}-${index}`} className="grid gap-2 rounded-md border border-border/50 bg-muted/20 p-3 md:grid-cols-[1fr_auto_auto] md:items-center">
+                        <div className="space-y-1">
+                          <p className="text-sm font-medium text-foreground">Parcela em aberto</p>
+                          <p className="text-xs text-muted-foreground flex items-center gap-1">
+                            <Calendar className="h-3.5 w-3.5" /> Vencimento: {new Date(`${item.dueDate}T00:00:00`).toLocaleDateString("pt-BR")}
+                          </p>
+                          {fees > 0 && (
+                            <p className="text-xs text-muted-foreground">
+                              Base: {formatCurrency(item.baseAmount)}
+                              {item.lateInterest > 0 && <> • Juros: {formatCurrency(item.lateInterest)}</>}
+                              {item.penalty > 0 && <> • Multa: {formatCurrency(item.penalty)}</>}
+                            </p>
+                          )}
+                        </div>
+                        <p className="text-sm font-semibold text-foreground md:text-right">{formatCurrency(item.amount)}</p>
+                        <p className="text-xs text-destructive md:text-right">{item.daysOverdue} dias em atraso</p>
                       </div>
-                      <p className="text-sm font-semibold text-foreground md:text-right">{formatCurrency(item.amount)}</p>
-                      <p className="text-xs text-destructive md:text-right">{item.daysOverdue} dias em atraso</p>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </CardContent>
             </Card>
