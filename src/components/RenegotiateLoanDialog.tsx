@@ -137,9 +137,22 @@ export function RenegotiateLoanDialog({
     return isInstallmentLoan ? Math.max(1, selectedCount) : remainingPending;
   }, [newInstallments, remainingPending, isInstallmentLoan, selectedCount]);
 
-  const newInstallmentValue = installmentsCount > 0
-    ? Math.round((newTotal / installmentsCount) * 100) / 100
+  // Modo "first" só faz sentido com multa > 0 e mais de uma nova parcela
+  const useFirstMode =
+    type === "with_penalty" &&
+    penaltyAmount > 0 &&
+    penaltyDistribution === "first" &&
+    installmentsCount > 1;
+
+  // Valor base da parcela (sem a multa, no modo "first" ela vai inteira na 1ª)
+  const baseInstallmentValue = installmentsCount > 0
+    ? Math.round((useFirstMode ? remaining : newTotal) / installmentsCount * 100) / 100
     : 0;
+  const firstInstallmentValue = useFirstMode
+    ? Math.round((baseInstallmentValue + penaltyAmount) * 100) / 100
+    : baseInstallmentValue;
+  // Mantém compat. com a UI atual ("X parcelas de Y")
+  const newInstallmentValue = baseInstallmentValue;
 
   // Simula o novo cronograma de parcelas pendentes (não selecionadas + novas geradas)
   const simulatedSchedule = useMemo(() => {
