@@ -664,9 +664,10 @@ export function useLoans() {
       : loan.amount * (loan.interestRate / 100);
     const interestAmount = customAmount != null && customAmount > 0 ? customAmount : baseInterest;
     const feesExtra = feesAmount != null && feesAmount > 0 ? feesAmount : 0;
-    // Regra: o próximo vencimento após pagar juros é SEMPRE +1 período a partir
-    // da ÂNCORA original (originalDueDate), ignorando renegociações que tenham
-    // adiado o due_date. Avançamos a partir da âncora até passar do due_date atual.
+    // Regra: o próximo vencimento após pagar juros é SEMPRE calculado a partir
+    // da ÂNCORA original (originalDueDate), IGNORANDO qualquer adiamento feito
+    // por renegociação no due_date. Avançamos ciclos a partir da âncora até
+    // ficar estritamente APÓS a data do pagamento.
     const anchorRef = loan.originalDueDate || loan.dueDate;
     const freq = loan.interestType || "Mensal";
     const advance = (d: Date) => {
@@ -681,12 +682,11 @@ export function useLoans() {
         }
       }
     };
-    const currentDueIso = loan.dueDate;
     const currentDue = new Date(anchorRef + "T00:00:00");
-    // Avança no mínimo 1 período; se ainda for ≤ dueDate atual, continua avançando
+    // Avança no mínimo 1 período; continua avançando enquanto for ≤ data do pagamento
     advance(currentDue);
     let guard = 0;
-    while (currentDue.toISOString().split("T")[0] <= currentDueIso && guard < 600) {
+    while (currentDue.toISOString().split("T")[0] <= dateStr && guard < 600) {
       advance(currentDue);
       guard += 1;
     }
