@@ -108,9 +108,10 @@ export function RenegotiateLoanDialog({
   useEffect(() => {
     if (open) {
       setSelectedNumbers(new Set(pendingInstallments.map((p) => p.installmentNumber)));
-      // Default: primeira data pendente ou dueDate do contrato
       const defaultDate = pendingInstallments[0]?.dueDate || loan.dueDate || "";
       setFirstDueDate(defaultDate ? defaultDate.slice(0, 10) : "");
+      setFrequency("monthly");
+      setCustomDates({});
     }
   }, [open, pendingInstallments, loan.dueDate]);
 
