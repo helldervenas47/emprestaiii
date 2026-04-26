@@ -723,7 +723,14 @@ export function useLoans() {
       { id: tempPaymentId, loanId, amount: interestAmount, date: dateStr, installmentNumber: 0, previousDueDate: loan.dueDate, paymentMethodId: paymentMethodId ?? null, metadata: (splitMetadata as any) ?? null },
       ...prev,
     ]);
-    setLoans((prev) => prev.map((l) => l.id === loanId ? { ...l, dueDate: newDueDate } : l));
+    setLoans((prev) => prev.map((l) => l.id === loanId ? {
+      ...l,
+      dueDate: newDueDate,
+      ...(shouldClearRenegPenalty ? {
+        renegotiationPenaltyTotal: 0,
+        remainingAmount: Math.max(0, Math.round((Number(l.remainingAmount || 0) - renegPenaltyPending) * 100) / 100),
+      } : {}),
+    } : l));
     await upsertCachedRow("payments", { ...paymentPayload, created_at: new Date().toISOString() });
 
     if (!online) {
