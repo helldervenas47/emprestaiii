@@ -14,6 +14,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -39,6 +40,17 @@ const formatDateBR = (iso: string) => {
   return `${d}/${m}/${y}`;
 };
 
+const stepDate = (baseISO: string, freq: "monthly" | "biweekly" | "weekly" | "daily", n: number): string => {
+  if (!baseISO || !/^\d{4}-\d{2}-\d{2}/.test(baseISO)) return baseISO;
+  const d = new Date(baseISO.slice(0, 10) + "T00:00:00");
+  if (isNaN(d.getTime())) return baseISO;
+  if (freq === "monthly") d.setMonth(d.getMonth() + n);
+  else if (freq === "biweekly") d.setDate(d.getDate() + 15 * n);
+  else if (freq === "weekly") d.setDate(d.getDate() + 7 * n);
+  else d.setDate(d.getDate() + n);
+  return d.toISOString().slice(0, 10);
+};
+
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -55,6 +67,8 @@ interface Props {
     notes?: string | null;
     selectedInstallmentNumbers?: number[] | null;
     firstDueDate?: string | null;
+    frequency?: "monthly" | "biweekly" | "weekly" | "daily" | null;
+    customDates?: string[] | null;
   }) => Promise<void>;
 }
 
@@ -74,6 +88,8 @@ export function RenegotiateLoanDialog({
   const [newInstallments, setNewInstallments] = useState("");
   const [notes, setNotes] = useState("");
   const [firstDueDate, setFirstDueDate] = useState("");
+  const [frequency, setFrequency] = useState<"monthly" | "biweekly" | "weekly" | "daily">("monthly");
+  const [customDates, setCustomDates] = useState<Record<number, string>>({});
   const [confirming, setConfirming] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
@@ -92,9 +108,10 @@ export function RenegotiateLoanDialog({
   useEffect(() => {
     if (open) {
       setSelectedNumbers(new Set(pendingInstallments.map((p) => p.installmentNumber)));
-      // Default: primeira data pendente ou dueDate do contrato
       const defaultDate = pendingInstallments[0]?.dueDate || loan.dueDate || "";
       setFirstDueDate(defaultDate ? defaultDate.slice(0, 10) : "");
+      setFrequency("monthly");
+      setCustomDates({});
     }
   }, [open, pendingInstallments, loan.dueDate]);
 
@@ -158,29 +175,32 @@ export function RenegotiateLoanDialog({
   const simulatedSchedule = useMemo(() => {
     const overrideDate = firstDueDate && /^\d{4}-\d{2}-\d{2}$/.test(firstDueDate) ? firstDueDate : null;
 
+    const computeNewDate = (i: number, base: string, startsAtBase: boolean) => {
+      // Se há override do usuário para esta parcela nova, usa ele
+      if (customDates[i] && /^\d{4}-\d{2}-\d{2}$/.test(customDates[i])) return customDates[i];
+      // Se i===0 e não devemos avançar a partir da base, retorna a própria base
+      const offset = startsAtBase ? i : i + 1;
+      return stepDate(base, frequency, offset);
+    };
+
     if (!isInstallmentLoan || pendingInstallments.length === 0) {
-      const result: { number: number; dueDate: string; amount: number; isNew: boolean }[] = [];
+      const result: { number: number; dueDate: string; amount: number; isNew: boolean; newIndex?: number }[] = [];
       const baseDate = overrideDate || loan.dueDate;
       let acc = 0;
       for (let i = 0; i < installmentsCount; i++) {
-        const d = new Date(baseDate + "T00:00:00");
-        if (!isNaN(d.getTime())) d.setMonth(d.getMonth() + i);
-        const dueStr = !isNaN(d.getTime()) ? d.toISOString().slice(0, 10) : baseDate;
+        const dueStr = computeNewDate(i, baseDate, true);
         const isLast = i === installmentsCount - 1;
         let amt: number;
-        if (useFirstMode && i === 0) {
-          amt = firstInstallmentValue;
-        } else if (isLast) {
-          amt = Math.round((newTotal - acc) * 100) / 100;
-        } else {
-          amt = baseInstallmentValue;
-        }
+        if (useFirstMode && i === 0) amt = firstInstallmentValue;
+        else if (isLast) amt = Math.round((newTotal - acc) * 100) / 100;
+        else amt = baseInstallmentValue;
         acc += amt;
         result.push({
           number: loan.paidInstallments + i + 1,
           dueDate: dueStr,
           amount: amt,
           isNew: true,
+          newIndex: i,
         });
       }
       return result;
@@ -199,35 +219,31 @@ export function RenegotiateLoanDialog({
       ? (pendingInstallments.find((s) => selectedNumbers.has(s.installmentNumber))?.dueDate || loan.dueDate)
       : null;
 
-    // Gera novas parcelas
-    const newScheds: { dueDate: string; amount: number }[] = [];
+    // Determina base e se a parcela 0 começa exatamente na base
+    let base: string;
+    let startsAtBase: boolean;
+    if (overrideDate) {
+      base = overrideDate;
+      startsAtBase = true;
+    } else if (!isPartial && firstSelectedDate) {
+      base = firstSelectedDate;
+      startsAtBase = true;
+    } else {
+      base = lastDate;
+      startsAtBase = false;
+    }
+
+    const newScheds: { dueDate: string; amount: number; newIndex: number }[] = [];
     let acc = 0;
     for (let i = 0; i < installmentsCount; i++) {
-      let dueStr: string;
-      if (overrideDate) {
-        const d = new Date(overrideDate + "T00:00:00");
-        if (!isNaN(d.getTime())) d.setMonth(d.getMonth() + i);
-        dueStr = !isNaN(d.getTime()) ? d.toISOString().slice(0, 10) : overrideDate;
-      } else if (!isPartial && i === 0 && firstSelectedDate) {
-        dueStr = firstSelectedDate;
-      } else {
-        const baseDate = !isPartial && firstSelectedDate ? firstSelectedDate : lastDate;
-        const offsetMonths = !isPartial && firstSelectedDate ? i : (i + 1);
-        const d = new Date(baseDate + "T00:00:00");
-        if (!isNaN(d.getTime())) d.setMonth(d.getMonth() + offsetMonths);
-        dueStr = !isNaN(d.getTime()) ? d.toISOString().slice(0, 10) : baseDate;
-      }
+      const dueStr = computeNewDate(i, base, startsAtBase);
       const isLast = i === installmentsCount - 1;
       let amt: number;
-      if (useFirstMode && i === 0) {
-        amt = firstInstallmentValue;
-      } else if (isLast) {
-        amt = Math.round((newTotal - acc) * 100) / 100;
-      } else {
-        amt = baseInstallmentValue;
-      }
+      if (useFirstMode && i === 0) amt = firstInstallmentValue;
+      else if (isLast) amt = Math.round((newTotal - acc) * 100) / 100;
+      else amt = baseInstallmentValue;
       acc += amt;
-      newScheds.push({ dueDate: dueStr, amount: amt });
+      newScheds.push({ dueDate: dueStr, amount: amt, newIndex: i });
     }
 
     const combined = [
@@ -235,8 +251,9 @@ export function RenegotiateLoanDialog({
         dueDate: s.dueDate,
         amount: Number(s.amount || 0),
         isNew: false,
+        newIndex: undefined as number | undefined,
       })),
-      ...newScheds.map((s) => ({ dueDate: s.dueDate, amount: s.amount, isNew: true })),
+      ...newScheds.map((s) => ({ dueDate: s.dueDate, amount: s.amount, isNew: true, newIndex: s.newIndex })),
     ].sort((a, b) => a.dueDate.localeCompare(b.dueDate));
 
     return combined.map((item, i) => ({
@@ -244,6 +261,7 @@ export function RenegotiateLoanDialog({
       dueDate: item.dueDate,
       amount: item.amount,
       isNew: item.isNew,
+      newIndex: item.newIndex,
     }));
   }, [
     isInstallmentLoan,
@@ -258,6 +276,8 @@ export function RenegotiateLoanDialog({
     loan.dueDate,
     loan.paidInstallments,
     firstDueDate,
+    frequency,
+    customDates,
   ]);
 
   const reset = () => {
@@ -267,6 +287,8 @@ export function RenegotiateLoanDialog({
     setPenaltyDistribution("diluted");
     setNewInstallments("");
     setNotes("");
+    setFrequency("monthly");
+    setCustomDates({});
     setConfirming(false);
   };
 
@@ -324,6 +346,15 @@ export function RenegotiateLoanDialog({
             ? Array.from(selectedNumbers).sort((a, b) => a - b)
             : null,
         firstDueDate: firstDueDate && /^\d{4}-\d{2}-\d{2}$/.test(firstDueDate) ? firstDueDate : null,
+        frequency,
+        customDates: (() => {
+          const arr: string[] = [];
+          for (let i = 0; i < installmentsCount; i++) {
+            const row = simulatedSchedule.find((r) => r.isNew && r.newIndex === i);
+            arr.push(row?.dueDate || "");
+          }
+          return arr.length > 0 ? arr : null;
+        })(),
       });
       reset();
       onOpenChange(false);
@@ -601,21 +632,40 @@ export function RenegotiateLoanDialog({
             />
           </div>
 
-          <div className="space-y-1.5">
-            <Label className="text-xs flex items-center gap-1.5">
-              <CalendarDays className="h-3.5 w-3.5" /> Nova data de vencimento
-              {installmentsCount > 1 && (
-                <span className="text-[10px] text-muted-foreground font-normal">
-                  (1ª parcela — demais seguem mensalmente)
-                </span>
-              )}
-            </Label>
-            <Input
-              type="date"
-              value={firstDueDate}
-              onChange={(e) => { setFirstDueDate(e.target.value); setConfirming(false); }}
-            />
+          <div className="grid grid-cols-2 gap-2">
+            <div className="space-y-1.5">
+              <Label className="text-xs flex items-center gap-1.5">
+                <CalendarDays className="h-3.5 w-3.5" /> 1ª parcela
+              </Label>
+              <Input
+                type="date"
+                value={firstDueDate}
+                onChange={(e) => { setFirstDueDate(e.target.value); setCustomDates({}); setConfirming(false); }}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs">Frequência</Label>
+              <Select
+                value={frequency}
+                onValueChange={(v) => { setFrequency(v as any); setCustomDates({}); setConfirming(false); }}
+              >
+                <SelectTrigger className="h-11">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="monthly">Mensal</SelectItem>
+                  <SelectItem value="biweekly">Quinzenal</SelectItem>
+                  <SelectItem value="weekly">Semanal</SelectItem>
+                  <SelectItem value="daily">Diário</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
+          {installmentsCount > 1 && (
+            <p className="text-[10px] text-muted-foreground -mt-2">
+              Datas das demais parcelas seguem a frequência escolhida. Você pode editar cada uma na tabela abaixo.
+            </p>
+          )}
 
           <div className="space-y-1.5">
             <Label className="text-xs">Observações (opcional)</Label>
@@ -740,7 +790,20 @@ export function RenegotiateLoanDialog({
                               )}
                             </td>
                             <td className="px-2 py-1.5 text-muted-foreground">
-                              {formatDateBR(row.dueDate)}
+                              {row.isNew && row.newIndex !== undefined ? (
+                                <Input
+                                  type="date"
+                                  value={row.dueDate}
+                                  onChange={(e) => {
+                                    const v = e.target.value;
+                                    setCustomDates((prev) => ({ ...prev, [row.newIndex as number]: v }));
+                                    setConfirming(false);
+                                  }}
+                                  className="h-7 px-1.5 text-xs"
+                                />
+                              ) : (
+                                formatDateBR(row.dueDate)
+                              )}
                             </td>
                             <td className="px-2 py-1.5 text-right text-warning">
                               {rowMulta > 0 ? formatCurrency(rowMulta) : "—"}
