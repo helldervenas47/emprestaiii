@@ -1853,6 +1853,7 @@ function LoanCardView({
         onOpenChange={setShowRenegotiateDialog}
         loan={loan}
         payments={allPayments}
+        installmentSchedules={installmentSchedules}
         history={renegotiations}
         onConfirm={async (params) => { await onRenegotiate(params); }}
       />
