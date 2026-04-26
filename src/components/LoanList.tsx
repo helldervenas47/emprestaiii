@@ -2235,6 +2235,8 @@ function LoanRowView({
   const [showPenalty, setShowPenalty] = useState(false);
   const [penaltyValue, setPenaltyValue] = useState<string>(loan.penaltyValue != null ? String(loan.penaltyValue) : "");
   const [showRenegotiateDialog, setShowRenegotiateDialog] = useState(false);
+  const [showRowDetails, setShowRowDetails] = useState(false);
+  const [showRowAccountModal, setShowRowAccountModal] = useState(false);
   const managerOptions = useMemo(() => clients.filter((c) => c.isManager && c.active !== false), [clients]);
   const { activeMethods: rowActiveMethods } = usePaymentMethods();
   const [rowSelectedMethodId, setRowSelectedMethodId] = useState<string>("");
@@ -3028,6 +3030,279 @@ function LoanRowView({
                 </DialogFooter>
               </DialogContent>
             </Dialog>
+
+            {/* Mais Detalhes - Installment Schedule (mesmo conteúdo da view por Cards) */}
+            {(() => {
+              const progress = loan.installments > 0 ? (loan.paidInstallments / loan.installments) * 100 : 0;
+              const totalInterest = total - loan.amount;
+              return (
+                <>
+                  <button
+                    onClick={() => setShowRowDetails(!showRowDetails)}
+                    className="flex items-center gap-1 text-xs text-primary hover:underline w-full justify-center py-1"
+                  >
+                    {showRowDetails ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
+                    {showRowDetails ? "Ocultar detalhes" : "Mais detalhes"}
+                  </button>
+
+                  {showRowDetails && (
+                    <div className="space-y-2 bg-muted/30 rounded-lg p-3 border border-border/50">
+                      <p className="text-xs font-semibold text-foreground mb-2">Cronograma de Parcelas</p>
+                      <div className="grid grid-cols-[auto_1fr_1fr_1fr] gap-x-3 gap-y-1 text-xs">
+                        <span className="font-medium text-muted-foreground">#</span>
+                        <span className="font-medium text-muted-foreground">Vencimento</span>
+                        <span className="font-medium text-muted-foreground">Valor</span>
+                        <span className="font-medium text-muted-foreground">Status</span>
+                        {Array.from({ length: loan.installments }, (_, idx) => {
+                          const i = idx + 1;
+                          const savedSchedule = installmentSchedules.find((s) => s.loanId === loan.id && s.installmentNumber === i);
+                          const firstDueDate = new Date(loan.dueDate + "T00:00:00");
+                          const fallbackDate = getNextDate(firstDueDate, loan.interestType || "Mensal", i - 1);
+                          const instDate = savedSchedule
+                            ? new Date(savedSchedule.dueDate + "T00:00:00")
+                            : i <= loan.paidInstallments
+                              ? (() => {
+                                  const loanPayment = allPayments.find((p) => p.loanId === loan.id && p.installmentNumber === i);
+                                  return loanPayment ? new Date(loanPayment.date + "T00:00:00") : fallbackDate;
+                                })()
+                              : fallbackDate;
+                          const instDateStr = instDate.toLocaleDateString("pt-BR");
+                          const instAmount = savedSchedule?.amount ?? installmentValue;
+                          const isPaid = i <= loan.paidInstallments;
+                          const todayNorm = new Date();
+                          const todayStr = `${todayNorm.getFullYear()}-${String(todayNorm.getMonth() + 1).padStart(2, "0")}-${String(todayNorm.getDate()).padStart(2, "0")}`;
+                          const instIso = instDate.toISOString().split("T")[0];
+                          const isOverdue = !isPaid && instIso < todayStr;
+                          const isDueToday = !isPaid && instIso === todayStr;
+                          return (
+                            <React.Fragment key={i}>
+                              <span className="text-muted-foreground">{i}</span>
+                              <span className="text-foreground">{instDateStr}</span>
+                              <span className="text-foreground font-medium">{formatCurrency(instAmount)}</span>
+                              <span>
+                                {isPaid ? (
+                                  <Badge className="bg-success/20 text-success border-success/30 text-[10px]">Pago</Badge>
+                                ) : isOverdue ? (
+                                  <Badge className="bg-destructive/20 text-destructive border-destructive/30 text-[10px]">Atrasado</Badge>
+                                ) : isDueToday ? (
+                                  <Badge className="bg-warning/20 text-warning border-warning/30 text-[10px]">Hoje</Badge>
+                                ) : (
+                                  <Badge variant="outline" className="text-[10px]">Pendente</Badge>
+                                )}
+                              </span>
+                            </React.Fragment>
+                          );
+                        })}
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-2 pt-2 mt-2 border-t border-border/30 text-xs">
+                        <div>
+                          <p className="text-muted-foreground">Valor da Parcela</p>
+                          <p className="font-semibold text-foreground">{formatCurrency(installmentValue)}</p>
+                        </div>
+                        <div>
+                          <p className="text-muted-foreground">Juros por Parcela</p>
+                          <p className="font-semibold text-foreground">{formatCurrency(installmentValue - (loan.amount / Math.max(1, loan.installments)))}</p>
+                        </div>
+                        <div>
+                          <p className="text-muted-foreground">Total de Juros</p>
+                          <p className="font-semibold text-foreground">{formatCurrency(totalInterest)}</p>
+                        </div>
+                        <div>
+                          <p className="text-muted-foreground">Já Recebido</p>
+                          <p className="font-semibold text-success">{formatCurrency(totalPaid)}</p>
+                        </div>
+                      </div>
+
+                      <div className="pt-2">
+                        <div className="flex justify-between text-xs mb-1">
+                          <span className="text-muted-foreground">{loan.paidInstallments}/{loan.installments} parcelas</span>
+                          <span className="font-medium text-foreground">{Math.round(progress)}%</span>
+                        </div>
+                        <Progress value={progress} className="h-2.5" />
+                      </div>
+                    </div>
+                  )}
+
+                  {showRowDetails && (() => {
+                    const fmt = (iso?: string | null) => {
+                      if (!iso) return "—";
+                      const [y, m, d] = iso.split("-");
+                      return `${d}/${m}/${y}`;
+                    };
+                    const currentDueIso = loan.dueDate;
+                    const rawOriginal = loan.originalDueDate || loan.dueDate;
+                    const originalDueIso = rawOriginal > currentDueIso ? currentDueIso : rawOriginal;
+                    const wasRenegotiated = !!loan.originalDueDate && loan.originalDueDate !== loan.dueDate && loan.originalDueDate <= loan.dueDate;
+                    const freq = loan.interestType || "Mensal";
+                    const nextDue = (() => {
+                      const today = new Date().toISOString().split("T")[0];
+                      const advance = (d: Date) => {
+                        if (freq === "Semanal") d.setDate(d.getDate() + 7);
+                        else if (freq === "Quinzenal") d.setDate(d.getDate() + 15);
+                        else {
+                          const anchorDay = Number(originalDueIso.split("-")[2]);
+                          d.setMonth(d.getMonth() + 1);
+                          if (Number.isFinite(anchorDay)) {
+                            const lastDay = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
+                            d.setDate(Math.min(anchorDay, lastDay));
+                          }
+                        }
+                      };
+                      const d = new Date(originalDueIso + "T00:00:00");
+                      advance(d);
+                      let guard = 0;
+                      while (d.toISOString().split("T")[0] <= today && guard < 600) {
+                        advance(d);
+                        guard += 1;
+                      }
+                      const yyyy = d.getFullYear();
+                      const mm = String(d.getMonth() + 1).padStart(2, "0");
+                      const dd = String(d.getDate()).padStart(2, "0");
+                      return `${yyyy}-${mm}-${dd}`;
+                    })();
+                    return (
+                      <div className="space-y-2 bg-muted/20 rounded-lg p-3 border border-dashed border-border/60">
+                        <p className="text-xs font-semibold text-foreground flex items-center gap-1">
+                          🔍 Auditoria de Vencimento
+                        </p>
+                        <div className="grid grid-cols-2 gap-2 text-xs">
+                          <div>
+                            <p className="text-muted-foreground">Vencimento original (âncora)</p>
+                            <p className="font-semibold text-foreground">{fmt(originalDueIso)}</p>
+                          </div>
+                          <div>
+                            <p className="text-muted-foreground">Vencimento atual{wasRenegotiated ? " (renegociado)" : ""}</p>
+                            <p className={`font-semibold ${wasRenegotiated ? "text-warning" : "text-foreground"}`}>{fmt(currentDueIso)}</p>
+                          </div>
+                          <div className="col-span-2 pt-1 mt-1 border-t border-border/30">
+                            <p className="text-muted-foreground">Próximo vencimento se pagar apenas juros agora</p>
+                            <p className="font-semibold text-primary">{fmt(nextDue)}</p>
+                            <p className="text-[10px] text-muted-foreground mt-1">
+                              {freq === "Mensal"
+                                ? `Cálculo: próximo dia ${originalDueIso.split("-")[2]} (âncora original) após hoje. Renegociações no vencimento são ignoradas.`
+                                : `Cálculo: próximo ciclo de ${freq === "Semanal" ? "7" : "15"} dias a partir da âncora, após hoje.`}
+                            </p>
+                          </div>
+                          <div className="col-span-2 pt-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="w-full h-8 text-xs gap-1.5"
+                              onClick={() => setShowRowAccountModal(true)}
+                            >
+                              📒 Ver conta passo a passo
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })()}
+
+                  <Dialog open={showRowAccountModal} onOpenChange={setShowRowAccountModal}>
+                    <DialogContent className="sm:max-w-[480px] max-h-[85vh] overflow-y-auto">
+                      <DialogHeader>
+                        <DialogTitle>📒 Conta passo a passo</DialogTitle>
+                      </DialogHeader>
+                      {(() => {
+                        const fmtBR = (iso: string) => {
+                          const [y, m, d] = iso.split("-");
+                          return `${d}/${m}/${y}`;
+                        };
+                        const addPeriod = (iso: string, anchorIso: string, freq: string) => {
+                          const d = new Date(iso + "T00:00:00");
+                          if (freq === "Semanal") d.setDate(d.getDate() + 7);
+                          else if (freq === "Quinzenal") d.setDate(d.getDate() + 15);
+                          else {
+                            const anchorDay = Number(anchorIso.split("-")[2]);
+                            d.setMonth(d.getMonth() + 1);
+                            if (Number.isFinite(anchorDay)) {
+                              const lastDay = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
+                              d.setDate(Math.min(anchorDay, lastDay));
+                            }
+                          }
+                          return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+                        };
+                        const freq = loan.interestType || "Mensal";
+                        const rawBase = loan.originalDueDate || loan.dueDate;
+                        const baseIso = rawBase > loan.dueDate ? loan.dueDate : rawBase;
+                        const interestPayments = allPayments
+                          .filter((p) => p.loanId === loan.id && p.metadata?.kind !== "amortization")
+                          .sort((a, b) => a.date.localeCompare(b.date));
+                        const steps: { label: string; date: string; detail?: string; highlight?: boolean }[] = [];
+                        steps.push({
+                          label: "Data base (vencimento original — âncora fixa)",
+                          date: fmtBR(baseIso),
+                          detail: `Frequência: ${freq}. Esta data nunca muda, mesmo após renegociações.`,
+                        });
+                        let runningDue = baseIso;
+                        interestPayments.forEach((p, idx) => {
+                          const prev = p.previousDueDate || runningDue;
+                          const next = addPeriod(prev, baseIso, freq);
+                          steps.push({
+                            label: `Pagamento de juros #${idx + 1} em ${fmtBR(p.date)}`,
+                            date: `${fmtBR(prev)} → ${fmtBR(next)}`,
+                            detail: `Valor pago: ${formatCurrency(p.amount)}. Novo vencimento = ${fmtBR(prev)} + 1 ${freq.toLowerCase()}${freq === "Mensal" ? `, ajustado para o dia ${baseIso.split("-")[2]}` : ""}.`,
+                          });
+                          runningDue = next;
+                        });
+                        steps.push({
+                          label: "Vencimento atual no sistema",
+                          date: fmtBR(loan.dueDate),
+                          detail: loan.originalDueDate && loan.originalDueDate !== loan.dueDate
+                            ? "⚠️ Renegociado — diferente da âncora."
+                            : "Alinhado com a âncora original.",
+                        });
+                        const todayIso = new Date().toISOString().split("T")[0];
+                        let nextProj = addPeriod(baseIso, baseIso, freq);
+                        let g = 0;
+                        while (nextProj <= todayIso && g < 600) {
+                          nextProj = addPeriod(nextProj, baseIso, freq);
+                          g += 1;
+                        }
+                        steps.push({
+                          label: "Se pagar juros agora",
+                          date: `${fmtBR(loan.dueDate)} → ${fmtBR(nextProj)}`,
+                          detail: `Próximo vencimento sempre calculado a partir da âncora ${fmtBR(baseIso)}${freq === "Mensal" ? ` (dia ${baseIso.split("-")[2]})` : ""}, ignorando renegociações.`,
+                          highlight: true,
+                        });
+                        return (
+                          <div className="space-y-3 text-sm">
+                            <p className="text-xs text-muted-foreground">
+                              Linha do tempo do ciclo de vencimentos baseada nos pagamentos reais registrados.
+                            </p>
+                            <ol className="space-y-2">
+                              {steps.map((s, i) => (
+                                <li
+                                  key={i}
+                                  className={cn(
+                                    "rounded-lg border p-3 space-y-1",
+                                    s.highlight ? "border-primary/50 bg-primary/5" : "border-border/50 bg-muted/20",
+                                  )}
+                                >
+                                  <div className="flex items-start justify-between gap-2">
+                                    <span className="text-xs font-semibold text-foreground">
+                                      {i + 1}. {s.label}
+                                    </span>
+                                    <span className={cn("text-xs font-mono tabular-nums shrink-0", s.highlight ? "text-primary font-bold" : "text-foreground")}>
+                                      {s.date}
+                                    </span>
+                                  </div>
+                                  {s.detail && <p className="text-[11px] text-muted-foreground">{s.detail}</p>}
+                                </li>
+                              ))}
+                            </ol>
+                          </div>
+                        );
+                      })()}
+                      <DialogFooter>
+                        <Button variant="outline" onClick={() => setShowRowAccountModal(false)}>Fechar</Button>
+                      </DialogFooter>
+                    </DialogContent>
+                  </Dialog>
+                </>
+              );
+            })()}
           </div>
           )}
         </td>
