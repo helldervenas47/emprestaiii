@@ -1474,11 +1474,17 @@ function LoanCardView({
                   ? "⚠️ Renegociado — diferente da âncora."
                   : "Alinhado com a âncora original.",
               });
-              const nextProj = addPeriod(loan.dueDate, baseIso, freq);
+              const todayIso = new Date().toISOString().split("T")[0];
+              let nextProj = addPeriod(baseIso, baseIso, freq);
+              let g = 0;
+              while (nextProj <= todayIso && g < 600) {
+                nextProj = addPeriod(nextProj, baseIso, freq);
+                g += 1;
+              }
               steps.push({
                 label: "Se pagar juros agora",
                 date: `${fmtBR(loan.dueDate)} → ${fmtBR(nextProj)}`,
-                detail: `Próximo vencimento = ${fmtBR(loan.dueDate)} + 1 ${freq.toLowerCase()}${freq === "Mensal" ? `, dia ${baseIso.split("-")[2]} (âncora)` : ""}.`,
+                detail: `Próximo vencimento sempre calculado a partir da âncora ${fmtBR(baseIso)}${freq === "Mensal" ? ` (dia ${baseIso.split("-")[2]})` : ""}, ignorando renegociações.`,
                 highlight: true,
               });
               return (
