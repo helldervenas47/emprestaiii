@@ -229,6 +229,7 @@ function useAccountBalance(): [number, (v: number) => void] {
 export function DashboardOverview({ loans, sales, payments, expenses, installmentSchedules = [], clients = [], onDeletePayment, onDeleteSale, onDeleteLoan, readOnly = false }: Props) {
   const { mask } = useHideValues();
   const { role } = useAuth();
+  const { renegotiations } = useLoanRenegotiations();
   const isMobile = useIsMobile();
   const formatCurrency = useCallback((v: number) => mask(rawFormatCurrency(v)), [mask]);
   const [period, setPeriod] = useState<Period>("month");
