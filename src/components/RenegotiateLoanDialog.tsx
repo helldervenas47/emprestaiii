@@ -311,6 +311,66 @@ export function RenegotiateLoanDialog({
   const allSelected =
     pendingInstallments.length > 0 && selectedNumbers.size === pendingInstallments.length;
 
+  // Tabs: "renegociar" | "history"
+  const [activeTab, setActiveTab] = useState<"renegotiate" | "history">("renegotiate");
+  useEffect(() => { if (open) setActiveTab("renegotiate"); }, [open]);
+
+  // Edit/Delete renegotiation history
+  const { updateRenegotiation, deleteRenegotiation } = useLoanRenegotiations();
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editNotes, setEditNotes] = useState("");
+  const [editType, setEditType] = useState<"no_interest" | "with_penalty">("no_interest");
+  const [editPenaltyMode, setEditPenaltyMode] = useState<"fixed" | "percentage">("fixed");
+  const [editPenaltyInput, setEditPenaltyInput] = useState("");
+  const [savingEdit, setSavingEdit] = useState(false);
+  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
+
+  const startEdit = (r: LoanRenegotiation) => {
+    setEditingId(r.id);
+    setEditNotes(r.notes ?? "");
+    setEditType(r.type);
+    setEditPenaltyMode((r.penaltyMode as any) ?? "fixed");
+    setEditPenaltyInput(r.penaltyInput != null ? String(r.penaltyInput) : "");
+  };
+  const cancelEdit = () => {
+    setEditingId(null);
+  };
+  const saveEdit = async () => {
+    if (!editingId) return;
+    try {
+      setSavingEdit(true);
+      const penaltyVal = editType === "with_penalty"
+        ? (parseFloat(editPenaltyInput.replace(",", ".")) || 0) || null
+        : null;
+      await updateRenegotiation(editingId, {
+        notes: editNotes.trim() || null,
+        type: editType,
+        penaltyMode: editType === "with_penalty" ? editPenaltyMode : null,
+        penaltyInput: penaltyVal,
+      });
+      toast.success("Renegociação atualizada");
+      setEditingId(null);
+    } catch (e: any) {
+      toast.error(e?.message || "Falha ao atualizar");
+    } finally {
+      setSavingEdit(false);
+    }
+  };
+  const confirmDelete = async () => {
+    if (!pendingDeleteId) return;
+    try {
+      setDeleting(true);
+      await deleteRenegotiation(pendingDeleteId);
+      toast.success("Renegociação excluída do histórico");
+      setPendingDeleteId(null);
+    } catch (e: any) {
+      toast.error(e?.message || "Falha ao excluir");
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   return (
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
