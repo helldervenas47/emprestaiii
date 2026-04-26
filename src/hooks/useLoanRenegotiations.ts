@@ -39,5 +39,43 @@ export function useLoanRenegotiations() {
     fetchAll();
   }, [fetchAll, dataOwnerId]);
 
-  return { renegotiations, refresh: fetchAll };
+  const updateRenegotiation = useCallback(
+    async (
+      id: string,
+      patch: { notes?: string | null; type?: "no_interest" | "with_penalty"; penaltyMode?: "fixed" | "percentage" | null; penaltyInput?: number | null },
+    ) => {
+      const updatePayload: any = {};
+      if (patch.notes !== undefined) updatePayload.notes = patch.notes;
+      if (patch.type !== undefined) updatePayload.type = patch.type;
+      if (patch.penaltyMode !== undefined) updatePayload.penalty_mode = patch.penaltyMode;
+      if (patch.penaltyInput !== undefined) updatePayload.penalty_input = patch.penaltyInput;
+      const { error } = await supabase
+        .from("loan_renegotiations" as any)
+        .update(updatePayload)
+        .eq("id", id);
+      if (error) throw new Error(error.message);
+      setRenegotiations((prev) =>
+        prev.map((r) =>
+          r.id === id
+            ? {
+                ...r,
+                notes: patch.notes !== undefined ? patch.notes : r.notes,
+                type: patch.type !== undefined ? patch.type : r.type,
+                penaltyMode: patch.penaltyMode !== undefined ? patch.penaltyMode : r.penaltyMode,
+                penaltyInput: patch.penaltyInput !== undefined ? patch.penaltyInput : r.penaltyInput,
+              }
+            : r,
+        ),
+      );
+    },
+    [],
+  );
+
+  const deleteRenegotiation = useCallback(async (id: string) => {
+    const { error } = await supabase.from("loan_renegotiations" as any).delete().eq("id", id);
+    if (error) throw new Error(error.message);
+    setRenegotiations((prev) => prev.filter((r) => r.id !== id));
+  }, []);
+
+  return { renegotiations, refresh: fetchAll, updateRenegotiation, deleteRenegotiation };
 }
