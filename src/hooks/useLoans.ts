@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect } from "react";
 import { todayInAppTz } from "@/lib/timezone";
-import { Loan, Payment, InstallmentSchedule } from "@/types/loan";
+import { Loan, Payment, InstallmentSchedule, PaymentSplit } from "@/types/loan";
 import { adjustBalance, adjustBalanceOffline } from "@/lib/balance";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
@@ -41,6 +41,27 @@ function rowToPayment(p: any): Payment {
     paymentMethodId: p.payment_method_id ?? null,
     metadata: p.metadata ?? null,
   };
+}
+
+/**
+ * Validates a payment split (must have 2 parts whose amounts sum to expected total).
+ * Returns the normalized split or null if invalid/empty.
+ */
+function normalizeSplit(split: PaymentSplit | null | undefined, expectedTotal: number): PaymentSplit | null {
+  if (!split || !Array.isArray(split.parts) || split.parts.length < 2) return null;
+  const parts = split.parts.filter((p) => p && Number(p.amount) > 0);
+  if (parts.length < 2) return null;
+  const sum = parts.reduce((acc, p) => acc + Number(p.amount), 0);
+  if (Math.abs(sum - expectedTotal) > 0.02) return null;
+  return { parts: parts.map((p) => ({ paymentMethodId: p.paymentMethodId ?? null, amount: Number(p.amount) })) };
+}
+
+/**
+ * Builds metadata object including split info if provided. Preserves existing metadata.
+ */
+function withSplit(base: Record<string, any> | null | undefined, split: PaymentSplit | null): Record<string, any> | undefined {
+  if (!split) return base ?? undefined;
+  return { ...(base ?? {}), split };
 }
 
 export function useLoans() {
@@ -256,7 +277,7 @@ export function useLoans() {
     return null;
   }, [user, dataOwnerId]);
 
-  const addPayment = useCallback(async (loanId: string, paymentDate?: string, paymentMethodId?: string | null) => {
+  const addPayment = useCallback(async (loanId: string, paymentDate?: string, paymentMethodId?: string | null, paymentSplit?: PaymentSplit | null) => {
     if (!user || !dataOwnerId) throw new Error("Sessão ainda não carregada");
     const dateStr = paymentDate || todayInAppTz();
     const loan = loans.find((l) => l.id === loanId);
@@ -299,7 +320,9 @@ export function useLoans() {
 
     const newStatus = newPaid >= loan.installments ? "paid" : loan.status;
     const tempPaymentId = crypto.randomUUID();
-    const paymentPayload = {
+    const normalizedSplit = normalizeSplit(paymentSplit ?? null, installmentAmount);
+    const splitMetadata = withSplit(null, normalizedSplit);
+    const paymentPayload: any = {
       id: tempPaymentId,
       user_id: dataOwnerId,
       loan_id: loanId,
@@ -308,6 +331,7 @@ export function useLoans() {
       installment_number: newPaid,
       payment_method_id: paymentMethodId ?? null,
     };
+    if (splitMetadata) paymentPayload.metadata = splitMetadata;
     const loanUpdate = {
       paid_installments: newPaid,
       status: newStatus,
@@ -317,7 +341,7 @@ export function useLoans() {
 
     // Optimistic state
     setPayments((prev) => [
-      { id: tempPaymentId, loanId, amount: installmentAmount, date: dateStr, installmentNumber: newPaid, paymentMethodId: paymentMethodId ?? null },
+      { id: tempPaymentId, loanId, amount: installmentAmount, date: dateStr, installmentNumber: newPaid, paymentMethodId: paymentMethodId ?? null, metadata: (splitMetadata as any) ?? null },
       ...prev,
     ]);
     setLoans((prev) => prev.map((l) => l.id === loanId ? {
@@ -380,7 +404,7 @@ export function useLoans() {
     await fetchLoans();
   }, [user, dataOwnerId, loans, payments, installmentSchedules, fetchLoans, fetchPayments]);
 
-  const addPartialPayment = useCallback(async (loanId: string, amount: number, paymentDate?: string, paymentMethodId?: string | null) => {
+  const addPartialPayment = useCallback(async (loanId: string, amount: number, paymentDate?: string, paymentMethodId?: string | null, paymentSplit?: PaymentSplit | null) => {
     if (!user || !dataOwnerId) throw new Error("Sessão ainda não carregada");
     if (amount <= 0) throw new Error("Informe um valor de pagamento válido");
     const dateStr = paymentDate || todayInAppTz();
@@ -390,15 +414,18 @@ export function useLoans() {
     const online = isOnline();
 
     const tempPaymentId = crypto.randomUUID();
-    const paymentPayload = {
+    const normalizedSplit = normalizeSplit(paymentSplit ?? null, amount);
+    const splitMetadata = withSplit(null, normalizedSplit);
+    const paymentPayload: any = {
       id: tempPaymentId,
       user_id: dataOwnerId, loan_id: loanId, amount, date: dateStr, installment_number: -1,
       payment_method_id: paymentMethodId ?? null,
     };
+    if (splitMetadata) paymentPayload.metadata = splitMetadata;
     const loanUpdate = { remaining_amount: newRemaining };
 
     setPayments((prev) => [
-      { id: tempPaymentId, loanId, amount, date: dateStr, installmentNumber: -1, paymentMethodId: paymentMethodId ?? null },
+      { id: tempPaymentId, loanId, amount, date: dateStr, installmentNumber: -1, paymentMethodId: paymentMethodId ?? null, metadata: (splitMetadata as any) ?? null },
       ...prev,
     ]);
     setLoans((prev) => prev.map((l) => l.id === loanId ? { ...l, remainingAmount: newRemaining } : l));
@@ -453,7 +480,7 @@ export function useLoans() {
     await fetchLoans();
   }, [user, dataOwnerId, loans, payments, fetchLoans, fetchPayments]);
 
-  const payOffLoan = useCallback(async (loanId: string, paymentDate?: string, customAmount?: number, paymentMethodId?: string | null) => {
+  const payOffLoan = useCallback(async (loanId: string, paymentDate?: string, customAmount?: number, paymentMethodId?: string | null, paymentSplit?: PaymentSplit | null) => {
     if (!user || !dataOwnerId) throw new Error("Usuário não autenticado");
     const dateStr = paymentDate || todayInAppTz();
     const loan = loans.find((l) => l.id === loanId);
@@ -469,12 +496,15 @@ export function useLoans() {
     const online = isOnline();
 
     const tempPaymentId = crypto.randomUUID();
-    const paymentPayload = {
+    const normalizedSplit = normalizeSplit(paymentSplit ?? null, payAmount);
+    const splitMetadata = withSplit(null, normalizedSplit);
+    const paymentPayload: any = {
       id: tempPaymentId,
       user_id: dataOwnerId, loan_id: loanId, amount: payAmount,
       date: dateStr, installment_number: loan.installments,
       payment_method_id: paymentMethodId ?? null,
     };
+    if (splitMetadata) paymentPayload.metadata = splitMetadata;
     const loanUpdate = {
       paid_installments: loan.installments,
       status: "paid",
@@ -482,7 +512,7 @@ export function useLoans() {
     };
 
     setPayments((prev) => [
-      { id: tempPaymentId, loanId, amount: payAmount, date: dateStr, installmentNumber: loan.installments, paymentMethodId: paymentMethodId ?? null },
+      { id: tempPaymentId, loanId, amount: payAmount, date: dateStr, installmentNumber: loan.installments, paymentMethodId: paymentMethodId ?? null, metadata: (splitMetadata as any) ?? null },
       ...prev,
     ]);
     setLoans((prev) => prev.map((l) => l.id === loanId ? {
@@ -567,7 +597,7 @@ export function useLoans() {
     await fetchLoans();
   }, [user, dataOwnerId, loans, payments, fetchLoans, fetchPayments]);
 
-  const addInterestOnlyPayment = useCallback(async (loanId: string, paymentDate?: string, customAmount?: number, feesAmount?: number, paymentMethodId?: string | null) => {
+  const addInterestOnlyPayment = useCallback(async (loanId: string, paymentDate?: string, customAmount?: number, feesAmount?: number, paymentMethodId?: string | null, paymentSplit?: PaymentSplit | null) => {
     if (!user || !dataOwnerId) throw new Error("Sessão ainda não carregada");
     const loan = loans.find((l) => l.id === loanId);
     if (!loan) throw new Error("Empréstimo não encontrado");
@@ -643,16 +673,20 @@ export function useLoans() {
     const online = isOnline();
 
     const tempPaymentId = crypto.randomUUID();
-    const paymentPayload = {
+    const totalReceivedNow = interestAmount + feesExtra;
+    const normalizedSplit = normalizeSplit(paymentSplit ?? null, totalReceivedNow);
+    const splitMetadata = withSplit(null, normalizedSplit);
+    const paymentPayload: any = {
       id: tempPaymentId,
       user_id: dataOwnerId, loan_id: loanId, amount: interestAmount,
       date: dateStr, installment_number: 0, previous_due_date: loan.dueDate,
       payment_method_id: paymentMethodId ?? null,
     };
+    if (splitMetadata) paymentPayload.metadata = splitMetadata;
     const loanUpdate = { due_date: newDueDate };
 
     setPayments((prev) => [
-      { id: tempPaymentId, loanId, amount: interestAmount, date: dateStr, installmentNumber: 0, previousDueDate: loan.dueDate, paymentMethodId: paymentMethodId ?? null },
+      { id: tempPaymentId, loanId, amount: interestAmount, date: dateStr, installmentNumber: 0, previousDueDate: loan.dueDate, paymentMethodId: paymentMethodId ?? null, metadata: (splitMetadata as any) ?? null },
       ...prev,
     ]);
     setLoans((prev) => prev.map((l) => l.id === loanId ? { ...l, dueDate: newDueDate } : l));
@@ -815,6 +849,7 @@ export function useLoans() {
     amortizeAmount: number,
     paymentDate?: string,
     paymentMethodId?: string | null,
+    paymentSplit?: PaymentSplit | null,
   ) => {
     if (!user || !dataOwnerId) throw new Error("Sessão ainda não carregada");
     if (amortizeAmount == null || isNaN(Number(amortizeAmount)) || Number(amortizeAmount) <= 0) {
@@ -873,7 +908,8 @@ export function useLoans() {
       : oldPrincipal * (rate / 100);
     const interestSaved = Math.max(0, oldInterestTotal - newInterestTotal);
 
-    const amortizationMetadata = {
+    const normalizedSplit = normalizeSplit(paymentSplit ?? null, amortizeAmount);
+    const amortizationMetadata: Record<string, any> = {
       kind: "amortization" as const,
       old_principal: oldPrincipal,
       new_principal: newPrincipal,
@@ -883,6 +919,7 @@ export function useLoans() {
       new_remaining: newRemaining,
       interest_rate: rate,
     };
+    if (normalizedSplit) amortizationMetadata.split = normalizedSplit;
 
     const online = isOnline();
     const tempPaymentId = crypto.randomUUID();

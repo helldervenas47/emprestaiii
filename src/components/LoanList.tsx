@@ -2,7 +2,7 @@ import React, { useState, useMemo, useCallback } from "react";
 import { DatePickerField } from "@/components/ui/date-picker-field";
 import { useHideValues } from "@/contexts/HideValuesContext";
 import { format } from "date-fns";
-import { Loan, Payment, InstallmentSchedule, Client } from "@/types/loan";
+import { Loan, Payment, InstallmentSchedule, Client, PaymentSplit } from "@/types/loan";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -102,11 +102,11 @@ interface Props {
   loans: Loan[];
   payments: Payment[];
   installmentSchedules: InstallmentSchedule[];
-  onPayment: (loanId: string, paymentDate?: string, paymentMethodId?: string | null) => void;
-  onPartialPayment: (loanId: string, amount: number, paymentDate?: string, paymentMethodId?: string | null) => void;
-  onFullPayment?: (loanId: string, paymentDate?: string, customAmount?: number, paymentMethodId?: string | null) => void;
-  onInterestPayment: (loanId: string, paymentDate?: string, customAmount?: number, feesAmount?: number, paymentMethodId?: string | null) => void;
-  onAmortize?: (loanId: string, amount: number, paymentDate?: string, paymentMethodId?: string | null) => Promise<void> | void;
+  onPayment: (loanId: string, paymentDate?: string, paymentMethodId?: string | null, paymentSplit?: PaymentSplit | null) => void;
+  onPartialPayment: (loanId: string, amount: number, paymentDate?: string, paymentMethodId?: string | null, paymentSplit?: PaymentSplit | null) => void;
+  onFullPayment?: (loanId: string, paymentDate?: string, customAmount?: number, paymentMethodId?: string | null, paymentSplit?: PaymentSplit | null) => void;
+  onInterestPayment: (loanId: string, paymentDate?: string, customAmount?: number, feesAmount?: number, paymentMethodId?: string | null, paymentSplit?: PaymentSplit | null) => void;
+  onAmortize?: (loanId: string, amount: number, paymentDate?: string, paymentMethodId?: string | null, paymentSplit?: PaymentSplit | null) => Promise<void> | void;
   onRenegotiate?: (loanId: string, params: { type: "no_interest" | "with_penalty"; penaltyMode?: "fixed" | "percentage" | null; penaltyInput?: number | null; newInstallments?: number | null; notes?: string | null; selectedInstallmentNumbers?: number[] | null; firstDueDate?: string | null }) => Promise<void> | void;
   onUpdate: (id: string, data: Partial<Omit<Loan, "id">>) => void;
   onDelete: (loanId: string) => void;
@@ -331,11 +331,11 @@ function LoanCardView({
   loan: Loan;
   payments: Payment[];
   installmentSchedules: InstallmentSchedule[];
-  onPayment: (date?: string, paymentMethodId?: string | null) => void;
-  onPartialPayment: (amount: number, date?: string, paymentMethodId?: string | null) => void;
-  onFullPayment?: (date?: string, customAmount?: number, paymentMethodId?: string | null) => void;
-  onInterestPayment: (date?: string, customAmount?: number, feesAmount?: number, paymentMethodId?: string | null) => void;
-  onAmortize?: (amount: number, date?: string, paymentMethodId?: string | null) => Promise<void> | void;
+  onPayment: (date?: string, paymentMethodId?: string | null, paymentSplit?: PaymentSplit | null) => void;
+  onPartialPayment: (amount: number, date?: string, paymentMethodId?: string | null, paymentSplit?: PaymentSplit | null) => void;
+  onFullPayment?: (date?: string, customAmount?: number, paymentMethodId?: string | null, paymentSplit?: PaymentSplit | null) => void;
+  onInterestPayment: (date?: string, customAmount?: number, feesAmount?: number, paymentMethodId?: string | null, paymentSplit?: PaymentSplit | null) => void;
+  onAmortize?: (amount: number, date?: string, paymentMethodId?: string | null, paymentSplit?: PaymentSplit | null) => Promise<void> | void;
   onRenegotiate?: (params: { type: "no_interest" | "with_penalty"; penaltyMode?: "fixed" | "percentage" | null; penaltyInput?: number | null; newInstallments?: number | null; notes?: string | null; selectedInstallmentNumbers?: number[] | null; firstDueDate?: string | null }) => Promise<void> | void;
   renegotiations?: LoanRenegotiation[];
   onUpdate: (data: Partial<Omit<Loan, "id">>) => void;
@@ -383,11 +383,22 @@ function LoanCardView({
   const [showAdjustDueDate, setShowAdjustDueDate] = useState(false);
   const { activeMethods } = usePaymentMethods();
   const [selectedMethodId, setSelectedMethodId] = useState<string>("");
+  const [splitEnabled, setSplitEnabled] = useState(false);
+  const [splitMethod2Id, setSplitMethod2Id] = useState<string>("");
+  const [splitAmount1Input, setSplitAmount1Input] = useState<string>("");
   React.useEffect(() => {
     if (paymentDialog && !selectedMethodId && activeMethods.length > 0) {
       setSelectedMethodId(activeMethods[0].id);
     }
   }, [paymentDialog, activeMethods, selectedMethodId]);
+  React.useEffect(() => {
+    // Reset split when dialog closes
+    if (!paymentDialog) {
+      setSplitEnabled(false);
+      setSplitMethod2Id("");
+      setSplitAmount1Input("");
+    }
+  }, [paymentDialog]);
   const [editHasManager, setEditHasManager] = useState<boolean>(loan.hasManager ?? false);
   const [editManagerId, setEditManagerId] = useState<string>(loan.managerId ?? "");
   const [editCommissionRate, setEditCommissionRate] = useState<string>(String(loan.managerCommissionRate ?? 10));
@@ -568,6 +579,45 @@ function LoanCardView({
     const dialogType = paymentDialog.type;
     const dialogAmount = paymentDialog.amount;
     const mid = selectedMethodId || null;
+
+    // Compute expected total for the chosen action so we can validate the split
+    const baseInterestForSplit = loan.customInterestValue != null && loan.customInterestValue > 0
+      ? loan.customInterestValue
+      : loan.amount * (loan.interestRate / 100);
+    const customRawForSplit = parseFloat(payoffAmount.replace(",", "."));
+    const amortRawForSplit = parseFloat(amortizeAmount.replace(",", "."));
+    let expectedTotal = 0;
+    if (dialogType === "full") expectedTotal = remaining;
+    else if (dialogType === "payoff") expectedTotal = isFinite(customRawForSplit) && customRawForSplit > 0 ? customRawForSplit : 0;
+    else if (dialogType === "amortize") expectedTotal = isFinite(amortRawForSplit) && amortRawForSplit > 0 ? amortRawForSplit : 0;
+    else if (dialogType === "installment") expectedTotal = installment;
+    else if (dialogType === "interest") {
+      expectedTotal = interestSelection === "withFees" && lateFees > 0
+        ? baseInterestForSplit + lateFees
+        : baseInterestForSplit;
+    } else if (dialogType === "partial" && dialogAmount) expectedTotal = dialogAmount;
+
+    // Build split
+    let split: PaymentSplit | null = null;
+    if (splitEnabled && expectedTotal > 0) {
+      if (!splitMethod2Id || splitMethod2Id === selectedMethodId) {
+        toast.error("Selecione um segundo meio de pagamento diferente");
+        return;
+      }
+      const a1 = parseFloat(splitAmount1Input.replace(",", "."));
+      if (!isFinite(a1) || a1 <= 0 || a1 >= expectedTotal) {
+        toast.error("Informe o valor do primeiro meio (entre 0 e o total)");
+        return;
+      }
+      const a2 = Math.round((expectedTotal - a1) * 100) / 100;
+      split = {
+        parts: [
+          { paymentMethodId: mid, amount: Math.round(a1 * 100) / 100 },
+          { paymentMethodId: splitMethod2Id, amount: a2 },
+        ],
+      };
+    }
+
     setPayoffAmount("");
     const amortRaw = parseFloat(amortizeAmount.replace(",", "."));
     setAmortizeAmount("");
@@ -575,36 +625,36 @@ function LoanCardView({
     try {
       if (dialogType === "full") {
         if (onFullPayment) {
-          await onFullPayment(dateStr, undefined, mid);
+          await onFullPayment(dateStr, undefined, mid, split);
         } else {
-          await onPartialPayment(remaining, dateStr, mid);
+          await onPartialPayment(remaining, dateStr, mid, split);
           await onUpdate({ paidInstallments: loan.installments, status: "paid" });
         }
       } else if (dialogType === "payoff") {
-        const customRaw = parseFloat(payoffAmount.replace(",", "."));
-        const custom = isFinite(customRaw) && customRaw > 0 ? customRaw : 0;
+        const customRaw = parseFloat(payoffAmount.replace(",", ".") || String(customRawForSplit));
+        const custom = isFinite(customRaw) && customRaw > 0 ? customRaw : (customRawForSplit > 0 ? customRawForSplit : 0);
         if (custom <= 0) return;
         if (onFullPayment) {
-          await onFullPayment(dateStr, custom, mid);
+          await onFullPayment(dateStr, custom, mid, split);
         } else {
-          await onPartialPayment(custom, dateStr, mid);
+          await onPartialPayment(custom, dateStr, mid, split);
           await onUpdate({ paidInstallments: loan.installments, status: "paid" });
         }
       } else if (dialogType === "amortize") {
         if (!onAmortize) { toast.error("Amortização indisponível"); return; }
         const val = isFinite(amortRaw) && amortRaw > 0 ? amortRaw : 0;
         if (val <= 0) { toast.error("Informe um valor válido"); return; }
-        await onAmortize(val, dateStr, mid);
+        await onAmortize(val, dateStr, mid, split);
       } else if (dialogType === "installment") {
-        await onPayment(dateStr, mid);
+        await onPayment(dateStr, mid, split);
       } else if (dialogType === "interest") {
         if (interestSelection === "withFees" && lateFees > 0) {
-          await onInterestPayment(dateStr, undefined, lateFees, mid);
+          await onInterestPayment(dateStr, undefined, lateFees, mid, split);
         } else {
-          await onInterestPayment(dateStr, undefined, undefined, mid);
+          await onInterestPayment(dateStr, undefined, undefined, mid, split);
         }
       } else if (dialogType === "partial" && dialogAmount) {
-        await onPartialPayment(dialogAmount, dateStr, mid);
+        await onPartialPayment(dialogAmount, dateStr, mid, split);
       }
       toast.success(dialogType === "amortize" ? "Amortização registrada" : "Pagamento registrado");
     } catch (err: any) {
@@ -1779,19 +1829,68 @@ function LoanCardView({
               </div>
             );
           })()}
-          {activeMethods.length > 0 && (
-            <div className="w-full space-y-1">
-              <Label className="text-sm text-muted-foreground">Forma de pagamento</Label>
-              <Select value={selectedMethodId} onValueChange={setSelectedMethodId}>
-                <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
-                <SelectContent>
-                  {activeMethods.map((m) => (
-                    <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          )}
+          {activeMethods.length > 0 && (() => {
+            const baseInt = loan.customInterestValue != null && loan.customInterestValue > 0 ? loan.customInterestValue : loan.amount * (loan.interestRate / 100);
+            const cRaw = parseFloat(payoffAmount.replace(",", "."));
+            const aRaw = parseFloat(amortizeAmount.replace(",", "."));
+            const dt = paymentDialog?.type;
+            let totalForSplit = 0;
+            if (dt === "full") totalForSplit = remaining;
+            else if (dt === "payoff") totalForSplit = isFinite(cRaw) && cRaw > 0 ? cRaw : 0;
+            else if (dt === "amortize") totalForSplit = isFinite(aRaw) && aRaw > 0 ? aRaw : 0;
+            else if (dt === "installment") totalForSplit = installment;
+            else if (dt === "interest") totalForSplit = interestSelection === "withFees" && lateFees > 0 ? baseInt + lateFees : baseInt;
+            else if (dt === "partial") totalForSplit = paymentDialog?.amount ?? 0;
+            const a1 = parseFloat(splitAmount1Input.replace(",", "."));
+            const validA1 = isFinite(a1) && a1 > 0 && a1 < totalForSplit;
+            const a2 = validA1 ? Math.round((totalForSplit - a1) * 100) / 100 : 0;
+            return (
+              <div className="w-full space-y-1">
+                <Label className="text-sm text-muted-foreground">Forma de pagamento</Label>
+                <Select value={selectedMethodId} onValueChange={setSelectedMethodId}>
+                  <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                  <SelectContent>
+                    {activeMethods.map((m) => (
+                      <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {totalForSplit > 0 && activeMethods.length >= 2 && (
+                  <div className="pt-1.5 space-y-1.5">
+                    <label className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer select-none">
+                      <input type="checkbox" className="size-3.5 accent-primary" checked={splitEnabled} onChange={(e) => setSplitEnabled(e.target.checked)} />
+                      Dividir em 2 meios de pagamento
+                    </label>
+                    {splitEnabled && (
+                      <div className="rounded-md border border-border/60 bg-muted/30 p-2 space-y-1.5">
+                        <div className="space-y-1">
+                          <Label className="text-[11px]">Valor no meio 1 (R$)</Label>
+                          <Input type="number" step="0.01" min="0" inputMode="decimal" value={splitAmount1Input} onChange={(e) => setSplitAmount1Input(e.target.value)} placeholder={`Total: ${rawFormatCurrency(totalForSplit)}`} className="h-8 text-sm" />
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-[11px]">Meio 2</Label>
+                          <Select value={splitMethod2Id} onValueChange={setSplitMethod2Id}>
+                            <SelectTrigger className="h-8 text-sm"><SelectValue placeholder="Selecione" /></SelectTrigger>
+                            <SelectContent>
+                              {activeMethods.filter((m) => m.id !== selectedMethodId).map((m) => (
+                                <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        {validA1 && (
+                          <div className="flex justify-between text-[11px] pt-1 border-t border-border/40">
+                            <span className="text-muted-foreground">Restante meio 2</span>
+                            <span className="font-semibold text-primary tabular-nums">{rawFormatCurrency(a2)}</span>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            );
+          })()}
           <Label className="text-sm text-muted-foreground">Selecione a data do pagamento</Label>
           <CalendarUI
             mode="single"
@@ -1889,11 +1988,11 @@ function LoanRowView({
   loan: Loan;
   payments: Payment[];
   installmentSchedules?: InstallmentSchedule[];
-  onPayment: (date?: string, paymentMethodId?: string | null) => void;
-  onPartialPayment: (amount: number, date?: string, paymentMethodId?: string | null) => void;
-  onFullPayment?: (date?: string, customAmount?: number, paymentMethodId?: string | null) => void;
-  onInterestPayment: (date?: string, customAmount?: number, feesAmount?: number, paymentMethodId?: string | null) => void;
-  onAmortize?: (amount: number, date?: string, paymentMethodId?: string | null) => Promise<void> | void;
+  onPayment: (date?: string, paymentMethodId?: string | null, paymentSplit?: PaymentSplit | null) => void;
+  onPartialPayment: (amount: number, date?: string, paymentMethodId?: string | null, paymentSplit?: PaymentSplit | null) => void;
+  onFullPayment?: (date?: string, customAmount?: number, paymentMethodId?: string | null, paymentSplit?: PaymentSplit | null) => void;
+  onInterestPayment: (date?: string, customAmount?: number, feesAmount?: number, paymentMethodId?: string | null, paymentSplit?: PaymentSplit | null) => void;
+  onAmortize?: (amount: number, date?: string, paymentMethodId?: string | null, paymentSplit?: PaymentSplit | null) => Promise<void> | void;
   onRenegotiate?: (params: { type: "no_interest" | "with_penalty"; penaltyMode?: "fixed" | "percentage" | null; penaltyInput?: number | null; newInstallments?: number | null; notes?: string | null; selectedInstallmentNumbers?: number[] | null; firstDueDate?: string | null }) => Promise<void> | void;
   renegotiations?: LoanRenegotiation[];
   onUpdate: (data: Partial<Omit<Loan, "id">>) => void;
@@ -1938,11 +2037,21 @@ function LoanRowView({
   const managerOptions = useMemo(() => clients.filter((c) => c.isManager && c.active !== false), [clients]);
   const { activeMethods: rowActiveMethods } = usePaymentMethods();
   const [rowSelectedMethodId, setRowSelectedMethodId] = useState<string>("");
+  const [rowSplitEnabled, setRowSplitEnabled] = useState(false);
+  const [rowSplitMethod2Id, setRowSplitMethod2Id] = useState<string>("");
+  const [rowSplitAmount1Input, setRowSplitAmount1Input] = useState<string>("");
   React.useEffect(() => {
     if (paymentDialog && !rowSelectedMethodId && rowActiveMethods.length > 0) {
       setRowSelectedMethodId(rowActiveMethods[0].id);
     }
   }, [paymentDialog, rowActiveMethods, rowSelectedMethodId]);
+  React.useEffect(() => {
+    if (!paymentDialog) {
+      setRowSplitEnabled(false);
+      setRowSplitMethod2Id("");
+      setRowSplitAmount1Input("");
+    }
+  }, [paymentDialog]);
 
   const total = calculateTotalWithInterest(loan.amount, loan.interestRate, loan.installments);
   const totalPaid = getTotalPaid(loan, allPayments);
@@ -2052,6 +2161,43 @@ function LoanRowView({
     const dialogType = paymentDialog.type;
     const dialogAmount = paymentDialog.amount;
     const mid = rowSelectedMethodId || null;
+
+    const baseInterestForSplit = loan.customInterestValue != null && loan.customInterestValue > 0
+      ? loan.customInterestValue
+      : loan.amount * (loan.interestRate / 100);
+    const customRawForSplit = parseFloat(payoffAmount.replace(",", "."));
+    const amortRawForSplit = parseFloat(amortizeAmount.replace(",", "."));
+    let expectedTotal = 0;
+    if (dialogType === "full") expectedTotal = remaining;
+    else if (dialogType === "payoff") expectedTotal = isFinite(customRawForSplit) && customRawForSplit > 0 ? customRawForSplit : 0;
+    else if (dialogType === "amortize") expectedTotal = isFinite(amortRawForSplit) && amortRawForSplit > 0 ? amortRawForSplit : 0;
+    else if (dialogType === "installment") expectedTotal = installmentValue;
+    else if (dialogType === "interest") {
+      expectedTotal = interestSelection === "withFees" && lateFees > 0
+        ? baseInterestForSplit + lateFees
+        : baseInterestForSplit;
+    } else if (dialogType === "partial" && dialogAmount) expectedTotal = dialogAmount;
+
+    let split: PaymentSplit | null = null;
+    if (rowSplitEnabled && expectedTotal > 0) {
+      if (!rowSplitMethod2Id || rowSplitMethod2Id === rowSelectedMethodId) {
+        toast.error("Selecione um segundo meio de pagamento diferente");
+        return;
+      }
+      const a1 = parseFloat(rowSplitAmount1Input.replace(",", "."));
+      if (!isFinite(a1) || a1 <= 0 || a1 >= expectedTotal) {
+        toast.error("Informe o valor do primeiro meio (entre 0 e o total)");
+        return;
+      }
+      const a2 = Math.round((expectedTotal - a1) * 100) / 100;
+      split = {
+        parts: [
+          { paymentMethodId: mid, amount: Math.round(a1 * 100) / 100 },
+          { paymentMethodId: rowSplitMethod2Id, amount: a2 },
+        ],
+      };
+    }
+
     setPayoffAmount("");
     const amortRaw = parseFloat(amortizeAmount.replace(",", "."));
     setAmortizeAmount("");
@@ -2059,36 +2205,36 @@ function LoanRowView({
     try {
       if (dialogType === "full") {
         if (onFullPayment) {
-          await onFullPayment(dateStr, undefined, mid);
+          await onFullPayment(dateStr, undefined, mid, split);
         } else {
-          await onPartialPayment(remaining, dateStr, mid);
+          await onPartialPayment(remaining, dateStr, mid, split);
           await onUpdate({ paidInstallments: loan.installments, status: "paid" });
         }
       } else if (dialogType === "payoff") {
-        const customRaw = parseFloat(payoffAmount.replace(",", "."));
-        const custom = isFinite(customRaw) && customRaw > 0 ? customRaw : 0;
+        const customRaw = parseFloat(payoffAmount.replace(",", ".") || String(customRawForSplit));
+        const custom = isFinite(customRaw) && customRaw > 0 ? customRaw : (customRawForSplit > 0 ? customRawForSplit : 0);
         if (custom <= 0) return;
         if (onFullPayment) {
-          await onFullPayment(dateStr, custom, mid);
+          await onFullPayment(dateStr, custom, mid, split);
         } else {
-          await onPartialPayment(custom, dateStr, mid);
+          await onPartialPayment(custom, dateStr, mid, split);
           await onUpdate({ paidInstallments: loan.installments, status: "paid" });
         }
       } else if (dialogType === "amortize") {
         if (!onAmortize) { toast.error("Amortização indisponível"); return; }
         const val = isFinite(amortRaw) && amortRaw > 0 ? amortRaw : 0;
         if (val <= 0) { toast.error("Informe um valor válido"); return; }
-        await onAmortize(val, dateStr, mid);
+        await onAmortize(val, dateStr, mid, split);
       } else if (dialogType === "installment") {
-        await onPayment(dateStr, mid);
+        await onPayment(dateStr, mid, split);
       } else if (dialogType === "interest") {
         if (interestSelection === "withFees" && lateFees > 0) {
-          await onInterestPayment(dateStr, undefined, lateFees, mid);
+          await onInterestPayment(dateStr, undefined, lateFees, mid, split);
         } else {
-          await onInterestPayment(dateStr, undefined, undefined, mid);
+          await onInterestPayment(dateStr, undefined, undefined, mid, split);
         }
       } else if (dialogType === "partial" && dialogAmount) {
-        await onPartialPayment(dialogAmount, dateStr, mid);
+        await onPartialPayment(dialogAmount, dateStr, mid, split);
       }
       toast.success(dialogType === "amortize" ? "Amortização registrada" : "Pagamento registrado");
     } catch (err: any) {
@@ -2885,19 +3031,68 @@ function LoanRowView({
               </div>
             );
           })()}
-          {rowActiveMethods.length > 0 && (
-            <div className="w-full space-y-1">
-              <Label className="text-sm text-muted-foreground">Forma de pagamento</Label>
-              <Select value={rowSelectedMethodId} onValueChange={setRowSelectedMethodId}>
-                <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
-                <SelectContent>
-                  {rowActiveMethods.map((m) => (
-                    <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          )}
+          {rowActiveMethods.length > 0 && (() => {
+            const baseInt = loan.customInterestValue != null && loan.customInterestValue > 0 ? loan.customInterestValue : loan.amount * (loan.interestRate / 100);
+            const cRaw = parseFloat(payoffAmount.replace(",", "."));
+            const aRaw = parseFloat(amortizeAmount.replace(",", "."));
+            const dt = paymentDialog?.type;
+            let totalForSplit = 0;
+            if (dt === "full") totalForSplit = remaining;
+            else if (dt === "payoff") totalForSplit = isFinite(cRaw) && cRaw > 0 ? cRaw : 0;
+            else if (dt === "amortize") totalForSplit = isFinite(aRaw) && aRaw > 0 ? aRaw : 0;
+            else if (dt === "installment") totalForSplit = installmentValue;
+            else if (dt === "interest") totalForSplit = interestSelection === "withFees" && lateFees > 0 ? baseInt + lateFees : baseInt;
+            else if (dt === "partial") totalForSplit = paymentDialog?.amount ?? 0;
+            const a1 = parseFloat(rowSplitAmount1Input.replace(",", "."));
+            const validA1 = isFinite(a1) && a1 > 0 && a1 < totalForSplit;
+            const a2 = validA1 ? Math.round((totalForSplit - a1) * 100) / 100 : 0;
+            return (
+              <div className="w-full space-y-1">
+                <Label className="text-sm text-muted-foreground">Forma de pagamento</Label>
+                <Select value={rowSelectedMethodId} onValueChange={setRowSelectedMethodId}>
+                  <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                  <SelectContent>
+                    {rowActiveMethods.map((m) => (
+                      <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {totalForSplit > 0 && rowActiveMethods.length >= 2 && (
+                  <div className="pt-1.5 space-y-1.5">
+                    <label className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer select-none">
+                      <input type="checkbox" className="size-3.5 accent-primary" checked={rowSplitEnabled} onChange={(e) => setRowSplitEnabled(e.target.checked)} />
+                      Dividir em 2 meios de pagamento
+                    </label>
+                    {rowSplitEnabled && (
+                      <div className="rounded-md border border-border/60 bg-muted/30 p-2 space-y-1.5">
+                        <div className="space-y-1">
+                          <Label className="text-[11px]">Valor no meio 1 (R$)</Label>
+                          <Input type="number" step="0.01" min="0" inputMode="decimal" value={rowSplitAmount1Input} onChange={(e) => setRowSplitAmount1Input(e.target.value)} placeholder={`Total: ${rawFormatCurrency(totalForSplit)}`} className="h-8 text-sm" />
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-[11px]">Meio 2</Label>
+                          <Select value={rowSplitMethod2Id} onValueChange={setRowSplitMethod2Id}>
+                            <SelectTrigger className="h-8 text-sm"><SelectValue placeholder="Selecione" /></SelectTrigger>
+                            <SelectContent>
+                              {rowActiveMethods.filter((m) => m.id !== rowSelectedMethodId).map((m) => (
+                                <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        {validA1 && (
+                          <div className="flex justify-between text-[11px] pt-1 border-t border-border/40">
+                            <span className="text-muted-foreground">Restante meio 2</span>
+                            <span className="font-semibold text-primary tabular-nums">{rawFormatCurrency(a2)}</span>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            );
+          })()}
           <Label className="text-sm text-muted-foreground">Selecione a data do pagamento</Label>
           <CalendarUI
             mode="single"
@@ -3015,11 +3210,11 @@ function ClientFolder({
   group: ClientGroup;
   payments: Payment[];
   installmentSchedules: InstallmentSchedule[];
-  onPayment: (id: string, date?: string, paymentMethodId?: string | null) => void;
-  onPartialPayment: (id: string, amount: number, date?: string, paymentMethodId?: string | null) => void;
-  onFullPayment?: (id: string, date?: string, customAmount?: number, paymentMethodId?: string | null) => void;
-  onInterestPayment: (id: string, date?: string, customAmount?: number, feesAmount?: number, paymentMethodId?: string | null) => void;
-  onAmortize?: (loanId: string, amount: number, paymentDate?: string, paymentMethodId?: string | null) => Promise<void> | void;
+  onPayment: (id: string, date?: string, paymentMethodId?: string | null, paymentSplit?: PaymentSplit | null) => void;
+  onPartialPayment: (id: string, amount: number, date?: string, paymentMethodId?: string | null, paymentSplit?: PaymentSplit | null) => void;
+  onFullPayment?: (id: string, date?: string, customAmount?: number, paymentMethodId?: string | null, paymentSplit?: PaymentSplit | null) => void;
+  onInterestPayment: (id: string, date?: string, customAmount?: number, feesAmount?: number, paymentMethodId?: string | null, paymentSplit?: PaymentSplit | null) => void;
+  onAmortize?: (loanId: string, amount: number, paymentDate?: string, paymentMethodId?: string | null, paymentSplit?: PaymentSplit | null) => Promise<void> | void;
   onRenegotiate?: (loanId: string, params: { type: "no_interest" | "with_penalty"; penaltyMode?: "fixed" | "percentage" | null; penaltyInput?: number | null; newInstallments?: number | null; notes?: string | null; selectedInstallmentNumbers?: number[] | null; firstDueDate?: string | null }) => Promise<void> | void;
   renegotiations?: LoanRenegotiation[];
   onUpdate: (id: string, data: Partial<Omit<Loan, "id">>) => void;

@@ -55,6 +55,15 @@ export interface InstallmentSchedule {
   amount: number;
 }
 
+export interface PaymentSplitPart {
+  paymentMethodId: string | null;
+  amount: number;
+}
+
+export interface PaymentSplit {
+  parts: PaymentSplitPart[];
+}
+
 export interface PaymentMetadata {
   kind?: "amortization" | string;
   old_principal?: number;
@@ -64,6 +73,7 @@ export interface PaymentMetadata {
   interest_saved?: number;
   new_remaining?: number;
   interest_rate?: number;
+  split?: PaymentSplit | null;
   [key: string]: any;
 }
 
