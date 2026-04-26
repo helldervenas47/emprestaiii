@@ -72,10 +72,64 @@ export function useLoanRenegotiations() {
   );
 
   const deleteRenegotiation = useCallback(async (id: string) => {
-    const { error } = await supabase.from("loan_renegotiations" as any).delete().eq("id", id);
-    if (error) throw new Error(error.message);
+    // Busca o registro com snapshot para reverter o contrato
+    const { data: row, error: fetchErr } = await supabase
+      .from("loan_renegotiations" as any)
+      .select("*")
+      .eq("id", id)
+      .maybeSingle();
+    if (fetchErr) throw new Error(fetchErr.message);
+    if (!row) throw new Error("Renegociação não encontrada");
+
+    const snapshot = (row as any).previous_state as
+      | { version?: number; loan?: any; schedules?: Array<{ installment_number: number; due_date: string; amount: number }> }
+      | null
+      | undefined;
+
+    if (!snapshot || !snapshot.loan) {
+      throw new Error(
+        "Esta renegociação foi criada antes do recurso de reversão e não pode ser excluída. Apenas renegociações novas podem ser revertidas.",
+      );
+    }
+
+    const loanId = (row as any).loan_id as string;
+    const penaltyApplied = Number((row as any).penalty_amount ?? 0);
+
+    // 1) Reverte os campos do contrato
+    const loanPatch: any = {
+      remaining_amount: Number(snapshot.loan.remaining_amount ?? 0),
+      installments: Number(snapshot.loan.installments ?? 1),
+      custom_installment_value: snapshot.loan.custom_installment_value ?? null,
+      renegotiation_penalty_total: Number(snapshot.loan.renegotiation_penalty_total ?? 0),
+      due_date: snapshot.loan.due_date,
+    };
+    const { error: loanErr } = await supabase.from("loans").update(loanPatch).eq("id", loanId);
+    if (loanErr) throw new Error(loanErr.message);
+
+    // 2) Recria o cronograma exatamente como estava no snapshot
+    if (Array.isArray(snapshot.schedules)) {
+      // Apaga cronograma atual
+      await supabase.from("loan_installments").delete().eq("loan_id", loanId);
+      if (snapshot.schedules.length > 0 && dataOwnerId) {
+        const rows = snapshot.schedules.map((s) => ({
+          loan_id: loanId,
+          user_id: dataOwnerId,
+          installment_number: s.installment_number,
+          due_date: s.due_date,
+          amount: s.amount,
+        }));
+        const { error: insErr } = await supabase.from("loan_installments").insert(rows as any);
+        if (insErr) throw new Error(insErr.message);
+      }
+    }
+
+    // 3) Remove o registro de renegociação
+    const { error: delErr } = await supabase.from("loan_renegotiations" as any).delete().eq("id", id);
+    if (delErr) throw new Error(delErr.message);
+
     setRenegotiations((prev) => prev.filter((r) => r.id !== id));
-  }, []);
+    return { revertedPenalty: penaltyApplied };
+  }, [dataOwnerId]);
 
   return { renegotiations, refresh: fetchAll, updateRenegotiation, deleteRenegotiation };
 }
