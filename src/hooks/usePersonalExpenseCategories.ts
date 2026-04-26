@@ -72,6 +72,33 @@ export function usePersonalExpenseCategories() {
     [user],
   );
 
+  const update = useCallback(
+    async (id: string, input: { name: string; icon: string; color: string }) => {
+      const name = input.name.trim();
+      if (!name) return null;
+      const { data, error } = await supabase
+        .from("personal_expense_categories")
+        .update({ name, icon: input.icon, color: input.color })
+        .eq("id", id)
+        .select("id, name, icon, color")
+        .single();
+      if (error) {
+        toast({
+          title: "Não foi possível atualizar categoria",
+          description: error.message.includes("duplicate") ? "Já existe uma categoria com esse nome." : error.message,
+          variant: "destructive",
+        });
+        return null;
+      }
+      setCategories((prev) =>
+        prev.map((c) => (c.id === id ? data : c)).sort((a, b) => a.name.localeCompare(b.name, "pt-BR")),
+      );
+      toast({ title: "Categoria atualizada", description: name });
+      return data;
+    },
+    [],
+  );
+
   const remove = useCallback(async (id: string) => {
     const { error } = await supabase.from("personal_expense_categories").delete().eq("id", id);
     if (error) {
@@ -81,5 +108,5 @@ export function usePersonalExpenseCategories() {
     setCategories((prev) => prev.filter((c) => c.id !== id));
   }, []);
 
-  return { categories, loading, create, remove, reload: load };
+  return { categories, loading, create, update, remove, reload: load };
 }
