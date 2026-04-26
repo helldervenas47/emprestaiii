@@ -553,6 +553,34 @@ export function RenegotiateLoanDialog({
                 value={penaltyInput}
                 onChange={(e) => { setPenaltyInput(e.target.value); setConfirming(false); }}
               />
+              <div className="space-y-1.5 pt-1">
+                <Label className="text-xs">Cobrança da multa</Label>
+                <div className="flex gap-2">
+                  <Button
+                    size="sm"
+                    type="button"
+                    variant={penaltyDistribution === "diluted" ? "default" : "outline"}
+                    className="flex-1 h-8 text-[11px]"
+                    onClick={() => { setPenaltyDistribution("diluted"); setConfirming(false); }}
+                  >
+                    Diluída nas parcelas
+                  </Button>
+                  <Button
+                    size="sm"
+                    type="button"
+                    variant={penaltyDistribution === "first" ? "default" : "outline"}
+                    className="flex-1 h-8 text-[11px]"
+                    onClick={() => { setPenaltyDistribution("first"); setConfirming(false); }}
+                  >
+                    Só na 1ª parcela
+                  </Button>
+                </div>
+                <p className="text-[10px] text-muted-foreground">
+                  {penaltyDistribution === "diluted"
+                    ? "A multa é dividida igualmente entre todas as novas parcelas."
+                    : "A multa inteira é somada à 1ª nova parcela; as demais ficam sem multa."}
+                </p>
+              </div>
             </div>
           )}
 
