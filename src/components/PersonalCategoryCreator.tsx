@@ -25,6 +25,8 @@ interface Props {
   deleteCategory?: (id: string) => Promise<void>;
   /** When provided, the dialog runs in edit mode for this category. */
   editing?: ExistingCategory | null;
+  /** When provided (and not editing), pre-fills the create form. */
+  initial?: { name: string; icon: string; color: string } | null;
 }
 
 const iconNames = Object.keys(personalIconMap);
@@ -39,6 +41,7 @@ export function PersonalCategoryCreator({
   updateCategory,
   deleteCategory,
   editing,
+  initial,
 }: Props) {
   const isEdit = !!editing;
   const [name, setName] = useState("");
@@ -54,13 +57,17 @@ export function PersonalCategoryCreator({
       setName(editing.name);
       setIcon(editing.icon);
       setColor(editing.color);
+    } else if (initial) {
+      setName(initial.name);
+      setIcon(initial.icon);
+      setColor(initial.color);
     } else {
       setName("");
       setIcon("Package");
       setColor(personalCategoryColors[0]);
     }
     setConfirmDelete(false);
-  }, [open, editing]);
+  }, [open, editing, initial]);
 
   const handleSave = async () => {
     if (!name.trim() || saving) return;

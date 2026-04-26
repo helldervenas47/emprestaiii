@@ -25,7 +25,7 @@ import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
 import { ExpenseEditDialog } from "@/components/ExpenseEditDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { InstallmentSummaryDialog } from "@/components/InstallmentSummaryDialog";
-import { personalCategories, getPersonalCategory, resolvePersonalIcon, type PersonalCategory } from "@/lib/personalExpenseCategories";
+import { personalCategories, getPersonalCategory, resolvePersonalIcon, getIconName, type PersonalCategory } from "@/lib/personalExpenseCategories";
 import { usePersonalExpenseCategories } from "@/hooks/usePersonalExpenseCategories";
 import { Progress } from "@/components/ui/progress";
 import { usePersonalBudgets } from "@/hooks/usePersonalBudgets";
@@ -74,6 +74,7 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, onUpda
   const { categories: customCategories, create: createCustomCategory, update: updateCustomCategory, remove: removeCustomCategory } = usePersonalExpenseCategories();
   const [categoryEditorOpen, setCategoryEditorOpen] = useState(false);
   const [editingCategory, setEditingCategory] = useState<{ id: string; name: string; icon: string; color: string } | null>(null);
+  const [creatorInitial, setCreatorInitial] = useState<{ name: string; icon: string; color: string } | null>(null);
   const customCategoryList = useMemo<PersonalCategory[]>(
     () => customCategories.map((c) => ({ name: c.name, icon: resolvePersonalIcon(c.icon), color: c.color, id: c.id, custom: true })),
     [customCategories],
@@ -82,17 +83,18 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, onUpda
     (name: string) => getPersonalCategory(name, customCategoryList),
     [customCategoryList],
   );
-  // Lista unificada para limites de gastos: built-in + customizadas (sem duplicar por nome).
+  // Lista unificada para limites de gastos: customizadas têm prioridade sobre built-ins
+  // (com mesmo nome), permitindo "sobrescrever" uma categoria padrão editando-a.
   const allBudgetCategories = useMemo<PersonalCategory[]>(() => {
     const seen = new Set<string>();
     const out: PersonalCategory[] = [];
-    for (const c of [...personalCategories, ...customCategoryList]) {
+    for (const c of [...customCategoryList, ...personalCategories]) {
       const key = c.name.trim().toLowerCase();
       if (seen.has(key)) continue;
       seen.add(key);
       out.push(c);
     }
-    return out;
+    return out.sort((a, b) => a.name.localeCompare(b.name, "pt-BR"));
   }, [customCategoryList]);
 
   const [search, setSearch] = useState("");
@@ -1114,20 +1116,31 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, onUpda
                     <div className="flex-1 min-w-0">
                       <div className="text-sm text-foreground truncate flex items-center gap-1.5">
                         {c.name}
-                        {customMatch && (
-                          <button
-                            type="button"
-                            onClick={() => {
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (customMatch) {
                               setEditingCategory(customMatch);
-                              setCategoryEditorOpen(true);
-                            }}
-                            className="text-muted-foreground hover:text-foreground transition-colors"
-                            title="Editar categoria"
-                            aria-label={`Editar ${c.name}`}
-                          >
-                            <Pencil className="h-3 w-3" />
-                          </button>
-                        )}
+                              setCreatorInitial(null);
+                            } else {
+                              // Built-in: abre como nova categoria pré-preenchida.
+                              // Salvar com o mesmo nome cria um override custom que
+                              // assume a posição no limite de gastos.
+                              setEditingCategory(null);
+                              setCreatorInitial({
+                                name: c.name,
+                                icon: getIconName(c.icon),
+                                color: c.color,
+                              });
+                            }
+                            setCategoryEditorOpen(true);
+                          }}
+                          className="text-muted-foreground hover:text-foreground transition-colors"
+                          title="Editar categoria"
+                          aria-label={`Editar ${c.name}`}
+                        >
+                          <Pencil className="h-3 w-3" />
+                        </button>
                       </div>
                       <div className="text-[11px] text-muted-foreground tabular-nums">
                         Gasto: {formatCurrency(spent)}
@@ -1156,9 +1169,13 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, onUpda
         open={categoryEditorOpen}
         onOpenChange={(v) => {
           setCategoryEditorOpen(v);
-          if (!v) setEditingCategory(null);
+          if (!v) {
+            setEditingCategory(null);
+            setCreatorInitial(null);
+          }
         }}
         editing={editingCategory}
+        initial={creatorInitial}
         createCategory={createCustomCategory}
         updateCategory={updateCustomCategory}
         deleteCategory={removeCustomCategory}
