@@ -4,6 +4,7 @@ import { useChartOverrides } from "@/hooks/useChartOverrides";
 import { useMonthlyGoals } from "@/hooks/useMonthlyGoals";
 import { calculateMonthlyInterestRate } from "@/lib/monthlyInterestRate";
 import { useAuth } from "@/hooks/useAuth";
+import { useLoanRenegotiations } from "@/hooks/useLoanRenegotiations";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
