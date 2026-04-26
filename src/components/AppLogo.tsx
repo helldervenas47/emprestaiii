@@ -1,4 +1,4 @@
-import { forwardRef, useMemo } from "react";
+import { useMemo } from "react";
 import { useAppBranding, FALLBACK_LOGO, type LogoArea, type LogoDevice } from "@/hooks/useAppBranding";
 import { useIsMobile, useIsMobileOrTablet } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
@@ -12,10 +12,7 @@ interface AppLogoProps {
   rounded?: boolean;
 }
 
-export const AppLogo = forwardRef<HTMLImageElement, AppLogoProps>(function AppLogo(
-  { area, device, className, alt = "Logo", rounded = false },
-  ref,
-) {
+export function AppLogo({ area, device, className, alt = "Logo", rounded = false }: AppLogoProps) {
   const { branding } = useAppBranding();
   const isMobile = useIsMobile();
   const isSmall = useIsMobileOrTablet();
@@ -28,7 +25,6 @@ export const AppLogo = forwardRef<HTMLImageElement, AppLogoProps>(function AppLo
 
   return (
     <img
-      ref={ref}
       src={src}
       alt={alt}
       style={style}
@@ -36,4 +32,4 @@ export const AppLogo = forwardRef<HTMLImageElement, AppLogoProps>(function AppLo
       draggable={false}
     />
   );
-});
+}
