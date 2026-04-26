@@ -122,6 +122,95 @@ export function RenegotiateLoanDialog({
     ? Math.round((newTotal / installmentsCount) * 100) / 100
     : 0;
 
+  // Simula o novo cronograma de parcelas pendentes (não selecionadas + novas geradas)
+  const simulatedSchedule = useMemo(() => {
+    if (!isInstallmentLoan || pendingInstallments.length === 0) {
+      // Modo simples: gera N parcelas mensais a partir do dueDate
+      const result: { number: number; dueDate: string; amount: number; isNew: boolean }[] = [];
+      const baseDate = loan.dueDate;
+      let acc = 0;
+      for (let i = 0; i < installmentsCount; i++) {
+        const d = new Date(baseDate + "T00:00:00");
+        if (!isNaN(d.getTime())) d.setMonth(d.getMonth() + i);
+        const dueStr = !isNaN(d.getTime()) ? d.toISOString().slice(0, 10) : baseDate;
+        const isLast = i === installmentsCount - 1;
+        const amt = isLast
+          ? Math.round((newTotal - acc) * 100) / 100
+          : newInstallmentValue;
+        acc += amt;
+        result.push({
+          number: loan.paidInstallments + i + 1,
+          dueDate: dueStr,
+          amount: amt,
+          isNew: true,
+        });
+      }
+      return result;
+    }
+
+    const remainingPendingScheds = pendingInstallments.filter(
+      (s) => !selectedNumbers.has(s.installmentNumber)
+    );
+    const isPartial = selectedNumbers.size < pendingInstallments.length;
+
+    // Determina data base para as novas parcelas
+    const lastDate = remainingPendingScheds.length > 0
+      ? remainingPendingScheds[remainingPendingScheds.length - 1].dueDate
+      : (pendingInstallments[pendingInstallments.length - 1]?.dueDate || loan.dueDate);
+
+    const firstSelectedDate = !isPartial
+      ? (pendingInstallments.find((s) => selectedNumbers.has(s.installmentNumber))?.dueDate || loan.dueDate)
+      : null;
+
+    // Gera novas parcelas
+    const newScheds: { dueDate: string; amount: number }[] = [];
+    let acc = 0;
+    for (let i = 0; i < installmentsCount; i++) {
+      let dueStr: string;
+      if (!isPartial && i === 0 && firstSelectedDate) {
+        dueStr = firstSelectedDate;
+      } else {
+        const baseDate = !isPartial && firstSelectedDate ? firstSelectedDate : lastDate;
+        const offsetMonths = !isPartial && firstSelectedDate ? i : (i + 1);
+        const d = new Date(baseDate + "T00:00:00");
+        if (!isNaN(d.getTime())) d.setMonth(d.getMonth() + offsetMonths);
+        dueStr = !isNaN(d.getTime()) ? d.toISOString().slice(0, 10) : baseDate;
+      }
+      const isLast = i === installmentsCount - 1;
+      const amt = isLast
+        ? Math.round((newTotal - acc) * 100) / 100
+        : newInstallmentValue;
+      acc += amt;
+      newScheds.push({ dueDate: dueStr, amount: amt });
+    }
+
+    // Combina + ordena por data + renumera
+    const combined = [
+      ...remainingPendingScheds.map((s) => ({
+        dueDate: s.dueDate,
+        amount: Number(s.amount || 0),
+        isNew: false,
+      })),
+      ...newScheds.map((s) => ({ dueDate: s.dueDate, amount: s.amount, isNew: true })),
+    ].sort((a, b) => a.dueDate.localeCompare(b.dueDate));
+
+    return combined.map((item, i) => ({
+      number: loan.paidInstallments + i + 1,
+      dueDate: item.dueDate,
+      amount: item.amount,
+      isNew: item.isNew,
+    }));
+  }, [
+    isInstallmentLoan,
+    pendingInstallments,
+    selectedNumbers,
+    installmentsCount,
+    newInstallmentValue,
+    newTotal,
+    loan.dueDate,
+    loan.paidInstallments,
+  ]);
+
   const reset = () => {
     setType("no_interest");
     setPenaltyMode("fixed");
