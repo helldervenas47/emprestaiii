@@ -18,8 +18,9 @@ import {
 import {
   Search, Trash2, CheckCircle, Receipt, Calendar,
   CircleDollarSign, ChevronLeft, ChevronRight, Undo2, TrendingUp, CalendarDays, Target, Pencil,
-  Sparkles,
+  Sparkles, Plus,
 } from "lucide-react";
+import { PersonalCategoryCreator } from "@/components/PersonalCategoryCreator";
 import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
 import { ExpenseEditDialog } from "@/components/ExpenseEditDialog";
 import { supabase } from "@/integrations/supabase/client";
@@ -70,7 +71,9 @@ const isOverdue = (e: Expense) =>
 export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, onUpdate, readOnly = false, afterEvolution }: Props) {
   const { mask } = useHideValues();
   const formatCurrency = useCallback((v: number) => mask(fmt(v)), [mask]);
-  const { categories: customCategories } = usePersonalExpenseCategories();
+  const { categories: customCategories, create: createCustomCategory, update: updateCustomCategory, remove: removeCustomCategory } = usePersonalExpenseCategories();
+  const [categoryEditorOpen, setCategoryEditorOpen] = useState(false);
+  const [editingCategory, setEditingCategory] = useState<{ id: string; name: string; icon: string; color: string } | null>(null);
   const customCategoryList = useMemo<PersonalCategory[]>(
     () => customCategories.map((c) => ({ name: c.name, icon: resolvePersonalIcon(c.icon), color: c.color, id: c.id, custom: true })),
     [customCategories],
@@ -1073,6 +1076,19 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, onUpda
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-2.5 py-2">
+            <div className="flex justify-end">
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => {
+                  setEditingCategory(null);
+                  setCategoryEditorOpen(true);
+                }}
+              >
+                <Plus className="mr-1.5 h-3.5 w-3.5" />
+                Nova categoria
+              </Button>
+            </div>
             {allBudgetCategories
               .slice()
               .sort((a, b) => {
@@ -1084,6 +1100,9 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, onUpda
               .map((c) => {
                 const Icon = c.icon;
                 const spent = spentByCategory.get(c.name) || 0;
+                const customMatch = c.custom
+                  ? customCategories.find((cc) => cc.id === c.id)
+                  : null;
                 return (
                   <div key={c.name} className="flex items-center gap-2">
                     <div
@@ -1093,7 +1112,23 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, onUpda
                       <Icon className="h-4 w-4" style={{ color: `hsl(${c.color})` }} />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <div className="text-sm text-foreground truncate">{c.name}</div>
+                      <div className="text-sm text-foreground truncate flex items-center gap-1.5">
+                        {c.name}
+                        {customMatch && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setEditingCategory(customMatch);
+                              setCategoryEditorOpen(true);
+                            }}
+                            className="text-muted-foreground hover:text-foreground transition-colors"
+                            title="Editar categoria"
+                            aria-label={`Editar ${c.name}`}
+                          >
+                            <Pencil className="h-3 w-3" />
+                          </button>
+                        )}
+                      </div>
                       <div className="text-[11px] text-muted-foreground tabular-nums">
                         Gasto: {formatCurrency(spent)}
                       </div>
@@ -1116,6 +1151,34 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, onUpda
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <PersonalCategoryCreator
+        open={categoryEditorOpen}
+        onOpenChange={(v) => {
+          setCategoryEditorOpen(v);
+          if (!v) setEditingCategory(null);
+        }}
+        editing={editingCategory}
+        createCategory={createCustomCategory}
+        updateCategory={updateCustomCategory}
+        deleteCategory={removeCustomCategory}
+        onCreated={(cat) => {
+          setBudgetDraft((p) => ({ ...p, [cat.name]: p[cat.name] ?? "" }));
+        }}
+        onUpdated={(cat) => {
+          // If name changed, migrate any draft entry to the new key
+          if (editingCategory && editingCategory.name !== cat.name) {
+            setBudgetDraft((p) => {
+              const next = { ...p };
+              if (next[editingCategory.name] !== undefined) {
+                next[cat.name] = next[editingCategory.name];
+                delete next[editingCategory.name];
+              }
+              return next;
+            });
+          }
+        }}
+      />
 
       {/* Budget category detail — lists every expense composing this limit in the selected month */}
       <Dialog open={!!budgetDetailCat} onOpenChange={(v) => !v && setBudgetDetailCat(null)}>
