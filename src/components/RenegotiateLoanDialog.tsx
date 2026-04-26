@@ -556,12 +556,12 @@ export function RenegotiateLoanDialog({
           {type === "with_penalty" && (
             <div className="space-y-2 rounded-lg border border-warning/30 bg-warning/5 p-3">
               <Label className="text-xs">Multa de renegociação</Label>
-              <div className="flex gap-2">
+              <div className="grid grid-cols-2 gap-2">
                 <Button
                   size="sm"
                   type="button"
                   variant={penaltyMode === "fixed" ? "default" : "outline"}
-                  className="flex-1 h-8 text-xs"
+                  className="h-9 text-xs px-2 whitespace-nowrap"
                   onClick={() => { setPenaltyMode("fixed"); setConfirming(false); }}
                 >
                   R$ fixo
@@ -570,7 +570,7 @@ export function RenegotiateLoanDialog({
                   size="sm"
                   type="button"
                   variant={penaltyMode === "percentage" ? "default" : "outline"}
-                  className="flex-1 h-8 text-xs"
+                  className="h-9 text-xs px-2 whitespace-nowrap"
                   onClick={() => { setPenaltyMode("percentage"); setConfirming(false); }}
                 >
                   % do saldo
@@ -587,12 +587,12 @@ export function RenegotiateLoanDialog({
               />
               <div className="space-y-1.5 pt-1">
                 <Label className="text-xs">Cobrança da multa</Label>
-                <div className="flex gap-2">
+                <div className="grid grid-cols-2 gap-2">
                   <Button
                     size="sm"
                     type="button"
                     variant={penaltyDistribution === "diluted" ? "default" : "outline"}
-                    className="flex-1 h-8 text-[11px]"
+                    className="h-auto min-h-9 py-1.5 text-[11px] leading-tight px-2 whitespace-normal text-center"
                     onClick={() => { setPenaltyDistribution("diluted"); setConfirming(false); }}
                   >
                     Diluída nas parcelas
@@ -601,7 +601,7 @@ export function RenegotiateLoanDialog({
                     size="sm"
                     type="button"
                     variant={penaltyDistribution === "first" ? "default" : "outline"}
-                    className="flex-1 h-8 text-[11px]"
+                    className="h-auto min-h-9 py-1.5 text-[11px] leading-tight px-2 whitespace-normal text-center"
                     onClick={() => { setPenaltyDistribution("first"); setConfirming(false); }}
                   >
                     Só na 1ª parcela
