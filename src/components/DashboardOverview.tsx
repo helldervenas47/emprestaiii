@@ -673,59 +673,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
     };
   }, [loans, payments, installmentSchedules]);
 
-  // Taxa de Renegociação Mensal: % do valor a receber no mês atual que foi renegociado.
-  // - Base: parcelas/contratos com vencimento dentro do mês corrente (antes da renegociação)
-  // - Numerador: soma do valor original (previousAmount) dos contratos renegociados no mês,
-  //   contando cada contrato apenas uma vez (a renegociação mais recente do mês)
-  const renegotiationRate = useMemo(() => {
-    const now = new Date();
-    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-    const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
 
-    // Valor Total a Receber no mês: soma de parcelas/contratos com vencimento no mês
-    let totalReceivableMonth = 0;
-    loans.forEach((l) => {
-      if (l.installments >= 2) {
-        installmentSchedules
-          .filter((sc) => {
-            if (sc.loanId !== l.id) return false;
-            const d = new Date(sc.dueDate + "T00:00:00");
-            return d >= monthStart && d <= monthEnd;
-          })
-          .forEach((sc) => { totalReceivableMonth += sc.amount; });
-      } else {
-        const d = new Date(l.dueDate + "T00:00:00");
-        if (d >= monthStart && d <= monthEnd) {
-          totalReceivableMonth += calculateTotalWithInterest(l.amount, l.interestRate, l.installments);
-        }
-      }
-    });
-
-    // Renegociações no mês — pela data do registro. Um contrato entra uma única vez (mantém a primeira do mês).
-    const seen = new Set<string>();
-    let renegotiatedAmount = 0;
-    const inMonth = (renegotiations ?? [])
-      .filter((r) => {
-        const ts = r.renegotiatedAt || r.createdAt;
-        if (!ts) return false;
-        const d = new Date(ts);
-        return d >= monthStart && d <= monthEnd;
-      })
-      .sort((a, b) => (a.renegotiatedAt || a.createdAt).localeCompare(b.renegotiatedAt || b.createdAt));
-    inMonth.forEach((r) => {
-      if (seen.has(r.loanId)) return;
-      seen.add(r.loanId);
-      renegotiatedAmount += Number(r.previousAmount ?? 0);
-    });
-
-    const rate = totalReceivableMonth > 0 ? (renegotiatedAmount / totalReceivableMonth) * 100 : 0;
-    return {
-      rate,
-      renegotiatedAmount,
-      totalReceivableMonth,
-      contracts: seen.size,
-    };
-  }, [loans, installmentSchedules, renegotiations]);
 
   const monthComparison = useMemo(() => {
     const anchor = new Date(range.start.getFullYear(), range.start.getMonth(), 1);
@@ -1696,33 +1644,13 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
                   )}
                 </CardContent>
               </Card>
-              <Card
-                no3d
-                className={`col-span-2 border-0 bg-gradient-to-br ${renegotiationRate.rate <= 10 ? "from-success/15 to-success/5" : renegotiationRate.rate <= 25 ? "from-warning/20 to-warning/5" : "from-destructive/20 to-destructive/5"}`}
-              >
-                <CardContent className="p-3 sm:p-4">
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="min-w-0">
-                      <p className="text-[10px] sm:text-xs text-muted-foreground">Taxa de Renegociação (mês)</p>
-                      <p className={`text-base sm:text-xl font-bold ${renegotiationRate.rate <= 10 ? "text-success" : renegotiationRate.rate <= 25 ? "text-warning" : "text-destructive"}`}>
-                        {renegotiationRate.rate.toFixed(1)}%
-                      </p>
-                      <p className="text-[10px] text-muted-foreground mt-0.5 truncate">
-                        {formatCurrency(renegotiationRate.renegotiatedAmount)} de {formatCurrency(renegotiationRate.totalReceivableMonth)}
-                        {renegotiationRate.contracts > 0 ? ` • ${renegotiationRate.contracts} contrato${renegotiationRate.contracts !== 1 ? "s" : ""}` : ""}
-                      </p>
-                    </div>
-                    <InfoPopover text="Percentual do valor a receber no mês corrente que foi renegociado. Considera o valor original da dívida (antes da renegociação) e conta cada contrato apenas uma vez. Quanto menor, melhor." />
-                  </div>
-                </CardContent>
-              </Card>
             </div>
           </div>
         </CardContent>
       </Card>
 
       {/* Goals Card */}
-      <GoalsCard loans={loans} payments={payments} expenses={expenses} clients={clients ?? []} installmentSchedules={installmentSchedules} selectedMonth={goalMonthKey} periodLabel={range.label} />
+      <GoalsCard loans={loans} payments={payments} expenses={expenses} clients={clients ?? []} installmentSchedules={installmentSchedules} renegotiations={renegotiations} selectedMonth={goalMonthKey} periodLabel={range.label} />
 
       {/* Manager Commissions Chart - isolated, view-only */}
       <ManagerCommissionsChart clients={clients} loans={loans} installmentSchedules={installmentSchedules} payments={payments} range={{ start: range.start, end: range.end }} rangeLabel={range.label} />

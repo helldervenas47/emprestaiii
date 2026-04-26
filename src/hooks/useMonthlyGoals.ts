@@ -13,7 +13,8 @@ export type GoalType =
   | "active_capital"
   | "net_profit"
   | "max_default_rate"
-  | "new_clients_count";
+  | "new_clients_count"
+  | "renegotiation_rate";
 
 export interface MonthlyGoal {
   id: string;

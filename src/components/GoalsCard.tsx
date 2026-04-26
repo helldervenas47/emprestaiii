@@ -13,7 +13,7 @@ import { toast } from "sonner";
 import { useHideValues } from "@/contexts/HideValuesContext";
 import { useMonthlyGoals, GoalType, formatMonthLabel } from "@/hooks/useMonthlyGoals";
 import { useAccountSettings } from "@/hooks/useAccountSettings";
-import { Loan, Payment, Expense, Client, InstallmentSchedule } from "@/types/loan";
+import { Loan, Payment, Expense, Client, InstallmentSchedule, LoanRenegotiation } from "@/types/loan";
 import { todayInAppTz } from "@/lib/timezone";
 import { useActiveCapitalSnapshots } from "@/hooks/useActiveCapitalSnapshots";
 import { calculateMonthlyInterestRate } from "@/lib/monthlyInterestRate";
@@ -21,7 +21,7 @@ import {
   Target, Percent, TrendingUp, Banknote, FileText,
   HandCoins, Coins, Wallet, PiggyBank, AlertTriangle, UserPlus,
   Sparkles, CheckCircle2, AlertCircle, TrendingDown, Lightbulb,
-  BookOpen, Calculator, Database, FlaskConical, Settings2, ArrowUp, ArrowDown, GripVertical,
+  BookOpen, Calculator, Database, FlaskConical, Settings2, ArrowUp, ArrowDown, GripVertical, RefreshCw,
 } from "lucide-react";
 
 // Inline para evitar import circular com useLoans
@@ -164,6 +164,22 @@ const GOAL_EXPLANATIONS: Record<GoalType, {
     },
     measurement: "Atingimento = (Quantidade realizada ÷ Meta) × 100.",
   },
+  renegotiation_rate: {
+    formula: "Taxa Renegociação (%) = (Valor original renegociado no mês ÷ Valor a receber no mês) × 100",
+    indicators: [
+      "Considera apenas renegociações registradas dentro do mês",
+      "Cada contrato é contado uma única vez (primeira renegociação do mês)",
+      "Numerador: previousAmount (valor original da dívida antes da renegociação)",
+      "Denominador: soma das parcelas/contratos com vencimento no mês",
+    ],
+    dataSource: ["Tabela loan_renegotiations", "Tabela de Empréstimos e Cronograma de Parcelas"],
+    example: {
+      setup: "R$ 10.000 a receber no mês; 1 contrato renegociado com valor original R$ 1.500.",
+      calc: "(1.500 ÷ 10.000) × 100",
+      result: "Taxa de Renegociação = 15,00%",
+    },
+    measurement: "Meta INVERSA: quanto menor, melhor. Atingimento = máx(0, 100 − (Realizado ÷ Meta) × 100).",
+  },
 };
 
 type Unit = "%" | "R$" | "qtd";
@@ -179,6 +195,7 @@ const GOAL_TYPE_META: Record<GoalType, { label: string; icon: any; unit: Unit; c
   net_profit:         { label: "Lucro Líquido",                    icon: PiggyBank,     unit: "R$",  color: "text-success",     bgColor: "bg-success/15",     description: "Juros recebidos menos despesas pagas da empresa." },
   max_default_rate:   { label: "Inadimplência Máxima",             icon: AlertTriangle, unit: "%",   color: "text-destructive", bgColor: "bg-destructive/15", description: "Limite máximo de % de parcelas em atraso (meta inversa).", inverse: true },
   new_clients_count:  { label: "Novos Clientes",                   icon: UserPlus,      unit: "qtd", color: "text-primary",     bgColor: "bg-primary/15",     description: "Clientes cadastrados no período." },
+  renegotiation_rate: { label: "Taxa de Renegociação",             icon: RefreshCw,     unit: "%",   color: "text-destructive", bgColor: "bg-destructive/15", description: "% do valor a receber no mês que foi renegociado (meta inversa).", inverse: true },
 };
 
 interface Props {
@@ -187,6 +204,7 @@ interface Props {
   expenses: Expense[];
   clients: Client[];
   installmentSchedules?: InstallmentSchedule[];
+  renegotiations?: LoanRenegotiation[];
   selectedMonth?: string; // YYYY-MM — filtra metas exibidas (exceto active_capital)
   periodLabel?: string;
 }
@@ -374,6 +392,59 @@ function computeDefaultRate(loans: Loan[], payments: Payment[], installmentSched
   return periodPortfolio > 0 ? (overdueAmount / periodPortfolio) * 100 : 0;
 }
 
+function computeRenegotiationRate(
+  loans: Loan[],
+  installmentSchedules: InstallmentSchedule[],
+  renegotiations: LoanRenegotiation[],
+  m: string,
+): number {
+  const [yy, mm] = m.split("-").map(Number);
+  if (!yy || !mm) return 0;
+  const monthStart = new Date(yy, mm - 1, 1);
+  const monthEnd = new Date(yy, mm, 0, 23, 59, 59, 999);
+
+  let totalReceivableMonth = 0;
+  loans.forEach((l: any) => {
+    const installments = Number(l.installments) || 1;
+    if (installments >= 2) {
+      installmentSchedules
+        .filter((sc) => {
+          if (sc.loanId !== l.id) return false;
+          const d = new Date(sc.dueDate + "T00:00:00");
+          return d >= monthStart && d <= monthEnd;
+        })
+        .forEach((sc) => { totalReceivableMonth += Number(sc.amount) || 0; });
+    } else {
+      const due = (l.dueDate || l.due_date || "").slice(0, 10);
+      if (!due) return;
+      const d = new Date(due + "T00:00:00");
+      if (d >= monthStart && d <= monthEnd) {
+        const principal = Number(l.amount) || 0;
+        const rate = Number(l.interestRate ?? l.interest_rate) || 0;
+        totalReceivableMonth += calculateTotalWithInterest(principal, rate, installments);
+      }
+    }
+  });
+
+  const seen = new Set<string>();
+  let renegotiatedAmount = 0;
+  (renegotiations || [])
+    .filter((r) => {
+      const ts = r.renegotiatedAt || r.createdAt;
+      if (!ts) return false;
+      const d = new Date(ts);
+      return d >= monthStart && d <= monthEnd;
+    })
+    .sort((a, b) => (a.renegotiatedAt || a.createdAt).localeCompare(b.renegotiatedAt || b.createdAt))
+    .forEach((r) => {
+      if (seen.has(r.loanId)) return;
+      seen.add(r.loanId);
+      renegotiatedAmount += Number(r.previousAmount ?? 0);
+    });
+
+  return totalReceivableMonth > 0 ? (renegotiatedAmount / totalReceivableMonth) * 100 : 0;
+}
+
 export function computeActual(
   type: GoalType,
   m: string,
@@ -381,7 +452,8 @@ export function computeActual(
   payments: Payment[],
   expenses: Expense[],
   clients: Client[],
-  installmentSchedules: InstallmentSchedule[]
+  installmentSchedules: InstallmentSchedule[],
+  renegotiations: LoanRenegotiation[] = [],
 ): number {
   switch (type) {
     case "loan_volume":
@@ -410,6 +482,8 @@ export function computeActual(
     }
     case "new_clients_count":
       return clients.filter((c: any) => inMonth(c.created_at || c.createdAt, m)).length;
+    case "renegotiation_rate":
+      return computeRenegotiationRate(loans, installmentSchedules, renegotiations, m);
     case "interest_rate": {
       // Taxa Juros Mensal = (Total a Receber − Total Emprestado) ÷ Total Emprestado × 100
       // Considera empréstimos com data de início no mês selecionado
@@ -442,7 +516,7 @@ const MAX_VISIBLE_GOALS = 8;
 const ALL_GOAL_TYPES: GoalType[] = [
   "interest_rate", "profit", "loan_volume", "new_loans_count",
   "received_total", "interest_received", "active_capital", "net_profit",
-  "max_default_rate", "new_clients_count",
+  "max_default_rate", "new_clients_count", "renegotiation_rate",
 ];
 
 function loadGoalPrefs(userId: string | null | undefined): { selected: GoalType[]; order: GoalType[] } {
@@ -472,7 +546,7 @@ function normalizePrefs(
   };
 }
 
-export function GoalsCard({ loans, payments, expenses, clients, installmentSchedules = [], selectedMonth, periodLabel }: Props) {
+export function GoalsCard({ loans, payments, expenses, clients, installmentSchedules = [], renegotiations = [], selectedMonth, periodLabel }: Props) {
   const { goals } = useMonthlyGoals();
   const { hidden } = useHideValues();
   const { user } = useAuth();
@@ -574,7 +648,7 @@ export function GoalsCard({ loans, payments, expenses, clients, installmentSched
       const computeMonth = selectedMonth || g.month;
       const actual = g.goalType === "active_capital"
         ? (computeMonth === currentMonth ? currentActiveCapital : (getSnapshotAmount(computeMonth) ?? 0))
-        : computeActual(g.goalType, computeMonth, loans, payments, expenses, clients, installmentSchedules);
+        : computeActual(g.goalType, computeMonth, loans, payments, expenses, clients, installmentSchedules, renegotiations);
       let pct = 0;
       if (g.targetValue > 0) {
         pct = g.goalType === "max_default_rate"
@@ -589,7 +663,7 @@ export function GoalsCard({ loans, payments, expenses, clients, installmentSched
         : null;
       return { ...g, actual, pct, meta, expectedReceivable, targetAmount };
     });
-  }, [goals, loans, payments, expenses, clients, installmentSchedules, selectedMonth, currentMonth, currentActiveCapital, getSnapshotAmount]);
+  }, [goals, loans, payments, expenses, clients, installmentSchedules, renegotiations, selectedMonth, currentMonth, currentActiveCapital, getSnapshotAmount]);
 
   // Aplica preferências do usuário: filtra pelos tipos selecionados e ordena conforme a ordem definida.
   // Limita a no máximo MAX_VISIBLE_GOALS cards.
@@ -808,7 +882,7 @@ function CustomizeGoalsDialog({
           <Button variant="ghost" size="sm" type="button" onClick={reset} className="h-7 px-2 text-[11px]">Restaurar padrão</Button>
         </div>
 
-        <ScrollArea className="flex-1 -mx-2 px-2">
+        <ScrollArea className="flex-1 min-h-0 -mx-2 px-2 max-h-[55vh]">
           <ul className="space-y-1.5 py-2">
             {draft.order.map((type, idx) => {
               const meta = GOAL_TYPE_META[type];
