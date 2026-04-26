@@ -443,7 +443,7 @@ export function RenegotiateLoanDialog({
         </DialogHeader>
 
         <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)} className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
+          <TabsList className="grid w-full grid-cols-2 h-auto p-1">
             <TabsTrigger value="renegotiate">Renegociar</TabsTrigger>
             <TabsTrigger value="history">
               Histórico{sortedHistory.length > 0 ? ` (${sortedHistory.length})` : ""}
