@@ -56,6 +56,8 @@ interface Props {
     notes?: string | null;
     selectedInstallmentNumbers?: number[] | null;
     firstDueDate?: string | null;
+    frequency?: "monthly" | "biweekly" | "weekly" | "daily" | null;
+    customDates?: string[] | null;
   }) => Promise<void>;
 }
 
