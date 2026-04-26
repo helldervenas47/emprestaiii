@@ -3225,6 +3225,12 @@ function LoanRowView({
                             <span className="text-warning tabular-nums">{rawFormatCurrency(lateInterestTotal)}</span>
                           </div>
                         )}
+                        {renegPenaltyPending > 0 && (
+                          <div className="flex justify-between text-[11px]">
+                            <span className="text-muted-foreground">Multa de renegociação</span>
+                            <span className="text-warning tabular-nums">{rawFormatCurrency(renegPenaltyPending)}</span>
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>
