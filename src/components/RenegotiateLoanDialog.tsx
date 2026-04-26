@@ -59,6 +59,7 @@ export function RenegotiateLoanDialog({
   const [penaltyInput, setPenaltyInput] = useState("");
   const [newInstallments, setNewInstallments] = useState("");
   const [notes, setNotes] = useState("");
+  const [firstDueDate, setFirstDueDate] = useState("");
   const [confirming, setConfirming] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
