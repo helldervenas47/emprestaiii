@@ -129,10 +129,11 @@ export function RenegotiateLoanDialog({
 
   // Simula o novo cronograma de parcelas pendentes (não selecionadas + novas geradas)
   const simulatedSchedule = useMemo(() => {
+    const overrideDate = firstDueDate && /^\d{4}-\d{2}-\d{2}$/.test(firstDueDate) ? firstDueDate : null;
+
     if (!isInstallmentLoan || pendingInstallments.length === 0) {
-      // Modo simples: gera N parcelas mensais a partir do dueDate
       const result: { number: number; dueDate: string; amount: number; isNew: boolean }[] = [];
-      const baseDate = loan.dueDate;
+      const baseDate = overrideDate || loan.dueDate;
       let acc = 0;
       for (let i = 0; i < installmentsCount; i++) {
         const d = new Date(baseDate + "T00:00:00");
@@ -158,7 +159,6 @@ export function RenegotiateLoanDialog({
     );
     const isPartial = selectedNumbers.size < pendingInstallments.length;
 
-    // Determina data base para as novas parcelas
     const lastDate = remainingPendingScheds.length > 0
       ? remainingPendingScheds[remainingPendingScheds.length - 1].dueDate
       : (pendingInstallments[pendingInstallments.length - 1]?.dueDate || loan.dueDate);
@@ -172,7 +172,11 @@ export function RenegotiateLoanDialog({
     let acc = 0;
     for (let i = 0; i < installmentsCount; i++) {
       let dueStr: string;
-      if (!isPartial && i === 0 && firstSelectedDate) {
+      if (overrideDate) {
+        const d = new Date(overrideDate + "T00:00:00");
+        if (!isNaN(d.getTime())) d.setMonth(d.getMonth() + i);
+        dueStr = !isNaN(d.getTime()) ? d.toISOString().slice(0, 10) : overrideDate;
+      } else if (!isPartial && i === 0 && firstSelectedDate) {
         dueStr = firstSelectedDate;
       } else {
         const baseDate = !isPartial && firstSelectedDate ? firstSelectedDate : lastDate;
@@ -189,7 +193,6 @@ export function RenegotiateLoanDialog({
       newScheds.push({ dueDate: dueStr, amount: amt });
     }
 
-    // Combina + ordena por data + renumera
     const combined = [
       ...remainingPendingScheds.map((s) => ({
         dueDate: s.dueDate,
@@ -214,6 +217,7 @@ export function RenegotiateLoanDialog({
     newTotal,
     loan.dueDate,
     loan.paidInstallments,
+    firstDueDate,
   ]);
 
   const reset = () => {
