@@ -8,6 +8,8 @@ export interface Loan {
   paymentType: string;
   startDate: string;
   dueDate: string;
+  /** Data de vencimento original do contrato — referência fixa de ciclo, não muda com renegociação. */
+  originalDueDate?: string;
   installments: number;
   paidInstallments: number;
   status: "active" | "paid" | "overdue";
