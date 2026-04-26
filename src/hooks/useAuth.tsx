@@ -38,13 +38,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const fetchDataOwner = async (userId: string) => {
-    const { data } = await supabase
-      .from("user_owner" as any)
-      .select("owner_id")
-      .eq("user_id", userId)
-      .maybeSingle();
-
-    setDataOwnerId((data as any)?.owner_id || userId);
+    // Use the SQL function so admin "view as" sessions are respected.
+    // It returns the target user's id when an admin viewing session is active,
+    // otherwise the owner from user_owner, otherwise the user's own id.
+    const { data, error } = await supabase.rpc("get_data_owner_id", { _user_id: userId });
+    if (error || !data) {
+      setDataOwnerId(userId);
+    } else {
+      setDataOwnerId(data as string);
+    }
   };
 
   const fetchTabPermissions = async (userId: string) => {
