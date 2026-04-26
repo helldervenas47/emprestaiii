@@ -2235,6 +2235,8 @@ function LoanRowView({
   const [showPenalty, setShowPenalty] = useState(false);
   const [penaltyValue, setPenaltyValue] = useState<string>(loan.penaltyValue != null ? String(loan.penaltyValue) : "");
   const [showRenegotiateDialog, setShowRenegotiateDialog] = useState(false);
+  const [showRowDetails, setShowRowDetails] = useState(false);
+  const [showRowAccountModal, setShowRowAccountModal] = useState(false);
   const managerOptions = useMemo(() => clients.filter((c) => c.isManager && c.active !== false), [clients]);
   const { activeMethods: rowActiveMethods } = usePaymentMethods();
   const [rowSelectedMethodId, setRowSelectedMethodId] = useState<string>("");
