@@ -673,16 +673,20 @@ export function useLoans() {
     const online = isOnline();
 
     const tempPaymentId = crypto.randomUUID();
-    const paymentPayload = {
+    const totalReceivedNow = interestAmount + feesExtra;
+    const normalizedSplit = normalizeSplit(paymentSplit ?? null, totalReceivedNow);
+    const splitMetadata = withSplit(null, normalizedSplit);
+    const paymentPayload: any = {
       id: tempPaymentId,
       user_id: dataOwnerId, loan_id: loanId, amount: interestAmount,
       date: dateStr, installment_number: 0, previous_due_date: loan.dueDate,
       payment_method_id: paymentMethodId ?? null,
     };
+    if (splitMetadata) paymentPayload.metadata = splitMetadata;
     const loanUpdate = { due_date: newDueDate };
 
     setPayments((prev) => [
-      { id: tempPaymentId, loanId, amount: interestAmount, date: dateStr, installmentNumber: 0, previousDueDate: loan.dueDate, paymentMethodId: paymentMethodId ?? null },
+      { id: tempPaymentId, loanId, amount: interestAmount, date: dateStr, installmentNumber: 0, previousDueDate: loan.dueDate, paymentMethodId: paymentMethodId ?? null, metadata: (splitMetadata as any) ?? null },
       ...prev,
     ]);
     setLoans((prev) => prev.map((l) => l.id === loanId ? { ...l, dueDate: newDueDate } : l));
