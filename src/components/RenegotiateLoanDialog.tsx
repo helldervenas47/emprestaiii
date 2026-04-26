@@ -77,6 +77,8 @@ export function RenegotiateLoanDialog({
   const [newInstallments, setNewInstallments] = useState("");
   const [notes, setNotes] = useState("");
   const [firstDueDate, setFirstDueDate] = useState("");
+  const [frequency, setFrequency] = useState<"monthly" | "biweekly" | "weekly" | "daily">("monthly");
+  const [customDates, setCustomDates] = useState<Record<number, string>>({});
   const [confirming, setConfirming] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
