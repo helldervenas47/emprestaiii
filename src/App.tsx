@@ -1,4 +1,4 @@
-import { lazy, Suspense } from "react";
+import React, { lazy, Suspense } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Route, Routes, Navigate } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -41,11 +41,12 @@ const queryClient = new QueryClient({
   },
 });
 
-const PageLoader = () => (
-  <div className="min-h-screen bg-background flex items-center justify-center">
+const PageLoader = React.forwardRef<HTMLDivElement>((_props, ref) => (
+  <div ref={ref} className="min-h-screen bg-background flex items-center justify-center">
     <div className="animate-spin h-8 w-8 border-2 border-primary border-t-transparent rounded-full" />
   </div>
-);
+));
+PageLoader.displayName = "PageLoader";
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
