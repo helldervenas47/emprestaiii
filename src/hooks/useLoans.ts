@@ -1239,12 +1239,17 @@ export function useLoans() {
       .insert(renegRow as any);
     if (renegErr) throw new Error(renegErr.message);
 
+    const overrideFirstDateTop = params.firstDueDate && /^\d{4}-\d{2}-\d{2}$/.test(params.firstDueDate)
+      ? params.firstDueDate
+      : null;
+
     const loanUpdate: any = {
       remaining_amount: newLoanRemaining,
       installments: newInstallmentsTotal,
       // custom_installment_value só faz sentido se TODAS as pendentes têm o mesmo valor
       custom_installment_value: isPartialReneg ? null : newInstallmentValue,
       renegotiation_penalty_total: (Number(loan.renegotiationPenaltyTotal) || 0) + penaltyAmount,
+      ...(overrideFirstDateTop ? { due_date: overrideFirstDateTop } : {}),
     };
 
     const { error: loanErr } = await supabase
