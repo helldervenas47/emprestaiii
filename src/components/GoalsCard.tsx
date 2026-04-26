@@ -568,6 +568,17 @@ export function GoalsCard({ loans, payments, expenses, clients, installmentSched
               <h3 className="text-sm font-semibold text-foreground">Metas</h3>
               <p className="text-[10px] text-muted-foreground">Acompanhe o progresso das suas metas cadastradas</p>
             </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              type="button"
+              onClick={() => setShowCustomize(true)}
+              className="ml-1 h-7 px-2 gap-1 text-[11px]"
+              title="Personalizar metas exibidas"
+            >
+              <Settings2 className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">Personalizar</span>
+            </Button>
           </div>
           <div className="grid grid-cols-3 gap-2 w-full sm:w-auto sm:flex sm:gap-6">
             <div className="rounded-md bg-muted/40 sm:bg-transparent px-2 py-1 sm:p-0 text-center sm:text-right">
