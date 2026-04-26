@@ -2729,11 +2729,17 @@ function LoanRowView({
               </div>
             </div>
             {daysOverdue > 0 && loan.status !== "paid" && (
-              <div className="flex items-center gap-1.5 text-destructive">
+              <div className="flex items-center gap-1.5 text-destructive flex-wrap">
                 <span className="h-2 w-2 rounded-full bg-destructive inline-block"></span>
                 <span className="text-xs font-medium">{daysOverdue} dia{daysOverdue > 1 ? "s" : ""} em atraso</span>
                 {lateInterestTotal > 0 && <span className="text-xs">• Juros mora: {formatCurrency(lateInterestTotal)}</span>}
                 {penaltyTotal > 0 && <span className="text-xs">• Multa: {formatCurrency(penaltyTotal)}</span>}
+              </div>
+            )}
+            {renegPenaltyPending > 0 && loan.status !== "paid" && (
+              <div className="flex items-center gap-1.5 text-warning flex-wrap">
+                <span className="h-2 w-2 rounded-full bg-warning inline-block"></span>
+                <span className="text-xs font-medium">Multa de renegociação: {formatCurrency(renegPenaltyPending)}</span>
               </div>
             )}
             {loan.notes && (
