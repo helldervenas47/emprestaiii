@@ -167,9 +167,14 @@ export function RenegotiateLoanDialog({
         if (!isNaN(d.getTime())) d.setMonth(d.getMonth() + i);
         const dueStr = !isNaN(d.getTime()) ? d.toISOString().slice(0, 10) : baseDate;
         const isLast = i === installmentsCount - 1;
-        const amt = isLast
-          ? Math.round((newTotal - acc) * 100) / 100
-          : newInstallmentValue;
+        let amt: number;
+        if (useFirstMode && i === 0) {
+          amt = firstInstallmentValue;
+        } else if (isLast) {
+          amt = Math.round((newTotal - acc) * 100) / 100;
+        } else {
+          amt = baseInstallmentValue;
+        }
         acc += amt;
         result.push({
           number: loan.paidInstallments + i + 1,
