@@ -908,7 +908,8 @@ export function useLoans() {
       : oldPrincipal * (rate / 100);
     const interestSaved = Math.max(0, oldInterestTotal - newInterestTotal);
 
-    const amortizationMetadata = {
+    const normalizedSplit = normalizeSplit(paymentSplit ?? null, amortizeAmount);
+    const amortizationMetadata: Record<string, any> = {
       kind: "amortization" as const,
       old_principal: oldPrincipal,
       new_principal: newPrincipal,
@@ -918,6 +919,7 @@ export function useLoans() {
       new_remaining: newRemaining,
       interest_rate: rate,
     };
+    if (normalizedSplit) amortizationMetadata.split = normalizedSplit;
 
     const online = isOnline();
     const tempPaymentId = crypto.randomUUID();
