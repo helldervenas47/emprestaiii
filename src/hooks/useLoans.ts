@@ -668,7 +668,11 @@ export function useLoans() {
     // da ÂNCORA original (originalDueDate), IGNORANDO qualquer adiamento feito
     // por renegociação no due_date. Avançamos ciclos a partir da âncora até
     // ficar estritamente APÓS a data do pagamento.
-    const anchorRef = loan.originalDueDate || loan.dueDate;
+    // Âncora = original_due_date, mas com proteção: se o "original" salvo for
+    // posterior ao due_date atual, ele está corrompido (bug histórico ou edição
+    // manual posterior) — nesse caso usamos o due_date como âncora.
+    const rawAnchor = loan.originalDueDate || loan.dueDate;
+    const anchorRef = rawAnchor > loan.dueDate ? loan.dueDate : rawAnchor;
     const freq = loan.interestType || "Mensal";
     const advance = (d: Date) => {
       if (freq === "Semanal") d.setDate(d.getDate() + 7);
