@@ -13,8 +13,10 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Plus, Trash2, Shield, UserPlus, Pencil, ChevronDown, Settings2, Link2, CreditCard } from "lucide-react";
+import { Plus, Trash2, Shield, UserPlus, Pencil, ChevronDown, Settings2, Link2, CreditCard, Eye } from "lucide-react";
 import { toast } from "sonner";
+import { useViewAsUser } from "@/hooks/useViewAsUser";
+import { useAuth } from "@/hooks/useAuth";
 
 interface ManagedUser {
   id: string;
@@ -59,6 +61,18 @@ export function UserManagement() {
   const [expandedUserId, setExpandedUserId] = useState<string | null>(null);
   const isMobile = useIsMobileOrTablet();
   const [saving, setSaving] = useState(false);
+  const { user: currentUser } = useAuth();
+  const { startViewing } = useViewAsUser();
+
+  const handleViewAs = async (target: ManagedUser) => {
+    if (target.id === currentUser?.id) {
+      toast.info("Você já está logado nesta conta");
+      return;
+    }
+    if (!confirm(`Entrar em modo visualização (somente leitura) como "${target.display_name}"?\n\nVocê poderá ver todos os dados desta conta, mas não poderá alterar nada.`)) return;
+    const { error } = await startViewing(target.id);
+    if (error) toast.error(error);
+  };
 
   // Plan selection for admins
   const [planUser, setPlanUser] = useState<ManagedUser | null>(null);
@@ -484,6 +498,9 @@ export function UserManagement() {
                           <Link2 className="h-3.5 w-3.5" /> Clientes
                           {user.linked_client_ids?.length > 0 && <Badge variant="secondary" className="ml-1 text-[10px] px-1">{user.linked_client_ids.length}</Badge>}
                         </Button>
+                        <Button variant="outline" size="sm" className="flex-1 gap-1" onClick={() => handleViewAs(user)} title="Visualizar como (somente leitura)">
+                          <Eye className="h-3.5 w-3.5" /> Ver como
+                        </Button>
                         <Button variant="outline" size="sm" className="flex-1 gap-1" onClick={() => openEdit(user)}>
                           <Pencil className="h-3.5 w-3.5" /> Editar
                         </Button>
@@ -572,6 +589,9 @@ export function UserManagement() {
                         </Button>
                         <Button variant="ghost" size="icon" onClick={() => openClientLinks(user)} className="h-8 w-8" title="Vincular clientes">
                           <Link2 className="h-4 w-4" />
+                        </Button>
+                        <Button variant="ghost" size="icon" onClick={() => handleViewAs(user)} className="h-8 w-8" title="Visualizar como (somente leitura)">
+                          <Eye className="h-4 w-4" />
                         </Button>
                         <Button variant="ghost" size="icon" onClick={() => openEdit(user)} className="h-8 w-8">
                           <Pencil className="h-4 w-4" />

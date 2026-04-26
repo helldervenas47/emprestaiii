@@ -13,6 +13,7 @@ import { BrandFaviconSync } from "./components/BrandFaviconSync";
 import { OfflineBadge } from "./components/OfflineBadge";
 import { AppTimezoneSync } from "./components/AppTimezoneSync";
 import { StatusBarScrollSync } from "./components/StatusBarScrollSync";
+import { ViewAsBanner } from "./components/ViewAsBanner";
 import { wireAutoSync } from "./lib/offline/sync";
 import { DevCacheErrorBoundary } from "./components/DevCacheErrorBoundary";
 
@@ -77,6 +78,7 @@ const App = () => (
             <BrandFaviconSync />
             <AppTimezoneSync />
             <StatusBarScrollSync />
+            <ViewAsBanner />
             <Suspense fallback={<PageLoader />}>
               <Routes>
                 <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
