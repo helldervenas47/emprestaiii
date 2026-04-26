@@ -25,7 +25,7 @@ import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
 import { ExpenseEditDialog } from "@/components/ExpenseEditDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { InstallmentSummaryDialog } from "@/components/InstallmentSummaryDialog";
-import { personalCategories, getPersonalCategory, resolvePersonalIcon, type PersonalCategory } from "@/lib/personalExpenseCategories";
+import { personalCategories, getPersonalCategory, resolvePersonalIcon, getIconName, type PersonalCategory } from "@/lib/personalExpenseCategories";
 import { usePersonalExpenseCategories } from "@/hooks/usePersonalExpenseCategories";
 import { Progress } from "@/components/ui/progress";
 import { usePersonalBudgets } from "@/hooks/usePersonalBudgets";
