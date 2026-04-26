@@ -1410,22 +1410,35 @@ export function useLoans() {
         : null;
 
       // 3) Cria novas parcelas
+      const freq = params.frequency || "monthly";
+      const stepFreq = (baseISO: string, n: number): string => {
+        const d = new Date(baseISO + "T00:00:00");
+        if (isNaN(d.getTime())) return baseISO;
+        if (freq === "monthly") d.setMonth(d.getMonth() + n);
+        else if (freq === "biweekly") d.setDate(d.getDate() + 15 * n);
+        else if (freq === "weekly") d.setDate(d.getDate() + 7 * n);
+        else d.setDate(d.getDate() + n);
+        return d.toISOString().slice(0, 10);
+      };
+      const customDates = Array.isArray(params.customDates) ? params.customDates : null;
+
       let acc = 0;
       const newScheds: { dueDate: string; amount: number }[] = [];
       for (let i = 0; i < desiredNewPending; i++) {
         let dueStr: string;
-        if (overrideFirstDate) {
-          const d = new Date(overrideFirstDate + "T00:00:00");
-          d.setMonth(d.getMonth() + i);
-          dueStr = d.toISOString().slice(0, 10);
+        const customForI = customDates && customDates[i] && /^\d{4}-\d{2}-\d{2}$/.test(customDates[i])
+          ? customDates[i]
+          : null;
+        if (customForI) {
+          dueStr = customForI;
+        } else if (overrideFirstDate) {
+          dueStr = stepFreq(overrideFirstDate, i);
         } else if (!isPartialReneg && i === 0 && firstSelectedDate) {
           dueStr = firstSelectedDate;
         } else {
           const baseDate = !isPartialReneg && firstSelectedDate ? firstSelectedDate : lastDate;
-          const offsetMonths = !isPartialReneg && firstSelectedDate ? i : (i + 1);
-          const d = new Date(baseDate + "T00:00:00");
-          d.setMonth(d.getMonth() + offsetMonths);
-          dueStr = d.toISOString().slice(0, 10);
+          const offset = !isPartialReneg && firstSelectedDate ? i : (i + 1);
+          dueStr = stepFreq(baseDate, offset);
         }
         const isLast = i === desiredNewPending - 1;
         let amt: number;
@@ -1437,7 +1450,9 @@ export function useLoans() {
           amt = baseInstallmentValue;
         }
         acc += amt;
-        newScheds.push({ dueDate: dueStr, amount: amt });
+        newScheds.push({ dueStr, amount: amt } as any);
+        // Garantir nome correto:
+        newScheds[newScheds.length - 1] = { dueDate: dueStr, amount: amt };
       }
 
       // 4) Renumera tudo: pegamos as parcelas pagas + não selecionadas + novas (ordenadas por data)
