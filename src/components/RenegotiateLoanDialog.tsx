@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -12,19 +12,27 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Textarea } from "@/components/ui/textarea";
-import { Loan, LoanRenegotiation, Payment } from "@/types/loan";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Loan, LoanRenegotiation, Payment, InstallmentSchedule } from "@/types/loan";
 import { getLoanRemainingAmount } from "@/hooks/useLoans";
 import { toast } from "sonner";
-import { History, AlertTriangle } from "lucide-react";
+import { History, AlertTriangle, ListChecks } from "lucide-react";
 
 const formatCurrency = (v: number) =>
   v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+
+const formatDateBR = (iso: string) => {
+  if (!iso) return "";
+  const [y, m, d] = iso.split("T")[0].split("-");
+  return `${d}/${m}/${y}`;
+};
 
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   loan: Loan;
   payments: Payment[];
+  installmentSchedules?: InstallmentSchedule[];
   history: LoanRenegotiation[];
   onConfirm: (params: {
     type: "no_interest" | "with_penalty";
@@ -32,6 +40,7 @@ interface Props {
     penaltyInput?: number | null;
     newInstallments?: number | null;
     notes?: string | null;
+    selectedInstallmentNumbers?: number[] | null;
   }) => Promise<void>;
 }
 
@@ -40,6 +49,7 @@ export function RenegotiateLoanDialog({
   onOpenChange,
   loan,
   payments,
+  installmentSchedules = [],
   history,
   onConfirm,
 }: Props) {
@@ -51,10 +61,44 @@ export function RenegotiateLoanDialog({
   const [confirming, setConfirming] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
-  const remaining = useMemo(
+  const isInstallmentLoan = loan.paymentType === "Parcelado" && loan.installments > 1;
+
+  // Parcelas pendentes do contrato
+  const pendingInstallments = useMemo(() => {
+    return installmentSchedules
+      .filter((s) => s.loanId === loan.id && s.installmentNumber > loan.paidInstallments)
+      .sort((a, b) => a.installmentNumber - b.installmentNumber);
+  }, [installmentSchedules, loan.id, loan.paidInstallments]);
+
+  const [selectedNumbers, setSelectedNumbers] = useState<Set<number>>(new Set());
+
+  // Inicializa seleção: todas as parcelas pendentes selecionadas por padrão
+  useEffect(() => {
+    if (open) {
+      setSelectedNumbers(new Set(pendingInstallments.map((p) => p.installmentNumber)));
+    }
+  }, [open, pendingInstallments]);
+
+  const totalRemaining = useMemo(
     () => getLoanRemainingAmount(loan, payments),
     [loan, payments]
   );
+
+  // Saldo a renegociar = soma das parcelas selecionadas (para parcelado),
+  // ou saldo total (para outros tipos / sem cronograma)
+  const remaining = useMemo(() => {
+    if (isInstallmentLoan && pendingInstallments.length > 0) {
+      const sum = pendingInstallments
+        .filter((p) => selectedNumbers.has(p.installmentNumber))
+        .reduce((acc, p) => acc + Number(p.amount || 0), 0);
+      return Math.round(sum * 100) / 100;
+    }
+    return totalRemaining;
+  }, [isInstallmentLoan, pendingInstallments, selectedNumbers, totalRemaining]);
+
+  const selectedCount = isInstallmentLoan
+    ? Array.from(selectedNumbers).length
+    : Math.max(1, loan.installments - loan.paidInstallments);
 
   const remainingPending = Math.max(1, loan.installments - loan.paidInstallments);
 
@@ -70,8 +114,9 @@ export function RenegotiateLoanDialog({
 
   const installmentsCount = useMemo(() => {
     const n = parseInt(newInstallments) || 0;
-    return n > 0 ? n : remainingPending;
-  }, [newInstallments, remainingPending]);
+    if (n > 0) return n;
+    return isInstallmentLoan ? Math.max(1, selectedCount) : remainingPending;
+  }, [newInstallments, remainingPending, isInstallmentLoan, selectedCount]);
 
   const newInstallmentValue = installmentsCount > 0
     ? Math.round((newTotal / installmentsCount) * 100) / 100
@@ -91,7 +136,28 @@ export function RenegotiateLoanDialog({
     onOpenChange(v);
   };
 
+  const toggleAll = () => {
+    if (selectedNumbers.size === pendingInstallments.length) {
+      setSelectedNumbers(new Set());
+    } else {
+      setSelectedNumbers(new Set(pendingInstallments.map((p) => p.installmentNumber)));
+    }
+    setConfirming(false);
+  };
+
+  const toggleOne = (n: number) => {
+    const next = new Set(selectedNumbers);
+    if (next.has(n)) next.delete(n);
+    else next.add(n);
+    setSelectedNumbers(next);
+    setConfirming(false);
+  };
+
   const handleSubmit = async () => {
+    if (isInstallmentLoan && pendingInstallments.length > 0 && selectedNumbers.size === 0) {
+      toast.error("Selecione ao menos uma parcela para renegociar");
+      return;
+    }
     if (type === "with_penalty") {
       const v = parseFloat(penaltyInput.replace(",", ".")) || 0;
       if (v <= 0) {
@@ -113,6 +179,10 @@ export function RenegotiateLoanDialog({
           : null,
         newInstallments: parseInt(newInstallments) || null,
         notes: notes.trim() || null,
+        selectedInstallmentNumbers:
+          isInstallmentLoan && pendingInstallments.length > 0
+            ? Array.from(selectedNumbers).sort((a, b) => a - b)
+            : null,
       });
       reset();
       onOpenChange(false);
@@ -127,13 +197,16 @@ export function RenegotiateLoanDialog({
     (b.renegotiatedAt || "").localeCompare(a.renegotiatedAt || "")
   );
 
+  const allSelected =
+    pendingInstallments.length > 0 && selectedNumbers.size === pendingInstallments.length;
+
   return (
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Renegociar contrato</DialogTitle>
           <DialogDescription>
-            {loan.borrowerName} · saldo atual {formatCurrency(remaining)}
+            {loan.borrowerName} · saldo total {formatCurrency(totalRemaining)}
           </DialogDescription>
         </DialogHeader>
 
@@ -148,10 +221,60 @@ export function RenegotiateLoanDialog({
               <span className="font-medium">{formatCurrency(remaining)}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-muted-foreground">Parcelas pendentes</span>
-              <span className="font-medium">{remainingPending}</span>
+              <span className="text-muted-foreground">
+                {isInstallmentLoan ? "Parcelas selecionadas" : "Parcelas pendentes"}
+              </span>
+              <span className="font-medium">
+                {isInstallmentLoan
+                  ? `${selectedNumbers.size} de ${pendingInstallments.length}`
+                  : remainingPending}
+              </span>
             </div>
           </div>
+
+          {isInstallmentLoan && pendingInstallments.length > 0 && (
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label className="text-xs flex items-center gap-1.5">
+                  <ListChecks className="h-3.5 w-3.5" /> Parcelas a renegociar
+                </Label>
+                <button
+                  type="button"
+                  onClick={toggleAll}
+                  className="text-[11px] text-primary hover:underline"
+                >
+                  {allSelected ? "Desmarcar todas" : "Selecionar todas"}
+                </button>
+              </div>
+              <div className="rounded-lg border border-border/60 max-h-44 overflow-y-auto divide-y divide-border/40">
+                {pendingInstallments.map((inst) => {
+                  const checked = selectedNumbers.has(inst.installmentNumber);
+                  return (
+                    <label
+                      key={inst.installmentNumber}
+                      className="flex items-center gap-2.5 px-2.5 py-2 text-xs cursor-pointer hover:bg-muted/40"
+                    >
+                      <Checkbox
+                        checked={checked}
+                        onCheckedChange={() => toggleOne(inst.installmentNumber)}
+                      />
+                      <div className="flex-1 flex items-center justify-between">
+                        <span className="font-medium">
+                          Parcela {inst.installmentNumber}
+                        </span>
+                        <span className="text-muted-foreground">
+                          {formatDateBR(inst.dueDate)}
+                        </span>
+                        <span className="font-semibold tabular-nums">
+                          {formatCurrency(Number(inst.amount || 0))}
+                        </span>
+                      </div>
+                    </label>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
           <div className="space-y-2">
             <Label>Tipo de renegociação</Label>
@@ -226,12 +349,16 @@ export function RenegotiateLoanDialog({
           )}
 
           <div className="space-y-1.5">
-            <Label className="text-xs">Novo nº de parcelas pendentes (opcional)</Label>
+            <Label className="text-xs">
+              {isInstallmentLoan
+                ? "Em quantas parcelas dividir o saldo renegociado (opcional)"
+                : "Novo nº de parcelas pendentes (opcional)"}
+            </Label>
             <Input
               type="number"
               min="1"
               inputMode="numeric"
-              placeholder={`Manter: ${remainingPending}`}
+              placeholder={`Manter: ${isInstallmentLoan ? Math.max(1, selectedCount) : remainingPending}`}
               value={newInstallments}
               onChange={(e) => { setNewInstallments(e.target.value); setConfirming(false); }}
             />
@@ -252,7 +379,7 @@ export function RenegotiateLoanDialog({
               Pré-visualização
             </p>
             <div className="flex justify-between">
-              <span className="text-muted-foreground">Saldo anterior</span>
+              <span className="text-muted-foreground">Saldo das parcelas selecionadas</span>
               <span>{formatCurrency(remaining)}</span>
             </div>
             {type === "with_penalty" && (
@@ -262,7 +389,7 @@ export function RenegotiateLoanDialog({
               </div>
             )}
             <div className="flex justify-between font-semibold text-foreground border-t border-border/50 pt-1.5">
-              <span>Novo total</span>
+              <span>Novo total renegociado</span>
               <span>{formatCurrency(newTotal)}</span>
             </div>
             <div className="flex justify-between">
