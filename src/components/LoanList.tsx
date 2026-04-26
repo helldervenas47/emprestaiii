@@ -107,7 +107,7 @@ interface Props {
   onFullPayment?: (loanId: string, paymentDate?: string, customAmount?: number, paymentMethodId?: string | null) => void;
   onInterestPayment: (loanId: string, paymentDate?: string, customAmount?: number, feesAmount?: number, paymentMethodId?: string | null) => void;
   onAmortize?: (loanId: string, amount: number, paymentDate?: string, paymentMethodId?: string | null) => Promise<void> | void;
-  onRenegotiate?: (loanId: string, params: { type: "no_interest" | "with_penalty"; penaltyMode?: "fixed" | "percentage" | null; penaltyInput?: number | null; newInstallments?: number | null; notes?: string | null }) => Promise<void> | void;
+  onRenegotiate?: (loanId: string, params: { type: "no_interest" | "with_penalty"; penaltyMode?: "fixed" | "percentage" | null; penaltyInput?: number | null; newInstallments?: number | null; notes?: string | null; selectedInstallmentNumbers?: number[] | null; firstDueDate?: string | null }) => Promise<void> | void;
   onUpdate: (id: string, data: Partial<Omit<Loan, "id">>) => void;
   onDelete: (loanId: string) => void;
   onDeletePayment: (paymentId: string) => void;
@@ -336,7 +336,7 @@ function LoanCardView({
   onFullPayment?: (date?: string, customAmount?: number, paymentMethodId?: string | null) => void;
   onInterestPayment: (date?: string, customAmount?: number, feesAmount?: number, paymentMethodId?: string | null) => void;
   onAmortize?: (amount: number, date?: string, paymentMethodId?: string | null) => Promise<void> | void;
-  onRenegotiate?: (params: { type: "no_interest" | "with_penalty"; penaltyMode?: "fixed" | "percentage" | null; penaltyInput?: number | null; newInstallments?: number | null; notes?: string | null }) => Promise<void> | void;
+  onRenegotiate?: (params: { type: "no_interest" | "with_penalty"; penaltyMode?: "fixed" | "percentage" | null; penaltyInput?: number | null; newInstallments?: number | null; notes?: string | null; selectedInstallmentNumbers?: number[] | null; firstDueDate?: string | null }) => Promise<void> | void;
   renegotiations?: LoanRenegotiation[];
   onUpdate: (data: Partial<Omit<Loan, "id">>) => void;
   onDelete: () => void;
@@ -1894,7 +1894,7 @@ function LoanRowView({
   onFullPayment?: (date?: string, customAmount?: number, paymentMethodId?: string | null) => void;
   onInterestPayment: (date?: string, customAmount?: number, feesAmount?: number, paymentMethodId?: string | null) => void;
   onAmortize?: (amount: number, date?: string, paymentMethodId?: string | null) => Promise<void> | void;
-  onRenegotiate?: (params: { type: "no_interest" | "with_penalty"; penaltyMode?: "fixed" | "percentage" | null; penaltyInput?: number | null; newInstallments?: number | null; notes?: string | null }) => Promise<void> | void;
+  onRenegotiate?: (params: { type: "no_interest" | "with_penalty"; penaltyMode?: "fixed" | "percentage" | null; penaltyInput?: number | null; newInstallments?: number | null; notes?: string | null; selectedInstallmentNumbers?: number[] | null; firstDueDate?: string | null }) => Promise<void> | void;
   renegotiations?: LoanRenegotiation[];
   onUpdate: (data: Partial<Omit<Loan, "id">>) => void;
   onDelete: () => void;
@@ -3020,7 +3020,7 @@ function ClientFolder({
   onFullPayment?: (id: string, date?: string, customAmount?: number, paymentMethodId?: string | null) => void;
   onInterestPayment: (id: string, date?: string, customAmount?: number, feesAmount?: number, paymentMethodId?: string | null) => void;
   onAmortize?: (loanId: string, amount: number, paymentDate?: string, paymentMethodId?: string | null) => Promise<void> | void;
-  onRenegotiate?: (loanId: string, params: { type: "no_interest" | "with_penalty"; penaltyMode?: "fixed" | "percentage" | null; penaltyInput?: number | null; newInstallments?: number | null; notes?: string | null }) => Promise<void> | void;
+  onRenegotiate?: (loanId: string, params: { type: "no_interest" | "with_penalty"; penaltyMode?: "fixed" | "percentage" | null; penaltyInput?: number | null; newInstallments?: number | null; notes?: string | null; selectedInstallmentNumbers?: number[] | null; firstDueDate?: string | null }) => Promise<void> | void;
   renegotiations?: LoanRenegotiation[];
   onUpdate: (id: string, data: Partial<Omit<Loan, "id">>) => void;
   onDelete: (id: string) => void;

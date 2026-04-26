@@ -1140,6 +1140,7 @@ export function useLoans() {
       newInstallments?: number | null;
       notes?: string | null;
       selectedInstallmentNumbers?: number[] | null;
+      firstDueDate?: string | null;
     }
   ) => {
     if (!user || !dataOwnerId) throw new Error("Sessão ainda não carregada");
@@ -1238,12 +1239,17 @@ export function useLoans() {
       .insert(renegRow as any);
     if (renegErr) throw new Error(renegErr.message);
 
+    const overrideFirstDateTop = params.firstDueDate && /^\d{4}-\d{2}-\d{2}$/.test(params.firstDueDate)
+      ? params.firstDueDate
+      : null;
+
     const loanUpdate: any = {
       remaining_amount: newLoanRemaining,
       installments: newInstallmentsTotal,
       // custom_installment_value só faz sentido se TODAS as pendentes têm o mesmo valor
       custom_installment_value: isPartialReneg ? null : newInstallmentValue,
       renegotiation_penalty_total: (Number(loan.renegotiationPenaltyTotal) || 0) + penaltyAmount,
+      ...(overrideFirstDateTop ? { due_date: overrideFirstDateTop } : {}),
     };
 
     const { error: loanErr } = await supabase
@@ -1274,12 +1280,21 @@ export function useLoans() {
         ? null
         : (pendingScheds.find((s) => selectedSet.has(s.installmentNumber))?.dueDate || loan.dueDate);
 
+      // Override: usuário escolheu nova data de vencimento
+      const overrideFirstDate = params.firstDueDate && /^\d{4}-\d{2}-\d{2}$/.test(params.firstDueDate)
+        ? params.firstDueDate
+        : null;
+
       // 3) Cria novas parcelas
       let acc = 0;
       const newScheds: { dueDate: string; amount: number }[] = [];
       for (let i = 0; i < desiredNewPending; i++) {
         let dueStr: string;
-        if (!isPartialReneg && i === 0 && firstSelectedDate) {
+        if (overrideFirstDate) {
+          const d = new Date(overrideFirstDate + "T00:00:00");
+          d.setMonth(d.getMonth() + i);
+          dueStr = d.toISOString().slice(0, 10);
+        } else if (!isPartialReneg && i === 0 && firstSelectedDate) {
           dueStr = firstSelectedDate;
         } else {
           const baseDate = !isPartialReneg && firstSelectedDate ? firstSelectedDate : lastDate;
@@ -1336,6 +1351,7 @@ export function useLoans() {
       installments: newInstallmentsTotal,
       customInstallmentValue: isPartialReneg ? null : newInstallmentValue,
       renegotiationPenaltyTotal: (Number(l.renegotiationPenaltyTotal) || 0) + penaltyAmount,
+      ...(overrideFirstDateTop ? { dueDate: overrideFirstDateTop } : {}),
     } : l));
 
     await fetchLoans();

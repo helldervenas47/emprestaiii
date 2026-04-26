@@ -41,6 +41,7 @@ interface Props {
     newInstallments?: number | null;
     notes?: string | null;
     selectedInstallmentNumbers?: number[] | null;
+    firstDueDate?: string | null;
   }) => Promise<void>;
 }
 
@@ -58,6 +59,7 @@ export function RenegotiateLoanDialog({
   const [penaltyInput, setPenaltyInput] = useState("");
   const [newInstallments, setNewInstallments] = useState("");
   const [notes, setNotes] = useState("");
+  const [firstDueDate, setFirstDueDate] = useState("");
   const [confirming, setConfirming] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
@@ -76,8 +78,11 @@ export function RenegotiateLoanDialog({
   useEffect(() => {
     if (open) {
       setSelectedNumbers(new Set(pendingInstallments.map((p) => p.installmentNumber)));
+      // Default: primeira data pendente ou dueDate do contrato
+      const defaultDate = pendingInstallments[0]?.dueDate || loan.dueDate || "";
+      setFirstDueDate(defaultDate ? defaultDate.slice(0, 10) : "");
     }
-  }, [open, pendingInstallments]);
+  }, [open, pendingInstallments, loan.dueDate]);
 
   const totalRemaining = useMemo(
     () => getLoanRemainingAmount(loan, payments),
@@ -124,10 +129,11 @@ export function RenegotiateLoanDialog({
 
   // Simula o novo cronograma de parcelas pendentes (não selecionadas + novas geradas)
   const simulatedSchedule = useMemo(() => {
+    const overrideDate = firstDueDate && /^\d{4}-\d{2}-\d{2}$/.test(firstDueDate) ? firstDueDate : null;
+
     if (!isInstallmentLoan || pendingInstallments.length === 0) {
-      // Modo simples: gera N parcelas mensais a partir do dueDate
       const result: { number: number; dueDate: string; amount: number; isNew: boolean }[] = [];
-      const baseDate = loan.dueDate;
+      const baseDate = overrideDate || loan.dueDate;
       let acc = 0;
       for (let i = 0; i < installmentsCount; i++) {
         const d = new Date(baseDate + "T00:00:00");
@@ -153,7 +159,6 @@ export function RenegotiateLoanDialog({
     );
     const isPartial = selectedNumbers.size < pendingInstallments.length;
 
-    // Determina data base para as novas parcelas
     const lastDate = remainingPendingScheds.length > 0
       ? remainingPendingScheds[remainingPendingScheds.length - 1].dueDate
       : (pendingInstallments[pendingInstallments.length - 1]?.dueDate || loan.dueDate);
@@ -167,7 +172,11 @@ export function RenegotiateLoanDialog({
     let acc = 0;
     for (let i = 0; i < installmentsCount; i++) {
       let dueStr: string;
-      if (!isPartial && i === 0 && firstSelectedDate) {
+      if (overrideDate) {
+        const d = new Date(overrideDate + "T00:00:00");
+        if (!isNaN(d.getTime())) d.setMonth(d.getMonth() + i);
+        dueStr = !isNaN(d.getTime()) ? d.toISOString().slice(0, 10) : overrideDate;
+      } else if (!isPartial && i === 0 && firstSelectedDate) {
         dueStr = firstSelectedDate;
       } else {
         const baseDate = !isPartial && firstSelectedDate ? firstSelectedDate : lastDate;
@@ -184,7 +193,6 @@ export function RenegotiateLoanDialog({
       newScheds.push({ dueDate: dueStr, amount: amt });
     }
 
-    // Combina + ordena por data + renumera
     const combined = [
       ...remainingPendingScheds.map((s) => ({
         dueDate: s.dueDate,
@@ -209,6 +217,7 @@ export function RenegotiateLoanDialog({
     newTotal,
     loan.dueDate,
     loan.paidInstallments,
+    firstDueDate,
   ]);
 
   const reset = () => {
@@ -272,6 +281,7 @@ export function RenegotiateLoanDialog({
           isInstallmentLoan && pendingInstallments.length > 0
             ? Array.from(selectedNumbers).sort((a, b) => a - b)
             : null,
+        firstDueDate: firstDueDate && /^\d{4}-\d{2}-\d{2}$/.test(firstDueDate) ? firstDueDate : null,
       });
       reset();
       onOpenChange(false);
@@ -450,6 +460,22 @@ export function RenegotiateLoanDialog({
               placeholder={`Manter: ${isInstallmentLoan ? Math.max(1, selectedCount) : remainingPending}`}
               value={newInstallments}
               onChange={(e) => { setNewInstallments(e.target.value); setConfirming(false); }}
+            />
+          </div>
+
+          <div className="space-y-1.5">
+            <Label className="text-xs flex items-center gap-1.5">
+              <CalendarDays className="h-3.5 w-3.5" /> Nova data de vencimento
+              {installmentsCount > 1 && (
+                <span className="text-[10px] text-muted-foreground font-normal">
+                  (1ª parcela — demais seguem mensalmente)
+                </span>
+              )}
+            </Label>
+            <Input
+              type="date"
+              value={firstDueDate}
+              onChange={(e) => { setFirstDueDate(e.target.value); setConfirming(false); }}
             />
           </div>
 
