@@ -129,6 +129,8 @@ export function useLoanRenegotiations() {
     if (delErr) throw new Error(delErr.message);
 
     setRenegotiations((prev) => prev.filter((r) => r.id !== id));
+    notifyRemoteUpdate("loans");
+    notifyRemoteUpdate("loan_installments");
     return { revertedPenalty: penaltyApplied };
   }, [dataOwnerId]);
 
