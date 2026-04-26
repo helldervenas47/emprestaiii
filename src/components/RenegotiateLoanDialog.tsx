@@ -638,49 +638,6 @@ export function RenegotiateLoanDialog({
             </div>
           )}
 
-          {sortedHistory.length > 0 && (
-            <div className="space-y-2">
-              <p className="text-xs font-semibold flex items-center gap-1.5 text-foreground">
-                <History className="h-3.5 w-3.5" /> Histórico ({sortedHistory.length})
-              </p>
-              <div className="space-y-1.5 max-h-40 overflow-y-auto pr-1">
-                {sortedHistory.map((r) => (
-                  <div
-                    key={r.id}
-                    className="rounded-md border border-border/50 bg-muted/30 p-2 text-[11px] space-y-0.5"
-                  >
-                    <div className="flex justify-between">
-                      <span className="font-medium">{r.renegotiatedAt}</span>
-                      <span
-                        className={
-                          r.type === "with_penalty"
-                            ? "text-warning font-medium"
-                            : "text-muted-foreground"
-                        }
-                      >
-                        {r.type === "with_penalty" ? "Com multa" : "Sem juros"}
-                      </span>
-                    </div>
-                    <div className="flex justify-between text-muted-foreground">
-                      <span>{formatCurrency(r.previousAmount)} → {formatCurrency(r.newAmount)}</span>
-                      {r.penaltyAmount > 0 && (
-                        <span className="text-warning">
-                          +{formatCurrency(r.penaltyAmount)}
-                          {r.penaltyMode === "percentage" && r.penaltyInput
-                            ? ` (${r.penaltyInput}%)`
-                            : ""}
-                        </span>
-                      )}
-                    </div>
-                    {r.notes && (
-                      <p className="text-muted-foreground italic">{r.notes}</p>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
           {confirming && (
             <div className="flex items-start gap-2 rounded-md border border-warning/40 bg-warning/10 p-2 text-xs text-warning-foreground">
               <AlertTriangle className="h-4 w-4 text-warning shrink-0 mt-0.5" />
@@ -689,17 +646,210 @@ export function RenegotiateLoanDialog({
               </p>
             </div>
           )}
-        </div>
+          </TabsContent>
 
-        <DialogFooter className="gap-2 sm:gap-0">
-          <Button variant="outline" onClick={() => handleClose(false)} disabled={submitting}>
-            Cancelar
-          </Button>
-          <Button onClick={handleSubmit} disabled={submitting}>
-            {submitting ? "Salvando..." : confirming ? "Confirmar renegociação" : "Renegociar"}
-          </Button>
-        </DialogFooter>
+          <TabsContent value="history" className="mt-4 space-y-3">
+            {sortedHistory.length === 0 ? (
+              <div className="rounded-lg border border-dashed border-border/60 p-6 text-center">
+                <History className="h-6 w-6 text-muted-foreground mx-auto mb-2" />
+                <p className="text-sm text-muted-foreground">Nenhuma renegociação registrada para este contrato.</p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {sortedHistory.map((r) => {
+                  const isEditing = editingId === r.id;
+                  return (
+                    <div
+                      key={r.id}
+                      className="rounded-md border border-border/60 bg-muted/30 p-3 text-xs space-y-2"
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="font-semibold text-foreground">{formatDateBR(r.renegotiatedAt)}</span>
+                        <div className="flex items-center gap-1">
+                          {!isEditing && (
+                            <>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="h-7 px-2"
+                                onClick={() => startEdit(r)}
+                                title="Editar"
+                              >
+                                <Pencil className="h-3.5 w-3.5" />
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="h-7 px-2 text-destructive hover:text-destructive"
+                                onClick={() => setPendingDeleteId(r.id)}
+                                title="Excluir"
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </Button>
+                            </>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="flex justify-between text-muted-foreground">
+                        <span>{formatCurrency(r.previousAmount)} → {formatCurrency(r.newAmount)}</span>
+                        {r.penaltyAmount > 0 && (
+                          <span className="text-warning font-medium">
+                            +{formatCurrency(r.penaltyAmount)}
+                            {r.penaltyMode === "percentage" && r.penaltyInput
+                              ? ` (${r.penaltyInput}%)`
+                              : ""}
+                          </span>
+                        )}
+                      </div>
+
+                      {r.previousInstallments != null && r.newInstallments != null && (
+                        <div className="text-[11px] text-muted-foreground">
+                          Parcelas: {r.previousInstallments} → {r.newInstallments}
+                        </div>
+                      )}
+
+                      {!isEditing ? (
+                        <>
+                          <div className="flex items-center justify-between">
+                            <span
+                              className={
+                                r.type === "with_penalty"
+                                  ? "text-warning font-medium"
+                                  : "text-muted-foreground"
+                              }
+                            >
+                              {r.type === "with_penalty" ? "Com multa" : "Sem juros"}
+                            </span>
+                          </div>
+                          {r.notes && (
+                            <p className="text-muted-foreground italic border-t border-border/40 pt-1.5">
+                              {r.notes}
+                            </p>
+                          )}
+                        </>
+                      ) : (
+                        <div className="space-y-2 border-t border-border/40 pt-2">
+                          <div>
+                            <Label className="text-[11px]">Tipo</Label>
+                            <RadioGroup
+                              value={editType}
+                              onValueChange={(v) => setEditType(v as any)}
+                              className="grid grid-cols-2 gap-2 mt-1"
+                            >
+                              <label className="flex items-center gap-2 rounded border border-border p-2 cursor-pointer">
+                                <RadioGroupItem value="no_interest" />
+                                <span className="text-[11px]">Sem juros</span>
+                              </label>
+                              <label className="flex items-center gap-2 rounded border border-border p-2 cursor-pointer">
+                                <RadioGroupItem value="with_penalty" />
+                                <span className="text-[11px]">Com multa</span>
+                              </label>
+                            </RadioGroup>
+                          </div>
+                          {editType === "with_penalty" && (
+                            <div className="space-y-1.5">
+                              <Label className="text-[11px]">Multa registrada</Label>
+                              <div className="flex gap-2">
+                                <Button
+                                  size="sm"
+                                  type="button"
+                                  variant={editPenaltyMode === "fixed" ? "default" : "outline"}
+                                  className="flex-1 h-7 text-[11px]"
+                                  onClick={() => setEditPenaltyMode("fixed")}
+                                >
+                                  R$ fixo
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  type="button"
+                                  variant={editPenaltyMode === "percentage" ? "default" : "outline"}
+                                  className="flex-1 h-7 text-[11px]"
+                                  onClick={() => setEditPenaltyMode("percentage")}
+                                >
+                                  % do saldo
+                                </Button>
+                              </div>
+                              <Input
+                                type="number"
+                                step="0.01"
+                                inputMode="decimal"
+                                value={editPenaltyInput}
+                                onChange={(e) => setEditPenaltyInput(e.target.value)}
+                                className="h-8 text-xs"
+                              />
+                            </div>
+                          )}
+                          <div>
+                            <Label className="text-[11px]">Observação</Label>
+                            <Textarea
+                              rows={2}
+                              value={editNotes}
+                              onChange={(e) => setEditNotes(e.target.value)}
+                              className="text-xs"
+                            />
+                          </div>
+                          <p className="text-[10px] text-muted-foreground italic">
+                            A edição altera apenas as informações do registro. Os valores e o cronograma
+                            já aplicados ao contrato não são recalculados.
+                          </p>
+                          <div className="flex justify-end gap-2">
+                            <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={cancelEdit} disabled={savingEdit}>
+                              <X className="h-3.5 w-3.5 mr-1" /> Cancelar
+                            </Button>
+                            <Button size="sm" className="h-7 text-xs" onClick={saveEdit} disabled={savingEdit}>
+                              <Save className="h-3.5 w-3.5 mr-1" /> Salvar
+                            </Button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </TabsContent>
+        </Tabs>
+
+        {activeTab === "renegotiate" && (
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button variant="outline" onClick={() => handleClose(false)} disabled={submitting}>
+              Cancelar
+            </Button>
+            <Button onClick={handleSubmit} disabled={submitting}>
+              {submitting ? "Salvando..." : confirming ? "Confirmar renegociação" : "Renegociar"}
+            </Button>
+          </DialogFooter>
+        )}
+        {activeTab === "history" && (
+          <DialogFooter>
+            <Button variant="outline" onClick={() => handleClose(false)}>Fechar</Button>
+          </DialogFooter>
+        )}
       </DialogContent>
+
+      <AlertDialog open={!!pendingDeleteId} onOpenChange={(v) => !v && setPendingDeleteId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir renegociação?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Este registro será removido permanentemente do histórico do contrato. Os valores
+              e o cronograma já aplicados ao contrato continuam inalterados — esta ação afeta
+              apenas o histórico.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDelete}
+              disabled={deleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleting ? "Excluindo..." : "Excluir"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Dialog>
   );
 }
