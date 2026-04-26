@@ -18,7 +18,7 @@ function rowToLoan(l: any): Loan {
     id: l.id, borrowerName: l.borrower_name, borrowerId: l.borrower_id,
     amount: Number(l.amount), interestRate: Number(l.interest_rate),
     interestType: l.interest_type, paymentType: l.payment_type,
-    startDate: l.start_date, dueDate: l.due_date, installments: l.installments,
+    startDate: l.start_date, dueDate: l.due_date, originalDueDate: l.original_due_date ?? l.due_date, installments: l.installments,
     paidInstallments: l.paid_installments, status: l.status as Loan["status"],
     remainingAmount: l.remaining_amount != null ? Number(l.remaining_amount) : undefined,
     customInstallmentValue: l.custom_installment_value != null ? Number(l.custom_installment_value) : null,
@@ -233,7 +233,7 @@ export function useLoans() {
       user_id: dataOwnerId, borrower_name: loan.borrowerName, borrower_id: loan.borrowerId,
       amount: loan.amount, interest_rate: loan.interestRate,
       interest_type: loan.interestType || "Mensal", payment_type: loan.paymentType || "Parcelado",
-      start_date: loan.startDate, due_date: loan.dueDate, installments: loan.installments,
+      start_date: loan.startDate, due_date: loan.dueDate, original_due_date: loan.dueDate, installments: loan.installments,
       paid_installments: loan.paidInstallments ?? 0, status, tags: loan.tags,
       notes: loan.notes != null ? String(loan.notes) : null,
       remaining_amount: loan.remainingAmount ?? 0,
@@ -668,7 +668,21 @@ export function useLoans() {
     const freq = loan.interestType || "Mensal";
     if (freq === "Semanal") currentDue.setDate(currentDue.getDate() + 7);
     else if (freq === "Quinzenal") currentDue.setDate(currentDue.getDate() + 15);
-    else currentDue.setMonth(currentDue.getMonth() + 1);
+    else {
+      currentDue.setMonth(currentDue.getMonth() + 1);
+      // Regra: contratos renegociados preservam a data de vencimento ORIGINAL
+      // como referência fixa de ciclo. O próximo vencimento após pagamento de
+      // juros deve cair no dia original do contrato (ex: original 02/04 →
+      // próximo 02/05), ignorando ajustes pontuais de data feitos na renegociação.
+      const anchorRef = loan.originalDueDate || loan.dueDate;
+      const anchorDay = Number(anchorRef.split("-")[2]);
+      if (Number.isFinite(anchorDay) && anchorDay >= 1 && anchorDay <= 31) {
+        const y = currentDue.getFullYear();
+        const m = currentDue.getMonth();
+        const lastDay = new Date(y, m + 1, 0).getDate();
+        currentDue.setDate(Math.min(anchorDay, lastDay));
+      }
+    }
     const newDueDate = currentDue.toISOString().split("T")[0];
     const online = isOnline();
 
