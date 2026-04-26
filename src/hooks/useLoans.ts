@@ -233,7 +233,7 @@ export function useLoans() {
       user_id: dataOwnerId, borrower_name: loan.borrowerName, borrower_id: loan.borrowerId,
       amount: loan.amount, interest_rate: loan.interestRate,
       interest_type: loan.interestType || "Mensal", payment_type: loan.paymentType || "Parcelado",
-      start_date: loan.startDate, due_date: loan.dueDate, installments: loan.installments,
+      start_date: loan.startDate, due_date: loan.dueDate, original_due_date: loan.dueDate, installments: loan.installments,
       paid_installments: loan.paidInstallments ?? 0, status, tags: loan.tags,
       notes: loan.notes != null ? String(loan.notes) : null,
       remaining_amount: loan.remainingAmount ?? 0,
