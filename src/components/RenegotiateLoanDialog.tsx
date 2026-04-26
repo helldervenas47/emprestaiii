@@ -16,7 +16,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Loan, LoanRenegotiation, Payment, InstallmentSchedule } from "@/types/loan";
 import { getLoanRemainingAmount } from "@/hooks/useLoans";
 import { toast } from "sonner";
-import { History, AlertTriangle, ListChecks } from "lucide-react";
+import { History, AlertTriangle, ListChecks, CalendarDays } from "lucide-react";
 
 const formatCurrency = (v: number) =>
   v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
