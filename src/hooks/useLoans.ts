@@ -1221,6 +1221,7 @@ export function useLoans() {
       type: "no_interest" | "with_penalty";
       penaltyMode?: "fixed" | "percentage" | null;
       penaltyInput?: number | null;
+      penaltyDistribution?: "diluted" | "first" | null;
       newInstallments?: number | null;
       notes?: string | null;
       selectedInstallmentNumbers?: number[] | null;
