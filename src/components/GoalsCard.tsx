@@ -437,10 +437,52 @@ export function computeActual(
   }
 }
 
+const MAX_VISIBLE_GOALS = 8;
+const ALL_GOAL_TYPES: GoalType[] = [
+  "interest_rate", "profit", "loan_volume", "new_loans_count",
+  "received_total", "interest_received", "active_capital", "net_profit",
+  "max_default_rate", "new_clients_count",
+];
+
+function loadGoalPrefs(userId: string | null | undefined): { selected: GoalType[]; order: GoalType[] } {
+  const fallback = { selected: ALL_GOAL_TYPES.slice(0, MAX_VISIBLE_GOALS), order: ALL_GOAL_TYPES.slice() };
+  if (typeof window === "undefined" || !userId) return fallback;
+  try {
+    const raw = window.localStorage.getItem(`goalsCard:prefs:${userId}`);
+    if (!raw) return fallback;
+    const parsed = JSON.parse(raw) as { selected?: GoalType[]; order?: GoalType[] };
+    const validSelected = (parsed.selected || []).filter((t) => ALL_GOAL_TYPES.includes(t)).slice(0, MAX_VISIBLE_GOALS);
+    const validOrder = (parsed.order || []).filter((t) => ALL_GOAL_TYPES.includes(t));
+    // Garante que todos os tipos apareçam na ordem (anexa novos no fim)
+    ALL_GOAL_TYPES.forEach((t) => { if (!validOrder.includes(t)) validOrder.push(t); });
+    return {
+      selected: validSelected.length > 0 ? validSelected : fallback.selected,
+      order: validOrder,
+    };
+  } catch {
+    return fallback;
+  }
+}
+
 export function GoalsCard({ loans, payments, expenses, clients, installmentSchedules = [], selectedMonth, periodLabel }: Props) {
   const { goals } = useMonthlyGoals();
   const { hidden } = useHideValues();
+  const { user } = useAuth();
   const [selectedGoalId, setSelectedGoalId] = useState<string | null>(null);
+  const [showCustomize, setShowCustomize] = useState(false);
+  const [prefs, setPrefs] = useState<{ selected: GoalType[]; order: GoalType[] }>(() => loadGoalPrefs(user?.id));
+
+  useEffect(() => {
+    setPrefs(loadGoalPrefs(user?.id));
+  }, [user?.id]);
+
+  const savePrefs = (next: { selected: GoalType[]; order: GoalType[] }) => {
+    setPrefs(next);
+    if (typeof window !== "undefined" && user?.id) {
+      try { window.localStorage.setItem(`goalsCard:prefs:${user.id}`, JSON.stringify(next)); } catch {}
+    }
+  };
+
   const currentActiveCapital = useMemo(
     () => loans.filter((l: any) => l.status !== "completed" && l.status !== "paid")
       .reduce((s: number, l: any) => s + (Number(l.remainingAmount ?? l.remaining_amount) || 0), 0),
