@@ -535,15 +535,24 @@ export function GoalsCard({ loans, payments, expenses, clients, installmentSched
         ? expectedReceivable * (g.targetValue / 100)
         : null;
       return { ...g, actual, pct, meta, expectedReceivable, targetAmount };
-    }).sort((a, b) => {
-      // Ordena por prioridade visual: inverse no fim, demais por % desc
-      return b.pct - a.pct;
     });
   }, [goals, loans, payments, expenses, clients, installmentSchedules, selectedMonth, currentMonth, currentActiveCapital, getSnapshotAmount]);
 
-  const totalGoals = enriched.length;
-  const onTrack = enriched.filter((g) => g.pct >= 80).length;
-  const offTrack = enriched.filter((g) => g.pct < 50).length;
+  // Aplica preferências do usuário: filtra pelos tipos selecionados e ordena conforme a ordem definida.
+  // Limita a no máximo MAX_VISIBLE_GOALS cards.
+  const visibleGoals = useMemo(() => {
+    const selectedSet = new Set(prefs.selected);
+    const orderIndex = new Map<GoalType, number>();
+    prefs.order.forEach((t, i) => orderIndex.set(t, i));
+    return enriched
+      .filter((g) => selectedSet.has(g.goalType))
+      .sort((a, b) => (orderIndex.get(a.goalType) ?? 999) - (orderIndex.get(b.goalType) ?? 999))
+      .slice(0, MAX_VISIBLE_GOALS);
+  }, [enriched, prefs]);
+
+  const totalGoals = visibleGoals.length;
+  const onTrack = visibleGoals.filter((g) => g.pct >= 80).length;
+  const offTrack = visibleGoals.filter((g) => g.pct < 50).length;
 
   const selected = enriched.find((g) => g.id === selectedGoalId) || null;
 
