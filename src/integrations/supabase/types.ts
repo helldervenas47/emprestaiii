@@ -80,6 +80,24 @@ export type Database = {
         }
         Relationships: []
       }
+      admin_viewing_sessions: {
+        Row: {
+          admin_id: string
+          started_at: string
+          viewing_user_id: string
+        }
+        Insert: {
+          admin_id: string
+          started_at?: string
+          viewing_user_id: string
+        }
+        Update: {
+          admin_id?: string
+          started_at?: string
+          viewing_user_id?: string
+        }
+        Relationships: []
+      }
       app_branding: {
         Row: {
           brand_name: string
