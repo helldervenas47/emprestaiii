@@ -1427,6 +1427,15 @@ export function useLoans() {
     await fetchLoans();
     await fetchSchedules();
     notifyRemoteUpdate("loans");
+
+    // Avisa o hook useLoanRenegotiations para recarregar o histórico imediatamente
+    try {
+      window.dispatchEvent(
+        new CustomEvent("offline-sync:flushed", {
+          detail: { tables: ["loan_renegotiations", "loans", "loan_installments"] },
+        }),
+      );
+    } catch {}
     toast.success(
       params.type === "with_penalty"
         ? `Renegociação registrada com multa de R$ ${penaltyAmount.toFixed(2)}`
