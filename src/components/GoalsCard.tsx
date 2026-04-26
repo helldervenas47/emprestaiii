@@ -546,7 +546,7 @@ function normalizePrefs(
   };
 }
 
-export function GoalsCard({ loans, payments, expenses, clients, installmentSchedules = [], selectedMonth, periodLabel }: Props) {
+export function GoalsCard({ loans, payments, expenses, clients, installmentSchedules = [], renegotiations = [], selectedMonth, periodLabel }: Props) {
   const { goals } = useMonthlyGoals();
   const { hidden } = useHideValues();
   const { user } = useAuth();
