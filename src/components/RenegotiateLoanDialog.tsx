@@ -632,21 +632,40 @@ export function RenegotiateLoanDialog({
             />
           </div>
 
-          <div className="space-y-1.5">
-            <Label className="text-xs flex items-center gap-1.5">
-              <CalendarDays className="h-3.5 w-3.5" /> Nova data de vencimento
-              {installmentsCount > 1 && (
-                <span className="text-[10px] text-muted-foreground font-normal">
-                  (1ª parcela — demais seguem mensalmente)
-                </span>
-              )}
-            </Label>
-            <Input
-              type="date"
-              value={firstDueDate}
-              onChange={(e) => { setFirstDueDate(e.target.value); setConfirming(false); }}
-            />
+          <div className="grid grid-cols-2 gap-2">
+            <div className="space-y-1.5">
+              <Label className="text-xs flex items-center gap-1.5">
+                <CalendarDays className="h-3.5 w-3.5" /> 1ª parcela
+              </Label>
+              <Input
+                type="date"
+                value={firstDueDate}
+                onChange={(e) => { setFirstDueDate(e.target.value); setCustomDates({}); setConfirming(false); }}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs">Frequência</Label>
+              <Select
+                value={frequency}
+                onValueChange={(v) => { setFrequency(v as any); setCustomDates({}); setConfirming(false); }}
+              >
+                <SelectTrigger className="h-11">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="monthly">Mensal</SelectItem>
+                  <SelectItem value="biweekly">Quinzenal</SelectItem>
+                  <SelectItem value="weekly">Semanal</SelectItem>
+                  <SelectItem value="daily">Diário</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
+          {installmentsCount > 1 && (
+            <p className="text-[10px] text-muted-foreground -mt-2">
+              Datas das demais parcelas seguem a frequência escolhida. Você pode editar cada uma na tabela abaixo.
+            </p>
+          )}
 
           <div className="space-y-1.5">
             <Label className="text-xs">Observações (opcional)</Label>
