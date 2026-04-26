@@ -849,6 +849,7 @@ export function useLoans() {
     amortizeAmount: number,
     paymentDate?: string,
     paymentMethodId?: string | null,
+    paymentSplit?: PaymentSplit | null,
   ) => {
     if (!user || !dataOwnerId) throw new Error("Sessão ainda não carregada");
     if (amortizeAmount == null || isNaN(Number(amortizeAmount)) || Number(amortizeAmount) <= 0) {
