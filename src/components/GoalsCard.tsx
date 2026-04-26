@@ -516,7 +516,7 @@ const MAX_VISIBLE_GOALS = 8;
 const ALL_GOAL_TYPES: GoalType[] = [
   "interest_rate", "profit", "loan_volume", "new_loans_count",
   "received_total", "interest_received", "active_capital", "net_profit",
-  "max_default_rate", "new_clients_count",
+  "max_default_rate", "new_clients_count", "renegotiation_rate",
 ];
 
 function loadGoalPrefs(userId: string | null | undefined): { selected: GoalType[]; order: GoalType[] } {
