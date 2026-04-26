@@ -498,6 +498,9 @@ export function UserManagement() {
                           <Link2 className="h-3.5 w-3.5" /> Clientes
                           {user.linked_client_ids?.length > 0 && <Badge variant="secondary" className="ml-1 text-[10px] px-1">{user.linked_client_ids.length}</Badge>}
                         </Button>
+                        <Button variant="outline" size="sm" className="flex-1 gap-1" onClick={() => handleViewAs(user)} title="Visualizar como (somente leitura)">
+                          <Eye className="h-3.5 w-3.5" /> Ver como
+                        </Button>
                         <Button variant="outline" size="sm" className="flex-1 gap-1" onClick={() => openEdit(user)}>
                           <Pencil className="h-3.5 w-3.5" /> Editar
                         </Button>
