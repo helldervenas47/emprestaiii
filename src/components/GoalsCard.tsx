@@ -663,7 +663,7 @@ export function GoalsCard({ loans, payments, expenses, clients, installmentSched
         : null;
       return { ...g, actual, pct, meta, expectedReceivable, targetAmount };
     });
-  }, [goals, loans, payments, expenses, clients, installmentSchedules, selectedMonth, currentMonth, currentActiveCapital, getSnapshotAmount]);
+  }, [goals, loans, payments, expenses, clients, installmentSchedules, renegotiations, selectedMonth, currentMonth, currentActiveCapital, getSnapshotAmount]);
 
   // Aplica preferências do usuário: filtra pelos tipos selecionados e ordena conforme a ordem definida.
   // Limita a no máximo MAX_VISIBLE_GOALS cards.
