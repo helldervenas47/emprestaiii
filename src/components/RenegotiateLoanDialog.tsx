@@ -41,6 +41,7 @@ interface Props {
     newInstallments?: number | null;
     notes?: string | null;
     selectedInstallmentNumbers?: number[] | null;
+    firstDueDate?: string | null;
   }) => Promise<void>;
 }
 
