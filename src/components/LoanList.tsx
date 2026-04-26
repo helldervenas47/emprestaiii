@@ -1448,7 +1448,9 @@ function LoanCardView({
                 return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
               };
               const freq = loan.interestType || "Mensal";
-              const baseIso = loan.originalDueDate || loan.dueDate;
+              const rawBase = loan.originalDueDate || loan.dueDate;
+              // Proteção: se "original" > due atual, está corrompido — usa due_date.
+              const baseIso = rawBase > loan.dueDate ? loan.dueDate : rawBase;
               const interestPayments = allPayments
                 .filter((p) => p.loanId === loan.id && p.metadata?.kind !== "amortization")
                 .sort((a, b) => a.date.localeCompare(b.date));
