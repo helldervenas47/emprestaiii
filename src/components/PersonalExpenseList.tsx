@@ -1169,9 +1169,13 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, onUpda
         open={categoryEditorOpen}
         onOpenChange={(v) => {
           setCategoryEditorOpen(v);
-          if (!v) setEditingCategory(null);
+          if (!v) {
+            setEditingCategory(null);
+            setCreatorInitial(null);
+          }
         }}
         editing={editingCategory}
+        initial={creatorInitial}
         createCategory={createCustomCategory}
         updateCategory={updateCustomCategory}
         deleteCategory={removeCustomCategory}
