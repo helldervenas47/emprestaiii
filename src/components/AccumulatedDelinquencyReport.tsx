@@ -28,9 +28,23 @@ interface ReportItem {
   clientKey: string;
   clientName: string;
   phone: string;
+  baseAmount: number;
+  lateInterest: number;
+  penalty: number;
   amount: number;
   dueDate: string;
   daysOverdue: number;
+}
+
+function calcLateFeesFor(loan: Loan, baseAmount: number, daysOverdue: number) {
+  if (daysOverdue <= 0) return { lateInterest: 0, penalty: 0 };
+  const lateInterest = loan.lateInterestValue != null && loan.lateInterestValue > 0
+    ? loan.lateInterestType === "fixed"
+      ? loan.lateInterestValue * daysOverdue
+      : baseAmount * (loan.lateInterestValue / 100) * daysOverdue
+    : 0;
+  const penalty = loan.penaltyValue != null && loan.penaltyValue > 0 ? loan.penaltyValue : 0;
+  return { lateInterest, penalty };
 }
 
 function rawFormatCurrency(value: number) {
