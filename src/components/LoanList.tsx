@@ -1355,16 +1355,27 @@ function LoanCardView({
           // Replica regra de addInterestOnlyPayment: avança 1 período a partir do dueDate atual
           // e, no caso Mensal, "snap" para o dia da âncora (originalDueDate)
           const nextDue = (() => {
-            const d = new Date(currentDueIso + "T00:00:00");
-            if (freq === "Semanal") d.setDate(d.getDate() + 7);
-            else if (freq === "Quinzenal") d.setDate(d.getDate() + 15);
-            else {
-              const anchorDay = Number(originalDueIso.split("-")[2]);
-              d.setMonth(d.getMonth() + 1);
-              if (Number.isFinite(anchorDay)) {
-                const lastDay = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
-                d.setDate(Math.min(anchorDay, lastDay));
+            // Regra alinhada com addInterestOnlyPayment: parte da âncora e avança
+            // ciclos até ficar > hoje (ignora renegociações no due_date).
+            const today = new Date().toISOString().split("T")[0];
+            const advance = (d: Date) => {
+              if (freq === "Semanal") d.setDate(d.getDate() + 7);
+              else if (freq === "Quinzenal") d.setDate(d.getDate() + 15);
+              else {
+                const anchorDay = Number(originalDueIso.split("-")[2]);
+                d.setMonth(d.getMonth() + 1);
+                if (Number.isFinite(anchorDay)) {
+                  const lastDay = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
+                  d.setDate(Math.min(anchorDay, lastDay));
+                }
               }
+            };
+            const d = new Date(originalDueIso + "T00:00:00");
+            advance(d);
+            let guard = 0;
+            while (d.toISOString().split("T")[0] <= today && guard < 600) {
+              advance(d);
+              guard += 1;
             }
             const yyyy = d.getFullYear();
             const mm = String(d.getMonth() + 1).padStart(2, "0");
