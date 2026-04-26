@@ -590,6 +590,9 @@ export function UserManagement() {
                         <Button variant="ghost" size="icon" onClick={() => openClientLinks(user)} className="h-8 w-8" title="Vincular clientes">
                           <Link2 className="h-4 w-4" />
                         </Button>
+                        <Button variant="ghost" size="icon" onClick={() => handleViewAs(user)} className="h-8 w-8" title="Visualizar como (somente leitura)">
+                          <Eye className="h-4 w-4" />
+                        </Button>
                         <Button variant="ghost" size="icon" onClick={() => openEdit(user)} className="h-8 w-8">
                           <Pencil className="h-4 w-4" />
                         </Button>
