@@ -726,6 +726,8 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
       contracts: seen.size,
     };
   }, [loans, installmentSchedules, renegotiations]);
+
+  const monthComparison = useMemo(() => {
     const anchor = new Date(range.start.getFullYear(), range.start.getMonth(), 1);
     const series = Array.from({ length: comparisonWindow }, (_, index) => {
       const monthDate = new Date(anchor.getFullYear(), anchor.getMonth() - (comparisonWindow - 1 - index), 1);
