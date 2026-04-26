@@ -331,11 +331,11 @@ function LoanCardView({
   loan: Loan;
   payments: Payment[];
   installmentSchedules: InstallmentSchedule[];
-  onPayment: (date?: string, paymentMethodId?: string | null) => void;
-  onPartialPayment: (amount: number, date?: string, paymentMethodId?: string | null) => void;
-  onFullPayment?: (date?: string, customAmount?: number, paymentMethodId?: string | null) => void;
-  onInterestPayment: (date?: string, customAmount?: number, feesAmount?: number, paymentMethodId?: string | null) => void;
-  onAmortize?: (amount: number, date?: string, paymentMethodId?: string | null) => Promise<void> | void;
+  onPayment: (date?: string, paymentMethodId?: string | null, paymentSplit?: PaymentSplit | null) => void;
+  onPartialPayment: (amount: number, date?: string, paymentMethodId?: string | null, paymentSplit?: PaymentSplit | null) => void;
+  onFullPayment?: (date?: string, customAmount?: number, paymentMethodId?: string | null, paymentSplit?: PaymentSplit | null) => void;
+  onInterestPayment: (date?: string, customAmount?: number, feesAmount?: number, paymentMethodId?: string | null, paymentSplit?: PaymentSplit | null) => void;
+  onAmortize?: (amount: number, date?: string, paymentMethodId?: string | null, paymentSplit?: PaymentSplit | null) => Promise<void> | void;
   onRenegotiate?: (params: { type: "no_interest" | "with_penalty"; penaltyMode?: "fixed" | "percentage" | null; penaltyInput?: number | null; newInstallments?: number | null; notes?: string | null; selectedInstallmentNumbers?: number[] | null; firstDueDate?: string | null }) => Promise<void> | void;
   renegotiations?: LoanRenegotiation[];
   onUpdate: (data: Partial<Omit<Loan, "id">>) => void;
