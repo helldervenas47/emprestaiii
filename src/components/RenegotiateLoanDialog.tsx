@@ -175,29 +175,32 @@ export function RenegotiateLoanDialog({
   const simulatedSchedule = useMemo(() => {
     const overrideDate = firstDueDate && /^\d{4}-\d{2}-\d{2}$/.test(firstDueDate) ? firstDueDate : null;
 
+    const computeNewDate = (i: number, base: string, startsAtBase: boolean) => {
+      // Se há override do usuário para esta parcela nova, usa ele
+      if (customDates[i] && /^\d{4}-\d{2}-\d{2}$/.test(customDates[i])) return customDates[i];
+      // Se i===0 e não devemos avançar a partir da base, retorna a própria base
+      const offset = startsAtBase ? i : i + 1;
+      return stepDate(base, frequency, offset);
+    };
+
     if (!isInstallmentLoan || pendingInstallments.length === 0) {
-      const result: { number: number; dueDate: string; amount: number; isNew: boolean }[] = [];
+      const result: { number: number; dueDate: string; amount: number; isNew: boolean; newIndex?: number }[] = [];
       const baseDate = overrideDate || loan.dueDate;
       let acc = 0;
       for (let i = 0; i < installmentsCount; i++) {
-        const d = new Date(baseDate + "T00:00:00");
-        if (!isNaN(d.getTime())) d.setMonth(d.getMonth() + i);
-        const dueStr = !isNaN(d.getTime()) ? d.toISOString().slice(0, 10) : baseDate;
+        const dueStr = computeNewDate(i, baseDate, true);
         const isLast = i === installmentsCount - 1;
         let amt: number;
-        if (useFirstMode && i === 0) {
-          amt = firstInstallmentValue;
-        } else if (isLast) {
-          amt = Math.round((newTotal - acc) * 100) / 100;
-        } else {
-          amt = baseInstallmentValue;
-        }
+        if (useFirstMode && i === 0) amt = firstInstallmentValue;
+        else if (isLast) amt = Math.round((newTotal - acc) * 100) / 100;
+        else amt = baseInstallmentValue;
         acc += amt;
         result.push({
           number: loan.paidInstallments + i + 1,
           dueDate: dueStr,
           amount: amt,
           isNew: true,
+          newIndex: i,
         });
       }
       return result;
@@ -216,35 +219,31 @@ export function RenegotiateLoanDialog({
       ? (pendingInstallments.find((s) => selectedNumbers.has(s.installmentNumber))?.dueDate || loan.dueDate)
       : null;
 
-    // Gera novas parcelas
-    const newScheds: { dueDate: string; amount: number }[] = [];
+    // Determina base e se a parcela 0 começa exatamente na base
+    let base: string;
+    let startsAtBase: boolean;
+    if (overrideDate) {
+      base = overrideDate;
+      startsAtBase = true;
+    } else if (!isPartial && firstSelectedDate) {
+      base = firstSelectedDate;
+      startsAtBase = true;
+    } else {
+      base = lastDate;
+      startsAtBase = false;
+    }
+
+    const newScheds: { dueDate: string; amount: number; newIndex: number }[] = [];
     let acc = 0;
     for (let i = 0; i < installmentsCount; i++) {
-      let dueStr: string;
-      if (overrideDate) {
-        const d = new Date(overrideDate + "T00:00:00");
-        if (!isNaN(d.getTime())) d.setMonth(d.getMonth() + i);
-        dueStr = !isNaN(d.getTime()) ? d.toISOString().slice(0, 10) : overrideDate;
-      } else if (!isPartial && i === 0 && firstSelectedDate) {
-        dueStr = firstSelectedDate;
-      } else {
-        const baseDate = !isPartial && firstSelectedDate ? firstSelectedDate : lastDate;
-        const offsetMonths = !isPartial && firstSelectedDate ? i : (i + 1);
-        const d = new Date(baseDate + "T00:00:00");
-        if (!isNaN(d.getTime())) d.setMonth(d.getMonth() + offsetMonths);
-        dueStr = !isNaN(d.getTime()) ? d.toISOString().slice(0, 10) : baseDate;
-      }
+      const dueStr = computeNewDate(i, base, startsAtBase);
       const isLast = i === installmentsCount - 1;
       let amt: number;
-      if (useFirstMode && i === 0) {
-        amt = firstInstallmentValue;
-      } else if (isLast) {
-        amt = Math.round((newTotal - acc) * 100) / 100;
-      } else {
-        amt = baseInstallmentValue;
-      }
+      if (useFirstMode && i === 0) amt = firstInstallmentValue;
+      else if (isLast) amt = Math.round((newTotal - acc) * 100) / 100;
+      else amt = baseInstallmentValue;
       acc += amt;
-      newScheds.push({ dueDate: dueStr, amount: amt });
+      newScheds.push({ dueDate: dueStr, amount: amt, newIndex: i });
     }
 
     const combined = [
@@ -252,8 +251,9 @@ export function RenegotiateLoanDialog({
         dueDate: s.dueDate,
         amount: Number(s.amount || 0),
         isNew: false,
+        newIndex: undefined as number | undefined,
       })),
-      ...newScheds.map((s) => ({ dueDate: s.dueDate, amount: s.amount, isNew: true })),
+      ...newScheds.map((s) => ({ dueDate: s.dueDate, amount: s.amount, isNew: true, newIndex: s.newIndex })),
     ].sort((a, b) => a.dueDate.localeCompare(b.dueDate));
 
     return combined.map((item, i) => ({
@@ -261,6 +261,7 @@ export function RenegotiateLoanDialog({
       dueDate: item.dueDate,
       amount: item.amount,
       isNew: item.isNew,
+      newIndex: item.newIndex,
     }));
   }, [
     isInstallmentLoan,
@@ -275,6 +276,8 @@ export function RenegotiateLoanDialog({
     loan.dueDate,
     loan.paidInstallments,
     firstDueDate,
+    frequency,
+    customDates,
   ]);
 
   const reset = () => {
