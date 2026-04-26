@@ -238,6 +238,7 @@ export function RenegotiateLoanDialog({
     setType("no_interest");
     setPenaltyMode("fixed");
     setPenaltyInput("");
+    setPenaltyDistribution("diluted");
     setNewInstallments("");
     setNotes("");
     setConfirming(false);
