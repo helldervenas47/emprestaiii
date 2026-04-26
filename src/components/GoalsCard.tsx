@@ -648,7 +648,7 @@ export function GoalsCard({ loans, payments, expenses, clients, installmentSched
       const computeMonth = selectedMonth || g.month;
       const actual = g.goalType === "active_capital"
         ? (computeMonth === currentMonth ? currentActiveCapital : (getSnapshotAmount(computeMonth) ?? 0))
-        : computeActual(g.goalType, computeMonth, loans, payments, expenses, clients, installmentSchedules);
+        : computeActual(g.goalType, computeMonth, loans, payments, expenses, clients, installmentSchedules, renegotiations);
       let pct = 0;
       if (g.targetValue > 0) {
         pct = g.goalType === "max_default_rate"
