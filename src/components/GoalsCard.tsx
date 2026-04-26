@@ -13,7 +13,7 @@ import { toast } from "sonner";
 import { useHideValues } from "@/contexts/HideValuesContext";
 import { useMonthlyGoals, GoalType, formatMonthLabel } from "@/hooks/useMonthlyGoals";
 import { useAccountSettings } from "@/hooks/useAccountSettings";
-import { Loan, Payment, Expense, Client, InstallmentSchedule } from "@/types/loan";
+import { Loan, Payment, Expense, Client, InstallmentSchedule, LoanRenegotiation } from "@/types/loan";
 import { todayInAppTz } from "@/lib/timezone";
 import { useActiveCapitalSnapshots } from "@/hooks/useActiveCapitalSnapshots";
 import { calculateMonthlyInterestRate } from "@/lib/monthlyInterestRate";
