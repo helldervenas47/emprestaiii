@@ -756,6 +756,12 @@ export function useLoans() {
       return;
     }
 
+    const loanRollback: any = { due_date: loan.dueDate };
+    if (shouldClearRenegPenalty) {
+      loanRollback.renegotiation_penalty_total = renegPenaltyPending;
+      loanRollback.remaining_amount = Number(loan.remainingAmount || 0);
+    }
+
     const revertOptimisticState = async () => {
       setPayments((prev) => prev.filter((p) => p.id !== tempPaymentId));
       setLoans((prev) => prev.map((l) => l.id === loanId ? loan : l));
