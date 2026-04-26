@@ -13,8 +13,10 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Plus, Trash2, Shield, UserPlus, Pencil, ChevronDown, Settings2, Link2, CreditCard } from "lucide-react";
+import { Plus, Trash2, Shield, UserPlus, Pencil, ChevronDown, Settings2, Link2, CreditCard, Eye } from "lucide-react";
 import { toast } from "sonner";
+import { useViewAsUser } from "@/hooks/useViewAsUser";
+import { useAuth } from "@/hooks/useAuth";
 
 interface ManagedUser {
   id: string;
