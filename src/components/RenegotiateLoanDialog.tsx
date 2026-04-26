@@ -790,7 +790,20 @@ export function RenegotiateLoanDialog({
                               )}
                             </td>
                             <td className="px-2 py-1.5 text-muted-foreground">
-                              {formatDateBR(row.dueDate)}
+                              {row.isNew && row.newIndex !== undefined ? (
+                                <Input
+                                  type="date"
+                                  value={row.dueDate}
+                                  onChange={(e) => {
+                                    const v = e.target.value;
+                                    setCustomDates((prev) => ({ ...prev, [row.newIndex as number]: v }));
+                                    setConfirming(false);
+                                  }}
+                                  className="h-7 px-1.5 text-xs"
+                                />
+                              ) : (
+                                formatDateBR(row.dueDate)
+                              )}
                             </td>
                             <td className="px-2 py-1.5 text-right text-warning">
                               {rowMulta > 0 ? formatCurrency(rowMulta) : "—"}
