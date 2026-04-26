@@ -1,4 +1,6 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useAuth } from "@/hooks/useAuth";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -18,7 +20,7 @@ import {
   Target, Percent, TrendingUp, Banknote, FileText,
   HandCoins, Coins, Wallet, PiggyBank, AlertTriangle, UserPlus,
   Sparkles, CheckCircle2, AlertCircle, TrendingDown, Lightbulb,
-  BookOpen, Calculator, Database, FlaskConical,
+  BookOpen, Calculator, Database, FlaskConical, Settings2, ArrowUp, ArrowDown, GripVertical,
 } from "lucide-react";
 
 // Inline para evitar import circular com useLoans
@@ -435,10 +437,52 @@ export function computeActual(
   }
 }
 
+const MAX_VISIBLE_GOALS = 8;
+const ALL_GOAL_TYPES: GoalType[] = [
+  "interest_rate", "profit", "loan_volume", "new_loans_count",
+  "received_total", "interest_received", "active_capital", "net_profit",
+  "max_default_rate", "new_clients_count",
+];
+
+function loadGoalPrefs(userId: string | null | undefined): { selected: GoalType[]; order: GoalType[] } {
+  const fallback = { selected: ALL_GOAL_TYPES.slice(0, MAX_VISIBLE_GOALS), order: ALL_GOAL_TYPES.slice() };
+  if (typeof window === "undefined" || !userId) return fallback;
+  try {
+    const raw = window.localStorage.getItem(`goalsCard:prefs:${userId}`);
+    if (!raw) return fallback;
+    const parsed = JSON.parse(raw) as { selected?: GoalType[]; order?: GoalType[] };
+    const validSelected = (parsed.selected || []).filter((t) => ALL_GOAL_TYPES.includes(t)).slice(0, MAX_VISIBLE_GOALS);
+    const validOrder = (parsed.order || []).filter((t) => ALL_GOAL_TYPES.includes(t));
+    // Garante que todos os tipos apareçam na ordem (anexa novos no fim)
+    ALL_GOAL_TYPES.forEach((t) => { if (!validOrder.includes(t)) validOrder.push(t); });
+    return {
+      selected: validSelected.length > 0 ? validSelected : fallback.selected,
+      order: validOrder,
+    };
+  } catch {
+    return fallback;
+  }
+}
+
 export function GoalsCard({ loans, payments, expenses, clients, installmentSchedules = [], selectedMonth, periodLabel }: Props) {
   const { goals } = useMonthlyGoals();
   const { hidden } = useHideValues();
+  const { user } = useAuth();
   const [selectedGoalId, setSelectedGoalId] = useState<string | null>(null);
+  const [showCustomize, setShowCustomize] = useState(false);
+  const [prefs, setPrefs] = useState<{ selected: GoalType[]; order: GoalType[] }>(() => loadGoalPrefs(user?.id));
+
+  useEffect(() => {
+    setPrefs(loadGoalPrefs(user?.id));
+  }, [user?.id]);
+
+  const savePrefs = (next: { selected: GoalType[]; order: GoalType[] }) => {
+    setPrefs(next);
+    if (typeof window !== "undefined" && user?.id) {
+      try { window.localStorage.setItem(`goalsCard:prefs:${user.id}`, JSON.stringify(next)); } catch {}
+    }
+  };
+
   const currentActiveCapital = useMemo(
     () => loans.filter((l: any) => l.status !== "completed" && l.status !== "paid")
       .reduce((s: number, l: any) => s + (Number(l.remainingAmount ?? l.remaining_amount) || 0), 0),
@@ -491,15 +535,24 @@ export function GoalsCard({ loans, payments, expenses, clients, installmentSched
         ? expectedReceivable * (g.targetValue / 100)
         : null;
       return { ...g, actual, pct, meta, expectedReceivable, targetAmount };
-    }).sort((a, b) => {
-      // Ordena por prioridade visual: inverse no fim, demais por % desc
-      return b.pct - a.pct;
     });
   }, [goals, loans, payments, expenses, clients, installmentSchedules, selectedMonth, currentMonth, currentActiveCapital, getSnapshotAmount]);
 
-  const totalGoals = enriched.length;
-  const onTrack = enriched.filter((g) => g.pct >= 80).length;
-  const offTrack = enriched.filter((g) => g.pct < 50).length;
+  // Aplica preferências do usuário: filtra pelos tipos selecionados e ordena conforme a ordem definida.
+  // Limita a no máximo MAX_VISIBLE_GOALS cards.
+  const visibleGoals = useMemo(() => {
+    const selectedSet = new Set(prefs.selected);
+    const orderIndex = new Map<GoalType, number>();
+    prefs.order.forEach((t, i) => orderIndex.set(t, i));
+    return enriched
+      .filter((g) => selectedSet.has(g.goalType))
+      .sort((a, b) => (orderIndex.get(a.goalType) ?? 999) - (orderIndex.get(b.goalType) ?? 999))
+      .slice(0, MAX_VISIBLE_GOALS);
+  }, [enriched, prefs]);
+
+  const totalGoals = visibleGoals.length;
+  const onTrack = visibleGoals.filter((g) => g.pct >= 80).length;
+  const offTrack = visibleGoals.filter((g) => g.pct < 50).length;
 
   const selected = enriched.find((g) => g.id === selectedGoalId) || null;
 
@@ -515,6 +568,17 @@ export function GoalsCard({ loans, payments, expenses, clients, installmentSched
               <h3 className="text-sm font-semibold text-foreground">Metas</h3>
               <p className="text-[10px] text-muted-foreground">Acompanhe o progresso das suas metas cadastradas</p>
             </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              type="button"
+              onClick={() => setShowCustomize(true)}
+              className="ml-1 h-7 px-2 gap-1 text-[11px]"
+              title="Personalizar metas exibidas"
+            >
+              <Settings2 className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">Personalizar</span>
+            </Button>
           </div>
           <div className="grid grid-cols-3 gap-2 w-full sm:w-auto sm:flex sm:gap-6">
             <div className="rounded-md bg-muted/40 sm:bg-transparent px-2 py-1 sm:p-0 text-center sm:text-right">
@@ -532,15 +596,17 @@ export function GoalsCard({ loans, payments, expenses, clients, installmentSched
           </div>
         </div>
 
-        {enriched.length === 0 ? (
+        {visibleGoals.length === 0 ? (
           <div className="text-center py-8 text-sm text-muted-foreground">
-            {selectedMonth
-              ? `Nenhuma meta cadastrada para ${periodLabel || formatMonthLabel(selectedMonth)}.`
-              : "Nenhuma meta cadastrada. Cadastre metas em Configurações → Metas para acompanhar aqui."}
+            {enriched.length === 0
+              ? (selectedMonth
+                  ? `Nenhuma meta cadastrada para ${periodLabel || formatMonthLabel(selectedMonth)}.`
+                  : "Nenhuma meta cadastrada. Cadastre metas em Configurações → Metas para acompanhar aqui.")
+              : "Nenhuma meta selecionada para exibição. Clique em \"Personalizar\" para escolher quais aparecem."}
           </div>
         ) : (
           <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-3">
-            {enriched.map((g) => {
+            {visibleGoals.map((g) => {
               const Icon = g.meta?.icon || Target;
               const status = g.goalType === "max_default_rate"
                 ? (g.pct === 100 ? "success" : "destructive")
@@ -624,7 +690,133 @@ export function GoalsCard({ loans, payments, expenses, clients, installmentSched
         loans={loans}
         installmentSchedules={installmentSchedules}
       />
+
+      <CustomizeGoalsDialog
+        open={showCustomize}
+        onClose={() => setShowCustomize(false)}
+        prefs={prefs}
+        onSave={(next) => { savePrefs(next); setShowCustomize(false); }}
+      />
     </Card>
+  );
+}
+
+interface CustomizePrefs { selected: GoalType[]; order: GoalType[] }
+
+function CustomizeGoalsDialog({
+  open, onClose, prefs, onSave,
+}: { open: boolean; onClose: () => void; prefs: CustomizePrefs; onSave: (next: CustomizePrefs) => void }) {
+  const [draft, setDraft] = useState<CustomizePrefs>(prefs);
+
+  useEffect(() => { if (open) setDraft(prefs); }, [open, prefs]);
+
+  const toggle = (type: GoalType) => {
+    const isSelected = draft.selected.includes(type);
+    if (isSelected) {
+      setDraft({ ...draft, selected: draft.selected.filter((t) => t !== type) });
+    } else {
+      if (draft.selected.length >= MAX_VISIBLE_GOALS) {
+        toast.warning(`Você pode selecionar até ${MAX_VISIBLE_GOALS} metas.`);
+        return;
+      }
+      setDraft({ ...draft, selected: [...draft.selected, type] });
+    }
+  };
+
+  const move = (type: GoalType, direction: -1 | 1) => {
+    const order = draft.order.slice();
+    const idx = order.indexOf(type);
+    const target = idx + direction;
+    if (idx < 0 || target < 0 || target >= order.length) return;
+    [order[idx], order[target]] = [order[target], order[idx]];
+    setDraft({ ...draft, order });
+  };
+
+  const reset = () => setDraft({
+    selected: ALL_GOAL_TYPES.slice(0, MAX_VISIBLE_GOALS),
+    order: ALL_GOAL_TYPES.slice(),
+  });
+
+  return (
+    <Dialog open={open} onOpenChange={(o) => { if (!o) onClose(); }}>
+      <DialogContent className="max-w-md max-h-[85vh] overflow-hidden flex flex-col">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <Settings2 className="h-4 w-4 text-primary" />
+            Personalizar Metas
+          </DialogTitle>
+          <DialogDescription>
+            Selecione até <strong>{MAX_VISIBLE_GOALS}</strong> metas e ajuste a ordem em que aparecem no painel.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="flex items-center justify-between text-xs text-muted-foreground px-1 py-1 border-b border-border/40">
+          <span>Selecionadas: <strong className={draft.selected.length >= MAX_VISIBLE_GOALS ? "text-warning" : "text-foreground"}>{draft.selected.length}</strong> / {MAX_VISIBLE_GOALS}</span>
+          <Button variant="ghost" size="sm" type="button" onClick={reset} className="h-7 px-2 text-[11px]">Restaurar padrão</Button>
+        </div>
+
+        <ScrollArea className="flex-1 -mx-2 px-2">
+          <ul className="space-y-1.5 py-2">
+            {draft.order.map((type, idx) => {
+              const meta = GOAL_TYPE_META[type];
+              const checked = draft.selected.includes(type);
+              const Icon = meta?.icon || Target;
+              return (
+                <li
+                  key={type}
+                  className={`flex items-center gap-2 rounded-lg border p-2 transition-colors ${checked ? "border-primary/40 bg-primary/5" : "border-border bg-card/50"}`}
+                >
+                  <Checkbox
+                    checked={checked}
+                    onCheckedChange={() => toggle(type)}
+                    aria-label={`Selecionar ${meta?.label}`}
+                  />
+                  <div className={`h-8 w-8 rounded-md ${meta?.bgColor || "bg-muted"} flex items-center justify-center shrink-0`}>
+                    <Icon className={`h-4 w-4 ${meta?.color || "text-foreground"}`} />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-medium text-foreground truncate">{meta?.label || type}</p>
+                    <p className="text-[10px] text-muted-foreground truncate">{meta?.description}</p>
+                  </div>
+                  <div className="flex flex-col gap-0.5 shrink-0">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      type="button"
+                      onClick={() => move(type, -1)}
+                      disabled={idx === 0}
+                      className="h-5 w-5"
+                      aria-label="Mover para cima"
+                    >
+                      <ArrowUp className="h-3 w-3" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      type="button"
+                      onClick={() => move(type, 1)}
+                      disabled={idx === draft.order.length - 1}
+                      className="h-5 w-5"
+                      aria-label="Mover para baixo"
+                    >
+                      <ArrowDown className="h-3 w-3" />
+                    </Button>
+                  </div>
+                  <GripVertical className="h-3.5 w-3.5 text-muted-foreground/40 shrink-0" />
+                </li>
+              );
+            })}
+          </ul>
+        </ScrollArea>
+
+        <div className="flex justify-end gap-2 pt-2 border-t border-border/40">
+          <Button variant="outline" type="button" onClick={onClose}>Cancelar</Button>
+          <Button type="button" onClick={() => onSave(draft)} disabled={draft.selected.length === 0}>
+            Salvar
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }
 
