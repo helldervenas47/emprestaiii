@@ -383,11 +383,22 @@ function LoanCardView({
   const [showAdjustDueDate, setShowAdjustDueDate] = useState(false);
   const { activeMethods } = usePaymentMethods();
   const [selectedMethodId, setSelectedMethodId] = useState<string>("");
+  const [splitEnabled, setSplitEnabled] = useState(false);
+  const [splitMethod2Id, setSplitMethod2Id] = useState<string>("");
+  const [splitAmount1Input, setSplitAmount1Input] = useState<string>("");
   React.useEffect(() => {
     if (paymentDialog && !selectedMethodId && activeMethods.length > 0) {
       setSelectedMethodId(activeMethods[0].id);
     }
   }, [paymentDialog, activeMethods, selectedMethodId]);
+  React.useEffect(() => {
+    // Reset split when dialog closes
+    if (!paymentDialog) {
+      setSplitEnabled(false);
+      setSplitMethod2Id("");
+      setSplitAmount1Input("");
+    }
+  }, [paymentDialog]);
   const [editHasManager, setEditHasManager] = useState<boolean>(loan.hasManager ?? false);
   const [editManagerId, setEditManagerId] = useState<string>(loan.managerId ?? "");
   const [editCommissionRate, setEditCommissionRate] = useState<string>(String(loan.managerCommissionRate ?? 10));
