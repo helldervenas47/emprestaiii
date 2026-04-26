@@ -1340,6 +1340,64 @@ function LoanCardView({
           </div>
         )}
 
+        {showDetails && (() => {
+          // Auditoria: original_due_date vs due_date atual e próximo vencimento (juros)
+          const fmt = (iso?: string | null) => {
+            if (!iso) return "—";
+            const [y, m, d] = iso.split("-");
+            return `${d}/${m}/${y}`;
+          };
+          const currentDueIso = loan.dueDate;
+          const originalDueIso = loan.originalDueDate || loan.dueDate;
+          const wasRenegotiated = !!loan.originalDueDate && loan.originalDueDate !== loan.dueDate;
+          const freq = loan.interestType || "Mensal";
+          // Replica regra de addInterestOnlyPayment: avança 1 período a partir do dueDate atual
+          // e, no caso Mensal, "snap" para o dia da âncora (originalDueDate)
+          const nextDue = (() => {
+            const d = new Date(currentDueIso + "T00:00:00");
+            if (freq === "Semanal") d.setDate(d.getDate() + 7);
+            else if (freq === "Quinzenal") d.setDate(d.getDate() + 15);
+            else {
+              const anchorDay = Number(originalDueIso.split("-")[2]);
+              d.setMonth(d.getMonth() + 1);
+              if (Number.isFinite(anchorDay)) {
+                const lastDay = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
+                d.setDate(Math.min(anchorDay, lastDay));
+              }
+            }
+            const yyyy = d.getFullYear();
+            const mm = String(d.getMonth() + 1).padStart(2, "0");
+            const dd = String(d.getDate()).padStart(2, "0");
+            return `${yyyy}-${mm}-${dd}`;
+          })();
+          return (
+            <div className="space-y-2 bg-muted/20 rounded-lg p-3 border border-dashed border-border/60">
+              <p className="text-xs font-semibold text-foreground flex items-center gap-1">
+                🔍 Auditoria de Vencimento
+              </p>
+              <div className="grid grid-cols-2 gap-2 text-xs">
+                <div>
+                  <p className="text-muted-foreground">Vencimento original (âncora)</p>
+                  <p className="font-semibold text-foreground">{fmt(originalDueIso)}</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground">Vencimento atual{wasRenegotiated ? " (renegociado)" : ""}</p>
+                  <p className={`font-semibold ${wasRenegotiated ? "text-warning" : "text-foreground"}`}>{fmt(currentDueIso)}</p>
+                </div>
+                <div className="col-span-2 pt-1 mt-1 border-t border-border/30">
+                  <p className="text-muted-foreground">Próximo vencimento se pagar apenas juros agora</p>
+                  <p className="font-semibold text-primary">{fmt(nextDue)}</p>
+                  <p className="text-[10px] text-muted-foreground mt-1">
+                    {freq === "Mensal"
+                      ? `Cálculo: vencimento atual + 1 mês, ajustado para o dia ${originalDueIso.split("-")[2]} (âncora original).`
+                      : `Cálculo: vencimento atual + ${freq === "Semanal" ? "7" : "15"} dias (frequência ${freq}).`}
+                  </p>
+                </div>
+              </div>
+            </div>
+          );
+        })()}
+
         {loan.notes && (
           <p className="text-xs text-muted-foreground italic bg-muted/30 rounded-lg px-3 py-2">📝 {loan.notes}</p>
         )}
