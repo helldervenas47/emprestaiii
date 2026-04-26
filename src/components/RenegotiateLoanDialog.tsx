@@ -489,6 +489,49 @@ export function RenegotiateLoanDialog({
             </div>
           </div>
 
+          {simulatedSchedule.length > 0 && (
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <p className="text-xs font-semibold flex items-center gap-1.5 text-foreground">
+                  <CalendarDays className="h-3.5 w-3.5" /> Novo cronograma de parcelas pendentes
+                </p>
+                <span className="text-[10px] text-muted-foreground">
+                  {simulatedSchedule.length} parcela{simulatedSchedule.length > 1 ? "s" : ""}
+                </span>
+              </div>
+              <div className="rounded-lg border border-border/60 max-h-48 overflow-y-auto divide-y divide-border/40">
+                {simulatedSchedule.map((row) => (
+                  <div
+                    key={`${row.number}-${row.dueDate}-${row.isNew}`}
+                    className={`flex items-center justify-between gap-2 px-2.5 py-1.5 text-xs ${
+                      row.isNew ? "bg-primary/5" : ""
+                    }`}
+                  >
+                    <div className="flex items-center gap-2 min-w-0">
+                      <span className="font-medium tabular-nums">#{row.number}</span>
+                      {row.isNew && (
+                        <span className="text-[9px] uppercase tracking-wide bg-primary/15 text-primary rounded px-1 py-0.5 font-semibold">
+                          Nova
+                        </span>
+                      )}
+                    </div>
+                    <span className="text-muted-foreground tabular-nums">
+                      {formatDateBR(row.dueDate)}
+                    </span>
+                    <span className="font-semibold tabular-nums">
+                      {formatCurrency(row.amount)}
+                    </span>
+                  </div>
+                ))}
+              </div>
+              {isInstallmentLoan && pendingInstallments.length > 0 && (
+                <p className="text-[10px] text-muted-foreground italic">
+                  Parcelas marcadas como "Nova" substituirão as selecionadas. As demais permanecem inalteradas.
+                </p>
+              )}
+            </div>
+          )}
+
           {sortedHistory.length > 0 && (
             <div className="space-y-2">
               <p className="text-xs font-semibold flex items-center gap-1.5 text-foreground">
