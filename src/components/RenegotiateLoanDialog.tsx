@@ -679,48 +679,111 @@ export function RenegotiateLoanDialog({
             )}
           </div>
 
-          {simulatedSchedule.length > 0 && (
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <p className="text-xs font-semibold flex items-center gap-1.5 text-foreground">
-                  <CalendarDays className="h-3.5 w-3.5" /> Novo cronograma de parcelas pendentes
-                </p>
-                <span className="text-[10px] text-muted-foreground">
-                  {simulatedSchedule.length} parcela{simulatedSchedule.length > 1 ? "s" : ""}
-                </span>
+          {simulatedSchedule.length > 0 && (() => {
+            const rate = Number(loan.interestRate) || 0;
+            const interestRatio = rate > 0 ? rate / (100 + rate) : 0;
+            const newRows = simulatedSchedule.filter((r) => r.isNew);
+            const newCount = newRows.length;
+            let totMulta = 0;
+            let totJuros = 0;
+            let totParcela = 0;
+            return (
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <p className="text-xs font-semibold flex items-center gap-1.5 text-foreground">
+                    <CalendarDays className="h-3.5 w-3.5" /> Novo cronograma de parcelas pendentes
+                  </p>
+                  <span className="text-[10px] text-muted-foreground">
+                    {simulatedSchedule.length} parcela{simulatedSchedule.length > 1 ? "s" : ""}
+                  </span>
+                </div>
+                <div className="rounded-lg border border-border/60 max-h-64 overflow-y-auto">
+                  <table className="w-full text-xs tabular-nums">
+                    <thead className="bg-muted/50 sticky top-0">
+                      <tr className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                        <th className="text-left px-2 py-1.5 font-semibold">#</th>
+                        <th className="text-left px-2 py-1.5 font-semibold">Vencimento</th>
+                        <th className="text-right px-2 py-1.5 font-semibold">Multa</th>
+                        <th className="text-right px-2 py-1.5 font-semibold">Juros</th>
+                        <th className="text-right px-2 py-1.5 font-semibold">Total</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-border/40">
+                      {simulatedSchedule.map((row, idx) => {
+                        let rowMulta = 0;
+                        if (row.isNew && type === "with_penalty" && penaltyAmount > 0) {
+                          if (useFirstMode) {
+                            const firstNewIdx = simulatedSchedule.findIndex((s) => s.isNew);
+                            rowMulta = idx === firstNewIdx ? penaltyAmount : 0;
+                          } else if (newCount > 0) {
+                            rowMulta = Math.round((penaltyAmount / newCount) * 100) / 100;
+                          }
+                        }
+                        const baseAmt = Math.max(0, row.amount - rowMulta);
+                        const rowJuros = row.isNew
+                          ? Math.round(baseAmt * interestRatio * 100) / 100
+                          : Math.round(Number(row.amount) * interestRatio * 100) / 100;
+                        totMulta += rowMulta;
+                        totJuros += rowJuros;
+                        totParcela += row.amount;
+                        return (
+                          <tr
+                            key={`${row.number}-${row.dueDate}-${row.isNew}`}
+                            className={row.isNew ? "bg-primary/5" : ""}
+                          >
+                            <td className="px-2 py-1.5">
+                              <span className="font-medium">#{row.number}</span>
+                              {row.isNew && (
+                                <span className="ml-1 text-[9px] uppercase tracking-wide bg-primary/15 text-primary rounded px-1 py-0.5 font-semibold">
+                                  Nova
+                                </span>
+                              )}
+                            </td>
+                            <td className="px-2 py-1.5 text-muted-foreground">
+                              {formatDateBR(row.dueDate)}
+                            </td>
+                            <td className="px-2 py-1.5 text-right text-warning">
+                              {rowMulta > 0 ? formatCurrency(rowMulta) : "—"}
+                            </td>
+                            <td className="px-2 py-1.5 text-right text-muted-foreground">
+                              {rowJuros > 0 ? formatCurrency(rowJuros) : "—"}
+                            </td>
+                            <td className="px-2 py-1.5 text-right font-semibold">
+                              {formatCurrency(row.amount)}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                    <tfoot className="bg-muted/40 sticky bottom-0">
+                      <tr className="text-[10px] font-semibold">
+                        <td className="px-2 py-1.5" colSpan={2}>Totais</td>
+                        <td className="px-2 py-1.5 text-right text-warning">
+                          {totMulta > 0 ? formatCurrency(totMulta) : "—"}
+                        </td>
+                        <td className="px-2 py-1.5 text-right text-muted-foreground">
+                          {totJuros > 0 ? formatCurrency(totJuros) : "—"}
+                        </td>
+                        <td className="px-2 py-1.5 text-right">
+                          {formatCurrency(Math.round(totParcela * 100) / 100)}
+                        </td>
+                      </tr>
+                    </tfoot>
+                  </table>
+                </div>
+                {rate > 0 && (
+                  <p className="text-[10px] text-muted-foreground italic">
+                    Juros estimado por parcela com base na taxa do contrato ({rate}%).
+                  </p>
+                )}
+                {isInstallmentLoan && pendingInstallments.length > 0 && (
+                  <p className="text-[10px] text-muted-foreground italic">
+                    Parcelas marcadas como "Nova" substituirão as selecionadas. As demais permanecem inalteradas.
+                  </p>
+                )}
               </div>
-              <div className="rounded-lg border border-border/60 max-h-48 overflow-y-auto divide-y divide-border/40">
-                {simulatedSchedule.map((row) => (
-                  <div
-                    key={`${row.number}-${row.dueDate}-${row.isNew}`}
-                    className={`flex items-center justify-between gap-2 px-2.5 py-1.5 text-xs ${
-                      row.isNew ? "bg-primary/5" : ""
-                    }`}
-                  >
-                    <div className="flex items-center gap-2 min-w-0">
-                      <span className="font-medium tabular-nums">#{row.number}</span>
-                      {row.isNew && (
-                        <span className="text-[9px] uppercase tracking-wide bg-primary/15 text-primary rounded px-1 py-0.5 font-semibold">
-                          Nova
-                        </span>
-                      )}
-                    </div>
-                    <span className="text-muted-foreground tabular-nums">
-                      {formatDateBR(row.dueDate)}
-                    </span>
-                    <span className="font-semibold tabular-nums">
-                      {formatCurrency(row.amount)}
-                    </span>
-                  </div>
-                ))}
-              </div>
-              {isInstallmentLoan && pendingInstallments.length > 0 && (
-                <p className="text-[10px] text-muted-foreground italic">
-                  Parcelas marcadas como "Nova" substituirão as selecionadas. As demais permanecem inalteradas.
-                </p>
-              )}
-            </div>
-          )}
+            );
+          })()}
 
           {confirming && (
             <div className="flex items-start gap-2 rounded-md border border-warning/40 bg-warning/10 p-2 text-xs text-warning-foreground">
