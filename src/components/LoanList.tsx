@@ -3031,19 +3031,68 @@ function LoanRowView({
               </div>
             );
           })()}
-          {rowActiveMethods.length > 0 && (
-            <div className="w-full space-y-1">
-              <Label className="text-sm text-muted-foreground">Forma de pagamento</Label>
-              <Select value={rowSelectedMethodId} onValueChange={setRowSelectedMethodId}>
-                <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
-                <SelectContent>
-                  {rowActiveMethods.map((m) => (
-                    <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          )}
+          {rowActiveMethods.length > 0 && (() => {
+            const baseInt = loan.customInterestValue != null && loan.customInterestValue > 0 ? loan.customInterestValue : loan.amount * (loan.interestRate / 100);
+            const cRaw = parseFloat(payoffAmount.replace(",", "."));
+            const aRaw = parseFloat(amortizeAmount.replace(",", "."));
+            const dt = paymentDialog?.type;
+            let totalForSplit = 0;
+            if (dt === "full") totalForSplit = remaining;
+            else if (dt === "payoff") totalForSplit = isFinite(cRaw) && cRaw > 0 ? cRaw : 0;
+            else if (dt === "amortize") totalForSplit = isFinite(aRaw) && aRaw > 0 ? aRaw : 0;
+            else if (dt === "installment") totalForSplit = installmentValue;
+            else if (dt === "interest") totalForSplit = interestSelection === "withFees" && lateFees > 0 ? baseInt + lateFees : baseInt;
+            else if (dt === "partial") totalForSplit = paymentDialog?.amount ?? 0;
+            const a1 = parseFloat(rowSplitAmount1Input.replace(",", "."));
+            const validA1 = isFinite(a1) && a1 > 0 && a1 < totalForSplit;
+            const a2 = validA1 ? Math.round((totalForSplit - a1) * 100) / 100 : 0;
+            return (
+              <div className="w-full space-y-1">
+                <Label className="text-sm text-muted-foreground">Forma de pagamento</Label>
+                <Select value={rowSelectedMethodId} onValueChange={setRowSelectedMethodId}>
+                  <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                  <SelectContent>
+                    {rowActiveMethods.map((m) => (
+                      <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {totalForSplit > 0 && rowActiveMethods.length >= 2 && (
+                  <div className="pt-1.5 space-y-1.5">
+                    <label className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer select-none">
+                      <input type="checkbox" className="size-3.5 accent-primary" checked={rowSplitEnabled} onChange={(e) => setRowSplitEnabled(e.target.checked)} />
+                      Dividir em 2 meios de pagamento
+                    </label>
+                    {rowSplitEnabled && (
+                      <div className="rounded-md border border-border/60 bg-muted/30 p-2 space-y-1.5">
+                        <div className="space-y-1">
+                          <Label className="text-[11px]">Valor no meio 1 (R$)</Label>
+                          <Input type="number" step="0.01" min="0" inputMode="decimal" value={rowSplitAmount1Input} onChange={(e) => setRowSplitAmount1Input(e.target.value)} placeholder={`Total: ${rawFormatCurrency(totalForSplit)}`} className="h-8 text-sm" />
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-[11px]">Meio 2</Label>
+                          <Select value={rowSplitMethod2Id} onValueChange={setRowSplitMethod2Id}>
+                            <SelectTrigger className="h-8 text-sm"><SelectValue placeholder="Selecione" /></SelectTrigger>
+                            <SelectContent>
+                              {rowActiveMethods.filter((m) => m.id !== rowSelectedMethodId).map((m) => (
+                                <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        {validA1 && (
+                          <div className="flex justify-between text-[11px] pt-1 border-t border-border/40">
+                            <span className="text-muted-foreground">Restante meio 2</span>
+                            <span className="font-semibold text-primary tabular-nums">{rawFormatCurrency(a2)}</span>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            );
+          })()}
           <Label className="text-sm text-muted-foreground">Selecione a data do pagamento</Label>
           <CalendarUI
             mode="single"
