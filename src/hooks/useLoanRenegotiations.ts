@@ -147,7 +147,7 @@ export function useLoanRenegotiations() {
     await fetchAll();
 
     return { revertedPenalty: penaltyApplied };
-  }, [dataOwnerId]);
+  }, [dataOwnerId, fetchAll]);
 
   return { renegotiations, refresh: fetchAll, updateRenegotiation, deleteRenegotiation };
 }
