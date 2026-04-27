@@ -45,7 +45,7 @@ export function computePeriodProfitExpected(
   range: { start: Date; end: Date }
 ): number {
   const periodProfitExpected = loans.reduce((sum, loan) => {
-    const totalWithInterest = calculateTotalWithInterest(loan.amount, loan.interestRate, loan.installments);
+    const totalWithInterest = getLoanTotalWithInterest(loan);
     const totalInterest = Math.max(0, totalWithInterest - loan.amount);
     if (totalInterest <= 0) return sum;
     const interestRatio = totalWithInterest > 0 ? 1 - loan.amount / totalWithInterest : 0;

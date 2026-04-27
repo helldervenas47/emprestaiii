@@ -67,7 +67,7 @@ export function DailyPlanningReport({ loans, payments, installmentSchedules, sal
       }
       // Fallback for loans without explicit schedule rows: use dueDate field
       if (schedules.length === 0 && loan.dueDate === date && loan.paidInstallments < loan.installments) {
-        const total = calculateTotalWithInterest(loan.amount, loan.interestRate, loan.installments);
+        const total = getLoanTotalWithInterest(loan);
         const perInst = total / loan.installments;
         out.push({
           origin: "Empréstimo",

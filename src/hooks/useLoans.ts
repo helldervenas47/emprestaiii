@@ -269,7 +269,7 @@ export function useLoans() {
       await upsertCachedRow("loans", data);
       await rewritePendingRecordId("loans", tempId, data.id);
       if (status === "paid") {
-        const totalReceived = calculateTotalWithInterest(loan.amount, loan.interestRate, loan.installments);
+        const totalReceived = getLoanTotalWithInterest(loan);
         await adjustBalance(totalReceived - loan.amount);
       } else {
         await adjustBalance(-loan.amount);
@@ -616,7 +616,7 @@ export function useLoans() {
       const currentAmount = nextSchedule?.amount
         ?? (loan.customInstallmentValue != null && loan.customInstallmentValue > 0
           ? loan.customInstallmentValue
-          : calculateTotalWithInterest(loan.amount, loan.interestRate, loan.installments) / Math.max(1, loan.installments));
+          : getLoanTotalWithInterest(loan) / Math.max(1, loan.installments));
       const updatedAmount = Math.round((currentAmount + appliedFees) * 100) / 100;
 
       if (nextSchedule?.id) {
@@ -1580,7 +1580,7 @@ export function getLoanRemainingAmount(loan: Loan, payments: Payment[]): number 
     return 0;
   }
 
-  const totalExpected = calculateTotalWithInterest(loan.amount, loan.interestRate, loan.installments);
+  const totalExpected = getLoanTotalWithInterest(loan);
   const totalPaid = payments.filter((p) => p.loanId === loan.id).reduce((sum, p) => sum + p.amount, 0);
 
   return Math.max(0, totalExpected - totalPaid);

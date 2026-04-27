@@ -21,7 +21,7 @@ function getTodayStr(): string {
 }
 
 function getLoanRemaining(loan: Loan, payments: Payment[], installmentSchedules: InstallmentSchedule[], todayStr: string): number {
-  const total = calculateTotalWithInterest(loan.amount, loan.interestRate, loan.installments);
+  const total = getLoanTotalWithInterest(loan);
   const totalPaid = payments.filter((p) => p.loanId === loan.id).reduce((s, p) => s + p.amount, 0);
 
   if (loan.installments >= 2) {

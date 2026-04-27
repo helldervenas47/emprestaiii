@@ -405,7 +405,7 @@ function LoanCardView({
   const [editCommissionRate, setEditCommissionRate] = useState<string>(String(loan.managerCommissionRate ?? 10));
   const managerOptions = useMemo(() => clients.filter((c) => c.isManager && c.active !== false), [clients]);
 
-  const total = calculateTotalWithInterest(loan.amount, loan.interestRate, loan.installments);
+  const total = getLoanTotalWithInterest(loan);
   const totalPaid = getTotalPaid(loan, allPayments);
   const unpaidSchedules = installmentSchedules
     .filter((s) => s.loanId === loan.id && s.installmentNumber > loan.paidInstallments)
@@ -2274,7 +2274,7 @@ function LoanRowView({
     }
   }, [paymentDialog]);
 
-  const total = calculateTotalWithInterest(loan.amount, loan.interestRate, loan.installments);
+  const total = getLoanTotalWithInterest(loan);
   const totalPaid = getTotalPaid(loan, allPayments);
   const unpaidSchedules = installmentSchedules
     .filter((s) => s.loanId === loan.id && s.installmentNumber > loan.paidInstallments)

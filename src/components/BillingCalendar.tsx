@@ -182,7 +182,7 @@ export function BillingCalendar({ loans, payments, installmentSchedules, onPayme
     if (!loan) return;
     const mid = selectedMethodId || null;
 
-    const total = calculateTotalWithInterest(loan.amount, loan.interestRate, loan.installments);
+    const total = getLoanTotalWithInterest(loan);
     const totalPaid = payments.filter(p => p.loanId === loan.id).reduce((s, p) => s + p.amount, 0);
     const remaining = loan.remainingAmount != null && loan.remainingAmount > 0 ? loan.remainingAmount : Math.max(0, total - totalPaid);
 
@@ -228,7 +228,7 @@ export function BillingCalendar({ loans, payments, installmentSchedules, onPayme
     const itemKey = `${item.loanId}-${item.installmentNumber}`;
     const isExpanded = expandedItem === itemKey;
     const loan = item.loan;
-    const total = calculateTotalWithInterest(loan.amount, loan.interestRate, loan.installments);
+    const total = getLoanTotalWithInterest(loan);
     const totalPaid = payments.filter(p => p.loanId === loan.id).reduce((s, p) => s + p.amount, 0);
     const baseRemaining = loan.remainingAmount != null && loan.remainingAmount > 0 ? loan.remainingAmount : Math.max(0, total - totalPaid);
 
@@ -579,7 +579,7 @@ export function BillingCalendar({ loans, payments, installmentSchedules, onPayme
             {paymentDialog?.type === "full" && paymentDialog.loanId && (() => {
               const loan = loans.find(l => l.id === paymentDialog.loanId);
               if (!loan) return null;
-              const total = calculateTotalWithInterest(loan.amount, loan.interestRate, loan.installments);
+              const total = getLoanTotalWithInterest(loan);
               const totalPaid = payments.filter(p => p.loanId === loan.id).reduce((s, p) => s + p.amount, 0);
               const remaining = loan.remainingAmount != null && loan.remainingAmount > 0 ? loan.remainingAmount : Math.max(0, total - totalPaid);
               return (
@@ -592,7 +592,7 @@ export function BillingCalendar({ loans, payments, installmentSchedules, onPayme
             {paymentDialog?.type === "payoff" && paymentDialog.loanId && (() => {
               const loan = loans.find(l => l.id === paymentDialog.loanId);
               if (!loan) return null;
-              const total = calculateTotalWithInterest(loan.amount, loan.interestRate, loan.installments);
+              const total = getLoanTotalWithInterest(loan);
               const totalPaid = payments.filter(p => p.loanId === loan.id).reduce((s, p) => s + p.amount, 0);
               const remaining = loan.remainingAmount != null && loan.remainingAmount > 0 ? loan.remainingAmount : Math.max(0, total - totalPaid);
               return (
