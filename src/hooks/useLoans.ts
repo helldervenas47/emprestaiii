@@ -17,7 +17,9 @@ function rowToLoan(l: any): Loan {
   return {
     id: l.id, borrowerName: l.borrower_name, borrowerId: l.borrower_id,
     amount: Number(l.amount), interestRate: Number(l.interest_rate),
-    interestType: l.interest_type, paymentType: l.payment_type,
+    interestType: l.interest_type,
+    interestRateMode: (l.interest_rate_mode === "monthly" ? "monthly" : "total"),
+    paymentType: l.payment_type,
     startDate: l.start_date, dueDate: l.due_date, originalDueDate: l.original_due_date ?? l.due_date, installments: l.installments,
     paidInstallments: l.paid_installments, status: l.status as Loan["status"],
     remainingAmount: l.remaining_amount != null ? Number(l.remaining_amount) : undefined,
@@ -1518,8 +1520,18 @@ export function useLoans() {
   return { loans, payments, installmentSchedules, addLoan, addPayment, addPartialPayment, payOffLoan, addInterestOnlyPayment, amortizeLoan, renegotiateLoan, updateLoan, deleteLoan, deletePayment, saveSchedule };
 }
 
-export function calculateInstallment(principal: number, rate: number, months: number): number {
-  const total = principal * (1 + rate / 100);
+/**
+ * Calcula o valor da parcela de um empréstimo.
+ * @param mode "total" (legado): rate é % total do contrato; total = PV*(1+rate/100).
+ *             "monthly": rate é % ao mês (juros simples); total = PV*(1+rate*months/100).
+ */
+export function calculateInstallment(
+  principal: number,
+  rate: number,
+  months: number,
+  mode: "total" | "monthly" = "total",
+): number {
+  const total = calculateTotalWithInterest(principal, rate, months, mode);
   return months > 0 ? total / months : total;
 }
 
@@ -1531,8 +1543,32 @@ function computeNextDueDate(currentDueDate: string, frequency: string, paidCount
   return base.toISOString().split("T")[0];
 }
 
-export function calculateTotalWithInterest(principal: number, rate: number, _months: number): number {
+export function calculateTotalWithInterest(
+  principal: number,
+  rate: number,
+  months: number,
+  mode: "total" | "monthly" = "total",
+): number {
+  if (mode === "monthly") {
+    const m = Math.max(1, months || 1);
+    return Math.round(principal * (1 + (rate * m) / 100));
+  }
   return Math.round(principal * (1 + rate / 100));
+}
+
+/** Conveniência: respeita interestRateMode do empréstimo. */
+export function getLoanTotalWithInterest(loan: Loan): number {
+  return calculateTotalWithInterest(
+    loan.amount,
+    loan.interestRate,
+    loan.installments,
+    loan.interestRateMode === "monthly" ? "monthly" : "total",
+  );
+}
+
+/** Equivalente total aproximado (juros simples) dado uma taxa mensal e nº de parcelas. */
+export function monthlyToApproxTotalRate(monthlyRate: number, months: number): number {
+  return monthlyRate * Math.max(1, months || 1);
 }
 
 export function getLoanRemainingAmount(loan: Loan, payments: Payment[]): number {
