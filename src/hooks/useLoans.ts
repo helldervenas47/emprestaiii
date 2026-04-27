@@ -234,6 +234,7 @@ export function useLoans() {
       id: tempId,
       user_id: dataOwnerId, borrower_name: loan.borrowerName, borrower_id: loan.borrowerId,
       amount: loan.amount, interest_rate: loan.interestRate,
+      interest_rate_mode: loan.interestRateMode === "monthly" ? "monthly" : "total",
       interest_type: loan.interestType || "Mensal", payment_type: loan.paymentType || "Parcelado",
       start_date: loan.startDate, due_date: loan.dueDate, original_due_date: loan.dueDate, installments: loan.installments,
       paid_installments: loan.paidInstallments ?? 0, status, tags: loan.tags,
