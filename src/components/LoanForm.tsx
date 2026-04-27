@@ -104,7 +104,7 @@ export function LoanForm({ onAdd, onSaveSchedule, onClose, clients, loans, payme
         setManagerId(selected.id);
       }
     }
-    const fallback = (selected.isManager || hasManager) ? 20 : 30;
+    const fallback = (selected.isManager || hasManager) ? 7 : 10;
     const rateToUse = selected.defaultInterestRate != null ? selected.defaultInterestRate : fallback;
     setForm((prev) => ({ ...prev, interestRate: String(rateToUse) }));
   }, [form.borrowerName]);
