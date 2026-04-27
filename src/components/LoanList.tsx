@@ -673,8 +673,13 @@ function LoanCardView({
   const handlePartialSubmit = () => {
     const val = parseFloat(partialAmount);
     if (val > 0) {
+      if (activeMethods.length > 0 && !selectedMethodId) {
+        toast.error("Selecione a forma de pagamento");
+        return;
+      }
       const dateStr = partialDate.toISOString().split("T")[0];
-      onPartialPayment(val, dateStr);
+      const mid = selectedMethodId || null;
+      onPartialPayment(val, dateStr, mid);
       setPartialAmount("");
       setPartialDate(new Date());
       setShowPartial(false);
@@ -1554,6 +1559,19 @@ function LoanCardView({
                   className="h-9 text-sm mt-1" autoFocus
                 />
               </div>
+              {activeMethods.length > 0 && (
+                <div>
+                  <Label className="text-sm">Forma de pagamento</Label>
+                  <Select value={selectedMethodId} onValueChange={setSelectedMethodId}>
+                    <SelectTrigger className="h-9 text-sm mt-1"><SelectValue placeholder="Selecione" /></SelectTrigger>
+                    <SelectContent>
+                      {activeMethods.map((m) => (
+                        <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
               <div>
                 <Label className="text-sm">Data do pagamento</Label>
                 <div className="mt-1 flex justify-center">
@@ -2452,8 +2470,13 @@ function LoanRowView({
   const handlePartialSubmit = () => {
     const val = parseFloat(partialAmount);
     if (val > 0) {
+      if (rowActiveMethods.length > 0 && !rowSelectedMethodId) {
+        toast.error("Selecione a forma de pagamento");
+        return;
+      }
       const dateStr = partialDate.toISOString().split("T")[0];
-      onPartialPayment(val, dateStr);
+      const mid = rowSelectedMethodId || null;
+      onPartialPayment(val, dateStr, mid);
       setPartialAmount("");
       setPartialDate(new Date());
       setShowPartial(false);
@@ -3012,6 +3035,19 @@ function LoanRowView({
                       className="h-9 text-sm mt-1" autoFocus
                     />
                   </div>
+                  {rowActiveMethods.length > 0 && (
+                    <div>
+                      <Label className="text-sm">Forma de pagamento</Label>
+                      <Select value={rowSelectedMethodId} onValueChange={setRowSelectedMethodId}>
+                        <SelectTrigger className="h-9 text-sm mt-1"><SelectValue placeholder="Selecione" /></SelectTrigger>
+                        <SelectContent>
+                          {rowActiveMethods.map((m) => (
+                            <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
                   <div>
                     <Label className="text-sm">Data do pagamento</Label>
                     <div className="mt-1 flex justify-center">
