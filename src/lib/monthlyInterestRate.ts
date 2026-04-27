@@ -1,5 +1,5 @@
 import { Loan } from "@/types/loan";
-import { calculateTotalWithInterest } from "@/hooks/useLoans";
+import { calculateTotalWithInterest, getLoanTotalWithInterest } from "@/hooks/useLoans";
 
 export interface MonthlyInterestRateSummary {
   totalLent: number;

@@ -1,4 +1,4 @@
-import { calculateTotalWithInterest } from "@/hooks/useLoans";
+import { calculateTotalWithInterest, getLoanTotalWithInterest } from "@/hooks/useLoans";
 
 interface LoanLike {
   id: string;

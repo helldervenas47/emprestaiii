@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { DatePickerField } from "@/components/ui/date-picker-field";
 import { TrendingUp, TrendingDown, Wallet, AlertTriangle, Send, Loader2 } from "lucide-react";
 import { Loan, Payment, InstallmentSchedule, Sale, Expense } from "@/types/loan";
-import { calculateTotalWithInterest } from "@/hooks/useLoans";
+import { calculateTotalWithInterest, getLoanTotalWithInterest } from "@/hooks/useLoans";
 import { useCreditCards } from "@/hooks/useCreditCards";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";

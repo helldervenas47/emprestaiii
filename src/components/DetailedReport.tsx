@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { Loan, Client, Payment, InstallmentSchedule } from "@/types/loan";
 import { Card, CardContent } from "@/components/ui/card";
-import { calculateTotalWithInterest } from "@/hooks/useLoans";
+import { calculateTotalWithInterest, getLoanTotalWithInterest } from "@/hooks/useLoans";
 import { FileText } from "lucide-react";
 
 interface Props {
