@@ -673,8 +673,13 @@ function LoanCardView({
   const handlePartialSubmit = () => {
     const val = parseFloat(partialAmount);
     if (val > 0) {
+      if (activeMethods.length > 0 && !selectedMethodId) {
+        toast.error("Selecione a forma de pagamento");
+        return;
+      }
       const dateStr = partialDate.toISOString().split("T")[0];
-      onPartialPayment(val, dateStr);
+      const mid = selectedMethodId || null;
+      onPartialPayment(val, dateStr, mid);
       setPartialAmount("");
       setPartialDate(new Date());
       setShowPartial(false);
