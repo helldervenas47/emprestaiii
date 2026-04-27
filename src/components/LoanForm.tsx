@@ -52,7 +52,7 @@ export function LoanForm({ onAdd, onSaveSchedule, onClose, clients, loans, payme
   const [form, setForm] = useState({
     borrowerName: "",
     amount: "",
-    interestRate: "30",
+    interestRate: "10",
     installments: "1",
     startDate: defaultStart,
     notes: "",
@@ -71,7 +71,7 @@ export function LoanForm({ onAdd, onSaveSchedule, onClose, clients, loans, payme
 
   const toggleHasManager = (checked: boolean) => {
     setHasManager(checked);
-    setForm((prev) => ({ ...prev, interestRate: checked ? "20" : "30" }));
+    setForm((prev) => ({ ...prev, interestRate: checked ? "7" : "10" }));
   };
 
   const [firstDueDate, setFirstDueDate] = useState<Date>(defaultFirstDue);
