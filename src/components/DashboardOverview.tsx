@@ -542,7 +542,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
     activeLoans.forEach((l) => {
       const totalWithInterest = calculateTotalWithInterest(l.amount, l.interestRate, l.installments);
       const principalPerInstallment = l.installments > 0 ? l.amount / l.installments : 0;
-      const installmentAmount = calculateInstallment(l.amount, l.interestRate, l.installments);
+      const installmentAmount = calculateInstallment(l.amount, l.interestRate, l.installments, l.interestRateMode === "monthly" ? "monthly" : "total");
       const interestPerInstallment = installmentAmount - principalPerInstallment;
 
       if (l.installments >= 2) {
@@ -1083,7 +1083,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
           const pd = new Date(p.date + "T00:00:00");
           return p.loanId === l.id && pd >= d && pd <= end;
         });
-        const installmentAmount = calculateInstallment(l.amount, l.interestRate, l.installments);
+        const installmentAmount = calculateInstallment(l.amount, l.interestRate, l.installments, l.interestRateMode === "monthly" ? "monthly" : "total");
         const principalPerInstallment = l.installments > 0 ? l.amount / l.installments : 0;
         const totalWithInterest = calculateTotalWithInterest(l.amount, l.interestRate, l.installments);
         const interestRatio = totalWithInterest > 0 ? 1 - (l.amount / totalWithInterest) : 0;

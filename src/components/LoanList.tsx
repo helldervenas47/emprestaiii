@@ -1213,7 +1213,7 @@ function LoanCardView({
                       const loanSchedules = installmentSchedules
                         .filter((s) => s.loanId === loan.id)
                         .sort((a, b) => a.installmentNumber - b.installmentNumber);
-                      const defaultAmount = calculateInstallment(loan.amount, loan.interestRate, loan.installments);
+                      const defaultAmount = calculateInstallment(loan.amount, loan.interestRate, loan.installments, loan.interestRateMode === "monthly" ? "monthly" : "total");
                       // Build full schedule: keep paid installments untouched, recalc pending from newDate
                       const totalInstallments = loan.installments;
                       const updatedRows = Array.from({ length: totalInstallments }, (_, i) => {

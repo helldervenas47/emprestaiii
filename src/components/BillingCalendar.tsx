@@ -80,7 +80,7 @@ export function BillingCalendar({ loans, payments, installmentSchedules, onPayme
       if (loan.status === "paid") return;
       if (loan.installments <= 0) return;
       if (loan.paidInstallments >= loan.installments) return;
-      const defaultInstallmentAmount = loan.customInstallmentValue || calculateInstallment(loan.amount, loan.interestRate, loan.installments);
+      const defaultInstallmentAmount = loan.customInstallmentValue || calculateInstallment(loan.amount, loan.interestRate, loan.installments, loan.interestRateMode === "monthly" ? "monthly" : "total");
 
       const nextInstallment = loan.paidInstallments + 1;
       const dueBase = new Date(loan.dueDate + "T00:00:00");
