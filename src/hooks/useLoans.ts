@@ -1557,8 +1557,10 @@ export function calculateTotalWithInterest(
   return Math.round(principal * (1 + rate / 100));
 }
 
-/** Conveniência: respeita interestRateMode do empréstimo. */
-export function getLoanTotalWithInterest(loan: Loan): number {
+/** Conveniência: respeita interestRateMode do empréstimo. Aceita objetos parciais. */
+export function getLoanTotalWithInterest(
+  loan: { amount: number; interestRate: number; installments: number; interestRateMode?: "total" | "monthly" | null },
+): number {
   return calculateTotalWithInterest(
     loan.amount,
     loan.interestRate,
