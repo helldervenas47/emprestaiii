@@ -113,9 +113,12 @@ export function LoanForm({ onAdd, onSaveSchedule, onClose, clients, loans, payme
   const rate = parseFloat(form.interestRate) || 0;
   const installments = parseInt(form.installments) || 0;
 
-  const calcTotal = installments > 0 ? calculateTotalWithInterest(amount, rate, installments) : 0;
+  // Novos contratos: taxa SEMPRE mensal (juros simples). Total = PV * (1 + i*n).
+  const calcTotal = installments > 0 ? calculateTotalWithInterest(amount, rate, installments, "monthly") : 0;
   const calcMonthly = installments > 0 ? calcTotal / installments : 0;
   const calcInterest = calcTotal - amount;
+  // Equivalente "total aproximado" para exibição quando há mais de 1 parcela.
+  const approxTotalRate = installments > 1 ? rate * installments : rate;
 
   const [monthlyOverride, setMonthlyOverride] = useState("");
   const [interestOverride, setInterestOverride] = useState("");
@@ -228,7 +231,7 @@ export function LoanForm({ onAdd, onSaveSchedule, onClose, clients, loans, payme
     }
     setSubmitting(true);
 
-    const totalWithInterest = calculateTotalWithInterest(amount, rate, installments);
+    const totalWithInterest = calculateTotalWithInterest(amount, rate, installments, "monthly");
 
     const firstRowVal = installmentRows.length > 0 ? parseFloat(installmentRows[0].value) || 0 : 0;
     const defaultCalc = calcMonthly;
@@ -243,6 +246,7 @@ export function LoanForm({ onAdd, onSaveSchedule, onClose, clients, loans, payme
       borrowerId: selectedClient.id,
       amount,
       interestRate: rate,
+      interestRateMode: "monthly",
       interestType: form.interestType,
       paymentType: installments >= 2 ? "Parcelado" : "Juros",
       installments,
@@ -435,12 +439,17 @@ export function LoanForm({ onAdd, onSaveSchedule, onClose, clients, loans, payme
                 />
               </div>
               <div>
-                <Label htmlFor="interestRate">Juros (%)</Label>
+                <Label htmlFor="interestRate">Taxa de Juros Mensal (%)</Label>
                 <Input
                   id="interestRate" type="number" step="0.1" min="0"
                   value={form.interestRate} onChange={(e) => update("interestRate", e.target.value)}
                   placeholder="0" required
                 />
+                {installments > 1 && rate > 0 && (
+                  <p className="text-[11px] text-muted-foreground mt-1">
+                    Equivalente total aproximado: {approxTotalRate.toFixed(2)}% em {installments}x
+                  </p>
+                )}
               </div>
             </div>
 
