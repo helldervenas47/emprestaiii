@@ -441,9 +441,9 @@ export function LoanForm({ onAdd, onSaveSchedule, onClose, clients, loans, payme
                   value={form.interestRate} onChange={(e) => update("interestRate", e.target.value)}
                   placeholder="0" required
                 />
-                {amount > 0 && installments > 0 && rate > 0 && (
+                {installments > 0 && rate > 0 && (
                   <p className="text-[11px] text-muted-foreground mt-1">
-                    Juros mensal: {formatCurrency((calcTotal - amount) / installments)}
+                    Juros mensal: {(rate / installments).toFixed(2)}%
                   </p>
                 )}
               </div>
