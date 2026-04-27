@@ -874,6 +874,7 @@ export type Database = {
           id: string
           installments: number
           interest_rate: number
+          interest_rate_mode: string
           interest_type: string
           late_interest_type: string | null
           late_interest_value: number | null
@@ -904,6 +905,7 @@ export type Database = {
           id?: string
           installments?: number
           interest_rate?: number
+          interest_rate_mode?: string
           interest_type?: string
           late_interest_type?: string | null
           late_interest_value?: number | null
@@ -934,6 +936,7 @@ export type Database = {
           id?: string
           installments?: number
           interest_rate?: number
+          interest_rate_mode?: string
           interest_type?: string
           late_interest_type?: string | null
           late_interest_value?: number | null
