@@ -46,7 +46,7 @@ function getInstallmentAmount(loan: Loan, schedules: InstallmentSchedule[]): num
   if (loan.remainingAmount && loan.remainingAmount > 0) {
     return loan.remainingAmount;
   }
-  return loan.customInstallmentValue || calculateInstallment(loan.amount, loan.interestRate, loan.installments, loan.interestRateMode === "monthly" ? "monthly" : "total");
+  return loan.customInstallmentValue || calculateInstallment(loan.amount, loan.interestRate, loan.installments);
 }
 
 interface LoanItem {

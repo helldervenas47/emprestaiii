@@ -5,8 +5,6 @@ export interface Loan {
   amount: number;
   interestRate: number;
   interestType: string;
-  /** Como interpretar interestRate: "total" (legado, % total do contrato) ou "monthly" (% ao mês). */
-  interestRateMode?: "total" | "monthly";
   paymentType: string;
   startDate: string;
   dueDate: string;

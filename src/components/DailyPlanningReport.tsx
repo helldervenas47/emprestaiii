@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { DatePickerField } from "@/components/ui/date-picker-field";
 import { TrendingUp, TrendingDown, Wallet, AlertTriangle, Send, Loader2 } from "lucide-react";
 import { Loan, Payment, InstallmentSchedule, Sale, Expense } from "@/types/loan";
-import { calculateTotalWithInterest, getLoanTotalWithInterest } from "@/hooks/useLoans";
+import { calculateTotalWithInterest } from "@/hooks/useLoans";
 import { useCreditCards } from "@/hooks/useCreditCards";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -67,7 +67,7 @@ export function DailyPlanningReport({ loans, payments, installmentSchedules, sal
       }
       // Fallback for loans without explicit schedule rows: use dueDate field
       if (schedules.length === 0 && loan.dueDate === date && loan.paidInstallments < loan.installments) {
-        const total = getLoanTotalWithInterest(loan);
+        const total = calculateTotalWithInterest(loan.amount, loan.interestRate, loan.installments);
         const perInst = total / loan.installments;
         out.push({
           origin: "Empréstimo",

@@ -113,7 +113,7 @@ export function AdjustDueDateDialog({
     const loanSchedules = installmentSchedules
       .filter((s) => s.loanId === loan.id)
       .sort((a, b) => a.installmentNumber - b.installmentNumber);
-    const defaultAmount = calculateInstallment(loan.amount, loan.interestRate, loan.installments, loan.interestRateMode === "monthly" ? "monthly" : "total");
+    const defaultAmount = calculateInstallment(loan.amount, loan.interestRate, loan.installments);
     const newDateObj = new Date(newDate + "T00:00:00");
     const totalInstallments = loan.installments;
 
