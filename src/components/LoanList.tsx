@@ -1559,6 +1559,19 @@ function LoanCardView({
                   className="h-9 text-sm mt-1" autoFocus
                 />
               </div>
+              {activeMethods.length > 0 && (
+                <div>
+                  <Label className="text-sm">Forma de pagamento</Label>
+                  <Select value={selectedMethodId} onValueChange={setSelectedMethodId}>
+                    <SelectTrigger className="h-9 text-sm mt-1"><SelectValue placeholder="Selecione" /></SelectTrigger>
+                    <SelectContent>
+                      {activeMethods.map((m) => (
+                        <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
               <div>
                 <Label className="text-sm">Data do pagamento</Label>
                 <div className="mt-1 flex justify-center">
