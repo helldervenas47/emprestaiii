@@ -14,7 +14,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Calendar as CalendarUI } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { calculateInstallment, calculateTotalWithInterest } from "@/hooks/useLoans";
+import { calculateInstallment, calculateTotalWithInterest, getLoanTotalWithInterest } from "@/hooks/useLoans";
 import { cn } from "@/lib/utils";
 import {
   CheckCircle, Trash2, DollarSign, User, Calendar as CalendarIcon, LayoutGrid, List,
@@ -405,7 +405,7 @@ function LoanCardView({
   const [editCommissionRate, setEditCommissionRate] = useState<string>(String(loan.managerCommissionRate ?? 10));
   const managerOptions = useMemo(() => clients.filter((c) => c.isManager && c.active !== false), [clients]);
 
-  const total = calculateTotalWithInterest(loan.amount, loan.interestRate, loan.installments);
+  const total = getLoanTotalWithInterest(loan);
   const totalPaid = getTotalPaid(loan, allPayments);
   const unpaidSchedules = installmentSchedules
     .filter((s) => s.loanId === loan.id && s.installmentNumber > loan.paidInstallments)
@@ -1213,7 +1213,7 @@ function LoanCardView({
                       const loanSchedules = installmentSchedules
                         .filter((s) => s.loanId === loan.id)
                         .sort((a, b) => a.installmentNumber - b.installmentNumber);
-                      const defaultAmount = calculateInstallment(loan.amount, loan.interestRate, loan.installments);
+                      const defaultAmount = calculateInstallment(loan.amount, loan.interestRate, loan.installments, loan.interestRateMode === "monthly" ? "monthly" : "total");
                       // Build full schedule: keep paid installments untouched, recalc pending from newDate
                       const totalInstallments = loan.installments;
                       const updatedRows = Array.from({ length: totalInstallments }, (_, i) => {
@@ -2274,7 +2274,7 @@ function LoanRowView({
     }
   }, [paymentDialog]);
 
-  const total = calculateTotalWithInterest(loan.amount, loan.interestRate, loan.installments);
+  const total = getLoanTotalWithInterest(loan);
   const totalPaid = getTotalPaid(loan, allPayments);
   const unpaidSchedules = installmentSchedules
     .filter((s) => s.loanId === loan.id && s.installmentNumber > loan.paidInstallments)

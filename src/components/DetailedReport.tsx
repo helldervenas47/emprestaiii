@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { Loan, Client, Payment, InstallmentSchedule } from "@/types/loan";
 import { Card, CardContent } from "@/components/ui/card";
-import { calculateTotalWithInterest } from "@/hooks/useLoans";
+import { calculateTotalWithInterest, getLoanTotalWithInterest } from "@/hooks/useLoans";
 import { FileText } from "lucide-react";
 
 interface Props {
@@ -21,7 +21,7 @@ function getTodayStr(): string {
 }
 
 function getLoanRemaining(loan: Loan, payments: Payment[], installmentSchedules: InstallmentSchedule[], todayStr: string): number {
-  const total = calculateTotalWithInterest(loan.amount, loan.interestRate, loan.installments);
+  const total = getLoanTotalWithInterest(loan);
   const totalPaid = payments.filter((p) => p.loanId === loan.id).reduce((s, p) => s + p.amount, 0);
 
   if (loan.installments >= 2) {
