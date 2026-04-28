@@ -248,6 +248,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
   const [showInterestDetail, setShowInterestDetail] = useState(false);
   const [showInterestExpectedDetail, setShowInterestExpectedDetail] = useState(false);
   const [interestExpectedFilter, setInterestExpectedFilter] = useState<"pending" | "paid">("pending");
+  const [showHealthInfo, setShowHealthInfo] = useState(false);
   const [riskAiOpen, setRiskAiOpen] = useState(false);
   const [riskAiLoading, setRiskAiLoading] = useState(false);
   const [riskAiReport, setRiskAiReport] = useState("");
@@ -1541,6 +1542,15 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
                 <p className="text-[10px] text-muted-foreground">Indicadores principais da carteira no período</p>
               </div>
             </div>
+            <button
+              type="button"
+              onClick={() => setShowHealthInfo(true)}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-2.5 py-1.5 text-xs text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+              aria-label="Como cada indicador é calculado"
+            >
+              <Info className="h-3.5 w-3.5" />
+              Como é calculado?
+            </button>
           </div>
           <div className="flex flex-col items-center gap-4 sm:flex-row sm:gap-6">
             {/* Gauge */}
@@ -2011,6 +2021,64 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
           })()}
         </CardContent>
       </Card>
+      {/* Health Info Dialog */}
+      <Dialog open={showHealthInfo} onOpenChange={setShowHealthInfo}>
+        <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Sparkles className="h-4 w-4 text-primary" />
+              Como cada indicador é calculado
+            </DialogTitle>
+          </DialogHeader>
+          <div className="mt-2 space-y-4 text-sm">
+            <div className="rounded-lg border border-border bg-muted/30 p-3">
+              <p className="font-semibold text-foreground mb-1">Score (0–100)</p>
+              <p className="text-muted-foreground text-xs leading-relaxed">
+                Pontuação geral da carteira combinando taxa de recebimento, inadimplência e atividade dos contratos.
+                Acima de <span className="text-success font-medium">70</span> = saudável,
+                entre <span className="text-warning font-medium">40 e 70</span> = atenção,
+                abaixo de <span className="text-destructive font-medium">40</span> = crítico.
+              </p>
+            </div>
+
+            <div className="rounded-lg border border-border bg-muted/30 p-3">
+              <p className="font-semibold text-foreground mb-1">Taxa de Recebimento</p>
+              <p className="text-muted-foreground text-xs leading-relaxed">
+                Percentual do que já foi efetivamente recebido em relação ao total esperado da carteira no período.
+                <br />
+                <span className="font-mono text-[11px]">= (Recebido ÷ Total esperado) × 100</span>
+              </p>
+            </div>
+
+            <div className="rounded-lg border border-border bg-muted/30 p-3">
+              <p className="font-semibold text-foreground mb-1">Inadimplência</p>
+              <p className="text-muted-foreground text-xs leading-relaxed">
+                Percentual do valor da carteira que está em atraso em relação ao total a receber.
+                <br />
+                <span className="font-mono text-[11px]">= (Valor atrasado ÷ Total a receber) × 100</span>
+              </p>
+            </div>
+
+            <div className="rounded-lg border border-border bg-muted/30 p-3">
+              <p className="font-semibold text-foreground mb-1">Recebido</p>
+              <p className="text-muted-foreground text-xs leading-relaxed">
+                Soma de todos os pagamentos efetivamente registrados no período selecionado (critério: data de pagamento).
+                Inclui parcelas, juros avulsos e quitações.
+              </p>
+            </div>
+
+            <div className="rounded-lg border border-border bg-muted/30 p-3">
+              <p className="font-semibold text-foreground mb-1">Atrasado</p>
+              <p className="text-muted-foreground text-xs leading-relaxed">
+                Soma do valor restante de todas as parcelas com vencimento anterior à data de hoje que ainda não foram quitadas.
+                O número de contratos abaixo é a quantidade de empréstimos com pelo menos uma parcela vencida.
+                Clique no card para ver o detalhamento por cliente.
+              </p>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       {/* Interest Detail Sheet */}
       <Sheet open={showInterestDetail} onOpenChange={setShowInterestDetail}>
         <SheetContent side="bottom" className="max-h-[80vh] overflow-y-auto">
