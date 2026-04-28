@@ -5,6 +5,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
 import { extractPiggyId } from "./usePiggyBanks";
 import { notifyRemoteUpdate } from "@/lib/realtimeToast";
+import { adjustBalance } from "@/lib/balance";
+import { recordLedger, removeLedgerByRef } from "@/lib/ledger";
 import {
   cacheRows, getCachedRows, upsertCachedRow, removeCachedRow,
   enqueueMutation, rewritePendingRecordId,
