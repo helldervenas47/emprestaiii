@@ -80,7 +80,7 @@ export function LedgerView({ readOnly = false }: Props) {
     <div className="space-y-4">
       {/* Header com saldo */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card>
+        <Card no3d>
           <CardContent className="p-4 flex items-center gap-3">
             <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
               <Wallet className="h-5 w-5 text-primary" />
@@ -91,7 +91,7 @@ export function LedgerView({ readOnly = false }: Props) {
             </div>
           </CardContent>
         </Card>
-        <Card>
+        <Card no3d>
           <CardContent className="p-4 flex items-center gap-3">
             <div className="h-10 w-10 rounded-full bg-success/10 flex items-center justify-center">
               <ArrowUpRight className="h-5 w-5 text-success" />
@@ -102,7 +102,7 @@ export function LedgerView({ readOnly = false }: Props) {
             </div>
           </CardContent>
         </Card>
-        <Card>
+        <Card no3d>
           <CardContent className="p-4 flex items-center gap-3">
             <div className="h-10 w-10 rounded-full bg-destructive/10 flex items-center justify-center">
               <ArrowDownRight className="h-5 w-5 text-destructive" />
@@ -149,7 +149,7 @@ export function LedgerView({ readOnly = false }: Props) {
       </div>
 
       {/* Tabela */}
-      <Card>
+      <Card no3d>
         <CardContent className="p-0 overflow-x-auto">
           {loading ? (
             <div className="p-8 text-center text-muted-foreground">Carregando…</div>
