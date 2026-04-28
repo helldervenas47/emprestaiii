@@ -232,6 +232,15 @@ export function ClientList({ clients, loans, payments, installmentSchedules, onD
             {opt.label} ({opt.count})
           </button>
         ))}
+        <button
+          type="button"
+          onClick={() => setRecentAdjustOpen(true)}
+          className="px-3 py-1.5 rounded-xl text-xs font-medium transition-all duration-200 border bg-card border-border text-muted-foreground hover:opacity-80 inline-flex items-center gap-1.5"
+          title="Ver clientes com limite ajustado recentemente"
+        >
+          <Sparkles className="h-3.5 w-3.5" />
+          Limites ajustados
+        </button>
       </div>
       <div className="flex gap-2">
         <div className="relative flex-1">
