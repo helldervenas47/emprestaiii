@@ -77,39 +77,39 @@ export function LedgerView({ readOnly = false }: Props) {
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3 sm:space-y-4">
       {/* Header com saldo */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card no3d>
-          <CardContent className="p-4 flex items-center gap-3">
-            <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
-              <Wallet className="h-5 w-5 text-primary" />
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-2 sm:gap-4">
+        <Card no3d className="col-span-2 md:col-span-1">
+          <CardContent className="p-3 sm:p-4 flex items-center gap-3">
+            <div className="h-9 w-9 sm:h-10 sm:w-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+              <Wallet className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
             </div>
-            <div>
-              <p className="text-xs text-muted-foreground">Saldo da conta</p>
-              <p className={`text-xl font-bold ${balance < 0 ? "text-destructive" : "text-foreground"}`}>{formatBRL(balance)}</p>
-            </div>
-          </CardContent>
-        </Card>
-        <Card no3d>
-          <CardContent className="p-4 flex items-center gap-3">
-            <div className="h-10 w-10 rounded-full bg-success/10 flex items-center justify-center">
-              <ArrowUpRight className="h-5 w-5 text-success" />
-            </div>
-            <div>
-              <p className="text-xs text-muted-foreground">Entradas (filtro)</p>
-              <p className="text-xl font-bold text-success">{formatBRL(totals.totalIn)}</p>
+            <div className="min-w-0">
+              <p className="text-[11px] sm:text-xs text-muted-foreground">Saldo da conta</p>
+              <p className={`text-base sm:text-xl font-bold truncate ${balance < 0 ? "text-destructive" : "text-foreground"}`}>{formatBRL(balance)}</p>
             </div>
           </CardContent>
         </Card>
         <Card no3d>
-          <CardContent className="p-4 flex items-center gap-3">
-            <div className="h-10 w-10 rounded-full bg-destructive/10 flex items-center justify-center">
-              <ArrowDownRight className="h-5 w-5 text-destructive" />
+          <CardContent className="p-3 sm:p-4 flex items-center gap-2 sm:gap-3">
+            <div className="h-9 w-9 sm:h-10 sm:w-10 rounded-full bg-success/10 flex items-center justify-center shrink-0">
+              <ArrowUpRight className="h-4 w-4 sm:h-5 sm:w-5 text-success" />
             </div>
-            <div>
-              <p className="text-xs text-muted-foreground">Saídas (filtro)</p>
-              <p className="text-xl font-bold text-destructive">{formatBRL(totals.totalOut)}</p>
+            <div className="min-w-0">
+              <p className="text-[11px] sm:text-xs text-muted-foreground">Entradas</p>
+              <p className="text-sm sm:text-xl font-bold text-success truncate">{formatBRL(totals.totalIn)}</p>
+            </div>
+          </CardContent>
+        </Card>
+        <Card no3d>
+          <CardContent className="p-3 sm:p-4 flex items-center gap-2 sm:gap-3">
+            <div className="h-9 w-9 sm:h-10 sm:w-10 rounded-full bg-destructive/10 flex items-center justify-center shrink-0">
+              <ArrowDownRight className="h-4 w-4 sm:h-5 sm:w-5 text-destructive" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-[11px] sm:text-xs text-muted-foreground">Saídas</p>
+              <p className="text-sm sm:text-xl font-bold text-destructive truncate">{formatBRL(totals.totalOut)}</p>
             </div>
           </CardContent>
         </Card>
@@ -117,9 +117,9 @@ export function LedgerView({ readOnly = false }: Props) {
 
       {/* Filtros + ações */}
       <div className="flex flex-wrap items-center gap-2">
-        <ListFilter className="h-4 w-4 text-muted-foreground" />
+        <ListFilter className="hidden sm:block h-4 w-4 text-muted-foreground" />
         <Select value={filterDir} onValueChange={(v: any) => setFilterDir(v)}>
-          <SelectTrigger className="h-9 w-[140px]"><SelectValue /></SelectTrigger>
+          <SelectTrigger className="h-9 flex-1 min-w-[140px] sm:flex-none sm:w-[140px]"><SelectValue /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Todos os tipos</SelectItem>
             <SelectItem value="in">Entradas</SelectItem>
@@ -127,7 +127,7 @@ export function LedgerView({ readOnly = false }: Props) {
           </SelectContent>
         </Select>
         <Select value={filterCat} onValueChange={(v: any) => setFilterCat(v)}>
-          <SelectTrigger className="h-9 w-[180px]"><SelectValue /></SelectTrigger>
+          <SelectTrigger className="h-9 flex-1 min-w-[140px] sm:flex-none sm:w-[180px]"><SelectValue /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Todas as categorias</SelectItem>
             {Object.entries(categoryLabels).map(([k, v]) => (
@@ -135,62 +135,94 @@ export function LedgerView({ readOnly = false }: Props) {
             ))}
           </SelectContent>
         </Select>
-        <div className="flex-1" />
+        <div className="hidden sm:block flex-1" />
         {!readOnly && (
           <>
-            <Button variant="outline" size="sm" onClick={handleRecompute} title="Recalcula o saldo somando todos os lançamentos">
-              <RefreshCw className="h-4 w-4 mr-1" /> Recalcular saldo
+            <Button variant="outline" size="sm" onClick={handleRecompute} className="flex-1 sm:flex-none" title="Recalcula o saldo somando todos os lançamentos">
+              <RefreshCw className="h-4 w-4 sm:mr-1" /> <span className="hidden sm:inline">Recalcular saldo</span><span className="sm:hidden ml-1">Recalcular</span>
             </Button>
-            <Button size="sm" onClick={() => setAdjustOpen(true)}>
-              <Plus className="h-4 w-4 mr-1" /> Ajustar saldo
+            <Button size="sm" onClick={() => setAdjustOpen(true)} className="flex-1 sm:flex-none">
+              <Plus className="h-4 w-4 sm:mr-1" /> <span className="hidden sm:inline">Ajustar saldo</span><span className="sm:hidden ml-1">Ajustar</span>
             </Button>
           </>
         )}
       </div>
 
-      {/* Tabela */}
-      <Card no3d>
-        <CardContent className="p-0 overflow-x-auto">
-          {loading ? (
-            <div className="p-8 text-center text-muted-foreground">Carregando…</div>
-          ) : filtered.length === 0 ? (
-            <div className="p-8 text-center text-muted-foreground">Nenhum lançamento encontrado.</div>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Data</TableHead>
-                  <TableHead>Descrição</TableHead>
-                  <TableHead>Categoria</TableHead>
-                  <TableHead className="text-right">Valor</TableHead>
-                  {!readOnly && <TableHead className="w-12" />}
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filtered.map((e) => (
-                  <TableRow key={e.id}>
-                    <TableCell className="whitespace-nowrap text-sm">{e.occurred_on}</TableCell>
-                    <TableCell className="text-sm">{e.description}</TableCell>
-                    <TableCell>
-                      <Badge variant="outline" className="text-[10px]">{categoryLabels[e.category]}</Badge>
-                    </TableCell>
-                    <TableCell className={`text-right font-semibold ${e.direction === "in" ? "text-success" : "text-destructive"}`}>
-                      {e.direction === "in" ? "+" : "−"} {formatBRL(Number(e.amount))}
-                    </TableCell>
-                    {!readOnly && (
-                      <TableCell>
-                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleDelete(e.id)} title="Excluir lançamento">
+      {/* Lançamentos: tabela no desktop, cards no mobile */}
+      {loading ? (
+        <Card no3d><CardContent className="p-8 text-center text-muted-foreground">Carregando…</CardContent></Card>
+      ) : filtered.length === 0 ? (
+        <Card no3d><CardContent className="p-8 text-center text-muted-foreground">Nenhum lançamento encontrado.</CardContent></Card>
+      ) : (
+        <>
+          {/* Mobile: lista de cards */}
+          <div className="sm:hidden space-y-2">
+            {filtered.map((e) => (
+              <Card no3d key={e.id}>
+                <CardContent className="p-3">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-medium text-foreground line-clamp-2">{e.description}</p>
+                      <div className="flex items-center gap-2 mt-1">
+                        <span className="text-[11px] text-muted-foreground">{e.occurred_on}</span>
+                        <Badge variant="outline" className="text-[10px] h-4 px-1.5">{categoryLabels[e.category]}</Badge>
+                      </div>
+                    </div>
+                    <div className="flex flex-col items-end shrink-0">
+                      <span className={`text-sm font-semibold whitespace-nowrap ${e.direction === "in" ? "text-success" : "text-destructive"}`}>
+                        {e.direction === "in" ? "+" : "−"} {formatBRL(Number(e.amount))}
+                      </span>
+                      {!readOnly && (
+                        <Button variant="ghost" size="icon" className="h-6 w-6 mt-1" onClick={() => handleDelete(e.id)} title="Excluir lançamento">
                           <Trash2 className="h-3.5 w-3.5 text-destructive" />
                         </Button>
-                      </TableCell>
-                    )}
+                      )}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+
+          {/* Desktop: tabela */}
+          <Card no3d className="hidden sm:block">
+            <CardContent className="p-0 overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Data</TableHead>
+                    <TableHead>Descrição</TableHead>
+                    <TableHead>Categoria</TableHead>
+                    <TableHead className="text-right">Valor</TableHead>
+                    {!readOnly && <TableHead className="w-12" />}
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )}
-        </CardContent>
-      </Card>
+                </TableHeader>
+                <TableBody>
+                  {filtered.map((e) => (
+                    <TableRow key={e.id}>
+                      <TableCell className="whitespace-nowrap text-sm">{e.occurred_on}</TableCell>
+                      <TableCell className="text-sm">{e.description}</TableCell>
+                      <TableCell>
+                        <Badge variant="outline" className="text-[10px]">{categoryLabels[e.category]}</Badge>
+                      </TableCell>
+                      <TableCell className={`text-right font-semibold ${e.direction === "in" ? "text-success" : "text-destructive"}`}>
+                        {e.direction === "in" ? "+" : "−"} {formatBRL(Number(e.amount))}
+                      </TableCell>
+                      {!readOnly && (
+                        <TableCell>
+                          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleDelete(e.id)} title="Excluir lançamento">
+                            <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                          </Button>
+                        </TableCell>
+                      )}
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        </>
+      )}
 
       {/* Diálogo Ajustar saldo */}
       <AdjustBalanceDialog
