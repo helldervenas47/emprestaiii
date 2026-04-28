@@ -1,6 +1,5 @@
-import type { Loan } from "@/types/loan";
-import type { InstallmentSchedule } from "@/hooks/useLoans";
-import { calculateInstallment } from "@/lib/loanLateFees";
+import type { Loan, InstallmentSchedule } from "@/types/loan";
+import { calculateInstallment } from "@/hooks/useLoans";
 
 /**
  * Retorna o valor da próxima parcela em aberto do contrato.
