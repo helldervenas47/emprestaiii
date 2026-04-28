@@ -72,6 +72,11 @@ export function PersonalAIInsightsCard({
   categoryStats = [],
 }: Props) {
   const { data, loading, error, generate } = usePersonalInsights(month);
+  const { categories: customCategoriesRaw } = usePersonalExpenseCategories();
+  const customCategoryList = useMemo(
+    () => customCategoriesRaw.map((c) => ({ name: c.name, icon: resolvePersonalIcon(c.icon), color: c.color })),
+    [customCategoriesRaw],
+  );
   const lastAutoKeyRef = useRef<string | null>(null);
   const [hasAutoTried, setHasAutoTried] = useState(false);
   const [expandedCat, setExpandedCat] = useState<string | null>(null);
