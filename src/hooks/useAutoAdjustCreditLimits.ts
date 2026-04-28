@@ -28,6 +28,7 @@ export function useAutoAdjustCreditLimits(
   payments: Payment[],
 ) {
   const { limits, ensureLimit, updateLimit } = useCreditLimits();
+  const { settings } = useAccountSettings();
   const lastRunRef = useRef<Map<string, number>>(new Map());
   const inFlightRef = useRef<Set<string>>(new Set());
 
