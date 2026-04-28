@@ -54,9 +54,12 @@ export function useAutoAdjustCreditLimits(
 
         const currentLimit = limit?.currentLimit ?? DEFAULT_INITIAL_LIMIT;
         const proposal = computeAutoLimitAdjustment(currentLimit, metrics);
+        // Cap proposal at the global maximum credit limit, if any
+        const cap = settings.maxCreditLimit;
+        const cappedNew = cap != null ? Math.min(proposal.newLimit, cap) : proposal.newLimit;
 
         // No change → nothing to do
-        if (proposal.newLimit === currentLimit) {
+        if (cappedNew === currentLimit) {
           lastRunRef.current.set(client.id, now);
           continue;
         }
