@@ -248,6 +248,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
   const [showInterestDetail, setShowInterestDetail] = useState(false);
   const [showInterestExpectedDetail, setShowInterestExpectedDetail] = useState(false);
   const [interestExpectedFilter, setInterestExpectedFilter] = useState<"pending" | "paid">("pending");
+  const [showHealthInfo, setShowHealthInfo] = useState(false);
   const [riskAiOpen, setRiskAiOpen] = useState(false);
   const [riskAiLoading, setRiskAiLoading] = useState(false);
   const [riskAiReport, setRiskAiReport] = useState("");
