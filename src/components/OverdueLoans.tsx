@@ -4,7 +4,7 @@ import { Loan, Client, Payment, InstallmentSchedule } from "@/types/loan";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { getInstallmentAmount, getOverdueAmount, getOverdueInstallments } from "@/lib/loanInstallmentAmount";
+import { getInstallmentAmount, getOverdueInstallments } from "@/lib/loanInstallmentAmount";
 import { AlertTriangle, Search, Phone, Calendar, DollarSign, Clock } from "lucide-react";
 import { DetailedReport } from "@/components/DetailedReport";
 import { TelegramBillingScheduleCard } from "@/components/TelegramBillingScheduleCard";
