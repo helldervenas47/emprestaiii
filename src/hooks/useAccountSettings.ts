@@ -6,11 +6,12 @@ import { setAppTimezone, getAppTimezone, subscribeAppTimezone } from "@/lib/time
 export interface AccountSettings {
   timezone: string;
   simulationInterestRate: number;
+  maxCreditLimit: number | null;
 }
 
 export function useAccountSettings() {
   const { user, dataOwnerId } = useAuth();
-  const [settings, setSettings] = useState<AccountSettings>({ timezone: getAppTimezone(), simulationInterestRate: 30 });
+  const [settings, setSettings] = useState<AccountSettings>({ timezone: getAppTimezone(), simulationInterestRate: 30, maxCreditLimit: null });
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
 
@@ -25,13 +26,19 @@ export function useAccountSettings() {
     setLoading(true);
     const { data } = await (supabase as any)
       .from("account_settings")
-      .select("timezone, simulation_interest_rate")
+      .select("timezone, simulation_interest_rate, max_credit_limit")
       .eq("owner_id", dataOwnerId)
       .maybeSingle();
     const tz = data?.timezone || "America/Sao_Paulo";
     const simulationInterestRate = Number(data?.simulation_interest_rate ?? 30);
+    const rawMax = data?.max_credit_limit;
+    const maxCreditLimit = rawMax === null || rawMax === undefined ? null : Number(rawMax);
     setAppTimezone(tz);
-    setSettings({ timezone: tz, simulationInterestRate: Number.isFinite(simulationInterestRate) ? simulationInterestRate : 30 });
+    setSettings({
+      timezone: tz,
+      simulationInterestRate: Number.isFinite(simulationInterestRate) ? simulationInterestRate : 30,
+      maxCreditLimit: maxCreditLimit !== null && Number.isFinite(maxCreditLimit) ? maxCreditLimit : null,
+    });
     setLoading(false);
   }, [user, dataOwnerId]);
 
@@ -48,9 +55,12 @@ export function useAccountSettings() {
         const tz = (payload.new as any)?.timezone;
         if (tz) setAppTimezone(tz);
         if (payload.new) {
+          const rawMax = (payload.new as any)?.max_credit_limit;
+          const maxCreditLimit = rawMax === null || rawMax === undefined ? null : Number(rawMax);
           setSettings({
             timezone: (payload.new as any)?.timezone || getAppTimezone(),
             simulationInterestRate: Number((payload.new as any)?.simulation_interest_rate ?? 30) || 30,
+            maxCreditLimit: maxCreditLimit !== null && Number.isFinite(maxCreditLimit) ? maxCreditLimit : null,
           });
         }
       },
@@ -82,5 +92,19 @@ export function useAccountSettings() {
     return !error;
   }, [user, dataOwnerId]);
 
-  return { settings, loading, saving, updateTimezone, updateSimulationInterestRate };
+  /**
+   * Sets (or clears) the global maximum credit limit. Pass `null` to remove the cap.
+   */
+  const updateMaxCreditLimit = useCallback(async (maxCreditLimit: number | null) => {
+    if (!user || !dataOwnerId) return false;
+    setSaving(true);
+    setSettings((current) => ({ ...current, maxCreditLimit }));
+    const { error } = await (supabase as any)
+      .from("account_settings")
+      .upsert({ owner_id: dataOwnerId, max_credit_limit: maxCreditLimit }, { onConflict: "owner_id" });
+    setSaving(false);
+    return !error;
+  }, [user, dataOwnerId]);
+
+  return { settings, loading, saving, updateTimezone, updateSimulationInterestRate, updateMaxCreditLimit };
 }
