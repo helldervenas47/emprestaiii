@@ -149,8 +149,8 @@ export async function listLedger(): Promise<LedgerEntry[]> {
     .from("account_ledger")
     .select("*")
     .eq("user_id", ownerId)
-    .order("occurred_on", { ascending: false })
     .order("created_at", { ascending: false })
+    .order("occurred_on", { ascending: false })
     .limit(1000);
   return (data || []) as LedgerEntry[];
 }
