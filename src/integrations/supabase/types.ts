@@ -69,6 +69,7 @@ export type Database = {
         Row: {
           created_at: string
           id: string
+          max_credit_limit: number | null
           owner_id: string
           require_approval: boolean
           simulation_interest_rate: number
@@ -78,6 +79,7 @@ export type Database = {
         Insert: {
           created_at?: string
           id?: string
+          max_credit_limit?: number | null
           owner_id: string
           require_approval?: boolean
           simulation_interest_rate?: number
@@ -87,6 +89,7 @@ export type Database = {
         Update: {
           created_at?: string
           id?: string
+          max_credit_limit?: number | null
           owner_id?: string
           require_approval?: boolean
           simulation_interest_rate?: number

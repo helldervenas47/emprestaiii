@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
 import { useCreditLimits } from "./useCreditLimits";
+import { useAccountSettings } from "./useAccountSettings";
 import {
   computeAutoLimitAdjustment,
   computeClientCreditMetrics,
@@ -27,6 +28,7 @@ export function useAutoAdjustCreditLimits(
   payments: Payment[],
 ) {
   const { limits, ensureLimit, updateLimit } = useCreditLimits();
+  const { settings } = useAccountSettings();
   const lastRunRef = useRef<Map<string, number>>(new Map());
   const inFlightRef = useRef<Set<string>>(new Set());
 
@@ -52,9 +54,12 @@ export function useAutoAdjustCreditLimits(
 
         const currentLimit = limit?.currentLimit ?? DEFAULT_INITIAL_LIMIT;
         const proposal = computeAutoLimitAdjustment(currentLimit, metrics);
+        // Cap proposal at the global maximum credit limit, if any
+        const cap = settings.maxCreditLimit;
+        const cappedNew = cap != null ? Math.min(proposal.newLimit, cap) : proposal.newLimit;
 
         // No change → nothing to do
-        if (proposal.newLimit === currentLimit) {
+        if (cappedNew === currentLimit) {
           lastRunRef.current.set(client.id, now);
           continue;
         }
@@ -64,15 +69,18 @@ export function useAutoAdjustCreditLimits(
           if (!limit) {
             await ensureLimit(client.id);
           }
-          await updateLimit(client.id, proposal.newLimit, {
+          await updateLimit(client.id, cappedNew, {
             mode: "auto",
             changeType: "automatic",
-            reason: `Ajuste automático: ${proposal.reason}`,
+            reason: cappedNew < proposal.newLimit
+              ? `Ajuste automático limitado pelo teto global: ${proposal.reason}`
+              : `Ajuste automático: ${proposal.reason}`,
             metadata: {
               onTimePct: proposal.metrics.onTimePct,
               avgLateDays: proposal.metrics.avgLateDays,
               totalInstallmentsPaid: proposal.metrics.totalInstallmentsPaid,
-              delta: proposal.delta,
+              delta: cappedNew - currentLimit,
+              maxCreditLimit: cap,
             },
           });
           lastRunRef.current.set(client.id, now);
