@@ -9,7 +9,8 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { toast } from "sonner";
 import { usePersonalInsights } from "@/hooks/usePersonalInsights";
-import { getPersonalCategory } from "@/lib/personalExpenseCategories";
+import { getPersonalCategory, resolvePersonalIcon } from "@/lib/personalExpenseCategories";
+import { usePersonalExpenseCategories } from "@/hooks/usePersonalExpenseCategories";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
@@ -71,6 +72,11 @@ export function PersonalAIInsightsCard({
   categoryStats = [],
 }: Props) {
   const { data, loading, error, generate } = usePersonalInsights(month);
+  const { categories: customCategoriesRaw } = usePersonalExpenseCategories();
+  const customCategoryList = useMemo(
+    () => customCategoriesRaw.map((c) => ({ name: c.name, icon: resolvePersonalIcon(c.icon), color: c.color })),
+    [customCategoriesRaw],
+  );
   const lastAutoKeyRef = useRef<string | null>(null);
   const [hasAutoTried, setHasAutoTried] = useState(false);
   const [expandedCat, setExpandedCat] = useState<string | null>(null);
@@ -305,7 +311,7 @@ export function PersonalAIInsightsCard({
             ) : (
               <div className="grid grid-cols-2 lg:grid-cols-3 gap-2">
                 {visibleStats.map((s) => {
-                  const cat = getPersonalCategory(s.category);
+                  const cat = getPersonalCategory(s.category, customCategoryList);
                   const Icon = cat.icon;
                   const isOpen = expandedCat === s.category;
                   const suggestions = suggestionsByCat.get(s.category) || [];
@@ -447,7 +453,7 @@ export function PersonalAIInsightsCard({
             {(() => {
               const s = sortedStats.find((x) => x.category === expandedCat);
               if (!s) return null;
-              const cat = getPersonalCategory(s.category);
+              const cat = getPersonalCategory(s.category, customCategoryList);
               const Icon = cat.icon;
               const suggestions = suggestionsByCat.get(s.category) || [];
               const overPct = s.budget > 0 && s.over
@@ -540,7 +546,7 @@ export function PersonalAIInsightsCard({
           <DialogHeader>
             {reportCategory ? (
               (() => {
-                const cat = getPersonalCategory(reportCategory);
+                const cat = getPersonalCategory(reportCategory, customCategoryList);
                 const Icon = cat.icon;
                 return (
                   <>
