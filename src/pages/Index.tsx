@@ -1,5 +1,5 @@
 import { useState, useEffect, lazy, Suspense } from "react";
-import { Plus, Users, LayoutDashboard, ShoppingBag, BarChart3, AlertTriangle, Receipt, CalendarDays, Sun, Moon, LogOut, Info, X, Eye, EyeOff, Car, Wrench, DatabaseBackup, Menu, User, RefreshCw, Bell, Target, Calculator, Settings as SettingsIcon, CalendarClock, Pin, Check, Sliders, Loader2, GripVertical, Activity, Send, MessageCircle } from "lucide-react";
+import { Plus, Users, LayoutDashboard, ShoppingBag, BarChart3, AlertTriangle, Receipt, CalendarDays, Sun, Moon, LogOut, Info, X, Eye, EyeOff, Car, Wrench, DatabaseBackup, Menu, User, RefreshCw, Bell, Target, Calculator, Settings as SettingsIcon, CalendarClock, Pin, Check, Sliders, Loader2, GripVertical, Activity, Send, MessageCircle, Wallet } from "lucide-react";
 import { AppLogo } from "@/components/AppLogo";
 import { useAppBranding } from "@/hooks/useAppBranding";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -59,6 +59,7 @@ import { vehicleExpenseCategories } from "@/components/VehicleExpenseForm";
 import { PushNotificationToggle } from "@/components/PushNotificationToggle";
 import { ApprovalRequestsButton } from "@/components/ApprovalRequestsButton";
 import { DashboardOverview } from "@/components/DashboardOverview";
+import { LedgerView } from "@/components/LedgerView";
 import { useApprovalRequests } from "@/hooks/useApprovalRequests";
 import { usePendingCount } from "@/lib/offline/sync";
 import { useApprovalPushAlerts } from "@/hooks/useApprovalPushAlerts";
@@ -89,7 +90,7 @@ import { useExpenses } from "@/hooks/useExpenses";
 import { useVehicleRegistry } from "@/hooks/useVehicleRegistry";
 import { useLocadorInfo } from "@/hooks/useLocadorInfo";
 
-type Tab = "overview" | "dashboard" | "clients" | "products" | "vehicles" | "overdue" | "expenses" | "calendar" | "settings" | "system-health";
+type Tab = "overview" | "dashboard" | "clients" | "products" | "vehicles" | "overdue" | "expenses" | "ledger" | "calendar" | "settings" | "system-health";
 type ClientSubTab = "clientes" | "veiculos";
 type VehicleSubTab = "veiculos" | "locadores";
 type PlanMgmtSubTab = "subscribers" | "plans";
@@ -105,6 +106,7 @@ const tabConfig = [
   { id: "calendar" as Tab, label: "Calendário", icon: CalendarDays },
   { id: "clients" as Tab, label: "Cadastro", icon: Users },
   { id: "expenses" as Tab, label: "Despesas", icon: Receipt },
+  { id: "ledger" as Tab, label: "Extrato", icon: Wallet },
   { id: "overdue" as Tab, label: "Relatório", icon: AlertTriangle },
   { id: "settings" as Tab, label: "Configurações", icon: SettingsIcon },
   { id: "system-health" as Tab, label: "Saúde do Sistema", icon: Activity, adminOnly: true },
@@ -198,6 +200,16 @@ const tabHelp: Record<Tab, { title: string; items: string[] }> = {
       "Métricas reais: latência do banco, sessões ativas, contagens, status online.",
       "Métricas marcadas como 'Estimado' são aproximações calculadas no aparelho.",
       "Use o botão Atualizar ou ative o auto-refresh (30s).",
+    ],
+  },
+  ledger: {
+    title: "Extrato da Conta",
+    items: [
+      "Única fonte de verdade do saldo: somar entradas e subtrair saídas.",
+      "Empréstimos concedidos e despesas pagas geram saídas automáticas.",
+      "Pagamentos de parcelas geram entradas automáticas.",
+      "Use 'Ajustar saldo' para registrar aportes ou correções manuais.",
+      "Use 'Recalcular saldo' se precisar reconciliar a partir do extrato.",
     ],
   },
 };
@@ -432,6 +444,13 @@ const Index = () => {
       setTab(visibleTabs[0].id);
     }
   }, [tab, visibleTabs]);
+
+  // Escuta pedido para abrir o extrato a partir de outros componentes (ex: card de saldo)
+  useEffect(() => {
+    const handler = () => setTab("ledger");
+    window.addEventListener("open-ledger", handler);
+    return () => window.removeEventListener("open-ledger", handler);
+  }, []);
   const [dark, setDark] = useState(() => {
     if (typeof window !== "undefined") {
       const saved = localStorage.getItem("hvcred-theme");
@@ -795,6 +814,14 @@ const Index = () => {
               </>
             )}
           </div>
+          </SubscriptionGate>
+        )}
+        {tab === "ledger" && (
+          <SubscriptionGate requiredTier={1} featureName="Extrato">
+            <div>
+              <h2 className="text-lg font-semibold text-foreground mb-4">Extrato da Conta</h2>
+              <LedgerView readOnly={isReadOnly} />
+            </div>
           </SubscriptionGate>
         )}
         {tab === "overdue" && (

@@ -14,6 +14,57 @@ export type Database = {
   }
   public: {
     Tables: {
+      account_ledger: {
+        Row: {
+          amount: number
+          category: string
+          created_at: string
+          description: string
+          direction: string
+          expense_id: string | null
+          id: string
+          loan_id: string | null
+          metadata: Json
+          occurred_on: string
+          payment_id: string | null
+          source: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          category: string
+          created_at?: string
+          description?: string
+          direction: string
+          expense_id?: string | null
+          id?: string
+          loan_id?: string | null
+          metadata?: Json
+          occurred_on: string
+          payment_id?: string | null
+          source?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          category?: string
+          created_at?: string
+          description?: string
+          direction?: string
+          expense_id?: string | null
+          id?: string
+          loan_id?: string | null
+          metadata?: Json
+          occurred_on?: string
+          payment_id?: string | null
+          source?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       account_settings: {
         Row: {
           created_at: string

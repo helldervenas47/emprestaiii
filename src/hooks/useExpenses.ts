@@ -5,6 +5,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
 import { extractPiggyId } from "./usePiggyBanks";
 import { notifyRemoteUpdate } from "@/lib/realtimeToast";
+import { adjustBalance } from "@/lib/balance";
+import { recordLedger, removeLedgerByRef } from "@/lib/ledger";
 import {
   cacheRows, getCachedRows, upsertCachedRow, removeCachedRow,
   enqueueMutation, rewritePendingRecordId,
@@ -177,6 +179,17 @@ export function useExpenses(enabled = true) {
 
       await supabase.from("expenses").insert(childPayload as any);
       await supabase.from("expenses").update(parentUpdate).eq("id", id);
+
+      // Saída no extrato: parcela paga (apenas business)
+      if (!skipBalanceAdjust && (expense.scope ?? "business") === "business") {
+        await adjustBalance(-installmentAmount);
+        await recordLedger({
+          direction: "out", category: "expense", amount: installmentAmount,
+          description: `Despesa - ${expense.description} (${newPaid}/${expense.installments})`,
+          occurred_on: today, expense_id: childTempId, source: "auto", syncBalance: false,
+          metadata: { parent_expense_id: id, category: expense.category },
+        });
+      }
     } else {
       // Simple fixa expense — if a different paid amount was provided, update the amount
       // and stash the original in notes so we can restore it on unpay.
@@ -200,6 +213,17 @@ export function useExpenses(enabled = true) {
       }
 
       await supabase.from("expenses").update(updatePayload).eq("id", id);
+
+      // Saída no extrato: despesa simples paga (apenas business)
+      if (!skipBalanceAdjust && (expense.scope ?? "business") === "business") {
+        await adjustBalance(-finalAmount);
+        await recordLedger({
+          direction: "out", category: "expense", amount: finalAmount,
+          description: `Despesa - ${expense.description}`,
+          occurred_on: today, expense_id: id, source: "auto", syncBalance: false,
+          metadata: { category: expense.category },
+        });
+      }
 
       // Piggy bank credit: only when the piggy expense is paid.
       const piggyId = extractPiggyId(expense.notes);
@@ -279,6 +303,14 @@ export function useExpenses(enabled = true) {
       }
 
       if (latestChildId) {
+        // Reverte saldo + remove lançamento do extrato vinculado ao child
+        if ((expense.scope ?? "business") === "business") {
+          const { data: childRow } = await supabase
+            .from("expenses").select("amount").eq("id", latestChildId).maybeSingle();
+          const childAmount = Number((childRow as any)?.amount ?? 0);
+          if (childAmount > 0) await adjustBalance(childAmount);
+          await removeLedgerByRef({ expense_id: latestChildId, category: "expense" }, { syncBalance: false });
+        }
         await supabase.from("expenses").delete().eq("id", latestChildId);
       }
       await supabase.from("expenses").update(parentUpdate).eq("id", id);
@@ -301,6 +333,12 @@ export function useExpenses(enabled = true) {
 
       await supabase.from("expenses").update(updatePayload).eq("id", id);
 
+      // Reverte saída do extrato (despesa simples) - apenas business
+      if ((expense.scope ?? "business") === "business") {
+        await adjustBalance(expense.amount);
+        await removeLedgerByRef({ expense_id: id, category: "expense" }, { syncBalance: false });
+      }
+
       // Reverse piggy bank credit when unpaying a piggy expense.
       if (extractPiggyId(expense.notes)) {
         await supabase.from("piggy_bank_deposits" as any).delete().eq("expense_id", id);
@@ -309,6 +347,7 @@ export function useExpenses(enabled = true) {
   }, [expenses]);
 
   const deleteExpense = useCallback(async (id: string, skipBalanceAdjust = false) => {
+    const expense = expenses.find((e) => e.id === id);
     setExpenses((prev) => prev.filter((e) => e.id !== id));
     await removeCachedRow("expenses", id);
     if (!isOnline()) {
@@ -317,6 +356,13 @@ export function useExpenses(enabled = true) {
     }
     // Remove any piggy deposit linked to this expense (no-op if none).
     await supabase.from("piggy_bank_deposits" as any).delete().eq("expense_id", id);
+
+    // Reverter saldo se a despesa estava paga (business) e remover lançamento do extrato
+    if (expense && !skipBalanceAdjust && expense.paid && (expense.scope ?? "business") === "business") {
+      await adjustBalance(expense.amount);
+    }
+    await removeLedgerByRef({ expense_id: id, category: "expense" }, { syncBalance: false });
+
     const { error } = await supabase.from("expenses").delete().eq("id", id);
     if (error) await enqueueMutation({ table: "expenses", op: "delete", recordId: id });
   }, [expenses]);
