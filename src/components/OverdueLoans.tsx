@@ -4,7 +4,7 @@ import { Loan, Client, Payment, InstallmentSchedule } from "@/types/loan";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { getInstallmentAmount, getOverdueInstallments } from "@/lib/loanInstallmentAmount";
+import { getInstallmentAmount, getOverdueAmount, getOverdueInstallments } from "@/lib/loanInstallmentAmount";
 import { AlertTriangle, Search, Phone, Calendar, DollarSign, Clock } from "lucide-react";
 import { DetailedReport } from "@/components/DetailedReport";
 import { TelegramBillingScheduleCard } from "@/components/TelegramBillingScheduleCard";
@@ -167,7 +167,8 @@ export function OverdueLoans({ loans, payments, clients, installmentSchedules }:
             </div>
             <div>
               <p className="text-xs text-muted-foreground">Atrasados</p>
-              <p className="text-xl font-bold text-destructive">{overdueData.length}</p>
+              <p className="text-xl font-bold text-destructive">{formatCurrency(overdueData.reduce((sum, item) => sum + item.totalAmount, 0))}</p>
+              <p className="text-xs text-muted-foreground">{overdueData.reduce((sum, item) => sum + item.installments.length, 0)} parcela(s)</p>
             </div>
           </CardContent>
         </Card>
