@@ -254,6 +254,19 @@ export function ClientList({ clients, loans, payments, installmentSchedules, onD
           <Sparkles className="h-3.5 w-3.5" />
           Limites ajustados
         </button>
+        <button
+          type="button"
+          onClick={() => setStatusFilter("over-limit")}
+          className={`px-3 py-1.5 rounded-xl text-xs font-medium transition-all duration-200 border inline-flex items-center gap-1.5 ${
+            statusFilter === "over-limit"
+              ? "bg-destructive text-destructive-foreground border-destructive"
+              : "bg-card border-border text-muted-foreground hover:opacity-80"
+          }`}
+          title="Clientes com empréstimos acima do limite definido"
+        >
+          <AlertTriangle className="h-3.5 w-3.5" />
+          Acima do limite ({overLimitCount})
+        </button>
       </div>
       <div className="flex gap-2">
         <div className="relative flex-1">
