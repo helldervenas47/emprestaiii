@@ -15,6 +15,7 @@ import { Loan, Sale, Payment, Expense, InstallmentSchedule, Client } from "@/typ
 import { ManagerCommissionsChart } from "@/components/ManagerCommissionsChart";
 import { GoalsCard } from "@/components/GoalsCard";
 import { calculateInstallment, calculateTotalWithInterest } from "@/hooks/useLoans";
+import { getInstallmentAmount } from "@/lib/loanInstallmentAmount";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
