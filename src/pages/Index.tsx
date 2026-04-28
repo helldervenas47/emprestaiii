@@ -1,5 +1,5 @@
 import { useState, useEffect, lazy, Suspense } from "react";
-import { Plus, Users, LayoutDashboard, ShoppingBag, BarChart3, AlertTriangle, Receipt, CalendarDays, Sun, Moon, LogOut, Info, X, Eye, EyeOff, Car, Wrench, DatabaseBackup, Menu, User, RefreshCw, Bell, Target, Calculator, Settings as SettingsIcon, CalendarClock, Pin, Check, Sliders, Loader2, GripVertical, Activity, Send, MessageCircle } from "lucide-react";
+import { Plus, Users, LayoutDashboard, ShoppingBag, BarChart3, AlertTriangle, Receipt, CalendarDays, Sun, Moon, LogOut, Info, X, Eye, EyeOff, Car, Wrench, DatabaseBackup, Menu, User, RefreshCw, Bell, Target, Calculator, Settings as SettingsIcon, CalendarClock, Pin, Check, Sliders, Loader2, GripVertical, Activity, Send, MessageCircle, Wallet } from "lucide-react";
 import { AppLogo } from "@/components/AppLogo";
 import { useAppBranding } from "@/hooks/useAppBranding";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -89,7 +89,7 @@ import { useExpenses } from "@/hooks/useExpenses";
 import { useVehicleRegistry } from "@/hooks/useVehicleRegistry";
 import { useLocadorInfo } from "@/hooks/useLocadorInfo";
 
-type Tab = "overview" | "dashboard" | "clients" | "products" | "vehicles" | "overdue" | "expenses" | "calendar" | "settings" | "system-health";
+type Tab = "overview" | "dashboard" | "clients" | "products" | "vehicles" | "overdue" | "expenses" | "ledger" | "calendar" | "settings" | "system-health";
 type ClientSubTab = "clientes" | "veiculos";
 type VehicleSubTab = "veiculos" | "locadores";
 type PlanMgmtSubTab = "subscribers" | "plans";
@@ -105,6 +105,7 @@ const tabConfig = [
   { id: "calendar" as Tab, label: "Calendário", icon: CalendarDays },
   { id: "clients" as Tab, label: "Cadastro", icon: Users },
   { id: "expenses" as Tab, label: "Despesas", icon: Receipt },
+  { id: "ledger" as Tab, label: "Extrato", icon: Wallet },
   { id: "overdue" as Tab, label: "Relatório", icon: AlertTriangle },
   { id: "settings" as Tab, label: "Configurações", icon: SettingsIcon },
   { id: "system-health" as Tab, label: "Saúde do Sistema", icon: Activity, adminOnly: true },
@@ -200,8 +201,17 @@ const tabHelp: Record<Tab, { title: string; items: string[] }> = {
       "Use o botão Atualizar ou ative o auto-refresh (30s).",
     ],
   },
+  ledger: {
+    title: "Extrato da Conta",
+    items: [
+      "Única fonte de verdade do saldo: somar entradas e subtrair saídas.",
+      "Empréstimos concedidos e despesas pagas geram saídas automáticas.",
+      "Pagamentos de parcelas geram entradas automáticas.",
+      "Use 'Ajustar saldo' para registrar aportes ou correções manuais.",
+      "Use 'Recalcular saldo' se precisar reconciliar a partir do extrato.",
+    ],
+  },
 };
-function HideValuesToggle() {
   const { hidden, toggle } = useHideValues();
   return (
     <Button variant="ghost" size="icon" onClick={toggle} className="h-9 w-9" title={hidden ? "Mostrar valores" : "Ocultar valores"}>
