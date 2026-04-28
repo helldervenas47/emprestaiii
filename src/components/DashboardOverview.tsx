@@ -247,7 +247,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
   const [includeSales, setIncludeSales] = useState(false);
   const [showInterestDetail, setShowInterestDetail] = useState(false);
   const [showInterestExpectedDetail, setShowInterestExpectedDetail] = useState(false);
-  const [interestExpectedFilter, setInterestExpectedFilter] = useState<"pending" | "paid">("pending");
+  const [interestExpectedFilter, setInterestExpectedFilter] = useState<"all" | "pending">("all");
   const [showHealthInfo, setShowHealthInfo] = useState(false);
   const [riskAiOpen, setRiskAiOpen] = useState(false);
   const [riskAiLoading, setRiskAiLoading] = useState(false);
@@ -1399,7 +1399,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
           { label: "Total a Receber", value: formatCurrency(portfolio.totalToReceive), color: "text-foreground", iconBg: "bg-primary/10", iconColor: "text-primary", tooltip: "Soma de tudo que ainda falta receber dos contratos ativos: principal + juros de todas as parcelas em aberto." },
           { label: "Pendente de Recebimento", value: formatCurrency(portfolio.pendingReceivable), color: "text-success", iconBg: "bg-success/10", iconColor: "text-success", tooltip: "Valor restante a receber de todos os contratos de empréstimos ativos." },
           { label: "Lucro Estimado", value: formatCurrency(portfolio.estimatedProfit), color: "text-success", iconBg: "bg-success/10", iconColor: "text-success", tooltip: "Total de juros previstos a receber considerando todos os contratos ativos até o final dos seus ciclos. É o lucro projetado se todos pagarem conforme o combinado." },
-          { label: "Juros a Receber no Mês", value: formatCurrency(interestDueInPeriod), color: "text-success", iconBg: "bg-success/10", iconColor: "text-success", onClick: () => setShowInterestExpectedDetail(true), tooltip: "Soma dos 'Juros Recebidos no Mês' + 'Juros Pendentes do Mês'. Representa o total de juros do período: o que já entrou somado ao que ainda falta receber. Clique para ver o detalhamento." },
+          { label: "Juros a Receber no Mês", value: formatCurrency(interestDueInPeriod), color: "text-success", iconBg: "bg-success/10", iconColor: "text-success", onClick: () => { setInterestExpectedFilter("all"); setShowInterestExpectedDetail(true); }, tooltip: "Soma dos 'Juros Recebidos no Mês' + 'Juros Pendentes do Mês'. Representa o total de juros do período: o que já entrou somado ao que ainda falta receber. Clique para ver o detalhamento." },
           { label: "Juros Recebidos no Mês", value: formatCurrency(interestReceivedInPeriod), color: "text-warning", iconBg: "bg-warning/10", iconColor: "text-warning", onClick: () => setShowInterestDetail(true), tooltip: "Critério: DATA DE PAGAMENTO. Soma os juros efetivamente recebidos em pagamentos registrados no mês, independentemente do mês de vencimento. Inclui: juros avulsos, lucro integral de contratos quitados antecipadamente e a porção de juros de parcelas regulares/parciais. Por usar data de pagamento (e não vencimento), pode divergir de 'Juros a Receber no Mês'. Clique para ver o detalhamento." },
           { label: "Juros Pendentes do Mês", value: formatCurrency(interestPendingInPeriod), color: "text-warning", iconBg: "bg-warning/10", iconColor: "text-warning", onClick: () => { setInterestExpectedFilter("pending"); setShowInterestExpectedDetail(true); }, tooltip: "Diferença entre 'Juros a Receber no Mês' (vencimento) e 'Juros Recebidos no Mês' (pagamento). Clique para ver o detalhamento do que está pendente de recebimento." },
         ];
@@ -2124,7 +2124,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
       <Sheet open={showInterestExpectedDetail} onOpenChange={setShowInterestExpectedDetail}>
         <SheetContent side="bottom" className="max-h-[80vh] overflow-y-auto">
           <SheetHeader>
-            <SheetTitle>Juros a Receber no Mês — {range.label}</SheetTitle>
+            <SheetTitle>{interestExpectedFilter === "pending" ? "Juros Pendentes do Mês" : "Juros a Receber no Mês"} — {range.label}</SheetTitle>
           </SheetHeader>
           {(() => {
             const pendingRecs = data.interestExpectedRecords
@@ -2136,43 +2136,46 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
               .slice()
               .sort((a, b) => a.date.localeCompare(b.date));
             const receivedTotal = receivedRecs.reduce((s, r) => s + r.interestPortion, 0);
-            const grandTotal = pendingTotal + receivedTotal;
+            const showReceived = interestExpectedFilter === "all";
+            const grandTotal = pendingTotal + (showReceived ? receivedTotal : 0);
             return (
               <div className="mt-4 space-y-4">
                 {/* Recebidos */}
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <p className="text-xs font-semibold uppercase tracking-wider text-success">Recebidos</p>
-                    <p className="text-xs text-muted-foreground">{receivedRecs.length} registro(s)</p>
-                  </div>
-                  {receivedRecs.length === 0 ? (
-                    <p className="text-sm text-muted-foreground text-center py-3">Nenhum juros recebido neste período.</p>
-                  ) : (
-                    <>
-                      {receivedRecs.map((rec, i) => (
-                        <div key={`r-${i}`} className="flex items-center justify-between p-3 rounded-lg bg-success/5 border border-success/30">
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2">
-                              <span className="text-[10px] uppercase font-semibold px-1.5 py-0.5 rounded bg-success/20 text-success">Recebido</span>
-                              <p className="text-sm font-medium truncate">{rec.borrowerName}</p>
+                {showReceived && (
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <p className="text-xs font-semibold uppercase tracking-wider text-success">Recebidos</p>
+                      <p className="text-xs text-muted-foreground">{receivedRecs.length} registro(s)</p>
+                    </div>
+                    {receivedRecs.length === 0 ? (
+                      <p className="text-sm text-muted-foreground text-center py-3">Nenhum juros recebido neste período.</p>
+                    ) : (
+                      <>
+                        {receivedRecs.map((rec, i) => (
+                          <div key={`r-${i}`} className="flex items-center justify-between p-3 rounded-lg bg-success/5 border border-success/30">
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2">
+                                <span className="text-[10px] uppercase font-semibold px-1.5 py-0.5 rounded bg-success/20 text-success">Recebido</span>
+                                <p className="text-sm font-medium truncate">{rec.borrowerName}</p>
+                              </div>
+                              <p className="text-xs text-muted-foreground mt-0.5">
+                                {new Date(rec.date + "T00:00:00").toLocaleDateString("pt-BR")} — {rec.type}
+                              </p>
                             </div>
-                            <p className="text-xs text-muted-foreground mt-0.5">
-                              {new Date(rec.date + "T00:00:00").toLocaleDateString("pt-BR")} — {rec.type}
-                            </p>
+                            <div className="text-right ml-3">
+                              <p className="text-sm font-bold text-success">{formatCurrency(rec.interestPortion)}</p>
+                              <p className="text-[10px] text-muted-foreground">de {formatCurrency(rec.totalPayment)}</p>
+                            </div>
                           </div>
-                          <div className="text-right ml-3">
-                            <p className="text-sm font-bold text-success">{formatCurrency(rec.interestPortion)}</p>
-                            <p className="text-[10px] text-muted-foreground">de {formatCurrency(rec.totalPayment)}</p>
-                          </div>
+                        ))}
+                        <div className="flex items-center justify-between pt-2 border-t border-border/60">
+                          <p className="text-xs font-semibold">Subtotal Recebido</p>
+                          <p className="text-sm font-bold text-success">{formatCurrency(receivedTotal)}</p>
                         </div>
-                      ))}
-                      <div className="flex items-center justify-between pt-2 border-t border-border/60">
-                        <p className="text-xs font-semibold">Subtotal Recebido</p>
-                        <p className="text-sm font-bold text-success">{formatCurrency(receivedTotal)}</p>
-                      </div>
-                    </>
-                  )}
-                </div>
+                      </>
+                    )}
+                  </div>
+                )}
 
                 {/* Pendentes */}
                 <div className="space-y-2">
@@ -2211,7 +2214,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
 
                 {/* Total */}
                 <div className="flex items-center justify-between pt-3 border-t-2 border-border">
-                  <p className="text-sm font-semibold">Total (Recebidos + Pendentes)</p>
+                  <p className="text-sm font-semibold">{showReceived ? "Total (Recebidos + Pendentes)" : "Total Pendente"}</p>
                   <p className="text-base font-bold text-foreground">{formatCurrency(grandTotal)}</p>
                 </div>
               </div>
