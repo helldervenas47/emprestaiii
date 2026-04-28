@@ -7,8 +7,8 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { ArrowDownRight, ArrowUpRight, Plus, Trash2, Wallet, ListFilter, RefreshCw } from "lucide-react";
-import { listLedger, recordLedger, deleteLedgerEntry, recomputeBalanceFromLedger, type LedgerEntry, type LedgerCategory, type LedgerDirection } from "@/lib/ledger";
+import { ArrowDownRight, ArrowUpRight, Plus, Trash2, Wallet, ListFilter, RefreshCw, Pencil } from "lucide-react";
+import { listLedger, recordLedger, deleteLedgerEntry, updateLedgerEntry, recomputeBalanceFromLedger, type LedgerEntry, type LedgerCategory, type LedgerDirection } from "@/lib/ledger";
 import { getBalance } from "@/lib/balance";
 import { todayInAppTz } from "@/lib/timezone";
 import { toast } from "sonner";
@@ -38,6 +38,7 @@ export function LedgerView({ readOnly = false }: Props) {
   const [filterDir, setFilterDir] = useState<"all" | LedgerDirection>("all");
   const [filterCat, setFilterCat] = useState<"all" | LedgerCategory>("all");
   const [adjustOpen, setAdjustOpen] = useState(false);
+  const [editEntry, setEditEntry] = useState<LedgerEntry | null>(null);
 
   const reload = useCallback(async () => {
     setLoading(true);
@@ -179,9 +180,14 @@ export function LedgerView({ readOnly = false }: Props) {
                         {e.direction === "in" ? "+" : "−"} {formatBRL(Number(e.amount))}
                       </span>
                       {!readOnly && (
-                        <Button variant="ghost" size="icon" className="h-6 w-6 mt-1" onClick={() => handleDelete(e.id)} title="Excluir lançamento">
-                          <Trash2 className="h-3.5 w-3.5 text-destructive" />
-                        </Button>
+                        <div className="flex items-center gap-0.5 mt-1">
+                          <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setEditEntry(e)} title="Editar lançamento">
+                            <Pencil className="h-3.5 w-3.5 text-muted-foreground" />
+                          </Button>
+                          <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleDelete(e.id)} title="Excluir lançamento">
+                            <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                          </Button>
+                        </div>
                       )}
                     </div>
                   </div>
@@ -200,7 +206,7 @@ export function LedgerView({ readOnly = false }: Props) {
                     <TableHead>Descrição</TableHead>
                     <TableHead>Categoria</TableHead>
                     <TableHead className="text-right">Valor</TableHead>
-                    {!readOnly && <TableHead className="w-12" />}
+                    {!readOnly && <TableHead className="w-20" />}
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -216,9 +222,14 @@ export function LedgerView({ readOnly = false }: Props) {
                       </TableCell>
                       {!readOnly && (
                         <TableCell>
-                          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleDelete(e.id)} title="Excluir lançamento">
-                            <Trash2 className="h-3.5 w-3.5 text-destructive" />
-                          </Button>
+                          <div className="flex items-center gap-1">
+                            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setEditEntry(e)} title="Editar lançamento">
+                              <Pencil className="h-3.5 w-3.5 text-muted-foreground" />
+                            </Button>
+                            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleDelete(e.id)} title="Excluir lançamento">
+                              <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                            </Button>
+                          </div>
                         </TableCell>
                       )}
                     </TableRow>
@@ -234,6 +245,13 @@ export function LedgerView({ readOnly = false }: Props) {
       <AdjustBalanceDialog
         open={adjustOpen}
         onOpenChange={setAdjustOpen}
+        onSaved={reload}
+      />
+
+      {/* Diálogo Editar lançamento */}
+      <EditLedgerDialog
+        entry={editEntry}
+        onOpenChange={(v) => { if (!v) setEditEntry(null); }}
         onSaved={reload}
       />
     </div>
