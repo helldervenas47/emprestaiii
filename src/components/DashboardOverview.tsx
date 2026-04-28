@@ -1301,9 +1301,6 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
                 {data.filteredLoans.map((l) => {
                   const totalToReceive = calculateTotalWithInterest(l.amount, l.interestRate, l.installments);
                   const totalPct = l.amount > 0 ? ((totalToReceive - l.amount) / l.amount) * 100 : 0;
-                  const isParcelado = (l.paymentType ?? "Parcelado") === "Parcelado";
-                  const months = Math.max(1, Number(l.installments) || 1);
-                  const monthlyPct = isParcelado && months > 1 ? totalPct / months : totalPct;
                   return (
                     <div key={l.id} className="flex items-center justify-between text-xs bg-muted/30 rounded-lg p-2">
                       <div>
@@ -1313,10 +1310,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
                         </p>
                       </div>
                       <div className="text-right">
-                        <span className="font-bold text-warning">{monthlyPct.toFixed(1)}%</span>
-                        {isParcelado && months > 1 && (
-                          <p className="text-[10px] text-muted-foreground">Total: {totalPct.toFixed(1)}%</p>
-                        )}
+                        <span className="font-bold text-warning">{totalPct.toFixed(1)}%</span>
                       </div>
                     </div>
                   );
