@@ -15,6 +15,7 @@ import { Loan, Sale, Payment, Expense, InstallmentSchedule, Client } from "@/typ
 import { ManagerCommissionsChart } from "@/components/ManagerCommissionsChart";
 import { GoalsCard } from "@/components/GoalsCard";
 import { calculateInstallment, calculateTotalWithInterest } from "@/hooks/useLoans";
+import { getInstallmentAmount } from "@/lib/loanInstallmentAmount";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -167,7 +168,7 @@ function calculateRealizedProfitForRange(loans: Loan[], payments: Payment[], sta
   return interestOnlyProfit + quitadoProfit + activeInstallmentProfit;
 }
 
-function summarizeMonthMetrics(loans: Loan[], sales: Sale[], payments: Payment[], includeSales: boolean, start: Date, end: Date) {
+function summarizeMonthMetrics(loans: Loan[], sales: Sale[], payments: Payment[], includeSales: boolean, start: Date, end: Date, installmentSchedules: InstallmentSchedule[] = []) {
   const monthPayments = payments.filter((payment) => isInRange(payment.date, start, end));
   const monthSales = sales.filter((sale) => isInRange(sale.date, start, end));
   const monthLoans = loans.filter((loan) => isInRange(loan.startDate, start, end));
@@ -194,7 +195,7 @@ function summarizeMonthMetrics(loans: Loan[], sales: Sale[], payments: Payment[]
   const overdueBase = activeLoans.filter((loan) => isInRange(loan.dueDate, start, end));
   const todayStr = todayInAppTz();
   const overdueLoans = overdueBase.filter((loan) => loan.dueDate < todayStr);
-  const overdueAmount = overdueLoans.reduce((sum, loan) => sum + (loan.remainingAmount ?? 0), 0);
+  const overdueAmount = overdueLoans.reduce((sum, loan) => sum + getInstallmentAmount(loan, installmentSchedules), 0);
   const overdueRate = overdueBase.length > 0 ? overdueLoans.length / overdueBase.length : 0;
   const top3Share = revenue > 0
     ? Array.from(clientRevenue.values()).sort((a, b) => b - a).slice(0, 3).reduce((sum, value) => sum + value, 0) / revenue
@@ -577,19 +578,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
     const todayStr = todayInAppTz();
     const overdueLoans = activeLoans.filter((l) => l.dueDate < todayStr);
     const overdueAmount = overdueLoans.reduce((s, l) => {
-      let baseRemaining: number;
-      if (l.installments >= 2) {
-        const overdueSum = installmentSchedules
-          .filter((sc) => sc.loanId === l.id && sc.installmentNumber > l.paidInstallments && sc.dueDate < todayStr)
-          .reduce((sum, sc) => sum + sc.amount, 0);
-        baseRemaining = overdueSum > 0 ? overdueSum : (l.remainingAmount > 0 ? l.remainingAmount : Math.max(0, calculateTotalWithInterest(l.amount, l.interestRate, l.installments) - payments.filter((p) => p.loanId === l.id).reduce((ss, p) => ss + p.amount, 0)));
-      } else if (l.remainingAmount != null && l.remainingAmount > 0) {
-        baseRemaining = l.remainingAmount;
-      } else {
-        const expected = calculateTotalWithInterest(l.amount, l.interestRate, l.installments);
-        const paid = payments.filter((p) => p.loanId === l.id).reduce((ss, p) => ss + p.amount, 0);
-        baseRemaining = Math.max(0, expected - paid);
-      }
+      const baseRemaining = getInstallmentAmount(l, installmentSchedules);
       const dueDate = new Date(l.dueDate + "T00:00:00");
       const refNorm = new Date(todayStr + "T00:00:00");
       const daysLate = Math.max(0, Math.floor((refNorm.getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24)));
@@ -681,7 +670,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
       const monthDate = new Date(anchor.getFullYear(), anchor.getMonth() - (comparisonWindow - 1 - index), 1);
       const monthStart = new Date(monthDate.getFullYear(), monthDate.getMonth(), 1);
       const monthEnd = new Date(monthDate.getFullYear(), monthDate.getMonth() + 1, 0, 23, 59, 59, 999);
-      const metrics = summarizeMonthMetrics(loans, sales, payments, includeSales, monthStart, monthEnd);
+      const metrics = summarizeMonthMetrics(loans, sales, payments, includeSales, monthStart, monthEnd, installmentSchedules);
 
       return {
         key: `${monthDate.getFullYear()}-${String(monthDate.getMonth() + 1).padStart(2, "0")}`,
@@ -1618,20 +1607,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
                   {expandedBreakdown === "overdue" && portfolio.overdueLoans.length > 0 && (
                     <div className="mt-3 pt-3 border-t border-destructive/20 space-y-2 max-h-60 overflow-y-auto">
                       {[...portfolio.overdueLoans].sort((a, b) => a.dueDate.localeCompare(b.dueDate)).map((l) => {
-                        const todayIso = todayInAppTz();
-                        let remaining: number;
-                        if (l.installments >= 2) {
-                          const overdueSum = installmentSchedules
-                            .filter((sc) => sc.loanId === l.id && sc.installmentNumber > l.paidInstallments && sc.dueDate <= todayIso)
-                            .reduce((sum, sc) => sum + sc.amount, 0);
-                          remaining = overdueSum > 0 ? overdueSum : (l.remainingAmount > 0 ? l.remainingAmount : Math.max(0, calculateTotalWithInterest(l.amount, l.interestRate, l.installments) - payments.filter((p) => p.loanId === l.id).reduce((s, p) => s + p.amount, 0)));
-                        } else if (l.remainingAmount != null && l.remainingAmount > 0) {
-                          remaining = l.remainingAmount;
-                        } else {
-                          const expected = calculateTotalWithInterest(l.amount, l.interestRate, l.installments);
-                          const paid = payments.filter((p) => p.loanId === l.id).reduce((s, p) => s + p.amount, 0);
-                          remaining = Math.max(0, expected - paid);
-                        }
+                        const remaining = getInstallmentAmount(l, installmentSchedules);
                         const dueDate = new Date(l.dueDate + "T00:00:00");
                         const daysLate = Math.max(0, Math.floor((Date.now() - dueDate.getTime()) / (1000 * 60 * 60 * 24)));
                         return (

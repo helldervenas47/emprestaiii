@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { Loan, Client, Payment, InstallmentSchedule } from "@/types/loan";
 import { Card, CardContent } from "@/components/ui/card";
-import { calculateTotalWithInterest } from "@/hooks/useLoans";
+import { getInstallmentAmount } from "@/lib/loanInstallmentAmount";
 import { FileText } from "lucide-react";
 
 interface Props {
@@ -20,19 +20,9 @@ function getTodayStr(): string {
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
 }
 
-function getLoanRemaining(loan: Loan, payments: Payment[], installmentSchedules: InstallmentSchedule[], todayStr: string): number {
-  const total = calculateTotalWithInterest(loan.amount, loan.interestRate, loan.installments);
-  const totalPaid = payments.filter((p) => p.loanId === loan.id).reduce((s, p) => s + p.amount, 0);
-
-  if (loan.installments >= 2) {
-    const overdueSum = installmentSchedules
-      .filter((s) => s.loanId === loan.id && s.installmentNumber > loan.paidInstallments && s.dueDate <= todayStr)
-      .reduce((sum, s) => sum + s.amount, 0);
-    if (overdueSum > 0) return overdueSum;
-  }
-
-  if (loan.remainingAmount != null && loan.remainingAmount > 0) return loan.remainingAmount;
-  return Math.max(0, total - totalPaid);
+function getLoanRemaining(loan: Loan, _payments: Payment[], installmentSchedules: InstallmentSchedule[], _todayStr: string): number {
+  // Critério unificado: usar somente o valor da próxima parcela em aberto.
+  return getInstallmentAmount(loan, installmentSchedules);
 }
 
 function getDaysOverdue(dueDate: string): number {
