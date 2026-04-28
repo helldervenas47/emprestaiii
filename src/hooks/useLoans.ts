@@ -270,8 +270,24 @@ export function useLoans() {
       if (status === "paid") {
         const totalReceived = calculateTotalWithInterest(loan.amount, loan.interestRate, loan.installments);
         await adjustBalance(totalReceived - loan.amount);
+        // Ledger: registra a saída do principal e a entrada total como pagamento.
+        await recordLedger({
+          direction: "out", category: "loan", amount: loan.amount,
+          description: `Empréstimo concedido - ${loan.borrowerName}`,
+          occurred_on: loan.startDate, loan_id: data.id, source: "auto", syncBalance: false,
+        });
+        await recordLedger({
+          direction: "in", category: "payment", amount: totalReceived,
+          description: `Empréstimo quitado na criação - ${loan.borrowerName}`,
+          occurred_on: loan.startDate, loan_id: data.id, source: "auto", syncBalance: false,
+        });
       } else {
         await adjustBalance(-loan.amount);
+        await recordLedger({
+          direction: "out", category: "loan", amount: loan.amount,
+          description: `Empréstimo concedido - ${loan.borrowerName}`,
+          occurred_on: loan.startDate, loan_id: data.id, source: "auto", syncBalance: false,
+        });
       }
       return data.id;
     }
