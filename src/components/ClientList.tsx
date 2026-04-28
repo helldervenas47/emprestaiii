@@ -131,6 +131,8 @@ export function ClientList({ clients, loans, payments, installmentSchedules, onD
   const [deleteClientId, setDeleteClientId] = useState<string | null>(null);
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
   const [limitClient, setLimitClient] = useState<Client | null>(null);
+  const [recentAdjustOpen, setRecentAdjustOpen] = useState(false);
+  const [maxLimitOpen, setMaxLimitOpen] = useState(false);
   const { getLimitForClient, updateLimit, ensureLimit } = useCreditLimits();
 
   const creditScores = useMemo(() => {
