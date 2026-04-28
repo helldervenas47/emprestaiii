@@ -54,8 +54,15 @@ export const getPersonalCategory = (
   name: string,
   customs: PersonalCategory[] = [],
 ): PersonalCategory => {
-  const all = [...personalCategories, ...customs];
-  return all.find((c) => c.name === name) ?? personalCategories[personalCategories.length - 1];
+  // Custom categories overrride built-ins with the same name (case-insensitive),
+  // so editing a default category's color/icon reflects everywhere.
+  const lowered = name.trim().toLowerCase();
+  const custom = customs.find((c) => c.name.trim().toLowerCase() === lowered);
+  if (custom) return custom;
+  return (
+    personalCategories.find((c) => c.name.trim().toLowerCase() === lowered) ??
+    personalCategories[personalCategories.length - 1]
+  );
 };
 
 /** Resolve a Lucide component from its string name (custom-category storage). */
