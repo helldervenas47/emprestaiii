@@ -2136,43 +2136,46 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
               .slice()
               .sort((a, b) => a.date.localeCompare(b.date));
             const receivedTotal = receivedRecs.reduce((s, r) => s + r.interestPortion, 0);
-            const grandTotal = pendingTotal + receivedTotal;
+            const showReceived = interestExpectedFilter === "all";
+            const grandTotal = pendingTotal + (showReceived ? receivedTotal : 0);
             return (
               <div className="mt-4 space-y-4">
                 {/* Recebidos */}
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <p className="text-xs font-semibold uppercase tracking-wider text-success">Recebidos</p>
-                    <p className="text-xs text-muted-foreground">{receivedRecs.length} registro(s)</p>
-                  </div>
-                  {receivedRecs.length === 0 ? (
-                    <p className="text-sm text-muted-foreground text-center py-3">Nenhum juros recebido neste período.</p>
-                  ) : (
-                    <>
-                      {receivedRecs.map((rec, i) => (
-                        <div key={`r-${i}`} className="flex items-center justify-between p-3 rounded-lg bg-success/5 border border-success/30">
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2">
-                              <span className="text-[10px] uppercase font-semibold px-1.5 py-0.5 rounded bg-success/20 text-success">Recebido</span>
-                              <p className="text-sm font-medium truncate">{rec.borrowerName}</p>
+                {showReceived && (
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <p className="text-xs font-semibold uppercase tracking-wider text-success">Recebidos</p>
+                      <p className="text-xs text-muted-foreground">{receivedRecs.length} registro(s)</p>
+                    </div>
+                    {receivedRecs.length === 0 ? (
+                      <p className="text-sm text-muted-foreground text-center py-3">Nenhum juros recebido neste período.</p>
+                    ) : (
+                      <>
+                        {receivedRecs.map((rec, i) => (
+                          <div key={`r-${i}`} className="flex items-center justify-between p-3 rounded-lg bg-success/5 border border-success/30">
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2">
+                                <span className="text-[10px] uppercase font-semibold px-1.5 py-0.5 rounded bg-success/20 text-success">Recebido</span>
+                                <p className="text-sm font-medium truncate">{rec.borrowerName}</p>
+                              </div>
+                              <p className="text-xs text-muted-foreground mt-0.5">
+                                {new Date(rec.date + "T00:00:00").toLocaleDateString("pt-BR")} — {rec.type}
+                              </p>
                             </div>
-                            <p className="text-xs text-muted-foreground mt-0.5">
-                              {new Date(rec.date + "T00:00:00").toLocaleDateString("pt-BR")} — {rec.type}
-                            </p>
+                            <div className="text-right ml-3">
+                              <p className="text-sm font-bold text-success">{formatCurrency(rec.interestPortion)}</p>
+                              <p className="text-[10px] text-muted-foreground">de {formatCurrency(rec.totalPayment)}</p>
+                            </div>
                           </div>
-                          <div className="text-right ml-3">
-                            <p className="text-sm font-bold text-success">{formatCurrency(rec.interestPortion)}</p>
-                            <p className="text-[10px] text-muted-foreground">de {formatCurrency(rec.totalPayment)}</p>
-                          </div>
+                        ))}
+                        <div className="flex items-center justify-between pt-2 border-t border-border/60">
+                          <p className="text-xs font-semibold">Subtotal Recebido</p>
+                          <p className="text-sm font-bold text-success">{formatCurrency(receivedTotal)}</p>
                         </div>
-                      ))}
-                      <div className="flex items-center justify-between pt-2 border-t border-border/60">
-                        <p className="text-xs font-semibold">Subtotal Recebido</p>
-                        <p className="text-sm font-bold text-success">{formatCurrency(receivedTotal)}</p>
-                      </div>
-                    </>
-                  )}
-                </div>
+                      </>
+                    )}
+                  </div>
+                )}
 
                 {/* Pendentes */}
                 <div className="space-y-2">
@@ -2211,7 +2214,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
 
                 {/* Total */}
                 <div className="flex items-center justify-between pt-3 border-t-2 border-border">
-                  <p className="text-sm font-semibold">Total (Recebidos + Pendentes)</p>
+                  <p className="text-sm font-semibold">{showReceived ? "Total (Recebidos + Pendentes)" : "Total Pendente"}</p>
                   <p className="text-base font-bold text-foreground">{formatCurrency(grandTotal)}</p>
                 </div>
               </div>
