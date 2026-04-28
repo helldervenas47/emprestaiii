@@ -69,15 +69,18 @@ export function useAutoAdjustCreditLimits(
           if (!limit) {
             await ensureLimit(client.id);
           }
-          await updateLimit(client.id, proposal.newLimit, {
+          await updateLimit(client.id, cappedNew, {
             mode: "auto",
             changeType: "automatic",
-            reason: `Ajuste automático: ${proposal.reason}`,
+            reason: cappedNew < proposal.newLimit
+              ? `Ajuste automático limitado pelo teto global: ${proposal.reason}`
+              : `Ajuste automático: ${proposal.reason}`,
             metadata: {
               onTimePct: proposal.metrics.onTimePct,
               avgLateDays: proposal.metrics.avgLateDays,
               totalInstallmentsPaid: proposal.metrics.totalInstallmentsPaid,
-              delta: proposal.delta,
+              delta: cappedNew - currentLimit,
+              maxCreditLimit: cap,
             },
           });
           lastRunRef.current.set(client.id, now);
