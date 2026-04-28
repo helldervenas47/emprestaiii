@@ -1576,7 +1576,7 @@ export function calculateInstallment(principal: number, rate: number, months: nu
   return months > 0 ? total / months : total;
 }
 
-function computeNextDueDate(currentDueDate: string, frequency: string, paidCount: number): string {
+export function computeNextDueDate(currentDueDate: string, frequency: string, paidCount: number): string {
   const base = new Date(currentDueDate + "T00:00:00");
   if (frequency === "Semanal") base.setDate(base.getDate() + 7 * paidCount);
   else if (frequency === "Quinzenal") base.setDate(base.getDate() + 15 * paidCount);
