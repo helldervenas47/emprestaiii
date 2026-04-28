@@ -50,11 +50,17 @@ export function LedgerView({ readOnly = false }: Props) {
   useEffect(() => { reload(); }, [reload]);
 
   const filtered = useMemo(() => {
-    return entries.filter((e) => {
-      if (filterDir !== "all" && e.direction !== filterDir) return false;
-      if (filterCat !== "all" && e.category !== filterCat) return false;
-      return true;
-    });
+    return entries
+      .filter((e) => {
+        if (filterDir !== "all" && e.direction !== filterDir) return false;
+        if (filterCat !== "all" && e.category !== filterCat) return false;
+        return true;
+      })
+      .sort((a, b) => {
+        // Data desc; empate pelo created_at desc
+        if (a.occurred_on !== b.occurred_on) return b.occurred_on.localeCompare(a.occurred_on);
+        return (b.created_at ?? "").localeCompare(a.created_at ?? "");
+      });
   }, [entries, filterDir, filterCat]);
 
   const totals = useMemo(() => {
