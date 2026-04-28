@@ -179,6 +179,17 @@ export function useExpenses(enabled = true) {
 
       await supabase.from("expenses").insert(childPayload as any);
       await supabase.from("expenses").update(parentUpdate).eq("id", id);
+
+      // Saída no extrato: parcela paga (apenas business)
+      if (!skipBalanceAdjust && (expense.scope ?? "business") === "business") {
+        await adjustBalance(-installmentAmount);
+        await recordLedger({
+          direction: "out", category: "expense", amount: installmentAmount,
+          description: `Despesa - ${expense.description} (${newPaid}/${expense.installments})`,
+          occurred_on: today, expense_id: childTempId, source: "auto", syncBalance: false,
+          metadata: { parent_expense_id: id, category: expense.category },
+        });
+      }
     } else {
       // Simple fixa expense — if a different paid amount was provided, update the amount
       // and stash the original in notes so we can restore it on unpay.
@@ -202,6 +213,17 @@ export function useExpenses(enabled = true) {
       }
 
       await supabase.from("expenses").update(updatePayload).eq("id", id);
+
+      // Saída no extrato: despesa simples paga (apenas business)
+      if (!skipBalanceAdjust && (expense.scope ?? "business") === "business") {
+        await adjustBalance(-finalAmount);
+        await recordLedger({
+          direction: "out", category: "expense", amount: finalAmount,
+          description: `Despesa - ${expense.description}`,
+          occurred_on: today, expense_id: id, source: "auto", syncBalance: false,
+          metadata: { category: expense.category },
+        });
+      }
 
       // Piggy bank credit: only when the piggy expense is paid.
       const piggyId = extractPiggyId(expense.notes);
