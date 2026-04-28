@@ -1387,9 +1387,12 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
       {/* Portfolio metrics */}
       {(() => {
         // Interest metrics based on selected period filter (installment due dates)
-        const interestDueInPeriod = data.periodProfitExpected;
+        // Use interestExpectedRecords como fonte única para garantir consistência com o detalhamento
+        const interestDueInPeriod = data.interestExpectedRecords.reduce((s, r) => s + r.interestPortion, 0);
         const interestReceivedInPeriod = data.periodProfitRealized;
-        const interestPendingInPeriod = Math.max(0, interestDueInPeriod - interestReceivedInPeriod);
+        const interestPendingInPeriod = data.interestExpectedRecords
+          .filter((r) => !r.paid)
+          .reduce((s, r) => s + r.interestPortion, 0);
 
         const items: Array<{ label: string; value: string; color: string; iconBg: string; iconColor: string; onClick?: () => void; tooltip?: string }> = [
           { label: "Capital na Rua", value: formatCurrency(portfolio.capitalOnStreet), color: "text-foreground", iconBg: "bg-primary/10", iconColor: "text-primary", tooltip: "Soma do valor principal (sem juros) de todos os contratos ativos que ainda não foram totalmente quitados. Representa quanto do seu dinheiro está atualmente emprestado." },
@@ -2118,72 +2121,43 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
         </SheetContent>
       </Sheet>
       {/* Interest Expected Detail Sheet */}
-      <Sheet open={showInterestExpectedDetail} onOpenChange={(open) => { setShowInterestExpectedDetail(open); if (open) setInterestExpectedFilter("pending"); }}>
+      <Sheet open={showInterestExpectedDetail} onOpenChange={setShowInterestExpectedDetail}>
         <SheetContent side="bottom" className="max-h-[80vh] overflow-y-auto">
           <SheetHeader>
             <SheetTitle>Juros a Receber no Mês — {range.label}</SheetTitle>
           </SheetHeader>
           {(() => {
             const pendingRecs = data.interestExpectedRecords.filter((r) => !r.paid);
-            const paidRecs = data.interestExpectedRecords.filter((r) => r.paid);
             const pendingTotal = pendingRecs.reduce((s, r) => s + r.interestPortion, 0);
-            const paidTotal = paidRecs.reduce((s, r) => s + r.interestPortion, 0);
-            const visible = interestExpectedFilter === "pending" ? pendingRecs : paidRecs;
-            const visibleTotal = interestExpectedFilter === "pending" ? pendingTotal : paidTotal;
             return (
-              <>
-                <div className="mt-4 grid grid-cols-2 gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setInterestExpectedFilter("pending")}
-                    className={`rounded-lg border p-3 text-left transition-all ${interestExpectedFilter === "pending" ? "border-warning bg-warning/10" : "border-border bg-muted/30 hover:bg-muted/50"}`}
-                  >
-                    <p className="text-[11px] text-muted-foreground">Pendentes</p>
-                    <p className="text-lg font-bold text-warning">{formatCurrency(pendingTotal)}</p>
-                    <p className="text-[10px] text-muted-foreground">{pendingRecs.length} parcela(s)</p>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setInterestExpectedFilter("paid")}
-                    className={`rounded-lg border p-3 text-left transition-all ${interestExpectedFilter === "paid" ? "border-success bg-success/10" : "border-border bg-muted/30 hover:bg-muted/50"}`}
-                  >
-                    <p className="text-[11px] text-muted-foreground">Quitados</p>
-                    <p className="text-lg font-bold text-success">{formatCurrency(paidTotal)}</p>
-                    <p className="text-[10px] text-muted-foreground">{paidRecs.length} parcela(s)</p>
-                  </button>
-                </div>
-                <div className="mt-4 space-y-2">
-                  {visible.length === 0 ? (
-                    <p className="text-sm text-muted-foreground text-center py-4">
-                      {interestExpectedFilter === "pending" ? "Nenhum juros pendente neste período." : "Nenhum juros quitado neste período."}
-                    </p>
-                  ) : (
-                    <>
-                      {visible.map((rec, i) => (
-                        <div key={i} className="flex items-center justify-between p-3 rounded-lg bg-muted/50 border border-border/30">
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium truncate">{rec.borrowerName}</p>
-                            <p className="text-xs text-muted-foreground">
-                              {new Date(rec.dueDate + "T00:00:00").toLocaleDateString("pt-BR")} — Parcela {rec.installmentNumber}/{rec.totalInstallments}
-                              {rec.paid && <span className="ml-1 text-success">(quitado)</span>}
-                            </p>
-                          </div>
-                          <div className="text-right ml-3">
-                            <p className={`text-sm font-bold ${rec.paid ? "text-success" : "text-warning"}`}>{formatCurrency(rec.interestPortion)}</p>
-                            <p className="text-[10px] text-muted-foreground">de {formatCurrency(rec.installmentAmount)}</p>
-                          </div>
+              <div className="mt-4 space-y-2">
+                {pendingRecs.length === 0 ? (
+                  <p className="text-sm text-muted-foreground text-center py-4">
+                    Nenhum juros pendente neste período.
+                  </p>
+                ) : (
+                  <>
+                    {pendingRecs.map((rec, i) => (
+                      <div key={i} className="flex items-center justify-between p-3 rounded-lg bg-muted/50 border border-border/30">
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium truncate">{rec.borrowerName}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {new Date(rec.dueDate + "T00:00:00").toLocaleDateString("pt-BR")} — Parcela {rec.installmentNumber}/{rec.totalInstallments}
+                          </p>
                         </div>
-                      ))}
-                      <div className="flex items-center justify-between pt-3 border-t border-border">
-                        <p className="text-sm font-semibold">Total {interestExpectedFilter === "pending" ? "Pendente" : "Quitado"}</p>
-                        <p className={`text-sm font-bold ${interestExpectedFilter === "pending" ? "text-warning" : "text-success"}`}>
-                          {formatCurrency(visibleTotal)}
-                        </p>
+                        <div className="text-right ml-3">
+                          <p className="text-sm font-bold text-warning">{formatCurrency(rec.interestPortion)}</p>
+                          <p className="text-[10px] text-muted-foreground">de {formatCurrency(rec.installmentAmount)}</p>
+                        </div>
                       </div>
-                    </>
-                  )}
-                </div>
-              </>
+                    ))}
+                    <div className="flex items-center justify-between pt-3 border-t border-border">
+                      <p className="text-sm font-semibold">Total Pendente</p>
+                      <p className="text-sm font-bold text-warning">{formatCurrency(pendingTotal)}</p>
+                    </div>
+                  </>
+                )}
+              </div>
             );
           })()}
         </SheetContent>
