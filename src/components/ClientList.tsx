@@ -26,7 +26,7 @@ interface Props {
   onUpdate: (id: string, data: Partial<Omit<Client, "id" | "createdAt">>) => void;
 }
 
-type StatusFilter = "all" | "active" | "inactive";
+type StatusFilter = "all" | "active" | "inactive" | "over-limit";
 type SortOption = "name-asc" | "name-desc" | "newest" | "oldest" | "score-desc" | "score-asc";
 
 const sortLabels: Record<SortOption, string> = {
@@ -141,6 +141,17 @@ export function ClientList({ clients, loans, payments, installmentSchedules, onD
     return map;
   }, [clients, loans, payments]);
 
+  const overLimitClientIds = useMemo(() => {
+    const ids = new Set<string>();
+    clients.forEach((c) => {
+      const lim = getLimitForClient(c.id);
+      if (!lim) return;
+      const used = computeUsedLimit(c, loans);
+      if (used > lim.currentLimit && lim.currentLimit >= 0) ids.add(c.id);
+    });
+    return ids;
+  }, [clients, loans, getLimitForClient]);
+
   const filtered = clients
     .filter((c) => {
       const matchesSearch =
@@ -150,7 +161,8 @@ export function ClientList({ clients, loans, payments, installmentSchedules, onD
       const matchesStatus =
         statusFilter === "all" ||
         (statusFilter === "active" && c.active !== false) ||
-        (statusFilter === "inactive" && c.active === false);
+        (statusFilter === "inactive" && c.active === false) ||
+        (statusFilter === "over-limit" && overLimitClientIds.has(c.id));
       return matchesSearch && matchesStatus;
     })
     .sort((a, b) => {
@@ -167,6 +179,7 @@ export function ClientList({ clients, loans, payments, installmentSchedules, onD
 
   const activeCount = clients.filter((c) => c.active !== false).length;
   const inactiveCount = clients.filter((c) => c.active === false).length;
+  const overLimitCount = overLimitClientIds.size;
 
   const startEdit = (client: Client) => {
     setEditingId(client.id);
@@ -240,6 +253,19 @@ export function ClientList({ clients, loans, payments, installmentSchedules, onD
         >
           <Sparkles className="h-3.5 w-3.5" />
           Limites ajustados
+        </button>
+        <button
+          type="button"
+          onClick={() => setStatusFilter("over-limit")}
+          className={`px-3 py-1.5 rounded-xl text-xs font-medium transition-all duration-200 border inline-flex items-center gap-1.5 ${
+            statusFilter === "over-limit"
+              ? "bg-destructive text-destructive-foreground border-destructive"
+              : "bg-card border-border text-muted-foreground hover:opacity-80"
+          }`}
+          title="Clientes com empréstimos acima do limite definido"
+        >
+          <AlertTriangle className="h-3.5 w-3.5" />
+          Acima do limite ({overLimitCount})
         </button>
       </div>
       <div className="flex gap-2">
