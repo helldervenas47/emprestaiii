@@ -202,16 +202,6 @@ const tabHelp: Record<Tab, { title: string; items: string[] }> = {
       "Use o botão Atualizar ou ative o auto-refresh (30s).",
     ],
   },
-  ledger: {
-    title: "Extrato da Conta",
-    items: [
-      "Única fonte de verdade do saldo: somar entradas e subtrair saídas.",
-      "Empréstimos concedidos e despesas pagas geram saídas automáticas.",
-      "Pagamentos de parcelas geram entradas automáticas.",
-      "Use 'Ajustar saldo' para registrar aportes ou correções manuais.",
-      "Use 'Recalcular saldo' se precisar reconciliar a partir do extrato.",
-    ],
-  },
 };
 function HideValuesToggle() {
   const { hidden, toggle } = useHideValues();
