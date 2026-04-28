@@ -106,7 +106,7 @@ const tabConfig = [
   { id: "calendar" as Tab, label: "Calendário", icon: CalendarDays },
   { id: "clients" as Tab, label: "Cadastro", icon: Users },
   { id: "expenses" as Tab, label: "Despesas", icon: Receipt },
-  { id: "ledger" as Tab, label: "Extrato", icon: Wallet },
+  
   { id: "overdue" as Tab, label: "Relatório", icon: AlertTriangle },
   { id: "settings" as Tab, label: "Configurações", icon: SettingsIcon },
   { id: "system-health" as Tab, label: "Saúde do Sistema", icon: Activity, adminOnly: true },
@@ -445,9 +445,10 @@ const Index = () => {
     }
   }, [tab, visibleTabs]);
 
-  // Escuta pedido para abrir o extrato a partir de outros componentes (ex: card de saldo)
+  // Extrato agora abre como dialog (não é mais aba)
+  const [ledgerOpen, setLedgerOpen] = useState(false);
   useEffect(() => {
-    const handler = () => setTab("ledger");
+    const handler = () => setLedgerOpen(true);
     window.addEventListener("open-ledger", handler);
     return () => window.removeEventListener("open-ledger", handler);
   }, []);
@@ -814,14 +815,6 @@ const Index = () => {
               </>
             )}
           </div>
-          </SubscriptionGate>
-        )}
-        {tab === "ledger" && (
-          <SubscriptionGate requiredTier={1} featureName="Extrato">
-            <div>
-              <h2 className="text-lg font-semibold text-foreground mb-4">Extrato da Conta</h2>
-              <LedgerView readOnly={isReadOnly} />
-            </div>
           </SubscriptionGate>
         )}
         {tab === "overdue" && (
