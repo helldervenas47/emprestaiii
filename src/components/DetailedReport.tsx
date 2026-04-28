@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { Loan, Client, Payment, InstallmentSchedule } from "@/types/loan";
 import { Card, CardContent } from "@/components/ui/card";
-import { getInstallmentAmount } from "@/lib/loanInstallmentAmount";
+import { getInstallmentAmount, getOverdueAmount, getOverdueInstallments } from "@/lib/loanInstallmentAmount";
 import { todayInAppTz } from "@/lib/timezone";
 import { FileText } from "lucide-react";
 
@@ -85,8 +85,10 @@ export function DetailedReport({ loans, payments, installmentSchedules }: Props)
   const overdueLoans = useMemo(() => activeLoans
     .filter((loan) => loan.dueDate < todayStr)
     .map((loan) => {
-      const base = getLoanRemaining(loan, payments, installmentSchedules, todayStr);
-      return { loan, amount: base, baseAmount: base, lateFees: 0 };
+      const installments = getOverdueInstallments(loan, installmentSchedules, todayStr);
+      const base = installments.reduce((s, i) => s + i.amount, 0)
+        || getLoanRemaining(loan, payments, installmentSchedules, todayStr);
+      return { loan, amount: base, baseAmount: base, lateFees: 0, installmentsCount: installments.length };
     })
     .sort(sortByNameThenDate),
     [activeLoans, payments, installmentSchedules, todayStr]);

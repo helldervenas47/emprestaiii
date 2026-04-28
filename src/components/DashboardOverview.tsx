@@ -15,7 +15,7 @@ import { Loan, Sale, Payment, Expense, InstallmentSchedule, Client } from "@/typ
 import { ManagerCommissionsChart } from "@/components/ManagerCommissionsChart";
 import { GoalsCard } from "@/components/GoalsCard";
 import { calculateInstallment, calculateTotalWithInterest } from "@/hooks/useLoans";
-import { getInstallmentAmount } from "@/lib/loanInstallmentAmount";
+import { getInstallmentAmount, getOverdueAmount } from "@/lib/loanInstallmentAmount";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -195,7 +195,7 @@ function summarizeMonthMetrics(loans: Loan[], sales: Sale[], payments: Payment[]
   const overdueBase = activeLoans.filter((loan) => isInRange(loan.dueDate, start, end));
   const todayStr = todayInAppTz();
   const overdueLoans = overdueBase.filter((loan) => loan.dueDate < todayStr);
-  const overdueAmount = overdueLoans.reduce((sum, loan) => sum + getInstallmentAmount(loan, installmentSchedules), 0);
+  const overdueAmount = overdueLoans.reduce((sum, loan) => sum + getOverdueAmount(loan, installmentSchedules, todayStr), 0);
   const overdueRate = overdueBase.length > 0 ? overdueLoans.length / overdueBase.length : 0;
   const top3Share = revenue > 0
     ? Array.from(clientRevenue.values()).sort((a, b) => b - a).slice(0, 3).reduce((sum, value) => sum + value, 0) / revenue

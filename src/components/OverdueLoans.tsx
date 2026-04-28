@@ -4,7 +4,7 @@ import { Loan, Client, Payment, InstallmentSchedule } from "@/types/loan";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { getInstallmentAmount } from "@/lib/loanInstallmentAmount";
+import { getInstallmentAmount, getOverdueInstallments } from "@/lib/loanInstallmentAmount";
 import { AlertTriangle, Search, Phone, Calendar, DollarSign, Clock } from "lucide-react";
 import { DetailedReport } from "@/components/DetailedReport";
 import { TelegramBillingScheduleCard } from "@/components/TelegramBillingScheduleCard";
@@ -109,19 +109,17 @@ export function OverdueLoans({ loans, payments, clients, installmentSchedules }:
     return activeLoans
       .map((loan) => {
         if (loan.dueDate >= todayStr) return null;
-        const amount = getInstallmentAmount(loan, installmentSchedules);
-        const nextInst = loan.paidInstallments + 1;
-        const installments = [{
-          number: nextInst,
-          dueDate: loan.dueDate,
-          amount,
-        }];
+        const overdueInsts = getOverdueInstallments(loan, installmentSchedules, todayStr);
+        const installments = overdueInsts.length > 0
+          ? overdueInsts.map((i) => ({ number: i.installmentNumber, dueDate: i.dueDate, amount: i.amount }))
+          : [{ number: loan.paidInstallments + 1, dueDate: loan.dueDate, amount: getInstallmentAmount(loan, installmentSchedules) }];
+        const totalAmount = installments.reduce((s, i) => s + i.amount, 0);
         const client = clients.find((c) => c.id === loan.borrowerId);
         return {
           loan, client, phone: client?.phone || "",
           installments,
           daysOverdue: getDaysOverdue(loan.dueDate),
-          totalAmount: amount,
+          totalAmount,
         };
       })
       .filter(Boolean)
