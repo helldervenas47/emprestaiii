@@ -14,7 +14,7 @@ import { useHideValues } from "@/contexts/HideValuesContext";
 import { Loan, Sale, Payment, Expense, InstallmentSchedule, Client } from "@/types/loan";
 import { ManagerCommissionsChart } from "@/components/ManagerCommissionsChart";
 import { GoalsCard } from "@/components/GoalsCard";
-import { calculateInstallment, calculateTotalWithInterest } from "@/hooks/useLoans";
+import { calculateInstallment, calculateTotalWithInterest, getLoanRemainingAmount } from "@/hooks/useLoans";
 import { getInstallmentAmount, getOverdueAmount } from "@/lib/loanInstallmentAmount";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -578,6 +578,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
     const todayStr = todayInAppTz();
     const overdueLoans = activeLoans.filter((l) => l.dueDate < todayStr);
     const overdueAmount = overdueLoans.reduce((s, l) => s + getOverdueAmount(l, installmentSchedules, todayStr), 0);
+    const pendingReceivable = activeLoans.reduce((s, l) => s + getLoanRemainingAmount(l, payments), 0);
 
     // Rates
     const receivingRate = totalExpected > 0 ? (totalReceived / totalExpected) * 100 : 0;
@@ -638,7 +639,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
       overdueLoans,
       capitalOnStreet,
       totalToReceive,
-      pendingReceivable: overdueAmount,
+      pendingReceivable,
       estimatedProfit,
       interestDueThisMonth,
       globalInterestRate,
