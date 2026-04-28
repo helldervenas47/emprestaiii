@@ -2127,9 +2127,14 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
             <SheetTitle>Juros a Receber no Mês — {range.label}</SheetTitle>
           </SheetHeader>
           {(() => {
-            const pendingRecs = data.interestExpectedRecords.filter((r) => !r.paid);
+            const pendingRecs = data.interestExpectedRecords
+              .filter((r) => !r.paid)
+              .slice()
+              .sort((a, b) => a.dueDate.localeCompare(b.dueDate));
             const pendingTotal = pendingRecs.reduce((s, r) => s + r.interestPortion, 0);
-            const receivedRecs = data.interestDetailRecords;
+            const receivedRecs = data.interestDetailRecords
+              .slice()
+              .sort((a, b) => a.date.localeCompare(b.date));
             const receivedTotal = receivedRecs.reduce((s, r) => s + r.interestPortion, 0);
             const grandTotal = pendingTotal + receivedTotal;
             return (
