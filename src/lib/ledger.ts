@@ -155,6 +155,47 @@ export async function listLedger(): Promise<LedgerEntry[]> {
   return (data || []) as LedgerEntry[];
 }
 
+export interface UpdateLedgerInput {
+  direction?: LedgerDirection;
+  category?: LedgerCategory;
+  amount?: number;
+  description?: string;
+  occurred_on?: string;
+}
+
+/**
+ * Atualiza um lançamento existente e ajusta o saldo conforme a diferença
+ * entre o efeito anterior (direction/amount) e o novo.
+ */
+export async function updateLedgerEntry(id: string, input: UpdateLedgerInput): Promise<void> {
+  const ownerId = await getOwnerId();
+  if (!ownerId) return;
+
+  const { data: prev } = await supabase
+    .from("account_ledger")
+    .select("direction, amount")
+    .eq("id", id)
+    .eq("user_id", ownerId)
+    .maybeSingle();
+  if (!prev) return;
+
+  const patch: Record<string, any> = {};
+  if (input.direction !== undefined) patch.direction = input.direction;
+  if (input.category !== undefined) patch.category = input.category;
+  if (input.amount !== undefined) patch.amount = Number(input.amount.toFixed(2));
+  if (input.description !== undefined) patch.description = input.description;
+  if (input.occurred_on !== undefined) patch.occurred_on = input.occurred_on;
+
+  await supabase.from("account_ledger").update(patch).eq("id", id).eq("user_id", ownerId);
+
+  const newDirection = (input.direction ?? (prev as any).direction) as LedgerDirection;
+  const newAmount = input.amount !== undefined ? Number(input.amount) : Number((prev as any).amount);
+  const prevEffect = (prev as any).direction === "in" ? Number((prev as any).amount) : -Number((prev as any).amount);
+  const newEffect = newDirection === "in" ? newAmount : -newAmount;
+  const delta = newEffect - prevEffect;
+  if (delta !== 0) await adjustBalance(delta);
+}
+
 export async function deleteLedgerEntry(id: string): Promise<void> {
   const ownerId = await getOwnerId();
   if (!ownerId) return;
