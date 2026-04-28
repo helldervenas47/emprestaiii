@@ -245,6 +245,7 @@ export function LedgerView({ readOnly = false }: Props) {
       <AdjustBalanceDialog
         open={adjustOpen}
         onOpenChange={setAdjustOpen}
+        currentBalance={balance}
         onSaved={reload}
       />
 
