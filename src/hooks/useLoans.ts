@@ -402,6 +402,11 @@ export function useLoans() {
 
     try {
       await adjustBalance(installmentAmount);
+      await recordLedger({
+        direction: "in", category: "payment", amount: installmentAmount,
+        description: `Parcela ${newPaid}/${loan.installments} recebida - ${loan.borrowerName}`,
+        occurred_on: dateStr, loan_id: loanId, payment_id: tempPaymentId, source: "auto", syncBalance: false,
+      });
     } catch (balanceError: any) {
       console.error("[addPayment] adjust balance failed:", balanceError);
       await Promise.all([
