@@ -1386,13 +1386,14 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
 
       {/* Portfolio metrics */}
       {(() => {
-        // Interest metrics based on selected period filter (installment due dates)
-        // Use interestExpectedRecords como fonte única para garantir consistência com o detalhamento
-        const interestDueInPeriod = data.interestExpectedRecords.reduce((s, r) => s + r.interestPortion, 0);
+        // Métricas de juros — usam a MESMA fonte do card "Faturamento do Período"
+        // para garantir que os 3 cards conversem entre si:
+        //   Juros a Receber  = Realizado + Previsto restante (total esperado no período)
+        //   Juros Recebidos  = Realizado (periodProfitRealized)
+        //   Juros Pendentes  = Previsto restante (periodProfitExpected, que aqui já é "restante")
         const interestReceivedInPeriod = data.periodProfitRealized;
-        const interestPendingInPeriod = data.interestExpectedRecords
-          .filter((r) => !r.paid)
-          .reduce((s, r) => s + r.interestPortion, 0);
+        const interestPendingInPeriod = Math.max(0, data.periodProfitExpected);
+        const interestDueInPeriod = interestReceivedInPeriod + interestPendingInPeriod;
 
         const items: Array<{ label: string; value: string; color: string; iconBg: string; iconColor: string; onClick?: () => void; tooltip?: string }> = [
           { label: "Capital na Rua", value: formatCurrency(portfolio.capitalOnStreet), color: "text-foreground", iconBg: "bg-primary/10", iconColor: "text-primary", tooltip: "Soma do valor principal (sem juros) de todos os contratos ativos que ainda não foram totalmente quitados. Representa quanto do seu dinheiro está atualmente emprestado." },
