@@ -85,6 +85,7 @@ if (typeof window !== "undefined") {
 // Lazy load hooks only when needed
 import { useLoans } from "@/hooks/useLoans";
 import { useClients } from "@/hooks/useClients";
+import { useAutoAdjustCreditLimits } from "@/hooks/useAutoAdjustCreditLimits";
 import { useProducts } from "@/hooks/useProducts";
 import { useExpenses } from "@/hooks/useExpenses";
 import { useVehicleRegistry } from "@/hooks/useVehicleRegistry";
@@ -278,6 +279,9 @@ const Index = () => {
   const initialLoanView = urlParams.get("view") as any;
   const { loans, payments, installmentSchedules, addLoan, addPayment, addPartialPayment, payOffLoan, addInterestOnlyPayment, amortizeLoan, renegotiateLoan, updateLoan, deleteLoan, deletePayment, saveSchedule } = useLoans();
   const { clients, addClient, deleteClient, updateClient } = useClients();
+
+  // Automatic credit-limit adjustment per client (auto mode only)
+  useAutoAdjustCreditLimits(clients, loans, payments);
 
   // Defer heavy hooks until their tabs are active
   const needsProducts = tab === "overview" || tab === "products" || tab === "vehicles";
