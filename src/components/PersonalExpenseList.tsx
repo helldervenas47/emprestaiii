@@ -1122,22 +1122,27 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, onUpda
                         {c.name}
                         <button
                           type="button"
-                          onClick={() => {
+                          onClick={async () => {
                             if (customMatch) {
                               setEditingCategory(customMatch);
                               setCreatorInitial(null);
-                            } else {
-                              // Built-in: abre como nova categoria pré-preenchida.
-                              // Salvar com o mesmo nome cria um override custom que
-                              // assume a posição no limite de gastos.
-                              setEditingCategory(null);
-                              setCreatorInitial({
-                                name: c.name,
-                                icon: getIconName(c.icon),
-                                color: c.color,
-                              });
+                              setCategoryEditorOpen(true);
+                              return;
                             }
-                            setCategoryEditorOpen(true);
+                            // Built-in: cria silenciosamente uma categoria
+                            // custom equivalente e abre o editor em modo
+                            // edição — assim "editar" sempre edita, nunca
+                            // cria uma duplicata visível para o usuário.
+                            const created = await createCustomCategory({
+                              name: c.name,
+                              icon: getIconName(c.icon),
+                              color: c.color,
+                            });
+                            if (created) {
+                              setEditingCategory(created);
+                              setCreatorInitial(null);
+                              setCategoryEditorOpen(true);
+                            }
                           }}
                           className="text-muted-foreground hover:text-foreground transition-colors"
                           title="Editar categoria"
