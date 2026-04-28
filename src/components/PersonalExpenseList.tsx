@@ -234,8 +234,11 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, onUpda
   const totalPending =
     spendingMonth.filter((e) => !e.paid).reduce((s, e) => s + getInstallmentAmount(e), 0) +
     cardInvoicePendingMonth;
+  // "Gasto do mês" considera tudo que foi gasto: despesas avulsas + faturas
+  // do mês (já pagas e ainda em aberto). As pendentes seguem somadas em
+  // `totalPending` separadamente, sem reduzir o total gasto.
   const totalPaid =
-    spendingMonth.reduce((s, e) => s + getInstallmentAmount(e), 0) + cardInvoicePaidMonth;
+    spendingMonth.reduce((s, e) => s + getInstallmentAmount(e), 0) + cardInvoiceMonthTotal;
   const totalOverdue = spendingMonth.filter(isOverdue).reduce((s, e) => s + getInstallmentAmount(e), 0);
 
   // Daily average + projection — only meaningful for current month
