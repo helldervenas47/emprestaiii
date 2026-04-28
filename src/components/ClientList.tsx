@@ -591,6 +591,11 @@ export function ClientList({ clients, loans, payments, installmentSchedules, onD
           payments={payments}
         />
       )}
+      <RecentLimitAdjustmentsDialog
+        open={recentAdjustOpen}
+        onOpenChange={setRecentAdjustOpen}
+        clients={clients}
+      />
     </div>
   );
 }
