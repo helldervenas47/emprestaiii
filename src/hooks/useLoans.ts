@@ -488,6 +488,11 @@ export function useLoans() {
 
     try {
       await adjustBalance(amount);
+      await recordLedger({
+        direction: "in", category: "payment", amount,
+        description: `Pagamento parcial - ${loan.borrowerName}`,
+        occurred_on: dateStr, loan_id: loanId, payment_id: tempPaymentId, source: "auto", syncBalance: false,
+      });
     } catch (balanceError: any) {
       console.error("[addPartialPayment] adjust balance failed:", balanceError);
       await Promise.all([
@@ -584,6 +589,11 @@ export function useLoans() {
 
     try {
       await adjustBalance(payAmount);
+      await recordLedger({
+        direction: "in", category: "payment", amount: payAmount,
+        description: `Quitação - ${loan.borrowerName}`,
+        occurred_on: dateStr, loan_id: loanId, payment_id: tempPaymentId, source: "auto", syncBalance: false,
+      });
     } catch (balanceError: any) {
       console.error("[payOffLoan] adjust balance failed:", balanceError);
       await Promise.all([
@@ -835,6 +845,11 @@ export function useLoans() {
 
     try {
       await adjustBalance(interestAmount);
+      await recordLedger({
+        direction: "in", category: "payment", amount: interestAmount,
+        description: `Juros mensal - ${loan.borrowerName}`,
+        occurred_on: dateStr, loan_id: loanId, payment_id: tempPaymentId, source: "auto", syncBalance: false,
+      });
     } catch (balanceError: any) {
       console.error("[addInterestOnlyPayment] adjust balance failed:", balanceError);
       await Promise.all([
@@ -867,6 +882,11 @@ export function useLoans() {
 
       try {
         await adjustBalance(feesExtra);
+        await recordLedger({
+          direction: "in", category: "payment", amount: feesExtra,
+          description: `Multa/juros de atraso - ${loan.borrowerName}`,
+          occurred_on: dateStr, loan_id: loanId, payment_id: feesPaymentId, source: "auto", syncBalance: false,
+        });
       } catch (feeBalanceError: any) {
         console.error("[addInterestOnlyPayment] adjust fee balance failed:", feeBalanceError);
         await Promise.all([
@@ -1072,6 +1092,11 @@ export function useLoans() {
 
     try {
       await adjustBalance(amortizeAmount);
+      await recordLedger({
+        direction: "in", category: "payment", amount: amortizeAmount,
+        description: `Amortização - ${loan.borrowerName}`,
+        occurred_on: dateStr, loan_id: loanId, payment_id: tempPaymentId, source: "auto", syncBalance: false,
+      });
     } catch (balErr: any) {
       // reverter
       await Promise.all([
@@ -1159,6 +1184,10 @@ export function useLoans() {
       return;
     }
     if (netDelta !== 0) await adjustBalance(netDelta);
+    // Remove todos os lançamentos do extrato vinculados a esse empréstimo (sem mexer no saldo, já feito acima)
+    if (loan) {
+      await removeLedgerByRef({ loan_id: id }, { syncBalance: false });
+    }
     const { error } = await supabase.from("loans").delete().eq("id", id);
     if (error) await enqueueMutation({ table: "loans", op: "delete", recordId: id });
   }, [loans, payments]);
@@ -1224,6 +1253,8 @@ export function useLoans() {
       await supabase.from("loans").update(loanUpdates).eq("id", payment.loanId);
     }
     await adjustBalance(-payment.amount);
+    // Remove a entrada do extrato (sem mexer no saldo de novo)
+    await removeLedgerByRef({ payment_id: id }, { syncBalance: false });
     await supabase.from("payments").delete().eq("id", id);
     await fetchSchedules();
     await fetchLoans();
