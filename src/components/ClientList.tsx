@@ -630,6 +630,15 @@ export function ClientList({ clients, loans, payments, installmentSchedules, onD
           payments={payments}
         />
       )}
+      <RecentLimitAdjustmentsDialog
+        open={recentAdjustOpen}
+        onOpenChange={setRecentAdjustOpen}
+        clients={clients}
+      />
+      <MaxCreditLimitDialog
+        open={maxLimitOpen}
+        onOpenChange={setMaxLimitOpen}
+      />
     </div>
   );
 }
