@@ -13,6 +13,7 @@ import { Trash2, User, Phone, Mail, MapPin, Search, Users, Pencil, X, Check, Tog
 import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
 import { ClientDetailDialog } from "@/components/ClientDetailDialog";
 import { CreditLimitDialog } from "@/components/CreditLimitDialog";
+import { RecentLimitAdjustmentsDialog } from "@/components/RecentLimitAdjustmentsDialog";
 import { useCreditLimits } from "@/hooks/useCreditLimits";
 import { computeAvailableLimit, computeUsedLimit, formatBRL } from "@/lib/creditLimit";
 
