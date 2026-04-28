@@ -1387,9 +1387,12 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
       {/* Portfolio metrics */}
       {(() => {
         // Interest metrics based on selected period filter (installment due dates)
-        const interestDueInPeriod = data.periodProfitExpected;
+        // Use interestExpectedRecords como fonte única para garantir consistência com o detalhamento
+        const interestDueInPeriod = data.interestExpectedRecords.reduce((s, r) => s + r.interestPortion, 0);
         const interestReceivedInPeriod = data.periodProfitRealized;
-        const interestPendingInPeriod = Math.max(0, interestDueInPeriod - interestReceivedInPeriod);
+        const interestPendingInPeriod = data.interestExpectedRecords
+          .filter((r) => !r.paid)
+          .reduce((s, r) => s + r.interestPortion, 0);
 
         const items: Array<{ label: string; value: string; color: string; iconBg: string; iconColor: string; onClick?: () => void; tooltip?: string }> = [
           { label: "Capital na Rua", value: formatCurrency(portfolio.capitalOnStreet), color: "text-foreground", iconBg: "bg-primary/10", iconColor: "text-primary", tooltip: "Soma do valor principal (sem juros) de todos os contratos ativos que ainda não foram totalmente quitados. Representa quanto do seu dinheiro está atualmente emprestado." },
