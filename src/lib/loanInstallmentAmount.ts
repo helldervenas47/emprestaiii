@@ -1,25 +1,79 @@
 import type { Loan, InstallmentSchedule } from "@/types/loan";
 import { calculateInstallment } from "@/hooks/useLoans";
+import { todayInAppTz } from "@/lib/timezone";
 
 /**
- * Retorna o valor da próxima parcela em aberto do contrato.
- * Usado pelas abas Dashboard, Relatório e Empréstimos para calcular
- * "valor em atraso" de forma consistente — sempre apenas o valor da
- * parcela vencida (não o saldo total restante).
+ * Retorna o valor da próxima parcela em aberto do contrato (apenas a próxima).
  */
 export function getInstallmentAmount(loan: Loan, schedules: InstallmentSchedule[]): number {
   // Para parcela única, usar remaining_amount diretamente
   if (loan.installments === 1 && loan.remainingAmount && loan.remainingAmount > 0) {
     return loan.remainingAmount;
   }
-  // Para parcelado, tentar schedule primeiro (parcela seguinte à última paga)
   const schedule = schedules.find(
     (s) => s.loanId === loan.id && s.installmentNumber === loan.paidInstallments + 1,
   );
   if (schedule) return schedule.amount;
-  // Fallback: remainingAmount ou cálculo original
   if (loan.remainingAmount && loan.remainingAmount > 0) {
     return loan.remainingAmount;
   }
   return loan.customInstallmentValue || calculateInstallment(loan.amount, loan.interestRate, loan.installments);
+}
+
+/**
+ * Retorna a lista de parcelas vencidas (dueDate < hoje, ainda não pagas).
+ * Usado para somar o valor TOTAL em atraso quando há múltiplas parcelas vencidas.
+ */
+export function getOverdueInstallments(
+  loan: Loan,
+  schedules: InstallmentSchedule[],
+  todayStr: string = todayInAppTz(),
+): { installmentNumber: number; dueDate: string; amount: number }[] {
+  const paid = loan.paidInstallments || 0;
+  // Parcela única: trata como uma única parcela vencida se dueDate < hoje
+  if (loan.installments === 1) {
+    if (loan.dueDate < todayStr && paid < 1) {
+      return [{
+        installmentNumber: 1,
+        dueDate: loan.dueDate,
+        amount: loan.remainingAmount && loan.remainingAmount > 0
+          ? loan.remainingAmount
+          : (loan.customInstallmentValue || calculateInstallment(loan.amount, loan.interestRate, loan.installments)),
+      }];
+    }
+    return [];
+  }
+
+  const loanSchedules = schedules
+    .filter((s) => s.loanId === loan.id && s.installmentNumber > paid && s.dueDate < todayStr)
+    .sort((a, b) => a.installmentNumber - b.installmentNumber);
+
+  if (loanSchedules.length > 0) {
+    return loanSchedules.map((s) => ({
+      installmentNumber: s.installmentNumber,
+      dueDate: s.dueDate,
+      amount: s.amount,
+    }));
+  }
+
+  // Fallback: somente próxima parcela se vencida
+  if (loan.dueDate < todayStr) {
+    return [{
+      installmentNumber: paid + 1,
+      dueDate: loan.dueDate,
+      amount: getInstallmentAmount(loan, schedules),
+    }];
+  }
+  return [];
+}
+
+/**
+ * Soma o valor total em atraso de um contrato (todas as parcelas vencidas).
+ */
+export function getOverdueAmount(
+  loan: Loan,
+  schedules: InstallmentSchedule[],
+  todayStr: string = todayInAppTz(),
+): number {
+  return getOverdueInstallments(loan, schedules, todayStr).reduce((s, i) => s + i.amount, 0);
 }
