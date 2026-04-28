@@ -86,7 +86,7 @@ Deno.serve(async (req) => {
     const systemPrompt = promptConfig.system.join(" ");
     const userPrompt = `${promptConfig.userIntro}\n${JSON.stringify(metrics, null, 2)}\n\nGere um relatório prático e acionável.`;
 
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const callGateway = async () => fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
         Authorization: `Bearer ${LOVABLE_API_KEY}`,
@@ -101,16 +101,35 @@ Deno.serve(async (req) => {
       }),
     });
 
-    if (!response.ok) {
-      const text = await response.text();
-      if (response.status === 429 || response.status === 402) {
-        return new Response(JSON.stringify({ error: text || "AI error" }), {
-          status: response.status,
+    // Retry com backoff em erros transitórios (502/503/504) e quando upstream cai
+    let response: Response | null = null;
+    let lastErrText = "";
+    const transient = new Set([500, 502, 503, 504]);
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try {
+        response = await callGateway();
+        if (response.ok) break;
+        if (!transient.has(response.status)) break;
+        lastErrText = await response.text().catch(() => "");
+      } catch (err) {
+        lastErrText = err instanceof Error ? err.message : String(err);
+      }
+      await new Promise((r) => setTimeout(r, 600 * Math.pow(2, attempt)));
+    }
+
+    if (!response || !response.ok) {
+      const status = response?.status ?? 502;
+      if (status === 429 || status === 402) {
+        return new Response(JSON.stringify({ error: lastErrText || "AI error" }), {
+          status,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      return new Response(JSON.stringify({ error: "AI gateway error", details: text }), {
-        status: 500,
+      return new Response(JSON.stringify({
+        error: "Serviço de IA temporariamente indisponível. Tente novamente em alguns instantes.",
+        details: lastErrText?.slice(0, 500),
+      }), {
+        status: 503,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
