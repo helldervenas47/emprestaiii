@@ -578,19 +578,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
     const todayStr = todayInAppTz();
     const overdueLoans = activeLoans.filter((l) => l.dueDate < todayStr);
     const overdueAmount = overdueLoans.reduce((s, l) => {
-      let baseRemaining: number;
-      if (l.installments >= 2) {
-        const overdueSum = installmentSchedules
-          .filter((sc) => sc.loanId === l.id && sc.installmentNumber > l.paidInstallments && sc.dueDate < todayStr)
-          .reduce((sum, sc) => sum + sc.amount, 0);
-        baseRemaining = overdueSum > 0 ? overdueSum : (l.remainingAmount > 0 ? l.remainingAmount : Math.max(0, calculateTotalWithInterest(l.amount, l.interestRate, l.installments) - payments.filter((p) => p.loanId === l.id).reduce((ss, p) => ss + p.amount, 0)));
-      } else if (l.remainingAmount != null && l.remainingAmount > 0) {
-        baseRemaining = l.remainingAmount;
-      } else {
-        const expected = calculateTotalWithInterest(l.amount, l.interestRate, l.installments);
-        const paid = payments.filter((p) => p.loanId === l.id).reduce((ss, p) => ss + p.amount, 0);
-        baseRemaining = Math.max(0, expected - paid);
-      }
+      const baseRemaining = getInstallmentAmount(l, installmentSchedules);
       const dueDate = new Date(l.dueDate + "T00:00:00");
       const refNorm = new Date(todayStr + "T00:00:00");
       const daysLate = Math.max(0, Math.floor((refNorm.getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24)));
