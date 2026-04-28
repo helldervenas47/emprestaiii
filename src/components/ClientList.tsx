@@ -9,10 +9,11 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Trash2, User, Phone, Mail, MapPin, Search, Users, Pencil, X, Check, ToggleLeft, ToggleRight, ArrowUpDown, ArrowDownAZ, ArrowUpAZ, Clock, CalendarDays, TrendingUp, AlertTriangle, ShieldCheck, Wallet } from "lucide-react";
+import { Trash2, User, Phone, Mail, MapPin, Search, Users, Pencil, X, Check, ToggleLeft, ToggleRight, ArrowUpDown, ArrowDownAZ, ArrowUpAZ, Clock, CalendarDays, TrendingUp, AlertTriangle, ShieldCheck, Wallet, Sparkles } from "lucide-react";
 import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
 import { ClientDetailDialog } from "@/components/ClientDetailDialog";
 import { CreditLimitDialog } from "@/components/CreditLimitDialog";
+import { RecentLimitAdjustmentsDialog } from "@/components/RecentLimitAdjustmentsDialog";
 import { useCreditLimits } from "@/hooks/useCreditLimits";
 import { computeAvailableLimit, computeUsedLimit, formatBRL } from "@/lib/creditLimit";
 
@@ -129,6 +130,7 @@ export function ClientList({ clients, loans, payments, installmentSchedules, onD
   const [deleteClientId, setDeleteClientId] = useState<string | null>(null);
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
   const [limitClient, setLimitClient] = useState<Client | null>(null);
+  const [recentAdjustOpen, setRecentAdjustOpen] = useState(false);
   const { getLimitForClient, updateLimit, ensureLimit } = useCreditLimits();
 
   const creditScores = useMemo(() => {
@@ -230,6 +232,15 @@ export function ClientList({ clients, loans, payments, installmentSchedules, onD
             {opt.label} ({opt.count})
           </button>
         ))}
+        <button
+          type="button"
+          onClick={() => setRecentAdjustOpen(true)}
+          className="px-3 py-1.5 rounded-xl text-xs font-medium transition-all duration-200 border bg-card border-border text-muted-foreground hover:opacity-80 inline-flex items-center gap-1.5"
+          title="Ver clientes com limite ajustado recentemente"
+        >
+          <Sparkles className="h-3.5 w-3.5" />
+          Limites ajustados
+        </button>
       </div>
       <div className="flex gap-2">
         <div className="relative flex-1">
@@ -580,6 +591,11 @@ export function ClientList({ clients, loans, payments, installmentSchedules, onD
           payments={payments}
         />
       )}
+      <RecentLimitAdjustmentsDialog
+        open={recentAdjustOpen}
+        onOpenChange={setRecentAdjustOpen}
+        clients={clients}
+      />
     </div>
   );
 }
