@@ -90,7 +90,7 @@ import { useExpenses } from "@/hooks/useExpenses";
 import { useVehicleRegistry } from "@/hooks/useVehicleRegistry";
 import { useLocadorInfo } from "@/hooks/useLocadorInfo";
 
-type Tab = "overview" | "dashboard" | "clients" | "products" | "vehicles" | "overdue" | "expenses" | "ledger" | "calendar" | "settings" | "system-health";
+type Tab = "overview" | "dashboard" | "clients" | "products" | "vehicles" | "overdue" | "expenses" | "calendar" | "settings" | "system-health";
 type ClientSubTab = "clientes" | "veiculos";
 type VehicleSubTab = "veiculos" | "locadores";
 type PlanMgmtSubTab = "subscribers" | "plans";
@@ -106,7 +106,7 @@ const tabConfig = [
   { id: "calendar" as Tab, label: "Calendário", icon: CalendarDays },
   { id: "clients" as Tab, label: "Cadastro", icon: Users },
   { id: "expenses" as Tab, label: "Despesas", icon: Receipt },
-  { id: "ledger" as Tab, label: "Extrato", icon: Wallet },
+  
   { id: "overdue" as Tab, label: "Relatório", icon: AlertTriangle },
   { id: "settings" as Tab, label: "Configurações", icon: SettingsIcon },
   { id: "system-health" as Tab, label: "Saúde do Sistema", icon: Activity, adminOnly: true },
@@ -200,16 +200,6 @@ const tabHelp: Record<Tab, { title: string; items: string[] }> = {
       "Métricas reais: latência do banco, sessões ativas, contagens, status online.",
       "Métricas marcadas como 'Estimado' são aproximações calculadas no aparelho.",
       "Use o botão Atualizar ou ative o auto-refresh (30s).",
-    ],
-  },
-  ledger: {
-    title: "Extrato da Conta",
-    items: [
-      "Única fonte de verdade do saldo: somar entradas e subtrair saídas.",
-      "Empréstimos concedidos e despesas pagas geram saídas automáticas.",
-      "Pagamentos de parcelas geram entradas automáticas.",
-      "Use 'Ajustar saldo' para registrar aportes ou correções manuais.",
-      "Use 'Recalcular saldo' se precisar reconciliar a partir do extrato.",
     ],
   },
 };
@@ -445,9 +435,10 @@ const Index = () => {
     }
   }, [tab, visibleTabs]);
 
-  // Escuta pedido para abrir o extrato a partir de outros componentes (ex: card de saldo)
+  // Extrato agora abre como dialog (não é mais aba)
+  const [ledgerOpen, setLedgerOpen] = useState(false);
   useEffect(() => {
-    const handler = () => setTab("ledger");
+    const handler = () => setLedgerOpen(true);
     window.addEventListener("open-ledger", handler);
     return () => window.removeEventListener("open-ledger", handler);
   }, []);
@@ -814,14 +805,6 @@ const Index = () => {
               </>
             )}
           </div>
-          </SubscriptionGate>
-        )}
-        {tab === "ledger" && (
-          <SubscriptionGate requiredTier={1} featureName="Extrato">
-            <div>
-              <h2 className="text-lg font-semibold text-foreground mb-4">Extrato da Conta</h2>
-              <LedgerView readOnly={isReadOnly} />
-            </div>
           </SubscriptionGate>
         )}
         {tab === "overdue" && (
@@ -1400,6 +1383,17 @@ const Index = () => {
           </Dialog>
         </>
       )}
+
+      {/* Extrato em Dialog (acionado pelo botão "Ver extrato") */}
+      <Dialog open={ledgerOpen} onOpenChange={setLedgerOpen}>
+        <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Extrato da Conta</DialogTitle>
+            <DialogDescription>Histórico completo de entradas e saídas. Fonte única do saldo.</DialogDescription>
+          </DialogHeader>
+          <LedgerView readOnly={isReadOnly} />
+        </DialogContent>
+      </Dialog>
     </div>
     </HideValuesProvider>
   );
