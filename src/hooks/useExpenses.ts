@@ -347,6 +347,7 @@ export function useExpenses(enabled = true) {
   }, [expenses]);
 
   const deleteExpense = useCallback(async (id: string, skipBalanceAdjust = false) => {
+    const expense = expenses.find((e) => e.id === id);
     setExpenses((prev) => prev.filter((e) => e.id !== id));
     await removeCachedRow("expenses", id);
     if (!isOnline()) {
@@ -355,6 +356,13 @@ export function useExpenses(enabled = true) {
     }
     // Remove any piggy deposit linked to this expense (no-op if none).
     await supabase.from("piggy_bank_deposits" as any).delete().eq("expense_id", id);
+
+    // Reverter saldo se a despesa estava paga (business) e remover lançamento do extrato
+    if (expense && !skipBalanceAdjust && expense.paid && (expense.scope ?? "business") === "business") {
+      await adjustBalance(expense.amount);
+    }
+    await removeLedgerByRef({ expense_id: id, category: "expense" }, { syncBalance: false });
+
     const { error } = await supabase.from("expenses").delete().eq("id", id);
     if (error) await enqueueMutation({ table: "expenses", op: "delete", recordId: id });
   }, [expenses]);
