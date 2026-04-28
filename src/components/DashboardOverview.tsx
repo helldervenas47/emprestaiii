@@ -168,7 +168,7 @@ function calculateRealizedProfitForRange(loans: Loan[], payments: Payment[], sta
   return interestOnlyProfit + quitadoProfit + activeInstallmentProfit;
 }
 
-function summarizeMonthMetrics(loans: Loan[], sales: Sale[], payments: Payment[], includeSales: boolean, start: Date, end: Date) {
+function summarizeMonthMetrics(loans: Loan[], sales: Sale[], payments: Payment[], includeSales: boolean, start: Date, end: Date, installmentSchedules: InstallmentSchedule[] = []) {
   const monthPayments = payments.filter((payment) => isInRange(payment.date, start, end));
   const monthSales = sales.filter((sale) => isInRange(sale.date, start, end));
   const monthLoans = loans.filter((loan) => isInRange(loan.startDate, start, end));
@@ -195,7 +195,7 @@ function summarizeMonthMetrics(loans: Loan[], sales: Sale[], payments: Payment[]
   const overdueBase = activeLoans.filter((loan) => isInRange(loan.dueDate, start, end));
   const todayStr = todayInAppTz();
   const overdueLoans = overdueBase.filter((loan) => loan.dueDate < todayStr);
-  const overdueAmount = overdueLoans.reduce((sum, loan) => sum + (loan.remainingAmount ?? 0), 0);
+  const overdueAmount = overdueLoans.reduce((sum, loan) => sum + getInstallmentAmount(loan, installmentSchedules), 0);
   const overdueRate = overdueBase.length > 0 ? overdueLoans.length / overdueBase.length : 0;
   const top3Share = revenue > 0
     ? Array.from(clientRevenue.values()).sort((a, b) => b - a).slice(0, 3).reduce((sum, value) => sum + value, 0) / revenue
@@ -682,7 +682,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
       const monthDate = new Date(anchor.getFullYear(), anchor.getMonth() - (comparisonWindow - 1 - index), 1);
       const monthStart = new Date(monthDate.getFullYear(), monthDate.getMonth(), 1);
       const monthEnd = new Date(monthDate.getFullYear(), monthDate.getMonth() + 1, 0, 23, 59, 59, 999);
-      const metrics = summarizeMonthMetrics(loans, sales, payments, includeSales, monthStart, monthEnd);
+      const metrics = summarizeMonthMetrics(loans, sales, payments, includeSales, monthStart, monthEnd, installmentSchedules);
 
       return {
         key: `${monthDate.getFullYear()}-${String(monthDate.getMonth() + 1).padStart(2, "0")}`,
