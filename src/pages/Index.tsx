@@ -85,6 +85,7 @@ if (typeof window !== "undefined") {
 // Lazy load hooks only when needed
 import { useLoans } from "@/hooks/useLoans";
 import { useClients } from "@/hooks/useClients";
+import { useAutoAdjustCreditLimits } from "@/hooks/useAutoAdjustCreditLimits";
 import { useProducts } from "@/hooks/useProducts";
 import { useExpenses } from "@/hooks/useExpenses";
 import { useVehicleRegistry } from "@/hooks/useVehicleRegistry";
