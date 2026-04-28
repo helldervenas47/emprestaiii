@@ -2128,16 +2128,43 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
             <SheetTitle>Juros a Receber no Mês — {range.label}</SheetTitle>
           </SheetHeader>
           {(() => {
+            // Mesma base do card "Juros a Receber no Mês":
+            // realizado (juros recebidos) + previsto restante (juros pendentes)
+            const realized = data.periodProfitRealized;
+            const pending = Math.max(0, data.periodProfitExpected);
+            const total = realized + pending;
+
+            // Detalhamento das parcelas com vencimento no mês (pendentes apenas)
             const pendingRecs = data.interestExpectedRecords.filter((r) => !r.paid);
-            const pendingTotal = pendingRecs.reduce((s, r) => s + r.interestPortion, 0);
+
             return (
-              <div className="mt-4 space-y-2">
+              <div className="mt-4 space-y-3">
+                {/* Resumo alinhado com o card */}
+                <div className="grid grid-cols-3 gap-2">
+                  <div className="rounded-lg border border-border bg-muted/40 p-3">
+                    <p className="text-[10px] text-muted-foreground">Total previsto</p>
+                    <p className="text-sm font-bold text-foreground">{formatCurrency(total)}</p>
+                  </div>
+                  <div className="rounded-lg border border-success/30 bg-success/5 p-3">
+                    <p className="text-[10px] text-muted-foreground">Já recebido</p>
+                    <p className="text-sm font-bold text-success">{formatCurrency(realized)}</p>
+                  </div>
+                  <div className="rounded-lg border border-warning/30 bg-warning/5 p-3">
+                    <p className="text-[10px] text-muted-foreground">Pendente</p>
+                    <p className="text-sm font-bold text-warning">{formatCurrency(pending)}</p>
+                  </div>
+                </div>
+
+                <p className="text-[11px] text-muted-foreground pt-2">
+                  Parcelas com vencimento no período ({pendingRecs.length} pendente{pendingRecs.length !== 1 ? "s" : ""}):
+                </p>
+
                 {pendingRecs.length === 0 ? (
                   <p className="text-sm text-muted-foreground text-center py-4">
-                    Nenhum juros pendente neste período.
+                    Nenhuma parcela pendente com vencimento neste período.
                   </p>
                 ) : (
-                  <>
+                  <div className="space-y-2">
                     {pendingRecs.map((rec, i) => (
                       <div key={i} className="flex items-center justify-between p-3 rounded-lg bg-muted/50 border border-border/30">
                         <div className="flex-1 min-w-0">
@@ -2152,11 +2179,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
                         </div>
                       </div>
                     ))}
-                    <div className="flex items-center justify-between pt-3 border-t border-border">
-                      <p className="text-sm font-semibold">Total Pendente</p>
-                      <p className="text-sm font-bold text-warning">{formatCurrency(pendingTotal)}</p>
-                    </div>
-                  </>
+                  </div>
                 )}
               </div>
             );
