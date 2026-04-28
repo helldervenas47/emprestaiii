@@ -245,6 +245,7 @@ export function LedgerView({ readOnly = false }: Props) {
       <AdjustBalanceDialog
         open={adjustOpen}
         onOpenChange={setAdjustOpen}
+        currentBalance={balance}
         onSaved={reload}
       />
 
@@ -258,26 +259,33 @@ export function LedgerView({ readOnly = false }: Props) {
   );
 }
 
-function AdjustBalanceDialog({ open, onOpenChange, onSaved }: { open: boolean; onOpenChange: (v: boolean) => void; onSaved: () => void }) {
-  const [direction, setDirection] = useState<LedgerDirection>("in");
-  const [amount, setAmount] = useState("");
+function AdjustBalanceDialog({ open, onOpenChange, currentBalance, onSaved }: { open: boolean; onOpenChange: (v: boolean) => void; currentBalance: number; onSaved: () => void }) {
+  const [targetBalance, setTargetBalance] = useState("");
   const [description, setDescription] = useState("Ajuste manual de saldo");
   const [date, setDate] = useState(todayInAppTz());
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     if (open) {
-      setDirection("in");
-      setAmount("");
+      setTargetBalance(currentBalance.toFixed(2));
       setDescription("Ajuste manual de saldo");
       setDate(todayInAppTz());
     }
-  }, [open]);
+  }, [open, currentBalance]);
+
+  const target = parseFloat(targetBalance.replace(",", "."));
+  const validTarget = !isNaN(target);
+  const delta = validTarget ? +(target - currentBalance).toFixed(2) : 0;
+  const direction: LedgerDirection = delta >= 0 ? "in" : "out";
+  const absDelta = Math.abs(delta);
 
   const handleSave = async () => {
-    const v = parseFloat(amount.replace(",", "."));
-    if (!v || v <= 0) {
-      toast.error("Informe um valor válido");
+    if (!validTarget) {
+      toast.error("Informe um saldo válido");
+      return;
+    }
+    if (absDelta < 0.005) {
+      toast.error("O saldo informado é igual ao atual");
       return;
     }
     setSaving(true);
@@ -285,7 +293,7 @@ function AdjustBalanceDialog({ open, onOpenChange, onSaved }: { open: boolean; o
       await recordLedger({
         direction,
         category: "adjustment",
-        amount: v,
+        amount: absDelta,
         description: description.trim() || "Ajuste manual de saldo",
         occurred_on: date,
         source: "manual",
@@ -307,20 +315,19 @@ function AdjustBalanceDialog({ open, onOpenChange, onSaved }: { open: boolean; o
           <DialogTitle>Ajustar saldo</DialogTitle>
         </DialogHeader>
         <div className="space-y-3">
-          <div>
-            <Label>Tipo</Label>
-            <Select value={direction} onValueChange={(v: any) => setDirection(v)}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="in">Entrada (somar ao saldo)</SelectItem>
-                <SelectItem value="out">Saída (subtrair do saldo)</SelectItem>
-              </SelectContent>
-            </Select>
+          <div className="rounded-md bg-muted px-3 py-2 text-sm">
+            <p className="text-muted-foreground">Saldo atual</p>
+            <p className="font-semibold">{formatBRL(currentBalance)}</p>
           </div>
           <div>
-            <Label>Valor (R$)</Label>
-            <Input type="number" inputMode="decimal" step="0.01" min="0" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0,00" autoFocus />
+            <Label>Novo saldo (R$)</Label>
+            <Input type="number" inputMode="decimal" step="0.01" value={targetBalance} onChange={(e) => setTargetBalance(e.target.value)} placeholder="0,00" autoFocus />
           </div>
+          {validTarget && absDelta >= 0.005 && (
+            <div className={`rounded-md px-3 py-2 text-sm ${direction === "in" ? "bg-success/10 text-success" : "bg-destructive/10 text-destructive"}`}>
+              {direction === "in" ? "Entrada" : "Saída"} de {formatBRL(absDelta)}
+            </div>
+          )}
           <div>
             <Label>Data</Label>
             <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
