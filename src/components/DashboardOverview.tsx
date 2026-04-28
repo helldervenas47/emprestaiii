@@ -1337,7 +1337,10 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
                     </PopoverContent>
                   </Popover>
                 </div>
-                <span className="text-sm font-bold text-foreground">{formatCurrency(data.periodProfitExpected)}</span>
+                <span className="text-sm font-bold text-foreground">{formatCurrency(
+                  data.periodProfitRealized
+                  + data.interestExpectedRecords.filter((r) => !r.paid).reduce((s, r) => s + r.interestPortion, 0)
+                )}</span>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-xs text-muted-foreground">Realizado</span>
