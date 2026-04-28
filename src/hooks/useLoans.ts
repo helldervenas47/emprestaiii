@@ -328,10 +328,10 @@ export function useLoans() {
         if (nextSchedule?.due_date) {
           nextDueDate = nextSchedule.due_date;
         } else {
-          nextDueDate = computeNextDueDate(loan.dueDate, loan.interestType || "Mensal", newPaid);
+          nextDueDate = computeNextDueDate(loan.dueDate, loan.interestType || "Mensal", 1);
         }
       } else {
-        nextDueDate = computeNextDueDate(loan.dueDate, loan.interestType || "Mensal", newPaid);
+        nextDueDate = computeNextDueDate(loan.dueDate, loan.interestType || "Mensal", 1);
       }
     }
 
