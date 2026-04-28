@@ -1383,6 +1383,17 @@ const Index = () => {
           </Dialog>
         </>
       )}
+
+      {/* Extrato em Dialog (acionado pelo botão "Ver extrato") */}
+      <Dialog open={ledgerOpen} onOpenChange={setLedgerOpen}>
+        <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Extrato da Conta</DialogTitle>
+            <DialogDescription>Histórico completo de entradas e saídas. Fonte única do saldo.</DialogDescription>
+          </DialogHeader>
+          <LedgerView readOnly={isReadOnly} />
+        </DialogContent>
+      </Dialog>
     </div>
     </HideValuesProvider>
   );
