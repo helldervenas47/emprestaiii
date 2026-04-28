@@ -14,7 +14,7 @@ import { useHideValues } from "@/contexts/HideValuesContext";
 import { Loan, Sale, Payment, Expense, InstallmentSchedule, Client } from "@/types/loan";
 import { ManagerCommissionsChart } from "@/components/ManagerCommissionsChart";
 import { GoalsCard } from "@/components/GoalsCard";
-import { calculateInstallment, calculateTotalWithInterest } from "@/hooks/useLoans";
+import { calculateInstallment, calculateTotalWithInterest, getLoanRemainingAmount } from "@/hooks/useLoans";
 import { getInstallmentAmount, getOverdueAmount } from "@/lib/loanInstallmentAmount";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -578,6 +578,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
     const todayStr = todayInAppTz();
     const overdueLoans = activeLoans.filter((l) => l.dueDate < todayStr);
     const overdueAmount = overdueLoans.reduce((s, l) => s + getOverdueAmount(l, installmentSchedules, todayStr), 0);
+    const pendingReceivable = activeLoans.reduce((s, l) => s + getLoanRemainingAmount(l, payments), 0);
 
     // Rates
     const receivingRate = totalExpected > 0 ? (totalReceived / totalExpected) * 100 : 0;
@@ -638,7 +639,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
       overdueLoans,
       capitalOnStreet,
       totalToReceive,
-      pendingReceivable: overdueAmount,
+      pendingReceivable,
       estimatedProfit,
       interestDueThisMonth,
       globalInterestRate,
@@ -1392,7 +1393,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
         const items: Array<{ label: string; value: string; color: string; iconBg: string; iconColor: string; onClick?: () => void; tooltip?: string }> = [
           { label: "Capital na Rua", value: formatCurrency(portfolio.capitalOnStreet), color: "text-foreground", iconBg: "bg-primary/10", iconColor: "text-primary", tooltip: "Soma do valor principal (sem juros) de todos os contratos ativos que ainda não foram totalmente quitados. Representa quanto do seu dinheiro está atualmente emprestado." },
           { label: "Total a Receber", value: formatCurrency(portfolio.totalToReceive), color: "text-foreground", iconBg: "bg-primary/10", iconColor: "text-primary", tooltip: "Soma de tudo que ainda falta receber dos contratos ativos: principal + juros de todas as parcelas em aberto." },
-          { label: "Pendente de Recebimento", value: formatCurrency(portfolio.pendingReceivable), color: "text-success", iconBg: "bg-success/10", iconColor: "text-success", tooltip: "Valor das parcelas já vencidas (atrasadas) que ainda não foram pagas. Indica quanto está em atraso no momento." },
+          { label: "Pendente de Recebimento", value: formatCurrency(portfolio.pendingReceivable), color: "text-success", iconBg: "bg-success/10", iconColor: "text-success", tooltip: "Valor restante a receber de todos os contratos de empréstimos ativos." },
           { label: "Lucro Estimado", value: formatCurrency(portfolio.estimatedProfit), color: "text-success", iconBg: "bg-success/10", iconColor: "text-success", tooltip: "Total de juros previstos a receber considerando todos os contratos ativos até o final dos seus ciclos. É o lucro projetado se todos pagarem conforme o combinado." },
           { label: "Juros a Receber no Mês", value: formatCurrency(interestDueInPeriod), color: "text-success", iconBg: "bg-success/10", iconColor: "text-success", onClick: () => setShowInterestExpectedDetail(true), tooltip: "Critério: DATA DE VENCIMENTO. Soma a porção de juros de TODAS as parcelas cujo vencimento cai no mês selecionado (cronograma do contrato), incluindo parcelas já pagas, atrasadas ou de contratos já quitados. Valor bruto previsto pelo contrato — não diminui conforme os juros são pagos. Por isso pode divergir de 'Juros Recebidos no Mês', que usa data de pagamento." },
           { label: "Juros Recebidos no Mês", value: formatCurrency(interestReceivedInPeriod), color: "text-warning", iconBg: "bg-warning/10", iconColor: "text-warning", onClick: () => setShowInterestDetail(true), tooltip: "Critério: DATA DE PAGAMENTO. Soma os juros efetivamente recebidos em pagamentos registrados no mês, independentemente do mês de vencimento. Inclui: juros avulsos, lucro integral de contratos quitados antecipadamente e a porção de juros de parcelas regulares/parciais. Por usar data de pagamento (e não vencimento), pode divergir de 'Juros a Receber no Mês'. Clique para ver o detalhamento." },
