@@ -9,7 +9,8 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { toast } from "sonner";
 import { usePersonalInsights } from "@/hooks/usePersonalInsights";
-import { getPersonalCategory } from "@/lib/personalExpenseCategories";
+import { getPersonalCategory, resolvePersonalIcon } from "@/lib/personalExpenseCategories";
+import { usePersonalExpenseCategories } from "@/hooks/usePersonalExpenseCategories";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
