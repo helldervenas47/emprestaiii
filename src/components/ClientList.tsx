@@ -26,7 +26,7 @@ interface Props {
   onUpdate: (id: string, data: Partial<Omit<Client, "id" | "createdAt">>) => void;
 }
 
-type StatusFilter = "all" | "active" | "inactive";
+type StatusFilter = "all" | "active" | "inactive" | "over-limit";
 type SortOption = "name-asc" | "name-desc" | "newest" | "oldest" | "score-desc" | "score-asc";
 
 const sortLabels: Record<SortOption, string> = {
