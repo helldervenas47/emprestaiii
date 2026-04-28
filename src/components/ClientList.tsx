@@ -143,6 +143,17 @@ export function ClientList({ clients, loans, payments, installmentSchedules, onD
     return map;
   }, [clients, loans, payments]);
 
+  const overLimitClientIds = useMemo(() => {
+    const ids = new Set<string>();
+    clients.forEach((c) => {
+      const lim = getLimitForClient(c.id);
+      if (!lim) return;
+      const used = computeUsedLimit(c, loans);
+      if (used > lim.currentLimit && lim.currentLimit >= 0) ids.add(c.id);
+    });
+    return ids;
+  }, [clients, loans, getLimitForClient]);
+
   const filtered = clients
     .filter((c) => {
       const matchesSearch =
@@ -152,7 +163,8 @@ export function ClientList({ clients, loans, payments, installmentSchedules, onD
       const matchesStatus =
         statusFilter === "all" ||
         (statusFilter === "active" && c.active !== false) ||
-        (statusFilter === "inactive" && c.active === false);
+        (statusFilter === "inactive" && c.active === false) ||
+        (statusFilter === "over-limit" && overLimitClientIds.has(c.id));
       return matchesSearch && matchesStatus;
     })
     .sort((a, b) => {
@@ -169,6 +181,7 @@ export function ClientList({ clients, loans, payments, installmentSchedules, onD
 
   const activeCount = clients.filter((c) => c.active !== false).length;
   const inactiveCount = clients.filter((c) => c.active === false).length;
+  const overLimitCount = overLimitClientIds.size;
 
   const startEdit = (client: Client) => {
     setEditingId(client.id);
