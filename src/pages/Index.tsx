@@ -457,9 +457,9 @@ const Index = () => {
 
 
   // Apply dark class to html element
-  useState(() => {
+  useEffect(() => {
     document.documentElement.classList.toggle("dark", dark);
-  });
+  }, [dark]);
 
   const [themeSwitching, setThemeSwitching] = useState(false);
   const [pendingNav, setPendingNav] = useState<string | null>(null);
