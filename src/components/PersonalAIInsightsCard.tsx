@@ -311,7 +311,7 @@ export function PersonalAIInsightsCard({
             ) : (
               <div className="grid grid-cols-2 lg:grid-cols-3 gap-2">
                 {visibleStats.map((s) => {
-                  const cat = getPersonalCategory(s.category);
+                  const cat = getPersonalCategory(s.category, customCategoryList);
                   const Icon = cat.icon;
                   const isOpen = expandedCat === s.category;
                   const suggestions = suggestionsByCat.get(s.category) || [];
@@ -453,7 +453,7 @@ export function PersonalAIInsightsCard({
             {(() => {
               const s = sortedStats.find((x) => x.category === expandedCat);
               if (!s) return null;
-              const cat = getPersonalCategory(s.category);
+              const cat = getPersonalCategory(s.category, customCategoryList);
               const Icon = cat.icon;
               const suggestions = suggestionsByCat.get(s.category) || [];
               const overPct = s.budget > 0 && s.over
@@ -546,7 +546,7 @@ export function PersonalAIInsightsCard({
           <DialogHeader>
             {reportCategory ? (
               (() => {
-                const cat = getPersonalCategory(reportCategory);
+                const cat = getPersonalCategory(reportCategory, customCategoryList);
                 const Icon = cat.icon;
                 return (
                   <>
