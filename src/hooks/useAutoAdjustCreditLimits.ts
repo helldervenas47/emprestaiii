@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
 import { useCreditLimits } from "./useCreditLimits";
+import { useAccountSettings } from "./useAccountSettings";
 import {
   computeAutoLimitAdjustment,
   computeClientCreditMetrics,
