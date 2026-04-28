@@ -2124,7 +2124,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
       <Sheet open={showInterestExpectedDetail} onOpenChange={setShowInterestExpectedDetail}>
         <SheetContent side="bottom" className="max-h-[80vh] overflow-y-auto">
           <SheetHeader>
-            <SheetTitle>Juros a Receber no Mês — {range.label}</SheetTitle>
+            <SheetTitle>{interestExpectedFilter === "pending" ? "Juros Pendentes do Mês" : "Juros a Receber no Mês"} — {range.label}</SheetTitle>
           </SheetHeader>
           {(() => {
             const pendingRecs = data.interestExpectedRecords
