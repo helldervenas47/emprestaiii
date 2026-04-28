@@ -209,19 +209,33 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, onUpda
   //  2. Caso contrário, se a fatura está totalmente paga, usa o valor pago automático.
   //  3. Caso contrário, usa o total atual (compras do ciclo + saldo inicial).
   // Sempre apenas uma vez no mês de vencimento da fatura.
-  const cardInvoiceMonthTotal = useMemo(
+  const cardInvoicePaidMonth = useMemo(
     () =>
       cardInvoiceTotalsMonth.reduce((s, x) => {
         if (x.hasPaidOverride) return s + x.paidTotal;
         if (x.paid) return s + x.paidTotal;
+        return s;
+      }, 0),
+    [cardInvoiceTotalsMonth],
+  );
+  // Faturas em aberto (não pagas e sem ajuste manual) entram como "a pagar".
+  const cardInvoicePendingMonth = useMemo(
+    () =>
+      cardInvoiceTotalsMonth.reduce((s, x) => {
+        if (x.hasPaidOverride) return s;
+        if (x.paid) return s;
         return s + x.total;
       }, 0),
     [cardInvoiceTotalsMonth],
   );
+  // Total da fatura no mês = parte paga + parte pendente (mantém o agregado de gasto).
+  const cardInvoiceMonthTotal = cardInvoicePaidMonth + cardInvoicePendingMonth;
 
-  const totalPending = spendingMonth.filter((e) => !e.paid).reduce((s, e) => s + getInstallmentAmount(e), 0);
+  const totalPending =
+    spendingMonth.filter((e) => !e.paid).reduce((s, e) => s + getInstallmentAmount(e), 0) +
+    cardInvoicePendingMonth;
   const totalPaid =
-    spendingMonth.reduce((s, e) => s + getInstallmentAmount(e), 0) + cardInvoiceMonthTotal;
+    spendingMonth.reduce((s, e) => s + getInstallmentAmount(e), 0) + cardInvoicePaidMonth;
   const totalOverdue = spendingMonth.filter(isOverdue).reduce((s, e) => s + getInstallmentAmount(e), 0);
 
   // Daily average + projection — only meaningful for current month
