@@ -303,6 +303,14 @@ export function useExpenses(enabled = true) {
       }
 
       if (latestChildId) {
+        // Reverte saldo + remove lançamento do extrato vinculado ao child
+        if ((expense.scope ?? "business") === "business") {
+          const { data: childRow } = await supabase
+            .from("expenses").select("amount").eq("id", latestChildId).maybeSingle();
+          const childAmount = Number((childRow as any)?.amount ?? 0);
+          if (childAmount > 0) await adjustBalance(childAmount);
+          await removeLedgerByRef({ expense_id: latestChildId, category: "expense" }, { syncBalance: false });
+        }
         await supabase.from("expenses").delete().eq("id", latestChildId);
       }
       await supabase.from("expenses").update(parentUpdate).eq("id", id);
@@ -324,6 +332,12 @@ export function useExpenses(enabled = true) {
       }
 
       await supabase.from("expenses").update(updatePayload).eq("id", id);
+
+      // Reverte saída do extrato (despesa simples) - apenas business
+      if ((expense.scope ?? "business") === "business") {
+        await adjustBalance(expense.amount);
+        await removeLedgerByRef({ expense_id: id, category: "expense" }, { syncBalance: false });
+      }
 
       // Reverse piggy bank credit when unpaying a piggy expense.
       if (extractPiggyId(expense.notes)) {
