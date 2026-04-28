@@ -339,31 +339,45 @@ export function PersonalExpenseForm({ onAdd, onClose }: Props) {
                     <SelectValue placeholder="Selecione uma categoria" />
                   </SelectTrigger>
                   <SelectContent>
-                    {personalCategories.map((c) => {
-                      const Icon = c.icon;
-                      return (
-                        <SelectItem key={c.name} value={c.name}>
-                          <span className="inline-flex items-center gap-2">
-                            <Icon className="h-3.5 w-3.5" style={{ color: `hsl(${c.color})` }} />
-                            {c.name}
-                          </span>
-                        </SelectItem>
+                    {(() => {
+                      // Customs têm prioridade sobre built-ins de mesmo nome,
+                      // assim editar uma categoria padrão não a duplica.
+                      const customNames = new Set(
+                        customCategories.map((c) => c.name.trim().toLowerCase()),
                       );
-                    })}
-                    {customCategories.length > 0 && (
-                      <div className="my-1 border-t border-border" />
-                    )}
-                    {customCategories.map((c) => {
-                      const Icon = resolvePersonalIcon(c.icon);
-                      return (
-                        <SelectItem key={c.id} value={c.name}>
-                          <span className="inline-flex items-center gap-2">
-                            <Icon className="h-3.5 w-3.5" style={{ color: `hsl(${c.color})` }} />
-                            {c.name}
-                          </span>
-                        </SelectItem>
+                      const builtIns = personalCategories.filter(
+                        (c) => !customNames.has(c.name.trim().toLowerCase()),
                       );
-                    })}
+                      return (
+                        <>
+                          {builtIns.map((c) => {
+                            const Icon = c.icon;
+                            return (
+                              <SelectItem key={c.name} value={c.name}>
+                                <span className="inline-flex items-center gap-2">
+                                  <Icon className="h-3.5 w-3.5" style={{ color: `hsl(${c.color})` }} />
+                                  {c.name}
+                                </span>
+                              </SelectItem>
+                            );
+                          })}
+                          {customCategories.length > 0 && builtIns.length > 0 && (
+                            <div className="my-1 border-t border-border" />
+                          )}
+                          {customCategories.map((c) => {
+                            const Icon = resolvePersonalIcon(c.icon);
+                            return (
+                              <SelectItem key={c.id} value={c.name}>
+                                <span className="inline-flex items-center gap-2">
+                                  <Icon className="h-3.5 w-3.5" style={{ color: `hsl(${c.color})` }} />
+                                  {c.name}
+                                </span>
+                              </SelectItem>
+                            );
+                          })}
+                        </>
+                      );
+                    })()}
                   </SelectContent>
                 </Select>
               </div>
