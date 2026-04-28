@@ -808,6 +808,14 @@ const Index = () => {
           </div>
           </SubscriptionGate>
         )}
+        {tab === "ledger" && (
+          <SubscriptionGate requiredTier={1} featureName="Extrato">
+            <div>
+              <h2 className="text-lg font-semibold text-foreground mb-4">Extrato da Conta</h2>
+              <LedgerView readOnly={isReadOnly} />
+            </div>
+          </SubscriptionGate>
+        )}
         {tab === "overdue" && (
           <SubscriptionGate requiredTier={2} featureName="Relatórios">
           <div>
