@@ -44,15 +44,6 @@ interface LoanItem {
   totalAmount: number;
 }
 
-interface LoanItem {
-  loan: Loan;
-  client: Client | undefined;
-  phone: string;
-  installments: { number: number; dueDate: string; amount: number }[];
-  daysOverdue: number;
-  totalAmount: number;
-}
-
 function LoanItemCard({ item, isOverdue }: { item: LoanItem; isOverdue: boolean }) {
   const { mask } = useHideValues();
   const formatCurrency = useCallback((v: number) => mask(rawFormatCurrency(v)), [mask]);
@@ -158,9 +149,6 @@ export function OverdueLoans({ loans, payments, clients, installmentSchedules }:
       })
       .filter(Boolean) as LoanItem[];
   }, [activeLoans, clients, installmentSchedules, todayStr]);
-
-  const totalOverdueAmount = overdueData.reduce((s, d) => s + d.totalAmount, 0);
-  const totalDueTodayAmount = dueTodayData.reduce((s, d) => s + d.totalAmount, 0);
 
   return (
     <div className="space-y-6">
