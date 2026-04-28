@@ -4,7 +4,7 @@ import { Loan, Client, Payment, InstallmentSchedule } from "@/types/loan";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { calculateInstallment } from "@/hooks/useLoans";
+import { getInstallmentAmount } from "@/lib/loanInstallmentAmount";
 import { AlertTriangle, Search, Phone, Calendar, DollarSign, Clock } from "lucide-react";
 import { DetailedReport } from "@/components/DetailedReport";
 import { TelegramBillingScheduleCard } from "@/components/TelegramBillingScheduleCard";
@@ -34,20 +34,6 @@ function getDaysOverdue(dueDate: string): number {
   return Math.max(0, Math.floor(diff / (1000 * 60 * 60 * 24)));
 }
 
-function getInstallmentAmount(loan: Loan, schedules: InstallmentSchedule[]): number {
-  // Para parcela única, usar remaining_amount diretamente
-  if (loan.installments === 1 && loan.remainingAmount && loan.remainingAmount > 0) {
-    return loan.remainingAmount;
-  }
-  // Para parcelado, tentar schedule primeiro
-  const schedule = schedules.find(s => s.loanId === loan.id && s.installmentNumber === loan.paidInstallments + 1);
-  if (schedule) return schedule.amount;
-  // Fallback: remainingAmount ou cálculo original
-  if (loan.remainingAmount && loan.remainingAmount > 0) {
-    return loan.remainingAmount;
-  }
-  return loan.customInstallmentValue || calculateInstallment(loan.amount, loan.interestRate, loan.installments);
-}
 
 interface LoanItem {
   loan: Loan;
