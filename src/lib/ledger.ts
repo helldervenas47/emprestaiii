@@ -186,7 +186,7 @@ export async function updateLedgerEntry(id: string, input: UpdateLedgerInput): P
   if (input.description !== undefined) patch.description = input.description;
   if (input.occurred_on !== undefined) patch.occurred_on = input.occurred_on;
 
-  await supabase.from("account_ledger").update(patch).eq("id", id).eq("user_id", ownerId);
+  await supabase.from("account_ledger").update(patch as any).eq("id", id).eq("user_id", ownerId);
 
   const newDirection = (input.direction ?? (prev as any).direction) as LedgerDirection;
   const newAmount = input.amount !== undefined ? Number(input.amount) : Number((prev as any).amount);
