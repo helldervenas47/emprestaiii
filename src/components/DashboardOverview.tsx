@@ -1607,20 +1607,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
                   {expandedBreakdown === "overdue" && portfolio.overdueLoans.length > 0 && (
                     <div className="mt-3 pt-3 border-t border-destructive/20 space-y-2 max-h-60 overflow-y-auto">
                       {[...portfolio.overdueLoans].sort((a, b) => a.dueDate.localeCompare(b.dueDate)).map((l) => {
-                        const todayIso = todayInAppTz();
-                        let remaining: number;
-                        if (l.installments >= 2) {
-                          const overdueSum = installmentSchedules
-                            .filter((sc) => sc.loanId === l.id && sc.installmentNumber > l.paidInstallments && sc.dueDate <= todayIso)
-                            .reduce((sum, sc) => sum + sc.amount, 0);
-                          remaining = overdueSum > 0 ? overdueSum : (l.remainingAmount > 0 ? l.remainingAmount : Math.max(0, calculateTotalWithInterest(l.amount, l.interestRate, l.installments) - payments.filter((p) => p.loanId === l.id).reduce((s, p) => s + p.amount, 0)));
-                        } else if (l.remainingAmount != null && l.remainingAmount > 0) {
-                          remaining = l.remainingAmount;
-                        } else {
-                          const expected = calculateTotalWithInterest(l.amount, l.interestRate, l.installments);
-                          const paid = payments.filter((p) => p.loanId === l.id).reduce((s, p) => s + p.amount, 0);
-                          remaining = Math.max(0, expected - paid);
-                        }
+                        const remaining = getInstallmentAmount(l, installmentSchedules);
                         const dueDate = new Date(l.dueDate + "T00:00:00");
                         const daysLate = Math.max(0, Math.floor((Date.now() - dueDate.getTime()) / (1000 * 60 * 60 * 24)));
                         return (
