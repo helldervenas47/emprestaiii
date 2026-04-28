@@ -57,9 +57,9 @@ export function LedgerView({ readOnly = false }: Props) {
         return true;
       })
       .sort((a, b) => {
-        // Data desc; empate pelo created_at desc
-        if (a.occurred_on !== b.occurred_on) return b.occurred_on.localeCompare(a.occurred_on);
-        return (b.created_at ?? "").localeCompare(a.created_at ?? "");
+        // Data de lançamento desc; empate pela data informada no movimento
+        if ((a.created_at ?? "") !== (b.created_at ?? "")) return (b.created_at ?? "").localeCompare(a.created_at ?? "");
+        return b.occurred_on.localeCompare(a.occurred_on);
       });
   }, [entries, filterDir, filterCat]);
 
