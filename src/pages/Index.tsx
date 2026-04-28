@@ -444,6 +444,13 @@ const Index = () => {
       setTab(visibleTabs[0].id);
     }
   }, [tab, visibleTabs]);
+
+  // Escuta pedido para abrir o extrato a partir de outros componentes (ex: card de saldo)
+  useEffect(() => {
+    const handler = () => setTab("ledger");
+    window.addEventListener("open-ledger", handler);
+    return () => window.removeEventListener("open-ledger", handler);
+  }, []);
   const [dark, setDark] = useState(() => {
     if (typeof window !== "undefined") {
       const saved = localStorage.getItem("hvcred-theme");
