@@ -76,6 +76,11 @@ export function usePersonalExpenseCategories() {
     async (id: string, input: { name: string; icon: string; color: string }) => {
       const name = input.name.trim();
       if (!name) return null;
+
+      // Lê o nome anterior para propagar a renomeação às despesas existentes.
+      const previous = categories.find((c) => c.id === id);
+      const previousName = previous?.name ?? null;
+
       const { data, error } = await supabase
         .from("personal_expense_categories")
         .update({ name, icon: input.icon, color: input.color })
@@ -90,13 +95,38 @@ export function usePersonalExpenseCategories() {
         });
         return null;
       }
+
+      // Se o nome mudou, atualiza todas as despesas pessoais que ainda
+      // referenciam o nome antigo — assim gráfico, cards e listagens
+      // refletem a nova categoria automaticamente.
+      if (previousName && previousName !== name && user) {
+        const { error: expErr } = await supabase
+          .from("expenses")
+          .update({ category: name })
+          .eq("user_id", user.id)
+          .eq("scope", "personal")
+          .eq("category", previousName);
+        if (expErr) {
+          console.error("[personal-categories] propagate rename to expenses", expErr);
+        }
+        // Propaga também aos orçamentos pessoais por categoria.
+        const { error: budErr } = await supabase
+          .from("personal_budgets")
+          .update({ category: name })
+          .eq("user_id", user.id)
+          .eq("category", previousName);
+        if (budErr) {
+          console.error("[personal-categories] propagate rename to budgets", budErr);
+        }
+      }
+
       setCategories((prev) =>
         prev.map((c) => (c.id === id ? data : c)).sort((a, b) => a.name.localeCompare(b.name, "pt-BR")),
       );
       toast({ title: "Categoria atualizada", description: name });
       return data;
     },
-    [],
+    [categories, user],
   );
 
   const remove = useCallback(async (id: string) => {
