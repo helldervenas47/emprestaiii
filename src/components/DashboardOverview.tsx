@@ -574,10 +574,10 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
       }
     });
 
-    // Overdue — apenas o valor da próxima parcela vencida, sem saldo futuro ou multa/juros.
+    // Overdue — soma todas as parcelas vencidas, sem saldo futuro ou multa/juros.
     const todayStr = todayInAppTz();
     const overdueLoans = activeLoans.filter((l) => l.dueDate < todayStr);
-    const overdueAmount = overdueLoans.reduce((s, l) => s + getInstallmentAmount(l, installmentSchedules), 0);
+    const overdueAmount = overdueLoans.reduce((s, l) => s + getOverdueAmount(l, installmentSchedules, todayStr), 0);
 
     // Rates
     const receivingRate = totalExpected > 0 ? (totalReceived / totalExpected) * 100 : 0;
@@ -1592,7 +1592,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
                   {expandedBreakdown === "overdue" && portfolio.overdueLoans.length > 0 && (
                     <div className="mt-3 pt-3 border-t border-destructive/20 space-y-2 max-h-60 overflow-y-auto">
                       {[...portfolio.overdueLoans].sort((a, b) => a.dueDate.localeCompare(b.dueDate)).map((l) => {
-                        const remaining = getInstallmentAmount(l, installmentSchedules);
+                        const remaining = getOverdueAmount(l, installmentSchedules, todayInAppTz());
                         const dueDate = new Date(l.dueDate + "T00:00:00");
                         const daysLate = Math.max(0, Math.floor((Date.now() - dueDate.getTime()) / (1000 * 60 * 60 * 24)));
                         return (
