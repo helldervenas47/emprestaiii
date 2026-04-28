@@ -280,6 +280,9 @@ const Index = () => {
   const { loans, payments, installmentSchedules, addLoan, addPayment, addPartialPayment, payOffLoan, addInterestOnlyPayment, amortizeLoan, renegotiateLoan, updateLoan, deleteLoan, deletePayment, saveSchedule } = useLoans();
   const { clients, addClient, deleteClient, updateClient } = useClients();
 
+  // Automatic credit-limit adjustment per client (auto mode only)
+  useAutoAdjustCreditLimits(clients, loans, payments);
+
   // Defer heavy hooks until their tabs are active
   const needsProducts = tab === "overview" || tab === "products" || tab === "vehicles";
   const needsExpenses = tab === "overview" || tab === "expenses" || tab === "vehicles";
