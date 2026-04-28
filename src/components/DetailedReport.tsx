@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { Loan, Client, Payment, InstallmentSchedule } from "@/types/loan";
 import { Card, CardContent } from "@/components/ui/card";
-import { getInstallmentAmount, getOverdueAmount, getOverdueInstallments } from "@/lib/loanInstallmentAmount";
+import { getInstallmentAmount, getOverdueInstallments } from "@/lib/loanInstallmentAmount";
 import { todayInAppTz } from "@/lib/timezone";
 import { FileText } from "lucide-react";
 
@@ -118,7 +118,7 @@ export function DetailedReport({ loans, payments, installmentSchedules }: Props)
           <div>
             <p className="font-bold">💰 RESUMO DO DIA</p>
             <p>▸ A cobrar hoje: {rawFormatCurrency(totalDueToday)} ({dueTodayLoans.length} parcelas)</p>
-            <p>▸ Em atraso: {rawFormatCurrency(totalOverdue)} ({overdueLoans.length} parcelas)</p>
+            <p>▸ Em atraso: {rawFormatCurrency(totalOverdue)} ({overdueLoans.reduce((sum, item) => sum + item.installmentsCount, 0)} parcelas)</p>
             <p>▸ Total pendente: {rawFormatCurrency(totalPending)}</p>
           </div>
 
