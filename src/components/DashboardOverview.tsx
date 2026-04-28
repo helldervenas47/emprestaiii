@@ -1542,6 +1542,15 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
                 <p className="text-[10px] text-muted-foreground">Indicadores principais da carteira no período</p>
               </div>
             </div>
+            <button
+              type="button"
+              onClick={() => setShowHealthInfo(true)}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-2.5 py-1.5 text-xs text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+              aria-label="Como cada indicador é calculado"
+            >
+              <Info className="h-3.5 w-3.5" />
+              Como é calculado?
+            </button>
           </div>
           <div className="flex flex-col items-center gap-4 sm:flex-row sm:gap-6">
             {/* Gauge */}
