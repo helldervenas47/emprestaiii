@@ -1327,12 +1327,9 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
                     <PopoverContent side="top" align="start" className="w-72 text-xs leading-relaxed">
                       <p className="font-semibold text-foreground mb-1">Como é calculado</p>
                       <p className="text-muted-foreground">
-                        Soma a porção de juros das parcelas com vencimento no período (pagas ou não)
-                        e <strong>inclui também os pagamentos somente de juros</strong> feitos no período.
-                      </p>
-                      <p className="text-muted-foreground mt-2">
-                        Isso evita que o valor oscile quando uma parcela é re-agendada para o próximo
-                        vencimento após o pagamento de juros.
+                        Mesmo valor do card <strong>"Juros a Receber no Mês"</strong>:
+                        soma dos <strong>juros recebidos no período</strong> com os
+                        <strong> juros pendentes do período</strong>.
                       </p>
                     </PopoverContent>
                   </Popover>
