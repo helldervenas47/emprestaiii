@@ -574,25 +574,10 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
       }
     });
 
-    // Overdue — contratos com 1 ou mais dias de atraso (baseado na data atual)
+    // Overdue — apenas o valor da próxima parcela vencida, sem saldo futuro ou multa/juros.
     const todayStr = todayInAppTz();
     const overdueLoans = activeLoans.filter((l) => l.dueDate < todayStr);
-    const overdueAmount = overdueLoans.reduce((s, l) => {
-      const baseRemaining = getInstallmentAmount(l, installmentSchedules);
-      const dueDate = new Date(l.dueDate + "T00:00:00");
-      const refNorm = new Date(todayStr + "T00:00:00");
-      const daysLate = Math.max(0, Math.floor((refNorm.getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24)));
-      let lateFees = 0;
-      if (l.lateInterestValue != null && l.lateInterestValue > 0 && daysLate > 0) {
-        lateFees += l.lateInterestType === "fixed"
-          ? l.lateInterestValue * daysLate
-          : baseRemaining * (l.lateInterestValue / 100) * daysLate;
-      }
-      if (l.penaltyValue != null && l.penaltyValue > 0 && daysLate > 0) {
-        lateFees += l.penaltyValue;
-      }
-      return s + baseRemaining + lateFees;
-    }, 0);
+    const overdueAmount = overdueLoans.reduce((s, l) => s + getInstallmentAmount(l, installmentSchedules), 0);
 
     // Rates
     const receivingRate = totalExpected > 0 ? (totalReceived / totalExpected) * 100 : 0;
@@ -653,7 +638,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
       overdueLoans,
       capitalOnStreet,
       totalToReceive,
-      pendingReceivable: activeLoans.reduce((s, l) => s + (l.remainingAmount ?? 0), 0),
+      pendingReceivable: overdueAmount,
       estimatedProfit,
       interestDueThisMonth,
       globalInterestRate,

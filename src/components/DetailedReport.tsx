@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import { Loan, Client, Payment, InstallmentSchedule } from "@/types/loan";
 import { Card, CardContent } from "@/components/ui/card";
 import { getInstallmentAmount } from "@/lib/loanInstallmentAmount";
+import { todayInAppTz } from "@/lib/timezone";
 import { FileText } from "lucide-react";
 
 interface Props {
@@ -16,8 +17,7 @@ function rawFormatCurrency(v: number) {
 }
 
 function getTodayStr(): string {
-  const now = new Date();
-  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+  return todayInAppTz();
 }
 
 function getLoanRemaining(loan: Loan, _payments: Payment[], installmentSchedules: InstallmentSchedule[], _todayStr: string): number {
@@ -27,8 +27,7 @@ function getLoanRemaining(loan: Loan, _payments: Payment[], installmentSchedules
 
 function getDaysOverdue(dueDate: string): number {
   const due = new Date(dueDate + "T00:00:00");
-  const now = new Date();
-  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const today = new Date(todayInAppTz() + "T00:00:00");
   return Math.max(0, Math.floor((today.getTime() - due.getTime()) / (1000 * 60 * 60 * 24)));
 }
 
@@ -87,8 +86,7 @@ export function DetailedReport({ loans, payments, installmentSchedules }: Props)
     .filter((loan) => loan.dueDate < todayStr)
     .map((loan) => {
       const base = getLoanRemaining(loan, payments, installmentSchedules, todayStr);
-      const lateFees = calcLateFees(loan, base);
-      return { loan, amount: base + lateFees, baseAmount: base, lateFees };
+      return { loan, amount: base, baseAmount: base, lateFees: 0 };
     })
     .sort(sortByNameThenDate),
     [activeLoans, payments, installmentSchedules, todayStr]);
