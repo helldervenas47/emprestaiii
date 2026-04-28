@@ -59,6 +59,7 @@ import { vehicleExpenseCategories } from "@/components/VehicleExpenseForm";
 import { PushNotificationToggle } from "@/components/PushNotificationToggle";
 import { ApprovalRequestsButton } from "@/components/ApprovalRequestsButton";
 import { DashboardOverview } from "@/components/DashboardOverview";
+import { LedgerView } from "@/components/LedgerView";
 import { useApprovalRequests } from "@/hooks/useApprovalRequests";
 import { usePendingCount } from "@/lib/offline/sync";
 import { useApprovalPushAlerts } from "@/hooks/useApprovalPushAlerts";
