@@ -1181,11 +1181,6 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
                 <Button variant="ghost" size="icon" className="h-7 w-7" title="Ver extrato" onClick={() => window.dispatchEvent(new CustomEvent("open-ledger"))}>
                   <Eye className="h-3.5 w-3.5 text-muted-foreground" />
                 </Button>
-                {!editingBalance && (
-                  <Button variant="ghost" size="icon" className="h-7 w-7" onClick={startEditBalance}>
-                    <Pencil className="h-3.5 w-3.5 text-muted-foreground" />
-                  </Button>
-                )}
               </div>
             )}
             <div className="flex items-center justify-center">
