@@ -2577,9 +2577,19 @@ function LoanRowView({
         {loan.status === "paid" ? (
           <span className="text-[11px] sm:text-sm font-medium text-success">{formatCurrency(totalPaid)}</span>
         ) : isParcelado ? (
-          <span className="text-[11px] sm:text-sm font-medium text-destructive">{formatCurrency(installmentValue)}</span>
+          <div className="flex flex-col">
+            <span className="text-[11px] sm:text-sm font-medium text-destructive">{formatCurrency(installmentValue + lateFees)}</span>
+            {lateFees > 0 && (
+              <span className="text-[9px] sm:text-[10px] text-muted-foreground">+ {rawFormatCurrency(lateFees)} juros/multa</span>
+            )}
+          </div>
         ) : (
-          <span className="text-[11px] sm:text-sm font-medium text-destructive">{formatCurrency(remaining)}</span>
+          <div className="flex flex-col">
+            <span className="text-[11px] sm:text-sm font-medium text-destructive">{formatCurrency(remaining)}</span>
+            {lateFees > 0 && (
+              <span className="text-[9px] sm:text-[10px] text-muted-foreground">inclui {rawFormatCurrency(lateFees)} juros/multa</span>
+            )}
+          </div>
         )}
       </td>
       {/* Parcelas - hidden on mobile */}
