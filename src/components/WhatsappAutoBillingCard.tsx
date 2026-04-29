@@ -158,6 +158,62 @@ export function WhatsappAutoBillingCard() {
 
         <Separator />
 
+        <div className="space-y-3 rounded-lg border bg-muted/30 p-3">
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <Users className="h-4 w-4 text-primary" />
+              <div>
+                <div className="text-sm font-medium">Resumo semanal para gerentes</div>
+                <div className="text-xs text-muted-foreground">
+                  Envia um WhatsApp aos usuários com perfil <strong>Gerente</strong> listando os
+                  empréstimos que vencem na semana atual.
+                </div>
+              </div>
+            </div>
+            <Switch
+              checked={schedule.manager_summary_enabled}
+              onCheckedChange={(v) => save({ manager_summary_enabled: v })}
+            />
+          </div>
+
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="space-y-1.5">
+              <Label className="text-xs">Dia da semana</Label>
+              <select
+                className="h-9 w-full rounded-md border bg-background px-2 text-sm"
+                value={schedule.manager_summary_day_of_week}
+                onChange={(e) => save({ manager_summary_day_of_week: Number(e.target.value) })}
+              >
+                {WEEKDAYS.map((d) => (
+                  <option key={d.value} value={d.value}>{d.label}</option>
+                ))}
+              </select>
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs">Horário</Label>
+              <Input
+                type="time"
+                value={schedule.manager_summary_time?.slice(0, 5) ?? "09:00"}
+                onChange={(e) => save({ manager_summary_time: e.target.value })}
+              />
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between gap-3 flex-wrap">
+            <div className="text-xs text-muted-foreground">
+              {schedule.manager_last_run_at
+                ? <>Último envio: {new Date(schedule.manager_last_run_at).toLocaleString("pt-BR")}</>
+                : "Nenhum resumo enviado ainda."}
+            </div>
+            <Button onClick={handleRunManagerNow} disabled={sendingManager} size="sm" variant="secondary">
+              {sendingManager ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+              Enviar resumo agora
+            </Button>
+          </div>
+        </div>
+
+        <Separator />
+
         <div>
           <div className="mb-2 flex items-center gap-2 text-sm font-medium">
             <Clock className="h-4 w-4" /> Últimos envios
