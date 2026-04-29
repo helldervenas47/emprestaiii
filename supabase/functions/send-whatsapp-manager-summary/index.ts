@@ -179,7 +179,7 @@ Deno.serve(async (req: Request) => {
         .from("user_roles").select("user_id").eq("role", "gerente");
       const managerIds = (roleRows ?? []).map((r: any) => r.user_id);
 
-      let candidates: { user_id: string; phone: string }[] = [];
+      let candidates: { user_id: string; phone: string; display_name: string }[] = [];
       if (managerIds.length) {
         const { data: ownerRows } = await admin
           .from("user_owner").select("user_id, owner_id")
@@ -189,22 +189,66 @@ Deno.serve(async (req: Request) => {
           .map((r: any) => r.user_id);
         if (ownedManagerIds.length) {
           const { data: profiles } = await admin
-            .from("profiles").select("user_id, phone").in("user_id", ownedManagerIds);
-          candidates = (profiles ?? [])
-            .map((p: any) => ({ user_id: p.user_id, phone: String(p.phone || "") }))
-            .filter((p) => p.phone.trim().length > 0);
+            .from("profiles").select("user_id, phone, display_name, username")
+            .in("user_id", ownedManagerIds);
+          candidates = (profiles ?? []).map((p: any) => ({
+            user_id: p.user_id,
+            phone: String(p.phone || ""),
+            display_name: String(p.display_name || p.username || ""),
+          }));
         }
       }
 
-      if (candidates.length === 0) {
-        results.push({ owner_id: ownerId, skipped: "no_managers" });
-        await admin.from("whatsapp_billing_schedule")
-          .update({ manager_last_run_at: new Date().toISOString() })
-          .eq("owner_id", ownerId);
+      // listManagers: just return managers (with phone/name) and exit early per owner
+      if (listManagers) {
+        results.push({
+          owner_id: ownerId,
+          managers: candidates.map((m) => ({
+            user_id: m.user_id,
+            display_name: m.display_name,
+            phone: m.phone,
+            has_phone: m.phone.trim().length > 0,
+          })),
+        });
         continue;
       }
 
-      for (const m of candidates) {
+      // Filter by target manager (single send / single preview)
+      let workingCandidates = candidates;
+      if (targetManagerId) {
+        workingCandidates = candidates.filter((c) => c.user_id === targetManagerId);
+      }
+
+      // previewOnly: render and return — no log, no send
+      if (previewOnly) {
+        results.push({
+          owner_id: ownerId,
+          preview: true,
+          message: renderedMessage,
+          loans_count: items.length,
+          total_amount: totalAmount,
+          managers: workingCandidates.map((m) => ({
+            user_id: m.user_id,
+            display_name: m.display_name,
+            phone: m.phone,
+          })),
+        });
+        continue;
+      }
+
+      // Real send path needs phone numbers
+      const sendable = workingCandidates.filter((c) => c.phone.trim().length > 0);
+      if (sendable.length === 0) {
+        results.push({ owner_id: ownerId, skipped: "no_managers" });
+        if (!targetManagerId) {
+          await admin.from("whatsapp_billing_schedule")
+            .update({ manager_last_run_at: new Date().toISOString() })
+            .eq("owner_id", ownerId);
+        }
+        continue;
+      }
+
+      for (const m of sendable) {
         try {
           const phone = normalizePhoneBR(m.phone);
           const send = await sendWhatsmiau(sched.base_url, sched.instance_id, API_KEY, phone, renderedMessage);
@@ -225,9 +269,11 @@ Deno.serve(async (req: Request) => {
         }
       }
 
-      await admin.from("whatsapp_billing_schedule")
-        .update({ manager_last_run_at: new Date().toISOString() })
-        .eq("owner_id", ownerId);
+      if (!targetManagerId) {
+        await admin.from("whatsapp_billing_schedule")
+          .update({ manager_last_run_at: new Date().toISOString() })
+          .eq("owner_id", ownerId);
+      }
     }
 
     return new Response(JSON.stringify({ ok: true, processed: results.length, results }), {
