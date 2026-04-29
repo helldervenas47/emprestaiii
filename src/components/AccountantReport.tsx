@@ -187,8 +187,9 @@ export function AccountantReport({ loans, payments, sales, expenses }: Accountan
       byKind[b.kind].principal += b.principal;
     });
 
-    const salesRevenue = 0;
-    const totalRevenue = interestRevenue;
+    const periodSales = sales.filter((s) => matchPeriod(s.date ?? s.sale_date));
+    const salesRevenue = periodSales.reduce((s, x) => s + (Number(x.total ?? x.amount) || 0), 0);
+    const totalRevenue = interestRevenue + salesRevenue;
     const totalExpenses = periodExpenses.reduce((s, x) => s + (Number(x.amount) || 0), 0);
     const businessExp = totalExpenses;
     const personalExp = 0;
@@ -206,7 +207,7 @@ export function AccountantReport({ loans, payments, sales, expenses }: Accountan
       byKind,
       totalReceived,
     };
-  }, [payments, expenses, loans, period, monthFilter, yearFilter]);
+  }, [payments, expenses, loans, sales, period, monthFilter, yearFilter]);
 
   // ===== Impostos =====
   const taxes = useMemo(() => {
