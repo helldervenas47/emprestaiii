@@ -34,6 +34,7 @@ import type { LoanRenegotiation } from "@/types/loan";
 import { usePaymentMethods } from "@/hooks/usePaymentMethods";
 import { useWhatsappBillingMessages } from "@/hooks/useWhatsappBillingMessages";
 import { buildBillingWhatsappLink } from "@/lib/whatsappBilling";
+import { WhatsappPreviewDialog } from "@/components/WhatsappPreviewDialog";
 
 function WhatsappBillButton({
   loan,
@@ -53,6 +54,13 @@ function WhatsappBillButton({
     (c) => c.name.trim().toLowerCase() === loan.borrowerName.trim().toLowerCase(),
   );
   const phone = client?.phone || "";
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [previewData, setPreviewData] = useState<{
+    phone: string;
+    message: string;
+    status: ReturnType<typeof buildBillingWhatsappLink>["status"];
+    name: string;
+  } | null>(null);
 
   const handleClick = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -60,31 +68,33 @@ function WhatsappBillButton({
       toast.error("Cliente sem telefone cadastrado");
       return;
     }
-    const { url } = buildBillingWhatsappLink({
+    const built = buildBillingWhatsappLink({
       client,
       loan,
       schedules: installmentSchedules,
       payments,
       messages,
     });
-    window.open(url, "_blank", "noopener,noreferrer");
+    setPreviewData({
+      phone: built.phone,
+      message: built.message,
+      status: built.status,
+      name: client?.name ?? loan.borrowerName,
+    });
+    setPreviewOpen(true);
   };
 
-  if (variant === "compact") {
-    return (
-      <Button
-        variant="ghost"
-        className="flex-1 h-9 text-xs gap-1.5 text-success hover:text-success"
-        onClick={handleClick}
-        title={phone ? "Cobrar via WhatsApp" : "Cliente sem telefone"}
-        disabled={!phone}
-      >
-        <MessageCircle className="h-3.5 w-3.5" /> WhatsApp
-      </Button>
-    );
-  }
-
-  return (
+  const buttonNode = variant === "compact" ? (
+    <Button
+      variant="ghost"
+      className="flex-1 h-9 text-xs gap-1.5 text-success hover:text-success"
+      onClick={handleClick}
+      title={phone ? "Cobrar via WhatsApp" : "Cliente sem telefone"}
+      disabled={!phone}
+    >
+      <MessageCircle className="h-3.5 w-3.5" /> WhatsApp
+    </Button>
+  ) : (
     <Button
       size="icon"
       variant="ghost"
@@ -95,6 +105,22 @@ function WhatsappBillButton({
     >
       <MessageCircle className="h-4 w-4" />
     </Button>
+  );
+
+  return (
+    <>
+      {buttonNode}
+      {previewData && (
+        <WhatsappPreviewDialog
+          open={previewOpen}
+          onOpenChange={setPreviewOpen}
+          phone={previewData.phone}
+          message={previewData.message}
+          status={previewData.status}
+          recipientName={previewData.name}
+        />
+      )}
+    </>
   );
 }
 
