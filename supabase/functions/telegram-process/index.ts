@@ -2045,8 +2045,36 @@ Deno.serve(async (req) => {
             await tgSend(chatId, "✅ *Conta vinculada!*\n\n" + HELP_TEXT, LOVABLE_API_KEY, TELEGRAM_API_KEY);
           }
         }
+      } else if (/^\/c(?:ode|odigo|ódigo)?(?:@\w+)?\s*$/i.test(text)) {
+        // Gera um bot_code curto para vincular este chat ao app sem usar /start.
+        // O usuário cola esse código no campo "Tenho um código" da tela de Telegram.
+        await admin.from("telegram_bots")
+          .delete().eq("kind", "expenses").eq("chat_id", chatId);
+        let botCode = "";
+        for (let i = 0; i < 6; i++) {
+          const candidate = Math.random().toString(36).slice(2, 8).toUpperCase().replace(/[^A-Z0-9]/g, "");
+          if (candidate.length === 6) {
+            const { data: clash } = await admin.from("telegram_bots")
+              .select("id").eq("bot_code", candidate).maybeSingle();
+            if (!clash) { botCode = candidate; break; }
+          }
+        }
+        const expiresAt = new Date(Date.now() + 15 * 60 * 1000).toISOString();
+        const { error: insErr } = await admin.from("telegram_bots").insert({
+          bot_code: botCode, kind: "expenses", chat_id: chatId, expires_at: expiresAt,
+        });
+        if (insErr || !botCode) {
+          await tgSend(chatId, "⚠️ Não consegui gerar o código agora. Tente novamente em instantes.", LOVABLE_API_KEY, TELEGRAM_API_KEY);
+        } else {
+          await tgSend(chatId,
+            `🔑 *Seu código de vínculo:*\n\n\`${botCode}\`\n\n` +
+            `1. Abra o app\n2. Vá em *Configurações → Bot do Telegram*\n` +
+            `3. Cole este código no campo *"Tenho um código"*\n\n` +
+            `_Válido por 15 min._`,
+            LOVABLE_API_KEY, TELEGRAM_API_KEY);
+        }
       } else if (/^\/start\b/i.test(text)) {
-        await tgSend(chatId, "👋 Para vincular sua conta, gere um código de 6 dígitos no app e envie:\n`/start 123456`", LOVABLE_API_KEY, TELEGRAM_API_KEY);
+        await tgSend(chatId, "👋 Para vincular sua conta, gere um código de 6 dígitos no app e envie:\n`/start 123456`\n\nOu envie /code aqui e cole o código no app.", LOVABLE_API_KEY, TELEGRAM_API_KEY);
       } else if (/^\/help\b/i.test(text)) {
         await tgSend(chatId, HELP_TEXT, LOVABLE_API_KEY, TELEGRAM_API_KEY);
       } else if (text) {
