@@ -177,6 +177,13 @@ const tabHelp: Record<Tab, { title: string; items: string[] }> = {
       "Categorize suas despesas para melhor organização.",
     ],
   },
+  accountant: {
+    title: "Contador",
+    items: [
+      "Relatório consolidado para fins contábeis.",
+      "Inclui receitas, despesas, vendas e empréstimos.",
+    ],
+  },
   overdue: {
     title: "Relatório",
     items: [
