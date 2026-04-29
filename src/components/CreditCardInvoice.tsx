@@ -649,7 +649,17 @@ export function CreditCardInvoice({ card, onClose, referenceMonth, originRect }:
                   return (
                     <div
                       key={e.id}
-                      className="flex items-center justify-between gap-2 p-3 rounded-xl border bg-card hover:bg-muted/30 transition-colors"
+                      role="button"
+                      tabIndex={0}
+                      onClick={() => setEditingExpense(e)}
+                      onKeyDown={(ev) => {
+                        if (ev.key === "Enter" || ev.key === " ") {
+                          ev.preventDefault();
+                          setEditingExpense(e);
+                        }
+                      }}
+                      className="flex items-center justify-between gap-2 p-3 rounded-xl border bg-card hover:bg-muted/40 active:bg-muted/60 transition-colors cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      aria-label={`Editar despesa ${e.description}`}
                     >
                       <div className="min-w-0 flex-1">
                         <p className="text-sm font-medium text-foreground truncate">
@@ -675,7 +685,10 @@ export function CreditCardInvoice({ card, onClose, referenceMonth, originRect }:
                           variant="ghost"
                           size="icon"
                           className="h-7 w-7"
-                          onClick={() => setEditingExpense(e)}
+                          onClick={(ev) => {
+                            ev.stopPropagation();
+                            setEditingExpense(e);
+                          }}
                           aria-label="Editar lançamento"
                         >
                           <Pencil className="h-3.5 w-3.5" />
@@ -684,7 +697,10 @@ export function CreditCardInvoice({ card, onClose, referenceMonth, originRect }:
                           variant="ghost"
                           size="icon"
                           className="h-7 w-7 text-destructive hover:text-destructive"
-                          onClick={() => setDeletingExpense(e)}
+                          onClick={(ev) => {
+                            ev.stopPropagation();
+                            setDeletingExpense(e);
+                          }}
                           aria-label="Excluir lançamento"
                         >
                           <Trash2 className="h-3.5 w-3.5" />
