@@ -768,7 +768,8 @@ export function useLoans() {
     if (!online) {
       await enqueueMutation({ table: "payments", op: "insert", recordId: tempPaymentId, payload: paymentPayload });
       await enqueueMutation({ table: "loans", op: "update", recordId: loanId, payload: loanUpdate });
-      await adjustBalanceOffline(interestAmount);
+      // Ajusta o saldo offline com o TOTAL (juros + multa) em uma única operação
+      await adjustBalanceOffline(interestAmount + feesExtra);
       if (feesExtra > 0) {
         const feesPaymentId = crypto.randomUUID();
         const feesPayload = {
@@ -776,14 +777,15 @@ export function useLoans() {
           user_id: dataOwnerId, loan_id: loanId, amount: feesExtra,
           date: dateStr, installment_number: -2, previous_due_date: loan.dueDate,
           payment_method_id: paymentMethodId ?? null,
+          metadata: { kind: "late_fee", consolidated_with: tempPaymentId } as any,
         };
         setPayments((prev) => [
-          { id: feesPaymentId, loanId, amount: feesExtra, date: dateStr, installmentNumber: -2, previousDueDate: loan.dueDate, paymentMethodId: paymentMethodId ?? null },
+          { id: feesPaymentId, loanId, amount: feesExtra, date: dateStr, installmentNumber: -2, previousDueDate: loan.dueDate, paymentMethodId: paymentMethodId ?? null, metadata: { kind: "late_fee", consolidated_with: tempPaymentId } as any },
           ...prev,
         ]);
         await upsertCachedRow("payments", { ...feesPayload, created_at: new Date().toISOString() });
         await enqueueMutation({ table: "payments", op: "insert", recordId: feesPaymentId, payload: feesPayload });
-        await adjustBalanceOffline(feesExtra);
+        // NÃO ajusta saldo aqui — já incluído no total acima
       }
       return;
     }
