@@ -123,7 +123,7 @@ Deno.serve(async (req: Request) => {
 
       // Loans due this week (active loans)
       const { data: loans } = await admin
-        .from("loans").select("id, borrower_id, borrower_name, due_date, amount, paid_installments, installments")
+        .from("loans").select("id, borrower_id, borrower_name, due_date, amount, paid_installments, installments, tags")
         .eq("user_id", ownerId)
         .neq("status", "paid");
 
