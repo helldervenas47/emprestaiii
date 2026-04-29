@@ -1892,8 +1892,14 @@ Deno.serve(async (req) => {
                   ? `💳 *Compra no cartão (comprovante)*`
                   : `📸 *Despesa extraída do comprovante*`;
                 const cardLine = card ? `\n💳 ${card.nickname || card.bank} (vence ${displayDate})` : "";
+                let invoiceLine = "";
+                if (card) {
+                  const invoiceTotal = await computeCurrentInvoiceTotal(admin, link.user_id, card);
+                  const fmtInvoice = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(invoiceTotal);
+                  invoiceLine = `\n💳 Fatura atual: ${fmtInvoice}`;
+                }
                 await tgSendWithKeyboard(chatId,
-                  `${header}\n\n💰 ${fmt}\n📂 ${finalCategory}${cardLine}\n📝 ${extracted.description}\n📅 ${displayDate}`,
+                  `${header}\n\n💰 ${fmt}\n📂 ${finalCategory}${cardLine}\n📝 ${extracted.description}\n📅 ${displayDate}${invoiceLine}`,
                   buildExpenseKeyboard(ins.id),
                   LOVABLE_API_KEY, TELEGRAM_API_KEY);
                 if (!card) {
