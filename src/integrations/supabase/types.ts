@@ -1972,6 +1972,39 @@ export type Database = {
         }
         Relationships: []
       }
+      telegram_bots: {
+        Row: {
+          bot_code: string
+          chat_id: number
+          created_at: string
+          created_by_user_id: string | null
+          expires_at: string | null
+          id: string
+          kind: string
+          updated_at: string
+        }
+        Insert: {
+          bot_code: string
+          chat_id: number
+          created_at?: string
+          created_by_user_id?: string | null
+          expires_at?: string | null
+          id?: string
+          kind: string
+          updated_at?: string
+        }
+        Update: {
+          bot_code?: string
+          chat_id?: number
+          created_at?: string
+          created_by_user_id?: string | null
+          expires_at?: string | null
+          id?: string
+          kind?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       telegram_link_codes: {
         Row: {
           code: string
