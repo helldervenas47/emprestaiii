@@ -3901,7 +3901,19 @@ export function LoanList({ loans, payments, installmentSchedules, onPayment, onP
       filtered = filtered.filter((l) => l.startDate <= dateTo);
     }
 
-    // Amount range filter
+    // Due date range filter (uses next pending installment date, falls back to loan.dueDate)
+    if (dueDateFrom || dueDateTo) {
+      filtered = filtered.filter((l) => {
+        const next = getFirstPendingDate(l, installmentSchedules);
+        const ymd = !isNaN(next.getTime())
+          ? `${next.getFullYear()}-${String(next.getMonth() + 1).padStart(2, "0")}-${String(next.getDate()).padStart(2, "0")}`
+          : (l.dueDate || "");
+        if (!ymd) return false;
+        if (dueDateFrom && ymd < dueDateFrom) return false;
+        if (dueDateTo && ymd > dueDateTo) return false;
+        return true;
+      });
+    }
     const minAmt = parseFloat(amountMin);
     const maxAmt = parseFloat(amountMax);
     if (!isNaN(minAmt) && minAmt > 0) {
