@@ -831,12 +831,10 @@ const Index = () => {
                 <AlertTriangle className="h-4 w-4 mr-1" /> Inadimplência Acumulada
               </Button>
               <Button
-                variant={overdueSubTab === "contador" ? "default" : "outline"}
+                variant={overdueSubTab === "metas" ? "default" : "outline"}
                 size="sm"
-                onClick={() => setOverdueSubTab("contador")}
+                onClick={() => setOverdueSubTab("metas")}
               >
-                <Calculator className="h-4 w-4 mr-1" /> Contador
-              </Button>
               <Button
                 variant={overdueSubTab === "metas" ? "default" : "outline"}
                 size="sm"
