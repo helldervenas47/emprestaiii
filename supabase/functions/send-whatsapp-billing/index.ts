@@ -255,7 +255,12 @@ Deno.serve(async (req: Request) => {
 
           const juros = computeLateFees(loan, amount, daysOverdue);
           const valorTotal = amount + juros;
-          const etiqueta = Array.isArray(loan.tags) && loan.tags.length ? String(loan.tags[0]) : "";
+          const etiqueta = Array.isArray(loan.tags)
+            ? loan.tags
+                .map((t: unknown) => (t == null ? "" : String(t).trim()))
+                .filter((t: string) => t.length > 0 && t.toLowerCase() !== "null" && t.toLowerCase() !== "undefined")
+                .join(", ")
+            : "";
 
           const message = applyVariables(template, {
             nome: client?.name ?? loan.borrower_name ?? "",
