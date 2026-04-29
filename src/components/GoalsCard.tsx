@@ -499,13 +499,16 @@ export function computeActual(
       return summary.rate ?? 0;
     }
     case "profit": {
-      // Mesma lógica do campo "% Lucro" / "% Meta" do card "Lucro por Período"
-      // = (Realizado ÷ (Realizado + Previsto)) × 100
-      const realized = computeProfitRealized(loans, payments, m);
-      const expected = computeProfitExpected(loans, m);
-      const previstoTotal = realized + expected;
-      if (previstoTotal <= 0) return 0;
-      return (realized / previstoTotal) * 100;
+      // Faturamento do Período = (Total Recebido no Mês ÷ Total Previsto no Mês) × 100
+      // Numerador: soma de TODOS os pagamentos com data no mês (principal + juros + multa)
+      // Denominador: soma das parcelas (principal + juros) com vencimento no mês,
+      // independentemente do status (pendente ou quitado).
+      const received = payments
+        .filter((p: any) => inMonth(p.date, m))
+        .reduce((s: number, p: any) => s + (Number(p.amount) || 0), 0);
+      const expected = computeExpectedReceivable(loans, m);
+      if (expected <= 0) return 0;
+      return (received / expected) * 100;
     }
     default:
       return 0;
