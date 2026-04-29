@@ -865,9 +865,6 @@ const Index = () => {
             {overdueSubTab === "inadimplencia-acumulada" && (
               <AccumulatedDelinquencyReport loans={filteredLoans} clients={filteredClients} installmentSchedules={filteredInstallments} />
             )}
-            {overdueSubTab === "contador" && (
-              <AccountantReport loans={filteredLoans} payments={filteredPayments} sales={sales} expenses={expenses} />
-            )}
             {overdueSubTab === "metas" && (
               <MonthlyGoalsManager readOnly={isReadOnly} />
             )}
