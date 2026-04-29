@@ -11,6 +11,8 @@ import { toast } from "sonner";
 import { getPdfBranding } from "@/lib/pdfBranding";
 import { usePaymentMethods } from "@/hooks/usePaymentMethods";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { AccountantAuditCard } from "@/components/AccountantAuditCard";
+import type { AuditTotals } from "@/lib/accountantAudit";
 
 interface AccountantReportProps {
   loans: any[];
@@ -859,6 +861,35 @@ export function AccountantReport({ loans, payments, sales, expenses }: Accountan
           </div>
         </CardContent>
       </Card>
+
+      {(() => {
+        const shown: AuditTotals = {
+          interestRevenue: dre.interestRevenue,
+          salesRevenue: dre.salesRevenue,
+          totalRevenue: dre.totalRevenue,
+          totalExpenses: dre.totalExpenses,
+          businessExp: dre.businessExp,
+          personalExp: dre.personalExp,
+          netProfit: dre.netProfit,
+          cashIn: cashflow.totalIn,
+          cashOut: cashflow.totalOut,
+          cashNet: cashflow.net,
+          paymentsCount: cashflow.paymentCount,
+          loansOutgoing: cashflow.totalLoanOutgoing,
+        };
+        return (
+          <AccountantAuditCard
+            loans={loans}
+            payments={payments}
+            sales={sales}
+            expenses={expenses}
+            period={period}
+            monthFilter={monthFilter}
+            yearFilter={yearFilter}
+            shown={shown}
+          />
+        );
+      })()}
 
       {/* Resumo de Fluxo do Período */}
       {(() => {
