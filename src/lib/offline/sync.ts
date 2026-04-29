@@ -140,14 +140,28 @@ export async function getPendingBalanceDelta(): Promise<number> {
   return Number(entry?.value ?? 0);
 }
 
+let flushingBalance = false;
 async function flushPendingBalance() {
-  const delta = await getPendingBalanceDelta();
-  if (!delta) return;
-  // Lazy import to avoid circular dep with balance.ts → supabase
-  const { adjustBalance } = await import("@/lib/balance");
-  await adjustBalance(delta);
-  await offlineDB.meta.delete(BALANCE_KEY);
-  notifyPendingChanged();
+  if (flushingBalance) return;
+  flushingBalance = true;
+  try {
+    const delta = await getPendingBalanceDelta();
+    if (!delta) return;
+    // CRITICAL: clear the key BEFORE applying to prevent double-application
+    // if adjustBalance succeeds but delete fails on the next tick.
+    await offlineDB.meta.delete(BALANCE_KEY);
+    notifyPendingChanged();
+    const { adjustBalance } = await import("@/lib/balance");
+    try {
+      await adjustBalance(delta);
+    } catch (err) {
+      // Re-enqueue on failure so we don't lose the delta
+      await enqueueBalanceAdjust(delta);
+      throw err;
+    }
+  } finally {
+    flushingBalance = false;
+  }
 }
 
 // ---------- Flush queue ----------
