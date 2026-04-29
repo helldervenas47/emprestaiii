@@ -1131,49 +1131,103 @@ export function AccountantReport({ loans, payments, sales, expenses }: Accountan
             </CardHeader>
             <CardContent className="space-y-4">
               {/* Resumo por tipo */}
-              <div className="overflow-x-auto">
-                <table className="w-full text-xs">
-                  <thead>
-                    <tr className="text-left text-muted-foreground border-b">
-                      <th className="py-2 pr-2">Tipo</th>
-                      <th className="py-2 pr-2 text-right">Qtd</th>
-                      <th className="py-2 pr-2 text-right">Recebido</th>
-                      <th className="py-2 pr-2 text-right">Juros</th>
-                      <th className="py-2 text-right">Principal</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {(["juros_puro","parcela","quitacao","amortizacao","split","sem_vinculo"] as const).map((k) => {
-                      const labels: Record<string,string> = {
-                        juros_puro: "Juros puro",
-                        parcela: "Parcela",
-                        quitacao: "Quitação",
-                        amortizacao: "Amortização",
-                        split: "Split explícito",
-                        sem_vinculo: "Sem vínculo",
-                      };
-                      const v = (dre as any).byKind[k];
-                      if (!v || v.count === 0) return null;
-                      return (
-                        <tr key={k} className="border-b">
-                          <td className="py-1.5 pr-2 font-medium">{labels[k]}</td>
-                          <td className="py-1.5 pr-2 text-right">{v.count}</td>
-                          <td className="py-1.5 pr-2 text-right">{fmt(v.amount, hidden)}</td>
-                          <td className="py-1.5 pr-2 text-right text-success">{fmt(v.interest, hidden)}</td>
-                          <td className="py-1.5 text-right">{fmt(v.principal, hidden)}</td>
-                        </tr>
-                      );
-                    })}
-                    <tr className="font-semibold bg-muted/30">
-                      <td className="py-1.5 pr-2">Total</td>
-                      <td className="py-1.5 pr-2 text-right">{(dre as any).breakdown.length}</td>
-                      <td className="py-1.5 pr-2 text-right">{fmt((dre as any).totalReceived, hidden)}</td>
-                      <td className="py-1.5 pr-2 text-right text-success">{fmt(dre.interestRevenue, hidden)}</td>
-                      <td className="py-1.5 text-right">{fmt(dre.principalReceived, hidden)}</td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
+              {(() => {
+                const labels: Record<string, string> = {
+                  juros_puro: "Juros puro",
+                  parcela: "Parcela",
+                  quitacao: "Quitação",
+                  amortizacao: "Amortização",
+                  split: "Split explícito",
+                  sem_vinculo: "Sem vínculo",
+                };
+                const order = ["juros_puro","parcela","quitacao","amortizacao","split","sem_vinculo"] as const;
+                const rows = order
+                  .map((k) => ({ k, v: (dre as any).byKind[k] }))
+                  .filter((r) => r.v && r.v.count > 0);
+
+                return (
+                  <>
+                    {/* Tabela em ≥sm */}
+                    <div className="hidden sm:block overflow-x-auto">
+                      <table className="w-full text-xs">
+                        <thead>
+                          <tr className="text-left text-muted-foreground border-b">
+                            <th className="py-2 pr-2">Tipo</th>
+                            <th className="py-2 pr-2 text-right">Qtd</th>
+                            <th className="py-2 pr-2 text-right">Recebido</th>
+                            <th className="py-2 pr-2 text-right">Juros</th>
+                            <th className="py-2 text-right">Principal</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {rows.map(({ k, v }) => (
+                            <tr key={k} className="border-b">
+                              <td className="py-1.5 pr-2 font-medium">{labels[k]}</td>
+                              <td className="py-1.5 pr-2 text-right">{v.count}</td>
+                              <td className="py-1.5 pr-2 text-right">{fmt(v.amount, hidden)}</td>
+                              <td className="py-1.5 pr-2 text-right text-success">{fmt(v.interest, hidden)}</td>
+                              <td className="py-1.5 text-right">{fmt(v.principal, hidden)}</td>
+                            </tr>
+                          ))}
+                          <tr className="font-semibold bg-muted/30">
+                            <td className="py-1.5 pr-2">Total</td>
+                            <td className="py-1.5 pr-2 text-right">{(dre as any).breakdown.length}</td>
+                            <td className="py-1.5 pr-2 text-right">{fmt((dre as any).totalReceived, hidden)}</td>
+                            <td className="py-1.5 pr-2 text-right text-success">{fmt(dre.interestRevenue, hidden)}</td>
+                            <td className="py-1.5 text-right">{fmt(dre.principalReceived, hidden)}</td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+
+                    {/* Cards em mobile */}
+                    <div className="sm:hidden space-y-2">
+                      {rows.map(({ k, v }) => (
+                        <div key={k} className="rounded-lg border bg-muted/20 p-3 space-y-1.5">
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="text-xs font-semibold">{labels[k]}</span>
+                            <span className="text-[10px] text-muted-foreground">{v.count} pagto(s)</span>
+                          </div>
+                          <div className="grid grid-cols-3 gap-1.5 text-[11px]">
+                            <div>
+                              <p className="text-[10px] text-muted-foreground">Recebido</p>
+                              <p className="font-medium tabular-nums">{fmt(v.amount, hidden)}</p>
+                            </div>
+                            <div>
+                              <p className="text-[10px] text-muted-foreground">Juros</p>
+                              <p className="font-medium text-success tabular-nums">{fmt(v.interest, hidden)}</p>
+                            </div>
+                            <div>
+                              <p className="text-[10px] text-muted-foreground">Principal</p>
+                              <p className="font-medium tabular-nums">{fmt(v.principal, hidden)}</p>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                      <div className="rounded-lg border-2 border-primary/30 bg-primary/5 p-3 space-y-1.5">
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="text-xs font-bold">Total</span>
+                          <span className="text-[10px] text-muted-foreground">{(dre as any).breakdown.length} pagto(s)</span>
+                        </div>
+                        <div className="grid grid-cols-3 gap-1.5 text-[11px]">
+                          <div>
+                            <p className="text-[10px] text-muted-foreground">Recebido</p>
+                            <p className="font-bold tabular-nums">{fmt((dre as any).totalReceived, hidden)}</p>
+                          </div>
+                          <div>
+                            <p className="text-[10px] text-muted-foreground">Juros</p>
+                            <p className="font-bold text-success tabular-nums">{fmt(dre.interestRevenue, hidden)}</p>
+                          </div>
+                          <div>
+                            <p className="text-[10px] text-muted-foreground">Principal</p>
+                            <p className="font-bold tabular-nums">{fmt(dre.principalReceived, hidden)}</p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </>
+                );
+              })()}
 
               {/* Lista por pagamento */}
               <Collapsible>
@@ -1185,37 +1239,74 @@ export function AccountantReport({ loans, payments, sales, expenses }: Accountan
                   {(dre as any).breakdown.length === 0 ? (
                     <p className="text-xs text-muted-foreground py-3 text-center">Nenhum pagamento no período.</p>
                   ) : (
-                    <div className="overflow-x-auto">
-                      <table className="w-full text-xs">
-                        <thead>
-                          <tr className="text-left text-muted-foreground border-b">
-                            <th className="py-2 pr-2">Data</th>
-                            <th className="py-2 pr-2">Cliente</th>
-                            <th className="py-2 pr-2">Tipo</th>
-                            <th className="py-2 pr-2 text-right">Valor</th>
-                            <th className="py-2 pr-2 text-right">Juros</th>
-                            <th className="py-2 text-right">Principal</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {(dre as any).breakdown.map((b: any) => (
-                            <tr key={b.id} className="border-b align-top">
-                              <td className="py-1.5 pr-2 whitespace-nowrap">
-                                {b.date ? new Date(b.date + "T00:00:00").toLocaleDateString("pt-BR") : "—"}
-                              </td>
-                              <td className="py-1.5 pr-2">{b.borrowerName}</td>
-                              <td className="py-1.5 pr-2">
-                                <span className="inline-block px-1.5 py-0.5 rounded bg-muted text-[10px]">{b.kindLabel}</span>
-                                <p className="text-[10px] text-muted-foreground mt-0.5 max-w-[260px]">{b.reason}</p>
-                              </td>
-                              <td className="py-1.5 pr-2 text-right">{fmt(b.amount, hidden)}</td>
-                              <td className="py-1.5 pr-2 text-right text-success">{fmt(b.interest, hidden)}</td>
-                              <td className="py-1.5 text-right">{fmt(b.principal, hidden)}</td>
+                    <>
+                      {/* Tabela em ≥sm */}
+                      <div className="hidden sm:block overflow-x-auto">
+                        <table className="w-full text-xs">
+                          <thead>
+                            <tr className="text-left text-muted-foreground border-b">
+                              <th className="py-2 pr-2">Data</th>
+                              <th className="py-2 pr-2">Cliente</th>
+                              <th className="py-2 pr-2">Tipo</th>
+                              <th className="py-2 pr-2 text-right">Valor</th>
+                              <th className="py-2 pr-2 text-right">Juros</th>
+                              <th className="py-2 text-right">Principal</th>
                             </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
+                          </thead>
+                          <tbody>
+                            {(dre as any).breakdown.map((b: any) => (
+                              <tr key={b.id} className="border-b align-top">
+                                <td className="py-1.5 pr-2 whitespace-nowrap">
+                                  {b.date ? new Date(b.date + "T00:00:00").toLocaleDateString("pt-BR") : "—"}
+                                </td>
+                                <td className="py-1.5 pr-2">{b.borrowerName}</td>
+                                <td className="py-1.5 pr-2">
+                                  <span className="inline-block px-1.5 py-0.5 rounded bg-muted text-[10px]">{b.kindLabel}</span>
+                                  <p className="text-[10px] text-muted-foreground mt-0.5 max-w-[260px]">{b.reason}</p>
+                                </td>
+                                <td className="py-1.5 pr-2 text-right">{fmt(b.amount, hidden)}</td>
+                                <td className="py-1.5 pr-2 text-right text-success">{fmt(b.interest, hidden)}</td>
+                                <td className="py-1.5 text-right">{fmt(b.principal, hidden)}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+
+                      {/* Cards em mobile */}
+                      <div className="sm:hidden space-y-2">
+                        {(dre as any).breakdown.map((b: any) => (
+                          <div key={b.id} className="rounded-lg border bg-card p-3 space-y-2">
+                            <div className="flex items-start justify-between gap-2">
+                              <div className="min-w-0 flex-1">
+                                <p className="text-xs font-semibold truncate">{b.borrowerName}</p>
+                                <p className="text-[10px] text-muted-foreground">
+                                  {b.date ? new Date(b.date + "T00:00:00").toLocaleDateString("pt-BR") : "—"}
+                                </p>
+                              </div>
+                              <span className="shrink-0 inline-block px-1.5 py-0.5 rounded bg-muted text-[10px] font-medium">
+                                {b.kindLabel}
+                              </span>
+                            </div>
+                            <p className="text-[10px] text-muted-foreground italic leading-snug">{b.reason}</p>
+                            <div className="grid grid-cols-3 gap-1.5 text-[11px] pt-1 border-t">
+                              <div>
+                                <p className="text-[10px] text-muted-foreground">Valor</p>
+                                <p className="font-medium tabular-nums">{fmt(b.amount, hidden)}</p>
+                              </div>
+                              <div>
+                                <p className="text-[10px] text-muted-foreground">Juros</p>
+                                <p className="font-medium text-success tabular-nums">{fmt(b.interest, hidden)}</p>
+                              </div>
+                              <div>
+                                <p className="text-[10px] text-muted-foreground">Principal</p>
+                                <p className="font-medium tabular-nums">{fmt(b.principal, hidden)}</p>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </>
                   )}
                 </CollapsibleContent>
               </Collapsible>
