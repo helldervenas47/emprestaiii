@@ -221,19 +221,29 @@ Deno.serve(async (req: Request) => {
         workingCandidates = candidates.filter((c) => c.user_id === targetManagerId);
       }
 
-      // previewOnly: render and return — no log, no send
+      // previewOnly: render per manager and return — no log, no send
       if (previewOnly) {
-        results.push({
-          owner_id: ownerId,
-          preview: true,
-          message: renderedMessage,
-          loans_count: items.length,
-          total_amount: totalAmount,
-          managers: workingCandidates.map((m) => ({
+        // If a specific manager is targeted, return single message; otherwise return per-manager previews
+        const previews = workingCandidates.map((m) => {
+          const r = renderForManager(m.user_id);
+          return {
             user_id: m.user_id,
             display_name: m.display_name,
             phone: m.phone,
-          })),
+            message: r.message,
+            loans_count: r.items.length,
+            total_amount: r.totalAmount,
+          };
+        });
+        const first = previews[0];
+        results.push({
+          owner_id: ownerId,
+          preview: true,
+          // Backwards-compatible top-level fields use the first (or targeted) manager
+          message: first?.message ?? "",
+          loans_count: first?.loans_count ?? 0,
+          total_amount: first?.total_amount ?? 0,
+          managers: previews,
         });
         continue;
       }
