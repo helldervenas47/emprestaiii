@@ -52,7 +52,7 @@ export function AccountantReport({ loans, payments, sales, expenses }: Accountan
   const { months, years } = useMemo(() => {
     const ms = new Set<string>();
     const ys = new Set<string>();
-    [...payments.map((p) => p.date), ...sales.map((s) => s.sale_date), ...expenses.map((e) => e.due_date)]
+    [...payments.map((p) => p.date), ...sales.map((s) => s.date ?? s.sale_date), ...expenses.map((e) => e.dueDate ?? e.due_date)]
       .filter(Boolean)
       .forEach((d) => {
         ms.add(getMonthKey(d));
