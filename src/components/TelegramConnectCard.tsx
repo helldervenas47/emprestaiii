@@ -89,6 +89,40 @@ export function TelegramConnectCard() {
     toast.success("Telegram desvinculado");
   };
 
+  const linkByBotCode = async () => {
+    const trimmed = botCodeInput.trim();
+    if (!trimmed) {
+      toast.error("Digite o código recebido no Telegram");
+      return;
+    }
+    setLinkingByCode(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("link-telegram-bot", {
+        body: { bot_code: trimmed },
+      });
+      if (error) {
+        let detailed = (error as any)?.message || "Não foi possível vincular";
+        try {
+          const ctx = (error as any)?.context;
+          if (ctx?.body) {
+            const parsed = typeof ctx.body === "string" ? JSON.parse(ctx.body) : ctx.body;
+            if (parsed?.error) detailed = parsed.error;
+          }
+        } catch { /* ignore */ }
+        throw new Error(detailed);
+      }
+      if ((data as any)?.error) throw new Error((data as any).error);
+      toast.success("✅ Relatório conectado ao bot com sucesso");
+      setBotCodeInput("");
+      setCode(null);
+      await refresh();
+    } catch (e: any) {
+      toast.error("❌ Código de bot inválido", { description: e.message });
+    } finally {
+      setLinkingByCode(false);
+    }
+  };
+
   const sendSummaryNow = async () => {
     setSendingNow(true);
     try {
