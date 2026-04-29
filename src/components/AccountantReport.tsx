@@ -207,7 +207,7 @@ export function AccountantReport({ loans, payments, sales, expenses }: Accountan
       byKind,
       totalReceived,
     };
-  }, [payments, expenses, loans, period, monthFilter, yearFilter]);
+  }, [payments, expenses, loans, sales, period, monthFilter, yearFilter]);
 
   // ===== Impostos =====
   const taxes = useMemo(() => {
