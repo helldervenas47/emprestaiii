@@ -1823,7 +1823,7 @@ export function AccountantReport({ loans, payments, sales, expenses }: Accountan
                   </div>
                   <div className="flex items-center justify-between rounded-lg border bg-warning/5 p-3">
                     <span className="text-muted-foreground">(−) Despesas empresariais pagas ({cashflow.expenseCount})</span>
-                    <span className="font-bold text-warning tabular-nums">{fmt(cashflow.totalOut, hidden)}</span>
+                    <span className="font-bold text-warning tabular-nums">{fmt(Math.max(0, cashflow.totalOut - cashflow.totalLoanOutgoing), hidden)}</span>
                   </div>
                   <div className={`flex items-center justify-between rounded-lg border-2 p-3 ${netFull >= 0 ? "border-primary/40 bg-primary/5" : "border-destructive/40 bg-destructive/5"}`}>
                     <span className="font-semibold">(=) Saldo do Período</span>
