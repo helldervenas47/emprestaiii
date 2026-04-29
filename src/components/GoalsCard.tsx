@@ -1266,17 +1266,10 @@ function GoalDetailDialog({ open, onClose, goal, viewingMonth, payments, loans, 
                 </div>
                 {goal.goalType === "profit" && goal.expectedReceivable !== null && goal.targetAmount !== null && (() => {
                   const computeMonth = viewingMonth || goal.month;
-                  // "Recebido total" deve refletir os pagamentos das PARCELAS que vencem no mês,
-                  // alinhando com "Previsto a receber" (que também é por vencimento da parcela),
-                  // independentemente da data em que o pagamento foi efetivamente registrado.
+                  // Recebido total = TODOS os pagamentos com data no mês (principal + juros + multa),
+                  // refletindo exatamente o que entrou no extrato da conta.
                   const receivedTotal = payments.reduce((s: number, p: any) => {
-                    const loanId = p.loanId || p.loan_id;
-                    const instNum = Number(p.installmentNumber ?? p.installment_number) || 0;
-                    if (!loanId || !instNum) return s;
-                    const loan = loans.find((l: any) => l.id === loanId);
-                    if (!loan) return s;
-                    const dueMonth = getInstallmentDueMonth(loan, instNum, installmentSchedules);
-                    if (dueMonth !== computeMonth) return s;
+                    if (!inMonth(p.date, computeMonth)) return s;
                     return s + (Number(p.amount) || 0);
                   }, 0);
                   const diffToTarget = Math.max(0, goal.targetAmount - receivedTotal);
