@@ -8,11 +8,22 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { useWhatsappBillingSchedule } from "@/hooks/useWhatsappBillingSchedule";
 import { toast } from "sonner";
-import { Send, Loader2, CheckCircle2, XCircle, Clock } from "lucide-react";
+import { Send, Loader2, CheckCircle2, XCircle, Clock, Users } from "lucide-react";
+
+const WEEKDAYS = [
+  { value: 0, label: "Domingo" },
+  { value: 1, label: "Segunda" },
+  { value: 2, label: "Terça" },
+  { value: 3, label: "Quarta" },
+  { value: 4, label: "Quinta" },
+  { value: 5, label: "Sexta" },
+  { value: 6, label: "Sábado" },
+];
 
 export function WhatsappAutoBillingCard() {
-  const { schedule, logs, loading, save, runNow } = useWhatsappBillingSchedule();
+  const { schedule, logs, loading, save, runNow, runManagerSummaryNow } = useWhatsappBillingSchedule();
   const [sending, setSending] = useState(false);
+  const [sendingManager, setSendingManager] = useState(false);
 
   const handleRunNow = async () => {
     if (!schedule.base_url || !schedule.instance_id) {
