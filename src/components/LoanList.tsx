@@ -4205,7 +4205,7 @@ export function LoanList({ loans, payments, installmentSchedules, onPayment, onP
               </div>
             </div>
             <div className="flex justify-end mt-3">
-              <Button variant="ghost" size="sm" className="text-xs" onClick={() => { setDateFrom(""); setDateTo(""); setAmountMin(""); setAmountMax(""); setTagFilter(""); setNotesFilter("all"); setSortBy("dueDate"); }}>
+              <Button variant="ghost" size="sm" className="text-xs" onClick={() => { setDateFrom(""); setDateTo(""); setDueDateFrom(""); setDueDateTo(""); setAmountMin(""); setAmountMax(""); setTagFilter(""); setNotesFilter("all"); setSortBy("dueDate"); }}>
                 <X className="h-3 w-3 mr-1" />Limpar filtros
               </Button>
             </div>
