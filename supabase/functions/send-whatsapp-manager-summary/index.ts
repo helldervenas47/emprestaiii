@@ -174,30 +174,20 @@ Deno.serve(async (req: Request) => {
         .replace(/\{etiquetas\}/g, etiquetas)
         .replace(/\{link_pagamento\}/g, linkPagamento);
 
-      // Find managers — users with role 'gerente' linked to this owner via user_owner
-      const { data: roleRows } = await admin
-        .from("user_roles").select("user_id").eq("role", "gerente");
-      const managerIds = (roleRows ?? []).map((r: any) => r.user_id);
+      // Find managers — clients flagged as is_manager belonging to this owner
+      const { data: managerClients } = await admin
+        .from("clients")
+        .select("id, name, phone, active, is_manager")
+        .eq("user_id", ownerId)
+        .eq("is_manager", true)
+        .eq("active", true);
 
-      let candidates: { user_id: string; phone: string; display_name: string }[] = [];
-      if (managerIds.length) {
-        const { data: ownerRows } = await admin
-          .from("user_owner").select("user_id, owner_id")
-          .in("user_id", managerIds);
-        const ownedManagerIds = (ownerRows ?? [])
-          .filter((r: any) => r.owner_id === ownerId)
-          .map((r: any) => r.user_id);
-        if (ownedManagerIds.length) {
-          const { data: profiles } = await admin
-            .from("profiles").select("user_id, phone, display_name, username")
-            .in("user_id", ownedManagerIds);
-          candidates = (profiles ?? []).map((p: any) => ({
-            user_id: p.user_id,
-            phone: String(p.phone || ""),
-            display_name: String(p.display_name || p.username || ""),
-          }));
-        }
-      }
+      const candidates: { user_id: string; phone: string; display_name: string }[] =
+        (managerClients ?? []).map((c: any) => ({
+          user_id: c.id, // client id used as recipient identifier
+          phone: String(c.phone || ""),
+          display_name: String(c.name || ""),
+        }));
 
       // listManagers: just return managers (with phone/name) and exit early per owner
       if (listManagers) {
