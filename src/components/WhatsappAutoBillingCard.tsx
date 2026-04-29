@@ -203,6 +203,38 @@ export function WhatsappAutoBillingCard() {
             </div>
           </div>
 
+          <div className="space-y-1.5 rounded-md border bg-background p-2.5">
+            <Label className="text-xs flex items-center gap-1.5">
+              <Phone className="h-3.5 w-3.5" /> Meu telefone (WhatsApp) para receber resumos
+            </Label>
+            <div className="flex gap-2">
+              <Input
+                placeholder="Ex: (11) 99999-9999"
+                value={phoneDraft || myPhone}
+                onChange={(e) => setPhoneDraft(e.target.value)}
+                disabled={loadingPhone || savingPhone}
+              />
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={savingPhone || loadingPhone || (phoneDraft || myPhone) === myPhone}
+                onClick={async () => {
+                  setSavingPhone(true);
+                  const { error } = await saveMyPhone((phoneDraft || myPhone).trim());
+                  setSavingPhone(false);
+                  if (error) toast.error("Não foi possível salvar o telefone.");
+                  else { toast.success("Telefone atualizado."); setPhoneDraft(""); }
+                }}
+              >
+                Salvar
+              </Button>
+            </div>
+            <p className="text-[10px] text-muted-foreground">
+              Apenas usuários com perfil <strong>Gerente</strong> recebem este resumo. Defina o
+              papel em "Gerenciar Usuários".
+            </p>
+          </div>
+
           <div className="flex items-center justify-between gap-3 flex-wrap">
             <div className="text-xs text-muted-foreground">
               {schedule.manager_last_run_at
