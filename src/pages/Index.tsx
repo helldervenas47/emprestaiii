@@ -821,7 +821,7 @@ const Index = () => {
         )}
         {tab === "accountant" && (
           <SubscriptionGate requiredTier={2} featureName="Contador">
-            <AccountantReport loans={filteredLoans} payments={filteredPayments} sales={sales} expenses={expenses} />
+            <AccountantReport loans={loans} payments={payments} sales={sales} expenses={expenses} />
           </SubscriptionGate>
         )}
         {tab === "overdue" && (
