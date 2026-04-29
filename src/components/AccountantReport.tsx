@@ -1100,7 +1100,7 @@ export function AccountantReport({ loans, payments, sales, expenses }: Accountan
                     <div key={t.id} className="flex items-center justify-between py-2 border-b text-sm">
                       <div>
                         <p className="font-medium">{t.description}</p>
-                        <p className="text-xs text-muted-foreground">{t.category} · venc. {new Date(t.due_date + "T00:00:00").toLocaleDateString("pt-BR")}</p>
+                        <p className="text-xs text-muted-foreground">{t.category} · venc. {new Date(((t.dueDate ?? t.due_date) || "") + "T00:00:00").toLocaleDateString("pt-BR")}</p>
                       </div>
                       <div className="text-right">
                         <p className="font-semibold">{fmt(Number(t.amount) || 0, hidden)}</p>
