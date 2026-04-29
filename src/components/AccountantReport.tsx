@@ -731,7 +731,7 @@ export function AccountantReport({ loans, payments, sales, expenses }: Accountan
           body: taxes.items.map((t: any) => [
             t.description,
             t.category,
-            new Date(t.due_date + "T00:00:00").toLocaleDateString("pt-BR"),
+            new Date((t.dueDate ?? t.due_date) + "T00:00:00").toLocaleDateString("pt-BR"),
             fmtBRL(Number(t.amount) || 0),
             t.paid ? "Pago" : "Pendente",
           ]),
