@@ -285,9 +285,10 @@ function ManagerField({
   const preview = value
     .replace(/\{total_emprestimos_semana\}/g, "3")
     .replace(/\{valores_totais\}/g, "R$ 1.450,00")
+    .replace(/\{etiquetas\}/g, "VIP, Renovação")
     .replace(
       /\{lista_clientes\}/g,
-      "- Maria Silva — R$ 500,00 (vence 02/05)\n- João Pereira — R$ 450,00 (vence 04/05)\n- Ana Souza — R$ 500,00 (vence 06/05)",
+      "- Maria Silva [VIP] — R$ 500,00 (vence 02/05)\n- João Pereira [Renovação] — R$ 450,00 (vence 04/05)\n- Ana Souza — R$ 500,00 (vence 06/05)",
     )
     .replace(/\{link_pagamento\}/g, pixLink || "");
   return (
