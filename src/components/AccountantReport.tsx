@@ -1804,7 +1804,7 @@ export function AccountantReport({ loans, payments, sales, expenses }: Accountan
           })()}
 
           {drillDown === "net" && (() => {
-            const totalOutFull = cashflow.totalOut + cashflow.totalLoanOutgoing;
+            const totalOutFull = cashflow.totalOut;
             const netFull = cashflow.totalIn - totalOutFull;
             return (
               <>
