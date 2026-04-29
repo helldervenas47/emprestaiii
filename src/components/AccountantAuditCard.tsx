@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ShieldCheck, AlertTriangle, CheckCircle2, History, Loader2 } from "lucide-react";
+import { ShieldCheck, AlertTriangle, CheckCircle2, History, Loader2, ChevronRight } from "lucide-react";
 import { runAccountantAudit, type AuditReport, type AuditTotals } from "@/lib/accountantAudit";
 import { useAccountantAuditLogs } from "@/hooks/useAccountantAuditLogs";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
