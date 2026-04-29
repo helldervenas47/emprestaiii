@@ -23,6 +23,9 @@ const WEEKDAYS = [
 
 export function WhatsappAutoBillingCard() {
   const { schedule, logs, loading, save, runNow, runManagerSummaryNow } = useWhatsappBillingSchedule();
+  const { phone: myPhone, save: saveMyPhone, loading: loadingPhone } = useMyProfilePhone();
+  const [phoneDraft, setPhoneDraft] = useState("");
+  const [savingPhone, setSavingPhone] = useState(false);
   const [sending, setSending] = useState(false);
   const [sendingManager, setSendingManager] = useState(false);
 
