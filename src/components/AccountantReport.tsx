@@ -1120,6 +1120,107 @@ export function AccountantReport({ loans, payments, sales, expenses }: Accountan
               </div>
             </CardContent>
           </Card>
+
+          {/* Detalhamento Juros vs Principal */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-sm">Juros vs Principal — por pagamento</CardTitle>
+              <CardDescription className="text-xs">
+                Conferência da receita de juros: cada pagamento, sua classificação e a parte considerada juros.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {/* Resumo por tipo */}
+              <div className="overflow-x-auto">
+                <table className="w-full text-xs">
+                  <thead>
+                    <tr className="text-left text-muted-foreground border-b">
+                      <th className="py-2 pr-2">Tipo</th>
+                      <th className="py-2 pr-2 text-right">Qtd</th>
+                      <th className="py-2 pr-2 text-right">Recebido</th>
+                      <th className="py-2 pr-2 text-right">Juros</th>
+                      <th className="py-2 text-right">Principal</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {(["juros_puro","parcela","quitacao","amortizacao","split","sem_vinculo"] as const).map((k) => {
+                      const labels: Record<string,string> = {
+                        juros_puro: "Juros puro",
+                        parcela: "Parcela",
+                        quitacao: "Quitação",
+                        amortizacao: "Amortização",
+                        split: "Split explícito",
+                        sem_vinculo: "Sem vínculo",
+                      };
+                      const v = (dre as any).byKind[k];
+                      if (!v || v.count === 0) return null;
+                      return (
+                        <tr key={k} className="border-b">
+                          <td className="py-1.5 pr-2 font-medium">{labels[k]}</td>
+                          <td className="py-1.5 pr-2 text-right">{v.count}</td>
+                          <td className="py-1.5 pr-2 text-right">{fmt(v.amount, hidden)}</td>
+                          <td className="py-1.5 pr-2 text-right text-success">{fmt(v.interest, hidden)}</td>
+                          <td className="py-1.5 text-right">{fmt(v.principal, hidden)}</td>
+                        </tr>
+                      );
+                    })}
+                    <tr className="font-semibold bg-muted/30">
+                      <td className="py-1.5 pr-2">Total</td>
+                      <td className="py-1.5 pr-2 text-right">{(dre as any).breakdown.length}</td>
+                      <td className="py-1.5 pr-2 text-right">{fmt((dre as any).totalReceived, hidden)}</td>
+                      <td className="py-1.5 pr-2 text-right text-success">{fmt(dre.interestRevenue, hidden)}</td>
+                      <td className="py-1.5 text-right">{fmt(dre.principalReceived, hidden)}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Lista por pagamento */}
+              <Collapsible>
+                <CollapsibleTrigger className="flex items-center gap-1 text-xs font-medium text-primary hover:underline">
+                  <ChevronRight className="h-3 w-3 transition-transform data-[state=open]:rotate-90" />
+                  Ver detalhamento por pagamento ({(dre as any).breakdown.length})
+                </CollapsibleTrigger>
+                <CollapsibleContent className="mt-3">
+                  {(dre as any).breakdown.length === 0 ? (
+                    <p className="text-xs text-muted-foreground py-3 text-center">Nenhum pagamento no período.</p>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-xs">
+                        <thead>
+                          <tr className="text-left text-muted-foreground border-b">
+                            <th className="py-2 pr-2">Data</th>
+                            <th className="py-2 pr-2">Cliente</th>
+                            <th className="py-2 pr-2">Tipo</th>
+                            <th className="py-2 pr-2 text-right">Valor</th>
+                            <th className="py-2 pr-2 text-right">Juros</th>
+                            <th className="py-2 text-right">Principal</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {(dre as any).breakdown.map((b: any) => (
+                            <tr key={b.id} className="border-b align-top">
+                              <td className="py-1.5 pr-2 whitespace-nowrap">
+                                {b.date ? new Date(b.date + "T00:00:00").toLocaleDateString("pt-BR") : "—"}
+                              </td>
+                              <td className="py-1.5 pr-2">{b.borrowerName}</td>
+                              <td className="py-1.5 pr-2">
+                                <span className="inline-block px-1.5 py-0.5 rounded bg-muted text-[10px]">{b.kindLabel}</span>
+                                <p className="text-[10px] text-muted-foreground mt-0.5 max-w-[260px]">{b.reason}</p>
+                              </td>
+                              <td className="py-1.5 pr-2 text-right">{fmt(b.amount, hidden)}</td>
+                              <td className="py-1.5 pr-2 text-right text-success">{fmt(b.interest, hidden)}</td>
+                              <td className="py-1.5 text-right">{fmt(b.principal, hidden)}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </CollapsibleContent>
+              </Collapsible>
+            </CardContent>
+          </Card>
         </TabsContent>
 
         {/* Impostos */}
