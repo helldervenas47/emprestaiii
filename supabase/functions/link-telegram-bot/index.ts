@@ -61,22 +61,32 @@ Deno.serve(async (req) => {
     const chatId = Number((bot as any).chat_id);
 
     const targetTable = kind === "reports" ? "telegram_reports_links" : "telegram_links";
+    const rawLabel = typeof body?.label === "string" ? body.label.trim().slice(0, 80) : "";
+    const label = rawLabel || null;
 
-    // Vincula (ou atualiza vínculo existente) sem recriar.
+    // Múltiplos vínculos paralelos: chave = (user_id, chat_id).
+    // Se já existir, atualiza bot_code/label preservando dados; senão cria novo
+    // sem remover outros vínculos existentes do mesmo usuário.
     const { error: upsertErr } = await admin
       .from(targetTable)
-      .upsert({ user_id: userId, chat_id: chatId }, { onConflict: "user_id" });
+      .upsert(
+        { user_id: userId, chat_id: chatId, bot_code: code, label },
+        { onConflict: "user_id,chat_id" },
+      );
 
     if (upsertErr) return json({ error: upsertErr.message }, 500);
 
-    // Limpa o código consumido (one-shot) para evitar reuso por terceiros.
+    // One-shot: invalida o código consumido (o vínculo persiste em telegram_*_links
+    // e pode ser reutilizado por outros relatórios sem refazer o pareamento).
     await admin.from("telegram_bots").delete().eq("id", (bot as any).id);
 
     return json({
       ok: true,
       kind,
       chat_id: chatId,
-      message: "Relatório conectado ao bot com sucesso",
+      bot_code: code,
+      label,
+      message: "Bot vinculado com sucesso. O código foi consumido, mas o vínculo permanece salvo.",
     });
   } catch (e: any) {
     return json({ error: e?.message ?? "Erro interno" }, 500);

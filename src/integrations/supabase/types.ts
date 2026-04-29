@@ -2031,21 +2031,27 @@ export type Database = {
       }
       telegram_links: {
         Row: {
+          bot_code: string | null
           chat_id: number
           created_at: string
           id: string
+          label: string | null
           user_id: string
         }
         Insert: {
+          bot_code?: string | null
           chat_id: number
           created_at?: string
           id?: string
+          label?: string | null
           user_id: string
         }
         Update: {
+          bot_code?: string | null
           chat_id?: number
           created_at?: string
           id?: string
+          label?: string | null
           user_id?: string
         }
         Relationships: []
@@ -2187,21 +2193,27 @@ export type Database = {
       }
       telegram_reports_links: {
         Row: {
+          bot_code: string | null
           chat_id: number
           created_at: string
           id: string
+          label: string | null
           user_id: string
         }
         Insert: {
+          bot_code?: string | null
           chat_id: number
           created_at?: string
           id?: string
+          label?: string | null
           user_id: string
         }
         Update: {
+          bot_code?: string | null
           chat_id?: number
           created_at?: string
           id?: string
+          label?: string | null
           user_id?: string
         }
         Relationships: []
