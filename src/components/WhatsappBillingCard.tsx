@@ -6,7 +6,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { MessageCircle, Save, RotateCcw, Eye, AlertTriangle, Send, Loader2 } from "lucide-react";
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription,
+} from "@/components/ui/dialog";
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
+import { MessageCircle, Save, RotateCcw, Eye, AlertTriangle, Send, Loader2, UserCheck } from "lucide-react";
 import { toast } from "sonner";
 import { useWhatsappBillingMessages } from "@/hooks/useWhatsappBillingMessages";
 import { useWhatsappBillingSchedule } from "@/hooks/useWhatsappBillingSchedule";
@@ -286,7 +292,8 @@ function ManagerField({
 }) {
   const [showPreview, setShowPreview] = useState(false);
   const [sending, setSending] = useState(false);
-  const { runManagerSummaryNow } = useWhatsappBillingSchedule();
+  const { runManagerSummaryNow, listManagerSummaryRecipients, previewManagerSummary } =
+    useWhatsappBillingSchedule();
   const unknown = findUnknownVariables(value);
   const preview = value
     .replace(/\{total_emprestimos_semana\}/g, "3")
@@ -297,6 +304,88 @@ function ManagerField({
       "- Maria Silva [VIP] — R$ 500,00 (vence 02/05)\n- João Pereira [Renovação] — R$ 450,00 (vence 04/05)\n- Ana Souza — R$ 500,00 (vence 06/05)",
     )
     .replace(/\{link_pagamento\}/g, pixLink || "");
+
+  // Individual send dialog state
+  type Mgr = { user_id: string; display_name: string; phone: string; has_phone: boolean };
+  const [openIndividual, setOpenIndividual] = useState(false);
+  const [loadingMgrs, setLoadingMgrs] = useState(false);
+  const [managers, setManagers] = useState<Mgr[]>([]);
+  const [selectedMgr, setSelectedMgr] = useState<string>("");
+  const [renderedPreview, setRenderedPreview] = useState<string>("");
+  const [previewMeta, setPreviewMeta] = useState<{ loans: number; total: number } | null>(null);
+  const [loadingPreview, setLoadingPreview] = useState(false);
+  const [sendingOne, setSendingOne] = useState(false);
+
+  const openIndividualDialog = async () => {
+    if (dirty) {
+      toast.warning("Salve as alterações antes de continuar.");
+      return;
+    }
+    setOpenIndividual(true);
+    setSelectedMgr("");
+    setRenderedPreview("");
+    setPreviewMeta(null);
+    setLoadingMgrs(true);
+    try {
+      const res: any = await listManagerSummaryRecipients();
+      const list: Mgr[] = (res?.results?.[0]?.managers ?? []) as Mgr[];
+      setManagers(list);
+      if (list.length === 0) {
+        toast.info("Nenhum gerente vinculado encontrado.");
+      }
+    } catch (e: any) {
+      toast.error("Falha ao carregar gerentes: " + (e?.message ?? String(e)));
+    } finally {
+      setLoadingMgrs(false);
+    }
+  };
+
+  const loadPreview = async (mgrId: string) => {
+    setLoadingPreview(true);
+    setRenderedPreview("");
+    setPreviewMeta(null);
+    try {
+      const res: any = await previewManagerSummary(mgrId);
+      const r = res?.results?.[0];
+      setRenderedPreview(r?.message ?? "");
+      setPreviewMeta({ loans: Number(r?.loans_count ?? 0), total: Number(r?.total_amount ?? 0) });
+    } catch (e: any) {
+      toast.error("Falha ao gerar prévia: " + (e?.message ?? String(e)));
+    } finally {
+      setLoadingPreview(false);
+    }
+  };
+
+  const handleSelectMgr = (id: string) => {
+    setSelectedMgr(id);
+    if (id) loadPreview(id);
+  };
+
+  const handleSendIndividual = async () => {
+    if (!selectedMgr) return;
+    const mgr = managers.find((m) => m.user_id === selectedMgr);
+    if (!mgr?.has_phone) {
+      toast.error("Este gerente não possui telefone configurado no perfil.");
+      return;
+    }
+    setSendingOne(true);
+    try {
+      const res: any = await runManagerSummaryNow({ manager_user_id: selectedMgr });
+      const r = (res?.results ?? []).find((x: any) => x.manager_user_id === selectedMgr);
+      if (r?.success) {
+        toast.success(`Resumo enviado para ${mgr.display_name || "gerente"}.`);
+        setOpenIndividual(false);
+      } else if (r?.error) {
+        toast.error("Falha ao enviar: " + r.error);
+      } else {
+        toast.warning("Envio não confirmado. Verifique os logs.");
+      }
+    } catch (e: any) {
+      toast.error("Falha no envio: " + (e?.message ?? String(e)));
+    } finally {
+      setSendingOne(false);
+    }
+  };
 
   const handleSendNow = async () => {
     if (dirty) {
@@ -320,6 +409,8 @@ function ManagerField({
     }
   };
 
+  const selectedMgrObj = managers.find((m) => m.user_id === selectedMgr);
+
   return (
     <div className="space-y-1.5">
       <div className="flex items-center justify-between gap-2 flex-wrap">
@@ -331,7 +422,7 @@ function ManagerField({
             Lista empréstimos vencendo na semana atual.
           </span>
         </div>
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-1 flex-wrap">
           <Button
             type="button"
             variant="ghost"
@@ -343,6 +434,16 @@ function ManagerField({
           </Button>
           <Button
             type="button"
+            variant="outline"
+            size="sm"
+            className="h-7 px-2 text-[11px]"
+            onClick={openIndividualDialog}
+            disabled={disabled}
+          >
+            <UserCheck className="h-3.5 w-3.5 mr-1" /> Enviar para um gerente
+          </Button>
+          <Button
+            type="button"
             variant="secondary"
             size="sm"
             className="h-7 px-2 text-[11px]"
@@ -350,7 +451,7 @@ function ManagerField({
             disabled={sending || disabled}
           >
             {sending ? <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" /> : <Send className="h-3.5 w-3.5 mr-1" />}
-            Enviar resumo agora
+            Enviar para todos
           </Button>
         </div>
       </div>
@@ -372,6 +473,89 @@ function ManagerField({
           {preview || <span className="text-muted-foreground">Mensagem vazia</span>}
         </div>
       )}
+
+      <Dialog open={openIndividual} onOpenChange={setOpenIndividual}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Enviar resumo individual</DialogTitle>
+            <DialogDescription>
+              Selecione um gerente, visualize a mensagem renderizada e confirme o envio.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-3">
+            <div className="space-y-1.5">
+              <Label className="text-xs">Gerente</Label>
+              {loadingMgrs ? (
+                <div className="text-xs text-muted-foreground inline-flex items-center gap-2">
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" /> Carregando gerentes…
+                </div>
+              ) : managers.length === 0 ? (
+                <div className="text-xs text-muted-foreground">
+                  Nenhum gerente vinculado a esta conta.
+                </div>
+              ) : (
+                <Select value={selectedMgr} onValueChange={handleSelectMgr}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione um gerente" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {managers.map((m) => (
+                      <SelectItem key={m.user_id} value={m.user_id}>
+                        {(m.display_name || "Gerente sem nome")}
+                        {!m.has_phone && " — (sem telefone)"}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+              {selectedMgrObj && !selectedMgrObj.has_phone && (
+                <span className="inline-flex items-center gap-1 text-[10px] text-warning">
+                  <AlertTriangle className="h-3 w-3" /> Este gerente não possui telefone no perfil; o envio ficará indisponível.
+                </span>
+              )}
+            </div>
+
+            {selectedMgr && (
+              <div className="space-y-1.5">
+                <Label className="text-xs">Pré-visualização da mensagem</Label>
+                {loadingPreview ? (
+                  <div className="text-xs text-muted-foreground inline-flex items-center gap-2">
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" /> Renderizando…
+                  </div>
+                ) : (
+                  <>
+                    <div className="rounded-md border bg-muted/40 p-2 text-xs whitespace-pre-wrap max-h-72 overflow-auto">
+                      {renderedPreview || (
+                        <span className="text-muted-foreground">Mensagem vazia.</span>
+                      )}
+                    </div>
+                    {previewMeta && (
+                      <div className="text-[10px] text-muted-foreground">
+                        {previewMeta.loans} empréstimo(s) na semana — total{" "}
+                        {previewMeta.total.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+            )}
+          </div>
+
+          <DialogFooter className="gap-2">
+            <Button variant="ghost" onClick={() => setOpenIndividual(false)} disabled={sendingOne}>
+              Cancelar
+            </Button>
+            <Button
+              onClick={handleSendIndividual}
+              disabled={!selectedMgr || sendingOne || loadingPreview || !selectedMgrObj?.has_phone}
+            >
+              {sendingOne ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Send className="h-4 w-4 mr-1" />}
+              Confirmar e enviar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

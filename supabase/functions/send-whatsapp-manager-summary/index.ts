@@ -80,10 +80,16 @@ Deno.serve(async (req: Request) => {
 
     let forceOwner: string | null = null;
     let manualRun = false;
+    let previewOnly = false;
+    let listManagers = false;
+    let targetManagerId: string | null = null;
     try {
       const j = await req.json();
       if (j?.owner_id) forceOwner = j.owner_id;
       manualRun = j?.manual_run === true;
+      previewOnly = j?.preview_only === true;
+      listManagers = j?.list_managers === true;
+      if (j?.manager_user_id) targetManagerId = String(j.manager_user_id);
     } catch { /* no body */ }
 
     const today = todayStr();
@@ -100,12 +106,14 @@ Deno.serve(async (req: Request) => {
     const week = startOfWeekISO();
 
     for (const sched of schedules ?? []) {
-      if (!forceOwner) {
+      // Skip schedule-time gating for manual/preview/list flows
+      if (!forceOwner && !previewOnly && !listManagers && !targetManagerId) {
         if (Number(sched.manager_summary_day_of_week) !== currentDow) continue;
         const targetHour = (sched.manager_summary_time || "09:00").slice(0, 2);
         if (currentHM.slice(0, 2) !== targetHour) continue;
       }
-      if (!sched.base_url || !sched.instance_id || !API_KEY) {
+      const skipCredsCheck = previewOnly || listManagers;
+      if (!skipCredsCheck && (!sched.base_url || !sched.instance_id || !API_KEY)) {
         results.push({ owner_id: sched.owner_id, skipped: "missing_credentials" });
         continue;
       }
@@ -171,7 +179,7 @@ Deno.serve(async (req: Request) => {
         .from("user_roles").select("user_id").eq("role", "gerente");
       const managerIds = (roleRows ?? []).map((r: any) => r.user_id);
 
-      let candidates: { user_id: string; phone: string }[] = [];
+      let candidates: { user_id: string; phone: string; display_name: string }[] = [];
       if (managerIds.length) {
         const { data: ownerRows } = await admin
           .from("user_owner").select("user_id, owner_id")
@@ -181,22 +189,66 @@ Deno.serve(async (req: Request) => {
           .map((r: any) => r.user_id);
         if (ownedManagerIds.length) {
           const { data: profiles } = await admin
-            .from("profiles").select("user_id, phone").in("user_id", ownedManagerIds);
-          candidates = (profiles ?? [])
-            .map((p: any) => ({ user_id: p.user_id, phone: String(p.phone || "") }))
-            .filter((p) => p.phone.trim().length > 0);
+            .from("profiles").select("user_id, phone, display_name, username")
+            .in("user_id", ownedManagerIds);
+          candidates = (profiles ?? []).map((p: any) => ({
+            user_id: p.user_id,
+            phone: String(p.phone || ""),
+            display_name: String(p.display_name || p.username || ""),
+          }));
         }
       }
 
-      if (candidates.length === 0) {
-        results.push({ owner_id: ownerId, skipped: "no_managers" });
-        await admin.from("whatsapp_billing_schedule")
-          .update({ manager_last_run_at: new Date().toISOString() })
-          .eq("owner_id", ownerId);
+      // listManagers: just return managers (with phone/name) and exit early per owner
+      if (listManagers) {
+        results.push({
+          owner_id: ownerId,
+          managers: candidates.map((m) => ({
+            user_id: m.user_id,
+            display_name: m.display_name,
+            phone: m.phone,
+            has_phone: m.phone.trim().length > 0,
+          })),
+        });
         continue;
       }
 
-      for (const m of candidates) {
+      // Filter by target manager (single send / single preview)
+      let workingCandidates = candidates;
+      if (targetManagerId) {
+        workingCandidates = candidates.filter((c) => c.user_id === targetManagerId);
+      }
+
+      // previewOnly: render and return — no log, no send
+      if (previewOnly) {
+        results.push({
+          owner_id: ownerId,
+          preview: true,
+          message: renderedMessage,
+          loans_count: items.length,
+          total_amount: totalAmount,
+          managers: workingCandidates.map((m) => ({
+            user_id: m.user_id,
+            display_name: m.display_name,
+            phone: m.phone,
+          })),
+        });
+        continue;
+      }
+
+      // Real send path needs phone numbers
+      const sendable = workingCandidates.filter((c) => c.phone.trim().length > 0);
+      if (sendable.length === 0) {
+        results.push({ owner_id: ownerId, skipped: "no_managers" });
+        if (!targetManagerId) {
+          await admin.from("whatsapp_billing_schedule")
+            .update({ manager_last_run_at: new Date().toISOString() })
+            .eq("owner_id", ownerId);
+        }
+        continue;
+      }
+
+      for (const m of sendable) {
         try {
           const phone = normalizePhoneBR(m.phone);
           const send = await sendWhatsmiau(sched.base_url, sched.instance_id, API_KEY, phone, renderedMessage);
@@ -217,9 +269,11 @@ Deno.serve(async (req: Request) => {
         }
       }
 
-      await admin.from("whatsapp_billing_schedule")
-        .update({ manager_last_run_at: new Date().toISOString() })
-        .eq("owner_id", ownerId);
+      if (!targetManagerId) {
+        await admin.from("whatsapp_billing_schedule")
+          .update({ manager_last_run_at: new Date().toISOString() })
+          .eq("owner_id", ownerId);
+      }
     }
 
     return new Response(JSON.stringify({ ok: true, processed: results.length, results }), {

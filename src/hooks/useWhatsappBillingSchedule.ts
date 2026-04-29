@@ -105,15 +105,39 @@ export function useWhatsappBillingSchedule() {
     return data;
   }, [dataOwnerId, fetchAll]);
 
-  const runManagerSummaryNow = useCallback(async () => {
+  const runManagerSummaryNow = useCallback(async (opts?: { manager_user_id?: string }) => {
     if (!dataOwnerId) return null;
-    const { data, error } = await supabase.functions.invoke("send-whatsapp-manager-summary", {
-      body: { owner_id: dataOwnerId, manual_run: true },
-    });
+    const body: any = { owner_id: dataOwnerId, manual_run: true };
+    if (opts?.manager_user_id) body.manager_user_id = opts.manager_user_id;
+    const { data, error } = await supabase.functions.invoke("send-whatsapp-manager-summary", { body });
     await fetchAll();
     if (error) throw error;
     return data;
   }, [dataOwnerId, fetchAll]);
 
-  return { schedule, logs, loading, save, runNow, runManagerSummaryNow, refresh: fetchAll };
+  const listManagerSummaryRecipients = useCallback(async () => {
+    if (!dataOwnerId) return null;
+    const { data, error } = await supabase.functions.invoke("send-whatsapp-manager-summary", {
+      body: { owner_id: dataOwnerId, list_managers: true },
+    });
+    if (error) throw error;
+    return data;
+  }, [dataOwnerId]);
+
+  const previewManagerSummary = useCallback(async (managerUserId?: string) => {
+    if (!dataOwnerId) return null;
+    const body: any = { owner_id: dataOwnerId, preview_only: true };
+    if (managerUserId) body.manager_user_id = managerUserId;
+    const { data, error } = await supabase.functions.invoke("send-whatsapp-manager-summary", { body });
+    if (error) throw error;
+    return data;
+  }, [dataOwnerId]);
+
+  return {
+    schedule, logs, loading, save, runNow,
+    runManagerSummaryNow,
+    listManagerSummaryRecipients,
+    previewManagerSummary,
+    refresh: fetchAll,
+  };
 }
