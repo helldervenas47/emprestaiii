@@ -128,7 +128,7 @@ export function AccountantAuditCard(props: Props) {
                 Todos os totais batem com a origem.
               </div>
             ) : (
-              <ScrollArea className="max-h-72 pr-3">
+              <ScrollArea className="max-h-[28rem] pr-3">
                 <ul className="space-y-2">
                   {report.issues.map((it, i) => (
                     <li key={i} className="border rounded-md p-3 text-sm">
@@ -145,6 +145,97 @@ export function AccountantAuditCard(props: Props) {
                           <p className="text-xs mt-1">
                             Esperado <strong>{fmt(it.expected)}</strong> · Exibido <strong>{fmt(it.shown)}</strong> · Diferença <strong className={it.diff > 0 ? "text-destructive" : "text-emerald-600"}>{fmt(it.diff)}</strong>
                           </p>
+
+                          {it.breakdown && (
+                            <details className="mt-2 group">
+                              <summary className="cursor-pointer text-xs font-medium text-primary hover:underline list-none flex items-center gap-1">
+                                <ChevronRight className="h-3 w-3 transition-transform group-open:rotate-90" />
+                                Por que deu diferença
+                              </summary>
+                              <div className="mt-2 space-y-3 pl-4 border-l-2 border-muted">
+                                <p className="text-xs text-muted-foreground italic">
+                                  {it.breakdown.reason}
+                                </p>
+
+                                {it.breakdown.expectedLines.length > 0 && (
+                                  <div>
+                                    <p className="text-xs font-semibold mb-1">
+                                      Linhas que compõem o valor esperado ({it.breakdown.expectedLines.length})
+                                    </p>
+                                    <div className="rounded border bg-muted/30 max-h-48 overflow-y-auto">
+                                      <table className="w-full text-[11px]">
+                                        <thead className="bg-muted/60 sticky top-0">
+                                          <tr>
+                                            <th className="text-left px-2 py-1 font-medium">Origem</th>
+                                            <th className="text-left px-2 py-1 font-medium">ID</th>
+                                            <th className="text-left px-2 py-1 font-medium">Data</th>
+                                            <th className="text-left px-2 py-1 font-medium">Descrição</th>
+                                            <th className="text-right px-2 py-1 font-medium">Valor</th>
+                                          </tr>
+                                        </thead>
+                                        <tbody>
+                                          {it.breakdown.expectedLines.map((ln, idx) => (
+                                            <tr key={`${ln.id}-${idx}`} className="border-t border-muted">
+                                              <td className="px-2 py-1 font-mono uppercase text-muted-foreground">{ln.source}</td>
+                                              <td className="px-2 py-1 font-mono">{String(ln.id).slice(0, 10)}</td>
+                                              <td className="px-2 py-1">{ln.date || "—"}</td>
+                                              <td className="px-2 py-1 truncate max-w-[160px]">{ln.label || "—"}</td>
+                                              <td className={`px-2 py-1 text-right font-mono ${ln.amount < 0 ? "text-destructive" : ""}`}>
+                                                {fmt(ln.amount)}
+                                              </td>
+                                            </tr>
+                                          ))}
+                                        </tbody>
+                                        <tfoot>
+                                          <tr className="border-t bg-muted/50 font-semibold">
+                                            <td className="px-2 py-1" colSpan={4}>Soma esperada</td>
+                                            <td className="px-2 py-1 text-right font-mono">
+                                              {fmt(it.breakdown.expectedLines.reduce((s, l) => s + l.amount, 0))}
+                                            </td>
+                                          </tr>
+                                        </tfoot>
+                                      </table>
+                                    </div>
+                                  </div>
+                                )}
+
+                                {(it.breakdown.extraInShown.length > 0 || it.breakdown.missingInShown.length > 0) && (
+                                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                    {it.breakdown.extraInShown.length > 0 && (
+                                      <div className="rounded border border-destructive/30 bg-destructive/5 p-2">
+                                        <p className="text-[11px] font-semibold text-destructive mb-1">
+                                          A mais no exibido ({it.breakdown.extraInShown.length})
+                                        </p>
+                                        <ul className="space-y-0.5 text-[11px]">
+                                          {it.breakdown.extraInShown.map((ln, idx) => (
+                                            <li key={idx} className="flex justify-between gap-2">
+                                              <span className="truncate">{ln.label || ln.id}</span>
+                                              <span className="font-mono shrink-0">{fmt(ln.amount)}</span>
+                                            </li>
+                                          ))}
+                                        </ul>
+                                      </div>
+                                    )}
+                                    {it.breakdown.missingInShown.length > 0 && (
+                                      <div className="rounded border border-yellow-500/30 bg-yellow-500/5 p-2">
+                                        <p className="text-[11px] font-semibold text-yellow-600 dark:text-yellow-400 mb-1">
+                                          Faltando no exibido ({it.breakdown.missingInShown.length})
+                                        </p>
+                                        <ul className="space-y-0.5 text-[11px]">
+                                          {it.breakdown.missingInShown.map((ln, idx) => (
+                                            <li key={idx} className="flex justify-between gap-2">
+                                              <span className="truncate">{ln.label || ln.id}</span>
+                                              <span className="font-mono shrink-0">{fmt(ln.amount)}</span>
+                                            </li>
+                                          ))}
+                                        </ul>
+                                      </div>
+                                    )}
+                                  </div>
+                                )}
+                              </div>
+                            </details>
+                          )}
                         </div>
                       </div>
                     </li>
