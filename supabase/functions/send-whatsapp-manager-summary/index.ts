@@ -263,19 +263,20 @@ Deno.serve(async (req: Request) => {
       for (const m of sendable) {
         try {
           const phone = normalizePhoneBR(m.phone);
-          const send = await sendWhatsmiau(sched.base_url, sched.instance_id, API_KEY, phone, renderedMessage);
+          const r = renderForManager(m.user_id);
+          const send = await sendWhatsmiau(sched.base_url, sched.instance_id, API_KEY, phone, r.message);
           await admin.from("whatsapp_manager_billing_log").insert({
             owner_id: ownerId,
             manager_user_id: m.user_id,
             phone,
-            message: renderedMessage,
-            loans_count: items.length,
-            total_amount: totalAmount,
+            message: r.message,
+            loans_count: r.items.length,
+            total_amount: r.totalAmount,
             success: send.ok,
             error_message: send.ok ? null : `HTTP ${send.status}: ${send.body.slice(0, 500)}`,
             sent_date: today,
           });
-          results.push({ owner_id: ownerId, manager_user_id: m.user_id, success: send.ok });
+          results.push({ owner_id: ownerId, manager_user_id: m.user_id, success: send.ok, loans_count: r.items.length });
         } catch (e) {
           results.push({ owner_id: ownerId, manager_user_id: m.user_id, error: String(e) });
         }
