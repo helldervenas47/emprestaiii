@@ -81,12 +81,14 @@ Deno.serve(async (req: Request) => {
     let forceOwner: string | null = null;
     let manualRun = false;
     let previewOnly = false;
+    let listManagers = false;
     let targetManagerId: string | null = null;
     try {
       const j = await req.json();
       if (j?.owner_id) forceOwner = j.owner_id;
       manualRun = j?.manual_run === true;
       previewOnly = j?.preview_only === true;
+      listManagers = j?.list_managers === true;
       if (j?.manager_user_id) targetManagerId = String(j.manager_user_id);
     } catch { /* no body */ }
 
