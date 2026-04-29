@@ -20,10 +20,12 @@ const TONE_OPTIONS: { value: InsightTone; label: string; hint: string }[] = [
 ];
 
 export const TelegramReportsConnectCard = forwardRef<HTMLDivElement, Record<string, never>>(function TelegramReportsConnectCard(_, ref) {
-  const { linked, loading, disconnect } = useTelegramReportsLink();
+  const { linked, loading, disconnect, refresh } = useTelegramReportsLink();
   const { prefs, loading: prefsLoading, save } = usePersonalInsightsTelegramPrefs();
   const [code, setCode] = useState<string | null>(null);
   const [generating, setGenerating] = useState(false);
+  const [botCodeInput, setBotCodeInput] = useState("");
+  const [linkingByCode, setLinkingByCode] = useState(false);
 
   const generateCode = async () => {
     setGenerating(true);
@@ -39,6 +41,43 @@ export const TelegramReportsConnectCard = forwardRef<HTMLDivElement, Record<stri
       toast.error("Erro ao gerar código", { description: e.message });
     } finally {
       setGenerating(false);
+    }
+  };
+
+  const linkByBotCode = async () => {
+    const trimmed = botCodeInput.trim();
+    if (!trimmed) {
+      toast.error("Digite o código recebido no Telegram");
+      return;
+    }
+    setLinkingByCode(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("link-telegram-bot", {
+        body: { bot_code: trimmed },
+      });
+      if (error) {
+        // Edge function returns non-2xx with { error }
+        const msg = (error as any)?.message || "Não foi possível vincular";
+        // Try to extract message from response
+        let detailed = msg;
+        try {
+          const ctx = (error as any)?.context;
+          if (ctx?.body) {
+            const parsed = typeof ctx.body === "string" ? JSON.parse(ctx.body) : ctx.body;
+            if (parsed?.error) detailed = parsed.error;
+          }
+        } catch { /* ignore */ }
+        throw new Error(detailed);
+      }
+      if ((data as any)?.error) throw new Error((data as any).error);
+      toast.success("✅ Relatório conectado ao bot com sucesso");
+      setBotCodeInput("");
+      setCode(null);
+      await refresh();
+    } catch (e: any) {
+      toast.error("❌ Código de bot inválido", { description: e.message });
+    } finally {
+      setLinkingByCode(false);
     }
   };
 
@@ -104,10 +143,32 @@ export const TelegramReportsConnectCard = forwardRef<HTMLDivElement, Record<stri
             </p>
           </div>
         ) : (
-          <Button size="sm" onClick={generateCode} disabled={generating} className="w-full sm:w-auto">
-            <Send className="h-3.5 w-3.5 mr-1" />
-            {generating ? "Gerando…" : "Conectar bot de relatórios"}
-          </Button>
+          <div className="space-y-3 pt-1">
+            <Button size="sm" onClick={generateCode} disabled={generating} className="w-full sm:w-auto">
+              <Send className="h-3.5 w-3.5 mr-1" />
+              {generating ? "Gerando…" : "Conectar bot de relatórios"}
+            </Button>
+
+            <div className="rounded-lg border border-border bg-muted/20 p-3 space-y-2">
+              <Label className="text-xs font-medium">Já tenho um código do bot</Label>
+              <p className="text-[11px] text-muted-foreground">
+                Envie <code className="font-mono">/code</code> em qualquer bot do Telegram e cole aqui o código recebido.
+              </p>
+              <div className="flex items-center gap-2">
+                <Input
+                  value={botCodeInput}
+                  onChange={(e) => setBotCodeInput(e.target.value.toUpperCase())}
+                  placeholder="Ex.: ABC123"
+                  maxLength={12}
+                  className="h-9 text-sm font-mono uppercase tracking-wider"
+                  onKeyDown={(e) => { if (e.key === "Enter") linkByBotCode(); }}
+                />
+                <Button size="sm" onClick={linkByBotCode} disabled={linkingByCode || !botCodeInput.trim()}>
+                  {linkingByCode ? "Vinculando…" : "Vincular"}
+                </Button>
+              </div>
+            </div>
+          </div>
         )}
 
         {/* AI Insights schedule — only when bot linked */}

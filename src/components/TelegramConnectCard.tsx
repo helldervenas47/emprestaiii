@@ -29,6 +29,8 @@ export function TelegramConnectCard() {
   const [sendingNow, setSendingNow] = useState(false);
   const [sendingWeekly, setSendingWeekly] = useState(false);
   const [sendingMonthly, setSendingMonthly] = useState(false);
+  const [botCodeInput, setBotCodeInput] = useState("");
+  const [linkingByCode, setLinkingByCode] = useState(false);
   const botUsername = (typeof window !== "undefined" && localStorage.getItem(BOT_USERNAME_KEY)) || "";
   const { pref: summaryPref, update: updateSummary } = useTelegramSummaryPref();
 
@@ -85,6 +87,40 @@ export function TelegramConnectCard() {
     await supabase.from("telegram_links" as any).delete().eq("user_id", user.id);
     setLinked(null);
     toast.success("Telegram desvinculado");
+  };
+
+  const linkByBotCode = async () => {
+    const trimmed = botCodeInput.trim();
+    if (!trimmed) {
+      toast.error("Digite o código recebido no Telegram");
+      return;
+    }
+    setLinkingByCode(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("link-telegram-bot", {
+        body: { bot_code: trimmed },
+      });
+      if (error) {
+        let detailed = (error as any)?.message || "Não foi possível vincular";
+        try {
+          const ctx = (error as any)?.context;
+          if (ctx?.body) {
+            const parsed = typeof ctx.body === "string" ? JSON.parse(ctx.body) : ctx.body;
+            if (parsed?.error) detailed = parsed.error;
+          }
+        } catch { /* ignore */ }
+        throw new Error(detailed);
+      }
+      if ((data as any)?.error) throw new Error((data as any).error);
+      toast.success("✅ Relatório conectado ao bot com sucesso");
+      setBotCodeInput("");
+      setCode(null);
+      await refresh();
+    } catch (e: any) {
+      toast.error("❌ Código de bot inválido", { description: e.message });
+    } finally {
+      setLinkingByCode(false);
+    }
   };
 
   const sendSummaryNow = async () => {
@@ -357,10 +393,32 @@ export function TelegramConnectCard() {
             </p>
           </div>
         ) : (
-          <Button size="sm" onClick={generateCode} disabled={generating} className="w-full sm:w-auto">
-            <TelegramIcon className="h-3.5 w-3.5 mr-1" />
-            {generating ? "Gerando…" : "Conectar Telegram"}
-          </Button>
+          <div className="space-y-3 pt-1">
+            <Button size="sm" onClick={generateCode} disabled={generating} className="w-full sm:w-auto">
+              <TelegramIcon className="h-3.5 w-3.5 mr-1" />
+              {generating ? "Gerando…" : "Conectar Telegram"}
+            </Button>
+
+            <div className="rounded-lg border border-border bg-muted/20 p-3 space-y-2">
+              <Label className="text-xs font-medium">Já tenho um código do bot</Label>
+              <p className="text-[11px] text-muted-foreground">
+                Envie <code className="font-mono">/code</code> no bot do Telegram e cole aqui o código recebido.
+              </p>
+              <div className="flex items-center gap-2">
+                <Input
+                  value={botCodeInput}
+                  onChange={(e) => setBotCodeInput(e.target.value.toUpperCase())}
+                  placeholder="Ex.: ABC123"
+                  maxLength={12}
+                  className="h-9 text-sm font-mono uppercase tracking-wider"
+                  onKeyDown={(e) => { if (e.key === "Enter") linkByBotCode(); }}
+                />
+                <Button size="sm" onClick={linkByBotCode} disabled={linkingByCode || !botCodeInput.trim()}>
+                  {linkingByCode ? "Vinculando…" : "Vincular"}
+                </Button>
+              </div>
+            </div>
+          </div>
         )}
       </CardContent>
     </Card>

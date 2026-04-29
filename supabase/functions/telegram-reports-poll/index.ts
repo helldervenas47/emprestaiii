@@ -113,8 +113,10 @@ Deno.serve(async () => {
       const chatId = msg.chat.id;
       const text = (msg.text ?? "").trim();
 
-      // Handle /start CODE
+      // Handle /start CODE (fluxo legado: app gera código → user envia no bot)
       const startMatch = text.match(/^\/start(?:@\w+)?\s+(\d{6})\s*$/);
+      // Handle /code (novo fluxo: bot gera bot_code → user digita no app)
+      const codeMatch = text.match(/^\/c(?:ode|odigo|ódigo)?(?:@\w+)?\s*$/i);
       if (startMatch) {
         const code = startMatch[1];
         const { data: codeRow } = await supabase.from("telegram_reports_link_codes")
@@ -133,8 +135,37 @@ Deno.serve(async () => {
           await supabase.from("telegram_reports_link_codes").delete().eq("user_id", (codeRow as any).user_id);
           await tgSend(chatId, "✅ *Bot de Relatórios conectado!*\n\nVocê receberá os relatórios diários de cobrança nos horários configurados.", LOVABLE_API_KEY, TELEGRAM_REPORTS_KEY);
         }
+      } else if (codeMatch) {
+        // Gera um bot_code curto e responde no chat. O usuário digita esse
+        // código no app para vincular qualquer relatório a este bot.
+        // Limpa códigos antigos deste mesmo chat para evitar acúmulo.
+        await supabase.from("telegram_bots")
+          .delete().eq("kind", "reports").eq("chat_id", chatId);
+        let botCode = "";
+        for (let i = 0; i < 6; i++) {
+          botCode = Math.random().toString(36).slice(2, 8).toUpperCase().replace(/[^A-Z0-9]/g, "");
+          if (botCode.length === 6) {
+            const { data: clash } = await supabase.from("telegram_bots")
+              .select("id").eq("bot_code", botCode).maybeSingle();
+            if (!clash) break;
+          }
+        }
+        const expiresAt = new Date(Date.now() + 15 * 60 * 1000).toISOString();
+        const { error: insErr } = await supabase.from("telegram_bots").insert({
+          bot_code: botCode, kind: "reports", chat_id: chatId, expires_at: expiresAt,
+        });
+        if (insErr) {
+          await tgSend(chatId, "⚠️ Não consegui gerar o código agora. Tente novamente em instantes.", LOVABLE_API_KEY, TELEGRAM_REPORTS_KEY);
+        } else {
+          await tgSend(chatId,
+            `🔑 *Seu código de vínculo:*\n\n\`${botCode}\`\n\n` +
+            `1. Abra o app\n2. Vá em *Configurações → Bot de Relatórios*\n` +
+            `3. Cole este código no campo *"Tenho um código"*\n\n` +
+            `_Válido por 15 min._`,
+            LOVABLE_API_KEY, TELEGRAM_REPORTS_KEY);
+        }
       } else if (text === "/start" || text === "/help") {
-        await tgSend(chatId, "👋 Este é o *Bot de Relatórios* do EmprestAI.\n\nPara conectar, abra a aba *Relatórios → Cobranças* no app e gere um código de vínculo.", LOVABLE_API_KEY, TELEGRAM_REPORTS_KEY);
+        await tgSend(chatId, "👋 Este é o *Bot de Relatórios* do EmprestAI.\n\nPara conectar, abra a aba *Relatórios → Cobranças* no app e gere um código de vínculo, ou envie /code aqui e cole o código no app.", LOVABLE_API_KEY, TELEGRAM_REPORTS_KEY);
       }
 
       totalProcessed++;
