@@ -253,15 +253,19 @@ export function AccountantReport({ loans, payments, sales, expenses }: Accountan
       map.set(k, cur);
       paymentCount += 1;
     });
-    sales.filter((s) => matchPeriod(s.sale_date)).forEach((s) => {
-      const k = period === "month" ? s.sale_date : getMonthKey(s.sale_date);
+    sales.filter((s) => matchPeriod(s.date ?? s.sale_date)).forEach((s) => {
+      const d = s.date ?? s.sale_date;
+      const k = period === "month" ? d : getMonthKey(d);
       const cur = map.get(k) || { in: 0, out: 0 };
       cur.in += Number(s.total) || 0;
       map.set(k, cur);
       saleCount += 1;
     });
-    expenses.filter((e) => e.paid && e.scope !== "personal" && matchPeriod(e.paid_date || e.due_date)).forEach((e) => {
-      const d = e.paid_date || e.due_date;
+    expenses.filter((e) => {
+      const dt = e.paidDate ?? e.paid_date ?? e.dueDate ?? e.due_date;
+      return e.paid && (e.scope ?? "business") !== "personal" && matchPeriod(dt);
+    }).forEach((e) => {
+      const d = e.paidDate ?? e.paid_date ?? e.dueDate ?? e.due_date;
       const k = period === "month" ? d : getMonthKey(d);
       const cur = map.get(k) || { in: 0, out: 0 };
       cur.out += Number(e.amount) || 0;
@@ -269,8 +273,14 @@ export function AccountantReport({ loans, payments, sales, expenses }: Accountan
       expenseCount += 1;
     });
     // Empréstimos concedidos no período (saída de caixa do operador)
-    loans.filter((l) => matchPeriod(l.start_date || l.startDate)).forEach((l) => {
-      totalLoanOutgoing += Number(l.amount) || 0;
+    loans.filter((l) => matchPeriod(l.startDate ?? l.start_date)).forEach((l) => {
+      const d = l.startDate ?? l.start_date;
+      const k = period === "month" ? d : getMonthKey(d);
+      const cur = map.get(k) || { in: 0, out: 0 };
+      const amt = Number(l.amount) || 0;
+      cur.out += amt;
+      map.set(k, cur);
+      totalLoanOutgoing += amt;
       loanCount += 1;
     });
     const rows = Array.from(map.entries()).sort(([a], [b]) => a.localeCompare(b)).map(([k, v]) => ({
