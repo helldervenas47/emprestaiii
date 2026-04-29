@@ -11,6 +11,8 @@ import { toast } from "sonner";
 import { getPdfBranding } from "@/lib/pdfBranding";
 import { usePaymentMethods } from "@/hooks/usePaymentMethods";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { AccountantAuditCard } from "@/components/AccountantAuditCard";
+import type { AuditTotals } from "@/lib/accountantAudit";
 
 interface AccountantReportProps {
   loans: any[];
