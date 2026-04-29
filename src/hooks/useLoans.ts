@@ -1124,7 +1124,28 @@ export function useLoans() {
         const oldRemaining = oldLoan.remainingAmount ?? 0;
         const newRemaining = data.remainingAmount ?? 0;
         const diff = newRemaining - oldRemaining;
-        if (diff !== 0) await adjustBalance(-diff);
+        if (diff !== 0) {
+          // diff > 0: saldo devedor aumentou → saída de caixa (emprestamos mais)
+          // diff < 0: saldo devedor diminuiu → entrada de caixa (recebemos)
+          const direction: "in" | "out" = diff > 0 ? "out" : "in";
+          const absAmount = Math.abs(diff);
+          const borrower = oldLoan.borrowerName || "empréstimo";
+          try {
+            await recordLedger({
+              direction,
+              category: "adjustment",
+              amount: absAmount,
+              description: `Ajuste de saldo do empréstimo de ${borrower}`,
+              loan_id: id,
+              source: "loan_adjustment",
+              metadata: { old_remaining: oldRemaining, new_remaining: newRemaining },
+            });
+          } catch (err) {
+            console.error("[updateLoan] Falha ao registrar ajuste no extrato:", err);
+            // Fallback: ajusta apenas o saldo se o ledger falhar
+            await adjustBalance(-diff);
+          }
+        }
       }
     }
     setLoans((prev) => prev.map((l) => l.id === id ? { ...l, ...data } : l));
