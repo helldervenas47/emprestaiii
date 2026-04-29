@@ -353,7 +353,11 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, onUpda
 
   const isBotExpense = (e: Expense) => /\[\s*bot\s*\]/i.test(e.notes ?? "");
 
-  const filtered = visibleMonth
+  // Despesas vinculadas a cartão de crédito NÃO aparecem na lista geral —
+  // elas são exibidas exclusivamente dentro da fatura do cartão correspondente.
+  const listVisibleMonth = visibleMonth.filter((e) => !isCreditCardExpense(e));
+
+  const filtered = listVisibleMonth
     .filter((e) =>
       e.description.toLowerCase().includes(search.toLowerCase()) ||
       e.category.toLowerCase().includes(search.toLowerCase())
@@ -376,10 +380,10 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, onUpda
     });
 
   const filters: { id: Filter; label: string; count: number }[] = [
-    { id: "all", label: "Todas", count: visibleMonth.length },
-    { id: "pending", label: "Pendentes", count: visibleMonth.filter((e) => !e.paid && !isOverdue(e)).length },
-    { id: "overdue", label: "Atrasadas", count: visibleMonth.filter(isOverdue).length },
-    { id: "paid", label: "Pagas", count: visibleMonth.filter((e) => e.paid).length },
+    { id: "all", label: "Todas", count: listVisibleMonth.length },
+    { id: "pending", label: "Pendentes", count: listVisibleMonth.filter((e) => !e.paid && !isOverdue(e)).length },
+    { id: "overdue", label: "Atrasadas", count: listVisibleMonth.filter(isOverdue).length },
+    { id: "paid", label: "Pagas", count: listVisibleMonth.filter((e) => e.paid).length },
   ];
 
   const prevMonth = () => {
@@ -767,7 +771,7 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, onUpda
           className={`rounded-xl transition-all duration-200 ${sourceFilter === "auto" ? "bg-primary text-primary-foreground border-primary" : ""}`}
           title="Despesas lançadas pelo bot do Telegram"
         >
-          Automáticas ({visibleMonth.filter(isBotExpense).length})
+          Automáticas ({listVisibleMonth.filter(isBotExpense).length})
         </Button>
         <Button
           variant="outline"
@@ -776,7 +780,7 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, onUpda
           className={`rounded-xl transition-all duration-200 ${sourceFilter === "manual" ? "bg-primary text-primary-foreground border-primary" : ""}`}
           title="Despesas registradas manualmente no app"
         >
-          Manuais ({visibleMonth.filter((e) => !isBotExpense(e)).length})
+          Manuais ({listVisibleMonth.filter((e) => !isBotExpense(e)).length})
         </Button>
       </div>
 
