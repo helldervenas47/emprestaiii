@@ -1994,8 +1994,14 @@ Deno.serve(async (req) => {
                   : (card ? `💳 *Compra no cartão (áudio)*` : `🎤 *Despesa registrada por áudio*`);
                 const cardLine = card ? `\n💳 ${card.nickname || card.bank} (vence ${displayDate})` : "";
                 const parcelLine = installmentsN ? `\n🔢 ${installmentsN}x de ${fmtParcel}` : "";
+                let invoiceLine = "";
+                if (card) {
+                  const invoiceTotal = await computeCurrentInvoiceTotal(admin, link.user_id, card);
+                  const fmtInvoice = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(invoiceTotal);
+                  invoiceLine = `\n💳 Fatura atual: ${fmtInvoice}`;
+                }
                 await tgSendWithKeyboard(chatId,
-                  `${header}\n\n_"${transcript}"_\n\n💰 ${fmt}${parcelLine}\n📂 ${finalCategory}${cardLine}\n📝 ${extracted.description}\n📅 ${displayDate}`,
+                  `${header}\n\n_"${transcript}"_\n\n💰 ${fmt}${parcelLine}\n📂 ${finalCategory}${cardLine}\n📝 ${extracted.description}\n📅 ${displayDate}${invoiceLine}`,
                   buildExpenseKeyboard(ins.id),
                   LOVABLE_API_KEY, TELEGRAM_API_KEY);
                 if (!card) {
