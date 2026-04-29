@@ -91,11 +91,11 @@ import { useExpenses } from "@/hooks/useExpenses";
 import { useVehicleRegistry } from "@/hooks/useVehicleRegistry";
 import { useLocadorInfo } from "@/hooks/useLocadorInfo";
 
-type Tab = "overview" | "dashboard" | "clients" | "products" | "vehicles" | "overdue" | "expenses" | "calendar" | "settings" | "system-health";
+type Tab = "overview" | "dashboard" | "clients" | "products" | "vehicles" | "overdue" | "expenses" | "accountant" | "calendar" | "settings" | "system-health";
 type ClientSubTab = "clientes" | "veiculos";
 type VehicleSubTab = "veiculos" | "locadores";
 type PlanMgmtSubTab = "subscribers" | "plans";
-type OverdueSubTab = "cobrancas" | "inadimplencia-acumulada" | "contador" | "metas" | "planejamento" | "bot-telegram" | "whatsapp-cobranca";
+type OverdueSubTab = "cobrancas" | "inadimplencia-acumulada" | "metas" | "planejamento" | "bot-telegram" | "whatsapp-cobranca";
 type ExpenseSubTab = "business" | "personal";
 type PersonalSubTab = "expenses" | "cards";
 
@@ -107,6 +107,7 @@ const tabConfig = [
   { id: "calendar" as Tab, label: "Calendário", icon: CalendarDays },
   { id: "clients" as Tab, label: "Cadastro", icon: Users },
   { id: "expenses" as Tab, label: "Despesas", icon: Receipt },
+  { id: "accountant" as Tab, label: "Contador", icon: Calculator },
   
   { id: "overdue" as Tab, label: "Relatório", icon: AlertTriangle },
   { id: "settings" as Tab, label: "Configurações", icon: SettingsIcon },
@@ -174,6 +175,13 @@ const tabHelp: Record<Tab, { title: string; items: string[] }> = {
       "Registre despesas fixas ou recorrentes do seu negócio.",
       "Marque despesas como pagas para controlar o fluxo de caixa.",
       "Categorize suas despesas para melhor organização.",
+    ],
+  },
+  accountant: {
+    title: "Contador",
+    items: [
+      "Relatório consolidado para fins contábeis.",
+      "Inclui receitas, despesas, vendas e empréstimos.",
     ],
   },
   overdue: {
@@ -811,6 +819,11 @@ const Index = () => {
           </div>
           </SubscriptionGate>
         )}
+        {tab === "accountant" && (
+          <SubscriptionGate requiredTier={2} featureName="Contador">
+            <AccountantReport loans={filteredLoans} payments={filteredPayments} sales={sales} expenses={expenses} />
+          </SubscriptionGate>
+        )}
         {tab === "overdue" && (
           <SubscriptionGate requiredTier={2} featureName="Relatórios">
           <div>
@@ -828,13 +841,6 @@ const Index = () => {
                 onClick={() => setOverdueSubTab("inadimplencia-acumulada")}
               >
                 <AlertTriangle className="h-4 w-4 mr-1" /> Inadimplência Acumulada
-              </Button>
-              <Button
-                variant={overdueSubTab === "contador" ? "default" : "outline"}
-                size="sm"
-                onClick={() => setOverdueSubTab("contador")}
-              >
-                <Calculator className="h-4 w-4 mr-1" /> Contador
               </Button>
               <Button
                 variant={overdueSubTab === "metas" ? "default" : "outline"}
@@ -870,9 +876,6 @@ const Index = () => {
             )}
             {overdueSubTab === "inadimplencia-acumulada" && (
               <AccumulatedDelinquencyReport loans={filteredLoans} clients={filteredClients} installmentSchedules={filteredInstallments} />
-            )}
-            {overdueSubTab === "contador" && (
-              <AccountantReport loans={filteredLoans} payments={filteredPayments} sales={sales} expenses={expenses} />
             )}
             {overdueSubTab === "metas" && (
               <MonthlyGoalsManager readOnly={isReadOnly} />
