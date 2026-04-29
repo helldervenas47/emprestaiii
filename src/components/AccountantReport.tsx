@@ -1700,6 +1700,144 @@ export function AccountantReport({ loans, payments, sales, expenses }: Accountan
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* Drill-down: registros que compõem cada card */}
+      <Dialog open={drillDown !== null} onOpenChange={(o) => !o && setDrillDown(null)}>
+        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+          {drillDown === "in" && (() => {
+            const items = [...cashflow.inPayments].sort((a, b) => (a.date < b.date ? 1 : -1));
+            const loanById = new Map<string, any>();
+            loans.forEach((l) => loanById.set(l.id, l));
+            return (
+              <>
+                <DialogHeader>
+                  <DialogTitle className="flex items-center gap-2"><TrendingUp className="h-5 w-5 text-success" /> Entradas — registros</DialogTitle>
+                  <DialogDescription>
+                    {items.length} pagamento(s) recebidos no período. Total: <strong className="text-success">{fmt(cashflow.totalIn, hidden)}</strong>
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="space-y-2 mt-2">
+                  {items.length === 0 && <p className="text-sm text-muted-foreground py-6 text-center">Nenhum pagamento no período.</p>}
+                  {items.map((p) => {
+                    const loan = loanById.get(p.loanId ?? p.loan_id);
+                    const inst = Number(p.installmentNumber ?? p.installment_number ?? 0);
+                    const instLabel = inst === 0 ? "Juros puro" : inst === -1 ? "Quitação" : inst === -3 ? "Amortização" : `Parcela ${inst}`;
+                    return (
+                      <div key={p.id} className="flex items-center justify-between rounded-lg border bg-muted/20 p-3 text-sm">
+                        <div className="min-w-0">
+                          <p className="font-medium truncate">{loan?.borrowerName ?? loan?.borrower_name ?? "Sem contrato"}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {p.date ? new Date(p.date + "T00:00:00").toLocaleDateString("pt-BR") : "—"} · {instLabel}
+                          </p>
+                        </div>
+                        <span className="font-bold text-success tabular-nums">{fmt(Number(p.amount) || 0, hidden)}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </>
+            );
+          })()}
+
+          {drillDown === "out" && (() => {
+            const exItems = [...cashflow.outExpenses].sort((a, b) => {
+              const da = a.paidDate ?? a.paid_date ?? a.dueDate ?? a.due_date ?? "";
+              const db = b.paidDate ?? b.paid_date ?? b.dueDate ?? b.due_date ?? "";
+              return da < db ? 1 : -1;
+            });
+            const loanItems = [...cashflow.outLoans].sort((a, b) => {
+              const da = a.startDate ?? a.start_date ?? "";
+              const db = b.startDate ?? b.start_date ?? "";
+              return da < db ? 1 : -1;
+            });
+            const totalEx = exItems.reduce((s, x) => s + (Number(x.amount) || 0), 0);
+            const totalLoan = loanItems.reduce((s, x) => s + (Number(x.amount) || 0), 0);
+            return (
+              <>
+                <DialogHeader>
+                  <DialogTitle className="flex items-center gap-2"><TrendingDown className="h-5 w-5 text-warning" /> Saídas — registros</DialogTitle>
+                  <DialogDescription>
+                    Total: <strong className="text-warning">{fmt(totalEx + totalLoan, hidden)}</strong> ({loanItems.length} empréstimo(s) + {exItems.length} despesa(s))
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="space-y-3 mt-2">
+                  <div>
+                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">Empréstimos concedidos · {fmt(totalLoan, hidden)}</p>
+                    {loanItems.length === 0 && <p className="text-xs text-muted-foreground py-2">Nenhum empréstimo iniciado no período.</p>}
+                    <div className="space-y-1.5">
+                      {loanItems.map((l) => (
+                        <div key={l.id} className="flex items-center justify-between rounded-lg border bg-muted/20 p-3 text-sm">
+                          <div className="min-w-0">
+                            <p className="font-medium truncate">{l.borrowerName ?? l.borrower_name}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {(() => { const d = l.startDate ?? l.start_date; return d ? new Date(d + "T00:00:00").toLocaleDateString("pt-BR") : "—"; })()} · Empréstimo concedido
+                            </p>
+                          </div>
+                          <span className="font-bold text-warning tabular-nums">{fmt(Number(l.amount) || 0, hidden)}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  <div>
+                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">Despesas empresariais pagas · {fmt(totalEx, hidden)}</p>
+                    {exItems.length === 0 && <p className="text-xs text-muted-foreground py-2">Nenhuma despesa empresarial paga no período.</p>}
+                    <div className="space-y-1.5">
+                      {exItems.map((e) => {
+                        const d = e.paidDate ?? e.paid_date ?? e.dueDate ?? e.due_date;
+                        return (
+                          <div key={e.id} className="flex items-center justify-between rounded-lg border bg-muted/20 p-3 text-sm">
+                            <div className="min-w-0">
+                              <p className="font-medium truncate">{e.description || e.category || "Despesa"}</p>
+                              <p className="text-xs text-muted-foreground">
+                                {d ? new Date(d + "T00:00:00").toLocaleDateString("pt-BR") : "—"}{e.category ? ` · ${e.category}` : ""}
+                              </p>
+                            </div>
+                            <span className="font-bold text-warning tabular-nums">{fmt(Number(e.amount) || 0, hidden)}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+              </>
+            );
+          })()}
+
+          {drillDown === "net" && (() => {
+            const totalOutFull = cashflow.totalOut + cashflow.totalLoanOutgoing;
+            const netFull = cashflow.totalIn - totalOutFull;
+            return (
+              <>
+                <DialogHeader>
+                  <DialogTitle className="flex items-center gap-2"><DollarSign className="h-5 w-5 text-primary" /> Saldo do Período — cálculo</DialogTitle>
+                  <DialogDescription>Como o saldo é formado a partir das entradas e saídas do período.</DialogDescription>
+                </DialogHeader>
+                <div className="space-y-2 mt-2 text-sm">
+                  <div className="flex items-center justify-between rounded-lg border bg-success/5 p-3">
+                    <span className="text-muted-foreground">(+) Entradas — pagamentos recebidos ({cashflow.paymentCount})</span>
+                    <span className="font-bold text-success tabular-nums">{fmt(cashflow.totalIn, hidden)}</span>
+                  </div>
+                  <div className="flex items-center justify-between rounded-lg border bg-warning/5 p-3">
+                    <span className="text-muted-foreground">(−) Empréstimos concedidos ({cashflow.loanCount})</span>
+                    <span className="font-bold text-warning tabular-nums">{fmt(cashflow.totalLoanOutgoing, hidden)}</span>
+                  </div>
+                  <div className="flex items-center justify-between rounded-lg border bg-warning/5 p-3">
+                    <span className="text-muted-foreground">(−) Despesas empresariais pagas ({cashflow.expenseCount})</span>
+                    <span className="font-bold text-warning tabular-nums">{fmt(cashflow.totalOut, hidden)}</span>
+                  </div>
+                  <div className={`flex items-center justify-between rounded-lg border-2 p-3 ${netFull >= 0 ? "border-primary/40 bg-primary/5" : "border-destructive/40 bg-destructive/5"}`}>
+                    <span className="font-semibold">(=) Saldo do Período</span>
+                    <span className={`font-bold tabular-nums ${netFull >= 0 ? "text-primary" : "text-destructive"}`}>{fmt(netFull, hidden)}</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground pt-2">
+                    Clique em <strong>Entradas</strong> ou <strong>Saídas</strong> nos cards para ver os registros individuais.
+                  </p>
+                </div>
+              </>
+            );
+          })()}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
