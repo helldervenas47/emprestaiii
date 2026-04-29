@@ -146,12 +146,48 @@
     }
   }
 
+  html, body {
+    height: 100%;
+    min-height: 100%;
+    margin: 0;
+    padding: 0;
+    overscroll-behavior: none;
+  }
+
   body {
     @apply bg-background text-foreground antialiased;
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     letter-spacing: -0.01em;
+    min-height: 100vh;
+    min-height: 100dvh;
+  }
+
+  /* Imersivo: quando rodando como PWA instalado, ocupa tela inteira sem chrome do browser */
+  @media (all and (display-mode: standalone)),
+         (all and (display-mode: fullscreen)),
+         (all and (display-mode: minimal-ui)) {
+    html, body {
+      width: 100vw;
+      height: 100vh;
+      height: 100dvh;
+      overflow-x: hidden;
+      position: relative;
+      overscroll-behavior: none;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+    /* Permite seleção em campos de texto */
+    input, textarea, [contenteditable="true"] {
+      user-select: text;
+      -webkit-user-select: text;
+    }
+    #root {
+      min-height: 100vh;
+      min-height: 100dvh;
+    }
   }
 
   /* Estado disabled acessível no modo escuro: opacidade controlada + cor mínima legível
