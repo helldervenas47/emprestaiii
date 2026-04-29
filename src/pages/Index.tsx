@@ -835,11 +835,6 @@ const Index = () => {
                 size="sm"
                 onClick={() => setOverdueSubTab("metas")}
               >
-              <Button
-                variant={overdueSubTab === "metas" ? "default" : "outline"}
-                size="sm"
-                onClick={() => setOverdueSubTab("metas")}
-              >
                 <Target className="h-4 w-4 mr-1" /> Metas
               </Button>
               <Button
