@@ -1191,7 +1191,12 @@ function LoanCardView({
           </div>
           <div>
             <p className="text-xs text-muted-foreground">Total a Receber</p>
-            <p className="text-base font-bold text-foreground">{formatCurrency(Math.round((total + lateFees + interestPaymentsReceived) * 100) / 100)}</p>
+            <p className="text-base font-bold text-foreground">{formatCurrency(Math.round((totalPaid + remaining) * 100) / 100)}</p>
+            {loan.amount > 0 && (
+              <p className="text-[10px] text-muted-foreground mt-0.5">
+                Juros acumulado: {(((totalPaid + remaining) - loan.amount) / loan.amount * 100).toFixed(2)}%
+              </p>
+            )}
           </div>
         </div>
 
@@ -2756,7 +2761,7 @@ function LoanRowView({
               </div>
               <div className="bg-card rounded-lg p-3 border border-border/30">
                 <p className="text-[10px] text-muted-foreground uppercase">Total a Receber</p>
-                <p className="text-sm font-bold text-foreground">{formatCurrency(Math.round((total + lateFees + interestPaymentsReceived) * 100) / 100)}</p>
+                <p className="text-sm font-bold text-foreground">{formatCurrency(Math.round((totalPaid + remaining) * 100) / 100)}</p>
               </div>
               <div className="bg-card rounded-lg p-3 border border-border/30">
                 <p className="text-[10px] text-muted-foreground uppercase">Total Pago</p>
@@ -2771,6 +2776,11 @@ function LoanRowView({
               <div>
                 <p className="text-[10px] text-muted-foreground uppercase">Juros</p>
                 <p className="text-xs font-medium">{loan.interestRate}% {loan.interestType}</p>
+                {loan.amount > 0 && (
+                  <p className="text-[10px] text-muted-foreground mt-0.5">
+                    Acumulado: {(((totalPaid + remaining) - loan.amount) / loan.amount * 100).toFixed(2)}%
+                  </p>
+                )}
               </div>
               <div>
                 <p className="text-[10px] text-muted-foreground uppercase">Parcelas</p>
