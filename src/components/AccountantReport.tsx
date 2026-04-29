@@ -308,7 +308,8 @@ export function AccountantReport({ loans, payments, sales, expenses }: Accountan
     let loanCount = 0;
     let expenseCount = 0;
     let totalLoanOutgoing = 0;
-    payments.filter((p) => matchPeriod(p.date)).forEach((p) => {
+    const inPayments = payments.filter((p) => matchPeriod(p.date));
+    inPayments.forEach((p) => {
       const k = period === "month" ? p.date : getMonthKey(p.date);
       const cur = map.get(k) || { in: 0, out: 0 };
       cur.in += Number(p.amount) || 0;
@@ -316,10 +317,11 @@ export function AccountantReport({ loans, payments, sales, expenses }: Accountan
       paymentCount += 1;
     });
     // Vendas excluídas do contador (apenas empréstimos e despesas empresariais)
-    expenses.filter((e) => {
+    const outExpenses = expenses.filter((e) => {
       const dt = e.paidDate ?? e.paid_date ?? e.dueDate ?? e.due_date;
       return e.paid && (e.scope ?? "business") !== "personal" && matchPeriod(dt);
-    }).forEach((e) => {
+    });
+    outExpenses.forEach((e) => {
       const d = e.paidDate ?? e.paid_date ?? e.dueDate ?? e.due_date;
       const k = period === "month" ? d : getMonthKey(d);
       const cur = map.get(k) || { in: 0, out: 0 };
@@ -328,7 +330,8 @@ export function AccountantReport({ loans, payments, sales, expenses }: Accountan
       expenseCount += 1;
     });
     // Empréstimos concedidos no período (saída de caixa do operador)
-    loans.filter((l) => matchPeriod(l.startDate ?? l.start_date)).forEach((l) => {
+    const outLoans = loans.filter((l) => matchPeriod(l.startDate ?? l.start_date));
+    outLoans.forEach((l) => {
       const d = l.startDate ?? l.start_date;
       const k = period === "month" ? d : getMonthKey(d);
       const cur = map.get(k) || { in: 0, out: 0 };
@@ -346,7 +349,7 @@ export function AccountantReport({ loans, payments, sales, expenses }: Accountan
     }));
     const totalIn = rows.reduce((s, r) => s + r.in, 0);
     const totalOut = rows.reduce((s, r) => s + r.out, 0);
-    return { rows, totalIn, totalOut, net: totalIn - totalOut, paymentCount, saleCount, loanCount, expenseCount, totalLoanOutgoing };
+    return { rows, totalIn, totalOut, net: totalIn - totalOut, paymentCount, saleCount, loanCount, expenseCount, totalLoanOutgoing, inPayments, outExpenses, outLoans };
   }, [payments, expenses, loans, period, monthFilter, yearFilter]);
 
   // Aggregation: payments by payment method for current period
