@@ -862,6 +862,35 @@ export function AccountantReport({ loans, payments, sales, expenses }: Accountan
         </CardContent>
       </Card>
 
+      {(() => {
+        const shown: AuditTotals = {
+          interestRevenue: dre.interestRevenue,
+          salesRevenue: dre.salesRevenue,
+          totalRevenue: dre.totalRevenue,
+          totalExpenses: dre.totalExpenses,
+          businessExp: dre.businessExp,
+          personalExp: dre.personalExp,
+          netProfit: dre.netProfit,
+          cashIn: cashflow.totalIn,
+          cashOut: cashflow.totalOut,
+          cashNet: cashflow.net,
+          paymentsCount: cashflow.paymentCount,
+          loansOutgoing: cashflow.totalLoanOutgoing,
+        };
+        return (
+          <AccountantAuditCard
+            loans={loans}
+            payments={payments}
+            sales={sales}
+            expenses={expenses}
+            period={period}
+            monthFilter={monthFilter}
+            yearFilter={yearFilter}
+            shown={shown}
+          />
+        );
+      })()}
+
       {/* Resumo de Fluxo do Período */}
       {(() => {
         const totalOutFull = cashflow.totalOut + cashflow.totalLoanOutgoing;
