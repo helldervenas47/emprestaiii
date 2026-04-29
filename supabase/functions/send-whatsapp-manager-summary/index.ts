@@ -129,9 +129,9 @@ Deno.serve(async (req: Request) => {
       const template = (tpl as any)?.message_manager_weekly?.trim() || DEFAULT_TEMPLATE;
       const linkPagamento = (tpl as any)?.pix_link?.trim() || "";
 
-      // Loans due this week (active loans)
+      // Loans due this week (active loans) — keep manager_id/has_manager so we can filter per manager
       const { data: loans } = await admin
-        .from("loans").select("id, borrower_id, borrower_name, due_date, amount, paid_installments, installments, tags")
+        .from("loans").select("id, borrower_id, borrower_name, due_date, amount, paid_installments, installments, tags, has_manager, manager_id")
         .eq("user_id", ownerId)
         .neq("status", "paid");
 
@@ -141,38 +141,50 @@ Deno.serve(async (req: Request) => {
         : { data: [] as any[] };
 
       type Item = { name: string; amount: number; due: string; tags: string[] };
-      const items: Item[] = [];
-      for (const loan of loans ?? []) {
-        const list = (insts ?? []).filter((s: any) => s.loan_id === loan.id)
-          .sort((a: any, b: any) => a.installment_number - b.installment_number);
-        const next = list.find((s: any) => s.installment_number === (loan.paid_installments ?? 0) + 1);
-        const due = next?.due_date ?? loan.due_date;
-        const amount = Number(next?.amount ?? loan.amount ?? 0);
-        if (!due) continue;
-        if (due >= week.start && due <= week.end) {
-          const tags = Array.isArray(loan.tags) ? loan.tags.filter((t: any) => typeof t === "string" && t.trim()) : [];
-          items.push({ name: loan.borrower_name ?? "", amount, due, tags });
+
+      // Build the list of items relevant to a given manager (by client id).
+      // Only loans whose manager_id matches that manager are included.
+      const buildItemsForManager = (managerClientId: string | null): Item[] => {
+        const out: Item[] = [];
+        for (const loan of loans ?? []) {
+          if (!loan.has_manager) continue;
+          if (!managerClientId) continue;
+          if (String(loan.manager_id || "") !== String(managerClientId)) continue;
+
+          const list = (insts ?? []).filter((s: any) => s.loan_id === loan.id)
+            .sort((a: any, b: any) => a.installment_number - b.installment_number);
+          const next = list.find((s: any) => s.installment_number === (loan.paid_installments ?? 0) + 1);
+          const due = next?.due_date ?? loan.due_date;
+          const amount = Number(next?.amount ?? loan.amount ?? 0);
+          if (!due) continue;
+          if (due >= week.start && due <= week.end) {
+            const tags = Array.isArray(loan.tags) ? loan.tags.filter((t: any) => typeof t === "string" && t.trim()) : [];
+            out.push({ name: loan.borrower_name ?? "", amount, due, tags });
+          }
         }
-      }
-      items.sort((a, b) => a.due.localeCompare(b.due));
+        out.sort((a, b) => a.due.localeCompare(b.due));
+        return out;
+      };
 
-      const totalAmount = items.reduce((s, i) => s + i.amount, 0);
-      const lista = items.length
-        ? items.map((i) => {
-            const tagPart = i.tags.length ? ` [${i.tags.join(", ")}]` : "";
-            return `- ${i.name}${tagPart} — ${formatBRL(i.amount)} (vence ${formatBR(i.due)})`;
-          }).join("\n")
-        : "Nenhum empréstimo vencendo nesta semana.";
-
-      const allTags = Array.from(new Set(items.flatMap((i) => i.tags)));
-      const etiquetas = allTags.length ? allTags.join(", ") : "";
-
-      const renderedMessage = template
-        .replace(/\{total_emprestimos_semana\}/g, String(items.length))
-        .replace(/\{valores_totais\}/g, formatBRL(totalAmount))
-        .replace(/\{lista_clientes\}/g, lista)
-        .replace(/\{etiquetas\}/g, etiquetas)
-        .replace(/\{link_pagamento\}/g, linkPagamento);
+      const renderForManager = (managerClientId: string | null) => {
+        const items = buildItemsForManager(managerClientId);
+        const totalAmount = items.reduce((s, i) => s + i.amount, 0);
+        const lista = items.length
+          ? items.map((i) => {
+              const tagPart = i.tags.length ? ` [${i.tags.join(", ")}]` : "";
+              return `- ${i.name}${tagPart} — ${formatBRL(i.amount)} (vence ${formatBR(i.due)})`;
+            }).join("\n")
+          : "Nenhum empréstimo vencendo nesta semana.";
+        const allTags = Array.from(new Set(items.flatMap((i) => i.tags)));
+        const etiquetas = allTags.length ? allTags.join(", ") : "";
+        const message = template
+          .replace(/\{total_emprestimos_semana\}/g, String(items.length))
+          .replace(/\{valores_totais\}/g, formatBRL(totalAmount))
+          .replace(/\{lista_clientes\}/g, lista)
+          .replace(/\{etiquetas\}/g, etiquetas)
+          .replace(/\{link_pagamento\}/g, linkPagamento);
+        return { items, totalAmount, message };
+      };
 
       // Find managers — clients flagged as is_manager belonging to this owner
       const { data: managerClients } = await admin
