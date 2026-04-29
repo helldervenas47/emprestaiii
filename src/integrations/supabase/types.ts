@@ -2633,28 +2633,40 @@ export type Database = {
           created_at: string
           id: string
           message_due_today: string
+          message_manager_weekly: string | null
           message_overdue: string
           message_upcoming: string
+          message_very_overdue: string | null
           owner_id: string
+          pix_link: string | null
           updated_at: string
+          very_overdue_days: number
         }
         Insert: {
           created_at?: string
           id?: string
           message_due_today?: string
+          message_manager_weekly?: string | null
           message_overdue?: string
           message_upcoming?: string
+          message_very_overdue?: string | null
           owner_id: string
+          pix_link?: string | null
           updated_at?: string
+          very_overdue_days?: number
         }
         Update: {
           created_at?: string
           id?: string
           message_due_today?: string
+          message_manager_weekly?: string | null
           message_overdue?: string
           message_upcoming?: string
+          message_very_overdue?: string | null
           owner_id?: string
+          pix_link?: string | null
           updated_at?: string
+          very_overdue_days?: number
         }
         Relationships: []
       }
@@ -2667,6 +2679,10 @@ export type Database = {
           id: string
           instance_id: string
           last_run_at: string | null
+          manager_last_run_at: string | null
+          manager_summary_day_of_week: number
+          manager_summary_enabled: boolean
+          manager_summary_time: string
           overdue_repeat_days: number
           owner_id: string
           provider: string
@@ -2683,6 +2699,10 @@ export type Database = {
           id?: string
           instance_id?: string
           last_run_at?: string | null
+          manager_last_run_at?: string | null
+          manager_summary_day_of_week?: number
+          manager_summary_enabled?: boolean
+          manager_summary_time?: string
           overdue_repeat_days?: number
           owner_id: string
           provider?: string
@@ -2699,6 +2719,10 @@ export type Database = {
           id?: string
           instance_id?: string
           last_run_at?: string | null
+          manager_last_run_at?: string | null
+          manager_summary_day_of_week?: number
+          manager_summary_enabled?: boolean
+          manager_summary_time?: string
           overdue_repeat_days?: number
           owner_id?: string
           provider?: string
@@ -2706,6 +2730,48 @@ export type Database = {
           send_time?: string
           send_when_overdue?: boolean
           updated_at?: string
+        }
+        Relationships: []
+      }
+      whatsapp_manager_billing_log: {
+        Row: {
+          created_at: string
+          error_message: string | null
+          id: string
+          loans_count: number
+          manager_user_id: string | null
+          message: string
+          owner_id: string
+          phone: string
+          sent_date: string
+          success: boolean
+          total_amount: number
+        }
+        Insert: {
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          loans_count?: number
+          manager_user_id?: string | null
+          message: string
+          owner_id: string
+          phone: string
+          sent_date?: string
+          success?: boolean
+          total_amount?: number
+        }
+        Update: {
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          loans_count?: number
+          manager_user_id?: string | null
+          message?: string
+          owner_id?: string
+          phone?: string
+          sent_date?: string
+          success?: boolean
+          total_amount?: number
         }
         Relationships: []
       }
@@ -2781,7 +2847,7 @@ export type Database = {
       }
     }
     Enums: {
-      app_role: "admin" | "operador" | "visualizador"
+      app_role: "admin" | "operador" | "visualizador" | "gerente"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -2909,7 +2975,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["admin", "operador", "visualizador"],
+      app_role: ["admin", "operador", "visualizador", "gerente"],
     },
   },
 } as const
