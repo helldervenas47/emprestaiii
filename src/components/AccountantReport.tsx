@@ -52,7 +52,7 @@ export function AccountantReport({ loans, payments, sales, expenses }: Accountan
   const { months, years } = useMemo(() => {
     const ms = new Set<string>();
     const ys = new Set<string>();
-    [...payments.map((p) => p.date), ...sales.map((s) => s.sale_date), ...expenses.map((e) => e.due_date)]
+    [...payments.map((p) => p.date), ...sales.map((s) => s.date ?? s.sale_date), ...expenses.map((e) => e.dueDate ?? e.due_date)]
       .filter(Boolean)
       .forEach((d) => {
         ms.add(getMonthKey(d));
@@ -74,20 +74,58 @@ export function AccountantReport({ loans, payments, sales, expenses }: Accountan
   // ===== DRE =====
   const dre = useMemo(() => {
     const periodPayments = payments.filter((p) => matchPeriod(p.date));
-    const periodSales = sales.filter((s) => matchPeriod(s.sale_date));
-    const periodExpenses = expenses.filter((e) => e.paid && matchPeriod(e.paid_date || e.due_date));
+    const periodSales = sales.filter((s) => matchPeriod(s.date ?? s.sale_date));
+    const periodExpenses = expenses.filter((e) => {
+      const dt = e.paidDate ?? e.paid_date ?? e.dueDate ?? e.due_date;
+      return e.paid && matchPeriod(dt);
+    });
 
-    // Receita de juros = pagamentos - principal proporcional
+    // Receita de juros = parte de juros de cada pagamento.
+    // Regras:
+    //  - installmentNumber === 0  => pagamento de juros puro (100% juros)
+    //  - installmentNumber === -3 => amortização de principal (0% juros)
+    //  - installmentNumber === -1 => quitação total: amount - principal restante = juros
+    //  - demais (parcelas)        => valor - (principal/total parcelas)
+    // Considera também metadata.split (juros explícito), se presente.
     let totalReceived = 0;
     let interestRevenue = 0;
     periodPayments.forEach((p) => {
       const amt = Number(p.amount) || 0;
       totalReceived += amt;
-      const loan = loans.find((l) => l.id === (p.loanId || p.loan_id));
-      if (loan) {
-        const principalPerInstall = Number(loan.amount) / Math.max(1, Number(loan.installments) || 1);
-        interestRevenue += Math.max(0, amt - principalPerInstall);
+      const loanId = p.loanId ?? p.loan_id;
+      const loan = loans.find((l) => l.id === loanId);
+      const meta: any = p.metadata || {};
+      const splitInterest = Number(meta?.split?.interest ?? meta?.interest_amount);
+      if (Number.isFinite(splitInterest) && splitInterest > 0) {
+        interestRevenue += Math.min(amt, splitInterest);
+        return;
       }
+      const inst = Number(p.installmentNumber ?? p.installment_number ?? 0);
+      if (inst === 0) {
+        // Juros puro
+        interestRevenue += amt;
+        return;
+      }
+      if (inst === -3) {
+        // Amortização: 0 juros
+        return;
+      }
+      if (!loan) {
+        // Sem vínculo: assume tudo como juros para não subestimar receita
+        interestRevenue += amt;
+        return;
+      }
+      const principal = Number(loan.amount) || 0;
+      const totalInstall = Math.max(1, Number(loan.installments) || 1);
+      if (inst === -1) {
+        // Quitação total: juros = amount - principal restante
+        const paidBefore = Math.max(0, Number(loan.paid_installments ?? loan.paidInstallments ?? 0));
+        const principalRestante = Math.max(0, principal - (principal / totalInstall) * paidBefore);
+        interestRevenue += Math.max(0, amt - principalRestante);
+        return;
+      }
+      const principalPerInstall = principal / totalInstall;
+      interestRevenue += Math.max(0, amt - principalPerInstall);
     });
 
     const salesRevenue = periodSales.reduce((s, x) => s + (Number(x.total) || 0), 0);
@@ -95,7 +133,7 @@ export function AccountantReport({ loans, payments, sales, expenses }: Accountan
     const totalRevenue = interestRevenue + salesRevenue;
     const totalExpenses = periodExpenses.reduce((s, x) => s + (Number(x.amount) || 0), 0);
 
-    const businessExp = periodExpenses.filter((e) => e.scope !== "personal").reduce((s, x) => s + (Number(x.amount) || 0), 0);
+    const businessExp = periodExpenses.filter((e) => (e.scope ?? "business") !== "personal").reduce((s, x) => s + (Number(x.amount) || 0), 0);
     const personalExp = periodExpenses.filter((e) => e.scope === "personal").reduce((s, x) => s + (Number(x.amount) || 0), 0);
 
     return {
@@ -106,7 +144,7 @@ export function AccountantReport({ loans, payments, sales, expenses }: Accountan
       personalExp,
       totalExpenses,
       netProfit: totalRevenue - businessExp,
-      principalReceived: totalReceived - interestRevenue,
+      principalReceived: Math.max(0, totalReceived - interestRevenue),
     };
   }, [payments, sales, expenses, loans, period, monthFilter, yearFilter]);
 
@@ -116,7 +154,7 @@ export function AccountantReport({ loans, payments, sales, expenses }: Accountan
       const c = (cat || "").toLowerCase();
       return TAX_CATEGORIES.some((t) => c.includes(t));
     };
-    const periodTaxes = expenses.filter((e) => isTax(e.category) && matchPeriod(e.due_date));
+    const periodTaxes = expenses.filter((e) => isTax(e.category) && matchPeriod(e.dueDate ?? e.due_date));
     const paid = periodTaxes.filter((e) => e.paid).reduce((s, x) => s + (Number(x.amount) || 0), 0);
     const pending = periodTaxes.filter((e) => !e.paid).reduce((s, x) => s + (Number(x.amount) || 0), 0);
     return { items: periodTaxes, paid, pending, total: paid + pending };
@@ -215,15 +253,19 @@ export function AccountantReport({ loans, payments, sales, expenses }: Accountan
       map.set(k, cur);
       paymentCount += 1;
     });
-    sales.filter((s) => matchPeriod(s.sale_date)).forEach((s) => {
-      const k = period === "month" ? s.sale_date : getMonthKey(s.sale_date);
+    sales.filter((s) => matchPeriod(s.date ?? s.sale_date)).forEach((s) => {
+      const d = s.date ?? s.sale_date;
+      const k = period === "month" ? d : getMonthKey(d);
       const cur = map.get(k) || { in: 0, out: 0 };
       cur.in += Number(s.total) || 0;
       map.set(k, cur);
       saleCount += 1;
     });
-    expenses.filter((e) => e.paid && e.scope !== "personal" && matchPeriod(e.paid_date || e.due_date)).forEach((e) => {
-      const d = e.paid_date || e.due_date;
+    expenses.filter((e) => {
+      const dt = e.paidDate ?? e.paid_date ?? e.dueDate ?? e.due_date;
+      return e.paid && (e.scope ?? "business") !== "personal" && matchPeriod(dt);
+    }).forEach((e) => {
+      const d = e.paidDate ?? e.paid_date ?? e.dueDate ?? e.due_date;
       const k = period === "month" ? d : getMonthKey(d);
       const cur = map.get(k) || { in: 0, out: 0 };
       cur.out += Number(e.amount) || 0;
@@ -231,8 +273,14 @@ export function AccountantReport({ loans, payments, sales, expenses }: Accountan
       expenseCount += 1;
     });
     // Empréstimos concedidos no período (saída de caixa do operador)
-    loans.filter((l) => matchPeriod(l.start_date || l.startDate)).forEach((l) => {
-      totalLoanOutgoing += Number(l.amount) || 0;
+    loans.filter((l) => matchPeriod(l.startDate ?? l.start_date)).forEach((l) => {
+      const d = l.startDate ?? l.start_date;
+      const k = period === "month" ? d : getMonthKey(d);
+      const cur = map.get(k) || { in: 0, out: 0 };
+      const amt = Number(l.amount) || 0;
+      cur.out += amt;
+      map.set(k, cur);
+      totalLoanOutgoing += amt;
       loanCount += 1;
     });
     const rows = Array.from(map.entries()).sort(([a], [b]) => a.localeCompare(b)).map(([k, v]) => ({
@@ -683,7 +731,7 @@ export function AccountantReport({ loans, payments, sales, expenses }: Accountan
           body: taxes.items.map((t: any) => [
             t.description,
             t.category,
-            new Date(t.due_date + "T00:00:00").toLocaleDateString("pt-BR"),
+            new Date((t.dueDate ?? t.due_date) + "T00:00:00").toLocaleDateString("pt-BR"),
             fmtBRL(Number(t.amount) || 0),
             t.paid ? "Pago" : "Pendente",
           ]),
@@ -1052,7 +1100,7 @@ export function AccountantReport({ loans, payments, sales, expenses }: Accountan
                     <div key={t.id} className="flex items-center justify-between py-2 border-b text-sm">
                       <div>
                         <p className="font-medium">{t.description}</p>
-                        <p className="text-xs text-muted-foreground">{t.category} · venc. {new Date(t.due_date + "T00:00:00").toLocaleDateString("pt-BR")}</p>
+                        <p className="text-xs text-muted-foreground">{t.category} · venc. {new Date(((t.dueDate ?? t.due_date) || "") + "T00:00:00").toLocaleDateString("pt-BR")}</p>
                       </div>
                       <div className="text-right">
                         <p className="font-semibold">{fmt(Number(t.amount) || 0, hidden)}</p>
