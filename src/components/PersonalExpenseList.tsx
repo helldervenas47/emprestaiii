@@ -771,7 +771,7 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, onUpda
           className={`rounded-xl transition-all duration-200 ${sourceFilter === "auto" ? "bg-primary text-primary-foreground border-primary" : ""}`}
           title="Despesas lançadas pelo bot do Telegram"
         >
-          Automáticas ({visibleMonth.filter(isBotExpense).length})
+          Automáticas ({listVisibleMonth.filter(isBotExpense).length})
         </Button>
         <Button
           variant="outline"
@@ -780,7 +780,7 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, onUpda
           className={`rounded-xl transition-all duration-200 ${sourceFilter === "manual" ? "bg-primary text-primary-foreground border-primary" : ""}`}
           title="Despesas registradas manualmente no app"
         >
-          Manuais ({visibleMonth.filter((e) => !isBotExpense(e)).length})
+          Manuais ({listVisibleMonth.filter((e) => !isBotExpense(e)).length})
         </Button>
       </div>
 
