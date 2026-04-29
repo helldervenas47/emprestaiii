@@ -3867,6 +3867,8 @@ export function LoanList({ loans, payments, installmentSchedules, onPayment, onP
   const [dueDateQuick, setDueDateQuick] = useState<"yesterday" | "today" | "tomorrow" | null>(null);
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
+  const [dueDateFrom, setDueDateFrom] = useState("");
+  const [dueDateTo, setDueDateTo] = useState("");
   const [amountMin, setAmountMin] = useState("");
   const [amountMax, setAmountMax] = useState("");
   const [tagFilter, setTagFilter] = useState("");
@@ -3899,7 +3901,19 @@ export function LoanList({ loans, payments, installmentSchedules, onPayment, onP
       filtered = filtered.filter((l) => l.startDate <= dateTo);
     }
 
-    // Amount range filter
+    // Due date range filter (uses next pending installment date, falls back to loan.dueDate)
+    if (dueDateFrom || dueDateTo) {
+      filtered = filtered.filter((l) => {
+        const next = getFirstPendingDate(l, installmentSchedules);
+        const ymd = !isNaN(next.getTime())
+          ? `${next.getFullYear()}-${String(next.getMonth() + 1).padStart(2, "0")}-${String(next.getDate()).padStart(2, "0")}`
+          : (l.dueDate || "");
+        if (!ymd) return false;
+        if (dueDateFrom && ymd < dueDateFrom) return false;
+        if (dueDateTo && ymd > dueDateTo) return false;
+        return true;
+      });
+    }
     const minAmt = parseFloat(amountMin);
     const maxAmt = parseFloat(amountMax);
     if (!isNaN(minAmt) && minAmt > 0) {
@@ -3942,7 +3956,7 @@ export function LoanList({ loans, payments, installmentSchedules, onPayment, onP
       if (sortBy === "amount") return b.amount - a.amount;
       return a.borrowerName.localeCompare(b.borrowerName);
     });
-  }, [loans, payments, installmentSchedules, search, category, dateFrom, dateTo, amountMin, amountMax, tagFilter, notesFilter, sortBy, dueDateQuick, view]);
+  }, [loans, payments, installmentSchedules, search, category, dateFrom, dateTo, dueDateFrom, dueDateTo, amountMin, amountMax, tagFilter, notesFilter, sortBy, dueDateQuick, view]);
 
   const folderCount = useMemo(() => {
     const byName: Record<string, number> = {};
@@ -4081,7 +4095,7 @@ export function LoanList({ loans, payments, installmentSchedules, onPayment, onP
         </div>
         <Button variant={showFilters ? "default" : "outline"} size="sm" onClick={() => setShowFilters(!showFilters)} className="gap-1.5">
           <SlidersHorizontal className="h-3.5 w-3.5" />Filtros
-          {(dateFrom || dateTo || amountMin || amountMax || tagFilter || notesFilter !== "all") && (
+          {(dateFrom || dateTo || dueDateFrom || dueDateTo || amountMin || amountMax || tagFilter || notesFilter !== "all") && (
             <Badge className="bg-destructive text-destructive-foreground h-4 w-4 p-0 flex items-center justify-center text-[10px] rounded-full">!</Badge>
           )}
         </Button>
@@ -4145,6 +4159,14 @@ export function LoanList({ loans, payments, installmentSchedules, onPayment, onP
                 <DatePickerField value={dateTo} onChange={(v) => setDateTo(v)} className="h-8 text-sm" />
               </div>
               <div>
+                <Label className="text-xs text-muted-foreground">Vencimento (De)</Label>
+                <DatePickerField value={dueDateFrom} onChange={(v) => setDueDateFrom(v)} className="h-8 text-sm" />
+              </div>
+              <div>
+                <Label className="text-xs text-muted-foreground">Vencimento (Até)</Label>
+                <DatePickerField value={dueDateTo} onChange={(v) => setDueDateTo(v)} className="h-8 text-sm" />
+              </div>
+              <div>
                 <Label className="text-xs text-muted-foreground">Valor Mínimo (R$)</Label>
                 <Input type="number" step="0.01" placeholder="0" value={amountMin} onChange={(e) => setAmountMin(e.target.value)} className="h-8 text-sm" />
               </div>
@@ -4183,7 +4205,7 @@ export function LoanList({ loans, payments, installmentSchedules, onPayment, onP
               </div>
             </div>
             <div className="flex justify-end mt-3">
-              <Button variant="ghost" size="sm" className="text-xs" onClick={() => { setDateFrom(""); setDateTo(""); setAmountMin(""); setAmountMax(""); setTagFilter(""); setNotesFilter("all"); setSortBy("dueDate"); }}>
+              <Button variant="ghost" size="sm" className="text-xs" onClick={() => { setDateFrom(""); setDateTo(""); setDueDateFrom(""); setDueDateTo(""); setAmountMin(""); setAmountMax(""); setTagFilter(""); setNotesFilter("all"); setSortBy("dueDate"); }}>
                 <X className="h-3 w-3 mr-1" />Limpar filtros
               </Button>
             </div>
