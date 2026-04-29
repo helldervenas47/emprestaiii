@@ -74,43 +74,120 @@ export function AccountantReport({ loans, payments, sales, expenses }: Accountan
   // ===== DRE =====
   const dre = useMemo(() => {
     const periodPayments = payments.filter((p) => matchPeriod(p.date));
-    // Contador considera apenas despesas empresariais (ignora pessoais e vendas)
     const periodExpenses = expenses.filter((e) => {
       const dt = e.paidDate ?? e.paid_date ?? e.dueDate ?? e.due_date;
       return e.paid && (e.scope ?? "business") !== "personal" && matchPeriod(dt);
     });
 
-    // Receita de juros = parte de juros de cada pagamento.
+    type Kind = "juros_puro" | "amortizacao" | "quitacao" | "parcela" | "sem_vinculo" | "split";
+    type Breakdown = {
+      id: string;
+      date: string;
+      loanId: string | null;
+      borrowerName: string;
+      amount: number;
+      interest: number;
+      principal: number;
+      kind: Kind;
+      kindLabel: string;
+      reason: string;
+    };
+    const breakdown: Breakdown[] = [];
+
     let totalReceived = 0;
     let interestRevenue = 0;
     periodPayments.forEach((p) => {
       const amt = Number(p.amount) || 0;
       totalReceived += amt;
-      const loanId = p.loanId ?? p.loan_id;
+      const loanId = p.loanId ?? p.loan_id ?? null;
       const loan = loans.find((l) => l.id === loanId);
+      const borrowerName = loan?.borrowerName ?? loan?.borrower_name ?? "Sem contrato";
       const meta: any = p.metadata || {};
       const splitInterest = Number(meta?.split?.interest ?? meta?.interest_amount);
+
+      let interest = 0;
+      let kind: Kind = "parcela";
+      let reason = "";
+
       if (Number.isFinite(splitInterest) && splitInterest > 0) {
-        interestRevenue += Math.min(amt, splitInterest);
-        return;
+        interest = Math.min(amt, splitInterest);
+        kind = "split";
+        reason = `Split explícito no pagamento: juros = ${splitInterest.toFixed(2)}`;
+      } else {
+        const inst = Number(p.installmentNumber ?? p.installment_number ?? 0);
+        if (inst === 0) {
+          interest = amt;
+          kind = "juros_puro";
+          reason = "Pagamento de juros puro (installmentNumber = 0) → 100% juros";
+        } else if (inst === -3) {
+          interest = 0;
+          kind = "amortizacao";
+          reason = "Amortização de principal (installmentNumber = -3) → 0% juros";
+        } else if (!loan) {
+          interest = amt;
+          kind = "sem_vinculo";
+          reason = "Pagamento sem empréstimo vinculado → assume 100% juros";
+        } else if (inst === -1) {
+          const principal = Number(loan.amount) || 0;
+          const totalInstall = Math.max(1, Number(loan.installments) || 1);
+          const paidBefore = Math.max(0, Number(loan.paid_installments ?? loan.paidInstallments ?? 0));
+          const principalRestante = Math.max(0, principal - (principal / totalInstall) * paidBefore);
+          interest = Math.max(0, amt - principalRestante);
+          kind = "quitacao";
+          reason = `Quitação total: principal restante = ${principalRestante.toFixed(2)} (principal ${principal.toFixed(2)} − ${paidBefore} parcelas pagas)`;
+        } else {
+          const principal = Number(loan.amount) || 0;
+          const totalInstall = Math.max(1, Number(loan.installments) || 1);
+          const principalPerInstall = principal / totalInstall;
+          interest = Math.max(0, amt - principalPerInstall);
+          kind = "parcela";
+          reason = `Parcela ${inst}/${totalInstall}: principal/parcela = ${principalPerInstall.toFixed(2)} (principal ${principal.toFixed(2)} ÷ ${totalInstall})`;
+        }
       }
-      const inst = Number(p.installmentNumber ?? p.installment_number ?? 0);
-      if (inst === 0) { interestRevenue += amt; return; }
-      if (inst === -3) { return; }
-      if (!loan) { interestRevenue += amt; return; }
-      const principal = Number(loan.amount) || 0;
-      const totalInstall = Math.max(1, Number(loan.installments) || 1);
-      if (inst === -1) {
-        const paidBefore = Math.max(0, Number(loan.paid_installments ?? loan.paidInstallments ?? 0));
-        const principalRestante = Math.max(0, principal - (principal / totalInstall) * paidBefore);
-        interestRevenue += Math.max(0, amt - principalRestante);
-        return;
-      }
-      const principalPerInstall = principal / totalInstall;
-      interestRevenue += Math.max(0, amt - principalPerInstall);
+
+      const kindLabel = ({
+        juros_puro: "Juros puro",
+        amortizacao: "Amortização",
+        quitacao: "Quitação",
+        parcela: "Parcela",
+        sem_vinculo: "Sem vínculo",
+        split: "Split explícito",
+      } as Record<Kind, string>)[kind];
+
+      interestRevenue += interest;
+      breakdown.push({
+        id: p.id,
+        date: p.date,
+        loanId,
+        borrowerName,
+        amount: amt,
+        interest,
+        principal: Math.max(0, amt - interest),
+        kind,
+        kindLabel,
+        reason,
+      });
     });
 
-    const salesRevenue = 0; // vendas excluídas do contador
+    breakdown.sort((a, b) => (a.date < b.date ? 1 : -1));
+
+    // Totais por tipo
+    const byKind: Record<Kind, { count: number; amount: number; interest: number; principal: number }> = {
+      juros_puro: { count: 0, amount: 0, interest: 0, principal: 0 },
+      amortizacao: { count: 0, amount: 0, interest: 0, principal: 0 },
+      quitacao: { count: 0, amount: 0, interest: 0, principal: 0 },
+      parcela: { count: 0, amount: 0, interest: 0, principal: 0 },
+      sem_vinculo: { count: 0, amount: 0, interest: 0, principal: 0 },
+      split: { count: 0, amount: 0, interest: 0, principal: 0 },
+    };
+    breakdown.forEach((b) => {
+      byKind[b.kind].count += 1;
+      byKind[b.kind].amount += b.amount;
+      byKind[b.kind].interest += b.interest;
+      byKind[b.kind].principal += b.principal;
+    });
+
+    const salesRevenue = 0;
     const totalRevenue = interestRevenue;
     const totalExpenses = periodExpenses.reduce((s, x) => s + (Number(x.amount) || 0), 0);
     const businessExp = totalExpenses;
@@ -125,6 +202,9 @@ export function AccountantReport({ loans, payments, sales, expenses }: Accountan
       totalExpenses,
       netProfit: totalRevenue - businessExp,
       principalReceived: Math.max(0, totalReceived - interestRevenue),
+      breakdown,
+      byKind,
+      totalReceived,
     };
   }, [payments, expenses, loans, period, monthFilter, yearFilter]);
 
@@ -1038,6 +1118,107 @@ export function AccountantReport({ loans, payments, sales, expenses }: Accountan
                   <span>{fmt(dre.personalExp, hidden)}</span>
                 </div>
               </div>
+            </CardContent>
+          </Card>
+
+          {/* Detalhamento Juros vs Principal */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-sm">Juros vs Principal — por pagamento</CardTitle>
+              <CardDescription className="text-xs">
+                Conferência da receita de juros: cada pagamento, sua classificação e a parte considerada juros.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {/* Resumo por tipo */}
+              <div className="overflow-x-auto">
+                <table className="w-full text-xs">
+                  <thead>
+                    <tr className="text-left text-muted-foreground border-b">
+                      <th className="py-2 pr-2">Tipo</th>
+                      <th className="py-2 pr-2 text-right">Qtd</th>
+                      <th className="py-2 pr-2 text-right">Recebido</th>
+                      <th className="py-2 pr-2 text-right">Juros</th>
+                      <th className="py-2 text-right">Principal</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {(["juros_puro","parcela","quitacao","amortizacao","split","sem_vinculo"] as const).map((k) => {
+                      const labels: Record<string,string> = {
+                        juros_puro: "Juros puro",
+                        parcela: "Parcela",
+                        quitacao: "Quitação",
+                        amortizacao: "Amortização",
+                        split: "Split explícito",
+                        sem_vinculo: "Sem vínculo",
+                      };
+                      const v = (dre as any).byKind[k];
+                      if (!v || v.count === 0) return null;
+                      return (
+                        <tr key={k} className="border-b">
+                          <td className="py-1.5 pr-2 font-medium">{labels[k]}</td>
+                          <td className="py-1.5 pr-2 text-right">{v.count}</td>
+                          <td className="py-1.5 pr-2 text-right">{fmt(v.amount, hidden)}</td>
+                          <td className="py-1.5 pr-2 text-right text-success">{fmt(v.interest, hidden)}</td>
+                          <td className="py-1.5 text-right">{fmt(v.principal, hidden)}</td>
+                        </tr>
+                      );
+                    })}
+                    <tr className="font-semibold bg-muted/30">
+                      <td className="py-1.5 pr-2">Total</td>
+                      <td className="py-1.5 pr-2 text-right">{(dre as any).breakdown.length}</td>
+                      <td className="py-1.5 pr-2 text-right">{fmt((dre as any).totalReceived, hidden)}</td>
+                      <td className="py-1.5 pr-2 text-right text-success">{fmt(dre.interestRevenue, hidden)}</td>
+                      <td className="py-1.5 text-right">{fmt(dre.principalReceived, hidden)}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Lista por pagamento */}
+              <Collapsible>
+                <CollapsibleTrigger className="flex items-center gap-1 text-xs font-medium text-primary hover:underline">
+                  <ChevronRight className="h-3 w-3 transition-transform data-[state=open]:rotate-90" />
+                  Ver detalhamento por pagamento ({(dre as any).breakdown.length})
+                </CollapsibleTrigger>
+                <CollapsibleContent className="mt-3">
+                  {(dre as any).breakdown.length === 0 ? (
+                    <p className="text-xs text-muted-foreground py-3 text-center">Nenhum pagamento no período.</p>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-xs">
+                        <thead>
+                          <tr className="text-left text-muted-foreground border-b">
+                            <th className="py-2 pr-2">Data</th>
+                            <th className="py-2 pr-2">Cliente</th>
+                            <th className="py-2 pr-2">Tipo</th>
+                            <th className="py-2 pr-2 text-right">Valor</th>
+                            <th className="py-2 pr-2 text-right">Juros</th>
+                            <th className="py-2 text-right">Principal</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {(dre as any).breakdown.map((b: any) => (
+                            <tr key={b.id} className="border-b align-top">
+                              <td className="py-1.5 pr-2 whitespace-nowrap">
+                                {b.date ? new Date(b.date + "T00:00:00").toLocaleDateString("pt-BR") : "—"}
+                              </td>
+                              <td className="py-1.5 pr-2">{b.borrowerName}</td>
+                              <td className="py-1.5 pr-2">
+                                <span className="inline-block px-1.5 py-0.5 rounded bg-muted text-[10px]">{b.kindLabel}</span>
+                                <p className="text-[10px] text-muted-foreground mt-0.5 max-w-[260px]">{b.reason}</p>
+                              </td>
+                              <td className="py-1.5 pr-2 text-right">{fmt(b.amount, hidden)}</td>
+                              <td className="py-1.5 pr-2 text-right text-success">{fmt(b.interest, hidden)}</td>
+                              <td className="py-1.5 text-right">{fmt(b.principal, hidden)}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </CollapsibleContent>
+              </Collapsible>
             </CardContent>
           </Card>
         </TabsContent>
