@@ -15,6 +15,10 @@ export interface WhatsappBillingSchedule {
   send_when_overdue: boolean;
   overdue_repeat_days: number;
   last_run_at?: string | null;
+  manager_summary_enabled: boolean;
+  manager_summary_day_of_week: number; // 0=Sun..6=Sat
+  manager_summary_time: string; // HH:MM
+  manager_last_run_at?: string | null;
 }
 
 export interface WhatsappBillingLog {
@@ -41,6 +45,9 @@ const DEFAULT: WhatsappBillingSchedule = {
   send_on_due_day: true,
   send_when_overdue: true,
   overdue_repeat_days: 3,
+  manager_summary_enabled: false,
+  manager_summary_day_of_week: 1,
+  manager_summary_time: "09:00",
 };
 
 export function useWhatsappBillingSchedule() {
@@ -80,6 +87,9 @@ export function useWhatsappBillingSchedule() {
       send_on_due_day: next.send_on_due_day,
       send_when_overdue: next.send_when_overdue,
       overdue_repeat_days: next.overdue_repeat_days,
+      manager_summary_enabled: next.manager_summary_enabled,
+      manager_summary_day_of_week: next.manager_summary_day_of_week,
+      manager_summary_time: next.manager_summary_time,
     };
     await supabase.from("whatsapp_billing_schedule")
       .upsert(payload, { onConflict: "owner_id" });
@@ -95,5 +105,15 @@ export function useWhatsappBillingSchedule() {
     return data;
   }, [dataOwnerId, fetchAll]);
 
-  return { schedule, logs, loading, save, runNow, refresh: fetchAll };
+  const runManagerSummaryNow = useCallback(async () => {
+    if (!dataOwnerId) return null;
+    const { data, error } = await supabase.functions.invoke("send-whatsapp-manager-summary", {
+      body: { owner_id: dataOwnerId, manual_run: true },
+    });
+    await fetchAll();
+    if (error) throw error;
+    return data;
+  }, [dataOwnerId, fetchAll]);
+
+  return { schedule, logs, loading, save, runNow, runManagerSummaryNow, refresh: fetchAll };
 }

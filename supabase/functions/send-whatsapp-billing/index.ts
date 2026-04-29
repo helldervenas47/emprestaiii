@@ -40,7 +40,7 @@ function normalizePhoneBR(raw: string): string {
 }
 
 function formatBRL(n: number): string {
-  return n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+  return (n || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 }
 
 function formatBR(date: string): string {
@@ -50,29 +50,59 @@ function formatBR(date: string): string {
   return `${day}/${m}/${y}`;
 }
 
-function applyVariables(message: string, ctx: { name: string; amount: number; dueDate: string }) {
+function applyVariables(message: string, ctx: {
+  nome: string; valorParcela: number; dataVenc: string;
+  diasAtraso: number; juros: number; valorTotal: number;
+  etiqueta: string; linkPagamento: string;
+}) {
   return message
-    .replace(/{nome}/g, ctx.name || "")
-    .replace(/{valor}/g, formatBRL(ctx.amount))
-    .replace(/{data_vencimento}/g, formatBR(ctx.dueDate));
+    .replace(/\{nome_cliente\}/g, ctx.nome)
+    .replace(/\{nome\}/g, ctx.nome)
+    .replace(/\{valor_parcela\}/g, formatBRL(ctx.valorParcela))
+    .replace(/\{valor\}/g, formatBRL(ctx.valorParcela))
+    .replace(/\{data_vencimento\}/g, formatBR(ctx.dataVenc))
+    .replace(/\{dias_atraso\}/g, String(Math.max(0, ctx.diasAtraso)))
+    .replace(/\{juros\}/g, formatBRL(ctx.juros))
+    .replace(/\{valor_total\}/g, formatBRL(ctx.valorTotal))
+    .replace(/\{etiqueta\}/g, ctx.etiqueta)
+    .replace(/\{link_pagamento\}/g, ctx.linkPagamento);
 }
 
 const DEFAULT_MESSAGES = {
   a_vencer:
-    "Olá {nome}, seu pagamento de {valor} vence em {data_vencimento}. Evite juros pagando antecipadamente.",
+    "Olá {nome_cliente}, sua parcela de {valor_parcela} vence em {data_vencimento}. Evite juros pagando antecipadamente.\n{link_pagamento}",
   vence_hoje:
-    "Olá {nome}, seu pagamento de {valor} vence hoje ({data_vencimento}). Por favor, regularize para evitar encargos.",
+    "Olá {nome_cliente}, sua parcela de {valor_parcela} vence hoje ({data_vencimento}). Por favor, regularize.\n{link_pagamento}",
   vencida:
-    "Olá {nome}, identificamos um pagamento de {valor} em atraso desde {data_vencimento}. Entre em contato para regularização.",
+    "Olá {nome_cliente}, sua parcela de {valor_parcela} venceu há {dias_atraso} dia(s). Total com juros/multa: {valor_total}.\n{link_pagamento}",
+  muito_vencida:
+    "Olá {nome_cliente}, atraso de {dias_atraso} dias na parcela de {valor_parcela}. Total atualizado: {valor_total} ({juros} de encargos).\n{link_pagamento}",
 };
 
-type DueStatus = "vencida" | "vence_hoje" | "a_vencer";
+type DueStatus = "vencida" | "muito_vencida" | "vence_hoje" | "a_vencer";
 
-function getDueStatus(dueDate: string, today: string): DueStatus {
+function getDueStatus(dueDate: string, today: string, veryOverdueDays: number): DueStatus {
   const d = diffDays(dueDate, today);
-  if (d < 0) return "vencida";
+  if (d < 0) {
+    const dias = Math.abs(d);
+    if (dias >= veryOverdueDays) return "muito_vencida";
+    return "vencida";
+  }
   if (d === 0) return "vence_hoje";
   return "a_vencer";
+}
+
+function computeLateFees(loan: any, baseAmount: number, daysOverdue: number) {
+  if (daysOverdue <= 0) return 0;
+  const lateInterestValue = Number(loan.late_interest_value ?? 0);
+  const penalty = Number(loan.penalty_value ?? 0);
+  let interest = 0;
+  if (lateInterestValue > 0) {
+    interest = loan.late_interest_type === "fixed"
+      ? lateInterestValue * daysOverdue
+      : baseAmount * (lateInterestValue / 100) * daysOverdue;
+  }
+  return Math.max(0, interest + penalty);
 }
 
 async function sendWhatsmiau(baseUrl: string, instance: string, apiKey: string, phone: string, text: string) {
@@ -133,13 +163,16 @@ Deno.serve(async (req: Request) => {
 
       const { data: tplRow } = await admin
         .from("whatsapp_billing_messages")
-        .select("message_upcoming, message_due_today, message_overdue")
+        .select("message_upcoming, message_due_today, message_overdue, message_very_overdue, pix_link, very_overdue_days")
         .eq("owner_id", ownerId)
         .maybeSingle();
+      const veryOverdueDays = Number((tplRow as any)?.very_overdue_days ?? 30) || 30;
+      const linkPagamento = (tplRow as any)?.pix_link?.trim() || "";
       const templates: Record<DueStatus, string> = {
         a_vencer: tplRow?.message_upcoming?.trim() || DEFAULT_MESSAGES.a_vencer,
         vence_hoje: tplRow?.message_due_today?.trim() || DEFAULT_MESSAGES.vence_hoje,
         vencida: tplRow?.message_overdue?.trim() || DEFAULT_MESSAGES.vencida,
+        muito_vencida: (tplRow as any)?.message_very_overdue?.trim() || tplRow?.message_overdue?.trim() || DEFAULT_MESSAGES.muito_vencida,
       };
 
       const { data: loans } = await admin
@@ -181,7 +214,6 @@ Deno.serve(async (req: Request) => {
           const client = loan.borrower_id ? clientById.get(loan.borrower_id) : null;
           const phoneRaw = client?.phone || "";
           if (!phoneRaw) continue;
-          // Skip clients that have automatic billing disabled at client level
           if (client && client.auto_billing_enabled === false) continue;
 
           const paid = loan.paid_installments ?? 0;
@@ -192,26 +224,25 @@ Deno.serve(async (req: Request) => {
             (a: any, b: any) => a.installment_number - b.installment_number,
           );
           const nextInst = list.find((s: any) => s.installment_number === paid + 1);
-          const dueDate: string | null =
-            nextInst?.due_date ?? loan.due_date ?? null;
+          const dueDate: string | null = nextInst?.due_date ?? loan.due_date ?? null;
           const installmentNumber = (nextInst?.installment_number ?? paid + 1) as number;
           const amount = Number(nextInst?.amount ?? loan.amount ?? 0);
 
           if (!dueDate) continue;
 
-          const status = getDueStatus(dueDate, today);
+          const status = getDueStatus(dueDate, today, veryOverdueDays);
           const daysDiff = diffDays(dueDate, today);
+          const daysOverdue = daysDiff < 0 ? Math.abs(daysDiff) : 0;
 
           let shouldSend = false;
           if (status === "a_vencer") {
             shouldSend = daysDiff === (sched.days_before_due ?? 1);
           } else if (status === "vence_hoje") {
             shouldSend = !!sched.send_on_due_day;
-          } else if (status === "vencida") {
+          } else if (status === "vencida" || status === "muito_vencida") {
             if (sched.send_when_overdue) {
-              const overdueDays = Math.abs(daysDiff);
               const repeat = Math.max(1, sched.overdue_repeat_days ?? 3);
-              shouldSend = manualRun ? overdueDays > 0 : overdueDays === 0 || overdueDays % repeat === 0;
+              shouldSend = manualRun ? daysOverdue > 0 : daysOverdue === 0 || daysOverdue % repeat === 0;
             }
           }
           if (!shouldSend) continue;
@@ -222,10 +253,19 @@ Deno.serve(async (req: Request) => {
           const template = templates[status] ?? "";
           if (!template.trim()) continue;
 
+          const juros = computeLateFees(loan, amount, daysOverdue);
+          const valorTotal = amount + juros;
+          const etiqueta = Array.isArray(loan.tags) && loan.tags.length ? String(loan.tags[0]) : "";
+
           const message = applyVariables(template, {
-            name: client?.name ?? loan.borrower_name ?? "",
-            amount,
-            dueDate,
+            nome: client?.name ?? loan.borrower_name ?? "",
+            valorParcela: amount,
+            dataVenc: dueDate,
+            diasAtraso: daysOverdue,
+            juros,
+            valorTotal,
+            etiqueta,
+            linkPagamento,
           });
 
           const phone = normalizePhoneBR(phoneRaw);
@@ -244,9 +284,7 @@ Deno.serve(async (req: Request) => {
             sent_date: today,
           });
 
-          results.push({
-            owner_id: ownerId, loan_id: loan.id, status, success: send.ok,
-          });
+          results.push({ owner_id: ownerId, loan_id: loan.id, status, success: send.ok });
         } catch (e) {
           results.push({ owner_id: ownerId, loan_id: loan.id, error: String(e) });
         }

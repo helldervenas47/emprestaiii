@@ -7,12 +7,27 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { useWhatsappBillingSchedule } from "@/hooks/useWhatsappBillingSchedule";
+import { useMyProfilePhone } from "@/hooks/useMyProfilePhone";
 import { toast } from "sonner";
-import { Send, Loader2, CheckCircle2, XCircle, Clock } from "lucide-react";
+import { Send, Loader2, CheckCircle2, XCircle, Clock, Users, Phone } from "lucide-react";
+
+const WEEKDAYS = [
+  { value: 0, label: "Domingo" },
+  { value: 1, label: "Segunda" },
+  { value: 2, label: "Terça" },
+  { value: 3, label: "Quarta" },
+  { value: 4, label: "Quinta" },
+  { value: 5, label: "Sexta" },
+  { value: 6, label: "Sábado" },
+];
 
 export function WhatsappAutoBillingCard() {
-  const { schedule, logs, loading, save, runNow } = useWhatsappBillingSchedule();
+  const { schedule, logs, loading, save, runNow, runManagerSummaryNow } = useWhatsappBillingSchedule();
+  const { phone: myPhone, save: saveMyPhone, loading: loadingPhone } = useMyProfilePhone();
+  const [phoneDraft, setPhoneDraft] = useState("");
+  const [savingPhone, setSavingPhone] = useState(false);
   const [sending, setSending] = useState(false);
+  const [sendingManager, setSendingManager] = useState(false);
 
   const handleRunNow = async () => {
     if (!schedule.base_url || !schedule.instance_id) {
@@ -29,6 +44,24 @@ export function WhatsappAutoBillingCard() {
       toast.error("Falha ao executar: " + (e?.message ?? String(e)));
     } finally {
       setSending(false);
+    }
+  };
+
+  const handleRunManagerNow = async () => {
+    setSendingManager(true);
+    try {
+      const res: any = await runManagerSummaryNow();
+      const sent = (res?.results ?? []).filter((r: any) => r.success).length;
+      const failed = (res?.results ?? []).filter((r: any) => r.success === false).length;
+      if (sent === 0 && failed === 0) {
+        toast.info("Nenhum gerente com telefone configurado encontrado.");
+      } else {
+        toast.success(`Resumo de gerentes: ${sent} enviado(s), ${failed} falha(s).`);
+      }
+    } catch (e: any) {
+      toast.error("Falha ao enviar resumo: " + (e?.message ?? String(e)));
+    } finally {
+      setSendingManager(false);
     }
   };
 
@@ -125,6 +158,94 @@ export function WhatsappAutoBillingCard() {
             {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
             Executar agora (teste)
           </Button>
+        </div>
+
+        <Separator />
+
+        <div className="space-y-3 rounded-lg border bg-muted/30 p-3">
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <Users className="h-4 w-4 text-primary" />
+              <div>
+                <div className="text-sm font-medium">Resumo semanal para gerentes</div>
+                <div className="text-xs text-muted-foreground">
+                  Envia um WhatsApp aos usuários com perfil <strong>Gerente</strong> listando os
+                  empréstimos que vencem na semana atual.
+                </div>
+              </div>
+            </div>
+            <Switch
+              checked={schedule.manager_summary_enabled}
+              onCheckedChange={(v) => save({ manager_summary_enabled: v })}
+            />
+          </div>
+
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="space-y-1.5">
+              <Label className="text-xs">Dia da semana</Label>
+              <select
+                className="h-9 w-full rounded-md border bg-background px-2 text-sm"
+                value={schedule.manager_summary_day_of_week}
+                onChange={(e) => save({ manager_summary_day_of_week: Number(e.target.value) })}
+              >
+                {WEEKDAYS.map((d) => (
+                  <option key={d.value} value={d.value}>{d.label}</option>
+                ))}
+              </select>
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs">Horário</Label>
+              <Input
+                type="time"
+                value={schedule.manager_summary_time?.slice(0, 5) ?? "09:00"}
+                onChange={(e) => save({ manager_summary_time: e.target.value })}
+              />
+            </div>
+          </div>
+
+          <div className="space-y-1.5 rounded-md border bg-background p-2.5">
+            <Label className="text-xs flex items-center gap-1.5">
+              <Phone className="h-3.5 w-3.5" /> Meu telefone (WhatsApp) para receber resumos
+            </Label>
+            <div className="flex gap-2">
+              <Input
+                placeholder="Ex: (11) 99999-9999"
+                value={phoneDraft || myPhone}
+                onChange={(e) => setPhoneDraft(e.target.value)}
+                disabled={loadingPhone || savingPhone}
+              />
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={savingPhone || loadingPhone || (phoneDraft || myPhone) === myPhone}
+                onClick={async () => {
+                  setSavingPhone(true);
+                  const { error } = await saveMyPhone((phoneDraft || myPhone).trim());
+                  setSavingPhone(false);
+                  if (error) toast.error("Não foi possível salvar o telefone.");
+                  else { toast.success("Telefone atualizado."); setPhoneDraft(""); }
+                }}
+              >
+                Salvar
+              </Button>
+            </div>
+            <p className="text-[10px] text-muted-foreground">
+              Apenas usuários com perfil <strong>Gerente</strong> recebem este resumo. Defina o
+              papel em "Gerenciar Usuários".
+            </p>
+          </div>
+
+          <div className="flex items-center justify-between gap-3 flex-wrap">
+            <div className="text-xs text-muted-foreground">
+              {schedule.manager_last_run_at
+                ? <>Último envio: {new Date(schedule.manager_last_run_at).toLocaleString("pt-BR")}</>
+                : "Nenhum resumo enviado ainda."}
+            </div>
+            <Button onClick={handleRunManagerNow} disabled={sendingManager} size="sm" variant="secondary">
+              {sendingManager ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+              Enviar resumo agora
+            </Button>
+          </div>
         </div>
 
         <Separator />
