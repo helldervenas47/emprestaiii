@@ -2430,7 +2430,15 @@ Deno.serve(async (req) => {
                   await tgSend(chatId, "❌ Erro ao salvar no banco: " + (insErr?.message ?? "desconhecido"), LOVABLE_API_KEY, TELEGRAM_API_KEY);
                 } else {
                   // Confirmação final com teclado de ações após o registro persistir.
-                  await tgSendWithKeyboard(chatId, summaryText, buildExpenseKeyboard(ins.id), LOVABLE_API_KEY, TELEGRAM_API_KEY);
+                  // Para despesas de cartão, anexa o valor atualizado da fatura
+                  // (recalculado já com a nova despesa incluída).
+                  let finalSummary = summaryText;
+                  if (card) {
+                    const invoiceTotal = await computeCurrentInvoiceTotal(admin, link.user_id, card);
+                    const fmtInvoice = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(invoiceTotal);
+                    finalSummary = `${summaryText}\n💳 Fatura atual: ${fmtInvoice}`;
+                  }
+                  await tgSendWithKeyboard(chatId, finalSummary, buildExpenseKeyboard(ins.id), LOVABLE_API_KEY, TELEGRAM_API_KEY);
                   if (!card) {
                     checkBudgetAndAlert(admin, link.user_id, chatId, finalCategory, LOVABLE_API_KEY, TELEGRAM_API_KEY)
                       .catch((e) => console.error("budget alert bg err", e));
