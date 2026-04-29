@@ -27,7 +27,7 @@ const LOAN_VARS = [
   "link_pagamento",
 ];
 
-const MANAGER_VARS = ["total_emprestimos_semana", "lista_clientes", "valores_totais"];
+const MANAGER_VARS = ["total_emprestimos_semana", "lista_clientes", "valores_totais", "etiquetas"];
 
 export function WhatsappBillingCard() {
   const { messages, loading, save } = useWhatsappBillingMessages();
