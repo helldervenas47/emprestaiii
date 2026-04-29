@@ -98,6 +98,48 @@ export type Database = {
         }
         Relationships: []
       }
+      accountant_audit_logs: {
+        Row: {
+          confidence_score: number
+          corrections: Json
+          created_at: string
+          executed_at: string
+          id: string
+          issues: Json
+          notes: string | null
+          period_end: string | null
+          period_start: string | null
+          totals: Json
+          user_id: string
+        }
+        Insert: {
+          confidence_score?: number
+          corrections?: Json
+          created_at?: string
+          executed_at?: string
+          id?: string
+          issues?: Json
+          notes?: string | null
+          period_end?: string | null
+          period_start?: string | null
+          totals?: Json
+          user_id: string
+        }
+        Update: {
+          confidence_score?: number
+          corrections?: Json
+          created_at?: string
+          executed_at?: string
+          id?: string
+          issues?: Json
+          notes?: string | null
+          period_end?: string | null
+          period_start?: string | null
+          totals?: Json
+          user_id?: string
+        }
+        Relationships: []
+      }
       active_capital_snapshots: {
         Row: {
           amount: number
