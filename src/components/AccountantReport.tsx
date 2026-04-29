@@ -265,7 +265,7 @@ export function AccountantReport({ loans, payments, sales, expenses }: Accountan
     const totalIn = rows.reduce((s, r) => s + r.in, 0);
     const totalOut = rows.reduce((s, r) => s + r.out, 0);
     return { rows, totalIn, totalOut, net: totalIn - totalOut, paymentCount, saleCount, loanCount, expenseCount, totalLoanOutgoing };
-  }, [payments, sales, expenses, loans, period, monthFilter, yearFilter]);
+  }, [payments, expenses, loans, period, monthFilter, yearFilter]);
 
   // Aggregation: payments by payment method for current period
   const methodsBreakdown = useMemo(() => {
