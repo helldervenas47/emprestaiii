@@ -1000,7 +1000,7 @@ export function AccountantReport({ loans, payments, sales, expenses }: Accountan
 
       {/* Resumo de Fluxo do Período */}
       {(() => {
-        const totalOutFull = cashflow.totalOut + cashflow.totalLoanOutgoing;
+        const totalOutFull = cashflow.totalOut;
         const netFull = cashflow.totalIn - totalOutFull;
         const periodLabelTxt = period === "month" ? formatDate(monthFilter) : yearFilter;
         return (
