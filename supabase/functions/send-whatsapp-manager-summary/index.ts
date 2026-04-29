@@ -132,7 +132,7 @@ Deno.serve(async (req: Request) => {
         ? await admin.from("loan_installments").select("*").in("loan_id", loanIds)
         : { data: [] as any[] };
 
-      type Item = { name: string; amount: number; due: string };
+      type Item = { name: string; amount: number; due: string; tags: string[] };
       const items: Item[] = [];
       for (const loan of loans ?? []) {
         const list = (insts ?? []).filter((s: any) => s.loan_id === loan.id)
@@ -142,20 +142,28 @@ Deno.serve(async (req: Request) => {
         const amount = Number(next?.amount ?? loan.amount ?? 0);
         if (!due) continue;
         if (due >= week.start && due <= week.end) {
-          items.push({ name: loan.borrower_name ?? "", amount, due });
+          const tags = Array.isArray(loan.tags) ? loan.tags.filter((t: any) => typeof t === "string" && t.trim()) : [];
+          items.push({ name: loan.borrower_name ?? "", amount, due, tags });
         }
       }
       items.sort((a, b) => a.due.localeCompare(b.due));
 
       const totalAmount = items.reduce((s, i) => s + i.amount, 0);
       const lista = items.length
-        ? items.map((i) => `- ${i.name} — ${formatBRL(i.amount)} (vence ${formatBR(i.due)})`).join("\n")
+        ? items.map((i) => {
+            const tagPart = i.tags.length ? ` [${i.tags.join(", ")}]` : "";
+            return `- ${i.name}${tagPart} — ${formatBRL(i.amount)} (vence ${formatBR(i.due)})`;
+          }).join("\n")
         : "Nenhum empréstimo vencendo nesta semana.";
+
+      const allTags = Array.from(new Set(items.flatMap((i) => i.tags)));
+      const etiquetas = allTags.length ? allTags.join(", ") : "";
 
       const renderedMessage = template
         .replace(/\{total_emprestimos_semana\}/g, String(items.length))
         .replace(/\{valores_totais\}/g, formatBRL(totalAmount))
         .replace(/\{lista_clientes\}/g, lista)
+        .replace(/\{etiquetas\}/g, etiquetas)
         .replace(/\{link_pagamento\}/g, linkPagamento);
 
       // Find managers — users with role 'gerente' linked to this owner via user_owner
