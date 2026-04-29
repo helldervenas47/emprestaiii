@@ -53,19 +53,19 @@ const GOAL_EXPLANATIONS: Record<GoalType, {
     measurement: "Quanto maior, mais próximo da meta. Atingimento = (Realizado ÷ Meta) × 100. Resultado em % com 2 casas decimais.",
   },
   profit: {
-    formula: "Faturamento do Período (%) = (Lucro Realizado ÷ (Lucro Realizado + Lucro Previsto)) × 100",
+    formula: "Faturamento do Período (%) = (Total Recebido no Mês ÷ Total Previsto no Mês) × 100",
     indicators: [
-      "Lucro Realizado: mesma lógica do gráfico 'Lucro por Período' (Realizado)",
-      "Lucro Previsto: parcelas com vencimento no mês × proporção de juros do contrato",
-      "% Meta no card = (Realizado ÷ (Previsto × Meta/100)) × 100",
+      "Total Recebido = soma de TODOS pagamentos com data no mês (principal + juros + multa), igual ao extrato",
+      "Inclui pagamentos somente de juros (parcela 0) e juros + multa",
+      "Total Previsto = soma das parcelas (principal + juros) com vencimento no mês, independentemente do status (pendente ou quitada)",
     ],
-    dataSource: ["Tabela de Pagamentos", "Tabela de Empréstimos (amount, interest_rate, installments)"],
+    dataSource: ["Tabela de Pagamentos (payments.date, payments.amount)", "Tabela de Empréstimos / Cronograma de Parcelas (vencimentos no mês)"],
     example: {
-      setup: "Lucro Previsto: R$ 2.000. Lucro Realizado: R$ 1.500.",
-      calc: "(1.500 ÷ (1.500 + 2.000)) × 100",
-      result: "Faturamento do Período = 42,86%",
+      setup: "Previsto a receber no mês: R$ 3.000. Recebido no mês: R$ 1.800 (parcelas + R$ 200 de juros avulsos).",
+      calc: "(1.800 ÷ 3.000) × 100",
+      result: "Faturamento do Período = 60,00%",
     },
-    measurement: "Espelha o campo '% Lucro' do card 'Lucro por Período' no Dashboard. Resultado em % com 2 casas decimais.",
+    measurement: "Reflete exatamente o que entrou no extrato vs. o previsto a receber pelo vencimento. Resultado em % com 2 casas decimais.",
   },
   loan_volume: {
     formula: "Volume = Soma do valor principal de todos os empréstimos com data de início no mês selecionado",
