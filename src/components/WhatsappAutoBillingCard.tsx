@@ -43,6 +43,24 @@ export function WhatsappAutoBillingCard() {
     }
   };
 
+  const handleRunManagerNow = async () => {
+    setSendingManager(true);
+    try {
+      const res: any = await runManagerSummaryNow();
+      const sent = (res?.results ?? []).filter((r: any) => r.success).length;
+      const failed = (res?.results ?? []).filter((r: any) => r.success === false).length;
+      if (sent === 0 && failed === 0) {
+        toast.info("Nenhum gerente com telefone configurado encontrado.");
+      } else {
+        toast.success(`Resumo de gerentes: ${sent} enviado(s), ${failed} falha(s).`);
+      }
+    } catch (e: any) {
+      toast.error("Falha ao enviar resumo: " + (e?.message ?? String(e)));
+    } finally {
+      setSendingManager(false);
+    }
+  };
+
   if (loading) {
     return (
       <Card><CardContent className="p-8 text-center text-muted-foreground">Carregando...</CardContent></Card>
