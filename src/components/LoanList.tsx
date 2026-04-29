@@ -1191,7 +1191,12 @@ function LoanCardView({
           </div>
           <div>
             <p className="text-xs text-muted-foreground">Total a Receber</p>
-            <p className="text-base font-bold text-foreground">{formatCurrency(Math.round((total + lateFees + interestPaymentsReceived) * 100) / 100)}</p>
+            <p className="text-base font-bold text-foreground">{formatCurrency(Math.round((totalPaid + remaining) * 100) / 100)}</p>
+            {loan.amount > 0 && (
+              <p className="text-[10px] text-muted-foreground mt-0.5">
+                Juros acumulado: {(((totalPaid + remaining) - loan.amount) / loan.amount * 100).toFixed(2)}%
+              </p>
+            )}
           </div>
         </div>
 
