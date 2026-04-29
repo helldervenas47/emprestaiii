@@ -768,7 +768,8 @@ export function useLoans() {
     if (!online) {
       await enqueueMutation({ table: "payments", op: "insert", recordId: tempPaymentId, payload: paymentPayload });
       await enqueueMutation({ table: "loans", op: "update", recordId: loanId, payload: loanUpdate });
-      await adjustBalanceOffline(interestAmount);
+      // Ajusta o saldo offline com o TOTAL (juros + multa) em uma única operação
+      await adjustBalanceOffline(interestAmount + feesExtra);
       if (feesExtra > 0) {
         const feesPaymentId = crypto.randomUUID();
         const feesPayload = {
@@ -776,14 +777,15 @@ export function useLoans() {
           user_id: dataOwnerId, loan_id: loanId, amount: feesExtra,
           date: dateStr, installment_number: -2, previous_due_date: loan.dueDate,
           payment_method_id: paymentMethodId ?? null,
+          metadata: { kind: "late_fee", consolidated_with: tempPaymentId } as any,
         };
         setPayments((prev) => [
-          { id: feesPaymentId, loanId, amount: feesExtra, date: dateStr, installmentNumber: -2, previousDueDate: loan.dueDate, paymentMethodId: paymentMethodId ?? null },
+          { id: feesPaymentId, loanId, amount: feesExtra, date: dateStr, installmentNumber: -2, previousDueDate: loan.dueDate, paymentMethodId: paymentMethodId ?? null, metadata: { kind: "late_fee", consolidated_with: tempPaymentId } as any },
           ...prev,
         ]);
         await upsertCachedRow("payments", { ...feesPayload, created_at: new Date().toISOString() });
         await enqueueMutation({ table: "payments", op: "insert", recordId: feesPaymentId, payload: feesPayload });
-        await adjustBalanceOffline(feesExtra);
+        // NÃO ajusta saldo aqui — já incluído no total acima
       }
       return;
     }
@@ -844,11 +846,16 @@ export function useLoans() {
     }
 
     try {
-      await adjustBalance(interestAmount);
+      const totalReceived = interestAmount + feesExtra;
+      await adjustBalance(totalReceived);
+      const ledgerDescription = feesExtra > 0
+        ? `Pagamento de empréstimo (juros + multa) - ${loan.borrowerName}`
+        : `Juros mensal - ${loan.borrowerName}`;
       await recordLedger({
-        direction: "in", category: "payment", amount: interestAmount,
-        description: `Juros mensal - ${loan.borrowerName}`,
+        direction: "in", category: "payment", amount: totalReceived,
+        description: ledgerDescription,
         occurred_on: dateStr, loan_id: loanId, payment_id: tempPaymentId, source: "auto", syncBalance: false,
+        metadata: feesExtra > 0 ? { interest_amount: interestAmount, fees_amount: feesExtra } : undefined,
       });
     } catch (balanceError: any) {
       console.error("[addInterestOnlyPayment] adjust balance failed:", balanceError);
@@ -860,7 +867,9 @@ export function useLoans() {
       throw new Error(balanceError?.message ?? "Falha ao atualizar saldo");
     }
 
-    // If paying interest + late fees, record the fees as a separate payment entry for traceability
+    // If paying interest + late fees, record the fees as a separate payment row
+    // (for traceability in "movimentações"), but DO NOT adjust balance/ledger again
+    // — the total (interest + fees) was already recorded as a single ledger entry above.
     if (feesExtra > 0) {
       const feesPaymentId = crypto.randomUUID();
       const feesPayload = {
@@ -868,6 +877,7 @@ export function useLoans() {
         user_id: dataOwnerId, loan_id: loanId, amount: feesExtra,
         date: dateStr, installment_number: -2, previous_due_date: loan.dueDate,
         payment_method_id: paymentMethodId ?? null,
+        metadata: { kind: "late_fee", consolidated_with: tempPaymentId } as any,
       };
       const { error: feeInsertError } = await supabase.from("payments").insert(feesPayload as any);
       if (feeInsertError) {
@@ -880,26 +890,8 @@ export function useLoans() {
         throw new Error(feeInsertError.message);
       }
 
-      try {
-        await adjustBalance(feesExtra);
-        await recordLedger({
-          direction: "in", category: "payment", amount: feesExtra,
-          description: `Multa/juros de atraso - ${loan.borrowerName}`,
-          occurred_on: dateStr, loan_id: loanId, payment_id: feesPaymentId, source: "auto", syncBalance: false,
-        });
-      } catch (feeBalanceError: any) {
-        console.error("[addInterestOnlyPayment] adjust fee balance failed:", feeBalanceError);
-        await Promise.all([
-          supabase.from("payments").delete().eq("id", feesPaymentId),
-          supabase.from("payments").delete().eq("id", tempPaymentId),
-          supabase.from("loans").update(loanRollback).eq("id", loanId),
-        ]);
-        await revertOptimisticState();
-        throw new Error(feeBalanceError?.message ?? "Falha ao atualizar saldo das taxas");
-      }
-
       setPayments((prev) => [
-        { id: feesPaymentId, loanId, amount: feesExtra, date: dateStr, installmentNumber: -2, previousDueDate: loan.dueDate, paymentMethodId: paymentMethodId ?? null },
+        { id: feesPaymentId, loanId, amount: feesExtra, date: dateStr, installmentNumber: -2, previousDueDate: loan.dueDate, paymentMethodId: paymentMethodId ?? null, metadata: { kind: "late_fee", consolidated_with: tempPaymentId } as any },
         ...prev,
       ]);
       await upsertCachedRow("payments", { ...feesPayload, created_at: new Date().toISOString() });
