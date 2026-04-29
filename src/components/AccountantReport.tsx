@@ -74,20 +74,58 @@ export function AccountantReport({ loans, payments, sales, expenses }: Accountan
   // ===== DRE =====
   const dre = useMemo(() => {
     const periodPayments = payments.filter((p) => matchPeriod(p.date));
-    const periodSales = sales.filter((s) => matchPeriod(s.sale_date));
-    const periodExpenses = expenses.filter((e) => e.paid && matchPeriod(e.paid_date || e.due_date));
+    const periodSales = sales.filter((s) => matchPeriod(s.date ?? s.sale_date));
+    const periodExpenses = expenses.filter((e) => {
+      const dt = e.paidDate ?? e.paid_date ?? e.dueDate ?? e.due_date;
+      return e.paid && matchPeriod(dt);
+    });
 
-    // Receita de juros = pagamentos - principal proporcional
+    // Receita de juros = parte de juros de cada pagamento.
+    // Regras:
+    //  - installmentNumber === 0  => pagamento de juros puro (100% juros)
+    //  - installmentNumber === -3 => amortização de principal (0% juros)
+    //  - installmentNumber === -1 => quitação total: amount - principal restante = juros
+    //  - demais (parcelas)        => valor - (principal/total parcelas)
+    // Considera também metadata.split (juros explícito), se presente.
     let totalReceived = 0;
     let interestRevenue = 0;
     periodPayments.forEach((p) => {
       const amt = Number(p.amount) || 0;
       totalReceived += amt;
-      const loan = loans.find((l) => l.id === (p.loanId || p.loan_id));
-      if (loan) {
-        const principalPerInstall = Number(loan.amount) / Math.max(1, Number(loan.installments) || 1);
-        interestRevenue += Math.max(0, amt - principalPerInstall);
+      const loanId = p.loanId ?? p.loan_id;
+      const loan = loans.find((l) => l.id === loanId);
+      const meta: any = p.metadata || {};
+      const splitInterest = Number(meta?.split?.interest ?? meta?.interest_amount);
+      if (Number.isFinite(splitInterest) && splitInterest > 0) {
+        interestRevenue += Math.min(amt, splitInterest);
+        return;
       }
+      const inst = Number(p.installmentNumber ?? p.installment_number ?? 0);
+      if (inst === 0) {
+        // Juros puro
+        interestRevenue += amt;
+        return;
+      }
+      if (inst === -3) {
+        // Amortização: 0 juros
+        return;
+      }
+      if (!loan) {
+        // Sem vínculo: assume tudo como juros para não subestimar receita
+        interestRevenue += amt;
+        return;
+      }
+      const principal = Number(loan.amount) || 0;
+      const totalInstall = Math.max(1, Number(loan.installments) || 1);
+      if (inst === -1) {
+        // Quitação total: juros = amount - principal restante
+        const paidBefore = Math.max(0, Number(loan.paid_installments ?? loan.paidInstallments ?? 0));
+        const principalRestante = Math.max(0, principal - (principal / totalInstall) * paidBefore);
+        interestRevenue += Math.max(0, amt - principalRestante);
+        return;
+      }
+      const principalPerInstall = principal / totalInstall;
+      interestRevenue += Math.max(0, amt - principalPerInstall);
     });
 
     const salesRevenue = periodSales.reduce((s, x) => s + (Number(x.total) || 0), 0);
@@ -95,7 +133,7 @@ export function AccountantReport({ loans, payments, sales, expenses }: Accountan
     const totalRevenue = interestRevenue + salesRevenue;
     const totalExpenses = periodExpenses.reduce((s, x) => s + (Number(x.amount) || 0), 0);
 
-    const businessExp = periodExpenses.filter((e) => e.scope !== "personal").reduce((s, x) => s + (Number(x.amount) || 0), 0);
+    const businessExp = periodExpenses.filter((e) => (e.scope ?? "business") !== "personal").reduce((s, x) => s + (Number(x.amount) || 0), 0);
     const personalExp = periodExpenses.filter((e) => e.scope === "personal").reduce((s, x) => s + (Number(x.amount) || 0), 0);
 
     return {
@@ -106,7 +144,7 @@ export function AccountantReport({ loans, payments, sales, expenses }: Accountan
       personalExp,
       totalExpenses,
       netProfit: totalRevenue - businessExp,
-      principalReceived: totalReceived - interestRevenue,
+      principalReceived: Math.max(0, totalReceived - interestRevenue),
     };
   }, [payments, sales, expenses, loans, period, monthFilter, yearFilter]);
 
