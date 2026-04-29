@@ -178,7 +178,12 @@ export function buildBillingWhatsappLink(params: {
 
   const juros = fees.lateFees || 0;
   const valorTotal = next.amount + juros;
-  const etiqueta = (loan.tags && loan.tags[0]) || "";
+  const etiqueta = Array.isArray(loan.tags)
+    ? loan.tags
+        .map((t) => (t == null ? "" : String(t).trim()))
+        .filter((t) => t.length > 0 && t.toLowerCase() !== "null" && t.toLowerCase() !== "undefined")
+        .join(", ")
+    : "";
 
   const template = pickMessage(messages, status);
   const message = applyMessageVariables(template, {
