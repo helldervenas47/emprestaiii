@@ -95,7 +95,7 @@ type Tab = "overview" | "dashboard" | "clients" | "products" | "vehicles" | "ove
 type ClientSubTab = "clientes" | "veiculos";
 type VehicleSubTab = "veiculos" | "locadores";
 type PlanMgmtSubTab = "subscribers" | "plans";
-type OverdueSubTab = "cobrancas" | "inadimplencia-acumulada" | "contador" | "metas" | "planejamento" | "bot-telegram" | "whatsapp-cobranca";
+type OverdueSubTab = "cobrancas" | "inadimplencia-acumulada" | "metas" | "planejamento" | "bot-telegram" | "whatsapp-cobranca";
 type ExpenseSubTab = "business" | "personal";
 type PersonalSubTab = "expenses" | "cards";
 
