@@ -4159,6 +4159,14 @@ export function LoanList({ loans, payments, installmentSchedules, onPayment, onP
                 <DatePickerField value={dateTo} onChange={(v) => setDateTo(v)} className="h-8 text-sm" />
               </div>
               <div>
+                <Label className="text-xs text-muted-foreground">Vencimento (De)</Label>
+                <DatePickerField value={dueDateFrom} onChange={(v) => setDueDateFrom(v)} className="h-8 text-sm" />
+              </div>
+              <div>
+                <Label className="text-xs text-muted-foreground">Vencimento (Até)</Label>
+                <DatePickerField value={dueDateTo} onChange={(v) => setDueDateTo(v)} className="h-8 text-sm" />
+              </div>
+              <div>
                 <Label className="text-xs text-muted-foreground">Valor Mínimo (R$)</Label>
                 <Input type="number" step="0.01" placeholder="0" value={amountMin} onChange={(e) => setAmountMin(e.target.value)} className="h-8 text-sm" />
               </div>
