@@ -6,9 +6,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { MessageCircle, Save, RotateCcw, Eye, AlertTriangle } from "lucide-react";
+import { MessageCircle, Save, RotateCcw, Eye, AlertTriangle, Send, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { useWhatsappBillingMessages } from "@/hooks/useWhatsappBillingMessages";
+import { useWhatsappBillingSchedule } from "@/hooks/useWhatsappBillingSchedule";
 import {
   DEFAULT_WHATSAPP_MESSAGES,
   applyMessageVariables,
@@ -172,6 +173,7 @@ export function WhatsappBillingCard() {
             onChange={(v) => setDraft((d) => ({ ...d, message_manager_weekly: v }))}
             disabled={loading}
             pixLink={draft.pix_link}
+            dirty={dirty}
           />
 
           <div className="flex flex-wrap items-center justify-end gap-2 pt-2 border-t border-border/60">
@@ -274,13 +276,17 @@ function ManagerField({
   onChange,
   disabled,
   pixLink,
+  dirty,
 }: {
   value: string;
   onChange: (v: string) => void;
   disabled?: boolean;
   pixLink: string;
+  dirty?: boolean;
 }) {
   const [showPreview, setShowPreview] = useState(false);
+  const [sending, setSending] = useState(false);
+  const { runManagerSummaryNow } = useWhatsappBillingSchedule();
   const unknown = findUnknownVariables(value);
   const preview = value
     .replace(/\{total_emprestimos_semana\}/g, "3")
@@ -291,9 +297,32 @@ function ManagerField({
       "- Maria Silva [VIP] — R$ 500,00 (vence 02/05)\n- João Pereira [Renovação] — R$ 450,00 (vence 04/05)\n- Ana Souza — R$ 500,00 (vence 06/05)",
     )
     .replace(/\{link_pagamento\}/g, pixLink || "");
+
+  const handleSendNow = async () => {
+    if (dirty) {
+      toast.warning("Salve as alterações antes de enviar.");
+      return;
+    }
+    setSending(true);
+    try {
+      const res: any = await runManagerSummaryNow();
+      const sent = (res?.results ?? []).filter((r: any) => r.success).length;
+      const failed = (res?.results ?? []).filter((r: any) => r.success === false).length;
+      if (sent === 0 && failed === 0) {
+        toast.info("Nenhum gerente com telefone configurado encontrado.");
+      } else {
+        toast.success(`Resumo de gerentes: ${sent} enviado(s), ${failed} falha(s).`);
+      }
+    } catch (e: any) {
+      toast.error("Falha ao enviar resumo: " + (e?.message ?? String(e)));
+    } finally {
+      setSending(false);
+    }
+  };
+
   return (
     <div className="space-y-1.5">
-      <div className="flex items-center justify-between gap-2">
+      <div className="flex items-center justify-between gap-2 flex-wrap">
         <div className="flex items-center gap-2">
           <Badge variant="outline" className="text-xs bg-primary/10 text-primary border-primary/30">
             Resumo semanal — Gerentes
@@ -302,15 +331,28 @@ function ManagerField({
             Lista empréstimos vencendo na semana atual.
           </span>
         </div>
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          className="h-7 px-2 text-[11px]"
-          onClick={() => setShowPreview((s) => !s)}
-        >
-          <Eye className="h-3.5 w-3.5 mr-1" /> {showPreview ? "Ocultar" : "Pré-visualizar"}
-        </Button>
+        <div className="flex items-center gap-1">
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="h-7 px-2 text-[11px]"
+            onClick={() => setShowPreview((s) => !s)}
+          >
+            <Eye className="h-3.5 w-3.5 mr-1" /> {showPreview ? "Ocultar" : "Pré-visualizar"}
+          </Button>
+          <Button
+            type="button"
+            variant="secondary"
+            size="sm"
+            className="h-7 px-2 text-[11px]"
+            onClick={handleSendNow}
+            disabled={sending || disabled}
+          >
+            {sending ? <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" /> : <Send className="h-3.5 w-3.5 mr-1" />}
+            Enviar resumo agora
+          </Button>
+        </div>
       </div>
       <Textarea
         value={value}
