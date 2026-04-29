@@ -27,7 +27,7 @@ const LOAN_VARS = [
   "link_pagamento",
 ];
 
-const MANAGER_VARS = ["total_emprestimos_semana", "lista_clientes", "valores_totais"];
+const MANAGER_VARS = ["total_emprestimos_semana", "lista_clientes", "valores_totais", "etiquetas"];
 
 export function WhatsappBillingCard() {
   const { messages, loading, save } = useWhatsappBillingMessages();
@@ -285,9 +285,10 @@ function ManagerField({
   const preview = value
     .replace(/\{total_emprestimos_semana\}/g, "3")
     .replace(/\{valores_totais\}/g, "R$ 1.450,00")
+    .replace(/\{etiquetas\}/g, "VIP, Renovação")
     .replace(
       /\{lista_clientes\}/g,
-      "- Maria Silva — R$ 500,00 (vence 02/05)\n- João Pereira — R$ 450,00 (vence 04/05)\n- Ana Souza — R$ 500,00 (vence 06/05)",
+      "- Maria Silva [VIP] — R$ 500,00 (vence 02/05)\n- João Pereira [Renovação] — R$ 450,00 (vence 04/05)\n- Ana Souza — R$ 500,00 (vence 06/05)",
     )
     .replace(/\{link_pagamento\}/g, pixLink || "");
   return (

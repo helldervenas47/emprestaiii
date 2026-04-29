@@ -145,7 +145,7 @@ const KNOWN_VARS = new Set([
   "nome_cliente", "nome", "valor_parcela", "valor", "data_vencimento",
   "dias_atraso", "juros", "valor_total", "etiqueta", "link_pagamento",
   // manager-only
-  "total_emprestimos_semana", "lista_clientes", "valores_totais",
+  "total_emprestimos_semana", "lista_clientes", "valores_totais", "etiquetas",
 ]);
 export function findUnknownVariables(template: string): string[] {
   const matches = template.match(/\{([a-z_]+)\}/g) ?? [];
