@@ -173,6 +173,7 @@ export function WhatsappBillingCard() {
             onChange={(v) => setDraft((d) => ({ ...d, message_manager_weekly: v }))}
             disabled={loading}
             pixLink={draft.pix_link}
+            dirty={dirty}
           />
 
           <div className="flex flex-wrap items-center justify-end gap-2 pt-2 border-t border-border/60">
