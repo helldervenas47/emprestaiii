@@ -106,12 +106,14 @@ Deno.serve(async (req: Request) => {
     const week = startOfWeekISO();
 
     for (const sched of schedules ?? []) {
-      if (!forceOwner) {
+      // Skip schedule-time gating for manual/preview/list flows
+      if (!forceOwner && !previewOnly && !listManagers && !targetManagerId) {
         if (Number(sched.manager_summary_day_of_week) !== currentDow) continue;
         const targetHour = (sched.manager_summary_time || "09:00").slice(0, 2);
         if (currentHM.slice(0, 2) !== targetHour) continue;
       }
-      if (!sched.base_url || !sched.instance_id || !API_KEY) {
+      const skipCredsCheck = previewOnly || listManagers;
+      if (!skipCredsCheck && (!sched.base_url || !sched.instance_id || !API_KEY)) {
         results.push({ owner_id: sched.owner_id, skipped: "missing_credentials" });
         continue;
       }
