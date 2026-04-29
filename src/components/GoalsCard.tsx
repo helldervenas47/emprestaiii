@@ -53,19 +53,19 @@ const GOAL_EXPLANATIONS: Record<GoalType, {
     measurement: "Quanto maior, mais próximo da meta. Atingimento = (Realizado ÷ Meta) × 100. Resultado em % com 2 casas decimais.",
   },
   profit: {
-    formula: "Faturamento do Período (%) = (Lucro Realizado ÷ (Lucro Realizado + Lucro Previsto)) × 100",
+    formula: "Faturamento do Período (%) = (Total Recebido no Mês ÷ Total Previsto no Mês) × 100",
     indicators: [
-      "Lucro Realizado: mesma lógica do gráfico 'Lucro por Período' (Realizado)",
-      "Lucro Previsto: parcelas com vencimento no mês × proporção de juros do contrato",
-      "% Meta no card = (Realizado ÷ (Previsto × Meta/100)) × 100",
+      "Total Recebido = soma de TODOS pagamentos com data no mês (principal + juros + multa), igual ao extrato",
+      "Inclui pagamentos somente de juros (parcela 0) e juros + multa",
+      "Total Previsto = soma das parcelas (principal + juros) com vencimento no mês, independentemente do status (pendente ou quitada)",
     ],
-    dataSource: ["Tabela de Pagamentos", "Tabela de Empréstimos (amount, interest_rate, installments)"],
+    dataSource: ["Tabela de Pagamentos (payments.date, payments.amount)", "Tabela de Empréstimos / Cronograma de Parcelas (vencimentos no mês)"],
     example: {
-      setup: "Lucro Previsto: R$ 2.000. Lucro Realizado: R$ 1.500.",
-      calc: "(1.500 ÷ (1.500 + 2.000)) × 100",
-      result: "Faturamento do Período = 42,86%",
+      setup: "Previsto a receber no mês: R$ 3.000. Recebido no mês: R$ 1.800 (parcelas + R$ 200 de juros avulsos).",
+      calc: "(1.800 ÷ 3.000) × 100",
+      result: "Faturamento do Período = 60,00%",
     },
-    measurement: "Espelha o campo '% Lucro' do card 'Lucro por Período' no Dashboard. Resultado em % com 2 casas decimais.",
+    measurement: "Reflete exatamente o que entrou no extrato vs. o previsto a receber pelo vencimento. Resultado em % com 2 casas decimais.",
   },
   loan_volume: {
     formula: "Volume = Soma do valor principal de todos os empréstimos com data de início no mês selecionado",
@@ -499,13 +499,16 @@ export function computeActual(
       return summary.rate ?? 0;
     }
     case "profit": {
-      // Mesma lógica do campo "% Lucro" / "% Meta" do card "Lucro por Período"
-      // = (Realizado ÷ (Realizado + Previsto)) × 100
-      const realized = computeProfitRealized(loans, payments, m);
-      const expected = computeProfitExpected(loans, m);
-      const previstoTotal = realized + expected;
-      if (previstoTotal <= 0) return 0;
-      return (realized / previstoTotal) * 100;
+      // Faturamento do Período = (Total Recebido no Mês ÷ Total Previsto no Mês) × 100
+      // Numerador: soma de TODOS os pagamentos com data no mês (principal + juros + multa)
+      // Denominador: soma das parcelas (principal + juros) com vencimento no mês,
+      // independentemente do status (pendente ou quitado).
+      const received = payments
+        .filter((p: any) => inMonth(p.date, m))
+        .reduce((s: number, p: any) => s + (Number(p.amount) || 0), 0);
+      const expected = computeExpectedReceivable(loans, m);
+      if (expected <= 0) return 0;
+      return (received / expected) * 100;
     }
     default:
       return 0;
@@ -1263,17 +1266,10 @@ function GoalDetailDialog({ open, onClose, goal, viewingMonth, payments, loans, 
                 </div>
                 {goal.goalType === "profit" && goal.expectedReceivable !== null && goal.targetAmount !== null && (() => {
                   const computeMonth = viewingMonth || goal.month;
-                  // "Recebido total" deve refletir os pagamentos das PARCELAS que vencem no mês,
-                  // alinhando com "Previsto a receber" (que também é por vencimento da parcela),
-                  // independentemente da data em que o pagamento foi efetivamente registrado.
+                  // Recebido total = TODOS os pagamentos com data no mês (principal + juros + multa),
+                  // refletindo exatamente o que entrou no extrato da conta.
                   const receivedTotal = payments.reduce((s: number, p: any) => {
-                    const loanId = p.loanId || p.loan_id;
-                    const instNum = Number(p.installmentNumber ?? p.installment_number) || 0;
-                    if (!loanId || !instNum) return s;
-                    const loan = loans.find((l: any) => l.id === loanId);
-                    if (!loan) return s;
-                    const dueMonth = getInstallmentDueMonth(loan, instNum, installmentSchedules);
-                    if (dueMonth !== computeMonth) return s;
+                    if (!inMonth(p.date, computeMonth)) return s;
                     return s + (Number(p.amount) || 0);
                   }, 0);
                   const diffToTarget = Math.max(0, goal.targetAmount - receivedTotal);
