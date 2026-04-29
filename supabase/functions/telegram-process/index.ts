@@ -437,6 +437,90 @@ function buildCreditCardExpense(card: CardLite, _baseDescription: string, baseNo
   return { due_date: purchaseDate, paid: false, paid_date: null, notes, invoiceDueDate };
 }
 
+/** Reconstrói o ciclo (from, to) ancorado em uma data de referência (espelha src/lib/creditCardInvoiceTotals.ts). */
+function getCycleForRef(ref: Date, closingDay: number, dueDay: number) {
+  const y = ref.getUTCFullYear();
+  const m = ref.getUTCMonth();
+  const day = ref.getUTCDate();
+  const lastDayThis = new Date(Date.UTC(y, m + 1, 0)).getUTCDate();
+  const closingThis = new Date(Date.UTC(y, m, Math.min(closingDay, lastDayThis)));
+  const lastDayNext = new Date(Date.UTC(y, m + 2, 0)).getUTCDate();
+  const closingNext =
+    day > closingDay
+      ? new Date(Date.UTC(y, m + 1, Math.min(closingDay, lastDayNext)))
+      : closingThis;
+  const lastDayPrev = new Date(Date.UTC(y, m, 0)).getUTCDate();
+  const closingPrev =
+    day > closingDay
+      ? closingThis
+      : new Date(Date.UTC(y, m - 1, Math.min(closingDay, lastDayPrev)));
+  return { from: closingPrev, to: closingNext };
+}
+
+function cycleKeyFromDate(closingTo: Date): string {
+  return `${closingTo.getUTCFullYear()}-${String(closingTo.getUTCMonth() + 1).padStart(2, "0")}`;
+}
+
+/**
+ * Calcula o total atual da fatura em aberto do cartão (compras do ciclo vigente
+ * + saldo inicial registrado em credit_card_invoice_openings). Usado para dar
+ * feedback imediato após registrar uma despesa de cartão pelo bot.
+ */
+async function computeCurrentInvoiceTotal(
+  admin: any,
+  userId: string,
+  card: CardLite,
+): Promise<number> {
+  try {
+    const today = todayBR();
+    const [y, m, d] = today.split("-").map(Number);
+    const ref = new Date(Date.UTC(y, m - 1, d));
+    const cycle = getCycleForRef(ref, card.closing_day, card.due_day);
+    const fromYmd = cycle.from.toISOString().slice(0, 10);
+    const toYmd = cycle.to.toISOString().slice(0, 10);
+    const cardTag = (card.nickname || card.last_four || "").toLowerCase();
+
+    // Despesas de cartão do ciclo (mesmo critério usado em creditCardInvoiceTotals.ts):
+    // due_date dentro do ciclo + tag [Crédito] nas notes.
+    const { data: rows } = await admin
+      .from("expenses")
+      .select("amount, type, installments, notes")
+      .eq("user_id", userId)
+      .gte("due_date", fromYmd)
+      .lte("due_date", toYmd);
+
+    let itemsTotal = 0;
+    for (const e of (rows ?? []) as any[]) {
+      const notes = String(e.notes ?? "");
+      if (!/\[\s*cr[eé]dito\s*\]/i.test(notes)) continue;
+      // Filtra por cartão: se a nota referencia outro cartão, ignora.
+      if (cardTag) {
+        const n = notes.toLowerCase();
+        if (!n.includes(cardTag) && /cart[aã]o[:\s]/i.test(n)) continue;
+      }
+      const isRec = e.type === "recorrente" && !!e.installments && e.installments > 1;
+      const value = isRec ? Number(e.amount) / Number(e.installments) : Number(e.amount);
+      if (Number.isFinite(value)) itemsTotal += value;
+    }
+
+    // Saldo inicial da fatura (opening) para esse ciclo.
+    const cycleKey = cycleKeyFromDate(cycle.to);
+    const { data: opening } = await admin
+      .from("credit_card_invoice_openings")
+      .select("opening_amount")
+      .eq("user_id", userId)
+      .eq("card_id", card.id)
+      .eq("cycle_key", cycleKey)
+      .maybeSingle();
+    const openingAmount = Number((opening as any)?.opening_amount ?? 0);
+
+    return itemsTotal + (Number.isFinite(openingAmount) ? openingAmount : 0);
+  } catch (e) {
+    console.error("computeCurrentInvoiceTotal err", e);
+    return 0;
+  }
+}
+
 // Detects installment phrasing in the message and returns N parcels.
 // Examples: "10x", "em 3x", "em 12 vezes", "parcelado em 6", "6 parcelas",
 //           "dividido em 4", "4 vezes de 50".
@@ -1808,8 +1892,14 @@ Deno.serve(async (req) => {
                   ? `💳 *Compra no cartão (comprovante)*`
                   : `📸 *Despesa extraída do comprovante*`;
                 const cardLine = card ? `\n💳 ${card.nickname || card.bank} (vence ${displayDate})` : "";
+                let invoiceLine = "";
+                if (card) {
+                  const invoiceTotal = await computeCurrentInvoiceTotal(admin, link.user_id, card);
+                  const fmtInvoice = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(invoiceTotal);
+                  invoiceLine = `\n💳 Fatura atual: ${fmtInvoice}`;
+                }
                 await tgSendWithKeyboard(chatId,
-                  `${header}\n\n💰 ${fmt}\n📂 ${finalCategory}${cardLine}\n📝 ${extracted.description}\n📅 ${displayDate}`,
+                  `${header}\n\n💰 ${fmt}\n📂 ${finalCategory}${cardLine}\n📝 ${extracted.description}\n📅 ${displayDate}${invoiceLine}`,
                   buildExpenseKeyboard(ins.id),
                   LOVABLE_API_KEY, TELEGRAM_API_KEY);
                 if (!card) {
@@ -1904,8 +1994,14 @@ Deno.serve(async (req) => {
                   : (card ? `💳 *Compra no cartão (áudio)*` : `🎤 *Despesa registrada por áudio*`);
                 const cardLine = card ? `\n💳 ${card.nickname || card.bank} (vence ${displayDate})` : "";
                 const parcelLine = installmentsN ? `\n🔢 ${installmentsN}x de ${fmtParcel}` : "";
+                let invoiceLine = "";
+                if (card) {
+                  const invoiceTotal = await computeCurrentInvoiceTotal(admin, link.user_id, card);
+                  const fmtInvoice = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(invoiceTotal);
+                  invoiceLine = `\n💳 Fatura atual: ${fmtInvoice}`;
+                }
                 await tgSendWithKeyboard(chatId,
-                  `${header}\n\n_"${transcript}"_\n\n💰 ${fmt}${parcelLine}\n📂 ${finalCategory}${cardLine}\n📝 ${extracted.description}\n📅 ${displayDate}`,
+                  `${header}\n\n_"${transcript}"_\n\n💰 ${fmt}${parcelLine}\n📂 ${finalCategory}${cardLine}\n📝 ${extracted.description}\n📅 ${displayDate}${invoiceLine}`,
                   buildExpenseKeyboard(ins.id),
                   LOVABLE_API_KEY, TELEGRAM_API_KEY);
                 if (!card) {
@@ -2334,7 +2430,15 @@ Deno.serve(async (req) => {
                   await tgSend(chatId, "❌ Erro ao salvar no banco: " + (insErr?.message ?? "desconhecido"), LOVABLE_API_KEY, TELEGRAM_API_KEY);
                 } else {
                   // Confirmação final com teclado de ações após o registro persistir.
-                  await tgSendWithKeyboard(chatId, summaryText, buildExpenseKeyboard(ins.id), LOVABLE_API_KEY, TELEGRAM_API_KEY);
+                  // Para despesas de cartão, anexa o valor atualizado da fatura
+                  // (recalculado já com a nova despesa incluída).
+                  let finalSummary = summaryText;
+                  if (card) {
+                    const invoiceTotal = await computeCurrentInvoiceTotal(admin, link.user_id, card);
+                    const fmtInvoice = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(invoiceTotal);
+                    finalSummary = `${summaryText}\n💳 Fatura atual: ${fmtInvoice}`;
+                  }
+                  await tgSendWithKeyboard(chatId, finalSummary, buildExpenseKeyboard(ins.id), LOVABLE_API_KEY, TELEGRAM_API_KEY);
                   if (!card) {
                     checkBudgetAndAlert(admin, link.user_id, chatId, finalCategory, LOVABLE_API_KEY, TELEGRAM_API_KEY)
                       .catch((e) => console.error("budget alert bg err", e));
