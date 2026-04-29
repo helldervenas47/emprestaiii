@@ -233,14 +233,7 @@ export function AccountantReport({ loans, payments, sales, expenses }: Accountan
       map.set(k, cur);
       paymentCount += 1;
     });
-    sales.filter((s) => matchPeriod(s.date ?? s.sale_date)).forEach((s) => {
-      const d = s.date ?? s.sale_date;
-      const k = period === "month" ? d : getMonthKey(d);
-      const cur = map.get(k) || { in: 0, out: 0 };
-      cur.in += Number(s.total) || 0;
-      map.set(k, cur);
-      saleCount += 1;
-    });
+    // Vendas excluídas do contador (apenas empréstimos e despesas empresariais)
     expenses.filter((e) => {
       const dt = e.paidDate ?? e.paid_date ?? e.dueDate ?? e.due_date;
       return e.paid && (e.scope ?? "business") !== "personal" && matchPeriod(dt);
