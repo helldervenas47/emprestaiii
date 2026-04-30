@@ -704,6 +704,7 @@ export type Database = {
         Row: {
           created_at: string
           enabled: boolean
+          format: string
           last_sent: Json
           send_target: string
           send_time_1: string | null
@@ -715,6 +716,7 @@ export type Database = {
         Insert: {
           created_at?: string
           enabled?: boolean
+          format?: string
           last_sent?: Json
           send_target?: string
           send_time_1?: string | null
@@ -726,6 +728,7 @@ export type Database = {
         Update: {
           created_at?: string
           enabled?: boolean
+          format?: string
           last_sent?: Json
           send_target?: string
           send_time_1?: string | null
@@ -1427,6 +1430,7 @@ export type Database = {
           alert_on_trend: boolean
           created_at: string
           enabled: boolean
+          format: string
           last_sent: Json
           send_time_1: string | null
           send_time_2: string | null
@@ -1440,6 +1444,7 @@ export type Database = {
           alert_on_trend?: boolean
           created_at?: string
           enabled?: boolean
+          format?: string
           last_sent?: Json
           send_time_1?: string | null
           send_time_2?: string | null
@@ -1453,6 +1458,7 @@ export type Database = {
           alert_on_trend?: boolean
           created_at?: string
           enabled?: boolean
+          format?: string
           last_sent?: Json
           send_time_1?: string | null
           send_time_2?: string | null
@@ -1886,6 +1892,7 @@ export type Database = {
         Row: {
           created_at: string
           enabled: boolean
+          format: string
           id: string
           last_sent: Json
           send_time_1: string | null
@@ -1897,6 +1904,7 @@ export type Database = {
         Insert: {
           created_at?: string
           enabled?: boolean
+          format?: string
           id?: string
           last_sent?: Json
           send_time_1?: string | null
@@ -1908,6 +1916,7 @@ export type Database = {
         Update: {
           created_at?: string
           enabled?: boolean
+          format?: string
           id?: string
           last_sent?: Json
           send_time_1?: string | null
@@ -1922,6 +1931,7 @@ export type Database = {
         Row: {
           created_at: string
           enabled: boolean
+          format: string
           last_sent: Json
           send_time_1: string | null
           send_time_2: string | null
@@ -1932,6 +1942,7 @@ export type Database = {
         Insert: {
           created_at?: string
           enabled?: boolean
+          format?: string
           last_sent?: Json
           send_time_1?: string | null
           send_time_2?: string | null
@@ -1942,6 +1953,7 @@ export type Database = {
         Update: {
           created_at?: string
           enabled?: boolean
+          format?: string
           last_sent?: Json
           send_time_1?: string | null
           send_time_2?: string | null
@@ -2063,6 +2075,7 @@ export type Database = {
         Row: {
           created_at: string
           enabled: boolean
+          format: string
           id: string
           last_sent_date: string | null
           message_template: string
@@ -2074,6 +2087,7 @@ export type Database = {
         Insert: {
           created_at?: string
           enabled?: boolean
+          format?: string
           id?: string
           last_sent_date?: string | null
           message_template?: string
@@ -2085,6 +2099,7 @@ export type Database = {
         Update: {
           created_at?: string
           enabled?: boolean
+          format?: string
           id?: string
           last_sent_date?: string | null
           message_template?: string
@@ -2260,6 +2275,7 @@ export type Database = {
       telegram_summary_prefs: {
         Row: {
           created_at: string
+          daily_format: string
           enabled: boolean
           last_monthly_sent_month: string | null
           last_sent_date: string | null
@@ -2272,11 +2288,13 @@ export type Database = {
           updated_at: string
           user_id: string
           weekly_enabled: boolean
+          weekly_format: string
           weekly_send_time: string
           weekly_send_weekday: number
         }
         Insert: {
           created_at?: string
+          daily_format?: string
           enabled?: boolean
           last_monthly_sent_month?: string | null
           last_sent_date?: string | null
@@ -2289,11 +2307,13 @@ export type Database = {
           updated_at?: string
           user_id: string
           weekly_enabled?: boolean
+          weekly_format?: string
           weekly_send_time?: string
           weekly_send_weekday?: number
         }
         Update: {
           created_at?: string
+          daily_format?: string
           enabled?: boolean
           last_monthly_sent_month?: string | null
           last_sent_date?: string | null
@@ -2306,8 +2326,104 @@ export type Database = {
           updated_at?: string
           user_id?: string
           weekly_enabled?: boolean
+          weekly_format?: string
           weekly_send_time?: string
           weekly_send_weekday?: number
+        }
+        Relationships: []
+      }
+      tracking_positions: {
+        Row: {
+          address: string | null
+          address_cached_at: string | null
+          device_time: string
+          ignition: boolean | null
+          latitude: number
+          longitude: number
+          online: boolean
+          owner_id: string
+          raw: Json | null
+          speed_kmh: number | null
+          updated_at: string
+          vehicle_id: string
+        }
+        Insert: {
+          address?: string | null
+          address_cached_at?: string | null
+          device_time: string
+          ignition?: boolean | null
+          latitude: number
+          longitude: number
+          online?: boolean
+          owner_id: string
+          raw?: Json | null
+          speed_kmh?: number | null
+          updated_at?: string
+          vehicle_id: string
+        }
+        Update: {
+          address?: string | null
+          address_cached_at?: string | null
+          device_time?: string
+          ignition?: boolean | null
+          latitude?: number
+          longitude?: number
+          online?: boolean
+          owner_id?: string
+          raw?: Json | null
+          speed_kmh?: number | null
+          updated_at?: string
+          vehicle_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tracking_positions_vehicle_id_fkey"
+            columns: ["vehicle_id"]
+            isOneToOne: true
+            referencedRelation: "vehicle_registry"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tracking_providers: {
+        Row: {
+          auth_type: string
+          base_url: string
+          created_at: string
+          credential_secret_name: string
+          enabled: boolean
+          id: string
+          last_sync_at: string | null
+          last_sync_error: string | null
+          owner_id: string
+          provider: string
+          updated_at: string
+        }
+        Insert: {
+          auth_type?: string
+          base_url: string
+          created_at?: string
+          credential_secret_name: string
+          enabled?: boolean
+          id?: string
+          last_sync_at?: string | null
+          last_sync_error?: string | null
+          owner_id: string
+          provider: string
+          updated_at?: string
+        }
+        Update: {
+          auth_type?: string
+          base_url?: string
+          created_at?: string
+          credential_secret_name?: string
+          enabled?: boolean
+          id?: string
+          last_sync_at?: string | null
+          last_sync_error?: string | null
+          owner_id?: string
+          provider?: string
+          updated_at?: string
         }
         Relationships: []
       }
@@ -2508,6 +2624,7 @@ export type Database = {
           marca_modelo: string
           placa: string
           renavam: string
+          tracker_device_id: string | null
           updated_at: string
           user_id: string
         }
@@ -2519,6 +2636,7 @@ export type Database = {
           marca_modelo?: string
           placa?: string
           renavam?: string
+          tracker_device_id?: string | null
           updated_at?: string
           user_id: string
         }
@@ -2530,6 +2648,7 @@ export type Database = {
           marca_modelo?: string
           placa?: string
           renavam?: string
+          tracker_device_id?: string | null
           updated_at?: string
           user_id?: string
         }
