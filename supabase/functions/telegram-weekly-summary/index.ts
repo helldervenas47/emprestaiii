@@ -114,7 +114,17 @@ async function buildAndSendWeekly(
     }
   }
 
-  await tgSend(Number(link.chat_id), lines.join("\n"), lovableKey, telegramKey);
+  await sendReportFlexible({
+    chatId: Number(link.chat_id),
+    format,
+    textBody: lines.join("\n"),
+    title: `${brandName} — Resumo semanal`,
+    subtitle: `${fmtDateBR(weekStart)} a ${fmtDateBR(today)}`,
+    imageCaption: `📅 *${brandName} — Resumo semanal*`,
+    brand: { name: brandName, primaryHsl: null },
+    lovableKey,
+    telegramKey,
+  });
   return true;
 }
 
