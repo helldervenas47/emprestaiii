@@ -208,7 +208,7 @@ export function TelegramManagerWeeklyCard() {
                       <div className="min-w-0">
                         <p className="text-sm font-medium truncate">{m.name}</p>
                         <p className="text-[11px] text-muted-foreground">
-                          ⚠️ {m.overdue_count} atrasado(s) · 📅 {m.week_count} esta semana ·{" "}
+                          ⚠️ {m.overdue_count} atrasado(s) · 📅 {m.week_count} próxima semana ·{" "}
                           {m.total_amount.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
                         </p>
                       </div>
