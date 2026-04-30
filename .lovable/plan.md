@@ -1,70 +1,87 @@
+## Objetivo
 
-# Como configurar o Assistente Financeiro do WhatsApp
+Permitir que o bot do Telegram envie os relatórios como **imagem PNG** (card visual), além do texto. Começamos pelo **Resumo Mensal Pessoal** e deixamos a base pronta para expandir aos demais (diário, semanal, gerente, cobrança, inadimplência, planejamento, insights).
 
-Aqui está o passo a passo para deixar o assistente respondendo no seu WhatsApp. A infraestrutura já está pronta no app — falta só conectar ao painel da Whatsmiau e autorizar seu número.
+## Como vai funcionar
 
-## Passo 1 — Abrir o card do Assistente no app
+1. A edge function que monta o relatório continua coletando os mesmos dados que já coleta hoje.
+2. Em vez de (ou além de) montar texto, ela monta um **SVG** com o layout do card (título, totais, comparações, lista de categorias, barras de orçamento, marca do app).
+3. O SVG é convertido em **PNG** dentro da própria função usando a biblioteca `resvg` para Deno (`@resvg/resvg-wasm`), sem dependências externas pagas.
+4. O PNG é enviado pelo Telegram via `sendPhoto` no gateway de conectores que já usamos, com uma legenda curta (mês, total, variação).
 
-1. Vá em **Relatórios** (no menu principal)
-2. Aba **Cobrança WhatsApp**
-3. Role até o card **"Assistente Financeiro WhatsApp"** (ícone de robô 🤖)
+Sem novos secrets. Sem serviço externo. Sem custo adicional.
 
-## Passo 2 — Autorizar seu número
+## Escopo desta entrega
 
-No card, na seção **"Adicionar número autorizado"**:
+- **Resumo mensal pessoal** (`telegram-monthly-summary`) passa a enviar PNG + legenda curta.
+- Criamos um helper compartilhado `supabase/functions/_shared/renderReportImage.ts` com:
+  - Função `buildMonthlySummarySVG(data, brand)` — monta o SVG do card.
+  - Função `svgToPng(svg)` — converte SVG → PNG via `@resvg/resvg-wasm`.
+  - Função `tgSendPhoto(chatId, pngBytes, caption, ...)` — envia via gateway.
+- Configuração por usuário: nova coluna `monthly_format` em `telegram_summary_prefs` com valores `text` (atual) ou `image` (novo). Default: `text` para não mudar comportamento de quem já usa.
+- Toggle na UI de preferências do bot (componente do resumo mensal) para o usuário escolher entre Texto / Imagem.
+- Os outros bots ficam exatamente como estão hoje (texto). O helper já fica pronto para reuso quando você quiser ativar nos próximos.
 
-1. Digite seu telefone com **DDD** (ex: `11999999999`) — o `+55` é adicionado automaticamente
-2. Apelido é opcional (ex: "Meu celular")
-3. Clique em **Autorizar**
+## Design do card (resumo mensal)
 
-⚠️ Só números nessa lista conseguem conversar com a IA. Mantenha curto por segurança (você pediu modo só-admin).
-
-## Passo 3 — Copiar a URL do Webhook
-
-Ainda no card, há uma caixa cinza no topo com a **URL do Webhook**:
-
+```text
+┌──────────────────────────────────────────┐
+│  EmprestAI · Resumo Mensal               │
+│  Abril / 2026                            │
+│                                          │
+│  Total do mês                            │
+│  R$ 4.823,10        🔻 -12% vs mês ant. │
+│  Média diária: R$ 160,77 (30 dias)       │
+│ ─────────────────────────────────────── │
+│  Top categorias                          │
+│  ▰▰▰▰▰▰▱▱  Mercado     R$ 1.420  +5%   │
+│  ▰▰▰▰▱▱▱▱  Transporte  R$   890  -8%   │
+│  ▰▰▰▱▱▱▱▱  Lazer       R$   620  +20%  │
+│  ...                                     │
+│ ─────────────────────────────────────── │
+│  Orçamentos                              │
+│  🟢 Mercado     78%   R$ 380 restante   │
+│  🟡 Lazer       91%   R$  60 restante   │
+│  🔴 Restaurante 112%  R$ 120 acima      │
+└──────────────────────────────────────────┘
 ```
-https://tovwnqbjeaecwtymbncy.supabase.co/functions/v1/whatsapp-assistant-webhook
+
+- Largura 1080px (boa qualidade no celular do Telegram).
+- Paleta: usa `app_branding` (cor primária) quando disponível, fallback para azul atual do app.
+- Tipografia: fontes do sistema embutidas como SVG `<text>` — sem precisar baixar fonte externa.
+
+## Detalhes técnicos
+
+**Arquivos novos**
+- `supabase/functions/_shared/renderReportImage.ts` — gerador SVG + conversão PNG + helper `sendPhoto`.
+
+**Arquivos alterados**
+- `supabase/functions/telegram-monthly-summary/index.ts` — usa o helper quando `monthly_format = 'image'`; senão mantém fluxo de texto atual.
+- `src/components/TelegramReportsConnectCard.tsx` (ou o componente que controla o resumo mensal — confirmar ao implementar) — adiciona o seletor Texto/Imagem.
+- `src/hooks/useTelegramSummaryPref.ts` — expõe `monthly_format` no estado e no `save`.
+
+**Migração SQL**
+```sql
+ALTER TABLE public.telegram_summary_prefs
+  ADD COLUMN IF NOT EXISTS monthly_format text NOT NULL DEFAULT 'text'
+  CHECK (monthly_format IN ('text','image'));
 ```
 
-Clique no botão de **copiar** (ícone 📋) ao lado.
+**Conversão SVG → PNG**
+- Import: `import { Resvg, initWasm } from "https://esm.sh/@resvg/resvg-wasm@2.6.2"`
+- Inicializa o wasm uma vez por invocação, reaproveita em todos os envios do loop cron.
 
-## Passo 4 — Configurar o Webhook na Whatsmiau
+**Envio**
+- `POST {GATEWAY}/sendPhoto` com `multipart/form-data`: campo `chat_id`, `caption` (Markdown curto), e `photo` como arquivo binário do PNG.
+- Mantém `parse_mode: Markdown` na legenda.
 
-1. Acesse o painel da **Whatsmiau / Evolution API** (onde sua instância de WhatsApp está)
-2. Entre na sua **instância conectada**
-3. Procure o menu **"Webhook"** (ou Configurações → Webhook)
-4. Configure:
-   - **URL**: cole a URL copiada no passo 3
-   - **Eventos**: marque **`messages.upsert`** (mensagem recebida)
-   - **Webhook by Events**: pode deixar desativado (mandamos tudo pra mesma URL)
-   - **Salvar**
+## Fora do escopo (próximas iterações)
 
-## Passo 5 — Testar
+- Aplicar o mesmo formato nos outros bots (diário, semanal, gerente, cobrança, etc.). A base fica pronta — basta criar `buildXxxSVG` e plugar.
+- Gráficos avançados (linha, pizza). Usaremos barras simples desenhadas em SVG nesta primeira versão.
 
-Pelo seu WhatsApp (do número autorizado), envie uma mensagem para o **número da sua instância Whatsmiau** (não para você mesmo). Exemplos:
+## Validação
 
-- "Quanto tenho a receber esse mês?"
-- "Quais contratos estão vencidos?"
-- "Qual meu lucro de hoje?"
-- "Mostra os 5 maiores devedores"
-
-A IA responde em alguns segundos com base nos seus dados reais (contratos, pagamentos, despesas, metas).
-
-## Se não funcionar
-
-| Sintoma | Causa provável | O que fazer |
-|---|---|---|
-| Bot não responde nada | Webhook não chegou | Verifique no painel Whatsmiau se o evento `messages.upsert` está ativo e a URL está correta |
-| "Número não autorizado" | Número diferente do cadastrado | Confira se o DDD+número no card bate com o que você usa no WhatsApp |
-| Resposta com erro | Cobrança ainda com URL errada | A URL base da Whatsmiau (cobrança) ainda precisa ser corrigida — ver pendência anterior |
-| Mensagem chega mas IA falha | Limite de IA / token | Veja logs da função `whatsapp-assistant-webhook` |
-
-## Observação
-
-O assistente usa a **mesma instância Whatsmiau** já cadastrada no app — não precisa criar instância nova. Ele só **lê mensagens recebidas** e **responde** usando a API que já está conectada.
-
-Se quiser, depois posso:
-- Adicionar comandos rápidos (ex: `/resumo`, `/vencidos`)
-- Adicionar log visual das conversas no app
-- Permitir que clientes consultem o próprio contrato
+- Disparar manualmente `telegram-monthly-summary?user_id=...` autenticado e conferir o PNG recebido.
+- Conferir logs da função para garantir que `resvg` carregou e o `sendPhoto` retornou `ok: true`.
+- Verificar que usuários com `monthly_format = 'text'` continuam recebendo texto (sem regressão).
