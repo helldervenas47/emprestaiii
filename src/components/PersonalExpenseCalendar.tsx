@@ -27,9 +27,16 @@ const compactCurrency = (v: number) => {
  * Mostra o total gasto por dia e, ao clicar, lista as despesas daquele dia.
  * O total considera a data efetiva de gasto: paidDate quando pago, senão dueDate.
  */
+const formatLocalDate = (d: Date) => {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+};
+
 export function PersonalExpenseCalendar({ expenses }: Props) {
   const today = new Date();
-  const todayStr = today.toISOString().split("T")[0];
+  const todayStr = formatLocalDate(today);
 
   const [expanded, setExpanded] = useState(false); // Recolhido por padrão
   const [year, setYear] = useState(today.getFullYear());
@@ -93,7 +100,7 @@ export function PersonalExpenseCalendar({ expenses }: Props) {
     const n = new Date();
     setMonth(n.getMonth());
     setYear(n.getFullYear());
-    setSelectedDate(n.toISOString().split("T")[0]);
+    setSelectedDate(formatLocalDate(n));
   };
 
   const handleDayClick = (day: number) => {
@@ -102,7 +109,7 @@ export function PersonalExpenseCalendar({ expenses }: Props) {
   };
 
   const handleWeekDayClick = (d: Date) => {
-    const dateStr = d.toISOString().split("T")[0];
+    const dateStr = formatLocalDate(d);
     setSelectedDate((prev) => (prev === dateStr ? null : dateStr));
     setYear(d.getFullYear());
     setMonth(d.getMonth());
@@ -243,7 +250,7 @@ export function PersonalExpenseCalendar({ expenses }: Props) {
                 </div>
                 <div className="grid grid-cols-7 gap-1">
                   {weekDays.map((d) => {
-                    const dateStr = d.toISOString().split("T")[0];
+                    const dateStr = formatLocalDate(d);
                     const info = dayMap[dateStr];
                     const total = info?.total ?? 0;
                     const has = total > 0;
