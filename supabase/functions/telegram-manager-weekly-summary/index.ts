@@ -279,7 +279,14 @@ async function processOwner(
         message: renderMessage(m.name, items),
       };
     });
-    return { owner_id: ownerId, preview: true, managers: previews };
+    return {
+      owner_id: ownerId,
+      preview: true,
+      reference_date: today,
+      week_start: week.start,
+      week_end: week.end,
+      managers: previews,
+    };
   }
 
   // SEND MODE
