@@ -370,3 +370,50 @@ export async function sendReportAsImage(args: {
   const png = await svgToPng(svg);
   await tgSendPhoto(args.chatId, png, args.caption, args.lovableKey, args.telegramKey);
 }
+
+/**
+ * Convenience: send a report either as text or image based on `format`.
+ * - title/subtitle are used for the image header
+ * - imageCaption is the (short) caption attached to the photo
+ * - On image render failure, automatically falls back to text.
+ */
+export async function sendReportFlexible(args: {
+  chatId: number;
+  format: "text" | "image";
+  textBody: string;        // full markdown body (used for both modes)
+  title: string;           // image-only: big title
+  subtitle?: string;       // image-only
+  imageCaption?: string;   // image-only short caption
+  brand: BrandInfo;
+  lovableKey: string;
+  telegramKey: string;
+}): Promise<void> {
+  if (args.format === "image") {
+    try {
+      await sendReportAsImage({
+        chatId: args.chatId,
+        title: args.title,
+        subtitle: args.subtitle,
+        bodyText: args.textBody,
+        caption: args.imageCaption ?? args.title,
+        brand: args.brand,
+        lovableKey: args.lovableKey,
+        telegramKey: args.telegramKey,
+      });
+      return;
+    } catch (e) {
+      console.error("image render failed, falling back to text:", e);
+    }
+  }
+  // Text fallback
+  const r = await fetch(`${GATEWAY_URL}/sendMessage`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${args.lovableKey}`,
+      "X-Connection-Api-Key": args.telegramKey,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ chat_id: args.chatId, text: args.textBody, parse_mode: "Markdown" }),
+  });
+  if (!r.ok) console.error("sendMessage failed", r.status, await r.text());
+}
