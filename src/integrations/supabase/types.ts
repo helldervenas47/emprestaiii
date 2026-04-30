@@ -2332,6 +2332,101 @@ export type Database = {
         }
         Relationships: []
       }
+      tracking_positions: {
+        Row: {
+          address: string | null
+          address_cached_at: string | null
+          device_time: string
+          ignition: boolean | null
+          latitude: number
+          longitude: number
+          online: boolean
+          owner_id: string
+          raw: Json | null
+          speed_kmh: number | null
+          updated_at: string
+          vehicle_id: string
+        }
+        Insert: {
+          address?: string | null
+          address_cached_at?: string | null
+          device_time: string
+          ignition?: boolean | null
+          latitude: number
+          longitude: number
+          online?: boolean
+          owner_id: string
+          raw?: Json | null
+          speed_kmh?: number | null
+          updated_at?: string
+          vehicle_id: string
+        }
+        Update: {
+          address?: string | null
+          address_cached_at?: string | null
+          device_time?: string
+          ignition?: boolean | null
+          latitude?: number
+          longitude?: number
+          online?: boolean
+          owner_id?: string
+          raw?: Json | null
+          speed_kmh?: number | null
+          updated_at?: string
+          vehicle_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tracking_positions_vehicle_id_fkey"
+            columns: ["vehicle_id"]
+            isOneToOne: true
+            referencedRelation: "vehicle_registry"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tracking_providers: {
+        Row: {
+          auth_type: string
+          base_url: string
+          created_at: string
+          credential_secret_name: string
+          enabled: boolean
+          id: string
+          last_sync_at: string | null
+          last_sync_error: string | null
+          owner_id: string
+          provider: string
+          updated_at: string
+        }
+        Insert: {
+          auth_type?: string
+          base_url: string
+          created_at?: string
+          credential_secret_name: string
+          enabled?: boolean
+          id?: string
+          last_sync_at?: string | null
+          last_sync_error?: string | null
+          owner_id: string
+          provider: string
+          updated_at?: string
+        }
+        Update: {
+          auth_type?: string
+          base_url?: string
+          created_at?: string
+          credential_secret_name?: string
+          enabled?: boolean
+          id?: string
+          last_sync_at?: string | null
+          last_sync_error?: string | null
+          owner_id?: string
+          provider?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       user_approvals: {
         Row: {
           created_at: string
@@ -2529,6 +2624,7 @@ export type Database = {
           marca_modelo: string
           placa: string
           renavam: string
+          tracker_device_id: string | null
           updated_at: string
           user_id: string
         }
@@ -2540,6 +2636,7 @@ export type Database = {
           marca_modelo?: string
           placa?: string
           renavam?: string
+          tracker_device_id?: string | null
           updated_at?: string
           user_id: string
         }
@@ -2551,6 +2648,7 @@ export type Database = {
           marca_modelo?: string
           placa?: string
           renavam?: string
+          tracker_device_id?: string | null
           updated_at?: string
           user_id?: string
         }
