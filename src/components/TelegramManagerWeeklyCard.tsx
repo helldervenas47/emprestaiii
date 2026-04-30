@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
-import { Users, Clock, Send, Eye, Sparkles, AlertTriangle } from "lucide-react";
+import { Users, Clock, Send, Eye, Sparkles, AlertTriangle, CalendarIcon } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useTelegramManagerWeeklyPrefs } from "@/hooks/useTelegramManagerWeeklyPrefs";
