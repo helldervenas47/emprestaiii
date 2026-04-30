@@ -157,10 +157,11 @@ Deno.serve(async (req) => {
 
       const prevTotal = (prevExpenses ?? []).reduce((s, e: any) => s + Number(e.amount || 0), 0);
 
-      // Budgets
+      // Budgets — filter by current month to avoid duplicates across months
       const { data: budgets } = await admin.from("personal_budgets")
         .select("category, amount")
-        .eq("user_id", pref.user_id);
+        .eq("user_id", pref.user_id)
+        .eq("month", monthPrefix);
 
       const lines: string[] = [];
       lines.push(`📊 *${brandName} — Resumo do dia* — ${today.split("-").reverse().join("/")}`);
