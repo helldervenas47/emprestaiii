@@ -39,16 +39,33 @@ function nowInTz(tz = APP_TZ) {
   };
 }
 
-function startOfWeekISO(today: string): { start: string; end: string } {
-  // ISO week Mon..Sun, anchored to provided "today" (YYYY-MM-DD)
+function nextWeekISO(today: string): { start: string; end: string } {
+  // Próxima semana ISO (Seg..Dom), inclusive em ambas as pontas.
+  // O cálculo é feito puramente sobre a string YYYY-MM-DD ancorada ao meio-dia UTC,
+  // portanto não depende do fuso horário do servidor (Deno default = UTC),
+  // e o "today" já chega convertido para America/Sao_Paulo via nowInTz().
   const d = new Date(`${today}T12:00:00Z`);
-  const dow = d.getUTCDay() || 7; // Sun=0 → 7
+  const dow = d.getUTCDay() || 7; // Dom=0 → 7, Seg=1 .. Sáb=6
+  // Segunda da semana ATUAL (em UTC, ainda meio-dia para evitar DST flips)
   const monday = new Date(d);
   monday.setUTCDate(d.getUTCDate() - (dow - 1));
-  const sunday = new Date(monday);
-  sunday.setUTCDate(monday.getUTCDate() + 6);
+  // Avança 7 dias → segunda da PRÓXIMA semana
+  const nextMonday = new Date(monday);
+  nextMonday.setUTCDate(monday.getUTCDate() + 7);
+  // Domingo da próxima semana = nextMonday + 6
+  const nextSunday = new Date(nextMonday);
+  nextSunday.setUTCDate(nextMonday.getUTCDate() + 6);
   const fmt = (x: Date) => x.toISOString().slice(0, 10);
-  return { start: fmt(monday), end: fmt(sunday) };
+  const start = fmt(nextMonday);
+  const end = fmt(nextSunday);
+  // Sanity check: precisa ser exatamente 7 dias e começar numa segunda.
+  if (new Date(`${start}T12:00:00Z`).getUTCDay() !== 1) {
+    throw new Error(`nextWeekISO: start ${start} não é segunda-feira`);
+  }
+  if (new Date(`${end}T12:00:00Z`).getUTCDay() !== 0) {
+    throw new Error(`nextWeekISO: end ${end} não é domingo`);
+  }
+  return { start, end };
 }
 
 function fmtBRL(n: number) {
