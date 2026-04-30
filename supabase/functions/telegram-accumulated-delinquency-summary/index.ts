@@ -329,7 +329,18 @@ Deno.serve(async (req) => {
         );
 
         const report = buildTelegramMessage(items);
-        await tgSend(Number(link.chat_id), report, LOVABLE_API_KEY, TELEGRAM_API_KEY);
+        const fmt = ((pref as any).format === "image" ? "image" : "text") as "text" | "image";
+        await sendReportFlexible({
+          chatId: Number(link.chat_id),
+          format: fmt,
+          textBody: report,
+          title: `${brandName} — Inadimplência Acumulada`,
+          subtitle: today.split("-").reverse().join("/"),
+          imageCaption: `📉 *${brandName} — Inadimplência Acumulada*`,
+          brand: { name: brandName, primaryHsl: null },
+          lovableKey: LOVABLE_API_KEY,
+          telegramKey: TELEGRAM_API_KEY,
+        });
 
         if (!forceUserId) {
           const merged = { ...(pref.last_sent ?? {}) } as Record<string, string>;
