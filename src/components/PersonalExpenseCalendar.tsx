@@ -27,9 +27,16 @@ const compactCurrency = (v: number) => {
  * Mostra o total gasto por dia e, ao clicar, lista as despesas daquele dia.
  * O total considera a data efetiva de gasto: paidDate quando pago, senão dueDate.
  */
+const formatLocalDate = (d: Date) => {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+};
+
 export function PersonalExpenseCalendar({ expenses }: Props) {
   const today = new Date();
-  const todayStr = today.toISOString().split("T")[0];
+  const todayStr = formatLocalDate(today);
 
   const [expanded, setExpanded] = useState(false); // Recolhido por padrão
   const [year, setYear] = useState(today.getFullYear());
