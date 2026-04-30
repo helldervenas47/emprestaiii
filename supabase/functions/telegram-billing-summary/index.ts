@@ -221,7 +221,7 @@ Deno.serve(async (req) => {
   const [hh, mm] = hhmm.split(":").map(Number);
   const nowMin = hh * 60 + mm;
 
-  let query = admin.from("telegram_billing_prefs").select("user_id, enabled, send_time_1, send_time_2, send_time_3, last_sent");
+  let query = admin.from("telegram_billing_prefs").select("user_id, enabled, send_time_1, send_time_2, send_time_3, last_sent, format");
   if (forceUserId) query = query.eq("user_id", forceUserId);
   else query = query.eq("enabled", true);
 
