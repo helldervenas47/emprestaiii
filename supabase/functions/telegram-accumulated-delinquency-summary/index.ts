@@ -1,5 +1,4 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { sendReportFlexible } from "../_shared/renderReportImage.ts";
 
 const GATEWAY_URL = "https://connector-gateway.lovable.dev/telegram";
 const corsHeaders = {
@@ -261,13 +260,7 @@ Deno.serve(async (req) => {
 
     let query = admin
       .from("telegram_accumulated_delinquency_prefs")
-      .select("user_id, enabled, send_time_1, send_time_2, send_time_3, last_sent, format");
-
-    let brandName = "EmprestAI";
-    try {
-      const { data: bRow } = await admin.from("app_branding").select("brand_name").limit(1).maybeSingle();
-      if ((bRow as any)?.brand_name) brandName = (bRow as any).brand_name;
-    } catch { /* ignore */ }
+      .select("user_id, enabled, send_time_1, send_time_2, send_time_3, last_sent");
 
     query = forceUserId ? query.eq("user_id", forceUserId) : query.eq("enabled", true);
 
@@ -329,18 +322,7 @@ Deno.serve(async (req) => {
         );
 
         const report = buildTelegramMessage(items);
-        const fmt = ((pref as any).format === "image" ? "image" : "text") as "text" | "image";
-        await sendReportFlexible({
-          chatId: Number(link.chat_id),
-          format: fmt,
-          textBody: report,
-          title: `${brandName} — Inadimplência Acumulada`,
-          subtitle: today.split("-").reverse().join("/"),
-          imageCaption: `📉 *${brandName} — Inadimplência Acumulada*`,
-          brand: { name: brandName, primaryHsl: null },
-          lovableKey: LOVABLE_API_KEY,
-          telegramKey: TELEGRAM_API_KEY,
-        });
+        await tgSend(Number(link.chat_id), report, LOVABLE_API_KEY, TELEGRAM_API_KEY);
 
         if (!forceUserId) {
           const merged = { ...(pref.last_sent ?? {}) } as Record<string, string>;

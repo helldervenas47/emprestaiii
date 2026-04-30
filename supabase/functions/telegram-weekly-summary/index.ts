@@ -1,5 +1,4 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { sendReportFlexible } from "../_shared/renderReportImage.ts";
 
 const GATEWAY_URL = "https://connector-gateway.lovable.dev/telegram";
 
@@ -58,7 +57,6 @@ async function buildAndSendWeekly(
   lovableKey: string,
   telegramKey: string,
   brandName: string,
-  format: "text" | "image" = "text",
 ): Promise<boolean> {
   const { data: link } = await admin.from("telegram_links")
     .select("chat_id").eq("user_id", userId).maybeSingle();
@@ -114,17 +112,7 @@ async function buildAndSendWeekly(
     }
   }
 
-  await sendReportFlexible({
-    chatId: Number(link.chat_id),
-    format,
-    textBody: lines.join("\n"),
-    title: `${brandName} — Resumo semanal`,
-    subtitle: `${fmtDateBR(weekStart)} a ${fmtDateBR(today)}`,
-    imageCaption: `📅 *${brandName} — Resumo semanal*`,
-    brand: { name: brandName, primaryHsl: null },
-    lovableKey,
-    telegramKey,
-  });
+  await tgSend(Number(link.chat_id), lines.join("\n"), lovableKey, telegramKey);
   return true;
 }
 
@@ -162,13 +150,7 @@ Deno.serve(async (req) => {
     if (userErr || !user) return new Response(JSON.stringify({ error: "Invalid token" }), { status: 401, headers: corsHeaders });
     if (user.id !== forceUserId) return new Response(JSON.stringify({ error: "Forbidden" }), { status: 403, headers: corsHeaders });
 
-    const { data: prefRow } = await admin
-      .from("telegram_summary_prefs")
-      .select("weekly_format")
-      .eq("user_id", forceUserId)
-      .maybeSingle();
-    const fmt = ((prefRow as any)?.weekly_format === "image" ? "image" : "text") as "text" | "image";
-    const ok = await buildAndSendWeekly(admin, forceUserId, today, LOVABLE_API_KEY, TELEGRAM_API_KEY, brandName, fmt);
+    const ok = await buildAndSendWeekly(admin, forceUserId, today, LOVABLE_API_KEY, TELEGRAM_API_KEY, brandName);
     return new Response(JSON.stringify({ ok: true, sent: ok ? 1 : 0 }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
@@ -180,7 +162,7 @@ Deno.serve(async (req) => {
 
   const { data: prefs, error } = await admin
     .from("telegram_summary_prefs")
-    .select("user_id, weekly_enabled, weekly_send_time, weekly_send_weekday, weekly_format, last_weekly_sent_date")
+    .select("user_id, weekly_enabled, weekly_send_time, weekly_send_weekday, last_weekly_sent_date")
     .eq("weekly_enabled", true);
 
   if (error) return new Response(JSON.stringify({ error: error.message }), { status: 500, headers: corsHeaders });
@@ -194,8 +176,7 @@ Deno.serve(async (req) => {
       if (nowMin < target || nowMin >= target + 5) continue;
       if ((pref as any).last_weekly_sent_date === today) continue;
 
-      const fmt = ((pref as any).weekly_format === "image" ? "image" : "text") as "text" | "image";
-      const ok = await buildAndSendWeekly(admin, (pref as any).user_id, today, LOVABLE_API_KEY, TELEGRAM_API_KEY, brandName, fmt);
+      const ok = await buildAndSendWeekly(admin, (pref as any).user_id, today, LOVABLE_API_KEY, TELEGRAM_API_KEY, brandName);
       if (ok) {
         await admin.from("telegram_summary_prefs")
           .update({ last_weekly_sent_date: today })

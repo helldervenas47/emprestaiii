@@ -1,5 +1,4 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { sendReportFlexible } from "../_shared/renderReportImage.ts";
 
 const GATEWAY_URL = "https://connector-gateway.lovable.dev/telegram";
 
@@ -82,7 +81,7 @@ Deno.serve(async (req) => {
   const nowMin = hh * 60 + mm;
 
   // Load enabled prefs
-  let query = admin.from("telegram_summary_prefs").select("user_id, enabled, send_time, last_sent_date, daily_format");
+  let query = admin.from("telegram_summary_prefs").select("user_id, enabled, send_time, last_sent_date");
   if (forceUserId) query = query.eq("user_id", forceUserId);
   else query = query.eq("enabled", true);
 
@@ -199,18 +198,7 @@ Deno.serve(async (req) => {
         lines.push("_Sem orçamentos configurados._");
       }
 
-      const fmt = ((pref as any).daily_format === "image" ? "image" : "text") as "text" | "image";
-      await sendReportFlexible({
-        chatId: Number(link.chat_id),
-        format: fmt,
-        textBody: lines.join("\n"),
-        title: `${brandName} — Resumo do dia`,
-        subtitle: today.split("-").reverse().join("/"),
-        imageCaption: `📊 *${brandName} — Resumo do dia* — ${today.split("-").reverse().join("/")}`,
-        brand: { name: brandName, primaryHsl: null },
-        lovableKey: LOVABLE_API_KEY,
-        telegramKey: TELEGRAM_API_KEY,
-      });
+      await tgSend(Number(link.chat_id), lines.join("\n"), LOVABLE_API_KEY, TELEGRAM_API_KEY);
 
       if (!forceUserId) {
         await admin.from("telegram_summary_prefs")
