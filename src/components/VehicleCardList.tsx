@@ -7,6 +7,9 @@ import { VehicleInfo } from "@/hooks/useVehicleRegistry";
 import { Pencil, Check, X, Trash2, Car, Search, Plus } from "lucide-react";
 import { toast } from "sonner";
 import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
+import { VehicleTrackingBlock } from "@/components/VehicleTrackingBlock";
+import { useVehicleTracking } from "@/hooks/useVehicleTracking";
+import { useTrackingProvider } from "@/hooks/useTrackingProvider";
 
 interface Props {
   vehicles: VehicleInfo[];
@@ -23,6 +26,10 @@ export function VehicleCardList({ vehicles, onAdd, onUpdate, onDelete, readOnly 
   const [adding, setAdding] = useState(false);
   const [addForm, setAddForm] = useState({ marcaModelo: "", ano: "", cor: "", placa: "", renavam: "" });
   const [deleteId, setDeleteId] = useState<string | null>(null);
+
+  const { positions } = useVehicleTracking();
+  const { provider, triggerSync } = useTrackingProvider();
+  const providerConfigured = !!provider?.enabled;
 
   const filtered = vehicles.filter((v) => {
     const q = search.toLowerCase();
