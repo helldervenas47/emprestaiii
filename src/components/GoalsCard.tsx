@@ -22,8 +22,15 @@ import {
   Target, Percent, TrendingUp, Banknote, FileText,
   HandCoins, Coins, Wallet, PiggyBank, AlertTriangle, UserPlus,
   Sparkles, CheckCircle2, AlertCircle, TrendingDown, Lightbulb,
-  BookOpen, Calculator, Database, FlaskConical, Settings2, ArrowUp, ArrowDown, GripVertical, RefreshCw,
+  BookOpen, Calculator, Database, FlaskConical, Settings2, ArrowUp, ArrowDown, GripVertical, RefreshCw, Lock,
 } from "lucide-react";
+
+// Mês "YYYY-MM" — true se já é estritamente anterior ao mês corrente no fuso do app
+function isMonthClosed(month: string): boolean {
+  const today = todayInAppTz(); // YYYY-MM-DD
+  const currentMonth = today.slice(0, 7);
+  return month < currentMonth;
+}
 
 // Inline para evitar import circular com useLoans
 function calculateTotalWithInterest(principal: number, rate: number, _months: number): number {
