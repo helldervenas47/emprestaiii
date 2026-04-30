@@ -176,9 +176,15 @@ export function TelegramManagerWeeklyCard() {
                 className="text-xs font-mono"
               />
               <p className="text-[10px] text-muted-foreground">
-                Variáveis: <code>{"{nome_gerente}"}</code>, <code>{"{total_emprestimos_atrasados}"}</code>,{" "}
-                <code>{"{total_emprestimos_semana}"}</code>, <code>{"{valores_totais}"}</code>,{" "}
+                Variáveis disponíveis: <code>{"{nome_gerente}"}</code>,{" "}
+                <code>{"{total_emprestimos_atrasados}"}</code>,{" "}
+                <code>{"{total_emprestimos_semana}"}</code>,{" "}
+                <code>{"{valor_total}"}</code>, <code>{"{etiquetas}"}</code>,{" "}
                 <code>{"{lista_clientes}"}</code>.
+                <br />
+                Cada item de <code>{"{lista_clientes}"}</code> mostra: nome do cliente,
+                valor restante, data de vencimento e etiquetas (quando houver).
+                Alterações no template são salvas automaticamente e aplicadas no próximo envio.
               </p>
             </div>
 
