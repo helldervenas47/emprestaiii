@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Card, CardContent } from "@/components/ui/card";
+// Card removed: this component is embedded inside TelegramReportsConnectCard.
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -95,8 +95,8 @@ export function TelegramManagerWeeklyCard() {
   };
 
   return (
-    <Card no3d>
-      <CardContent className="p-4 space-y-4">
+    <div className="space-y-4">
+      <div className="space-y-4">
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-center gap-2 min-w-0">
             <div className="h-9 w-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
@@ -216,7 +216,7 @@ export function TelegramManagerWeeklyCard() {
             )}
           </>
         )}
-      </CardContent>
+      </div>
 
       <Dialog open={!!activePreview} onOpenChange={(v) => !v && setActivePreview(null)}>
         <DialogContent>
@@ -236,6 +236,6 @@ export function TelegramManagerWeeklyCard() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </Card>
+    </div>
   );
 }
