@@ -39,6 +39,13 @@ function rawFormatCurrency(v: number) {
   return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v);
 }
 
+const formatLocalDate = (date: Date) => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+};
+
 interface DueItem {
   loanId: string;
   borrowerName: string;
@@ -99,7 +106,7 @@ export function BillingCalendar({ loans, payments, installmentSchedules, onPayme
           if (freq === "Semanal") d.setDate(d.getDate() + offsetFromNext * 7);
           else if (freq === "Quinzenal") d.setDate(d.getDate() + offsetFromNext * 15);
           else d.setMonth(d.getMonth() + offsetFromNext);
-          dateStr = d.toISOString().split("T")[0];
+          dateStr = formatLocalDate(d);
         }
         const amount = schedule ? schedule.amount : defaultInstallmentAmount;
 
@@ -130,7 +137,7 @@ export function BillingCalendar({ loans, payments, installmentSchedules, onPayme
   for (let i = 0; i < startDayOfWeek; i++) calendarDays.push(null);
   for (let i = 1; i <= daysInMonth; i++) calendarDays.push(i);
 
-  const todayStr = today.toISOString().split("T")[0];
+  const todayStr = formatLocalDate(today);
 
   const goToToday = () => {
     setYear(today.getFullYear());
@@ -177,7 +184,7 @@ export function BillingCalendar({ loans, payments, installmentSchedules, onPayme
       toast.error("Selecione a forma de pagamento");
       return;
     }
-    const dateStr = paymentDate.toISOString().split("T")[0];
+    const dateStr = formatLocalDate(paymentDate);
     const loan = loans.find(l => l.id === paymentDialog.loanId);
     if (!loan) return;
     const mid = selectedMethodId || null;
