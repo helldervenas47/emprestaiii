@@ -1,4 +1,10 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import {
+  buildMonthlySummarySVG,
+  svgToPng,
+  tgSendPhoto,
+  type BrandInfo,
+} from "../_shared/renderReportImage.ts";
 
 const GATEWAY_URL = "https://connector-gateway.lovable.dev/telegram";
 
@@ -72,7 +78,8 @@ async function buildAndSendMonthly(
   today: string,
   lovableKey: string,
   telegramKey: string,
-  brandName: string,
+  brand: BrandInfo,
+  format: "text" | "image" = "text",
 ): Promise<boolean> {
   const { data: link } = await admin.from("telegram_links")
     .select("chat_id").eq("user_id", userId).maybeSingle();
@@ -115,20 +122,52 @@ async function buildAndSendMonthly(
   const daysElapsed = isCurrentMonth ? todayDay : curr.daysInMonth;
   const dailyAvg = currS.total / Math.max(1, daysElapsed);
 
-  const lines: string[] = [];
-  lines.push(`📆 *${brandName} — Resumo mensal* — ${monthNamePt(currMonth)}`);
-  lines.push("");
-  lines.push(`💸 Total: *${fmtBRL(currS.total)}*  ${variation(currS.total, prevS.total)}`);
-  lines.push(`   Mês passado: ${fmtBRL(prevS.total)}`);
-  lines.push(`📈 Média diária: *${fmtBRL(dailyAvg)}* (${daysElapsed} ${daysElapsed === 1 ? "dia" : "dias"})`);
-
-  // Top categories — union of current top 5 + categories present in either
+  // Top categories
   const allCats = new Set<string>([...currS.byCat.keys(), ...prevS.byCat.keys()]);
   const catRows = [...allCats].map((c) => ({
     cat: c,
     curr: currS.byCat.get(c) ?? 0,
     prev: prevS.byCat.get(c) ?? 0,
   })).sort((a, b) => b.curr - a.curr).slice(0, 6);
+
+  // Image format
+  if (format === "image") {
+    try {
+      const svg = buildMonthlySummarySVG(
+        {
+          monthLabel: monthNamePt(currMonth),
+          total: currS.total,
+          prevTotal: prevS.total,
+          dailyAvg,
+          daysElapsed,
+          topCategories: catRows.map((r) => ({ name: r.cat, curr: r.curr, prev: r.prev })),
+          budgets: [...(budgets ?? [])]
+            .sort((a: any, b: any) => a.category.localeCompare(b.category, "pt-BR"))
+            .map((b: any) => ({
+              name: b.category,
+              spent: currS.byCat.get(b.category) ?? 0,
+              budget: Number(b.amount || 0),
+            })),
+        },
+        brand,
+      );
+      const png = await svgToPng(svg);
+      const caption = `📆 *${brand.name} — Resumo mensal* — ${monthNamePt(currMonth)}\n💸 Total: *${fmtBRL(currS.total)}*  ${variation(currS.total, prevS.total)}`;
+      await tgSendPhoto(Number((link as any).chat_id), png, caption, lovableKey, telegramKey);
+      return true;
+    } catch (e) {
+      console.error("image render failed, falling back to text", e);
+      // fallthrough to text
+    }
+  }
+
+  // Text format (default / fallback)
+  const lines: string[] = [];
+  lines.push(`📆 *${brand.name} — Resumo mensal* — ${monthNamePt(currMonth)}`);
+  lines.push("");
+  lines.push(`💸 Total: *${fmtBRL(currS.total)}*  ${variation(currS.total, prevS.total)}`);
+  lines.push(`   Mês passado: ${fmtBRL(prevS.total)}`);
+  lines.push(`📈 Média diária: *${fmtBRL(dailyAvg)}* (${daysElapsed} ${daysElapsed === 1 ? "dia" : "dias"})`);
 
   if (catRows.length > 0) {
     lines.push("");
@@ -166,11 +205,11 @@ Deno.serve(async (req) => {
 
   const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
-  // Fetch brand name once for this invocation
-  let brandName = "EmprestAI";
+  // Fetch brand once for this invocation
+  const brand: BrandInfo = { name: "EmprestAI", primaryHsl: null };
   try {
     const { data: bRow } = await admin.from("app_branding").select("brand_name").limit(1).maybeSingle();
-    if ((bRow as any)?.brand_name) brandName = (bRow as any).brand_name;
+    if ((bRow as any)?.brand_name) brand.name = (bRow as any).brand_name;
   } catch (_) { /* ignore */ }
 
   const url = new URL(req.url);
@@ -189,8 +228,16 @@ Deno.serve(async (req) => {
     if (userErr || !user) return new Response(JSON.stringify({ error: "Invalid token" }), { status: 401, headers: corsHeaders });
     if (user.id !== forceUserId) return new Response(JSON.stringify({ error: "Forbidden" }), { status: 403, headers: corsHeaders });
 
-    const ok = await buildAndSendMonthly(admin, forceUserId, today, LOVABLE_API_KEY, TELEGRAM_API_KEY, brandName);
-    return new Response(JSON.stringify({ ok: true, sent: ok ? 1 : 0 }), {
+    // Read user format preference
+    const { data: pref } = await admin
+      .from("telegram_summary_prefs")
+      .select("monthly_format")
+      .eq("user_id", forceUserId)
+      .maybeSingle();
+    const format = ((pref as any)?.monthly_format === "image" ? "image" : "text") as "text" | "image";
+
+    const ok = await buildAndSendMonthly(admin, forceUserId, today, LOVABLE_API_KEY, TELEGRAM_API_KEY, brand, format);
+    return new Response(JSON.stringify({ ok: true, sent: ok ? 1 : 0, format }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
@@ -201,7 +248,7 @@ Deno.serve(async (req) => {
 
   const { data: prefs, error } = await admin
     .from("telegram_summary_prefs")
-    .select("user_id, monthly_enabled, monthly_send_time, monthly_send_day, last_monthly_sent_month")
+    .select("user_id, monthly_enabled, monthly_send_time, monthly_send_day, monthly_format, last_monthly_sent_month")
     .eq("monthly_enabled", true);
 
   if (error) return new Response(JSON.stringify({ error: error.message }), { status: 500, headers: corsHeaders });
@@ -220,7 +267,8 @@ Deno.serve(async (req) => {
       if (nowMin < target || nowMin >= target + 5) continue;
       if ((pref as any).last_monthly_sent_month === currMonth) continue;
 
-      const ok = await buildAndSendMonthly(admin, (pref as any).user_id, today, LOVABLE_API_KEY, TELEGRAM_API_KEY, brandName);
+      const format = ((pref as any).monthly_format === "image" ? "image" : "text") as "text" | "image";
+      const ok = await buildAndSendMonthly(admin, (pref as any).user_id, today, LOVABLE_API_KEY, TELEGRAM_API_KEY, brand, format);
       if (ok) {
         await admin.from("telegram_summary_prefs")
           .update({ last_monthly_sent_month: currMonth })
