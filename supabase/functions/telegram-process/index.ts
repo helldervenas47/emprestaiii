@@ -1106,16 +1106,17 @@ async function checkBudgetAndAlert(
   telegramKey: string,
 ) {
   try {
+    const month = new Date().toISOString().slice(0, 7);
+
     const { data: budgetRow } = await admin
       .from("personal_budgets")
       .select("amount")
       .eq("user_id", userId)
       .eq("category", category)
+      .eq("month", month)
       .maybeSingle();
     const budget = Number(budgetRow?.amount) || 0;
     if (budget <= 0) return;
-
-    const month = new Date().toISOString().slice(0, 7);
 
     const { data: expenses } = await admin
       .from("expenses")
