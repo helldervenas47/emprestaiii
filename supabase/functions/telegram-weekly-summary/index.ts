@@ -194,7 +194,8 @@ Deno.serve(async (req) => {
       if (nowMin < target || nowMin >= target + 5) continue;
       if ((pref as any).last_weekly_sent_date === today) continue;
 
-      const ok = await buildAndSendWeekly(admin, (pref as any).user_id, today, LOVABLE_API_KEY, TELEGRAM_API_KEY, brandName);
+      const fmt = ((pref as any).weekly_format === "image" ? "image" : "text") as "text" | "image";
+      const ok = await buildAndSendWeekly(admin, (pref as any).user_id, today, LOVABLE_API_KEY, TELEGRAM_API_KEY, brandName, fmt);
       if (ok) {
         await admin.from("telegram_summary_prefs")
           .update({ last_weekly_sent_date: today })
