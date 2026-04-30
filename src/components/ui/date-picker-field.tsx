@@ -14,13 +14,28 @@ interface DatePickerFieldProps {
   onChange: (value: string) => void;
   placeholder?: string;
   className?: string;
+  popoverContentClassName?: string;
   id?: string;
 }
 
-export function DatePickerField({ value, onChange, placeholder = "Selecione a data", className, id }: DatePickerFieldProps) {
+export function DatePickerField({
+  value,
+  onChange,
+  placeholder = "Selecione a data",
+  className,
+  popoverContentClassName,
+  id,
+}: DatePickerFieldProps) {
   const [open, setOpen] = React.useState(false);
 
   const dateValue = value ? new Date(value + "T00:00:00") : undefined;
+
+  const formatDateValue = (date: Date) => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  };
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -38,13 +53,13 @@ export function DatePickerField({ value, onChange, placeholder = "Selecione a da
           {dateValue ? format(dateValue, "dd/MM/yyyy", { locale: ptBR }) : placeholder}
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-auto p-0" align="start">
+      <PopoverContent className={cn("w-auto p-0", popoverContentClassName)} align="start">
         <Calendar
           mode="single"
           selected={dateValue}
           onSelect={(d) => {
             if (d) {
-              onChange(d.toISOString().split("T")[0]);
+              onChange(formatDateValue(d));
               setOpen(false);
             }
           }}
