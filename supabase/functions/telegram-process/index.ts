@@ -666,7 +666,8 @@ async function handleSaldo(admin: any, userId: string): Promise<string> {
   const { data: budgets } = await admin
     .from("personal_budgets")
     .select("category, amount")
-    .eq("user_id", userId);
+    .eq("user_id", userId)
+    .eq("month", monthPrefix);
   const budgetMap = new Map<string, number>();
   for (const b of budgets ?? []) budgetMap.set(b.category, Number(b.amount) || 0);
 
@@ -1029,7 +1030,7 @@ async function handleOrcamento(admin: any, userId: string): Promise<string> {
   const daysLeft = lastDay - today;
 
   const [{ data: budgets }, { data: expenses }] = await Promise.all([
-    admin.from("personal_budgets").select("category, amount").eq("user_id", userId),
+    admin.from("personal_budgets").select("category, amount").eq("user_id", userId).eq("month", monthPrefix),
     admin
       .from("expenses")
       .select("amount, category, paid_date, due_date")
