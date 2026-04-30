@@ -261,7 +261,13 @@ Deno.serve(async (req) => {
 
     let query = admin
       .from("telegram_accumulated_delinquency_prefs")
-      .select("user_id, enabled, send_time_1, send_time_2, send_time_3, last_sent");
+      .select("user_id, enabled, send_time_1, send_time_2, send_time_3, last_sent, format");
+
+    let brandName = "EmprestAI";
+    try {
+      const { data: bRow } = await admin.from("app_branding").select("brand_name").limit(1).maybeSingle();
+      if ((bRow as any)?.brand_name) brandName = (bRow as any).brand_name;
+    } catch { /* ignore */ }
 
     query = forceUserId ? query.eq("user_id", forceUserId) : query.eq("enabled", true);
 
