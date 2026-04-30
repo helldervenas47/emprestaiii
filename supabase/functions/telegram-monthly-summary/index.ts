@@ -78,7 +78,8 @@ async function buildAndSendMonthly(
   today: string,
   lovableKey: string,
   telegramKey: string,
-  brandName: string,
+  brand: BrandInfo,
+  format: "text" | "image" = "text",
 ): Promise<boolean> {
   const { data: link } = await admin.from("telegram_links")
     .select("chat_id").eq("user_id", userId).maybeSingle();
@@ -121,20 +122,52 @@ async function buildAndSendMonthly(
   const daysElapsed = isCurrentMonth ? todayDay : curr.daysInMonth;
   const dailyAvg = currS.total / Math.max(1, daysElapsed);
 
-  const lines: string[] = [];
-  lines.push(`📆 *${brandName} — Resumo mensal* — ${monthNamePt(currMonth)}`);
-  lines.push("");
-  lines.push(`💸 Total: *${fmtBRL(currS.total)}*  ${variation(currS.total, prevS.total)}`);
-  lines.push(`   Mês passado: ${fmtBRL(prevS.total)}`);
-  lines.push(`📈 Média diária: *${fmtBRL(dailyAvg)}* (${daysElapsed} ${daysElapsed === 1 ? "dia" : "dias"})`);
-
-  // Top categories — union of current top 5 + categories present in either
+  // Top categories
   const allCats = new Set<string>([...currS.byCat.keys(), ...prevS.byCat.keys()]);
   const catRows = [...allCats].map((c) => ({
     cat: c,
     curr: currS.byCat.get(c) ?? 0,
     prev: prevS.byCat.get(c) ?? 0,
   })).sort((a, b) => b.curr - a.curr).slice(0, 6);
+
+  // Image format
+  if (format === "image") {
+    try {
+      const svg = buildMonthlySummarySVG(
+        {
+          monthLabel: monthNamePt(currMonth),
+          total: currS.total,
+          prevTotal: prevS.total,
+          dailyAvg,
+          daysElapsed,
+          topCategories: catRows.map((r) => ({ name: r.cat, curr: r.curr, prev: r.prev })),
+          budgets: [...(budgets ?? [])]
+            .sort((a: any, b: any) => a.category.localeCompare(b.category, "pt-BR"))
+            .map((b: any) => ({
+              name: b.category,
+              spent: currS.byCat.get(b.category) ?? 0,
+              budget: Number(b.amount || 0),
+            })),
+        },
+        brand,
+      );
+      const png = await svgToPng(svg);
+      const caption = `📆 *${brand.name} — Resumo mensal* — ${monthNamePt(currMonth)}\n💸 Total: *${fmtBRL(currS.total)}*  ${variation(currS.total, prevS.total)}`;
+      await tgSendPhoto(Number((link as any).chat_id), png, caption, lovableKey, telegramKey);
+      return true;
+    } catch (e) {
+      console.error("image render failed, falling back to text", e);
+      // fallthrough to text
+    }
+  }
+
+  // Text format (default / fallback)
+  const lines: string[] = [];
+  lines.push(`📆 *${brand.name} — Resumo mensal* — ${monthNamePt(currMonth)}`);
+  lines.push("");
+  lines.push(`💸 Total: *${fmtBRL(currS.total)}*  ${variation(currS.total, prevS.total)}`);
+  lines.push(`   Mês passado: ${fmtBRL(prevS.total)}`);
+  lines.push(`📈 Média diária: *${fmtBRL(dailyAvg)}* (${daysElapsed} ${daysElapsed === 1 ? "dia" : "dias"})`);
 
   if (catRows.length > 0) {
     lines.push("");
