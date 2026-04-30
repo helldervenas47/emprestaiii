@@ -279,7 +279,14 @@ async function processOwner(
         message: renderMessage(m.name, items),
       };
     });
-    return { owner_id: ownerId, preview: true, managers: previews };
+    return {
+      owner_id: ownerId,
+      preview: true,
+      reference_date: today,
+      week_start: week.start,
+      week_end: week.end,
+      managers: previews,
+    };
   }
 
   // SEND MODE
@@ -337,9 +344,16 @@ Deno.serve(async (req) => {
     const listManagers: boolean = body?.list_managers === true;
     const targetManagerClientId: string | null = body?.manager_client_id ? String(body.manager_client_id) : null;
 
+    // Optional simulation date (YYYY-MM-DD). When informed, the report uses it
+    // as "today" instead of the current date in America/Sao_Paulo.
+    const refDateRaw: string | null = body?.reference_date ? String(body.reference_date).trim() : null;
+    const refDateValid = refDateRaw && /^\d{4}-\d{2}-\d{2}$/.test(refDateRaw) && !Number.isNaN(Date.parse(`${refDateRaw}T12:00:00Z`));
+    const referenceDate: string | null = refDateValid ? refDateRaw : null;
+
     // Manual / preview / list path — single owner
     if (ownerId && (manualRun || previewOnly || listManagers || targetManagerClientId)) {
-      const { date: today } = nowInTz();
+      const { date: realToday } = nowInTz();
+      const today = referenceDate ?? realToday;
       const result = await processOwner(
         admin, ownerId,
         {
