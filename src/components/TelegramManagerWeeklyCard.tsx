@@ -199,6 +199,36 @@ export function TelegramManagerWeeklyCard() {
               </p>
             </div>
 
+            <div className="space-y-2 rounded-md border border-dashed border-border bg-muted/20 p-3">
+              <Label className="text-[11px] text-muted-foreground flex items-center gap-1">
+                <CalendarIcon className="h-3 w-3" /> Data de referência (simulação)
+              </Label>
+              <div className="flex items-center gap-2">
+                <Input
+                  type="date"
+                  value={referenceDate}
+                  onChange={(e) => setReferenceDate(e.target.value)}
+                  className="h-9 text-xs w-[180px]"
+                />
+                {referenceDate && (
+                  <Button size="sm" variant="ghost" onClick={() => { setReferenceDate(""); setPreviewWindow(null); }}>
+                    Usar hoje
+                  </Button>
+                )}
+              </div>
+              <p className="text-[10px] text-muted-foreground">
+                Em branco = usa a data atual. Aplica-se à pré-visualização e também aos
+                envios manuais (não afeta o agendamento automático).
+              </p>
+              {previewWindow && (
+                <p className="text-[11px] text-foreground">
+                  Janela considerada — atrasados até <strong>{fmtBR(previewWindow.ref)}</strong>;
+                  próxima semana: <strong>{fmtBR(previewWindow.start)}</strong> a{" "}
+                  <strong>{fmtBR(previewWindow.end)}</strong>.
+                </p>
+              )}
+            </div>
+
             <div className="flex flex-wrap gap-2 pt-1">
               <Button size="sm" variant="outline" onClick={loadPreviews} disabled={previewing}>
                 <Eye className="h-3.5 w-3.5 mr-1" />
