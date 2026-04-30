@@ -58,6 +58,7 @@ async function buildAndSendWeekly(
   lovableKey: string,
   telegramKey: string,
   brandName: string,
+  format: "text" | "image" = "text",
 ): Promise<boolean> {
   const { data: link } = await admin.from("telegram_links")
     .select("chat_id").eq("user_id", userId).maybeSingle();
