@@ -16,7 +16,7 @@ Resumo semanal dos seus empréstimos:
 
 ⚠️ Atrasados: {total_emprestimos_atrasados}
 📅 Vencendo nesta semana: {total_emprestimos_semana}
-💰 Valor total: {valores_totais}
+💰 Valor restante total: {valor_total}
 
 Clientes:
 {lista_clientes}`;
