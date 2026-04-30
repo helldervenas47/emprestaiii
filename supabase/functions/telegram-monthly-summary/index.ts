@@ -248,7 +248,7 @@ Deno.serve(async (req) => {
 
   const { data: prefs, error } = await admin
     .from("telegram_summary_prefs")
-    .select("user_id, monthly_enabled, monthly_send_time, monthly_send_day, last_monthly_sent_month")
+    .select("user_id, monthly_enabled, monthly_send_time, monthly_send_day, monthly_format, last_monthly_sent_month")
     .eq("monthly_enabled", true);
 
   if (error) return new Response(JSON.stringify({ error: error.message }), { status: 500, headers: corsHeaders });
@@ -267,7 +267,8 @@ Deno.serve(async (req) => {
       if (nowMin < target || nowMin >= target + 5) continue;
       if ((pref as any).last_monthly_sent_month === currMonth) continue;
 
-      const ok = await buildAndSendMonthly(admin, (pref as any).user_id, today, LOVABLE_API_KEY, TELEGRAM_API_KEY, brandName);
+      const format = ((pref as any).monthly_format === "image" ? "image" : "text") as "text" | "image";
+      const ok = await buildAndSendMonthly(admin, (pref as any).user_id, today, LOVABLE_API_KEY, TELEGRAM_API_KEY, brand, format);
       if (ok) {
         await admin.from("telegram_summary_prefs")
           .update({ last_monthly_sent_month: currMonth })
