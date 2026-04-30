@@ -5,7 +5,8 @@ const corsHeaders = {
 
 const GATEWAY_URL = 'https://connector-gateway.lovable.dev/telegram';
 
-const COMMANDS = [
+// Comandos do bot de DESPESAS (TELEGRAM_API_KEY_2)
+const EXPENSES_COMMANDS = [
   { command: 'saldo', description: 'Gastos do mês por categoria' },
   { command: 'mes', description: 'Resumo completo do mês atual' },
   { command: 'semana', description: 'Resumo dos últimos 7 dias' },
@@ -15,54 +16,83 @@ const COMMANDS = [
   { command: 'apagar', description: 'Apaga a despesa mais recente' },
   { command: 'aporte', description: 'Fazer aporte em uma caixinha (cofrinho)' },
   { command: 'meus_aportes', description: 'Últimos 10 aportes nas caixinhas' },
+  { command: 'code', description: 'Gerar código para vincular este bot ao app' },
   { command: 'help', description: 'Mostra ajuda' },
   { command: 'start', description: 'Vincular conta com código' },
 ];
 
-Deno.serve(async (req) => {
-  if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders });
+// Comandos do bot de RELATÓRIOS (TELEGRAM_API_KEY_1)
+const REPORTS_COMMANDS = [
+  { command: 'code', description: 'Gerar código para vincular este bot ao app' },
+  { command: 'start', description: 'Vincular bot de relatórios com código' },
+  { command: 'help', description: 'Mostra ajuda' },
+];
+
+async function publishCommands(
+  lovableKey: string,
+  telegramKey: string,
+  commands: { command: string; description: string }[],
+) {
+  const headers = {
+    Authorization: `Bearer ${lovableKey}`,
+    'X-Connection-Api-Key': telegramKey,
+    'Content-Type': 'application/json',
+  };
+
+  const setCmdRes = await fetch(`${GATEWAY_URL}/setMyCommands`, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({ commands }),
+  });
+  const setCmdData = await setCmdRes.json();
+  if (!setCmdRes.ok) {
+    throw new Error(`setMyCommands failed [${setCmdRes.status}]: ${JSON.stringify(setCmdData)}`);
   }
 
-  const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
-  const TELEGRAM_API_KEY = Deno.env.get('TELEGRAM_API_KEY_2');
+  const setBtnRes = await fetch(`${GATEWAY_URL}/setChatMenuButton`, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({ menu_button: { type: 'commands' } }),
+  });
+  const setBtnData = await setBtnRes.json();
+  if (!setBtnRes.ok) {
+    throw new Error(`setChatMenuButton failed [${setBtnRes.status}]: ${JSON.stringify(setBtnData)}`);
+  }
 
-  if (!LOVABLE_API_KEY || !TELEGRAM_API_KEY) {
+  return { setMyCommands: setCmdData, setChatMenuButton: setBtnData };
+}
+
+Deno.serve(async (req) => {
+  if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
+
+  const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
+  const EXPENSES_KEY = Deno.env.get('TELEGRAM_API_KEY_2');
+  const REPORTS_KEY = Deno.env.get('TELEGRAM_API_KEY_1');
+
+  if (!LOVABLE_API_KEY) {
     return new Response(
-      JSON.stringify({ error: 'Missing LOVABLE_API_KEY or TELEGRAM_API_KEY_2' }),
+      JSON.stringify({ error: 'Missing LOVABLE_API_KEY' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
     );
   }
 
-  const headers = {
-    'Authorization': `Bearer ${LOVABLE_API_KEY}`,
-    'X-Connection-Api-Key': TELEGRAM_API_KEY,
-    'Content-Type': 'application/json',
-  };
-
   try {
-    const setCmdRes = await fetch(`${GATEWAY_URL}/setMyCommands`, {
-      method: 'POST',
-      headers,
-      body: JSON.stringify({ commands: COMMANDS }),
-    });
-    const setCmdData = await setCmdRes.json();
-    if (!setCmdRes.ok) {
-      throw new Error(`setMyCommands failed [${setCmdRes.status}]: ${JSON.stringify(setCmdData)}`);
+    const result: Record<string, any> = {};
+
+    if (EXPENSES_KEY) {
+      result.expenses = await publishCommands(LOVABLE_API_KEY, EXPENSES_KEY, EXPENSES_COMMANDS);
+    } else {
+      result.expenses = { skipped: 'missing TELEGRAM_API_KEY_2' };
     }
 
-    const setBtnRes = await fetch(`${GATEWAY_URL}/setChatMenuButton`, {
-      method: 'POST',
-      headers,
-      body: JSON.stringify({ menu_button: { type: 'commands' } }),
-    });
-    const setBtnData = await setBtnRes.json();
-    if (!setBtnRes.ok) {
-      throw new Error(`setChatMenuButton failed [${setBtnRes.status}]: ${JSON.stringify(setBtnData)}`);
+    if (REPORTS_KEY) {
+      result.reports = await publishCommands(LOVABLE_API_KEY, REPORTS_KEY, REPORTS_COMMANDS);
+    } else {
+      result.reports = { skipped: 'missing TELEGRAM_API_KEY_1' };
     }
 
     return new Response(
-      JSON.stringify({ ok: true, commands: COMMANDS, setMyCommands: setCmdData, setChatMenuButton: setBtnData }),
+      JSON.stringify({ ok: true, expenses_commands: EXPENSES_COMMANDS, reports_commands: REPORTS_COMMANDS, result }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
     );
   } catch (error: unknown) {
