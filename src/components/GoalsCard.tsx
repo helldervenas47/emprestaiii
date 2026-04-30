@@ -807,6 +807,12 @@ export function GoalsCard({ loans, payments, expenses, clients, installmentSched
                             {formatMonthLabel(g.month)}
                           </p>
                         )}
+                        {(g as any).isLocked && (
+                          <Badge variant="outline" className="text-[8px] sm:text-[9px] px-1 py-0 h-3.5 border-muted-foreground/30 text-muted-foreground bg-muted/30 uppercase tracking-wide leading-none gap-0.5" title="Mês fechado — valor congelado no último dia do mês">
+                            <Lock className="h-2 w-2" />
+                            Travado
+                          </Badge>
+                        )}
                       </div>
                     </div>
                   </div>
