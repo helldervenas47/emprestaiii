@@ -39,16 +39,33 @@ function nowInTz(tz = APP_TZ) {
   };
 }
 
-function startOfWeekISO(today: string): { start: string; end: string } {
-  // ISO week Mon..Sun, anchored to provided "today" (YYYY-MM-DD)
+function nextWeekISO(today: string): { start: string; end: string } {
+  // Próxima semana ISO (Seg..Dom), inclusive em ambas as pontas.
+  // O cálculo é feito puramente sobre a string YYYY-MM-DD ancorada ao meio-dia UTC,
+  // portanto não depende do fuso horário do servidor (Deno default = UTC),
+  // e o "today" já chega convertido para America/Sao_Paulo via nowInTz().
   const d = new Date(`${today}T12:00:00Z`);
-  const dow = d.getUTCDay() || 7; // Sun=0 → 7
+  const dow = d.getUTCDay() || 7; // Dom=0 → 7, Seg=1 .. Sáb=6
+  // Segunda da semana ATUAL (em UTC, ainda meio-dia para evitar DST flips)
   const monday = new Date(d);
   monday.setUTCDate(d.getUTCDate() - (dow - 1));
-  const sunday = new Date(monday);
-  sunday.setUTCDate(monday.getUTCDate() + 6);
+  // Avança 7 dias → segunda da PRÓXIMA semana
+  const nextMonday = new Date(monday);
+  nextMonday.setUTCDate(monday.getUTCDate() + 7);
+  // Domingo da próxima semana = nextMonday + 6
+  const nextSunday = new Date(nextMonday);
+  nextSunday.setUTCDate(nextMonday.getUTCDate() + 6);
   const fmt = (x: Date) => x.toISOString().slice(0, 10);
-  return { start: fmt(monday), end: fmt(sunday) };
+  const start = fmt(nextMonday);
+  const end = fmt(nextSunday);
+  // Sanity check: precisa ser exatamente 7 dias e começar numa segunda.
+  if (new Date(`${start}T12:00:00Z`).getUTCDay() !== 1) {
+    throw new Error(`nextWeekISO: start ${start} não é segunda-feira`);
+  }
+  if (new Date(`${end}T12:00:00Z`).getUTCDay() !== 0) {
+    throw new Error(`nextWeekISO: end ${end} não é domingo`);
+  }
+  return { start, end };
 }
 
 function fmtBRL(n: number) {
@@ -76,10 +93,10 @@ async function tgSend(chatId: number, text: string, lovableKey: string, telegram
 
 const DEFAULT_TEMPLATE =
   `Olá {nome_gerente}! 👋
-Resumo semanal dos seus empréstimos:
+Resumo da próxima semana:
 
 ⚠️ Atrasados: {total_emprestimos_atrasados}
-📅 Vencendo nesta semana: {total_emprestimos_semana}
+📅 Vencendo na próxima semana: {total_emprestimos_semana}
 💰 Valor restante total: {valor_total}
 
 Clientes:
@@ -160,7 +177,7 @@ async function processOwner(
     ? await admin.from("loan_installments").select("loan_id, installment_number, due_date, amount, paid").in("loan_id", loanIds)
     : { data: [] as any[] };
 
-  const week = startOfWeekISO(today);
+  const week = nextWeekISO(today);
 
   const buildItems = (managerClientId: string): Item[] => {
     const out: Item[] = [];
@@ -225,11 +242,11 @@ async function processOwner(
     const total = items.reduce((s, i) => s + i.amount, 0);
     const lista = items.length
       ? items.map((i) => {
-          const tag = i.status === "overdue" ? "⚠️ ATRASADO" : "📅 esta semana";
+          const tag = i.status === "overdue" ? "⚠️ ATRASADO" : "📅 próxima semana";
           const etiquetas = i.tags.length ? `\n   🏷️ ${i.tags.join(", ")}` : "";
           return `• ${i.borrower_name} — ${fmtBRL(i.amount)} (vence ${fmtBR(i.due)}) ${tag}${etiquetas}`;
         }).join("\n")
-      : "Nenhum empréstimo atrasado ou vencendo nesta semana.";
+      : "Nenhum empréstimo atrasado ou vencendo na próxima semana.";
 
     // Aggregated tags variable (unique, comma-separated)
     const allTags = Array.from(new Set(items.flatMap((i) => i.tags))).filter(Boolean);
