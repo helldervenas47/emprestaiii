@@ -38,3 +38,6 @@ verify_jwt = false
 
 [functions.whatsapp-assistant-webhook]
 verify_jwt = false
+
+[functions.telegram-manager-weekly-summary]
+verify_jwt = false
