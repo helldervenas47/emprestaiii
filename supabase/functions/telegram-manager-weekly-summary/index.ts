@@ -177,7 +177,7 @@ async function processOwner(
     ? await admin.from("loan_installments").select("loan_id, installment_number, due_date, amount, paid").in("loan_id", loanIds)
     : { data: [] as any[] };
 
-  const week = startOfWeekISO(today);
+  const week = nextWeekISO(today);
 
   const buildItems = (managerClientId: string): Item[] => {
     const out: Item[] = [];
