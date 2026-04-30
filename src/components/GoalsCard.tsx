@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { useHideValues } from "@/contexts/HideValuesContext";
 import { useMonthlyGoals, GoalType, formatMonthLabel } from "@/hooks/useMonthlyGoals";
+import { useGoalSnapshots } from "@/hooks/useGoalSnapshots";
 import { useAccountSettings } from "@/hooks/useAccountSettings";
 import { Loan, Payment, Expense, Client, InstallmentSchedule, LoanRenegotiation } from "@/types/loan";
 import { todayInAppTz } from "@/lib/timezone";
@@ -21,8 +22,15 @@ import {
   Target, Percent, TrendingUp, Banknote, FileText,
   HandCoins, Coins, Wallet, PiggyBank, AlertTriangle, UserPlus,
   Sparkles, CheckCircle2, AlertCircle, TrendingDown, Lightbulb,
-  BookOpen, Calculator, Database, FlaskConical, Settings2, ArrowUp, ArrowDown, GripVertical, RefreshCw,
+  BookOpen, Calculator, Database, FlaskConical, Settings2, ArrowUp, ArrowDown, GripVertical, RefreshCw, Lock,
 } from "lucide-react";
+
+// Mês "YYYY-MM" — true se já é estritamente anterior ao mês corrente no fuso do app
+function isMonthClosed(month: string): boolean {
+  const today = todayInAppTz(); // YYYY-MM-DD
+  const currentMonth = today.slice(0, 7);
+  return month < currentMonth;
+}
 
 // Inline para evitar import circular com useLoans
 function calculateTotalWithInterest(principal: number, rate: number, _months: number): number {
@@ -556,6 +564,7 @@ export function GoalsCard({ loans, payments, expenses, clients, installmentSched
   const [selectedGoalId, setSelectedGoalId] = useState<string | null>(null);
   const [showCustomize, setShowCustomize] = useState(false);
   // Cache imediato via localStorage (evita flicker enquanto sincroniza com o backend)
+  const { getSnapshot, upsertSnapshot } = useGoalSnapshots();
   const [prefs, setPrefs] = useState<{ selected: GoalType[]; order: GoalType[] }>(() => loadGoalPrefs(user?.id));
 
   // Sincroniza preferências do backend ao montar / trocar de usuário
@@ -649,9 +658,20 @@ export function GoalsCard({ loans, payments, expenses, clients, installmentSched
       const meta = GOAL_TYPE_META[g.goalType];
       // Para metas sempre visíveis (snapshot atual) e para todas, usar o mês selecionado nos cálculos
       const computeMonth = selectedMonth || g.month;
-      const actual = g.goalType === "active_capital"
-        ? (computeMonth === currentMonth ? currentActiveCapital : (getSnapshotAmount(computeMonth) ?? 0))
-        : computeActual(g.goalType, computeMonth, loans, payments, expenses, clients, installmentSchedules, renegotiations);
+      const monthClosed = isMonthClosed(computeMonth);
+      const snapshot = getSnapshot(g.goalType, computeMonth);
+
+      // Se o mês já fechou e existe snapshot finalizado, usa o valor congelado.
+      // Caso contrário, calcula em tempo real.
+      let actual: number;
+      if (monthClosed && snapshot?.finalized) {
+        actual = Number(snapshot.realizedValue) || 0;
+      } else {
+        actual = g.goalType === "active_capital"
+          ? (computeMonth === currentMonth ? currentActiveCapital : (getSnapshotAmount(computeMonth) ?? 0))
+          : computeActual(g.goalType, computeMonth, loans, payments, expenses, clients, installmentSchedules, renegotiations);
+      }
+
       let pct = 0;
       if (g.targetValue > 0) {
         pct = g.goalType === "max_default_rate"
@@ -664,9 +684,23 @@ export function GoalsCard({ loans, payments, expenses, clients, installmentSched
       const targetAmount = g.goalType === "profit" && expectedReceivable !== null
         ? expectedReceivable * (g.targetValue / 100)
         : null;
-      return { ...g, actual, pct, meta, expectedReceivable, targetAmount };
+      return { ...g, actual, pct, meta, expectedReceivable, targetAmount, isLocked: monthClosed && !!snapshot?.finalized };
     });
-  }, [goals, loans, payments, expenses, clients, installmentSchedules, renegotiations, selectedMonth, currentMonth, currentActiveCapital, getSnapshotAmount]);
+  }, [goals, loans, payments, expenses, clients, installmentSchedules, renegotiations, selectedMonth, currentMonth, currentActiveCapital, getSnapshotAmount, getSnapshot]);
+
+  // Auto-fechamento: quando o mês já encerrou e ainda não há snapshot finalizado para
+  // alguma meta visível, grava o snapshot com o valor realizado atualmente calculado.
+  // Isto garante que os dados das metas fiquem "travados no último dia do mês".
+  useEffect(() => {
+    enriched.forEach((g) => {
+      const computeMonth = selectedMonth || g.month;
+      if (!isMonthClosed(computeMonth)) return;
+      const existing = getSnapshot(g.goalType, computeMonth);
+      if (existing?.finalized) return;
+      // Salva snapshot com o valor atual computado
+      void upsertSnapshot(g.goalType, computeMonth, g.actual, g.targetValue ?? null, g.pct ?? null);
+    });
+  }, [enriched, selectedMonth, getSnapshot, upsertSnapshot]);
 
   // Aplica preferências do usuário: filtra pelos tipos selecionados e ordena conforme a ordem definida.
   // Limita a no máximo MAX_VISIBLE_GOALS cards.
@@ -772,6 +806,12 @@ export function GoalsCard({ loans, payments, expenses, clients, installmentSched
                           <p className="text-[9px] sm:text-[10px] text-muted-foreground leading-tight">
                             {formatMonthLabel(g.month)}
                           </p>
+                        )}
+                        {(g as any).isLocked && (
+                          <Badge variant="outline" className="text-[8px] sm:text-[9px] px-1 py-0 h-3.5 border-muted-foreground/30 text-muted-foreground bg-muted/30 uppercase tracking-wide leading-none gap-0.5" title="Mês fechado — valor congelado no último dia do mês">
+                            <Lock className="h-2 w-2" />
+                            Travado
+                          </Badge>
                         )}
                       </div>
                     </div>

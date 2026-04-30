@@ -1148,6 +1148,48 @@ export type Database = {
         }
         Relationships: []
       }
+      monthly_goal_snapshots: {
+        Row: {
+          attainment_pct: number | null
+          created_at: string
+          finalized: boolean
+          goal_type: string
+          id: string
+          month: string
+          owner_id: string
+          realized_value: number
+          snapshot_date: string
+          target_value: number | null
+          updated_at: string
+        }
+        Insert: {
+          attainment_pct?: number | null
+          created_at?: string
+          finalized?: boolean
+          goal_type: string
+          id?: string
+          month: string
+          owner_id: string
+          realized_value?: number
+          snapshot_date?: string
+          target_value?: number | null
+          updated_at?: string
+        }
+        Update: {
+          attainment_pct?: number | null
+          created_at?: string
+          finalized?: boolean
+          goal_type?: string
+          id?: string
+          month?: string
+          owner_id?: string
+          realized_value?: number
+          snapshot_date?: string
+          target_value?: number | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       monthly_goals: {
         Row: {
           created_at: string
