@@ -42,18 +42,29 @@ export function TelegramManagerWeeklyCard() {
   const [sending, setSending] = useState<string | null>(null); // client_id or "all"
   const [previews, setPreviews] = useState<PreviewManager[] | null>(null);
   const [activePreview, setActivePreview] = useState<PreviewManager | null>(null);
+  const [referenceDate, setReferenceDate] = useState<string>(""); // YYYY-MM-DD; "" = hoje
+  const [previewWindow, setPreviewWindow] = useState<{ start: string; end: string; ref: string } | null>(null);
 
   if (loading || !linked) return null;
+
+  const fmtBR = (iso: string) => iso.split("-").reverse().join("/");
 
   const loadPreviews = async () => {
     setPreviewing(true);
     try {
-      const { data, error } = await supabase.functions.invoke("telegram-manager-weekly-summary", {
-        body: { owner_id: (await supabase.auth.getUser()).data.user?.id, preview_only: true },
-      });
+      const userId = (await supabase.auth.getUser()).data.user?.id;
+      const body: Record<string, unknown> = { owner_id: userId, preview_only: true };
+      if (referenceDate) body.reference_date = referenceDate;
+      const { data, error } = await supabase.functions.invoke("telegram-manager-weekly-summary", { body });
       if (error) throw error;
-      const list = (data as any)?.result?.managers ?? [];
+      const result = (data as any)?.result ?? {};
+      const list = result.managers ?? [];
       setPreviews(list);
+      setPreviewWindow(
+        result.week_start && result.week_end
+          ? { start: result.week_start, end: result.week_end, ref: result.reference_date }
+          : null,
+      );
       if (list.length === 0) toast.info("Nenhum gerente ativo encontrado.");
     } catch (e: any) {
       toast.error("Erro ao carregar prévia", { description: e.message });
@@ -66,9 +77,9 @@ export function TelegramManagerWeeklyCard() {
     setSending(clientId);
     try {
       const userId = (await supabase.auth.getUser()).data.user?.id;
-      const { error } = await supabase.functions.invoke("telegram-manager-weekly-summary", {
-        body: { owner_id: userId, manager_client_id: clientId },
-      });
+      const body: Record<string, unknown> = { owner_id: userId, manager_client_id: clientId };
+      if (referenceDate) body.reference_date = referenceDate;
+      const { error } = await supabase.functions.invoke("telegram-manager-weekly-summary", { body });
       if (error) throw error;
       toast.success("Mensagem enviada ao bot de relatórios");
     } catch (e: any) {
@@ -82,9 +93,9 @@ export function TelegramManagerWeeklyCard() {
     setSending("all");
     try {
       const userId = (await supabase.auth.getUser()).data.user?.id;
-      const { error } = await supabase.functions.invoke("telegram-manager-weekly-summary", {
-        body: { owner_id: userId, manual_run: true },
-      });
+      const body: Record<string, unknown> = { owner_id: userId, manual_run: true };
+      if (referenceDate) body.reference_date = referenceDate;
+      const { error } = await supabase.functions.invoke("telegram-manager-weekly-summary", { body });
       if (error) throw error;
       toast.success("Resumos enviados a todos os gerentes");
     } catch (e: any) {
