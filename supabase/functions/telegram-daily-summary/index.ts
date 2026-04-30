@@ -81,7 +81,7 @@ Deno.serve(async (req) => {
   const nowMin = hh * 60 + mm;
 
   // Load enabled prefs
-  let query = admin.from("telegram_summary_prefs").select("user_id, enabled, send_time, last_sent_date");
+  let query = admin.from("telegram_summary_prefs").select("user_id, enabled, send_time, last_sent_date, daily_format");
   if (forceUserId) query = query.eq("user_id", forceUserId);
   else query = query.eq("enabled", true);
 
