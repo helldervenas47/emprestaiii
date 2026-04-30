@@ -180,7 +180,7 @@ Deno.serve(async (req) => {
 
   const { data: prefs, error } = await admin
     .from("telegram_summary_prefs")
-    .select("user_id, weekly_enabled, weekly_send_time, weekly_send_weekday, last_weekly_sent_date")
+    .select("user_id, weekly_enabled, weekly_send_time, weekly_send_weekday, weekly_format, last_weekly_sent_date")
     .eq("weekly_enabled", true);
 
   if (error) return new Response(JSON.stringify({ error: error.message }), { status: 500, headers: corsHeaders });
