@@ -658,9 +658,20 @@ export function GoalsCard({ loans, payments, expenses, clients, installmentSched
       const meta = GOAL_TYPE_META[g.goalType];
       // Para metas sempre visíveis (snapshot atual) e para todas, usar o mês selecionado nos cálculos
       const computeMonth = selectedMonth || g.month;
-      const actual = g.goalType === "active_capital"
-        ? (computeMonth === currentMonth ? currentActiveCapital : (getSnapshotAmount(computeMonth) ?? 0))
-        : computeActual(g.goalType, computeMonth, loans, payments, expenses, clients, installmentSchedules, renegotiations);
+      const monthClosed = isMonthClosed(computeMonth);
+      const snapshot = getSnapshot(g.goalType, computeMonth);
+
+      // Se o mês já fechou e existe snapshot finalizado, usa o valor congelado.
+      // Caso contrário, calcula em tempo real.
+      let actual: number;
+      if (monthClosed && snapshot?.finalized) {
+        actual = Number(snapshot.realizedValue) || 0;
+      } else {
+        actual = g.goalType === "active_capital"
+          ? (computeMonth === currentMonth ? currentActiveCapital : (getSnapshotAmount(computeMonth) ?? 0))
+          : computeActual(g.goalType, computeMonth, loans, payments, expenses, clients, installmentSchedules, renegotiations);
+      }
+
       let pct = 0;
       if (g.targetValue > 0) {
         pct = g.goalType === "max_default_rate"
@@ -673,9 +684,23 @@ export function GoalsCard({ loans, payments, expenses, clients, installmentSched
       const targetAmount = g.goalType === "profit" && expectedReceivable !== null
         ? expectedReceivable * (g.targetValue / 100)
         : null;
-      return { ...g, actual, pct, meta, expectedReceivable, targetAmount };
+      return { ...g, actual, pct, meta, expectedReceivable, targetAmount, isLocked: monthClosed && !!snapshot?.finalized };
     });
-  }, [goals, loans, payments, expenses, clients, installmentSchedules, renegotiations, selectedMonth, currentMonth, currentActiveCapital, getSnapshotAmount]);
+  }, [goals, loans, payments, expenses, clients, installmentSchedules, renegotiations, selectedMonth, currentMonth, currentActiveCapital, getSnapshotAmount, getSnapshot]);
+
+  // Auto-fechamento: quando o mês já encerrou e ainda não há snapshot finalizado para
+  // alguma meta visível, grava o snapshot com o valor realizado atualmente calculado.
+  // Isto garante que os dados das metas fiquem "travados no último dia do mês".
+  useEffect(() => {
+    enriched.forEach((g) => {
+      const computeMonth = selectedMonth || g.month;
+      if (!isMonthClosed(computeMonth)) return;
+      const existing = getSnapshot(g.goalType, computeMonth);
+      if (existing?.finalized) return;
+      // Salva snapshot com o valor atual computado
+      void upsertSnapshot(g.goalType, computeMonth, g.actual, g.targetValue ?? null, g.pct ?? null);
+    });
+  }, [enriched, selectedMonth, getSnapshot, upsertSnapshot]);
 
   // Aplica preferências do usuário: filtra pelos tipos selecionados e ordena conforme a ordem definida.
   // Limita a no máximo MAX_VISIBLE_GOALS cards.
