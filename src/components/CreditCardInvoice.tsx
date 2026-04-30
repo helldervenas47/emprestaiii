@@ -350,7 +350,7 @@ export function CreditCardInvoice({ card, onClose, referenceMonth, originRect }:
       className="fixed inset-0 z-[2147483647] flex items-stretch sm:items-center justify-center p-0 sm:p-4 overscroll-contain"
       style={{ height: "100dvh" }}
       onClick={(e) => {
-        if (!isMobile) handleClose();
+        if (!isMobile && e.target === e.currentTarget) handleClose();
       }}
     >
       {/* Backdrop — fully opaque on mobile so nothing behind leaks through. */}
