@@ -206,7 +206,7 @@ export function ExpenseEditDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto z-[2147483648]">
         <DialogHeader>
           <DialogTitle>Editar lançamento</DialogTitle>
           <DialogDescription>
@@ -483,7 +483,7 @@ export function ExpenseEditDialog({
       </DialogContent>
 
       <AlertDialog open={confirmAllOpen} onOpenChange={setConfirmAllOpen}>
-        <AlertDialogContent>
+        <AlertDialogContent className="z-[2147483649]">
           <AlertDialogHeader>
             <AlertDialogTitle className="flex items-center gap-2">
               <AlertTriangle className="h-5 w-5 text-destructive" />
