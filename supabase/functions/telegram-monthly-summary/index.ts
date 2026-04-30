@@ -228,8 +228,16 @@ Deno.serve(async (req) => {
     if (userErr || !user) return new Response(JSON.stringify({ error: "Invalid token" }), { status: 401, headers: corsHeaders });
     if (user.id !== forceUserId) return new Response(JSON.stringify({ error: "Forbidden" }), { status: 403, headers: corsHeaders });
 
-    const ok = await buildAndSendMonthly(admin, forceUserId, today, LOVABLE_API_KEY, TELEGRAM_API_KEY, brandName);
-    return new Response(JSON.stringify({ ok: true, sent: ok ? 1 : 0 }), {
+    // Read user format preference
+    const { data: pref } = await admin
+      .from("telegram_summary_prefs")
+      .select("monthly_format")
+      .eq("user_id", forceUserId)
+      .maybeSingle();
+    const format = ((pref as any)?.monthly_format === "image" ? "image" : "text") as "text" | "image";
+
+    const ok = await buildAndSendMonthly(admin, forceUserId, today, LOVABLE_API_KEY, TELEGRAM_API_KEY, brand, format);
+    return new Response(JSON.stringify({ ok: true, sent: ok ? 1 : 0, format }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
