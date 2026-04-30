@@ -2059,6 +2059,42 @@ export type Database = {
         }
         Relationships: []
       }
+      telegram_manager_weekly_prefs: {
+        Row: {
+          created_at: string
+          enabled: boolean
+          id: string
+          last_sent_date: string | null
+          message_template: string
+          send_time: string
+          send_weekday: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          enabled?: boolean
+          id?: string
+          last_sent_date?: string | null
+          message_template?: string
+          send_time?: string
+          send_weekday?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          enabled?: boolean
+          id?: string
+          last_sent_date?: string | null
+          message_template?: string
+          send_time?: string
+          send_weekday?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       telegram_messages: {
         Row: {
           chat_id: number
