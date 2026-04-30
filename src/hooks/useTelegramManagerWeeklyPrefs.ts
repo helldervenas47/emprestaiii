@@ -12,10 +12,10 @@ export interface ManagerWeeklyPref {
 
 const DEFAULT_TEMPLATE =
   `Olá {nome_gerente}! 👋
-Resumo semanal dos seus empréstimos:
+Resumo da próxima semana:
 
 ⚠️ Atrasados: {total_emprestimos_atrasados}
-📅 Vencendo nesta semana: {total_emprestimos_semana}
+📅 Vencendo na próxima semana: {total_emprestimos_semana}
 💰 Valor restante total: {valor_total}
 
 Clientes:
