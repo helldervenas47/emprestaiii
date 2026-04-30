@@ -199,7 +199,18 @@ Deno.serve(async (req) => {
         lines.push("_Sem orçamentos configurados._");
       }
 
-      await tgSend(Number(link.chat_id), lines.join("\n"), LOVABLE_API_KEY, TELEGRAM_API_KEY);
+      const fmt = ((pref as any).daily_format === "image" ? "image" : "text") as "text" | "image";
+      await sendReportFlexible({
+        chatId: Number(link.chat_id),
+        format: fmt,
+        textBody: lines.join("\n"),
+        title: `${brandName} — Resumo do dia`,
+        subtitle: today.split("-").reverse().join("/"),
+        imageCaption: `📊 *${brandName} — Resumo do dia* — ${today.split("-").reverse().join("/")}`,
+        brand: { name: brandName, primaryHsl: null },
+        lovableKey: LOVABLE_API_KEY,
+        telegramKey: TELEGRAM_API_KEY,
+      });
 
       if (!forceUserId) {
         await admin.from("telegram_summary_prefs")
