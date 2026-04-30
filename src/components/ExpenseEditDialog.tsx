@@ -206,7 +206,7 @@ export function ExpenseEditDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto z-[2147483648]">
         <DialogHeader>
           <DialogTitle>Editar lançamento</DialogTitle>
           <DialogDescription>
