@@ -2265,6 +2265,7 @@ export type Database = {
           last_sent_date: string | null
           last_weekly_sent_date: string | null
           monthly_enabled: boolean
+          monthly_format: string
           monthly_send_day: number
           monthly_send_time: string
           send_time: string
@@ -2281,6 +2282,7 @@ export type Database = {
           last_sent_date?: string | null
           last_weekly_sent_date?: string | null
           monthly_enabled?: boolean
+          monthly_format?: string
           monthly_send_day?: number
           monthly_send_time?: string
           send_time?: string
@@ -2297,6 +2299,7 @@ export type Database = {
           last_sent_date?: string | null
           last_weekly_sent_date?: string | null
           monthly_enabled?: boolean
+          monthly_format?: string
           monthly_send_day?: number
           monthly_send_time?: string
           send_time?: string
