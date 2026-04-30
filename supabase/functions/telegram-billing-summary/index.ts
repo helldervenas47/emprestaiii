@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { sendReportFlexible } from "../_shared/renderReportImage.ts";
 
 const GATEWAY_URL = "https://connector-gateway.lovable.dev/telegram";
 
@@ -220,7 +221,7 @@ Deno.serve(async (req) => {
   const [hh, mm] = hhmm.split(":").map(Number);
   const nowMin = hh * 60 + mm;
 
-  let query = admin.from("telegram_billing_prefs").select("user_id, enabled, send_time_1, send_time_2, send_time_3, last_sent");
+  let query = admin.from("telegram_billing_prefs").select("user_id, enabled, send_time_1, send_time_2, send_time_3, last_sent, format");
   if (forceUserId) query = query.eq("user_id", forceUserId);
   else query = query.eq("enabled", true);
 
@@ -269,7 +270,18 @@ Deno.serve(async (req) => {
 
       const report = await buildBillingReport(admin, pref.user_id, today, brandName);
 
-      await tgSend(Number(link.chat_id), report, LOVABLE_API_KEY, TELEGRAM_API_KEY);
+      const fmt = ((pref as any).format === "image" ? "image" : "text") as "text" | "image";
+      await sendReportFlexible({
+        chatId: Number(link.chat_id),
+        format: fmt,
+        textBody: report,
+        title: `${brandName} — Cobrança`,
+        subtitle: today.split("-").reverse().join("/"),
+        imageCaption: `📋 *${brandName} — Relatório de Cobrança*`,
+        brand: { name: brandName, primaryHsl: null },
+        lovableKey: LOVABLE_API_KEY,
+        telegramKey: TELEGRAM_API_KEY,
+      });
 
       if (!forceUserId) {
         const merged = { ...(pref.last_sent ?? {}) } as Record<string, string>;

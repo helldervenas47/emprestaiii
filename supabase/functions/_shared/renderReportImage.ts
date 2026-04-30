@@ -209,3 +209,211 @@ export async function tgSendPhoto(
     throw new Error(`sendPhoto failed: ${r.status} ${text}`);
   }
 }
+
+// ============================================================
+// Generic text-to-image renderer
+// Converts a Markdown-ish text body into a clean SVG card.
+// Supported syntax (light): 
+//   - lines starting with "## " => section heading
+//   - lines starting with "### " => subheading
+//   - "*bold*" or "**bold**" inline markers are stripped (rendered plain)
+//   - emoji passes through (unicode)
+//   - blank line => spacer
+// ============================================================
+
+export interface GenericReportData {
+  title: string;        // big title (e.g. "Resumo Diário")
+  subtitle?: string;    // small line under title (date, etc)
+  bodyText: string;     // the report content (the same text already sent)
+  brand: BrandInfo;
+}
+
+function stripMd(s: string): string {
+  return s.replace(/\*\*(.+?)\*\*/g, "$1").replace(/\*(.+?)\*/g, "$1").replace(/`(.+?)`/g, "$1").replace(/_(.+?)_/g, "$1");
+}
+
+// Wrap text by approximate character count (monospace-ish estimate)
+function wrapText(line: string, maxChars: number): string[] {
+  if (line.length <= maxChars) return [line];
+  const words = line.split(/\s+/);
+  const out: string[] = [];
+  let cur = "";
+  for (const w of words) {
+    if ((cur + " " + w).trim().length > maxChars) {
+      if (cur) out.push(cur);
+      cur = w;
+    } else {
+      cur = (cur ? cur + " " : "") + w;
+    }
+  }
+  if (cur) out.push(cur);
+  return out;
+}
+
+export function buildGenericReportSVG(data: GenericReportData): string {
+  const W = 1080;
+  const PAD = 56;
+  const primary = `hsl(${data.brand.primaryHsl || "221 83% 53%"})`;
+  const primarySoft = `hsl(${data.brand.primaryHsl || "221 83% 53%"} / 0.10)`;
+
+  // Pre-compute lines & layout
+  const rawLines = data.bodyText.replace(/\r\n/g, "\n").split("\n");
+  type Line = { kind: "h2" | "h3" | "text" | "blank"; content: string };
+  const items: Line[] = [];
+  for (const raw of rawLines) {
+    const t = raw.replace(/\t/g, "  ").trimEnd();
+    if (!t.trim()) { items.push({ kind: "blank", content: "" }); continue; }
+    if (/^##\s+/.test(t)) { items.push({ kind: "h2", content: stripMd(t.replace(/^##\s+/, "")) }); continue; }
+    if (/^###\s+/.test(t)) { items.push({ kind: "h3", content: stripMd(t.replace(/^###\s+/, "")) }); continue; }
+    items.push({ kind: "text", content: stripMd(t) });
+  }
+
+  // Wrap text lines
+  const MAX_CHARS = 70;
+  type Rendered = { kind: "h2" | "h3" | "text" | "blank"; content: string; indent: number };
+  const rendered: Rendered[] = [];
+  for (const it of items) {
+    if (it.kind === "blank") { rendered.push({ kind: "blank", content: "", indent: 0 }); continue; }
+    if (it.kind === "h2" || it.kind === "h3") { rendered.push({ kind: it.kind, content: it.content, indent: 0 }); continue; }
+    // Detect indentation (preserve leading spaces for bullets)
+    const leading = it.content.match(/^(\s+)/);
+    const indent = leading ? Math.min(leading[1].length, 8) * 6 : 0;
+    const stripped = it.content.replace(/^\s+/, "");
+    const wrapped = wrapText(stripped, MAX_CHARS - Math.floor(indent / 6));
+    for (const w of wrapped) rendered.push({ kind: "text", content: w, indent });
+  }
+
+  // Heights
+  const HEADER_H = data.subtitle ? 170 : 130;
+  const lineHeight = (kind: Rendered["kind"]): number => {
+    if (kind === "h2") return 56;
+    if (kind === "h3") return 42;
+    if (kind === "blank") return 18;
+    return 32;
+  };
+  const bodyH = rendered.reduce((s, r) => s + lineHeight(r.kind), 0);
+  const H = HEADER_H + bodyH + 56 + 40; // top card pad + bottom pad
+
+  let svg = `<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Apple Color Emoji', 'Segoe UI Emoji', sans-serif">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="100%" stop-color="#f8fafc"/>
+    </linearGradient>
+    <linearGradient id="brand" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="${primary}"/>
+      <stop offset="100%" stop-color="${primary}" stop-opacity="0.7"/>
+    </linearGradient>
+  </defs>
+  <rect width="${W}" height="${H}" fill="url(#bg)"/>
+  <rect x="0" y="0" width="${W}" height="8" fill="url(#brand)"/>
+`;
+
+  // Header
+  svg += `<text x="${PAD}" y="64" font-size="22" font-weight="600" fill="${primary}" letter-spacing="2">${escXml((data.brand.name || "").toUpperCase())}</text>`;
+  svg += `<text x="${PAD}" y="116" font-size="44" font-weight="700" fill="#0f172a">${escXml(data.title)}</text>`;
+  if (data.subtitle) {
+    svg += `<text x="${PAD}" y="156" font-size="20" fill="#64748b">${escXml(data.subtitle)}</text>`;
+  }
+
+  // Body card
+  const cardY = HEADER_H;
+  const cardH = bodyH + 56;
+  svg += `<rect x="${PAD - 16}" y="${cardY}" width="${W - 2 * (PAD - 16)}" height="${cardH}" rx="20" fill="${primarySoft}"/>`;
+
+  let y = cardY + 32;
+  for (const r of rendered) {
+    const lh = lineHeight(r.kind);
+    if (r.kind === "blank") { y += lh; continue; }
+    if (r.kind === "h2") {
+      y += 26;
+      svg += `<text x="${PAD}" y="${y}" font-size="26" font-weight="700" fill="#0f172a">${escXml(r.content)}</text>`;
+      y += lh - 26;
+      continue;
+    }
+    if (r.kind === "h3") {
+      y += 20;
+      svg += `<text x="${PAD}" y="${y}" font-size="20" font-weight="600" fill="${primary}">${escXml(r.content)}</text>`;
+      y += lh - 20;
+      continue;
+    }
+    y += 22;
+    svg += `<text x="${PAD + r.indent}" y="${y}" font-size="20" font-weight="500" fill="#1e293b">${escXml(r.content)}</text>`;
+    y += lh - 22;
+  }
+
+  svg += `</svg>`;
+  return svg;
+}
+
+/**
+ * High-level helper: takes the same Markdown text the bot would send, plus a title/subtitle/brand,
+ * renders a PNG and sends as photo. On any failure, throws so caller can fallback to text.
+ */
+export async function sendReportAsImage(args: {
+  chatId: number;
+  title: string;
+  subtitle?: string;
+  bodyText: string;
+  caption: string;
+  brand: BrandInfo;
+  lovableKey: string;
+  telegramKey: string;
+}): Promise<void> {
+  const svg = buildGenericReportSVG({
+    title: args.title,
+    subtitle: args.subtitle,
+    bodyText: args.bodyText,
+    brand: args.brand,
+  });
+  const png = await svgToPng(svg);
+  await tgSendPhoto(args.chatId, png, args.caption, args.lovableKey, args.telegramKey);
+}
+
+/**
+ * Convenience: send a report either as text or image based on `format`.
+ * - title/subtitle are used for the image header
+ * - imageCaption is the (short) caption attached to the photo
+ * - On image render failure, automatically falls back to text.
+ */
+export async function sendReportFlexible(args: {
+  chatId: number;
+  format: "text" | "image";
+  textBody: string;        // full markdown body (used for both modes)
+  title: string;           // image-only: big title
+  subtitle?: string;       // image-only
+  imageCaption?: string;   // image-only short caption
+  brand: BrandInfo;
+  lovableKey: string;
+  telegramKey: string;
+}): Promise<void> {
+  if (args.format === "image") {
+    try {
+      await sendReportAsImage({
+        chatId: args.chatId,
+        title: args.title,
+        subtitle: args.subtitle,
+        bodyText: args.textBody,
+        caption: args.imageCaption ?? args.title,
+        brand: args.brand,
+        lovableKey: args.lovableKey,
+        telegramKey: args.telegramKey,
+      });
+      return;
+    } catch (e) {
+      console.error("image render failed, falling back to text:", e);
+    }
+  }
+  // Text fallback
+  const r = await fetch(`${GATEWAY_URL}/sendMessage`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${args.lovableKey}`,
+      "X-Connection-Api-Key": args.telegramKey,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ chat_id: args.chatId, text: args.textBody, parse_mode: "Markdown" }),
+  });
+  if (!r.ok) console.error("sendMessage failed", r.status, await r.text());
+}
