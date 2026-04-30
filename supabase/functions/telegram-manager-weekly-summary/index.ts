@@ -273,6 +273,18 @@ async function processOwner(
   for (const m of working) {
     try {
       const items = buildItems(m.client_id);
+      // Skip managers without overdue / due-this-week installments,
+      // unless explicitly targeted (manual single-manager send).
+      if (items.length === 0 && !opts.target_manager_client_id) {
+        results.push({
+          client_id: m.client_id,
+          name: m.name,
+          loans_count: 0,
+          success: true,
+          skipped: "no_relevant_installments",
+        });
+        continue;
+      }
       const message = renderMessage(m.name, items);
       const send = await tgSend(chatId, message, lovableKey, telegramKey);
       results.push({
@@ -286,7 +298,7 @@ async function processOwner(
       results.push({ client_id: m.client_id, name: m.name, success: false, error: String(e) });
     }
   }
-  return { owner_id: ownerId, sent: results.length, results };
+  return { owner_id: ownerId, sent: results.filter((r) => !r.skipped).length, results };
 }
 
 Deno.serve(async (req) => {
