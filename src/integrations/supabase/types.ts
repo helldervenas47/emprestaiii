@@ -704,6 +704,7 @@ export type Database = {
         Row: {
           created_at: string
           enabled: boolean
+          format: string
           last_sent: Json
           send_target: string
           send_time_1: string | null
@@ -715,6 +716,7 @@ export type Database = {
         Insert: {
           created_at?: string
           enabled?: boolean
+          format?: string
           last_sent?: Json
           send_target?: string
           send_time_1?: string | null
@@ -726,6 +728,7 @@ export type Database = {
         Update: {
           created_at?: string
           enabled?: boolean
+          format?: string
           last_sent?: Json
           send_target?: string
           send_time_1?: string | null
@@ -1427,6 +1430,7 @@ export type Database = {
           alert_on_trend: boolean
           created_at: string
           enabled: boolean
+          format: string
           last_sent: Json
           send_time_1: string | null
           send_time_2: string | null
@@ -1440,6 +1444,7 @@ export type Database = {
           alert_on_trend?: boolean
           created_at?: string
           enabled?: boolean
+          format?: string
           last_sent?: Json
           send_time_1?: string | null
           send_time_2?: string | null
@@ -1453,6 +1458,7 @@ export type Database = {
           alert_on_trend?: boolean
           created_at?: string
           enabled?: boolean
+          format?: string
           last_sent?: Json
           send_time_1?: string | null
           send_time_2?: string | null
@@ -1886,6 +1892,7 @@ export type Database = {
         Row: {
           created_at: string
           enabled: boolean
+          format: string
           id: string
           last_sent: Json
           send_time_1: string | null
@@ -1897,6 +1904,7 @@ export type Database = {
         Insert: {
           created_at?: string
           enabled?: boolean
+          format?: string
           id?: string
           last_sent?: Json
           send_time_1?: string | null
@@ -1908,6 +1916,7 @@ export type Database = {
         Update: {
           created_at?: string
           enabled?: boolean
+          format?: string
           id?: string
           last_sent?: Json
           send_time_1?: string | null
@@ -1922,6 +1931,7 @@ export type Database = {
         Row: {
           created_at: string
           enabled: boolean
+          format: string
           last_sent: Json
           send_time_1: string | null
           send_time_2: string | null
@@ -1932,6 +1942,7 @@ export type Database = {
         Insert: {
           created_at?: string
           enabled?: boolean
+          format?: string
           last_sent?: Json
           send_time_1?: string | null
           send_time_2?: string | null
@@ -1942,6 +1953,7 @@ export type Database = {
         Update: {
           created_at?: string
           enabled?: boolean
+          format?: string
           last_sent?: Json
           send_time_1?: string | null
           send_time_2?: string | null
@@ -2063,6 +2075,7 @@ export type Database = {
         Row: {
           created_at: string
           enabled: boolean
+          format: string
           id: string
           last_sent_date: string | null
           message_template: string
@@ -2074,6 +2087,7 @@ export type Database = {
         Insert: {
           created_at?: string
           enabled?: boolean
+          format?: string
           id?: string
           last_sent_date?: string | null
           message_template?: string
@@ -2085,6 +2099,7 @@ export type Database = {
         Update: {
           created_at?: string
           enabled?: boolean
+          format?: string
           id?: string
           last_sent_date?: string | null
           message_template?: string
@@ -2260,6 +2275,7 @@ export type Database = {
       telegram_summary_prefs: {
         Row: {
           created_at: string
+          daily_format: string
           enabled: boolean
           last_monthly_sent_month: string | null
           last_sent_date: string | null
@@ -2272,11 +2288,13 @@ export type Database = {
           updated_at: string
           user_id: string
           weekly_enabled: boolean
+          weekly_format: string
           weekly_send_time: string
           weekly_send_weekday: number
         }
         Insert: {
           created_at?: string
+          daily_format?: string
           enabled?: boolean
           last_monthly_sent_month?: string | null
           last_sent_date?: string | null
@@ -2289,11 +2307,13 @@ export type Database = {
           updated_at?: string
           user_id: string
           weekly_enabled?: boolean
+          weekly_format?: string
           weekly_send_time?: string
           weekly_send_weekday?: number
         }
         Update: {
           created_at?: string
+          daily_format?: string
           enabled?: boolean
           last_monthly_sent_month?: string | null
           last_sent_date?: string | null
@@ -2306,6 +2326,7 @@ export type Database = {
           updated_at?: string
           user_id?: string
           weekly_enabled?: boolean
+          weekly_format?: string
           weekly_send_time?: string
           weekly_send_weekday?: number
         }
