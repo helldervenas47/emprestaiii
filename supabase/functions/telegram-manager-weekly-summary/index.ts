@@ -151,7 +151,7 @@ async function processOwner(
   // Load loans + installments only once for the owner
   const { data: loans } = await admin
     .from("loans")
-    .select("id, borrower_name, due_date, amount, paid_installments, installments, has_manager, manager_id, status")
+    .select("id, borrower_name, due_date, amount, remaining_amount, tags, paid_installments, installments, has_manager, manager_id, status")
     .eq("user_id", ownerId)
     .neq("status", "paid");
 
@@ -168,31 +168,52 @@ async function processOwner(
       if (!loan.has_manager) continue;
       if (String(loan.manager_id || "") !== managerClientId) continue;
 
+      // Use remaining_amount as the displayed value for the contract
+      const remaining = Number(loan.remaining_amount ?? loan.amount ?? 0);
+      const tags: string[] = Array.isArray(loan.tags)
+        ? (loan.tags as any[]).map((t) => String(t).trim()).filter(Boolean)
+        : [];
+
       const list = (insts ?? [])
         .filter((s: any) => s.loan_id === loan.id)
         .sort((a: any, b: any) => a.installment_number - b.installment_number);
 
       const unpaid = list.filter((s: any) => !s.paid);
+      // Determine the most relevant due date for this loan in the window:
+      // earliest overdue first, otherwise earliest due in this week.
+      let chosenDue: string | null = null;
+      let chosenStatus: "overdue" | "this_week" | null = null;
+
       if (unpaid.length > 0) {
         for (const s of unpaid) {
           const due = String(s.due_date || "").substring(0, 10);
           if (!due) continue;
           if (due < today) {
-            out.push({ borrower_name: loan.borrower_name ?? "", amount: Number(s.amount || 0), due, status: "overdue" });
-          } else if (due >= week.start && due <= week.end) {
-            out.push({ borrower_name: loan.borrower_name ?? "", amount: Number(s.amount || 0), due, status: "this_week" });
+            if (!chosenDue || due < chosenDue || chosenStatus !== "overdue") {
+              chosenDue = due; chosenStatus = "overdue";
+            }
+          } else if (due >= week.start && due <= week.end && chosenStatus !== "overdue") {
+            if (!chosenDue || due < chosenDue) {
+              chosenDue = due; chosenStatus = "this_week";
+            }
           }
         }
       } else {
-        // No installments table → fall back to loan.due_date
         const due = String(loan.due_date || "").substring(0, 10);
-        if (!due) continue;
-        const amount = Number(loan.amount || 0);
-        if (due < today) {
-          out.push({ borrower_name: loan.borrower_name ?? "", amount, due, status: "overdue" });
-        } else if (due >= week.start && due <= week.end) {
-          out.push({ borrower_name: loan.borrower_name ?? "", amount, due, status: "this_week" });
+        if (due) {
+          if (due < today) { chosenDue = due; chosenStatus = "overdue"; }
+          else if (due >= week.start && due <= week.end) { chosenDue = due; chosenStatus = "this_week"; }
         }
+      }
+
+      if (chosenDue && chosenStatus) {
+        out.push({
+          borrower_name: loan.borrower_name ?? "",
+          amount: remaining,
+          due: chosenDue,
+          status: chosenStatus,
+          tags,
+        });
       }
     }
     return out.sort((a, b) => a.due.localeCompare(b.due));
@@ -205,14 +226,25 @@ async function processOwner(
     const lista = items.length
       ? items.map((i) => {
           const tag = i.status === "overdue" ? "⚠️ ATRASADO" : "📅 esta semana";
-          return `• ${i.borrower_name} — ${fmtBRL(i.amount)} (vence ${fmtBR(i.due)}) ${tag}`;
+          const etiquetas = i.tags.length ? `\n   🏷️ ${i.tags.join(", ")}` : "";
+          return `• ${i.borrower_name} — ${fmtBRL(i.amount)} (vence ${fmtBR(i.due)}) ${tag}${etiquetas}`;
         }).join("\n")
       : "Nenhum empréstimo atrasado ou vencendo nesta semana.";
+
+    // Aggregated tags variable (unique, comma-separated)
+    const allTags = Array.from(new Set(items.flatMap((i) => i.tags))).filter(Boolean);
+    const etiquetaStr = allTags.length ? allTags.join(", ") : "";
+
     return template
       .replace(/\{nome_gerente\}/g, managerName)
       .replace(/\{total_emprestimos_atrasados\}/g, String(overdue.length))
       .replace(/\{total_emprestimos_semana\}/g, String(week.length))
+      // New canonical names + backwards-compat aliases
+      .replace(/\{valor_total\}/g, fmtBRL(total))
+      .replace(/\{valor_restante_total\}/g, fmtBRL(total))
       .replace(/\{valores_totais\}/g, fmtBRL(total))
+      .replace(/\{etiquetas\}/g, etiquetaStr)
+      .replace(/\{etiqueta\}/g, etiquetaStr)
       .replace(/\{lista_clientes\}/g, lista);
   };
 
