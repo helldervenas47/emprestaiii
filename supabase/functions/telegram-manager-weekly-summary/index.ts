@@ -80,16 +80,17 @@ Resumo semanal dos seus empréstimos:
 
 ⚠️ Atrasados: {total_emprestimos_atrasados}
 📅 Vencendo nesta semana: {total_emprestimos_semana}
-💰 Valor total: {valores_totais}
+💰 Valor restante total: {valor_total}
 
 Clientes:
 {lista_clientes}`;
 
 type Item = {
   borrower_name: string;
-  amount: number;
+  amount: number; // valor restante do contrato
   due: string;
   status: "overdue" | "this_week";
+  tags: string[];
 };
 
 async function processOwner(
