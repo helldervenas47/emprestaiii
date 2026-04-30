@@ -371,6 +371,23 @@ export function TelegramConnectCard() {
                   />
                 </div>
               )}
+              {summaryPref.monthly_enabled && (
+                <div className="flex flex-wrap items-center gap-2 pt-1">
+                  <Label className="text-xs text-muted-foreground">Formato:</Label>
+                  <Select
+                    value={summaryPref.monthly_format}
+                    onValueChange={(v) => updateSummary({ monthly_format: v as "text" | "image" })}
+                  >
+                    <SelectTrigger className="h-8 w-32 text-xs">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="text">📝 Texto</SelectItem>
+                      <SelectItem value="image">🖼️ Imagem</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
               <p className="text-[10px] text-muted-foreground">
                 Total do mês com comparação ao mês anterior, top categorias, média diária e orçamentos. Se o dia escolhido não existir no mês (ex: 31 em fevereiro), envia no último dia.
               </p>
