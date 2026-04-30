@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
-import { Users, Clock, Send, Eye, Sparkles } from "lucide-react";
+import { Users, Clock, Send, Eye, Sparkles, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useTelegramManagerWeeklyPrefs } from "@/hooks/useTelegramManagerWeeklyPrefs";
@@ -114,6 +114,22 @@ export function TelegramManagerWeeklyCard() {
             onCheckedChange={(v) => save({ enabled: v })}
           />
         </div>
+
+        {!pref.enabled && (
+          <div className="rounded-md border border-warning/40 bg-warning/10 p-3 flex items-start gap-2">
+            <AlertTriangle className="h-4 w-4 text-warning shrink-0 mt-0.5" />
+            <div className="space-y-1">
+              <p className="text-xs font-medium text-foreground">
+                Envio automático desativado
+              </p>
+              <p className="text-[11px] text-muted-foreground">
+                Ative o botão acima para que o resumo semanal seja enviado automaticamente
+                ao bot de relatórios no dia e horário configurados. Enquanto desligado,
+                nenhuma mensagem será disparada pelo agendamento.
+              </p>
+            </div>
+          </div>
+        )}
 
         {pref.enabled && (
           <>
