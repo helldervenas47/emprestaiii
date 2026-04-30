@@ -2610,16 +2610,10 @@ function LoanRowView({
         ) : isParcelado ? (
           <div className="flex flex-col">
             <span className="text-[11px] sm:text-sm font-medium text-destructive">{formatCurrency(installmentValue + lateFees)}</span>
-            {lateFees > 0 && (
-              <span className="text-[9px] sm:text-[10px] text-muted-foreground">+ {rawFormatCurrency(lateFees)} juros/multa</span>
-            )}
           </div>
         ) : (
           <div className="flex flex-col">
             <span className="text-[11px] sm:text-sm font-medium text-destructive">{formatCurrency(remaining)}</span>
-            {lateFees > 0 && (
-              <span className="text-[9px] sm:text-[10px] text-muted-foreground">inclui {rawFormatCurrency(lateFees)} juros/multa</span>
-            )}
           </div>
         )}
       </td>
