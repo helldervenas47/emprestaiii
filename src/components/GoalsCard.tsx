@@ -564,6 +564,7 @@ export function GoalsCard({ loans, payments, expenses, clients, installmentSched
   const [selectedGoalId, setSelectedGoalId] = useState<string | null>(null);
   const [showCustomize, setShowCustomize] = useState(false);
   // Cache imediato via localStorage (evita flicker enquanto sincroniza com o backend)
+  const { getSnapshot, upsertSnapshot } = useGoalSnapshots();
   const [prefs, setPrefs] = useState<{ selected: GoalType[]; order: GoalType[] }>(() => loadGoalPrefs(user?.id));
 
   // Sincroniza preferências do backend ao montar / trocar de usuário
