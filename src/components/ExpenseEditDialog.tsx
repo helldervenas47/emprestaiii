@@ -255,6 +255,7 @@ export function ExpenseEditDialog({
                 value={dueDate}
                 onChange={setDueDate}
                 placeholder="Selecione a data"
+                popoverContentClassName="z-[2147483650]"
               />
             </div>
           </div>
