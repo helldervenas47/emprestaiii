@@ -7,9 +7,6 @@ import { VehicleInfo } from "@/hooks/useVehicleRegistry";
 import { Pencil, Check, X, Trash2, Car, Search, Plus } from "lucide-react";
 import { toast } from "sonner";
 import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
-import { VehicleTrackingBlock } from "@/components/VehicleTrackingBlock";
-import { useVehicleTracking } from "@/hooks/useVehicleTracking";
-import { useTrackingProvider } from "@/hooks/useTrackingProvider";
 
 interface Props {
   vehicles: VehicleInfo[];
@@ -26,10 +23,6 @@ export function VehicleCardList({ vehicles, onAdd, onUpdate, onDelete, readOnly 
   const [adding, setAdding] = useState(false);
   const [addForm, setAddForm] = useState({ marcaModelo: "", ano: "", cor: "", placa: "", renavam: "" });
   const [deleteId, setDeleteId] = useState<string | null>(null);
-
-  const { positions } = useVehicleTracking();
-  const { provider, triggerSync } = useTrackingProvider();
-  const providerConfigured = !!provider?.enabled;
 
   const filtered = vehicles.filter((v) => {
     const q = search.toLowerCase();
@@ -161,45 +154,31 @@ export function VehicleCardList({ vehicles, onAdd, onUpdate, onDelete, readOnly 
                   </div>
                 </div>
               ) : (
-                <>
-                  <div className="flex items-start justify-between">
-                    <div className="flex items-start gap-3 min-w-0">
-                      <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                        <Car className="h-5 w-5 text-primary" />
-                      </div>
-                      <div className="min-w-0">
-                        <p className="font-semibold text-sm truncate">{v.marcaModelo || "Sem modelo"}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {[v.ano && `Ano: ${v.ano}`, v.cor && `Cor: ${v.cor}`].filter(Boolean).join(" • ")}
-                        </p>
-                        {v.placa && <p className="text-xs text-muted-foreground">Placa: {v.placa}</p>}
-                        {v.renavam && <p className="text-xs text-muted-foreground">Renavam: {v.renavam}</p>}
-                      </div>
+                <div className="flex items-start justify-between">
+                  <div className="flex items-start gap-3 min-w-0">
+                    <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                      <Car className="h-5 w-5 text-primary" />
                     </div>
-                    {!readOnly && (
-                      <div className="flex gap-1 shrink-0">
-                        <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => startEdit(v)}>
-                          <Pencil className="h-4 w-4 text-muted-foreground" />
-                        </Button>
-                        <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive hover:bg-destructive hover:text-destructive-foreground" onClick={() => setDeleteId(v.id)}>
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    )}
+                    <div className="min-w-0">
+                      <p className="font-semibold text-sm truncate">{v.marcaModelo || "Sem modelo"}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {[v.ano && `Ano: ${v.ano}`, v.cor && `Cor: ${v.cor}`].filter(Boolean).join(" • ")}
+                      </p>
+                      {v.placa && <p className="text-xs text-muted-foreground">Placa: {v.placa}</p>}
+                      {v.renavam && <p className="text-xs text-muted-foreground">Renavam: {v.renavam}</p>}
+                    </div>
                   </div>
-                  <VehicleTrackingBlock
-                    vehicleId={v.id}
-                    trackerDeviceId={v.trackerDeviceId}
-                    position={positions[v.id]}
-                    readOnly={readOnly}
-                    providerConfigured={providerConfigured}
-                    onSaveDeviceId={(id) => onUpdate(v.id, { trackerDeviceId: id || null } as any)}
-                    onRefresh={async () => {
-                      try { await triggerSync(); toast.success("Atualizando…"); }
-                      catch (e: any) { toast.error("Falha: " + (e?.message ?? "erro")); }
-                    }}
-                  />
-                </>
+                  {!readOnly && (
+                    <div className="flex gap-1 shrink-0">
+                      <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => startEdit(v)}>
+                        <Pencil className="h-4 w-4 text-muted-foreground" />
+                      </Button>
+                      <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive hover:bg-destructive hover:text-destructive-foreground" onClick={() => setDeleteId(v.id)}>
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  )}
+                </div>
               )}
             </CardContent>
           </Card>

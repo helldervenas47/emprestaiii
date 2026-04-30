@@ -9,7 +9,6 @@ export interface VehicleInfo {
   cor: string;
   placa: string;
   renavam: string;
-  trackerDeviceId?: string | null;
 }
 
 export function useVehicleRegistry(enabled = true) {
@@ -32,7 +31,6 @@ export function useVehicleRegistry(enabled = true) {
         cor: v.cor,
         placa: v.placa,
         renavam: v.renavam,
-        trackerDeviceId: v.tracker_device_id ?? null,
       })));
     }
     setLoading(false);
@@ -49,7 +47,6 @@ export function useVehicleRegistry(enabled = true) {
       user_id: dataOwnerId,
       marca_modelo: v.marcaModelo, ano: v.ano, cor: v.cor,
       placa: v.placa, renavam: v.renavam,
-      tracker_device_id: v.trackerDeviceId ?? null,
     }).select().single();
 
     if (error) {
@@ -61,12 +58,10 @@ export function useVehicleRegistry(enabled = true) {
 
   const update = useCallback(async (id: string, v: Partial<Omit<VehicleInfo, "id">>) => {
     setVehicles(prev => prev.map(x => x.id === id ? { ...x, ...v } : x));
-    const updateRow: any = {
+    await supabase.from("vehicle_registry").update({
       marca_modelo: v.marcaModelo, ano: v.ano, cor: v.cor,
       placa: v.placa, renavam: v.renavam,
-    };
-    if (v.trackerDeviceId !== undefined) updateRow.tracker_device_id = v.trackerDeviceId || null;
-    await supabase.from("vehicle_registry").update(updateRow).eq("id", id);
+    }).eq("id", id);
   }, []);
 
   const remove = useCallback(async (id: string) => {

@@ -29,7 +29,6 @@ const BrandingSettings = lazy(() => import("@/components/BrandingSettings").then
 const ActiveSessionsCard = lazy(() => import("@/components/ActiveSessionsCard").then(m => ({ default: m.ActiveSessionsCard })));
 const InviteAndApprovalSettings = lazy(() => import("@/components/InviteAndApprovalSettings").then(m => ({ default: m.InviteAndApprovalSettings })));
 const PaymentMethodsManager = lazy(() => import("@/components/PaymentMethodsManager").then(m => ({ default: m.PaymentMethodsManager })));
-const VehicleTrackingSettingsCard = lazy(() => import("@/components/VehicleTrackingSettingsCard").then(m => ({ default: m.VehicleTrackingSettingsCard })));
 
 const SectionLoader = () => (
   <div className="flex justify-center py-8"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>
@@ -246,11 +245,6 @@ export function Settings({ backup, locadores, onSaveLocador, onRemoveLocador, is
           </Suspense>
         </CardContent>
       </Card>
-
-      {/* Rastreamento veicular */}
-      <Suspense fallback={<SectionLoader />}>
-        <VehicleTrackingSettingsCard />
-      </Suspense>
 
       {/* Formas de pagamento */}
       <Suspense fallback={<SectionLoader />}>

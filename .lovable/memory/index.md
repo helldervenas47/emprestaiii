@@ -1,5 +1,5 @@
 # Memory: index.md
-Updated: today
+Updated: now
 
 # Project Memory
 
@@ -9,5 +9,6 @@ Portuguese (pt-BR) interface. localStorage persistence. Loan startDate is immuta
 ## Memories
 - [Loan start date constraint](mem://constraints/loan-start-date) — Never modify the initial contract date after creation
 - [Loan schedule dates](mem://features/loan-schedule-dates) — Paying an installment must not shift future due dates; schedule stays anchored to first due date by contract type
-- [Loan original due date](mem://features/loan-original-due-date) — Immutable cycle anchor; interest-only payments compute next due from original day-of-month, ignoring renegotiation date shifts
-- [Vehicle tracking](mem://features/vehicle-tracking) — Per-vehicle live location with provider adapter (Hapolo/Traccar/custom), 3-min cron sync, realtime card with mini-map
+- [Multi-user access](mem://features/multi-user-access) — Sub-users share admin data via user_owner; roles admin/operador/visualizador
+- [User approval system](mem://features/user-approval-system) — Per-admin approval toggle + invite codes; pending users see waiting screen
+- [Loan renegotiation penalty](mem://features/loan-renegotiation-penalty) — Penalty diluted in installments for parcelado; cobrada com pagamento de juros em parcela única
