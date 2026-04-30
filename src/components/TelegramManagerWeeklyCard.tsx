@@ -95,8 +95,8 @@ export function TelegramManagerWeeklyCard() {
   };
 
   return (
-    <Card no3d>
-      <CardContent className="p-4 space-y-4">
+    <div className="space-y-4">
+      <div className="space-y-4">
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-center gap-2 min-w-0">
             <div className="h-9 w-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
