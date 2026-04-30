@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Card, CardContent } from "@/components/ui/card";
+// Card removed: this component is embedded inside TelegramReportsConnectCard.
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
