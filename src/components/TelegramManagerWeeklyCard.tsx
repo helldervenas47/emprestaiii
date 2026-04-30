@@ -216,7 +216,7 @@ export function TelegramManagerWeeklyCard() {
             )}
           </>
         )}
-      </CardContent>
+      </div>
 
       <Dialog open={!!activePreview} onOpenChange={(v) => !v && setActivePreview(null)}>
         <DialogContent>
@@ -236,6 +236,6 @@ export function TelegramManagerWeeklyCard() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </Card>
+    </div>
   );
 }
