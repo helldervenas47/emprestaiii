@@ -100,7 +100,7 @@ async function buildAndSendMonthly(
       .eq("user_id", userId).eq("scope", "personal").eq("paid", true)
       .gte("paid_date", prevB.start).lte("paid_date", prevB.end),
     admin.from("personal_budgets")
-      .select("category, amount").eq("user_id", userId),
+      .select("category, amount").eq("user_id", userId).eq("month", currMonth),
   ]);
 
   const sumBy = (rows: any[] | null) => {
