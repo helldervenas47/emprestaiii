@@ -242,11 +242,11 @@ async function processOwner(
     const total = items.reduce((s, i) => s + i.amount, 0);
     const lista = items.length
       ? items.map((i) => {
-          const tag = i.status === "overdue" ? "⚠️ ATRASADO" : "📅 esta semana";
+          const tag = i.status === "overdue" ? "⚠️ ATRASADO" : "📅 próxima semana";
           const etiquetas = i.tags.length ? `\n   🏷️ ${i.tags.join(", ")}` : "";
           return `• ${i.borrower_name} — ${fmtBRL(i.amount)} (vence ${fmtBR(i.due)}) ${tag}${etiquetas}`;
         }).join("\n")
-      : "Nenhum empréstimo atrasado ou vencendo nesta semana.";
+      : "Nenhum empréstimo atrasado ou vencendo na próxima semana.";
 
     // Aggregated tags variable (unique, comma-separated)
     const allTags = Array.from(new Set(items.flatMap((i) => i.tags))).filter(Boolean);
