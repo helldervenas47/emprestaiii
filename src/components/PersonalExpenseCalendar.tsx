@@ -100,7 +100,7 @@ export function PersonalExpenseCalendar({ expenses }: Props) {
     const n = new Date();
     setMonth(n.getMonth());
     setYear(n.getFullYear());
-    setSelectedDate(n.toISOString().split("T")[0]);
+    setSelectedDate(formatLocalDate(n));
   };
 
   const handleDayClick = (day: number) => {
@@ -109,7 +109,7 @@ export function PersonalExpenseCalendar({ expenses }: Props) {
   };
 
   const handleWeekDayClick = (d: Date) => {
-    const dateStr = d.toISOString().split("T")[0];
+    const dateStr = formatLocalDate(d);
     setSelectedDate((prev) => (prev === dateStr ? null : dateStr));
     setYear(d.getFullYear());
     setMonth(d.getMonth());
@@ -250,7 +250,7 @@ export function PersonalExpenseCalendar({ expenses }: Props) {
                 </div>
                 <div className="grid grid-cols-7 gap-1">
                   {weekDays.map((d) => {
-                    const dateStr = d.toISOString().split("T")[0];
+                    const dateStr = formatLocalDate(d);
                     const info = dayMap[dateStr];
                     const total = info?.total ?? 0;
                     const has = total > 0;
