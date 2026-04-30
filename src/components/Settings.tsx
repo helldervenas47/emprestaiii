@@ -20,6 +20,7 @@ const NotificationSettings = lazy(() => import("@/components/NotificationSetting
 const WebhookSettings = lazy(() => import("@/components/WebhookSettings").then(m => ({ default: m.WebhookSettings })));
 const TelegramConnectCard = lazy(() => import("@/components/TelegramConnectCard").then(m => ({ default: m.TelegramConnectCard })));
 const TelegramReportsConnectCard = lazy(() => import("@/components/TelegramReportsConnectCard").then(m => ({ default: m.TelegramReportsConnectCard })));
+const TelegramManagerWeeklyCard = lazy(() => import("@/components/TelegramManagerWeeklyCard").then(m => ({ default: m.TelegramManagerWeeklyCard })));
 const TelegramBillingScheduleCard = lazy(() => import("@/components/TelegramBillingScheduleCard").then(m => ({ default: m.TelegramBillingScheduleCard })));
 const PushNotificationToggle = lazy(() => import("@/components/PushNotificationToggle").then(m => ({ default: m.PushNotificationToggle })));
 const UserManagement = lazy(() => import("@/components/UserManagement").then(m => ({ default: m.UserManagement })));
@@ -213,6 +214,9 @@ export function Settings({ backup, locadores, onSaveLocador, onRemoveLocador, is
               <AccordionContent>
                 <Suspense fallback={<SectionLoader />}>
                   <TelegramReportsConnectCard />
+                  <div className="mt-3">
+                    <TelegramManagerWeeklyCard />
+                  </div>
                 </Suspense>
               </AccordionContent>
             </AccordionItem>
