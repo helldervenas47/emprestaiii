@@ -162,7 +162,13 @@ Deno.serve(async (req) => {
     if (userErr || !user) return new Response(JSON.stringify({ error: "Invalid token" }), { status: 401, headers: corsHeaders });
     if (user.id !== forceUserId) return new Response(JSON.stringify({ error: "Forbidden" }), { status: 403, headers: corsHeaders });
 
-    const ok = await buildAndSendWeekly(admin, forceUserId, today, LOVABLE_API_KEY, TELEGRAM_API_KEY, brandName);
+    const { data: prefRow } = await admin
+      .from("telegram_summary_prefs")
+      .select("weekly_format")
+      .eq("user_id", forceUserId)
+      .maybeSingle();
+    const fmt = ((prefRow as any)?.weekly_format === "image" ? "image" : "text") as "text" | "image";
+    const ok = await buildAndSendWeekly(admin, forceUserId, today, LOVABLE_API_KEY, TELEGRAM_API_KEY, brandName, fmt);
     return new Response(JSON.stringify({ ok: true, sent: ok ? 1 : 0 }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
