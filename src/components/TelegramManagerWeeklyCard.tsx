@@ -105,7 +105,7 @@ export function TelegramManagerWeeklyCard() {
             <div className="min-w-0">
               <p className="font-semibold text-sm">Resumo semanal por gerente</p>
               <p className="text-xs text-muted-foreground">
-                Envia ao bot de relatórios uma mensagem por gerente, com empréstimos atrasados e vencendo na semana.
+                Envia ao bot de relatórios uma mensagem por gerente, com empréstimos atrasados e vencendo na próxima semana (Seg–Dom).
               </p>
             </div>
           </div>
