@@ -41,3 +41,6 @@ verify_jwt = false
 
 [functions.telegram-manager-weekly-summary]
 verify_jwt = false
+
+[functions.sync-vehicle-tracking]
+verify_jwt = false

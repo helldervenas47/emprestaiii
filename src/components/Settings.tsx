@@ -247,6 +247,11 @@ export function Settings({ backup, locadores, onSaveLocador, onRemoveLocador, is
         </CardContent>
       </Card>
 
+      {/* Rastreamento veicular */}
+      <Suspense fallback={<SectionLoader />}>
+        <VehicleTrackingSettingsCard />
+      </Suspense>
+
       {/* Formas de pagamento */}
       <Suspense fallback={<SectionLoader />}>
         <PaymentMethodsManager readOnly={isReadOnly} />
