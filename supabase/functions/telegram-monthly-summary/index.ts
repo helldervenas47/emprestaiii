@@ -205,11 +205,11 @@ Deno.serve(async (req) => {
 
   const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
-  // Fetch brand name once for this invocation
-  let brandName = "EmprestAI";
+  // Fetch brand once for this invocation
+  const brand: BrandInfo = { name: "EmprestAI", primaryHsl: null };
   try {
     const { data: bRow } = await admin.from("app_branding").select("brand_name").limit(1).maybeSingle();
-    if ((bRow as any)?.brand_name) brandName = (bRow as any).brand_name;
+    if ((bRow as any)?.brand_name) brand.name = (bRow as any).brand_name;
   } catch (_) { /* ignore */ }
 
   const url = new URL(req.url);
