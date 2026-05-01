@@ -462,10 +462,17 @@ function ScenarioCard({
   return (
     <div
       className={cn(
-        "flex-shrink-0 w-[300px] rounded-xl border-2 bg-card transition-all",
-        isChosen ? "border-success shadow-[0_0_0_3px_hsl(var(--success)/0.15)]" : "border-border/60",
+        "relative flex-shrink-0 w-[300px] rounded-xl border-2 bg-card transition-all",
+        isChosen
+          ? "border-success shadow-[0_0_0_4px_hsl(var(--success)/0.2)] ring-1 ring-success/40 bg-success/5"
+          : "border-border/60 hover:border-border",
       )}
     >
+      {isChosen && (
+        <div className="absolute -top-2.5 -right-2.5 z-10 bg-success text-success-foreground rounded-full px-2 py-0.5 text-[10px] font-bold shadow-md flex items-center gap-1">
+          <CheckCircle2 className="h-3 w-3" /> ESCOLHIDO
+        </div>
+      )}
       <div className="p-3 border-b border-border/40 flex items-center justify-between">
         <div className="flex items-center gap-1.5">
           <Badge variant="outline" className="text-[10px]">Cenário {index + 1}</Badge>
