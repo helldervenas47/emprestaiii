@@ -446,16 +446,22 @@ export function SaleForm({ onAdd, onClose, defaultBusinessType = "venda", client
 
             <div>
               <Label>{isVehicleRental ? "Locatário" : "Cliente"}</Label>
-              <Select value={form.customerName} onValueChange={(v) => update("customerName", v)}>
-                <SelectTrigger>
-                  <SelectValue placeholder={isVehicleRental ? "Selecione o locatário" : "Selecione um cliente"} />
-                </SelectTrigger>
-                <SelectContent>
-                  {clients.filter(c => c.active).sort((a, b) => a.name.localeCompare(b.name)).map((client) => (
-                    <SelectItem key={client.id} value={client.name}>{client.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Input
+                list="sale-clients-list"
+                value={form.customerName}
+                onChange={(e) => update("customerName", e.target.value)}
+                placeholder={isVehicleRental ? "Digite ou selecione o locatário" : "Digite ou selecione um cliente"}
+                autoComplete="off"
+                required
+              />
+              <datalist id="sale-clients-list">
+                {clients.filter(c => c.active).sort((a, b) => a.name.localeCompare(b.name)).map((client) => (
+                  <option key={client.id} value={client.name} />
+                ))}
+              </datalist>
+              <p className="text-[11px] text-muted-foreground mt-1">
+                Você pode digitar um nome novo ou escolher um já cadastrado.
+              </p>
             </div>
             {isVenda && (
               <div className="border border-border/50 rounded-lg p-3 space-y-3 bg-muted/10">
