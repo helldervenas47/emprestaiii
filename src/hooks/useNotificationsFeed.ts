@@ -87,8 +87,8 @@ export function useNotificationsFeed(
     const in3 = addDaysIso(today, 3);
     const clientsById = new Map(clients.map((c) => [c.id, c] as const));
 
-    const overdue: FeedItem[] = [];
-    const dueSoon: FeedItem[] = [];
+    const overdue: DueFeedItem[] = [];
+    const dueSoon: DueFeedItem[] = [];
 
     for (const loan of loans) {
       if (loan.status === "paid") continue;
@@ -154,7 +154,7 @@ export function useNotificationsFeed(
     // Pagamentos das últimas 24h
     const cutoff = Date.now() - 24 * 3600 * 1000;
     const loansById = new Map(loans.map((l) => [l.id, l] as const));
-    const recentPayments: FeedItem[] = payments
+    const recentPayments: PaymentFeedItem[] = payments
       .filter((p) => {
         const t = new Date(p.date).getTime();
         return Number.isFinite(t) && t >= cutoff;
