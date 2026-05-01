@@ -2320,6 +2320,7 @@ function LoanRowView({
   const [showRowAccountModal, setShowRowAccountModal] = useState(false);
   const managerOptions = useMemo(() => clients.filter((c) => c.isManager && c.active !== false), [clients]);
   const { activeMethods: rowActiveMethods } = usePaymentMethods();
+  const { celebrate } = usePaymentCelebration();
   const [rowSelectedMethodId, setRowSelectedMethodId] = useState<string>("");
   const [rowSplitEnabled, setRowSplitEnabled] = useState(false);
   const [rowSplitMethod2Id, setRowSplitMethod2Id] = useState<string>("");
