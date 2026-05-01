@@ -4,32 +4,34 @@ import { todayInAppTz } from "@/lib/timezone";
 import { calculateInstallment } from "@/hooks/useLoans";
 import { useAuth } from "@/hooks/useAuth";
 
-export type FeedItem =
-  | {
-      kind: "overdue" | "dueSoon";
-      key: string;
-      loanId: string;
-      clientId?: string;
-      clientName: string;
-      installmentNumber: number;
-      totalInstallments: number;
-      amount: number;
-      dueDate: string; // YYYY-MM-DD
-      sortTs: number;
-    }
-  | {
-      kind: "payment";
-      key: string;
-      loanId: string;
-      paymentId: string;
-      clientId?: string;
-      clientName: string;
-      installmentNumber: number;
-      totalInstallments: number;
-      amount: number;
-      paidAt: string; // ISO
-      sortTs: number;
-    };
+export interface DueFeedItem {
+  kind: "overdue" | "dueSoon";
+  key: string;
+  loanId: string;
+  clientId?: string;
+  clientName: string;
+  installmentNumber: number;
+  totalInstallments: number;
+  amount: number;
+  dueDate: string; // YYYY-MM-DD
+  sortTs: number;
+}
+
+export interface PaymentFeedItem {
+  kind: "payment";
+  key: string;
+  loanId: string;
+  paymentId: string;
+  clientId?: string;
+  clientName: string;
+  installmentNumber: number;
+  totalInstallments: number;
+  amount: number;
+  paidAt: string; // ISO
+  sortTs: number;
+}
+
+export type FeedItem = DueFeedItem | PaymentFeedItem;
 
 function addDaysIso(iso: string, days: number): string {
   const [y, m, d] = iso.split("-").map(Number);
