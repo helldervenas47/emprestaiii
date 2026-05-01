@@ -90,8 +90,32 @@ export function SaleForm({ onAdd, onClose, defaultBusinessType = "venda", client
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const total = parseFloat(form.total) || 0;
-    if (!form.description || total <= 0 || !form.customerName) return;
+    const valorRecebido = parseFloat(form.total) || 0;
+    if (!form.description || valorRecebido <= 0 || !form.customerName) return;
+
+    // Validate merchandise (only available for "venda")
+    const allowMerch = form.businessType === "venda";
+    let merchandise: { descricao: string; valor: number } | null = null;
+    if (allowMerch && merchEnabled) {
+      const valor = parseFloat(merchValor) || 0;
+      const descricao = merchDescricao.trim();
+      if (valor < 0) {
+        setMerchError("Valor da mercadoria deve ser maior ou igual a zero.");
+        return;
+      }
+      if (valor > 0 && !descricao) {
+        setMerchError("Descrição da mercadoria é obrigatória quando há valor.");
+        return;
+      }
+      if (valor > 0 && descricao) {
+        merchandise = { descricao, valor };
+      }
+    }
+    setMerchError(null);
+
+    const merchValorNum = merchandise?.valor || 0;
+    const total = valorRecebido + merchValorNum;
+
     setSubmitting(true);
     const isRecorrente = form.paymentMode === "recorrente";
     const amounts = isRecorrente && installmentRows.length > 0
@@ -100,6 +124,7 @@ export function SaleForm({ onAdd, onClose, defaultBusinessType = "venda", client
     const dates = isRecorrente && installmentRows.length > 0
       ? installmentRows.map(r => r.date)
       : null;
+    const encodedNotes = encodeNotesWithMerchandise(form.notes, merchandise);
     onAdd({
       productName: form.description,
       description: form.description,
@@ -109,7 +134,7 @@ export function SaleForm({ onAdd, onClose, defaultBusinessType = "venda", client
       total,
       customerName: form.customerName,
       date: form.firstInstallmentDate,
-      notes: form.notes || undefined,
+      notes: encodedNotes,
       businessType: form.businessType as BusinessType,
       paymentMode: form.paymentMode,
       installments: isRecorrente ? installmentsNum : 1,
