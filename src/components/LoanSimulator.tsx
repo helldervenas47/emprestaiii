@@ -698,7 +698,7 @@ function ScenarioCard({
         <Button
           variant={isChosen ? "success" : "outline"}
           size="sm"
-          className="w-full gap-1.5 h-8 text-xs"
+          className="w-full gap-1.5 h-8 text-xs mt-auto"
           onClick={onChoose}
         >
           <CheckCircle2 className="h-3.5 w-3.5" />
