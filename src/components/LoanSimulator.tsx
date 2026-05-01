@@ -499,6 +499,7 @@ interface CardProps {
   isBestApproval: boolean;
   isBestReturn: boolean;
   canRemove: boolean;
+  fullWidth?: boolean;
   onChange: (patch: Partial<SimulationScenario>) => void;
   onChoose: () => void;
   onDuplicate: () => void;
@@ -515,6 +516,7 @@ function ScenarioCard({
   isBestApproval,
   isBestReturn,
   canRemove,
+  fullWidth,
   onChange,
   onChoose,
   onDuplicate,
@@ -523,7 +525,8 @@ function ScenarioCard({
   return (
     <div
       className={cn(
-        "relative flex-shrink-0 w-[300px] rounded-xl border-2 bg-card transition-all",
+        "relative rounded-xl border-2 bg-card transition-all",
+        fullWidth ? "w-full" : "flex-shrink-0 w-[300px]",
         isChosen
           ? "border-success shadow-[0_0_0_4px_hsl(var(--success)/0.2)] ring-1 ring-success/40 bg-success/5"
           : "border-border/60 hover:border-border",
