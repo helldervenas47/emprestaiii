@@ -95,12 +95,29 @@ export function SaleEditForm({ sale, onSave, onClose, clients = [], registeredVe
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    const allowMerch = form.businessType === "venda";
+    let merchandise: { descricao: string; valor: number } | null = null;
+    if (allowMerch && merchEnabled) {
+      const valor = parseFloat(merchValor) || 0;
+      const descricao = merchDescricao.trim();
+      if (valor < 0) {
+        setMerchError("Valor da mercadoria deve ser maior ou igual a zero.");
+        return;
+      }
+      if (valor > 0 && !descricao) {
+        setMerchError("Descrição da mercadoria é obrigatória quando há valor.");
+        return;
+      }
+      if (valor > 0 && descricao) merchandise = { descricao, valor };
+    }
+    setMerchError(null);
     const amounts = form.paymentMode === "recorrente" && installmentRows.length > 0
       ? installmentRows.map(r => parseFloat(r.value) || 0)
       : null;
     const dates = form.paymentMode === "recorrente" && installmentRows.length > 0
       ? installmentRows.map(r => r.date)
       : null;
+    const encodedNotes = encodeNotesWithMerchandise(form.notes, merchandise);
     onSave(sale.id, {
       description: form.description,
       productName: form.description,
@@ -114,7 +131,7 @@ export function SaleEditForm({ sale, onSave, onClose, clients = [], registeredVe
       paymentMode: form.paymentMode as PaymentMode,
       businessType: form.businessType as BusinessType,
       date: form.date,
-      notes: form.notes || undefined,
+      notes: encodedNotes,
       frequency: form.paymentMode === "recorrente" ? form.frequency : "Mensal",
       installmentValue: null,
       installmentAmounts: amounts,
