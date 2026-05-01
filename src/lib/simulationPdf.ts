@@ -192,5 +192,9 @@ export async function generateSimulationPdf({ simulation, clientName, clientPhon
   doc.text(branding?.brandName || "Responsável", pageW - 70, y + 5);
 
   const fileName = `simulacao-${(clientName || "cliente").replace(/\s+/g, "_")}-${fmtDateBR(simulation.simulationDate).split("/").join("-")}.pdf`;
+  if (output === "blob") {
+    const blob = doc.output("blob");
+    return { blob, fileName };
+  }
   doc.save(fileName);
 }
