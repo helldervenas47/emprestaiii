@@ -582,7 +582,14 @@ function ManagerDetailDialog({
                     <div key={loan.id} className="rounded-lg border border-border p-3 space-y-2">
                       <div className="flex flex-wrap items-start justify-between gap-2">
                         <div className="min-w-0">
-                          <p className="text-sm font-semibold text-foreground">{loan.borrowerName}</p>
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <p className="text-sm font-semibold text-foreground">{loan.borrowerName}</p>
+                            {loan.tags && loan.tags.length > 0 && loan.tags.map((tag) => (
+                              <Badge key={tag} className="bg-primary text-primary-foreground text-[10px] gap-0.5 px-1.5 py-0">
+                                <Tag className="h-2.5 w-2.5" />{tag}
+                              </Badge>
+                            ))}
+                          </div>
                           <p className="text-[11px] text-muted-foreground">
                             Empréstimo: {mask(rawFormatCurrency(loan.amount))} · {loan.installments}x · Comissão: {rate}%
                           </p>
