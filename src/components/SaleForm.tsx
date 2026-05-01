@@ -15,7 +15,7 @@ import { VehicleInfo } from "@/hooks/useVehicleRegistry";
 import { LocadorInfo } from "@/hooks/useLocadorInfo";
 import { cn } from "@/lib/utils";
 import { encodeNotesWithMerchandise } from "@/lib/saleMerchandise";
-import { Textarea } from "@/components/ui/textarea";
+
 
 const businessTypeLabels: Record<BusinessType, string> = {
   venda: "Venda",
