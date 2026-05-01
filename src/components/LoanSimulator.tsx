@@ -699,10 +699,10 @@ function ScenarioCard({
         <Button
           variant={isChosen ? "success" : "outline"}
           size="sm"
-          className="w-full gap-1.5 h-8 text-xs"
+          className="w-full gap-1.5 mt-auto"
           onClick={onChoose}
         >
-          <CheckCircle2 className="h-3.5 w-3.5" />
+          <CheckCircle2 className="h-4 w-4" />
           {isChosen ? "Escolhido pelo cliente" : "Marcar como escolhido"}
         </Button>
       </div>
