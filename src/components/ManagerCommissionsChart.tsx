@@ -519,6 +519,8 @@ function ManagerDetailDialog({
       const items = [...paidInPeriod, ...pendingInPeriod].sort((a, b) => {
         const dateA = a.dueDate ?? a.paidDate ?? "";
         const dateB = b.dueDate ?? b.paidDate ?? "";
+        if (!dateA) return 1;
+        if (!dateB) return -1;
         return dateA.localeCompare(dateB);
       });
 
@@ -534,7 +536,15 @@ function ManagerDetailDialog({
       };
     });
 
-    const visible = loansBreakdown.filter((b) => b.relevant);
+    const visible = loansBreakdown.filter((b) => b.relevant).sort((a, b) => {
+      const firstA = a.items[0];
+      const firstB = b.items[0];
+      const dateA = firstA?.dueDate ?? firstA?.paidDate ?? "";
+      const dateB = firstB?.dueDate ?? firstB?.paidDate ?? "";
+      if (!dateA) return 1;
+      if (!dateB) return -1;
+      return dateA.localeCompare(dateB);
+    });
     const totalPaid = visible.reduce((s, b) => s + b.paidAmount, 0);
     const totalPending = visible.reduce((s, b) => s + b.pendingAmount, 0);
 
