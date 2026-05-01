@@ -1234,6 +1234,29 @@ const Index = () => {
                   </div>
                 )}
 
+                {/* Notificações */}
+                <div>
+                  <h3 className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground mb-2">Notificações</h3>
+                  <div className="rounded-xl border border-border/40 bg-card/50 p-2 flex items-center justify-between">
+                    <div className="flex items-center gap-2 text-sm text-foreground">
+                      <Bell className="h-4 w-4 text-primary" />
+                      Feed de notificações
+                    </div>
+                    <div onClick={() => setMoreOpen(false)}>
+                      <NotificationsFeedButton
+                        loans={filteredLoans}
+                        payments={filteredPayments}
+                        installmentSchedules={filteredInstallments}
+                        clients={filteredClients}
+                        onSelectLoan={(loanId) => {
+                          setTab("dashboard");
+                          try { sessionStorage.setItem("highlightLoanId", loanId); } catch {}
+                        }}
+                      />
+                    </div>
+                  </div>
+                </div>
+
                 {/* Ações rápidas */}
                 <div>
                   <h3 className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground mb-2">Ações rápidas</h3>
