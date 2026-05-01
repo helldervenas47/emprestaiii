@@ -17,6 +17,7 @@ import { TimezoneSettingsCard } from "@/components/TimezoneSettingsCard";
 import { AIVoiceSettingsCard } from "@/components/AIVoiceSettingsCard";
 
 const NotificationSettings = lazy(() => import("@/components/NotificationSettings").then(m => ({ default: m.NotificationSettings })));
+const PaymentFeedbackSettings = lazy(() => import("@/components/PaymentFeedbackSettings").then(m => ({ default: m.PaymentFeedbackSettings })));
 const WebhookSettings = lazy(() => import("@/components/WebhookSettings").then(m => ({ default: m.WebhookSettings })));
 const TelegramConnectCard = lazy(() => import("@/components/TelegramConnectCard").then(m => ({ default: m.TelegramConnectCard })));
 const TelegramReportsConnectCard = lazy(() => import("@/components/TelegramReportsConnectCard").then(m => ({ default: m.TelegramReportsConnectCard })));
@@ -188,6 +189,9 @@ export function Settings({ backup, locadores, onSaveLocador, onRemoveLocador, is
               <AccordionContent>
                 <Suspense fallback={<SectionLoader />}>
                   <NotificationSettings />
+                  <div className="mt-4">
+                    <PaymentFeedbackSettings />
+                  </div>
                 </Suspense>
               </AccordionContent>
             </AccordionItem>
