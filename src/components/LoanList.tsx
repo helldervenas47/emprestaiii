@@ -4154,7 +4154,7 @@ export function LoanList({ loans, payments, installmentSchedules, onPayment, onP
     const activeCount = source.filter((l) => l.status === "active").length;
     const overdueCount = source.filter((l) => getDaysOverdue(l) > 0 && l.status !== "paid").length;
     return { totalLent, totalToReceive, totalInterest, activeCount, overdueCount };
-  }, [categorized, payments, dueDateQuick, view, installmentSchedules]);
+  }, [categorized, payments, dueDateQuick, view, installmentSchedules, category]);
 
   if (loans.length === 0) {
     return (
