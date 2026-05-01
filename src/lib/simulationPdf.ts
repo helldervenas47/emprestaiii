@@ -33,7 +33,7 @@ export async function generateSimulationPdf({ simulation, clientName, clientPhon
   }
   doc.setFont("helvetica", "bold");
   doc.setFontSize(16);
-  doc.text(branding?.name || "Simulação de Empréstimo", branding?.logoDataUrl ? 38 : 14, y + 8);
+  doc.text(branding?.brandName || "Simulação de Empréstimo", branding?.logoDataUrl ? 38 : 14, y + 8);
   doc.setFont("helvetica", "normal");
   doc.setFontSize(10);
   doc.text(`Data: ${fmtDateBR(simulation.simulationDate)}`, branding?.logoDataUrl ? 38 : 14, y + 15);
@@ -152,8 +152,8 @@ export async function generateSimulationPdf({ simulation, clientName, clientPhon
   doc.setFontSize(9);
   doc.setFont("helvetica", "normal");
   doc.text("Cliente", 45, y + 5);
-  doc.text(branding?.name || "Responsável", pageW - 70, y + 5);
+  doc.text(branding?.brandName || "Responsável", pageW - 70, y + 5);
 
-  const fileName = `simulacao-${(clientName || "cliente").replace(/\s+/g, "_")}-${fmtDateBR(simulation.simulationDate).replaceAll("/", "-")}.pdf`;
+  const fileName = `simulacao-${(clientName || "cliente").replace(/\s+/g, "_")}-${fmtDateBR(simulation.simulationDate).split("/").join("-")}.pdf`;
   doc.save(fileName);
 }
