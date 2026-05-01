@@ -525,8 +525,8 @@ function ScenarioCard({
   return (
     <div
       className={cn(
-        "relative rounded-xl border-2 bg-card transition-all flex flex-col h-full min-h-[560px]",
-        fullWidth ? "w-full" : "flex-shrink-0 w-[300px]",
+        "relative rounded-xl border-2 bg-card transition-all flex flex-col h-full",
+        fullWidth ? "w-full md:min-h-[560px]" : "flex-shrink-0 w-[300px] min-h-[560px]",
         isChosen
           ? "border-success shadow-[0_0_0_4px_hsl(var(--success)/0.2)] ring-1 ring-success/40 bg-success/5"
           : "border-border/60 hover:border-border",
