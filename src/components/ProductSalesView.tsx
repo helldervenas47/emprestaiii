@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect, useMemo } from "react";
+import { usePaymentCelebration } from "@/hooks/usePaymentCelebration";
 import { todayInAppTz } from "@/lib/timezone";
 import { getDueStatusBadge } from "@/lib/dueStatus";
 import { SalePaymentRecord } from "@/types/loan";
@@ -98,6 +99,7 @@ const saleCategoryConfig = {
 };
 
 function SaleCard({ sale, onDelete, onEdit, onUpdate, formatCurrency, readOnly = false, clients = [], locadorInfo, registeredVehicles = [], locadores = [] }: { sale: Sale; onDelete: () => void; onEdit: () => void; onUpdate: (data: Partial<Omit<Sale, "id">>) => void; formatCurrency: (v: number) => string; readOnly?: boolean; clients?: Client[]; locadorInfo?: LocadorInfo; registeredVehicles?: VehicleInfo[]; locadores?: LocadorInfo[] }) {
+  const { celebrate } = usePaymentCelebration();
   const [showPartial, setShowPartial] = useState(false);
   const [partialAmount, setPartialAmount] = useState("");
   const [partialDate, setPartialDate] = useState<Date | undefined>(undefined);
@@ -406,6 +408,7 @@ function SaleCard({ sale, onDelete, onEdit, onUpdate, formatCurrency, readOnly =
                         } else {
                           onUpdate({ partialPaid: newPartialTotal, paymentHistory: history });
                         }
+                        celebrate({ kind: "sale", message: "Pagamento recebido!", amount: val });
                         setPartialAmount(""); setPartialDate(undefined); setShowPartial(false);
                       }
                     }} disabled={!partialAmount || parseFloat(partialAmount) <= 0 || !partialDate}>
@@ -444,6 +447,7 @@ function SaleCard({ sale, onDelete, onEdit, onUpdate, formatCurrency, readOnly =
                             partialPaid: 0,
                             paymentHistory: history,
                           });
+                          celebrate({ kind: "sale", message: "Parcela paga!", amount: paymentVal });
                           setShowPayDatePicker(false);
                         }
                       }}

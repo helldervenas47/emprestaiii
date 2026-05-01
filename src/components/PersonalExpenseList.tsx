@@ -2,6 +2,7 @@ import { useState, useCallback, useMemo, useEffect } from "react";
 import { todayInAppTz } from "@/lib/timezone";
 import { getDueStatusBadge } from "@/lib/dueStatus";
 import { toast } from "sonner";
+import { usePaymentCelebration } from "@/hooks/usePaymentCelebration";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useHideValues } from "@/contexts/HideValuesContext";
@@ -71,6 +72,7 @@ const isOverdue = (e: Expense) =>
 
 export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, onUpdate, readOnly = false, afterEvolution }: Props) {
   const { mask } = useHideValues();
+  const { celebrate } = usePaymentCelebration();
   const formatCurrency = useCallback((v: number) => mask(fmt(v)), [mask]);
   const { categories: customCategories, create: createCustomCategory, update: updateCustomCategory, remove: removeCustomCategory } = usePersonalExpenseCategories();
   const [categoryEditorOpen, setCategoryEditorOpen] = useState(false);
@@ -968,7 +970,9 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, onUpda
               if (payingId) {
                 const parsed = parseFloat(paidAmountInput);
                 const paidAmount = paidAmountInput.trim() && !isNaN(parsed) && parsed > 0 ? parsed : undefined;
+                const exp = expenses.find((e) => e.id === payingId);
                 onPay(payingId, false, payDate, paidAmount);
+                celebrate({ kind: "expense", message: "Despesa quitada!", amount: paidAmount ?? exp?.amount });
               }
               setPayingId(null);
               setPaidAmountInput("");

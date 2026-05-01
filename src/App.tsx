@@ -16,6 +16,7 @@ import { StatusBarScrollSync } from "./components/StatusBarScrollSync";
 import { ViewAsBanner } from "./components/ViewAsBanner";
 import { wireAutoSync } from "./lib/offline/sync";
 import { DevCacheErrorBoundary } from "./components/DevCacheErrorBoundary";
+import { PaymentCelebrationProvider } from "./hooks/usePaymentCelebration";
 
 wireAutoSync();
 
@@ -74,25 +75,27 @@ const App = () => (
         <OfflineBadge />
         <BrowserRouter>
           <AuthProvider>
-            <BrandTitleSync />
-            <BrandFaviconSync />
-            <AppTimezoneSync />
-            <StatusBarScrollSync />
-            <ViewAsBanner />
-            <Suspense fallback={<PageLoader />}>
-              <Routes>
-                <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
-                <Route path="/auth" element={<PublicRoute><Auth /></PublicRoute>} />
-                <Route path="/cadastro" element={<PublicRoute><Cadastro /></PublicRoute>} />
-                <Route path="/planos" element={<Pricing />} />
-                <Route path="/termos" element={<Terms />} />
-                <Route path="/reembolso" element={<RefundPolicy />} />
-                <Route path="/privacidade" element={<PrivacyPolicy />} />
-                <Route path="/reset-password" element={<ResetPassword />} />
-                <Route path="/planejamento-do-dia" element={<ProtectedRoute><DailyPlanning /></ProtectedRoute>} />
-                <Route path="*" element={<NotFound />} />
-              </Routes>
-            </Suspense>
+            <PaymentCelebrationProvider>
+              <BrandTitleSync />
+              <BrandFaviconSync />
+              <AppTimezoneSync />
+              <StatusBarScrollSync />
+              <ViewAsBanner />
+              <Suspense fallback={<PageLoader />}>
+                <Routes>
+                  <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
+                  <Route path="/auth" element={<PublicRoute><Auth /></PublicRoute>} />
+                  <Route path="/cadastro" element={<PublicRoute><Cadastro /></PublicRoute>} />
+                  <Route path="/planos" element={<Pricing />} />
+                  <Route path="/termos" element={<Terms />} />
+                  <Route path="/reembolso" element={<RefundPolicy />} />
+                  <Route path="/privacidade" element={<PrivacyPolicy />} />
+                  <Route path="/reset-password" element={<ResetPassword />} />
+                  <Route path="/planejamento-do-dia" element={<ProtectedRoute><DailyPlanning /></ProtectedRoute>} />
+                  <Route path="*" element={<NotFound />} />
+                </Routes>
+              </Suspense>
+            </PaymentCelebrationProvider>
           </AuthProvider>
         </BrowserRouter>
       </TooltipProvider>

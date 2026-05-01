@@ -25,6 +25,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
+import { usePaymentCelebration } from "@/hooks/usePaymentCelebration";
 import { AdjustDueDateDialog } from "@/components/AdjustDueDateDialog";
 import { AmortizationSimulator } from "@/components/AmortizationSimulator";
 import { RenegotiateLoanDialog } from "@/components/RenegotiateLoanDialog";
@@ -409,6 +410,7 @@ function LoanCardView({
   const [showAdjustDueDate, setShowAdjustDueDate] = useState(false);
   const [showAccountModal, setShowAccountModal] = useState(false);
   const { activeMethods } = usePaymentMethods();
+  const { celebrate } = usePaymentCelebration();
   const [selectedMethodId, setSelectedMethodId] = useState<string>("");
   const [splitEnabled, setSplitEnabled] = useState(false);
   const [splitMethod2Id, setSplitMethod2Id] = useState<string>("");
@@ -689,6 +691,17 @@ function LoanCardView({
       } else if (dialogType === "partial" && dialogAmount) {
         await onPartialPayment(dialogAmount, dateStr, mid, split);
       }
+      const celebrateAmount =
+        dialogType === "full" ? remaining
+        : dialogType === "payoff" ? (parseFloat(payoffAmount.replace(",", ".")) || customRawForSplit || undefined)
+        : dialogType === "amortize" ? (isFinite(amortRaw) && amortRaw > 0 ? amortRaw : undefined)
+        : dialogType === "partial" ? dialogAmount
+        : undefined;
+      celebrate({
+        kind: "loan",
+        message: dialogType === "amortize" ? "Amortização registrada!" : "Pagamento registrado!",
+        amount: celebrateAmount,
+      });
       toast.success(dialogType === "amortize" ? "Amortização registrada" : "Pagamento registrado");
     } catch (err: any) {
       console.error("[confirmPayment]", err);
@@ -2307,6 +2320,7 @@ function LoanRowView({
   const [showRowAccountModal, setShowRowAccountModal] = useState(false);
   const managerOptions = useMemo(() => clients.filter((c) => c.isManager && c.active !== false), [clients]);
   const { activeMethods: rowActiveMethods } = usePaymentMethods();
+  const { celebrate } = usePaymentCelebration();
   const [rowSelectedMethodId, setRowSelectedMethodId] = useState<string>("");
   const [rowSplitEnabled, setRowSplitEnabled] = useState(false);
   const [rowSplitMethod2Id, setRowSplitMethod2Id] = useState<string>("");
@@ -2510,6 +2524,17 @@ function LoanRowView({
       } else if (dialogType === "partial" && dialogAmount) {
         await onPartialPayment(dialogAmount, dateStr, mid, split);
       }
+      const celebrateAmount =
+        dialogType === "full" ? remaining
+        : dialogType === "payoff" ? (parseFloat(payoffAmount.replace(",", ".")) || customRawForSplit || undefined)
+        : dialogType === "amortize" ? (isFinite(amortRaw) && amortRaw > 0 ? amortRaw : undefined)
+        : dialogType === "partial" ? dialogAmount
+        : undefined;
+      celebrate({
+        kind: "loan",
+        message: dialogType === "amortize" ? "Amortização registrada!" : "Pagamento registrado!",
+        amount: celebrateAmount,
+      });
       toast.success(dialogType === "amortize" ? "Amortização registrada" : "Pagamento registrado");
     } catch (err: any) {
       console.error("[confirmPayment]", err);

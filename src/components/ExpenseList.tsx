@@ -1,4 +1,5 @@
 import { useState, useCallback, useMemo, useEffect } from "react";
+import { usePaymentCelebration } from "@/hooks/usePaymentCelebration";
 import { todayInAppTz } from "@/lib/timezone";
 import { getDueStatusBadge } from "@/lib/dueStatus";
 import { format } from "date-fns";
@@ -225,6 +226,7 @@ function ExpenseEditDialog({ expense, open, onOpenChange, onSave, formatCurrency
 
 export function ExpenseList({ expenses, onPay, onUnpay, onDelete, onUpdate, readOnly = false }: Props) {
   const { mask } = useHideValues();
+  const { celebrate } = usePaymentCelebration();
   const formatCurrency = useCallback((v: number) => mask(rawFormatCurrency(v)), [mask]);
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<Filter>("all");
@@ -672,7 +674,9 @@ export function ExpenseList({ expenses, onPay, onUnpay, onDelete, onUpdate, read
               if (payingExpenseId) {
                 const parsed = parseFloat(paidAmountInput);
                 const paidAmount = paidAmountInput.trim() && !isNaN(parsed) && parsed > 0 ? parsed : undefined;
+                const exp = expenses.find((e) => e.id === payingExpenseId);
                 onPay(payingExpenseId, undefined, payDate, paidAmount);
+                celebrate({ kind: "expense", message: "Despesa quitada!", amount: paidAmount ?? exp?.amount });
                 setPayingExpenseId(null);
                 setPaidAmountInput("");
               }
