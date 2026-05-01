@@ -58,7 +58,7 @@ const SystemHealth = lazy(() => import("@/components/SystemHealth").then(m => ({
 // Direct import for the constant used at render time
 import { vehicleExpenseCategories } from "@/components/VehicleExpenseForm";
 import { PushNotificationToggle } from "@/components/PushNotificationToggle";
-import { ApprovalRequestsButton } from "@/components/ApprovalRequestsButton";
+
 import { NotificationsFeedButton } from "@/components/NotificationsFeedButton";
 import { DashboardOverview } from "@/components/DashboardOverview";
 import { LedgerView } from "@/components/LedgerView";
