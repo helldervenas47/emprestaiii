@@ -406,7 +406,7 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, onUpda
   return (
     <div className="space-y-4">
       {/* Summary cards */}
-      <div className="space-y-2 md:space-y-0 md:grid md:grid-cols-5 md:gap-3">
+      <div className="space-y-2 md:space-y-0 md:grid md:grid-cols-5 md:gap-3 [&>div:last-child>*]:contents">
         {/* Featured: Gasto do mês — destaque no topo no mobile, mesmo design dos demais */}
         <Card no3d>
           <CardContent className="p-3 md:p-4 flex flex-col items-center text-center">
