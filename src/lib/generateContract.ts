@@ -5,6 +5,7 @@ import { VehicleInfo } from "@/hooks/useVehicleRegistry";
 
 
 function addByFrequency(date: Date, frequency: string, n: number): Date {
+  if (["Diário", "Diária", "Diario", "Diaria", "daily"].includes(frequency)) return addDays(date, n);
   if (frequency === "Semanal") return addWeeks(date, n);
   if (frequency === "Quinzenal") return addDays(date, n * 15);
   return addMonths(date, n);
