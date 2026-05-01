@@ -1651,22 +1651,28 @@ export function ProductSalesView({ sales, onDeleteSale, onUpdateSale, clients = 
   }, [sales, onUpdateSale, updateVehicleBalance]);
 
   // Wrap onPayExpense to debit vehicle balance using the actual paid amount.
-  // Para despesas parceladas, ajusta o total da despesa para refletir o valor
-  // efetivamente pago nesta parcela (mantendo o valor original das parcelas restantes).
+  // Para despesas parceladas, ajusta o total da despesa (exp.amount) para refletir o
+  // valor efetivamente pago nesta parcela, mantendo as parcelas restantes no valor
+  // original. O valor original da parcela é guardado em notes como [OrigParcela: X].
   const handleVehiclePayExpense = useCallback((id: string, payDate: string, paidAmount: number) => {
     const exp = expenses.find(e => e.id === id);
     if (!exp || exp.paid) { onPayExpense?.(id, true, payDate, paidAmount); return; }
     updateVehicleBalance(-paidAmount);
 
     const isRecorrente = exp.type === "recorrente" && exp.installments && exp.installments > 1;
-    if (isRecorrente) {
-      const originalInstallment = exp.amount / exp.installments!;
+    if (isRecorrente && onUpdateExpense) {
+      const origMatch = (exp.notes ?? "").match(/\[OrigParcela:\s*([\d.]+)\]/i);
+      const originalInstallment = origMatch ? parseFloat(origMatch[1]) : exp.amount / exp.installments!;
       const diff = paidAmount - originalInstallment;
-      // Só ajusta o total se o valor pago for diferente do valor original da parcela
-      if (Math.abs(diff) > 0.005 && onUpdateExpense) {
-        const newTotal = Math.round((exp.amount + diff) * 100) / 100;
-        onUpdateExpense(id, { amount: newTotal });
+      const updates: Partial<Omit<Expense, "id" | "createdAt">> = {};
+      if (Math.abs(diff) > 0.005) {
+        updates.amount = Math.round((exp.amount + diff) * 100) / 100;
       }
+      if (!origMatch) {
+        const baseNotes = (exp.notes ?? "").trimEnd();
+        updates.notes = baseNotes ? `${baseNotes}\n[OrigParcela: ${originalInstallment.toFixed(2)}]` : `[OrigParcela: ${originalInstallment.toFixed(2)}]`;
+      }
+      if (Object.keys(updates).length > 0) onUpdateExpense(id, updates);
     }
 
     onPayExpense?.(id, true, payDate, paidAmount);
