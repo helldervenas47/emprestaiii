@@ -55,6 +55,14 @@ export function NotificationsFeedButton({
     installmentSchedules,
     clients,
   );
+  const { messages } = useWhatsappBillingMessages();
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [previewData, setPreviewData] = useState<{
+    phone: string;
+    message: string;
+    status: ReturnType<typeof buildBillingWhatsappLink>["status"];
+    name: string;
+  } | null>(null);
 
   const handleOpenChange = (next: boolean) => {
     setOpen(next);
@@ -64,6 +72,37 @@ export function NotificationsFeedButton({
   const handleClickItem = (item: FeedItem) => {
     if (onSelectLoan) onSelectLoan(item.loanId);
     setOpen(false);
+  };
+
+  const handleWhatsapp = (e: React.MouseEvent, item: DueFeedItem) => {
+    e.stopPropagation();
+    const loan = loans.find((l) => l.id === item.loanId);
+    if (!loan) return;
+    const client =
+      (item.clientId && clients.find((c) => c.id === item.clientId)) ||
+      clients.find(
+        (c) => c.name.trim().toLowerCase() === (loan.borrowerName || "").trim().toLowerCase(),
+      ) ||
+      null;
+    const phone = client?.phone || "";
+    if (!phone) {
+      toast.error("Cliente sem telefone cadastrado");
+      return;
+    }
+    const built = buildBillingWhatsappLink({
+      client,
+      loan,
+      schedules: installmentSchedules,
+      payments,
+      messages,
+    });
+    setPreviewData({
+      phone: built.phone,
+      message: built.message,
+      status: built.status,
+      name: client?.name ?? loan.borrowerName,
+    });
+    setPreviewOpen(true);
   };
 
   const totalAll = overdue.length + dueSoon.length + recentPayments.length;
