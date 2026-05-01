@@ -161,7 +161,7 @@ export function LoanSimulator({ open, onOpenChange, clients, onCreateLoanFromSce
     setShowHistory(false);
   }
 
-  async function handleExportPdf() {
+  async function handleExportPdf(mode: "download" | "share" = "download") {
     // PDF agora exporta TODOS os cenários — o cenário escolhido, se houver, vem destacado.
     let simToExport: LoanSimulation;
     if (editingId) {
@@ -184,11 +184,46 @@ export function LoanSimulator({ open, onOpenChange, clients, onCreateLoanFromSce
       simToExport = saved;
     }
     const client = clients.find((c) => c.id === clientId);
-    await generateSimulationPdf({
+    const args = {
       simulation: simToExport,
       clientName: client?.name || effectiveClientName || undefined,
       clientPhone: client?.phone,
-    });
+    };
+
+    if (mode === "download") {
+      await generateSimulationPdf({ ...args, output: "save" });
+      return;
+    }
+
+    // share
+    try {
+      const result = await generateSimulationPdf({ ...args, output: "blob" });
+      if (!result) return;
+      const file = new File([result.blob], result.fileName, { type: "application/pdf" });
+      const navAny = navigator as any;
+      if (navAny.canShare && navAny.canShare({ files: [file] }) && navAny.share) {
+        await navAny.share({
+          files: [file],
+          title: "Simulação de Empréstimo",
+          text: args.clientName ? `Simulação para ${args.clientName}` : "Simulação de Empréstimo",
+        });
+      } else {
+        // Fallback: baixa o arquivo e avisa
+        const url = URL.createObjectURL(result.blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = result.fileName;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        toast.info("Compartilhamento não suportado neste dispositivo. Arquivo baixado.");
+      }
+    } catch (err: any) {
+      if (err?.name === "AbortError") return;
+      console.error(err);
+      toast.error("Erro ao compartilhar PDF");
+    }
   }
 
   function handleCreateLoan() {
