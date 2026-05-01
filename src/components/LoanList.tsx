@@ -4095,6 +4095,23 @@ export function LoanList({ loans, payments, installmentSchedules, onPayment, onP
     const source = categorized;
     const activeSource = source.filter((l) => l.status !== "paid");
     const totalLentRaw = activeSource.reduce((s, l) => s + l.amount, 0);
+
+    // Quando o filtro selecionado é "Quitado", mostramos o total já pago dos contratos quitados
+    if (category === "paid") {
+      const totalPaidSum = source
+        .filter((l) => l.status === "paid")
+        .reduce((s, l) => s + getTotalPaid(l, payments), 0);
+      const totalInterestPaid = source.reduce(
+        (s, l) => s + (calculateTotalWithInterest(l.amount, l.interestRate, l.installments) - l.amount), 0
+      );
+      return {
+        totalLent: totalLentRaw,
+        totalToReceive: totalPaidSum,
+        totalInterest: totalInterestPaid,
+        activeCount: source.filter((l) => l.status === "active").length,
+        overdueCount: 0,
+      };
+    }
     
     // When a due date filter is active, sum installment values instead of total remaining
     const useDueDateValues = dueDateQuick && view === "rows";
@@ -4137,7 +4154,7 @@ export function LoanList({ loans, payments, installmentSchedules, onPayment, onP
     const activeCount = source.filter((l) => l.status === "active").length;
     const overdueCount = source.filter((l) => getDaysOverdue(l) > 0 && l.status !== "paid").length;
     return { totalLent, totalToReceive, totalInterest, activeCount, overdueCount };
-  }, [categorized, payments, dueDateQuick, view, installmentSchedules]);
+  }, [categorized, payments, dueDateQuick, view, installmentSchedules, category]);
 
   if (loans.length === 0) {
     return (
@@ -4329,7 +4346,7 @@ export function LoanList({ loans, payments, installmentSchedules, onPayment, onP
             <div className="rounded-2xl border border-border/30 overflow-hidden shadow-[0_1px_8px_-4px_hsl(0_0%_0%/0.05)]">
               <div className="px-4 py-2 flex items-center justify-between border-b border-border/30 bg-muted/30">
                 <span className="text-sm text-muted-foreground">{categorized.length} empréstimos</span>
-                <span className="text-sm font-semibold text-destructive">{mask(rawFormatCurrency(summaryData.totalToReceive))}</span>
+                <span className={`text-sm font-semibold ${category === "paid" ? "text-success" : "text-destructive"}`}>{mask(rawFormatCurrency(summaryData.totalToReceive))}</span>
               </div>
               {/* Legenda de cores — apenas mobile */}
               <div className="sm:hidden sticky top-0 z-10 bg-background/95 backdrop-blur border-b border-border/30 px-3 py-1.5 flex items-center justify-between gap-2 text-[10px]">
