@@ -447,21 +447,17 @@ export function SaleForm({ onAdd, onClose, defaultBusinessType = "venda", client
 
             <div>
               <Label>{isVehicleRental ? "Locatário" : "Cliente"}</Label>
-              <Input
-                list="sale-clients-list"
+              <ClientCombobox
                 value={form.customerName}
-                onChange={(e) => update("customerName", e.target.value)}
+                onChange={(v) => update("customerName", v)}
+                options={clients
+                  .filter((c) => c.active)
+                  .map((c) => ({ id: c.id, name: c.name }))}
                 placeholder={isVehicleRental ? "Digite ou selecione o locatário" : "Digite ou selecione um cliente"}
-                autoComplete="off"
-                required
+                emptyHint="Nenhum cliente cadastrado. Digite um nome para adicionar."
               />
-              <datalist id="sale-clients-list">
-                {clients.filter(c => c.active).sort((a, b) => a.name.localeCompare(b.name)).map((client) => (
-                  <option key={client.id} value={client.name} />
-                ))}
-              </datalist>
               <p className="text-[11px] text-muted-foreground mt-1">
-                Você pode digitar um nome novo ou escolher um já cadastrado.
+                Busque, selecione um existente ou digite um novo nome.
               </p>
             </div>
             {isVenda && (
