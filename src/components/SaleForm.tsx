@@ -54,7 +54,7 @@ export function SaleForm({ onAdd, onClose, defaultBusinessType = "venda", client
     businessType: defaultBusinessType,
     paymentMode: (defaultBusinessType === "aluguel_veiculo" ? "recorrente" : "fixa") as PaymentMode,
     installments: defaultBusinessType === "aluguel_veiculo" ? "1" : "1",
-    frequency: defaultBusinessType === "aluguel_veiculo" ? "Mensal" : "Mensal",
+    frequency: defaultBusinessType === "aluguel_veiculo" ? "Diário" : "Mensal",
     firstInstallmentDate: todayInAppTz(),
     locadorId: defaultLocadorId,
   });
