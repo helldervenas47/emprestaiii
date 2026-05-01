@@ -161,7 +161,7 @@ export function SaleForm({ onAdd, onClose, defaultBusinessType = "venda", client
     } else {
       // Volta para Mensal ao sair de aluguel para outros tipos
       if (form.frequency === "Diário") {
-        setForm((p) => ({ ...p, businessType: value, frequency: "Mensal" }));
+        setForm((p) => ({ ...p, businessType: value as BusinessType, frequency: "Mensal" }));
         rebuildRows(installmentsNum, firstDate, "Mensal", totalNum);
       }
     }
