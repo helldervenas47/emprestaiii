@@ -50,8 +50,13 @@ export function NotificationsFeedButton({
   installmentSchedules,
   clients,
   onSelectLoan,
+  open: controlledOpen,
+  onOpenChange,
+  hideTrigger = false,
 }: Props) {
-  const [open, setOpen] = useState(false);
+  const [internalOpen, setInternalOpen] = useState(false);
+  const isControlled = controlledOpen !== undefined;
+  const open = isControlled ? controlledOpen : internalOpen;
   const { overdue, dueSoon, recentPayments, unreadCount, markAllRead } = useNotificationsFeed(
     loans,
     payments,
@@ -66,6 +71,11 @@ export function NotificationsFeedButton({
     status: ReturnType<typeof buildBillingWhatsappLink>["status"];
     name: string;
   } | null>(null);
+
+  const setOpen = (next: boolean) => {
+    if (!isControlled) setInternalOpen(next);
+    onOpenChange?.(next);
+  };
 
   const handleOpenChange = (next: boolean) => {
     setOpen(next);
