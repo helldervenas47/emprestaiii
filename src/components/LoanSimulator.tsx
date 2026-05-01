@@ -201,24 +201,61 @@ export function LoanSimulator({ open, onOpenChange, clients, onCreateLoanFromSce
       if (!result) return;
       const file = new File([result.blob], result.fileName, { type: "application/pdf" });
       const navAny = navigator as any;
-      if (navAny.canShare && navAny.canShare({ files: [file] }) && navAny.share) {
-        await navAny.share({
-          files: [file],
-          title: "Simulação de Empréstimo",
-          text: args.clientName ? `Simulação para ${args.clientName}` : "Simulação de Empréstimo",
-        });
-      } else {
-        // Fallback: baixa o arquivo e avisa
-        const url = URL.createObjectURL(result.blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = result.fileName;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-        toast.info("Compartilhamento não suportado neste dispositivo. Arquivo baixado.");
+      const canShareFiles =
+        typeof navAny.canShare === "function" &&
+        typeof navAny.share === "function" &&
+        (() => {
+          try { return navAny.canShare({ files: [file] }); } catch { return false; }
+        })();
+
+      if (canShareFiles) {
+        try {
+          await navAny.share({
+            files: [file],
+            title: "Simulação de Empréstimo",
+            text: args.clientName ? `Simulação para ${args.clientName}` : "Simulação de Empréstimo",
+          });
+          return;
+        } catch (err: any) {
+          if (err?.name === "AbortError") return;
+          // Se falhar (ex.: bloqueio de permissão), cai no fallback abaixo
+          console.warn("navigator.share falhou, usando fallback:", err);
+        }
       }
+
+      // Fallback: baixa o PDF e abre WhatsApp com mensagem-resumo pronta
+      const url = URL.createObjectURL(result.blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = result.fileName;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+
+      // Monta resumo curto da simulação para texto do WhatsApp
+      const chosen = computed.find((s) => s.id === chosenId);
+      const lines: string[] = [];
+      lines.push(`*Simulação de Empréstimo*${args.clientName ? ` — ${args.clientName}` : ""}`);
+      if (chosen) {
+        lines.push("");
+        lines.push(`💰 Valor: ${formatBRL(chosen.amount)}`);
+        lines.push(`📅 ${chosen.installments}x de ${formatBRL(chosen.installmentValue)}`);
+        lines.push(`📈 Taxa: ${chosen.monthlyRate.toFixed(2)}% a.m.`);
+        lines.push(`💳 Total: ${formatBRL(chosen.totalPayable)}`);
+      } else {
+        lines.push(`${computed.length} cenário(s) simulado(s).`);
+      }
+      lines.push("");
+      lines.push("📎 PDF em anexo.");
+      const text = encodeURIComponent(lines.join("\n"));
+      const phone = (client?.phone || "").replace(/\D/g, "");
+      const waUrl = phone
+        ? `https://wa.me/${phone.length <= 11 ? "55" + phone : phone}?text=${text}`
+        : `https://wa.me/?text=${text}`;
+
+      toast.info("PDF baixado. Abrindo WhatsApp para você anexar o arquivo manualmente.");
+      window.open(waUrl, "_blank", "noopener,noreferrer");
     } catch (err: any) {
       if (err?.name === "AbortError") return;
       console.error(err);
