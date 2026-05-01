@@ -30,6 +30,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
 import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
+import { parseNotesWithMerchandise } from "@/lib/saleMerchandise";
 
 import { VehicleExpenseForm, vehicleExpenseCategories } from "@/components/VehicleExpenseForm";
 import { VehicleLocadorManager } from "@/components/VehicleLocadorManager";
