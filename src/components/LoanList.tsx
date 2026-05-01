@@ -4331,6 +4331,25 @@ export function LoanList({ loans, payments, installmentSchedules, onPayment, onP
                 <span className="text-sm text-muted-foreground">{categorized.length} empréstimos</span>
                 <span className="text-sm font-semibold text-destructive">{mask(rawFormatCurrency(summaryData.totalToReceive))}</span>
               </div>
+              {/* Legenda de cores — apenas mobile */}
+              <div className="sm:hidden sticky top-0 z-10 bg-background/95 backdrop-blur border-b border-border/30 px-3 py-1.5 flex items-center justify-between gap-2 text-[10px]">
+                <div className="flex items-center gap-1">
+                  <span className="h-2.5 w-2.5 rounded-full bg-destructive" />
+                  <span className="text-muted-foreground">Atrasado</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <span className="h-2.5 w-2.5 rounded-full bg-warning" />
+                  <span className="text-muted-foreground">Vence hoje</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <span className="h-2.5 w-2.5 rounded-full bg-primary" />
+                  <span className="text-muted-foreground">Em dia</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <span className="h-2.5 w-2.5 rounded-full bg-success" />
+                  <span className="text-muted-foreground">Quitado</span>
+                </div>
+              </div>
               <table className="w-full">
                 <thead>
                   <tr className="border-b border-border/30">
