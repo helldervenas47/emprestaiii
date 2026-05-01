@@ -1650,13 +1650,33 @@ export function ProductSalesView({ sales, onDeleteSale, onUpdateSale, clients = 
     onUpdateSale(id, data);
   }, [sales, onUpdateSale, updateVehicleBalance]);
 
-  // Wrap onPayExpense to debit vehicle balance using the actual paid amount
+  // Wrap onPayExpense to debit vehicle balance using the actual paid amount.
+  // Para despesas parceladas, ajusta o total da despesa (exp.amount) para refletir o
+  // valor efetivamente pago nesta parcela, mantendo as parcelas restantes no valor
+  // original. O valor original da parcela é guardado em notes como [OrigParcela: X].
   const handleVehiclePayExpense = useCallback((id: string, payDate: string, paidAmount: number) => {
     const exp = expenses.find(e => e.id === id);
     if (!exp || exp.paid) { onPayExpense?.(id, true, payDate, paidAmount); return; }
     updateVehicleBalance(-paidAmount);
+
+    const isRecorrente = exp.type === "recorrente" && exp.installments && exp.installments > 1;
+    if (isRecorrente && onUpdateExpense) {
+      const origMatch = (exp.notes ?? "").match(/\[OrigParcela:\s*([\d.]+)\]/i);
+      const originalInstallment = origMatch ? parseFloat(origMatch[1]) : exp.amount / exp.installments!;
+      const diff = paidAmount - originalInstallment;
+      const updates: Partial<Omit<Expense, "id" | "createdAt">> = {};
+      if (Math.abs(diff) > 0.005) {
+        updates.amount = Math.round((exp.amount + diff) * 100) / 100;
+      }
+      if (!origMatch) {
+        const baseNotes = (exp.notes ?? "").trimEnd();
+        updates.notes = baseNotes ? `${baseNotes}\n[OrigParcela: ${originalInstallment.toFixed(2)}]` : `[OrigParcela: ${originalInstallment.toFixed(2)}]`;
+      }
+      if (Object.keys(updates).length > 0) onUpdateExpense(id, updates);
+    }
+
     onPayExpense?.(id, true, payDate, paidAmount);
-  }, [expenses, onPayExpense, updateVehicleBalance]);
+  }, [expenses, onPayExpense, onUpdateExpense, updateVehicleBalance]);
 
   // Wrap onDeleteExpense to restore vehicle balance for any amount that was already paid
   const handleVehicleDeleteExpense = useCallback((id: string) => {
@@ -1790,7 +1810,9 @@ export function ProductSalesView({ sales, onDeleteSale, onUpdateSale, clients = 
                   const isOverdue = !exp.paid && exp.dueDate < todayInAppTz();
                   const hasPaidSomething = exp.paid || (exp.paidInstallments && exp.paidInstallments > 0);
                   const isRecorrente = exp.type === "recorrente" && exp.installments && exp.installments > 1;
-                  const installmentAmount = isRecorrente ? exp.amount / exp.installments! : exp.amount;
+                  const origMatch = (exp.notes ?? "").match(/\[OrigParcela:\s*([\d.]+)\]/i);
+                  const originalInstallment = origMatch ? parseFloat(origMatch[1]) : (isRecorrente ? exp.amount / exp.installments! : exp.amount);
+                  const installmentAmount = isRecorrente ? originalInstallment : exp.amount;
 
                   return (
                     <Card key={exp.id} className={`${exp.paid ? "opacity-60" : ""} hover:shadow-[0_4px_16px_-6px_hsl(0_0%_0%/0.08)] hover:-translate-y-[1px] transition-all duration-400 ease-out animate-fade-in`} style={{ animationDelay: `${idx * 50}ms`, animationFillMode: 'backwards' }}>
