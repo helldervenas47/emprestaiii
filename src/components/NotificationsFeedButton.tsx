@@ -149,11 +149,24 @@ export function NotificationsFeedButton({
           >
             {overdue.map((it) => (
               <FeedCard key={it.key} onClick={() => handleClickItem(it)} accent="destructive">
-                <p className="text-sm font-medium text-foreground">{it.clientName}</p>
-                <p className="text-xs text-muted-foreground">
-                  Parcela {it.installmentNumber}/{it.totalInstallments} · venceu em {formatDateBr(it.dueDate)}
-                </p>
-                <p className="text-sm font-semibold text-destructive mt-1">{formatBRL(it.amount)}</p>
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-medium text-foreground truncate">{it.clientName}</p>
+                    <p className="text-xs text-muted-foreground">
+                      Parcela {it.installmentNumber}/{it.totalInstallments} · venceu em {formatDateBr(it.dueDate)}
+                    </p>
+                    <p className="text-sm font-semibold text-destructive mt-1">{formatBRL(it.amount)}</p>
+                  </div>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="h-8 w-8 shrink-0 text-success hover:text-success hover:bg-success/10"
+                    onClick={(e) => handleWhatsapp(e, it)}
+                    title="Cobrar via WhatsApp"
+                  >
+                    <MessageCircle className="h-4 w-4" />
+                  </Button>
+                </div>
               </FeedCard>
             ))}
           </Section>
