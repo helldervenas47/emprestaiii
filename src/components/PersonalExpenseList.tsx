@@ -241,13 +241,15 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, onUpda
     spendingMonth.reduce((s, e) => s + getInstallmentAmount(e), 0) + cardInvoiceMonthTotal;
   const totalOverdue = spendingMonth.filter(isOverdue).reduce((s, e) => s + getInstallmentAmount(e), 0);
 
-  // Daily average + projection — only meaningful for current month
+  // "Pagas" = soma do que foi efetivamente pago no mês (despesas pagas + faturas pagas)
+  const totalActuallyPaid =
+    spendingMonth.filter((e) => e.paid).reduce((s, e) => s + getInstallmentAmount(e), 0) +
+    cardInvoicePaidMonth;
+
+  // Daily average — divide pelo total de dias do mês vigente
   const [selYear, selMonthNum] = selectedMonth.split("-").map(Number);
-  const isCurrentMonth = selYear === now.getFullYear() && selMonthNum === now.getMonth() + 1;
   const daysInMonth = new Date(selYear, selMonthNum, 0).getDate();
-  const dayOfMonth = isCurrentMonth ? now.getDate() : daysInMonth;
-  const dailyAverage = dayOfMonth > 0 ? totalPaid / dayOfMonth : 0;
-  const projection = isCurrentMonth ? totalPaid + dailyAverage * (daysInMonth - dayOfMonth) : totalPaid;
+  const dailyAverage = daysInMonth > 0 ? totalPaid / daysInMonth : 0;
 
   // Category breakdown — includes all expenses of the selected month (paid + pending),
   // ensuring consistency with monthly totals and accurate display for past months.
