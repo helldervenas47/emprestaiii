@@ -365,6 +365,18 @@ export function SaleForm({ onAdd, onClose, defaultBusinessType = "venda", client
                   </div>
                 </div>
 
+                {isVehicleRental && installmentsNum > 0 && (
+                  <div className="rounded-lg border border-border/50 bg-muted/20 px-3 py-2 flex items-center justify-between">
+                    <div className="flex items-center gap-2 text-sm">
+                      <CalendarIcon className="h-4 w-4 text-primary" />
+                      <span className="text-muted-foreground">Data fim do contrato:</span>
+                    </div>
+                    <span className="text-sm font-semibold text-foreground">
+                      {format(addByFrequency(firstDate, form.frequency, installmentsNum), "dd/MM/yyyy")}
+                    </span>
+                  </div>
+                )}
+
                 {/* Editable installment rows */}
                 {installmentsNum >= 2 && installmentRows.length > 0 && (
                   <div className="border border-border/50 rounded-lg overflow-hidden">
