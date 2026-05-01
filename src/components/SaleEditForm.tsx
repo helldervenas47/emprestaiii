@@ -20,6 +20,7 @@ function addByFrequency(date: Date, frequency: string, n: number): Date {
 }
 import { cn } from "@/lib/utils";
 import { encodeNotesWithMerchandise, parseNotesWithMerchandise } from "@/lib/saleMerchandise";
+import { ClientCombobox } from "@/components/ui/client-combobox";
 
 const businessTypeLabels: Record<BusinessType, string> = {
   venda: "Venda",
