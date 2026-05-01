@@ -422,6 +422,15 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, onUpda
         <div className="grid grid-cols-2 gap-2 md:contents">
           <Card no3d>
             <CardContent className="p-3 md:p-4 flex flex-col items-center text-center">
+              <div className="h-8 w-8 rounded-lg bg-success/10 flex items-center justify-center mb-2">
+                <CheckCircle className="h-4 w-4 text-success" />
+              </div>
+              <p className="text-[10px] md:text-xs text-muted-foreground">Pagas</p>
+              <p className="text-sm md:text-lg font-bold text-success mt-0.5">{formatCurrency(totalActuallyPaid)}</p>
+            </CardContent>
+          </Card>
+          <Card no3d>
+            <CardContent className="p-3 md:p-4 flex flex-col items-center text-center">
               <div className="h-8 w-8 rounded-lg bg-warning/10 flex items-center justify-center mb-2">
                 <CircleDollarSign className="h-4 w-4 text-warning" />
               </div>
@@ -445,15 +454,6 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, onUpda
               </div>
               <p className="text-[10px] md:text-xs text-muted-foreground">Média diária</p>
               <p className="text-sm md:text-lg font-bold text-foreground mt-0.5">{formatCurrency(dailyAverage)}</p>
-            </CardContent>
-          </Card>
-          <Card no3d>
-            <CardContent className="p-3 md:p-4 flex flex-col items-center text-center">
-              <div className="h-8 w-8 rounded-lg bg-accent/30 flex items-center justify-center mb-2">
-                <TrendingUp className="h-4 w-4 text-foreground" />
-              </div>
-              <p className="text-[10px] md:text-xs text-muted-foreground">Projeção</p>
-              <p className="text-sm md:text-lg font-bold text-foreground mt-0.5">{formatCurrency(projection)}</p>
             </CardContent>
           </Card>
         </div>
