@@ -16,9 +16,11 @@ interface Args {
   simulation: LoanSimulation;
   clientName?: string | null;
   clientPhone?: string | null;
+  /** "save" baixa o arquivo, "blob" retorna { blob, fileName } sem baixar. Padrão: "save". */
+  output?: "save" | "blob";
 }
 
-export async function generateSimulationPdf({ simulation, clientName, clientPhone }: Args): Promise<void> {
+export async function generateSimulationPdf({ simulation, clientName, clientPhone, output = "save" }: Args): Promise<{ blob: Blob; fileName: string } | void> {
   const branding = await getPdfBranding();
   const doc = new jsPDF({ unit: "mm", format: "a4" });
   const pageW = doc.internal.pageSize.getWidth();
