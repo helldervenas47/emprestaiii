@@ -404,7 +404,7 @@ export function LoanSimulator({ open, onOpenChange, clients, onCreateLoanFromSce
         </div>
 
         {/* Tablet (2-col grid) */}
-        <div className="hidden md:grid lg:hidden grid-cols-2 gap-3 items-stretch auto-rows-fr">
+        <div className="hidden md:grid lg:hidden grid-cols-2 gap-3">
           {computed.map((s, idx) => (
             <ScenarioCard
               key={s.id}
@@ -426,7 +426,7 @@ export function LoanSimulator({ open, onOpenChange, clients, onCreateLoanFromSce
           ))}
           <button
             onClick={addScenario}
-            className="h-full min-h-[420px] rounded-xl border-2 border-dashed border-border/60 hover:border-primary/60 hover:bg-primary/5 transition-colors flex items-center justify-center gap-2 text-sm text-muted-foreground hover:text-primary"
+            className="min-h-[400px] rounded-xl border-2 border-dashed border-border/60 hover:border-primary/60 hover:bg-primary/5 transition-colors flex items-center justify-center gap-2 text-sm text-muted-foreground hover:text-primary"
           >
             <Plus className="h-5 w-5" />
             Adicionar cenário
@@ -435,7 +435,7 @@ export function LoanSimulator({ open, onOpenChange, clients, onCreateLoanFromSce
 
         {/* Desktop (horizontal scroll) */}
         <ScrollArea className="hidden lg:block w-full rounded-lg border border-border/40 bg-muted/10">
-          <div className="flex gap-3 p-3 min-w-min items-stretch">
+          <div className="flex gap-3 p-3 min-w-min">
             {computed.map((s, idx) => (
               <ScenarioCard
                 key={s.id}
@@ -456,7 +456,7 @@ export function LoanSimulator({ open, onOpenChange, clients, onCreateLoanFromSce
             ))}
             <button
               onClick={addScenario}
-              className="flex-shrink-0 w-[320px] self-stretch rounded-xl border-2 border-dashed border-border/60 hover:border-primary/60 hover:bg-primary/5 transition-colors flex items-center justify-center gap-2 text-sm text-muted-foreground hover:text-primary"
+              className="flex-shrink-0 w-[280px] min-h-[400px] rounded-xl border-2 border-dashed border-border/60 hover:border-primary/60 hover:bg-primary/5 transition-colors flex items-center justify-center gap-2 text-sm text-muted-foreground hover:text-primary"
             >
               <Plus className="h-5 w-5" />
               Adicionar cenário
@@ -525,8 +525,8 @@ function ScenarioCard({
   return (
     <div
       className={cn(
-        "relative rounded-xl border-2 bg-card transition-all flex flex-col h-full",
-        fullWidth ? "w-full" : "flex-shrink-0 w-[320px]",
+        "relative rounded-xl border-2 bg-card transition-all",
+        fullWidth ? "w-full" : "flex-shrink-0 w-[300px]",
         isChosen
           ? "border-success shadow-[0_0_0_4px_hsl(var(--success)/0.2)] ring-1 ring-success/40 bg-success/5"
           : "border-border/60 hover:border-border",
@@ -558,7 +558,7 @@ function ScenarioCard({
         </div>
       </div>
 
-      <div className="p-3 space-y-2.5 flex-1 flex flex-col">
+      <div className="p-3 space-y-2.5">
         {/* Highlights */}
         <div className="flex flex-wrap gap-1 min-h-[20px]">
           {isLowestTotal && (
@@ -698,7 +698,7 @@ function ScenarioCard({
         <Button
           variant={isChosen ? "success" : "outline"}
           size="sm"
-          className="w-full gap-1.5 h-8 text-xs mt-auto"
+          className="w-full gap-1.5 h-8 text-xs"
           onClick={onChoose}
         >
           <CheckCircle2 className="h-3.5 w-3.5" />
