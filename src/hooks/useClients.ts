@@ -81,8 +81,8 @@ export function useClients() {
     return () => window.removeEventListener("offline-sync:flushed", handler);
   }, [fetchClients]);
 
-  const addClient = useCallback(async (client: Omit<Client, "id" | "createdAt">) => {
-    if (!user || !dataOwnerId) return;
+  const addClient = useCallback(async (client: Omit<Client, "id" | "createdAt">): Promise<string | null> => {
+    if (!user || !dataOwnerId) return null;
     const tempId = crypto.randomUUID();
     const optimistic: Client = { ...client, id: tempId, createdAt: new Date().toISOString() };
     setClients((prev) => [optimistic, ...prev]);
