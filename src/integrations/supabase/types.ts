@@ -959,6 +959,56 @@ export type Database = {
         }
         Relationships: []
       }
+      loan_simulations: {
+        Row: {
+          chosen_scenario_id: string | null
+          client_id: string | null
+          created_at: string
+          id: string
+          name: string | null
+          notes: string | null
+          owner_id: string
+          scenarios: Json
+          simulation_date: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          chosen_scenario_id?: string | null
+          client_id?: string | null
+          created_at?: string
+          id?: string
+          name?: string | null
+          notes?: string | null
+          owner_id: string
+          scenarios?: Json
+          simulation_date?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          chosen_scenario_id?: string | null
+          client_id?: string | null
+          created_at?: string
+          id?: string
+          name?: string | null
+          notes?: string | null
+          owner_id?: string
+          scenarios?: Json
+          simulation_date?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "loan_simulations_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       loans: {
         Row: {
           amount: number
@@ -1881,6 +1931,30 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      simulation_settings: {
+        Row: {
+          created_at: string
+          id: string
+          owner_id: string
+          retention_days: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          owner_id: string
+          retention_days?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          owner_id?: string
+          retention_days?: number
+          updated_at?: string
+        }
+        Relationships: []
       }
       subscriptions: {
         Row: {

@@ -30,6 +30,15 @@ interface Props {
   payments: { id: string; loanId: string; amount: number; date: string; installmentNumber: number; previousDueDate?: string }[];
   installmentSchedules: { id?: string; loanId: string; installmentNumber: number; dueDate: string; amount: number }[];
   existingTags?: string[];
+  /** Optional initial values, e.g. when coming from the loan simulator. */
+  prefill?: {
+    clientId: string | null;
+    clientName: string;
+    amount: number;
+    interestRate: number;
+    installments: number;
+    customInstallmentValue?: number | null;
+  };
 }
 
 function getNextDate(base: Date, frequency: string, periods: number): Date {
@@ -40,7 +49,7 @@ function getNextDate(base: Date, frequency: string, periods: number): Date {
   return d;
 }
 
-export function LoanForm({ onAdd, onSaveSchedule, onClose, clients, loans, payments, installmentSchedules, existingTags = [] }: Props) {
+export function LoanForm({ onAdd, onSaveSchedule, onClose, clients, loans, payments, installmentSchedules, existingTags = [], prefill }: Props) {
   const [showSuccess, setShowSuccess] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const activeClients = clients.filter((c) => c.active).sort((a, b) => a.name.localeCompare(b.name, "pt-BR"));
@@ -50,10 +59,10 @@ export function LoanForm({ onAdd, onSaveSchedule, onClose, clients, loans, payme
   defaultFirstDue.setMonth(defaultFirstDue.getMonth() + 1);
 
   const [form, setForm] = useState({
-    borrowerName: "",
-    amount: "",
-    interestRate: "30",
-    installments: "1",
+    borrowerName: prefill?.clientId ?? "",
+    amount: prefill?.amount ? String(prefill.amount) : "",
+    interestRate: prefill?.interestRate != null ? String(prefill.interestRate) : "30",
+    installments: prefill?.installments ? String(prefill.installments) : "1",
     startDate: defaultStart,
     notes: "",
     interestType: "Mensal",

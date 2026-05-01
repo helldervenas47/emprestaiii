@@ -18,6 +18,7 @@ import { useNavigate } from "react-router-dom";
 // Lazy load heavy components
 const DashboardCards = lazy(() => import("@/components/DashboardCards").then(m => ({ default: m.DashboardCards })));
 const LoanForm = lazy(() => import("@/components/LoanForm").then(m => ({ default: m.LoanForm })));
+const LoanSimulator = lazy(() => import("@/components/LoanSimulator").then(m => ({ default: m.LoanSimulator })));
 const LoanList = lazy(() => import("@/components/LoanList").then(m => ({ default: m.LoanList })));
 const ClientForm = lazy(() => import("@/components/ClientForm").then(m => ({ default: m.ClientForm })));
 const ClientList = lazy(() => import("@/components/ClientList").then(m => ({ default: m.ClientList })));
@@ -335,6 +336,15 @@ const Index = () => {
   const businessExpenses = nonVehicleExpenses.filter(e => (e.scope ?? "business") === "business");
   const personalExpenses = expenses.filter(e => e.scope === "personal");
   const [showLoanForm, setShowLoanForm] = useState(false);
+  const [showLoanSimulator, setShowLoanSimulator] = useState(false);
+  const [loanFormPrefill, setLoanFormPrefill] = useState<{
+    clientId: string | null;
+    clientName: string;
+    amount: number;
+    interestRate: number;
+    installments: number;
+    customInstallmentValue?: number | null;
+  } | null>(null);
   const [showClientForm, setShowClientForm] = useState(false);
   const [showProductForm, setShowProductForm] = useState(false);
   const [showSaleForm, setShowSaleForm] = useState(false);
@@ -685,7 +695,20 @@ const Index = () => {
         {tab === "dashboard" && (
           <>
             <div>
-              <h2 className="text-lg font-semibold text-foreground mb-4">Empréstimos</h2>
+              <div className="flex items-center justify-between gap-2 mb-4 flex-wrap">
+                <h2 className="text-lg font-semibold text-foreground">Empréstimos</h2>
+                {!isReadOnly && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setShowLoanSimulator(true)}
+                    className="gap-1.5"
+                  >
+                    <Calculator className="h-4 w-4" />
+                    Simular Empréstimo
+                  </Button>
+                )}
+              </div>
               <LoanList loans={filteredLoans} payments={filteredPayments} installmentSchedules={filteredInstallments} onPayment={addPayment} onPartialPayment={addPartialPayment} onFullPayment={payOffLoan} onInterestPayment={addInterestOnlyPayment} onAmortize={amortizeLoan} onRenegotiate={renegotiateLoan} onUpdate={updateLoan} onDelete={deleteLoan} onDeletePayment={deletePayment} onSaveSchedule={saveSchedule} readOnly={isReadOnly} initialCategory={initialLoanCategory} initialView={initialLoanView} clients={filteredClients} />
             </div>
           </>
@@ -1003,7 +1026,19 @@ const Index = () => {
         </button>
       )}
 
-      {showLoanForm && <LoanForm onAdd={addLoan} onSaveSchedule={saveSchedule} onClose={() => setShowLoanForm(false)} clients={clients} loans={loans} payments={payments} installmentSchedules={installmentSchedules} existingTags={[...new Set(loans.flatMap(l => l.tags || []))]} />}
+      {showLoanForm && <LoanForm onAdd={addLoan} onSaveSchedule={saveSchedule} onClose={() => { setShowLoanForm(false); setLoanFormPrefill(null); }} clients={clients} loans={loans} payments={payments} installmentSchedules={installmentSchedules} existingTags={[...new Set(loans.flatMap(l => l.tags || []))]} prefill={loanFormPrefill ?? undefined} />}
+      {showLoanSimulator && (
+        <LoanSimulator
+          open={showLoanSimulator}
+          onOpenChange={setShowLoanSimulator}
+          clients={clients}
+          onCreateLoanFromScenario={(p) => {
+            setLoanFormPrefill(p);
+            setShowLoanSimulator(false);
+            setShowLoanForm(true);
+          }}
+        />
+      )}
       {showClientForm && <ClientForm onAdd={addClient} onClose={() => setShowClientForm(false)} />}
       {showProductForm && <ProductForm onAdd={addProduct} onClose={() => setShowProductForm(false)} />}
       {showSaleForm && <SaleForm onAdd={addSale} onClose={() => setShowSaleForm(false)} clients={clients} defaultBusinessType={tab === "vehicles" ? "aluguel_veiculo" : undefined} registeredVehicles={registeredVehicles} locadores={locadores} />}
