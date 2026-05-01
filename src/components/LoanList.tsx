@@ -410,6 +410,7 @@ function LoanCardView({
   const [showAdjustDueDate, setShowAdjustDueDate] = useState(false);
   const [showAccountModal, setShowAccountModal] = useState(false);
   const { activeMethods } = usePaymentMethods();
+  const { celebrate } = usePaymentCelebration();
   const [selectedMethodId, setSelectedMethodId] = useState<string>("");
   const [splitEnabled, setSplitEnabled] = useState(false);
   const [splitMethod2Id, setSplitMethod2Id] = useState<string>("");
