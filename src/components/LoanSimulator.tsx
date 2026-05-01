@@ -525,7 +525,7 @@ function ScenarioCard({
   return (
     <div
       className={cn(
-        "relative rounded-xl border-2 bg-card transition-all",
+        "relative rounded-xl border-2 bg-card transition-all flex flex-col h-full min-h-[560px]",
         fullWidth ? "w-full" : "flex-shrink-0 w-[300px]",
         isChosen
           ? "border-success shadow-[0_0_0_4px_hsl(var(--success)/0.2)] ring-1 ring-success/40 bg-success/5"
@@ -558,9 +558,9 @@ function ScenarioCard({
         </div>
       </div>
 
-      <div className="p-3 space-y-2.5">
-        {/* Highlights */}
-        <div className="flex flex-wrap gap-1 min-h-[20px]">
+      <div className="p-3 space-y-2.5 flex-1 flex flex-col">
+        {/* Highlights — altura reservada p/ alinhar todos os cards */}
+        <div className="flex flex-wrap gap-1 min-h-[22px]">
           {isLowestTotal && (
             <Badge variant="outline" className="text-[9px] gap-0.5 border-success/40 text-success">
               <TrendingDown className="h-2.5 w-2.5" /> Menor total
@@ -578,21 +578,22 @@ function ScenarioCard({
           )}
         </div>
 
-        {/* Sugestões IA-leves */}
-        {(isBestApproval || isBestReturn) && (
-          <div className="rounded-md bg-primary/5 border border-primary/20 p-1.5 text-[10px] space-y-0.5">
-            {isBestApproval && (
-              <p className="flex items-center gap-1 text-primary">
-                <Sparkles className="h-2.5 w-2.5" /> Melhor para aprovação
-              </p>
-            )}
-            {isBestReturn && (
-              <p className="flex items-center gap-1 text-warning">
-                <Sparkles className="h-2.5 w-2.5" /> Melhor retorno financeiro
-              </p>
-            )}
-          </div>
-        )}
+        {/* Sugestões IA-leves — altura reservada p/ uniformidade */}
+        <div className="rounded-md border border-dashed border-border/40 p-1.5 text-[10px] space-y-0.5 min-h-[44px] flex flex-col justify-center">
+          {isBestApproval && (
+            <p className="flex items-center gap-1 text-primary">
+              <Sparkles className="h-2.5 w-2.5" /> Melhor para aprovação
+            </p>
+          )}
+          {isBestReturn && (
+            <p className="flex items-center gap-1 text-warning">
+              <Sparkles className="h-2.5 w-2.5" /> Melhor retorno financeiro
+            </p>
+          )}
+          {!isBestApproval && !isBestReturn && (
+            <p className="text-muted-foreground/60 text-center">—</p>
+          )}
+        </div>
 
         {/* Modo */}
         <div className="grid grid-cols-2 gap-2">
@@ -698,10 +699,10 @@ function ScenarioCard({
         <Button
           variant={isChosen ? "success" : "outline"}
           size="sm"
-          className="w-full gap-1.5 h-8 text-xs"
+          className="w-full gap-1.5 mt-auto"
           onClick={onChoose}
         >
-          <CheckCircle2 className="h-3.5 w-3.5" />
+          <CheckCircle2 className="h-4 w-4" />
           {isChosen ? "Escolhido pelo cliente" : "Marcar como escolhido"}
         </Button>
       </div>
