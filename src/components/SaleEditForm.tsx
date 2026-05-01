@@ -363,6 +363,18 @@ export function SaleEditForm({ sale, onSave, onClose, clients = [], registeredVe
                   </div>
                 </div>
 
+                {form.businessType === "aluguel_veiculo" && (parseInt(form.installments) || 0) > 0 && (
+                  <div className="rounded-lg border border-border/50 bg-muted/20 px-3 py-2 flex items-center justify-between">
+                    <div className="flex items-center gap-2 text-sm">
+                      <CalendarIcon className="h-4 w-4 text-primary" />
+                      <span className="text-muted-foreground">Data fim do contrato:</span>
+                    </div>
+                    <span className="text-sm font-semibold text-foreground">
+                      {format(addByFrequency(new Date(form.date + "T00:00:00"), form.frequency, parseInt(form.installments) || 0), "dd/MM/yyyy")}
+                    </span>
+                  </div>
+                )}
+
                 {/* Individual installments */}
                 <div className="border border-border/50 rounded-lg overflow-hidden">
                   <div className="flex items-center justify-between px-3 py-2 bg-muted/20">
