@@ -1,4 +1,5 @@
 import { useState, useCallback, useMemo, useEffect } from "react";
+import { usePaymentCelebration } from "@/hooks/usePaymentCelebration";
 import { todayInAppTz } from "@/lib/timezone";
 import { getDueStatusBadge } from "@/lib/dueStatus";
 import { format } from "date-fns";
