@@ -31,7 +31,7 @@ import {
   History,
   X,
 } from "lucide-react";
-import { ClientCombobox } from "@/components/ui/client-combobox";
+
 import { toast } from "sonner";
 import { useLoanSimulations } from "@/hooks/useLoanSimulations";
 import { computeScenario, computeHighlights, formatBRL, newScenario } from "@/lib/loanSimulation";
@@ -299,12 +299,22 @@ export function LoanSimulator({ open, onOpenChange, clients, onCreateLoanFromSce
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           <div className="space-y-1">
             <Label className="text-xs">Cliente (opcional)</Label>
-            <ClientCombobox
-              clients={clients.filter((c) => c.active !== false)}
-              value={clientId}
-              onChange={(v) => setClientId(v)}
-              placeholder="Selecionar cliente..."
-            />
+            <Select value={clientId ?? "__none__"} onValueChange={(v) => setClientId(v === "__none__" ? null : v)}>
+              <SelectTrigger className="h-10">
+                <SelectValue placeholder="Selecionar cliente..." />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__none__">— Sem cliente —</SelectItem>
+                {clients
+                  .filter((c) => c.active !== false)
+                  .sort((a, b) => a.name.localeCompare(b.name, "pt-BR"))
+                  .map((c) => (
+                    <SelectItem key={c.id} value={c.id}>
+                      {c.name}
+                    </SelectItem>
+                  ))}
+              </SelectContent>
+            </Select>
           </div>
           <div className="space-y-1">
             <Label className="text-xs">Nome da simulação</Label>
