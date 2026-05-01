@@ -41,6 +41,7 @@ function rowToPayment(p: any): Payment {
     installmentNumber: p.installment_number, previousDueDate: p.previous_due_date,
     paymentMethodId: p.payment_method_id ?? null,
     metadata: p.metadata ?? null,
+    createdAt: p.created_at ?? undefined,
   };
 }
 

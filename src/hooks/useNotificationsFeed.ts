@@ -140,7 +140,7 @@ export function useNotificationsFeed(
           dueDate: c.dueDate,
           sortTs: ts,
         };
-        if (c.dueDate <= today) {
+        if (c.dueDate < today) {
           overdue.push({ kind: "overdue", ...base });
         } else if (c.dueDate <= in3) {
           dueSoon.push({ kind: "dueSoon", ...base });
@@ -151,21 +151,22 @@ export function useNotificationsFeed(
     overdue.sort((a, b) => a.sortTs - b.sortTs);
     dueSoon.sort((a, b) => a.sortTs - b.sortTs);
 
-    // Pagamentos das últimas 24h
+    // Pagamentos das últimas 24h (usar created_at quando disponível;
+    // p.date pode ser apenas YYYY-MM-DD e referir-se a uma data antiga de pagamento)
     const cutoff = Date.now() - 24 * 3600 * 1000;
     const loansById = new Map(loans.map((l) => [l.id, l] as const));
     const recentPayments: PaymentFeedItem[] = payments
-      .filter((p) => {
-        const t = new Date(p.date).getTime();
-        return Number.isFinite(t) && t >= cutoff;
-      })
       .map((p) => {
+        const createdTs = p.createdAt ? new Date(p.createdAt).getTime() : NaN;
+        return { p, ts: Number.isFinite(createdTs) ? createdTs : NaN };
+      })
+      .filter(({ ts }) => Number.isFinite(ts) && ts >= cutoff)
+      .map(({ p, ts }) => {
         const loan = loansById.get(p.loanId);
         const clientName =
           loan?.borrowerName ||
           (loan?.borrowerId && clientsById.get(loan.borrowerId)?.name) ||
           "Cliente";
-        const ts = new Date(p.date).getTime();
         return {
           kind: "payment" as const,
           key: `pay#${p.id}`,
@@ -176,7 +177,7 @@ export function useNotificationsFeed(
           installmentNumber: p.installmentNumber,
           totalInstallments: loan?.installments || p.installmentNumber,
           amount: p.amount,
-          paidAt: p.date,
+          paidAt: p.createdAt || p.date,
           sortTs: ts,
         };
       })
