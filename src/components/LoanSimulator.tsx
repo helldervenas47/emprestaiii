@@ -372,8 +372,69 @@ export function LoanSimulator({ open, onOpenChange, clients, onCreateLoanFromSce
           </div>
         </div>
 
-        {/* Scenarios scroll */}
-        <ScrollArea className="w-full rounded-lg border border-border/40 bg-muted/10">
+        {/* Scenarios — mobile: stacked full-width; tablet: 2-col grid; desktop: horizontal scroll */}
+        {/* Mobile (stacked) */}
+        <div className="md:hidden space-y-3">
+          {computed.map((s, idx) => (
+            <ScenarioCard
+              key={s.id}
+              index={idx}
+              scenario={s}
+              isChosen={chosenId === s.id}
+              isLowestTotal={highlights.lowestTotalId === s.id}
+              isLowestInstallment={highlights.lowestInstallmentId === s.id}
+              isHighestReturn={highlights.highestReturnId === s.id}
+              isBestApproval={highlights.bestApprovalId === s.id}
+              isBestReturn={highlights.bestReturnId === s.id}
+              canRemove={scenarios.length > 1}
+              fullWidth
+              onChange={(p) => updateScenario(s.id, p)}
+              onChoose={() => setChosenId((prev) => (prev === s.id ? null : s.id))}
+              onDuplicate={() => duplicateScenario(s.id)}
+              onRemove={() => removeScenario(s.id)}
+            />
+          ))}
+          <button
+            onClick={addScenario}
+            className="w-full min-h-[80px] rounded-xl border-2 border-dashed border-border/60 hover:border-primary/60 hover:bg-primary/5 transition-colors flex items-center justify-center gap-2 text-sm text-muted-foreground hover:text-primary py-4"
+          >
+            <Plus className="h-5 w-5" />
+            Adicionar cenário
+          </button>
+        </div>
+
+        {/* Tablet (2-col grid) */}
+        <div className="hidden md:grid lg:hidden grid-cols-2 gap-3">
+          {computed.map((s, idx) => (
+            <ScenarioCard
+              key={s.id}
+              index={idx}
+              scenario={s}
+              isChosen={chosenId === s.id}
+              isLowestTotal={highlights.lowestTotalId === s.id}
+              isLowestInstallment={highlights.lowestInstallmentId === s.id}
+              isHighestReturn={highlights.highestReturnId === s.id}
+              isBestApproval={highlights.bestApprovalId === s.id}
+              isBestReturn={highlights.bestReturnId === s.id}
+              canRemove={scenarios.length > 1}
+              fullWidth
+              onChange={(p) => updateScenario(s.id, p)}
+              onChoose={() => setChosenId((prev) => (prev === s.id ? null : s.id))}
+              onDuplicate={() => duplicateScenario(s.id)}
+              onRemove={() => removeScenario(s.id)}
+            />
+          ))}
+          <button
+            onClick={addScenario}
+            className="min-h-[400px] rounded-xl border-2 border-dashed border-border/60 hover:border-primary/60 hover:bg-primary/5 transition-colors flex items-center justify-center gap-2 text-sm text-muted-foreground hover:text-primary"
+          >
+            <Plus className="h-5 w-5" />
+            Adicionar cenário
+          </button>
+        </div>
+
+        {/* Desktop (horizontal scroll) */}
+        <ScrollArea className="hidden lg:block w-full rounded-lg border border-border/40 bg-muted/10">
           <div className="flex gap-3 p-3 min-w-min">
             {computed.map((s, idx) => (
               <ScenarioCard
