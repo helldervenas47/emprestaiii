@@ -147,16 +147,14 @@ export function LoanSimulator({ open, onOpenChange, clients, onCreateLoanFromSce
     setName(sim.name || "");
     setNotes(sim.notes || "");
     setClientId(sim.clientId);
+    setQuickClientName("");
     setScenarios(sim.scenarios.length ? sim.scenarios : [newScenario()]);
     setChosenId(sim.chosenScenarioId);
     setShowHistory(false);
   }
 
   async function handleExportPdf() {
-    if (!chosenId) {
-      toast.error("Selecione um cenário escolhido para exportar");
-      return;
-    }
+    // PDF agora exporta TODOS os cenários — o cenário escolhido, se houver, vem destacado.
     let simToExport: LoanSimulation;
     if (editingId) {
       const found = simulations.find((s) => s.id === editingId);
@@ -180,7 +178,7 @@ export function LoanSimulator({ open, onOpenChange, clients, onCreateLoanFromSce
     const client = clients.find((c) => c.id === clientId);
     await generateSimulationPdf({
       simulation: simToExport,
-      clientName: client?.name,
+      clientName: client?.name || effectiveClientName || undefined,
       clientPhone: client?.phone,
     });
   }
@@ -193,13 +191,22 @@ export function LoanSimulator({ open, onOpenChange, clients, onCreateLoanFromSce
     const sc = computed.find((s) => s.id === chosenId);
     if (!sc) return;
     const client = clients.find((c) => c.id === clientId);
+    const typedName = quickClientName.trim();
+    const needsAutoCreate = !clientId && typedName.length > 0;
+
+    if (!clientId && !typedName) {
+      toast.error("Informe o cliente ou digite um nome");
+      return;
+    }
+
     onCreateLoanFromScenario?.({
       clientId,
-      clientName: client?.name || "",
+      clientName: client?.name || typedName,
       amount: sc.amount,
       interestRate: sc.monthlyRate,
       installments: sc.installments,
       customInstallmentValue: sc.calcMode === "manual" ? sc.installmentValue : null,
+      autoCreateClient: needsAutoCreate,
     });
     onOpenChange(false);
   }
