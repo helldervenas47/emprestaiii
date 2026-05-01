@@ -232,6 +232,17 @@ export function NotificationsFeedButton({
         </div>
       </SheetContent>
     </Sheet>
+    {previewData && (
+      <WhatsappPreviewDialog
+        open={previewOpen}
+        onOpenChange={setPreviewOpen}
+        phone={previewData.phone}
+        message={previewData.message}
+        status={previewData.status}
+        recipientName={previewData.name}
+      />
+    )}
+    </>
   );
 }
 
