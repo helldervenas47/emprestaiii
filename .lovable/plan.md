@@ -1,87 +1,78 @@
 ## Objetivo
+Adicionar um sino de notificações no header (ao lado do sino de aprovações já existente) com um feed in-app contendo:
+- Parcelas **vencendo nos próximos 3 dias**
+- Parcelas **vencidas hoje**
+- **Pagamentos recebidos recentemente** (últimas 24h)
 
-Permitir que o bot do Telegram envie os relatórios como **imagem PNG** (card visual), além do texto. Começamos pelo **Resumo Mensal Pessoal** e deixamos a base pronta para expandir aos demais (diário, semanal, gerente, cobrança, inadimplência, planejamento, insights).
+## Comportamento
 
-## Como vai funcionar
+- Ícone de sino com badge mostrando o total de itens não-lidos.
+- Ao clicar, abre um `Sheet` lateral (mesmo padrão do `ApprovalRequestsButton`) com 3 seções:
+  1. **Vencidas hoje** (vermelho) — empréstimo, cliente, parcela X/Y, valor.
+  2. **Vencendo (próx. 3 dias)** (amarelo) — mesma info + dias restantes.
+  3. **Recebidas recentemente** (verde) — cliente, valor, data/hora, parcela.
+- Cada item é clicável → muda para a aba `dashboard` (Empréstimos) e foca no empréstimo correspondente (via query param/estado).
+- Botão "Marcar tudo como lido" no topo do feed.
+- Atualização automática a cada 60s e ao abrir o sheet.
 
-1. A edge function que monta o relatório continua coletando os mesmos dados que já coleta hoje.
-2. Em vez de (ou além de) montar texto, ela monta um **SVG** com o layout do card (título, totais, comparações, lista de categorias, barras de orçamento, marca do app).
-3. O SVG é convertido em **PNG** dentro da própria função usando a biblioteca `resvg` para Deno (`@resvg/resvg-wasm`), sem dependências externas pagas.
-4. O PNG é enviado pelo Telegram via `sendPhoto` no gateway de conectores que já usamos, com uma legenda curta (mês, total, variação).
+## Persistência de "lido"
 
-Sem novos secrets. Sem serviço externo. Sem custo adicional.
+Sem nova tabela. Usar `localStorage` por usuário com a chave `notif:lastSeen:<userId>`:
+- Ao abrir o sheet, salvar `Date.now()` como "última visualização".
+- Badge = count de itens cuja data-chave (vencimento ou pagamento) é mais recente que `lastSeen`.
+- Simples, suficiente para feed informativo (não é caixa de mensagens).
 
-## Escopo desta entrega
+## Fonte de dados (cliente, sem nova tabela)
 
-- **Resumo mensal pessoal** (`telegram-monthly-summary`) passa a enviar PNG + legenda curta.
-- Criamos um helper compartilhado `supabase/functions/_shared/renderReportImage.ts` com:
-  - Função `buildMonthlySummarySVG(data, brand)` — monta o SVG do card.
-  - Função `svgToPng(svg)` — converte SVG → PNG via `@resvg/resvg-wasm`.
-  - Função `tgSendPhoto(chatId, pngBytes, caption, ...)` — envia via gateway.
-- Configuração por usuário: nova coluna `monthly_format` em `telegram_summary_prefs` com valores `text` (atual) ou `image` (novo). Default: `text` para não mudar comportamento de quem já usa.
-- Toggle na UI de preferências do bot (componente do resumo mensal) para o usuário escolher entre Texto / Imagem.
-- Os outros bots ficam exatamente como estão hoje (texto). O helper já fica pronto para reuso quando você quiser ativar nos próximos.
+Já existem hooks com todos os dados necessários:
+- `useLoans()` → empréstimos + parcelas pagas
+- `useClients()` → para nome/telefone do cliente
+- `usePayments()` ou os payments já carregados em `Index.tsx`
 
-## Design do card (resumo mensal)
+Criar um hook `useNotificationsFeed(loans, clients, payments)`:
+- Para cada empréstimo `active`, calcula próximas parcelas em aberto usando os utilitários existentes (`loanInstallmentAmount.ts`, `dueStatus.ts`) e classifica como `overdueToday` ou `dueSoon` (próx. 3 dias).
+- Lista os últimos pagamentos com `date >= now - 24h`.
+- Retorna `{ overdue, dueSoon, recentPayments, unreadCount }`.
 
-```text
-┌──────────────────────────────────────────┐
-│  EmprestAI · Resumo Mensal               │
-│  Abril / 2026                            │
-│                                          │
-│  Total do mês                            │
-│  R$ 4.823,10        🔻 -12% vs mês ant. │
-│  Média diária: R$ 160,77 (30 dias)       │
-│ ─────────────────────────────────────── │
-│  Top categorias                          │
-│  ▰▰▰▰▰▰▱▱  Mercado     R$ 1.420  +5%   │
-│  ▰▰▰▰▱▱▱▱  Transporte  R$   890  -8%   │
-│  ▰▰▰▱▱▱▱▱  Lazer       R$   620  +20%  │
-│  ...                                     │
-│ ─────────────────────────────────────── │
-│  Orçamentos                              │
-│  🟢 Mercado     78%   R$ 380 restante   │
-│  🟡 Lazer       91%   R$  60 restante   │
-│  🔴 Restaurante 112%  R$ 120 acima      │
-└──────────────────────────────────────────┘
-```
+## Arquivos
 
-- Largura 1080px (boa qualidade no celular do Telegram).
-- Paleta: usa `app_branding` (cor primária) quando disponível, fallback para azul atual do app.
-- Tipografia: fontes do sistema embutidas como SVG `<text>` — sem precisar baixar fonte externa.
+**Novos:**
+- `src/components/NotificationsFeedButton.tsx` — sino + Sheet com as 3 seções.
+- `src/hooks/useNotificationsFeed.ts` — agregação e contagem de não-lidos.
+
+**Editados:**
+- `src/pages/Index.tsx`:
+  - Importar `NotificationsFeedButton` e renderizar no header ao lado de `ApprovalRequestsButton` (linha ~632).
+  - Passar `loans`, `clients`, `payments` (já disponíveis no Index) e um callback `onSelectLoan(loanId)` que troca para a aba `dashboard` e seta um `highlightLoanId` em estado.
+  - Passar `highlightLoanId` para `LoanList` (ele já lida com seleção; senão, faz scroll-into-view).
 
 ## Detalhes técnicos
 
-**Arquivos novos**
-- `supabase/functions/_shared/renderReportImage.ts` — gerador SVG + conversão PNG + helper `sendPhoto`.
+```ts
+// useNotificationsFeed.ts (esboço)
+const today = startOfDay(new Date());
+const in3Days = addDays(today, 3);
 
-**Arquivos alterados**
-- `supabase/functions/telegram-monthly-summary/index.ts` — usa o helper quando `monthly_format = 'image'`; senão mantém fluxo de texto atual.
-- `src/components/TelegramReportsConnectCard.tsx` (ou o componente que controla o resumo mensal — confirmar ao implementar) — adiciona o seletor Texto/Imagem.
-- `src/hooks/useTelegramSummaryPref.ts` — expõe `monthly_format` no estado e no `save`.
+const items = loans.filter(l => l.status !== "paid").flatMap(loan => {
+  const next = computeNextOpenInstallments(loan); // já existe util similar
+  return next
+    .filter(i => i.dueDate <= in3Days)
+    .map(i => ({
+      kind: isSameDay(i.dueDate, today) || i.dueDate < today ? "overdue" : "dueSoon",
+      loanId: loan.id, clientName: loan.borrowerName,
+      installmentNumber: i.number, amount: i.amount, dueDate: i.dueDate,
+    }));
+});
 
-**Migração SQL**
-```sql
-ALTER TABLE public.telegram_summary_prefs
-  ADD COLUMN IF NOT EXISTS monthly_format text NOT NULL DEFAULT 'text'
-  CHECK (monthly_format IN ('text','image'));
+const recent = payments
+  .filter(p => Date.now() - new Date(p.date).getTime() < 24*3600*1000)
+  .sort((a,b) => +new Date(b.date) - +new Date(a.date));
 ```
 
-**Conversão SVG → PNG**
-- Import: `import { Resvg, initWasm } from "https://esm.sh/@resvg/resvg-wasm@2.6.2"`
-- Inicializa o wasm uma vez por invocação, reaproveita em todos os envios do loop cron.
+UI: `Sheet` com `SheetContent w-full sm:max-w-md`, cada seção com header colapsável e badge de contagem. Empty state "Sem notificações no momento.". Reaproveita tokens semânticos (`text-destructive`, `text-warning` se existir, `text-success`).
 
-**Envio**
-- `POST {GATEWAY}/sendPhoto` com `multipart/form-data`: campo `chat_id`, `caption` (Markdown curto), e `photo` como arquivo binário do PNG.
-- Mantém `parse_mode: Markdown` na legenda.
+## Fora de escopo
 
-## Fora do escopo (próximas iterações)
-
-- Aplicar o mesmo formato nos outros bots (diário, semanal, gerente, cobrança, etc.). A base fica pronta — basta criar `buildXxxSVG` e plugar.
-- Gráficos avançados (linha, pizza). Usaremos barras simples desenhadas em SVG nesta primeira versão.
-
-## Validação
-
-- Disparar manualmente `telegram-monthly-summary?user_id=...` autenticado e conferir o PNG recebido.
-- Conferir logs da função para garantir que `resvg` carregou e o `sendPhoto` retornou `ok: true`.
-- Verificar que usuários com `monthly_format = 'text'` continuam recebendo texto (sem regressão).
+- Criação de nova tabela / push.
+- Integração com Telegram/WhatsApp (já existem outros componentes para isso).
+- Marcar item individual como lido (apenas global "tudo lido").
