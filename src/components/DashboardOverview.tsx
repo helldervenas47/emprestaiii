@@ -14,7 +14,6 @@ import { useHideValues } from "@/contexts/HideValuesContext";
 import { Loan, Sale, Payment, Expense, InstallmentSchedule, Client } from "@/types/loan";
 import { ManagerCommissionsChart } from "@/components/ManagerCommissionsChart";
 import { GoalsCard } from "@/components/GoalsCard";
-import { InterestRateBySplitCard } from "@/components/InterestRateBySplitCard";
 import { calculateInstallment, calculateTotalWithInterest, getLoanRemainingAmount } from "@/hooks/useLoans";
 import { getInstallmentAmount, getOverdueAmount } from "@/lib/loanInstallmentAmount";
 import { Card, CardContent } from "@/components/ui/card";
@@ -1680,9 +1679,6 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
           </div>
         </CardContent>
       </Card>
-
-      {/* Taxa de juros mensal: Parcela Única vs Parcelados */}
-      <InterestRateBySplitCard loans={loans} range={{ start: range.start, end: range.end }} rangeLabel={range.label} />
 
       <Card no3d>
         <CardContent className="p-6">
