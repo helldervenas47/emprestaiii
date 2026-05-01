@@ -463,12 +463,35 @@ function SaleCard({ sale, onDelete, onEdit, onUpdate, formatCurrency, readOnly =
             </>
           )}
 
-          {/* Notes */}
-          {sale.notes && (
-            <div className="bg-muted/20 border border-border/30 rounded-lg px-3 py-2">
-              <p className="text-xs text-muted-foreground italic truncate">{sale.notes}</p>
-            </div>
-          )}
+          {(() => {
+            const parsed = parseNotesWithMerchandise(sale.notes);
+            const merch = parsed.merchandise;
+            const userNotes = parsed.userNotes;
+            const dinheiro = Math.max(0, (sale.total || 0) - (merch?.valor || 0));
+            return (
+              <>
+                {merch && (
+                  <div className="bg-primary/5 border border-primary/20 rounded-lg px-3 py-2 space-y-0.5">
+                    <p className="text-[11px] font-semibold text-primary uppercase tracking-wide">Pagamento misto</p>
+                    <p className="text-xs text-muted-foreground">
+                      Dinheiro: <span className="font-medium text-foreground">{rawFormatCurrency(dinheiro)}</span>
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      Mercadoria: <span className="font-medium text-foreground">{merch.descricao}</span> ({rawFormatCurrency(merch.valor)})
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      Total: <span className="font-bold text-primary">{rawFormatCurrency(sale.total || 0)}</span>
+                    </p>
+                  </div>
+                )}
+                {userNotes && (
+                  <div className="bg-muted/20 border border-border/30 rounded-lg px-3 py-2">
+                    <p className="text-xs text-muted-foreground italic truncate">{userNotes}</p>
+                  </div>
+                )}
+              </>
+            );
+          })()}
 
           {/* Footer: date + actions - always at bottom */}
           <div className="flex items-center justify-between pt-1 border-t border-border/50">
