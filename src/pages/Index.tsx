@@ -59,6 +59,7 @@ const SystemHealth = lazy(() => import("@/components/SystemHealth").then(m => ({
 import { vehicleExpenseCategories } from "@/components/VehicleExpenseForm";
 import { PushNotificationToggle } from "@/components/PushNotificationToggle";
 import { ApprovalRequestsButton } from "@/components/ApprovalRequestsButton";
+import { NotificationsFeedButton } from "@/components/NotificationsFeedButton";
 import { DashboardOverview } from "@/components/DashboardOverview";
 import { LedgerView } from "@/components/LedgerView";
 import { useApprovalRequests } from "@/hooks/useApprovalRequests";
@@ -632,6 +633,18 @@ const Index = () => {
                     <ApprovalRequestsButton />
                   </div>
                 )}
+                <div className="inline-flex">
+                  <NotificationsFeedButton
+                    loans={filteredLoans}
+                    payments={filteredPayments}
+                    installmentSchedules={filteredInstallments}
+                    clients={filteredClients}
+                    onSelectLoan={(loanId) => {
+                      setTab("dashboard");
+                      try { sessionStorage.setItem("highlightLoanId", loanId); } catch {}
+                    }}
+                  />
+                </div>
                 <Button
                   variant="ghost"
                   size="icon"
