@@ -558,7 +558,7 @@ function ScenarioCard({
         </div>
       </div>
 
-      <div className="p-3 space-y-2.5">
+      <div className="p-3 space-y-2.5 flex-1 flex flex-col">
         {/* Highlights */}
         <div className="flex flex-wrap gap-1 min-h-[20px]">
           {isLowestTotal && (
