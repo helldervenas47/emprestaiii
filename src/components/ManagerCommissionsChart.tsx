@@ -517,9 +517,9 @@ function ManagerDetailDialog({
       const paidAmount = paidInPeriod.reduce((s, i) => s + i.commission, 0);
       const pendingAmount = pendingInPeriod.reduce((s, i) => s + i.commission, 0);
       const items = [...paidInPeriod, ...pendingInPeriod].sort((a, b) => {
-        const dateA = a.paidDate ?? a.dueDate ?? "";
-        const dateB = b.paidDate ?? b.dueDate ?? "";
-        return dateB.localeCompare(dateA);
+        const dateA = a.dueDate ?? a.paidDate ?? "";
+        const dateB = b.dueDate ?? b.paidDate ?? "";
+        return dateA.localeCompare(dateB);
       });
 
       return {
