@@ -124,7 +124,7 @@ export function NotificationsFeedButton({
             empty="Sem parcelas vencendo nos próximos 3 dias."
           >
             {dueSoon.map((it) => {
-              const d = it.kind === "dueSoon" ? daysFromToday(it.dueDate) : 0;
+              const d = daysFromToday(it.dueDate);
               const label =
                 d === 0 ? "vence hoje" : d === 1 ? "vence amanhã" : `vence em ${d} dias`;
               return (
