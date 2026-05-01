@@ -517,10 +517,22 @@ export function LoanSimulator({ open, onOpenChange, clients, onCreateLoanFromSce
               <Save className="h-4 w-4" />
               {editingId ? "Atualizar" : "Salvar"}
             </Button>
-            <Button variant="outline" onClick={handleExportPdf} className="gap-1.5">
-              <FileDown className="h-4 w-4" />
-              PDF
-            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" className="gap-1.5">
+                  <FileDown className="h-4 w-4" />
+                  PDF
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => handleExportPdf("download")}>
+                  <Download className="h-4 w-4 mr-2" /> Baixar PDF
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleExportPdf("share")}>
+                  <Share2 className="h-4 w-4 mr-2" /> Compartilhar PDF
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
             <Button onClick={handleCreateLoan} disabled={!chosenId} className="gap-1.5">
               <Wallet className="h-4 w-4" />
               Criar Empréstimo com este cenário
