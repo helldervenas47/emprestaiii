@@ -17,6 +17,9 @@ interface Props {
   installmentSchedules: InstallmentSchedule[];
   clients: Client[];
   onSelectLoan?: (loanId: string) => void;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  hideTrigger?: boolean;
 }
 
 const formatBRL = (v: number) =>
@@ -47,8 +50,13 @@ export function NotificationsFeedButton({
   installmentSchedules,
   clients,
   onSelectLoan,
+  open: controlledOpen,
+  onOpenChange,
+  hideTrigger = false,
 }: Props) {
-  const [open, setOpen] = useState(false);
+  const [internalOpen, setInternalOpen] = useState(false);
+  const isControlled = controlledOpen !== undefined;
+  const open = isControlled ? controlledOpen : internalOpen;
   const { overdue, dueSoon, recentPayments, unreadCount, markAllRead } = useNotificationsFeed(
     loans,
     payments,
@@ -63,6 +71,11 @@ export function NotificationsFeedButton({
     status: ReturnType<typeof buildBillingWhatsappLink>["status"];
     name: string;
   } | null>(null);
+
+  const setOpen = (next: boolean) => {
+    if (!isControlled) setInternalOpen(next);
+    onOpenChange?.(next);
+  };
 
   const handleOpenChange = (next: boolean) => {
     setOpen(next);
@@ -110,21 +123,23 @@ export function NotificationsFeedButton({
   return (
     <>
     <Sheet open={open} onOpenChange={handleOpenChange}>
-      <SheetTrigger asChild>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="relative h-9 w-9"
-          title="Notificações"
-        >
-          <Bell className="h-4 w-4" />
-          {unreadCount > 0 && (
-            <span className="absolute -top-0.5 -right-0.5 flex h-5 min-w-[20px] items-center justify-center rounded-full bg-destructive px-1 text-[10px] font-bold text-destructive-foreground">
-              {unreadCount > 9 ? "9+" : unreadCount}
-            </span>
-          )}
-        </Button>
-      </SheetTrigger>
+      {!hideTrigger && (
+        <SheetTrigger asChild>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="relative h-9 w-9"
+            title="Notificações"
+          >
+            <Bell className="h-4 w-4" />
+            {unreadCount > 0 && (
+              <span className="absolute -top-0.5 -right-0.5 flex h-5 min-w-[20px] items-center justify-center rounded-full bg-destructive px-1 text-[10px] font-bold text-destructive-foreground">
+                {unreadCount > 9 ? "9+" : unreadCount}
+              </span>
+            )}
+          </Button>
+        </SheetTrigger>
+      )}
       <SheetContent className="w-full sm:max-w-md overflow-y-auto">
         <SheetHeader>
           <div className="flex items-center justify-between gap-2">
