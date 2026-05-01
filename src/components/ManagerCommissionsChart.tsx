@@ -9,7 +9,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { useManagerCommissions } from "@/hooks/useManagerCommissions";
 import { Client, Loan, InstallmentSchedule, Payment, ManagerCommission } from "@/types/loan";
 import { useHideValues } from "@/contexts/HideValuesContext";
-import { Briefcase, UserCog, CalendarDays, Check, CheckCircle2, Clock, Pencil } from "lucide-react";
+import { Briefcase, UserCog, CalendarDays, Check, CheckCircle2, Clock, Pencil, Tag } from "lucide-react";
 
 const MANAGER_FILTER_STORAGE_KEY = "manager-commissions-visible-managers";
 
