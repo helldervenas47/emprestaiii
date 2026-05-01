@@ -185,11 +185,24 @@ export function NotificationsFeedButton({
                 d === 0 ? "vence hoje" : d === 1 ? "vence amanhã" : `vence em ${d} dias`;
               return (
                 <FeedCard key={it.key} onClick={() => handleClickItem(it)} accent="warning">
-                  <p className="text-sm font-medium text-foreground">{it.clientName}</p>
-                  <p className="text-xs text-muted-foreground">
-                    Parcela {it.installmentNumber}/{it.totalInstallments} · {label} ({formatDateBr(it.dueDate)})
-                  </p>
-                  <p className="text-sm font-semibold text-warning mt-1">{formatBRL(it.amount)}</p>
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-medium text-foreground truncate">{it.clientName}</p>
+                      <p className="text-xs text-muted-foreground">
+                        Parcela {it.installmentNumber}/{it.totalInstallments} · {label} ({formatDateBr(it.dueDate)})
+                      </p>
+                      <p className="text-sm font-semibold text-warning mt-1">{formatBRL(it.amount)}</p>
+                    </div>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="h-8 w-8 shrink-0 text-success hover:text-success hover:bg-success/10"
+                      onClick={(e) => handleWhatsapp(e, it)}
+                      title="Enviar lembrete via WhatsApp"
+                    >
+                      <MessageCircle className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </FeedCard>
               );
             })}
