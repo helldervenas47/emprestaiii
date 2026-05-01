@@ -578,8 +578,8 @@ function ScenarioCard({
           )}
         </div>
 
-        {/* Sugestões IA-leves — altura reservada p/ uniformidade */}
-        <div className="rounded-md border border-dashed border-border/40 p-1.5 text-[10px] space-y-0.5 min-h-[44px] flex flex-col justify-center">
+        {/* Sugestões IA-leves — placeholder reservado apenas em md+ p/ alinhar cards lado a lado */}
+        <div className="rounded-md border border-dashed border-border/40 p-1.5 text-[10px] space-y-0.5 hidden md:flex md:min-h-[44px] flex-col justify-center data-[has=true]:flex" data-has={isBestApproval || isBestReturn}>
           {isBestApproval && (
             <p className="flex items-center gap-1 text-primary">
               <Sparkles className="h-2.5 w-2.5" /> Melhor para aprovação
@@ -594,6 +594,21 @@ function ScenarioCard({
             <p className="text-muted-foreground/60 text-center">—</p>
           )}
         </div>
+        {/* Mobile: só renderiza se houver sugestão real (sem espaço em branco) */}
+        {(isBestApproval || isBestReturn) && (
+          <div className="md:hidden rounded-md bg-primary/5 border border-primary/20 p-1.5 text-[10px] space-y-0.5">
+            {isBestApproval && (
+              <p className="flex items-center gap-1 text-primary">
+                <Sparkles className="h-2.5 w-2.5" /> Melhor para aprovação
+              </p>
+            )}
+            {isBestReturn && (
+              <p className="flex items-center gap-1 text-warning">
+                <Sparkles className="h-2.5 w-2.5" /> Melhor retorno financeiro
+              </p>
+            )}
+          </div>
+        )}
 
         {/* Modo */}
         <div className="grid grid-cols-2 gap-2">
