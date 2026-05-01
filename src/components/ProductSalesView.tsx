@@ -1804,7 +1804,9 @@ export function ProductSalesView({ sales, onDeleteSale, onUpdateSale, clients = 
                   const isOverdue = !exp.paid && exp.dueDate < todayInAppTz();
                   const hasPaidSomething = exp.paid || (exp.paidInstallments && exp.paidInstallments > 0);
                   const isRecorrente = exp.type === "recorrente" && exp.installments && exp.installments > 1;
-                  const installmentAmount = isRecorrente ? exp.amount / exp.installments! : exp.amount;
+                  const origMatch = (exp.notes ?? "").match(/\[OrigParcela:\s*([\d.]+)\]/i);
+                  const originalInstallment = origMatch ? parseFloat(origMatch[1]) : (isRecorrente ? exp.amount / exp.installments! : exp.amount);
+                  const installmentAmount = isRecorrente ? originalInstallment : exp.amount;
 
                   return (
                     <Card key={exp.id} className={`${exp.paid ? "opacity-60" : ""} hover:shadow-[0_4px_16px_-6px_hsl(0_0%_0%/0.08)] hover:-translate-y-[1px] transition-all duration-400 ease-out animate-fade-in`} style={{ animationDelay: `${idx * 50}ms`, animationFillMode: 'backwards' }}>
