@@ -17,6 +17,9 @@ interface Props {
   installmentSchedules: InstallmentSchedule[];
   clients: Client[];
   onSelectLoan?: (loanId: string) => void;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  hideTrigger?: boolean;
 }
 
 const formatBRL = (v: number) =>
