@@ -1067,7 +1067,26 @@ function LoanCardView({
     <Card no3d={no3d} className={`overflow-hidden hover:shadow-[0_4px_16px_-6px_hsl(0_0%_0%/0.08)] hover:-translate-y-[1px] transition-all duration-400 ease-out h-full flex flex-col border ${cardBorder} ${cardBg}`}>
       {/* Client Name Header */}
       <div className={`border-b px-4 py-3 text-center ${headerBg} relative`}>
-        <h3 className="font-bold text-foreground text-lg">{loan.borrowerName}</h3>
+        <h3 className="font-bold text-foreground text-lg inline-flex items-center gap-1.5">
+          {loan.borrowerName}
+          {renegotiations.length > 0 && (
+            <TooltipProvider delayDuration={300}>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span
+                    className="inline-flex items-center justify-center h-5 w-5 rounded-full bg-amber-500/20 text-amber-700 dark:bg-amber-400/25 dark:text-amber-300 border border-amber-500/40 cursor-help"
+                    aria-label={`Renegociado ${renegotiations.length}x`}
+                  >
+                    <RefreshCw className="h-3 w-3" />
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent side="top" className="text-xs">
+                  Renegociado {renegotiations.length}x
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          )}
+        </h3>
         {loan.notes && (
           <TooltipProvider delayDuration={1000}>
             <Tooltip>
@@ -2561,6 +2580,24 @@ function LoanRowView({
           <div className="min-w-0">
             <div className="flex items-center gap-1 flex-wrap">
               <span className="font-medium text-[11px] sm:text-sm text-foreground truncate block max-w-[80px] sm:max-w-none">{loan.borrowerName}</span>
+              {renegotiations.length > 0 && (
+                <TooltipProvider delayDuration={300}>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span
+                        className="inline-flex items-center justify-center h-4 w-4 sm:h-5 sm:w-5 rounded-full bg-amber-500/20 text-amber-700 dark:bg-amber-400/25 dark:text-amber-300 border border-amber-500/40 shrink-0 cursor-help"
+                        onClick={(e) => e.stopPropagation()}
+                        aria-label={`Renegociado ${renegotiations.length}x`}
+                      >
+                        <RefreshCw className="h-2.5 w-2.5 sm:h-3 sm:w-3" />
+                      </span>
+                    </TooltipTrigger>
+                    <TooltipContent side="top" className="text-xs">
+                      Renegociado {renegotiations.length}x
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              )}
               {loan.hasManager && (
                 <Badge variant="outline" className="bg-[#009C3B]/15 text-[#009C3B] dark:bg-emerald-500/25 dark:text-emerald-300 border-[#009C3B]/60 dark:border-emerald-500/60 text-[9px] sm:text-[10px] px-1 py-0 gap-0.5 shrink-0" title="Com gerente">
                   <UserCog className="h-3 w-3" /><span className="hidden sm:inline">Gerente</span>
