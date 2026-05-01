@@ -456,7 +456,7 @@ export function LoanSimulator({ open, onOpenChange, clients, onCreateLoanFromSce
             ))}
             <button
               onClick={addScenario}
-              className="flex-shrink-0 w-[280px] min-h-[400px] rounded-xl border-2 border-dashed border-border/60 hover:border-primary/60 hover:bg-primary/5 transition-colors flex items-center justify-center gap-2 text-sm text-muted-foreground hover:text-primary"
+              className="flex-shrink-0 w-[320px] self-stretch rounded-xl border-2 border-dashed border-border/60 hover:border-primary/60 hover:bg-primary/5 transition-colors flex items-center justify-center gap-2 text-sm text-muted-foreground hover:text-primary"
             >
               <Plus className="h-5 w-5" />
               Adicionar cenário
