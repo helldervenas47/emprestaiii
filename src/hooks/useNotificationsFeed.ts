@@ -140,7 +140,7 @@ export function useNotificationsFeed(
           dueDate: c.dueDate,
           sortTs: ts,
         };
-        if (c.dueDate <= today) {
+        if (c.dueDate < today) {
           overdue.push({ kind: "overdue", ...base });
         } else if (c.dueDate <= in3) {
           dueSoon.push({ kind: "dueSoon", ...base });
