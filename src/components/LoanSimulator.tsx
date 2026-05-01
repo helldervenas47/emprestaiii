@@ -314,13 +314,19 @@ export function LoanSimulator({ open, onOpenChange, clients, onCreateLoanFromSce
         {/* Cabeçalho da simulação */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           <div className="space-y-1">
-            <Label className="text-xs">Cliente (opcional)</Label>
-            <Select value={clientId ?? "__none__"} onValueChange={(v) => setClientId(v === "__none__" ? null : v)}>
+            <Label className="text-xs">Cliente</Label>
+            <Select
+              value={clientId ?? "__none__"}
+              onValueChange={(v) => {
+                setClientId(v === "__none__" ? null : v);
+                if (v !== "__none__") setQuickClientName("");
+              }}
+            >
               <SelectTrigger className="h-10">
-                <SelectValue placeholder="Selecionar cliente..." />
+                <SelectValue placeholder="Selecionar cliente cadastrado..." />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="__none__">— Sem cliente —</SelectItem>
+                <SelectItem value="__none__">— Cliente novo (digitar nome) —</SelectItem>
                 {clients
                   .filter((c) => c.active !== false)
                   .sort((a, b) => a.name.localeCompare(b.name, "pt-BR"))
@@ -331,6 +337,20 @@ export function LoanSimulator({ open, onOpenChange, clients, onCreateLoanFromSce
                   ))}
               </SelectContent>
             </Select>
+            {!clientId && (
+              <Input
+                value={quickClientName}
+                onChange={(e) => setQuickClientName(e.target.value)}
+                placeholder="Digite o nome do cliente"
+                className="h-10 mt-1.5"
+              />
+            )}
+            {!clientId && quickClientName.trim() && (
+              <p className="text-[10px] text-primary flex items-center gap-1 mt-0.5">
+                <Sparkles className="h-2.5 w-2.5" />
+                Cadastro será criado automaticamente ao confirmar o empréstimo
+              </p>
+            )}
           </div>
           <div className="space-y-1">
             <Label className="text-xs">Nome da simulação</Label>
