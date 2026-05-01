@@ -52,6 +52,8 @@ interface Props {
     interestRate: number;
     installments: number;
     customInstallmentValue?: number | null;
+    /** When true, Index should auto-create the client using clientName before opening the loan form. */
+    autoCreateClient?: boolean;
   }) => void;
 }
 
@@ -62,6 +64,7 @@ export function LoanSimulator({ open, onOpenChange, clients, onCreateLoanFromSce
   const [name, setName] = useState("");
   const [notes, setNotes] = useState("");
   const [clientId, setClientId] = useState<string | null>(null);
+  const [quickClientName, setQuickClientName] = useState("");
   const [scenarios, setScenarios] = useState<SimulationScenario[]>([newScenario()]);
   const [chosenId, setChosenId] = useState<string | null>(null);
   const [showSettings, setShowSettings] = useState(false);
@@ -74,11 +77,17 @@ export function LoanSimulator({ open, onOpenChange, clients, onCreateLoanFromSce
   const computed: ScenarioComputed[] = useMemo(() => scenarios.map(computeScenario), [scenarios]);
   const highlights = useMemo(() => computeHighlights(computed), [computed]);
 
+  const effectiveClientName = useMemo(() => {
+    if (clientId) return clients.find((c) => c.id === clientId)?.name || "";
+    return quickClientName.trim();
+  }, [clientId, quickClientName, clients]);
+
   function reset() {
     setEditingId(null);
     setName("");
     setNotes("");
     setClientId(null);
+    setQuickClientName("");
     setScenarios([newScenario()]);
     setChosenId(null);
   }
@@ -138,16 +147,14 @@ export function LoanSimulator({ open, onOpenChange, clients, onCreateLoanFromSce
     setName(sim.name || "");
     setNotes(sim.notes || "");
     setClientId(sim.clientId);
+    setQuickClientName("");
     setScenarios(sim.scenarios.length ? sim.scenarios : [newScenario()]);
     setChosenId(sim.chosenScenarioId);
     setShowHistory(false);
   }
 
   async function handleExportPdf() {
-    if (!chosenId) {
-      toast.error("Selecione um cenário escolhido para exportar");
-      return;
-    }
+    // PDF agora exporta TODOS os cenários — o cenário escolhido, se houver, vem destacado.
     let simToExport: LoanSimulation;
     if (editingId) {
       const found = simulations.find((s) => s.id === editingId);
@@ -171,7 +178,7 @@ export function LoanSimulator({ open, onOpenChange, clients, onCreateLoanFromSce
     const client = clients.find((c) => c.id === clientId);
     await generateSimulationPdf({
       simulation: simToExport,
-      clientName: client?.name,
+      clientName: client?.name || effectiveClientName || undefined,
       clientPhone: client?.phone,
     });
   }
@@ -184,13 +191,22 @@ export function LoanSimulator({ open, onOpenChange, clients, onCreateLoanFromSce
     const sc = computed.find((s) => s.id === chosenId);
     if (!sc) return;
     const client = clients.find((c) => c.id === clientId);
+    const typedName = quickClientName.trim();
+    const needsAutoCreate = !clientId && typedName.length > 0;
+
+    if (!clientId && !typedName) {
+      toast.error("Informe o cliente ou digite um nome");
+      return;
+    }
+
     onCreateLoanFromScenario?.({
       clientId,
-      clientName: client?.name || "",
+      clientName: client?.name || typedName,
       amount: sc.amount,
       interestRate: sc.monthlyRate,
       installments: sc.installments,
       customInstallmentValue: sc.calcMode === "manual" ? sc.installmentValue : null,
+      autoCreateClient: needsAutoCreate,
     });
     onOpenChange(false);
   }
@@ -298,13 +314,19 @@ export function LoanSimulator({ open, onOpenChange, clients, onCreateLoanFromSce
         {/* Cabeçalho da simulação */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           <div className="space-y-1">
-            <Label className="text-xs">Cliente (opcional)</Label>
-            <Select value={clientId ?? "__none__"} onValueChange={(v) => setClientId(v === "__none__" ? null : v)}>
+            <Label className="text-xs">Cliente</Label>
+            <Select
+              value={clientId ?? "__none__"}
+              onValueChange={(v) => {
+                setClientId(v === "__none__" ? null : v);
+                if (v !== "__none__") setQuickClientName("");
+              }}
+            >
               <SelectTrigger className="h-10">
-                <SelectValue placeholder="Selecionar cliente..." />
+                <SelectValue placeholder="Selecionar cliente cadastrado..." />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="__none__">— Sem cliente —</SelectItem>
+                <SelectItem value="__none__">— Cliente novo (digitar nome) —</SelectItem>
                 {clients
                   .filter((c) => c.active !== false)
                   .sort((a, b) => a.name.localeCompare(b.name, "pt-BR"))
@@ -315,6 +337,20 @@ export function LoanSimulator({ open, onOpenChange, clients, onCreateLoanFromSce
                   ))}
               </SelectContent>
             </Select>
+            {!clientId && (
+              <Input
+                value={quickClientName}
+                onChange={(e) => setQuickClientName(e.target.value)}
+                placeholder="Digite o nome do cliente"
+                className="h-10 mt-1.5"
+              />
+            )}
+            {!clientId && quickClientName.trim() && (
+              <p className="text-[10px] text-primary flex items-center gap-1 mt-0.5">
+                <Sparkles className="h-2.5 w-2.5" />
+                Cadastro será criado automaticamente ao confirmar o empréstimo
+              </p>
+            )}
           </div>
           <div className="space-y-1">
             <Label className="text-xs">Nome da simulação</Label>
@@ -426,10 +462,17 @@ function ScenarioCard({
   return (
     <div
       className={cn(
-        "flex-shrink-0 w-[300px] rounded-xl border-2 bg-card transition-all",
-        isChosen ? "border-success shadow-[0_0_0_3px_hsl(var(--success)/0.15)]" : "border-border/60",
+        "relative flex-shrink-0 w-[300px] rounded-xl border-2 bg-card transition-all",
+        isChosen
+          ? "border-success shadow-[0_0_0_4px_hsl(var(--success)/0.2)] ring-1 ring-success/40 bg-success/5"
+          : "border-border/60 hover:border-border",
       )}
     >
+      {isChosen && (
+        <div className="absolute -top-2.5 -right-2.5 z-10 bg-success text-success-foreground rounded-full px-2 py-0.5 text-[10px] font-bold shadow-md flex items-center gap-1">
+          <CheckCircle2 className="h-3 w-3" /> ESCOLHIDO
+        </div>
+      )}
       <div className="p-3 border-b border-border/40 flex items-center justify-between">
         <div className="flex items-center gap-1.5">
           <Badge variant="outline" className="text-[10px]">Cenário {index + 1}</Badge>

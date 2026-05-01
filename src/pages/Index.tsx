@@ -1032,8 +1032,49 @@ const Index = () => {
           open={showLoanSimulator}
           onOpenChange={setShowLoanSimulator}
           clients={clients}
-          onCreateLoanFromScenario={(p) => {
-            setLoanFormPrefill(p);
+          onCreateLoanFromScenario={async (p) => {
+            let resolvedClientId = p.clientId;
+            if (!resolvedClientId && p.autoCreateClient && p.clientName?.trim()) {
+              try {
+                const newId = await addClient({
+                  name: p.clientName.trim(),
+                  phone: "",
+                  email: "",
+                  cpf: "",
+                  cnpj: "",
+                  rg: "",
+                  address: "",
+                  city: "",
+                  state: "",
+                  score: 0,
+                  notes: "Cliente criado automaticamente a partir de simulação",
+                  active: true,
+                  isVehicleRental: false,
+                  nacionalidade: "",
+                  estadoCivil: "",
+                  profissao: "",
+                  bairro: "",
+                  isManager: false,
+                  defaultInterestRate: null,
+                  autoBillingEnabled: true,
+                } as any);
+                if (newId) {
+                  resolvedClientId = newId;
+                  toast.success(`Cliente "${p.clientName.trim()}" cadastrado automaticamente`);
+                }
+              } catch (err) {
+                console.error("Erro ao criar cliente automaticamente:", err);
+                toast.error("Não foi possível cadastrar o cliente automaticamente");
+              }
+            }
+            setLoanFormPrefill({
+              clientId: resolvedClientId,
+              clientName: p.clientName,
+              amount: p.amount,
+              interestRate: p.interestRate,
+              installments: p.installments,
+              customInstallmentValue: p.customInstallmentValue,
+            });
             setShowLoanSimulator(false);
             setShowLoanForm(true);
           }}

@@ -57,20 +57,21 @@ export async function generateSimulationPdf({ simulation, clientName, clientPhon
   }
   y += 8;
 
-  // Scenarios table
+  // Scenarios summary table (todos os cenários)
   const scenarios = simulation.scenarios.map(computeScenario);
   const chosen = scenarios.find((s) => s.id === simulation.chosenScenarioId);
 
   doc.setFont("helvetica", "bold");
   doc.setFontSize(11);
-  doc.text("Cenários Simulados", 14, y);
+  doc.text(`Cenários Simulados (${scenarios.length})`, 14, y);
   y += 3;
 
   autoTable(doc, {
     startY: y + 2,
-    head: [["#", "Valor", "Taxa/mês", "Parcelas", "Parcela", "Juros total", "Total"]],
+    head: [["#", "Sistema", "Valor", "Taxa/mês", "Parcelas", "Parcela", "Juros total", "Total"]],
     body: scenarios.map((s, i) => [
       String(i + 1) + (s.id === simulation.chosenScenarioId ? " ★" : ""),
+      s.interestModel === "simple" ? "Simples" : "Price",
       formatBRL(s.amount),
       `${s.monthlyRate.toFixed(2)}%`,
       String(s.installments),
@@ -91,38 +92,72 @@ export async function generateSimulationPdf({ simulation, clientName, clientPhon
 
   y = (doc as any).lastAutoTable.finalY + 8;
 
-  // Chosen scenario summary
-  if (chosen) {
-    if (y > pageH - 70) {
-      doc.addPage();
-      y = 15;
-    }
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(11);
-    doc.text("Cenário Escolhido pelo Cliente", 14, y);
-    y += 6;
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(10);
+  // Detalhamento individual de cada cenário
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(11);
+  if (y > pageH - 60) { doc.addPage(); y = 15; }
+  doc.text("Detalhamento dos Cenários", 14, y);
+  y += 5;
 
-    const lines = [
-      ["Valor emprestado", formatBRL(chosen.amount)],
-      ["Taxa mensal", `${chosen.monthlyRate.toFixed(2)}%`],
-      ["Sistema de juros", chosen.interestModel === "simple" ? "Simples" : "Composto (Price)"],
-      ["Quantidade de parcelas", String(chosen.installments)],
-      ["Valor da parcela", formatBRL(chosen.installmentValue)],
-      ["Juros mensal (sobre saldo inicial)", formatBRL(chosen.monthlyInterestValue)],
-      ["Total de juros", formatBRL(chosen.totalInterest)],
-      ["Total a pagar", formatBRL(chosen.totalPayable)],
-    ];
+  scenarios.forEach((s, i) => {
+    if (y > pageH - 55) { doc.addPage(); y = 15; }
+    const isChosen = s.id === simulation.chosenScenarioId;
+
+    // Header bar
+    doc.setFillColor(isChosen ? 34 : 240, isChosen ? 197 : 240, isChosen ? 94 : 245);
+    doc.rect(14, y, pageW - 28, 7, "F");
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(10);
+    doc.setTextColor(isChosen ? 255 : 30, isChosen ? 255 : 30, isChosen ? 255 : 30);
+    doc.text(
+      `Cenário ${i + 1}${isChosen ? "  ★ ESCOLHIDO PELO CLIENTE" : ""}`,
+      17,
+      y + 5,
+    );
+    doc.setTextColor(0, 0, 0);
+    y += 9;
+
     autoTable(doc, {
       startY: y,
-      body: lines,
-      theme: "plain",
-      bodyStyles: { fontSize: 10 },
-      columnStyles: { 0: { cellWidth: 80, fontStyle: "bold" }, 1: { cellWidth: 80 } },
+      body: [
+        ["Valor emprestado", formatBRL(s.amount), "Taxa mensal", `${s.monthlyRate.toFixed(2)}%`],
+        ["Parcelas", String(s.installments), "Valor da parcela", formatBRL(s.installmentValue)],
+        ["Sistema de juros", s.interestModel === "simple" ? "Simples" : "Composto (Price)", "Juros mensal", formatBRL(s.monthlyInterestValue)],
+        ["Total de juros", formatBRL(s.totalInterest), "Total a pagar", formatBRL(s.totalPayable)],
+      ],
+      theme: "grid",
+      bodyStyles: { fontSize: 9 },
+      columnStyles: {
+        0: { cellWidth: 38, fontStyle: "bold", fillColor: [248, 250, 252] },
+        1: { cellWidth: 50 },
+        2: { cellWidth: 38, fontStyle: "bold", fillColor: [248, 250, 252] },
+        3: { cellWidth: 50 },
+      },
       margin: { left: 14, right: 14 },
     });
-    y = (doc as any).lastAutoTable.finalY + 10;
+    y = (doc as any).lastAutoTable.finalY + 6;
+  });
+
+  // Resumo do escolhido (se houver)
+  if (chosen) {
+    if (y > pageH - 60) { doc.addPage(); y = 15; }
+    doc.setFillColor(220, 252, 231);
+    doc.rect(14, y, pageW - 28, 7, "F");
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(10);
+    doc.setTextColor(22, 101, 52);
+    doc.text("Cenário escolhido pelo cliente — resumo final", 17, y + 5);
+    doc.setTextColor(0, 0, 0);
+    y += 10;
+
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(11);
+    doc.text(
+      `${chosen.installments}x de ${formatBRL(chosen.installmentValue)} — Total: ${formatBRL(chosen.totalPayable)}`,
+      14,
+      y,
+    );
+    y += 8;
   }
 
   if (simulation.notes) {
