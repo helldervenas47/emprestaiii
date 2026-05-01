@@ -162,7 +162,10 @@ export function SaleForm({ onAdd, onClose, defaultBusinessType = "venda", client
   // Labels adaptados por tipo
   const descriptionLabel = isVehicleRental ? "Veículo / Descrição" : "Descrição";
   const descriptionPlaceholder = isVehicleRental ? "Ex: Fiat Uno 2020 - Placa ABC1234" : "Descreva o produto ou serviço";
-  const totalLabel = isVehicleRental ? "Valor Total do Contrato (R$)" : "Valor Total (R$)";
+  const isVenda = form.businessType === "venda";
+  const totalLabel = isVehicleRental
+    ? "Valor Total do Contrato (R$)"
+    : (isVenda && merchEnabled ? "Valor Recebido em Dinheiro (R$)" : "Valor Total (R$)");
   const formTitle = isVehicleRental ? "Novo Aluguel de Veículo" : "Novo Lançamento";
 
   const frequencyOptions = isVehicleRental
