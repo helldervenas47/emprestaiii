@@ -939,10 +939,10 @@ function SalesList({ sales, onDeleteSale, onUpdateSale, clients = [], hideOnTrac
       for (let i = 0; i < s.paidInstallments && i < amounts.length; i++) {
         paid += amounts[i] || 0;
       }
-      return paid;
+      return paid + (s.partialPaid || 0);
     }
     const vp = s.installments > 0 ? Math.max(0, s.total - (s.downPayment || 0)) / s.installments : s.total;
-    return vp * s.paidInstallments + (s.downPayment || 0);
+    return vp * s.paidInstallments + (s.downPayment || 0) + (s.partialPaid || 0);
   };
 
   const getRemaining = (s: Sale) => Math.max(0, s.total - getSalePaidAmount(s));
