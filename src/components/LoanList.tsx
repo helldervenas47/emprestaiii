@@ -4095,6 +4095,23 @@ export function LoanList({ loans, payments, installmentSchedules, onPayment, onP
     const source = categorized;
     const activeSource = source.filter((l) => l.status !== "paid");
     const totalLentRaw = activeSource.reduce((s, l) => s + l.amount, 0);
+
+    // Quando o filtro selecionado é "Quitado", mostramos o total já pago dos contratos quitados
+    if (category === "paid") {
+      const totalPaidSum = source
+        .filter((l) => l.status === "paid")
+        .reduce((s, l) => s + getTotalPaid(l, payments), 0);
+      const totalInterestPaid = source.reduce(
+        (s, l) => s + (calculateTotalWithInterest(l.amount, l.interestRate, l.installments) - l.amount), 0
+      );
+      return {
+        totalLent: totalLentRaw,
+        totalToReceive: totalPaidSum,
+        totalInterest: totalInterestPaid,
+        activeCount: source.filter((l) => l.status === "active").length,
+        overdueCount: 0,
+      };
+    }
     
     // When a due date filter is active, sum installment values instead of total remaining
     const useDueDateValues = dueDateQuick && view === "rows";
