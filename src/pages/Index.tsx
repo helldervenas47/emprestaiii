@@ -354,6 +354,7 @@ const Index = () => {
   const [showVehicleExpenseForm, setShowVehicleExpenseForm] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
+  const [mobileNotifOpen, setMobileNotifOpen] = useState(false);
   const [shortcutsEditorOpen, setShortcutsEditorOpen] = useState(false);
   const DEFAULT_PINNED: Tab[] = ["overview", "clients", "dashboard", "expenses"];
   const [pinnedTabs, setPinnedTabs] = useState<Tab[]>(() => {
