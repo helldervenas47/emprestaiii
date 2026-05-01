@@ -559,41 +559,6 @@ function ScenarioCard({
       </div>
 
       <div className="p-3 space-y-2.5">
-        {/* Highlights */}
-        <div className="flex flex-wrap gap-1 min-h-[20px]">
-          {isLowestTotal && (
-            <Badge variant="outline" className="text-[9px] gap-0.5 border-success/40 text-success">
-              <TrendingDown className="h-2.5 w-2.5" /> Menor total
-            </Badge>
-          )}
-          {isLowestInstallment && (
-            <Badge variant="outline" className="text-[9px] gap-0.5 border-primary/40 text-primary">
-              <TrendingDown className="h-2.5 w-2.5" /> Menor parcela
-            </Badge>
-          )}
-          {isHighestReturn && (
-            <Badge variant="outline" className="text-[9px] gap-0.5 border-warning/40 text-warning">
-              <TrendingUp className="h-2.5 w-2.5" /> Maior retorno
-            </Badge>
-          )}
-        </div>
-
-        {/* Sugestões IA-leves */}
-        {(isBestApproval || isBestReturn) && (
-          <div className="rounded-md bg-primary/5 border border-primary/20 p-1.5 text-[10px] space-y-0.5">
-            {isBestApproval && (
-              <p className="flex items-center gap-1 text-primary">
-                <Sparkles className="h-2.5 w-2.5" /> Melhor para aprovação
-              </p>
-            )}
-            {isBestReturn && (
-              <p className="flex items-center gap-1 text-warning">
-                <Sparkles className="h-2.5 w-2.5" /> Melhor retorno financeiro
-              </p>
-            )}
-          </div>
-        )}
-
         {/* Modo */}
         <div className="grid grid-cols-2 gap-2">
           <div className="space-y-1">
