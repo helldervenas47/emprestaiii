@@ -2524,6 +2524,17 @@ function LoanRowView({
       } else if (dialogType === "partial" && dialogAmount) {
         await onPartialPayment(dialogAmount, dateStr, mid, split);
       }
+      const celebrateAmount =
+        dialogType === "full" ? remaining
+        : dialogType === "payoff" ? (parseFloat(payoffAmount.replace(",", ".")) || customRawForSplit || undefined)
+        : dialogType === "amortize" ? (isFinite(amortRaw) && amortRaw > 0 ? amortRaw : undefined)
+        : dialogType === "partial" ? dialogAmount
+        : undefined;
+      celebrate({
+        kind: "loan",
+        message: dialogType === "amortize" ? "Amortização registrada!" : "Pagamento registrado!",
+        amount: celebrateAmount,
+      });
       toast.success(dialogType === "amortize" ? "Amortização registrada" : "Pagamento registrado");
     } catch (err: any) {
       console.error("[confirmPayment]", err);
