@@ -19,6 +19,7 @@ function addByFrequency(date: Date, frequency: string, n: number): Date {
   return addMonths(date, n);
 }
 import { cn } from "@/lib/utils";
+import { encodeNotesWithMerchandise, parseNotesWithMerchandise } from "@/lib/saleMerchandise";
 
 const businessTypeLabels: Record<BusinessType, string> = {
   venda: "Venda",
