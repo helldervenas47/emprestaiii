@@ -58,7 +58,7 @@ const SystemHealth = lazy(() => import("@/components/SystemHealth").then(m => ({
 // Direct import for the constant used at render time
 import { vehicleExpenseCategories } from "@/components/VehicleExpenseForm";
 import { PushNotificationToggle } from "@/components/PushNotificationToggle";
-import { ApprovalRequestsButton } from "@/components/ApprovalRequestsButton";
+
 import { NotificationsFeedButton } from "@/components/NotificationsFeedButton";
 import { DashboardOverview } from "@/components/DashboardOverview";
 import { LedgerView } from "@/components/LedgerView";
@@ -628,11 +628,6 @@ const Index = () => {
                 >
                   <RefreshCw className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`} />
                 </Button>
-                {role === "admin" && (
-                  <div className="inline-flex">
-                    <ApprovalRequestsButton />
-                  </div>
-                )}
                 <div className="inline-flex">
                   <NotificationsFeedButton
                     loans={filteredLoans}
@@ -1238,6 +1233,29 @@ const Index = () => {
                     </div>
                   </div>
                 )}
+
+                {/* Notificações */}
+                <div>
+                  <h3 className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground mb-2">Notificações</h3>
+                  <div className="rounded-xl border border-border/40 bg-card/50 p-2 flex items-center justify-between">
+                    <div className="flex items-center gap-2 text-sm text-foreground">
+                      <Bell className="h-4 w-4 text-primary" />
+                      Feed de notificações
+                    </div>
+                    <div onClick={() => setMoreOpen(false)}>
+                      <NotificationsFeedButton
+                        loans={filteredLoans}
+                        payments={filteredPayments}
+                        installmentSchedules={filteredInstallments}
+                        clients={filteredClients}
+                        onSelectLoan={(loanId) => {
+                          setTab("dashboard");
+                          try { sessionStorage.setItem("highlightLoanId", loanId); } catch {}
+                        }}
+                      />
+                    </div>
+                  </div>
+                </div>
 
                 {/* Ações rápidas */}
                 <div>
