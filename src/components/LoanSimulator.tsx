@@ -17,6 +17,12 @@ import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
   Plus,
   Copy,
   Trash2,
@@ -30,6 +36,8 @@ import {
   Sparkles,
   History,
   X,
+  Download,
+  Share2,
 } from "lucide-react";
 
 import { toast } from "sonner";
