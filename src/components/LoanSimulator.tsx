@@ -52,6 +52,8 @@ interface Props {
     interestRate: number;
     installments: number;
     customInstallmentValue?: number | null;
+    /** When true, Index should auto-create the client using clientName before opening the loan form. */
+    autoCreateClient?: boolean;
   }) => void;
 }
 
