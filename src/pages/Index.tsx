@@ -628,11 +628,11 @@ const Index = () => {
                 >
                   <RefreshCw className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`} />
                 </Button>
-                {role === "admin" && (
-                  <div className="inline-flex">
-                    <ApprovalRequestsButton />
-                  </div>
-                )}
+                </>
+            )}
+            {!isMobile && false && (
+              <>
+                {/* placeholder removido */}
                 <div className="inline-flex">
                   <NotificationsFeedButton
                     loans={filteredLoans}
