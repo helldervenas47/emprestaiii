@@ -108,6 +108,7 @@ export function NotificationsFeedButton({
   const totalAll = overdue.length + dueSoon.length + recentPayments.length;
 
   return (
+    <>
     <Sheet open={open} onOpenChange={handleOpenChange}>
       <SheetTrigger asChild>
         <Button
