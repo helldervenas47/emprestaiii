@@ -457,6 +457,61 @@ export function SaleForm({ onAdd, onClose, defaultBusinessType = "venda", client
                 </SelectContent>
               </Select>
             </div>
+            {isVenda && (
+              <div className="border border-border/50 rounded-lg p-3 space-y-3 bg-muted/10">
+                <div className="flex items-center justify-between">
+                  <Label className="text-sm font-medium">Mercadoria como pagamento</Label>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setMerchEnabled((v) => !v);
+                      setMerchError(null);
+                    }}
+                    className={cn(
+                      "text-xs px-2 py-1 rounded-md border transition-colors",
+                      merchEnabled
+                        ? "bg-primary text-primary-foreground border-primary"
+                        : "bg-background text-muted-foreground border-border hover:bg-muted/40"
+                    )}
+                  >
+                    {merchEnabled ? "Ativado" : "Adicionar"}
+                  </button>
+                </div>
+                {merchEnabled && (
+                  <>
+                    <div>
+                      <Label className="text-xs">Descrição do produto</Label>
+                      <Input
+                        value={merchDescricao}
+                        onChange={(e) => setMerchDescricao(e.target.value)}
+                        placeholder="Ex: Celular usado, bicicleta..."
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-xs">Valor da mercadoria (R$)</Label>
+                      <Input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        value={merchValor}
+                        onChange={(e) => setMerchValor(e.target.value)}
+                        placeholder="0,00"
+                      />
+                    </div>
+                    {merchError && (
+                      <p className="text-xs text-destructive">{merchError}</p>
+                    )}
+                    {(parseFloat(merchValor) || 0) > 0 && (
+                      <div className="text-xs text-muted-foreground border-t border-border/40 pt-2 space-y-0.5">
+                        <p>Recebido em dinheiro: <span className="font-medium text-foreground">{new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(parseFloat(form.total) || 0)}</span></p>
+                        <p>Mercadoria: <span className="font-medium text-foreground">{new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(parseFloat(merchValor) || 0)}</span></p>
+                        <p>Total da venda: <span className="font-bold text-primary">{new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format((parseFloat(form.total) || 0) + (parseFloat(merchValor) || 0))}</span></p>
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+            )}
             <div>
               <Label>Observações</Label>
               <Input value={form.notes} onChange={(e) => update("notes", e.target.value)} placeholder="Notas..." />
