@@ -435,7 +435,7 @@ export function LoanSimulator({ open, onOpenChange, clients, onCreateLoanFromSce
 
         {/* Desktop (horizontal scroll) */}
         <ScrollArea className="hidden lg:block w-full rounded-lg border border-border/40 bg-muted/10">
-          <div className="flex gap-3 p-3 min-w-min">
+          <div className="flex gap-3 p-3 min-w-min items-stretch">
             {computed.map((s, idx) => (
               <ScenarioCard
                 key={s.id}
