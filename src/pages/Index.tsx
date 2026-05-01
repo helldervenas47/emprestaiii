@@ -640,7 +640,7 @@ const Index = () => {
                     installmentSchedules={filteredInstallments}
                     clients={filteredClients}
                     onSelectLoan={(loanId) => {
-                      setActiveTab("dashboard");
+                      setTab("dashboard");
                       try { sessionStorage.setItem("highlightLoanId", loanId); } catch {}
                     }}
                   />
