@@ -14,7 +14,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Trash2, Search, ShoppingCart, Tv, Car, Calendar as CalendarIcon, User, Pencil, ChevronDown, ChevronUp, CheckCircle, HandCoins, Check, X as XIcon, DollarSign, AlertTriangle, Clock, CircleCheck, Receipt, Plus, Wallet, ChevronLeft, ChevronRight, LayoutGrid, Folder, List, FileText } from "lucide-react";
 import { generateContract } from "@/lib/generateContract";
-import { addMonths, addWeeks, addDays, format, startOfMonth, endOfMonth } from "date-fns";
+import { addMonths, addWeeks, addDays, format, startOfMonth, endOfMonth, differenceInCalendarDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -596,6 +596,12 @@ function SaleListRow({ sale, onEdit, onUpdate, formatCurrency, readOnly = false 
           <p className="text-[11px] sm:text-xs text-foreground truncate">
             {!isPaid ? format(nextDue, "dd/MM/yyyy") : "Quitado"}{isRecorrente && ` • ${sale.paidInstallments}/${sale.installments}`}
           </p>
+          {!isPaid && sale.businessType === "aluguel_veiculo" && (() => {
+            const days = differenceInCalendarDays(nextDue, new Date());
+            if (days < 0) return <p className="text-[10px] sm:text-[11px] font-semibold text-destructive">{Math.abs(days)}d em atraso</p>;
+            if (days === 0) return <p className="text-[10px] sm:text-[11px] font-semibold text-warning">Vence hoje</p>;
+            return <p className="text-[10px] sm:text-[11px] font-semibold text-muted-foreground">Faltam {days}d</p>;
+          })()}
         </div>
         <div className="text-right shrink-0 min-w-[60px] sm:min-w-[80px]">
           {isPaid ? (
