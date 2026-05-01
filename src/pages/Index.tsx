@@ -1026,7 +1026,19 @@ const Index = () => {
         </button>
       )}
 
-      {showLoanForm && <LoanForm onAdd={addLoan} onSaveSchedule={saveSchedule} onClose={() => setShowLoanForm(false)} clients={clients} loans={loans} payments={payments} installmentSchedules={installmentSchedules} existingTags={[...new Set(loans.flatMap(l => l.tags || []))]} />}
+      {showLoanForm && <LoanForm onAdd={addLoan} onSaveSchedule={saveSchedule} onClose={() => { setShowLoanForm(false); setLoanFormPrefill(null); }} clients={clients} loans={loans} payments={payments} installmentSchedules={installmentSchedules} existingTags={[...new Set(loans.flatMap(l => l.tags || []))]} prefill={loanFormPrefill ?? undefined} />}
+      {showLoanSimulator && (
+        <LoanSimulator
+          open={showLoanSimulator}
+          onOpenChange={setShowLoanSimulator}
+          clients={clients}
+          onCreateLoanFromScenario={(p) => {
+            setLoanFormPrefill(p);
+            setShowLoanSimulator(false);
+            setShowLoanForm(true);
+          }}
+        />
+      )}
       {showClientForm && <ClientForm onAdd={addClient} onClose={() => setShowClientForm(false)} />}
       {showProductForm && <ProductForm onAdd={addProduct} onClose={() => setShowProductForm(false)} />}
       {showSaleForm && <SaleForm onAdd={addSale} onClose={() => setShowSaleForm(false)} clients={clients} defaultBusinessType={tab === "vehicles" ? "aluguel_veiculo" : undefined} registeredVehicles={registeredVehicles} locadores={locadores} />}
