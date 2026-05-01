@@ -404,7 +404,7 @@ export function LoanSimulator({ open, onOpenChange, clients, onCreateLoanFromSce
         </div>
 
         {/* Tablet (2-col grid) */}
-        <div className="hidden md:grid lg:hidden grid-cols-2 gap-3">
+        <div className="hidden md:grid lg:hidden grid-cols-2 gap-3 items-stretch auto-rows-fr">
           {computed.map((s, idx) => (
             <ScenarioCard
               key={s.id}
