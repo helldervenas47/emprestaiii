@@ -1238,24 +1238,20 @@ const Index = () => {
                 {/* Notificações */}
                 <div>
                   <h3 className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground mb-2">Notificações</h3>
-                  <div className="rounded-xl border border-border/40 bg-card/50 p-2 flex items-center justify-between">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setMoreOpen(false);
+                      setTimeout(() => setMobileNotifOpen(true), 250);
+                    }}
+                    className="w-full rounded-xl border border-border/40 bg-card/50 p-3 flex items-center justify-between hover:bg-muted/40 transition-colors"
+                  >
                     <div className="flex items-center gap-2 text-sm text-foreground">
                       <Bell className="h-4 w-4 text-primary" />
                       Feed de notificações
                     </div>
-                    <div onClick={() => setMoreOpen(false)}>
-                      <NotificationsFeedButton
-                        loans={filteredLoans}
-                        payments={filteredPayments}
-                        installmentSchedules={filteredInstallments}
-                        clients={filteredClients}
-                        onSelectLoan={(loanId) => {
-                          setTab("dashboard");
-                          try { sessionStorage.setItem("highlightLoanId", loanId); } catch {}
-                        }}
-                      />
-                    </div>
-                  </div>
+                    <span className="text-[11px] text-muted-foreground">Abrir</span>
+                  </button>
                 </div>
 
                 {/* Ações rápidas */}
