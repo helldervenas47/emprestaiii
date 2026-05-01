@@ -113,9 +113,11 @@ export function useClients() {
       // Network/RLS — queue if it looks like network, else revert
       if (!error.message.toLowerCase().includes("row-level")) {
         await enqueueMutation({ table: "clients", op: "insert", recordId: tempId, payload: insertPayload });
+        return tempId;
       } else {
         setClients((prev) => prev.filter((c) => c.id !== tempId));
         await removeCachedRow("clients", tempId);
+        return null;
       }
     } else if (data) {
       setClients((prev) => prev.map((c) => c.id === tempId ? { ...c, id: data.id, createdAt: data.created_at } : c));
@@ -123,7 +125,9 @@ export function useClients() {
       await upsertCachedRow("clients", data);
       await rewritePendingRecordId("clients", tempId, data.id);
       await triggerClientAnalysis(data.id);
+      return data.id;
     }
+    return tempId;
   }, [user, dataOwnerId]);
 
   const deleteClient = useCallback(async (id: string) => {
