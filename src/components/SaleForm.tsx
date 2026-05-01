@@ -15,6 +15,7 @@ import { VehicleInfo } from "@/hooks/useVehicleRegistry";
 import { LocadorInfo } from "@/hooks/useLocadorInfo";
 import { cn } from "@/lib/utils";
 import { encodeNotesWithMerchandise } from "@/lib/saleMerchandise";
+import { ClientCombobox } from "@/components/ui/client-combobox";
 
 
 const businessTypeLabels: Record<BusinessType, string> = {
