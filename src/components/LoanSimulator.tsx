@@ -64,6 +64,7 @@ export function LoanSimulator({ open, onOpenChange, clients, onCreateLoanFromSce
   const [name, setName] = useState("");
   const [notes, setNotes] = useState("");
   const [clientId, setClientId] = useState<string | null>(null);
+  const [quickClientName, setQuickClientName] = useState("");
   const [scenarios, setScenarios] = useState<SimulationScenario[]>([newScenario()]);
   const [chosenId, setChosenId] = useState<string | null>(null);
   const [showSettings, setShowSettings] = useState(false);
@@ -76,11 +77,17 @@ export function LoanSimulator({ open, onOpenChange, clients, onCreateLoanFromSce
   const computed: ScenarioComputed[] = useMemo(() => scenarios.map(computeScenario), [scenarios]);
   const highlights = useMemo(() => computeHighlights(computed), [computed]);
 
+  const effectiveClientName = useMemo(() => {
+    if (clientId) return clients.find((c) => c.id === clientId)?.name || "";
+    return quickClientName.trim();
+  }, [clientId, quickClientName, clients]);
+
   function reset() {
     setEditingId(null);
     setName("");
     setNotes("");
     setClientId(null);
+    setQuickClientName("");
     setScenarios([newScenario()]);
     setChosenId(null);
   }
