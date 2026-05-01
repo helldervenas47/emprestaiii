@@ -57,6 +57,10 @@ export function SaleForm({ onAdd, onClose, defaultBusinessType = "venda", client
     firstInstallmentDate: todayInAppTz(),
     locadorId: defaultLocadorId,
   });
+  const [merchEnabled, setMerchEnabled] = useState(false);
+  const [merchDescricao, setMerchDescricao] = useState("");
+  const [merchValor, setMerchValor] = useState("");
+  const [merchError, setMerchError] = useState<string | null>(null);
 
   const [installmentRows, setInstallmentRows] = useState<{ date: string; value: string; manualDate?: boolean; manualValue?: boolean }[]>([]);
 
