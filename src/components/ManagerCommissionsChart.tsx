@@ -625,10 +625,28 @@ function ManagerDetailDialog({
                                   <Clock className="h-3.5 w-3.5 text-primary shrink-0" />
                                 )}
                                 <span className="font-medium">{item.label}</span>
-                                <span className="text-muted-foreground flex items-center gap-1">
-                                  <CalendarDays className="h-3 w-3" />
-                                  {item.isPaid ? `Pago em ${formatDate(item.paidDate)}` : `Vence em ${formatDate(item.dueDate)}`}
-                                </span>
+                                {item.isPaid ? (
+                                  <span className="text-muted-foreground flex items-center gap-1">
+                                    <CalendarDays className="h-3 w-3" />
+                                    Pago em {formatDate(item.paidDate)}
+                                  </span>
+                                ) : (() => {
+                                  const dueDate = item.dueDate ? new Date(item.dueDate + "T00:00:00") : null;
+                                  const today = new Date(); today.setHours(0,0,0,0);
+                                  const isOverdue = dueDate && dueDate < today;
+                                  const isToday = dueDate && dueDate.getTime() === today.getTime();
+                                  const cls = isOverdue
+                                    ? "bg-destructive/15 text-destructive border-destructive/30"
+                                    : isToday
+                                      ? "bg-warning/15 text-warning border-warning/30"
+                                      : "bg-primary/10 text-primary border-primary/30";
+                                  return (
+                                    <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded border font-semibold ${cls}`}>
+                                      <CalendarDays className="h-3 w-3" />
+                                      Vence em {formatDate(item.dueDate)}
+                                    </span>
+                                  );
+                                })()}
                               </div>
                               <Badge
                                 variant="outline"
