@@ -20,6 +20,7 @@ function addByFrequency(date: Date, frequency: string, n: number): Date {
 }
 import { cn } from "@/lib/utils";
 import { encodeNotesWithMerchandise, parseNotesWithMerchandise } from "@/lib/saleMerchandise";
+import { ClientCombobox } from "@/components/ui/client-combobox";
 
 const businessTypeLabels: Record<BusinessType, string> = {
   venda: "Venda",
@@ -169,16 +170,15 @@ export function SaleEditForm({ sale, onSave, onClose, clients = [], registeredVe
 
             <div>
               <Label>{form.businessType === "aluguel_veiculo" ? "Locatário" : "Cliente"}</Label>
-              <Select value={form.customerName} onValueChange={(v) => update("customerName", v)}>
-                <SelectTrigger>
-                  <SelectValue placeholder={form.businessType === "aluguel_veiculo" ? "Selecione o locatário" : "Selecione um cliente"} />
-                </SelectTrigger>
-                <SelectContent>
-                  {clients.filter(c => c.active).sort((a, b) => a.name.localeCompare(b.name)).map((client) => (
-                    <SelectItem key={client.id} value={client.name}>{client.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <ClientCombobox
+                value={form.customerName}
+                onChange={(v) => update("customerName", v)}
+                options={clients
+                  .filter((c) => c.active)
+                  .map((c) => ({ id: c.id, name: c.name }))}
+                placeholder={form.businessType === "aluguel_veiculo" ? "Digite ou selecione o locatário" : "Digite ou selecione um cliente"}
+                emptyHint="Nenhum cliente cadastrado. Digite um nome para adicionar."
+              />
             </div>
 
             {form.businessType === "aluguel_veiculo" ? (
