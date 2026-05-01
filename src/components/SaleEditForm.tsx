@@ -44,6 +44,7 @@ export function SaleEditForm({ sale, onSave, onClose, clients = [], registeredVe
     return count > 0 ? ((sale.total - down) / count).toFixed(2) : "0";
   };
 
+  const initialParsed = parseNotesWithMerchandise(sale.notes);
   const [form, setForm] = useState({
     description: sale.description || sale.productName,
     customerName: sale.customerName,
@@ -57,10 +58,14 @@ export function SaleEditForm({ sale, onSave, onClose, clients = [], registeredVe
     paymentMode: sale.paymentMode,
     businessType: sale.businessType,
     date: sale.date,
-    notes: sale.notes || "",
+    notes: initialParsed.userNotes,
     frequency: sale.frequency || "Mensal",
     locadorId: sale.locadorId || (locadores.length === 1 ? (locadores[0].id || "") : ""),
   });
+  const [merchEnabled, setMerchEnabled] = useState<boolean>(!!initialParsed.merchandise);
+  const [merchDescricao, setMerchDescricao] = useState<string>(initialParsed.merchandise?.descricao || "");
+  const [merchValor, setMerchValor] = useState<string>(initialParsed.merchandise ? String(initialParsed.merchandise.valor) : "");
+  const [merchError, setMerchError] = useState<string | null>(null);
 
   // Generate initial installment rows
   const initRows = (): { date: string; value: string; manualDate?: boolean; manualValue?: boolean }[] => {
