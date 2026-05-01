@@ -14,6 +14,8 @@ import { format, addMonths, addWeeks, addDays } from "date-fns";
 import { VehicleInfo } from "@/hooks/useVehicleRegistry";
 import { LocadorInfo } from "@/hooks/useLocadorInfo";
 import { cn } from "@/lib/utils";
+import { encodeNotesWithMerchandise } from "@/lib/saleMerchandise";
+
 
 const businessTypeLabels: Record<BusinessType, string> = {
   venda: "Venda",
@@ -55,6 +57,10 @@ export function SaleForm({ onAdd, onClose, defaultBusinessType = "venda", client
     firstInstallmentDate: todayInAppTz(),
     locadorId: defaultLocadorId,
   });
+  const [merchEnabled, setMerchEnabled] = useState(false);
+  const [merchDescricao, setMerchDescricao] = useState("");
+  const [merchValor, setMerchValor] = useState("");
+  const [merchError, setMerchError] = useState<string | null>(null);
 
   const [installmentRows, setInstallmentRows] = useState<{ date: string; value: string; manualDate?: boolean; manualValue?: boolean }[]>([]);
 
@@ -84,8 +90,32 @@ export function SaleForm({ onAdd, onClose, defaultBusinessType = "venda", client
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const total = parseFloat(form.total) || 0;
-    if (!form.description || total <= 0 || !form.customerName) return;
+    const valorRecebido = parseFloat(form.total) || 0;
+    if (!form.description || valorRecebido <= 0 || !form.customerName) return;
+
+    // Validate merchandise (only available for "venda")
+    const allowMerch = form.businessType === "venda";
+    let merchandise: { descricao: string; valor: number } | null = null;
+    if (allowMerch && merchEnabled) {
+      const valor = parseFloat(merchValor) || 0;
+      const descricao = merchDescricao.trim();
+      if (valor < 0) {
+        setMerchError("Valor da mercadoria deve ser maior ou igual a zero.");
+        return;
+      }
+      if (valor > 0 && !descricao) {
+        setMerchError("Descrição da mercadoria é obrigatória quando há valor.");
+        return;
+      }
+      if (valor > 0 && descricao) {
+        merchandise = { descricao, valor };
+      }
+    }
+    setMerchError(null);
+
+    const merchValorNum = merchandise?.valor || 0;
+    const total = valorRecebido + merchValorNum;
+
     setSubmitting(true);
     const isRecorrente = form.paymentMode === "recorrente";
     const amounts = isRecorrente && installmentRows.length > 0
@@ -94,6 +124,7 @@ export function SaleForm({ onAdd, onClose, defaultBusinessType = "venda", client
     const dates = isRecorrente && installmentRows.length > 0
       ? installmentRows.map(r => r.date)
       : null;
+    const encodedNotes = encodeNotesWithMerchandise(form.notes, merchandise);
     onAdd({
       productName: form.description,
       description: form.description,
@@ -103,7 +134,7 @@ export function SaleForm({ onAdd, onClose, defaultBusinessType = "venda", client
       total,
       customerName: form.customerName,
       date: form.firstInstallmentDate,
-      notes: form.notes || undefined,
+      notes: encodedNotes,
       businessType: form.businessType as BusinessType,
       paymentMode: form.paymentMode,
       installments: isRecorrente ? installmentsNum : 1,
@@ -131,7 +162,10 @@ export function SaleForm({ onAdd, onClose, defaultBusinessType = "venda", client
   // Labels adaptados por tipo
   const descriptionLabel = isVehicleRental ? "Veículo / Descrição" : "Descrição";
   const descriptionPlaceholder = isVehicleRental ? "Ex: Fiat Uno 2020 - Placa ABC1234" : "Descreva o produto ou serviço";
-  const totalLabel = isVehicleRental ? "Valor Total do Contrato (R$)" : "Valor Total (R$)";
+  const isVenda = form.businessType === "venda";
+  const totalLabel = isVehicleRental
+    ? "Valor Total do Contrato (R$)"
+    : (isVenda && merchEnabled ? "Valor Recebido em Dinheiro (R$)" : "Valor Total (R$)");
   const formTitle = isVehicleRental ? "Novo Aluguel de Veículo" : "Novo Lançamento";
 
   const frequencyOptions = isVehicleRental
@@ -423,6 +457,61 @@ export function SaleForm({ onAdd, onClose, defaultBusinessType = "venda", client
                 </SelectContent>
               </Select>
             </div>
+            {isVenda && (
+              <div className="border border-border/50 rounded-lg p-3 space-y-3 bg-muted/10">
+                <div className="flex items-center justify-between">
+                  <Label className="text-sm font-medium">Mercadoria como pagamento</Label>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setMerchEnabled((v) => !v);
+                      setMerchError(null);
+                    }}
+                    className={cn(
+                      "text-xs px-2 py-1 rounded-md border transition-colors",
+                      merchEnabled
+                        ? "bg-primary text-primary-foreground border-primary"
+                        : "bg-background text-muted-foreground border-border hover:bg-muted/40"
+                    )}
+                  >
+                    {merchEnabled ? "Ativado" : "Adicionar"}
+                  </button>
+                </div>
+                {merchEnabled && (
+                  <>
+                    <div>
+                      <Label className="text-xs">Descrição do produto</Label>
+                      <Input
+                        value={merchDescricao}
+                        onChange={(e) => setMerchDescricao(e.target.value)}
+                        placeholder="Ex: Celular usado, bicicleta..."
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-xs">Valor da mercadoria (R$)</Label>
+                      <Input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        value={merchValor}
+                        onChange={(e) => setMerchValor(e.target.value)}
+                        placeholder="0,00"
+                      />
+                    </div>
+                    {merchError && (
+                      <p className="text-xs text-destructive">{merchError}</p>
+                    )}
+                    {(parseFloat(merchValor) || 0) > 0 && (
+                      <div className="text-xs text-muted-foreground border-t border-border/40 pt-2 space-y-0.5">
+                        <p>Recebido em dinheiro: <span className="font-medium text-foreground">{new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(parseFloat(form.total) || 0)}</span></p>
+                        <p>Mercadoria: <span className="font-medium text-foreground">{new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(parseFloat(merchValor) || 0)}</span></p>
+                        <p>Total da venda: <span className="font-bold text-primary">{new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format((parseFloat(form.total) || 0) + (parseFloat(merchValor) || 0))}</span></p>
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+            )}
             <div>
               <Label>Observações</Label>
               <Input value={form.notes} onChange={(e) => update("notes", e.target.value)} placeholder="Notas..." />

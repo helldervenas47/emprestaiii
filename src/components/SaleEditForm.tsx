@@ -19,6 +19,7 @@ function addByFrequency(date: Date, frequency: string, n: number): Date {
   return addMonths(date, n);
 }
 import { cn } from "@/lib/utils";
+import { encodeNotesWithMerchandise, parseNotesWithMerchandise } from "@/lib/saleMerchandise";
 
 const businessTypeLabels: Record<BusinessType, string> = {
   venda: "Venda",
@@ -43,6 +44,7 @@ export function SaleEditForm({ sale, onSave, onClose, clients = [], registeredVe
     return count > 0 ? ((sale.total - down) / count).toFixed(2) : "0";
   };
 
+  const initialParsed = parseNotesWithMerchandise(sale.notes);
   const [form, setForm] = useState({
     description: sale.description || sale.productName,
     customerName: sale.customerName,
@@ -56,10 +58,14 @@ export function SaleEditForm({ sale, onSave, onClose, clients = [], registeredVe
     paymentMode: sale.paymentMode,
     businessType: sale.businessType,
     date: sale.date,
-    notes: sale.notes || "",
+    notes: initialParsed.userNotes,
     frequency: sale.frequency || "Mensal",
     locadorId: sale.locadorId || (locadores.length === 1 ? (locadores[0].id || "") : ""),
   });
+  const [merchEnabled, setMerchEnabled] = useState<boolean>(!!initialParsed.merchandise);
+  const [merchDescricao, setMerchDescricao] = useState<string>(initialParsed.merchandise?.descricao || "");
+  const [merchValor, setMerchValor] = useState<string>(initialParsed.merchandise ? String(initialParsed.merchandise.valor) : "");
+  const [merchError, setMerchError] = useState<string | null>(null);
 
   // Generate initial installment rows
   const initRows = (): { date: string; value: string; manualDate?: boolean; manualValue?: boolean }[] => {
@@ -89,12 +95,29 @@ export function SaleEditForm({ sale, onSave, onClose, clients = [], registeredVe
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    const allowMerch = form.businessType === "venda";
+    let merchandise: { descricao: string; valor: number } | null = null;
+    if (allowMerch && merchEnabled) {
+      const valor = parseFloat(merchValor) || 0;
+      const descricao = merchDescricao.trim();
+      if (valor < 0) {
+        setMerchError("Valor da mercadoria deve ser maior ou igual a zero.");
+        return;
+      }
+      if (valor > 0 && !descricao) {
+        setMerchError("Descrição da mercadoria é obrigatória quando há valor.");
+        return;
+      }
+      if (valor > 0 && descricao) merchandise = { descricao, valor };
+    }
+    setMerchError(null);
     const amounts = form.paymentMode === "recorrente" && installmentRows.length > 0
       ? installmentRows.map(r => parseFloat(r.value) || 0)
       : null;
     const dates = form.paymentMode === "recorrente" && installmentRows.length > 0
       ? installmentRows.map(r => r.date)
       : null;
+    const encodedNotes = encodeNotesWithMerchandise(form.notes, merchandise);
     onSave(sale.id, {
       description: form.description,
       productName: form.description,
@@ -108,7 +131,7 @@ export function SaleEditForm({ sale, onSave, onClose, clients = [], registeredVe
       paymentMode: form.paymentMode as PaymentMode,
       businessType: form.businessType as BusinessType,
       date: form.date,
-      notes: form.notes || undefined,
+      notes: encodedNotes,
       frequency: form.paymentMode === "recorrente" ? form.frequency : "Mensal",
       installmentValue: null,
       installmentAmounts: amounts,
@@ -433,6 +456,43 @@ export function SaleEditForm({ sale, onSave, onClose, clients = [], registeredVe
                   </div>
                 </div>
               </>
+            )}
+
+            {form.businessType === "venda" && (
+              <div className="border border-border/50 rounded-lg p-3 space-y-3 bg-muted/10">
+                <div className="flex items-center justify-between">
+                  <Label className="text-sm font-medium">Mercadoria como pagamento</Label>
+                  <button
+                    type="button"
+                    onClick={() => { setMerchEnabled((v) => !v); setMerchError(null); }}
+                    className={cn(
+                      "text-xs px-2 py-1 rounded-md border transition-colors",
+                      merchEnabled
+                        ? "bg-primary text-primary-foreground border-primary"
+                        : "bg-background text-muted-foreground border-border hover:bg-muted/40"
+                    )}
+                  >
+                    {merchEnabled ? "Ativada" : "Adicionar"}
+                  </button>
+                </div>
+                {merchEnabled && (
+                  <>
+                    <div>
+                      <Label className="text-xs">Descrição do produto</Label>
+                      <Input value={merchDescricao} onChange={(e) => setMerchDescricao(e.target.value)} placeholder="Ex: Celular usado..." />
+                    </div>
+                    <div>
+                      <Label className="text-xs">Valor da mercadoria (R$)</Label>
+                      <Input type="number" step="0.01" min="0" value={merchValor} onChange={(e) => setMerchValor(e.target.value)} placeholder="0,00" />
+                    </div>
+                    {merchError && <p className="text-xs text-destructive">{merchError}</p>}
+                    <p className="text-[11px] text-muted-foreground">
+                      O total da venda permanece <span className="font-medium text-foreground">{fmt(totalNum)}</span>.
+                      Ajuste-o manualmente se necessário para refletir dinheiro + mercadoria.
+                    </p>
+                  </>
+                )}
+              </div>
             )}
 
             <div>
