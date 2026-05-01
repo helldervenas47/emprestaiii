@@ -88,6 +88,7 @@ export interface Payment {
   previousDueDate?: string;
   paymentMethodId?: string | null;
   metadata?: PaymentMetadata | null;
+  createdAt?: string;
 }
 
 export interface Client {
