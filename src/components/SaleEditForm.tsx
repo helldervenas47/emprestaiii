@@ -458,6 +458,43 @@ export function SaleEditForm({ sale, onSave, onClose, clients = [], registeredVe
               </>
             )}
 
+            {form.businessType === "venda" && (
+              <div className="border border-border/50 rounded-lg p-3 space-y-3 bg-muted/10">
+                <div className="flex items-center justify-between">
+                  <Label className="text-sm font-medium">Mercadoria como pagamento</Label>
+                  <button
+                    type="button"
+                    onClick={() => { setMerchEnabled((v) => !v); setMerchError(null); }}
+                    className={cn(
+                      "text-xs px-2 py-1 rounded-md border transition-colors",
+                      merchEnabled
+                        ? "bg-primary text-primary-foreground border-primary"
+                        : "bg-background text-muted-foreground border-border hover:bg-muted/40"
+                    )}
+                  >
+                    {merchEnabled ? "Ativada" : "Adicionar"}
+                  </button>
+                </div>
+                {merchEnabled && (
+                  <>
+                    <div>
+                      <Label className="text-xs">Descrição do produto</Label>
+                      <Input value={merchDescricao} onChange={(e) => setMerchDescricao(e.target.value)} placeholder="Ex: Celular usado..." />
+                    </div>
+                    <div>
+                      <Label className="text-xs">Valor da mercadoria (R$)</Label>
+                      <Input type="number" step="0.01" min="0" value={merchValor} onChange={(e) => setMerchValor(e.target.value)} placeholder="0,00" />
+                    </div>
+                    {merchError && <p className="text-xs text-destructive">{merchError}</p>}
+                    <p className="text-[11px] text-muted-foreground">
+                      O total da venda permanece <span className="font-medium text-foreground">{fmt(totalNum)}</span>.
+                      Ajuste-o manualmente se necessário para refletir dinheiro + mercadoria.
+                    </p>
+                  </>
+                )}
+              </div>
+            )}
+
             <div>
               <Label>Observações</Label>
               <Textarea
