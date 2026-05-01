@@ -1,11 +1,15 @@
 import { useState } from "react";
-import { Bell, AlertTriangle, Clock, CheckCircle2, CheckCheck } from "lucide-react";
+import { Bell, AlertTriangle, Clock, CheckCircle2, CheckCheck, MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { useNotificationsFeed, type FeedItem } from "@/hooks/useNotificationsFeed";
+import { useNotificationsFeed, type FeedItem, type DueFeedItem } from "@/hooks/useNotificationsFeed";
 import type { Loan, Payment, InstallmentSchedule, Client } from "@/types/loan";
+import { useWhatsappBillingMessages } from "@/hooks/useWhatsappBillingMessages";
+import { buildBillingWhatsappLink } from "@/lib/whatsappBilling";
+import { WhatsappPreviewDialog } from "@/components/WhatsappPreviewDialog";
+import { toast } from "sonner";
 
 interface Props {
   loans: Loan[];
