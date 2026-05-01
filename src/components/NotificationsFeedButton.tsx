@@ -1,11 +1,15 @@
 import { useState } from "react";
-import { Bell, AlertTriangle, Clock, CheckCircle2, CheckCheck } from "lucide-react";
+import { Bell, AlertTriangle, Clock, CheckCircle2, CheckCheck, MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { useNotificationsFeed, type FeedItem } from "@/hooks/useNotificationsFeed";
+import { useNotificationsFeed, type FeedItem, type DueFeedItem } from "@/hooks/useNotificationsFeed";
 import type { Loan, Payment, InstallmentSchedule, Client } from "@/types/loan";
+import { useWhatsappBillingMessages } from "@/hooks/useWhatsappBillingMessages";
+import { buildBillingWhatsappLink } from "@/lib/whatsappBilling";
+import { WhatsappPreviewDialog } from "@/components/WhatsappPreviewDialog";
+import { toast } from "sonner";
 
 interface Props {
   loans: Loan[];
@@ -51,6 +55,14 @@ export function NotificationsFeedButton({
     installmentSchedules,
     clients,
   );
+  const { messages } = useWhatsappBillingMessages();
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [previewData, setPreviewData] = useState<{
+    phone: string;
+    message: string;
+    status: ReturnType<typeof buildBillingWhatsappLink>["status"];
+    name: string;
+  } | null>(null);
 
   const handleOpenChange = (next: boolean) => {
     setOpen(next);
@@ -62,9 +74,41 @@ export function NotificationsFeedButton({
     setOpen(false);
   };
 
+  const handleWhatsapp = (e: React.MouseEvent, item: DueFeedItem) => {
+    e.stopPropagation();
+    const loan = loans.find((l) => l.id === item.loanId);
+    if (!loan) return;
+    const client =
+      (item.clientId && clients.find((c) => c.id === item.clientId)) ||
+      clients.find(
+        (c) => c.name.trim().toLowerCase() === (loan.borrowerName || "").trim().toLowerCase(),
+      ) ||
+      null;
+    const phone = client?.phone || "";
+    if (!phone) {
+      toast.error("Cliente sem telefone cadastrado");
+      return;
+    }
+    const built = buildBillingWhatsappLink({
+      client,
+      loan,
+      schedules: installmentSchedules,
+      payments,
+      messages,
+    });
+    setPreviewData({
+      phone: built.phone,
+      message: built.message,
+      status: built.status,
+      name: client?.name ?? loan.borrowerName,
+    });
+    setPreviewOpen(true);
+  };
+
   const totalAll = overdue.length + dueSoon.length + recentPayments.length;
 
   return (
+    <>
     <Sheet open={open} onOpenChange={handleOpenChange}>
       <SheetTrigger asChild>
         <Button
@@ -106,11 +150,24 @@ export function NotificationsFeedButton({
           >
             {overdue.map((it) => (
               <FeedCard key={it.key} onClick={() => handleClickItem(it)} accent="destructive">
-                <p className="text-sm font-medium text-foreground">{it.clientName}</p>
-                <p className="text-xs text-muted-foreground">
-                  Parcela {it.installmentNumber}/{it.totalInstallments} · venceu em {formatDateBr(it.dueDate)}
-                </p>
-                <p className="text-sm font-semibold text-destructive mt-1">{formatBRL(it.amount)}</p>
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-medium text-foreground truncate">{it.clientName}</p>
+                    <p className="text-xs text-muted-foreground">
+                      Parcela {it.installmentNumber}/{it.totalInstallments} · venceu em {formatDateBr(it.dueDate)}
+                    </p>
+                    <p className="text-sm font-semibold text-destructive mt-1">{formatBRL(it.amount)}</p>
+                  </div>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="h-8 w-8 shrink-0 text-success hover:text-success hover:bg-success/10"
+                    onClick={(e) => handleWhatsapp(e, it)}
+                    title="Cobrar via WhatsApp"
+                  >
+                    <MessageCircle className="h-4 w-4" />
+                  </Button>
+                </div>
               </FeedCard>
             ))}
           </Section>
@@ -129,11 +186,24 @@ export function NotificationsFeedButton({
                 d === 0 ? "vence hoje" : d === 1 ? "vence amanhã" : `vence em ${d} dias`;
               return (
                 <FeedCard key={it.key} onClick={() => handleClickItem(it)} accent="warning">
-                  <p className="text-sm font-medium text-foreground">{it.clientName}</p>
-                  <p className="text-xs text-muted-foreground">
-                    Parcela {it.installmentNumber}/{it.totalInstallments} · {label} ({formatDateBr(it.dueDate)})
-                  </p>
-                  <p className="text-sm font-semibold text-warning mt-1">{formatBRL(it.amount)}</p>
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-medium text-foreground truncate">{it.clientName}</p>
+                      <p className="text-xs text-muted-foreground">
+                        Parcela {it.installmentNumber}/{it.totalInstallments} · {label} ({formatDateBr(it.dueDate)})
+                      </p>
+                      <p className="text-sm font-semibold text-warning mt-1">{formatBRL(it.amount)}</p>
+                    </div>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="h-8 w-8 shrink-0 text-success hover:text-success hover:bg-success/10"
+                      onClick={(e) => handleWhatsapp(e, it)}
+                      title="Enviar lembrete via WhatsApp"
+                    >
+                      <MessageCircle className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </FeedCard>
               );
             })}
@@ -162,6 +232,17 @@ export function NotificationsFeedButton({
         </div>
       </SheetContent>
     </Sheet>
+    {previewData && (
+      <WhatsappPreviewDialog
+        open={previewOpen}
+        onOpenChange={setPreviewOpen}
+        phone={previewData.phone}
+        message={previewData.message}
+        status={previewData.status}
+        recipientName={previewData.name}
+      />
+    )}
+    </>
   );
 }
 
