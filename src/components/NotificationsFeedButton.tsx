@@ -123,21 +123,23 @@ export function NotificationsFeedButton({
   return (
     <>
     <Sheet open={open} onOpenChange={handleOpenChange}>
-      <SheetTrigger asChild>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="relative h-9 w-9"
-          title="Notificações"
-        >
-          <Bell className="h-4 w-4" />
-          {unreadCount > 0 && (
-            <span className="absolute -top-0.5 -right-0.5 flex h-5 min-w-[20px] items-center justify-center rounded-full bg-destructive px-1 text-[10px] font-bold text-destructive-foreground">
-              {unreadCount > 9 ? "9+" : unreadCount}
-            </span>
-          )}
-        </Button>
-      </SheetTrigger>
+      {!hideTrigger && (
+        <SheetTrigger asChild>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="relative h-9 w-9"
+            title="Notificações"
+          >
+            <Bell className="h-4 w-4" />
+            {unreadCount > 0 && (
+              <span className="absolute -top-0.5 -right-0.5 flex h-5 min-w-[20px] items-center justify-center rounded-full bg-destructive px-1 text-[10px] font-bold text-destructive-foreground">
+                {unreadCount > 9 ? "9+" : unreadCount}
+              </span>
+            )}
+          </Button>
+        </SheetTrigger>
+      )}
       <SheetContent className="w-full sm:max-w-md overflow-y-auto">
         <SheetHeader>
           <div className="flex items-center justify-between gap-2">
