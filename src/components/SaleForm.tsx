@@ -156,7 +156,14 @@ export function SaleForm({ onAdd, onClose, defaultBusinessType = "venda", client
   const handleBusinessTypeChange = (value: string) => {
     update("businessType", value);
     if (value === "aluguel_veiculo") {
-      setForm((p) => ({ ...p, businessType: value, paymentMode: "recorrente" as PaymentMode }));
+      setForm((p) => ({ ...p, businessType: value, paymentMode: "recorrente" as PaymentMode, frequency: "Diário" }));
+      rebuildRows(installmentsNum, firstDate, "Diário", totalNum);
+    } else {
+      // Volta para Mensal ao sair de aluguel para outros tipos
+      if (form.frequency === "Diário") {
+        setForm((p) => ({ ...p, businessType: value, frequency: "Mensal" }));
+        rebuildRows(installmentsNum, firstDate, "Mensal", totalNum);
+      }
     }
   };
 
