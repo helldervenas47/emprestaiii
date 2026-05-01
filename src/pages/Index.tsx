@@ -1291,6 +1291,23 @@ const Index = () => {
             </SheetContent>
           </Sheet>
 
+          {/* Feed de notificações controlado para mobile (acionado a partir do "Mais") */}
+          {isMobile && (
+            <NotificationsFeedButton
+              hideTrigger
+              open={mobileNotifOpen}
+              onOpenChange={setMobileNotifOpen}
+              loans={filteredLoans}
+              payments={filteredPayments}
+              installmentSchedules={filteredInstallments}
+              clients={filteredClients}
+              onSelectLoan={(loanId) => {
+                setTab("dashboard");
+                try { sessionStorage.setItem("highlightLoanId", loanId); } catch {}
+              }}
+            />
+          )}
+
           {/* Editor de atalhos do menu inferior */}
           <Dialog open={shortcutsEditorOpen} onOpenChange={setShortcutsEditorOpen}>
             <DialogContent className="max-w-3xl">
