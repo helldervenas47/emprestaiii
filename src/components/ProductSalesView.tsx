@@ -1816,7 +1816,19 @@ export function ProductSalesView({ sales, onDeleteSale, onUpdateSale, clients = 
                               )}
                             </div>
                             <div className="flex items-center justify-between mt-2 pt-2 border-t border-border/40">
-                              <p className="font-bold text-sm">{formatCurrency(exp.amount)}</p>
+                              {isRecorrente ? (
+                                <div className="flex flex-col">
+                                  <p className="font-bold text-sm leading-tight">
+                                    {formatCurrency(installmentAmount)}
+                                    <span className="ml-1 text-xs font-normal text-muted-foreground">/parcela</span>
+                                  </p>
+                                  <p className="text-[11px] text-muted-foreground leading-tight">
+                                    Total: {formatCurrency(exp.amount)} ({exp.installments}x)
+                                  </p>
+                                </div>
+                              ) : (
+                                <p className="font-bold text-sm">{formatCurrency(exp.amount)}</p>
+                              )}
                               <div className="flex items-center gap-1">
                                 {hasPaidSomething && onUpdateExpense && (
                                   <Button size="sm" variant="outline" onClick={() => setViewPaymentsExpenseId(exp.id)} className="h-7 text-xs">
