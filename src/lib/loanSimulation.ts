@@ -1,11 +1,35 @@
-import { ScenarioComputed, SimulationScenario } from "@/types/loanSimulation";
+import { ScenarioComputed, SimulationScenario, PaymentFrequency } from "@/types/loanSimulation";
+
+/** Divisor da taxa mensal conforme frequência (parcelas dentro de um mês). */
+export function frequencyDivisor(freq: PaymentFrequency | undefined): number {
+  switch (freq) {
+    case "biweekly": return 2;
+    case "weekly": return 4;
+    case "daily": return 30;
+    case "monthly":
+    default: return 1;
+  }
+}
+
+export function frequencyLabel(freq: PaymentFrequency | undefined): string {
+  switch (freq) {
+    case "biweekly": return "Quinzenal";
+    case "weekly": return "Semanal";
+    case "daily": return "Diária";
+    case "monthly":
+    default: return "Mensal";
+  }
+}
 
 /** Compute derived values from a scenario based on its mode/model. */
 export function computeScenario(s: SimulationScenario): ScenarioComputed {
   const amount = Number(s.amount) || 0;
-  const rate = Number(s.monthlyRate) || 0;
+  const monthlyRate = Number(s.monthlyRate) || 0;
   const n = Math.max(1, Math.floor(Number(s.installments) || 1));
-  const r = rate / 100;
+  const freq = s.frequency || "monthly";
+  const divisor = frequencyDivisor(freq);
+  const periodRate = monthlyRate / divisor; // % por parcela
+  const r = periodRate / 100;
 
   let installmentValue = Number(s.installmentValue) || 0;
   let totalPayable = 0;
@@ -17,7 +41,6 @@ export function computeScenario(s: SimulationScenario): ScenarioComputed {
       totalPayable = amount + totalInterest;
       installmentValue = totalPayable / n;
     } else {
-      // Price (PMT)
       if (r === 0) {
         installmentValue = amount / n;
       } else {
@@ -27,24 +50,29 @@ export function computeScenario(s: SimulationScenario): ScenarioComputed {
       totalInterest = totalPayable - amount;
     }
   } else {
-    // manual: usa a parcela informada
     totalPayable = installmentValue * n;
     totalInterest = totalPayable - amount;
   }
 
-  const monthlyInterestValue = amount * r;
+  const monthlyInterestValue = amount * (monthlyRate / 100);
 
   return {
     ...s,
+    frequency: freq,
     installmentValue: round2(installmentValue),
     totalPayable: round2(totalPayable),
     totalInterest: round2(totalInterest),
     monthlyInterestValue: round2(monthlyInterestValue),
+    periodRate: round4(periodRate),
   };
 }
 
 function round2(v: number) {
   return Math.round((v + Number.EPSILON) * 100) / 100;
+}
+
+function round4(v: number) {
+  return Math.round((v + Number.EPSILON) * 10000) / 10000;
 }
 
 export function newScenario(partial?: Partial<SimulationScenario>): SimulationScenario {
