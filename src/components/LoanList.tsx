@@ -3737,7 +3737,7 @@ function LoanRowView({
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => setPaymentDialog(null)}>Cancelar</Button>
-          <Button onClick={confirmPayment} disabled={(paymentDialog?.type === "payoff" && !(parseFloat(payoffAmount.replace(",", ".")) > 0)) || (paymentDialog?.type === "amortize" && !(parseFloat(amortizeAmount.replace(",", ".")) > 0 && parseFloat(amortizeAmount.replace(",", ".")) <= (Number(loan.amount) || 0)))}>Confirmar</Button>
+          <Button onClick={confirmPayment} disabled={(rowActiveMethods.length > 0 && !rowSelectedMethodId) || (paymentDialog?.type === "payoff" && !(parseFloat(payoffAmount.replace(",", ".")) > 0)) || (paymentDialog?.type === "amortize" && !(parseFloat(amortizeAmount.replace(",", ".")) > 0 && parseFloat(amortizeAmount.replace(",", ".")) <= (Number(loan.amount) || 0)))}>Confirmar</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
