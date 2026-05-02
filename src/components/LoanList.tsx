@@ -416,10 +416,12 @@ function LoanCardView({
   const [splitMethod2Id, setSplitMethod2Id] = useState<string>("");
   const [splitAmount1Input, setSplitAmount1Input] = useState<string>("");
   React.useEffect(() => {
-    if (paymentDialog && !selectedMethodId && activeMethods.length > 0) {
-      setSelectedMethodId(activeMethods[0].id);
-    }
-  }, [paymentDialog, activeMethods, selectedMethodId]);
+    // Reset selection when payment dialog closes — user must explicitly pick a method.
+    if (!paymentDialog) setSelectedMethodId("");
+  }, [paymentDialog]);
+  React.useEffect(() => {
+    if (!showPartial) setSelectedMethodId("");
+  }, [showPartial]);
   React.useEffect(() => {
     // Reset split when dialog closes
     if (!paymentDialog) {
@@ -1649,7 +1651,7 @@ function LoanCardView({
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => { setShowPartial(false); setPartialAmount(""); setPartialDate(new Date()); }}>Cancelar</Button>
-              <Button onClick={handlePartialSubmit} disabled={!partialAmount || parseFloat(partialAmount) <= 0}>Confirmar</Button>
+              <Button onClick={handlePartialSubmit} disabled={!partialAmount || parseFloat(partialAmount) <= 0 || (activeMethods.length > 0 && !selectedMethodId)}>Confirmar</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
@@ -2183,7 +2185,7 @@ function LoanCardView({
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => setPaymentDialog(null)}>Cancelar</Button>
-          <Button onClick={confirmPayment} disabled={(paymentDialog?.type === "payoff" && !(parseFloat(payoffAmount.replace(",", ".")) > 0)) || (paymentDialog?.type === "amortize" && !(parseFloat(amortizeAmount.replace(",", ".")) > 0 && parseFloat(amortizeAmount.replace(",", ".")) <= (Number(loan.amount) || 0)))}>Confirmar</Button>
+          <Button onClick={confirmPayment} disabled={(activeMethods.length > 0 && !selectedMethodId) || (paymentDialog?.type === "payoff" && !(parseFloat(payoffAmount.replace(",", ".")) > 0)) || (paymentDialog?.type === "amortize" && !(parseFloat(amortizeAmount.replace(",", ".")) > 0 && parseFloat(amortizeAmount.replace(",", ".")) <= (Number(loan.amount) || 0)))}>Confirmar</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
@@ -2326,10 +2328,11 @@ function LoanRowView({
   const [rowSplitMethod2Id, setRowSplitMethod2Id] = useState<string>("");
   const [rowSplitAmount1Input, setRowSplitAmount1Input] = useState<string>("");
   React.useEffect(() => {
-    if (paymentDialog && !rowSelectedMethodId && rowActiveMethods.length > 0) {
-      setRowSelectedMethodId(rowActiveMethods[0].id);
-    }
-  }, [paymentDialog, rowActiveMethods, rowSelectedMethodId]);
+    if (!paymentDialog) setRowSelectedMethodId("");
+  }, [paymentDialog]);
+  React.useEffect(() => {
+    if (!showPartial) setRowSelectedMethodId("");
+  }, [showPartial]);
   React.useEffect(() => {
     if (!paymentDialog) {
       setRowSplitEnabled(false);
@@ -3164,7 +3167,7 @@ function LoanRowView({
                 </div>
                 <DialogFooter>
                   <Button variant="outline" onClick={() => { setShowPartial(false); setPartialAmount(""); setPartialDate(new Date()); }}>Cancelar</Button>
-                  <Button onClick={handlePartialSubmit} disabled={!partialAmount || parseFloat(partialAmount) <= 0}>Confirmar</Button>
+                  <Button onClick={handlePartialSubmit} disabled={!partialAmount || parseFloat(partialAmount) <= 0 || (rowActiveMethods.length > 0 && !rowSelectedMethodId)}>Confirmar</Button>
                 </DialogFooter>
               </DialogContent>
             </Dialog>
@@ -3734,7 +3737,7 @@ function LoanRowView({
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => setPaymentDialog(null)}>Cancelar</Button>
-          <Button onClick={confirmPayment} disabled={(paymentDialog?.type === "payoff" && !(parseFloat(payoffAmount.replace(",", ".")) > 0)) || (paymentDialog?.type === "amortize" && !(parseFloat(amortizeAmount.replace(",", ".")) > 0 && parseFloat(amortizeAmount.replace(",", ".")) <= (Number(loan.amount) || 0)))}>Confirmar</Button>
+          <Button onClick={confirmPayment} disabled={(rowActiveMethods.length > 0 && !rowSelectedMethodId) || (paymentDialog?.type === "payoff" && !(parseFloat(payoffAmount.replace(",", ".")) > 0)) || (paymentDialog?.type === "amortize" && !(parseFloat(amortizeAmount.replace(",", ".")) > 0 && parseFloat(amortizeAmount.replace(",", ".")) <= (Number(loan.amount) || 0)))}>Confirmar</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
