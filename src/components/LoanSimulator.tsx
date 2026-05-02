@@ -42,7 +42,7 @@ import {
 
 import { toast } from "sonner";
 import { useLoanSimulations } from "@/hooks/useLoanSimulations";
-import { computeScenario, computeHighlights, formatBRL, newScenario } from "@/lib/loanSimulation";
+import { computeScenario, computeHighlights, formatBRL, newScenario, frequencyLabel } from "@/lib/loanSimulation";
 import type { LoanSimulation, SimulationScenario, ScenarioComputed } from "@/types/loanSimulation";
 import type { Client } from "@/types/loan";
 import { generateSimulationPdf } from "@/lib/simulationPdf";
