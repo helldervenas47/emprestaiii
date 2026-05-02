@@ -21,10 +21,10 @@ import {
 } from "@/components/ui/select";
 import { DatePickerField } from "@/components/ui/date-picker-field";
 import { Expense } from "@/types/loan";
-import { personalCategories, resolvePersonalIcon } from "@/lib/personalExpenseCategories";
+import { personalCategories } from "@/lib/personalExpenseCategories";
 import { usePersonalExpenseCategories } from "@/hooks/usePersonalExpenseCategories";
 import { useCreditCards } from "@/hooks/useCreditCards";
-import { Package, AlertTriangle } from "lucide-react";
+import { AlertTriangle } from "lucide-react";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import {
   AlertDialog,
@@ -192,11 +192,27 @@ export function ExpenseEditDialog({
     setScope("this");
   }, [expense?.id]);
 
+  const categoryOptions = useMemo(() => {
+    const customNames = new Set(customCategories.map((c) => c.name.trim().toLowerCase()));
+    const names = [
+      ...personalCategories
+        .filter((c) => !customNames.has(c.name.trim().toLowerCase()))
+        .map((c) => c.name),
+      ...customCategories.map((c) => c.name),
+    ];
+
+    if (category && !names.some((name) => name === category)) {
+      names.push(category);
+    }
+
+    return names.sort((a, b) => a.localeCompare(b, "pt-BR"));
+  }, [category, customCategories]);
+
   if (!expense) return null;
 
   const isParcelada =
     expense.type === "recorrente" && (expense.installments ?? 0) > 1;
-  const isChildInstallment = !!(expense as any).parentExpenseId;
+  const isChildInstallment = !!expense.parentExpenseId;
   // Show scope selector for installment parents OR for paid child installments
   const showScopeSelector = isParcelada || isChildInstallment;
 
@@ -272,61 +288,20 @@ export function ExpenseEditDialog({
 
           <div>
             <Label className="text-xs">Categoria</Label>
-            <Select value={category} onValueChange={setCategory}>
-              <SelectTrigger>
-                <SelectValue placeholder="Selecione a categoria" />
-              </SelectTrigger>
-              <SelectContent className="max-h-72">
-                {(() => {
-                  type Item = { key: string; name: string; Icon: any; color: string; group: "builtin" | "custom" };
-                  // Customs override built-ins with the same name (case-insensitive).
-                  const customNames = new Set(customCategories.map((c) => c.name.trim().toLowerCase()));
-                  const builtin: Item[] = personalCategories
-                    .filter((c) => !customNames.has(c.name.trim().toLowerCase()))
-                    .map((c) => ({
-                      key: `b-${c.name}`, name: c.name, Icon: c.icon, color: c.color, group: "builtin",
-                    }));
-                  const custom: Item[] = customCategories.map((c) => ({
-                    key: `c-${c.id}`, name: c.name, Icon: resolvePersonalIcon(c.icon), color: c.color, group: "custom",
-                  }));
-                  // Ensure the currently selected category is always available, even if it
-                  // was deleted or renamed (legacy expenses).
-                  const all = [...builtin, ...custom];
-                  if (category && !all.some((i) => i.name === category)) {
-                    all.push({ key: `legacy-${category}`, name: category, Icon: Package, color: "215 15% 55%", group: "custom" });
-                  }
-                  const builtinSorted = all
-                    .filter((i) => i.group === "builtin")
-                    .sort((a, b) => a.name.localeCompare(b.name, "pt-BR"));
-                  const customSorted = all
-                    .filter((i) => i.group === "custom")
-                    .sort((a, b) => a.name.localeCompare(b.name, "pt-BR"));
-                  return (
-                    <>
-                      {builtinSorted.map((i) => (
-                        <SelectItem key={i.key} value={i.name}>
-                          <span className="inline-flex items-center gap-2">
-                            <i.Icon className="h-3.5 w-3.5" style={{ color: `hsl(${i.color})` }} />
-                            {i.name}
-                          </span>
-                        </SelectItem>
-                      ))}
-                      {builtinSorted.length > 0 && customSorted.length > 0 && (
-                        <div className="my-1 border-t border-border" />
-                      )}
-                      {customSorted.map((i) => (
-                        <SelectItem key={i.key} value={i.name}>
-                          <span className="inline-flex items-center gap-2">
-                            <i.Icon className="h-3.5 w-3.5" style={{ color: `hsl(${i.color})` }} />
-                            {i.name}
-                          </span>
-                        </SelectItem>
-                      ))}
-                    </>
-                  );
-                })()}
-              </SelectContent>
-            </Select>
+            <select
+              value={category}
+              onChange={(e) => setCategory(e.target.value)}
+              className="flex h-11 min-h-[44px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <option value="" disabled>
+                Selecione a categoria
+              </option>
+              {categoryOptions.map((name) => (
+                <option key={name} value={name}>
+                  {name}
+                </option>
+              ))}
+            </select>
           </div>
 
           <div className="grid grid-cols-2 gap-3">
