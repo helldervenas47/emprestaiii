@@ -212,7 +212,7 @@ export function ExpenseEditDialog({
 
   const isParcelada =
     expense.type === "recorrente" && (expense.installments ?? 0) > 1;
-  const isChildInstallment = !!(expense as any).parentExpenseId;
+  const isChildInstallment = !!expense.parentExpenseId;
   // Show scope selector for installment parents OR for paid child installments
   const showScopeSelector = isParcelada || isChildInstallment;
 
