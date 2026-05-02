@@ -279,51 +279,33 @@ export function ExpenseEditDialog({
                 <SelectValue placeholder="Selecione a categoria" />
               </SelectTrigger>
               <SelectContent className="max-h-72">
-                <div className="p-2 sticky top-0 bg-popover z-10">
-                  <Input
-                    autoFocus={false}
-                    placeholder="Buscar categoria..."
-                    value={categorySearch}
-                    onChange={(e) => setCategorySearch(e.target.value)}
-                    onKeyDown={(e) => e.stopPropagation()}
-                    className="h-8 text-xs"
-                  />
-                </div>
                 {(() => {
-                  const q = categorySearch.trim().toLowerCase();
                   type Item = { key: string; name: string; Icon: any; color: string; group: "builtin" | "custom" };
-                  const builtin: Item[] = personalCategories.map((c) => ({
-                    key: `b-${c.name}`, name: c.name, Icon: c.icon, color: c.color, group: "builtin",
-                  }));
+                  // Customs override built-ins with the same name (case-insensitive).
+                  const customNames = new Set(customCategories.map((c) => c.name.trim().toLowerCase()));
+                  const builtin: Item[] = personalCategories
+                    .filter((c) => !customNames.has(c.name.trim().toLowerCase()))
+                    .map((c) => ({
+                      key: `b-${c.name}`, name: c.name, Icon: c.icon, color: c.color, group: "builtin",
+                    }));
                   const custom: Item[] = customCategories.map((c) => ({
                     key: `c-${c.id}`, name: c.name, Icon: resolvePersonalIcon(c.icon), color: c.color, group: "custom",
                   }));
                   // Ensure the currently selected category is always available, even if it
-                  // was deleted or renamed (legacy contracts).
+                  // was deleted or renamed (legacy expenses).
                   const all = [...builtin, ...custom];
                   if (category && !all.some((i) => i.name === category)) {
                     all.push({ key: `legacy-${category}`, name: category, Icon: Package, color: "215 15% 55%", group: "custom" });
                   }
-                  const filtered = q
-                    ? all.filter((i) => i.name.toLowerCase().includes(q))
-                    : all;
-                  // Sort each group alphabetically (pt-BR), keep builtins first.
-                  const builtinFiltered = filtered
+                  const builtinSorted = all
                     .filter((i) => i.group === "builtin")
                     .sort((a, b) => a.name.localeCompare(b.name, "pt-BR"));
-                  const customFiltered = filtered
+                  const customSorted = all
                     .filter((i) => i.group === "custom")
                     .sort((a, b) => a.name.localeCompare(b.name, "pt-BR"));
-                  if (builtinFiltered.length === 0 && customFiltered.length === 0) {
-                    return (
-                      <div className="px-3 py-4 text-xs text-muted-foreground text-center">
-                        Nenhuma categoria encontrada
-                      </div>
-                    );
-                  }
                   return (
                     <>
-                      {builtinFiltered.map((i) => (
+                      {builtinSorted.map((i) => (
                         <SelectItem key={i.key} value={i.name}>
                           <span className="inline-flex items-center gap-2">
                             <i.Icon className="h-3.5 w-3.5" style={{ color: `hsl(${i.color})` }} />
@@ -331,10 +313,10 @@ export function ExpenseEditDialog({
                           </span>
                         </SelectItem>
                       ))}
-                      {builtinFiltered.length > 0 && customFiltered.length > 0 && (
+                      {builtinSorted.length > 0 && customSorted.length > 0 && (
                         <div className="my-1 border-t border-border" />
                       )}
-                      {customFiltered.map((i) => (
+                      {customSorted.map((i) => (
                         <SelectItem key={i.key} value={i.name}>
                           <span className="inline-flex items-center gap-2">
                             <i.Icon className="h-3.5 w-3.5" style={{ color: `hsl(${i.color})` }} />
