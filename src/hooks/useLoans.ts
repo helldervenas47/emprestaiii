@@ -304,10 +304,21 @@ export function useLoans() {
     const remaining = getLoanRemainingAmount(loan, payments);
     const remainingInstallments = Math.max(1, loan.installments - loan.paidInstallments);
     const calculatedInstallment = remaining / remainingInstallments;
-    const installmentAmount = loan.customInstallmentValue != null && loan.customInstallmentValue > 0
-      ? loan.customInstallmentValue
-      : calculatedInstallment;
     const newPaid = loan.paidInstallments + 1;
+    // Prioriza o valor da parcela atual no cronograma (cobre renegociações,
+    // parcelas customizadas e fluxos com valores variáveis por parcela).
+    const currentSchedule = installmentSchedules.find(
+      (s) => s.loanId === loanId && s.installmentNumber === newPaid,
+    );
+    let installmentAmount = currentSchedule?.amount != null && currentSchedule.amount > 0
+      ? currentSchedule.amount
+      : (loan.customInstallmentValue != null && loan.customInstallmentValue > 0
+        ? loan.customInstallmentValue
+        : calculatedInstallment);
+    // Última parcela: usar o saldo restante para evitar centavos pendurados
+    if (newPaid >= loan.installments) {
+      installmentAmount = remaining;
+    }
     const newRemaining = Math.max(0, remaining - installmentAmount);
     const online = isOnline();
 

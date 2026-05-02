@@ -1,78 +1,27 @@
-## Objetivo
-Adicionar um sino de notificações no header (ao lado do sino de aprovações já existente) com um feed in-app contendo:
-- Parcelas **vencendo nos próximos 3 dias**
-- Parcelas **vencidas hoje**
-- **Pagamentos recebidos recentemente** (últimas 24h)
+## Problema
 
-## Comportamento
+No contrato do Leo Cardoso, ao pagar a parcela 1 (renegociada para R$ 300 com multa de R$ 30), o sistema registra apenas R$ 280. Isso ocorre porque `addPayment` em `src/hooks/useLoans.ts` ignora o cronograma individual de parcelas (`loan_installments`) e divide o saldo total igualmente entre as parcelas restantes (840 ÷ 3 = 280), perdendo a multa aplicada na parcela 1.
 
-- Ícone de sino com badge mostrando o total de itens não-lidos.
-- Ao clicar, abre um `Sheet` lateral (mesmo padrão do `ApprovalRequestsButton`) com 3 seções:
-  1. **Vencidas hoje** (vermelho) — empréstimo, cliente, parcela X/Y, valor.
-  2. **Vencendo (próx. 3 dias)** (amarelo) — mesma info + dias restantes.
-  3. **Recebidas recentemente** (verde) — cliente, valor, data/hora, parcela.
-- Cada item é clicável → muda para a aba `dashboard` (Empréstimos) e foca no empréstimo correspondente (via query param/estado).
-- Botão "Marcar tudo como lido" no topo do feed.
-- Atualização automática a cada 60s e ao abrir o sheet.
+A renegociação grava corretamente a parcela 1 com R$ 300 em `loan_installments`, mas o pagamento usa um cálculo paralelo que não consulta essa tabela.
 
-## Persistência de "lido"
+## Correção
 
-Sem nova tabela. Usar `localStorage` por usuário com a chave `notif:lastSeen:<userId>`:
-- Ao abrir o sheet, salvar `Date.now()` como "última visualização".
-- Badge = count de itens cuja data-chave (vencimento ou pagamento) é mais recente que `lastSeen`.
-- Simples, suficiente para feed informativo (não é caixa de mensagens).
+Em `src/hooks/useLoans.ts`, dentro de `addPayment` (linhas ~304-309), priorizar o valor do cronograma para a parcela que está sendo paga.
 
-## Fonte de dados (cliente, sem nova tabela)
+Nova ordem de prioridade para `installmentAmount`:
+1. **Valor da parcela atual no cronograma** (`installmentSchedules.find(s => s.loanId === loanId && s.installmentNumber === loan.paidInstallments + 1)`) — fonte de verdade quando existe (cobre renegociações, parcelas customizadas e fluxos diários/semanais).
+2. `loan.customInstallmentValue` se > 0 (fallback existente).
+3. `remaining / remainingInstallments` (fallback de cálculo médio).
 
-Já existem hooks com todos os dados necessários:
-- `useLoans()` → empréstimos + parcelas pagas
-- `useClients()` → para nome/telefone do cliente
-- `usePayments()` ou os payments já carregados em `Index.tsx`
+Se for usado o valor do cronograma, `newRemaining` deve ser calculado como `max(0, remaining - installmentAmount)` (já é assim) — a soma das parcelas do cronograma já bate com `remaining_amount`, então o saldo final fecha corretamente.
 
-Criar um hook `useNotificationsFeed(loans, clients, payments)`:
-- Para cada empréstimo `active`, calcula próximas parcelas em aberto usando os utilitários existentes (`loanInstallmentAmount.ts`, `dueStatus.ts`) e classifica como `overdueToday` ou `dueSoon` (próx. 3 dias).
-- Lista os últimos pagamentos com `date >= now - 24h`.
-- Retorna `{ overdue, dueSoon, recentPayments, unreadCount }`.
+Se for a última parcela (`newPaid >= installments`), forçar `installmentAmount = remaining` para evitar arredondamentos deixarem centavos pendurados.
 
-## Arquivos
+## Verificação manual após o fix
 
-**Novos:**
-- `src/components/NotificationsFeedButton.tsx` — sino + Sheet com as 3 seções.
-- `src/hooks/useNotificationsFeed.ts` — agregação e contagem de não-lidos.
+- Pagar parcela 1 do Leo Cardoso deve registrar R$ 300 (não 280), saldo passa para R$ 540.
+- Parcela 2 e 3 devem continuar registrando R$ 270 cada.
+- Contratos sem renegociação (parcelas iguais) seguem registrando o valor padrão.
 
-**Editados:**
-- `src/pages/Index.tsx`:
-  - Importar `NotificationsFeedButton` e renderizar no header ao lado de `ApprovalRequestsButton` (linha ~632).
-  - Passar `loans`, `clients`, `payments` (já disponíveis no Index) e um callback `onSelectLoan(loanId)` que troca para a aba `dashboard` e seta um `highlightLoanId` em estado.
-  - Passar `highlightLoanId` para `LoanList` (ele já lida com seleção; senão, faz scroll-into-view).
-
-## Detalhes técnicos
-
-```ts
-// useNotificationsFeed.ts (esboço)
-const today = startOfDay(new Date());
-const in3Days = addDays(today, 3);
-
-const items = loans.filter(l => l.status !== "paid").flatMap(loan => {
-  const next = computeNextOpenInstallments(loan); // já existe util similar
-  return next
-    .filter(i => i.dueDate <= in3Days)
-    .map(i => ({
-      kind: isSameDay(i.dueDate, today) || i.dueDate < today ? "overdue" : "dueSoon",
-      loanId: loan.id, clientName: loan.borrowerName,
-      installmentNumber: i.number, amount: i.amount, dueDate: i.dueDate,
-    }));
-});
-
-const recent = payments
-  .filter(p => Date.now() - new Date(p.date).getTime() < 24*3600*1000)
-  .sort((a,b) => +new Date(b.date) - +new Date(a.date));
-```
-
-UI: `Sheet` com `SheetContent w-full sm:max-w-md`, cada seção com header colapsável e badge de contagem. Empty state "Sem notificações no momento.". Reaproveita tokens semânticos (`text-destructive`, `text-warning` se existir, `text-success`).
-
-## Fora de escopo
-
-- Criação de nova tabela / push.
-- Integração com Telegram/WhatsApp (já existem outros componentes para isso).
-- Marcar item individual como lido (apenas global "tudo lido").
+## Arquivo afetado
+- `src/hooks/useLoans.ts` (função `addPayment`, ~linhas 304-311)
