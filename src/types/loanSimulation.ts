@@ -37,4 +37,5 @@ export interface ScenarioComputed extends SimulationScenario {
   totalInterest: number;
   totalPayable: number;
   monthlyInterestValue: number;
+  periodRate: number; // taxa por parcela (%) conforme frequência
 }
