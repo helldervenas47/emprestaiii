@@ -416,10 +416,12 @@ function LoanCardView({
   const [splitMethod2Id, setSplitMethod2Id] = useState<string>("");
   const [splitAmount1Input, setSplitAmount1Input] = useState<string>("");
   React.useEffect(() => {
-    if (paymentDialog && !selectedMethodId && activeMethods.length > 0) {
-      setSelectedMethodId(activeMethods[0].id);
-    }
-  }, [paymentDialog, activeMethods, selectedMethodId]);
+    // Reset selection when payment dialog closes — user must explicitly pick a method.
+    if (!paymentDialog) setSelectedMethodId("");
+  }, [paymentDialog]);
+  React.useEffect(() => {
+    if (!showPartial) setSelectedMethodId("");
+  }, [showPartial]);
   React.useEffect(() => {
     // Reset split when dialog closes
     if (!paymentDialog) {
