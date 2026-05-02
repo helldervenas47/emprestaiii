@@ -1651,7 +1651,7 @@ function LoanCardView({
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => { setShowPartial(false); setPartialAmount(""); setPartialDate(new Date()); }}>Cancelar</Button>
-              <Button onClick={handlePartialSubmit} disabled={!partialAmount || parseFloat(partialAmount) <= 0}>Confirmar</Button>
+              <Button onClick={handlePartialSubmit} disabled={!partialAmount || parseFloat(partialAmount) <= 0 || (activeMethods.length > 0 && !selectedMethodId)}>Confirmar</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
