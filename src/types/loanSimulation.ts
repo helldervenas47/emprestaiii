@@ -1,15 +1,17 @@
 export type InterestModel = "simple" | "compound";
 export type CalcMode = "auto" | "manual";
+export type PaymentFrequency = "monthly" | "biweekly" | "weekly" | "daily";
 
 export interface SimulationScenario {
   id: string;
   label?: string;
   amount: number;
-  monthlyRate: number; // % ao mês
+  monthlyRate: number; // % ao mês (taxa cadastrada sempre mensal)
   installments: number;
   installmentValue: number; // valor da parcela
   interestModel: InterestModel;
   calcMode: CalcMode;
+  frequency?: PaymentFrequency;
 }
 
 export interface LoanSimulation {
