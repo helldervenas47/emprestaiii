@@ -140,6 +140,7 @@ export function LoanSimulator({ open, onOpenChange, clients, onCreateLoanFromSce
         installmentValue: s.installmentValue,
         interestModel: s.interestModel,
         calcMode: s.calcMode,
+        frequency: s.frequency,
       })),
       chosenScenarioId: chosenId,
     });
