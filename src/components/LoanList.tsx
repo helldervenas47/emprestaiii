@@ -2328,10 +2328,11 @@ function LoanRowView({
   const [rowSplitMethod2Id, setRowSplitMethod2Id] = useState<string>("");
   const [rowSplitAmount1Input, setRowSplitAmount1Input] = useState<string>("");
   React.useEffect(() => {
-    if (paymentDialog && !rowSelectedMethodId && rowActiveMethods.length > 0) {
-      setRowSelectedMethodId(rowActiveMethods[0].id);
-    }
-  }, [paymentDialog, rowActiveMethods, rowSelectedMethodId]);
+    if (!paymentDialog) setRowSelectedMethodId("");
+  }, [paymentDialog]);
+  React.useEffect(() => {
+    if (!showPartial) setRowSelectedMethodId("");
+  }, [showPartial]);
   React.useEffect(() => {
     if (!paymentDialog) {
       setRowSplitEnabled(false);
