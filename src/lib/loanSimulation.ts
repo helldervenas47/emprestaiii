@@ -84,6 +84,7 @@ export function newScenario(partial?: Partial<SimulationScenario>): SimulationSc
     installmentValue: 0,
     interestModel: "simple",
     calcMode: "auto",
+    frequency: "monthly",
     ...partial,
   };
 }
