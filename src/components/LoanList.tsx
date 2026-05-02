@@ -3167,7 +3167,7 @@ function LoanRowView({
                 </div>
                 <DialogFooter>
                   <Button variant="outline" onClick={() => { setShowPartial(false); setPartialAmount(""); setPartialDate(new Date()); }}>Cancelar</Button>
-                  <Button onClick={handlePartialSubmit} disabled={!partialAmount || parseFloat(partialAmount) <= 0}>Confirmar</Button>
+                  <Button onClick={handlePartialSubmit} disabled={!partialAmount || parseFloat(partialAmount) <= 0 || (rowActiveMethods.length > 0 && !rowSelectedMethodId)}>Confirmar</Button>
                 </DialogFooter>
               </DialogContent>
             </Dialog>
