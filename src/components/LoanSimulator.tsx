@@ -42,7 +42,7 @@ import {
 
 import { toast } from "sonner";
 import { useLoanSimulations } from "@/hooks/useLoanSimulations";
-import { computeScenario, computeHighlights, formatBRL, newScenario } from "@/lib/loanSimulation";
+import { computeScenario, computeHighlights, formatBRL, newScenario, frequencyLabel } from "@/lib/loanSimulation";
 import type { LoanSimulation, SimulationScenario, ScenarioComputed } from "@/types/loanSimulation";
 import type { Client } from "@/types/loan";
 import { generateSimulationPdf } from "@/lib/simulationPdf";
@@ -140,6 +140,7 @@ export function LoanSimulator({ open, onOpenChange, clients, onCreateLoanFromSce
         installmentValue: s.installmentValue,
         interestModel: s.interestModel,
         calcMode: s.calcMode,
+        frequency: s.frequency,
       })),
       chosenScenarioId: chosenId,
     });
@@ -693,10 +694,29 @@ function ScenarioCard({
           />
         </div>
 
+        {/* Frequência de pagamento */}
+        <div className="space-y-1">
+          <Label className="text-[10px] text-muted-foreground">Frequência de pagamento</Label>
+          <Select
+            value={scenario.frequency || "monthly"}
+            onValueChange={(v) => onChange({ frequency: v as any })}
+          >
+            <SelectTrigger className="h-8 text-[11px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="monthly">Mensal (1x/mês)</SelectItem>
+              <SelectItem value="biweekly">Quinzenal (2x/mês)</SelectItem>
+              <SelectItem value="weekly">Semanal (4x/mês)</SelectItem>
+              <SelectItem value="daily">Diária (30x/mês)</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
         {/* Taxa e parcelas */}
         <div className="grid grid-cols-2 gap-2">
           <div className="space-y-1">
-            <Label className="text-[10px] text-muted-foreground">Taxa/mês (%)</Label>
+            <Label className="text-[10px] text-muted-foreground">Taxa mensal (%)</Label>
             <Input
               type="number"
               inputMode="decimal"
@@ -717,6 +737,16 @@ function ScenarioCard({
               className="h-9 text-sm tabular-nums"
             />
           </div>
+        </div>
+
+        {/* Taxa equivalente por parcela */}
+        <div className="rounded-md border border-border/40 bg-muted/30 px-2 py-1.5 text-[10.5px] flex items-center justify-between">
+          <span className="text-muted-foreground">
+            Taxa equivalente ({frequencyLabel(scenario.frequency)})
+          </span>
+          <span className="tabular-nums font-semibold text-primary">
+            {scenario.periodRate.toFixed(2)}% / parcela
+          </span>
         </div>
 
         {/* Parcela calculada/editável */}
