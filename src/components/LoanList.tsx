@@ -2535,10 +2535,14 @@ function LoanRowView({
       } else if (dialogType === "installment") {
         await onPayment(dateStr, mid, split);
       } else if (dialogType === "interest") {
+        const partialRaw = parseFloat(interestPartialAmount.replace(",", "."));
+        const partialVal = interestPartialEnabled && isFinite(partialRaw) && partialRaw > 0 ? partialRaw : undefined;
+        const notes = interestNotes.trim() || null;
+        const opts = (interestPartialEnabled || notes) ? { partial: interestPartialEnabled, notes } : undefined;
         if (interestSelection === "withFees" && lateFees > 0) {
-          await onInterestPayment(dateStr, undefined, lateFees, mid, split);
+          await onInterestPayment(dateStr, partialVal, lateFees, mid, split, opts);
         } else {
-          await onInterestPayment(dateStr, undefined, undefined, mid, split);
+          await onInterestPayment(dateStr, partialVal, undefined, mid, split, opts);
         }
       } else if (dialogType === "partial" && dialogAmount) {
         await onPartialPayment(dialogAmount, dateStr, mid, split);
