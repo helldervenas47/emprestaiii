@@ -1762,7 +1762,11 @@ function LoanCardView({
                   </div>
                   <div>
                     <p className="text-sm font-medium text-foreground">Juros</p>
-                    <p className="text-[11px] text-muted-foreground">{formatCurrency(interestOnly)}</p>
+                    <p className="text-[11px] text-muted-foreground">
+                      {interestCyclePartials > 0 && interestPending < interestOnly
+                        ? <>Pendente: <span className="font-semibold text-warning">{formatCurrency(interestPending)}</span></>
+                        : formatCurrency(interestOnly)}
+                    </p>
                   </div>
                 </DropdownMenuItem>
                 )}
