@@ -465,10 +465,10 @@ export function computeActual(
 ): number {
   switch (type) {
     case "loan_volume":
-      return loans.filter((l: any) => inMonth(l.startDate || l.start_date, m))
+      return loans.filter((l: any) => inMonth(l.startDate || l.start_date, m) && (Number(l.interestRate ?? l.interest_rate) || 0) > 0)
         .reduce((s: number, l: any) => s + (Number(l.amount) || 0), 0);
     case "new_loans_count":
-      return loans.filter((l: any) => inMonth(l.startDate || l.start_date, m)).length;
+      return loans.filter((l: any) => inMonth(l.startDate || l.start_date, m) && (Number(l.interestRate ?? l.interest_rate) || 0) > 0).length;
     case "received_total":
       return payments.filter((p: any) => inMonth(p.date, m))
         .reduce((s: number, p: any) => s + (Number(p.amount) || 0), 0);
