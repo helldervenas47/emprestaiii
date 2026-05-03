@@ -1653,6 +1653,232 @@ REGRAS:
   try { return JSON.parse(call.function.arguments); } catch { return null; }
 }
 
+// ============================================================
+// 🗣️ Natural-language financial Q&A (perguntas conversacionais)
+// ============================================================
+
+// Detecta se a mensagem parece uma pergunta financeira (não um lançamento de despesa).
+function looksLikeQuestion(text: string): boolean {
+  const t = text.trim().toLowerCase();
+  if (t.length < 4) return false;
+  if (t.startsWith("/")) return false;
+  // Pergunta direta
+  if (t.endsWith("?")) return true;
+  // Verbos/palavras-chave interrogativas no início
+  return /^(quanto|qual|quais|quando|como|onde|me\s+(diga|mostra|mostre)|mostra|mostre|liste|lista|ver|vi|exibe|exiba)\b/i.test(t)
+    || /\b(maiores\s+gastos|maior\s+gasto|gastei\s+(esse|este|nesse|neste|esta|essa|nessa|nesta|no|de|com|em|nos|nas|nos|na))\b/i.test(t)
+    || /\b(recebi|gastei|paguei)\s+(?:esse|este|nesse|neste|esta|essa|nessa|nesta|no|de|com|em|nos|nas|na|hoje|ontem|essa|esta|este|nessa|nesta|nesse|neste|semana|mes|m[eê]s|ano)\b/i.test(t);
+}
+
+interface NLQueryFilters {
+  intent: "expenses" | "income" | "loans_received" | "biggest_expenses" | "list_expenses";
+  start_date: string; // YYYY-MM-DD
+  end_date: string;   // YYYY-MM-DD
+  category?: string | null;
+  scope?: "personal" | "business" | null;
+  period_label?: string;
+  limit?: number;
+}
+
+async function parseNLQueryWithAI(
+  text: string,
+  customCategories: string[],
+  lovableKey: string,
+): Promise<NLQueryFilters | null> {
+  const today = todayBR();
+  const allCats = Array.from(new Set([...CATEGORIES, ...customCategories]));
+  const sys = `Você interpreta perguntas financeiras em português brasileiro e retorna filtros estruturados. Hoje é ${today} (timezone America/Sao_Paulo, fuso -03:00). Categorias conhecidas: ${allCats.join(", ")}.
+
+INTENT (detecte o tipo de consulta):
+- "expenses": "quanto gastei", "quanto paguei", "meus gastos" → soma de despesas no período.
+- "income": "quanto recebi", "quanto entrou", "minha receita" → soma de pagamentos recebidos de empréstimos no período.
+- "biggest_expenses": "maiores gastos", "onde gastei mais" → top despesas do período.
+- "list_expenses": "lista", "mostra as despesas", "minhas últimas despesas" → listagem detalhada.
+- Se ambíguo, prefira "expenses".
+
+DATAS (start_date / end_date no formato YYYY-MM-DD):
+- "hoje" → start=end=hoje.
+- "ontem" → start=end=ontem.
+- "anteontem" → start=end=anteontem.
+- "esta semana" / "essa semana" → segunda-feira desta semana até hoje.
+- "semana passada" → segunda a domingo da semana anterior.
+- "este mês" / "esse mês" / "no mês" → primeiro dia do mês atual até hoje.
+- "mês passado" → primeiro ao último dia do mês anterior.
+- "este ano" → 01/01 do ano atual até hoje.
+- "últimos N dias" / "nos últimos N dias" → hoje-(N-1) até hoje.
+- "de sexta até hoje" / "de quarta até hoje" → última ocorrência passada do dia da semana até hoje.
+- "dia 10", "no dia 15" → mesmo dia/mês atual (start=end).
+- "10/05", "10-05" → essa data exata.
+- "em maio", "no mês de março" → primeiro ao último dia do mês citado (ano atual ou anterior se mês citado for futuro).
+- Se nenhum período for citado → use o mês atual (primeiro dia até hoje).
+
+CATEGORIA (campo "category"):
+- Se o usuário citar uma categoria (mesmo abreviada ou com erro de digitação), retorne o nome canônico da lista de categorias.
+- Ex.: "alimentaçao", "comida", "rango" → "Alimentação". "uber", "transporte" → "Transporte".
+- Se não citar categoria, omita o campo.
+
+SCOPE (escopo):
+- "personal" para despesas pessoais (padrão).
+- "business" se mencionar "empresa", "negócio", "trabalho".
+
+period_label: descrição curta legível (ex.: "este mês", "de sexta (01/05) até hoje (03/05)", "últimos 7 dias").
+
+limit: para "biggest_expenses" use 5; para "list_expenses" use 10; senão omita.`;
+
+  const resp = await fetch(AI_GATEWAY, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${lovableKey}`, "Content-Type": "application/json" },
+    body: JSON.stringify({
+      model: "google/gemini-3-flash-preview",
+      messages: [
+        { role: "system", content: sys },
+        { role: "user", content: text },
+      ],
+      tools: [{
+        type: "function",
+        function: {
+          name: "answer_query",
+          description: "Filtros estruturados para responder a pergunta financeira",
+          parameters: {
+            type: "object",
+            properties: {
+              intent: { type: "string", enum: ["expenses", "income", "biggest_expenses", "list_expenses"] },
+              start_date: { type: "string" },
+              end_date: { type: "string" },
+              category: { type: "string", description: "Nome canônico da categoria (omitir se não citada)" },
+              scope: { type: "string", enum: ["personal", "business"] },
+              period_label: { type: "string", description: "Descrição curta do período" },
+              limit: { type: "number" },
+            },
+            required: ["intent", "start_date", "end_date", "period_label"],
+            additionalProperties: false,
+          },
+        },
+      }],
+      tool_choice: { type: "function", function: { name: "answer_query" } },
+    }),
+  });
+  if (!resp.ok) {
+    console.error("parseNLQueryWithAI err", resp.status, await resp.text());
+    return null;
+  }
+  const data = await resp.json();
+  const call = data.choices?.[0]?.message?.tool_calls?.[0];
+  if (!call) return null;
+  try { return JSON.parse(call.function.arguments); } catch { return null; }
+}
+
+async function answerNaturalQuery(
+  admin: any,
+  userId: string,
+  text: string,
+  lovableKey: string,
+): Promise<string | null> {
+  // Carrega categorias customizadas para enriquecer o prompt
+  const { data: customCats } = await admin
+    .from("personal_expense_categories")
+    .select("name")
+    .eq("user_id", userId);
+  const customNames: string[] = (customCats ?? []).map((c: any) => c.name).filter(Boolean);
+
+  const filters = await parseNLQueryWithAI(text, customNames, lovableKey);
+  if (!filters) return null;
+
+  const { intent, start_date, end_date, category, period_label } = filters;
+  const scope = filters.scope || "personal";
+  const periodTxt = period_label || `${start_date} a ${end_date}`;
+
+  if (intent === "income") {
+    // Receitas = pagamentos recebidos de empréstimos no período
+    const { data: pays } = await admin
+      .from("payments")
+      .select("amount, date")
+      .eq("user_id", userId)
+      .gte("date", start_date)
+      .lte("date", end_date);
+    const total = (pays ?? []).reduce((s: number, p: any) => s + (Number(p.amount) || 0), 0);
+    const count = (pays ?? []).length;
+    if (count === 0) return `📥 *Receitas (${periodTxt})*\n\nNenhuma receita encontrada nesse período.`;
+    return `📥 *Receitas (${periodTxt})*\n\nTotal recebido: *${fmtBRL(total)}*\nPagamentos: ${count}`;
+  }
+
+  // Despesas (expenses / biggest_expenses / list_expenses)
+  let q = admin
+    .from("expenses")
+    .select("amount, description, category, paid_date, due_date")
+    .eq("user_id", userId)
+    .eq("scope", scope)
+    .eq("paid", true);
+  // Usa paid_date quando existir; aplica filtro como OR no resultado.
+  const { data: rows } = await q;
+  const inRange = (rows ?? []).filter((e: any) => {
+    const ref = (e.paid_date || e.due_date || "") as string;
+    if (!ref) return false;
+    return ref >= start_date && ref <= end_date;
+  });
+
+  let filtered = inRange;
+  if (category) {
+    const catNorm = category.toLowerCase().trim();
+    filtered = inRange.filter((e: any) => (e.category || "").toLowerCase().trim() === catNorm);
+  }
+
+  if (filtered.length === 0) {
+    const catTxt = category ? ` em *${category}*` : "";
+    return `💸 *Gastos${catTxt} (${periodTxt})*\n\nNenhuma despesa encontrada nesse período.`;
+  }
+
+  const total = filtered.reduce((s: number, e: any) => s + (Number(e.amount) || 0), 0);
+
+  if (intent === "biggest_expenses") {
+    const sorted = [...filtered].sort((a: any, b: any) => (Number(b.amount) || 0) - (Number(a.amount) || 0));
+    const top = sorted.slice(0, filters.limit ?? 5);
+    let msg = `🏆 *Maiores gastos (${periodTxt})*\nTotal: ${fmtBRL(total)}\n\n`;
+    top.forEach((e: any, i: number) => {
+      const date = e.paid_date || e.due_date || "";
+      const dateStr = date ? fmtDayMonth(date) : "—";
+      msg += `${i + 1}. ${fmtBRL(Number(e.amount) || 0)} — ${e.description || "—"} _(${e.category || "Outros"})_ — ${dateStr}\n`;
+    });
+    return msg.trimEnd();
+  }
+
+  if (intent === "list_expenses") {
+    const sorted = [...filtered].sort((a: any, b: any) => {
+      const da = (a.paid_date || a.due_date || "") as string;
+      const db = (b.paid_date || b.due_date || "") as string;
+      return db.localeCompare(da);
+    });
+    const top = sorted.slice(0, filters.limit ?? 10);
+    let msg = `🧾 *Despesas (${periodTxt})*\nTotal: ${fmtBRL(total)} (${filtered.length} lançamento${filtered.length === 1 ? "" : "s"})\n\n`;
+    top.forEach((e: any, i: number) => {
+      const date = e.paid_date || e.due_date || "";
+      const dateStr = date ? fmtDayMonth(date) : "—";
+      msg += `${i + 1}. ${fmtBRL(Number(e.amount) || 0)} — ${e.description || "—"} _(${e.category || "Outros"})_ — ${dateStr}\n`;
+    });
+    if (filtered.length > top.length) msg += `\n_… e mais ${filtered.length - top.length}._`;
+    return msg.trimEnd();
+  }
+
+  // intent === "expenses": total + breakdown por categoria
+  const catTxt = category ? ` em *${category}*` : "";
+  let msg = `💸 *Gastos${catTxt} (${periodTxt})*\nTotal: *${fmtBRL(total)}*`;
+  if (!category) {
+    const byCat = new Map<string, number>();
+    for (const e of filtered) {
+      const c = e.category || "Outros";
+      byCat.set(c, (byCat.get(c) || 0) + (Number(e.amount) || 0));
+    }
+    const sorted = [...byCat.entries()].sort((a, b) => b[1] - a[1]);
+    msg += `\n\n📂 *Por categoria:*\n`;
+    for (const [c, v] of sorted) {
+      msg += `• ${c}: ${fmtBRL(v)}\n`;
+    }
+  } else {
+    msg += `\n${filtered.length} lançamento${filtered.length === 1 ? "" : "s"}.`;
+  }
+  return msg.trimEnd();
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
