@@ -1967,7 +1967,7 @@ function LoanCardView({
       <DialogContent
         style={{ padding: 0 }}
         className={cn(
-          "left-2 right-2 top-2 bottom-2 h-[calc(100dvh-1rem)] w-auto max-w-none translate-x-0 translate-y-0 grid grid-rows-[auto_minmax(0,1fr)_auto] gap-0 overflow-hidden p-0 sm:left-[50%] sm:right-auto sm:top-[50%] sm:bottom-auto sm:h-auto sm:max-h-[85svh] sm:w-full sm:max-w-[340px] sm:translate-x-[-50%] sm:translate-y-[-50%]",
+          "left-2 right-2 top-2 bottom-[calc(env(safe-area-inset-bottom)+5.5rem)] h-auto w-auto max-w-none translate-x-0 translate-y-0 grid grid-rows-[auto_minmax(0,1fr)_auto] gap-0 overflow-hidden p-0 sm:left-[50%] sm:right-auto sm:top-[50%] sm:bottom-auto sm:h-auto sm:max-h-[85svh] sm:w-full sm:max-w-[340px] sm:translate-x-[-50%] sm:translate-y-[-50%]",
           paymentDialog?.type === "interest" && lateFees > 0 && "sm:max-w-[460px]"
         )}
       >
@@ -3625,7 +3625,7 @@ function LoanRowView({
       <DialogContent
         style={{ padding: 0 }}
         className={cn(
-          "left-2 right-2 top-2 bottom-2 h-[calc(100dvh-1rem)] w-auto max-w-none translate-x-0 translate-y-0 grid grid-rows-[auto_minmax(0,1fr)_auto] gap-0 overflow-hidden p-0 sm:left-[50%] sm:right-auto sm:top-[50%] sm:bottom-auto sm:h-auto sm:max-h-[85svh] sm:w-full sm:max-w-[340px] sm:translate-x-[-50%] sm:translate-y-[-50%]",
+          "left-2 right-2 top-2 bottom-[calc(env(safe-area-inset-bottom)+5.5rem)] h-auto w-auto max-w-none translate-x-0 translate-y-0 grid grid-rows-[auto_minmax(0,1fr)_auto] gap-0 overflow-hidden p-0 sm:left-[50%] sm:right-auto sm:top-[50%] sm:bottom-auto sm:h-auto sm:max-h-[85svh] sm:w-full sm:max-w-[340px] sm:translate-x-[-50%] sm:translate-y-[-50%]",
           paymentDialog?.type === "interest" && lateFees > 0 && "sm:max-w-[460px]"
         )}
       >
