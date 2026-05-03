@@ -786,11 +786,15 @@ export function useLoans() {
       partialMetadata.kind = "interest_partial";
       partialMetadata.cycle_due_date = loan.dueDate;
       partialMetadata.cycle_interest_total = baseInterest;
+      partialMetadata.cycle_fees_total = cycleFeesTarget;
+      partialMetadata.cycle_target_total = cycleTarget;
       partialMetadata.cycle_pending_after = Math.max(0, Math.round((cycleInterestPending - interestAmount) * 100) / 100);
     } else if (cyclePartialsPaid > 0) {
       partialMetadata.kind = "interest_partial_final";
       partialMetadata.cycle_due_date = loan.dueDate;
       partialMetadata.cycle_interest_total = baseInterest;
+      partialMetadata.cycle_fees_total = cycleFeesTarget;
+      partialMetadata.cycle_target_total = cycleTarget;
       partialMetadata.cycle_partials_total = cyclePartialsPaid;
     }
     if (options?.notes) partialMetadata.notes = options.notes;
@@ -804,7 +808,7 @@ export function useLoans() {
     };
     if (Object.keys(finalMetadata).length > 0) paymentPayload.metadata = finalMetadata;
     const renegPenaltyPending = Number(loan.renegotiationPenaltyTotal || 0);
-    const shouldClearRenegPenalty = advanceCycle && feesExtra > 0 && renegPenaltyPending > 0;
+    const shouldClearRenegPenalty = advanceCycle && cycleHadFees && renegPenaltyPending > 0;
     const loanUpdate: any = advanceCycle ? { due_date: newDueDate } : {};
     if (shouldClearRenegPenalty) {
       loanUpdate.renegotiation_penalty_total = 0;
