@@ -1964,7 +1964,13 @@ function LoanCardView({
       </CardContent>
     </Card>
     <Dialog open={!!paymentDialog} onOpenChange={(open) => !open && setPaymentDialog(null)}>
-      <DialogContent className={cn("sm:max-w-[340px] max-h-[85svh] grid-rows-[auto_minmax(0,1fr)_auto] p-0", paymentDialog?.type === "interest" && lateFees > 0 && "sm:max-w-[460px]")}>
+      <DialogContent
+        style={{ padding: 0 }}
+        className={cn(
+          "left-2 right-2 top-2 bottom-[calc(env(safe-area-inset-bottom)+7rem)] h-auto w-auto max-w-none translate-x-0 translate-y-0 block overflow-y-auto overscroll-contain p-0 touch-pan-y [-webkit-overflow-scrolling:touch] sm:left-[50%] sm:right-auto sm:top-[50%] sm:bottom-auto sm:h-auto sm:max-h-[85svh] sm:w-full sm:max-w-[340px] sm:translate-x-[-50%] sm:translate-y-[-50%] sm:grid sm:grid-rows-[auto_minmax(0,1fr)_auto] sm:gap-0 sm:overflow-hidden",
+          paymentDialog?.type === "interest" && lateFees > 0 && "sm:max-w-[460px]"
+        )}
+      >
         <DialogHeader className="px-6 pt-6">
           <DialogTitle>
             {paymentDialog?.type === "full" ? "Pagamento Total" :
@@ -1974,7 +1980,7 @@ function LoanCardView({
              paymentDialog?.type === "interest" ? "Pagar Juros" : "Pagamento Parcial"}
           </DialogTitle>
         </DialogHeader>
-        <div className="flex flex-col items-center gap-2 overflow-y-auto overscroll-contain px-6 [-webkit-overflow-scrolling:touch]">
+        <div className="flex flex-col items-center gap-2 overflow-visible px-6 pb-4 sm:min-h-0 sm:overflow-y-auto sm:overscroll-contain sm:touch-pan-y sm:[-webkit-overflow-scrolling:touch]">
           {paymentDialog?.type === "full" && (
             <div className="text-center p-3 bg-muted/50 rounded-lg w-full">
               <p className="text-xs text-muted-foreground">Total restante a receber</p>
@@ -2337,7 +2343,7 @@ function LoanCardView({
             className="rounded-md border pointer-events-auto"
           />
         </div>
-        <DialogFooter className="px-6 pb-6">
+        <DialogFooter className="shrink-0 px-6 pb-6 pt-3">
           <Button variant="outline" onClick={() => setPaymentDialog(null)}>Cancelar</Button>
           <Button onClick={confirmPayment} disabled={(activeMethods.length > 0 && !selectedMethodId) || (paymentDialog?.type === "payoff" && !(parseFloat(payoffAmount.replace(",", ".")) > 0)) || (paymentDialog?.type === "amortize" && !(parseFloat(amortizeAmount.replace(",", ".")) > 0 && parseFloat(amortizeAmount.replace(",", ".")) <= (Number(loan.amount) || 0)))}>Confirmar</Button>
         </DialogFooter>
@@ -3616,8 +3622,14 @@ function LoanRowView({
       </tr>
     )}
     <Dialog open={!!paymentDialog} onOpenChange={(open) => !open && setPaymentDialog(null)}>
-      <DialogContent className={cn("sm:max-w-[340px]", paymentDialog?.type === "interest" && lateFees > 0 && "sm:max-w-[460px]")}>
-        <DialogHeader>
+      <DialogContent
+        style={{ padding: 0 }}
+        className={cn(
+          "left-2 right-2 top-2 bottom-[calc(env(safe-area-inset-bottom)+7rem)] h-auto w-auto max-w-none translate-x-0 translate-y-0 block overflow-y-auto overscroll-contain p-0 touch-pan-y [-webkit-overflow-scrolling:touch] sm:left-[50%] sm:right-auto sm:top-[50%] sm:bottom-auto sm:h-auto sm:max-h-[85svh] sm:w-full sm:max-w-[340px] sm:translate-x-[-50%] sm:translate-y-[-50%] sm:grid sm:grid-rows-[auto_minmax(0,1fr)_auto] sm:gap-0 sm:overflow-hidden",
+          paymentDialog?.type === "interest" && lateFees > 0 && "sm:max-w-[460px]"
+        )}
+      >
+        <DialogHeader className="px-6 pt-6">
           <DialogTitle>
             {paymentDialog?.type === "full" ? "Pagamento Total" :
              paymentDialog?.type === "payoff" ? "Quitar Contrato" :
@@ -3626,7 +3638,7 @@ function LoanRowView({
              paymentDialog?.type === "interest" ? "Pagar Juros" : "Pagamento Parcial"}
           </DialogTitle>
         </DialogHeader>
-        <div className="flex flex-col items-center gap-2">
+        <div className="flex flex-col items-center gap-2 overflow-visible px-6 pb-4 sm:min-h-0 sm:overflow-y-auto sm:overscroll-contain sm:touch-pan-y sm:[-webkit-overflow-scrolling:touch]">
           {paymentDialog?.type === "full" && (
             <div className="text-center p-3 bg-muted/50 rounded-lg w-full">
               <p className="text-xs text-muted-foreground">Total restante a receber</p>
@@ -3988,7 +4000,7 @@ function LoanRowView({
             className="rounded-md border pointer-events-auto"
           />
         </div>
-        <DialogFooter>
+        <DialogFooter className="shrink-0 px-6 pb-6 pt-3">
           <Button variant="outline" onClick={() => setPaymentDialog(null)}>Cancelar</Button>
           <Button onClick={confirmPayment} disabled={(rowActiveMethods.length > 0 && !rowSelectedMethodId) || (paymentDialog?.type === "payoff" && !(parseFloat(payoffAmount.replace(",", ".")) > 0)) || (paymentDialog?.type === "amortize" && !(parseFloat(amortizeAmount.replace(",", ".")) > 0 && parseFloat(amortizeAmount.replace(",", ".")) <= (Number(loan.amount) || 0)))}>Confirmar</Button>
         </DialogFooter>
