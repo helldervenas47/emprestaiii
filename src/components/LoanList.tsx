@@ -351,72 +351,7 @@ function PaymentHistoryItem({
   );
 }
 
-        {/* Saldo pendente de juros do ciclo atual (parcela única / juros-only) */}
-        {loan.installments < 2 && loan.status !== "paid" && (() => {
-          const baseInterest = loan.customInterestValue != null && loan.customInterestValue > 0
-            ? loan.customInterestValue
-            : loan.amount * (loan.interestRate / 100);
-          const cyclePartials = allPayments
-            .filter((p) => p.loanId === loan.id && p.installmentNumber === 0
-              && (p as any).metadata?.kind === "interest_partial"
-              && (p.previousDueDate === loan.dueDate || (p as any).metadata?.cycle_due_date === loan.dueDate))
-            .reduce((s, p) => s + Number(p.amount || 0), 0);
-          if (cyclePartials <= 0) return null;
-          const pending = Math.max(0, Math.round((baseInterest - cyclePartials) * 100) / 100);
-          const dueStr = new Date(loan.dueDate + "T00:00:00").toLocaleDateString("pt-BR");
-          // Próxima data SOMENTE após quitação total
-          const rawAnchor = loan.originalDueDate || loan.dueDate;
-          const anchorRef = rawAnchor > loan.dueDate ? loan.dueDate : rawAnchor;
-          const freq = loan.interestType || "Mensal";
-          const advance = (d: Date) => {
-            if (freq === "Semanal") d.setDate(d.getDate() + 7);
-            else if (freq === "Quinzenal") d.setDate(d.getDate() + 15);
-            else {
-              const anchorDay = Number(anchorRef.split("-")[2]);
-              d.setMonth(d.getMonth() + 1);
-              if (Number.isFinite(anchorDay)) {
-                const lastDay = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
-                d.setDate(Math.min(anchorDay, lastDay));
-              }
-            }
-          };
-          const nextD = new Date(anchorRef + "T00:00:00");
-          advance(nextD);
-          const today = new Date();
-          const todayIso = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,"0")}-${String(today.getDate()).padStart(2,"0")}`;
-          let g = 0;
-          while (nextD.toISOString().split("T")[0] <= todayIso && g < 600) { advance(nextD); g++; }
-          const nextStr = nextD.toLocaleDateString("pt-BR");
-          const fullyPaid = pending <= 0;
-          return (
-            <div className="rounded-lg border border-warning/30 bg-warning/5 p-3 space-y-1.5 text-xs">
-              <div className="flex items-center justify-between">
-                <span className="font-semibold text-warning flex items-center gap-1">⏳ Juros parcial em aberto</span>
-                <span className="text-[10px] text-muted-foreground">Ciclo de {dueStr}</span>
-              </div>
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <p className="text-muted-foreground text-[10px]">Já recebido</p>
-                  <p className="font-semibold text-success tabular-nums">{formatCurrency(cyclePartials)}</p>
-                </div>
-                <div>
-                  <p className="text-muted-foreground text-[10px]">Saldo pendente</p>
-                  <p className="font-semibold text-warning tabular-nums">{formatCurrency(pending)}</p>
-                </div>
-              </div>
-              <div className="border-t border-warning/20 pt-1.5 flex justify-between">
-                <span className="text-muted-foreground">Vencimento atual</span>
-                <span className="font-medium tabular-nums">{dueStr}</span>
-              </div>
-              {fullyPaid && (
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Próximo vencimento</span>
-                  <span className="font-medium tabular-nums text-success">{nextStr}</span>
-                </div>
-              )}
-            </div>
-          );
-        })()}
+// removed: misplaced block
 
 function LoanCardView({
   loan, payments: allPayments, installmentSchedules, onPayment, onPartialPayment, onFullPayment, onInterestPayment, onAmortize, onRenegotiate, renegotiations = [], onUpdate, onDelete, onDeletePayment, onSaveSchedule, readOnly = false, no3d = false, existingTags = [], clients = [],
