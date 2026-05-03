@@ -352,6 +352,7 @@ function PaymentHistoryItem({
 }
 
 
+
 function LoanCardView({
   loan, payments: allPayments, installmentSchedules, onPayment, onPartialPayment, onFullPayment, onInterestPayment, onAmortize, onRenegotiate, renegotiations = [], onUpdate, onDelete, onDeletePayment, onSaveSchedule, readOnly = false, no3d = false, existingTags = [], clients = [],
 }: {
@@ -1257,6 +1258,48 @@ function LoanCardView({
             </p>
           </div>
         </div>
+
+        {/* Saldo pendente de juros do ciclo atual */}
+        {loan.installments < 2 && loan.status !== "paid" && (() => {
+          const baseInterest = loan.customInterestValue != null && loan.customInterestValue > 0
+            ? loan.customInterestValue
+            : loan.amount * (loan.interestRate / 100);
+          const cyclePartials = allPayments
+            .filter((p) => p.loanId === loan.id && p.installmentNumber === 0
+              && (p as any).metadata?.kind === "interest_partial"
+              && (p.previousDueDate === loan.dueDate || (p as any).metadata?.cycle_due_date === loan.dueDate))
+            .reduce((s, p) => s + Number(p.amount || 0), 0);
+          if (cyclePartials <= 0) return null;
+          const pending = Math.max(0, Math.round((baseInterest - cyclePartials) * 100) / 100);
+          const dueStr = new Date(loan.dueDate + "T00:00:00").toLocaleDateString("pt-BR");
+          return (
+            <div className="rounded-lg border border-warning/30 bg-warning/5 p-3 space-y-1.5 text-xs">
+              <div className="flex items-center justify-between">
+                <span className="font-semibold text-warning flex items-center gap-1">⏳ Juros parcial em aberto</span>
+                <span className="text-[10px] text-muted-foreground">Ciclo de {dueStr}</span>
+              </div>
+              <div className="grid grid-cols-3 gap-2">
+                <div>
+                  <p className="text-muted-foreground text-[10px]">Juros do período</p>
+                  <p className="font-semibold text-foreground tabular-nums">{formatCurrency(baseInterest)}</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground text-[10px]">Já recebido</p>
+                  <p className="font-semibold text-success tabular-nums">{formatCurrency(cyclePartials)}</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground text-[10px]">Saldo pendente</p>
+                  <p className="font-semibold text-warning tabular-nums">{formatCurrency(pending)}</p>
+                </div>
+              </div>
+              <div className="border-t border-warning/20 pt-1.5 flex justify-between">
+                <span className="text-muted-foreground">Vencimento atual</span>
+                <span className="font-medium tabular-nums">{dueStr}</span>
+              </div>
+              <p className="text-[10px] text-muted-foreground italic">Próximo vencimento será exibido após a quitação total deste ciclo.</p>
+            </div>
+          );
+        })()}
 
         {/* Vencimento / Pago */}
         <div className="grid grid-cols-2 gap-3">
