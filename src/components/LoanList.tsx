@@ -499,6 +499,12 @@ function LoanCardView({
   const interestOnly = loan.customInterestValue != null && loan.customInterestValue > 0
     ? loan.customInterestValue
     : loan.amount * (loan.interestRate / 100);
+  const interestCyclePartials = allPayments
+    .filter((p) => p.loanId === loan.id && p.installmentNumber === 0
+      && (p as any).metadata?.kind === "interest_partial"
+      && (p.previousDueDate === loan.dueDate || (p as any).metadata?.cycle_due_date === loan.dueDate))
+    .reduce((s, p) => s + Number(p.amount || 0), 0);
+  const interestPending = Math.max(0, Math.round((interestOnly - interestCyclePartials) * 100) / 100);
   const totalInterest = total - loan.amount;
   const profit = totalPaid - loan.amount;
   const badge = statusMap[category];
@@ -1756,7 +1762,11 @@ function LoanCardView({
                   </div>
                   <div>
                     <p className="text-sm font-medium text-foreground">Juros</p>
-                    <p className="text-[11px] text-muted-foreground">{formatCurrency(interestOnly)}</p>
+                    <p className="text-[11px] text-muted-foreground">
+                      {interestCyclePartials > 0 && interestPending < interestOnly
+                        ? <>Pendente: <span className="font-semibold text-warning">{formatCurrency(interestPending)}</span></>
+                        : formatCurrency(interestOnly)}
+                    </p>
                   </div>
                 </DropdownMenuItem>
                 )}
@@ -2569,6 +2579,12 @@ function LoanRowView({
   const interestOnlyRow = loan.customInterestValue != null && loan.customInterestValue > 0
     ? loan.customInterestValue
     : loan.amount * (loan.interestRate / 100);
+  const interestCyclePartialsRow = allPayments
+    .filter((p) => p.loanId === loan.id && p.installmentNumber === 0
+      && (p as any).metadata?.kind === "interest_partial"
+      && (p.previousDueDate === loan.dueDate || (p as any).metadata?.cycle_due_date === loan.dueDate))
+    .reduce((s, p) => s + Number(p.amount || 0), 0);
+  const interestPendingRow = Math.max(0, Math.round((interestOnlyRow - interestCyclePartialsRow) * 100) / 100);
   const isParcelado = (loan.paymentType === "Parcelado" || loan.installments >= 2) && loan.status !== "paid" && loan.paidInstallments < loan.installments;
   const category = getLoanCategory(loan, allPayments, installmentSchedules);
   const badge = statusMap[category];
@@ -3108,7 +3124,11 @@ function LoanRowView({
                       </div>
                       <div>
                         <p className="text-sm font-medium text-foreground">Juros</p>
-                        <p className="text-[11px] text-muted-foreground">{formatCurrency(interestOnlyRow)}</p>
+                        <p className="text-[11px] text-muted-foreground">
+                          {interestCyclePartialsRow > 0 && interestPendingRow < interestOnlyRow
+                            ? <>Pendente: <span className="font-semibold text-warning">{formatCurrency(interestPendingRow)}</span></>
+                            : formatCurrency(interestOnlyRow)}
+                        </p>
                       </div>
                     </DropdownMenuItem>
                     )}
