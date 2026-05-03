@@ -1264,13 +1264,18 @@ function LoanCardView({
           const baseInterest = loan.customInterestValue != null && loan.customInterestValue > 0
             ? loan.customInterestValue
             : loan.amount * (loan.interestRate / 100);
-          const cyclePartials = allPayments
+          const cyclePartialPayments = allPayments
             .filter((p) => p.loanId === loan.id && p.installmentNumber === 0
               && (p as any).metadata?.kind === "interest_partial"
-              && (p.previousDueDate === loan.dueDate || (p as any).metadata?.cycle_due_date === loan.dueDate))
-            .reduce((s, p) => s + Number(p.amount || 0), 0);
+              && (p.previousDueDate === loan.dueDate || (p as any).metadata?.cycle_due_date === loan.dueDate));
+          const cyclePartials = cyclePartialPayments.reduce((s, p) => s + Number(p.amount || 0), 0);
           if (cyclePartials <= 0) return null;
-          const pending = Math.max(0, Math.round((baseInterest - cyclePartials) * 100) / 100);
+          const cycleFees = cyclePartialPayments.reduce(
+            (m, p) => Math.max(m, Number((p as any).metadata?.cycle_fees_total || 0)),
+            0,
+          );
+          const cycleTarget = Math.round((baseInterest + cycleFees) * 100) / 100;
+          const pending = Math.max(0, Math.round((cycleTarget - cyclePartials) * 100) / 100);
           const dueStr = new Date(loan.dueDate + "T00:00:00").toLocaleDateString("pt-BR");
           return (
             <div className="rounded-lg border border-warning/30 bg-warning/5 p-3 space-y-1.5 text-xs">
@@ -1280,8 +1285,8 @@ function LoanCardView({
               </div>
               <div className="grid grid-cols-3 gap-2">
                 <div>
-                  <p className="text-muted-foreground text-[10px]">Juros do período</p>
-                  <p className="font-semibold text-foreground tabular-nums">{formatCurrency(baseInterest)}</p>
+                  <p className="text-muted-foreground text-[10px]">{cycleFees > 0 ? "Total do ciclo" : "Juros do período"}</p>
+                  <p className="font-semibold text-foreground tabular-nums">{formatCurrency(cycleTarget)}</p>
                 </div>
                 <div>
                   <p className="text-muted-foreground text-[10px]">Já recebido</p>
@@ -1292,6 +1297,12 @@ function LoanCardView({
                   <p className="font-semibold text-warning tabular-nums">{formatCurrency(pending)}</p>
                 </div>
               </div>
+              {cycleFees > 0 && (
+                <div className="flex justify-between text-[10px] text-muted-foreground">
+                  <span>Juros base: <span className="tabular-nums text-foreground">{formatCurrency(baseInterest)}</span></span>
+                  <span>Encargos: <span className="tabular-nums text-warning">{formatCurrency(cycleFees)}</span></span>
+                </div>
+              )}
               <div className="border-t border-warning/20 pt-1.5 flex justify-between">
                 <span className="text-muted-foreground">Vencimento atual</span>
                 <span className="font-medium tabular-nums">{dueStr}</span>
