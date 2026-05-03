@@ -3751,6 +3751,71 @@ function LoanRowView({
               </div>
             );
           })()}
+          {paymentDialog?.type === "interest" && (() => {
+            const baseInterest = loan.customInterestValue != null && loan.customInterestValue > 0
+              ? loan.customInterestValue
+              : loan.amount * (loan.interestRate / 100);
+            const cyclePartials = allPayments
+              .filter((p) => p.loanId === loan.id && p.installmentNumber === 0
+                && (p as any).metadata?.kind === "interest_partial"
+                && (p.previousDueDate === loan.dueDate || (p as any).metadata?.cycle_due_date === loan.dueDate))
+              .reduce((s, p) => s + Number(p.amount || 0), 0);
+            const pending = Math.max(0, Math.round((baseInterest - cyclePartials) * 100) / 100);
+            const partialRaw = parseFloat(interestPartialAmount.replace(",", "."));
+            const partialVal = interestPartialEnabled && isFinite(partialRaw) && partialRaw > 0 ? partialRaw : 0;
+            const exceeds = interestPartialEnabled && partialVal > pending && pending > 0;
+            const willClose = !interestPartialEnabled || (partialVal + 0.005 >= pending);
+            const rawAnchor = loan.originalDueDate || loan.dueDate;
+            const anchorRef = rawAnchor > loan.dueDate ? loan.dueDate : rawAnchor;
+            const freq = loan.interestType || "Mensal";
+            const advance = (d: Date) => {
+              if (freq === "Semanal") d.setDate(d.getDate() + 7);
+              else if (freq === "Quinzenal") d.setDate(d.getDate() + 15);
+              else {
+                const anchorDay = Number(anchorRef.split("-")[2]);
+                d.setMonth(d.getMonth() + 1);
+                if (Number.isFinite(anchorDay)) {
+                  const lastDay = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
+                  d.setDate(Math.min(anchorDay, lastDay));
+                }
+              }
+            };
+            const nextD = new Date(anchorRef + "T00:00:00");
+            advance(nextD);
+            const todayStr = paymentDate.toISOString().split("T")[0];
+            let g = 0;
+            while (nextD.toISOString().split("T")[0] <= todayStr && g < 600) { advance(nextD); g++; }
+            const nextDateStr = nextD.toLocaleDateString("pt-BR");
+            const dueStr = new Date(loan.dueDate + "T00:00:00").toLocaleDateString("pt-BR");
+            return (
+              <div className="w-full space-y-2.5">
+                <div className="rounded-lg border border-border/60 bg-muted/30 p-3 space-y-1.5 text-xs">
+                  <div className="flex justify-between"><span className="text-muted-foreground">Juros do período</span><span className="font-semibold tabular-nums">{rawFormatCurrency(baseInterest)}</span></div>
+                  <div className="flex justify-between"><span className="text-muted-foreground">Já pago no ciclo</span><span className="tabular-nums text-success">{rawFormatCurrency(cyclePartials)}</span></div>
+                  <div className="flex justify-between border-t border-border/40 pt-1.5"><span className="text-muted-foreground">Saldo pendente</span><span className="font-semibold tabular-nums text-primary">{rawFormatCurrency(pending)}</span></div>
+                  <div className="flex justify-between"><span className="text-muted-foreground">Vencimento atual</span><span className="tabular-nums">{dueStr}</span></div>
+                  <div className="flex justify-between"><span className="text-muted-foreground">Próximo após quitação</span><span className="tabular-nums">{nextDateStr}</span></div>
+                </div>
+                <label className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer select-none">
+                  <input type="checkbox" className="size-3.5 accent-primary" checked={interestPartialEnabled} onChange={(e) => { setInterestPartialEnabled(e.target.checked); if (!e.target.checked) setInterestPartialAmount(""); }} />
+                  Receber valor parcial
+                </label>
+                {interestPartialEnabled && (
+                  <div className="space-y-1">
+                    <Label htmlFor="int-partial-row" className="text-xs">Valor recebido (R$)</Label>
+                    <Input id="int-partial-row" type="number" step="0.01" min="0" inputMode="decimal" value={interestPartialAmount} onChange={(e) => setInterestPartialAmount(e.target.value)} placeholder={`Pendente: ${pending.toFixed(2)}`} />
+                    {exceeds && <p className="text-[11px] text-warning">Valor excede o saldo pendente. O excedente será desconsiderado.</p>}
+                    {!willClose && partialVal > 0 && <p className="text-[11px] text-muted-foreground">Vencimento permanece em {dueStr} até a quitação total do ciclo.</p>}
+                    {willClose && partialVal > 0 && <p className="text-[11px] text-success">Quita o ciclo. Próximo vencimento: {nextDateStr}.</p>}
+                  </div>
+                )}
+                <div className="space-y-1">
+                  <Label htmlFor="int-notes-row" className="text-xs">Observação (opcional)</Label>
+                  <Textarea id="int-notes-row" value={interestNotes} onChange={(e) => setInterestNotes(e.target.value)} placeholder="Ex: pago via Pix" className="min-h-[60px] text-sm" />
+                </div>
+              </div>
+            );
+          })()}
           {rowActiveMethods.length > 0 && (() => {
             const baseInt = loan.customInterestValue != null && loan.customInterestValue > 0 ? loan.customInterestValue : loan.amount * (loan.interestRate / 100);
             const cRaw = parseFloat(payoffAmount.replace(",", "."));
