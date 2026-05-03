@@ -120,7 +120,9 @@ export function LedgerView({ readOnly = false }: Props) {
               <ArrowUpRight className="h-4 w-4 sm:h-5 sm:w-5 text-success" />
             </div>
             <div className="min-w-0">
-              <p className="text-[11px] sm:text-xs text-muted-foreground">Entradas</p>
+              <p className="text-[11px] sm:text-xs text-muted-foreground truncate">
+                Entradas {filterMonth !== "all" ? `· ${formatMonthLabel(filterMonth)}` : "· Todo período"}
+              </p>
               <p className="text-sm sm:text-xl font-bold text-success truncate">{formatBRL(totals.totalIn)}</p>
             </div>
           </CardContent>
@@ -131,7 +133,9 @@ export function LedgerView({ readOnly = false }: Props) {
               <ArrowDownRight className="h-4 w-4 sm:h-5 sm:w-5 text-destructive" />
             </div>
             <div className="min-w-0">
-              <p className="text-[11px] sm:text-xs text-muted-foreground">Saídas</p>
+              <p className="text-[11px] sm:text-xs text-muted-foreground truncate">
+                Saídas {filterMonth !== "all" ? `· ${formatMonthLabel(filterMonth)}` : "· Todo período"}
+              </p>
               <p className="text-sm sm:text-xl font-bold text-destructive truncate">{formatBRL(totals.totalOut)}</p>
             </div>
           </CardContent>
