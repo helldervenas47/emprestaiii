@@ -3124,7 +3124,11 @@ function LoanRowView({
                       </div>
                       <div>
                         <p className="text-sm font-medium text-foreground">Juros</p>
-                        <p className="text-[11px] text-muted-foreground">{formatCurrency(interestOnlyRow)}</p>
+                        <p className="text-[11px] text-muted-foreground">
+                          {interestCyclePartialsRow > 0 && interestPendingRow < interestOnlyRow
+                            ? <>Pendente: <span className="font-semibold text-warning">{formatCurrency(interestPendingRow)}</span></>
+                            : formatCurrency(interestOnlyRow)}
+                        </p>
                       </div>
                     </DropdownMenuItem>
                     )}
