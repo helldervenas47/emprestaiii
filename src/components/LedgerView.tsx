@@ -37,6 +37,7 @@ export function LedgerView({ readOnly = false }: Props) {
   const [loading, setLoading] = useState(true);
   const [filterDir, setFilterDir] = useState<"all" | LedgerDirection>("all");
   const [filterCat, setFilterCat] = useState<"all" | LedgerCategory>("all");
+  const [filterMonth, setFilterMonth] = useState<string>(() => todayInAppTz().slice(0, 7));
   const [adjustOpen, setAdjustOpen] = useState(false);
   const [editEntry, setEditEntry] = useState<LedgerEntry | null>(null);
 
