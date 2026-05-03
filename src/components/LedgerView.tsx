@@ -37,6 +37,7 @@ export function LedgerView({ readOnly = false }: Props) {
   const [loading, setLoading] = useState(true);
   const [filterDir, setFilterDir] = useState<"all" | LedgerDirection>("all");
   const [filterCat, setFilterCat] = useState<"all" | LedgerCategory>("all");
+  const [filterMonth, setFilterMonth] = useState<string>(() => todayInAppTz().slice(0, 7));
   const [adjustOpen, setAdjustOpen] = useState(false);
   const [editEntry, setEditEntry] = useState<LedgerEntry | null>(null);
 
@@ -55,6 +56,7 @@ export function LedgerView({ readOnly = false }: Props) {
       .filter((e) => {
         if (filterDir !== "all" && e.direction !== filterDir) return false;
         if (filterCat !== "all" && e.category !== filterCat) return false;
+        if (filterMonth !== "all" && !e.occurred_on.startsWith(filterMonth)) return false;
         return true;
       })
       .sort((a, b) => {
@@ -62,13 +64,27 @@ export function LedgerView({ readOnly = false }: Props) {
         if ((a.created_at ?? "") !== (b.created_at ?? "")) return (b.created_at ?? "").localeCompare(a.created_at ?? "");
         return b.occurred_on.localeCompare(a.occurred_on);
       });
-  }, [entries, filterDir, filterCat]);
+  }, [entries, filterDir, filterCat, filterMonth]);
 
   const totals = useMemo(() => {
     const totalIn = filtered.filter((e) => e.direction === "in").reduce((a, e) => a + Number(e.amount), 0);
     const totalOut = filtered.filter((e) => e.direction === "out").reduce((a, e) => a + Number(e.amount), 0);
     return { totalIn, totalOut, net: totalIn - totalOut };
   }, [filtered]);
+
+  const availableMonths = useMemo(() => {
+    const set = new Set<string>();
+    entries.forEach((e) => { if (e.occurred_on) set.add(e.occurred_on.slice(0, 7)); });
+    set.add(todayInAppTz().slice(0, 7));
+    return Array.from(set).sort((a, b) => b.localeCompare(a));
+  }, [entries]);
+
+  const formatMonthLabel = (ym: string) => {
+    const [y, m] = ym.split("-").map(Number);
+    const d = new Date(y, (m || 1) - 1, 1);
+    const label = d.toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
+    return label.charAt(0).toUpperCase() + label.slice(1);
+  };
 
   const handleDelete = async (id: string) => {
     if (!confirm("Excluir este lançamento? O saldo será ajustado automaticamente.")) return;
@@ -104,7 +120,9 @@ export function LedgerView({ readOnly = false }: Props) {
               <ArrowUpRight className="h-4 w-4 sm:h-5 sm:w-5 text-success" />
             </div>
             <div className="min-w-0">
-              <p className="text-[11px] sm:text-xs text-muted-foreground">Entradas</p>
+              <p className="text-[11px] sm:text-xs text-muted-foreground truncate">
+                Entradas {filterMonth !== "all" ? `· ${formatMonthLabel(filterMonth)}` : "· Todo período"}
+              </p>
               <p className="text-sm sm:text-xl font-bold text-success truncate">{formatBRL(totals.totalIn)}</p>
             </div>
           </CardContent>
@@ -115,7 +133,9 @@ export function LedgerView({ readOnly = false }: Props) {
               <ArrowDownRight className="h-4 w-4 sm:h-5 sm:w-5 text-destructive" />
             </div>
             <div className="min-w-0">
-              <p className="text-[11px] sm:text-xs text-muted-foreground">Saídas</p>
+              <p className="text-[11px] sm:text-xs text-muted-foreground truncate">
+                Saídas {filterMonth !== "all" ? `· ${formatMonthLabel(filterMonth)}` : "· Todo período"}
+              </p>
               <p className="text-sm sm:text-xl font-bold text-destructive truncate">{formatBRL(totals.totalOut)}</p>
             </div>
           </CardContent>
@@ -139,6 +159,15 @@ export function LedgerView({ readOnly = false }: Props) {
             <SelectItem value="all">Todas as categorias</SelectItem>
             {Object.entries(categoryLabels).map(([k, v]) => (
               <SelectItem key={k} value={k}>{v}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Select value={filterMonth} onValueChange={(v) => setFilterMonth(v)}>
+          <SelectTrigger className="h-9 flex-1 min-w-[140px] sm:flex-none sm:w-[180px]"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todo período</SelectItem>
+            {availableMonths.map((ym) => (
+              <SelectItem key={ym} value={ym}>{formatMonthLabel(ym)}</SelectItem>
             ))}
           </SelectContent>
         </Select>
