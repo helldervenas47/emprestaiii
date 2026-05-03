@@ -606,6 +606,9 @@ function LoanCardView({
     setPayoffAmount("");
     setAmortizeAmount("");
     setInterestSelection("normal");
+    setInterestPartialEnabled(false);
+    setInterestPartialAmount("");
+    setInterestNotes("");
     setPaymentDialog({ type, amount });
   };
 
@@ -2445,6 +2448,9 @@ function LoanRowView({
     setPayoffAmount("");
     setAmortizeAmount("");
     setInterestSelection("normal");
+    setInterestPartialEnabled(false);
+    setInterestPartialAmount("");
+    setInterestNotes("");
     setPaymentDialog({ type, amount });
   };
 
