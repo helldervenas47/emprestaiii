@@ -641,7 +641,7 @@ export function useLoans() {
     await fetchLoans();
   }, [user, dataOwnerId, loans, payments, fetchLoans, fetchPayments]);
 
-  const addInterestOnlyPayment = useCallback(async (loanId: string, paymentDate?: string, customAmount?: number, feesAmount?: number, paymentMethodId?: string | null, paymentSplit?: PaymentSplit | null) => {
+  const addInterestOnlyPayment = useCallback(async (loanId: string, paymentDate?: string, customAmount?: number, feesAmount?: number, paymentMethodId?: string | null, paymentSplit?: PaymentSplit | null, options?: { partial?: boolean; notes?: string | null }) => {
     if (!user || !dataOwnerId) throw new Error("Sessão ainda não carregada");
     const loan = loans.find((l) => l.id === loanId);
     if (!loan) throw new Error("Empréstimo não encontrado");
