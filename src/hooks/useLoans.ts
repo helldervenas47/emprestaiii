@@ -766,10 +766,13 @@ export function useLoans() {
         }
       }
     };
+    // Avança a partir da âncora original até superar o vencimento atual do contrato
+    // (NÃO a data do pagamento). Isso garante que pagar com atraso de poucos dias
+    // não pule o próximo ciclo — ex.: âncora 02/04, dueDate 29/04, pago 03/05 → próximo 02/05.
     const currentDue = new Date(anchorRef + "T00:00:00");
     advance(currentDue);
     let guard = 0;
-    while (currentDue.toISOString().split("T")[0] <= dateStr && guard < 600) {
+    while (currentDue.toISOString().split("T")[0] <= loan.dueDate && guard < 600) {
       advance(currentDue);
       guard += 1;
     }
