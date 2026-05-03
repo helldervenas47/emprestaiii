@@ -707,18 +707,27 @@ export function useLoans() {
       ? loan.customInterestValue
       : loan.amount * (loan.interestRate / 100);
 
-    // 🔄 Soma pagamentos parciais já feitos no CICLO ATUAL (juros pendentes deste vencimento).
+    // 🔄 Soma pagamentos parciais já feitos no CICLO ATUAL (juros + encargos pendentes deste vencimento).
     // Pagamentos parciais ficam registrados com installment_number = 0 e metadata.kind = "interest_partial",
-    // e NÃO avançam o due_date. Quando a soma atingir baseInterest, o ciclo é fechado.
-    const cyclePartialsPaid = payments
+    // e NÃO avançam o due_date. Quando a soma atingir o alvo do ciclo (juros + multa/encargos), fecha.
+    const cyclePartials = payments
       .filter((p) => p.loanId === loanId && p.installmentNumber === 0
         && (p as any).metadata?.kind === "interest_partial"
-        && (p.previousDueDate === loan.dueDate || !(p as any).metadata?.cycle_due_date || (p as any).metadata?.cycle_due_date === loan.dueDate))
-      .reduce((s, p) => s + Number(p.amount || 0), 0);
-    const cycleInterestPending = Math.max(0, Math.round((baseInterest - cyclePartialsPaid) * 100) / 100);
-
-    const requestedAmount = customAmount != null && customAmount > 0 ? customAmount : cycleInterestPending || baseInterest;
+        && (p.previousDueDate === loan.dueDate || !(p as any).metadata?.cycle_due_date || (p as any).metadata?.cycle_due_date === loan.dueDate));
+    const cyclePartialsPaid = cyclePartials.reduce((s, p) => s + Number(p.amount || 0), 0);
+    // Maior alvo de fees registrado em parciais anteriores (preserva o cycle_fees_target ao longo das parciais)
+    const priorCycleFeesTarget = cyclePartials.reduce(
+      (m, p) => Math.max(m, Number((p as any).metadata?.cycle_fees_total || 0)),
+      0,
+    );
     const isExplicitPartial = !!options?.partial;
+    // Em modo parcial com fees, o alvo do ciclo cresce para juros + multa/encargos
+    const callFeesTarget = appliedFees > 0 ? appliedFees : 0;
+    const cycleFeesTarget = Math.max(priorCycleFeesTarget, isExplicitPartial ? callFeesTarget : 0);
+    const cycleTarget = Math.round((baseInterest + cycleFeesTarget) * 100) / 100;
+    const cycleInterestPending = Math.max(0, Math.round((cycleTarget - cyclePartialsPaid) * 100) / 100);
+
+    const requestedAmount = customAmount != null && customAmount > 0 ? customAmount : cycleInterestPending || cycleTarget;
     // Tolerância: ≥ 99,5% do pendente é considerado quitação total do ciclo.
     const closesCycle = !isExplicitPartial && requestedAmount + 0.005 >= cycleInterestPending && cycleInterestPending > 0;
     // Se for parcial OU não fechar o ciclo, NÃO avança vencimento.
@@ -731,7 +740,12 @@ export function useLoans() {
       interestAmount = cycleInterestPending;
     }
 
-    const feesExtra = feesAmount != null && feesAmount > 0 ? feesAmount : 0;
+    // Em modo parcial com fees, NÃO inserimos linha separada de late_fee — o valor parcial
+    // já contempla a fração paga de juros + encargos. Em modo NÃO parcial mantemos comportamento atual.
+    const feesExtra = (!isExplicitPartial && feesAmount != null && feesAmount > 0) ? feesAmount : 0;
+    // No fechamento do ciclo (advanceCycle), se houve fees acumulados em parciais anteriores,
+    // limpamos a multa de renegociação mesmo que feesExtra seja 0 nesta chamada.
+    const cycleHadFees = priorCycleFeesTarget > 0 || feesExtra > 0;
     // Regra: o próximo vencimento após pagar juros é SEMPRE calculado a partir
     // da ÂNCORA original (originalDueDate), IGNORANDO qualquer adiamento feito
     // por renegociação no due_date. Avançamos ciclos a partir da âncora até
@@ -772,11 +786,15 @@ export function useLoans() {
       partialMetadata.kind = "interest_partial";
       partialMetadata.cycle_due_date = loan.dueDate;
       partialMetadata.cycle_interest_total = baseInterest;
+      partialMetadata.cycle_fees_total = cycleFeesTarget;
+      partialMetadata.cycle_target_total = cycleTarget;
       partialMetadata.cycle_pending_after = Math.max(0, Math.round((cycleInterestPending - interestAmount) * 100) / 100);
     } else if (cyclePartialsPaid > 0) {
       partialMetadata.kind = "interest_partial_final";
       partialMetadata.cycle_due_date = loan.dueDate;
       partialMetadata.cycle_interest_total = baseInterest;
+      partialMetadata.cycle_fees_total = cycleFeesTarget;
+      partialMetadata.cycle_target_total = cycleTarget;
       partialMetadata.cycle_partials_total = cyclePartialsPaid;
     }
     if (options?.notes) partialMetadata.notes = options.notes;
@@ -790,7 +808,7 @@ export function useLoans() {
     };
     if (Object.keys(finalMetadata).length > 0) paymentPayload.metadata = finalMetadata;
     const renegPenaltyPending = Number(loan.renegotiationPenaltyTotal || 0);
-    const shouldClearRenegPenalty = advanceCycle && feesExtra > 0 && renegPenaltyPending > 0;
+    const shouldClearRenegPenalty = advanceCycle && cycleHadFees && renegPenaltyPending > 0;
     const loanUpdate: any = advanceCycle ? { due_date: newDueDate } : {};
     if (shouldClearRenegPenalty) {
       loanUpdate.renegotiation_penalty_total = 0;
