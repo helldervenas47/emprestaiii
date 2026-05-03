@@ -132,7 +132,7 @@ interface Props {
   onPayment: (loanId: string, paymentDate?: string, paymentMethodId?: string | null, paymentSplit?: PaymentSplit | null) => void;
   onPartialPayment: (loanId: string, amount: number, paymentDate?: string, paymentMethodId?: string | null, paymentSplit?: PaymentSplit | null) => void;
   onFullPayment?: (loanId: string, paymentDate?: string, customAmount?: number, paymentMethodId?: string | null, paymentSplit?: PaymentSplit | null) => void;
-  onInterestPayment: (loanId: string, paymentDate?: string, customAmount?: number, feesAmount?: number, paymentMethodId?: string | null, paymentSplit?: PaymentSplit | null) => void;
+  onInterestPayment: (loanId: string, paymentDate?: string, customAmount?: number, feesAmount?: number, paymentMethodId?: string | null, paymentSplit?: PaymentSplit | null, options?: { partial?: boolean; notes?: string | null }) => void;
   onAmortize?: (loanId: string, amount: number, paymentDate?: string, paymentMethodId?: string | null, paymentSplit?: PaymentSplit | null) => Promise<void> | void;
   onRenegotiate?: (loanId: string, params: { type: "no_interest" | "with_penalty"; penaltyMode?: "fixed" | "percentage" | null; penaltyInput?: number | null; penaltyDistribution?: "diluted" | "first" | null; newInstallments?: number | null; notes?: string | null; selectedInstallmentNumbers?: number[] | null; firstDueDate?: string | null }) => Promise<void> | void;
   onUpdate: (id: string, data: Partial<Omit<Loan, "id">>) => void;
@@ -361,7 +361,7 @@ function LoanCardView({
   onPayment: (date?: string, paymentMethodId?: string | null, paymentSplit?: PaymentSplit | null) => void;
   onPartialPayment: (amount: number, date?: string, paymentMethodId?: string | null, paymentSplit?: PaymentSplit | null) => void;
   onFullPayment?: (date?: string, customAmount?: number, paymentMethodId?: string | null, paymentSplit?: PaymentSplit | null) => void;
-  onInterestPayment: (date?: string, customAmount?: number, feesAmount?: number, paymentMethodId?: string | null, paymentSplit?: PaymentSplit | null) => void;
+  onInterestPayment: (date?: string, customAmount?: number, feesAmount?: number, paymentMethodId?: string | null, paymentSplit?: PaymentSplit | null, options?: { partial?: boolean; notes?: string | null }) => void;
   onAmortize?: (amount: number, date?: string, paymentMethodId?: string | null, paymentSplit?: PaymentSplit | null) => Promise<void> | void;
   onRenegotiate?: (params: { type: "no_interest" | "with_penalty"; penaltyMode?: "fixed" | "percentage" | null; penaltyInput?: number | null; penaltyDistribution?: "diluted" | "first" | null; newInstallments?: number | null; notes?: string | null; selectedInstallmentNumbers?: number[] | null; firstDueDate?: string | null }) => Promise<void> | void;
   renegotiations?: LoanRenegotiation[];
@@ -389,6 +389,9 @@ function LoanCardView({
   const [newTag, setNewTag] = useState("");
   const [paymentDialog, setPaymentDialog] = useState<{ type: "installment" | "interest" | "partial" | "full" | "payoff" | "amortize"; amount?: number } | null>(null);
   const [interestSelection, setInterestSelection] = useState<"normal" | "withFees">("normal");
+  const [interestPartialEnabled, setInterestPartialEnabled] = useState(false);
+  const [interestPartialAmount, setInterestPartialAmount] = useState("");
+  const [interestNotes, setInterestNotes] = useState("");
   const [payoffAmount, setPayoffAmount] = useState("");
   const [amortizeAmount, setAmortizeAmount] = useState("");
   const [paymentDate, setPaymentDate] = useState<Date>(new Date());
@@ -603,6 +606,9 @@ function LoanCardView({
     setPayoffAmount("");
     setAmortizeAmount("");
     setInterestSelection("normal");
+    setInterestPartialEnabled(false);
+    setInterestPartialAmount("");
+    setInterestNotes("");
     setPaymentDialog({ type, amount });
   };
 
@@ -685,10 +691,14 @@ function LoanCardView({
       } else if (dialogType === "installment") {
         await onPayment(dateStr, mid, split);
       } else if (dialogType === "interest") {
+        const partialRaw = parseFloat(interestPartialAmount.replace(",", "."));
+        const partialVal = interestPartialEnabled && isFinite(partialRaw) && partialRaw > 0 ? partialRaw : undefined;
+        const notes = interestNotes.trim() || null;
+        const opts = (interestPartialEnabled || notes) ? { partial: interestPartialEnabled, notes } : undefined;
         if (interestSelection === "withFees" && lateFees > 0) {
-          await onInterestPayment(dateStr, undefined, lateFees, mid, split);
+          await onInterestPayment(dateStr, partialVal, lateFees, mid, split, opts);
         } else {
-          await onInterestPayment(dateStr, undefined, undefined, mid, split);
+          await onInterestPayment(dateStr, partialVal, undefined, mid, split, opts);
         }
       } else if (dialogType === "partial" && dialogAmount) {
         await onPartialPayment(dialogAmount, dateStr, mid, split);
@@ -2113,6 +2123,72 @@ function LoanCardView({
               </div>
             );
           })()}
+          {paymentDialog?.type === "interest" && (() => {
+            const baseInterest = loan.customInterestValue != null && loan.customInterestValue > 0
+              ? loan.customInterestValue
+              : loan.amount * (loan.interestRate / 100);
+            const cyclePartials = allPayments
+              .filter((p) => p.loanId === loan.id && p.installmentNumber === 0
+                && (p as any).metadata?.kind === "interest_partial"
+                && (p.previousDueDate === loan.dueDate || (p as any).metadata?.cycle_due_date === loan.dueDate))
+              .reduce((s, p) => s + Number(p.amount || 0), 0);
+            const pending = Math.max(0, Math.round((baseInterest - cyclePartials) * 100) / 100);
+            const partialRaw = parseFloat(interestPartialAmount.replace(",", "."));
+            const partialVal = interestPartialEnabled && isFinite(partialRaw) && partialRaw > 0 ? partialRaw : 0;
+            const exceeds = interestPartialEnabled && partialVal > pending && pending > 0;
+            const willClose = !interestPartialEnabled || (partialVal + 0.005 >= pending);
+            // Próxima data após quitação total: avança 1 ciclo a partir da âncora original
+            const rawAnchor = loan.originalDueDate || loan.dueDate;
+            const anchorRef = rawAnchor > loan.dueDate ? loan.dueDate : rawAnchor;
+            const freq = loan.interestType || "Mensal";
+            const advance = (d: Date) => {
+              if (freq === "Semanal") d.setDate(d.getDate() + 7);
+              else if (freq === "Quinzenal") d.setDate(d.getDate() + 15);
+              else {
+                const anchorDay = Number(anchorRef.split("-")[2]);
+                d.setMonth(d.getMonth() + 1);
+                if (Number.isFinite(anchorDay)) {
+                  const lastDay = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
+                  d.setDate(Math.min(anchorDay, lastDay));
+                }
+              }
+            };
+            const nextD = new Date(anchorRef + "T00:00:00");
+            advance(nextD);
+            const todayStr = paymentDate.toISOString().split("T")[0];
+            let g = 0;
+            while (nextD.toISOString().split("T")[0] <= todayStr && g < 600) { advance(nextD); g++; }
+            const nextDateStr = nextD.toLocaleDateString("pt-BR");
+            const dueStr = new Date(loan.dueDate + "T00:00:00").toLocaleDateString("pt-BR");
+            return (
+              <div className="w-full space-y-2.5">
+                <div className="rounded-lg border border-border/60 bg-muted/30 p-3 space-y-1.5 text-xs">
+                  <div className="flex justify-between"><span className="text-muted-foreground">Juros do período</span><span className="font-semibold tabular-nums">{rawFormatCurrency(baseInterest)}</span></div>
+                  <div className="flex justify-between"><span className="text-muted-foreground">Já pago no ciclo</span><span className="tabular-nums text-success">{rawFormatCurrency(cyclePartials)}</span></div>
+                  <div className="flex justify-between border-t border-border/40 pt-1.5"><span className="text-muted-foreground">Saldo pendente</span><span className="font-semibold tabular-nums text-primary">{rawFormatCurrency(pending)}</span></div>
+                  <div className="flex justify-between"><span className="text-muted-foreground">Vencimento atual</span><span className="tabular-nums">{dueStr}</span></div>
+                  <div className="flex justify-between"><span className="text-muted-foreground">Próximo após quitação</span><span className="tabular-nums">{nextDateStr}</span></div>
+                </div>
+                <label className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer select-none">
+                  <input type="checkbox" className="size-3.5 accent-primary" checked={interestPartialEnabled} onChange={(e) => { setInterestPartialEnabled(e.target.checked); if (!e.target.checked) setInterestPartialAmount(""); }} />
+                  Receber valor parcial
+                </label>
+                {interestPartialEnabled && (
+                  <div className="space-y-1">
+                    <Label htmlFor="int-partial" className="text-xs">Valor recebido (R$)</Label>
+                    <Input id="int-partial" type="number" step="0.01" min="0" inputMode="decimal" value={interestPartialAmount} onChange={(e) => setInterestPartialAmount(e.target.value)} placeholder={`Pendente: ${pending.toFixed(2)}`} />
+                    {exceeds && <p className="text-[11px] text-warning">Valor excede o saldo pendente. O excedente será desconsiderado.</p>}
+                    {!willClose && partialVal > 0 && <p className="text-[11px] text-muted-foreground">Vencimento permanece em {dueStr} até a quitação total do ciclo.</p>}
+                    {willClose && partialVal > 0 && <p className="text-[11px] text-success">Quita o ciclo. Próximo vencimento: {nextDateStr}.</p>}
+                  </div>
+                )}
+                <div className="space-y-1">
+                  <Label htmlFor="int-notes" className="text-xs">Observação (opcional)</Label>
+                  <Textarea id="int-notes" value={interestNotes} onChange={(e) => setInterestNotes(e.target.value)} placeholder="Ex: pago via Pix" className="min-h-[60px] text-sm" />
+                </div>
+              </div>
+            );
+          })()}
           {activeMethods.length > 0 && (() => {
             const baseInt = loan.customInterestValue != null && loan.customInterestValue > 0 ? loan.customInterestValue : loan.amount * (loan.interestRate / 100);
             const cRaw = parseFloat(payoffAmount.replace(",", "."));
@@ -2275,7 +2351,7 @@ function LoanRowView({
   onPayment: (date?: string, paymentMethodId?: string | null, paymentSplit?: PaymentSplit | null) => void;
   onPartialPayment: (amount: number, date?: string, paymentMethodId?: string | null, paymentSplit?: PaymentSplit | null) => void;
   onFullPayment?: (date?: string, customAmount?: number, paymentMethodId?: string | null, paymentSplit?: PaymentSplit | null) => void;
-  onInterestPayment: (date?: string, customAmount?: number, feesAmount?: number, paymentMethodId?: string | null, paymentSplit?: PaymentSplit | null) => void;
+  onInterestPayment: (date?: string, customAmount?: number, feesAmount?: number, paymentMethodId?: string | null, paymentSplit?: PaymentSplit | null, options?: { partial?: boolean; notes?: string | null }) => void;
   onAmortize?: (amount: number, date?: string, paymentMethodId?: string | null, paymentSplit?: PaymentSplit | null) => Promise<void> | void;
   onRenegotiate?: (params: { type: "no_interest" | "with_penalty"; penaltyMode?: "fixed" | "percentage" | null; penaltyInput?: number | null; penaltyDistribution?: "diluted" | "first" | null; newInstallments?: number | null; notes?: string | null; selectedInstallmentNumbers?: number[] | null; firstDueDate?: string | null }) => Promise<void> | void;
   renegotiations?: LoanRenegotiation[];
@@ -2302,6 +2378,9 @@ function LoanRowView({
   const [partialDate, setPartialDate] = useState<Date>(new Date());
   const [paymentDialog, setPaymentDialog] = useState<{ type: "installment" | "interest" | "partial" | "full" | "payoff" | "amortize"; amount?: number } | null>(null);
   const [interestSelection, setInterestSelection] = useState<"normal" | "withFees">("normal");
+  const [interestPartialEnabled, setInterestPartialEnabled] = useState(false);
+  const [interestPartialAmount, setInterestPartialAmount] = useState("");
+  const [interestNotes, setInterestNotes] = useState("");
   const [payoffAmount, setPayoffAmount] = useState("");
   const [amortizeAmount, setAmortizeAmount] = useState("");
   const [showHistory, setShowHistory] = useState(false);
@@ -2439,6 +2518,9 @@ function LoanRowView({
     setPayoffAmount("");
     setAmortizeAmount("");
     setInterestSelection("normal");
+    setInterestPartialEnabled(false);
+    setInterestPartialAmount("");
+    setInterestNotes("");
     setPaymentDialog({ type, amount });
   };
 
@@ -2519,10 +2601,14 @@ function LoanRowView({
       } else if (dialogType === "installment") {
         await onPayment(dateStr, mid, split);
       } else if (dialogType === "interest") {
+        const partialRaw = parseFloat(interestPartialAmount.replace(",", "."));
+        const partialVal = interestPartialEnabled && isFinite(partialRaw) && partialRaw > 0 ? partialRaw : undefined;
+        const notes = interestNotes.trim() || null;
+        const opts = (interestPartialEnabled || notes) ? { partial: interestPartialEnabled, notes } : undefined;
         if (interestSelection === "withFees" && lateFees > 0) {
-          await onInterestPayment(dateStr, undefined, lateFees, mid, split);
+          await onInterestPayment(dateStr, partialVal, lateFees, mid, split, opts);
         } else {
-          await onInterestPayment(dateStr, undefined, undefined, mid, split);
+          await onInterestPayment(dateStr, partialVal, undefined, mid, split, opts);
         }
       } else if (dialogType === "partial" && dialogAmount) {
         await onPartialPayment(dialogAmount, dateStr, mid, split);
@@ -3665,6 +3751,71 @@ function LoanRowView({
               </div>
             );
           })()}
+          {paymentDialog?.type === "interest" && (() => {
+            const baseInterest = loan.customInterestValue != null && loan.customInterestValue > 0
+              ? loan.customInterestValue
+              : loan.amount * (loan.interestRate / 100);
+            const cyclePartials = allPayments
+              .filter((p) => p.loanId === loan.id && p.installmentNumber === 0
+                && (p as any).metadata?.kind === "interest_partial"
+                && (p.previousDueDate === loan.dueDate || (p as any).metadata?.cycle_due_date === loan.dueDate))
+              .reduce((s, p) => s + Number(p.amount || 0), 0);
+            const pending = Math.max(0, Math.round((baseInterest - cyclePartials) * 100) / 100);
+            const partialRaw = parseFloat(interestPartialAmount.replace(",", "."));
+            const partialVal = interestPartialEnabled && isFinite(partialRaw) && partialRaw > 0 ? partialRaw : 0;
+            const exceeds = interestPartialEnabled && partialVal > pending && pending > 0;
+            const willClose = !interestPartialEnabled || (partialVal + 0.005 >= pending);
+            const rawAnchor = loan.originalDueDate || loan.dueDate;
+            const anchorRef = rawAnchor > loan.dueDate ? loan.dueDate : rawAnchor;
+            const freq = loan.interestType || "Mensal";
+            const advance = (d: Date) => {
+              if (freq === "Semanal") d.setDate(d.getDate() + 7);
+              else if (freq === "Quinzenal") d.setDate(d.getDate() + 15);
+              else {
+                const anchorDay = Number(anchorRef.split("-")[2]);
+                d.setMonth(d.getMonth() + 1);
+                if (Number.isFinite(anchorDay)) {
+                  const lastDay = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
+                  d.setDate(Math.min(anchorDay, lastDay));
+                }
+              }
+            };
+            const nextD = new Date(anchorRef + "T00:00:00");
+            advance(nextD);
+            const todayStr = paymentDate.toISOString().split("T")[0];
+            let g = 0;
+            while (nextD.toISOString().split("T")[0] <= todayStr && g < 600) { advance(nextD); g++; }
+            const nextDateStr = nextD.toLocaleDateString("pt-BR");
+            const dueStr = new Date(loan.dueDate + "T00:00:00").toLocaleDateString("pt-BR");
+            return (
+              <div className="w-full space-y-2.5">
+                <div className="rounded-lg border border-border/60 bg-muted/30 p-3 space-y-1.5 text-xs">
+                  <div className="flex justify-between"><span className="text-muted-foreground">Juros do período</span><span className="font-semibold tabular-nums">{rawFormatCurrency(baseInterest)}</span></div>
+                  <div className="flex justify-between"><span className="text-muted-foreground">Já pago no ciclo</span><span className="tabular-nums text-success">{rawFormatCurrency(cyclePartials)}</span></div>
+                  <div className="flex justify-between border-t border-border/40 pt-1.5"><span className="text-muted-foreground">Saldo pendente</span><span className="font-semibold tabular-nums text-primary">{rawFormatCurrency(pending)}</span></div>
+                  <div className="flex justify-between"><span className="text-muted-foreground">Vencimento atual</span><span className="tabular-nums">{dueStr}</span></div>
+                  <div className="flex justify-between"><span className="text-muted-foreground">Próximo após quitação</span><span className="tabular-nums">{nextDateStr}</span></div>
+                </div>
+                <label className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer select-none">
+                  <input type="checkbox" className="size-3.5 accent-primary" checked={interestPartialEnabled} onChange={(e) => { setInterestPartialEnabled(e.target.checked); if (!e.target.checked) setInterestPartialAmount(""); }} />
+                  Receber valor parcial
+                </label>
+                {interestPartialEnabled && (
+                  <div className="space-y-1">
+                    <Label htmlFor="int-partial-row" className="text-xs">Valor recebido (R$)</Label>
+                    <Input id="int-partial-row" type="number" step="0.01" min="0" inputMode="decimal" value={interestPartialAmount} onChange={(e) => setInterestPartialAmount(e.target.value)} placeholder={`Pendente: ${pending.toFixed(2)}`} />
+                    {exceeds && <p className="text-[11px] text-warning">Valor excede o saldo pendente. O excedente será desconsiderado.</p>}
+                    {!willClose && partialVal > 0 && <p className="text-[11px] text-muted-foreground">Vencimento permanece em {dueStr} até a quitação total do ciclo.</p>}
+                    {willClose && partialVal > 0 && <p className="text-[11px] text-success">Quita o ciclo. Próximo vencimento: {nextDateStr}.</p>}
+                  </div>
+                )}
+                <div className="space-y-1">
+                  <Label htmlFor="int-notes-row" className="text-xs">Observação (opcional)</Label>
+                  <Textarea id="int-notes-row" value={interestNotes} onChange={(e) => setInterestNotes(e.target.value)} placeholder="Ex: pago via Pix" className="min-h-[60px] text-sm" />
+                </div>
+              </div>
+            );
+          })()}
           {rowActiveMethods.length > 0 && (() => {
             const baseInt = loan.customInterestValue != null && loan.customInterestValue > 0 ? loan.customInterestValue : loan.amount * (loan.interestRate / 100);
             const cRaw = parseFloat(payoffAmount.replace(",", "."));
@@ -3847,7 +3998,7 @@ function ClientFolder({
   onPayment: (id: string, date?: string, paymentMethodId?: string | null, paymentSplit?: PaymentSplit | null) => void;
   onPartialPayment: (id: string, amount: number, date?: string, paymentMethodId?: string | null, paymentSplit?: PaymentSplit | null) => void;
   onFullPayment?: (id: string, date?: string, customAmount?: number, paymentMethodId?: string | null, paymentSplit?: PaymentSplit | null) => void;
-  onInterestPayment: (id: string, date?: string, customAmount?: number, feesAmount?: number, paymentMethodId?: string | null, paymentSplit?: PaymentSplit | null) => void;
+  onInterestPayment: (id: string, date?: string, customAmount?: number, feesAmount?: number, paymentMethodId?: string | null, paymentSplit?: PaymentSplit | null, options?: { partial?: boolean; notes?: string | null }) => void;
   onAmortize?: (loanId: string, amount: number, paymentDate?: string, paymentMethodId?: string | null, paymentSplit?: PaymentSplit | null) => Promise<void> | void;
   onRenegotiate?: (loanId: string, params: { type: "no_interest" | "with_penalty"; penaltyMode?: "fixed" | "percentage" | null; penaltyInput?: number | null; penaltyDistribution?: "diluted" | "first" | null; newInstallments?: number | null; notes?: string | null; selectedInstallmentNumbers?: number[] | null; firstDueDate?: string | null }) => Promise<void> | void;
   renegotiations?: LoanRenegotiation[];
@@ -3941,7 +4092,7 @@ function ClientFolder({
                 {group.loans.map((loan) => (
                   <LoanRowView key={loan.id} loan={loan} payments={payments} installmentSchedules={installmentSchedules} readOnly={readOnly} existingTags={[...new Set(group.loans.flatMap(l => l.tags || []))]} clients={clients} renegotiations={renegotiations.filter((r) => r.loanId === loan.id)}
                     onPayment={(date, mid) => onPayment(loan.id, date, mid)} onPartialPayment={(amt, date, mid) => onPartialPayment(loan.id, amt, date, mid)} onFullPayment={onFullPayment ? (date, custom, mid) => onFullPayment(loan.id, date, custom, mid) : undefined}
-                    onInterestPayment={(date, custom, fees, mid) => onInterestPayment(loan.id, date, custom, fees, mid)} onAmortize={onAmortize ? (amt, date, mid) => onAmortize(loan.id, amt, date, mid) : undefined} onRenegotiate={onRenegotiate ? (params) => onRenegotiate(loan.id, params) : undefined} onUpdate={(d) => onUpdate(loan.id, d)} onDelete={() => onDelete(loan.id)} onDeletePayment={onDeletePayment} onSaveSchedule={onSaveSchedule} />
+                    onInterestPayment={(date, custom, fees, mid, split, opts) => onInterestPayment(loan.id, date, custom, fees, mid, split, opts)} onAmortize={onAmortize ? (amt, date, mid) => onAmortize(loan.id, amt, date, mid) : undefined} onRenegotiate={onRenegotiate ? (params) => onRenegotiate(loan.id, params) : undefined} onUpdate={(d) => onUpdate(loan.id, d)} onDelete={() => onDelete(loan.id)} onDeletePayment={onDeletePayment} onSaveSchedule={onSaveSchedule} />
                 ))}
               </tbody>
             </table>
@@ -4349,7 +4500,7 @@ export function LoanList({ loans, payments, installmentSchedules, onPayment, onP
                 <div key={loan.id} className="animate-fade-in h-full" style={{ animationDelay: `${i * 60}ms`, animationFillMode: 'backwards' }}>
                 <LoanCardView loan={loan} payments={payments} installmentSchedules={installmentSchedules} readOnly={readOnly} existingTags={loans.flatMap(l => l.tags || []).filter((v, i, a) => a.indexOf(v) === i)} clients={clients} renegotiations={renegotiationsByLoan.get(loan.id) || []}
                   onPayment={(date, mid) => onPayment(loan.id, date, mid)} onPartialPayment={(amt, date, mid) => onPartialPayment(loan.id, amt, date, mid)} onFullPayment={onFullPayment ? (date, custom, mid) => onFullPayment(loan.id, date, custom, mid) : undefined}
-                  onInterestPayment={(date, custom, fees, mid) => onInterestPayment(loan.id, date, custom, fees, mid)} onAmortize={onAmortize ? (amt, date, mid) => onAmortize(loan.id, amt, date, mid) : undefined} onRenegotiate={onRenegotiate ? (params) => onRenegotiate(loan.id, params) : undefined} onUpdate={(d) => onUpdate(loan.id, d)} onDelete={() => onDelete(loan.id)} onDeletePayment={onDeletePayment} onSaveSchedule={onSaveSchedule} />
+                  onInterestPayment={(date, custom, fees, mid, split, opts) => onInterestPayment(loan.id, date, custom, fees, mid, split, opts)} onAmortize={onAmortize ? (amt, date, mid) => onAmortize(loan.id, amt, date, mid) : undefined} onRenegotiate={onRenegotiate ? (params) => onRenegotiate(loan.id, params) : undefined} onUpdate={(d) => onUpdate(loan.id, d)} onDelete={() => onDelete(loan.id)} onDeletePayment={onDeletePayment} onSaveSchedule={onSaveSchedule} />
                 </div>
               ))}
             </div>
@@ -4412,7 +4563,7 @@ export function LoanList({ loans, payments, installmentSchedules, onPayment, onP
                   {categorized.map((loan) => (
                     <LoanRowView key={loan.id} loan={loan} payments={payments} installmentSchedules={installmentSchedules} readOnly={readOnly} existingTags={loans.flatMap(l => l.tags || []).filter((v, i, a) => a.indexOf(v) === i)} clients={clients} renegotiations={renegotiationsByLoan.get(loan.id) || []}
                       onPayment={(date, mid) => onPayment(loan.id, date, mid)} onPartialPayment={(amt, date, mid) => onPartialPayment(loan.id, amt, date, mid)} onFullPayment={onFullPayment ? (date, custom, mid) => onFullPayment(loan.id, date, custom, mid) : undefined}
-                      onInterestPayment={(date, custom, fees, mid) => onInterestPayment(loan.id, date, custom, fees, mid)} onAmortize={onAmortize ? (amt, date, mid) => onAmortize(loan.id, amt, date, mid) : undefined} onRenegotiate={onRenegotiate ? (params) => onRenegotiate(loan.id, params) : undefined} onUpdate={(d) => onUpdate(loan.id, d)} onDelete={() => onDelete(loan.id)} onDeletePayment={onDeletePayment} onSaveSchedule={onSaveSchedule} />
+                      onInterestPayment={(date, custom, fees, mid, split, opts) => onInterestPayment(loan.id, date, custom, fees, mid, split, opts)} onAmortize={onAmortize ? (amt, date, mid) => onAmortize(loan.id, amt, date, mid) : undefined} onRenegotiate={onRenegotiate ? (params) => onRenegotiate(loan.id, params) : undefined} onUpdate={(d) => onUpdate(loan.id, d)} onDelete={() => onDelete(loan.id)} onDeletePayment={onDeletePayment} onSaveSchedule={onSaveSchedule} />
                   ))}
                 </tbody>
               </table>
