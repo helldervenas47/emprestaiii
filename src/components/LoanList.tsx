@@ -2305,6 +2305,9 @@ function LoanRowView({
   const [partialDate, setPartialDate] = useState<Date>(new Date());
   const [paymentDialog, setPaymentDialog] = useState<{ type: "installment" | "interest" | "partial" | "full" | "payoff" | "amortize"; amount?: number } | null>(null);
   const [interestSelection, setInterestSelection] = useState<"normal" | "withFees">("normal");
+  const [interestPartialEnabled, setInterestPartialEnabled] = useState(false);
+  const [interestPartialAmount, setInterestPartialAmount] = useState("");
+  const [interestNotes, setInterestNotes] = useState("");
   const [payoffAmount, setPayoffAmount] = useState("");
   const [amortizeAmount, setAmortizeAmount] = useState("");
   const [showHistory, setShowHistory] = useState(false);
