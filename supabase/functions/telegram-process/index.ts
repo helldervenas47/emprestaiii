@@ -2577,6 +2577,19 @@ Deno.serve(async (req) => {
             } else if (/^\/(meus[_-]?aportes|meusaportes)(?:@\w+)?\b/i.test(text)) {
               const reply = await handleMeusAportes(admin, link.user_id);
               await tgSend(chatId, reply, LOVABLE_API_KEY, TELEGRAM_API_KEY);
+            } else if (looksLikeQuestion(text)) {
+              // 🗣️ Pergunta em linguagem natural — interpreta com IA e consulta o banco.
+              try {
+                const reply = await answerNaturalQuery(admin, link.user_id, text, LOVABLE_API_KEY);
+                if (reply) {
+                  await tgSend(chatId, reply, LOVABLE_API_KEY, TELEGRAM_API_KEY);
+                } else {
+                  await tgSend(chatId, "🤔 Não consegui entender sua pergunta. Tente reformular, ex.:\n_\"quanto gastei esta semana?\"_\n_\"quanto recebi em maio?\"_\n_\"meus maiores gastos nos últimos 30 dias\"_", LOVABLE_API_KEY, TELEGRAM_API_KEY);
+                }
+              } catch (e) {
+                console.error("answerNaturalQuery err", e);
+                await tgSend(chatId, "❌ Erro ao processar sua pergunta. Tente novamente.", LOVABLE_API_KEY, TELEGRAM_API_KEY);
+              }
             } else {
               // Regex-first: skip AI for clear "<amount> <description>" or "<description> <amount>" inputs.
               const quick = quickParseExpense(text);
