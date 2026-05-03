@@ -728,14 +728,15 @@ export function useLoans() {
     const cycleInterestPending = Math.max(0, Math.round((cycleTarget - cyclePartialsPaid) * 100) / 100);
 
     const requestedAmount = customAmount != null && customAmount > 0 ? customAmount : cycleInterestPending || cycleTarget;
-    // Tolerância: ≥ 99,5% do pendente é considerado quitação total do ciclo.
-    const closesCycle = !isExplicitPartial && requestedAmount + 0.005 >= cycleInterestPending && cycleInterestPending > 0;
+    // Tolerância: ≥ 99,5% do pendente é considerado quitação total do ciclo,
+    // inclusive quando o usuário marca "receber valor parcial" mas informa o saldo restante.
+    const closesCycle = requestedAmount + 0.005 >= cycleInterestPending && cycleInterestPending > 0;
     // Se for parcial OU não fechar o ciclo, NÃO avança vencimento.
     const advanceCycle = closesCycle || (!isExplicitPartial && cycleInterestPending === 0);
-    // Limita o valor cobrado ao pendente quando não é parcial e excederia o saldo.
+    // Limita o valor cobrado ao pendente quando excederia o saldo.
     let interestAmount = requestedAmount;
     let excessAmount = 0;
-    if (!isExplicitPartial && cycleInterestPending > 0 && interestAmount > cycleInterestPending) {
+    if (cycleInterestPending > 0 && interestAmount > cycleInterestPending) {
       excessAmount = Math.round((interestAmount - cycleInterestPending) * 100) / 100;
       interestAmount = cycleInterestPending;
     }
