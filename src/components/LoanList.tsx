@@ -499,6 +499,12 @@ function LoanCardView({
   const interestOnly = loan.customInterestValue != null && loan.customInterestValue > 0
     ? loan.customInterestValue
     : loan.amount * (loan.interestRate / 100);
+  const interestCyclePartials = allPayments
+    .filter((p) => p.loanId === loan.id && p.installmentNumber === 0
+      && (p as any).metadata?.kind === "interest_partial"
+      && (p.previousDueDate === loan.dueDate || (p as any).metadata?.cycle_due_date === loan.dueDate))
+    .reduce((s, p) => s + Number(p.amount || 0), 0);
+  const interestPending = Math.max(0, Math.round((interestOnly - interestCyclePartials) * 100) / 100);
   const totalInterest = total - loan.amount;
   const profit = totalPaid - loan.amount;
   const badge = statusMap[category];
