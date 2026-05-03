@@ -817,7 +817,7 @@ export function useLoans() {
     }
 
     setPayments((prev) => [
-      { id: tempPaymentId, loanId, amount: interestAmount, date: dateStr, installmentNumber: 0, previousDueDate: loan.dueDate, paymentMethodId: paymentMethodId ?? null, metadata: (splitMetadata as any) ?? null },
+      { id: tempPaymentId, loanId, amount: interestAmount, date: dateStr, installmentNumber: 0, previousDueDate: loan.dueDate, paymentMethodId: paymentMethodId ?? null, metadata: (Object.keys(finalMetadata).length > 0 ? finalMetadata : null) as any },
       ...prev,
     ]);
     setLoans((prev) => prev.map((l) => l.id === loanId ? {
@@ -832,7 +832,9 @@ export function useLoans() {
 
     if (!online) {
       await enqueueMutation({ table: "payments", op: "insert", recordId: tempPaymentId, payload: paymentPayload });
-      await enqueueMutation({ table: "loans", op: "update", recordId: loanId, payload: loanUpdate });
+      if (Object.keys(loanUpdate).length > 0) {
+        await enqueueMutation({ table: "loans", op: "update", recordId: loanId, payload: loanUpdate });
+      }
       // Ajusta o saldo offline com o TOTAL (juros + multa) em uma única operação
       await adjustBalanceOffline(interestAmount + feesExtra);
       if (feesExtra > 0) {
