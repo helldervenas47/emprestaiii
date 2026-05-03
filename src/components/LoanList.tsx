@@ -1967,7 +1967,7 @@ function LoanCardView({
       <DialogContent
         style={{ padding: 0 }}
         className={cn(
-          "left-2 right-2 top-2 bottom-[calc(env(safe-area-inset-bottom)+5.5rem)] h-auto w-auto max-w-none translate-x-0 translate-y-0 grid grid-rows-[auto_minmax(0,1fr)_auto] gap-0 overflow-hidden p-0 sm:left-[50%] sm:right-auto sm:top-[50%] sm:bottom-auto sm:h-auto sm:max-h-[85svh] sm:w-full sm:max-w-[340px] sm:translate-x-[-50%] sm:translate-y-[-50%]",
+          "left-2 right-2 top-2 bottom-[calc(env(safe-area-inset-bottom)+7rem)] h-auto w-auto max-w-none translate-x-0 translate-y-0 block overflow-y-auto overscroll-contain p-0 touch-pan-y [-webkit-overflow-scrolling:touch] sm:left-[50%] sm:right-auto sm:top-[50%] sm:bottom-auto sm:h-auto sm:max-h-[85svh] sm:w-full sm:max-w-[340px] sm:translate-x-[-50%] sm:translate-y-[-50%] sm:grid sm:grid-rows-[auto_minmax(0,1fr)_auto] sm:gap-0 sm:overflow-hidden",
           paymentDialog?.type === "interest" && lateFees > 0 && "sm:max-w-[460px]"
         )}
       >
@@ -1980,7 +1980,7 @@ function LoanCardView({
              paymentDialog?.type === "interest" ? "Pagar Juros" : "Pagamento Parcial"}
           </DialogTitle>
         </DialogHeader>
-        <div className="min-h-0 flex flex-col items-center gap-2 overflow-y-auto overscroll-contain px-6 pb-4 touch-pan-y [-webkit-overflow-scrolling:touch]">
+        <div className="flex flex-col items-center gap-2 overflow-visible px-6 pb-4 sm:min-h-0 sm:overflow-y-auto sm:overscroll-contain sm:touch-pan-y sm:[-webkit-overflow-scrolling:touch]">
           {paymentDialog?.type === "full" && (
             <div className="text-center p-3 bg-muted/50 rounded-lg w-full">
               <p className="text-xs text-muted-foreground">Total restante a receber</p>
@@ -3625,7 +3625,7 @@ function LoanRowView({
       <DialogContent
         style={{ padding: 0 }}
         className={cn(
-          "left-2 right-2 top-2 bottom-[calc(env(safe-area-inset-bottom)+5.5rem)] h-auto w-auto max-w-none translate-x-0 translate-y-0 grid grid-rows-[auto_minmax(0,1fr)_auto] gap-0 overflow-hidden p-0 sm:left-[50%] sm:right-auto sm:top-[50%] sm:bottom-auto sm:h-auto sm:max-h-[85svh] sm:w-full sm:max-w-[340px] sm:translate-x-[-50%] sm:translate-y-[-50%]",
+          "left-2 right-2 top-2 bottom-[calc(env(safe-area-inset-bottom)+7rem)] h-auto w-auto max-w-none translate-x-0 translate-y-0 block overflow-y-auto overscroll-contain p-0 touch-pan-y [-webkit-overflow-scrolling:touch] sm:left-[50%] sm:right-auto sm:top-[50%] sm:bottom-auto sm:h-auto sm:max-h-[85svh] sm:w-full sm:max-w-[340px] sm:translate-x-[-50%] sm:translate-y-[-50%] sm:grid sm:grid-rows-[auto_minmax(0,1fr)_auto] sm:gap-0 sm:overflow-hidden",
           paymentDialog?.type === "interest" && lateFees > 0 && "sm:max-w-[460px]"
         )}
       >
@@ -3638,7 +3638,7 @@ function LoanRowView({
              paymentDialog?.type === "interest" ? "Pagar Juros" : "Pagamento Parcial"}
           </DialogTitle>
         </DialogHeader>
-        <div className="min-h-0 flex flex-col items-center gap-2 overflow-y-auto overscroll-contain px-6 pb-4 touch-pan-y [-webkit-overflow-scrolling:touch]">
+        <div className="flex flex-col items-center gap-2 overflow-visible px-6 pb-4 sm:min-h-0 sm:overflow-y-auto sm:overscroll-contain sm:touch-pan-y sm:[-webkit-overflow-scrolling:touch]">
           {paymentDialog?.type === "full" && (
             <div className="text-center p-3 bg-muted/50 rounded-lg w-full">
               <p className="text-xs text-muted-foreground">Total restante a receber</p>
