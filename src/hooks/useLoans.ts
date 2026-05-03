@@ -881,35 +881,39 @@ export function useLoans() {
       throw new Error(paymentError?.message ?? "Falha ao registrar juros");
     }
 
-    const { data: updatedLoan, error: loanError } = await supabase
-      .from("loans")
-      .update(loanUpdate)
-      .eq("id", loanId)
-      .select("id")
-      .maybeSingle();
+    if (Object.keys(loanUpdate).length > 0) {
+      const { data: updatedLoan, error: loanError } = await supabase
+        .from("loans")
+        .update(loanUpdate)
+        .eq("id", loanId)
+        .select("id")
+        .maybeSingle();
 
-    if (loanError || !updatedLoan) {
-      console.error("[addInterestOnlyPayment] update loan failed:", loanError ?? new Error("Nenhum empréstimo foi atualizado"));
-      await supabase.from("payments").delete().eq("id", tempPaymentId);
-      await revertOptimisticState();
-      throw new Error(loanError?.message ?? "Falha ao atualizar o vencimento");
+      if (loanError || !updatedLoan) {
+        console.error("[addInterestOnlyPayment] update loan failed:", loanError ?? new Error("Nenhum empréstimo foi atualizado"));
+        await supabase.from("payments").delete().eq("id", tempPaymentId);
+        await revertOptimisticState();
+        throw new Error(loanError?.message ?? "Falha ao atualizar o vencimento");
+      }
     }
 
-    const nextNum = loan.paidInstallments + 1;
-    const { error: scheduleError } = await supabase
-      .from("loan_installments")
-      .update({ due_date: newDueDate })
-      .eq("loan_id", loanId)
-      .eq("installment_number", nextNum);
+    if (advanceCycle) {
+      const nextNum = loan.paidInstallments + 1;
+      const { error: scheduleError } = await supabase
+        .from("loan_installments")
+        .update({ due_date: newDueDate })
+        .eq("loan_id", loanId)
+        .eq("installment_number", nextNum);
 
-    if (scheduleError) {
-      console.error("[addInterestOnlyPayment] update schedule due date failed:", scheduleError);
-      await Promise.all([
-        supabase.from("payments").delete().eq("id", tempPaymentId),
-        supabase.from("loans").update(loanRollback).eq("id", loanId),
-      ]);
-      await revertOptimisticState();
-      throw new Error(scheduleError.message);
+      if (scheduleError) {
+        console.error("[addInterestOnlyPayment] update schedule due date failed:", scheduleError);
+        await Promise.all([
+          supabase.from("payments").delete().eq("id", tempPaymentId),
+          Object.keys(loanUpdate).length > 0 ? supabase.from("loans").update(loanRollback).eq("id", loanId) : Promise.resolve(),
+        ]);
+        await revertOptimisticState();
+        throw new Error(scheduleError.message);
+      }
     }
 
     try {
