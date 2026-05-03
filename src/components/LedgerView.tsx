@@ -56,6 +56,7 @@ export function LedgerView({ readOnly = false }: Props) {
       .filter((e) => {
         if (filterDir !== "all" && e.direction !== filterDir) return false;
         if (filterCat !== "all" && e.category !== filterCat) return false;
+        if (filterMonth !== "all" && !e.occurred_on.startsWith(filterMonth)) return false;
         return true;
       })
       .sort((a, b) => {
@@ -63,7 +64,7 @@ export function LedgerView({ readOnly = false }: Props) {
         if ((a.created_at ?? "") !== (b.created_at ?? "")) return (b.created_at ?? "").localeCompare(a.created_at ?? "");
         return b.occurred_on.localeCompare(a.occurred_on);
       });
-  }, [entries, filterDir, filterCat]);
+  }, [entries, filterDir, filterCat, filterMonth]);
 
   const totals = useMemo(() => {
     const totalIn = filtered.filter((e) => e.direction === "in").reduce((a, e) => a + Number(e.amount), 0);
