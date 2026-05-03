@@ -641,7 +641,7 @@ export function useLoans() {
     await fetchLoans();
   }, [user, dataOwnerId, loans, payments, fetchLoans, fetchPayments]);
 
-  const addInterestOnlyPayment = useCallback(async (loanId: string, paymentDate?: string, customAmount?: number, feesAmount?: number, paymentMethodId?: string | null, paymentSplit?: PaymentSplit | null) => {
+  const addInterestOnlyPayment = useCallback(async (loanId: string, paymentDate?: string, customAmount?: number, feesAmount?: number, paymentMethodId?: string | null, paymentSplit?: PaymentSplit | null, options?: { partial?: boolean; notes?: string | null }) => {
     if (!user || !dataOwnerId) throw new Error("Sessão ainda não carregada");
     const loan = loans.find((l) => l.id === loanId);
     if (!loan) throw new Error("Empréstimo não encontrado");
@@ -706,15 +706,36 @@ export function useLoans() {
     const baseInterest = loan.customInterestValue != null && loan.customInterestValue > 0
       ? loan.customInterestValue
       : loan.amount * (loan.interestRate / 100);
-    const interestAmount = customAmount != null && customAmount > 0 ? customAmount : baseInterest;
+
+    // 🔄 Soma pagamentos parciais já feitos no CICLO ATUAL (juros pendentes deste vencimento).
+    // Pagamentos parciais ficam registrados com installment_number = 0 e metadata.kind = "interest_partial",
+    // e NÃO avançam o due_date. Quando a soma atingir baseInterest, o ciclo é fechado.
+    const cyclePartialsPaid = payments
+      .filter((p) => p.loanId === loanId && p.installmentNumber === 0
+        && (p as any).metadata?.kind === "interest_partial"
+        && (p.previousDueDate === loan.dueDate || !(p as any).metadata?.cycle_due_date || (p as any).metadata?.cycle_due_date === loan.dueDate))
+      .reduce((s, p) => s + Number(p.amount || 0), 0);
+    const cycleInterestPending = Math.max(0, Math.round((baseInterest - cyclePartialsPaid) * 100) / 100);
+
+    const requestedAmount = customAmount != null && customAmount > 0 ? customAmount : cycleInterestPending || baseInterest;
+    const isExplicitPartial = !!options?.partial;
+    // Tolerância: ≥ 99,5% do pendente é considerado quitação total do ciclo.
+    const closesCycle = !isExplicitPartial && requestedAmount + 0.005 >= cycleInterestPending && cycleInterestPending > 0;
+    // Se for parcial OU não fechar o ciclo, NÃO avança vencimento.
+    const advanceCycle = closesCycle || (!isExplicitPartial && cycleInterestPending === 0);
+    // Limita o valor cobrado ao pendente quando não é parcial e excederia o saldo.
+    let interestAmount = requestedAmount;
+    let excessAmount = 0;
+    if (!isExplicitPartial && cycleInterestPending > 0 && interestAmount > cycleInterestPending) {
+      excessAmount = Math.round((interestAmount - cycleInterestPending) * 100) / 100;
+      interestAmount = cycleInterestPending;
+    }
+
     const feesExtra = feesAmount != null && feesAmount > 0 ? feesAmount : 0;
     // Regra: o próximo vencimento após pagar juros é SEMPRE calculado a partir
     // da ÂNCORA original (originalDueDate), IGNORANDO qualquer adiamento feito
     // por renegociação no due_date. Avançamos ciclos a partir da âncora até
     // ficar estritamente APÓS a data do pagamento.
-    // Âncora = original_due_date, mas com proteção: se o "original" salvo for
-    // posterior ao due_date atual, ele está corrompido (bug histórico ou edição
-    // manual posterior) — nesse caso usamos o due_date como âncora.
     const rawAnchor = loan.originalDueDate || loan.dueDate;
     const anchorRef = rawAnchor > loan.dueDate ? loan.dueDate : rawAnchor;
     const freq = loan.interestType || "Mensal";
@@ -731,33 +752,46 @@ export function useLoans() {
       }
     };
     const currentDue = new Date(anchorRef + "T00:00:00");
-    // Avança no mínimo 1 período; continua avançando enquanto for ≤ data do pagamento
     advance(currentDue);
     let guard = 0;
     while (currentDue.toISOString().split("T")[0] <= dateStr && guard < 600) {
       advance(currentDue);
       guard += 1;
     }
-    const newDueDate = currentDue.toISOString().split("T")[0];
+    // Se for pagamento parcial, mantém a data atual; só avança quando quita o ciclo.
+    const newDueDate = advanceCycle ? currentDue.toISOString().split("T")[0] : loan.dueDate;
     const online = isOnline();
 
     const tempPaymentId = crypto.randomUUID();
     const totalReceivedNow = interestAmount + feesExtra;
     const normalizedSplit = normalizeSplit(paymentSplit ?? null, totalReceivedNow);
     const splitMetadata = withSplit(null, normalizedSplit);
+    // Marca metadata do pagamento: parcial vs. fechamento de ciclo.
+    const partialMetadata: Record<string, any> = {};
+    if (!advanceCycle) {
+      partialMetadata.kind = "interest_partial";
+      partialMetadata.cycle_due_date = loan.dueDate;
+      partialMetadata.cycle_interest_total = baseInterest;
+      partialMetadata.cycle_pending_after = Math.max(0, Math.round((cycleInterestPending - interestAmount) * 100) / 100);
+    } else if (cyclePartialsPaid > 0) {
+      partialMetadata.kind = "interest_partial_final";
+      partialMetadata.cycle_due_date = loan.dueDate;
+      partialMetadata.cycle_interest_total = baseInterest;
+      partialMetadata.cycle_partials_total = cyclePartialsPaid;
+    }
+    if (options?.notes) partialMetadata.notes = options.notes;
+    if (excessAmount > 0) partialMetadata.excess_returned = excessAmount;
+    const finalMetadata = { ...(splitMetadata ?? {}), ...partialMetadata };
     const paymentPayload: any = {
       id: tempPaymentId,
       user_id: dataOwnerId, loan_id: loanId, amount: interestAmount,
       date: dateStr, installment_number: 0, previous_due_date: loan.dueDate,
       payment_method_id: paymentMethodId ?? null,
     };
-    if (splitMetadata) paymentPayload.metadata = splitMetadata;
-    // Se o usuário escolheu pagar "Juros + multa/atraso" e há multa de renegociação
-    // pendente, ela está incluída em feesExtra → quitamos no contrato (zera o saldo
-    // de multa de renegociação e abate do remaining_amount).
+    if (Object.keys(finalMetadata).length > 0) paymentPayload.metadata = finalMetadata;
     const renegPenaltyPending = Number(loan.renegotiationPenaltyTotal || 0);
-    const shouldClearRenegPenalty = feesExtra > 0 && renegPenaltyPending > 0;
-    const loanUpdate: any = { due_date: newDueDate };
+    const shouldClearRenegPenalty = advanceCycle && feesExtra > 0 && renegPenaltyPending > 0;
+    const loanUpdate: any = advanceCycle ? { due_date: newDueDate } : {};
     if (shouldClearRenegPenalty) {
       loanUpdate.renegotiation_penalty_total = 0;
       loanUpdate.remaining_amount = Math.max(0, Math.round((Number(loan.remainingAmount || 0) - renegPenaltyPending) * 100) / 100);
