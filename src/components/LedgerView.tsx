@@ -72,6 +72,20 @@ export function LedgerView({ readOnly = false }: Props) {
     return { totalIn, totalOut, net: totalIn - totalOut };
   }, [filtered]);
 
+  const availableMonths = useMemo(() => {
+    const set = new Set<string>();
+    entries.forEach((e) => { if (e.occurred_on) set.add(e.occurred_on.slice(0, 7)); });
+    set.add(todayInAppTz().slice(0, 7));
+    return Array.from(set).sort((a, b) => b.localeCompare(a));
+  }, [entries]);
+
+  const formatMonthLabel = (ym: string) => {
+    const [y, m] = ym.split("-").map(Number);
+    const d = new Date(y, (m || 1) - 1, 1);
+    const label = d.toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
+    return label.charAt(0).toUpperCase() + label.slice(1);
+  };
+
   const handleDelete = async (id: string) => {
     if (!confirm("Excluir este lançamento? O saldo será ajustado automaticamente.")) return;
     await deleteLedgerEntry(id);
