@@ -494,15 +494,9 @@ export function computeActual(
       return computeRenegotiationRate(loans, installmentSchedules, renegotiations, m);
     case "interest_rate": {
       // Taxa Juros Mensal = (Total a Receber − Total Emprestado) ÷ Total Emprestado × 100
-      // Considera empréstimos com data de início no mês selecionado
+      // Considera empréstimos com data de início no mês selecionado.
+      // Contratos com taxa 0% são EXCLUÍDOS do cálculo (não impactam rentabilidade).
       const monthLoans = loans.filter((l: any) => inMonth(l.startDate || l.start_date, m));
-      const totalLent = monthLoans.reduce((s: number, l: any) => s + (Number(l.amount) || 0), 0);
-      const totalToReceive = monthLoans.reduce((s: number, l: any) => {
-        const principal = Number(l.amount) || 0;
-        const rate = Number(l.interestRate ?? l.interest_rate) || 0;
-        const inst = Number(l.installments) || 1;
-        return s + calculateTotalWithInterest(principal, rate, inst);
-      }, 0);
       const summary = calculateMonthlyInterestRate(monthLoans as Loan[]);
       return summary.rate ?? 0;
     }
