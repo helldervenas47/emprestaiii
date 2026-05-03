@@ -56,7 +56,7 @@ export function LedgerView({ readOnly = false }: Props) {
       .filter((e) => {
         if (filterDir !== "all" && e.direction !== filterDir) return false;
         if (filterCat !== "all" && e.category !== filterCat) return false;
-        if (filterMonth !== "all" && !e.occurred_on.startsWith(filterMonth)) return false;
+        if (filterMonth !== "all" && (e.occurred_on || "").slice(0, 7) !== filterMonth) return false;
         return true;
       })
       .sort((a, b) => {
