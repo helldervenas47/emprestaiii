@@ -1964,7 +1964,7 @@ function LoanCardView({
       </CardContent>
     </Card>
     <Dialog open={!!paymentDialog} onOpenChange={(open) => !open && setPaymentDialog(null)}>
-      <DialogContent className={cn("sm:max-w-[340px]", paymentDialog?.type === "interest" && lateFees > 0 && "sm:max-w-[460px]")}>
+      <DialogContent className={cn("sm:max-w-[340px] max-h-[90vh] overflow-y-auto overscroll-contain", paymentDialog?.type === "interest" && lateFees > 0 && "sm:max-w-[460px]")}>
         <DialogHeader>
           <DialogTitle>
             {paymentDialog?.type === "full" ? "Pagamento Total" :
