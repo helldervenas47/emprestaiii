@@ -1964,7 +1964,7 @@ function LoanCardView({
       </CardContent>
     </Card>
     <Dialog open={!!paymentDialog} onOpenChange={(open) => !open && setPaymentDialog(null)}>
-      <DialogContent className={cn("sm:max-w-[340px] max-h-[90vh] overflow-y-auto overscroll-contain", paymentDialog?.type === "interest" && lateFees > 0 && "sm:max-w-[460px]")}>
+      <DialogContent className={cn("sm:max-w-[340px] max-h-[85svh] overflow-y-auto overscroll-contain", paymentDialog?.type === "interest" && lateFees > 0 && "sm:max-w-[460px]")} style={{ WebkitOverflowScrolling: "touch" } as React.CSSProperties}>
         <DialogHeader>
           <DialogTitle>
             {paymentDialog?.type === "full" ? "Pagamento Total" :
@@ -1974,7 +1974,7 @@ function LoanCardView({
              paymentDialog?.type === "interest" ? "Pagar Juros" : "Pagamento Parcial"}
           </DialogTitle>
         </DialogHeader>
-        <div className="flex flex-col items-center gap-2">
+        <div className="flex flex-col items-center gap-2 pb-2">
           {paymentDialog?.type === "full" && (
             <div className="text-center p-3 bg-muted/50 rounded-lg w-full">
               <p className="text-xs text-muted-foreground">Total restante a receber</p>
