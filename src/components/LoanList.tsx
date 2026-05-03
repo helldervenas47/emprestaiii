@@ -2337,7 +2337,7 @@ function LoanCardView({
             className="rounded-md border pointer-events-auto"
           />
         </div>
-        <DialogFooter>
+        <DialogFooter className="px-6 pb-6">
           <Button variant="outline" onClick={() => setPaymentDialog(null)}>Cancelar</Button>
           <Button onClick={confirmPayment} disabled={(activeMethods.length > 0 && !selectedMethodId) || (paymentDialog?.type === "payoff" && !(parseFloat(payoffAmount.replace(",", ".")) > 0)) || (paymentDialog?.type === "amortize" && !(parseFloat(amortizeAmount.replace(",", ".")) > 0 && parseFloat(amortizeAmount.replace(",", ".")) <= (Number(loan.amount) || 0)))}>Confirmar</Button>
         </DialogFooter>
