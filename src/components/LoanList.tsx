@@ -2584,12 +2584,17 @@ function LoanRowView({
   const interestOnlyRow = loan.customInterestValue != null && loan.customInterestValue > 0
     ? loan.customInterestValue
     : loan.amount * (loan.interestRate / 100);
-  const interestCyclePartialsRow = allPayments
+  const interestCyclePartialPaymentsRow = allPayments
     .filter((p) => p.loanId === loan.id && p.installmentNumber === 0
       && (p as any).metadata?.kind === "interest_partial"
       && (p.previousDueDate === loan.dueDate || (p as any).metadata?.cycle_due_date === loan.dueDate))
-    .reduce((s, p) => s + Number(p.amount || 0), 0);
-  const interestPendingRow = Math.max(0, Math.round((interestOnlyRow - interestCyclePartialsRow) * 100) / 100);
+    .sort((a, b) => (a.createdAt || "").localeCompare(b.createdAt || ""));
+  const interestCyclePartialsRow = interestCyclePartialPaymentsRow.reduce((s, p) => s + Number(p.amount || 0), 0);
+  const lastCyclePartialRow = interestCyclePartialPaymentsRow[interestCyclePartialPaymentsRow.length - 1];
+  const lastCyclePendingAfterRow = lastCyclePartialRow ? Number((lastCyclePartialRow as any).metadata?.cycle_pending_after) : NaN;
+  const interestPendingRow = Number.isFinite(lastCyclePendingAfterRow)
+    ? Math.max(0, Math.round(lastCyclePendingAfterRow * 100) / 100)
+    : Math.max(0, Math.round((interestOnlyRow - interestCyclePartialsRow) * 100) / 100);
   const isParcelado = (loan.paymentType === "Parcelado" || loan.installments >= 2) && loan.status !== "paid" && loan.paidInstallments < loan.installments;
   const category = getLoanCategory(loan, allPayments, installmentSchedules);
   const badge = statusMap[category];
