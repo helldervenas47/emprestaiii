@@ -9,8 +9,10 @@ export interface MonthlyInterestRateSummary {
 }
 
 export function calculateMonthlyInterestRate(loans: Loan[]): MonthlyInterestRateSummary {
-  const totalLent = loans.reduce((sum, loan) => sum + (Number(loan.amount) || 0), 0);
-  const totalToReceive = loans.reduce((sum, loan) => {
+  // Contratos com taxa 0% não entram no cálculo da taxa média de juros / rentabilidade.
+  const interestBearing = loans.filter((l) => (Number(l.interestRate) || 0) > 0);
+  const totalLent = interestBearing.reduce((sum, loan) => sum + (Number(loan.amount) || 0), 0);
+  const totalToReceive = interestBearing.reduce((sum, loan) => {
     return sum + calculateTotalWithInterest(loan.amount, loan.interestRate, loan.installments);
   }, 0);
 
