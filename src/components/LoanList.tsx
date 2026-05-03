@@ -3822,12 +3822,19 @@ function LoanRowView({
             const baseInterest = loan.customInterestValue != null && loan.customInterestValue > 0
               ? loan.customInterestValue
               : loan.amount * (loan.interestRate / 100);
-            const cyclePartials = allPayments
+            const cyclePartialPayments = allPayments
               .filter((p) => p.loanId === loan.id && p.installmentNumber === 0
                 && (p as any).metadata?.kind === "interest_partial"
-                && (p.previousDueDate === loan.dueDate || (p as any).metadata?.cycle_due_date === loan.dueDate))
-              .reduce((s, p) => s + Number(p.amount || 0), 0);
-            const pending = Math.max(0, Math.round((baseInterest - cyclePartials) * 100) / 100);
+                && (p.previousDueDate === loan.dueDate || (p as any).metadata?.cycle_due_date === loan.dueDate));
+            const cyclePartials = cyclePartialPayments.reduce((s, p) => s + Number(p.amount || 0), 0);
+            const priorCycleFees = cyclePartialPayments.reduce(
+              (m, p) => Math.max(m, Number((p as any).metadata?.cycle_fees_total || 0)),
+              0,
+            );
+            const includeFeesNow = interestSelection === "withFees" && lateFees > 0;
+            const cycleFees = Math.max(priorCycleFees, includeFeesNow ? lateFees : 0);
+            const cycleTarget = Math.round((baseInterest + cycleFees) * 100) / 100;
+            const pending = Math.max(0, Math.round((cycleTarget - cyclePartials) * 100) / 100);
             const partialRaw = parseFloat(interestPartialAmount.replace(",", "."));
             const partialVal = interestPartialEnabled && isFinite(partialRaw) && partialRaw > 0 ? partialRaw : 0;
             const exceeds = interestPartialEnabled && partialVal > pending && pending > 0;
@@ -3857,9 +3864,26 @@ function LoanRowView({
             return (
               <div className="w-full space-y-2.5">
                 <div className="rounded-lg border border-border/60 bg-muted/30 p-3 space-y-1.5 text-xs">
-                  <div className="flex justify-between"><span className="text-muted-foreground">Juros do período</span><span className="font-semibold tabular-nums">{rawFormatCurrency(baseInterest)}</span></div>
+                  <div className="flex justify-between"><span className="text-muted-foreground">Juros base</span><span className="tabular-nums">{rawFormatCurrency(baseInterest)}</span></div>
+                  {cycleFees > 0 && (
+                    <>
+                      {penaltyTotal > 0 && includeFeesNow && (
+                        <div className="flex justify-between"><span className="text-muted-foreground">Multa por atraso</span><span className="tabular-nums text-warning">{rawFormatCurrency(penaltyTotal)}</span></div>
+                      )}
+                      {lateInterestTotal > 0 && includeFeesNow && (
+                        <div className="flex justify-between"><span className="text-muted-foreground">Juros de atraso ({effectiveDaysLate}d)</span><span className="tabular-nums text-warning">{rawFormatCurrency(lateInterestTotal)}</span></div>
+                      )}
+                      {renegPenaltyPending > 0 && includeFeesNow && (
+                        <div className="flex justify-between"><span className="text-muted-foreground">Multa de renegociação</span><span className="tabular-nums text-warning">{rawFormatCurrency(renegPenaltyPending)}</span></div>
+                      )}
+                      {!includeFeesNow && priorCycleFees > 0 && (
+                        <div className="flex justify-between"><span className="text-muted-foreground">Encargos do ciclo</span><span className="tabular-nums text-warning">{rawFormatCurrency(priorCycleFees)}</span></div>
+                      )}
+                    </>
+                  )}
+                  <div className="flex justify-between border-t border-border/40 pt-1.5"><span className="text-muted-foreground">Total do ciclo</span><span className="font-semibold tabular-nums">{rawFormatCurrency(cycleTarget)}</span></div>
                   <div className="flex justify-between"><span className="text-muted-foreground">Já pago no ciclo</span><span className="tabular-nums text-success">{rawFormatCurrency(cyclePartials)}</span></div>
-                  <div className="flex justify-between border-t border-border/40 pt-1.5"><span className="text-muted-foreground">Saldo pendente</span><span className="font-semibold tabular-nums text-primary">{rawFormatCurrency(pending)}</span></div>
+                  <div className="flex justify-between"><span className="text-muted-foreground">Saldo pendente</span><span className="font-semibold tabular-nums text-primary">{rawFormatCurrency(pending)}</span></div>
                   <div className="flex justify-between"><span className="text-muted-foreground">Vencimento atual</span><span className="tabular-nums">{dueStr}</span></div>
                   <div className="flex justify-between"><span className="text-muted-foreground">Próximo após quitação</span><span className="tabular-nums">{nextDateStr}</span></div>
                 </div>
