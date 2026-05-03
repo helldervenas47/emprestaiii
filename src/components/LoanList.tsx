@@ -12,13 +12,15 @@ import { Textarea } from "@/components/ui/textarea";
 import { Progress } from "@/components/ui/progress";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { todayInAppTz } from "@/lib/timezone";
 import { Calendar as CalendarUI } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { calculateInstallment, calculateTotalWithInterest } from "@/hooks/useLoans";
 import { cn } from "@/lib/utils";
 import {
   CheckCircle, Trash2, DollarSign, User, Calendar as CalendarIcon, LayoutGrid, List,
-  Search, Percent, Pencil, Check, X, ChevronDown, ChevronRight, ChevronUp, FolderOpen, Folder, HandCoins, Tag, MoreHorizontal, MessageCircle, Filter, SlidersHorizontal, History, UserCog, Calculator, BellRing, BellOff, RefreshCw, FileDown,
+  Search, Percent, Pencil, Check, X, ChevronDown, ChevronRight, ChevronUp, FolderOpen, Folder, HandCoins, Tag, MoreHorizontal, MessageCircle, Filter, SlidersHorizontal, History, UserCog, Calculator, BellRing, BellOff, RefreshCw, FileDown, AlertTriangle,
 } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -2227,8 +2229,20 @@ function LoanCardView({
             while (nextD.toISOString().split("T")[0] <= todayStr && g < 600) { advance(nextD); g++; }
             const nextDateStr = nextD.toLocaleDateString("pt-BR");
             const dueStr = new Date(loan.dueDate + "T00:00:00").toLocaleDateString("pt-BR");
+            const today = todayInAppTz();
+            const isLate = loan.dueDate < today;
+            const daysLate = isLate ? Math.floor((new Date(today + "T00:00:00").getTime() - new Date(loan.dueDate + "T00:00:00").getTime()) / 86400000) : 0;
             return (
               <div className="w-full space-y-2.5">
+                {isLate && (
+                  <Alert variant="destructive" className="py-2.5">
+                    <AlertTriangle className="h-4 w-4" />
+                    <AlertTitle className="text-xs font-semibold">Pagamento atrasado</AlertTitle>
+                    <AlertDescription className="text-[11px]">
+                      Vencimento em {dueStr} — {daysLate} {daysLate === 1 ? "dia" : "dias"} de atraso. Confirme antes de prosseguir.
+                    </AlertDescription>
+                  </Alert>
+                )}
                 <div className="rounded-lg border border-border/60 bg-muted/30 p-3 space-y-1.5 text-xs">
                   <div className="flex justify-between"><span className="text-muted-foreground">Juros base</span><span className="tabular-nums">{rawFormatCurrency(baseInterest)}</span></div>
                   {cycleFees > 0 && (
@@ -3884,8 +3898,20 @@ function LoanRowView({
             while (nextD.toISOString().split("T")[0] <= todayStr && g < 600) { advance(nextD); g++; }
             const nextDateStr = nextD.toLocaleDateString("pt-BR");
             const dueStr = new Date(loan.dueDate + "T00:00:00").toLocaleDateString("pt-BR");
+            const today = todayInAppTz();
+            const isLate = loan.dueDate < today;
+            const daysLate = isLate ? Math.floor((new Date(today + "T00:00:00").getTime() - new Date(loan.dueDate + "T00:00:00").getTime()) / 86400000) : 0;
             return (
               <div className="w-full space-y-2.5">
+                {isLate && (
+                  <Alert variant="destructive" className="py-2.5">
+                    <AlertTriangle className="h-4 w-4" />
+                    <AlertTitle className="text-xs font-semibold">Pagamento atrasado</AlertTitle>
+                    <AlertDescription className="text-[11px]">
+                      Vencimento em {dueStr} — {daysLate} {daysLate === 1 ? "dia" : "dias"} de atraso. Confirme antes de prosseguir.
+                    </AlertDescription>
+                  </Alert>
+                )}
                 <div className="rounded-lg border border-border/60 bg-muted/30 p-3 space-y-1.5 text-xs">
                   <div className="flex justify-between"><span className="text-muted-foreground">Juros base</span><span className="tabular-nums">{rawFormatCurrency(baseInterest)}</span></div>
                   {cycleFees > 0 && (
