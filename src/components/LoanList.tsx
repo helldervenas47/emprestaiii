@@ -2229,8 +2229,20 @@ function LoanCardView({
             while (nextD.toISOString().split("T")[0] <= todayStr && g < 600) { advance(nextD); g++; }
             const nextDateStr = nextD.toLocaleDateString("pt-BR");
             const dueStr = new Date(loan.dueDate + "T00:00:00").toLocaleDateString("pt-BR");
+            const today = todayInAppTz();
+            const isLate = loan.dueDate < today;
+            const daysLate = isLate ? Math.floor((new Date(today + "T00:00:00").getTime() - new Date(loan.dueDate + "T00:00:00").getTime()) / 86400000) : 0;
             return (
               <div className="w-full space-y-2.5">
+                {isLate && (
+                  <Alert variant="destructive" className="py-2.5">
+                    <AlertTriangle className="h-4 w-4" />
+                    <AlertTitle className="text-xs font-semibold">Pagamento atrasado</AlertTitle>
+                    <AlertDescription className="text-[11px]">
+                      Vencimento em {dueStr} — {daysLate} {daysLate === 1 ? "dia" : "dias"} de atraso. Confirme antes de prosseguir.
+                    </AlertDescription>
+                  </Alert>
+                )}
                 <div className="rounded-lg border border-border/60 bg-muted/30 p-3 space-y-1.5 text-xs">
                   <div className="flex justify-between"><span className="text-muted-foreground">Juros base</span><span className="tabular-nums">{rawFormatCurrency(baseInterest)}</span></div>
                   {cycleFees > 0 && (
