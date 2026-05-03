@@ -162,6 +162,15 @@ export function LedgerView({ readOnly = false }: Props) {
             ))}
           </SelectContent>
         </Select>
+        <Select value={filterMonth} onValueChange={(v) => setFilterMonth(v)}>
+          <SelectTrigger className="h-9 flex-1 min-w-[140px] sm:flex-none sm:w-[180px]"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todo período</SelectItem>
+            {availableMonths.map((ym) => (
+              <SelectItem key={ym} value={ym}>{formatMonthLabel(ym)}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
         <div className="hidden sm:block flex-1" />
         {!readOnly && (
           <>
