@@ -351,7 +351,7 @@ function PaymentHistoryItem({
   );
 }
 
-// removed: misplaced block
+
 
 function LoanCardView({
   loan, payments: allPayments, installmentSchedules, onPayment, onPartialPayment, onFullPayment, onInterestPayment, onAmortize, onRenegotiate, renegotiations = [], onUpdate, onDelete, onDeletePayment, onSaveSchedule, readOnly = false, no3d = false, existingTags = [], clients = [],
