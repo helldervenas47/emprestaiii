@@ -49,9 +49,17 @@ export function PersonalExpenseCalendar({ expenses }: Props) {
     for (const e of expenses) {
       const dateStr = e.paid && e.paidDate ? e.paidDate : e.dueDate;
       if (!dateStr) continue;
+      // For recurring parcelled expenses, e.amount is the TOTAL across all installments.
+      // The calendar should reflect just the upcoming installment value on the due date.
+      const isRecurringParent =
+        e.type === "recorrente" && (e.installments ?? 0) > 1;
+      const amount = isRecurringParent
+        ? (Number(e.amount) || 0) / (e.installments as number)
+        : Number(e.amount) || 0;
+      const item = isRecurringParent ? { ...e, amount } : e;
       if (!map[dateStr]) map[dateStr] = { items: [], total: 0 };
-      map[dateStr].items.push(e);
-      map[dateStr].total += Number(e.amount) || 0;
+      map[dateStr].items.push(item);
+      map[dateStr].total += amount;
     }
     return map;
   }, [expenses]);
