@@ -11,6 +11,7 @@ import { ArrowDownRight, ArrowUpRight, Plus, Trash2, Wallet, ListFilter, Refresh
 import { listLedger, recordLedger, deleteLedgerEntry, updateLedgerEntry, recomputeBalanceFromLedger, type LedgerEntry, type LedgerCategory, type LedgerDirection } from "@/lib/ledger";
 import { getBalance } from "@/lib/balance";
 import { todayInAppTz } from "@/lib/timezone";
+import { usePaymentMethods } from "@/hooks/usePaymentMethods";
 import { toast } from "sonner";
 
 const formatBRL = (n: number) =>
@@ -40,6 +41,18 @@ export function LedgerView({ readOnly = false }: Props) {
   const [filterMonth, setFilterMonth] = useState<string>(() => todayInAppTz().slice(0, 7));
   const [adjustOpen, setAdjustOpen] = useState(false);
   const [editEntry, setEditEntry] = useState<LedgerEntry | null>(null);
+  const { methods: paymentMethods } = usePaymentMethods();
+  const methodNameById = useMemo(() => {
+    const m = new Map<string, string>();
+    paymentMethods.forEach((pm) => m.set(pm.id, pm.name));
+    return m;
+  }, [paymentMethods]);
+  const getPaymentMethodName = useCallback((e: LedgerEntry): string | null => {
+    if (e.category !== "payment") return null;
+    const id = (e.metadata as any)?.payment_method_id;
+    if (!id) return null;
+    return methodNameById.get(id) ?? null;
+  }, [methodNameById]);
 
   const reload = useCallback(async () => {
     setLoading(true);
@@ -211,7 +224,10 @@ export function LedgerView({ readOnly = false }: Props) {
                       <p className="text-sm font-medium text-foreground line-clamp-2">{e.description}</p>
                       <div className="flex items-center gap-2 mt-1">
                         <span className="text-[11px] text-muted-foreground">{e.occurred_on}</span>
-                        <Badge variant="outline" className="text-[10px] h-4 px-1.5">{categoryLabels[e.category]}</Badge>
+                        <Badge variant="outline" className="text-[10px] h-4 px-1.5">
+                          {categoryLabels[e.category]}
+                          {getPaymentMethodName(e) ? ` · ${getPaymentMethodName(e)}` : ""}
+                        </Badge>
                       </div>
                     </div>
                     <div className="flex flex-col items-end shrink-0">
@@ -254,7 +270,10 @@ export function LedgerView({ readOnly = false }: Props) {
                       <TableCell className="whitespace-nowrap text-sm">{e.occurred_on}</TableCell>
                       <TableCell className="text-sm">{e.description}</TableCell>
                       <TableCell>
-                        <Badge variant="outline" className="text-[10px]">{categoryLabels[e.category]}</Badge>
+                        <Badge variant="outline" className="text-[10px]">
+                          {categoryLabels[e.category]}
+                          {getPaymentMethodName(e) ? ` · ${getPaymentMethodName(e)}` : ""}
+                        </Badge>
                       </TableCell>
                       <TableCell className={`text-right font-semibold ${e.direction === "in" ? "text-success" : "text-destructive"}`}>
                         {e.direction === "in" ? "+" : "−"} {formatBRL(Number(e.amount))}

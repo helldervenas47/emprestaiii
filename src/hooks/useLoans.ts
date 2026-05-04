@@ -418,6 +418,7 @@ export function useLoans() {
         direction: "in", category: "payment", amount: installmentAmount,
         description: `Parcela ${newPaid}/${loan.installments} recebida - ${loan.borrowerName}`,
         occurred_on: dateStr, loan_id: loanId, payment_id: tempPaymentId, source: "auto", syncBalance: false,
+        metadata: { payment_method_id: paymentMethodId ?? null },
       });
     } catch (balanceError: any) {
       console.error("[addPayment] adjust balance failed:", balanceError);
@@ -504,6 +505,7 @@ export function useLoans() {
         direction: "in", category: "payment", amount,
         description: `Pagamento parcial - ${loan.borrowerName}`,
         occurred_on: dateStr, loan_id: loanId, payment_id: tempPaymentId, source: "auto", syncBalance: false,
+        metadata: { payment_method_id: paymentMethodId ?? null },
       });
     } catch (balanceError: any) {
       console.error("[addPartialPayment] adjust balance failed:", balanceError);
@@ -605,6 +607,7 @@ export function useLoans() {
         direction: "in", category: "payment", amount: payAmount,
         description: `Quitação - ${loan.borrowerName}`,
         occurred_on: dateStr, loan_id: loanId, payment_id: tempPaymentId, source: "auto", syncBalance: false,
+        metadata: { payment_method_id: paymentMethodId ?? null },
       });
     } catch (balanceError: any) {
       console.error("[payOffLoan] adjust balance failed:", balanceError);
@@ -929,7 +932,7 @@ export function useLoans() {
         direction: "in", category: "payment", amount: totalReceived,
         description: ledgerDescription,
         occurred_on: dateStr, loan_id: loanId, payment_id: tempPaymentId, source: "auto", syncBalance: false,
-        metadata: feesExtra > 0 ? { interest_amount: interestAmount, fees_amount: feesExtra } : undefined,
+        metadata: { payment_method_id: paymentMethodId ?? null, ...(feesExtra > 0 ? { interest_amount: interestAmount, fees_amount: feesExtra } : {}) },
       });
     } catch (balanceError: any) {
       console.error("[addInterestOnlyPayment] adjust balance failed:", balanceError);
@@ -1162,6 +1165,7 @@ export function useLoans() {
         direction: "in", category: "payment", amount: amortizeAmount,
         description: `Amortização - ${loan.borrowerName}`,
         occurred_on: dateStr, loan_id: loanId, payment_id: tempPaymentId, source: "auto", syncBalance: false,
+        metadata: { payment_method_id: paymentMethodId ?? null },
       });
     } catch (balErr: any) {
       // reverter
