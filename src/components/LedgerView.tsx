@@ -51,6 +51,8 @@ export function LedgerView({ readOnly = false }: Props) {
 
   useEffect(() => { reload(); }, [reload]);
 
+  // Base: aplica filtros de direção/categoria/mês. Ordena pela data efetiva
+  // do pagamento/movimentação (occurred_on) — nunca pela data de cadastro.
   const filtered = useMemo(() => {
     return entries
       .filter((e) => {
@@ -60,11 +62,19 @@ export function LedgerView({ readOnly = false }: Props) {
         return true;
       })
       .sort((a, b) => {
-        // Data de lançamento desc; empate pela data informada no movimento
-        if ((a.created_at ?? "") !== (b.created_at ?? "")) return (b.created_at ?? "").localeCompare(a.created_at ?? "");
-        return b.occurred_on.localeCompare(a.occurred_on);
+        // Data efetiva desc; empate pela data de criação para estabilidade
+        const cmp = (b.occurred_on ?? "").localeCompare(a.occurred_on ?? "");
+        if (cmp !== 0) return cmp;
+        return (b.created_at ?? "").localeCompare(a.created_at ?? "");
       });
   }, [entries, filterDir, filterCat, filterMonth]);
+
+  // Lista principal exclui ajustes — eles são contabilizados apenas nos totais
+  // de Entradas/Saídas conforme o tipo do ajuste.
+  const filteredList = useMemo(
+    () => filtered.filter((e) => e.category !== "adjustment"),
+    [filtered],
+  );
 
   const totals = useMemo(() => {
     const totalIn = filtered.filter((e) => e.direction === "in").reduce((a, e) => a + Number(e.amount), 0);
