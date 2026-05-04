@@ -224,7 +224,10 @@ export function LedgerView({ readOnly = false }: Props) {
                       <p className="text-sm font-medium text-foreground line-clamp-2">{e.description}</p>
                       <div className="flex items-center gap-2 mt-1">
                         <span className="text-[11px] text-muted-foreground">{e.occurred_on}</span>
-                        <Badge variant="outline" className="text-[10px] h-4 px-1.5">{categoryLabels[e.category]}</Badge>
+                        <Badge variant="outline" className="text-[10px] h-4 px-1.5">
+                          {categoryLabels[e.category]}
+                          {getPaymentMethodName(e) ? ` · ${getPaymentMethodName(e)}` : ""}
+                        </Badge>
                       </div>
                     </div>
                     <div className="flex flex-col items-end shrink-0">
