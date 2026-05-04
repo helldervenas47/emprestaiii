@@ -264,13 +264,14 @@ function SaleCard({ sale, onDelete, onEdit, onUpdate, formatCurrency, readOnly =
                     </span>
                     <span className="text-sm text-foreground flex-1">{p.date}</span>
                     <span className="text-sm font-medium text-foreground tabular-nums">{formatCurrency(p.value)}</span>
-                    <span className={`text-xs font-medium w-16 text-right ${p.paid ? "text-success" : "text-muted-foreground"}`}>
-                      {p.paid ? "Paga" : (
-                        !p.paid && p.number === sale.paidInstallments + 1 && (sale.partialPaid || 0) > 0
-                          ? `${formatCurrency(sale.partialPaid)} pago`
-                          : "Pendente"
-                      )}
-                    </span>
+                    {(() => {
+                      const today = new Date(); today.setHours(0,0,0,0);
+                      const isOverdue = !p.paid && p.rawDate < today;
+                      const hasPartial = !p.paid && p.number === sale.paidInstallments + 1 && (sale.partialPaid || 0) > 0;
+                      const label = p.paid ? "Paga" : hasPartial ? `${formatCurrency(sale.partialPaid)} pago` : isOverdue ? "Vencida" : "Pendente";
+                      const cls = p.paid ? "text-success" : isOverdue ? "text-destructive" : "text-muted-foreground";
+                      return <span className={`text-xs font-medium w-16 text-right ${cls}`}>{label}</span>;
+                    })()}
                   </div>
                 ))}
               </div>
