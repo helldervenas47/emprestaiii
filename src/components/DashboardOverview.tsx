@@ -1322,36 +1322,33 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
                 <p className="text-[10px] text-muted-foreground">{range.label}</p>
               </div>
             </div>
-            <div className="mt-3 flex-1 space-y-1.5">
+            <div className="mt-3 flex-1">
               {receivedByMethod.items.length === 0 && receivedByMethod.unassigned <= 0 ? (
                 <div className="bg-muted/50 rounded-lg p-3 border border-border/30 text-center">
                   <p className="text-[11px] text-muted-foreground">Nenhum recebimento no período</p>
                 </div>
               ) : (
-                <>
+                <div className="grid grid-cols-2 gap-2">
                   {receivedByMethod.items.map((it) => {
                     const lower = it.name.toLowerCase();
                     const Icon = lower.includes("pix") ? Smartphone
                       : lower.includes("dinheiro") ? Banknote
                       : DollarSign;
-                    const pct = receivedByMethod.total > 0 ? (it.amount / receivedByMethod.total) * 100 : 0;
+                    const displayName = lower.includes("pix") ? "Pix"
+                      : lower.includes("dinheiro") ? "Dinheiro"
+                      : it.name;
                     return (
                       <button
                         key={it.id}
                         type="button"
                         onClick={() => setReceivedDetailMethodId(it.id)}
-                        className="w-full text-left bg-muted/50 hover:bg-muted/80 transition-colors rounded-lg p-2.5 border border-border/30 flex items-center justify-between gap-2 cursor-pointer"
+                        className="bg-muted/50 hover:bg-muted/80 transition-colors rounded-lg p-3 border border-border/30 flex flex-col items-center justify-center text-center cursor-pointer"
                       >
-                        <div className="flex items-center gap-2 min-w-0">
-                          <div className="h-7 w-7 rounded-md bg-success/10 flex items-center justify-center shrink-0">
-                            <Icon className="h-3.5 w-3.5 text-success" />
-                          </div>
-                          <div className="min-w-0">
-                            <p className="text-xs font-medium text-foreground truncate">Recebido via {it.name}</p>
-                            <p className="text-[10px] text-muted-foreground">{pct.toFixed(0)}% do total</p>
-                          </div>
+                        <div className="flex items-center gap-1.5 mb-1">
+                          <Icon className="h-3 w-3 text-success" />
+                          <p className="text-[10px] text-muted-foreground">{displayName}</p>
                         </div>
-                        <p className="text-sm font-semibold text-foreground shrink-0">{formatCurrency(it.amount)}</p>
+                        <p className="text-sm font-semibold text-foreground">{formatCurrency(it.amount)}</p>
                       </button>
                     );
                   })}
@@ -1359,18 +1356,16 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
                     <button
                       type="button"
                       onClick={() => setReceivedDetailMethodId("__unassigned__")}
-                      className="w-full text-left bg-muted/50 hover:bg-muted/80 transition-colors rounded-lg p-2.5 border border-border/30 flex items-center justify-between gap-2 cursor-pointer"
+                      className="bg-muted/50 hover:bg-muted/80 transition-colors rounded-lg p-3 border border-border/30 flex flex-col items-center justify-center text-center cursor-pointer"
                     >
-                      <div className="flex items-center gap-2 min-w-0">
-                        <div className="h-7 w-7 rounded-md bg-muted flex items-center justify-center shrink-0">
-                          <DollarSign className="h-3.5 w-3.5 text-muted-foreground" />
-                        </div>
-                        <p className="text-xs font-medium text-muted-foreground truncate">Sem forma definida</p>
+                      <div className="flex items-center gap-1.5 mb-1">
+                        <DollarSign className="h-3 w-3 text-muted-foreground" />
+                        <p className="text-[10px] text-muted-foreground">Sem forma</p>
                       </div>
-                      <p className="text-sm font-semibold text-foreground shrink-0">{formatCurrency(receivedByMethod.unassigned)}</p>
+                      <p className="text-sm font-semibold text-foreground">{formatCurrency(receivedByMethod.unassigned)}</p>
                     </button>
                   )}
-                </>
+                </div>
               )}
             </div>
           </CardContent>
