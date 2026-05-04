@@ -681,8 +681,10 @@ function LoanCardView({
     setPaymentDialog(null);
     try {
       if (dialogType === "full") {
+        // Repassa o `remaining` (já inclui juros/multa de atraso) para garantir
+        // que o valor total recebido seja registrado, e não só o principal+juros do contrato.
         if (onFullPayment) {
-          await onFullPayment(dateStr, undefined, mid, split);
+          await onFullPayment(dateStr, remaining, mid, split);
         } else {
           await onPartialPayment(remaining, dateStr, mid, split);
           await onUpdate({ paidInstallments: loan.installments, status: "paid" });
