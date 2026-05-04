@@ -607,6 +607,7 @@ export function useLoans() {
         direction: "in", category: "payment", amount: payAmount,
         description: `Quitação - ${loan.borrowerName}`,
         occurred_on: dateStr, loan_id: loanId, payment_id: tempPaymentId, source: "auto", syncBalance: false,
+        metadata: { payment_method_id: paymentMethodId ?? null },
       });
     } catch (balanceError: any) {
       console.error("[payOffLoan] adjust balance failed:", balanceError);
