@@ -242,6 +242,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
   const { mask } = useHideValues();
   const { role } = useAuth();
   const { renegotiations } = useLoanRenegotiations();
+  const { methods: paymentMethods } = usePaymentMethods();
   const isMobile = useIsMobile();
   const formatCurrency = useCallback((v: number) => mask(rawFormatCurrency(v)), [mask]);
   const [period, setPeriod] = useState<Period>("month");
