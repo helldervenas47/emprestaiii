@@ -12,6 +12,7 @@ import { listLedger, recordLedger, deleteLedgerEntry, updateLedgerEntry, recompu
 import { getBalance } from "@/lib/balance";
 import { todayInAppTz } from "@/lib/timezone";
 import { usePaymentMethods } from "@/hooks/usePaymentMethods";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
 const formatBRL = (n: number) =>
