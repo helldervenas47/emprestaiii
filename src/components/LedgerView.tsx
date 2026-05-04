@@ -11,6 +11,7 @@ import { ArrowDownRight, ArrowUpRight, Plus, Trash2, Wallet, ListFilter, Refresh
 import { listLedger, recordLedger, deleteLedgerEntry, updateLedgerEntry, recomputeBalanceFromLedger, type LedgerEntry, type LedgerCategory, type LedgerDirection } from "@/lib/ledger";
 import { getBalance } from "@/lib/balance";
 import { todayInAppTz } from "@/lib/timezone";
+import { usePaymentMethods } from "@/hooks/usePaymentMethods";
 import { toast } from "sonner";
 
 const formatBRL = (n: number) =>
