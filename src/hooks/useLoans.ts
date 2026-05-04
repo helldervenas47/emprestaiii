@@ -932,7 +932,7 @@ export function useLoans() {
         direction: "in", category: "payment", amount: totalReceived,
         description: ledgerDescription,
         occurred_on: dateStr, loan_id: loanId, payment_id: tempPaymentId, source: "auto", syncBalance: false,
-        metadata: feesExtra > 0 ? { interest_amount: interestAmount, fees_amount: feesExtra } : undefined,
+        metadata: { payment_method_id: paymentMethodId ?? null, ...(feesExtra > 0 ? { interest_amount: interestAmount, fees_amount: feesExtra } : {}) },
       });
     } catch (balanceError: any) {
       console.error("[addInterestOnlyPayment] adjust balance failed:", balanceError);
