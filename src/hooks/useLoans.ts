@@ -603,12 +603,39 @@ export function useLoans() {
 
     try {
       await adjustBalance(payAmount);
-      await recordLedger({
-        direction: "in", category: "payment", amount: payAmount,
-        description: `Quitação - ${loan.borrowerName}`,
-        occurred_on: dateStr, loan_id: loanId, payment_id: tempPaymentId, source: "auto", syncBalance: false,
-        metadata: { payment_method_id: paymentMethodId ?? null },
-      });
+      // Divide o lançamento em principal + juros para ficar visível no extrato/movimentações.
+      const principalPaidBefore = payments
+        .filter((p) => p.loanId === loanId)
+        .reduce((sum, p) => sum + Math.min(Number(p.amount) || 0, Math.max(0, loan.amount - sum)), 0);
+      const principalRemaining = Math.max(0, loan.amount - principalPaidBefore);
+      const principalPortion = Math.min(payAmount, principalRemaining);
+      const interestPortion = Math.max(0, Math.round((payAmount - principalPortion) * 100) / 100);
+      const principalRounded = Math.round((payAmount - interestPortion) * 100) / 100;
+
+      if (principalRounded > 0) {
+        await recordLedger({
+          direction: "in", category: "payment", amount: principalRounded,
+          description: `Quitação (principal) - ${loan.borrowerName}`,
+          occurred_on: dateStr, loan_id: loanId, payment_id: tempPaymentId, source: "auto", syncBalance: false,
+          metadata: { payment_method_id: paymentMethodId ?? null, kind: "principal" },
+        });
+      }
+      if (interestPortion > 0) {
+        await recordLedger({
+          direction: "in", category: "payment", amount: interestPortion,
+          description: `Quitação (juros) - ${loan.borrowerName}`,
+          occurred_on: dateStr, loan_id: loanId, payment_id: tempPaymentId, source: "auto", syncBalance: false,
+          metadata: { payment_method_id: paymentMethodId ?? null, kind: "interest" },
+        });
+      }
+      if (principalRounded <= 0 && interestPortion <= 0) {
+        await recordLedger({
+          direction: "in", category: "payment", amount: payAmount,
+          description: `Quitação - ${loan.borrowerName}`,
+          occurred_on: dateStr, loan_id: loanId, payment_id: tempPaymentId, source: "auto", syncBalance: false,
+          metadata: { payment_method_id: paymentMethodId ?? null },
+        });
+      }
     } catch (balanceError: any) {
       console.error("[payOffLoan] adjust balance failed:", balanceError);
       await Promise.all([
