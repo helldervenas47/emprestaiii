@@ -51,6 +51,8 @@ export function LedgerView({ readOnly = false }: Props) {
 
   useEffect(() => { reload(); }, [reload]);
 
+  // Base: aplica filtros de direção/categoria/mês. Ordena pela data efetiva
+  // do pagamento/movimentação (occurred_on) — nunca pela data de cadastro.
   const filtered = useMemo(() => {
     return entries
       .filter((e) => {
@@ -60,11 +62,19 @@ export function LedgerView({ readOnly = false }: Props) {
         return true;
       })
       .sort((a, b) => {
-        // Data de lançamento desc; empate pela data informada no movimento
-        if ((a.created_at ?? "") !== (b.created_at ?? "")) return (b.created_at ?? "").localeCompare(a.created_at ?? "");
-        return b.occurred_on.localeCompare(a.occurred_on);
+        // Data efetiva desc; empate pela data de criação para estabilidade
+        const cmp = (b.occurred_on ?? "").localeCompare(a.occurred_on ?? "");
+        if (cmp !== 0) return cmp;
+        return (b.created_at ?? "").localeCompare(a.created_at ?? "");
       });
   }, [entries, filterDir, filterCat, filterMonth]);
+
+  // Lista principal exclui ajustes — eles são contabilizados apenas nos totais
+  // de Entradas/Saídas conforme o tipo do ajuste.
+  const filteredList = useMemo(
+    () => filtered.filter((e) => e.category !== "adjustment"),
+    [filtered],
+  );
 
   const totals = useMemo(() => {
     const totalIn = filtered.filter((e) => e.direction === "in").reduce((a, e) => a + Number(e.amount), 0);
@@ -187,13 +197,13 @@ export function LedgerView({ readOnly = false }: Props) {
       {/* Lançamentos: tabela no desktop, cards no mobile */}
       {loading ? (
         <Card no3d><CardContent className="p-8 text-center text-muted-foreground">Carregando…</CardContent></Card>
-      ) : filtered.length === 0 ? (
+      ) : filteredList.length === 0 ? (
         <Card no3d><CardContent className="p-8 text-center text-muted-foreground">Nenhum lançamento encontrado.</CardContent></Card>
       ) : (
         <>
           {/* Mobile: lista de cards */}
           <div className="sm:hidden space-y-2">
-            {filtered.map((e) => (
+            {filteredList.map((e) => (
               <Card no3d key={e.id}>
                 <CardContent className="p-3">
                   <div className="flex items-start justify-between gap-2">
@@ -239,7 +249,7 @@ export function LedgerView({ readOnly = false }: Props) {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filtered.map((e) => (
+                  {filteredList.map((e) => (
                     <TableRow key={e.id}>
                       <TableCell className="whitespace-nowrap text-sm">{e.occurred_on}</TableCell>
                       <TableCell className="text-sm">{e.description}</TableCell>
