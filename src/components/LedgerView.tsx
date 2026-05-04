@@ -197,7 +197,7 @@ export function LedgerView({ readOnly = false }: Props) {
       {/* Lançamentos: tabela no desktop, cards no mobile */}
       {loading ? (
         <Card no3d><CardContent className="p-8 text-center text-muted-foreground">Carregando…</CardContent></Card>
-      ) : filtered.length === 0 ? (
+      ) : filteredList.length === 0 ? (
         <Card no3d><CardContent className="p-8 text-center text-muted-foreground">Nenhum lançamento encontrado.</CardContent></Card>
       ) : (
         <>
