@@ -723,11 +723,7 @@ function LoanCardView({
         : dialogType === "amortize" ? (isFinite(amortRaw) && amortRaw > 0 ? amortRaw : undefined)
         : dialogType === "partial" ? dialogAmount
         : undefined;
-      celebrate({
-        kind: "loan",
-        message: dialogType === "amortize" ? "Amortização registrada!" : "Pagamento registrado!",
-        amount: celebrateAmount,
-      });
+      void celebrateAmount;
       toast.success(dialogType === "amortize" ? "Amortização registrada" : "Pagamento registrado");
     } catch (err: any) {
       console.error("[confirmPayment]", err);
@@ -2743,11 +2739,7 @@ function LoanRowView({
         : dialogType === "amortize" ? (isFinite(amortRaw) && amortRaw > 0 ? amortRaw : undefined)
         : dialogType === "partial" ? dialogAmount
         : undefined;
-      celebrate({
-        kind: "loan",
-        message: dialogType === "amortize" ? "Amortização registrada!" : "Pagamento registrado!",
-        amount: celebrateAmount,
-      });
+      void celebrateAmount;
       toast.success(dialogType === "amortize" ? "Amortização registrada" : "Pagamento registrado");
     } catch (err: any) {
       console.error("[confirmPayment]", err);
