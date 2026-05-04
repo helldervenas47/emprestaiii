@@ -43,6 +43,7 @@ export function LedgerView({ readOnly = false }: Props) {
   const [adjustOpen, setAdjustOpen] = useState(false);
   const [editEntry, setEditEntry] = useState<LedgerEntry | null>(null);
   const { methods: paymentMethods } = usePaymentMethods();
+  const [paymentMethodByPaymentId, setPaymentMethodByPaymentId] = useState<Record<string, string | null>>({});
   const methodNameById = useMemo(() => {
     const m = new Map<string, string>();
     paymentMethods.forEach((pm) => m.set(pm.id, pm.name));
@@ -50,10 +51,11 @@ export function LedgerView({ readOnly = false }: Props) {
   }, [paymentMethods]);
   const getPaymentMethodName = useCallback((e: LedgerEntry): string | null => {
     if (e.category !== "payment") return null;
-    const id = (e.metadata as any)?.payment_method_id;
+    const metaId = (e.metadata as any)?.payment_method_id;
+    const id = metaId ?? (e.payment_id ? paymentMethodByPaymentId[e.payment_id] : null);
     if (!id) return null;
     return methodNameById.get(id) ?? null;
-  }, [methodNameById]);
+  }, [methodNameById, paymentMethodByPaymentId]);
 
   const reload = useCallback(async () => {
     setLoading(true);
@@ -64,6 +66,25 @@ export function LedgerView({ readOnly = false }: Props) {
   }, []);
 
   useEffect(() => { reload(); }, [reload]);
+
+  // Backfill: busca a forma de pagamento da tabela `payments` para lançamentos
+  // antigos do ledger que não têm payment_method_id em metadata.
+  useEffect(() => {
+    const missing = entries
+      .filter((e) => e.category === "payment" && e.payment_id && !(e.metadata as any)?.payment_method_id && !(e.payment_id! in paymentMethodByPaymentId))
+      .map((e) => e.payment_id as string);
+    if (missing.length === 0) return;
+    const unique = Array.from(new Set(missing));
+    (async () => {
+      const { data } = await supabase.from("payments").select("id, payment_method_id").in("id", unique);
+      setPaymentMethodByPaymentId((prev) => {
+        const next = { ...prev };
+        unique.forEach((id) => { if (!(id in next)) next[id] = null; });
+        (data as any[] | null)?.forEach((r) => { next[r.id] = r.payment_method_id ?? null; });
+        return next;
+      });
+    })();
+  }, [entries, paymentMethodByPaymentId]);
 
   // Base: aplica filtros de direção/categoria/mês. Ordena pela data efetiva
   // do pagamento/movimentação (occurred_on) — nunca pela data de cadastro.
