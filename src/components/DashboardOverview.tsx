@@ -258,6 +258,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
   const [tempBalance, setTempBalance] = useState("");
   const [includeSales, setIncludeSales] = useState(false);
   const [showInterestDetail, setShowInterestDetail] = useState(false);
+  const [receivedDetailMethodId, setReceivedDetailMethodId] = useState<string | null>(null);
   const [showInterestExpectedDetail, setShowInterestExpectedDetail] = useState(false);
   const [interestExpectedFilter, setInterestExpectedFilter] = useState<"all" | "pending">("all");
   const [showHealthInfo, setShowHealthInfo] = useState(false);
