@@ -490,23 +490,23 @@ export function ExpenseList({ expenses, onPay, onUnpay, onDelete, onUpdate, read
                       {isRecorrente && expense.installments! < FIXED_RECURRING_INSTALLMENTS && (
                         <p className="text-xs text-muted-foreground">Total: {formatCurrency(expense.amount)} ({expense.installments}x de {formatCurrency(installmentAmount)})</p>
                       )}
-                      <div className="flex items-center justify-between mt-2 pt-2 border-t border-border/40">
+                      <div className="flex items-center justify-between gap-2 mt-2 pt-2 border-t border-border/40 flex-wrap">
                         <p className="text-base sm:text-lg font-bold text-foreground">{formatCurrency(installmentAmount)}</p>
-                        <div className="flex items-center gap-1">
+                        <div className="flex items-center gap-1 flex-wrap justify-end">
                           {hasPaidSomething && onUpdate && (
-                            <Button size="sm" variant="outline" onClick={() => setViewPaymentsExpenseId(expense.id)} className="h-7 text-xs">
-                              <Receipt className="h-3.5 w-3.5 mr-1" />
-                              Pagamentos
+                            <Button size="sm" variant="outline" onClick={() => setViewPaymentsExpenseId(expense.id)} className="h-7 px-2 text-xs">
+                              <Receipt className="h-3.5 w-3.5 sm:mr-1" />
+                              <span className="hidden sm:inline">Pagamentos</span>
                             </Button>
                           )}
                           {!readOnly && !expense.paid && (
-                            <Button size="sm" variant="outline" className="text-success border-success/30 hover:bg-success hover:text-success-foreground h-7 text-xs" onClick={() => {
+                            <Button size="sm" variant="outline" className="text-success border-success/30 hover:bg-success hover:text-success-foreground h-7 px-2 text-xs" onClick={() => {
                               setPayDate(todayInAppTz());
                               setPaidAmountInput("");
                               setPayingExpenseId(expense.id);
                             }}>
-                              <CheckCircle className="h-3.5 w-3.5 mr-1" />
-                              Pagar
+                              <CheckCircle className="h-3.5 w-3.5 sm:mr-1" />
+                              <span className="hidden sm:inline">Pagar</span>
                             </Button>
                           )}
                           {!readOnly && onUpdate && (
