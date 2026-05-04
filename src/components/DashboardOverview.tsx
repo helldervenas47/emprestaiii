@@ -523,6 +523,39 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
     return { total, items, unassigned };
   }, [data.filteredPayments, paymentMethods]);
 
+  const receivedDetail = useMemo(() => {
+    if (!receivedDetailMethodId) return null;
+    const targetId = receivedDetailMethodId === "__unassigned__" ? null : receivedDetailMethodId;
+    const method = targetId ? paymentMethods.find((m) => m.id === targetId) : null;
+    const methodName = targetId ? (method?.name ?? "Forma desconhecida") : "Sem forma definida";
+    type Row = { id: string; date: string; borrowerName: string; amount: number; loanId: string };
+    const rows: Row[] = [];
+    data.filteredPayments.forEach((p) => {
+      const loan = loans.find((l) => l.id === p.loanId);
+      const borrowerName = loan?.borrowerName ?? "—";
+      const split = (p.metadata as any)?.split?.parts as Array<{ paymentMethodId: string | null; amount: number }> | undefined;
+      if (Array.isArray(split) && split.length > 0) {
+        split.forEach((part, idx) => {
+          const v = Number(part.amount) || 0;
+          if (v <= 0) return;
+          if ((part.paymentMethodId ?? null) === targetId) {
+            rows.push({ id: `${p.id}-${idx}`, date: p.date, borrowerName, amount: v, loanId: p.loanId });
+          }
+        });
+      } else {
+        const amount = Number(p.amount) || 0;
+        if (amount <= 0) return;
+        const pid = p.paymentMethodId ?? null;
+        if (pid === targetId) {
+          rows.push({ id: p.id, date: p.date, borrowerName, amount, loanId: p.loanId });
+        }
+      }
+    });
+    rows.sort((a, b) => b.date.localeCompare(a.date));
+    const total = rows.reduce((s, r) => s + r.amount, 0);
+    return { methodName, rows, total };
+  }, [receivedDetailMethodId, data.filteredPayments, loans, paymentMethods]);
+
   const profitTargetAmount = useMemo(() => {
     if (!profitGoal) return 0;
     const previstoTotal = data.periodProfitRealized + data.periodProfitExpected;
