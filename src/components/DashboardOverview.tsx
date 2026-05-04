@@ -1227,8 +1227,8 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
         </div>
       </div>
 
-      {/* Account balance + Interest rate + Profit */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      {/* Account balance + Received + Interest rate + Profit */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card no3d className="animate-fade-in" style={{ animationDelay: '80ms', animationFillMode: 'backwards' }}>
           <CardContent className="p-4 h-full relative flex flex-col">
             {!readOnly && (
