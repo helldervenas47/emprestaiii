@@ -2700,7 +2700,7 @@ function LoanRowView({
     try {
       if (dialogType === "full") {
         if (onFullPayment) {
-          await onFullPayment(dateStr, undefined, mid, split);
+          await onFullPayment(dateStr, remaining, mid, split);
         } else {
           await onPartialPayment(remaining, dateStr, mid, split);
           await onUpdate({ paidInstallments: loan.installments, status: "paid" });
