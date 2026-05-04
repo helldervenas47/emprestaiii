@@ -1165,6 +1165,7 @@ export function useLoans() {
         direction: "in", category: "payment", amount: amortizeAmount,
         description: `Amortização - ${loan.borrowerName}`,
         occurred_on: dateStr, loan_id: loanId, payment_id: tempPaymentId, source: "auto", syncBalance: false,
+        metadata: { payment_method_id: paymentMethodId ?? null },
       });
     } catch (balErr: any) {
       // reverter
