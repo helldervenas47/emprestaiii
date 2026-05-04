@@ -270,7 +270,10 @@ export function LedgerView({ readOnly = false }: Props) {
                       <TableCell className="whitespace-nowrap text-sm">{e.occurred_on}</TableCell>
                       <TableCell className="text-sm">{e.description}</TableCell>
                       <TableCell>
-                        <Badge variant="outline" className="text-[10px]">{categoryLabels[e.category]}</Badge>
+                        <Badge variant="outline" className="text-[10px]">
+                          {categoryLabels[e.category]}
+                          {getPaymentMethodName(e) ? ` · ${getPaymentMethodName(e)}` : ""}
+                        </Badge>
                       </TableCell>
                       <TableCell className={`text-right font-semibold ${e.direction === "in" ? "text-success" : "text-destructive"}`}>
                         {e.direction === "in" ? "+" : "−"} {formatBRL(Number(e.amount))}
