@@ -258,6 +258,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
   const [tempBalance, setTempBalance] = useState("");
   const [includeSales, setIncludeSales] = useState(false);
   const [showInterestDetail, setShowInterestDetail] = useState(false);
+  const [receivedDetailMethodId, setReceivedDetailMethodId] = useState<string | null>(null);
   const [showInterestExpectedDetail, setShowInterestExpectedDetail] = useState(false);
   const [interestExpectedFilter, setInterestExpectedFilter] = useState<"all" | "pending">("all");
   const [showHealthInfo, setShowHealthInfo] = useState(false);
@@ -521,6 +522,39 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
       .sort((a, b) => b.amount - a.amount);
     return { total, items, unassigned };
   }, [data.filteredPayments, paymentMethods]);
+
+  const receivedDetail = useMemo(() => {
+    if (!receivedDetailMethodId) return null;
+    const targetId = receivedDetailMethodId === "__unassigned__" ? null : receivedDetailMethodId;
+    const method = targetId ? paymentMethods.find((m) => m.id === targetId) : null;
+    const methodName = targetId ? (method?.name ?? "Forma desconhecida") : "Sem forma definida";
+    type Row = { id: string; date: string; borrowerName: string; amount: number; loanId: string };
+    const rows: Row[] = [];
+    data.filteredPayments.forEach((p) => {
+      const loan = loans.find((l) => l.id === p.loanId);
+      const borrowerName = loan?.borrowerName ?? "—";
+      const split = (p.metadata as any)?.split?.parts as Array<{ paymentMethodId: string | null; amount: number }> | undefined;
+      if (Array.isArray(split) && split.length > 0) {
+        split.forEach((part, idx) => {
+          const v = Number(part.amount) || 0;
+          if (v <= 0) return;
+          if ((part.paymentMethodId ?? null) === targetId) {
+            rows.push({ id: `${p.id}-${idx}`, date: p.date, borrowerName, amount: v, loanId: p.loanId });
+          }
+        });
+      } else {
+        const amount = Number(p.amount) || 0;
+        if (amount <= 0) return;
+        const pid = p.paymentMethodId ?? null;
+        if (pid === targetId) {
+          rows.push({ id: p.id, date: p.date, borrowerName, amount, loanId: p.loanId });
+        }
+      }
+    });
+    rows.sort((a, b) => b.date.localeCompare(a.date));
+    const total = rows.reduce((s, r) => s + r.amount, 0);
+    return { methodName, rows, total };
+  }, [receivedDetailMethodId, data.filteredPayments, loans, paymentMethods]);
 
   const profitTargetAmount = useMemo(() => {
     if (!profitGoal) return 0;
@@ -1302,7 +1336,12 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
                       : DollarSign;
                     const pct = receivedByMethod.total > 0 ? (it.amount / receivedByMethod.total) * 100 : 0;
                     return (
-                      <div key={it.id} className="bg-muted/50 rounded-lg p-2.5 border border-border/30 flex items-center justify-between gap-2">
+                      <button
+                        key={it.id}
+                        type="button"
+                        onClick={() => setReceivedDetailMethodId(it.id)}
+                        className="w-full text-left bg-muted/50 hover:bg-muted/80 transition-colors rounded-lg p-2.5 border border-border/30 flex items-center justify-between gap-2 cursor-pointer"
+                      >
                         <div className="flex items-center gap-2 min-w-0">
                           <div className="h-7 w-7 rounded-md bg-success/10 flex items-center justify-center shrink-0">
                             <Icon className="h-3.5 w-3.5 text-success" />
@@ -1313,11 +1352,15 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
                           </div>
                         </div>
                         <p className="text-sm font-semibold text-foreground shrink-0">{formatCurrency(it.amount)}</p>
-                      </div>
+                      </button>
                     );
                   })}
                   {receivedByMethod.unassigned > 0 && (
-                    <div className="bg-muted/50 rounded-lg p-2.5 border border-border/30 flex items-center justify-between gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setReceivedDetailMethodId("__unassigned__")}
+                      className="w-full text-left bg-muted/50 hover:bg-muted/80 transition-colors rounded-lg p-2.5 border border-border/30 flex items-center justify-between gap-2 cursor-pointer"
+                    >
                       <div className="flex items-center gap-2 min-w-0">
                         <div className="h-7 w-7 rounded-md bg-muted flex items-center justify-center shrink-0">
                           <DollarSign className="h-3.5 w-3.5 text-muted-foreground" />
@@ -1325,7 +1368,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
                         <p className="text-xs font-medium text-muted-foreground truncate">Sem forma definida</p>
                       </div>
                       <p className="text-sm font-semibold text-foreground shrink-0">{formatCurrency(receivedByMethod.unassigned)}</p>
-                    </div>
+                    </button>
                   )}
                 </>
               )}
@@ -2251,6 +2294,37 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
                   <p className="text-sm font-bold text-warning">
                     {formatCurrency(data.interestDetailRecords.reduce((s, r) => s + r.interestPortion, 0))}
                   </p>
+                </div>
+              </>
+            )}
+          </div>
+        </SheetContent>
+      </Sheet>
+      {/* Received by payment method detail */}
+      <Sheet open={!!receivedDetailMethodId} onOpenChange={(o) => { if (!o) setReceivedDetailMethodId(null); }}>
+        <SheetContent side="bottom" className="max-h-[80vh] overflow-y-auto">
+          <SheetHeader>
+            <SheetTitle>Recebido via {receivedDetail?.methodName} — {range.label}</SheetTitle>
+          </SheetHeader>
+          <div className="mt-4 space-y-2">
+            {!receivedDetail || receivedDetail.rows.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-4">Nenhum recebimento nesta forma de pagamento no período.</p>
+            ) : (
+              <>
+                {receivedDetail.rows.map((r) => (
+                  <div key={r.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/50 border border-border/30">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium truncate">{r.borrowerName}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {new Date(r.date + "T00:00:00").toLocaleDateString("pt-BR")}
+                      </p>
+                    </div>
+                    <p className="text-sm font-bold text-success ml-3">{formatCurrency(r.amount)}</p>
+                  </div>
+                ))}
+                <div className="flex items-center justify-between pt-3 border-t border-border">
+                  <p className="text-sm font-semibold">Total</p>
+                  <p className="text-sm font-bold text-success">{formatCurrency(receivedDetail.total)}</p>
                 </div>
               </>
             )}
