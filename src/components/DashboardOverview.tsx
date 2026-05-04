@@ -492,6 +492,36 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
     return { totalIncome, incomeFromPayments, incomeFromSales, totalOutgoing, totalLoanOutgoing, totalExpenses, balance, transactions, loanCount: filteredLoans.length, saleCount: filteredSales.length, paymentCount: filteredPayments.length, expenseCount: filteredExpenses.length, monthlyInterestRate, filteredPayments, filteredLoans, filteredExpenses, salesWithReceived, periodProfitExpected: totalProfitExpected, periodProfitRealized: totalProfitRealized, periodProfitPct, interestDetailRecords, interestExpectedRecords };
   }, [loans, sales, payments, expenses, range, includeSales, period, chartOverrides, installmentSchedules]);
 
+  // Recebido por forma de pagamento (apenas pagamentos de empréstimos no período)
+  const receivedByMethod = useMemo(() => {
+    const byId: Record<string, number> = {};
+    let unassigned = 0;
+    let total = 0;
+    data.filteredPayments.forEach((p) => {
+      const amount = Number(p.amount) || 0;
+      if (amount <= 0) return;
+      total += amount;
+      const split = (p.metadata as any)?.split?.parts as Array<{ paymentMethodId: string | null; amount: number }> | undefined;
+      if (Array.isArray(split) && split.length > 0) {
+        split.forEach((part) => {
+          const v = Number(part.amount) || 0;
+          if (v <= 0) return;
+          if (part.paymentMethodId) byId[part.paymentMethodId] = (byId[part.paymentMethodId] || 0) + v;
+          else unassigned += v;
+        });
+      } else if (p.paymentMethodId) {
+        byId[p.paymentMethodId] = (byId[p.paymentMethodId] || 0) + amount;
+      } else {
+        unassigned += amount;
+      }
+    });
+    const items = paymentMethods
+      .map((m) => ({ id: m.id, name: m.name, icon: m.icon, amount: byId[m.id] || 0 }))
+      .filter((it) => it.amount > 0)
+      .sort((a, b) => b.amount - a.amount);
+    return { total, items, unassigned };
+  }, [data.filteredPayments, paymentMethods]);
+
   const profitTargetAmount = useMemo(() => {
     if (!profitGoal) return 0;
     const previstoTotal = data.periodProfitRealized + data.periodProfitExpected;
