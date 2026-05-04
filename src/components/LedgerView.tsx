@@ -203,7 +203,7 @@ export function LedgerView({ readOnly = false }: Props) {
         <>
           {/* Mobile: lista de cards */}
           <div className="sm:hidden space-y-2">
-            {filtered.map((e) => (
+            {filteredList.map((e) => (
               <Card no3d key={e.id}>
                 <CardContent className="p-3">
                   <div className="flex items-start justify-between gap-2">
@@ -249,7 +249,7 @@ export function LedgerView({ readOnly = false }: Props) {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filtered.map((e) => (
+                  {filteredList.map((e) => (
                     <TableRow key={e.id}>
                       <TableCell className="whitespace-nowrap text-sm">{e.occurred_on}</TableCell>
                       <TableCell className="text-sm">{e.description}</TableCell>
