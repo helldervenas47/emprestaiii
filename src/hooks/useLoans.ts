@@ -603,39 +603,23 @@ export function useLoans() {
 
     try {
       await adjustBalance(payAmount);
-      // Divide o lançamento em principal + juros para ficar visível no extrato/movimentações.
+      // Lança o valor total recebido (principal + juros/multa) em uma única linha no extrato.
+      // O índice único uq_account_ledger_payment exige um único lançamento por payment_id.
       const principalPaidBefore = payments
         .filter((p) => p.loanId === loanId)
         .reduce((sum, p) => sum + Math.min(Number(p.amount) || 0, Math.max(0, loan.amount - sum)), 0);
-      const principalRemaining = Math.max(0, loan.amount - principalPaidBefore);
-      const principalPortion = Math.min(payAmount, principalRemaining);
+      const principalPortion = Math.min(payAmount, Math.max(0, loan.amount - principalPaidBefore));
       const interestPortion = Math.max(0, Math.round((payAmount - principalPortion) * 100) / 100);
-      const principalRounded = Math.round((payAmount - interestPortion) * 100) / 100;
-
-      if (principalRounded > 0) {
-        await recordLedger({
-          direction: "in", category: "payment", amount: principalRounded,
-          description: `Quitação (principal) - ${loan.borrowerName}`,
-          occurred_on: dateStr, loan_id: loanId, payment_id: tempPaymentId, source: "auto", syncBalance: false,
-          metadata: { payment_method_id: paymentMethodId ?? null, kind: "principal" },
-        });
-      }
-      if (interestPortion > 0) {
-        await recordLedger({
-          direction: "in", category: "payment", amount: interestPortion,
-          description: `Quitação (juros) - ${loan.borrowerName}`,
-          occurred_on: dateStr, loan_id: loanId, payment_id: tempPaymentId, source: "auto", syncBalance: false,
-          metadata: { payment_method_id: paymentMethodId ?? null, kind: "interest" },
-        });
-      }
-      if (principalRounded <= 0 && interestPortion <= 0) {
-        await recordLedger({
-          direction: "in", category: "payment", amount: payAmount,
-          description: `Quitação - ${loan.borrowerName}`,
-          occurred_on: dateStr, loan_id: loanId, payment_id: tempPaymentId, source: "auto", syncBalance: false,
-          metadata: { payment_method_id: paymentMethodId ?? null },
-        });
-      }
+      await recordLedger({
+        direction: "in", category: "payment", amount: payAmount,
+        description: `Quitação - ${loan.borrowerName}`,
+        occurred_on: dateStr, loan_id: loanId, payment_id: tempPaymentId, source: "auto", syncBalance: false,
+        metadata: {
+          payment_method_id: paymentMethodId ?? null,
+          principal_amount: Math.round(principalPortion * 100) / 100,
+          interest_amount: interestPortion,
+        },
+      });
     } catch (balanceError: any) {
       console.error("[payOffLoan] adjust balance failed:", balanceError);
       await Promise.all([
