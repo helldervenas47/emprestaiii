@@ -1275,6 +1275,64 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
           </CardContent>
         </Card>
 
+        {/* Valores Recebidos — dinâmico conforme filtro de período */}
+        <Card no3d className="animate-fade-in" style={{ animationDelay: '120ms', animationFillMode: 'backwards' }}>
+          <CardContent className="p-4 h-full relative flex flex-col">
+            <div className="flex items-center justify-center">
+              <div className="text-center flex-col flex items-center justify-center">
+                <div className="h-10 w-10 rounded-full bg-success/10 flex items-center justify-center shrink-0 mb-1">
+                  <ArrowDownToLine className="h-5 w-5 text-success" />
+                </div>
+                <p className="text-xs text-muted-foreground">Valores Recebidos</p>
+                <p className="text-lg font-bold text-success">{formatCurrency(receivedByMethod.total)}</p>
+                <p className="text-[10px] text-muted-foreground">{range.label}</p>
+              </div>
+            </div>
+            <div className="mt-3 flex-1 space-y-1.5">
+              {receivedByMethod.items.length === 0 && receivedByMethod.unassigned <= 0 ? (
+                <div className="bg-muted/50 rounded-lg p-3 border border-border/30 text-center">
+                  <p className="text-[11px] text-muted-foreground">Nenhum recebimento no período</p>
+                </div>
+              ) : (
+                <>
+                  {receivedByMethod.items.map((it) => {
+                    const lower = it.name.toLowerCase();
+                    const Icon = lower.includes("pix") ? Smartphone
+                      : lower.includes("dinheiro") ? Banknote
+                      : DollarSign;
+                    const pct = receivedByMethod.total > 0 ? (it.amount / receivedByMethod.total) * 100 : 0;
+                    return (
+                      <div key={it.id} className="bg-muted/50 rounded-lg p-2.5 border border-border/30 flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <div className="h-7 w-7 rounded-md bg-success/10 flex items-center justify-center shrink-0">
+                            <Icon className="h-3.5 w-3.5 text-success" />
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-xs font-medium text-foreground truncate">Recebido via {it.name}</p>
+                            <p className="text-[10px] text-muted-foreground">{pct.toFixed(0)}% do total</p>
+                          </div>
+                        </div>
+                        <p className="text-sm font-semibold text-foreground shrink-0">{formatCurrency(it.amount)}</p>
+                      </div>
+                    );
+                  })}
+                  {receivedByMethod.unassigned > 0 && (
+                    <div className="bg-muted/50 rounded-lg p-2.5 border border-border/30 flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <div className="h-7 w-7 rounded-md bg-muted flex items-center justify-center shrink-0">
+                          <DollarSign className="h-3.5 w-3.5 text-muted-foreground" />
+                        </div>
+                        <p className="text-xs font-medium text-muted-foreground truncate">Sem forma definida</p>
+                      </div>
+                      <p className="text-sm font-semibold text-foreground shrink-0">{formatCurrency(receivedByMethod.unassigned)}</p>
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+
         <Card no3d className="animate-fade-in cursor-pointer" style={{ animationDelay: '160ms', animationFillMode: 'backwards' }} onClick={() => setExpandedBreakdown(expandedBreakdown === "interest-rate" ? null : "interest-rate")}>
           <CardContent className="p-4 h-full relative flex flex-col">
             <div className="flex items-center gap-3">
