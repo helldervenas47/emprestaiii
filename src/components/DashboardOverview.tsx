@@ -27,6 +27,8 @@ import {
   ChevronLeft, ChevronRight, ChevronDown, Percent, Wallet, Pencil, Check, X, Trash2, Calendar, Eye, Target, Info, Sparkles,
 } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { usePaymentMethods } from "@/hooks/usePaymentMethods";
+import { Banknote, Smartphone, ArrowDownToLine } from "lucide-react";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, ComposedChart, Line } from "recharts";
 import { AIReportAudioPlayer } from "@/components/AIReportAudioPlayer";
@@ -240,6 +242,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
   const { mask } = useHideValues();
   const { role } = useAuth();
   const { renegotiations } = useLoanRenegotiations();
+  const { methods: paymentMethods } = usePaymentMethods();
   const isMobile = useIsMobile();
   const formatCurrency = useCallback((v: number) => mask(rawFormatCurrency(v)), [mask]);
   const [period, setPeriod] = useState<Period>("month");
@@ -488,6 +491,36 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
 
     return { totalIncome, incomeFromPayments, incomeFromSales, totalOutgoing, totalLoanOutgoing, totalExpenses, balance, transactions, loanCount: filteredLoans.length, saleCount: filteredSales.length, paymentCount: filteredPayments.length, expenseCount: filteredExpenses.length, monthlyInterestRate, filteredPayments, filteredLoans, filteredExpenses, salesWithReceived, periodProfitExpected: totalProfitExpected, periodProfitRealized: totalProfitRealized, periodProfitPct, interestDetailRecords, interestExpectedRecords };
   }, [loans, sales, payments, expenses, range, includeSales, period, chartOverrides, installmentSchedules]);
+
+  // Recebido por forma de pagamento (apenas pagamentos de empréstimos no período)
+  const receivedByMethod = useMemo(() => {
+    const byId: Record<string, number> = {};
+    let unassigned = 0;
+    let total = 0;
+    data.filteredPayments.forEach((p) => {
+      const amount = Number(p.amount) || 0;
+      if (amount <= 0) return;
+      total += amount;
+      const split = (p.metadata as any)?.split?.parts as Array<{ paymentMethodId: string | null; amount: number }> | undefined;
+      if (Array.isArray(split) && split.length > 0) {
+        split.forEach((part) => {
+          const v = Number(part.amount) || 0;
+          if (v <= 0) return;
+          if (part.paymentMethodId) byId[part.paymentMethodId] = (byId[part.paymentMethodId] || 0) + v;
+          else unassigned += v;
+        });
+      } else if (p.paymentMethodId) {
+        byId[p.paymentMethodId] = (byId[p.paymentMethodId] || 0) + amount;
+      } else {
+        unassigned += amount;
+      }
+    });
+    const items = paymentMethods
+      .map((m) => ({ id: m.id, name: m.name, icon: m.icon, amount: byId[m.id] || 0 }))
+      .filter((it) => it.amount > 0)
+      .sort((a, b) => b.amount - a.amount);
+    return { total, items, unassigned };
+  }, [data.filteredPayments, paymentMethods]);
 
   const profitTargetAmount = useMemo(() => {
     if (!profitGoal) return 0;
@@ -1194,8 +1227,8 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
         </div>
       </div>
 
-      {/* Account balance + Interest rate + Profit */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      {/* Account balance + Received + Interest rate + Profit */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card no3d className="animate-fade-in" style={{ animationDelay: '80ms', animationFillMode: 'backwards' }}>
           <CardContent className="p-4 h-full relative flex flex-col">
             {!readOnly && (
@@ -1238,6 +1271,64 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
                 </div>
                 <p className={`text-sm font-semibold ${(accountBalance + portfolio.forecastEndMonth) < 0 ? "text-destructive" : "text-foreground"}`}>{formatCurrency(accountBalance + portfolio.forecastEndMonth)}</p>
               </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Valores Recebidos — dinâmico conforme filtro de período */}
+        <Card no3d className="animate-fade-in" style={{ animationDelay: '120ms', animationFillMode: 'backwards' }}>
+          <CardContent className="p-4 h-full relative flex flex-col">
+            <div className="flex items-center justify-center">
+              <div className="text-center flex-col flex items-center justify-center">
+                <div className="h-10 w-10 rounded-full bg-success/10 flex items-center justify-center shrink-0 mb-1">
+                  <ArrowDownToLine className="h-5 w-5 text-success" />
+                </div>
+                <p className="text-xs text-muted-foreground">Valores Recebidos</p>
+                <p className="text-lg font-bold text-success">{formatCurrency(receivedByMethod.total)}</p>
+                <p className="text-[10px] text-muted-foreground">{range.label}</p>
+              </div>
+            </div>
+            <div className="mt-3 flex-1 space-y-1.5">
+              {receivedByMethod.items.length === 0 && receivedByMethod.unassigned <= 0 ? (
+                <div className="bg-muted/50 rounded-lg p-3 border border-border/30 text-center">
+                  <p className="text-[11px] text-muted-foreground">Nenhum recebimento no período</p>
+                </div>
+              ) : (
+                <>
+                  {receivedByMethod.items.map((it) => {
+                    const lower = it.name.toLowerCase();
+                    const Icon = lower.includes("pix") ? Smartphone
+                      : lower.includes("dinheiro") ? Banknote
+                      : DollarSign;
+                    const pct = receivedByMethod.total > 0 ? (it.amount / receivedByMethod.total) * 100 : 0;
+                    return (
+                      <div key={it.id} className="bg-muted/50 rounded-lg p-2.5 border border-border/30 flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <div className="h-7 w-7 rounded-md bg-success/10 flex items-center justify-center shrink-0">
+                            <Icon className="h-3.5 w-3.5 text-success" />
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-xs font-medium text-foreground truncate">Recebido via {it.name}</p>
+                            <p className="text-[10px] text-muted-foreground">{pct.toFixed(0)}% do total</p>
+                          </div>
+                        </div>
+                        <p className="text-sm font-semibold text-foreground shrink-0">{formatCurrency(it.amount)}</p>
+                      </div>
+                    );
+                  })}
+                  {receivedByMethod.unassigned > 0 && (
+                    <div className="bg-muted/50 rounded-lg p-2.5 border border-border/30 flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <div className="h-7 w-7 rounded-md bg-muted flex items-center justify-center shrink-0">
+                          <DollarSign className="h-3.5 w-3.5 text-muted-foreground" />
+                        </div>
+                        <p className="text-xs font-medium text-muted-foreground truncate">Sem forma definida</p>
+                      </div>
+                      <p className="text-sm font-semibold text-foreground shrink-0">{formatCurrency(receivedByMethod.unassigned)}</p>
+                    </div>
+                  )}
+                </>
+              )}
             </div>
           </CardContent>
         </Card>
