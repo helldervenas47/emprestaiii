@@ -41,6 +41,18 @@ export function LedgerView({ readOnly = false }: Props) {
   const [filterMonth, setFilterMonth] = useState<string>(() => todayInAppTz().slice(0, 7));
   const [adjustOpen, setAdjustOpen] = useState(false);
   const [editEntry, setEditEntry] = useState<LedgerEntry | null>(null);
+  const { methods: paymentMethods } = usePaymentMethods();
+  const methodNameById = useMemo(() => {
+    const m = new Map<string, string>();
+    paymentMethods.forEach((pm) => m.set(pm.id, pm.name));
+    return m;
+  }, [paymentMethods]);
+  const getPaymentMethodName = useCallback((e: LedgerEntry): string | null => {
+    if (e.category !== "payment") return null;
+    const id = (e.metadata as any)?.payment_method_id;
+    if (!id) return null;
+    return methodNameById.get(id) ?? null;
+  }, [methodNameById]);
 
   const reload = useCallback(async () => {
     setLoading(true);
