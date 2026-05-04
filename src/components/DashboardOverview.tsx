@@ -2300,6 +2300,37 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
           </div>
         </SheetContent>
       </Sheet>
+      {/* Received by payment method detail */}
+      <Sheet open={!!receivedDetailMethodId} onOpenChange={(o) => { if (!o) setReceivedDetailMethodId(null); }}>
+        <SheetContent side="bottom" className="max-h-[80vh] overflow-y-auto">
+          <SheetHeader>
+            <SheetTitle>Recebido via {receivedDetail?.methodName} — {range.label}</SheetTitle>
+          </SheetHeader>
+          <div className="mt-4 space-y-2">
+            {!receivedDetail || receivedDetail.rows.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-4">Nenhum recebimento nesta forma de pagamento no período.</p>
+            ) : (
+              <>
+                {receivedDetail.rows.map((r) => (
+                  <div key={r.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/50 border border-border/30">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium truncate">{r.borrowerName}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {new Date(r.date + "T00:00:00").toLocaleDateString("pt-BR")}
+                      </p>
+                    </div>
+                    <p className="text-sm font-bold text-success ml-3">{formatCurrency(r.amount)}</p>
+                  </div>
+                ))}
+                <div className="flex items-center justify-between pt-3 border-t border-border">
+                  <p className="text-sm font-semibold">Total</p>
+                  <p className="text-sm font-bold text-success">{formatCurrency(receivedDetail.total)}</p>
+                </div>
+              </>
+            )}
+          </div>
+        </SheetContent>
+      </Sheet>
       {/* Interest Expected Detail Sheet */}
       <Sheet open={showInterestExpectedDetail} onOpenChange={setShowInterestExpectedDetail}>
         <SheetContent side="bottom" className="max-h-[80vh] overflow-y-auto">
