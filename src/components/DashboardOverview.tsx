@@ -788,84 +788,94 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
     };
   }, [comparisonWindow, includeSales, loans, payments, range.start, sales]);
 
-  // Médias anuais (ano corrente) usadas no indicador risco vs retorno
+  // Médias anuais usadas no indicador risco vs retorno
+  // - Taxa: usa a taxa geral global do portfólio (mesma fonte do card "Taxa de Juros Mensal — Geral")
+  // - Juros recebidos: média dos meses com juros recebidos > 0 nos últimos 12 meses (mesma base do gráfico "Juros Recebidos por Mês")
   const yearlyAverages = useMemo(() => {
     const now = new Date();
-    const year = now.getFullYear();
-    const yearStart = new Date(year, 0, 1);
-    const yearEnd = new Date(year, 11, 31, 23, 59, 59, 999);
-    const inYear = (dateStr: string) => isInRange(dateStr, yearStart, yearEnd);
+    const currentMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    const monthlyInterests: number[] = [];
 
-    // Quitados dentro do ano (lucro = totalPago - principal)
-    const quitadoIds = new Set<string>();
-    loans.forEach((l) => {
-      if (l.status !== "paid") return;
-      const lp = payments.filter((pp) => pp.loanId === l.id);
-      if (lp.length === 0) return;
-      const lastDate = lp.reduce((m, pp) => (pp.date > m ? pp.date : m), lp[0].date);
-      if (inYear(lastDate)) quitadoIds.add(l.id);
-    });
+    for (let i = 11; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const end = new Date(d.getFullYear(), d.getMonth() + 1, 0, 23, 59, 59, 999);
+      let interestInMonth = 0;
 
-    // Helper: juros recebidos em um intervalo (mesma lógica do periodProfitRealized)
-    const interestReceivedInRange = (start: Date, end: Date) => {
-      const ps = payments.filter((p) => isInRange(p.date, start, end));
-      const interestOnly = ps
-        .filter((p) => p.installmentNumber === 0 && !quitadoIds.has(p.loanId))
-        .reduce((s, p) => s + p.amount, 0);
-      const quitado = Array.from(quitadoIds).reduce((s, id) => {
-        const loan = loans.find((l) => l.id === id);
-        if (!loan) return s;
-        const lp = payments.filter((pp) => pp.loanId === id);
-        const lastDate = lp.reduce((m, pp) => (pp.date > m ? pp.date : m), lp[0]?.date ?? "");
-        if (!lastDate) return s;
-        const lastD = new Date(lastDate + "T12:00:00");
-        if (lastD < start || lastD > end) return s;
-        const totalPaid = lp.reduce((sum, p) => sum + p.amount, 0);
-        return s + Math.max(0, totalPaid - loan.amount);
-      }, 0);
-      const active = ps
-        .filter((p) => p.installmentNumber !== 0 && !quitadoIds.has(p.loanId))
-        .reduce((s, p) => {
-          const loan = loans.find((l) => l.id === p.loanId);
+      if (d >= currentMonthStart) {
+        const isInMonth = (dateStr: string) => {
+          const pd = new Date(dateStr + "T00:00:00");
+          return pd >= d && pd <= end;
+        };
+        const paymentsInMonth = payments.filter((p) => isInMonth(p.date));
+        const quitadoIds = new Set<string>();
+        loans.forEach((l) => {
+          if (l.status !== "paid") return;
+          const lp = payments.filter((pp) => pp.loanId === l.id);
+          if (lp.length === 0) return;
+          const lastDate = lp.reduce((m, pp) => (pp.date > m ? pp.date : m), lp[0].date);
+          if (isInMonth(lastDate)) quitadoIds.add(l.id);
+        });
+        const interestOnlyProfit = paymentsInMonth
+          .filter((p) => p.installmentNumber === 0 && !quitadoIds.has(p.loanId))
+          .reduce((s, p) => s + p.amount, 0);
+        const quitadoProfit = Array.from(quitadoIds).reduce((s, id) => {
+          const loan = loans.find((l) => l.id === id);
           if (!loan) return s;
-          const twi = calculateTotalWithInterest(loan.amount, loan.interestRate, loan.installments);
-          const ratio = twi > 0 ? 1 - loan.amount / twi : 0;
-          return s + p.amount * ratio;
+          const totalPaid = payments.filter((p) => p.loanId === id).reduce((sum, p) => sum + p.amount, 0);
+          return s + Math.max(0, totalPaid - loan.amount);
         }, 0);
-      return interestOnly + quitado + active;
-    };
-
-    // Per-mês: juros recebidos e taxa média (loans que receberam pagamentos no mês)
-    const lastMonth = year === now.getFullYear() ? now.getMonth() : 11;
-    let interestReceived = 0;
-    const monthlyRates: number[] = [];
-    for (let m = 0; m <= lastMonth; m++) {
-      const ms = new Date(year, m, 1);
-      const me = new Date(year, m + 1, 0, 23, 59, 59, 999);
-      const monthInterest = interestReceivedInRange(ms, me);
-      interestReceived += monthInterest;
-      if (monthInterest > 0) {
-        const loanIdsInMonth = new Set(
-          payments.filter((p) => isInRange(p.date, ms, me)).map((p) => p.loanId)
-        );
-        const monthLoans = loans.filter((l) => loanIdsInMonth.has(l.id));
-        const r = calculateMonthlyInterestRate(monthLoans).rate;
-        if (r !== null && Number.isFinite(r)) monthlyRates.push(r);
+        const activeProfit = paymentsInMonth
+          .filter((p) => p.installmentNumber !== 0 && !quitadoIds.has(p.loanId))
+          .reduce((s, p) => {
+            const loan = loans.find((l) => l.id === p.loanId);
+            if (!loan) return s;
+            const twi = calculateTotalWithInterest(loan.amount, loan.interestRate, loan.installments);
+            const ratio = twi > 0 ? 1 - loan.amount / twi : 0;
+            return s + p.amount * ratio;
+          }, 0);
+        interestInMonth = interestOnlyProfit + quitadoProfit + activeProfit;
+      } else {
+        loans.forEach((l) => {
+          const loanPayments = payments.filter((p) => {
+            const pd = new Date(p.date + "T00:00:00");
+            return p.loanId === l.id && pd >= d && pd <= end;
+          });
+          const installmentAmount = calculateInstallment(l.amount, l.interestRate, l.installments);
+          const principalPerInstallment = l.installments > 0 ? l.amount / l.installments : 0;
+          const totalWithInterest = calculateTotalWithInterest(l.amount, l.interestRate, l.installments);
+          const interestRatio = totalWithInterest > 0 ? 1 - (l.amount / totalWithInterest) : 0;
+          loanPayments.forEach((p) => {
+            if (p.installmentNumber === 0) {
+              interestInMonth += p.amount;
+            } else if (p.installmentNumber > 0) {
+              interestInMonth += installmentAmount - principalPerInstallment;
+            } else if (p.installmentNumber === -1) {
+              interestInMonth += p.amount * interestRatio;
+            }
+          });
+        });
       }
+
+      const label = `${monthNames[d.getMonth()].slice(0, 3)}/${String(d.getFullYear()).slice(2)}`;
+      const withOverride = interestInMonth + (interestOverrides[label] ?? 0);
+      monthlyInterests.push(withOverride);
     }
 
-    const avgRate = monthlyRates.length > 0
-      ? monthlyRates.reduce((s, r) => s + r, 0) / monthlyRates.length
-      : null;
+    const monthsWithInterest = monthlyInterests.filter((v) => v > 0);
+    const avgInterestReceived = monthsWithInterest.length > 0
+      ? monthsWithInterest.reduce((s, v) => s + v, 0) / monthsWithInterest.length
+      : 0;
+
+    const rate = portfolio.globalInterestRate;
     const interestRate = {
       totalLent: 0,
       totalToReceive: 0,
-      rate: avgRate,
-      hasData: avgRate !== null,
+      rate: Number.isFinite(rate) && rate > 0 ? rate : null,
+      hasData: Number.isFinite(rate) && rate > 0,
     };
 
-    return { interestRate, interestReceived };
-  }, [loans, payments]);
+    return { interestRate, interestReceived: avgInterestReceived };
+  }, [loans, payments, interestOverrides, portfolio.globalInterestRate]);
 
   const riskReturn = useMemo(() => {
     const activeLoans = loans.filter((loan) => loan.status !== "paid");
