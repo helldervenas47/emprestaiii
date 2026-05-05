@@ -1,4 +1,4 @@
-import { useState, useEffect, lazy, Suspense } from "react";
+import { useState, useEffect, useLayoutEffect, useRef, lazy, Suspense } from "react";
 import { Plus, Users, LayoutDashboard, ShoppingBag, BarChart3, AlertTriangle, Receipt, CalendarDays, Sun, Moon, LogOut, Info, X, Eye, EyeOff, Car, Wrench, DatabaseBackup, Menu, User, RefreshCw, Bell, Target, Calculator, Settings as SettingsIcon, CalendarClock, Pin, Check, Sliders, Loader2, GripVertical, Activity, Send, MessageCircle, Wallet } from "lucide-react";
 import { AppLogo } from "@/components/AppLogo";
 import { useAppBranding } from "@/hooks/useAppBranding";
@@ -238,6 +238,8 @@ const Index = () => {
   const { subscription, isActive: hasActiveSub } = useSubscription();
   const { branding: appBranding } = useAppBranding();
   const brandName = appBranding.brand_name;
+  const preserveScrollYRef = useRef<number | null>(null);
+  const [preservedPageHeight, setPreservedPageHeight] = useState<number | null>(null);
 
   // Tab state - declared early so hooks can use it for lazy loading
   const [tab, setTabState] = useState<Tab>(() => {
@@ -252,8 +254,28 @@ const Index = () => {
   });
   const setTab = (t: Tab) => {
     sessionStorage.setItem("activeTab", t);
+    preserveScrollYRef.current = window.scrollY || document.documentElement.scrollTop || 0;
+    setPreservedPageHeight(document.documentElement.scrollHeight || document.body.scrollHeight || null);
     setTabState(t);
   };
+
+  useLayoutEffect(() => {
+    const y = preserveScrollYRef.current;
+    if (y === null) return;
+    window.scrollTo({ top: y, behavior: "instant" as ScrollBehavior });
+    requestAnimationFrame(() => window.scrollTo({ top: y, behavior: "instant" as ScrollBehavior }));
+  }, [tab]);
+
+  useEffect(() => {
+    if (preservedPageHeight === null) return;
+    const timer = window.setTimeout(() => {
+      const y = preserveScrollYRef.current;
+      if (y !== null) window.scrollTo({ top: y, behavior: "instant" as ScrollBehavior });
+      preserveScrollYRef.current = null;
+      setPreservedPageHeight(null);
+    }, 350);
+    return () => window.clearTimeout(timer);
+  }, [preservedPageHeight, tab]);
 
   // Atualiza apenas a aba (reload simples), preservando cache e localStorage.
   const [refreshing, setRefreshing] = useState(false);
@@ -686,7 +708,10 @@ const Index = () => {
         )}
       </header>
 
-      <main className="max-w-[1920px] mx-auto px-3 sm:px-4 lg:px-8 py-2 sm:py-6 space-y-4 sm:space-y-6">
+      <main
+        className="max-w-[1920px] mx-auto px-3 sm:px-4 lg:px-8 py-2 sm:py-6 space-y-4 sm:space-y-6"
+        style={preservedPageHeight ? { minHeight: `${preservedPageHeight}px` } : undefined}
+      >
         {(() => {
           const current = tabConfig.find((t) => t.id === tab);
           if (!current) return null;
