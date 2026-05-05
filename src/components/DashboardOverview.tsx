@@ -788,6 +788,50 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
     };
   }, [comparisonWindow, includeSales, loans, payments, range.start, sales]);
 
+  // Médias anuais (ano corrente) usadas no indicador risco vs retorno
+  const yearlyAverages = useMemo(() => {
+    const now = new Date();
+    const yearStart = new Date(now.getFullYear(), 0, 1);
+    const yearEnd = new Date(now.getFullYear(), 11, 31, 23, 59, 59, 999);
+    const inYear = (dateStr: string) => isInRange(dateStr, yearStart, yearEnd);
+
+    // Taxa de juros média do ano: usa contratos iniciados no ano corrente
+    const loansInYear = loans.filter((l) => inYear(l.startDate));
+    const interestRate = calculateMonthlyInterestRate(loansInYear);
+
+    // Juros recebidos no ano (mesmo critério do periodProfitRealized)
+    const paymentsInYear = payments.filter((p) => inYear(p.date));
+    const quitadoIds = new Set<string>();
+    loans.forEach((l) => {
+      if (l.status !== "paid") return;
+      const lp = payments.filter((pp) => pp.loanId === l.id);
+      if (lp.length === 0) return;
+      const lastDate = lp.reduce((m, pp) => (pp.date > m ? pp.date : m), lp[0].date);
+      if (inYear(lastDate)) quitadoIds.add(l.id);
+    });
+    const interestOnlyProfit = paymentsInYear
+      .filter((p) => p.installmentNumber === 0 && !quitadoIds.has(p.loanId))
+      .reduce((s, p) => s + p.amount, 0);
+    const quitadoProfit = Array.from(quitadoIds).reduce((s, id) => {
+      const loan = loans.find((l) => l.id === id);
+      if (!loan) return s;
+      const totalPaid = payments.filter((p) => p.loanId === id).reduce((sum, p) => sum + p.amount, 0);
+      return s + Math.max(0, totalPaid - loan.amount);
+    }, 0);
+    const activeProfit = paymentsInYear
+      .filter((p) => p.installmentNumber !== 0 && !quitadoIds.has(p.loanId))
+      .reduce((s, p) => {
+        const loan = loans.find((l) => l.id === p.loanId);
+        if (!loan) return s;
+        const twi = calculateTotalWithInterest(loan.amount, loan.interestRate, loan.installments);
+        const ratio = twi > 0 ? 1 - loan.amount / twi : 0;
+        return s + p.amount * ratio;
+      }, 0);
+    const interestReceived = interestOnlyProfit + quitadoProfit + activeProfit;
+
+    return { interestRate, interestReceived };
+  }, [loans, payments]);
+
   const riskReturn = useMemo(() => {
     const activeLoans = loans.filter((loan) => loan.status !== "paid");
     const today = new Date(`${todayInAppTz()}T00:00:00`);
