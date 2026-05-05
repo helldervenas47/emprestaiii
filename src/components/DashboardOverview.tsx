@@ -290,21 +290,51 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
     const filteredPayments = payments.filter((p) => isInRange(p.date, range.start, range.end));
     const filteredSales = sales.filter((s) => isInRange(s.date, range.start, range.end));
     let incomeFromPayments = filteredPayments.reduce((s, p) => s + p.amount, 0);
-    const incomeFromSales = filteredSales.reduce((s, sale) => {
+
+    // Receitas de vendas no período: considera TODAS as vendas (não só as criadas no período),
+    // somando entrada (se a venda é do período) + cada recebimento do paymentHistory cuja data
+    // caia no período. Para vendas antigas sem paymentHistory, usa fallback proporcional apenas
+    // se a venda foi criada no período (mantém comportamento legado).
+    const salesWithReceived = sales.map((sale) => {
+      const history = sale.paymentHistory || [];
       let received = 0;
-      if (sale.installmentAmounts && sale.installmentAmounts.length > 0) {
-        for (let i = 0; i < sale.paidInstallments; i++) {
-          received += sale.installmentAmounts[i] || 0;
-        }
-      } else if (sale.installmentValue) {
-        received = sale.paidInstallments * sale.installmentValue;
-      } else if (sale.installments > 0) {
-        received = sale.paidInstallments * (sale.total / sale.installments);
+      const receipts: { amount: number; date: string; type: "downPayment" | "full" | "partial" | "legacy" }[] = [];
+
+      // Entrada (downPayment) — atribuída à data da venda
+      if ((sale.downPayment || 0) > 0 && isInRange(sale.date, range.start, range.end)) {
+        received += sale.downPayment;
+        receipts.push({ amount: sale.downPayment, date: sale.date, type: "downPayment" });
       }
-      received += sale.downPayment || 0;
-      received += sale.partialPaid || 0;
-      return s + received;
-    }, 0);
+
+      if (history.length > 0) {
+        // Usa histórico de pagamentos (filtrado pela data do recebimento)
+        history.forEach((rec) => {
+          if (isInRange(rec.date, range.start, range.end)) {
+            received += rec.amount || 0;
+            receipts.push({ amount: rec.amount || 0, date: rec.date, type: rec.type });
+          }
+        });
+      } else if (isInRange(sale.date, range.start, range.end)) {
+        // Fallback legado: vendas antigas sem histórico — atribui tudo à data da venda
+        let legacy = 0;
+        if (sale.installmentAmounts && sale.installmentAmounts.length > 0) {
+          for (let i = 0; i < sale.paidInstallments; i++) legacy += sale.installmentAmounts[i] || 0;
+        } else if (sale.installmentValue) {
+          legacy = sale.paidInstallments * sale.installmentValue;
+        } else if (sale.installments > 0) {
+          legacy = sale.paidInstallments * (sale.total / sale.installments);
+        }
+        legacy += sale.partialPaid || 0;
+        if (legacy > 0) {
+          received += legacy;
+          receipts.push({ amount: legacy, date: sale.date, type: "legacy" });
+        }
+      }
+
+      return { ...sale, received, receipts };
+    }).filter((s) => s.received > 0);
+
+    const incomeFromSales = salesWithReceived.reduce((s, x) => s + x.received, 0);
 
     const filteredLoans = loans.filter((l) => isInRange(l.startDate, range.start, range.end));
     let totalLoanOutgoing = filteredLoans.reduce((s, l) => s + l.amount, 0);
@@ -475,22 +505,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
     const previstoTotal = totalProfitRealized + totalProfitExpected;
     const periodProfitPct = previstoTotal > 0 ? Math.round((totalProfitRealized / previstoTotal) * 100) : 0;
 
-    // Build sales with received amounts for breakdown
-    const salesWithReceived = filteredSales.map(sale => {
-      let received = 0;
-      if (sale.installmentAmounts && sale.installmentAmounts.length > 0) {
-        for (let i = 0; i < sale.paidInstallments; i++) {
-          received += sale.installmentAmounts[i] || 0;
-        }
-      } else if (sale.installmentValue) {
-        received = sale.paidInstallments * sale.installmentValue;
-      } else if (sale.installments > 0) {
-        received = sale.paidInstallments * (sale.total / sale.installments);
-      }
-      received += sale.downPayment || 0;
-      received += sale.partialPaid || 0;
-      return { ...sale, received };
-    });
+    // salesWithReceived já calculado acima usando paymentHistory + entrada (filtro por data do recebimento)
 
     return { totalIncome, incomeFromPayments, incomeFromSales, totalOutgoing, totalLoanOutgoing, totalExpenses, balance, transactions, loanCount: filteredLoans.length, saleCount: filteredSales.length, paymentCount: filteredPayments.length, expenseCount: filteredExpenses.length, monthlyInterestRate, filteredPayments, filteredLoans, filteredExpenses, salesWithReceived, periodProfitExpected: totalProfitExpected, periodProfitRealized: totalProfitRealized, periodProfitPct, interestDetailRecords, interestExpectedRecords };
   }, [loans, sales, payments, expenses, range, includeSales, period, chartOverrides, installmentSchedules]);
