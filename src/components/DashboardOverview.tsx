@@ -487,6 +487,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
       } else if (sale.installments > 0) {
         received = sale.paidInstallments * (sale.total / sale.installments);
       }
+      received += sale.downPayment || 0;
       received += sale.partialPaid || 0;
       return { ...sale, received };
     });
