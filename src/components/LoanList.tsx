@@ -13,7 +13,7 @@ import { Progress } from "@/components/ui/progress";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { todayInAppTz } from "@/lib/timezone";
+import { todayInAppTz, formatYmdInAppTz } from "@/lib/timezone";
 import { Calendar as CalendarUI } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { calculateInstallment, calculateTotalWithInterest } from "@/hooks/useLoans";
@@ -632,7 +632,7 @@ function LoanCardView({
       toast.error("Selecione a forma de pagamento");
       return;
     }
-    const dateStr = paymentDate.toISOString().split("T")[0];
+    const dateStr = formatYmdInAppTz(paymentDate);
     const dialogType = paymentDialog.type;
     const dialogAmount = paymentDialog.amount;
     const mid = selectedMethodId || null;
@@ -740,7 +740,7 @@ function LoanCardView({
         toast.error("Selecione a forma de pagamento");
         return;
       }
-      const dateStr = partialDate.toISOString().split("T")[0];
+      const dateStr = formatYmdInAppTz(partialDate);
       const mid = selectedMethodId || null;
       onPartialPayment(val, dateStr, mid);
       setPartialAmount("");
@@ -2237,9 +2237,9 @@ function LoanCardView({
             };
             const nextD = new Date(anchorRef + "T00:00:00");
             advance(nextD);
-            const todayStr = paymentDate.toISOString().split("T")[0];
+            const todayStr = formatYmdInAppTz(paymentDate);
             let g = 0;
-            while (nextD.toISOString().split("T")[0] <= todayStr && g < 600) { advance(nextD); g++; }
+            while (formatYmdInAppTz(nextD) <= todayStr && g < 600) { advance(nextD); g++; }
             const nextDateStr = nextD.toLocaleDateString("pt-BR");
             const dueStr = new Date(loan.dueDate + "T00:00:00").toLocaleDateString("pt-BR");
             const today = todayInAppTz();
@@ -2652,7 +2652,7 @@ function LoanRowView({
       toast.error("Selecione a forma de pagamento");
       return;
     }
-    const dateStr = paymentDate.toISOString().split("T")[0];
+    const dateStr = formatYmdInAppTz(paymentDate);
     const dialogType = paymentDialog.type;
     const dialogAmount = paymentDialog.amount;
     const mid = rowSelectedMethodId || null;
@@ -2756,7 +2756,7 @@ function LoanRowView({
         toast.error("Selecione a forma de pagamento");
         return;
       }
-      const dateStr = partialDate.toISOString().split("T")[0];
+      const dateStr = formatYmdInAppTz(partialDate);
       const mid = rowSelectedMethodId || null;
       onPartialPayment(val, dateStr, mid);
       setPartialAmount("");
@@ -3917,9 +3917,9 @@ function LoanRowView({
             };
             const nextD = new Date(anchorRef + "T00:00:00");
             advance(nextD);
-            const todayStr = paymentDate.toISOString().split("T")[0];
+            const todayStr = formatYmdInAppTz(paymentDate);
             let g = 0;
-            while (nextD.toISOString().split("T")[0] <= todayStr && g < 600) { advance(nextD); g++; }
+            while (formatYmdInAppTz(nextD) <= todayStr && g < 600) { advance(nextD); g++; }
             const nextDateStr = nextD.toLocaleDateString("pt-BR");
             const dueStr = new Date(loan.dueDate + "T00:00:00").toLocaleDateString("pt-BR");
             const today = todayInAppTz();
