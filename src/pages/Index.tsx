@@ -254,6 +254,10 @@ const Index = () => {
   });
   const setTab = (t: Tab) => {
     sessionStorage.setItem("activeTab", t);
+    if (t === tab) {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      return;
+    }
     preserveScrollYRef.current = window.scrollY || document.documentElement.scrollTop || 0;
     setPreservedPageHeight(document.documentElement.scrollHeight || document.body.scrollHeight || null);
     setTabState(t);
