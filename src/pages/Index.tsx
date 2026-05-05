@@ -708,7 +708,10 @@ const Index = () => {
         )}
       </header>
 
-      <main className="max-w-[1920px] mx-auto px-3 sm:px-4 lg:px-8 py-2 sm:py-6 space-y-4 sm:space-y-6">
+      <main
+        className="max-w-[1920px] mx-auto px-3 sm:px-4 lg:px-8 py-2 sm:py-6 space-y-4 sm:space-y-6"
+        style={preservedPageHeight ? { minHeight: `${preservedPageHeight}px` } : undefined}
+      >
         {(() => {
           const current = tabConfig.find((t) => t.id === tab);
           if (!current) return null;
