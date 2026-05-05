@@ -2164,6 +2164,19 @@ Deno.serve(async (req) => {
           );
           if (!transcript) {
             await tgSend(chatId, "🤔 Não consegui transcrever o áudio. Tente novamente ou envie por texto.", LOVABLE_API_KEY, TELEGRAM_API_KEY);
+          } else if (looksLikeQuestion(transcript)) {
+            // 🗣️ Áudio com pergunta em linguagem natural — interpreta com IA e consulta o banco.
+            try {
+              const reply = await answerNaturalQuery(admin, link.user_id, transcript, LOVABLE_API_KEY);
+              if (reply) {
+                await tgSend(chatId, `🎤 _"${transcript}"_\n\n${reply}`, LOVABLE_API_KEY, TELEGRAM_API_KEY);
+              } else {
+                await tgSend(chatId, `🎤 Transcrevi: _"${transcript}"_\n\n🤔 Não consegui entender a pergunta. Tente reformular.`, LOVABLE_API_KEY, TELEGRAM_API_KEY);
+              }
+            } catch (e) {
+              console.error("answerNaturalQuery (audio) err", e);
+              await tgSend(chatId, "❌ Erro ao processar sua pergunta. Tente novamente.", LOVABLE_API_KEY, TELEGRAM_API_KEY);
+            }
           } else {
             const extracted = await extractExpense(transcript, LOVABLE_API_KEY);
             if (!extracted || !extracted.amount || extracted.confidence < 0.6) {
