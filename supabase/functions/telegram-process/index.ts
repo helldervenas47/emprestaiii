@@ -2178,6 +2178,7 @@ Deno.serve(async (req) => {
               await tgSend(chatId, "❌ Erro ao processar sua pergunta. Tente novamente.", LOVABLE_API_KEY, TELEGRAM_API_KEY);
             }
           } else {
+            const extracted = await extractExpense(transcript, LOVABLE_API_KEY);
             if (!extracted || !extracted.amount || extracted.confidence < 0.6) {
               await tgSend(chatId, `🎤 Transcrevi: _"${transcript}"_\n\n🤔 Mas não consegui identificar a despesa. Tente reformular.`, LOVABLE_API_KEY, TELEGRAM_API_KEY);
             } else {
