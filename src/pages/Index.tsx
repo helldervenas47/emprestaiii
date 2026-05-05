@@ -254,7 +254,16 @@ const Index = () => {
     sessionStorage.setItem("activeTab", t);
     setTabState(t);
     if (typeof window !== "undefined") {
-      window.scrollTo({ top: 0, behavior: "smooth" });
+      const scrollTop = () => {
+        window.scrollTo(0, 0);
+        document.documentElement.scrollTop = 0;
+        document.body.scrollTop = 0;
+      };
+      scrollTop();
+      requestAnimationFrame(() => {
+        scrollTop();
+        requestAnimationFrame(scrollTop);
+      });
     }
   };
 
