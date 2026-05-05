@@ -1341,7 +1341,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
                       <button
                         key={it.id}
                         type="button"
-                        onClick={() => setReceivedDetailMethodId(it.id)}
+                        onClick={() => { window.scrollTo({ top: 0, behavior: "smooth" }); setReceivedDetailMethodId(it.id); }}
                         className="bg-muted/50 hover:bg-muted/80 transition-colors rounded-lg p-3 border border-border/30 flex flex-col items-center justify-center text-center cursor-pointer"
                       >
                         <div className="flex items-center gap-1.5 mb-1">
