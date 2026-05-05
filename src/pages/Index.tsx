@@ -250,7 +250,13 @@ const Index = () => {
     const isMobileViewport = typeof window !== "undefined" && window.innerWidth < 768;
     return isMobileViewport ? "dashboard" : "overview";
   });
-  const setTab = (t: Tab) => { sessionStorage.setItem("activeTab", t); setTabState(t); };
+  const setTab = (t: Tab) => {
+    sessionStorage.setItem("activeTab", t);
+    setTabState(t);
+    if (typeof window !== "undefined") {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+  };
 
   // Atualiza apenas a aba (reload simples), preservando cache e localStorage.
   const [refreshing, setRefreshing] = useState(false);
