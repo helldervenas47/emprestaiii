@@ -124,7 +124,7 @@ export function DailyPlanningReport({ loans, payments, installmentSchedules, sal
         origin: "Cartão",
         description: `Fatura ${card.nickname || card.bank} ${card.lastFour ? "•••• " + card.lastFour : ""}`.trim(),
         amount: 0, // valor da fatura é dinâmico — sem cálculo aqui
-        category: "Cartão de crédito",
+        category: "Cartão de Crédito",
       });
     }
 
