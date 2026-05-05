@@ -252,17 +252,38 @@ const Index = () => {
   });
   const setTab = (t: Tab) => {
     sessionStorage.setItem("activeTab", t);
-    setTabState(t);
-    if (typeof window !== "undefined") {
-      const scrollTop = () => {
-        window.scrollTo({ top: 0, left: 0, behavior: "smooth" });
-        document.scrollingElement?.scrollTo({ top: 0, left: 0, behavior: "smooth" });
-      };
-      requestAnimationFrame(() => {
-        scrollTop();
-        requestAnimationFrame(scrollTop);
-      });
+    if (typeof window === "undefined") {
+      setTabState(t);
+      return;
     }
+    const currentY = window.scrollY || document.documentElement.scrollTop || 0;
+    if (currentY <= 2) {
+      setTabState(t);
+      return;
+    }
+    // Roll suavemente para o topo ANTES de trocar a aba
+    // (se trocar antes, o conteúdo encolhe e a animação some).
+    window.scrollTo({ top: 0, left: 0, behavior: "smooth" });
+    document.scrollingElement?.scrollTo({ top: 0, left: 0, behavior: "smooth" });
+
+    // Detecta o fim da rolagem suave para então trocar a aba.
+    let lastY = currentY;
+    let stableFrames = 0;
+    const maxMs = 800;
+    const start = performance.now();
+    const tick = () => {
+      const y = window.scrollY || document.documentElement.scrollTop || 0;
+      const elapsed = performance.now() - start;
+      if (y <= 2 || stableFrames >= 3 || elapsed >= maxMs) {
+        setTabState(t);
+        return;
+      }
+      if (Math.abs(y - lastY) < 0.5) stableFrames++;
+      else stableFrames = 0;
+      lastY = y;
+      requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
   };
 
   // Atualiza apenas a aba (reload simples), preservando cache e localStorage.
