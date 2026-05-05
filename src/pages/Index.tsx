@@ -239,6 +239,7 @@ const Index = () => {
   const { branding: appBranding } = useAppBranding();
   const brandName = appBranding.brand_name;
   const preserveScrollYRef = useRef<number | null>(null);
+  const [preservedPageHeight, setPreservedPageHeight] = useState<number | null>(null);
 
   // Tab state - declared early so hooks can use it for lazy loading
   const [tab, setTabState] = useState<Tab>(() => {
@@ -254,15 +255,27 @@ const Index = () => {
   const setTab = (t: Tab) => {
     sessionStorage.setItem("activeTab", t);
     preserveScrollYRef.current = window.scrollY || document.documentElement.scrollTop || 0;
+    setPreservedPageHeight(document.documentElement.scrollHeight || document.body.scrollHeight || null);
     setTabState(t);
   };
 
   useLayoutEffect(() => {
     const y = preserveScrollYRef.current;
     if (y === null) return;
-    preserveScrollYRef.current = null;
+    window.scrollTo({ top: y, behavior: "instant" as ScrollBehavior });
     requestAnimationFrame(() => window.scrollTo({ top: y, behavior: "instant" as ScrollBehavior }));
   }, [tab]);
+
+  useEffect(() => {
+    if (preservedPageHeight === null) return;
+    const timer = window.setTimeout(() => {
+      const y = preserveScrollYRef.current;
+      if (y !== null) window.scrollTo({ top: y, behavior: "instant" as ScrollBehavior });
+      preserveScrollYRef.current = null;
+      setPreservedPageHeight(null);
+    }, 350);
+    return () => window.clearTimeout(timer);
+  }, [preservedPageHeight, tab]);
 
   // Atualiza apenas a aba (reload simples), preservando cache e localStorage.
   const [refreshing, setRefreshing] = useState(false);
