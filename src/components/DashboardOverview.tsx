@@ -295,7 +295,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
     // somando entrada (se a venda é do período) + cada recebimento do paymentHistory cuja data
     // caia no período. Para vendas antigas sem paymentHistory, usa fallback proporcional apenas
     // se a venda foi criada no período (mantém comportamento legado).
-    const salesWithReceived = sales.map((sale) => {
+    const salesWithReceived = sales.filter((sale) => sale.businessType !== "aluguel_veiculo").map((sale) => {
       const history = sale.paymentHistory || [];
       let received = 0;
       const receipts: { amount: number; date: string; type: "downPayment" | "full" | "partial" | "legacy" }[] = [];
