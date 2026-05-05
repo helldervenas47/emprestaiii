@@ -255,11 +255,9 @@ const Index = () => {
     setTabState(t);
     if (typeof window !== "undefined") {
       const scrollTop = () => {
-        window.scrollTo(0, 0);
-        document.documentElement.scrollTop = 0;
-        document.body.scrollTop = 0;
+        window.scrollTo({ top: 0, left: 0, behavior: "smooth" });
+        document.scrollingElement?.scrollTo({ top: 0, left: 0, behavior: "smooth" });
       };
-      scrollTop();
       requestAnimationFrame(() => {
         scrollTop();
         requestAnimationFrame(scrollTop);
