@@ -1878,12 +1878,12 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
 
             <div className="grid grid-cols-2 gap-3">
               <div className="rounded-xl border border-border/30 bg-muted/20 p-4">
-                <p className="text-xs text-muted-foreground">Taxa de juros média</p>
-                <p className="text-lg font-bold text-foreground mt-1">{data.monthlyInterestRate.rate !== null ? `${data.monthlyInterestRate.rate.toFixed(2)}%` : "Sem dados"}</p>
+                <p className="text-xs text-muted-foreground">Taxa de juros média (ano)</p>
+                <p className="text-lg font-bold text-foreground mt-1">{yearlyAverages.interestRate.rate !== null ? `${yearlyAverages.interestRate.rate.toFixed(2)}%` : "Sem dados"}</p>
               </div>
               <div className="rounded-xl border border-border/30 bg-muted/20 p-4">
-                <p className="text-xs text-muted-foreground">Lucro gerado</p>
-                <p className="text-lg font-bold text-foreground mt-1">{formatCurrency(data.periodProfitRealized)}</p>
+                <p className="text-xs text-muted-foreground">Juros recebidos (ano)</p>
+                <p className="text-lg font-bold text-foreground mt-1">{formatCurrency(yearlyAverages.interestReceived)}</p>
               </div>
             </div>
           </div>
