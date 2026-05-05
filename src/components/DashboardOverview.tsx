@@ -314,20 +314,40 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
             receipts.push({ amount: rec.amount || 0, date: rec.date, type: rec.type });
           }
         });
-      } else if (isInRange(sale.date, range.start, range.end)) {
-        // Fallback legado: vendas antigas sem histórico — atribui tudo à data da venda
-        let legacy = 0;
-        if (sale.installmentAmounts && sale.installmentAmounts.length > 0) {
-          for (let i = 0; i < sale.paidInstallments; i++) legacy += sale.installmentAmounts[i] || 0;
-        } else if (sale.installmentValue) {
-          legacy = sale.paidInstallments * sale.installmentValue;
-        } else if (sale.installments > 0) {
-          legacy = sale.paidInstallments * (sale.total / sale.installments);
-        }
-        legacy += sale.partialPaid || 0;
-        if (legacy > 0) {
-          received += legacy;
-          receipts.push({ amount: legacy, date: sale.date, type: "legacy" });
+      } else {
+        // Fallback legado para vendas sem paymentHistory:
+        // Se houver installmentDates, atribui cada parcela paga à sua data de vencimento.
+        // Caso contrário, atribui tudo à data da venda (somente se a venda for do período).
+        const dates = sale.installmentDates || [];
+        const amounts = sale.installmentAmounts || [];
+        const fallbackInstAmount = sale.installmentValue
+          || (sale.installments > 0 ? sale.total / sale.installments : 0);
+
+        if (dates.length > 0 && sale.paidInstallments > 0) {
+          for (let i = 0; i < sale.paidInstallments; i++) {
+            const d = dates[i];
+            const amt = amounts[i] ?? fallbackInstAmount;
+            if (d && isInRange(d, range.start, range.end) && amt > 0) {
+              received += amt;
+              receipts.push({ amount: amt, date: d, type: "legacy" });
+            }
+          }
+          if ((sale.partialPaid || 0) > 0 && isInRange(sale.date, range.start, range.end)) {
+            received += sale.partialPaid;
+            receipts.push({ amount: sale.partialPaid, date: sale.date, type: "legacy" });
+          }
+        } else if (isInRange(sale.date, range.start, range.end)) {
+          let legacy = 0;
+          if (amounts.length > 0) {
+            for (let i = 0; i < sale.paidInstallments; i++) legacy += amounts[i] || 0;
+          } else {
+            legacy = sale.paidInstallments * fallbackInstAmount;
+          }
+          legacy += sale.partialPaid || 0;
+          if (legacy > 0) {
+            received += legacy;
+            receipts.push({ amount: legacy, date: sale.date, type: "legacy" });
+          }
         }
       }
 
