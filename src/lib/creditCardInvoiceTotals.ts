@@ -145,4 +145,4 @@ export function getCardInvoiceTotalsForMonth(
 }
 
 /** Categoria virtual usada para agregar faturas de cartão no resumo. */
-export const CREDIT_CARD_INVOICE_CATEGORY = "Cartão de crédito";
+export const CREDIT_CARD_INVOICE_CATEGORY = "Cartão de Crédito";
