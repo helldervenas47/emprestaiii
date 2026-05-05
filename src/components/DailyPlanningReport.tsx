@@ -107,10 +107,14 @@ export function DailyPlanningReport({ loans, payments, installmentSchedules, sal
     for (const e of expenses) {
       if (e.dueDate !== date) continue;
       if (e.paid) continue;
+      // Para despesas recorrentes/parceladas (incluindo "fixa mensal"), o campo amount
+      // armazena o total acumulado (valor mensal × parcelas). O valor do dia é o por parcela.
+      const totalInst = Number(e.installments || 1);
+      const perInstallment = totalInst > 1 ? Number(e.amount || 0) / totalInst : Number(e.amount || 0);
       out.push({
         origin: e.scope === "personal" ? "Pessoal" : "Empresa",
         description: e.description,
-        amount: Number(e.amount || 0),
+        amount: perInstallment,
         category: e.category,
       });
     }
