@@ -796,43 +796,19 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
     const yearEnd = new Date(year, 11, 31, 23, 59, 59, 999);
     const inYear = (dateStr: string) => isInRange(dateStr, yearStart, yearEnd);
 
-    // Quitados dentro do ano (lucro = totalPago - principal)
-    const quitadoIds = new Set<string>();
-    loans.forEach((l) => {
-      if (l.status !== "paid") return;
-      const lp = payments.filter((pp) => pp.loanId === l.id);
-      if (lp.length === 0) return;
-      const lastDate = lp.reduce((m, pp) => (pp.date > m ? pp.date : m), lp[0].date);
-      if (inYear(lastDate)) quitadoIds.add(l.id);
-    });
-
-    // Helper: juros recebidos em um intervalo (mesma lógica do periodProfitRealized)
+    // Juros recebidos em um intervalo: soma apenas a porção de juros de cada
+    // pagamento feito dentro do intervalo (juros-only = 100%, parcela = ratio do contrato).
     const interestReceivedInRange = (start: Date, end: Date) => {
-      const ps = payments.filter((p) => isInRange(p.date, start, end));
-      const interestOnly = ps
-        .filter((p) => p.installmentNumber === 0 && !quitadoIds.has(p.loanId))
-        .reduce((s, p) => s + p.amount, 0);
-      const quitado = Array.from(quitadoIds).reduce((s, id) => {
-        const loan = loans.find((l) => l.id === id);
-        if (!loan) return s;
-        const lp = payments.filter((pp) => pp.loanId === id);
-        const lastDate = lp.reduce((m, pp) => (pp.date > m ? pp.date : m), lp[0]?.date ?? "");
-        if (!lastDate) return s;
-        const lastD = new Date(lastDate + "T12:00:00");
-        if (lastD < start || lastD > end) return s;
-        const totalPaid = lp.reduce((sum, p) => sum + p.amount, 0);
-        return s + Math.max(0, totalPaid - loan.amount);
-      }, 0);
-      const active = ps
-        .filter((p) => p.installmentNumber !== 0 && !quitadoIds.has(p.loanId))
+      return payments
+        .filter((p) => isInRange(p.date, start, end))
         .reduce((s, p) => {
+          if (p.installmentNumber === 0) return s + Number(p.amount || 0);
           const loan = loans.find((l) => l.id === p.loanId);
           if (!loan) return s;
           const twi = calculateTotalWithInterest(loan.amount, loan.interestRate, loan.installments);
           const ratio = twi > 0 ? 1 - loan.amount / twi : 0;
-          return s + p.amount * ratio;
+          return s + Number(p.amount || 0) * ratio;
         }, 0);
-      return interestOnly + quitado + active;
     };
 
     // Per-mês: juros recebidos e taxa média (loans que receberam pagamentos no mês)
