@@ -965,19 +965,20 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
       title: "Relatório IA para reduzir risco",
       type: "risk-reduction",
       metrics: {
-        periodo: range.label,
+        periodo: `Ano ${new Date().getFullYear()}`,
         scoreRisco: riskReturn.riskScore,
         scoreRetorno: riskReturn.returnScore,
         classificacao: riskReturn.classification,
         inadimplenciaPercentual: portfolio.defaultRate,
         atrasoMedioDias: Math.round(riskReturn.averageDelayDays),
         concentracaoReceitaPercentual: Number(riskReturn.concentrationShare.toFixed(1)),
-        taxaJurosMedia: data.monthlyInterestRate.rate,
+        taxaJurosMediaAnual: yearlyAverages.interestRate.rate,
+        jurosRecebidosAno: yearlyAverages.interestReceived,
         lucroGerado: data.periodProfitRealized,
         insightAtual: riskReturn.insight,
       },
     });
-  }, [data.monthlyInterestRate.rate, data.periodProfitRealized, generateAiReport, portfolio.defaultRate, range.label, riskReturn]);
+  }, [data.periodProfitRealized, generateAiReport, portfolio.defaultRate, riskReturn, yearlyAverages]);
 
   const prioritizedInsights = useMemo(() => {
     const current = monthComparison.current;
