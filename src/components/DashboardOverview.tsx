@@ -505,22 +505,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
     const previstoTotal = totalProfitRealized + totalProfitExpected;
     const periodProfitPct = previstoTotal > 0 ? Math.round((totalProfitRealized / previstoTotal) * 100) : 0;
 
-    // Build sales with received amounts for breakdown
-    const salesWithReceived = filteredSales.map(sale => {
-      let received = 0;
-      if (sale.installmentAmounts && sale.installmentAmounts.length > 0) {
-        for (let i = 0; i < sale.paidInstallments; i++) {
-          received += sale.installmentAmounts[i] || 0;
-        }
-      } else if (sale.installmentValue) {
-        received = sale.paidInstallments * sale.installmentValue;
-      } else if (sale.installments > 0) {
-        received = sale.paidInstallments * (sale.total / sale.installments);
-      }
-      received += sale.downPayment || 0;
-      received += sale.partialPaid || 0;
-      return { ...sale, received };
-    });
+    // salesWithReceived já calculado acima usando paymentHistory + entrada (filtro por data do recebimento)
 
     return { totalIncome, incomeFromPayments, incomeFromSales, totalOutgoing, totalLoanOutgoing, totalExpenses, balance, transactions, loanCount: filteredLoans.length, saleCount: filteredSales.length, paymentCount: filteredPayments.length, expenseCount: filteredExpenses.length, monthlyInterestRate, filteredPayments, filteredLoans, filteredExpenses, salesWithReceived, periodProfitExpected: totalProfitExpected, periodProfitRealized: totalProfitRealized, periodProfitPct, interestDetailRecords, interestExpectedRecords };
   }, [loans, sales, payments, expenses, range, includeSales, period, chartOverrides, installmentSchedules]);
