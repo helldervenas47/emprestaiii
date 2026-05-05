@@ -791,16 +791,12 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
   // Médias anuais (ano corrente) usadas no indicador risco vs retorno
   const yearlyAverages = useMemo(() => {
     const now = new Date();
-    const yearStart = new Date(now.getFullYear(), 0, 1);
-    const yearEnd = new Date(now.getFullYear(), 11, 31, 23, 59, 59, 999);
+    const year = now.getFullYear();
+    const yearStart = new Date(year, 0, 1);
+    const yearEnd = new Date(year, 11, 31, 23, 59, 59, 999);
     const inYear = (dateStr: string) => isInRange(dateStr, yearStart, yearEnd);
 
-    // Taxa de juros média do ano: usa contratos iniciados no ano corrente
-    const loansInYear = loans.filter((l) => inYear(l.startDate));
-    const interestRate = calculateMonthlyInterestRate(loansInYear);
-
-    // Juros recebidos no ano (mesmo critério do periodProfitRealized)
-    const paymentsInYear = payments.filter((p) => inYear(p.date));
+    // Quitados dentro do ano (lucro = totalPago - principal)
     const quitadoIds = new Set<string>();
     loans.forEach((l) => {
       if (l.status !== "paid") return;
@@ -809,25 +805,64 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
       const lastDate = lp.reduce((m, pp) => (pp.date > m ? pp.date : m), lp[0].date);
       if (inYear(lastDate)) quitadoIds.add(l.id);
     });
-    const interestOnlyProfit = paymentsInYear
-      .filter((p) => p.installmentNumber === 0 && !quitadoIds.has(p.loanId))
-      .reduce((s, p) => s + p.amount, 0);
-    const quitadoProfit = Array.from(quitadoIds).reduce((s, id) => {
-      const loan = loans.find((l) => l.id === id);
-      if (!loan) return s;
-      const totalPaid = payments.filter((p) => p.loanId === id).reduce((sum, p) => sum + p.amount, 0);
-      return s + Math.max(0, totalPaid - loan.amount);
-    }, 0);
-    const activeProfit = paymentsInYear
-      .filter((p) => p.installmentNumber !== 0 && !quitadoIds.has(p.loanId))
-      .reduce((s, p) => {
-        const loan = loans.find((l) => l.id === p.loanId);
+
+    // Helper: juros recebidos em um intervalo (mesma lógica do periodProfitRealized)
+    const interestReceivedInRange = (start: Date, end: Date) => {
+      const ps = payments.filter((p) => isInRange(p.date, start, end));
+      const interestOnly = ps
+        .filter((p) => p.installmentNumber === 0 && !quitadoIds.has(p.loanId))
+        .reduce((s, p) => s + p.amount, 0);
+      const quitado = Array.from(quitadoIds).reduce((s, id) => {
+        const loan = loans.find((l) => l.id === id);
         if (!loan) return s;
-        const twi = calculateTotalWithInterest(loan.amount, loan.interestRate, loan.installments);
-        const ratio = twi > 0 ? 1 - loan.amount / twi : 0;
-        return s + p.amount * ratio;
+        const lp = payments.filter((pp) => pp.loanId === id);
+        const lastDate = lp.reduce((m, pp) => (pp.date > m ? pp.date : m), lp[0]?.date ?? "");
+        if (!lastDate) return s;
+        const lastD = new Date(lastDate + "T12:00:00");
+        if (lastD < start || lastD > end) return s;
+        const totalPaid = lp.reduce((sum, p) => sum + p.amount, 0);
+        return s + Math.max(0, totalPaid - loan.amount);
       }, 0);
-    const interestReceived = interestOnlyProfit + quitadoProfit + activeProfit;
+      const active = ps
+        .filter((p) => p.installmentNumber !== 0 && !quitadoIds.has(p.loanId))
+        .reduce((s, p) => {
+          const loan = loans.find((l) => l.id === p.loanId);
+          if (!loan) return s;
+          const twi = calculateTotalWithInterest(loan.amount, loan.interestRate, loan.installments);
+          const ratio = twi > 0 ? 1 - loan.amount / twi : 0;
+          return s + p.amount * ratio;
+        }, 0);
+      return interestOnly + quitado + active;
+    };
+
+    // Per-mês: juros recebidos e taxa média (loans que receberam pagamentos no mês)
+    const lastMonth = year === now.getFullYear() ? now.getMonth() : 11;
+    let interestReceived = 0;
+    const monthlyRates: number[] = [];
+    for (let m = 0; m <= lastMonth; m++) {
+      const ms = new Date(year, m, 1);
+      const me = new Date(year, m + 1, 0, 23, 59, 59, 999);
+      const monthInterest = interestReceivedInRange(ms, me);
+      interestReceived += monthInterest;
+      if (monthInterest > 0) {
+        const loanIdsInMonth = new Set(
+          payments.filter((p) => isInRange(p.date, ms, me)).map((p) => p.loanId)
+        );
+        const monthLoans = loans.filter((l) => loanIdsInMonth.has(l.id));
+        const r = calculateMonthlyInterestRate(monthLoans).rate;
+        if (r !== null && Number.isFinite(r)) monthlyRates.push(r);
+      }
+    }
+
+    const avgRate = monthlyRates.length > 0
+      ? monthlyRates.reduce((s, r) => s + r, 0) / monthlyRates.length
+      : null;
+    const interestRate = {
+      totalLent: 0,
+      totalToReceive: 0,
+      rate: avgRate,
+      hasData: avgRate !== null,
+    };
 
     return { interestRate, interestReceived };
   }, [loans, payments]);
@@ -930,19 +965,20 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
       title: "Relatório IA para reduzir risco",
       type: "risk-reduction",
       metrics: {
-        periodo: range.label,
+        periodo: `Ano ${new Date().getFullYear()}`,
         scoreRisco: riskReturn.riskScore,
         scoreRetorno: riskReturn.returnScore,
         classificacao: riskReturn.classification,
         inadimplenciaPercentual: portfolio.defaultRate,
         atrasoMedioDias: Math.round(riskReturn.averageDelayDays),
         concentracaoReceitaPercentual: Number(riskReturn.concentrationShare.toFixed(1)),
-        taxaJurosMedia: data.monthlyInterestRate.rate,
+        taxaJurosMediaAnual: yearlyAverages.interestRate.rate,
+        jurosRecebidosAno: yearlyAverages.interestReceived,
         lucroGerado: data.periodProfitRealized,
         insightAtual: riskReturn.insight,
       },
     });
-  }, [data.monthlyInterestRate.rate, data.periodProfitRealized, generateAiReport, portfolio.defaultRate, range.label, riskReturn]);
+  }, [data.periodProfitRealized, generateAiReport, portfolio.defaultRate, riskReturn, yearlyAverages]);
 
   const prioritizedInsights = useMemo(() => {
     const current = monthComparison.current;
