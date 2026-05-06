@@ -1199,6 +1199,55 @@ export function useLoans() {
   }, [user, dataOwnerId, loans, payments, installmentSchedules, fetchPayments, fetchLoans, fetchSchedules]);
 
   const updateLoan = useCallback(async (id: string, data: Partial<Omit<Loan, "id">>) => {
+    // Auditoria: se algum campo financeiro mudou em contrato com pagamentos,
+    // grava snapshot do estado anterior no extrato (category=adjustment, amount=0).
+    try {
+      const oldLoan = loans.find((l) => l.id === id);
+      const loanPayments = payments.filter((p) => p.loanId === id);
+      if (oldLoan && loanPayments.length > 0) {
+        const sensitiveChanged: Record<string, { from: any; to: any }> = {};
+        const checkField = (key: keyof Loan, newVal: any, oldVal: any) => {
+          if (newVal !== undefined && Number(newVal) !== Number(oldVal ?? 0)) {
+            sensitiveChanged[key as string] = { from: oldVal ?? null, to: newVal };
+          }
+        };
+        checkField("amount", data.amount, oldLoan.amount);
+        checkField("remainingAmount", data.remainingAmount, oldLoan.remainingAmount);
+        checkField("installments", data.installments, oldLoan.installments);
+        checkField("paidInstallments", data.paidInstallments, oldLoan.paidInstallments);
+        if (Object.keys(sensitiveChanged).length > 0) {
+          const fieldsList = Object.keys(sensitiveChanged)
+            .map((k) => `${k}: ${sensitiveChanged[k].from} → ${sensitiveChanged[k].to}`)
+            .join("; ");
+          await recordLedger({
+            direction: "in",
+            category: "adjustment",
+            amount: 0,
+            description: `Edição manual do contrato de ${oldLoan.borrowerName} — ${fieldsList}`,
+            occurred_on: todayInAppTz(),
+            loan_id: id,
+            source: "loan_edit_audit",
+            syncBalance: false,
+            metadata: {
+              audit: true,
+              changes: sensitiveChanged,
+              payments_count: loanPayments.length,
+              previous_state: {
+                amount: oldLoan.amount,
+                remaining_amount: oldLoan.remainingAmount,
+                installments: oldLoan.installments,
+                paid_installments: oldLoan.paidInstallments,
+                custom_installment_value: oldLoan.customInstallmentValue,
+                due_date: oldLoan.dueDate,
+              },
+            },
+          });
+        }
+      }
+    } catch (auditErr) {
+      console.warn("[updateLoan] Falha ao gravar auditoria:", auditErr);
+    }
+
     if (data.remainingAmount !== undefined) {
       const oldLoan = loans.find((l) => l.id === id);
       if (oldLoan) {

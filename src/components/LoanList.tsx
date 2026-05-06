@@ -586,6 +586,27 @@ function LoanCardView({
     const calcInterest = (parseFloat(form.amount) || 0) * ((parseFloat(form.interestRate) || 0) / 100);
     const hasCustomInterest = manualInterest > 0 && Math.abs(manualInterest - calcInterest) > 0.01;
 
+    // Aviso: alterar campos financeiros de contrato com pagamentos pode descalibrar histórico.
+    const loanPaymentsCount = allPayments.filter((p) => p.loanId === loan.id).length;
+    const newAmount = parseFloat(form.amount) || loan.amount;
+    const newRemaining = parseFloat(form.remainingAmount) || 0;
+    const newInstallments = parseInt(form.installments) || loan.installments;
+    const newPaidInstallments = parseInt(form.paidInstallments) || 0;
+    const sensitiveDiff =
+      newAmount !== loan.amount ||
+      newRemaining !== (loan.remainingAmount ?? 0) ||
+      newInstallments !== loan.installments ||
+      newPaidInstallments !== loan.paidInstallments;
+    if (loanPaymentsCount > 0 && sensitiveDiff) {
+      const ok = window.confirm(
+        `Este contrato já tem ${loanPaymentsCount} pagamento(s) registrado(s).\n\n` +
+        `Alterar o valor emprestado, valor restante ou número de parcelas pode descalibrar o histórico.\n\n` +
+        `Para reestruturar valores preservando os pagamentos, use a opção "Renegociar".\n\n` +
+        `Deseja continuar mesmo assim?`
+      );
+      if (!ok) return;
+    }
+
     onUpdate({
       borrowerName: form.borrowerName,
       amount: parseFloat(form.amount) || loan.amount,
@@ -2616,6 +2637,26 @@ function LoanRowView({
     if (editHasManager && !editManagerId) {
       toast.error("Selecione um gerente para o empréstimo com gerente.");
       return;
+    }
+    // Aviso: alterar campos financeiros de contrato com pagamentos pode descalibrar histórico.
+    const loanPaymentsCount = allPayments.filter((p) => p.loanId === loan.id).length;
+    const newAmount = parseFloat(form.amount) || loan.amount;
+    const newRemaining = parseFloat(form.remainingAmount) || 0;
+    const newInstallments = parseInt(form.installments) || loan.installments;
+    const newPaidInstallments = parseInt(form.paidInstallments) || 0;
+    const sensitiveDiff =
+      newAmount !== loan.amount ||
+      newRemaining !== (loan.remainingAmount ?? 0) ||
+      newInstallments !== loan.installments ||
+      newPaidInstallments !== loan.paidInstallments;
+    if (loanPaymentsCount > 0 && sensitiveDiff) {
+      const ok = window.confirm(
+        `Este contrato já tem ${loanPaymentsCount} pagamento(s) registrado(s).\n\n` +
+        `Alterar o valor emprestado, valor restante ou número de parcelas pode descalibrar o histórico.\n\n` +
+        `Para reestruturar valores preservando os pagamentos, use a opção "Renegociar".\n\n` +
+        `Deseja continuar mesmo assim?`
+      );
+      if (!ok) return;
     }
     onUpdate({
       borrowerName: form.borrowerName,
