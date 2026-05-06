@@ -4386,7 +4386,7 @@ export function LoanList({ loans, payments, installmentSchedules, onPayment, onP
               (s) => s.loanId === l.id && s.installmentNumber > l.paidInstallments,
             );
             const allUnpaidSum = allUnpaid.reduce((sum, s) => sum + s.amount, 0);
-            const total = calculateTotalWithInterest(l.amount, l.interestRate, l.installments) * l.installments;
+            const total = calculateTotalWithInterest(l.amount, l.interestRate, l.installments);
             const totalPaid = payments.filter((p) => p.loanId === l.id).reduce((s, p) => s + p.amount, 0);
             const remainingInstallments = Math.max(1, l.installments - l.paidInstallments);
             const fullInstallment = nextSchedule
