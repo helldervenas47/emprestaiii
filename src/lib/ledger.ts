@@ -62,7 +62,10 @@ async function getOwnerId(): Promise<string | null> {
  * com o código existente que lê o saldo de lá.
  */
 export async function recordLedger(input: RecordLedgerInput): Promise<void> {
-  if (!input.amount || input.amount <= 0) return;
+  // Permite amount=0 apenas para lançamentos de auditoria (source=loan_edit_audit)
+  const isAudit = input.source === "loan_edit_audit";
+  if (!isAudit && (!input.amount || input.amount <= 0)) return;
+  if (isAudit && (input.amount ?? 0) < 0) return;
   const ownerId = await getOwnerId();
   if (!ownerId) return;
 
