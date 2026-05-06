@@ -17,6 +17,7 @@ import { todayInAppTz, formatYmdInAppTz } from "@/lib/timezone";
 import { Calendar as CalendarUI } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { calculateInstallment, calculateTotalWithInterest } from "@/hooks/useLoans";
+import { getInstallmentAmount } from "@/lib/loanInstallmentAmount";
 import { cn } from "@/lib/utils";
 import {
   CheckCircle, Trash2, DollarSign, User, Calendar as CalendarIcon, LayoutGrid, List,
@@ -4374,9 +4375,11 @@ export function LoanList({ loans, payments, installmentSchedules, onPayment, onP
       }
       if (sortBy === "startDate") return b.startDate.localeCompare(a.startDate);
       if (sortBy === "amount") {
-        const aRem = (a.remainingAmount && a.remainingAmount > 0) ? a.remainingAmount : a.amount;
-        const bRem = (b.remainingAmount && b.remainingAmount > 0) ? b.remainingAmount : b.amount;
-        return bRem - aRem;
+        const valueOf = (l: Loan) => {
+          if (l.installments > 1) return getInstallmentAmount(l, installmentSchedules);
+          return (l.remainingAmount && l.remainingAmount > 0) ? l.remainingAmount : l.amount;
+        };
+        return valueOf(b) - valueOf(a);
       }
       return a.borrowerName.localeCompare(b.borrowerName);
     });
