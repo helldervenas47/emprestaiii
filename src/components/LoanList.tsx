@@ -2567,9 +2567,11 @@ function LoanRowView({
   const allUnpaidScheduleSum = unpaidSchedules.reduce((sum, s) => sum + s.amount, 0);
   // Source of truth: loan.remainingAmount (same value shown in the create/edit form).
   // Fallback to total - totalPaid only when the saved field is missing.
-  const baseRemaining = loan.remainingAmount != null && loan.remainingAmount > 0
-    ? loan.remainingAmount
-    : Math.max(0, total - totalPaid);
+  const baseRemaining = loan.status === "paid"
+    ? 0
+    : loan.remainingAmount != null && loan.remainingAmount > 0
+      ? loan.remainingAmount
+      : Math.max(0, total - totalPaid);
 
   const daysOverdue = getDaysOverdue(loan, installmentSchedules);
 
@@ -2599,9 +2601,11 @@ function LoanRowView({
     : loan.customInstallmentValue != null && loan.customInstallmentValue > 0
       ? loan.customInstallmentValue
       : (loan.installments >= 2 ? total / loan.installments : baseRemaining);
-  const actualRemainingRow = loan.remainingAmount != null && loan.remainingAmount > 0
-    ? loan.remainingAmount
-    : Math.max(0, total - totalPaid);
+  const actualRemainingRow = loan.status === "paid"
+    ? 0
+    : loan.remainingAmount != null && loan.remainingAmount > 0
+      ? loan.remainingAmount
+      : Math.max(0, total - totalPaid);
   const expectedRemainingRow = nextSchedule
     ? allUnpaidScheduleSum
     : fullInstallmentValue * remainingInstallments;
