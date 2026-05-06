@@ -4373,7 +4373,11 @@ export function LoanList({ loans, payments, installmentSchedules, onPayment, onP
         return aDate - bDate;
       }
       if (sortBy === "startDate") return b.startDate.localeCompare(a.startDate);
-      if (sortBy === "amount") return b.amount - a.amount;
+      if (sortBy === "amount") {
+        const aRem = (a.remainingAmount && a.remainingAmount > 0) ? a.remainingAmount : a.amount;
+        const bRem = (b.remainingAmount && b.remainingAmount > 0) ? b.remainingAmount : b.amount;
+        return bRem - aRem;
+      }
       return a.borrowerName.localeCompare(b.borrowerName);
     });
   }, [loans, payments, installmentSchedules, search, category, dateFrom, dateTo, dueDateFrom, dueDateTo, amountMin, amountMax, tagFilter, notesFilter, sortBy, dueDateQuick, view]);
