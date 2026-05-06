@@ -66,8 +66,23 @@ export async function recordLedger(input: RecordLedgerInput): Promise<void> {
   const ownerId = await getOwnerId();
   if (!ownerId) return;
 
-  const occurred = input.occurred_on || todayInAppTz();
+  let occurred = input.occurred_on || todayInAppTz();
   const syncBalance = input.syncBalance !== false;
+
+  // Garantia de consistência: quando o lançamento é vinculado a um pagamento,
+  // a data do extrato (occurred_on) deve refletir a data real do pagamento
+  // informada pelo usuário — evita divergências causadas por fuso horário.
+  if (input.payment_id) {
+    try {
+      const { data: pay } = await supabase
+        .from("payments")
+        .select("date")
+        .eq("id", input.payment_id)
+        .maybeSingle();
+      const realDate = (pay as any)?.date as string | undefined;
+      if (realDate && realDate !== occurred) occurred = realDate;
+    } catch { /* noop */ }
+  }
 
   // Try-by-reference: avoid duplicates when the unique partial indexes apply
   await supabase.from("account_ledger").insert({
