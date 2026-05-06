@@ -1740,12 +1740,13 @@ export function calculateTotalWithInterest(principal: number, rate: number, _mon
 }
 
 export function getLoanRemainingAmount(loan: Loan, payments: Payment[]): number {
-  if (loan.remainingAmount != null && loan.remainingAmount > 0) {
-    return Math.max(0, loan.remainingAmount);
-  }
-
+  // Contratos quitados sempre têm restante 0 — mesmo quando o pagamento final foi menor que o total devido (acordo/desconto).
   if (loan.status === "paid") {
     return 0;
+  }
+
+  if (loan.remainingAmount != null && loan.remainingAmount > 0) {
+    return Math.max(0, loan.remainingAmount);
   }
 
   const totalExpected = calculateTotalWithInterest(loan.amount, loan.interestRate, loan.installments);
