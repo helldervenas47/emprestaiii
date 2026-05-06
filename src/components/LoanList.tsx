@@ -18,6 +18,7 @@ import { Calendar as CalendarUI } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { calculateInstallment, calculateTotalWithInterest } from "@/hooks/useLoans";
 import { getInstallmentAmount } from "@/lib/loanInstallmentAmount";
+import { getLoanLateFees } from "@/lib/loanLateFees";
 import { cn } from "@/lib/utils";
 import {
   CheckCircle, Trash2, DollarSign, User, Calendar as CalendarIcon, LayoutGrid, List,
@@ -4376,8 +4377,35 @@ export function LoanList({ loans, payments, installmentSchedules, onPayment, onP
       if (sortBy === "startDate") return b.startDate.localeCompare(a.startDate);
       if (sortBy === "amount") {
         const valueOf = (l: Loan) => {
-          if (l.installments > 1) return getInstallmentAmount(l, installmentSchedules);
-          return (l.remainingAmount && l.remainingAmount > 0) ? l.remainingAmount : l.amount;
+          if (l.installments > 1) {
+            // Parcela atual considerando pagamento parcial
+            const nextSchedule = installmentSchedules.find(
+              (s) => s.loanId === l.id && s.installmentNumber === l.paidInstallments + 1,
+            );
+            const allUnpaid = installmentSchedules.filter(
+              (s) => s.loanId === l.id && s.installmentNumber > l.paidInstallments,
+            );
+            const allUnpaidSum = allUnpaid.reduce((sum, s) => sum + s.amount, 0);
+            const total = calculateTotalWithInterest(l.amount, l.interestRate, l.installments) * l.installments;
+            const totalPaid = payments.filter((p) => p.loanId === l.id).reduce((s, p) => s + p.amount, 0);
+            const remainingInstallments = Math.max(1, l.installments - l.paidInstallments);
+            const fullInstallment = nextSchedule
+              ? nextSchedule.amount
+              : (l.customInstallmentValue && l.customInstallmentValue > 0)
+                ? l.customInstallmentValue
+                : total / l.installments;
+            const actualRemaining = (l.remainingAmount != null && l.remainingAmount > 0)
+              ? l.remainingAmount
+              : Math.max(0, total - totalPaid);
+            const expectedRemaining = nextSchedule ? allUnpaidSum : fullInstallment * remainingInstallments;
+            const partialPaidOnCurrent = Math.max(0, expectedRemaining - actualRemaining);
+            return Math.max(0, fullInstallment - partialPaidOnCurrent);
+          }
+          // Parcela única — saldo restante + juros de atraso + multa
+          const base = (l.remainingAmount && l.remainingAmount > 0) ? l.remainingAmount : l.amount;
+          const fees = getLoanLateFees(l, payments, installmentSchedules);
+          const renegPenalty = l.status !== "paid" ? Number(l.renegotiationPenaltyTotal || 0) : 0;
+          return base + fees.lateFees + renegPenalty;
         };
         return valueOf(b) - valueOf(a);
       }
