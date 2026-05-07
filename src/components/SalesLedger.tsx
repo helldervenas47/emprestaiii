@@ -29,7 +29,7 @@ function fmt(v: number) {
 const monthLabels = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
 
 export function SalesLedger({ sales }: { sales: Sale[] }) {
-  const { hideValues } = useHideValues();
+  const { hidden: hideValues } = useHideValues();
   const { methods } = usePaymentMethods();
   const today = new Date();
   const [year, setYear] = useState(today.getFullYear());
