@@ -3,7 +3,8 @@ import { supabase } from "@/integrations/supabase/client";
 export type Wallet = "account" | "cash";
 
 async function getDataOwnerId(): Promise<string | null> {
-  const { data: { user } } = await supabase.auth.getUser();
+  const { data: { session } } = await supabase.auth.getSession();
+  const user = session?.user;
   if (!user) return null;
   const { data } = await supabase
     .from("user_owner" as any)
