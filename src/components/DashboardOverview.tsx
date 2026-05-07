@@ -398,19 +398,42 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
     const totalOutgoing = totalLoanOutgoing + totalExpenses;
     const balance = totalIncome - totalOutgoing;
 
-    const transactions: { id: string; type: "in" | "out"; source: "payment" | "sale" | "loan" | "expense"; description: string; amount: number; date: string }[] = [];
+    const transactions: { id: string; type: "in" | "out"; source: "payment" | "sale" | "loan" | "expense" | "ledger"; description: string; amount: number; date: string; createdAt?: string }[] = [];
+    const paymentIdsFromLedger = new Set(
+      ledgerEntries
+        .filter((entry) => entry.category === "payment" && entry.payment_id && isInRange(entry.occurred_on, range.start, range.end))
+        .map((entry) => entry.payment_id as string),
+    );
 
     filteredPayments.forEach((p) => {
+      if (paymentIdsFromLedger.has(p.id)) return;
       const loan = loans.find((l) => l.id === p.loanId);
-      transactions.push({ id: p.id, type: "in", source: "payment", description: `Parcela ${p.installmentNumber} — ${loan?.borrowerName || "Empréstimo"}`, amount: p.amount, date: p.date });
+      transactions.push({ id: p.id, type: "in", source: "payment", description: `Parcela ${p.installmentNumber} — ${loan?.borrowerName || "Empréstimo"}`, amount: p.amount, date: p.date, createdAt: p.createdAt });
     });
+    ledgerEntries
+      .filter((entry) => entry.category === "payment" && entry.direction === "in" && isInRange(entry.occurred_on, range.start, range.end))
+      .forEach((entry) => {
+        transactions.push({
+          id: entry.payment_id || entry.id,
+          type: "in",
+          source: entry.payment_id ? "payment" : "ledger",
+          description: entry.description || "Pagamento recebido",
+          amount: Number(entry.amount) || 0,
+          date: entry.occurred_on,
+          createdAt: entry.created_at,
+        });
+      });
     filteredLoans.forEach((l) => {
       transactions.push({ id: l.id, type: "out", source: "loan", description: `Empréstimo para ${l.borrowerName}`, amount: l.amount, date: l.startDate });
     });
     filteredExpenses.forEach((e) => {
       transactions.push({ id: e.id, type: "out", source: "expense", description: `Despesa: ${e.description}`, amount: e.amount, date: e.paidDate! });
     });
-    transactions.sort((a, b) => b.date.localeCompare(a.date));
+    transactions.sort((a, b) => {
+      const dateCmp = b.date.localeCompare(a.date);
+      if (dateCmp !== 0) return dateCmp;
+      return (b.createdAt || "").localeCompare(a.createdAt || "");
+    });
 
     const monthlyInterestRate = calculateMonthlyInterestRate(filteredLoans);
 
@@ -550,7 +573,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
     // salesWithReceived já calculado acima usando paymentHistory + entrada (filtro por data do recebimento)
 
     return { totalIncome, incomeFromPayments, incomeFromSales, totalOutgoing, totalLoanOutgoing, totalExpenses, balance, transactions, loanCount: filteredLoans.length, saleCount: filteredSales.length, paymentCount: filteredPayments.length, expenseCount: filteredExpenses.length, monthlyInterestRate, filteredPayments, filteredLoans, filteredExpenses, salesWithReceived, periodProfitExpected: totalProfitExpected, periodProfitRealized: totalProfitRealized, periodProfitPct, interestDetailRecords, interestExpectedRecords };
-  }, [loans, sales, payments, expenses, range, includeSales, period, chartOverrides, installmentSchedules]);
+  }, [loans, sales, payments, expenses, range, includeSales, period, chartOverrides, installmentSchedules, ledgerEntries]);
 
   // Recebido por forma de pagamento (apenas pagamentos de empréstimos no período)
   const receivedByMethod = useMemo(() => {
