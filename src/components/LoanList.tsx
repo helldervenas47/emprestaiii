@@ -4381,8 +4381,17 @@ export function LoanList({ loans, payments, installmentSchedules, onPayment, onP
   const categorized = useMemo(() => {
     let filtered = loans.filter((l) => l.borrowerName.toLowerCase().includes(search.toLowerCase()));
 
-    // Category filter
-    if (category === "all") {
+    // Category filter (supports multi-select)
+    if (isMultiSelect) {
+      filtered = filtered.filter((l) => {
+        const cat = getLoanCategory(l, payments, installmentSchedules);
+        return selectedCategories.some((sel) => {
+          if (sel === "all") return cat !== "paid";
+          if (sel === "parcelado") return l.installments >= 2 && l.status !== "paid";
+          return cat === sel;
+        });
+      });
+    } else if (category === "all") {
       filtered = filtered.filter((l) => getLoanCategory(l, payments, installmentSchedules) !== "paid");
     } else if (category === "parcelado") {
       filtered = filtered.filter((l) => l.installments >= 2 && l.status !== "paid");
