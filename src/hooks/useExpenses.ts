@@ -305,13 +305,9 @@ export function useExpenses(enabled = true) {
       }
 
       if (latestChildId) {
-        // Reverte saldo + remove lançamento do extrato vinculado ao child
+        // Reverte saldo + remove lançamento do extrato vinculado ao child (carteira correta)
         if ((expense.scope ?? "business") === "business") {
-          const { data: childRow } = await supabase
-            .from("expenses").select("amount").eq("id", latestChildId).maybeSingle();
-          const childAmount = Number((childRow as any)?.amount ?? 0);
-          if (childAmount > 0) await adjustBalance(childAmount);
-          await removeLedgerByRef({ expense_id: latestChildId, category: "expense" }, { syncBalance: false });
+          await removeLedgerByRef({ expense_id: latestChildId, category: "expense" });
         }
         await supabase.from("expenses").delete().eq("id", latestChildId);
       }
@@ -337,8 +333,7 @@ export function useExpenses(enabled = true) {
 
       // Reverte saída do extrato (despesa simples) - apenas business
       if ((expense.scope ?? "business") === "business") {
-        await adjustBalance(expense.amount);
-        await removeLedgerByRef({ expense_id: id, category: "expense" }, { syncBalance: false });
+        await removeLedgerByRef({ expense_id: id, category: "expense" });
       }
 
       // Reverse piggy bank credit when unpaying a piggy expense.
@@ -359,11 +354,8 @@ export function useExpenses(enabled = true) {
     // Remove any piggy deposit linked to this expense (no-op if none).
     await supabase.from("piggy_bank_deposits" as any).delete().eq("expense_id", id);
 
-    // Reverter saldo se a despesa estava paga (business) e remover lançamento do extrato
-    if (expense && !skipBalanceAdjust && expense.paid && (expense.scope ?? "business") === "business") {
-      await adjustBalance(expense.amount);
-    }
-    await removeLedgerByRef({ expense_id: id, category: "expense" }, { syncBalance: false });
+    // Remove lançamento do extrato (reverte saldo na carteira correta automaticamente)
+    await removeLedgerByRef({ expense_id: id, category: "expense" });
 
     const { error } = await supabase.from("expenses").delete().eq("id", id);
     if (error) await enqueueMutation({ table: "expenses", op: "delete", recordId: id });
