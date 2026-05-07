@@ -645,16 +645,23 @@ export function CreditCardInvoice({ card, onClose, referenceMonth, originRect }:
                 items.map((e) => {
                   const isRec = e.type === "recorrente" && e.installments && e.installments > 1;
                   const value = isRec ? e.amount / e.installments! : e.amount;
+                  const realId = e.isVirtualInstallment ? String(e.id).split("::virt::")[0] : e.id;
+                  const realExpense = expenses.find((x) => x.id === realId) ?? e;
+                  const installmentLabel = e.isVirtualInstallment && realExpense.installments
+                    ? `${e.virtualInstallmentNumber}/${realExpense.installments}`
+                    : isRec
+                    ? `${e.installments}x`
+                    : null;
                   return (
                     <div
                       key={e.id}
                       role="button"
                       tabIndex={0}
-                      onClick={() => setEditingExpense(e)}
+                      onClick={() => setEditingExpense(realExpense)}
                       onKeyDown={(ev) => {
                         if (ev.key === "Enter" || ev.key === " ") {
                           ev.preventDefault();
-                          setEditingExpense(e);
+                          setEditingExpense(realExpense);
                         }
                       }}
                       className="flex items-center justify-between gap-2 p-3 rounded-xl border bg-card hover:bg-muted/40 active:bg-muted/60 transition-colors cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
@@ -671,10 +678,15 @@ export function CreditCardInvoice({ card, onClose, referenceMonth, originRect }:
                           <span className="text-[11px] text-muted-foreground">
                             {format(new Date(e.dueDate + "T00:00:00"), "dd/MM", { locale: ptBR })}
                           </span>
-                          {isRec && (
+                          {installmentLabel && (
                             <span className="text-[11px] text-muted-foreground">
-                              {e.installments}x
+                              {installmentLabel}
                             </span>
+                          )}
+                          {e.isVirtualInstallment && (
+                            <Badge variant="outline" className="text-[10px] py-0 h-4">
+                              Prevista
+                            </Badge>
                           )}
                         </div>
                       </div>
@@ -686,7 +698,7 @@ export function CreditCardInvoice({ card, onClose, referenceMonth, originRect }:
                           className="h-7 w-7"
                           onClick={(ev) => {
                             ev.stopPropagation();
-                            setEditingExpense(e);
+                            setEditingExpense(realExpense);
                           }}
                           aria-label="Editar lançamento"
                         >
@@ -698,7 +710,7 @@ export function CreditCardInvoice({ card, onClose, referenceMonth, originRect }:
                           className="h-7 w-7 text-destructive hover:text-destructive"
                           onClick={(ev) => {
                             ev.stopPropagation();
-                            setDeletingExpense(e);
+                            setDeletingExpense(realExpense);
                           }}
                           aria-label="Excluir lançamento"
                         >
