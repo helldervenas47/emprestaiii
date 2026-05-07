@@ -1,58 +1,90 @@
 import { supabase } from "@/integrations/supabase/client";
 
+export type Wallet = "account" | "cash";
+
 async function getDataOwnerId(): Promise<string | null> {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return null;
-  
   const { data } = await supabase
     .from("user_owner" as any)
     .select("owner_id")
     .eq("user_id", user.id)
     .maybeSingle();
-  
   return (data as any)?.owner_id || user.id;
 }
 
-export async function getBalance(): Promise<number> {
-  const ownerId = await getDataOwnerId();
-  if (!ownerId) return 0;
-
-  const { data } = await supabase
-    .from("balance")
-    .select("amount")
-    .eq("user_id", ownerId)
-    .maybeSingle();
-
-  return data?.amount ?? 0;
+export interface Balances {
+  account: number;
+  cash: number;
+  total: number;
 }
 
-export async function setBalance(value: number) {
+export async function getBalances(): Promise<Balances> {
+  const ownerId = await getDataOwnerId();
+  if (!ownerId) return { account: 0, cash: 0, total: 0 };
+  const { data } = await supabase
+    .from("balance")
+    .select("amount, account_amount, cash_amount" as any)
+    .eq("user_id", ownerId)
+    .maybeSingle();
+  const account = Number((data as any)?.account_amount ?? 0);
+  const cash = Number((data as any)?.cash_amount ?? 0);
+  // fallback retrocompat: se as carteiras estão zeradas mas amount existe, joga em conta
+  if (account === 0 && cash === 0 && (data as any)?.amount) {
+    const amt = Number((data as any).amount);
+    return { account: amt, cash: 0, total: amt };
+  }
+  return { account, cash, total: account + cash };
+}
+
+/** Compat: saldo total consolidado. */
+export async function getBalance(): Promise<number> {
+  const b = await getBalances();
+  return b.total;
+}
+
+export async function setBalances(next: { account: number; cash: number }) {
   const ownerId = await getDataOwnerId();
   if (!ownerId) return;
-
+  const total = Number((next.account + next.cash).toFixed(2));
   const { data: existing } = await supabase
     .from("balance")
     .select("id")
     .eq("user_id", ownerId)
     .maybeSingle();
-
+  const payload: any = {
+    amount: total,
+    account_amount: Number(next.account.toFixed(2)),
+    cash_amount: Number(next.cash.toFixed(2)),
+    updated_at: new Date().toISOString(),
+  };
   if (existing) {
-    await supabase.from("balance").update({ amount: value, updated_at: new Date().toISOString() }).eq("user_id", ownerId);
+    await supabase.from("balance").update(payload).eq("user_id", ownerId);
   } else {
-    await supabase.from("balance").insert({ user_id: ownerId, amount: value });
+    await supabase.from("balance").insert({ user_id: ownerId, ...payload });
   }
 }
 
-export async function adjustBalance(delta: number) {
-  const current = await getBalance();
-  await setBalance(current + delta);
+export async function setBalance(value: number) {
+  // Compat: ajusta apenas a carteira "account"
+  const cur = await getBalances();
+  await setBalances({ account: value - cur.cash, cash: cur.cash });
+}
+
+export async function adjustBalance(delta: number, wallet: Wallet = "account") {
+  const cur = await getBalances();
+  if (wallet === "cash") {
+    await setBalances({ account: cur.account, cash: cur.cash + delta });
+  } else {
+    await setBalances({ account: cur.account + delta, cash: cur.cash });
+  }
 }
 
 /**
  * Offline-aware balance adjust. If offline (or server fails), the delta is
  * stored locally and applied once the connection is restored.
  */
-export async function adjustBalanceOffline(delta: number) {
+export async function adjustBalanceOffline(delta: number, wallet: Wallet = "account") {
   if (!delta) return;
   const { isOnline } = await import("@/lib/offline/status");
   const { enqueueBalanceAdjust } = await import("@/lib/offline/sync");
@@ -61,7 +93,7 @@ export async function adjustBalanceOffline(delta: number) {
     return;
   }
   try {
-    await adjustBalance(delta);
+    await adjustBalance(delta, wallet);
   } catch {
     await enqueueBalanceAdjust(delta);
   }
