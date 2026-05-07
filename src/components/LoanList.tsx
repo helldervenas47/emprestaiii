@@ -4347,7 +4347,7 @@ export function LoanList({ loans, payments, installmentSchedules, onPayment, onP
       }
       // Within multi-select window and different id -> toggle add/remove
       if (last && last.id !== id && now - last.time < MULTI_SELECT_WINDOW_MS) {
-        const filtered = prev.filter((c) => c !== "all");
+        const filtered = prev.filter((c) => c !== "all") as Exclude<Category, "all">[];
         if (filtered.includes(id)) {
           const next = filtered.filter((c) => c !== id);
           return next.length === 0 ? ["all"] : next;
