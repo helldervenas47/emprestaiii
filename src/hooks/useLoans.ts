@@ -270,24 +270,32 @@ export function useLoans() {
       await rewritePendingRecordId("loans", tempId, data.id);
       if (status === "paid") {
         const totalReceived = calculateTotalWithInterest(loan.amount, loan.interestRate, loan.installments);
-        await adjustBalance(totalReceived - loan.amount);
-        // Ledger: registra a saída do principal e a entrada total como pagamento.
+        // Net effect goes to selected wallet (out principal + in totalReceived)
+        const { adjustBalance: _adj } = await import("@/lib/balance");
+        const wallet = await resolveWalletKind(loan.paymentMethodId ?? null);
+        await _adj(-loan.amount, wallet);
+        await _adj(totalReceived, wallet);
         await recordLedger({
           direction: "out", category: "loan", amount: loan.amount,
           description: `Empréstimo concedido - ${loan.borrowerName}`,
           occurred_on: loan.startDate, loan_id: data.id, source: "auto", syncBalance: false,
+          payment_method_id: loan.paymentMethodId ?? null,
         });
         await recordLedger({
           direction: "in", category: "payment", amount: totalReceived,
           description: `Empréstimo quitado na criação - ${loan.borrowerName}`,
           occurred_on: loan.startDate, loan_id: data.id, source: "auto", syncBalance: false,
+          payment_method_id: loan.paymentMethodId ?? null,
         });
       } else {
-        await adjustBalance(-loan.amount);
+        const { adjustBalance: _adj } = await import("@/lib/balance");
+        const wallet = await resolveWalletKind(loan.paymentMethodId ?? null);
+        await _adj(-loan.amount, wallet);
         await recordLedger({
           direction: "out", category: "loan", amount: loan.amount,
           description: `Empréstimo concedido - ${loan.borrowerName}`,
           occurred_on: loan.startDate, loan_id: data.id, source: "auto", syncBalance: false,
+          payment_method_id: loan.paymentMethodId ?? null,
         });
       }
       return data.id;
