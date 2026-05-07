@@ -154,14 +154,16 @@ export function LedgerView({ readOnly = false }: Props) {
     <div className="space-y-3 sm:space-y-4">
       {/* Total consolidado */}
       <Card no3d className="bg-primary/5">
-        <CardContent className="p-3 sm:p-5">
-          <div className="flex items-center gap-2 mb-0.5">
-            <Wallet className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-primary" />
-            <p className="text-[11px] sm:text-sm text-muted-foreground">Total</p>
+        <CardContent className="p-3 sm:p-4 flex items-center gap-2">
+          <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+            <Wallet className="h-4 w-4 text-primary" />
           </div>
-          <p className={`text-lg sm:text-3xl font-bold truncate ${balances.total < 0 ? "text-destructive" : "text-primary"}`}>
-            {formatBRL(balances.total)}
-          </p>
+          <div className="min-w-0 flex-1">
+            <p className="text-[11px] sm:text-xs text-muted-foreground">Total</p>
+            <p className={`text-base sm:text-xl font-bold truncate ${balances.total < 0 ? "text-destructive" : "text-primary"}`}>
+              {formatBRL(balances.total)}
+            </p>
+          </div>
         </CardContent>
       </Card>
 
