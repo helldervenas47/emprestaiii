@@ -86,9 +86,7 @@ export function getCardInvoiceTotalsForMonth(
   openings: InvoiceOpening[],
   yyyymm: string,
 ): CardInvoiceMonthTotal[] {
-  // Lazy import to avoid circular import at module init.
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
-  const { expandCreditCardExpenses } = require("@/lib/creditCardInstallments") as typeof import("@/lib/creditCardInstallments");
+  // Lazy import substituído por import estático no topo do arquivo.
   const expanded = expandCreditCardExpenses(expenses);
   const result: CardInvoiceMonthTotal[] = [];
   for (const card of cards) {
