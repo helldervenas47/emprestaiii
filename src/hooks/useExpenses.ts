@@ -5,7 +5,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
 import { extractPiggyId } from "./usePiggyBanks";
 import { notifyRemoteUpdate } from "@/lib/realtimeToast";
-import { adjustBalance } from "@/lib/balance";
 import { recordLedger, removeLedgerByRef } from "@/lib/ledger";
 import {
   cacheRows, getCachedRows, upsertCachedRow, removeCachedRow,
@@ -22,6 +21,7 @@ function rowToExpense(e: any): Expense {
     notes: e.notes, createdAt: e.created_at,
     parentExpenseId: e.parent_expense_id ?? undefined,
     scope: (e.scope as "business" | "personal") ?? "business",
+    paymentMethodId: e.payment_method_id ?? null,
   };
 }
 
@@ -88,6 +88,7 @@ export function useExpenses(enabled = true) {
       paid_installments: 0, due_date: expense.dueDate, paid: false,
       notes: expense.notes ?? null,
       scope: expense.scope ?? "business",
+      payment_method_id: expense.paymentMethodId ?? null,
     };
 
     await upsertCachedRow("expenses", { ...insertPayload, created_at: optimistic.createdAt });
@@ -161,6 +162,7 @@ export function useExpenses(enabled = true) {
         notes: expense.notes,
         parent_expense_id: id,
         scope: expense.scope ?? "business",
+        payment_method_id: expense.paymentMethodId ?? null,
       };
       const parentUpdate = {
         paid_installments: newPaid,
@@ -186,7 +188,7 @@ export function useExpenses(enabled = true) {
           direction: "out", category: "expense", amount: installmentAmount,
           description: `Despesa - ${expense.description} (${newPaid}/${expense.installments})`,
           occurred_on: today, expense_id: childTempId, source: "auto",
-          payment_method_id: (expense as any).paymentMethodId ?? null,
+          payment_method_id: expense.paymentMethodId ?? null,
           metadata: { parent_expense_id: id, category: expense.category },
         });
       }
@@ -220,7 +222,7 @@ export function useExpenses(enabled = true) {
           direction: "out", category: "expense", amount: finalAmount,
           description: `Despesa - ${expense.description}`,
           occurred_on: today, expense_id: id, source: "auto",
-          payment_method_id: (expense as any).paymentMethodId ?? null,
+          payment_method_id: expense.paymentMethodId ?? null,
           metadata: { category: expense.category },
         });
       }
