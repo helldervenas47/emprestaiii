@@ -605,7 +605,7 @@ export function useLoans() {
     if (!online) {
       await enqueueMutation({ table: "payments", op: "insert", recordId: tempPaymentId, payload: paymentPayload });
       await enqueueMutation({ table: "loans", op: "update", recordId: loanId, payload: loanUpdate });
-      await adjustBalanceOffline(payAmount);
+      await applyPaymentBalanceOffline(payAmount, paymentMethodId ?? null, normalizedSplit);
       // Manager commission é pulada offline; será criada manualmente ao reconectar pelo usuário se necessário.
       return;
     }
@@ -643,7 +643,7 @@ export function useLoans() {
     }
 
     try {
-      await adjustBalance(payAmount);
+      await applyPaymentBalance(payAmount, paymentMethodId ?? null, normalizedSplit);
       // Lança o valor total recebido (principal + juros/multa) em uma única linha no extrato.
       // O índice único uq_account_ledger_payment exige um único lançamento por payment_id.
       const principalPaidBefore = payments
@@ -894,7 +894,7 @@ export function useLoans() {
         await enqueueMutation({ table: "loans", op: "update", recordId: loanId, payload: loanUpdate });
       }
       // Ajusta o saldo offline com o TOTAL (juros + multa) em uma única operação
-      await adjustBalanceOffline(interestAmount + feesExtra);
+      await applyPaymentBalanceOffline(interestAmount + feesExtra, paymentMethodId ?? null, normalizedSplit);
       if (feesExtra > 0) {
         const feesPaymentId = crypto.randomUUID();
         const feesPayload = {
@@ -976,7 +976,7 @@ export function useLoans() {
 
     try {
       const totalReceived = interestAmount + feesExtra;
-      await adjustBalance(totalReceived);
+      await applyPaymentBalance(totalReceived, paymentMethodId ?? null, normalizedSplit);
       const ledgerDescription = feesExtra > 0
         ? `Pagamento de empréstimo (juros + multa) - ${loan.borrowerName}`
         : `Juros mensal - ${loan.borrowerName}`;
