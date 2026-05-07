@@ -512,18 +512,17 @@ export function SaleEditForm({ sale, onSave, onClose, clients = [], registeredVe
                       <div>
                         <Label className="text-xs">Valor da mercadoria (R$)</Label>
                         <Input type="number" step="0.01" min="0" value={merchValor} onChange={(e) => {
-                          const newMerch = parseFloat(e.target.value) || 0;
-                          const cash = Math.max(0, totalNum - (parseFloat(merchValor) || 0));
-                          setMerchValor(e.target.value);
-                          update("total", (cash + newMerch).toFixed(2));
+                          const nextMerch = e.target.value;
+                          setMerchValor(nextMerch);
+                          syncMixedTotal(cashValor, nextMerch);
                         }} placeholder="0,00" />
                       </div>
                       <div>
                         <Label className="text-xs">Recebido em dinheiro (R$)</Label>
-                        <Input type="number" step="0.01" min="0" value={(Math.max(0, totalNum - (parseFloat(merchValor) || 0))).toFixed(2)} onChange={(e) => {
-                          const newCash = parseFloat(e.target.value) || 0;
-                          const merch = parseFloat(merchValor) || 0;
-                          update("total", (newCash + merch).toFixed(2));
+                        <Input type="number" step="0.01" min="0" value={cashValor} onChange={(e) => {
+                          const nextCash = e.target.value;
+                          setCashValor(nextCash);
+                          syncMixedTotal(nextCash, merchValor);
                         }} placeholder="0,00" />
                       </div>
                     </div>
