@@ -59,7 +59,7 @@ const sideClasses: Record<NonNullable<TooltipContentProps["side"]>, string> = {
 const TooltipContent = React.forwardRef<
   HTMLSpanElement,
   TooltipContentProps
->(({ className, side = "top", hidden, children, ...props }, ref) => {
+>(({ className, side = "top", hidden, children, align: _align, sideOffset: _sideOffset, collisionPadding: _collisionPadding, ...props }, ref) => {
   if (hidden) return null;
 
   return (
