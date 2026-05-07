@@ -254,9 +254,6 @@ export function LedgerView({ readOnly = false }: Props) {
         <div className="hidden sm:block flex-1" />
         {!readOnly && (
           <>
-            <Button variant="outline" size="sm" onClick={handleRecompute} className="flex-1 sm:flex-none" title="Recalcula os saldos a partir dos lançamentos">
-              <RefreshCw className="h-4 w-4 sm:mr-1" /> <span className="hidden sm:inline">Recalcular</span>
-            </Button>
             <Button variant="outline" size="sm" onClick={() => setTransferOpen(true)} className="flex-1 sm:flex-none">
               <ArrowLeftRight className="h-4 w-4 sm:mr-1" /> <span className="hidden sm:inline">Transferir</span>
             </Button>
