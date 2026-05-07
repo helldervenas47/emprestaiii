@@ -37,6 +37,7 @@ import { CreditCard } from "@/hooks/useCreditCards";
 import { useExpenses } from "@/hooks/useExpenses";
 import { useCreditCardOpenings, cycleKeyFromDate } from "@/hooks/useCreditCardOpenings";
 import { readPaidOverride, writePaidOverride } from "@/lib/creditCardInvoiceTotals";
+import { expandCreditCardExpenses, type ExpandedExpense } from "@/lib/creditCardInstallments";
 import { useHideValues } from "@/contexts/HideValuesContext";
 import { getBank, brandLabel } from "@/lib/creditCardBanks";
 import { CreditCardOpeningDialog } from "./CreditCardOpeningDialog";
@@ -148,8 +149,13 @@ export function CreditCardInvoice({ card, onClose, referenceMonth, originRect }:
 
   const cardTag = (card.nickname || card.lastFour || "").toLowerCase();
 
-  const filterCardExpenses = (from: Date, to: Date) =>
-    expenses
+  const expandedExpenses = useMemo(
+    () => expandCreditCardExpenses(expenses),
+    [expenses]
+  );
+
+  const filterCardExpenses = (from: Date, to: Date): ExpandedExpense[] =>
+    expandedExpenses
       .filter((e) => e.scope === "personal")
       .filter((e) => /\[\s*cr[eé]dito\s*\]/i.test(e.notes ?? ""))
       .filter((e) => {
@@ -165,15 +171,15 @@ export function CreditCardInvoice({ card, onClose, referenceMonth, originRect }:
 
   const items = useMemo(
     () => filterCardExpenses(cycle.from, cycle.to).sort((a, b) => b.dueDate.localeCompare(a.dueDate)),
-    [expenses, cycle, cardTag]
+    [expandedExpenses, cycle, cardTag]
   );
 
   const prevItems = useMemo(
     () => filterCardExpenses(prevCycle.from, prevCycle.to),
-    [expenses, prevCycle, cardTag]
+    [expandedExpenses, prevCycle, cardTag]
   );
 
-  const sumItems = (list: typeof items) =>
+  const sumItems = (list: ExpandedExpense[]) =>
     list.reduce((s, e) => {
       const isRec = e.type === "recorrente" && e.installments && e.installments > 1;
       return s + (isRec ? e.amount / e.installments! : e.amount);
@@ -188,7 +194,7 @@ export function CreditCardInvoice({ card, onClose, referenceMonth, originRect }:
   // Limite disponível = limite total - (despesas pendentes do cartão + saldos iniciais de
   // faturas em aberto). Reflete tudo que ainda foi gasto e não pago neste cartão.
   const pendingTotal = useMemo(() => {
-    const expensesPending = expenses
+    const expensesPending = expandedExpenses
       .filter((e) => e.scope === "personal")
       .filter((e) => /\[\s*cr[eé]dito\s*\]/i.test(e.notes ?? ""))
       .filter((e) => {
@@ -198,19 +204,12 @@ export function CreditCardInvoice({ card, onClose, referenceMonth, originRect }:
         return !/cart[aã]o[:\s]/i.test(n);
       })
       .filter((e) => !e.paid)
-      .reduce((s, e) => {
-        const isRec = e.type === "recorrente" && e.installments && e.installments > 1;
-        const installmentValue = isRec ? e.amount / e.installments! : e.amount;
-        const remaining = isRec
-          ? Math.max(0, e.installments! - (e.paidInstallments ?? 0)) * installmentValue
-          : installmentValue;
-        return s + remaining;
-      }, 0);
+      .reduce((s, e) => s + e.amount, 0);
     const openingsPending = openings
       .filter((o) => o.cardId === card.id)
       .reduce((s, o) => s + (o.openingAmount ?? 0), 0);
     return expensesPending + openingsPending;
-  }, [expenses, openings, cardTag, card.id]);
+  }, [expandedExpenses, openings, cardTag, card.id]);
 
   const utilization = card.creditLimit > 0 ? Math.min(100, (pendingTotal / card.creditLimit) * 100) : 0;
   const available = Math.max(0, card.creditLimit - pendingTotal);
@@ -646,16 +645,23 @@ export function CreditCardInvoice({ card, onClose, referenceMonth, originRect }:
                 items.map((e) => {
                   const isRec = e.type === "recorrente" && e.installments && e.installments > 1;
                   const value = isRec ? e.amount / e.installments! : e.amount;
+                  const realId = e.isVirtualInstallment ? String(e.id).split("::virt::")[0] : e.id;
+                  const realExpense = expenses.find((x) => x.id === realId) ?? e;
+                  const installmentLabel = e.isVirtualInstallment && realExpense.installments
+                    ? `${e.virtualInstallmentNumber}/${realExpense.installments}`
+                    : isRec
+                    ? `${e.installments}x`
+                    : null;
                   return (
                     <div
                       key={e.id}
                       role="button"
                       tabIndex={0}
-                      onClick={() => setEditingExpense(e)}
+                      onClick={() => setEditingExpense(realExpense)}
                       onKeyDown={(ev) => {
                         if (ev.key === "Enter" || ev.key === " ") {
                           ev.preventDefault();
-                          setEditingExpense(e);
+                          setEditingExpense(realExpense);
                         }
                       }}
                       className="flex items-center justify-between gap-2 p-3 rounded-xl border bg-card hover:bg-muted/40 active:bg-muted/60 transition-colors cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
@@ -672,10 +678,15 @@ export function CreditCardInvoice({ card, onClose, referenceMonth, originRect }:
                           <span className="text-[11px] text-muted-foreground">
                             {format(new Date(e.dueDate + "T00:00:00"), "dd/MM", { locale: ptBR })}
                           </span>
-                          {isRec && (
+                          {installmentLabel && (
                             <span className="text-[11px] text-muted-foreground">
-                              {e.installments}x
+                              {installmentLabel}
                             </span>
+                          )}
+                          {e.isVirtualInstallment && (
+                            <Badge variant="outline" className="text-[10px] py-0 h-4">
+                              Prevista
+                            </Badge>
                           )}
                         </div>
                       </div>
@@ -687,7 +698,7 @@ export function CreditCardInvoice({ card, onClose, referenceMonth, originRect }:
                           className="h-7 w-7"
                           onClick={(ev) => {
                             ev.stopPropagation();
-                            setEditingExpense(e);
+                            setEditingExpense(realExpense);
                           }}
                           aria-label="Editar lançamento"
                         >
@@ -699,7 +710,7 @@ export function CreditCardInvoice({ card, onClose, referenceMonth, originRect }:
                           className="h-7 w-7 text-destructive hover:text-destructive"
                           onClick={(ev) => {
                             ev.stopPropagation();
-                            setDeletingExpense(e);
+                            setDeletingExpense(realExpense);
                           }}
                           aria-label="Excluir lançamento"
                         >

@@ -1,6 +1,7 @@
 import type { Expense } from "@/types/loan";
 import type { CreditCard } from "@/hooks/useCreditCards";
 import type { InvoiceOpening } from "@/hooks/useCreditCardOpenings";
+import { expandCreditCardExpenses } from "@/lib/creditCardInstallments";
 
 /** Detecta se a despesa foi feita no cartão de crédito (tag inserida pelo form/edição). */
 export function isCreditCardExpense(e: Pick<Expense, "notes">): boolean {
@@ -85,6 +86,8 @@ export function getCardInvoiceTotalsForMonth(
   openings: InvoiceOpening[],
   yyyymm: string,
 ): CardInvoiceMonthTotal[] {
+  // Lazy import substituído por import estático no topo do arquivo.
+  const expanded = expandCreditCardExpenses(expenses);
   const result: CardInvoiceMonthTotal[] = [];
   for (const card of cards) {
     if (card.active === false) continue;
@@ -92,18 +95,16 @@ export function getCardInvoiceTotalsForMonth(
     if (!cycle) continue;
 
     const cardTag = (card.nickname || card.lastFour || "").toLowerCase();
-    const items = expenses.filter((e) => {
+    const items = expanded.filter((e) => {
       if (!isCreditCardExpense(e)) return false;
-      // Só compras desse cartão (ou sem cartão identificável quando o card é único).
       if (cardTag) {
         const n = (e.notes ?? "").toLowerCase();
         if (n.includes(cardTag)) {
           // continue
         } else if (/cart[aã]o[:\s]/i.test(n)) {
-          return false; // pertence a outro cartão
+          return false;
         }
       }
-      // Pertence ao ciclo se a data de vencimento (dueDate) está entre from..to.
       const due = new Date(e.dueDate + "T00:00:00");
       return due >= cycle.from && due <= cycle.to;
     });
