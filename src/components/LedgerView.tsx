@@ -154,33 +154,31 @@ export function LedgerView({ readOnly = false }: Props) {
     <div className="space-y-3 sm:space-y-4">
       {/* Saldos consolidados */}
       <Card no3d>
-        <CardContent className="p-2.5 sm:p-4">
-          <div className="flex flex-col items-center text-center">
-            <div className="flex items-center gap-1.5 sm:gap-2">
-              <Wallet className="h-3.5 w-3.5 sm:h-5 sm:w-5 text-primary" />
-              <p className="text-[11px] sm:text-sm text-muted-foreground">Saldo Total</p>
-            </div>
-            <p className={`text-base sm:text-2xl font-bold ${balances.total < 0 ? "text-destructive" : "text-foreground"}`}>
-              {formatBRL(balances.total)}
-            </p>
+        <CardContent className="p-2 sm:p-3">
+          <div className="flex items-center justify-center gap-1.5">
+            <Wallet className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-primary" />
+            <p className="text-[11px] sm:text-xs text-muted-foreground">Saldo Total</p>
           </div>
+          <p className={`text-center text-lg sm:text-2xl font-bold leading-tight ${balances.total < 0 ? "text-destructive" : "text-foreground"}`}>
+            {formatBRL(balances.total)}
+          </p>
 
-          <div className="grid grid-cols-2 gap-2 sm:gap-3 mt-2 sm:mt-3">
-            <div className="rounded-xl border border-border/40 bg-muted/30 p-2 sm:p-3">
-              <div className="flex items-center gap-1.5">
-                <Building2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-primary" />
-                <p className="text-[11px] sm:text-sm text-muted-foreground">Conta</p>
+          <div className="grid grid-cols-2 gap-2 mt-1.5 sm:mt-2">
+            <div className="rounded-lg border border-border/40 bg-muted/30 px-2 py-1.5">
+              <div className="flex items-center gap-1">
+                <Building2 className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-primary" />
+                <p className="text-[10px] sm:text-xs text-muted-foreground">Conta</p>
               </div>
-              <p className={`text-sm sm:text-lg font-bold truncate ${balances.account < 0 ? "text-destructive" : "text-foreground"}`}>
+              <p className={`text-sm sm:text-base font-bold truncate leading-tight ${balances.account < 0 ? "text-destructive" : "text-foreground"}`}>
                 {formatBRL(balances.account)}
               </p>
             </div>
-            <div className="rounded-xl border border-border/40 bg-muted/30 p-2 sm:p-3">
-              <div className="flex items-center gap-1.5">
-                <Banknote className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-success" />
-                <p className="text-[11px] sm:text-sm text-muted-foreground">Dinheiro</p>
+            <div className="rounded-lg border border-border/40 bg-muted/30 px-2 py-1.5">
+              <div className="flex items-center gap-1">
+                <Banknote className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-success" />
+                <p className="text-[10px] sm:text-xs text-muted-foreground">Dinheiro</p>
               </div>
-              <p className={`text-sm sm:text-lg font-bold truncate ${balances.cash < 0 ? "text-destructive" : "text-foreground"}`}>
+              <p className={`text-sm sm:text-base font-bold truncate leading-tight ${balances.cash < 0 ? "text-destructive" : "text-foreground"}`}>
                 {formatBRL(balances.cash)}
               </p>
             </div>
