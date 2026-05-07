@@ -62,7 +62,7 @@ export function usePaymentMethods(enabled = true) {
   }, [user, fetchMethods]);
 
   const add = useCallback(
-    async (name: string, icon?: string) => {
+    async (name: string, icon?: string, kind: PaymentMethodKind = "account") => {
       if (!user || !dataOwnerId) return;
       const trimmed = name.trim();
       if (!trimmed) return;
@@ -73,6 +73,7 @@ export function usePaymentMethods(enabled = true) {
         icon: icon || null,
         sort_order: nextOrder,
         active: true,
+        kind,
       } as any);
       if (error) {
         toast.error("Erro ao criar forma de pagamento");
@@ -85,12 +86,13 @@ export function usePaymentMethods(enabled = true) {
   );
 
   const update = useCallback(
-    async (id: string, patch: Partial<Pick<PaymentMethod, "name" | "icon" | "active" | "sortOrder">>) => {
+    async (id: string, patch: Partial<Pick<PaymentMethod, "name" | "icon" | "active" | "sortOrder" | "kind">>) => {
       const updateData: any = {};
       if (patch.name !== undefined) updateData.name = patch.name.trim();
       if (patch.icon !== undefined) updateData.icon = patch.icon || null;
       if (patch.active !== undefined) updateData.active = patch.active;
       if (patch.sortOrder !== undefined) updateData.sort_order = patch.sortOrder;
+      if (patch.kind !== undefined) updateData.kind = patch.kind;
       const { error } = await supabase.from("payment_methods" as any).update(updateData).eq("id", id);
       if (error) {
         toast.error("Erro ao atualizar forma de pagamento");
