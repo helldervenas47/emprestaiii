@@ -1,5 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
-import { adjustBalance, setBalances, type Wallet } from "@/lib/balance";
+import { adjustBalance, getBalances, setBalances, type Wallet } from "@/lib/balance";
 import { todayInAppTz } from "@/lib/timezone";
 
 export type LedgerDirection = "in" | "out";
@@ -61,7 +61,8 @@ function notifyLedgerChanged() {
 }
 
 async function getOwnerId(): Promise<string | null> {
-  const { data: { user } } = await supabase.auth.getUser();
+  const { data: { session } } = await supabase.auth.getSession();
+  const user = session?.user;
   if (!user) return null;
   const { data } = await supabase
     .from("user_owner" as any)
@@ -335,6 +336,9 @@ export async function recordTransfer(input: {
     },
   ] as any);
 
-  await adjustBalance(-amount, input.from);
-  await adjustBalance(amount, input.to);
+  const current = await getBalances();
+  await setBalances({
+    account: current.account + (input.to === "account" ? amount : 0) - (input.from === "account" ? amount : 0),
+    cash: current.cash + (input.to === "cash" ? amount : 0) - (input.from === "cash" ? amount : 0),
+  });
 }
