@@ -494,14 +494,28 @@ export function SaleEditForm({ sale, onSave, onClose, clients = [], registeredVe
                       <Label className="text-xs">Descrição do produto</Label>
                       <Input value={merchDescricao} onChange={(e) => setMerchDescricao(e.target.value)} placeholder="Ex: Celular usado..." />
                     </div>
-                    <div>
-                      <Label className="text-xs">Valor da mercadoria (R$)</Label>
-                      <Input type="number" step="0.01" min="0" value={merchValor} onChange={(e) => setMerchValor(e.target.value)} placeholder="0,00" />
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <Label className="text-xs">Valor da mercadoria (R$)</Label>
+                        <Input type="number" step="0.01" min="0" value={merchValor} onChange={(e) => {
+                          const newMerch = parseFloat(e.target.value) || 0;
+                          const cash = Math.max(0, totalNum - (parseFloat(merchValor) || 0));
+                          setMerchValor(e.target.value);
+                          update("total", (cash + newMerch).toFixed(2));
+                        }} placeholder="0,00" />
+                      </div>
+                      <div>
+                        <Label className="text-xs">Recebido em dinheiro (R$)</Label>
+                        <Input type="number" step="0.01" min="0" value={(Math.max(0, totalNum - (parseFloat(merchValor) || 0))).toFixed(2)} onChange={(e) => {
+                          const newCash = parseFloat(e.target.value) || 0;
+                          const merch = parseFloat(merchValor) || 0;
+                          update("total", (newCash + merch).toFixed(2));
+                        }} placeholder="0,00" />
+                      </div>
                     </div>
                     {merchError && <p className="text-xs text-destructive">{merchError}</p>}
                     <p className="text-[11px] text-muted-foreground">
-                      O total da venda permanece <span className="font-medium text-foreground">{fmt(totalNum)}</span>.
-                      Ajuste-o manualmente se necessário para refletir dinheiro + mercadoria.
+                      Total da venda: <span className="font-medium text-foreground">{fmt(totalNum)}</span> (dinheiro + mercadoria, atualizado automaticamente).
                     </p>
                   </>
                 )}
