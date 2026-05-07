@@ -274,6 +274,7 @@ export function LoanForm({ onAdd, onSaveSchedule, onClose, clients, loans, payme
       managerId: hasManager && managerId ? managerId : null,
       managerCommissionRate: hasManager ? parseFloat(commissionRate) || 10 : null,
       createdAt: new Date().toISOString(),
+      paymentMethodId,
     });
 
     if (loanId && installmentRows.length > 0) {
