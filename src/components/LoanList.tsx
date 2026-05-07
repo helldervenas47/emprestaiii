@@ -4495,7 +4495,7 @@ export function LoanList({ loans, payments, installmentSchedules, onPayment, onP
       }
       return a.borrowerName.localeCompare(b.borrowerName);
     });
-  }, [loans, payments, installmentSchedules, search, category, dateFrom, dateTo, dueDateFrom, dueDateTo, amountMin, amountMax, tagFilter, notesFilter, sortBy, dueDateQuick, view]);
+  }, [loans, payments, installmentSchedules, search, category, selectedCategories, isMultiSelect, dateFrom, dateTo, dueDateFrom, dueDateTo, amountMin, amountMax, tagFilter, notesFilter, sortBy, dueDateQuick, view]);
 
   const folderCount = useMemo(() => {
     const byName: Record<string, number> = {};
