@@ -190,7 +190,7 @@ export function useLoans() {
     await fetchSchedules();
   }, [user, dataOwnerId, fetchSchedules]);
 
-  const addLoan = useCallback(async (loan: Omit<Loan, "id"> & { status?: string; paidInstallments?: number }): Promise<string | null> => {
+  const addLoan = useCallback(async (loan: Omit<Loan, "id"> & { status?: string; paidInstallments?: number; paymentMethodId?: string | null }): Promise<string | null> => {
     if (!user || !dataOwnerId) return null;
 
     // Check loan limit based on subscription plan
