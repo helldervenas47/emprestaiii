@@ -227,11 +227,13 @@ function useAccountBalance(): [number, (v: number) => void] {
     window.addEventListener("offline-sync:flushed", onSync);
     window.addEventListener("offline-sync:pending-changed", onSync);
     window.addEventListener("focus", onSync);
+    window.addEventListener("balance:changed", onSync);
     return () => {
       clearInterval(interval);
       window.removeEventListener("offline-sync:flushed", onSync);
       window.removeEventListener("offline-sync:pending-changed", onSync);
       window.removeEventListener("focus", onSync);
+      window.removeEventListener("balance:changed", onSync);
     };
   }, []);
   const update = (v: number) => { setBalance(v); setBal(v); };
