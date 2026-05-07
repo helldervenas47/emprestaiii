@@ -149,8 +149,13 @@ export function CreditCardInvoice({ card, onClose, referenceMonth, originRect }:
 
   const cardTag = (card.nickname || card.lastFour || "").toLowerCase();
 
-  const filterCardExpenses = (from: Date, to: Date) =>
-    expenses
+  const expandedExpenses = useMemo(
+    () => expandCreditCardExpenses(expenses),
+    [expenses]
+  );
+
+  const filterCardExpenses = (from: Date, to: Date): ExpandedExpense[] =>
+    expandedExpenses
       .filter((e) => e.scope === "personal")
       .filter((e) => /\[\s*cr[eé]dito\s*\]/i.test(e.notes ?? ""))
       .filter((e) => {
@@ -166,15 +171,15 @@ export function CreditCardInvoice({ card, onClose, referenceMonth, originRect }:
 
   const items = useMemo(
     () => filterCardExpenses(cycle.from, cycle.to).sort((a, b) => b.dueDate.localeCompare(a.dueDate)),
-    [expenses, cycle, cardTag]
+    [expandedExpenses, cycle, cardTag]
   );
 
   const prevItems = useMemo(
     () => filterCardExpenses(prevCycle.from, prevCycle.to),
-    [expenses, prevCycle, cardTag]
+    [expandedExpenses, prevCycle, cardTag]
   );
 
-  const sumItems = (list: typeof items) =>
+  const sumItems = (list: ExpandedExpense[]) =>
     list.reduce((s, e) => {
       const isRec = e.type === "recorrente" && e.installments && e.installments > 1;
       return s + (isRec ? e.amount / e.installments! : e.amount);
@@ -189,7 +194,7 @@ export function CreditCardInvoice({ card, onClose, referenceMonth, originRect }:
   // Limite disponível = limite total - (despesas pendentes do cartão + saldos iniciais de
   // faturas em aberto). Reflete tudo que ainda foi gasto e não pago neste cartão.
   const pendingTotal = useMemo(() => {
-    const expensesPending = expenses
+    const expensesPending = expandedExpenses
       .filter((e) => e.scope === "personal")
       .filter((e) => /\[\s*cr[eé]dito\s*\]/i.test(e.notes ?? ""))
       .filter((e) => {
@@ -199,19 +204,12 @@ export function CreditCardInvoice({ card, onClose, referenceMonth, originRect }:
         return !/cart[aã]o[:\s]/i.test(n);
       })
       .filter((e) => !e.paid)
-      .reduce((s, e) => {
-        const isRec = e.type === "recorrente" && e.installments && e.installments > 1;
-        const installmentValue = isRec ? e.amount / e.installments! : e.amount;
-        const remaining = isRec
-          ? Math.max(0, e.installments! - (e.paidInstallments ?? 0)) * installmentValue
-          : installmentValue;
-        return s + remaining;
-      }, 0);
+      .reduce((s, e) => s + e.amount, 0);
     const openingsPending = openings
       .filter((o) => o.cardId === card.id)
       .reduce((s, o) => s + (o.openingAmount ?? 0), 0);
     return expensesPending + openingsPending;
-  }, [expenses, openings, cardTag, card.id]);
+  }, [expandedExpenses, openings, cardTag, card.id]);
 
   const utilization = card.creditLimit > 0 ? Math.min(100, (pendingTotal / card.creditLimit) * 100) : 0;
   const available = Math.max(0, card.creditLimit - pendingTotal);
