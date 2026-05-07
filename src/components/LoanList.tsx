@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback } from "react";
+import React, { useState, useMemo, useCallback, useRef } from "react";
 import { DatePickerField } from "@/components/ui/date-picker-field";
 import { useHideValues } from "@/contexts/HideValuesContext";
 import { format } from "date-fns";
@@ -4334,7 +4334,32 @@ export function LoanList({ loans, payments, installmentSchedules, onPayment, onP
   const formatCurrency = useCallback((v: number) => mask(rawFormatCurrency(v)), [mask]);
   const [view, setView] = useState<"cards" | "rows" | "folders">(initialView ?? "rows");
   const [search, setSearch] = useState("");
-  const [category, setCategory] = useState<Category>(initialCategory ?? "all");
+  const [selectedCategories, setSelectedCategories] = useState<Category[]>([initialCategory ?? "all"]);
+  const lastClickRef = useRef<{ id: Category; time: number } | null>(null);
+  const MULTI_SELECT_WINDOW_MS = 2000;
+  const handleCategoryClick = useCallback((id: Category) => {
+    const now = Date.now();
+    const last = lastClickRef.current;
+    setSelectedCategories((prev) => {
+      // Double click on same -> isolate this one
+      if (last && last.id === id && now - last.time < MULTI_SELECT_WINDOW_MS) {
+        return [id];
+      }
+      // Within multi-select window and different id -> toggle add/remove
+      if (last && last.id !== id && now - last.time < MULTI_SELECT_WINDOW_MS) {
+        const filtered = prev.filter((c) => c !== "all" && c !== id);
+        if (prev.includes(id)) {
+          return filtered.length === 0 ? ["all"] : filtered;
+        }
+        return [...filtered, id];
+      }
+      // Outside window -> replace selection
+      return [id];
+    });
+    lastClickRef.current = { id, time: now };
+  }, []);
+  const category: Category = selectedCategories.length === 1 ? selectedCategories[0] : "all";
+  const isMultiSelect = selectedCategories.length > 1;
   const [showFilters, setShowFilters] = useState(false);
   const [dueDateQuick, setDueDateQuick] = useState<"yesterday" | "today" | "tomorrow" | null>(null);
   const [dateFrom, setDateFrom] = useState("");
@@ -4356,8 +4381,17 @@ export function LoanList({ loans, payments, installmentSchedules, onPayment, onP
   const categorized = useMemo(() => {
     let filtered = loans.filter((l) => l.borrowerName.toLowerCase().includes(search.toLowerCase()));
 
-    // Category filter
-    if (category === "all") {
+    // Category filter (supports multi-select)
+    if (isMultiSelect) {
+      filtered = filtered.filter((l) => {
+        const cat = getLoanCategory(l, payments, installmentSchedules);
+        return selectedCategories.some((sel) => {
+          if (sel === "all") return cat !== "paid";
+          if (sel === "parcelado") return l.installments >= 2 && l.status !== "paid";
+          return cat === sel;
+        });
+      });
+    } else if (category === "all") {
       filtered = filtered.filter((l) => getLoanCategory(l, payments, installmentSchedules) !== "paid");
     } else if (category === "parcelado") {
       filtered = filtered.filter((l) => l.installments >= 2 && l.status !== "paid");
@@ -4461,7 +4495,7 @@ export function LoanList({ loans, payments, installmentSchedules, onPayment, onP
       }
       return a.borrowerName.localeCompare(b.borrowerName);
     });
-  }, [loans, payments, installmentSchedules, search, category, dateFrom, dateTo, dueDateFrom, dueDateTo, amountMin, amountMax, tagFilter, notesFilter, sortBy, dueDateQuick, view]);
+  }, [loans, payments, installmentSchedules, search, category, selectedCategories, isMultiSelect, dateFrom, dateTo, dueDateFrom, dueDateTo, amountMin, amountMax, tagFilter, notesFilter, sortBy, dueDateQuick, view]);
 
   const folderCount = useMemo(() => {
     const byName: Record<string, number> = {};
@@ -4599,15 +4633,18 @@ export function LoanList({ loans, payments, installmentSchedules, onPayment, onP
   return (
     <div className="space-y-3">
       <div className="grid grid-cols-4 sm:grid-cols-7 gap-2 w-full">
-        {categoryConfig.map((cat) => (
-          <button key={cat.id} onClick={() => setCategory(cat.id)}
-            className={`px-2 py-1.5 rounded-full text-[10px] sm:text-xs font-medium transition-colors border whitespace-nowrap ${
-              category === cat.id ? cat.activeColor : `bg-card ${cat.color} hover:opacity-80`
-            }`}
-          >
-            {cat.label} ({counts[cat.id]})
-          </button>
-        ))}
+        {categoryConfig.map((cat) => {
+          const isActive = selectedCategories.includes(cat.id);
+          return (
+            <button key={cat.id} onClick={() => handleCategoryClick(cat.id)}
+              className={`px-2 py-1.5 rounded-full text-[10px] sm:text-xs font-medium transition-all duration-200 border whitespace-nowrap ${
+                isActive ? `${cat.activeColor} scale-[1.03] shadow-sm ring-1 ring-offset-1 ring-offset-background ring-current/20` : `bg-card ${cat.color} hover:opacity-80`
+              }`}
+            >
+              {cat.label} ({counts[cat.id]})
+            </button>
+          );
+        })}
       </div>
 
       <div className="flex items-center gap-2 flex-wrap">
