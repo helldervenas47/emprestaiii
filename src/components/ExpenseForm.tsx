@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus, X } from "lucide-react";
 import { Expense } from "@/types/loan";
+import { PaymentMethodPicker } from "@/components/PaymentMethodPicker";
 
 const categories = [
   "Aluguel", "Energia", "Água", "Internet", "Telefone",
@@ -30,6 +31,8 @@ interface Props {
 export function ExpenseForm({ onAdd, onClose, scope = "business" }: Props) {
   const [showSuccess, setShowSuccess] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [showFormError, setShowFormError] = useState(false);
+  const [paymentMethodId, setPaymentMethodId] = useState<string | null>(null);
   const [form, setForm] = useState({
     description: "",
     amount: "",
@@ -43,6 +46,7 @@ export function ExpenseForm({ onAdd, onClose, scope = "business" }: Props) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.description || !form.amount || !form.category) return;
+    if (!paymentMethodId) { setShowFormError(true); return; }
     if (submitting) return;
     setSubmitting(true);
     const parsedAmount = parseFloat(form.amount) || 0;
@@ -60,9 +64,9 @@ export function ExpenseForm({ onAdd, onClose, scope = "business" }: Props) {
         dueDate: form.dueDate,
         notes: form.notes,
         scope,
+        paymentMethodId,
       };
     } else if (form.kind === "fixa") {
-      // Recurring monthly without a fixed end — uses a high installment count as sentinel
       payload = {
         description: form.description,
         amount: parsedAmount * FIXED_RECURRING_INSTALLMENTS,
@@ -73,6 +77,7 @@ export function ExpenseForm({ onAdd, onClose, scope = "business" }: Props) {
         dueDate: form.dueDate,
         notes: form.notes,
         scope,
+        paymentMethodId,
       };
     } else {
       payload = {
@@ -83,6 +88,7 @@ export function ExpenseForm({ onAdd, onClose, scope = "business" }: Props) {
         dueDate: form.dueDate,
         notes: form.notes,
         scope,
+        paymentMethodId,
       };
     }
 
@@ -186,6 +192,13 @@ export function ExpenseForm({ onAdd, onClose, scope = "business" }: Props) {
                 />
               </div>
             </div>
+            <PaymentMethodPicker
+              value={paymentMethodId}
+              onChange={(id) => { setPaymentMethodId(id); setShowFormError(false); }}
+              required
+              showError={showFormError}
+            />
+
             <div>
               <Label htmlFor="notes">Observações</Label>
               <Textarea

@@ -5,7 +5,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
 import { extractPiggyId } from "./usePiggyBanks";
 import { notifyRemoteUpdate } from "@/lib/realtimeToast";
-import { adjustBalance } from "@/lib/balance";
 import { recordLedger, removeLedgerByRef } from "@/lib/ledger";
 import {
   cacheRows, getCachedRows, upsertCachedRow, removeCachedRow,
@@ -22,6 +21,7 @@ function rowToExpense(e: any): Expense {
     notes: e.notes, createdAt: e.created_at,
     parentExpenseId: e.parent_expense_id ?? undefined,
     scope: (e.scope as "business" | "personal") ?? "business",
+    paymentMethodId: e.payment_method_id ?? null,
   };
 }
 
@@ -88,6 +88,7 @@ export function useExpenses(enabled = true) {
       paid_installments: 0, due_date: expense.dueDate, paid: false,
       notes: expense.notes ?? null,
       scope: expense.scope ?? "business",
+      payment_method_id: expense.paymentMethodId ?? null,
     };
 
     await upsertCachedRow("expenses", { ...insertPayload, created_at: optimistic.createdAt });
@@ -161,6 +162,7 @@ export function useExpenses(enabled = true) {
         notes: expense.notes,
         parent_expense_id: id,
         scope: expense.scope ?? "business",
+        payment_method_id: expense.paymentMethodId ?? null,
       };
       const parentUpdate = {
         paid_installments: newPaid,
@@ -182,11 +184,11 @@ export function useExpenses(enabled = true) {
 
       // Saída no extrato: parcela paga (apenas business)
       if (!skipBalanceAdjust && (expense.scope ?? "business") === "business") {
-        await adjustBalance(-installmentAmount);
         await recordLedger({
           direction: "out", category: "expense", amount: installmentAmount,
           description: `Despesa - ${expense.description} (${newPaid}/${expense.installments})`,
-          occurred_on: today, expense_id: childTempId, source: "auto", syncBalance: false,
+          occurred_on: today, expense_id: childTempId, source: "auto",
+          payment_method_id: expense.paymentMethodId ?? null,
           metadata: { parent_expense_id: id, category: expense.category },
         });
       }
@@ -216,11 +218,11 @@ export function useExpenses(enabled = true) {
 
       // Saída no extrato: despesa simples paga (apenas business)
       if (!skipBalanceAdjust && (expense.scope ?? "business") === "business") {
-        await adjustBalance(-finalAmount);
         await recordLedger({
           direction: "out", category: "expense", amount: finalAmount,
           description: `Despesa - ${expense.description}`,
-          occurred_on: today, expense_id: id, source: "auto", syncBalance: false,
+          occurred_on: today, expense_id: id, source: "auto",
+          payment_method_id: expense.paymentMethodId ?? null,
           metadata: { category: expense.category },
         });
       }
@@ -303,13 +305,9 @@ export function useExpenses(enabled = true) {
       }
 
       if (latestChildId) {
-        // Reverte saldo + remove lançamento do extrato vinculado ao child
+        // Reverte saldo + remove lançamento do extrato vinculado ao child (carteira correta)
         if ((expense.scope ?? "business") === "business") {
-          const { data: childRow } = await supabase
-            .from("expenses").select("amount").eq("id", latestChildId).maybeSingle();
-          const childAmount = Number((childRow as any)?.amount ?? 0);
-          if (childAmount > 0) await adjustBalance(childAmount);
-          await removeLedgerByRef({ expense_id: latestChildId, category: "expense" }, { syncBalance: false });
+          await removeLedgerByRef({ expense_id: latestChildId, category: "expense" });
         }
         await supabase.from("expenses").delete().eq("id", latestChildId);
       }
@@ -335,8 +333,7 @@ export function useExpenses(enabled = true) {
 
       // Reverte saída do extrato (despesa simples) - apenas business
       if ((expense.scope ?? "business") === "business") {
-        await adjustBalance(expense.amount);
-        await removeLedgerByRef({ expense_id: id, category: "expense" }, { syncBalance: false });
+        await removeLedgerByRef({ expense_id: id, category: "expense" });
       }
 
       // Reverse piggy bank credit when unpaying a piggy expense.
@@ -357,11 +354,8 @@ export function useExpenses(enabled = true) {
     // Remove any piggy deposit linked to this expense (no-op if none).
     await supabase.from("piggy_bank_deposits" as any).delete().eq("expense_id", id);
 
-    // Reverter saldo se a despesa estava paga (business) e remover lançamento do extrato
-    if (expense && !skipBalanceAdjust && expense.paid && (expense.scope ?? "business") === "business") {
-      await adjustBalance(expense.amount);
-    }
-    await removeLedgerByRef({ expense_id: id, category: "expense" }, { syncBalance: false });
+    // Remove lançamento do extrato (reverte saldo na carteira correta automaticamente)
+    await removeLedgerByRef({ expense_id: id, category: "expense" });
 
     const { error } = await supabase.from("expenses").delete().eq("id", id);
     if (error) await enqueueMutation({ table: "expenses", op: "delete", recordId: id });
@@ -374,6 +368,7 @@ export function useExpenses(enabled = true) {
       category: data.category, installments: data.installments,
       paid_installments: data.paidInstallments, due_date: data.dueDate,
       paid: data.paid, paid_date: data.paidDate, notes: data.notes,
+      payment_method_id: data.paymentMethodId,
     };
     Object.keys(updatePayload).forEach(k => updatePayload[k] === undefined && delete updatePayload[k]);
     if (!isOnline()) {
