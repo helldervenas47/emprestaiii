@@ -23,7 +23,7 @@ import { Wallet, AlertTriangle as AlertTriangleIcon } from "lucide-react";
 import { PaymentMethodPicker } from "@/components/PaymentMethodPicker";
 
 interface Props {
-  onAdd: (loan: Omit<Loan, "id" | "status" | "paidInstallments">) => Promise<string | null>;
+  onAdd: (loan: Omit<Loan, "id" | "status" | "paidInstallments"> & { paymentMethodId?: string | null }) => Promise<string | null>;
   onSaveSchedule: (loanId: string, rows: { installmentNumber: number; dueDate: string; amount: number }[]) => Promise<void>;
   onClose: () => void;
   clients: Client[];
