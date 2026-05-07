@@ -52,6 +52,14 @@ export interface RecordLedgerInput {
   payment_method_id?: string | null;
 }
 
+function notifyLedgerChanged() {
+  try {
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new CustomEvent("ledger:changed"));
+    }
+  } catch { /* noop */ }
+}
+
 async function getOwnerId(): Promise<string | null> {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return null;
@@ -127,6 +135,7 @@ export async function recordLedger(input: RecordLedgerInput): Promise<void> {
     wallet,
     payment_method_id: input.payment_method_id ?? null,
   } as any);
+  notifyLedgerChanged();
 
   if (syncBalance) {
     const delta = input.direction === "in" ? input.amount : -input.amount;
