@@ -4625,15 +4625,18 @@ export function LoanList({ loans, payments, installmentSchedules, onPayment, onP
   return (
     <div className="space-y-3">
       <div className="grid grid-cols-4 sm:grid-cols-7 gap-2 w-full">
-        {categoryConfig.map((cat) => (
-          <button key={cat.id} onClick={() => setCategory(cat.id)}
-            className={`px-2 py-1.5 rounded-full text-[10px] sm:text-xs font-medium transition-colors border whitespace-nowrap ${
-              category === cat.id ? cat.activeColor : `bg-card ${cat.color} hover:opacity-80`
-            }`}
-          >
-            {cat.label} ({counts[cat.id]})
-          </button>
-        ))}
+        {categoryConfig.map((cat) => {
+          const isActive = selectedCategories.includes(cat.id);
+          return (
+            <button key={cat.id} onClick={() => handleCategoryClick(cat.id)}
+              className={`px-2 py-1.5 rounded-full text-[10px] sm:text-xs font-medium transition-all duration-200 border whitespace-nowrap ${
+                isActive ? `${cat.activeColor} scale-[1.03] shadow-sm ring-1 ring-offset-1 ring-offset-background ring-current/20` : `bg-card ${cat.color} hover:opacity-80`
+              }`}
+            >
+              {cat.label} ({counts[cat.id]})
+            </button>
+          );
+        })}
       </div>
 
       <div className="flex items-center gap-2 flex-wrap">
