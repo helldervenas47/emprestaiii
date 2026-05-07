@@ -3,12 +3,15 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
 import { toast } from "sonner";
 
+export type PaymentMethodKind = "account" | "cash";
+
 export interface PaymentMethod {
   id: string;
   name: string;
   icon: string | null;
   active: boolean;
   sortOrder: number;
+  kind: PaymentMethodKind;
 }
 
 function rowToMethod(r: any): PaymentMethod {
@@ -18,6 +21,7 @@ function rowToMethod(r: any): PaymentMethod {
     icon: r.icon ?? null,
     active: !!r.active,
     sortOrder: r.sort_order ?? 0,
+    kind: (r.kind as PaymentMethodKind) ?? "account",
   };
 }
 
