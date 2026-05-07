@@ -90,6 +90,11 @@ export async function recordLedger(input: RecordLedgerInput): Promise<void> {
   let occurred = input.occurred_on || todayInAppTz();
   const syncBalance = input.syncBalance !== false;
 
+  // herda payment_method_id de metadata se não foi passado explicitamente
+  if (!input.payment_method_id && (input.metadata as any)?.payment_method_id) {
+    input.payment_method_id = (input.metadata as any).payment_method_id;
+  }
+
   if (input.payment_id) {
     try {
       const { data: pay } = await supabase
