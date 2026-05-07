@@ -64,9 +64,11 @@ export function SaleEditForm({ sale, onSave, onClose, clients = [], registeredVe
     frequency: sale.frequency || "Mensal",
     locadorId: sale.locadorId || (locadores.length === 1 ? (locadores[0].id || "") : ""),
   });
+  const initialMerchValue = initialParsed.merchandise?.valor || 0;
   const [merchEnabled, setMerchEnabled] = useState<boolean>(!!initialParsed.merchandise);
   const [merchDescricao, setMerchDescricao] = useState<string>(initialParsed.merchandise?.descricao || "");
   const [merchValor, setMerchValor] = useState<string>(initialParsed.merchandise ? String(initialParsed.merchandise.valor) : "");
+  const [cashValor, setCashValor] = useState<string>(Math.max(0, sale.total - initialMerchValue).toFixed(2));
   const [merchError, setMerchError] = useState<string | null>(null);
 
   // Generate initial installment rows
@@ -99,9 +101,15 @@ export function SaleEditForm({ sale, onSave, onClose, clients = [], registeredVe
     e.preventDefault();
     const allowMerch = form.businessType === "venda";
     let merchandise: { descricao: string; valor: number } | null = null;
+    let finalTotal = totalNum;
     if (allowMerch && merchEnabled) {
+      const cash = parseFloat(cashValor) || 0;
       const valor = parseFloat(merchValor) || 0;
       const descricao = merchDescricao.trim();
+      if (cash < 0) {
+        setMerchError("Valor recebido em dinheiro deve ser maior ou igual a zero.");
+        return;
+      }
       if (valor < 0) {
         setMerchError("Valor da mercadoria deve ser maior ou igual a zero.");
         return;
@@ -110,6 +118,7 @@ export function SaleEditForm({ sale, onSave, onClose, clients = [], registeredVe
         setMerchError("Descrição da mercadoria é obrigatória quando há valor.");
         return;
       }
+      finalTotal = Number((cash + valor).toFixed(2));
       if (valor > 0 && descricao) merchandise = { descricao, valor };
     }
     setMerchError(null);
@@ -125,7 +134,7 @@ export function SaleEditForm({ sale, onSave, onClose, clients = [], registeredVe
       productName: form.description,
       customerName: form.customerName,
       cost: costNum,
-      total: totalNum,
+      total: finalTotal,
       quantity: parseInt(form.quantity) || 1,
       installments: form.paymentMode === "recorrente" ? installmentsNum : 1,
       paidInstallments: parseInt(form.paidInstallments) || 0,
@@ -144,6 +153,11 @@ export function SaleEditForm({ sale, onSave, onClose, clients = [], registeredVe
   };
 
   const update = (f: string, v: string) => setForm((p) => ({ ...p, [f]: v }));
+  const syncMixedTotal = (cashRaw: string, merchRaw: string) => {
+    const cash = parseFloat(cashRaw) || 0;
+    const merch = parseFloat(merchRaw) || 0;
+    update("total", Math.max(0, cash + merch).toFixed(2));
+  };
 
   const fmt = (v: number) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v);
 
@@ -498,18 +512,17 @@ export function SaleEditForm({ sale, onSave, onClose, clients = [], registeredVe
                       <div>
                         <Label className="text-xs">Valor da mercadoria (R$)</Label>
                         <Input type="number" step="0.01" min="0" value={merchValor} onChange={(e) => {
-                          const newMerch = parseFloat(e.target.value) || 0;
-                          const cash = Math.max(0, totalNum - (parseFloat(merchValor) || 0));
-                          setMerchValor(e.target.value);
-                          update("total", (cash + newMerch).toFixed(2));
+                          const nextMerch = e.target.value;
+                          setMerchValor(nextMerch);
+                          syncMixedTotal(cashValor, nextMerch);
                         }} placeholder="0,00" />
                       </div>
                       <div>
                         <Label className="text-xs">Recebido em dinheiro (R$)</Label>
-                        <Input type="number" step="0.01" min="0" value={(Math.max(0, totalNum - (parseFloat(merchValor) || 0))).toFixed(2)} onChange={(e) => {
-                          const newCash = parseFloat(e.target.value) || 0;
-                          const merch = parseFloat(merchValor) || 0;
-                          update("total", (newCash + merch).toFixed(2));
+                        <Input type="number" step="0.01" min="0" value={cashValor} onChange={(e) => {
+                          const nextCash = e.target.value;
+                          setCashValor(nextCash);
+                          syncMixedTotal(nextCash, merchValor);
                         }} placeholder="0,00" />
                       </div>
                     </div>
