@@ -24,7 +24,7 @@ type AppToast = {
 
 function show(message: ReactNode, options: AppToastOptions = {}, variant: AppToastVariant = "default") {
   const { description, duration, className, action } = options;
-  return baseToast({
+  const created = baseToast({
     title: message,
     description,
     duration,
@@ -32,6 +32,9 @@ function show(message: ReactNode, options: AppToastOptions = {}, variant: AppToa
     action,
     variant,
   });
+
+  window.setTimeout(created.dismiss, duration ?? 4000);
+  return created;
 }
 
 const toast = Object.assign(
