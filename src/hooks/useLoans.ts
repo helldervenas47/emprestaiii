@@ -298,9 +298,8 @@ export function useLoans() {
           payment_method_id: loan.paymentMethodId ?? null,
         });
       } else {
-        const { adjustBalance: _adj } = await import("@/lib/balance");
         const wallet = await resolveWalletKind(loan.paymentMethodId ?? null);
-        await _adj(-loan.amount, wallet);
+        await adjustBalance(-loan.amount, wallet);
         await recordLedger({
           direction: "out", category: "loan", amount: loan.amount,
           description: `Empréstimo concedido - ${loan.borrowerName}`,
