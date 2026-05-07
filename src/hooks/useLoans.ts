@@ -1167,7 +1167,7 @@ export function useLoans() {
     if (!online) {
       await enqueueMutation({ table: "payments", op: "insert", recordId: tempPaymentId, payload: paymentPayload });
       await enqueueMutation({ table: "loans", op: "update", recordId: loanId, payload: loanUpdate });
-      await adjustBalanceOffline(amortizeAmount);
+      await applyPaymentBalanceOffline(amortizeAmount, paymentMethodId ?? null, normalizedSplit);
       toast.success("Amortização registrada (offline)");
       return;
     }
@@ -1212,7 +1212,7 @@ export function useLoans() {
     }
 
     try {
-      await adjustBalance(amortizeAmount);
+      await applyPaymentBalance(amortizeAmount, paymentMethodId ?? null, normalizedSplit);
       await recordLedger({
         direction: "in", category: "payment", amount: amortizeAmount,
         description: `Amortização - ${loan.borrowerName}`,
@@ -1437,14 +1437,16 @@ export function useLoans() {
         await enqueueMutation({ table: "loans", op: "update", recordId: payment.loanId, payload: loanUpdates });
       }
       await enqueueMutation({ table: "payments", op: "delete", recordId: id });
-      await adjustBalanceOffline(-payment.amount);
+      const split = normalizeSplit((payment.metadata as any)?.split ?? null, payment.amount);
+      await applyPaymentBalanceOffline(payment.amount, payment.paymentMethodId ?? null, split, -1);
       return;
     }
 
     if (loan && loanUpdates) {
       await supabase.from("loans").update(loanUpdates).eq("id", payment.loanId);
     }
-    await adjustBalance(-payment.amount);
+    const split = normalizeSplit((payment.metadata as any)?.split ?? null, payment.amount);
+    await applyPaymentBalance(payment.amount, payment.paymentMethodId ?? null, split, -1);
     // Remove a entrada do extrato (sem mexer no saldo de novo)
     await removeLedgerByRef({ payment_id: id }, { syncBalance: false });
     await supabase.from("payments").delete().eq("id", id);
