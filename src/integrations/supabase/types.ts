@@ -27,9 +27,12 @@ export type Database = {
           metadata: Json
           occurred_on: string
           payment_id: string | null
+          payment_method_id: string | null
           source: string
+          transfer_group_id: string | null
           updated_at: string
           user_id: string
+          wallet: string
         }
         Insert: {
           amount: number
@@ -43,9 +46,12 @@ export type Database = {
           metadata?: Json
           occurred_on: string
           payment_id?: string | null
+          payment_method_id?: string | null
           source?: string
+          transfer_group_id?: string | null
           updated_at?: string
           user_id: string
+          wallet?: string
         }
         Update: {
           amount?: number
@@ -59,11 +65,22 @@ export type Database = {
           metadata?: Json
           occurred_on?: string
           payment_id?: string | null
+          payment_method_id?: string | null
           source?: string
+          transfer_group_id?: string | null
           updated_at?: string
           user_id?: string
+          wallet?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "account_ledger_payment_method_id_fkey"
+            columns: ["payment_method_id"]
+            isOneToOne: false
+            referencedRelation: "payment_methods"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       account_settings: {
         Row: {
@@ -229,19 +246,25 @@ export type Database = {
       }
       balance: {
         Row: {
+          account_amount: number
           amount: number
+          cash_amount: number
           id: string
           updated_at: string
           user_id: string
         }
         Insert: {
+          account_amount?: number
           amount?: number
+          cash_amount?: number
           id?: string
           updated_at?: string
           user_id: string
         }
         Update: {
+          account_amount?: number
           amount?: number
+          cash_amount?: number
           id?: string
           updated_at?: string
           user_id?: string
@@ -1309,6 +1332,7 @@ export type Database = {
           created_at: string
           icon: string | null
           id: string
+          kind: string
           name: string
           sort_order: number
           updated_at: string
@@ -1319,6 +1343,7 @@ export type Database = {
           created_at?: string
           icon?: string | null
           id?: string
+          kind?: string
           name: string
           sort_order?: number
           updated_at?: string
@@ -1329,6 +1354,7 @@ export type Database = {
           created_at?: string
           icon?: string | null
           id?: string
+          kind?: string
           name?: string
           sort_order?: number
           updated_at?: string
