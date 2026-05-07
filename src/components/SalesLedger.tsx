@@ -9,6 +9,7 @@ import { ptBR } from "date-fns/locale";
 import { ChevronLeft, ChevronRight, Receipt, User, CreditCard, Calendar as CalendarIcon, TrendingUp } from "lucide-react";
 import { useHideValues } from "@/contexts/HideValuesContext";
 import { usePaymentMethods } from "@/hooks/usePaymentMethods";
+import { parseNotesWithMerchandise } from "@/lib/saleMerchandise";
 
 interface Movement {
   id: string;
