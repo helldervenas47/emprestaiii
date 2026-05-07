@@ -14,6 +14,17 @@ import {
 } from "@/lib/offline/sync";
 import { isOnline } from "@/lib/offline/status";
 
+async function resolveWalletKind(paymentMethodId: string | null): Promise<"account" | "cash"> {
+  if (!paymentMethodId) return "account";
+  const { data } = await supabase
+    .from("payment_methods" as any)
+    .select("kind")
+    .eq("id", paymentMethodId)
+    .maybeSingle();
+  const k = (data as any)?.kind;
+  return k === "cash" ? "cash" : "account";
+}
+
 function rowToLoan(l: any): Loan {
   return {
     id: l.id, borrowerName: l.borrower_name, borrowerId: l.borrower_id,
