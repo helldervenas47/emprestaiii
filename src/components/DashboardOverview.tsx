@@ -409,6 +409,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
 
     filteredPayments.forEach((p) => {
       if (paymentIdsFromLedger.has(p.id)) return;
+      if ((p.metadata as any)?.kind === "late_fee" && paymentIdsFromLedger.has((p.metadata as any)?.consolidated_with)) return;
       const loan = loans.find((l) => l.id === p.loanId);
       transactions.push({ id: p.id, type: "in", source: "payment", description: `Parcela ${p.installmentNumber} — ${loan?.borrowerName || "Empréstimo"}`, amount: p.amount, date: p.date, createdAt: p.createdAt });
     });
