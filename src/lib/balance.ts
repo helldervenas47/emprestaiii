@@ -94,12 +94,12 @@ export async function adjustBalanceOffline(delta: number, wallet: Wallet = "acco
   const { isOnline } = await import("@/lib/offline/status");
   const { enqueueBalanceAdjust } = await import("@/lib/offline/sync");
   if (!isOnline()) {
-    await enqueueBalanceAdjust(delta);
+    await enqueueBalanceAdjust(delta, wallet);
     return;
   }
   try {
     await adjustBalance(delta, wallet);
   } catch {
-    await enqueueBalanceAdjust(delta);
+    await enqueueBalanceAdjust(delta, wallet);
   }
 }

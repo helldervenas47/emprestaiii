@@ -77,6 +77,30 @@ function withSplit(base: Record<string, any> | null | undefined, split: PaymentS
   return { ...(base ?? {}), split };
 }
 
+async function applyPaymentBalance(amount: number, paymentMethodId: string | null, split: PaymentSplit | null, multiplier = 1) {
+  if (split?.parts?.length) {
+    for (const part of split.parts) {
+      const wallet = await resolveWalletKind(part.paymentMethodId ?? null);
+      await adjustBalance((Number(part.amount) || 0) * multiplier, wallet);
+    }
+    return;
+  }
+  const wallet = await resolveWalletKind(paymentMethodId);
+  await adjustBalance(amount * multiplier, wallet);
+}
+
+async function applyPaymentBalanceOffline(amount: number, paymentMethodId: string | null, split: PaymentSplit | null, multiplier = 1) {
+  if (split?.parts?.length) {
+    for (const part of split.parts) {
+      const wallet = await resolveWalletKind(part.paymentMethodId ?? null);
+      await adjustBalanceOffline((Number(part.amount) || 0) * multiplier, wallet);
+    }
+    return;
+  }
+  const wallet = await resolveWalletKind(paymentMethodId);
+  await adjustBalanceOffline(amount * multiplier, wallet);
+}
+
 export function useLoans() {
   const { user, dataOwnerId } = useAuth();
   const [loans, setLoans] = useState<Loan[]>([]);
@@ -399,7 +423,7 @@ export function useLoans() {
     if (!online) {
       await enqueueMutation({ table: "payments", op: "insert", recordId: tempPaymentId, payload: paymentPayload });
       await enqueueMutation({ table: "loans", op: "update", recordId: loanId, payload: loanUpdate });
-      await adjustBalanceOffline(installmentAmount);
+      await applyPaymentBalanceOffline(installmentAmount, paymentMethodId ?? null, normalizedSplit);
       return;
     }
 
@@ -430,7 +454,7 @@ export function useLoans() {
     }
 
     try {
-      await adjustBalance(installmentAmount);
+      await applyPaymentBalance(installmentAmount, paymentMethodId ?? null, normalizedSplit);
       await recordLedger({
         direction: "in", category: "payment", amount: installmentAmount,
         description: `Parcela ${newPaid}/${loan.installments} recebida - ${loan.borrowerName}`,
@@ -486,7 +510,7 @@ export function useLoans() {
     if (!online) {
       await enqueueMutation({ table: "payments", op: "insert", recordId: tempPaymentId, payload: paymentPayload });
       await enqueueMutation({ table: "loans", op: "update", recordId: loanId, payload: loanUpdate });
-      await adjustBalanceOffline(amount);
+      await applyPaymentBalanceOffline(amount, paymentMethodId ?? null, normalizedSplit);
       return;
     }
 
@@ -517,7 +541,7 @@ export function useLoans() {
     }
 
     try {
-      await adjustBalance(amount);
+      await applyPaymentBalance(amount, paymentMethodId ?? null, normalizedSplit);
       await recordLedger({
         direction: "in", category: "payment", amount,
         description: `Pagamento parcial - ${loan.borrowerName}`,
@@ -581,7 +605,7 @@ export function useLoans() {
     if (!online) {
       await enqueueMutation({ table: "payments", op: "insert", recordId: tempPaymentId, payload: paymentPayload });
       await enqueueMutation({ table: "loans", op: "update", recordId: loanId, payload: loanUpdate });
-      await adjustBalanceOffline(payAmount);
+      await applyPaymentBalanceOffline(payAmount, paymentMethodId ?? null, normalizedSplit);
       // Manager commission é pulada offline; será criada manualmente ao reconectar pelo usuário se necessário.
       return;
     }
@@ -619,7 +643,7 @@ export function useLoans() {
     }
 
     try {
-      await adjustBalance(payAmount);
+      await applyPaymentBalance(payAmount, paymentMethodId ?? null, normalizedSplit);
       // Lança o valor total recebido (principal + juros/multa) em uma única linha no extrato.
       // O índice único uq_account_ledger_payment exige um único lançamento por payment_id.
       const principalPaidBefore = payments
@@ -870,7 +894,7 @@ export function useLoans() {
         await enqueueMutation({ table: "loans", op: "update", recordId: loanId, payload: loanUpdate });
       }
       // Ajusta o saldo offline com o TOTAL (juros + multa) em uma única operação
-      await adjustBalanceOffline(interestAmount + feesExtra);
+      await applyPaymentBalanceOffline(interestAmount + feesExtra, paymentMethodId ?? null, normalizedSplit);
       if (feesExtra > 0) {
         const feesPaymentId = crypto.randomUUID();
         const feesPayload = {
@@ -952,7 +976,7 @@ export function useLoans() {
 
     try {
       const totalReceived = interestAmount + feesExtra;
-      await adjustBalance(totalReceived);
+      await applyPaymentBalance(totalReceived, paymentMethodId ?? null, normalizedSplit);
       const ledgerDescription = feesExtra > 0
         ? `Pagamento de empréstimo (juros + multa) - ${loan.borrowerName}`
         : `Juros mensal - ${loan.borrowerName}`;
@@ -1143,7 +1167,7 @@ export function useLoans() {
     if (!online) {
       await enqueueMutation({ table: "payments", op: "insert", recordId: tempPaymentId, payload: paymentPayload });
       await enqueueMutation({ table: "loans", op: "update", recordId: loanId, payload: loanUpdate });
-      await adjustBalanceOffline(amortizeAmount);
+      await applyPaymentBalanceOffline(amortizeAmount, paymentMethodId ?? null, normalizedSplit);
       toast.success("Amortização registrada (offline)");
       return;
     }
@@ -1188,7 +1212,7 @@ export function useLoans() {
     }
 
     try {
-      await adjustBalance(amortizeAmount);
+      await applyPaymentBalance(amortizeAmount, paymentMethodId ?? null, normalizedSplit);
       await recordLedger({
         direction: "in", category: "payment", amount: amortizeAmount,
         description: `Amortização - ${loan.borrowerName}`,
@@ -1413,14 +1437,16 @@ export function useLoans() {
         await enqueueMutation({ table: "loans", op: "update", recordId: payment.loanId, payload: loanUpdates });
       }
       await enqueueMutation({ table: "payments", op: "delete", recordId: id });
-      await adjustBalanceOffline(-payment.amount);
+      const split = normalizeSplit((payment.metadata as any)?.split ?? null, payment.amount);
+      await applyPaymentBalanceOffline(payment.amount, payment.paymentMethodId ?? null, split, -1);
       return;
     }
 
     if (loan && loanUpdates) {
       await supabase.from("loans").update(loanUpdates).eq("id", payment.loanId);
     }
-    await adjustBalance(-payment.amount);
+    const split = normalizeSplit((payment.metadata as any)?.split ?? null, payment.amount);
+    await applyPaymentBalance(payment.amount, payment.paymentMethodId ?? null, split, -1);
     // Remove a entrada do extrato (sem mexer no saldo de novo)
     await removeLedgerByRef({ payment_id: id }, { syncBalance: false });
     await supabase.from("payments").delete().eq("id", id);

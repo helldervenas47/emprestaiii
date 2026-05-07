@@ -127,17 +127,30 @@ export function usePendingCount() {
 
 const BALANCE_KEY = "pending_balance_delta";
 
-export async function enqueueBalanceAdjust(delta: number) {
+type PendingBalanceDelta = { account: number; cash: number };
+
+function normalizePendingBalanceDelta(value: unknown): PendingBalanceDelta {
+  if (typeof value === "number") return { account: value, cash: 0 };
+  if (value && typeof value === "object") {
+    const entry = value as Partial<PendingBalanceDelta>;
+    return { account: Number(entry.account ?? 0), cash: Number(entry.cash ?? 0) };
+  }
+  return { account: 0, cash: 0 };
+}
+
+export async function enqueueBalanceAdjust(delta: number, wallet: "account" | "cash" = "account") {
   if (!delta) return;
   const entry = await offlineDB.meta.get(BALANCE_KEY);
-  const current = Number(entry?.value ?? 0);
-  await offlineDB.meta.put({ key: BALANCE_KEY, value: current + delta });
+  const current = normalizePendingBalanceDelta(entry?.value);
+  const next = { ...current, [wallet]: Number((current[wallet] + delta).toFixed(2)) };
+  await offlineDB.meta.put({ key: BALANCE_KEY, value: next });
   notifyPendingChanged();
 }
 
 export async function getPendingBalanceDelta(): Promise<number> {
   const entry = await offlineDB.meta.get(BALANCE_KEY);
-  return Number(entry?.value ?? 0);
+  const delta = normalizePendingBalanceDelta(entry?.value);
+  return delta.account + delta.cash;
 }
 
 let flushingBalance = false;
@@ -145,18 +158,21 @@ async function flushPendingBalance() {
   if (flushingBalance) return;
   flushingBalance = true;
   try {
-    const delta = await getPendingBalanceDelta();
-    if (!delta) return;
+    const entry = await offlineDB.meta.get(BALANCE_KEY);
+    const delta = normalizePendingBalanceDelta(entry?.value);
+    if (!delta.account && !delta.cash) return;
     // CRITICAL: clear the key BEFORE applying to prevent double-application
     // if adjustBalance succeeds but delete fails on the next tick.
     await offlineDB.meta.delete(BALANCE_KEY);
     notifyPendingChanged();
     const { adjustBalance } = await import("@/lib/balance");
     try {
-      await adjustBalance(delta);
+      if (delta.account) await adjustBalance(delta.account, "account");
+      if (delta.cash) await adjustBalance(delta.cash, "cash");
     } catch (err) {
       // Re-enqueue on failure so we don't lose the delta
-      await enqueueBalanceAdjust(delta);
+      if (delta.account) await enqueueBalanceAdjust(delta.account, "account");
+      if (delta.cash) await enqueueBalanceAdjust(delta.cash, "cash");
       throw err;
     }
   } finally {
