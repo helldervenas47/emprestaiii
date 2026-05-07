@@ -108,7 +108,7 @@ const ToastDescription = React.forwardRef<HTMLDivElement, React.HTMLAttributes<H
 );
 ToastDescription.displayName = "ToastDescription";
 
-type ToastProps = React.ComponentPropsWithoutRef<typeof Toast> & {
+type ToastProps = Omit<React.ComponentPropsWithoutRef<typeof Toast>, "title"> & {
   duration?: number;
 };
 
