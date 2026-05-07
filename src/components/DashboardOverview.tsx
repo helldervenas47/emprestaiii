@@ -22,6 +22,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Progress } from "@/components/ui/progress";
 import { getBalance, setBalance } from "@/lib/balance";
+import { listLedger, type LedgerEntry } from "@/lib/ledger";
 import {
   TrendingUp, TrendingDown, DollarSign, ArrowUpRight, ArrowDownRight,
   ChevronLeft, ChevronRight, ChevronDown, Percent, Wallet, Pencil, Check, X, Trash2, Calendar, Eye, Target, Info, Sparkles,
@@ -269,9 +270,28 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
   const [riskAiReport, setRiskAiReport] = useState("");
   const [riskAiTitle, setRiskAiTitle] = useState("Relatório IA para reduzir risco");
   const [cachedInsightReports, setCachedInsightReports] = useState<Record<string, string>>({});
+  const [ledgerEntries, setLedgerEntries] = useState<LedgerEntry[]>([]);
   const prefetchingInsightReportsRef = useRef<Set<string>>(new Set());
   const { chartOverrides, setChartOverrides, interestOverrides, setInterestOverrides } = useChartOverrides();
   const { getGoal } = useMonthlyGoals();
+
+  useEffect(() => {
+    let alive = true;
+    const loadLedger = async () => {
+      const entries = await listLedger();
+      if (alive) setLedgerEntries(entries);
+    };
+    loadLedger();
+    window.addEventListener("balance:changed", loadLedger);
+    window.addEventListener("offline-sync:flushed", loadLedger);
+    window.addEventListener("focus", loadLedger);
+    return () => {
+      alive = false;
+      window.removeEventListener("balance:changed", loadLedger);
+      window.removeEventListener("offline-sync:flushed", loadLedger);
+      window.removeEventListener("focus", loadLedger);
+    };
+  }, []);
 
   const range = useMemo(() => getRange(period, offset), [period, offset]);
 
