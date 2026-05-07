@@ -12,6 +12,8 @@ const STALE_CACHE_PATTERNS = [
   /is not defined/i,
   /Failed to fetch dynamically imported module/i,
   /Importing a module script failed/i,
+  /Invalid hook call/i,
+  /dispatcher\.useRef/i,
   /must be used within/i,
   /Cannot read propert(y|ies) of undefined/i,
   /Loading chunk \d+ failed/i,
@@ -19,9 +21,12 @@ const STALE_CACHE_PATTERNS = [
   /'Component' is (undefined|an instance of Object)/i,
 ];
 
-function isLikelyStaleCacheError(error: Error): boolean {
+function isLikelyStaleCacheError(error: Error, componentStack = ""): boolean {
   const msg = error?.message || "";
-  return STALE_CACHE_PATTERNS.some((re) => re.test(msg));
+  const stack = error?.stack || "";
+  const details = `${msg}\n${stack}\n${componentStack}`;
+
+  return STALE_CACHE_PATTERNS.some((re) => re.test(details));
 }
 
 async function hardRefresh() {
@@ -44,12 +49,25 @@ async function hardRefresh() {
 
 export class DevCacheErrorBoundary extends Component<Props, State> {
   state: State = { error: null };
+  private componentStack = "";
 
   static getDerivedStateFromError(error: Error): State {
     return { error };
   }
 
-  componentDidCatch(error: Error) {
+  componentDidCatch(error: Error, info: { componentStack: string }) {
+    this.componentStack = info.componentStack;
+
+    if (isLikelyStaleCacheError(error, info.componentStack)) {
+      const refreshKey = "emprestai-dev-cache-refresh";
+      const lastRefresh = Number(sessionStorage.getItem(refreshKey) || 0);
+
+      if (Date.now() - lastRefresh > 10_000) {
+        sessionStorage.setItem(refreshKey, Date.now().toString());
+        void hardRefresh();
+      }
+    }
+
     if (import.meta.env.DEV) {
       // eslint-disable-next-line no-console
       console.error("[DevCacheErrorBoundary]", error);
@@ -61,7 +79,7 @@ export class DevCacheErrorBoundary extends Component<Props, State> {
 
     const { error } = this.state;
     if (!error) return this.props.children;
-    if (!isLikelyStaleCacheError(error)) throw error;
+    if (!isLikelyStaleCacheError(error, this.componentStack)) throw error;
 
     return (
       <div className="min-h-screen bg-background flex items-center justify-center p-6">
