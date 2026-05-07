@@ -8,7 +8,7 @@ import { Send, Plus, X, Clock } from "lucide-react";
 import { useTelegramBillingPref } from "@/hooks/useTelegramBillingPref";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "@/lib/appToast";
+import { toast } from "sonner";
 
 type SlotKey = "send_time_1" | "send_time_2" | "send_time_3";
 

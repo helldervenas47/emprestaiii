@@ -15,7 +15,7 @@ const TelegramIcon = ({ className }: { className?: string }) => (
     </svg>
   </span>
 );
-import { toast } from "@/lib/appToast";
+import { toast } from "sonner";
 import { useTelegramSummaryPref } from "@/hooks/useTelegramSummaryPref";
 
 const BOT_USERNAME_KEY = "telegram_bot_username";

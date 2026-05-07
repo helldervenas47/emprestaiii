@@ -9,7 +9,7 @@ import type { Loan, Payment, InstallmentSchedule, Client } from "@/types/loan";
 import { useWhatsappBillingMessages } from "@/hooks/useWhatsappBillingMessages";
 import { buildBillingWhatsappLink } from "@/lib/whatsappBilling";
 import { WhatsappPreviewDialog } from "@/components/WhatsappPreviewDialog";
-import { toast } from "@/lib/appToast";
+import { toast } from "sonner";
 
 interface Props {
   loans: Loan[];

@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { useWhatsappBillingSchedule } from "@/hooks/useWhatsappBillingSchedule";
 import { useMyProfilePhone } from "@/hooks/useMyProfilePhone";
-import { toast } from "@/lib/appToast";
+import { toast } from "sonner";
 import { Send, Loader2, CheckCircle2, XCircle, Clock, Users, Phone } from "lucide-react";
 
 const WEEKDAYS = [

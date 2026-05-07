@@ -43,7 +43,7 @@ import { CreditCardOpeningDialog } from "./CreditCardOpeningDialog";
 import { ExpenseEditDialog } from "./ExpenseEditDialog";
 import { ConfirmDeleteDialog } from "./ConfirmDeleteDialog";
 import { Expense } from "@/types/loan";
-import { toast } from "@/lib/appToast";
+import { toast } from "sonner";
 
 interface Props {
   card: CreditCard;

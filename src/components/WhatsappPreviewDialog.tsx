@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { MessageCircle, ExternalLink, Copy, Check } from "lucide-react";
 import { buildWhatsappLink, type BillingMessageStatus } from "@/lib/whatsappBilling";
-import { toast } from "@/lib/appToast";
+import { toast } from "sonner";
 
 const STATUS_LABEL: Record<BillingMessageStatus | "very_overdue", { label: string; cls: string }> = {
   upcoming: { label: "A vencer", cls: "bg-muted text-muted-foreground border-border" },

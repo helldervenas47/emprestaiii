@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { VehicleInfo } from "@/hooks/useVehicleRegistry";
 import { Pencil, Check, X, Trash2, Car, Search, Plus } from "lucide-react";
-import { toast } from "@/lib/appToast";
+import { toast } from "sonner";
 import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
 
 interface Props {

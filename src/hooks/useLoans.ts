@@ -5,7 +5,7 @@ import { adjustBalance, adjustBalanceOffline } from "@/lib/balance";
 import { recordLedger, removeLedgerByRef } from "@/lib/ledger";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
-import { toast } from "@/lib/appToast";
+import { toast } from "sonner";
 import { getLoanLateFees } from "@/lib/loanLateFees";
 import { notifyRemoteUpdate } from "@/lib/realtimeToast";
 import {

@@ -40,7 +40,7 @@ import {
   Share2,
 } from "lucide-react";
 
-import { toast } from "@/lib/appToast";
+import { toast } from "sonner";
 import { useLoanSimulations } from "@/hooks/useLoanSimulations";
 import { computeScenario, computeHighlights, formatBRL, newScenario, frequencyLabel } from "@/lib/loanSimulation";
 import type { LoanSimulation, SimulationScenario, ScenarioComputed } from "@/types/loanSimulation";

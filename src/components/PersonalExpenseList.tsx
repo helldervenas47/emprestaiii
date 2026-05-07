@@ -1,7 +1,7 @@
 import { useState, useCallback, useMemo, useEffect } from "react";
 import { todayInAppTz } from "@/lib/timezone";
 import { getDueStatusBadge } from "@/lib/dueStatus";
-import { toast } from "@/lib/appToast";
+import { toast } from "sonner";
 import { usePaymentCelebration } from "@/hooks/usePaymentCelebration";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";

@@ -5,7 +5,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { usePushNotifications } from "@/hooks/usePushNotifications";
-import { toast } from "@/lib/appToast";
+import { toast } from "sonner";
 
 const timeOptions = Array.from({ length: 24 }, (_, i) => {
   const h = String(i).padStart(2, "0");

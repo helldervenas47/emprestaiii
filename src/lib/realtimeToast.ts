@@ -1,4 +1,4 @@
-import { toast } from "@/lib/appToast";
+import { toast } from "sonner";
 
 // Throttled per-table toast: avoids spamming when many rows change.
 const lastShown = new Map<string, number>();

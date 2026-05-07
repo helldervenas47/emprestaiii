@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
-import { toast } from "@/lib/appToast";
+import { toast } from "sonner";
 import { resolveVoice, subscribeVoiceURI } from "@/lib/ttsVoice";
 
 interface Props {

@@ -11,7 +11,7 @@ import {
   HandCoins, Coins, Wallet, PiggyBank, AlertTriangle, UserPlus, Copy,
   ChevronLeft, ChevronRight, RefreshCw,
 } from "lucide-react";
-import { toast } from "@/lib/appToast";
+import { toast } from "sonner";
 import { useMonthlyGoals, GoalType, currentMonthKey, formatMonthLabel } from "@/hooks/useMonthlyGoals";
 import { computeActual as computeActualFromGoalsCard } from "@/components/GoalsCard";
 import { useLoans } from "@/hooks/useLoans";

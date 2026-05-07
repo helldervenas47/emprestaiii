@@ -12,7 +12,7 @@ import { useTelegramReportsLink } from "@/hooks/useTelegramReportsLink";
 import { useTelegramAccumulatedDelinquencyPrefs } from "@/hooks/useTelegramAccumulatedDelinquencyPrefs";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { toast } from "@/lib/appToast";
+import { toast } from "sonner";
 import { todayInAppTz } from "@/lib/timezone";
 import { TelegramReportsConnectCard } from "@/components/TelegramReportsConnectCard";
 

@@ -7,7 +7,7 @@ import { useHideValues } from "@/contexts/HideValuesContext";
 import { Button } from "@/components/ui/button";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
-import { toast } from "@/lib/appToast";
+import { toast } from "sonner";
 import { getPdfBranding } from "@/lib/pdfBranding";
 import { usePaymentMethods } from "@/hooks/usePaymentMethods";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";

@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useDataOwner } from "@/hooks/useDataOwner";
-import { toast } from "@/lib/appToast";
+import { toast } from "sonner";
 
 export interface InvoiceOpening {
   id: string;

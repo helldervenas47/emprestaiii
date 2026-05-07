@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { CloudOff, RefreshCw, CheckCircle2 } from "lucide-react";
 import { flushQueue, usePendingCount } from "@/lib/offline/sync";
 import { useOnlineStatus } from "@/lib/offline/status";
-import { toast } from "@/lib/appToast";
+import { toast } from "sonner";
 
 const TABLE_LABELS: Record<string, string> = {
   expenses: "Despesas",

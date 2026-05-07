@@ -2,7 +2,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Toast, ToastClose, ToastDescription, ToastProvider, ToastTitle, ToastViewport } from "@/components/ui/toast";
 
 export function Toaster() {
-  const { toasts, dismiss } = useToast();
+  const { toasts } = useToast();
 
   return (
     <ToastProvider>
@@ -14,7 +14,7 @@ export function Toaster() {
               {description && <ToastDescription>{description}</ToastDescription>}
             </div>
             {action}
-            <ToastClose onClick={() => dismiss(id)} />
+            <ToastClose />
           </Toast>
         );
       })}

@@ -18,7 +18,7 @@ import { todayInAppTz } from "@/lib/timezone";
 import { usePaymentMethods } from "@/hooks/usePaymentMethods";
 import { PaymentMethodPicker } from "@/components/PaymentMethodPicker";
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "@/lib/appToast";
+import { toast } from "sonner";
 
 const formatBRL = (n: number) =>
   n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });

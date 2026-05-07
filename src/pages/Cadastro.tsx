@@ -9,7 +9,7 @@ import { Mail, Lock, User, Eye, EyeOff, ArrowLeft, Loader2, CheckCircle2, AlertC
 import { AppLogo } from "@/components/AppLogo";
 import { useAppBranding } from "@/hooks/useAppBranding";
 import { validateInviteCode } from "@/hooks/useInviteCodes";
-import { toast } from "@/lib/appToast";
+import { toast } from "sonner";
 
 const Cadastro = () => {
   const [searchParams] = useSearchParams();

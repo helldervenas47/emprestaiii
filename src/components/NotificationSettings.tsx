@@ -10,7 +10,7 @@ import { usePushNotifications } from "@/hooks/usePushNotifications";
 import { TelegramConnectCard } from "@/components/TelegramConnectCard";
 import { useAppBranding } from "@/hooks/useAppBranding";
 
-import { toast } from "@/lib/appToast";
+import { toast } from "sonner";
 
 const HOURS = Array.from({ length: 24 }, (_, i) => {
   const h = i.toString().padStart(2, "0");

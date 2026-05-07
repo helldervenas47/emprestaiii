@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Mail, Lock, Eye, EyeOff } from "lucide-react";
 import { AppLogo } from "@/components/AppLogo";
 import { useAppBranding } from "@/hooks/useAppBranding";
-import { toast } from "@/lib/appToast";
+import { toast } from "sonner";
 
 const Auth = () => {
   const [isForgot, setIsForgot] = useState(false);

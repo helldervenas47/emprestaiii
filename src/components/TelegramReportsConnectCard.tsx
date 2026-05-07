@@ -7,7 +7,7 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Send, Copy, CheckCircle2, Unlink, Sparkles, Clock, MessageSquare } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "@/lib/appToast";
+import { toast } from "sonner";
 import { useTelegramReportsLink } from "@/hooks/useTelegramReportsLink";
 import { usePersonalInsightsTelegramPrefs, type InsightTone } from "@/hooks/usePersonalInsightsTelegramPrefs";
 import { TelegramManagerWeeklyCard } from "@/components/TelegramManagerWeeklyCard";

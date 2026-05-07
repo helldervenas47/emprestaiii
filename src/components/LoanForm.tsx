@@ -16,7 +16,7 @@ import { calculateInstallment, calculateTotalWithInterest } from "@/hooks/useLoa
 import { Loan, Client } from "@/types/loan";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
-import { toast } from "@/lib/appToast";
+import { toast } from "sonner";
 import { useCreditLimits } from "@/hooks/useCreditLimits";
 import { computeAvailableLimit, computeUsedLimit, formatBRL } from "@/lib/creditLimit";
 import { Wallet, AlertTriangle as AlertTriangleIcon } from "lucide-react";

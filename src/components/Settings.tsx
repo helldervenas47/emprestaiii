@@ -10,7 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useHideValues } from "@/contexts/HideValuesContext";
 import { useNavigate } from "react-router-dom";
 import { useSubscription } from "@/hooks/useSubscription";
-import { toast } from "@/lib/appToast";
+import { toast } from "sonner";
 import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
 import { PendingSyncCard } from "@/components/PendingSyncCard";
 import { TimezoneSettingsCard } from "@/components/TimezoneSettingsCard";

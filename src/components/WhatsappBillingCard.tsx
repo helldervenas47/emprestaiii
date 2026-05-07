@@ -13,7 +13,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { MessageCircle, Save, RotateCcw, Eye, AlertTriangle, Send, Loader2, UserCheck } from "lucide-react";
-import { toast } from "@/lib/appToast";
+import { toast } from "sonner";
 import { useWhatsappBillingMessages } from "@/hooks/useWhatsappBillingMessages";
 import { useWhatsappBillingSchedule } from "@/hooks/useWhatsappBillingSchedule";
 import {

@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import type { LoanSimulation, SimulationScenario, SimulationSettings } from "@/types/loanSimulation";
-import { toast } from "@/lib/appToast";
+import { toast } from "sonner";
 
 function mapRow(row: any): LoanSimulation {
   return {

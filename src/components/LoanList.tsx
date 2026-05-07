@@ -28,7 +28,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
-import { toast } from "@/lib/appToast";
+import { toast } from "sonner";
 import { usePaymentCelebration } from "@/hooks/usePaymentCelebration";
 import { AdjustDueDateDialog } from "@/components/AdjustDueDateDialog";
 import { AmortizationSimulator } from "@/components/AmortizationSimulator";

@@ -7,7 +7,7 @@ import { runAccountantAudit, type AuditReport, type AuditTotals } from "@/lib/ac
 import { useAccountantAuditLogs } from "@/hooks/useAccountantAuditLogs";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { toast } from "@/lib/appToast";
+import { toast } from "sonner";
 
 interface Props {
   loans: any[];

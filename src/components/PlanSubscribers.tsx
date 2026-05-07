@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Label } from "@/components/ui/label";
 import { useIsMobileOrTablet } from "@/hooks/use-mobile";
 import { ChevronDown, Pencil, Trash2, RefreshCw } from "lucide-react";
-import { toast } from "@/lib/appToast";
+import { toast } from "sonner";
 import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
 
 interface Subscriber {
