@@ -423,7 +423,7 @@ export function useLoans() {
     if (!online) {
       await enqueueMutation({ table: "payments", op: "insert", recordId: tempPaymentId, payload: paymentPayload });
       await enqueueMutation({ table: "loans", op: "update", recordId: loanId, payload: loanUpdate });
-      await adjustBalanceOffline(installmentAmount);
+      await applyPaymentBalanceOffline(installmentAmount, paymentMethodId ?? null, normalizedSplit);
       return;
     }
 
@@ -454,7 +454,7 @@ export function useLoans() {
     }
 
     try {
-      await adjustBalance(installmentAmount);
+      await applyPaymentBalance(installmentAmount, paymentMethodId ?? null, normalizedSplit);
       await recordLedger({
         direction: "in", category: "payment", amount: installmentAmount,
         description: `Parcela ${newPaid}/${loan.installments} recebida - ${loan.borrowerName}`,
@@ -510,7 +510,7 @@ export function useLoans() {
     if (!online) {
       await enqueueMutation({ table: "payments", op: "insert", recordId: tempPaymentId, payload: paymentPayload });
       await enqueueMutation({ table: "loans", op: "update", recordId: loanId, payload: loanUpdate });
-      await adjustBalanceOffline(amount);
+      await applyPaymentBalanceOffline(amount, paymentMethodId ?? null, normalizedSplit);
       return;
     }
 
@@ -541,7 +541,7 @@ export function useLoans() {
     }
 
     try {
-      await adjustBalance(amount);
+      await applyPaymentBalance(amount, paymentMethodId ?? null, normalizedSplit);
       await recordLedger({
         direction: "in", category: "payment", amount,
         description: `Pagamento parcial - ${loan.borrowerName}`,
