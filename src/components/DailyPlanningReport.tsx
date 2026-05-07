@@ -9,7 +9,7 @@ import { calculateTotalWithInterest } from "@/hooks/useLoans";
 import { useCreditCards } from "@/hooks/useCreditCards";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { toast } from "sonner";
+import { toast } from "@/lib/appToast";
 import { useDailyPlanningTelegramPrefs } from "@/hooks/useDailyPlanningTelegramPrefs";
 import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";

@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Volume2, Play, Square, Mic } from "lucide-react";
 import { getStoredVoiceURI, setStoredVoiceURI, subscribeVoiceURI } from "@/lib/ttsVoice";
-import { toast } from "sonner";
+import { toast } from "@/lib/appToast";
 
 const SAMPLE_TEXT =
   "Olá! Esta é uma amostra de como os relatórios de inteligência artificial serão narrados para você.";

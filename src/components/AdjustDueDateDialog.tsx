@@ -5,7 +5,7 @@ import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { DatePickerField } from "@/components/ui/date-picker-field";
 import { AlertTriangle, History as HistoryIcon, Info } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@/lib/appToast";
 import { Loan, InstallmentSchedule } from "@/types/loan";
 import { calculateInstallment } from "@/hooks/useLoans";
 

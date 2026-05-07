@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { ArrowDown, ArrowUp, Bot, History, Loader2, RefreshCw, User } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@/lib/appToast";
 import {
   useCreditLimits,
   type CreditLimitHistoryEntry,

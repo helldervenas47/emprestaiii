@@ -28,7 +28,7 @@ import {
 import { Loan, LoanRenegotiation, Payment, InstallmentSchedule } from "@/types/loan";
 import { getLoanRemainingAmount } from "@/hooks/useLoans";
 import { useLoanRenegotiations } from "@/hooks/useLoanRenegotiations";
-import { toast } from "sonner";
+import { toast } from "@/lib/appToast";
 import { History, AlertTriangle, ListChecks, CalendarDays, Pencil, Trash2, Save, X } from "lucide-react";
 
 const formatCurrency = (v: number) =>

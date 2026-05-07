@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Shield, Loader2 } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@/lib/appToast";
 import { useAccountSettings } from "@/hooks/useAccountSettings";
 import { useCreditLimits } from "@/hooks/useCreditLimits";
 import { formatBRL } from "@/lib/creditLimit";

@@ -4,7 +4,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Globe, Loader2 } from "lucide-react";
 import { useAccountSettings } from "@/hooks/useAccountSettings";
 import { COMMON_TIMEZONES, todayInAppTz } from "@/lib/timezone";
-import { toast } from "sonner";
+import { toast } from "@/lib/appToast";
 
 export function TimezoneSettingsCard({ disabled = false }: { disabled?: boolean }) {
   const { settings, loading, saving, updateTimezone } = useAccountSettings();

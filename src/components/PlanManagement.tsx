@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Plus, Pencil, Trash2, Star, LayoutGrid } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@/lib/appToast";
 import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
 import { Checkbox } from "@/components/ui/checkbox";
 

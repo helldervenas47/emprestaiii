@@ -9,7 +9,7 @@ import { Copy, Link as LinkIcon, Plus, Power, Trash2, Users } from "lucide-react
 import { useInviteCodes } from "@/hooks/useInviteCodes";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { toast } from "sonner";
+import { toast } from "@/lib/appToast";
 
 export function InviteAndApprovalSettings() {
   const { user } = useAuth();

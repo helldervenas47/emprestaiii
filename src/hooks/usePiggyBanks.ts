@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
 import { useDataOwner } from "./useDataOwner";
-import { toast } from "sonner";
+import { toast } from "@/lib/appToast";
 
 export interface PiggyBank {
   id: string;
