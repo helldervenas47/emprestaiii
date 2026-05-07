@@ -230,6 +230,11 @@ export function LoanForm({ onAdd, onSaveSchedule, onClose, clients, loans, payme
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedClient || !amount || !installments || isNaN(rate) || rate < 0) return;
+    if (!paymentMethodId) {
+      setShowFormError(true);
+      toast.error("Selecione a forma de pagamento (Conta ou Dinheiro).");
+      return;
+    }
     if (hasManager && !managerId) {
       toast.error("Selecione um gerente para o empréstimo com gerente.");
       return;
