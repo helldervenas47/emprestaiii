@@ -1,6 +1,7 @@
 import type { Expense } from "@/types/loan";
 import type { CreditCard } from "@/hooks/useCreditCards";
 import type { InvoiceOpening } from "@/hooks/useCreditCardOpenings";
+import { expandCreditCardExpenses } from "@/lib/creditCardInstallments";
 
 /** Detecta se a despesa foi feita no cartão de crédito (tag inserida pelo form/edição). */
 export function isCreditCardExpense(e: Pick<Expense, "notes">): boolean {
