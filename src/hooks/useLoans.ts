@@ -77,6 +77,30 @@ function withSplit(base: Record<string, any> | null | undefined, split: PaymentS
   return { ...(base ?? {}), split };
 }
 
+async function applyPaymentBalance(amount: number, paymentMethodId: string | null, split: PaymentSplit | null, multiplier = 1) {
+  if (split?.parts?.length) {
+    for (const part of split.parts) {
+      const wallet = await resolveWalletKind(part.paymentMethodId ?? null);
+      await adjustBalance((Number(part.amount) || 0) * multiplier, wallet);
+    }
+    return;
+  }
+  const wallet = await resolveWalletKind(paymentMethodId);
+  await adjustBalance(amount * multiplier, wallet);
+}
+
+async function applyPaymentBalanceOffline(amount: number, paymentMethodId: string | null, split: PaymentSplit | null, multiplier = 1) {
+  if (split?.parts?.length) {
+    for (const part of split.parts) {
+      const wallet = await resolveWalletKind(part.paymentMethodId ?? null);
+      await adjustBalanceOffline((Number(part.amount) || 0) * multiplier, wallet);
+    }
+    return;
+  }
+  const wallet = await resolveWalletKind(paymentMethodId);
+  await adjustBalanceOffline(amount * multiplier, wallet);
+}
+
 export function useLoans() {
   const { user, dataOwnerId } = useAuth();
   const [loans, setLoans] = useState<Loan[]>([]);
