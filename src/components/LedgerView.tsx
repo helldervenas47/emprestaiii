@@ -152,8 +152,21 @@ export function LedgerView({ readOnly = false }: Props) {
 
   return (
     <div className="space-y-3 sm:space-y-4">
-      {/* Saldos por carteira + total */}
-      <div className="grid grid-cols-3 gap-2 sm:gap-3">
+      {/* Total consolidado */}
+      <Card no3d className="bg-primary/5">
+        <CardContent className="p-4 sm:p-5">
+          <div className="flex items-center gap-2 mb-1">
+            <Wallet className="h-4 w-4 text-primary" />
+            <p className="text-xs sm:text-sm text-muted-foreground">Total</p>
+          </div>
+          <p className={`text-2xl sm:text-3xl font-bold truncate ${balances.total < 0 ? "text-destructive" : "text-primary"}`}>
+            {formatBRL(balances.total)}
+          </p>
+        </CardContent>
+      </Card>
+
+      {/* Saldos por carteira */}
+      <div className="grid grid-cols-2 gap-2 sm:gap-3">
         <Card no3d>
           <CardContent className="p-3 sm:p-4">
             <div className="flex items-center gap-2 mb-1">
@@ -173,17 +186,6 @@ export function LedgerView({ readOnly = false }: Props) {
             </div>
             <p className={`text-base sm:text-xl font-bold truncate ${balances.cash < 0 ? "text-destructive" : "text-foreground"}`}>
               {formatBRL(balances.cash)}
-            </p>
-          </CardContent>
-        </Card>
-        <Card no3d className="bg-primary/5">
-          <CardContent className="p-3 sm:p-4">
-            <div className="flex items-center gap-2 mb-1">
-              <Wallet className="h-4 w-4 text-primary" />
-              <p className="text-[11px] sm:text-xs text-muted-foreground">Total</p>
-            </div>
-            <p className={`text-base sm:text-xl font-bold truncate ${balances.total < 0 ? "text-destructive" : "text-primary"}`}>
-              {formatBRL(balances.total)}
             </p>
           </CardContent>
         </Card>
