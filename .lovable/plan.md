@@ -1,27 +1,92 @@
-## Problema
+# Saldos separados: Conta e Dinheiro
 
-No contrato do Leo Cardoso, ao pagar a parcela 1 (renegociada para R$ 300 com multa de R$ 30), o sistema registra apenas R$ 280. Isso ocorre porque `addPayment` em `src/hooks/useLoans.ts` ignora o cronograma individual de parcelas (`loan_installments`) e divide o saldo total igualmente entre as parcelas restantes (840 ÷ 3 = 280), perdendo a multa aplicada na parcela 1.
+Reestruturar o controle financeiro para ter **dois saldos independentes** (Conta e Dinheiro), tornando a forma de pagamento obrigatória em toda movimentação e adicionando transferências internas entre eles.
 
-A renegociação grava corretamente a parcela 1 com R$ 300 em `loan_installments`, mas o pagamento usa um cálculo paralelo que não consulta essa tabela.
+## 1. Modelo de dados
 
-## Correção
+Cada forma de pagamento (`payment_methods`) ganha um campo `kind` ('account' | 'cash') que define qual saldo ela movimenta. Padrões propostos:
 
-Em `src/hooks/useLoans.ts`, dentro de `addPayment` (linhas ~304-309), priorizar o valor do cronograma para a parcela que está sendo paga.
+- **Dinheiro** → cash
+- **Pix, Transferência, Boleto, Cartão** → account
+- Novas formas criadas pelo usuário podem escolher o tipo (default: account)
 
-Nova ordem de prioridade para `installmentAmount`:
-1. **Valor da parcela atual no cronograma** (`installmentSchedules.find(s => s.loanId === loanId && s.installmentNumber === loan.paidInstallments + 1)`) — fonte de verdade quando existe (cobre renegociações, parcelas customizadas e fluxos diários/semanais).
-2. `loan.customInstallmentValue` se > 0 (fallback existente).
-3. `remaining / remainingInstallments` (fallback de cálculo médio).
+Tabela `balance` ganha duas colunas: `account_amount` e `cash_amount` (mantendo `amount` como total consolidado para retrocompat). Tabela `account_ledger` ganha `wallet` ('account' | 'cash') obrigatório e `payment_method_id` (referência opcional). Nova categoria `transfer`.
 
-Se for usado o valor do cronograma, `newRemaining` deve ser calculado como `max(0, remaining - installmentAmount)` (já é assim) — a soma das parcelas do cronograma já bate com `remaining_amount`, então o saldo final fecha corretamente.
+## 2. Forma de pagamento obrigatória
 
-Se for a última parcela (`newPaid >= installments`), forçar `installmentAmount = remaining` para evitar arredondamentos deixarem centavos pendurados.
+Tornar `payment_method_id` obrigatório em:
 
-## Verificação manual após o fix
+- Empréstimos (desembolso)
+- Pagamentos de parcela / quitação / renegociação
+- Despesas (e marcação de paga)
+- Vendas
+- Aportes e ajustes manuais
+- Despesas pessoais
 
-- Pagar parcela 1 do Leo Cardoso deve registrar R$ 300 (não 280), saldo passa para R$ 540.
-- Parcela 2 e 3 devem continuar registrando R$ 270 cada.
-- Contratos sem renegociação (parcelas iguais) seguem registrando o valor padrão.
+UI: seletor compacto de chips/botões com ícones já existentes, posicionado em destaque. Validação client-side (zod) e bloqueio do submit quando vazio.
 
-## Arquivo afetado
-- `src/hooks/useLoans.ts` (função `addPayment`, ~linhas 304-311)
+## 3. Transferências internas
+
+Nova ação "Transferir entre saldos" no extrato:
+
+- Origem (conta/dinheiro) → Destino (oposto)
+- Valor, data, observação
+- Gera **dois lançamentos** no extrato (saída no origem, entrada no destino), ambos categoria `transfer`, vinculados por `transfer_group_id`
+- Não altera o total consolidado
+- Editável/excluível em par
+
+## 4. UI/Cálculos a atualizar
+
+- **Card de saldo (Dashboard)**: mostra Conta, Dinheiro e Total
+- **Extrato (LedgerView)**: filtros por carteira; coluna mostrando qual saldo foi movimentado
+- **Relatórios** (AccountantReport, DetailedReport, DailyPlanning, Backup): considerar separação
+- **Capital ativo / saldo disponível**: soma das duas carteiras
+- **Conciliação/auditoria**: comparar por carteira
+
+## 5. Migração de dados existentes
+
+- Lançamentos antigos sem `wallet` → assumir `account` (exceto onde a forma de pagamento for "Dinheiro" → `cash`)
+- Saldo atual integral vai para `account_amount` por padrão; o usuário pode rebalancear via uma transferência inicial
+
+## Detalhes técnicos
+
+### Schema
+
+```sql
+ALTER TABLE payment_methods ADD COLUMN kind text NOT NULL DEFAULT 'account'
+  CHECK (kind IN ('account','cash'));
+
+ALTER TABLE balance
+  ADD COLUMN account_amount numeric NOT NULL DEFAULT 0,
+  ADD COLUMN cash_amount numeric NOT NULL DEFAULT 0;
+
+ALTER TABLE account_ledger
+  ADD COLUMN wallet text NOT NULL DEFAULT 'account'
+    CHECK (wallet IN ('account','cash')),
+  ADD COLUMN payment_method_id uuid REFERENCES payment_methods(id),
+  ADD COLUMN transfer_group_id uuid;
+
+-- backfill: Dinheiro → cash
+UPDATE payment_methods SET kind='cash' WHERE lower(name)='dinheiro';
+UPDATE account_ledger al SET wallet='cash'
+  FROM payment_methods pm
+  WHERE al.payment_method_id=pm.id AND pm.kind='cash';
+
+-- balance backfill: tudo vai para account
+UPDATE balance SET account_amount = amount WHERE account_amount = 0;
+```
+
+### Código
+
+- `src/lib/balance.ts`: funções `getBalances()`, `setBalance({account, cash})`, `adjustBalance(delta, wallet)`. Manter `getBalance()` retornando soma para retrocompat.
+- `src/lib/ledger.ts`: `RecordLedgerInput` ganha `wallet` e `payment_method_id` obrigatórios; `recordTransfer({from, to, amount, date, note})` cria par.
+- `src/hooks/usePaymentMethods.ts`: expor `kind` e helper `getMethodKind(id)`.
+- Hooks de loans/payments/expenses/sales: propagar `payment_method_id` (já existem em parte) e derivar `wallet` automaticamente.
+- Componentes de formulário: `PaymentMethodPicker` reutilizável (chips com ícone) — substitui selects atuais e marca como required.
+- `LedgerView`: tabs "Tudo / Conta / Dinheiro", botão "Transferir", badge da carteira em cada linha.
+- `DashboardCards`: três valores (Conta, Dinheiro, Total) com toggle de visibilidade.
+
+### Fora de escopo (perguntar depois se necessário)
+
+- Múltiplas contas bancárias separadas (ex: Banco A / Banco B). Aqui só separamos Conta vs Dinheiro físico.
+- Conversão automática de cartão de crédito (continua tratado pela lógica atual de fatura).
