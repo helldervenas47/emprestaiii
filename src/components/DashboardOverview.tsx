@@ -282,11 +282,13 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
       if (alive) setLedgerEntries(entries);
     };
     loadLedger();
+    window.addEventListener("ledger:changed", loadLedger);
     window.addEventListener("balance:changed", loadLedger);
     window.addEventListener("offline-sync:flushed", loadLedger);
     window.addEventListener("focus", loadLedger);
     return () => {
       alive = false;
+      window.removeEventListener("ledger:changed", loadLedger);
       window.removeEventListener("balance:changed", loadLedger);
       window.removeEventListener("offline-sync:flushed", loadLedger);
       window.removeEventListener("focus", loadLedger);
