@@ -182,11 +182,11 @@ export function useExpenses(enabled = true) {
 
       // Saída no extrato: parcela paga (apenas business)
       if (!skipBalanceAdjust && (expense.scope ?? "business") === "business") {
-        await adjustBalance(-installmentAmount);
         await recordLedger({
           direction: "out", category: "expense", amount: installmentAmount,
           description: `Despesa - ${expense.description} (${newPaid}/${expense.installments})`,
-          occurred_on: today, expense_id: childTempId, source: "auto", syncBalance: false,
+          occurred_on: today, expense_id: childTempId, source: "auto",
+          payment_method_id: (expense as any).paymentMethodId ?? null,
           metadata: { parent_expense_id: id, category: expense.category },
         });
       }
@@ -216,11 +216,11 @@ export function useExpenses(enabled = true) {
 
       // Saída no extrato: despesa simples paga (apenas business)
       if (!skipBalanceAdjust && (expense.scope ?? "business") === "business") {
-        await adjustBalance(-finalAmount);
         await recordLedger({
           direction: "out", category: "expense", amount: finalAmount,
           description: `Despesa - ${expense.description}`,
-          occurred_on: today, expense_id: id, source: "auto", syncBalance: false,
+          occurred_on: today, expense_id: id, source: "auto",
+          payment_method_id: (expense as any).paymentMethodId ?? null,
           metadata: { category: expense.category },
         });
       }
