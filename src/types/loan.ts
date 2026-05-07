@@ -246,4 +246,5 @@ export interface Expense {
   createdAt: string;
   parentExpenseId?: string;
   scope?: "business" | "personal";
+  paymentMethodId?: string | null;
 }
