@@ -474,20 +474,29 @@ function SaleCard({ sale, onDelete, onEdit, onUpdate, formatCurrency, readOnly =
             const parsed = parseNotesWithMerchandise(sale.notes);
             const merch = parsed.merchandise;
             const userNotes = parsed.userNotes;
-            const dinheiro = Math.max(0, (sale.total || 0) - (merch?.valor || 0));
+            const totalVal = sale.total || 0;
+            const merchValor = merch?.valor || 0;
+            const dinheiroTotal = Math.max(0, totalVal - merchValor);
+            const cashRatio = merchValor > 0 && totalVal > 0 ? dinheiroTotal / totalVal : 1;
+            const pagoBruto = parcelas.filter(p => p.paid).reduce((s, p) => s + p.fullValue, 0)
+              + (sale.downPayment || 0) + (sale.partialPaid || 0);
+            const pagoDinheiro = pagoBruto * cashRatio;
             return (
               <>
                 {merch && (
                   <div className="bg-primary/5 border border-primary/20 rounded-lg px-3 py-2 space-y-0.5">
                     <p className="text-[11px] font-semibold text-primary uppercase tracking-wide">Pagamento misto</p>
                     <p className="text-xs text-muted-foreground">
-                      Dinheiro: <span className="font-medium text-foreground">{rawFormatCurrency(dinheiro)}</span>
+                      Total contrato: <span className="font-bold text-primary">{rawFormatCurrency(totalVal)}</span>
                     </p>
                     <p className="text-xs text-muted-foreground">
-                      Mercadoria: <span className="font-medium text-foreground">{merch.descricao}</span> ({rawFormatCurrency(merch.valor)})
+                      Em dinheiro: <span className="font-medium text-foreground">{rawFormatCurrency(dinheiroTotal)}</span>
                     </p>
                     <p className="text-xs text-muted-foreground">
-                      Total: <span className="font-bold text-primary">{rawFormatCurrency(sale.total || 0)}</span>
+                      Mercadoria: <span className="font-medium text-foreground">{merch.descricao}</span> ({rawFormatCurrency(merchValor)})
+                    </p>
+                    <p className="text-xs text-muted-foreground pt-1 border-t border-primary/10 mt-1">
+                      Recebido em dinheiro: <span className="font-bold text-success">{rawFormatCurrency(pagoDinheiro)}</span>
                     </p>
                   </div>
                 )}
