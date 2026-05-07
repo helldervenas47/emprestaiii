@@ -37,6 +37,7 @@ import { CreditCard } from "@/hooks/useCreditCards";
 import { useExpenses } from "@/hooks/useExpenses";
 import { useCreditCardOpenings, cycleKeyFromDate } from "@/hooks/useCreditCardOpenings";
 import { readPaidOverride, writePaidOverride } from "@/lib/creditCardInvoiceTotals";
+import { expandCreditCardExpenses, type ExpandedExpense } from "@/lib/creditCardInstallments";
 import { useHideValues } from "@/contexts/HideValuesContext";
 import { getBank, brandLabel } from "@/lib/creditCardBanks";
 import { CreditCardOpeningDialog } from "./CreditCardOpeningDialog";
