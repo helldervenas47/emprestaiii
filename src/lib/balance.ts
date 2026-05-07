@@ -63,6 +63,11 @@ export async function setBalances(next: { account: number; cash: number }) {
   } else {
     await supabase.from("balance").insert({ user_id: ownerId, ...payload });
   }
+  try {
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new CustomEvent("balance:changed", { detail: { account: payload.account_amount, cash: payload.cash_amount, total } }));
+    }
+  } catch { /* noop */ }
 }
 
 export async function setBalance(value: number) {
