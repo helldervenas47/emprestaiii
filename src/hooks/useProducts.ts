@@ -175,6 +175,7 @@ export function useProducts(enabled = true) {
       installment_amounts: s.installmentAmounts || null,
       installment_dates: s.installmentDates || null,
       locador_id: s.locadorId || null,
+      notes: s.notes || "",
     } as any).select().single();
 
     if (error) {
