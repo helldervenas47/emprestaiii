@@ -401,9 +401,16 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
     const balance = totalIncome - totalOutgoing;
 
     const transactions: { id: string; type: "in" | "out"; source: "payment" | "sale" | "loan" | "expense" | "ledger"; description: string; amount: number; date: string; createdAt?: string }[] = [];
+    const visibleLoanIds = new Set(loans.map((loan) => loan.id));
+    const visiblePaymentLedgerEntries = ledgerEntries.filter((entry) => (
+      entry.category === "payment"
+      && entry.direction === "in"
+      && (!entry.loan_id || visibleLoanIds.has(entry.loan_id))
+      && isInRange(entry.occurred_on, range.start, range.end)
+    ));
     const paymentIdsFromLedger = new Set(
-      ledgerEntries
-        .filter((entry) => entry.category === "payment" && entry.payment_id && isInRange(entry.occurred_on, range.start, range.end))
+      visiblePaymentLedgerEntries
+        .filter((entry) => entry.payment_id)
         .map((entry) => entry.payment_id as string),
     );
 
@@ -414,8 +421,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
       const loan = loans.find((l) => l.id === p.loanId);
       transactions.push({ id: p.id, type: "in", source: "payment", description: `Parcela ${p.installmentNumber} — ${loan?.borrowerName || "Empréstimo"}`, amount: p.amount, date: p.date, createdAt: p.createdAt });
     });
-    ledgerEntries
-      .filter((entry) => entry.category === "payment" && entry.direction === "in" && isInRange(entry.occurred_on, range.start, range.end))
+    visiblePaymentLedgerEntries
       .forEach((entry) => {
         transactions.push({
           id: entry.payment_id || entry.id,
