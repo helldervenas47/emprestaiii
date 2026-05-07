@@ -14,6 +14,17 @@ import {
 } from "@/lib/offline/sync";
 import { isOnline } from "@/lib/offline/status";
 
+async function resolveWalletKind(paymentMethodId: string | null): Promise<"account" | "cash"> {
+  if (!paymentMethodId) return "account";
+  const { data } = await supabase
+    .from("payment_methods" as any)
+    .select("kind")
+    .eq("id", paymentMethodId)
+    .maybeSingle();
+  const k = (data as any)?.kind;
+  return k === "cash" ? "cash" : "account";
+}
+
 function rowToLoan(l: any): Loan {
   return {
     id: l.id, borrowerName: l.borrower_name, borrowerId: l.borrower_id,
@@ -190,7 +201,7 @@ export function useLoans() {
     await fetchSchedules();
   }, [user, dataOwnerId, fetchSchedules]);
 
-  const addLoan = useCallback(async (loan: Omit<Loan, "id"> & { status?: string; paidInstallments?: number }): Promise<string | null> => {
+  const addLoan = useCallback(async (loan: Omit<Loan, "id"> & { status?: string; paidInstallments?: number; paymentMethodId?: string | null }): Promise<string | null> => {
     if (!user || !dataOwnerId) return null;
 
     // Check loan limit based on subscription plan
@@ -270,24 +281,30 @@ export function useLoans() {
       await rewritePendingRecordId("loans", tempId, data.id);
       if (status === "paid") {
         const totalReceived = calculateTotalWithInterest(loan.amount, loan.interestRate, loan.installments);
-        await adjustBalance(totalReceived - loan.amount);
-        // Ledger: registra a saída do principal e a entrada total como pagamento.
+        // Net effect goes to selected wallet (out principal + in totalReceived)
+        const wallet = await resolveWalletKind(loan.paymentMethodId ?? null);
+        await adjustBalance(-loan.amount, wallet);
+        await adjustBalance(totalReceived, wallet);
         await recordLedger({
           direction: "out", category: "loan", amount: loan.amount,
           description: `Empréstimo concedido - ${loan.borrowerName}`,
           occurred_on: loan.startDate, loan_id: data.id, source: "auto", syncBalance: false,
+          payment_method_id: loan.paymentMethodId ?? null,
         });
         await recordLedger({
           direction: "in", category: "payment", amount: totalReceived,
           description: `Empréstimo quitado na criação - ${loan.borrowerName}`,
           occurred_on: loan.startDate, loan_id: data.id, source: "auto", syncBalance: false,
+          payment_method_id: loan.paymentMethodId ?? null,
         });
       } else {
-        await adjustBalance(-loan.amount);
+        const wallet = await resolveWalletKind(loan.paymentMethodId ?? null);
+        await adjustBalance(-loan.amount, wallet);
         await recordLedger({
           direction: "out", category: "loan", amount: loan.amount,
           description: `Empréstimo concedido - ${loan.borrowerName}`,
           occurred_on: loan.startDate, loan_id: data.id, source: "auto", syncBalance: false,
+          payment_method_id: loan.paymentMethodId ?? null,
         });
       }
       return data.id;

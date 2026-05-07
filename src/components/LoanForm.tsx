@@ -20,9 +20,10 @@ import { toast } from "sonner";
 import { useCreditLimits } from "@/hooks/useCreditLimits";
 import { computeAvailableLimit, computeUsedLimit, formatBRL } from "@/lib/creditLimit";
 import { Wallet, AlertTriangle as AlertTriangleIcon } from "lucide-react";
+import { PaymentMethodPicker } from "@/components/PaymentMethodPicker";
 
 interface Props {
-  onAdd: (loan: Omit<Loan, "id" | "status" | "paidInstallments">) => Promise<string | null>;
+  onAdd: (loan: Omit<Loan, "id" | "status" | "paidInstallments"> & { paymentMethodId?: string | null }) => Promise<string | null>;
   onSaveSchedule: (loanId: string, rows: { installmentNumber: number; dueDate: string; amount: number }[]) => Promise<void>;
   onClose: () => void;
   clients: Client[];
@@ -52,6 +53,8 @@ function getNextDate(base: Date, frequency: string, periods: number): Date {
 export function LoanForm({ onAdd, onSaveSchedule, onClose, clients, loans, payments, installmentSchedules, existingTags = [], prefill }: Props) {
   const [showSuccess, setShowSuccess] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [paymentMethodId, setPaymentMethodId] = useState<string | null>(null);
+  const [showFormError, setShowFormError] = useState(false);
   const activeClients = clients.filter((c) => c.active).sort((a, b) => a.name.localeCompare(b.name, "pt-BR"));
 
   const defaultStart = todayInAppTz();
@@ -227,6 +230,11 @@ export function LoanForm({ onAdd, onSaveSchedule, onClose, clients, loans, payme
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedClient || !amount || !installments || isNaN(rate) || rate < 0) return;
+    if (!paymentMethodId) {
+      setShowFormError(true);
+      toast.error("Selecione a forma de pagamento (Conta ou Dinheiro).");
+      return;
+    }
     if (hasManager && !managerId) {
       toast.error("Selecione um gerente para o empréstimo com gerente.");
       return;
@@ -266,6 +274,7 @@ export function LoanForm({ onAdd, onSaveSchedule, onClose, clients, loans, payme
       managerId: hasManager && managerId ? managerId : null,
       managerCommissionRate: hasManager ? parseFloat(commissionRate) || 10 : null,
       createdAt: new Date().toISOString(),
+      paymentMethodId,
     });
 
     if (loanId && installmentRows.length > 0) {
@@ -700,6 +709,14 @@ export function LoanForm({ onAdd, onSaveSchedule, onClose, clients, loans, payme
                 )}
               </div>
             </div>
+
+            <PaymentMethodPicker
+              value={paymentMethodId}
+              onChange={(id) => { setPaymentMethodId(id); setShowFormError(false); }}
+              required
+              showError={showFormError}
+              label="Forma de Pagamento (saída do empréstimo)"
+            />
 
             <div>
               <Label htmlFor="notes">Observações</Label>
