@@ -158,18 +158,21 @@ async function flushPendingBalance() {
   if (flushingBalance) return;
   flushingBalance = true;
   try {
-    const delta = await getPendingBalanceDelta();
-    if (!delta) return;
+    const entry = await offlineDB.meta.get(BALANCE_KEY);
+    const delta = normalizePendingBalanceDelta(entry?.value);
+    if (!delta.account && !delta.cash) return;
     // CRITICAL: clear the key BEFORE applying to prevent double-application
     // if adjustBalance succeeds but delete fails on the next tick.
     await offlineDB.meta.delete(BALANCE_KEY);
     notifyPendingChanged();
     const { adjustBalance } = await import("@/lib/balance");
     try {
-      await adjustBalance(delta);
+      if (delta.account) await adjustBalance(delta.account, "account");
+      if (delta.cash) await adjustBalance(delta.cash, "cash");
     } catch (err) {
       // Re-enqueue on failure so we don't lose the delta
-      await enqueueBalanceAdjust(delta);
+      if (delta.account) await enqueueBalanceAdjust(delta.account, "account");
+      if (delta.cash) await enqueueBalanceAdjust(delta.cash, "cash");
       throw err;
     }
   } finally {
