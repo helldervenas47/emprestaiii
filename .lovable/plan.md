@@ -1,92 +1,28 @@
-# Saldos separados: Conta e Dinheiro
+## Por que o card está grande
 
-Reestruturar o controle financeiro para ter **dois saldos independentes** (Conta e Dinheiro), tornando a forma de pagamento obrigatória em toda movimentação e adicionando transferências internas entre eles.
+O card "Saldos consolidados" em `src/components/LedgerView.tsx` (linhas ~155–188) tem três blocos verticais empilhados que somam altura mesmo sem mais conteúdo abaixo:
 
-## 1. Modelo de dados
+1. **Ícone circular + label "Saldo Total" + valor** (com `mb-2` no ícone e `mt-1` no valor)
+2. **Espaço `mt-4`** entre o total e o grid
+3. **Grid Conta/Dinheiro**, onde cada caixa tem ícone + label em uma linha e valor numa segunda linha (`p-3 sm:p-4`)
 
-Cada forma de pagamento (`payment_methods`) ganha um campo `kind` ('account' | 'cash') que define qual saldo ela movimenta. Padrões propostos:
+Somado ao padding do `CardContent` (`p-3 sm:p-5`), isso ocupa bastante altura vertical, especialmente no mobile (440px), dando a sensação de "card vazio e gigante".
 
-- **Dinheiro** → cash
-- **Pix, Transferência, Boleto, Cartão** → account
-- Novas formas criadas pelo usuário podem escolher o tipo (default: account)
+## O que vou ajustar
 
-Tabela `balance` ganha duas colunas: `account_amount` e `cash_amount` (mantendo `amount` como total consolidado para retrocompat). Tabela `account_ledger` ganha `wallet` ('account' | 'cash') obrigatório e `payment_method_id` (referência opcional). Nova categoria `transfer`.
+Manter o mesmo layout (Total em cima, Conta + Dinheiro lado a lado embaixo) mas reduzir as alturas no mobile:
 
-## 2. Forma de pagamento obrigatória
+- **CardContent**: `p-3 sm:p-5` → `p-2.5 sm:p-4`
+- **Bloco do Total**:
+  - Remover o ícone circular grande no mobile (manter só no `sm:`) — ou trocar por um ícone inline pequeno ao lado do label
+  - Reduzir `mb-1 sm:mb-2` do ícone e `mt-0.5 sm:mt-1` do valor
+- **Espaço entre Total e grid**: `mt-3 sm:mt-4` → `mt-2 sm:mt-3`
+- **Caixas Conta/Dinheiro**:
+  - Padding interno: `p-2.5 sm:p-4` → `p-2 sm:p-3`
+  - Colocar ícone + label + valor em layout mais compacto (label menor, sem `mb` extra)
 
-Tornar `payment_method_id` obrigatório em:
+Resultado esperado no mobile: card com cerca de 40–50% menos altura, sem espaço vazio sobrando, mantendo a hierarquia visual (Total destacado em cima, Conta/Dinheiro menores abaixo).
 
-- Empréstimos (desembolso)
-- Pagamentos de parcela / quitação / renegociação
-- Despesas (e marcação de paga)
-- Vendas
-- Aportes e ajustes manuais
-- Despesas pessoais
+## Arquivos afetados
 
-UI: seletor compacto de chips/botões com ícones já existentes, posicionado em destaque. Validação client-side (zod) e bloqueio do submit quando vazio.
-
-## 3. Transferências internas
-
-Nova ação "Transferir entre saldos" no extrato:
-
-- Origem (conta/dinheiro) → Destino (oposto)
-- Valor, data, observação
-- Gera **dois lançamentos** no extrato (saída no origem, entrada no destino), ambos categoria `transfer`, vinculados por `transfer_group_id`
-- Não altera o total consolidado
-- Editável/excluível em par
-
-## 4. UI/Cálculos a atualizar
-
-- **Card de saldo (Dashboard)**: mostra Conta, Dinheiro e Total
-- **Extrato (LedgerView)**: filtros por carteira; coluna mostrando qual saldo foi movimentado
-- **Relatórios** (AccountantReport, DetailedReport, DailyPlanning, Backup): considerar separação
-- **Capital ativo / saldo disponível**: soma das duas carteiras
-- **Conciliação/auditoria**: comparar por carteira
-
-## 5. Migração de dados existentes
-
-- Lançamentos antigos sem `wallet` → assumir `account` (exceto onde a forma de pagamento for "Dinheiro" → `cash`)
-- Saldo atual integral vai para `account_amount` por padrão; o usuário pode rebalancear via uma transferência inicial
-
-## Detalhes técnicos
-
-### Schema
-
-```sql
-ALTER TABLE payment_methods ADD COLUMN kind text NOT NULL DEFAULT 'account'
-  CHECK (kind IN ('account','cash'));
-
-ALTER TABLE balance
-  ADD COLUMN account_amount numeric NOT NULL DEFAULT 0,
-  ADD COLUMN cash_amount numeric NOT NULL DEFAULT 0;
-
-ALTER TABLE account_ledger
-  ADD COLUMN wallet text NOT NULL DEFAULT 'account'
-    CHECK (wallet IN ('account','cash')),
-  ADD COLUMN payment_method_id uuid REFERENCES payment_methods(id),
-  ADD COLUMN transfer_group_id uuid;
-
--- backfill: Dinheiro → cash
-UPDATE payment_methods SET kind='cash' WHERE lower(name)='dinheiro';
-UPDATE account_ledger al SET wallet='cash'
-  FROM payment_methods pm
-  WHERE al.payment_method_id=pm.id AND pm.kind='cash';
-
--- balance backfill: tudo vai para account
-UPDATE balance SET account_amount = amount WHERE account_amount = 0;
-```
-
-### Código
-
-- `src/lib/balance.ts`: funções `getBalances()`, `setBalance({account, cash})`, `adjustBalance(delta, wallet)`. Manter `getBalance()` retornando soma para retrocompat.
-- `src/lib/ledger.ts`: `RecordLedgerInput` ganha `wallet` e `payment_method_id` obrigatórios; `recordTransfer({from, to, amount, date, note})` cria par.
-- `src/hooks/usePaymentMethods.ts`: expor `kind` e helper `getMethodKind(id)`.
-- Hooks de loans/payments/expenses/sales: propagar `payment_method_id` (já existem em parte) e derivar `wallet` automaticamente.
-- Componentes de formulário: `PaymentMethodPicker` reutilizável (chips com ícone) — substitui selects atuais e marca como required.
-- `LedgerView`: tabs "Tudo / Conta / Dinheiro", botão "Transferir", badge da carteira em cada linha.
-- `DashboardCards`: três valores (Conta, Dinheiro, Total) com toggle de visibilidade.
-
-### Fora de escopo (perguntar depois se necessário)
-
-- Múltiplas contas bancárias separadas (ex: Banco A / Banco B). Aqui só separamos Conta vs Dinheiro físico.
-- Conversão automática de cartão de crédito (continua tratado pela lógica atual de fatura).
+- `src/components/LedgerView.tsx` — apenas o bloco do card "Saldos consolidados" (~linhas 156–189). Nenhuma mudança em lógica, dados ou outros cards.
