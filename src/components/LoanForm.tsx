@@ -53,6 +53,8 @@ function getNextDate(base: Date, frequency: string, periods: number): Date {
 export function LoanForm({ onAdd, onSaveSchedule, onClose, clients, loans, payments, installmentSchedules, existingTags = [], prefill }: Props) {
   const [showSuccess, setShowSuccess] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [paymentMethodId, setPaymentMethodId] = useState<string | null>(null);
+  const [showFormError, setShowFormError] = useState(false);
   const activeClients = clients.filter((c) => c.active).sort((a, b) => a.name.localeCompare(b.name, "pt-BR"));
 
   const defaultStart = todayInAppTz();
