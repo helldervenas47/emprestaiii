@@ -368,6 +368,7 @@ export function useExpenses(enabled = true) {
       category: data.category, installments: data.installments,
       paid_installments: data.paidInstallments, due_date: data.dueDate,
       paid: data.paid, paid_date: data.paidDate, notes: data.notes,
+      payment_method_id: data.paymentMethodId,
     };
     Object.keys(updatePayload).forEach(k => updatePayload[k] === undefined && delete updatePayload[k]);
     if (!isOnline()) {
