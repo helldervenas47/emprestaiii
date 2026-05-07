@@ -2010,26 +2010,32 @@ export function ProductSalesView({ sales, onDeleteSale, onUpdateSale, clients = 
     );
   }
 
-  // Sales page - show sub-tabs for venda/streaming
+  // Sales page - show sub-tabs for venda/streaming + extrato
   const activeTabs = salesSubTabs;
+  const allTabValues = [...activeTabs.map((t) => t.type as string), "extrato"];
   
   return (
     <>
-    <Tabs defaultValue={activeTabs[0]?.type || "venda"} className="space-y-4">
-      {activeTabs.length > 1 && (
-        <TabsList className="w-full bg-muted/50 rounded-xl p-1 flex gap-0.5 h-auto">
-          {activeTabs.map((tab) => (
-            <TabsTrigger
-              key={tab.type}
-              value={tab.type}
-              className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-all duration-200 text-muted-foreground hover:text-foreground data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-sm"
-            >
-              <tab.icon className="h-3.5 w-3.5 shrink-0" />
-              <span className="truncate">{tab.label}</span>
-            </TabsTrigger>
-          ))}
-        </TabsList>
-      )}
+    <Tabs defaultValue={allTabValues[0] || "venda"} className="space-y-4">
+      <TabsList className="w-full bg-muted/50 rounded-xl p-1 flex gap-0.5 h-auto">
+        {activeTabs.map((tab) => (
+          <TabsTrigger
+            key={tab.type}
+            value={tab.type}
+            className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-all duration-200 text-muted-foreground hover:text-foreground data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-sm"
+          >
+            <tab.icon className="h-3.5 w-3.5 shrink-0" />
+            <span className="truncate">{tab.label}</span>
+          </TabsTrigger>
+        ))}
+        <TabsTrigger
+          value="extrato"
+          className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-all duration-200 text-muted-foreground hover:text-foreground data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-sm"
+        >
+          <BookOpen className="h-3.5 w-3.5 shrink-0" />
+          <span className="truncate">Extrato</span>
+        </TabsTrigger>
+      </TabsList>
 
       {activeTabs.map((tab) => (
         <TabsContent key={tab.type} value={tab.type}>
@@ -2042,6 +2048,10 @@ export function ProductSalesView({ sales, onDeleteSale, onUpdateSale, clients = 
           />
         </TabsContent>
       ))}
+
+      <TabsContent value="extrato">
+        <SalesLedger sales={sales.filter((s) => s.businessType !== "aluguel_veiculo")} />
+      </TabsContent>
     </Tabs>
     <ConfirmDeleteDialog
       open={!!deleteExpenseId}
