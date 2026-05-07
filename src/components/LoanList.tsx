@@ -4334,7 +4334,33 @@ export function LoanList({ loans, payments, installmentSchedules, onPayment, onP
   const formatCurrency = useCallback((v: number) => mask(rawFormatCurrency(v)), [mask]);
   const [view, setView] = useState<"cards" | "rows" | "folders">(initialView ?? "rows");
   const [search, setSearch] = useState("");
-  const [category, setCategory] = useState<Category>(initialCategory ?? "all");
+  const [selectedCategories, setSelectedCategories] = useState<Category[]>([initialCategory ?? "all"]);
+  const lastClickRef = useRef<{ id: Category; time: number } | null>(null);
+  const MULTI_SELECT_WINDOW_MS = 2000;
+  const handleCategoryClick = useCallback((id: Category) => {
+    const now = Date.now();
+    const last = lastClickRef.current;
+    setSelectedCategories((prev) => {
+      // Double click on same -> isolate this one
+      if (last && last.id === id && now - last.time < MULTI_SELECT_WINDOW_MS) {
+        return [id];
+      }
+      // Within multi-select window and different id -> toggle add/remove
+      if (last && last.id !== id && now - last.time < MULTI_SELECT_WINDOW_MS) {
+        const filtered = prev.filter((c) => c !== "all");
+        if (filtered.includes(id)) {
+          const next = filtered.filter((c) => c !== id);
+          return next.length === 0 ? ["all"] : next;
+        }
+        return [...filtered, id];
+      }
+      // Outside window -> replace selection
+      return [id];
+    });
+    lastClickRef.current = { id, time: now };
+  }, []);
+  const category: Category = selectedCategories.length === 1 ? selectedCategories[0] : "all";
+  const isMultiSelect = selectedCategories.length > 1;
   const [showFilters, setShowFilters] = useState(false);
   const [dueDateQuick, setDueDateQuick] = useState<"yesterday" | "today" | "tomorrow" | null>(null);
   const [dateFrom, setDateFrom] = useState("");
