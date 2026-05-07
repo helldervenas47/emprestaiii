@@ -9,6 +9,7 @@ import { ptBR } from "date-fns/locale";
 import { ChevronLeft, ChevronRight, Receipt, User, CreditCard, Calendar as CalendarIcon, TrendingUp } from "lucide-react";
 import { useHideValues } from "@/contexts/HideValuesContext";
 import { usePaymentMethods } from "@/hooks/usePaymentMethods";
+import { parseNotesWithMerchandise } from "@/lib/saleMerchandise";
 
 interface Movement {
   id: string;
@@ -56,27 +57,41 @@ export function SalesLedger({ sales }: { sales: Sale[] }) {
           ? "partial"
           : "pending";
 
+      // Merchandise as part of payment: subtract proportional share from each cash movement
+      const parsed = parseNotesWithMerchandise(sale.notes);
+      const merchValue = parsed.merchandise?.valor || 0;
+      const totalVal = Number(sale.total) || 0;
+      const cashRatio = merchValue > 0 && totalVal > 0
+        ? Math.max(0, (totalVal - merchValue) / totalVal)
+        : 1;
+      const toCash = (v: number) => Number((v * cashRatio).toFixed(2));
+
       if ((sale.downPayment || 0) > 0) {
-        list.push({
-          id: `${sale.id}-down`,
-          saleId: sale.id,
-          date: sale.date,
-          customerName: sale.customerName || "—",
-          description: sale.description || sale.productName || "Venda",
-          amount: sale.downPayment,
-          type: "downpayment",
-          paymentMethodName: pmName,
-          status,
-        });
+        const cashAmt = toCash(sale.downPayment);
+        if (cashAmt > 0) {
+          list.push({
+            id: `${sale.id}-down`,
+            saleId: sale.id,
+            date: sale.date,
+            customerName: sale.customerName || "—",
+            description: sale.description || sale.productName || "Venda",
+            amount: cashAmt,
+            type: "downpayment",
+            paymentMethodName: pmName,
+            status,
+          });
+        }
       }
       (sale.paymentHistory || []).forEach((p, idx) => {
+        const cashAmt = toCash(p.amount);
+        if (cashAmt <= 0) return;
         list.push({
           id: `${sale.id}-p${idx}`,
           saleId: sale.id,
           date: p.date,
           customerName: sale.customerName || "—",
           description: sale.description || sale.productName || "Venda",
-          amount: p.amount,
+          amount: cashAmt,
           type: p.type,
           paymentMethodName: pmName,
           status,
