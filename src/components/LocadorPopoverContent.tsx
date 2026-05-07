@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { LocadorInfo } from "@/hooks/useLocadorInfo";
 import { Pencil, Check, X } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@/lib/appToast";
 
 interface Props {
   locador: LocadorInfo;

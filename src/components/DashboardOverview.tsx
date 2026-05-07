@@ -7,7 +7,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useLoanRenegotiations } from "@/hooks/useLoanRenegotiations";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
+import { toast } from "@/lib/appToast";
 import ReactMarkdown from "react-markdown";
 import { Switch } from "@/components/ui/switch";
 import { useHideValues } from "@/contexts/HideValuesContext";

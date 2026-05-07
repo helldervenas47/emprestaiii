@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useDataOwner } from "@/hooks/useDataOwner";
-import { toast } from "sonner";
+import { toast } from "@/lib/appToast";
 
 export type GoalType =
   | "interest_rate"

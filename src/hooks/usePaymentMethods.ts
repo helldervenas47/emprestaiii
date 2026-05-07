@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
-import { toast } from "sonner";
+import { toast } from "@/lib/appToast";
 
 export type PaymentMethodKind = "account" | "cash";
 

@@ -10,7 +10,7 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
 import { Users, Clock, Send, Eye, Sparkles, AlertTriangle, CalendarIcon } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@/lib/appToast";
 import { supabase } from "@/integrations/supabase/client";
 import { useTelegramManagerWeeklyPrefs } from "@/hooks/useTelegramManagerWeeklyPrefs";
 import { useTelegramReportsLink } from "@/hooks/useTelegramReportsLink";

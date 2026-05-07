@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { LocadorInfo } from "@/hooks/useLocadorInfo";
 import { Pencil, Check, X, Trash2, Plus, User, Search } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@/lib/appToast";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 
 interface Props {

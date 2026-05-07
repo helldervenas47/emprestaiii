@@ -11,7 +11,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useApprovalRequests, type ApprovalRequest } from "@/hooks/useApprovalRequests";
-import { toast } from "sonner";
+import { toast } from "@/lib/appToast";
 
 const ALL_TABS = [
   { id: "overview", label: "Dashboard" },

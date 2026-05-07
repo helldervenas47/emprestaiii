@@ -15,7 +15,7 @@ import { getDueStatusBadge } from "@/lib/dueStatus";
 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { usePaymentMethods } from "@/hooks/usePaymentMethods";
-import { toast } from "sonner";
+import { toast } from "@/lib/appToast";
 
 interface Props {
   loans: Loan[];

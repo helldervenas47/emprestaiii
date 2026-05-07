@@ -11,7 +11,7 @@ import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
 import { useHideValues } from "@/contexts/HideValuesContext";
 import { usePiggyBanks, type PiggyBank as PiggyBankType, type PiggyBankDeposit } from "@/hooks/usePiggyBanks";
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
+import { toast } from "@/lib/appToast";
 
 const fmt = (v: number) =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v);

@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Slider } from "@/components/ui/slider";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Image as ImageIcon, Upload, Trash2, Loader2, Monitor, Tablet, Smartphone, RotateCcw, Type } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@/lib/appToast";
 import { useAppBranding, DEFAULT_SIZES, FALLBACK_LOGO, DEFAULT_BRAND_NAME, type LogoArea, type LogoDevice, type LogoSizes } from "@/hooks/useAppBranding";
 
 const AREA_LABELS: Record<LogoArea, { title: string; description: string }> = {

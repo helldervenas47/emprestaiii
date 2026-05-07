@@ -5,7 +5,7 @@ import { MessageSquare, Send, Wallet, BarChart3, ArrowLeftRight } from "lucide-r
 import { TelegramConnectCard } from "@/components/TelegramConnectCard";
 import { TelegramReportsConnectCard } from "@/components/TelegramReportsConnectCard";
 import { TelegramBillingScheduleCard } from "@/components/TelegramBillingScheduleCard";
-import { toast } from "sonner";
+import { toast } from "@/lib/appToast";
 
 type BotTab = "despesas" | "relatorios";
 
