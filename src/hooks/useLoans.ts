@@ -282,10 +282,9 @@ export function useLoans() {
       if (status === "paid") {
         const totalReceived = calculateTotalWithInterest(loan.amount, loan.interestRate, loan.installments);
         // Net effect goes to selected wallet (out principal + in totalReceived)
-        const { adjustBalance: _adj } = await import("@/lib/balance");
         const wallet = await resolveWalletKind(loan.paymentMethodId ?? null);
-        await _adj(-loan.amount, wallet);
-        await _adj(totalReceived, wallet);
+        await adjustBalance(-loan.amount, wallet);
+        await adjustBalance(totalReceived, wallet);
         await recordLedger({
           direction: "out", category: "loan", amount: loan.amount,
           description: `Empréstimo concedido - ${loan.borrowerName}`,
