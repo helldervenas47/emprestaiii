@@ -155,8 +155,8 @@ export function LedgerView({ readOnly = false }: Props) {
       {/* Saldos por carteira */}
       <div className="grid grid-cols-2 gap-2 sm:gap-3">
         <Card no3d>
-          <CardContent className="p-2.5 sm:p-3">
-            <div className="flex items-center gap-1.5">
+          <CardContent className="p-2.5 sm:p-3 flex flex-col items-center text-center">
+            <div className="flex items-center justify-center gap-1.5">
               <Building2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-primary" />
               <p className="text-[11px] sm:text-xs text-muted-foreground">Conta</p>
             </div>
@@ -166,8 +166,8 @@ export function LedgerView({ readOnly = false }: Props) {
           </CardContent>
         </Card>
         <Card no3d>
-          <CardContent className="p-2.5 sm:p-3">
-            <div className="flex items-center gap-1.5">
+          <CardContent className="p-2.5 sm:p-3 flex flex-col items-center text-center">
+            <div className="flex items-center justify-center gap-1.5">
               <Banknote className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-success" />
               <p className="text-[11px] sm:text-xs text-muted-foreground">Dinheiro</p>
             </div>
