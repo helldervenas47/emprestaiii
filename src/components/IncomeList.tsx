@@ -87,7 +87,9 @@ export function IncomeList({ readOnly }: Props) {
   const filtered = useMemo(() => {
     let arr = incomes.filter((i) => {
       if (i.source === "Ajuste manual") return false;
-      if (!i.receivedDate.startsWith(monthKey)) return false;
+      const inMonth = i.receivedDate.startsWith(monthKey);
+      const carriedOver = i.status !== "received" && i.receivedDate < monthKey + "-01";
+      if (!inMonth && !carriedOver) return false;
       
       if (statusFilter !== "all" && i.status !== statusFilter) return false;
       if (categoryFilter !== "all" && (i.category || "Outros") !== categoryFilter) return false;
