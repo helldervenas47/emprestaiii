@@ -51,6 +51,7 @@ export function IncomeList({ readOnly }: Props) {
   const [editing, setEditing] = useState<Income | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [sheetType, setSheetType] = useState<"incomes" | "expenses" | null>(null);
+  const [sheetInitialFilter, setSheetInitialFilter] = useState<string | undefined>(undefined);
 
   const monthKey = (() => {
     const n = new Date();
