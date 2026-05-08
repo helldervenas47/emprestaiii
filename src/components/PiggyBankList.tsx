@@ -199,77 +199,97 @@ export function PiggyBankList({ readOnly = false }: Props) {
         <div className="space-y-2">
           {piggyBanks.map((pb) => {
             const b = balances.get(pb.id);
+            const det = detailed.get(pb.id);
             return (
               <div
                 key={pb.id}
-                role="button"
-                tabIndex={0}
-                onClick={() => setHistoryTarget(pb)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" || e.key === " ") {
-                    e.preventDefault();
-                    setHistoryTarget(pb);
-                  }
-                }}
-                className="rounded-xl border border-border/40 p-3 flex items-center gap-3 cursor-pointer hover:border-border transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                className="rounded-xl border border-border/40 p-3 hover:border-border transition-colors"
                 style={{ background: `hsl(${pb.color} / 0.05)` }}
-                title="Ver histórico de aportes"
               >
                 <div
-                  className="h-9 w-9 rounded-lg flex items-center justify-center shrink-0"
-                  style={{ backgroundColor: `hsl(${pb.color} / 0.18)` }}
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => setHistoryTarget(pb)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setHistoryTarget(pb); }
+                  }}
+                  className="flex items-center gap-3 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-lg"
+                  title="Ver histórico de aportes"
                 >
-                  <PiggyBank className="h-4.5 w-4.5" style={{ color: `hsl(${pb.color})` }} />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-1.5 min-w-0">
-                    {pb.shortId != null && (
-                      <span className="text-[10px] font-mono font-semibold text-muted-foreground bg-muted px-1.5 py-0.5 rounded shrink-0">
-                        #{pb.shortId}
-                      </span>
-                    )}
-                    <p className="text-sm font-semibold text-foreground truncate">{pb.name}</p>
-                    <Badge variant="outline" className="text-[9px] px-1 py-0 h-4 shrink-0">
-                      {pb.annualRate.toFixed(2)}% a.a.
-                    </Badge>
+                  <div
+                    className="h-9 w-9 rounded-lg flex items-center justify-center shrink-0"
+                    style={{ backgroundColor: `hsl(${pb.color} / 0.18)` }}
+                  >
+                    <PiggyBank className="h-4.5 w-4.5" style={{ color: `hsl(${pb.color})` }} />
                   </div>
-                  <p className="text-[11px] text-muted-foreground truncate">
-                    Aportado: {mask(fmt(b?.principal ?? 0))}
-                    {b && b.yield > 0 && (
-                      <span className="ml-1 text-success inline-flex items-center gap-0.5">
-                        <TrendingUp className="h-2.5 w-2.5" />
-                        {mask(fmt(b.yield))}
-                      </span>
-                    )}
-                  </p>
-                </div>
-                <div className="text-right shrink-0" onClick={(e) => e.stopPropagation()}>
-                  <p className="text-sm font-bold text-foreground">{mask(fmt(b?.balance ?? 0))}</p>
-                  <div className="flex gap-0.5 justify-end mt-0.5">
-                    <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => setHistoryTarget(pb)} title="Histórico de aportes">
-                      <History className="h-3 w-3" />
-                    </Button>
-                    {!readOnly && (
-                      <>
-                        <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => openAdjust(pb)} title="Ajustar saldo">
-                          <Wallet className="h-3 w-3" />
-                        </Button>
-                        <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => openEdit(pb)} title="Editar">
-                          <Pencil className="h-3 w-3" />
-                        </Button>
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          className="h-6 w-6 text-destructive hover:text-destructive hover:bg-destructive/10"
-                          onClick={() => setDeleteId(pb.id)}
-                          title="Excluir"
-                        >
-                          <Trash2 className="h-3 w-3" />
-                        </Button>
-                      </>
-                    )}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-1.5 min-w-0">
+                      {pb.shortId != null && (
+                        <span className="text-[10px] font-mono font-semibold text-muted-foreground bg-muted px-1.5 py-0.5 rounded shrink-0">
+                          #{pb.shortId}
+                        </span>
+                      )}
+                      <p className="text-sm font-semibold text-foreground truncate">{pb.name}</p>
+                      <Badge variant="outline" className="text-[9px] px-1 py-0 h-4 shrink-0">
+                        {pb.annualRate.toFixed(2)}% a.a.
+                      </Badge>
+                    </div>
+                    <p className="text-[11px] text-muted-foreground truncate">
+                      Aportado: {mask(fmt(b?.principal ?? 0))}
+                    </p>
+                  </div>
+                  <div className="text-right shrink-0" onClick={(e) => e.stopPropagation()}>
+                    <p className="text-sm font-bold text-foreground">{mask(fmt(b?.balance ?? 0))}</p>
+                    <div className="flex gap-0.5 justify-end mt-0.5">
+                      <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => setHistoryTarget(pb)} title="Histórico de aportes">
+                        <History className="h-3 w-3" />
+                      </Button>
+                      {!readOnly && (
+                        <>
+                          <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => openAdjust(pb)} title="Ajustar saldo">
+                            <Wallet className="h-3 w-3" />
+                          </Button>
+                          <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => openEdit(pb)} title="Editar">
+                            <Pencil className="h-3 w-3" />
+                          </Button>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="h-6 w-6 text-destructive hover:text-destructive hover:bg-destructive/10"
+                            onClick={() => setDeleteId(pb.id)}
+                            title="Excluir"
+                          >
+                            <Trash2 className="h-3 w-3" />
+                          </Button>
+                        </>
+                      )}
+                    </div>
                   </div>
                 </div>
+                {det && (
+                  <div className="mt-2.5 pt-2.5 border-t border-border/40 grid grid-cols-2 gap-x-3 gap-y-1.5 text-[11px]">
+                    <div className="flex items-center justify-between">
+                      <span className="inline-flex items-center gap-1 text-muted-foreground"><TrendingUp className="h-3 w-3" /> Rend. bruto</span>
+                      <span className="font-medium text-success tabular-nums">{mask(fmt(det.gross))}</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="inline-flex items-center gap-1 text-muted-foreground"><Receipt className="h-3 w-3" /> IR descontado</span>
+                      <span className="font-medium text-destructive tabular-nums">{mask(fmt(det.tax))}</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="inline-flex items-center gap-1 text-muted-foreground"><Coins className="h-3 w-3" /> Rend. líquido</span>
+                      <span className="font-medium text-foreground tabular-nums">{mask(fmt(det.net))}</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="inline-flex items-center gap-1 text-muted-foreground"><CalendarClock className="h-3 w-3" /> Proj. fim do mês</span>
+                      <span className="font-medium text-foreground tabular-nums">{mask(fmt(det.projectionNetEom))}</span>
+                    </div>
+                    <div className="flex items-center justify-between col-span-2">
+                      <span className="inline-flex items-center gap-1 text-muted-foreground"><Percent className="h-3 w-3" /> CDI atual</span>
+                      <span className="font-medium text-foreground tabular-nums">{det.currentRate.toFixed(2)}% a.a.</span>
+                    </div>
+                  </div>
+                )}
               </div>
             );
           })}
