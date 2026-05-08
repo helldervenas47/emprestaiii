@@ -143,12 +143,11 @@ export function useIncomes(enabled = true) {
     if (input.recurrence === "weekly" || input.recurrence === "biweekly") {
       const stepDays = input.recurrence === "weekly" ? 7 : 14;
       const base = new Date(input.receivedDate + "T00:00:00");
-      const y = base.getFullYear();
-      const m = base.getMonth();
-      const endMonth = new Date(y, m + 1, 0);
+      const horizonEnd = new Date();
+      horizonEnd.setMonth(horizonEnd.getMonth() + FUTURE_MONTHS_HORIZON + 1, 0);
       dates = [];
-      let d = new Date(base);
-      while (d <= endMonth) {
+      const d = new Date(base);
+      while (d <= horizonEnd) {
         dates.push(ymd(d));
         d.setDate(d.getDate() + stepDays);
       }
