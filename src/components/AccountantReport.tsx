@@ -14,6 +14,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { AccountantAuditCard } from "@/components/AccountantAuditCard";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import type { AuditTotals } from "@/lib/accountantAudit";
+import { calculateTotalWithInterest } from "@/hooks/useLoans";
 
 interface AccountantReportProps {
   loans: any[];
