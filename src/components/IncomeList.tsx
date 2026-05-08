@@ -12,6 +12,7 @@ import { IncomeBalanceCard } from "./IncomeBalanceCard";
 import { IncomeDashboard } from "./IncomeDashboard";
 import { IncomeForm, INCOME_CATEGORIES } from "./IncomeForm";
 import { ConfirmDeleteDialog } from "./ConfirmDeleteDialog";
+import { MonthTransactionsSheet } from "./MonthTransactionsSheet";
 import { Plus, Search, Copy, Pencil, Trash2, CheckCircle2, Clock, AlertTriangle, ArrowUpDown } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
