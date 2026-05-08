@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useIncomes, Income, IncomeStatus } from "@/hooks/useIncomes";
 import { useExpenses } from "@/hooks/useExpenses";
 import { useClients } from "@/hooks/useClients";
