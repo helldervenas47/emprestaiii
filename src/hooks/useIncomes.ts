@@ -4,7 +4,7 @@ import { useAuth } from "./useAuth";
 import { todayInAppTz } from "@/lib/timezone";
 
 export type IncomeStatus = "pending" | "received" | "overdue";
-export type IncomeRecurrence = "once" | "weekly" | "monthly" | "yearly";
+export type IncomeRecurrence = "once" | "weekly" | "biweekly" | "monthly" | "yearly";
 
 export interface Income {
   id: string;
@@ -67,7 +67,7 @@ export function useIncomes(enabled = true) {
     return () => { supabase.removeChannel(channel); };
   }, [user, fetch, enabled]);
 
-  const addIncome = useCallback(async (
+  const insertSingle = useCallback(async (
     input: Omit<Income, "id" | "createdAt">,
   ): Promise<Income | null> => {
     if (!dataOwnerId) return null;
@@ -87,10 +87,61 @@ export function useIncomes(enabled = true) {
     };
     const { data, error } = await supabase.from("incomes" as any).insert(payload).select().single();
     if (error || !data) return null;
-    const inc = rowToIncome(data);
-    setIncomes((prev) => [inc, ...prev]);
-    return inc;
+    return rowToIncome(data);
   }, [dataOwnerId]);
+
+  // Expande receitas semanais/quinzenais para todas as ocorrências do mês cadastrado
+  const addIncome = useCallback(async (
+    input: Omit<Income, "id" | "createdAt">,
+  ): Promise<Income | null> => {
+    if (!dataOwnerId) return null;
+    const today = todayInAppTz();
+    if (input.recurrence === "weekly" || input.recurrence === "biweekly") {
+      const stepDays = input.recurrence === "weekly" ? 7 : 14;
+      const base = new Date(input.receivedDate + "T00:00:00");
+      const y = base.getFullYear();
+      const m = base.getMonth();
+      const endMonth = new Date(y, m + 1, 0);
+      // gera datas a partir da base, dentro do mês
+      const dates: string[] = [];
+      let d = new Date(base);
+      while (d <= endMonth) {
+        const iso = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+        dates.push(iso);
+        d.setDate(d.getDate() + stepDays);
+      }
+      // primeiro registro: pai (mantém recorrência); demais: filhos "once"
+      let parent: Income | null = null;
+      const created: Income[] = [];
+      for (let i = 0; i < dates.length; i++) {
+        const isFirst = i === 0;
+        const inc = await insertSingle({
+          ...input,
+          receivedDate: dates[i],
+          status: dates[i] > today ? "pending" : input.status,
+          recurrence: isFirst ? input.recurrence : "once",
+          parentId: isFirst ? input.parentId : (parent?.id ?? null),
+        });
+        if (!inc) continue;
+        if (isFirst) parent = inc;
+        created.push(inc);
+      }
+      if (created.length > 0) {
+        setIncomes((prev) => [...created, ...prev]);
+      }
+      // Marca o pai como expandido para evitar reprocessamento pelo backfill
+      if (parent) {
+        const baseNotes = (input.notes ?? "").trim();
+        const stamped = baseNotes ? `${baseNotes}\n[Expanded]` : "[Expanded]";
+        await supabase.from("incomes" as any).update({ notes: stamped }).eq("id", parent.id);
+        setIncomes((prev) => prev.map((p) => p.id === parent!.id ? { ...p, notes: stamped } : p));
+      }
+      return parent;
+    }
+    const inc = await insertSingle(input);
+    if (inc) setIncomes((prev) => [inc, ...prev]);
+    return inc;
+  }, [dataOwnerId, insertSingle]);
 
   const updateIncome = useCallback(async (id: string, patch: Partial<Income>) => {
     const updatePayload: any = {};
@@ -124,6 +175,67 @@ export function useIncomes(enabled = true) {
   const markReceived = useCallback(async (id: string) => {
     await updateIncome(id, { status: "received", receivedDate: todayInAppTz() });
   }, [updateIncome]);
+
+  // Backfill: para receitas weekly/biweekly antigas que ainda não foram expandidas,
+  // gera as ocorrências restantes do mês cadastrado e marca o pai com [Expanded].
+  useEffect(() => {
+    if (!enabled || !dataOwnerId || incomes.length === 0) return;
+    const parents = incomes.filter((i) =>
+      (i.recurrence === "weekly" || i.recurrence === "biweekly")
+      && !i.parentId
+      && !((i.notes ?? "").includes("[Expanded]"))
+    );
+    if (parents.length === 0) return;
+    let cancelled = false;
+    (async () => {
+      for (const p of parents) {
+        if (cancelled) return;
+        const stepDays = p.recurrence === "weekly" ? 7 : 14;
+        const base = new Date(p.receivedDate + "T00:00:00");
+        const y = base.getFullYear();
+        const m = base.getMonth();
+        const endMonth = new Date(y, m + 1, 0);
+        const today = todayInAppTz();
+        // datas filhas: a partir de base + step até fim do mês
+        const childDates: string[] = [];
+        let d = new Date(base);
+        d.setDate(d.getDate() + stepDays);
+        while (d <= endMonth) {
+          const iso = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+          childDates.push(iso);
+          d.setDate(d.getDate() + stepDays);
+        }
+        // Já existem filhos com a mesma descrição/parent_id? evita duplicar
+        const existingDates = new Set(
+          incomes
+            .filter((c) => c.parentId === p.id)
+            .map((c) => c.receivedDate)
+        );
+        const toCreate = childDates.filter((dt) => !existingDates.has(dt));
+        for (const dt of toCreate) {
+          await insertSingle({
+            description: p.description,
+            amount: p.amount,
+            category: p.category,
+            clientId: p.clientId,
+            source: p.source,
+            paymentMethodId: p.paymentMethodId,
+            receivedDate: dt,
+            status: dt > today ? "pending" : p.status,
+            notes: p.notes,
+            recurrence: "once",
+            parentId: p.id,
+          });
+        }
+        // marca pai como expandido
+        const newNotes = (p.notes ?? "").trim();
+        const stamped = newNotes ? `${newNotes}\n[Expanded]` : "[Expanded]";
+        await supabase.from("incomes" as any).update({ notes: stamped }).eq("id", p.id);
+      }
+      if (!cancelled) fetch();
+    })();
+    return () => { cancelled = true; };
+  }, [incomes, enabled, dataOwnerId, insertSingle, fetch]);
 
   return { incomes, loading, addIncome, updateIncome, deleteIncome, duplicateIncome, markReceived, refetch: fetch };
 }
