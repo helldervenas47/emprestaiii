@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useIncomes, Income, IncomeStatus } from "@/hooks/useIncomes";
 import { useExpenses } from "@/hooks/useExpenses";
 import { useClients } from "@/hooks/useClients";
@@ -12,6 +12,7 @@ import { IncomeBalanceCard } from "./IncomeBalanceCard";
 import { IncomeDashboard } from "./IncomeDashboard";
 import { IncomeForm, INCOME_CATEGORIES } from "./IncomeForm";
 import { ConfirmDeleteDialog } from "./ConfirmDeleteDialog";
+import { MonthTransactionsSheet } from "./MonthTransactionsSheet";
 import { Plus, Search, Copy, Pencil, Trash2, CheckCircle2, Clock, AlertTriangle, ArrowUpDown } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -49,6 +50,19 @@ export function IncomeList({ readOnly }: Props) {
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<Income | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [sheetType, setSheetType] = useState<"incomes" | "expenses" | null>(null);
+
+  const monthKey = (() => {
+    const n = new Date();
+    return `${n.getFullYear()}-${String(n.getMonth() + 1).padStart(2, "0")}`;
+  })();
+
+  useEffect(() => {
+    if (readOnly) return;
+    const handler = () => { setEditing(null); setFormOpen(true); };
+    window.addEventListener("open-income-form", handler as EventListener);
+    return () => window.removeEventListener("open-income-form", handler as EventListener);
+  }, [readOnly]);
 
   const filtered = useMemo(() => {
     let arr = incomes.filter((i) => {
@@ -82,6 +96,8 @@ export function IncomeList({ readOnly }: Props) {
         incomes={incomes}
         expenses={expenses}
         readOnly={readOnly}
+        onOpenIncomes={() => setSheetType("incomes")}
+        onOpenExpenses={() => setSheetType("expenses")}
         onAdjust={async (delta) => {
           if (!delta) return;
           const today = new Date().toISOString().slice(0, 10);
@@ -99,6 +115,15 @@ export function IncomeList({ readOnly }: Props) {
             parentId: null,
           });
         }}
+      />
+
+      <MonthTransactionsSheet
+        open={sheetType !== null}
+        onOpenChange={(o) => { if (!o) setSheetType(null); }}
+        type={sheetType ?? "incomes"}
+        monthKey={monthKey}
+        incomes={incomes}
+        expenses={expenses}
       />
 
       <IncomeDashboard incomes={incomes} />
