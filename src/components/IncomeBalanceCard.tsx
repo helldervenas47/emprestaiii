@@ -75,15 +75,10 @@ export function IncomeBalanceCard({ incomes, expenses, onAdjust, readOnly, onOpe
       if (i.recurrence === "once") {
         return i.receivedDate.startsWith(monthKey) ? 1 : 0;
       }
-      if (i.recurrence === "weekly") {
-        let d = new Date(base);
-        while (d < startMonth) d.setDate(d.getDate() + 7);
-        let count = 0;
-        while (d <= endMonth) {
-          if (d >= today) count++;
-          d.setDate(d.getDate() + 7);
-        }
-        return count;
+      if (i.recurrence === "weekly" || i.recurrence === "biweekly") {
+        // Receitas semanais/quinzenais agora são materializadas em linhas separadas;
+        // contamos apenas a própria data (sem expansão) para evitar duplicação.
+        return i.receivedDate.startsWith(monthKey) ? 1 : 0;
       }
       if (i.recurrence === "monthly") {
         const occ = new Date(mkY, mkM - 1, base.getDate());
