@@ -23,7 +23,7 @@ interface Props {
   onOpenExpenses?: () => void;
 }
 
-export function IncomeBalanceCard({ incomes, expenses, onAdjust, readOnly }: Props) {
+export function IncomeBalanceCard({ incomes, expenses, onAdjust, readOnly, onOpenIncomes, onOpenExpenses }: Props) {
   const { hidden: hide } = useHideValues();
   const [adjustOpen, setAdjustOpen] = useState(false);
   const [target, setTarget] = useState("");
