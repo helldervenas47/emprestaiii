@@ -129,6 +129,13 @@ export function useIncomes(enabled = true) {
       if (created.length > 0) {
         setIncomes((prev) => [...created, ...prev]);
       }
+      // Marca o pai como expandido para evitar reprocessamento pelo backfill
+      if (parent) {
+        const baseNotes = (input.notes ?? "").trim();
+        const stamped = baseNotes ? `${baseNotes}\n[Expanded]` : "[Expanded]";
+        await supabase.from("incomes" as any).update({ notes: stamped }).eq("id", parent.id);
+        setIncomes((prev) => prev.map((p) => p.id === parent!.id ? { ...p, notes: stamped } : p));
+      }
       return parent;
     }
     const inc = await insertSingle(input);
