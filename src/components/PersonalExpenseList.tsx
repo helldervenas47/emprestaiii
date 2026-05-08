@@ -406,7 +406,7 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, onUpda
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 w-full max-w-full overflow-x-hidden">
       {/* Summary cards */}
       <div className="space-y-2 md:space-y-0 md:grid md:grid-cols-5 md:gap-3">
         {/* Featured: Gasto do mês — destaque no topo no mobile, mesmo design dos demais */}
