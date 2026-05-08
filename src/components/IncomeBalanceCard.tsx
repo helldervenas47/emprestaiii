@@ -56,6 +56,8 @@ export function IncomeBalanceCard({ incomes, expenses, onAdjust, readOnly, onOpe
   const { hidden: hide } = useHideValues();
   const { cards } = useCreditCards();
   const { openings } = useCreditCardOpenings();
+  const { sales } = useProducts(true);
+  const { deposits: piggyDeposits } = usePiggyBanks();
   const [adjustOpen, setAdjustOpen] = useState(false);
   const [target, setTarget] = useState("");
   const [saving, setSaving] = useState(false);
