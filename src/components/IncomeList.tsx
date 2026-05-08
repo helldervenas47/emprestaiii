@@ -51,6 +51,7 @@ export function IncomeList({ readOnly }: Props) {
   const [editing, setEditing] = useState<Income | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [sheetType, setSheetType] = useState<"incomes" | "expenses" | null>(null);
+  const [sheetInitialFilter, setSheetInitialFilter] = useState<string | undefined>(undefined);
 
   const monthKey = (() => {
     const n = new Date();
@@ -96,8 +97,9 @@ export function IncomeList({ readOnly }: Props) {
         incomes={incomes}
         expenses={expenses}
         readOnly={readOnly}
-        onOpenIncomes={() => setSheetType("incomes")}
-        onOpenExpenses={() => setSheetType("expenses")}
+        onOpenIncomes={() => { setSheetInitialFilter(undefined); setSheetType("incomes"); }}
+        onOpenExpenses={() => { setSheetInitialFilter(undefined); setSheetType("expenses"); }}
+        onOpenPendingIncomes={() => { setSheetInitialFilter("pending"); setSheetType("incomes"); }}
         onAdjust={async (delta) => {
           if (!delta) return;
           const today = new Date().toISOString().slice(0, 10);
@@ -124,6 +126,7 @@ export function IncomeList({ readOnly }: Props) {
         monthKey={monthKey}
         incomes={incomes}
         expenses={expenses}
+        initialFilter={sheetInitialFilter}
       />
 
       <IncomeDashboard incomes={incomes.filter((i) => i.source !== "Ajuste manual")} />
