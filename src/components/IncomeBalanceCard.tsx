@@ -162,6 +162,55 @@ export function IncomeBalanceCard({ incomes, expenses, onAdjust, readOnly }: Pro
           </div>
         </div>
       </div>
+
+      <Dialog open={adjustOpen} onOpenChange={setAdjustOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Ajustar saldo em conta</DialogTitle>
+            <DialogDescription>
+              Informe o novo saldo desejado. Será criado um lançamento de ajuste para chegar ao valor.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="rounded-lg bg-muted/50 p-3 text-sm">
+              <div className="text-xs text-muted-foreground">Saldo atual</div>
+              <div className="font-semibold">{fmt(calc.balance, false)}</div>
+            </div>
+            <div>
+              <Label>Novo saldo</Label>
+              <Input
+                type="number"
+                step="0.01"
+                value={target}
+                onChange={(e) => setTarget(e.target.value)}
+                placeholder="0,00"
+              />
+              {target !== "" && !isNaN(Number(target)) && (
+                <p className="text-xs text-muted-foreground mt-1">
+                  Diferença: <span className={Number(target) - calc.balance >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"}>
+                    {Number(target) - calc.balance >= 0 ? "+" : ""}{fmt(Number(target) - calc.balance, false)}
+                  </span>
+                </p>
+              )}
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setAdjustOpen(false)}>Cancelar</Button>
+            <Button
+              disabled={saving || target === "" || isNaN(Number(target)) || Number(target) === calc.balance}
+              onClick={async () => {
+                if (!onAdjust) return;
+                setSaving(true);
+                await onAdjust(Number(target) - calc.balance);
+                setSaving(false);
+                setAdjustOpen(false);
+              }}
+            >
+              {saving ? "Salvando..." : "Confirmar"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 }
