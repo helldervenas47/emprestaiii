@@ -1,7 +1,8 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Income, IncomeRecurrence, IncomeStatus } from "@/hooks/useIncomes";
 import { useClients } from "@/hooks/useClients";
 import { usePaymentMethods } from "@/hooks/usePaymentMethods";
+import { useIncomeCategories } from "@/hooks/useIncomeCategories";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -9,6 +10,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ClientCombobox } from "@/components/ui/client-combobox";
+import { DatePickerField } from "@/components/ui/date-picker-field";
+import { PersonalCategoryCreator } from "@/components/PersonalCategoryCreator";
+import { personalIconMap } from "@/lib/personalExpenseCategories";
+import { PlusCircle } from "lucide-react";
 import { todayInAppTz } from "@/lib/timezone";
 
 export const INCOME_CATEGORIES = [
@@ -32,6 +37,7 @@ interface Props {
 export function IncomeForm({ open, onClose, onSubmit, initial }: Props) {
   const { clients } = useClients();
   const { activeMethods } = usePaymentMethods();
+  const { categories: customCategories, create: createCategory } = useIncomeCategories();
   const [description, setDescription] = useState("");
   const [amount, setAmount] = useState("");
   const [category, setCategory] = useState<string>("Vendas");
@@ -42,6 +48,13 @@ export function IncomeForm({ open, onClose, onSubmit, initial }: Props) {
   const [recurrence, setRecurrence] = useState<IncomeRecurrence>("once");
   const [notes, setNotes] = useState("");
   const [saving, setSaving] = useState(false);
+  const [creatorOpen, setCreatorOpen] = useState(false);
+
+  const allCategories = useMemo(() => {
+    const customNames = new Set(customCategories.map((c) => c.name.trim().toLowerCase()));
+    const builtIns = INCOME_CATEGORIES.filter((c) => !customNames.has(c.trim().toLowerCase()));
+    return { builtIns, customs: customCategories };
+  }, [customCategories]);
 
   useEffect(() => {
     if (open) {
@@ -109,16 +122,44 @@ export function IncomeForm({ open, onClose, onSubmit, initial }: Props) {
             </div>
             <div>
               <Label>Data</Label>
-              <Input type="date" value={receivedDate} onChange={(e) => setReceivedDate(e.target.value)} />
+              <DatePickerField value={receivedDate} onChange={setReceivedDate} />
             </div>
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <Label>Categoria</Label>
+              <div className="flex items-center justify-between">
+                <Label>Categoria</Label>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 px-2 text-xs"
+                  onClick={() => setCreatorOpen(true)}
+                >
+                  <PlusCircle className="mr-1 h-3.5 w-3.5" />
+                  Nova
+                </Button>
+              </div>
               <Select value={category} onValueChange={setCategory}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
                 <SelectContent>
-                  {INCOME_CATEGORIES.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                  {allCategories.builtIns.map((c) => (
+                    <SelectItem key={c} value={c}>{c}</SelectItem>
+                  ))}
+                  {allCategories.customs.length > 0 && allCategories.builtIns.length > 0 && (
+                    <div className="my-1 border-t border-border" />
+                  )}
+                  {allCategories.customs.map((c) => {
+                    const Icon = personalIconMap[c.icon] ?? personalIconMap.Package;
+                    return (
+                      <SelectItem key={c.id} value={c.name}>
+                        <span className="inline-flex items-center gap-2">
+                          <Icon className="h-3.5 w-3.5" style={{ color: `hsl(${c.color})` }} />
+                          {c.name}
+                        </span>
+                      </SelectItem>
+                    );
+                  })}
                 </SelectContent>
               </Select>
             </div>
@@ -178,6 +219,13 @@ export function IncomeForm({ open, onClose, onSubmit, initial }: Props) {
           </Button>
         </DialogFooter>
       </DialogContent>
+
+      <PersonalCategoryCreator
+        open={creatorOpen}
+        onOpenChange={setCreatorOpen}
+        createCategory={createCategory}
+        onCreated={(c) => setCategory(c.name)}
+      />
     </Dialog>
   );
 }
