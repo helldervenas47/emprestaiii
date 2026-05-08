@@ -54,7 +54,8 @@ export function IncomeList({ readOnly }: Props) {
   const [sortBy, setSortBy] = useState<"date" | "amount">("date");
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<Income | null>(null);
-  const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<Income | null>(null);
+  const [deleteScope, setDeleteScope] = useState<"single" | "pending" | "all">("single");
   const [sheetType, setSheetType] = useState<"incomes" | "expenses" | null>(null);
   const [sheetInitialFilter, setSheetInitialFilter] = useState<string | undefined>(undefined);
   const [payTarget, setPayTarget] = useState<Income | null>(null);
@@ -283,7 +284,7 @@ export function IncomeList({ readOnly }: Props) {
                     <Button size="sm" variant="ghost" onClick={() => duplicateIncome(i.id)} className="h-8 gap-1">
                       <Copy className="h-3.5 w-3.5" /> Duplicar
                     </Button>
-                    <Button size="sm" variant="ghost" onClick={() => setDeleteId(i.id)} className="h-8 gap-1 text-destructive hover:text-destructive">
+                    <Button size="sm" variant="ghost" onClick={() => { setDeleteTarget(i); setDeleteScope("single"); }} className="h-8 gap-1 text-destructive hover:text-destructive">
                       <Trash2 className="h-3.5 w-3.5" /> Excluir
                     </Button>
                   </div>
@@ -362,16 +363,64 @@ export function IncomeList({ readOnly }: Props) {
         </DialogContent>
       </Dialog>
 
-      <ConfirmDeleteDialog
-        open={!!deleteId}
-        onOpenChange={(o) => !o && setDeleteId(null)}
-        title="Excluir receita?"
-        description="Esta ação não pode ser desfeita. Se a receita estava marcada como recebida, o saldo será revertido."
-        onConfirm={async () => {
-          if (deleteId) await deleteIncome(deleteId);
-          setDeleteId(null);
-        }}
-      />
+      {deleteTarget && (() => {
+        const isRecurring = Boolean(deleteTarget.parentId) || deleteTarget.recurrence !== "once";
+        if (!isRecurring) {
+          return (
+            <ConfirmDeleteDialog
+              open={!!deleteTarget}
+              onOpenChange={(o) => !o && setDeleteTarget(null)}
+              title="Excluir receita?"
+              description="Esta ação não pode ser desfeita. Se a receita estava marcada como recebida, o saldo será revertido."
+              onConfirm={async () => {
+                await deleteIncome(deleteTarget.id, "single");
+                setDeleteTarget(null);
+              }}
+            />
+          );
+        }
+        return (
+          <Dialog open={!!deleteTarget} onOpenChange={(o) => { if (!o) setDeleteTarget(null); }}>
+            <DialogContent className="max-w-sm">
+              <DialogHeader>
+                <DialogTitle>Excluir receita recorrente</DialogTitle>
+                <DialogDescription>
+                  Esta receita faz parte de uma série recorrente. Escolha o que deseja excluir.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-2">
+                {[
+                  { value: "single", label: "Apenas esta receita", desc: "Exclui somente a ocorrência selecionada." },
+                  { value: "pending", label: "Apenas as pendentes", desc: "Exclui esta e todas as ocorrências não recebidas da série." },
+                  { value: "all", label: "Todas da série", desc: "Exclui todas as ocorrências, inclusive já recebidas." },
+                ].map((opt) => (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() => setDeleteScope(opt.value as any)}
+                    className={`w-full text-left rounded-lg border p-3 transition-colors ${deleteScope === opt.value ? "border-primary bg-primary/5" : "border-border hover:bg-muted/50"}`}
+                  >
+                    <div className="text-sm font-medium">{opt.label}</div>
+                    <div className="text-xs text-muted-foreground mt-0.5">{opt.desc}</div>
+                  </button>
+                ))}
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setDeleteTarget(null)}>Cancelar</Button>
+                <Button
+                  variant="destructive"
+                  onClick={async () => {
+                    await deleteIncome(deleteTarget.id, deleteScope);
+                    setDeleteTarget(null);
+                  }}
+                >
+                  Excluir
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        );
+      })()}
     </div>
   );
 }
