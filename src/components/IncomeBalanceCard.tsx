@@ -45,9 +45,20 @@ export function IncomeBalanceCard({ incomes, expenses }: Props) {
     const futureIn = incomes
       .filter((i) => i.status === "pending" && i.receivedDate.startsWith(monthKey))
       .reduce((s, i) => s + i.amount, 0);
+    // Para recorrentes parceladas: usar parcela mensal (amount / installments)
+    // Para fixas / recorrentes sem parcela: usar amount cheio
+    const monthlyExpenseAmount = (e: Expense) => {
+      if (e.type === "recorrente" && e.installments && e.installments > 1) {
+        return e.amount / e.installments;
+      }
+      return e.amount;
+    };
     const futureOut = expenses
       .filter((e) => !e.paid && (e.dueDate || "").startsWith(monthKey))
-      .reduce((s, e) => s + e.amount, 0);
+      .reduce((s, e) => s + monthlyExpenseAmount(e), 0);
+    const pendingInCount = incomes
+      .filter((i) => i.status === "pending" && i.receivedDate.startsWith(monthKey))
+      .length;
 
     // Saldo previsto = saldo atual + futuras receitas mês - futuras despesas mês
     const projected = balance + futureIn - futureOut;
@@ -57,7 +68,7 @@ export function IncomeBalanceCard({ incomes, expenses }: Props) {
       .filter((i) => i.status === "received" && i.receivedDate.startsWith(prevKey))
       .reduce((s, i) => s + i.amount, 0);
 
-    return { balance, monthIn, monthOut, futureIn, futureOut, projected, projectedDiff, prevIn };
+    return { balance, monthIn, monthOut, futureIn, futureOut, projected, projectedDiff, prevIn, pendingInCount };
   }, [incomes, expenses, monthKey, prevKey]);
 
   const diff = calc.monthIn - calc.prevIn;
@@ -91,7 +102,7 @@ export function IncomeBalanceCard({ incomes, expenses }: Props) {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-5">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-5">
         <div className="rounded-xl bg-emerald-500/10 border border-emerald-500/20 p-3">
           <div className="flex items-center gap-1 text-xs text-emerald-700 dark:text-emerald-400 font-medium">
             <ArrowUpRight className="h-3 w-3" /> Entradas mês
@@ -103,6 +114,18 @@ export function IncomeBalanceCard({ incomes, expenses }: Props) {
             <ArrowDownRight className="h-3 w-3" /> Saídas mês
           </div>
           <div className="text-lg font-semibold mt-1">{fmt(calc.monthOut, hide)}</div>
+        </div>
+        <div className="rounded-xl bg-amber-500/10 border border-amber-500/20 p-3">
+          <div className="flex items-center justify-between gap-1">
+            <span className="text-xs text-amber-700 dark:text-amber-400 font-medium">Receitas pendentes</span>
+            {calc.futureIn > 0
+              ? <TrendingUp className="h-3 w-3 text-amber-600 dark:text-amber-400" />
+              : <TrendingDown className="h-3 w-3 text-muted-foreground" />}
+          </div>
+          <div className="text-lg font-semibold mt-1">{fmt(calc.futureIn, hide)}</div>
+          <div className="text-[10px] mt-0.5 text-amber-700/80 dark:text-amber-400/80">
+            {calc.pendingInCount} {calc.pendingInCount === 1 ? "recebimento" : "recebimentos"} pendente{calc.pendingInCount === 1 ? "" : "s"}
+          </div>
         </div>
         <div className={`rounded-xl border p-3 ${calc.projected >= calc.balance ? "bg-primary/10 border-primary/20" : "bg-rose-500/10 border-rose-500/30"}`}>
           <div className="flex items-center justify-between gap-1">
