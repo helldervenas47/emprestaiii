@@ -284,7 +284,7 @@ export function IncomeList({ readOnly }: Props) {
                     <Button size="sm" variant="ghost" onClick={() => duplicateIncome(i.id)} className="h-8 gap-1">
                       <Copy className="h-3.5 w-3.5" /> Duplicar
                     </Button>
-                    <Button size="sm" variant="ghost" onClick={() => setDeleteId(i.id)} className="h-8 gap-1 text-destructive hover:text-destructive">
+                    <Button size="sm" variant="ghost" onClick={() => { setDeleteTarget(i); setDeleteScope("single"); }} className="h-8 gap-1 text-destructive hover:text-destructive">
                       <Trash2 className="h-3.5 w-3.5" /> Excluir
                     </Button>
                   </div>
