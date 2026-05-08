@@ -53,8 +53,9 @@ export function MonthTransactionsSheet({ open, onOpenChange, type, monthKey, inc
   const [filter, setFilter] = useState<string>(initialFilter ?? "all");
   const [sortBy, setSortBy] = useState<"date_desc" | "date_asc" | "amount">("date_desc");
 
-  // Sync filter when opening with a different initialFilter
-  useState(() => {});
+  useEffect(() => {
+    if (open) setFilter(initialFilter ?? "all");
+  }, [open, initialFilter]);
 
   const rows = useMemo<Row[]>(() => {
     if (type === "incomes") {
