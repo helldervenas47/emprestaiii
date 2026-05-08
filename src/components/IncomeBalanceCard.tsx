@@ -1,9 +1,13 @@
-import { useMemo } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Income } from "@/hooks/useIncomes";
 import { Expense } from "@/types/loan";
 import { useHideValues } from "@/contexts/HideValuesContext";
-import { TrendingUp, TrendingDown, Wallet, ArrowUpRight, ArrowDownRight } from "lucide-react";
+import { TrendingUp, TrendingDown, Wallet, ArrowUpRight, ArrowDownRight, Settings2 } from "lucide-react";
 
 function fmt(n: number, hide: boolean) {
   if (hide) return "•••••";
@@ -13,10 +17,15 @@ function fmt(n: number, hide: boolean) {
 interface Props {
   incomes: Income[];
   expenses: Expense[];
+  onAdjust?: (delta: number) => Promise<void> | void;
+  readOnly?: boolean;
 }
 
-export function IncomeBalanceCard({ incomes, expenses }: Props) {
+export function IncomeBalanceCard({ incomes, expenses, onAdjust, readOnly }: Props) {
   const { hidden: hide } = useHideValues();
+  const [adjustOpen, setAdjustOpen] = useState(false);
+  const [target, setTarget] = useState("");
+  const [saving, setSaving] = useState(false);
 
   const now = new Date();
   const monthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
