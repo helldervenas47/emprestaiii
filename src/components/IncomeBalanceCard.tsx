@@ -11,7 +11,29 @@ import { TrendingUp, TrendingDown, Wallet, ArrowUpRight, ArrowDownRight, Setting
 import { useCreditCards } from "@/hooks/useCreditCards";
 import { useCreditCardOpenings } from "@/hooks/useCreditCardOpenings";
 import { getCardInvoiceTotalsForMonth, isCreditCardExpense } from "@/lib/creditCardInvoiceTotals";
-import { isPiggyExpense } from "@/hooks/usePiggyBanks";
+import { isPiggyExpense, usePiggyBanks } from "@/hooks/usePiggyBanks";
+import { useProducts } from "@/hooks/useProducts";
+import { Sale } from "@/types/loan";
+
+/** Total efetivamente recebido de uma venda (não os lançamentos previstos). */
+function saleReceivedTotal(sale: Sale): number {
+  if (sale.paymentHistory && sale.paymentHistory.length > 0) {
+    return sale.paymentHistory.reduce((s, p) => s + (Number(p.amount) || 0), 0);
+  }
+  const iv = sale.installmentValue ?? (sale.installments > 0 ? sale.total / sale.installments : sale.total);
+  return (sale.downPayment || 0) + (sale.paidInstallments || 0) * iv + (sale.partialPaid || 0);
+}
+
+/** Total recebido de uma venda no mês (YYYY-MM). */
+function saleReceivedInMonth(sale: Sale, monthKey: string): number {
+  if (sale.paymentHistory && sale.paymentHistory.length > 0) {
+    return sale.paymentHistory
+      .filter((p) => (p.date || "").startsWith(monthKey))
+      .reduce((s, p) => s + (Number(p.amount) || 0), 0);
+  }
+  // Sem histórico: considera o total recebido no mês da venda.
+  return (sale.date || "").startsWith(monthKey) ? saleReceivedTotal(sale) : 0;
+}
 
 function fmt(n: number, hide: boolean) {
   if (hide) return "•••••";
@@ -34,6 +56,8 @@ export function IncomeBalanceCard({ incomes, expenses, onAdjust, readOnly, onOpe
   const { hidden: hide } = useHideValues();
   const { cards } = useCreditCards();
   const { openings } = useCreditCardOpenings();
+  const { sales } = useProducts(true);
+  const { deposits: piggyDeposits } = usePiggyBanks();
   const [adjustOpen, setAdjustOpen] = useState(false);
   const [target, setTarget] = useState("");
   const [saving, setSaving] = useState(false);
@@ -45,22 +69,33 @@ export function IncomeBalanceCard({ incomes, expenses, onAdjust, readOnly, onOpe
   const prevKey = `${prevDate.getFullYear()}-${String(prevDate.getMonth() + 1).padStart(2, "0")}`;
 
   const calc = useMemo(() => {
-    // Saldo em Conta = receitas recebidas - despesas pagas (todos os períodos)
+    // Saldo em Conta = receitas recebidas + recebimentos efetivos de vendas
+    //                  − despesas pagas − aportes ao cofrinho (todos os períodos)
     const totalIncomeReceived = incomes
       .filter((i) => i.status === "received")
       .reduce((s, i) => s + i.amount, 0);
+    const totalSalesReceived = sales.reduce((s, sale) => s + saleReceivedTotal(sale), 0);
     const totalExpensePaid = expenses
       .filter((e) => e.paid)
       .reduce((s, e) => s + e.amount, 0);
-    const balance = totalIncomeReceived - totalExpensePaid;
+    // Aportes manuais/recorrentes ao cofrinho (não vinculados a despesa).
+    // Aportes vinculados a uma despesa cofrinho já estão contabilizados em totalExpensePaid.
+    const totalPiggyManualDeposits = piggyDeposits
+      .filter((d) => !d.expenseId)
+      .reduce((s, d) => s + (Number(d.amount) || 0), 0);
+    const balance = totalIncomeReceived + totalSalesReceived - totalExpensePaid - totalPiggyManualDeposits;
 
     // Movimentação do mês vigente
     const monthIn = incomes
       .filter((i) => i.status === "received" && i.receivedDate.startsWith(monthKey))
-      .reduce((s, i) => s + i.amount, 0);
+      .reduce((s, i) => s + i.amount, 0)
+      + sales.reduce((s, sale) => s + saleReceivedInMonth(sale, monthKey), 0);
     const monthOut = expenses
       .filter((e) => e.paid && (e.paidDate || "").startsWith(monthKey))
-      .reduce((s, e) => s + e.amount, 0);
+      .reduce((s, e) => s + e.amount, 0)
+      + piggyDeposits
+        .filter((d) => !d.expenseId && (d.depositDate || "").startsWith(monthKey))
+        .reduce((s, d) => s + (Number(d.amount) || 0), 0);
 
     // Futuras do mês selecionado (pendentes/agendadas, não canceladas).
     // Receitas recorrentes são materializadas como lançamentos mensais separados;
@@ -133,7 +168,7 @@ export function IncomeBalanceCard({ incomes, expenses, onAdjust, readOnly, onOpe
       .reduce((s, i) => s + i.amount, 0);
 
     return { balance, monthIn, monthOut, futureIn, futureOut, projected, projectedDiff, prevIn, pendingInCount };
-  }, [incomes, expenses, monthKey, prevKey, cards, openings]);
+  }, [incomes, expenses, monthKey, prevKey, cards, openings, sales, piggyDeposits]);
 
   const diff = calc.monthIn - calc.prevIn;
   const pct = calc.prevIn > 0 ? (diff / calc.prevIn) * 100 : 0;
