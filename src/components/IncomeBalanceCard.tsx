@@ -8,6 +8,10 @@ import { Income } from "@/hooks/useIncomes";
 import { Expense } from "@/types/loan";
 import { useHideValues } from "@/contexts/HideValuesContext";
 import { TrendingUp, TrendingDown, Wallet, ArrowUpRight, ArrowDownRight, Settings2 } from "lucide-react";
+import { useCreditCards } from "@/hooks/useCreditCards";
+import { useCreditCardOpenings } from "@/hooks/useCreditCardOpenings";
+import { getCardInvoiceTotalsForMonth, isCreditCardExpense } from "@/lib/creditCardInvoiceTotals";
+import { isPiggyExpense } from "@/hooks/usePiggyBanks";
 
 function fmt(n: number, hide: boolean) {
   if (hide) return "•••••";
@@ -25,6 +29,8 @@ interface Props {
 
 export function IncomeBalanceCard({ incomes, expenses, onAdjust, readOnly, onOpenIncomes, onOpenExpenses }: Props) {
   const { hidden: hide } = useHideValues();
+  const { cards } = useCreditCards();
+  const { openings } = useCreditCardOpenings();
   const [adjustOpen, setAdjustOpen] = useState(false);
   const [target, setTarget] = useState("");
   const [saving, setSaving] = useState(false);
@@ -64,29 +70,41 @@ export function IncomeBalanceCard({ incomes, expenses, onAdjust, readOnly, onOpe
       }
       return e.amount;
     };
-    // Inclui despesa no mês vigente quando:
-    //  • dueDate cai no mês, OU
-    //  • é recorrente parcelada/fixa cujo ciclo ativo cobre o mês vigente
-    //    (ainda restam parcelas a pagar e o mês está dentro do range total).
-    const [curY, curM] = monthKey.split("-").map(Number);
-    const currentMonths = curY * 12 + curM;
-    const coversCurrentMonth = (e: Expense) => {
-      if ((e.dueDate || "").startsWith(monthKey)) return true;
-      const isRec = e.type === "recorrente" && e.installments && e.installments > 1;
-      if (!isRec) return false;
-      const [dY, dM] = e.dueDate.split("-").map(Number);
-      const startMonths = dY * 12 + dM;
-      const endMonths = startMonths + (e.installments! - 1);
-      // Parent's dueDate aponta para a próxima parcela em aberto. Se já está no futuro
-      // (mês > vigente), significa que a parcela do mês vigente já foi paga (existe um
-      // child histórico com paid=true) — não recontar aqui.
-      if (startMonths > currentMonths) return false;
-      return currentMonths <= endMonths;
+    // "A pagar" das Despesas Pessoais (mesma lógica do card "A pagar"):
+    //  - despesas pessoais (scope=personal), excluindo cofrinho e despesas individuais de cartão
+    //  - que ocorrem no mês vigente (dueDate no mês ou recorrente cujo ciclo cobre o mês)
+    //  - ainda não pagas, e descartando recorrentes totalmente pagas
+    //  + total pendente das faturas de cartão com vencimento no mês vigente
+    const occursInMonth = (e: Expense) => {
+      const isRec = e.type === "recorrente" && !!e.installments && e.installments > 1;
+      if (!isRec) return (e.dueDate || "").startsWith(monthKey);
+      const [curY2, curM2] = monthKey.split("-").map(Number);
+      const sel = curY2 * 12 + curM2;
+      const [dY, dM] = (e.dueDate || "0-0").split("-").map(Number);
+      const start = dY * 12 + dM;
+      const end = start + (e.installments! - 1);
+      return sel >= start && sel <= end;
     };
-    // Despesas pessoais pendentes do mês vigente (apenas scope=personal e não pagas)
-    const futureOut = expenses
-      .filter((e) => !e.paid && (e.scope ?? "business") === "personal" && coversCurrentMonth(e))
+    const isRecFullyPaid = (e: Expense) =>
+      e.type === "recorrente" && !!e.installments && e.installments > 1 && e.paid;
+    const personalSpendingMonth = expenses.filter((e) => {
+      if ((e.scope ?? "business") !== "personal") return false;
+      if (isPiggyExpense(e.notes)) return false;
+      if (isCreditCardExpense(e)) return false;
+      if (isRecFullyPaid(e)) return false;
+      const inMonth = (e.paid && (e.paidDate || "").startsWith(monthKey)) || occursInMonth(e);
+      return inMonth;
+    });
+    const personalPendingExpenses = personalSpendingMonth
+      .filter((e) => !e.paid)
       .reduce((s, e) => s + monthlyExpenseAmount(e), 0);
+    const cardInvoiceTotalsMonth = getCardInvoiceTotalsForMonth(expenses, cards, openings, monthKey);
+    const cardInvoicePendingMonth = cardInvoiceTotalsMonth.reduce((s, x) => {
+      if (x.hasPaidOverride) return s;
+      if (x.paid) return s;
+      return s + x.total;
+    }, 0);
+    const futureOut = personalPendingExpenses + cardInvoicePendingMonth;
     const pendingInCount = incomes
       .filter((i) => i.status === "pending" && i.receivedDate.startsWith(monthKey))
       .length;
@@ -100,7 +118,7 @@ export function IncomeBalanceCard({ incomes, expenses, onAdjust, readOnly, onOpe
       .reduce((s, i) => s + i.amount, 0);
 
     return { balance, monthIn, monthOut, futureIn, futureOut, projected, projectedDiff, prevIn, pendingInCount };
-  }, [incomes, expenses, monthKey, prevKey]);
+  }, [incomes, expenses, monthKey, prevKey, cards, openings]);
 
   const diff = calc.monthIn - calc.prevIn;
   const pct = calc.prevIn > 0 ? (diff / calc.prevIn) * 100 : 0;
