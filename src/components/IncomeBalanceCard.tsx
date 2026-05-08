@@ -24,6 +24,7 @@ export function IncomeBalanceCard({ incomes, expenses }: Props) {
   const prevKey = `${prevDate.getFullYear()}-${String(prevDate.getMonth() + 1).padStart(2, "0")}`;
 
   const calc = useMemo(() => {
+    // Saldo em Conta = receitas recebidas - despesas pagas (todos os períodos)
     const totalIncomeReceived = incomes
       .filter((i) => i.status === "received")
       .reduce((s, i) => s + i.amount, 0);
@@ -32,6 +33,7 @@ export function IncomeBalanceCard({ incomes, expenses }: Props) {
       .reduce((s, e) => s + e.amount, 0);
     const balance = totalIncomeReceived - totalExpensePaid;
 
+    // Movimentação do mês vigente
     const monthIn = incomes
       .filter((i) => i.status === "received" && i.receivedDate.startsWith(monthKey))
       .reduce((s, i) => s + i.amount, 0);
@@ -39,20 +41,23 @@ export function IncomeBalanceCard({ incomes, expenses }: Props) {
       .filter((e) => e.paid && (e.paidDate || "").startsWith(monthKey))
       .reduce((s, e) => s + e.amount, 0);
 
-    const pendingIn = incomes
-      .filter((i) => i.status !== "received" && i.receivedDate.startsWith(monthKey))
+    // Futuras do mês vigente (pendentes/agendadas, não canceladas)
+    const futureIn = incomes
+      .filter((i) => i.status === "pending" && i.receivedDate.startsWith(monthKey))
       .reduce((s, i) => s + i.amount, 0);
-    const pendingOut = expenses
+    const futureOut = expenses
       .filter((e) => !e.paid && (e.dueDate || "").startsWith(monthKey))
       .reduce((s, e) => s + e.amount, 0);
 
-    const projected = balance + pendingIn - pendingOut;
+    // Saldo previsto = saldo atual + futuras receitas mês - futuras despesas mês
+    const projected = balance + futureIn - futureOut;
+    const projectedDiff = projected - balance;
 
     const prevIn = incomes
       .filter((i) => i.status === "received" && i.receivedDate.startsWith(prevKey))
       .reduce((s, i) => s + i.amount, 0);
 
-    return { balance, monthIn, monthOut, pendingIn, projected, prevIn };
+    return { balance, monthIn, monthOut, futureIn, futureOut, projected, projectedDiff, prevIn };
   }, [incomes, expenses, monthKey, prevKey]);
 
   const diff = calc.monthIn - calc.prevIn;
