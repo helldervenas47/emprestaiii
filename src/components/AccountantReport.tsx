@@ -605,7 +605,6 @@ export function AccountantReport({ loans, payments, sales, expenses }: Accountan
         head: [["Descrição", "Valor"]],
         body: [
           ["(+) Receita de Juros", fmtBRL(dre.interestRevenue)],
-          ["(+) Receita de Vendas", fmtBRL(dre.salesRevenue)],
           [{ content: "(=) Receita Bruta", styles: { fontStyle: "bold", fillColor: [243, 244, 246] } },
            { content: fmtBRL(dre.totalRevenue), styles: { fontStyle: "bold", fillColor: [243, 244, 246] } }],
           ["(−) Despesas Operacionais", fmtBRL(dre.businessExp)],
@@ -743,7 +742,7 @@ export function AccountantReport({ loans, payments, sales, expenses }: Accountan
         head: [["Descrição", "Valor"]],
         body: [
           ["(+) Receita de Juros", fmtBRL(dre.interestRevenue)],
-          ["(+) Receita de Vendas", fmtBRL(dre.salesRevenue)],
+          
           [{ content: "(=) Receita Bruta", styles: { fontStyle: "bold", fillColor: [243, 244, 246] } },
            { content: fmtBRL(dre.totalRevenue), styles: { fontStyle: "bold", fillColor: [243, 244, 246] } }],
           ["(−) Despesas Operacionais", fmtBRL(dre.businessExp)],
