@@ -50,6 +50,12 @@ export function IncomeList({ readOnly }: Props) {
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<Income | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [sheetType, setSheetType] = useState<"incomes" | "expenses" | null>(null);
+
+  const monthKey = (() => {
+    const n = new Date();
+    return `${n.getFullYear()}-${String(n.getMonth() + 1).padStart(2, "0")}`;
+  })();
 
   const filtered = useMemo(() => {
     let arr = incomes.filter((i) => {
