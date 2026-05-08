@@ -178,6 +178,7 @@ export function IncomeList({ readOnly }: Props) {
         initialFilter={sheetInitialFilter}
       />
 
+      <PiggyBanksSummaryCard readOnly={readOnly} />
       <IncomePendingCalendar incomes={incomes.filter((i) => i.source !== "Ajuste manual")} />
       <IncomeDashboard
         incomes={incomes.filter(
