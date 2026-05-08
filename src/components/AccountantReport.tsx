@@ -190,9 +190,11 @@ export function AccountantReport({ loans, payments, sales, expenses }: Accountan
       byKind[b.kind].principal += b.principal;
     });
 
-    const periodSales = sales.filter((s) => matchPeriod(s.date ?? s.sale_date));
-    const salesRevenue = periodSales.reduce((s, x) => s + (Number(x.total ?? x.amount) || 0), 0);
-    const totalRevenue = interestRevenue + salesRevenue;
+    // Contador considera apenas receitas de empréstimos (juros) e despesas empresariais.
+    // Vendas e despesas pessoais são intencionalmente excluídas do DRE.
+    const periodSales: any[] = [];
+    const salesRevenue = 0;
+    const totalRevenue = interestRevenue;
     const totalExpenses = periodExpenses.reduce((s, x) => s + (Number(x.amount) || 0), 0);
     const businessExp = totalExpenses;
     const personalExp = 0;
@@ -603,7 +605,6 @@ export function AccountantReport({ loans, payments, sales, expenses }: Accountan
         head: [["Descrição", "Valor"]],
         body: [
           ["(+) Receita de Juros", fmtBRL(dre.interestRevenue)],
-          ["(+) Receita de Vendas", fmtBRL(dre.salesRevenue)],
           [{ content: "(=) Receita Bruta", styles: { fontStyle: "bold", fillColor: [243, 244, 246] } },
            { content: fmtBRL(dre.totalRevenue), styles: { fontStyle: "bold", fillColor: [243, 244, 246] } }],
           ["(−) Despesas Operacionais", fmtBRL(dre.businessExp)],
@@ -741,7 +742,7 @@ export function AccountantReport({ loans, payments, sales, expenses }: Accountan
         head: [["Descrição", "Valor"]],
         body: [
           ["(+) Receita de Juros", fmtBRL(dre.interestRevenue)],
-          ["(+) Receita de Vendas", fmtBRL(dre.salesRevenue)],
+          
           [{ content: "(=) Receita Bruta", styles: { fontStyle: "bold", fillColor: [243, 244, 246] } },
            { content: fmtBRL(dre.totalRevenue), styles: { fontStyle: "bold", fillColor: [243, 244, 246] } }],
           ["(−) Despesas Operacionais", fmtBRL(dre.businessExp)],
@@ -1114,17 +1115,6 @@ export function AccountantReport({ loans, payments, sales, expenses }: Accountan
                   </span>
                   <span className="text-success">{fmt(dre.interestRevenue, hidden)}</span>
                 </button>
-                <button
-                  type="button"
-                  onClick={() => setDreCategory((c) => (c === "sales" ? null : "sales"))}
-                  className={`w-full flex justify-between py-2 border-b text-left transition-colors hover:bg-muted/40 rounded px-2 -mx-2 ${dreCategory === "sales" ? "bg-muted/50" : ""}`}
-                >
-                  <span className="font-medium flex items-center gap-1">
-                    <ChevronRight className={`h-3 w-3 transition-transform ${dreCategory === "sales" ? "rotate-90" : ""}`} />
-                    (+) Receita de Vendas
-                  </span>
-                  <span className="text-success">{fmt(dre.salesRevenue, hidden)}</span>
-                </button>
                 <div className="flex justify-between py-2 border-b font-semibold bg-muted/30 px-2 rounded">
                   <span>(=) Receita Bruta</span>
                   <span>{fmt(dre.totalRevenue, hidden)}</span>
@@ -1158,7 +1148,6 @@ export function AccountantReport({ loans, payments, sales, expenses }: Accountan
                     <div className="flex items-center justify-between">
                       <h4 className="text-xs font-semibold">
                         {dreCategory === "interest" && `Lançamentos — Receita de Juros (${(dre as any).breakdown.filter((b: any) => b.interest > 0).length})`}
-                        {dreCategory === "sales" && `Lançamentos — Receita de Vendas (${(dre as any).periodSales.length})`}
                         {dreCategory === "expenses" && `Lançamentos — Despesas Operacionais (${(dre as any).periodExpenses.length})`}
                       </h4>
                       <button
@@ -1201,37 +1190,6 @@ export function AccountantReport({ loans, payments, sales, expenses }: Accountan
                       )
                     )}
 
-                    {dreCategory === "sales" && (
-                      (dre as any).periodSales.length === 0 ? (
-                        <p className="text-xs text-muted-foreground py-2 text-center">Nenhuma venda no período.</p>
-                      ) : (
-                        <div className="overflow-x-auto">
-                          <table className="w-full text-xs">
-                            <thead>
-                              <tr className="text-left text-muted-foreground border-b">
-                                <th className="py-1.5 pr-2">Data</th>
-                                <th className="py-1.5 pr-2">Descrição</th>
-                                <th className="py-1.5 text-right">Valor</th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {(dre as any).periodSales.map((s: any) => {
-                                const d = s.date ?? s.sale_date;
-                                const amt = Number(s.total ?? s.amount) || 0;
-                                const desc = s.customerName ?? s.customer_name ?? s.description ?? s.notes ?? "Venda";
-                                return (
-                                  <tr key={s.id} className="border-b">
-                                    <td className="py-1.5 pr-2 whitespace-nowrap">{d ? new Date(d + "T00:00:00").toLocaleDateString("pt-BR") : "—"}</td>
-                                    <td className="py-1.5 pr-2">{desc}</td>
-                                    <td className="py-1.5 text-right text-success">{fmt(amt, hidden)}</td>
-                                  </tr>
-                                );
-                              })}
-                            </tbody>
-                          </table>
-                        </div>
-                      )
-                    )}
 
                     {dreCategory === "expenses" && (
                       (dre as any).periodExpenses.length === 0 ? (
