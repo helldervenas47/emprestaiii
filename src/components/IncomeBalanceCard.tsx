@@ -59,9 +59,40 @@ export function IncomeBalanceCard({ incomes, expenses, onAdjust, readOnly, onOpe
       .reduce((s, e) => s + e.amount, 0);
 
     // Futuras do mês vigente (pendentes/agendadas, não canceladas)
-    const futureIn = incomes
-      .filter((i) => i.status === "pending" && i.receivedDate.startsWith(monthKey))
-      .reduce((s, i) => s + i.amount, 0);
+    // Para receitas recorrentes, expande as ocorrências restantes dentro do mês corrente
+    const startMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const endMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const pendingOccurrencesInMonth = (i: Income): number => {
+      if (i.status !== "pending") return 0;
+      const base = new Date(i.receivedDate + "T00:00:00");
+      if (i.recurrence === "once") {
+        return i.receivedDate.startsWith(monthKey) ? 1 : 0;
+      }
+      if (i.recurrence === "weekly") {
+        // alinha a primeira ocorrência <= today (ou base, o que for maior)
+        let d = new Date(base);
+        // se base é antes do início do mês, avança até entrar no mês
+        while (d < startMonth) d.setDate(d.getDate() + 7);
+        let count = 0;
+        while (d <= endMonth) {
+          if (d >= today) count++;
+          d.setDate(d.getDate() + 7);
+        }
+        return count;
+      }
+      if (i.recurrence === "monthly") {
+        const occ = new Date(now.getFullYear(), now.getMonth(), base.getDate());
+        return occ >= today && occ <= endMonth && occ >= startMonth ? 1 : 0;
+      }
+      if (i.recurrence === "yearly") {
+        if (base.getMonth() !== now.getMonth()) return 0;
+        const occ = new Date(now.getFullYear(), now.getMonth(), base.getDate());
+        return occ >= today && occ <= endMonth ? 1 : 0;
+      }
+      return 0;
+    };
+    const futureIn = incomes.reduce((s, i) => s + pendingOccurrencesInMonth(i) * i.amount, 0);
     // Para recorrentes parceladas: usar parcela mensal (amount / installments)
     // Para fixas / recorrentes sem parcela: usar amount cheio
     const monthlyExpenseAmount = (e: Expense) => {
