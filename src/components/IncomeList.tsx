@@ -53,10 +53,20 @@ export function IncomeList({ readOnly }: Props) {
   const [sheetType, setSheetType] = useState<"incomes" | "expenses" | null>(null);
   const [sheetInitialFilter, setSheetInitialFilter] = useState<string | undefined>(undefined);
 
-  const monthKey = (() => {
-    const n = new Date();
-    return `${n.getFullYear()}-${String(n.getMonth() + 1).padStart(2, "0")}`;
-  })();
+  const nowD = new Date();
+  const [selectedMonth, setSelectedMonth] = useState<string>(
+    `${nowD.getFullYear()}-${String(nowD.getMonth() + 1).padStart(2, "0")}`,
+  );
+  const monthKey = selectedMonth;
+  const [selYear, selMonthNum] = selectedMonth.split("-").map(Number);
+  const prevMonth = () => {
+    const d = new Date(selYear, selMonthNum - 2, 1);
+    setSelectedMonth(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`);
+  };
+  const nextMonth = () => {
+    const d = new Date(selYear, selMonthNum, 1);
+    setSelectedMonth(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`);
+  };
 
   useEffect(() => {
     if (readOnly) return;
