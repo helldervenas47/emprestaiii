@@ -1,0 +1,341 @@
+import { useMemo, useState } from "react";
+import { useIncomes, Income } from "@/hooks/useIncomes";
+import { useExpenses } from "@/hooks/useExpenses";
+import { useClients } from "@/hooks/useClients";
+import { usePaymentMethods } from "@/hooks/usePaymentMethods";
+import { Card } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { DatePickerField } from "@/components/ui/date-picker-field";
+import { Search, ArrowUpCircle, ArrowDownCircle, FileDown, FileSpreadsheet } from "lucide-react";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
+import * as XLSX from "xlsx";
+import { Expense } from "@/types/loan";
+
+type Row = {
+  id: string;
+  date: string; // YYYY-MM-DD
+  description: string;
+  category: string;
+  type: "income" | "expense";
+  amount: number;
+  paymentMethod: string;
+  account: string;
+};
+
+function fmtBRL(n: number) {
+  return n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+}
+
+const PAGE_SIZE = 30;
+
+export function FinancialStatement() {
+  const { incomes } = useIncomes();
+  const { expenses } = useExpenses();
+  const { clients } = useClients();
+  const { activeMethods } = usePaymentMethods();
+
+  const today = new Date();
+  const firstOfMonth = new Date(today.getFullYear(), today.getMonth(), 1)
+    .toISOString().slice(0, 10);
+  const lastOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0)
+    .toISOString().slice(0, 10);
+
+  const [from, setFrom] = useState<string>(firstOfMonth);
+  const [to, setTo] = useState<string>(lastOfMonth);
+  const [typeFilter, setTypeFilter] = useState<"all" | "income" | "expense">("all");
+  const [categoryFilter, setCategoryFilter] = useState<string>("all");
+  const [search, setSearch] = useState("");
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+
+  const methodName = (id: string | null | undefined) =>
+    id ? activeMethods.find((m) => m.id === id)?.name || "—" : "—";
+  const clientName = (id: string | null | undefined) =>
+    id ? clients.find((c) => c.id === id)?.name || "" : "";
+
+  const rows = useMemo<Row[]>(() => {
+    const incomeRows: Row[] = incomes
+      .filter((i) => i.status === "received" && i.source !== "Ajuste manual")
+      .map((i: Income) => ({
+        id: `i-${i.id}`,
+        date: i.receivedDate,
+        description: i.description,
+        category: i.category || "Outros",
+        type: "income",
+        amount: i.amount,
+        paymentMethod: methodName(i.paymentMethodId),
+        account: clientName(i.clientId) || i.source || "—",
+      }));
+    const expenseRows: Row[] = expenses
+      .filter((e) => e.paid && !!e.paidDate)
+      .map((e: Expense) => ({
+        id: `e-${e.id}`,
+        date: e.paidDate!,
+        description: e.description,
+        category: e.category || "Outros",
+        type: "expense",
+        amount: e.amount,
+        paymentMethod: methodName(e.paymentMethodId),
+        account: e.scope === "personal" ? "Pessoal" : "Empresa",
+      }));
+    return [...incomeRows, ...expenseRows];
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [incomes, expenses, activeMethods, clients]);
+
+  const categories = useMemo(() => {
+    const set = new Set<string>();
+    rows.forEach((r) => set.add(r.category));
+    return Array.from(set).sort();
+  }, [rows]);
+
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return rows
+      .filter((r) => {
+        if (from && r.date < from) return false;
+        if (to && r.date > to) return false;
+        if (typeFilter !== "all" && r.type !== typeFilter) return false;
+        if (categoryFilter !== "all" && r.category !== categoryFilter) return false;
+        if (q && !`${r.description} ${r.category} ${r.account}`.toLowerCase().includes(q)) return false;
+        return true;
+      })
+      .sort((a, b) => b.date.localeCompare(a.date) || b.id.localeCompare(a.id));
+  }, [rows, from, to, typeFilter, categoryFilter, search]);
+
+  const totals = useMemo(() => {
+    let inc = 0, exp = 0;
+    for (const r of filtered) {
+      if (r.type === "income") inc += r.amount;
+      else exp += r.amount;
+    }
+    return { inc, exp, balance: inc - exp };
+  }, [filtered]);
+
+  const visible = filtered.slice(0, visibleCount);
+
+  const exportPDF = () => {
+    const doc = new jsPDF();
+    doc.setFontSize(14);
+    doc.text("Extrato Financeiro", 14, 15);
+    doc.setFontSize(10);
+    doc.text(`Período: ${from || "—"} a ${to || "—"}`, 14, 22);
+    doc.text(
+      `Receitas: ${fmtBRL(totals.inc)}  |  Despesas: ${fmtBRL(totals.exp)}  |  Saldo: ${fmtBRL(totals.balance)}`,
+      14, 28,
+    );
+    autoTable(doc, {
+      startY: 34,
+      head: [["Data", "Descrição", "Categoria", "Tipo", "Valor", "Pagamento", "Conta"]],
+      body: filtered.map((r) => [
+        format(new Date(r.date + "T00:00:00"), "dd/MM/yyyy"),
+        r.description,
+        r.category,
+        r.type === "income" ? "Receita" : "Despesa",
+        (r.type === "income" ? "+" : "-") + fmtBRL(r.amount),
+        r.paymentMethod,
+        r.account,
+      ]),
+      styles: { fontSize: 8 },
+    });
+    doc.save(`extrato-${from}_a_${to}.pdf`);
+  };
+
+  const exportXLSX = () => {
+    const data = filtered.map((r) => ({
+      Data: r.date,
+      Descrição: r.description,
+      Categoria: r.category,
+      Tipo: r.type === "income" ? "Receita" : "Despesa",
+      Valor: r.type === "income" ? r.amount : -r.amount,
+      Pagamento: r.paymentMethod,
+      Conta: r.account,
+    }));
+    const ws = XLSX.utils.json_to_sheet(data);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Extrato");
+    XLSX.writeFile(wb, `extrato-${from}_a_${to}.xlsx`);
+  };
+
+  return (
+    <div className="space-y-4">
+      {/* Summary cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <Card no3d className="p-4">
+          <div className="text-xs text-muted-foreground">Total de receitas</div>
+          <div className="text-xl font-bold text-emerald-600 dark:text-emerald-400 mt-1">
+            {fmtBRL(totals.inc)}
+          </div>
+        </Card>
+        <Card no3d className="p-4">
+          <div className="text-xs text-muted-foreground">Total de despesas</div>
+          <div className="text-xl font-bold text-rose-600 dark:text-rose-400 mt-1">
+            {fmtBRL(totals.exp)}
+          </div>
+        </Card>
+        <Card no3d className="p-4">
+          <div className="text-xs text-muted-foreground">Saldo do período</div>
+          <div className={`text-xl font-bold mt-1 ${totals.balance >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"}`}>
+            {fmtBRL(totals.balance)}
+          </div>
+        </Card>
+      </div>
+
+      <Card no3d className="p-4 space-y-3">
+        <div className="flex flex-col lg:flex-row gap-2 lg:items-end justify-between">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 flex-1">
+            <div>
+              <label className="text-xs text-muted-foreground">De</label>
+              <DatePickerField value={from} onChange={setFrom} />
+            </div>
+            <div>
+              <label className="text-xs text-muted-foreground">Até</label>
+              <DatePickerField value={to} onChange={setTo} />
+            </div>
+            <Select value={typeFilter} onValueChange={(v: any) => setTypeFilter(v)}>
+              <SelectTrigger><SelectValue placeholder="Tipo" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos os tipos</SelectItem>
+                <SelectItem value="income">Receitas</SelectItem>
+                <SelectItem value="expense">Despesas</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+              <SelectTrigger><SelectValue placeholder="Categoria" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todas categorias</SelectItem>
+                {categories.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+              </SelectContent>
+            </Select>
+            <div className="relative col-span-2 sm:col-span-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Buscar descrição..."
+                className="pl-9"
+              />
+            </div>
+          </div>
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" onClick={exportPDF} className="gap-1" disabled={filtered.length === 0}>
+              <FileDown className="h-4 w-4" /> PDF
+            </Button>
+            <Button variant="outline" size="sm" onClick={exportXLSX} className="gap-1" disabled={filtered.length === 0}>
+              <FileSpreadsheet className="h-4 w-4" /> Excel
+            </Button>
+          </div>
+        </div>
+      </Card>
+
+      <Card no3d className="p-0 overflow-hidden">
+        {filtered.length === 0 ? (
+          <div className="text-center py-12 text-muted-foreground text-sm">
+            Nenhuma movimentação encontrada para o período.
+          </div>
+        ) : (
+          <>
+            {/* Desktop table */}
+            <div className="hidden md:block overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead className="bg-muted/50 text-xs uppercase text-muted-foreground">
+                  <tr>
+                    <th className="text-left px-4 py-2">Data</th>
+                    <th className="text-left px-4 py-2">Descrição</th>
+                    <th className="text-left px-4 py-2">Categoria</th>
+                    <th className="text-left px-4 py-2">Tipo</th>
+                    <th className="text-left px-4 py-2">Pagamento</th>
+                    <th className="text-left px-4 py-2">Conta</th>
+                    <th className="text-right px-4 py-2">Valor</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {visible.map((r) => (
+                    <tr key={r.id} className="border-t border-border/40 hover:bg-muted/30">
+                      <td className="px-4 py-2 whitespace-nowrap">
+                        {format(new Date(r.date + "T00:00:00"), "dd/MM/yyyy", { locale: ptBR })}
+                      </td>
+                      <td className="px-4 py-2">{r.description}</td>
+                      <td className="px-4 py-2">
+                        <Badge variant="secondary" className="text-xs">{r.category}</Badge>
+                      </td>
+                      <td className="px-4 py-2">
+                        {r.type === "income" ? (
+                          <Badge className="bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30 gap-1">
+                            <ArrowUpCircle className="h-3 w-3" /> Receita
+                          </Badge>
+                        ) : (
+                          <Badge className="bg-rose-500/15 text-rose-700 dark:text-rose-400 border border-rose-500/30 gap-1">
+                            <ArrowDownCircle className="h-3 w-3" /> Despesa
+                          </Badge>
+                        )}
+                      </td>
+                      <td className="px-4 py-2 text-muted-foreground">{r.paymentMethod}</td>
+                      <td className="px-4 py-2 text-muted-foreground">{r.account}</td>
+                      <td className={`px-4 py-2 text-right font-semibold whitespace-nowrap ${
+                        r.type === "income"
+                          ? "text-emerald-600 dark:text-emerald-400"
+                          : "text-rose-600 dark:text-rose-400"
+                      }`}>
+                        {r.type === "income" ? "+" : "−"} {fmtBRL(r.amount)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Mobile cards */}
+            <div className="md:hidden divide-y divide-border/40">
+              {visible.map((r) => (
+                <div key={r.id} className="p-3 flex items-start gap-3">
+                  <div className="mt-0.5">
+                    {r.type === "income" ? (
+                      <ArrowUpCircle className="h-5 w-5 text-emerald-500" />
+                    ) : (
+                      <ArrowDownCircle className="h-5 w-5 text-rose-500" />
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="font-medium truncate">{r.description}</div>
+                    <div className="text-xs text-muted-foreground mt-0.5 flex flex-wrap gap-x-2">
+                      <span>{format(new Date(r.date + "T00:00:00"), "dd/MM/yyyy", { locale: ptBR })}</span>
+                      <span>· {r.category}</span>
+                      <span>· {r.paymentMethod}</span>
+                    </div>
+                    {r.account && r.account !== "—" && (
+                      <div className="text-xs text-muted-foreground/80 truncate">{r.account}</div>
+                    )}
+                  </div>
+                  <div className={`text-right font-semibold whitespace-nowrap ${
+                    r.type === "income"
+                      ? "text-emerald-600 dark:text-emerald-400"
+                      : "text-rose-600 dark:text-rose-400"
+                  }`}>
+                    {r.type === "income" ? "+" : "−"} {fmtBRL(r.amount)}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {visible.length < filtered.length && (
+              <div className="p-3 text-center border-t border-border/40">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setVisibleCount((c) => c + PAGE_SIZE)}
+                >
+                  Carregar mais ({filtered.length - visible.length} restantes)
+                </Button>
+              </div>
+            )}
+          </>
+        )}
+      </Card>
+    </div>
+  );
+}
