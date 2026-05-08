@@ -91,7 +91,7 @@ export function IncomeBalanceCard({ incomes, expenses }: Props) {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-5">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-5">
         <div className="rounded-xl bg-emerald-500/10 border border-emerald-500/20 p-3">
           <div className="flex items-center gap-1 text-xs text-emerald-700 dark:text-emerald-400 font-medium">
             <ArrowUpRight className="h-3 w-3" /> Entradas mês
