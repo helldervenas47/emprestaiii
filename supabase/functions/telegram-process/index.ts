@@ -1502,7 +1502,117 @@ Se faltar valor numérico interpretável, retorne confidence baixo (<0.6).`,
   try { return JSON.parse(call.function.arguments); } catch { return null; }
 }
 
-async function downloadTelegramFile(fileId: string, lovableKey: string, telegramKey: string): Promise<{ base64: string; filePath: string } | null> {
+// =====================================================
+// INCOMES (receitas) — bot detection & registration
+// =====================================================
+
+const INCOME_CATEGORIES = [
+  "Vendas",
+  "Serviços",
+  "Comissões",
+  "Aluguel",
+  "Investimentos",
+  "Salário",
+  "Reembolso",
+  "Outros",
+];
+
+// Keywords that strongly suggest the message is about money received.
+const INCOME_KEYWORDS = [
+  "recebi", "recebido", "recebida", "recebimento",
+  "entrou", "entrada", "caiu", "ca\u00edu",
+  "receita", "renda",
+  "vendi", "venda", "vendas",
+  "sal\u00e1rio", "salario",
+  "comiss\u00e3o", "comissao", "comiss\u00f5es",
+  "freelance", "freela",
+  "aluguel recebido", "aluguel pago", "aluguel do",
+  "rendimento", "rendeu", "rendimentos",
+  "pagamento recebido", "me pagaram", "me pagou", "pagaram",
+  "reembolso",
+];
+
+function looksLikeIncome(text: string): boolean {
+  const t = text.toLowerCase();
+  return INCOME_KEYWORDS.some((kw) => t.includes(kw));
+}
+
+async function extractIncome(text: string, lovableKey: string) {
+  const today = todayBR();
+  const resp = await fetch(AI_GATEWAY, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${lovableKey}`, "Content-Type": "application/json" },
+    body: JSON.stringify({
+      model: "google/gemini-3-flash-preview",
+      messages: [
+        {
+          role: "system",
+          content: `Voc\u00ea extrai RECEITAS (dinheiro recebido) de mensagens em portugu\u00eas brasileiro. Hoje \u00e9 ${today} (timezone America/Sao_Paulo). Categorias permitidas: ${INCOME_CATEGORIES.join(", ")}.
+
+VALOR (campo "amount", n\u00famero decimal em reais):
+- Aceite formatos num\u00e9ricos: "1500", "R$ 250,00", "1.234,56".
+- Aceite valores por extenso PT-BR: "mil reais"=1000, "dois mil e quinhentos"=2500.
+- Sempre retorne o valor TOTAL recebido.
+
+DESCRI\u00c7\u00c3O (campo "description"):
+- Texto curto (sem o valor, sem meio de pagamento, sem data).
+- Ex.: "recebi 500 do cliente Jo\u00e3o pix" \u2192 "cliente Jo\u00e3o".
+- Ex.: "salario 3500" \u2192 "sal\u00e1rio".
+
+CATEGORIA: escolha entre as permitidas. Se incerto, use "Outros".
+
+DATA (campo "date" YYYY-MM-DD):
+- "hoje"/sem men\u00e7\u00e3o \u2192 ${today}.
+- "ontem" \u2192 -1 dia. "anteontem" \u2192 -2 dias.
+- "h\u00e1 N dias" \u2192 -N dias.
+- "dia 15" \u2192 dia 15 do m\u00eas atual (anterior se for futuro).
+- "17/04" \u2192 essa data exata; ano atual quando omitido.
+- NUNCA data futura.
+
+STATUS:
+- Se a mensagem indicar que J\u00c1 RECEBEU (recebi, caiu, entrou, me pagaram) \u2192 "received".
+- Se indicar que vai receber, est\u00e1 a receber, pendente, vai cair \u2192 "pending".
+- Default: "received".
+
+Se faltar valor interpret\u00e1vel, retorne confidence baixo (<0.6).`,
+        },
+        { role: "user", content: text },
+      ],
+      tools: [{
+        type: "function",
+        function: {
+          name: "register_income",
+          description: "Registra uma receita extra\u00edda da mensagem",
+          parameters: {
+            type: "object",
+            properties: {
+              description: { type: "string" },
+              amount: { type: "number" },
+              category: { type: "string", enum: INCOME_CATEGORIES },
+              date: { type: "string", description: "YYYY-MM-DD" },
+              status: { type: "string", enum: ["received", "pending"] },
+              source: { type: "string", description: "Origem (cliente, empresa) se mencionada" },
+              confidence: { type: "number" },
+            },
+            required: ["description", "amount", "category", "date", "confidence"],
+            additionalProperties: false,
+          },
+        },
+      }],
+      tool_choice: { type: "function", function: { name: "register_income" } },
+    }),
+  });
+  if (!resp.ok) {
+    const t = await resp.text();
+    console.error("AI income err", resp.status, t);
+    return null;
+  }
+  const data = await resp.json();
+  const call = data.choices?.[0]?.message?.tool_calls?.[0];
+  if (!call) return null;
+  try { return JSON.parse(call.function.arguments); } catch { return null; }
+}
+
   try {
     const fileResp = await fetch(`${GATEWAY_URL}/getFile`, {
       method: "POST",
