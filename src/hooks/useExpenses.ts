@@ -274,9 +274,17 @@ export function useExpenses(enabled = true) {
     if (isRecorrenteParcelada && (expense.paidInstallments || 0) > 0) {
       const newPaid = (expense.paidInstallments || 0) - 1;
       const wasFullyPaid = expense.paid;
-      const currentDue = new Date(expense.dueDate + "T00:00:00");
-      if (!wasFullyPaid) currentDue.setMonth(currentDue.getMonth() - 1);
-      const newDueDate = currentDue.toISOString().split("T")[0];
+      // Prefer restoring the exact previous dueDate that was stashed in notes when paying.
+      const stashMatch = (expense.notes ?? "").match(/\[PrevDue:\s*([\d-]+)\]/i);
+      let newDueDate: string;
+      if (stashMatch) {
+        newDueDate = stashMatch[1];
+      } else {
+        const currentDue = new Date(expense.dueDate + "T00:00:00");
+        if (!wasFullyPaid) currentDue.setMonth(currentDue.getMonth() - 1);
+        newDueDate = currentDue.toISOString().split("T")[0];
+      }
+      const restoredNotesRec = (expense.notes ?? "").replace(/\n?\[PrevDue:\s*[\d-]+\]/gi, "").trim() || null;
 
       // Find latest historical child record (online only — offline we can only update parent)
       let latestChildId: string | undefined;
@@ -299,6 +307,7 @@ export function useExpenses(enabled = true) {
           paid: false,
           paidDate: undefined,
           dueDate: newDueDate,
+          notes: restoredNotesRec,
         } : e));
 
       const parentUpdate = {
@@ -306,6 +315,7 @@ export function useExpenses(enabled = true) {
         paid: false,
         paid_date: null,
         due_date: newDueDate,
+        notes: restoredNotesRec,
       };
 
       if (!online) {
