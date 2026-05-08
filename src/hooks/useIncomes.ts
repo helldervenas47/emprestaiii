@@ -90,28 +90,74 @@ export function useIncomes(enabled = true) {
     return rowToIncome(data);
   }, [dataOwnerId]);
 
-  // Expande receitas semanais/quinzenais para todas as ocorrências do mês cadastrado
+  // Quantos meses à frente materializar receitas mensais/anuais
+  const FUTURE_MONTHS_HORIZON = 12;
+
+  function ymd(d: Date) {
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  }
+
+  function monthlyDates(baseIso: string, horizonMonths: number): string[] {
+    const base = new Date(baseIso + "T00:00:00");
+    const day = base.getDate();
+    const startY = base.getFullYear();
+    const startM = base.getMonth();
+    const today = new Date();
+    const endY = today.getFullYear();
+    const endM = today.getMonth() + horizonMonths;
+    const out: string[] = [];
+    let y = startY;
+    let m = startM;
+    while (y < endY || (y === endY && m <= endM)) {
+      const lastDay = new Date(y, m + 1, 0).getDate();
+      const useDay = Math.min(day, lastDay);
+      out.push(ymd(new Date(y, m, useDay)));
+      m += 1;
+      if (m > 11) { m = 0; y += 1; }
+    }
+    return out;
+  }
+
+  function yearlyDates(baseIso: string, horizonMonths: number): string[] {
+    const base = new Date(baseIso + "T00:00:00");
+    const today = new Date();
+    const endY = today.getFullYear() + Math.ceil(horizonMonths / 12);
+    const out: string[] = [];
+    let y = base.getFullYear();
+    while (y <= endY) {
+      const lastDay = new Date(y, base.getMonth() + 1, 0).getDate();
+      const useDay = Math.min(base.getDate(), lastDay);
+      out.push(ymd(new Date(y, base.getMonth(), useDay)));
+      y += 1;
+    }
+    return out;
+  }
+
+  // Expande receitas recorrentes (semanais/quinzenais no mês, mensais/anuais até o horizonte)
   const addIncome = useCallback(async (
     input: Omit<Income, "id" | "createdAt">,
   ): Promise<Income | null> => {
     if (!dataOwnerId) return null;
     const today = todayInAppTz();
+    let dates: string[] | null = null;
     if (input.recurrence === "weekly" || input.recurrence === "biweekly") {
       const stepDays = input.recurrence === "weekly" ? 7 : 14;
       const base = new Date(input.receivedDate + "T00:00:00");
       const y = base.getFullYear();
       const m = base.getMonth();
       const endMonth = new Date(y, m + 1, 0);
-      // gera datas a partir da base, dentro do mês
-      const dates: string[] = [];
+      dates = [];
       let d = new Date(base);
       while (d <= endMonth) {
-        const iso = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-        dates.push(iso);
+        dates.push(ymd(d));
         d.setDate(d.getDate() + stepDays);
       }
-      // primeiro registro: pai (mantém recorrência) já com marcador [Expanded] para evitar
-      // que o backfill em paralelo (disparado pelo realtime) duplique as ocorrências
+    } else if (input.recurrence === "monthly") {
+      dates = monthlyDates(input.receivedDate, FUTURE_MONTHS_HORIZON);
+    } else if (input.recurrence === "yearly") {
+      dates = yearlyDates(input.receivedDate, FUTURE_MONTHS_HORIZON);
+    }
+    if (dates && dates.length > 0) {
       const baseNotes = (input.notes ?? "").trim();
       const stampedNotes = baseNotes ? `${baseNotes}\n[Expanded]` : "[Expanded]";
       let parent: Income | null = null;
