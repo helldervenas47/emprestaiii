@@ -77,7 +77,28 @@ export function IncomeList({ readOnly }: Props) {
 
   return (
     <div className="space-y-4 overflow-x-hidden max-w-full">
-      <IncomeBalanceCard incomes={incomes} expenses={expenses} />
+      <IncomeBalanceCard
+        incomes={incomes}
+        expenses={expenses}
+        readOnly={readOnly}
+        onAdjust={async (delta) => {
+          if (!delta) return;
+          const today = new Date().toISOString().slice(0, 10);
+          await addIncome({
+            description: delta >= 0 ? "Ajuste de saldo (entrada)" : "Ajuste de saldo (saída)",
+            amount: Number(delta.toFixed(2)),
+            category: "Outros",
+            clientId: null,
+            source: "Ajuste manual",
+            paymentMethodId: null,
+            receivedDate: today,
+            status: "received",
+            notes: "Ajuste manual de saldo",
+            recurrence: "once",
+            parentId: null,
+          });
+        }}
+      />
 
       <IncomeDashboard incomes={incomes} />
 

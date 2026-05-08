@@ -1,9 +1,13 @@
-import { useMemo } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Income } from "@/hooks/useIncomes";
 import { Expense } from "@/types/loan";
 import { useHideValues } from "@/contexts/HideValuesContext";
-import { TrendingUp, TrendingDown, Wallet, ArrowUpRight, ArrowDownRight } from "lucide-react";
+import { TrendingUp, TrendingDown, Wallet, ArrowUpRight, ArrowDownRight, Settings2 } from "lucide-react";
 
 function fmt(n: number, hide: boolean) {
   if (hide) return "•••••";
@@ -13,10 +17,15 @@ function fmt(n: number, hide: boolean) {
 interface Props {
   incomes: Income[];
   expenses: Expense[];
+  onAdjust?: (delta: number) => Promise<void> | void;
+  readOnly?: boolean;
 }
 
-export function IncomeBalanceCard({ incomes, expenses }: Props) {
+export function IncomeBalanceCard({ incomes, expenses, onAdjust, readOnly }: Props) {
   const { hidden: hide } = useHideValues();
+  const [adjustOpen, setAdjustOpen] = useState(false);
+  const [target, setTarget] = useState("");
+  const [saving, setSaving] = useState(false);
 
   const now = new Date();
   const monthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
@@ -95,10 +104,23 @@ export function IncomeBalanceCard({ incomes, expenses }: Props) {
             Calculado apenas com receitas e despesas desta área
           </div>
         </div>
-        <div className={`flex items-center gap-1 text-sm font-medium ${trendColor}`}>
-          {trend === "up" && <TrendingUp className="h-4 w-4" />}
-          {trend === "down" && <TrendingDown className="h-4 w-4" />}
-          {calc.prevIn > 0 ? `${pct >= 0 ? "+" : ""}${pct.toFixed(1)}% vs mês anterior` : "Sem histórico"}
+        <div className="flex flex-col items-end gap-2">
+          <div className={`flex items-center gap-1 text-sm font-medium ${trendColor}`}>
+            {trend === "up" && <TrendingUp className="h-4 w-4" />}
+            {trend === "down" && <TrendingDown className="h-4 w-4" />}
+            {calc.prevIn > 0 ? `${pct >= 0 ? "+" : ""}${pct.toFixed(1)}% vs mês anterior` : "Sem histórico"}
+          </div>
+          {!readOnly && onAdjust && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-8 gap-1.5"
+              onClick={() => { setTarget(calc.balance.toFixed(2)); setAdjustOpen(true); }}
+            >
+              <Settings2 className="h-3.5 w-3.5" />
+              Ajustar saldo
+            </Button>
+          )}
         </div>
       </div>
 
@@ -140,6 +162,55 @@ export function IncomeBalanceCard({ incomes, expenses }: Props) {
           </div>
         </div>
       </div>
+
+      <Dialog open={adjustOpen} onOpenChange={setAdjustOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Ajustar saldo em conta</DialogTitle>
+            <DialogDescription>
+              Informe o novo saldo desejado. Será criado um lançamento de ajuste para chegar ao valor.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="rounded-lg bg-muted/50 p-3 text-sm">
+              <div className="text-xs text-muted-foreground">Saldo atual</div>
+              <div className="font-semibold">{fmt(calc.balance, false)}</div>
+            </div>
+            <div>
+              <Label>Novo saldo</Label>
+              <Input
+                type="number"
+                step="0.01"
+                value={target}
+                onChange={(e) => setTarget(e.target.value)}
+                placeholder="0,00"
+              />
+              {target !== "" && !isNaN(Number(target)) && (
+                <p className="text-xs text-muted-foreground mt-1">
+                  Diferença: <span className={Number(target) - calc.balance >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"}>
+                    {Number(target) - calc.balance >= 0 ? "+" : ""}{fmt(Number(target) - calc.balance, false)}
+                  </span>
+                </p>
+              )}
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setAdjustOpen(false)}>Cancelar</Button>
+            <Button
+              disabled={saving || target === "" || isNaN(Number(target)) || Number(target) === calc.balance}
+              onClick={async () => {
+                if (!onAdjust) return;
+                setSaving(true);
+                await onAdjust(Number(target) - calc.balance);
+                setSaving(false);
+                setAdjustOpen(false);
+              }}
+            >
+              {saving ? "Salvando..." : "Confirmar"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 }
