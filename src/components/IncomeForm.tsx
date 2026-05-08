@@ -214,6 +214,7 @@ export function IncomeForm({ open, onClose, onSubmit, initial }: Props) {
                 <SelectContent>
                   <SelectItem value="once">Única</SelectItem>
                   <SelectItem value="weekly">Semanal</SelectItem>
+                  <SelectItem value="biweekly">Quinzenal</SelectItem>
                   <SelectItem value="monthly">Mensal</SelectItem>
                   <SelectItem value="yearly">Anual</SelectItem>
                 </SelectContent>
