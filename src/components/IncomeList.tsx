@@ -57,6 +57,13 @@ export function IncomeList({ readOnly }: Props) {
     return `${n.getFullYear()}-${String(n.getMonth() + 1).padStart(2, "0")}`;
   })();
 
+  useEffect(() => {
+    if (readOnly) return;
+    const handler = () => { setEditing(null); setFormOpen(true); };
+    window.addEventListener("open-income-form", handler as EventListener);
+    return () => window.removeEventListener("open-income-form", handler as EventListener);
+  }, [readOnly]);
+
   const filtered = useMemo(() => {
     let arr = incomes.filter((i) => {
       if (i.source === "Ajuste manual") return false;
