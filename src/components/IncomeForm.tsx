@@ -1,7 +1,8 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Income, IncomeRecurrence, IncomeStatus } from "@/hooks/useIncomes";
 import { useClients } from "@/hooks/useClients";
 import { usePaymentMethods } from "@/hooks/usePaymentMethods";
+import { useIncomeCategories } from "@/hooks/useIncomeCategories";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -9,6 +10,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ClientCombobox } from "@/components/ui/client-combobox";
+import { DatePickerField } from "@/components/ui/date-picker-field";
+import { PersonalCategoryCreator } from "@/components/PersonalCategoryCreator";
+import { personalIconMap } from "@/lib/personalExpenseCategories";
+import { PlusCircle } from "lucide-react";
 import { todayInAppTz } from "@/lib/timezone";
 
 export const INCOME_CATEGORIES = [
