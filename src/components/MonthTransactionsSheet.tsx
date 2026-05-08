@@ -59,10 +59,6 @@ export function MonthTransactionsSheet({ open, onOpenChange, type, monthKey, inc
 
   const rows = useMemo<Row[]>(() => {
     if (type === "incomes") {
-      const [yStr, mStr] = monthKey.split("-");
-      const y = Number(yStr); const m = Number(mStr) - 1;
-      const startMonth = new Date(y, m, 1);
-      const endMonth = new Date(y, m + 1, 0);
       const out: Row[] = [];
       for (const i of incomes) {
         if (i.source === "Ajuste manual") continue;
