@@ -137,6 +137,13 @@ export function useExpenses(enabled = true) {
       currentDue.setMonth(currentDue.getMonth() + 1);
       const nextDueDate = currentDue.toISOString().split("T")[0];
 
+      // Stash previous dueDate in notes so unpay can restore it exactly (avoid day-of-month drift)
+      const prevDueStash = `[PrevDue: ${expense.dueDate}]`;
+      const baseNotesRec = (expense.notes ?? "").replace(/\n?\[PrevDue:\s*[\d-]+\]/gi, "").trimEnd();
+      const stashedNotes = fullyPaid
+        ? expense.notes ?? null
+        : (baseNotesRec ? `${baseNotesRec}\n${prevDueStash}` : prevDueStash);
+
       // Optimistic: update parent
       setExpenses((prev) => prev.map((e) => e.id === id ? {
         ...e,
@@ -144,6 +151,7 @@ export function useExpenses(enabled = true) {
         paid: fullyPaid,
         dueDate: fullyPaid ? expense.dueDate : nextDueDate,
         paidDate: fullyPaid ? today : undefined,
+        notes: stashedNotes,
       } : e));
 
       const childTempId = crypto.randomUUID();
@@ -169,6 +177,7 @@ export function useExpenses(enabled = true) {
         paid: fullyPaid,
         due_date: fullyPaid ? expense.dueDate : nextDueDate,
         paid_date: fullyPaid ? today : null,
+        notes: stashedNotes,
       };
 
       await upsertCachedRow("expenses", { ...childPayload, created_at: new Date().toISOString() });
