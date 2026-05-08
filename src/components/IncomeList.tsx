@@ -250,8 +250,17 @@ export function IncomeList({ readOnly }: Props) {
                 {!readOnly && (
                   <div className="flex flex-wrap gap-1 mt-3 pt-3 border-t border-border/30">
                     {i.status !== "received" && (
-                      <Button size="sm" variant="outline" onClick={() => markReceived(i.id)} className="h-8 gap-1">
-                        <CheckCircle2 className="h-3.5 w-3.5" /> Marcar recebido
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => {
+                          setPayTarget(i);
+                          setPayDate(todayInAppTz());
+                          setPayAmount("");
+                        }}
+                        className="h-8 gap-1"
+                      >
+                        <CheckCircle2 className="h-3.5 w-3.5" /> Pagar
                       </Button>
                     )}
                     <Button size="sm" variant="ghost" onClick={() => { setEditing(i); setFormOpen(true); }} className="h-8 gap-1">
