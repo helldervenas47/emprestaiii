@@ -29,6 +29,8 @@ interface Props {
 
 export function IncomeBalanceCard({ incomes, expenses, onAdjust, readOnly, onOpenIncomes, onOpenExpenses }: Props) {
   const { hidden: hide } = useHideValues();
+  const { cards } = useCreditCards();
+  const { openings } = useCreditCardOpenings();
   const [adjustOpen, setAdjustOpen] = useState(false);
   const [target, setTarget] = useState("");
   const [saving, setSaving] = useState(false);
