@@ -604,6 +604,60 @@ export function PiggyBankList({ readOnly = false }: Props) {
         title="Excluir lançamento"
         description="Este aporte será removido do histórico do cofrinho. A despesa vinculada (se houver) permanece. Esta ação não pode ser desfeita."
       />
+
+      {/* Diálogo: como aplicar a nova taxa CDI */}
+      <AlertDialog open={!!rateChangePending} onOpenChange={(o) => !o && setRateChangePending(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Como aplicar a nova taxa?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Você alterou a taxa de <strong>{rateChangePending?.pb.annualRate.toFixed(2)}%</strong> para{" "}
+              <strong>{rateChangePending?.newRate.toFixed(2)}%</strong> a.a. em
+              {" "}<strong>{rateChangePending?.pb.name}</strong>. Escolha como aplicar:
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="grid gap-2 py-2 text-sm">
+            <div className="rounded-lg border border-border/40 p-3">
+              <p className="font-medium">Manter rendimentos já calculados</p>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                A nova taxa vale apenas a partir de hoje. Os rendimentos passados ficam intocados.
+              </p>
+            </div>
+            <div className="rounded-lg border border-border/40 p-3">
+              <p className="font-medium">Recalcular tudo com a nova taxa</p>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Refaz todos os rendimentos (passados e futuros) usando a nova taxa.
+              </p>
+            </div>
+          </div>
+          <AlertDialogFooter className="gap-2 sm:gap-2">
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <Button
+              variant="outline"
+              onClick={async () => {
+                if (!rateChangePending) return;
+                await setPiggyRate(rateChangePending.pb.id, rateChangePending.newRate, "forward");
+                toast.success("Nova taxa aplicada apenas aos próximos rendimentos");
+                setRateChangePending(null);
+                setCreateOpen(false);
+              }}
+            >
+              Manter passados
+            </Button>
+            <AlertDialogAction
+              onClick={async () => {
+                if (!rateChangePending) return;
+                await setPiggyRate(rateChangePending.pb.id, rateChangePending.newRate, "recalc");
+                toast.success("Rendimentos recalculados com a nova taxa");
+                setRateChangePending(null);
+                setCreateOpen(false);
+              }}
+            >
+              Recalcular tudo
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
