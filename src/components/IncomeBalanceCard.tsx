@@ -17,7 +17,7 @@ interface Props {
 }
 
 export function IncomeBalanceCard({ incomes }: Props) {
-  const { hide } = useHideValues();
+  const { hidden: hide } = useHideValues();
   const { user } = useAuth();
   const [balance, setBalance] = useState({ account: 0, cash: 0, total: 0 });
   const [monthOut, setMonthOut] = useState(0);
