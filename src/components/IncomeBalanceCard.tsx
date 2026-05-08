@@ -68,7 +68,7 @@ export function IncomeBalanceCard({ incomes, expenses }: Props) {
       .filter((i) => i.status === "received" && i.receivedDate.startsWith(prevKey))
       .reduce((s, i) => s + i.amount, 0);
 
-    return { balance, monthIn, monthOut, futureIn, futureOut, projected, projectedDiff, prevIn };
+    return { balance, monthIn, monthOut, futureIn, futureOut, projected, projectedDiff, prevIn, pendingInCount };
   }, [incomes, expenses, monthKey, prevKey]);
 
   const diff = calc.monthIn - calc.prevIn;
