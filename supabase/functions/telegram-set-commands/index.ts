@@ -16,6 +16,7 @@ const EXPENSES_COMMANDS = [
   { command: 'apagar', description: 'Apaga a despesa mais recente' },
   { command: 'aporte', description: 'Fazer aporte em uma caixinha (cofrinho)' },
   { command: 'meus_aportes', description: 'Últimos 10 aportes nas caixinhas' },
+  { command: 'resgatar', description: 'Resgatar saldo da caixinha para a conta' },
   { command: 'code', description: 'Gerar código para vincular este bot ao app' },
   { command: 'help', description: 'Mostra ajuda' },
   { command: 'start', description: 'Vincular conta com código' },
