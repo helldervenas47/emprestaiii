@@ -54,7 +54,8 @@ export function IncomeList({ readOnly }: Props) {
   const [sortBy, setSortBy] = useState<"date" | "amount">("date");
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<Income | null>(null);
-  const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<Income | null>(null);
+  const [deleteScope, setDeleteScope] = useState<"single" | "pending" | "all">("single");
   const [sheetType, setSheetType] = useState<"incomes" | "expenses" | null>(null);
   const [sheetInitialFilter, setSheetInitialFilter] = useState<string | undefined>(undefined);
   const [payTarget, setPayTarget] = useState<Income | null>(null);
