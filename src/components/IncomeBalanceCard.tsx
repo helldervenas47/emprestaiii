@@ -11,7 +11,29 @@ import { TrendingUp, TrendingDown, Wallet, ArrowUpRight, ArrowDownRight, Setting
 import { useCreditCards } from "@/hooks/useCreditCards";
 import { useCreditCardOpenings } from "@/hooks/useCreditCardOpenings";
 import { getCardInvoiceTotalsForMonth, isCreditCardExpense } from "@/lib/creditCardInvoiceTotals";
-import { isPiggyExpense } from "@/hooks/usePiggyBanks";
+import { isPiggyExpense, usePiggyBanks } from "@/hooks/usePiggyBanks";
+import { useProducts } from "@/hooks/useProducts";
+import { Sale } from "@/types/loan";
+
+/** Total efetivamente recebido de uma venda (não os lançamentos previstos). */
+function saleReceivedTotal(sale: Sale): number {
+  if (sale.paymentHistory && sale.paymentHistory.length > 0) {
+    return sale.paymentHistory.reduce((s, p) => s + (Number(p.amount) || 0), 0);
+  }
+  const iv = sale.installmentValue ?? (sale.installments > 0 ? sale.total / sale.installments : sale.total);
+  return (sale.downPayment || 0) + (sale.paidInstallments || 0) * iv + (sale.partialPaid || 0);
+}
+
+/** Total recebido de uma venda no mês (YYYY-MM). */
+function saleReceivedInMonth(sale: Sale, monthKey: string): number {
+  if (sale.paymentHistory && sale.paymentHistory.length > 0) {
+    return sale.paymentHistory
+      .filter((p) => (p.date || "").startsWith(monthKey))
+      .reduce((s, p) => s + (Number(p.amount) || 0), 0);
+  }
+  // Sem histórico: considera o total recebido no mês da venda.
+  return (sale.date || "").startsWith(monthKey) ? saleReceivedTotal(sale) : 0;
+}
 
 function fmt(n: number, hide: boolean) {
   if (hide) return "•••••";
