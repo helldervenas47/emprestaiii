@@ -61,33 +61,19 @@ export function IncomeBalanceCard({ incomes, expenses, onAdjust, readOnly, onOpe
       .filter((e) => e.paid && (e.paidDate || "").startsWith(monthKey))
       .reduce((s, e) => s + e.amount, 0);
 
-    // Futuras do mês selecionado (pendentes/agendadas, não canceladas)
-    // Para receitas recorrentes, expande as ocorrências dentro do mês selecionado
-    const startMonth = new Date(mkY, mkM - 1, 1);
-    const endMonth = new Date(mkY, mkM, 0);
-    const isCurrentMonth = mkY === now.getFullYear() && mkM - 1 === now.getMonth();
-    const today = isCurrentMonth
-      ? new Date(now.getFullYear(), now.getMonth(), now.getDate())
-      : startMonth;
+    // Futuras do mês selecionado (pendentes/agendadas, não canceladas).
+    // Receitas recorrentes são materializadas como lançamentos mensais separados;
+    // por isso cada linha deve contar apenas a própria data para evitar duplicidade visual.
     const pendingOccurrencesInMonth = (i: Income): number => {
       if (i.status !== "pending") return 0;
-      const base = new Date(i.receivedDate + "T00:00:00");
-      if (i.recurrence === "once") {
+      if (
+        i.recurrence === "once" ||
+        i.recurrence === "weekly" ||
+        i.recurrence === "biweekly" ||
+        i.recurrence === "monthly" ||
+        i.recurrence === "yearly"
+      ) {
         return i.receivedDate.startsWith(monthKey) ? 1 : 0;
-      }
-      if (i.recurrence === "weekly" || i.recurrence === "biweekly") {
-        // Receitas semanais/quinzenais agora são materializadas em linhas separadas;
-        // contamos apenas a própria data (sem expansão) para evitar duplicação.
-        return i.receivedDate.startsWith(monthKey) ? 1 : 0;
-      }
-      if (i.recurrence === "monthly") {
-        const occ = new Date(mkY, mkM - 1, base.getDate());
-        return occ >= today && occ <= endMonth && occ >= startMonth ? 1 : 0;
-      }
-      if (i.recurrence === "yearly") {
-        if (base.getMonth() !== mkM - 1) return 0;
-        const occ = new Date(mkY, mkM - 1, base.getDate());
-        return occ >= today && occ <= endMonth ? 1 : 0;
       }
       return 0;
     };
