@@ -26,9 +26,10 @@ interface Props {
   onOpenIncomes?: () => void;
   onOpenExpenses?: () => void;
   onOpenPendingIncomes?: () => void;
+  monthKey?: string;
 }
 
-export function IncomeBalanceCard({ incomes, expenses, onAdjust, readOnly, onOpenIncomes, onOpenExpenses, onOpenPendingIncomes }: Props) {
+export function IncomeBalanceCard({ incomes, expenses, onAdjust, readOnly, onOpenIncomes, onOpenExpenses, onOpenPendingIncomes, monthKey: monthKeyProp }: Props) {
   const { hidden: hide } = useHideValues();
   const { cards } = useCreditCards();
   const { openings } = useCreditCardOpenings();
@@ -37,8 +38,9 @@ export function IncomeBalanceCard({ incomes, expenses, onAdjust, readOnly, onOpe
   const [saving, setSaving] = useState(false);
 
   const now = new Date();
-  const monthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
-  const prevDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+  const monthKey = monthKeyProp ?? `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+  const [mkY, mkM] = monthKey.split("-").map(Number);
+  const prevDate = new Date(mkY, mkM - 2, 1);
   const prevKey = `${prevDate.getFullYear()}-${String(prevDate.getMonth() + 1).padStart(2, "0")}`;
 
   const calc = useMemo(() => {
