@@ -120,6 +120,12 @@ export function IncomeList({ readOnly }: Props) {
 
   return (
     <div className="space-y-4 overflow-x-hidden max-w-full">
+      <Tabs defaultValue="overview" className="w-full">
+        <TabsList className="grid w-full max-w-md grid-cols-2">
+          <TabsTrigger value="overview">Visão geral</TabsTrigger>
+          <TabsTrigger value="statement">Extrato Financeiro</TabsTrigger>
+        </TabsList>
+        <TabsContent value="overview" className="space-y-4 mt-4">
       <div className="flex items-center justify-center gap-2">
         <Button variant="ghost" size="icon" className="h-8 w-8" onClick={prevMonth}>
           <ChevronLeft className="h-4 w-4" />
