@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { PiggyBank, Plus, TrendingUp, Trash2, Pencil, Sparkles, Wallet, History, ArrowDownCircle, ArrowUpCircle, Repeat, Receipt } from "lucide-react";
+import { PiggyBank, Plus, TrendingUp, Trash2, Pencil, Sparkles, Wallet, History, ArrowDownCircle, ArrowUpCircle, Repeat, Receipt, Percent, CalendarClock, Coins } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -7,6 +7,10 @@ import { Badge } from "@/components/ui/badge";
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
 import { useHideValues } from "@/contexts/HideValuesContext";
 import { usePiggyBanks, type PiggyBank as PiggyBankType, type PiggyBankDeposit } from "@/hooks/usePiggyBanks";
@@ -27,7 +31,7 @@ interface Props {
 
 export function PiggyBankList({ readOnly = false }: Props) {
   const { mask } = useHideValues();
-  const { piggyBanks, deposits, balances, createPiggyBank, updatePiggyBank, deletePiggyBank, adjustBalance, updateDeposit, deleteDeposit } = usePiggyBanks();
+  const { piggyBanks, deposits, balances, detailed, createPiggyBank, updatePiggyBank, deletePiggyBank, adjustBalance, updateDeposit, deleteDeposit, setPiggyRate } = usePiggyBanks();
 
   const [createOpen, setCreateOpen] = useState(false);
   const [editing, setEditing] = useState<PiggyBankType | null>(null);
@@ -40,6 +44,8 @@ export function PiggyBankList({ readOnly = false }: Props) {
   const [editDeposit, setEditDeposit] = useState<PiggyBankDeposit | null>(null);
   const [editDepositDraft, setEditDepositDraft] = useState({ amount: "", depositDate: "" });
   const [deleteDepositId, setDeleteDepositId] = useState<string | null>(null);
+  // Diálogo de escolha quando a taxa muda no editar
+  const [rateChangePending, setRateChangePending] = useState<{ pb: PiggyBankType; newRate: number } | null>(null);
 
   const openEditDeposit = (d: PiggyBankDeposit) => {
     setEditDepositDraft({ amount: d.amount.toFixed(2), depositDate: d.depositDate });
@@ -141,7 +147,14 @@ export function PiggyBankList({ readOnly = false }: Props) {
     }
 
     if (editing) {
-      await updatePiggyBank(editing.id, { name: draft.name.trim(), color: draft.color, annualRate: rate, shortId });
+      const rateChanged = Math.abs(editing.annualRate - rate) > 0.0001;
+      // Salva metadados (nome/cor/nº) imediatamente; taxa é tratada via setPiggyRate
+      await updatePiggyBank(editing.id, { name: draft.name.trim(), color: draft.color, shortId });
+      if (rateChanged) {
+        // Abre diálogo de escolha (não fechamos o modal de edição ainda)
+        setRateChangePending({ pb: editing, newRate: rate });
+        return;
+      }
     } else {
       await createPiggyBank({ name: draft.name.trim(), color: draft.color, annualRate: rate, shortId });
     }
@@ -186,77 +199,97 @@ export function PiggyBankList({ readOnly = false }: Props) {
         <div className="space-y-2">
           {piggyBanks.map((pb) => {
             const b = balances.get(pb.id);
+            const det = detailed.get(pb.id);
             return (
               <div
                 key={pb.id}
-                role="button"
-                tabIndex={0}
-                onClick={() => setHistoryTarget(pb)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" || e.key === " ") {
-                    e.preventDefault();
-                    setHistoryTarget(pb);
-                  }
-                }}
-                className="rounded-xl border border-border/40 p-3 flex items-center gap-3 cursor-pointer hover:border-border transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                className="rounded-xl border border-border/40 p-3 hover:border-border transition-colors"
                 style={{ background: `hsl(${pb.color} / 0.05)` }}
-                title="Ver histórico de aportes"
               >
                 <div
-                  className="h-9 w-9 rounded-lg flex items-center justify-center shrink-0"
-                  style={{ backgroundColor: `hsl(${pb.color} / 0.18)` }}
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => setHistoryTarget(pb)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setHistoryTarget(pb); }
+                  }}
+                  className="flex items-center gap-3 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-lg"
+                  title="Ver histórico de aportes"
                 >
-                  <PiggyBank className="h-4.5 w-4.5" style={{ color: `hsl(${pb.color})` }} />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-1.5 min-w-0">
-                    {pb.shortId != null && (
-                      <span className="text-[10px] font-mono font-semibold text-muted-foreground bg-muted px-1.5 py-0.5 rounded shrink-0">
-                        #{pb.shortId}
-                      </span>
-                    )}
-                    <p className="text-sm font-semibold text-foreground truncate">{pb.name}</p>
-                    <Badge variant="outline" className="text-[9px] px-1 py-0 h-4 shrink-0">
-                      {pb.annualRate.toFixed(2)}% a.a.
-                    </Badge>
+                  <div
+                    className="h-9 w-9 rounded-lg flex items-center justify-center shrink-0"
+                    style={{ backgroundColor: `hsl(${pb.color} / 0.18)` }}
+                  >
+                    <PiggyBank className="h-4.5 w-4.5" style={{ color: `hsl(${pb.color})` }} />
                   </div>
-                  <p className="text-[11px] text-muted-foreground truncate">
-                    Aportado: {mask(fmt(b?.principal ?? 0))}
-                    {b && b.yield > 0 && (
-                      <span className="ml-1 text-success inline-flex items-center gap-0.5">
-                        <TrendingUp className="h-2.5 w-2.5" />
-                        {mask(fmt(b.yield))}
-                      </span>
-                    )}
-                  </p>
-                </div>
-                <div className="text-right shrink-0" onClick={(e) => e.stopPropagation()}>
-                  <p className="text-sm font-bold text-foreground">{mask(fmt(b?.balance ?? 0))}</p>
-                  <div className="flex gap-0.5 justify-end mt-0.5">
-                    <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => setHistoryTarget(pb)} title="Histórico de aportes">
-                      <History className="h-3 w-3" />
-                    </Button>
-                    {!readOnly && (
-                      <>
-                        <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => openAdjust(pb)} title="Ajustar saldo">
-                          <Wallet className="h-3 w-3" />
-                        </Button>
-                        <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => openEdit(pb)} title="Editar">
-                          <Pencil className="h-3 w-3" />
-                        </Button>
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          className="h-6 w-6 text-destructive hover:text-destructive hover:bg-destructive/10"
-                          onClick={() => setDeleteId(pb.id)}
-                          title="Excluir"
-                        >
-                          <Trash2 className="h-3 w-3" />
-                        </Button>
-                      </>
-                    )}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-1.5 min-w-0">
+                      {pb.shortId != null && (
+                        <span className="text-[10px] font-mono font-semibold text-muted-foreground bg-muted px-1.5 py-0.5 rounded shrink-0">
+                          #{pb.shortId}
+                        </span>
+                      )}
+                      <p className="text-sm font-semibold text-foreground truncate">{pb.name}</p>
+                      <Badge variant="outline" className="text-[9px] px-1 py-0 h-4 shrink-0">
+                        {pb.annualRate.toFixed(2)}% a.a.
+                      </Badge>
+                    </div>
+                    <p className="text-[11px] text-muted-foreground truncate">
+                      Aportado: {mask(fmt(b?.principal ?? 0))}
+                    </p>
+                  </div>
+                  <div className="text-right shrink-0" onClick={(e) => e.stopPropagation()}>
+                    <p className="text-sm font-bold text-foreground">{mask(fmt(b?.balance ?? 0))}</p>
+                    <div className="flex gap-0.5 justify-end mt-0.5">
+                      <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => setHistoryTarget(pb)} title="Histórico de aportes">
+                        <History className="h-3 w-3" />
+                      </Button>
+                      {!readOnly && (
+                        <>
+                          <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => openAdjust(pb)} title="Ajustar saldo">
+                            <Wallet className="h-3 w-3" />
+                          </Button>
+                          <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => openEdit(pb)} title="Editar">
+                            <Pencil className="h-3 w-3" />
+                          </Button>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="h-6 w-6 text-destructive hover:text-destructive hover:bg-destructive/10"
+                            onClick={() => setDeleteId(pb.id)}
+                            title="Excluir"
+                          >
+                            <Trash2 className="h-3 w-3" />
+                          </Button>
+                        </>
+                      )}
+                    </div>
                   </div>
                 </div>
+                {det && (
+                  <div className="mt-2.5 pt-2.5 border-t border-border/40 grid grid-cols-2 gap-x-3 gap-y-1.5 text-[11px]">
+                    <div className="flex items-center justify-between">
+                      <span className="inline-flex items-center gap-1 text-muted-foreground"><TrendingUp className="h-3 w-3" /> Rend. bruto</span>
+                      <span className="font-medium text-success tabular-nums">{mask(fmt(det.gross))}</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="inline-flex items-center gap-1 text-muted-foreground"><Receipt className="h-3 w-3" /> IR descontado</span>
+                      <span className="font-medium text-destructive tabular-nums">{mask(fmt(det.tax))}</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="inline-flex items-center gap-1 text-muted-foreground"><Coins className="h-3 w-3" /> Rend. líquido</span>
+                      <span className="font-medium text-foreground tabular-nums">{mask(fmt(det.net))}</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="inline-flex items-center gap-1 text-muted-foreground"><CalendarClock className="h-3 w-3" /> Proj. fim do mês</span>
+                      <span className="font-medium text-foreground tabular-nums">{mask(fmt(det.projectionNetEom))}</span>
+                    </div>
+                    <div className="flex items-center justify-between col-span-2">
+                      <span className="inline-flex items-center gap-1 text-muted-foreground"><Percent className="h-3 w-3" /> CDI atual</span>
+                      <span className="font-medium text-foreground tabular-nums">{det.currentRate.toFixed(2)}% a.a.</span>
+                    </div>
+                  </div>
+                )}
               </div>
             );
           })}
@@ -571,6 +604,60 @@ export function PiggyBankList({ readOnly = false }: Props) {
         title="Excluir lançamento"
         description="Este aporte será removido do histórico do cofrinho. A despesa vinculada (se houver) permanece. Esta ação não pode ser desfeita."
       />
+
+      {/* Diálogo: como aplicar a nova taxa CDI */}
+      <AlertDialog open={!!rateChangePending} onOpenChange={(o) => !o && setRateChangePending(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Como aplicar a nova taxa?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Você alterou a taxa de <strong>{rateChangePending?.pb.annualRate.toFixed(2)}%</strong> para{" "}
+              <strong>{rateChangePending?.newRate.toFixed(2)}%</strong> a.a. em
+              {" "}<strong>{rateChangePending?.pb.name}</strong>. Escolha como aplicar:
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="grid gap-2 py-2 text-sm">
+            <div className="rounded-lg border border-border/40 p-3">
+              <p className="font-medium">Manter rendimentos já calculados</p>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                A nova taxa vale apenas a partir de hoje. Os rendimentos passados ficam intocados.
+              </p>
+            </div>
+            <div className="rounded-lg border border-border/40 p-3">
+              <p className="font-medium">Recalcular tudo com a nova taxa</p>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Refaz todos os rendimentos (passados e futuros) usando a nova taxa.
+              </p>
+            </div>
+          </div>
+          <AlertDialogFooter className="gap-2 sm:gap-2">
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <Button
+              variant="outline"
+              onClick={async () => {
+                if (!rateChangePending) return;
+                await setPiggyRate(rateChangePending.pb.id, rateChangePending.newRate, "forward");
+                toast.success("Nova taxa aplicada apenas aos próximos rendimentos");
+                setRateChangePending(null);
+                setCreateOpen(false);
+              }}
+            >
+              Manter passados
+            </Button>
+            <AlertDialogAction
+              onClick={async () => {
+                if (!rateChangePending) return;
+                await setPiggyRate(rateChangePending.pb.id, rateChangePending.newRate, "recalc");
+                toast.success("Rendimentos recalculados com a nova taxa");
+                setRateChangePending(null);
+                setCreateOpen(false);
+              }}
+            >
+              Recalcular tudo
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

@@ -3,6 +3,19 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
 import { useDataOwner } from "./useDataOwner";
 import { toast } from "sonner";
+import {
+  computePiggyDetailed as computePiggyDetailedSeg,
+  type PiggyDetailed,
+  type RatePeriod,
+} from "@/lib/piggyTax";
+
+export interface PiggyBankRateHistory {
+  id: string;
+  piggyBankId: string;
+  annualRate: number;
+  effectiveFrom: string; // YYYY-MM-DD
+  createdAt: string;
+}
 
 export interface PiggyBank {
   id: string;
@@ -122,14 +135,16 @@ export function usePiggyBanks() {
   const [piggyBanks, setPiggyBanks] = useState<PiggyBank[]>([]);
   const [deposits, setDeposits] = useState<PiggyBankDeposit[]>([]);
   const [recurrences, setRecurrences] = useState<PiggyBankRecurrence[]>([]);
+  const [rateHistory, setRateHistory] = useState<PiggyBankRateHistory[]>([]);
   const [loading, setLoading] = useState(true);
 
   const reload = useCallback(async () => {
     if (!dataOwnerId) return;
-    const [pbRes, dpRes, rcRes] = await Promise.all([
+    const [pbRes, dpRes, rcRes, rhRes] = await Promise.all([
       supabase.from("piggy_banks" as any).select("*").eq("user_id", dataOwnerId).order("created_at"),
       supabase.from("piggy_bank_deposits" as any).select("*").eq("user_id", dataOwnerId),
       supabase.from("piggy_bank_recurrences" as any).select("*").eq("user_id", dataOwnerId),
+      supabase.from("piggy_bank_rate_history" as any).select("*").eq("user_id", dataOwnerId).order("effective_from"),
     ]);
     if (!pbRes.error) {
       setPiggyBanks(((pbRes.data as any[]) || []).map((r) => ({
@@ -166,6 +181,15 @@ export function usePiggyBanks() {
         lastGeneratedDate: r.last_generated_date,
       })));
     }
+    if (!rhRes.error) {
+      setRateHistory(((rhRes.data as any[]) || []).map((r) => ({
+        id: r.id,
+        piggyBankId: r.piggy_bank_id,
+        annualRate: Number(r.annual_rate),
+        effectiveFrom: r.effective_from,
+        createdAt: r.created_at,
+      })));
+    }
     setLoading(false);
   }, [dataOwnerId]);
 
@@ -179,6 +203,7 @@ export function usePiggyBanks() {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'piggy_bank_deposits' }, () => { reload(); })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'piggy_banks' }, () => { reload(); })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'piggy_bank_recurrences' }, () => { reload(); })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'piggy_bank_rate_history' }, () => { reload(); })
       .subscribe();
     return () => { supabase.removeChannel(channel); };
   }, [dataOwnerId, reload]);
@@ -358,20 +383,81 @@ export function usePiggyBanks() {
     return (data as any)?.id as string;
   }, [dataOwnerId, reload]);
 
+  /**
+   * Retorna os períodos de taxa de uma caixinha. Sempre garante pelo menos um
+   * período: se não houver histórico, usa a taxa atual valendo desde a criação.
+   */
+  const periodsFor = useCallback((pb: PiggyBank): RatePeriod[] => {
+    const hist = rateHistory
+      .filter((h) => h.piggyBankId === pb.id)
+      .map<RatePeriod>((h) => ({ effectiveFrom: h.effectiveFrom, annualRate: h.annualRate }));
+    if (hist.length === 0) {
+      return [{ effectiveFrom: pb.createdAt.slice(0, 10), annualRate: pb.annualRate }];
+    }
+    return hist;
+  }, [rateHistory]);
+
   const balances = useMemo(() => {
     const map = new Map<string, ReturnType<typeof computePiggyBalance>>();
     for (const pb of piggyBanks) {
       const ds = deposits.filter((d) => d.piggyBankId === pb.id);
-      map.set(pb.id, computePiggyBalance(ds, pb.annualRate));
+      // Usa cálculo segmentado por taxa; expõe na mesma forma legacy {principal, balance, yield}
+      const det = computePiggyDetailedSeg(ds, periodsFor(pb));
+      map.set(pb.id, { principal: det.principal, balance: det.balance, yield: det.gross });
     }
     return map;
-  }, [piggyBanks, deposits]);
+  }, [piggyBanks, deposits, periodsFor]);
+
+  const detailed = useMemo(() => {
+    const map = new Map<string, PiggyDetailed>();
+    for (const pb of piggyBanks) {
+      const ds = deposits.filter((d) => d.piggyBankId === pb.id);
+      map.set(pb.id, computePiggyDetailedSeg(ds, periodsFor(pb)));
+    }
+    return map;
+  }, [piggyBanks, deposits, periodsFor]);
+
+  /**
+   * Atualiza a taxa de uma caixinha:
+   *  - mode='forward': mantém rendimentos passados; novo período inicia hoje.
+   *  - mode='recalc': recalcula tudo com a nova taxa (apaga histórico e
+   *    insere uma única linha valendo desde a criação).
+   */
+  const setPiggyRate = useCallback(async (
+    piggyBankId: string,
+    newRate: number,
+    mode: "forward" | "recalc",
+  ) => {
+    if (!dataOwnerId) return;
+    const pb = piggyBanks.find((p) => p.id === piggyBankId);
+    if (!pb) return;
+    if (mode === "recalc") {
+      await supabase.from("piggy_bank_rate_history" as any).delete().eq("piggy_bank_id", piggyBankId);
+      await supabase.from("piggy_bank_rate_history" as any).insert({
+        user_id: dataOwnerId,
+        piggy_bank_id: piggyBankId,
+        annual_rate: newRate,
+        effective_from: pb.createdAt.slice(0, 10),
+      });
+    } else {
+      await supabase.from("piggy_bank_rate_history" as any).insert({
+        user_id: dataOwnerId,
+        piggy_bank_id: piggyBankId,
+        annual_rate: newRate,
+        effective_from: ymd(new Date()),
+      });
+    }
+    await supabase.from("piggy_banks" as any).update({ annual_rate: newRate }).eq("id", piggyBankId);
+    await reload();
+  }, [dataOwnerId, piggyBanks, reload]);
 
   return {
     piggyBanks,
     deposits,
     recurrences,
+    rateHistory,
     balances,
+    detailed,
     loading,
     createPiggyBank,
     updatePiggyBank,
@@ -382,6 +468,7 @@ export function usePiggyBanks() {
     deleteDeposit,
     adjustBalance,
     createRecurrence,
+    setPiggyRate,
     reload,
   };
 }

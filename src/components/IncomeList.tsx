@@ -19,6 +19,7 @@ import { IncomeForm, INCOME_CATEGORIES } from "./IncomeForm";
 import { ConfirmDeleteDialog } from "./ConfirmDeleteDialog";
 import { MonthTransactionsSheet } from "./MonthTransactionsSheet";
 import { FinancialStatement } from "./FinancialStatement";
+import { PiggyBankList } from "./PiggyBankList";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Plus, Search, Copy, Pencil, Trash2, CheckCircle2, Clock, AlertTriangle, ArrowUpDown, ChevronLeft, ChevronRight } from "lucide-react";
 import { format } from "date-fns";
@@ -309,6 +310,10 @@ export function IncomeList({ readOnly }: Props) {
           </div>
         </SheetContent>
       </Sheet>
+
+      <section className="rounded-2xl border border-border/40 bg-card/40 backdrop-blur-sm p-3 sm:p-4 shadow-[0_1px_6px_-4px_hsl(0_0%_0%/0.04)] overflow-hidden">
+        <PiggyBankList readOnly={readOnly} />
+      </section>
 
 
       <IncomeForm

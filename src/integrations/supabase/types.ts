@@ -1735,6 +1735,41 @@ export type Database = {
           },
         ]
       }
+      piggy_bank_rate_history: {
+        Row: {
+          annual_rate: number
+          created_at: string
+          effective_from: string
+          id: string
+          piggy_bank_id: string
+          user_id: string
+        }
+        Insert: {
+          annual_rate: number
+          created_at?: string
+          effective_from: string
+          id?: string
+          piggy_bank_id: string
+          user_id: string
+        }
+        Update: {
+          annual_rate?: number
+          created_at?: string
+          effective_from?: string
+          id?: string
+          piggy_bank_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "piggy_bank_rate_history_piggy_bank_id_fkey"
+            columns: ["piggy_bank_id"]
+            isOneToOne: false
+            referencedRelation: "piggy_banks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       piggy_bank_recurrences: {
         Row: {
           active: boolean
