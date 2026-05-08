@@ -300,7 +300,7 @@ export function PersonalExpenseCalendar({ expenses }: Props) {
           </div>
 
           {/* Lado direito: detalhes do dia selecionado */}
-          <div className="rounded-lg border border-border/50 bg-muted/20 p-3 min-h-[200px]">
+          <div className={`rounded-lg border border-border/50 bg-muted/20 p-3 min-h-[200px] ${expanded ? "" : "hidden md:block"}`}>
             {!selectedDate ? (
               <div className="flex h-full min-h-[180px] flex-col items-center justify-center text-center">
                 <Receipt className="h-7 w-7 text-muted-foreground mb-2" />
