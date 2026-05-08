@@ -864,6 +864,63 @@ export type Database = {
           },
         ]
       }
+      incomes: {
+        Row: {
+          amount: number
+          category: string | null
+          client_id: string | null
+          created_at: string
+          description: string
+          id: string
+          ledger_id: string | null
+          notes: string | null
+          parent_id: string | null
+          payment_method_id: string | null
+          received_date: string
+          recurrence: string
+          source: string | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          amount?: number
+          category?: string | null
+          client_id?: string | null
+          created_at?: string
+          description: string
+          id?: string
+          ledger_id?: string | null
+          notes?: string | null
+          parent_id?: string | null
+          payment_method_id?: string | null
+          received_date?: string
+          recurrence?: string
+          source?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          category?: string | null
+          client_id?: string | null
+          created_at?: string
+          description?: string
+          id?: string
+          ledger_id?: string | null
+          notes?: string | null
+          parent_id?: string | null
+          payment_method_id?: string | null
+          received_date?: string
+          recurrence?: string
+          source?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       invite_codes: {
         Row: {
           active: boolean
