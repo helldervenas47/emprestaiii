@@ -41,8 +41,9 @@ export function IncomeDashboard({ incomes, allMonthIncomes, monthKey }: Props) {
   }, [incomes]);
 
   const topSources = useMemo(() => {
+    const source = allMonthIncomes ?? incomes;
     const map = new Map<string, number>();
-    incomes.forEach((i) => {
+    source.forEach((i) => {
       const k = i.source || i.category || "Outros";
       map.set(k, (map.get(k) || 0) + i.amount);
     });
@@ -50,7 +51,7 @@ export function IncomeDashboard({ incomes, allMonthIncomes, monthKey }: Props) {
       .sort((a, b) => b[1] - a[1])
       .slice(0, 5)
       .map(([name, value]) => ({ name, value }));
-  }, [incomes]);
+  }, [incomes, allMonthIncomes]);
 
   const totalToReceive = incomes.reduce((s, i) => s + i.amount, 0);
   const [y, m] = monthKey.split("-").map(Number);
