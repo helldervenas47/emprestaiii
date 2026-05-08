@@ -25,9 +25,10 @@ interface Props {
   readOnly?: boolean;
   onOpenIncomes?: () => void;
   onOpenExpenses?: () => void;
+  onOpenPendingIncomes?: () => void;
 }
 
-export function IncomeBalanceCard({ incomes, expenses, onAdjust, readOnly, onOpenIncomes, onOpenExpenses }: Props) {
+export function IncomeBalanceCard({ incomes, expenses, onAdjust, readOnly, onOpenIncomes, onOpenExpenses, onOpenPendingIncomes }: Props) {
   const { hidden: hide } = useHideValues();
   const { cards } = useCreditCards();
   const { openings } = useCreditCardOpenings();
