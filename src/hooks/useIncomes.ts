@@ -67,7 +67,7 @@ export function useIncomes(enabled = true) {
     return () => { supabase.removeChannel(channel); };
   }, [user, fetch, enabled]);
 
-  const addIncome = useCallback(async (
+  const insertSingle = useCallback(async (
     input: Omit<Income, "id" | "createdAt">,
   ): Promise<Income | null> => {
     if (!dataOwnerId) return null;
@@ -87,10 +87,54 @@ export function useIncomes(enabled = true) {
     };
     const { data, error } = await supabase.from("incomes" as any).insert(payload).select().single();
     if (error || !data) return null;
-    const inc = rowToIncome(data);
-    setIncomes((prev) => [inc, ...prev]);
-    return inc;
+    return rowToIncome(data);
   }, [dataOwnerId]);
+
+  // Expande receitas semanais/quinzenais para todas as ocorrências do mês cadastrado
+  const addIncome = useCallback(async (
+    input: Omit<Income, "id" | "createdAt">,
+  ): Promise<Income | null> => {
+    if (!dataOwnerId) return null;
+    const today = todayInAppTz();
+    if (input.recurrence === "weekly" || input.recurrence === "biweekly") {
+      const stepDays = input.recurrence === "weekly" ? 7 : 14;
+      const base = new Date(input.receivedDate + "T00:00:00");
+      const y = base.getFullYear();
+      const m = base.getMonth();
+      const endMonth = new Date(y, m + 1, 0);
+      // gera datas a partir da base, dentro do mês
+      const dates: string[] = [];
+      let d = new Date(base);
+      while (d <= endMonth) {
+        const iso = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+        dates.push(iso);
+        d.setDate(d.getDate() + stepDays);
+      }
+      // primeiro registro: pai (mantém recorrência); demais: filhos "once"
+      let parent: Income | null = null;
+      const created: Income[] = [];
+      for (let i = 0; i < dates.length; i++) {
+        const isFirst = i === 0;
+        const inc = await insertSingle({
+          ...input,
+          receivedDate: dates[i],
+          status: dates[i] > today ? "pending" : input.status,
+          recurrence: isFirst ? input.recurrence : "once",
+          parentId: isFirst ? input.parentId : (parent?.id ?? null),
+        });
+        if (!inc) continue;
+        if (isFirst) parent = inc;
+        created.push(inc);
+      }
+      if (created.length > 0) {
+        setIncomes((prev) => [...created, ...prev]);
+      }
+      return parent;
+    }
+    const inc = await insertSingle(input);
+    if (inc) setIncomes((prev) => [inc, ...prev]);
+    return inc;
+  }, [dataOwnerId, insertSingle]);
 
   const updateIncome = useCallback(async (id: string, patch: Partial<Income>) => {
     const updatePayload: any = {};
