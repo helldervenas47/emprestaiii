@@ -80,7 +80,8 @@ export function MonthTransactionsSheet({ open, onOpenChange, type, monthKey, inc
           }
           continue;
         }
-        // Pendentes/atrasadas: expandir recorrências dentro do mês
+        // Pendentes/atrasadas: receitas recorrentes já foram materializadas em linhas separadas.
+        // Usar apenas a própria data evita mostrar a receita antiga novamente nos meses futuros.
         const base = new Date(i.receivedDate + "T00:00:00");
         const pushOcc = (d: Date, idx: number) => {
           const iso = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
@@ -93,17 +94,14 @@ export function MonthTransactionsSheet({ open, onOpenChange, type, monthKey, inc
             status: i.status as Row["status"],
           });
         };
-        if (i.recurrence === "once" || i.recurrence === "weekly" || i.recurrence === "biweekly") {
-          // Semanais/quinzenais agora são linhas separadas: usar somente a própria data
+        if (
+          i.recurrence === "once" ||
+          i.recurrence === "weekly" ||
+          i.recurrence === "biweekly" ||
+          i.recurrence === "monthly" ||
+          i.recurrence === "yearly"
+        ) {
           if (i.receivedDate.startsWith(monthKey)) pushOcc(base, 0);
-        } else if (i.recurrence === "monthly") {
-          const occ = new Date(y, m, base.getDate());
-          if (occ >= startMonth && occ <= endMonth) pushOcc(occ, 0);
-        } else if (i.recurrence === "yearly") {
-          if (base.getMonth() === m) {
-            const occ = new Date(y, m, base.getDate());
-            if (occ >= startMonth && occ <= endMonth) pushOcc(occ, 0);
-          }
         }
       }
       return out;
