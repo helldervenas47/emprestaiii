@@ -26,10 +26,11 @@ interface Props {
   onOpenIncomes?: () => void;
   onOpenExpenses?: () => void;
   onOpenPendingIncomes?: () => void;
+  onOpenStatement?: () => void;
   monthKey?: string;
 }
 
-export function IncomeBalanceCard({ incomes, expenses, onAdjust, readOnly, onOpenIncomes, onOpenExpenses, onOpenPendingIncomes, monthKey: monthKeyProp }: Props) {
+export function IncomeBalanceCard({ incomes, expenses, onAdjust, readOnly, onOpenIncomes, onOpenExpenses, onOpenPendingIncomes, onOpenStatement, monthKey: monthKeyProp }: Props) {
   const { hidden: hide } = useHideValues();
   const { cards } = useCreditCards();
   const { openings } = useCreditCardOpenings();
