@@ -16,26 +16,33 @@ export function IncomeDashboard({ incomes }: { incomes: Income[] }) {
   const now = new Date();
 
   const monthly = useMemo(() => {
-    const map = new Map<string, number>();
-    for (let i = 5; i >= 0; i--) {
-      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-      const k = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
-      map.set(k, 0);
-    }
+    const mk = () => {
+      const m = new Map<string, number>();
+      for (let i = 5; i >= 0; i--) {
+        const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+        const k = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+        m.set(k, 0);
+      }
+      return m;
+    };
+    const received = mk(), pending = mk(), overdue = mk();
     incomes.forEach((i) => {
-      if (i.status !== "received") return;
       const k = i.receivedDate.slice(0, 7);
-      if (map.has(k)) map.set(k, (map.get(k) || 0) + i.amount);
+      const target = i.status === "received" ? received : i.status === "overdue" ? overdue : pending;
+      if (target.has(k)) target.set(k, (target.get(k) || 0) + i.amount);
     });
-    return Array.from(map.entries()).map(([k, v]) => ({
+    return Array.from(received.keys()).map((k) => ({
       month: k.slice(5) + "/" + k.slice(2, 4),
-      total: v,
+      received: received.get(k) || 0,
+      pending: pending.get(k) || 0,
+      overdue: overdue.get(k) || 0,
+      total: (received.get(k) || 0) + (pending.get(k) || 0) + (overdue.get(k) || 0),
     }));
   }, [incomes]);
 
   const byCategory = useMemo(() => {
     const map = new Map<string, number>();
-    incomes.filter((i) => i.status === "received").forEach((i) => {
+    incomes.forEach((i) => {
       const k = i.category || "Outros";
       map.set(k, (map.get(k) || 0) + i.amount);
     });
@@ -58,7 +65,7 @@ export function IncomeDashboard({ incomes }: { incomes: Income[] }) {
 
   const topSources = useMemo(() => {
     const map = new Map<string, number>();
-    incomes.filter((i) => i.status === "received").forEach((i) => {
+    incomes.forEach((i) => {
       const k = i.source || i.category || "Outros";
       map.set(k, (map.get(k) || 0) + i.amount);
     });
@@ -81,7 +88,10 @@ export function IncomeDashboard({ incomes }: { incomes: Income[] }) {
             <XAxis dataKey="month" tick={{ fontSize: 11 }} stroke="hsl(var(--muted-foreground))" />
             <YAxis tick={{ fontSize: 11 }} stroke="hsl(var(--muted-foreground))" tickFormatter={fmtBRL} />
             <Tooltip formatter={(v: any) => fmtBRL(Number(v))} contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))" }} />
-            <Line type="monotone" dataKey="total" stroke="hsl(var(--primary))" strokeWidth={2} dot={{ r: 3 }} />
+            <Legend wrapperStyle={{ fontSize: 11 }} />
+            <Line type="monotone" name="Recebidas" dataKey="received" stroke="#10b981" strokeWidth={2} dot={{ r: 3 }} />
+            <Line type="monotone" name="Pendentes" dataKey="pending" stroke="#f59e0b" strokeWidth={2} dot={{ r: 3 }} />
+            <Line type="monotone" name="Atrasadas" dataKey="overdue" stroke="#ef4444" strokeWidth={2} dot={{ r: 3 }} />
           </LineChart>
         </ResponsiveContainer>
       </Card>
