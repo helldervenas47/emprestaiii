@@ -169,5 +169,66 @@ export function useIncomes(enabled = true) {
     await updateIncome(id, { status: "received", receivedDate: todayInAppTz() });
   }, [updateIncome]);
 
+  // Backfill: para receitas weekly/biweekly antigas que ainda não foram expandidas,
+  // gera as ocorrências restantes do mês cadastrado e marca o pai com [Expanded].
+  useEffect(() => {
+    if (!enabled || !dataOwnerId || incomes.length === 0) return;
+    const parents = incomes.filter((i) =>
+      (i.recurrence === "weekly" || i.recurrence === "biweekly")
+      && !i.parentId
+      && !((i.notes ?? "").includes("[Expanded]"))
+    );
+    if (parents.length === 0) return;
+    let cancelled = false;
+    (async () => {
+      for (const p of parents) {
+        if (cancelled) return;
+        const stepDays = p.recurrence === "weekly" ? 7 : 14;
+        const base = new Date(p.receivedDate + "T00:00:00");
+        const y = base.getFullYear();
+        const m = base.getMonth();
+        const endMonth = new Date(y, m + 1, 0);
+        const today = todayInAppTz();
+        // datas filhas: a partir de base + step até fim do mês
+        const childDates: string[] = [];
+        let d = new Date(base);
+        d.setDate(d.getDate() + stepDays);
+        while (d <= endMonth) {
+          const iso = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+          childDates.push(iso);
+          d.setDate(d.getDate() + stepDays);
+        }
+        // Já existem filhos com a mesma descrição/parent_id? evita duplicar
+        const existingDates = new Set(
+          incomes
+            .filter((c) => c.parentId === p.id)
+            .map((c) => c.receivedDate)
+        );
+        const toCreate = childDates.filter((dt) => !existingDates.has(dt));
+        for (const dt of toCreate) {
+          await insertSingle({
+            description: p.description,
+            amount: p.amount,
+            category: p.category,
+            clientId: p.clientId,
+            source: p.source,
+            paymentMethodId: p.paymentMethodId,
+            receivedDate: dt,
+            status: dt > today ? "pending" : p.status,
+            notes: p.notes,
+            recurrence: "once",
+            parentId: p.id,
+          });
+        }
+        // marca pai como expandido
+        const newNotes = (p.notes ?? "").trim();
+        const stamped = newNotes ? `${newNotes}\n[Expanded]` : "[Expanded]";
+        await supabase.from("incomes" as any).update({ notes: stamped }).eq("id", p.id);
+      }
+      if (!cancelled) fetch();
+    })();
+    return () => { cancelled = true; };
+  }, [incomes, enabled, dataOwnerId, insertSingle, fetch]);
+
   return { incomes, loading, addIncome, updateIncome, deleteIncome, duplicateIncome, markReceived, refetch: fetch };
 }
