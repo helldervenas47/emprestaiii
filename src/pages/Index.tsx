@@ -339,6 +339,7 @@ const Index = () => {
   const [overdueSubTab, setOverdueSubTab] = useState<OverdueSubTab>("cobrancas");
   const [expenseSubTab, setExpenseSubTab] = useState<ExpenseSubTab>("personal");
   const [personalSubTab, setPersonalSubTab] = useState<PersonalSubTab>("expenses");
+  const [incExpTab, setIncExpTab] = useState<IncExpTab>("incomes");
 
   // Filter data by linked clients if user has client restrictions
   const hasClientFilter = Array.isArray(linkedClientIds) && linkedClientIds.length > 0;
