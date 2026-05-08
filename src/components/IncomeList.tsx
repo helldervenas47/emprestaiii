@@ -315,9 +315,8 @@ export function IncomeList({ readOnly }: Props) {
         </SheetContent>
       </Sheet>
 
-      <section className="rounded-2xl border border-border/40 bg-card/40 backdrop-blur-sm p-3 sm:p-4 shadow-[0_1px_6px_-4px_hsl(0_0%_0%/0.04)] overflow-hidden">
-        <PiggyBankList readOnly={readOnly} />
-      </section>
+
+
 
 
       <IncomeForm
