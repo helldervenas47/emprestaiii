@@ -14,10 +14,11 @@ function fmtBRL(n: number) {
 
 interface Props {
   incomes: Income[];
+  allMonthIncomes?: Income[];
   monthKey: string;
 }
 
-export function IncomeDashboard({ incomes, monthKey }: Props) {
+export function IncomeDashboard({ incomes, allMonthIncomes, monthKey }: Props) {
   const byCategory = useMemo(() => {
     const map = new Map<string, number>();
     incomes.forEach((i) => {
@@ -40,8 +41,9 @@ export function IncomeDashboard({ incomes, monthKey }: Props) {
   }, [incomes]);
 
   const topSources = useMemo(() => {
+    const source = allMonthIncomes ?? incomes;
     const map = new Map<string, number>();
-    incomes.forEach((i) => {
+    source.forEach((i) => {
       const k = i.source || i.category || "Outros";
       map.set(k, (map.get(k) || 0) + i.amount);
     });
@@ -49,7 +51,7 @@ export function IncomeDashboard({ incomes, monthKey }: Props) {
       .sort((a, b) => b[1] - a[1])
       .slice(0, 5)
       .map(([name, value]) => ({ name, value }));
-  }, [incomes]);
+  }, [incomes, allMonthIncomes]);
 
   const totalToReceive = incomes.reduce((s, i) => s + i.amount, 0);
   const [y, m] = monthKey.split("-").map(Number);
@@ -103,7 +105,7 @@ export function IncomeDashboard({ incomes, monthKey }: Props) {
       </Card>
 
       <Card no3d className="p-4 lg:col-span-2">
-        <h3 className="text-sm font-semibold mb-3">Top 5 fontes a receber</h3>
+        <h3 className="text-sm font-semibold mb-3">Top 5 fontes</h3>
         <div className="space-y-2">
           {topSources.map((s, idx) => (
             <div key={s.name} className="flex items-center gap-3">

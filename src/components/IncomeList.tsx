@@ -186,6 +186,9 @@ export function IncomeList({ readOnly }: Props) {
             i.receivedDate.startsWith(monthKey) &&
             i.status !== "received",
         )}
+        allMonthIncomes={incomes.filter(
+          (i) => i.source !== "Ajuste manual" && i.receivedDate.startsWith(monthKey),
+        )}
         monthKey={monthKey}
       />
       <Card no3d className="p-4">
