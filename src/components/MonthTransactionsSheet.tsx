@@ -59,17 +59,61 @@ export function MonthTransactionsSheet({ open, onOpenChange, type, monthKey, inc
 
   const rows = useMemo<Row[]>(() => {
     if (type === "incomes") {
-      return incomes
-        .filter((i) => i.source !== "Ajuste manual")
-        .filter((i) => i.receivedDate.startsWith(monthKey))
-        .map((i) => ({
-          id: i.id,
-          date: i.receivedDate,
-          title: i.description,
-          subtitle: i.category || i.source || undefined,
-          amount: i.amount,
-          status: i.status as Row["status"],
-        }));
+      const [yStr, mStr] = monthKey.split("-");
+      const y = Number(yStr); const m = Number(mStr) - 1;
+      const startMonth = new Date(y, m, 1);
+      const endMonth = new Date(y, m + 1, 0);
+      const out: Row[] = [];
+      for (const i of incomes) {
+        if (i.source === "Ajuste manual") continue;
+        // Recebidos: somente se a receivedDate está no mês
+        if (i.status === "received") {
+          if (i.receivedDate.startsWith(monthKey)) {
+            out.push({
+              id: i.id,
+              date: i.receivedDate,
+              title: i.description,
+              subtitle: i.category || i.source || undefined,
+              amount: i.amount,
+              status: "received",
+            });
+          }
+          continue;
+        }
+        // Pendentes/atrasadas: expandir recorrências dentro do mês
+        const base = new Date(i.receivedDate + "T00:00:00");
+        const pushOcc = (d: Date, idx: number) => {
+          const iso = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+          out.push({
+            id: `${i.id}-${idx}`,
+            date: iso,
+            title: i.description,
+            subtitle: i.category || i.source || undefined,
+            amount: i.amount,
+            status: i.status as Row["status"],
+          });
+        };
+        if (i.recurrence === "once") {
+          if (i.receivedDate.startsWith(monthKey)) pushOcc(base, 0);
+        } else if (i.recurrence === "weekly") {
+          let d = new Date(base);
+          while (d < startMonth) d.setDate(d.getDate() + 7);
+          let idx = 0;
+          while (d <= endMonth) {
+            pushOcc(new Date(d), idx++);
+            d.setDate(d.getDate() + 7);
+          }
+        } else if (i.recurrence === "monthly") {
+          const occ = new Date(y, m, base.getDate());
+          if (occ >= startMonth && occ <= endMonth) pushOcc(occ, 0);
+        } else if (i.recurrence === "yearly") {
+          if (base.getMonth() === m) {
+            const occ = new Date(y, m, base.getDate());
+            if (occ >= startMonth && occ <= endMonth) pushOcc(occ, 0);
+          }
+        }
+      }
+      return out;
     }
     return expenses
       .filter((e) => {
