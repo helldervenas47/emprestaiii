@@ -173,7 +173,15 @@ export function IncomeList({ readOnly }: Props) {
       />
 
       <IncomePendingCalendar incomes={incomes.filter((i) => i.source !== "Ajuste manual")} />
-      <IncomeDashboard incomes={incomes.filter((i) => i.source !== "Ajuste manual")} />
+      <IncomeDashboard
+        incomes={incomes.filter(
+          (i) =>
+            i.source !== "Ajuste manual" &&
+            i.receivedDate.startsWith(monthKey) &&
+            i.status !== "received",
+        )}
+        monthKey={monthKey}
+      />
       <Card no3d className="p-4">
         <div className="flex flex-col sm:flex-row gap-2 sm:items-center justify-between mb-4">
           <h2 className="text-lg font-semibold">Receitas ({filtered.length})</h2>
