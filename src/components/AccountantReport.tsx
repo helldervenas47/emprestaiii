@@ -190,9 +190,11 @@ export function AccountantReport({ loans, payments, sales, expenses }: Accountan
       byKind[b.kind].principal += b.principal;
     });
 
-    const periodSales = sales.filter((s) => matchPeriod(s.date ?? s.sale_date));
-    const salesRevenue = periodSales.reduce((s, x) => s + (Number(x.total ?? x.amount) || 0), 0);
-    const totalRevenue = interestRevenue + salesRevenue;
+    // Contador considera apenas receitas de empréstimos (juros) e despesas empresariais.
+    // Vendas e despesas pessoais são intencionalmente excluídas do DRE.
+    const periodSales: any[] = [];
+    const salesRevenue = 0;
+    const totalRevenue = interestRevenue;
     const totalExpenses = periodExpenses.reduce((s, x) => s + (Number(x.amount) || 0), 0);
     const businessExp = totalExpenses;
     const personalExp = 0;
