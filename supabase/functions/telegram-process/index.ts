@@ -2713,6 +2713,41 @@ Deno.serve(async (req) => {
                 console.error("answerNaturalQuery err", e);
                 await tgSend(chatId, "❌ Erro ao processar sua pergunta. Tente novamente.", LOVABLE_API_KEY, TELEGRAM_API_KEY);
               }
+            } else if (looksLikeIncome(text)) {
+              // 💵 Receita detectada — extrai e cadastra em "incomes".
+              const extracted = await extractIncome(text, LOVABLE_API_KEY);
+              if (!extracted || !extracted.amount || extracted.confidence < 0.6) {
+                await tgSend(chatId, "🤔 Não consegui entender a receita. Tente algo como:\n_\"recebi 500 do cliente João pix\"_ ou _\"salário 3500 hoje\"_", LOVABLE_API_KEY, TELEGRAM_API_KEY);
+              } else {
+                const finalDate = sanitizeDate(extracted.date);
+                const category = INCOME_CATEGORIES.includes(extracted.category) ? extracted.category : "Outros";
+                const status = extracted.status === "pending" ? "pending" : "received";
+                const ownerId = await resolvePiggyOwner(admin, link.user_id);
+                const payload: Record<string, any> = {
+                  user_id: ownerId,
+                  description: extracted.description || text.slice(0, 80),
+                  amount: extracted.amount,
+                  category,
+                  source: extracted.source || "Telegram",
+                  received_date: finalDate,
+                  status,
+                  recurrence: "once",
+                  notes: "[bot]",
+                };
+                const { error: insErr } = await admin.from("incomes").insert(payload);
+                if (insErr) {
+                  await tgSend(chatId, "❌ Erro ao salvar receita: " + insErr.message, LOVABLE_API_KEY, TELEGRAM_API_KEY);
+                } else {
+                  const fmtV = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(extracted.amount);
+                  const statusLine = status === "received" ? "✅ Recebido" : "⏳ Pendente";
+                  const sourceLine = extracted.source ? `\n👤 ${extracted.source}` : "";
+                  await tgSend(
+                    chatId,
+                    `💵 *Receita registrada*\n\n💰 ${fmtV}\n📂 ${category}${sourceLine}\n📝 ${payload.description}\n📅 ${finalDate}\n${statusLine}`,
+                    LOVABLE_API_KEY, TELEGRAM_API_KEY,
+                  );
+                }
+              }
             } else {
               // Regex-first: skip AI for clear "<amount> <description>" or "<description> <amount>" inputs.
               const quick = quickParseExpense(text);
