@@ -37,6 +37,7 @@ interface Props {
 export function IncomeForm({ open, onClose, onSubmit, initial }: Props) {
   const { clients } = useClients();
   const { activeMethods } = usePaymentMethods();
+  const { categories: customCategories, create: createCategory } = useIncomeCategories();
   const [description, setDescription] = useState("");
   const [amount, setAmount] = useState("");
   const [category, setCategory] = useState<string>("Vendas");
@@ -47,6 +48,13 @@ export function IncomeForm({ open, onClose, onSubmit, initial }: Props) {
   const [recurrence, setRecurrence] = useState<IncomeRecurrence>("once");
   const [notes, setNotes] = useState("");
   const [saving, setSaving] = useState(false);
+  const [creatorOpen, setCreatorOpen] = useState(false);
+
+  const allCategories = useMemo(() => {
+    const customNames = new Set(customCategories.map((c) => c.name.trim().toLowerCase()));
+    const builtIns = INCOME_CATEGORIES.filter((c) => !customNames.has(c.trim().toLowerCase()));
+    return { builtIns, customs: customCategories };
+  }, [customCategories]);
 
   useEffect(() => {
     if (open) {
