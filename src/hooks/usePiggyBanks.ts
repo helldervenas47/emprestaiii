@@ -135,14 +135,16 @@ export function usePiggyBanks() {
   const [piggyBanks, setPiggyBanks] = useState<PiggyBank[]>([]);
   const [deposits, setDeposits] = useState<PiggyBankDeposit[]>([]);
   const [recurrences, setRecurrences] = useState<PiggyBankRecurrence[]>([]);
+  const [rateHistory, setRateHistory] = useState<PiggyBankRateHistory[]>([]);
   const [loading, setLoading] = useState(true);
 
   const reload = useCallback(async () => {
     if (!dataOwnerId) return;
-    const [pbRes, dpRes, rcRes] = await Promise.all([
+    const [pbRes, dpRes, rcRes, rhRes] = await Promise.all([
       supabase.from("piggy_banks" as any).select("*").eq("user_id", dataOwnerId).order("created_at"),
       supabase.from("piggy_bank_deposits" as any).select("*").eq("user_id", dataOwnerId),
       supabase.from("piggy_bank_recurrences" as any).select("*").eq("user_id", dataOwnerId),
+      supabase.from("piggy_bank_rate_history" as any).select("*").eq("user_id", dataOwnerId).order("effective_from"),
     ]);
     if (!pbRes.error) {
       setPiggyBanks(((pbRes.data as any[]) || []).map((r) => ({
@@ -179,6 +181,15 @@ export function usePiggyBanks() {
         lastGeneratedDate: r.last_generated_date,
       })));
     }
+    if (!rhRes.error) {
+      setRateHistory(((rhRes.data as any[]) || []).map((r) => ({
+        id: r.id,
+        piggyBankId: r.piggy_bank_id,
+        annualRate: Number(r.annual_rate),
+        effectiveFrom: r.effective_from,
+        createdAt: r.created_at,
+      })));
+    }
     setLoading(false);
   }, [dataOwnerId]);
 
@@ -192,6 +203,7 @@ export function usePiggyBanks() {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'piggy_bank_deposits' }, () => { reload(); })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'piggy_banks' }, () => { reload(); })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'piggy_bank_recurrences' }, () => { reload(); })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'piggy_bank_rate_history' }, () => { reload(); })
       .subscribe();
     return () => { supabase.removeChannel(channel); };
   }, [dataOwnerId, reload]);
