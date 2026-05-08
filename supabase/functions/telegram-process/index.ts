@@ -595,6 +595,12 @@ Envie uma despesa em texto livre, ex:
 • "mercado 230"
 • "netflix 39,90 assinatura"
 
+💵 *Quer registrar uma receita?*
+Use palavras como "recebi", "entrou", "salário", "venda", ex:
+• "recebi 500 do cliente João pix"
+• "salário 3500 hoje"
+• "vendi 1200 produto"
+
 💳 *Compra no cartão de crédito?*
 Mencione o nome (apelido), banco ou os últimos 4 dígitos do cartão na mensagem, ex:
 • "ifood 60 nubank"
