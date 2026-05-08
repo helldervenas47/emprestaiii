@@ -3,6 +3,19 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
 import { useDataOwner } from "./useDataOwner";
 import { toast } from "sonner";
+import {
+  computePiggyDetailed as computePiggyDetailedSeg,
+  type PiggyDetailed,
+  type RatePeriod,
+} from "@/lib/piggyTax";
+
+export interface PiggyBankRateHistory {
+  id: string;
+  piggyBankId: string;
+  annualRate: number;
+  effectiveFrom: string; // YYYY-MM-DD
+  createdAt: string;
+}
 
 export interface PiggyBank {
   id: string;
