@@ -89,6 +89,8 @@ export function IncomeList({ readOnly }: Props) {
         incomes={incomes}
         expenses={expenses}
         readOnly={readOnly}
+        onOpenIncomes={() => setSheetType("incomes")}
+        onOpenExpenses={() => setSheetType("expenses")}
         onAdjust={async (delta) => {
           if (!delta) return;
           const today = new Date().toISOString().slice(0, 10);
@@ -106,6 +108,15 @@ export function IncomeList({ readOnly }: Props) {
             parentId: null,
           });
         }}
+      />
+
+      <MonthTransactionsSheet
+        open={sheetType !== null}
+        onOpenChange={(o) => { if (!o) setSheetType(null); }}
+        type={sheetType ?? "incomes"}
+        monthKey={monthKey}
+        incomes={incomes}
+        expenses={expenses}
       />
 
       <IncomeDashboard incomes={incomes} />
