@@ -290,6 +290,64 @@ export function IncomeList({ readOnly }: Props) {
         }}
       />
 
+      <Dialog open={!!payTarget} onOpenChange={(o) => { if (!o) setPayTarget(null); }}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Pagar receita</DialogTitle>
+            <DialogDescription>
+              Informe a data do recebimento e, opcionalmente, o valor recebido.
+              Se deixar o valor em branco, será considerado o valor cadastrado.
+            </DialogDescription>
+          </DialogHeader>
+          {payTarget && (
+            <div className="space-y-3">
+              <div className="rounded-lg bg-muted/50 p-3 text-sm">
+                <div className="font-medium truncate">{payTarget.description}</div>
+                <div className="text-xs text-muted-foreground mt-0.5">
+                  Valor cadastrado: {fmtBRL(payTarget.amount)}
+                </div>
+              </div>
+              <div>
+                <Label>Data do recebimento</Label>
+                <DatePickerField value={payDate} onChange={setPayDate} />
+              </div>
+              <div>
+                <Label>Valor recebido (opcional)</Label>
+                <Input
+                  type="number"
+                  step="0.01"
+                  value={payAmount}
+                  onChange={(e) => setPayAmount(e.target.value)}
+                  placeholder={payTarget.amount.toFixed(2)}
+                />
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setPayTarget(null)}>Cancelar</Button>
+            <Button
+              disabled={paySaving || !payDate}
+              onClick={async () => {
+                if (!payTarget) return;
+                setPaySaving(true);
+                const finalAmount = payAmount.trim() && Number(payAmount) > 0
+                  ? Number(payAmount)
+                  : payTarget.amount;
+                await updateIncome(payTarget.id, {
+                  status: "received",
+                  receivedDate: payDate,
+                  amount: finalAmount,
+                });
+                setPaySaving(false);
+                setPayTarget(null);
+              }}
+            >
+              {paySaving ? "Salvando..." : "Confirmar"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <ConfirmDeleteDialog
         open={!!deleteId}
         onOpenChange={(o) => !o && setDeleteId(null)}
