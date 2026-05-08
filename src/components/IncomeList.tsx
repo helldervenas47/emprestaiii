@@ -52,6 +52,10 @@ export function IncomeList({ readOnly }: Props) {
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [sheetType, setSheetType] = useState<"incomes" | "expenses" | null>(null);
   const [sheetInitialFilter, setSheetInitialFilter] = useState<string | undefined>(undefined);
+  const [payTarget, setPayTarget] = useState<Income | null>(null);
+  const [payDate, setPayDate] = useState<string>("");
+  const [payAmount, setPayAmount] = useState<string>("");
+  const [paySaving, setPaySaving] = useState(false);
 
   const nowD = new Date();
   const [selectedMonth, setSelectedMonth] = useState<string>(
