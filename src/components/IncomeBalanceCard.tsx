@@ -64,8 +64,27 @@ export function IncomeBalanceCard({ incomes, expenses, onAdjust, readOnly, onOpe
       }
       return e.amount;
     };
+    // Inclui despesa no mês vigente quando:
+    //  • dueDate cai no mês, OU
+    //  • é recorrente parcelada/fixa cujo ciclo ativo cobre o mês vigente
+    //    (ainda restam parcelas a pagar e o mês está dentro do range total).
+    const [curY, curM] = monthKey.split("-").map(Number);
+    const currentMonths = curY * 12 + curM;
+    const coversCurrentMonth = (e: Expense) => {
+      if ((e.dueDate || "").startsWith(monthKey)) return true;
+      const isRec = e.type === "recorrente" && e.installments && e.installments > 1;
+      if (!isRec) return false;
+      const [dY, dM] = e.dueDate.split("-").map(Number);
+      const startMonths = dY * 12 + dM;
+      const endMonths = startMonths + (e.installments! - 1);
+      // Parent's dueDate aponta para a próxima parcela em aberto. Se já está no futuro
+      // (mês > vigente), significa que a parcela do mês vigente já foi paga (existe um
+      // child histórico com paid=true) — não recontar aqui.
+      if (startMonths > currentMonths) return false;
+      return currentMonths <= endMonths;
+    };
     const futureOut = expenses
-      .filter((e) => !e.paid && (e.dueDate || "").startsWith(monthKey))
+      .filter((e) => !e.paid && coversCurrentMonth(e))
       .reduce((s, e) => s + monthlyExpenseAmount(e), 0);
     const pendingInCount = incomes
       .filter((i) => i.status === "pending" && i.receivedDate.startsWith(monthKey))
