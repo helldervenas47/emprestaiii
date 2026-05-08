@@ -2,7 +2,7 @@ import { useMemo } from "react";
 import { Income } from "@/hooks/useIncomes";
 import { Card } from "@/components/ui/card";
 import {
-  ResponsiveContainer, LineChart, Line, BarChart, Bar, PieChart, Pie, Cell,
+  ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell,
   XAxis, YAxis, Tooltip, CartesianGrid, Legend,
 } from "recharts";
 
@@ -12,34 +12,12 @@ function fmtBRL(n: number) {
   return n.toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
 }
 
-export function IncomeDashboard({ incomes }: { incomes: Income[] }) {
-  const now = new Date();
+interface Props {
+  incomes: Income[];
+  monthKey: string;
+}
 
-  const monthly = useMemo(() => {
-    const mk = () => {
-      const m = new Map<string, number>();
-      for (let i = 5; i >= 0; i--) {
-        const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-        const k = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
-        m.set(k, 0);
-      }
-      return m;
-    };
-    const received = mk(), pending = mk(), overdue = mk();
-    incomes.forEach((i) => {
-      const k = i.receivedDate.slice(0, 7);
-      const target = i.status === "received" ? received : i.status === "overdue" ? overdue : pending;
-      if (target.has(k)) target.set(k, (target.get(k) || 0) + i.amount);
-    });
-    return Array.from(received.keys()).map((k) => ({
-      month: k.slice(5) + "/" + k.slice(2, 4),
-      received: received.get(k) || 0,
-      pending: pending.get(k) || 0,
-      overdue: overdue.get(k) || 0,
-      total: (received.get(k) || 0) + (pending.get(k) || 0) + (overdue.get(k) || 0),
-    }));
-  }, [incomes]);
-
+export function IncomeDashboard({ incomes, monthKey }: Props) {
   const byCategory = useMemo(() => {
     const map = new Map<string, number>();
     incomes.forEach((i) => {
@@ -50,14 +28,12 @@ export function IncomeDashboard({ incomes }: { incomes: Income[] }) {
   }, [incomes]);
 
   const statusData = useMemo(() => {
-    let received = 0, pending = 0, overdue = 0;
+    let pending = 0, overdue = 0;
     incomes.forEach((i) => {
-      if (i.status === "received") received += i.amount;
-      else if (i.status === "overdue") overdue += i.amount;
-      else pending += i.amount;
+      if (i.status === "overdue") overdue += i.amount;
+      else if (i.status === "pending") pending += i.amount;
     });
     return [
-      { name: "Recebidas", value: received },
       { name: "Pendentes", value: pending },
       { name: "Atrasadas", value: overdue },
     ];
@@ -75,29 +51,30 @@ export function IncomeDashboard({ incomes }: { incomes: Income[] }) {
       .map(([name, value]) => ({ name, value }));
   }, [incomes]);
 
-  const avgMonthly = monthly.reduce((s, m) => s + m.total, 0) / Math.max(1, monthly.filter(m => m.total > 0).length);
-  const projection = avgMonthly * 1.05;
+  const totalToReceive = incomes.reduce((s, i) => s + i.amount, 0);
+  const [y, m] = monthKey.split("-").map(Number);
+  const monthLabel = new Date(y, m - 1, 1).toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
+
+  if (incomes.length === 0) {
+    return (
+      <Card no3d className="p-4">
+        <h3 className="text-sm font-semibold mb-1">Valores a receber — {monthLabel}</h3>
+        <p className="text-xs text-muted-foreground">Nenhuma receita a receber neste mês.</p>
+      </Card>
+    );
+  }
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-      <Card no3d className="p-4">
-        <h3 className="text-sm font-semibold mb-3">Evolução mensal (6 meses)</h3>
-        <ResponsiveContainer width="100%" height={220}>
-          <LineChart data={monthly}>
-            <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-            <XAxis dataKey="month" tick={{ fontSize: 11 }} stroke="hsl(var(--muted-foreground))" />
-            <YAxis tick={{ fontSize: 11 }} stroke="hsl(var(--muted-foreground))" tickFormatter={fmtBRL} />
-            <Tooltip formatter={(v: any) => fmtBRL(Number(v))} contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))" }} />
-            <Legend wrapperStyle={{ fontSize: 11 }} />
-            <Line type="monotone" name="Recebidas" dataKey="received" stroke="#10b981" strokeWidth={2} dot={{ r: 3 }} />
-            <Line type="monotone" name="Pendentes" dataKey="pending" stroke="#f59e0b" strokeWidth={2} dot={{ r: 3 }} />
-            <Line type="monotone" name="Atrasadas" dataKey="overdue" stroke="#ef4444" strokeWidth={2} dot={{ r: 3 }} />
-          </LineChart>
-        </ResponsiveContainer>
+      <Card no3d className="p-4 lg:col-span-2">
+        <div className="flex items-baseline justify-between">
+          <h3 className="text-sm font-semibold capitalize">A receber — {monthLabel}</h3>
+          <span className="text-base font-semibold text-primary">{fmtBRL(totalToReceive)}</span>
+        </div>
       </Card>
 
       <Card no3d className="p-4">
-        <h3 className="text-sm font-semibold mb-3">Receitas por categoria</h3>
+        <h3 className="text-sm font-semibold mb-3">A receber por categoria</h3>
         <ResponsiveContainer width="100%" height={220}>
           <PieChart>
             <Pie data={byCategory} dataKey="value" nameKey="name" outerRadius={75} label={(e: any) => e.name}>
@@ -109,15 +86,15 @@ export function IncomeDashboard({ incomes }: { incomes: Income[] }) {
       </Card>
 
       <Card no3d className="p-4">
-        <h3 className="text-sm font-semibold mb-3">Status das receitas</h3>
+        <h3 className="text-sm font-semibold mb-3">Status das receitas a receber</h3>
         <ResponsiveContainer width="100%" height={220}>
           <BarChart data={statusData}>
             <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
             <XAxis dataKey="name" tick={{ fontSize: 11 }} stroke="hsl(var(--muted-foreground))" />
             <YAxis tick={{ fontSize: 11 }} stroke="hsl(var(--muted-foreground))" tickFormatter={fmtBRL} />
             <Tooltip formatter={(v: any) => fmtBRL(Number(v))} contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))" }} />
+            <Legend wrapperStyle={{ fontSize: 11 }} />
             <Bar dataKey="value" radius={[6, 6, 0, 0]}>
-              <Cell fill="hsl(var(--primary))" />
               <Cell fill="#f59e0b" />
               <Cell fill="#ef4444" />
             </Bar>
@@ -125,10 +102,9 @@ export function IncomeDashboard({ incomes }: { incomes: Income[] }) {
         </ResponsiveContainer>
       </Card>
 
-      <Card no3d className="p-4">
-        <h3 className="text-sm font-semibold mb-3">Top 5 fontes de receita</h3>
+      <Card no3d className="p-4 lg:col-span-2">
+        <h3 className="text-sm font-semibold mb-3">Top 5 fontes a receber</h3>
         <div className="space-y-2">
-          {topSources.length === 0 && <p className="text-xs text-muted-foreground">Sem dados</p>}
           {topSources.map((s, idx) => (
             <div key={s.name} className="flex items-center gap-3">
               <span className="w-5 text-xs text-muted-foreground">{idx + 1}.</span>
@@ -136,16 +112,6 @@ export function IncomeDashboard({ incomes }: { incomes: Income[] }) {
               <span className="text-sm font-medium">{fmtBRL(s.value)}</span>
             </div>
           ))}
-        </div>
-        <div className="mt-4 pt-3 border-t border-border/40 grid grid-cols-2 gap-3 text-xs">
-          <div>
-            <div className="text-muted-foreground">Média mensal</div>
-            <div className="text-sm font-semibold">{fmtBRL(avgMonthly || 0)}</div>
-          </div>
-          <div>
-            <div className="text-muted-foreground">Projeção próximo mês</div>
-            <div className="text-sm font-semibold text-primary">{fmtBRL(projection || 0)}</div>
-          </div>
         </div>
       </Card>
     </div>
