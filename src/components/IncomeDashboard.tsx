@@ -105,7 +105,7 @@ export function IncomeDashboard({ incomes, allMonthIncomes, monthKey }: Props) {
       </Card>
 
       <Card no3d className="p-4 lg:col-span-2">
-        <h3 className="text-sm font-semibold mb-3">Top 5 fontes a receber</h3>
+        <h3 className="text-sm font-semibold mb-3">Top 5 fontes</h3>
         <div className="space-y-2">
           {topSources.map((s, idx) => (
             <div key={s.name} className="flex items-center gap-3">
