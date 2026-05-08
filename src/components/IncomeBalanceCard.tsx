@@ -8,6 +8,10 @@ import { Income } from "@/hooks/useIncomes";
 import { Expense } from "@/types/loan";
 import { useHideValues } from "@/contexts/HideValuesContext";
 import { TrendingUp, TrendingDown, Wallet, ArrowUpRight, ArrowDownRight, Settings2 } from "lucide-react";
+import { useCreditCards } from "@/hooks/useCreditCards";
+import { useCreditCardOpenings } from "@/hooks/useCreditCardOpenings";
+import { getCardInvoiceTotalsForMonth, isCreditCardExpense } from "@/lib/creditCardInvoiceTotals";
+import { isPiggyExpense } from "@/hooks/usePiggyBanks";
 
 function fmt(n: number, hide: boolean) {
   if (hide) return "•••••";
