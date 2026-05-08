@@ -302,6 +302,12 @@ export function IncomeList({ readOnly }: Props) {
           </div>
         )}
       </Card>
+        </TabsContent>
+
+        <TabsContent value="statement" className="mt-4">
+          <FinancialStatement />
+        </TabsContent>
+      </Tabs>
 
       <IncomeForm
         open={formOpen}
