@@ -147,10 +147,23 @@ export function IncomeBalanceCard({ incomes, expenses, onAdjust, readOnly, onOpe
   return (
     <Card no3d className="p-5 sm:p-6 bg-gradient-to-br from-primary/5 via-card to-card border border-border/50 shadow-[0_1px_8px_-4px_hsl(0_0%_0%/0.08)] animate-fade-in">
       <div className="flex items-start justify-between gap-3 flex-wrap">
-        <div className="min-w-0">
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <Wallet className="h-4 w-4" />
-            <span>Saldo em Conta</span>
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center justify-between gap-2 flex-wrap">
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Wallet className="h-4 w-4" />
+              <span>Saldo em Conta</span>
+            </div>
+            {onOpenStatement && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-8 gap-1.5 whitespace-nowrap"
+                onClick={onOpenStatement}
+              >
+                <Receipt className="h-3.5 w-3.5" />
+                Extrato
+              </Button>
+            )}
           </div>
           <div className={`mt-2 text-3xl sm:text-4xl font-bold tracking-tight ${balanceColor}`}>
             {fmt(calc.balance, hide)}
