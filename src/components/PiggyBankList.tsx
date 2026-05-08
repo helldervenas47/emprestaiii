@@ -147,7 +147,14 @@ export function PiggyBankList({ readOnly = false }: Props) {
     }
 
     if (editing) {
-      await updatePiggyBank(editing.id, { name: draft.name.trim(), color: draft.color, annualRate: rate, shortId });
+      const rateChanged = Math.abs(editing.annualRate - rate) > 0.0001;
+      // Salva metadados (nome/cor/nº) imediatamente; taxa é tratada via setPiggyRate
+      await updatePiggyBank(editing.id, { name: draft.name.trim(), color: draft.color, shortId });
+      if (rateChanged) {
+        // Abre diálogo de escolha (não fechamos o modal de edição ainda)
+        setRateChangePending({ pb: editing, newRate: rate });
+        return;
+      }
     } else {
       await createPiggyBank({ name: draft.name.trim(), color: draft.color, annualRate: rate, shortId });
     }
