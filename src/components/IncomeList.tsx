@@ -238,7 +238,7 @@ export function IncomeList({ readOnly }: Props) {
                       <span>{format(new Date(i.receivedDate + "T00:00:00"), "dd/MM/yyyy", { locale: ptBR })}</span>
                       <span>{clientName(i)}</span>
                       <span>{methodName(i.paymentMethodId)}</span>
-                      {i.recurrence !== "once" && <span className="text-primary">↻ {i.recurrence}</span>}
+                      {i.recurrence !== "once" && <span className="text-primary">↻ {({ weekly: "Semanal", biweekly: "Quinzenal", monthly: "Mensal", yearly: "Anual" } as Record<string, string>)[i.recurrence] ?? i.recurrence}</span>}
                     </div>
                   </div>
                   <div className="text-right">
