@@ -547,7 +547,9 @@ const Index = () => {
     if (tab === "dashboard") setShowLoanForm(true);
     else if (tab === "clients" && clientSubTab === "clientes") setShowClientForm(true);
     else if (tab === "expenses") {
-      if (expenseSubTab === "personal") setShowPersonalExpenseForm(true);
+      if (incExpTab === "incomes") {
+        window.dispatchEvent(new CustomEvent("open-income-form"));
+      } else if (expenseSubTab === "personal") setShowPersonalExpenseForm(true);
       else setShowExpenseForm(true);
     }
     else if (tab === "products" || tab === "vehicles") setShowSaleForm(true);
@@ -557,9 +559,11 @@ const Index = () => {
     tab === "dashboard" ? "Novo Empréstimo" :
     tab === "clients" && clientSubTab === "clientes" ? "Novo Cliente" :
     tab === "expenses"
-      ? expenseSubTab === "personal"
-        ? personalSubTab === "cards" ? "" : "Nova Despesa Pessoal"
-        : "Nova Despesa"
+      ? incExpTab === "incomes"
+        ? "Nova Receita"
+        : expenseSubTab === "personal"
+          ? personalSubTab === "cards" ? "" : "Nova Despesa Pessoal"
+          : "Nova Despesa"
       :
     tab === "products" ? "Novo Lançamento" :
     tab === "vehicles" ? "Novo Aluguel" : "";
