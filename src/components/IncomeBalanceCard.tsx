@@ -104,10 +104,23 @@ export function IncomeBalanceCard({ incomes, expenses, onAdjust, readOnly }: Pro
             Calculado apenas com receitas e despesas desta área
           </div>
         </div>
-        <div className={`flex items-center gap-1 text-sm font-medium ${trendColor}`}>
-          {trend === "up" && <TrendingUp className="h-4 w-4" />}
-          {trend === "down" && <TrendingDown className="h-4 w-4" />}
-          {calc.prevIn > 0 ? `${pct >= 0 ? "+" : ""}${pct.toFixed(1)}% vs mês anterior` : "Sem histórico"}
+        <div className="flex flex-col items-end gap-2">
+          <div className={`flex items-center gap-1 text-sm font-medium ${trendColor}`}>
+            {trend === "up" && <TrendingUp className="h-4 w-4" />}
+            {trend === "down" && <TrendingDown className="h-4 w-4" />}
+            {calc.prevIn > 0 ? `${pct >= 0 ? "+" : ""}${pct.toFixed(1)}% vs mês anterior` : "Sem histórico"}
+          </div>
+          {!readOnly && onAdjust && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-8 gap-1.5"
+              onClick={() => { setTarget(calc.balance.toFixed(2)); setAdjustOpen(true); }}
+            >
+              <Settings2 className="h-3.5 w-3.5" />
+              Ajustar saldo
+            </Button>
+          )}
         </div>
       </div>
 
