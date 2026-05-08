@@ -42,6 +42,7 @@ export function AccountantReport({ loans, payments, sales, expenses }: Accountan
   const { methods: paymentMethods } = usePaymentMethods();
   const [expandedMethod, setExpandedMethod] = useState<string | null>(null);
   const [drillDown, setDrillDown] = useState<null | "in" | "out" | "net">(null);
+  const [dreCategory, setDreCategory] = useState<null | "interest" | "sales" | "expenses">(null);
   const now = new Date();
   const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
   const currentYear = String(now.getFullYear());
@@ -208,6 +209,8 @@ export function AccountantReport({ loans, payments, sales, expenses }: Accountan
       breakdown,
       byKind,
       totalReceived,
+      periodSales,
+      periodExpenses,
     };
   }, [payments, expenses, loans, sales, period, monthFilter, yearFilter]);
 
@@ -1100,22 +1103,43 @@ export function AccountantReport({ loans, payments, sales, expenses }: Accountan
             </CardHeader>
             <CardContent>
               <div className="space-y-2 text-sm">
-                <div className="flex justify-between py-2 border-b">
-                  <span className="font-medium">(+) Receita de Juros</span>
+                <button
+                  type="button"
+                  onClick={() => setDreCategory((c) => (c === "interest" ? null : "interest"))}
+                  className={`w-full flex justify-between py-2 border-b text-left transition-colors hover:bg-muted/40 rounded px-2 -mx-2 ${dreCategory === "interest" ? "bg-muted/50" : ""}`}
+                >
+                  <span className="font-medium flex items-center gap-1">
+                    <ChevronRight className={`h-3 w-3 transition-transform ${dreCategory === "interest" ? "rotate-90" : ""}`} />
+                    (+) Receita de Juros
+                  </span>
                   <span className="text-success">{fmt(dre.interestRevenue, hidden)}</span>
-                </div>
-                <div className="flex justify-between py-2 border-b">
-                  <span className="font-medium">(+) Receita de Vendas</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setDreCategory((c) => (c === "sales" ? null : "sales"))}
+                  className={`w-full flex justify-between py-2 border-b text-left transition-colors hover:bg-muted/40 rounded px-2 -mx-2 ${dreCategory === "sales" ? "bg-muted/50" : ""}`}
+                >
+                  <span className="font-medium flex items-center gap-1">
+                    <ChevronRight className={`h-3 w-3 transition-transform ${dreCategory === "sales" ? "rotate-90" : ""}`} />
+                    (+) Receita de Vendas
+                  </span>
                   <span className="text-success">{fmt(dre.salesRevenue, hidden)}</span>
-                </div>
+                </button>
                 <div className="flex justify-between py-2 border-b font-semibold bg-muted/30 px-2 rounded">
                   <span>(=) Receita Bruta</span>
                   <span>{fmt(dre.totalRevenue, hidden)}</span>
                 </div>
-                <div className="flex justify-between py-2 border-b">
-                  <span className="font-medium">(−) Despesas Operacionais</span>
+                <button
+                  type="button"
+                  onClick={() => setDreCategory((c) => (c === "expenses" ? null : "expenses"))}
+                  className={`w-full flex justify-between py-2 border-b text-left transition-colors hover:bg-muted/40 rounded px-2 -mx-2 ${dreCategory === "expenses" ? "bg-muted/50" : ""}`}
+                >
+                  <span className="font-medium flex items-center gap-1">
+                    <ChevronRight className={`h-3 w-3 transition-transform ${dreCategory === "expenses" ? "rotate-90" : ""}`} />
+                    (−) Despesas Operacionais
+                  </span>
                   <span className="text-destructive">{fmt(dre.businessExp, hidden)}</span>
-                </div>
+                </button>
                 <div className="flex justify-between py-2 font-bold bg-primary/5 px-2 rounded">
                   <span>(=) Lucro Líquido</span>
                   <span className={dre.netProfit >= 0 ? "text-success" : "text-destructive"}>{fmt(dre.netProfit, hidden)}</span>
@@ -1128,6 +1152,121 @@ export function AccountantReport({ loans, payments, sales, expenses }: Accountan
                   <span>Despesas pessoais (não impacta DRE)</span>
                   <span>{fmt(dre.personalExp, hidden)}</span>
                 </div>
+
+                {dreCategory && (
+                  <div className="mt-3 rounded-lg border bg-muted/20 p-3 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <h4 className="text-xs font-semibold">
+                        {dreCategory === "interest" && `Lançamentos — Receita de Juros (${(dre as any).breakdown.filter((b: any) => b.interest > 0).length})`}
+                        {dreCategory === "sales" && `Lançamentos — Receita de Vendas (${(dre as any).periodSales.length})`}
+                        {dreCategory === "expenses" && `Lançamentos — Despesas Operacionais (${(dre as any).periodExpenses.length})`}
+                      </h4>
+                      <button
+                        type="button"
+                        onClick={() => setDreCategory(null)}
+                        className="text-[10px] text-muted-foreground hover:text-foreground"
+                      >
+                        Fechar
+                      </button>
+                    </div>
+
+                    {dreCategory === "interest" && (
+                      (dre as any).breakdown.filter((b: any) => b.interest > 0).length === 0 ? (
+                        <p className="text-xs text-muted-foreground py-2 text-center">Nenhum lançamento no período.</p>
+                      ) : (
+                        <div className="overflow-x-auto">
+                          <table className="w-full text-xs">
+                            <thead>
+                              <tr className="text-left text-muted-foreground border-b">
+                                <th className="py-1.5 pr-2">Data</th>
+                                <th className="py-1.5 pr-2">Cliente</th>
+                                <th className="py-1.5 pr-2">Tipo</th>
+                                <th className="py-1.5 pr-2 text-right">Valor</th>
+                                <th className="py-1.5 text-right">Juros</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {(dre as any).breakdown.filter((b: any) => b.interest > 0).map((b: any) => (
+                                <tr key={b.id} className="border-b">
+                                  <td className="py-1.5 pr-2 whitespace-nowrap">{b.date ? new Date(b.date + "T00:00:00").toLocaleDateString("pt-BR") : "—"}</td>
+                                  <td className="py-1.5 pr-2">{b.borrowerName}</td>
+                                  <td className="py-1.5 pr-2"><span className="inline-block px-1.5 py-0.5 rounded bg-muted text-[10px]">{b.kindLabel}</span></td>
+                                  <td className="py-1.5 pr-2 text-right">{fmt(b.amount, hidden)}</td>
+                                  <td className="py-1.5 text-right text-success">{fmt(b.interest, hidden)}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      )
+                    )}
+
+                    {dreCategory === "sales" && (
+                      (dre as any).periodSales.length === 0 ? (
+                        <p className="text-xs text-muted-foreground py-2 text-center">Nenhuma venda no período.</p>
+                      ) : (
+                        <div className="overflow-x-auto">
+                          <table className="w-full text-xs">
+                            <thead>
+                              <tr className="text-left text-muted-foreground border-b">
+                                <th className="py-1.5 pr-2">Data</th>
+                                <th className="py-1.5 pr-2">Descrição</th>
+                                <th className="py-1.5 text-right">Valor</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {(dre as any).periodSales.map((s: any) => {
+                                const d = s.date ?? s.sale_date;
+                                const amt = Number(s.total ?? s.amount) || 0;
+                                const desc = s.customerName ?? s.customer_name ?? s.description ?? s.notes ?? "Venda";
+                                return (
+                                  <tr key={s.id} className="border-b">
+                                    <td className="py-1.5 pr-2 whitespace-nowrap">{d ? new Date(d + "T00:00:00").toLocaleDateString("pt-BR") : "—"}</td>
+                                    <td className="py-1.5 pr-2">{desc}</td>
+                                    <td className="py-1.5 text-right text-success">{fmt(amt, hidden)}</td>
+                                  </tr>
+                                );
+                              })}
+                            </tbody>
+                          </table>
+                        </div>
+                      )
+                    )}
+
+                    {dreCategory === "expenses" && (
+                      (dre as any).periodExpenses.length === 0 ? (
+                        <p className="text-xs text-muted-foreground py-2 text-center">Nenhuma despesa no período.</p>
+                      ) : (
+                        <div className="overflow-x-auto">
+                          <table className="w-full text-xs">
+                            <thead>
+                              <tr className="text-left text-muted-foreground border-b">
+                                <th className="py-1.5 pr-2">Data</th>
+                                <th className="py-1.5 pr-2">Descrição</th>
+                                <th className="py-1.5 pr-2">Categoria</th>
+                                <th className="py-1.5 text-right">Valor</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {(dre as any).periodExpenses.map((e: any) => {
+                                const d = e.paidDate ?? e.paid_date ?? e.dueDate ?? e.due_date;
+                                const amt = Number(e.amount) || 0;
+                                return (
+                                  <tr key={e.id} className="border-b">
+                                    <td className="py-1.5 pr-2 whitespace-nowrap">{d ? new Date(d + "T00:00:00").toLocaleDateString("pt-BR") : "—"}</td>
+                                    <td className="py-1.5 pr-2">{e.description ?? e.name ?? "—"}</td>
+                                    <td className="py-1.5 pr-2">{e.category ?? "—"}</td>
+                                    <td className="py-1.5 text-right text-destructive">{fmt(amt, hidden)}</td>
+                                  </tr>
+                                );
+                              })}
+                            </tbody>
+                          </table>
+                        </div>
+                      )
+                    )}
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>
