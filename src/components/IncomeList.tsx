@@ -126,7 +126,7 @@ export function IncomeList({ readOnly }: Props) {
         expenses={expenses}
       />
 
-      <IncomeDashboard incomes={incomes} />
+      <IncomeDashboard incomes={incomes.filter((i) => i.source !== "Ajuste manual")} />
 
       <Card no3d className="p-4">
         <div className="flex flex-col sm:flex-row gap-2 sm:items-center justify-between mb-4">
