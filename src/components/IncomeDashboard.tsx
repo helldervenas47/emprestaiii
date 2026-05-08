@@ -65,7 +65,7 @@ export function IncomeDashboard({ incomes }: { incomes: Income[] }) {
 
   const topSources = useMemo(() => {
     const map = new Map<string, number>();
-    incomes.filter((i) => i.status === "received").forEach((i) => {
+    incomes.forEach((i) => {
       const k = i.source || i.category || "Outros";
       map.set(k, (map.get(k) || 0) + i.amount);
     });
@@ -88,7 +88,10 @@ export function IncomeDashboard({ incomes }: { incomes: Income[] }) {
             <XAxis dataKey="month" tick={{ fontSize: 11 }} stroke="hsl(var(--muted-foreground))" />
             <YAxis tick={{ fontSize: 11 }} stroke="hsl(var(--muted-foreground))" tickFormatter={fmtBRL} />
             <Tooltip formatter={(v: any) => fmtBRL(Number(v))} contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))" }} />
-            <Line type="monotone" dataKey="total" stroke="hsl(var(--primary))" strokeWidth={2} dot={{ r: 3 }} />
+            <Legend wrapperStyle={{ fontSize: 11 }} />
+            <Line type="monotone" name="Recebidas" dataKey="received" stroke="#10b981" strokeWidth={2} dot={{ r: 3 }} />
+            <Line type="monotone" name="Pendentes" dataKey="pending" stroke="#f59e0b" strokeWidth={2} dot={{ r: 3 }} />
+            <Line type="monotone" name="Atrasadas" dataKey="overdue" stroke="#ef4444" strokeWidth={2} dot={{ r: 3 }} />
           </LineChart>
         </ResponsiveContainer>
       </Card>
