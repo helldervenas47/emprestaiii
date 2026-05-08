@@ -77,7 +77,7 @@ export function IncomeList({ readOnly }: Props) {
 
   return (
     <div className="space-y-4 overflow-x-hidden max-w-full">
-      <IncomeBalanceCard incomes={incomes} />
+      <IncomeBalanceCard incomes={incomes} expenses={expenses} />
 
       <IncomeDashboard incomes={incomes} />
 
