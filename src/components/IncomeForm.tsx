@@ -122,16 +122,44 @@ export function IncomeForm({ open, onClose, onSubmit, initial }: Props) {
             </div>
             <div>
               <Label>Data</Label>
-              <Input type="date" value={receivedDate} onChange={(e) => setReceivedDate(e.target.value)} />
+              <DatePickerField value={receivedDate} onChange={setReceivedDate} />
             </div>
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <Label>Categoria</Label>
+              <div className="flex items-center justify-between">
+                <Label>Categoria</Label>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 px-2 text-xs"
+                  onClick={() => setCreatorOpen(true)}
+                >
+                  <PlusCircle className="mr-1 h-3.5 w-3.5" />
+                  Nova
+                </Button>
+              </div>
               <Select value={category} onValueChange={setCategory}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
                 <SelectContent>
-                  {INCOME_CATEGORIES.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                  {allCategories.builtIns.map((c) => (
+                    <SelectItem key={c} value={c}>{c}</SelectItem>
+                  ))}
+                  {allCategories.customs.length > 0 && allCategories.builtIns.length > 0 && (
+                    <div className="my-1 border-t border-border" />
+                  )}
+                  {allCategories.customs.map((c) => {
+                    const Icon = personalIconMap[c.icon] ?? personalIconMap.Package;
+                    return (
+                      <SelectItem key={c.id} value={c.name}>
+                        <span className="inline-flex items-center gap-2">
+                          <Icon className="h-3.5 w-3.5" style={{ color: `hsl(${c.color})` }} />
+                          {c.name}
+                        </span>
+                      </SelectItem>
+                    );
+                  })}
                 </SelectContent>
               </Select>
             </div>
