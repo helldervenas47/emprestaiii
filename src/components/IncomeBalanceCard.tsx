@@ -83,6 +83,13 @@ export function IncomeBalanceCard({ incomes, expenses, onAdjust, readOnly, onOpe
       if (startMonths > currentMonths) return false;
       return currentMonths <= endMonths;
     };
+    // Total de despesas do mês vigente (pagas + pendentes), usando valor mensal
+    const totalMonthExpenses = expenses
+      .filter((e) => {
+        if (e.paid && (e.paidDate || "").startsWith(monthKey)) return true;
+        return !e.paid && coversCurrentMonth(e);
+      })
+      .reduce((s, e) => s + monthlyExpenseAmount(e), 0);
     const futureOut = expenses
       .filter((e) => !e.paid && coversCurrentMonth(e))
       .reduce((s, e) => s + monthlyExpenseAmount(e), 0);
@@ -90,8 +97,8 @@ export function IncomeBalanceCard({ incomes, expenses, onAdjust, readOnly, onOpe
       .filter((i) => i.status === "pending" && i.receivedDate.startsWith(monthKey))
       .length;
 
-    // Saldo previsto = saldo atual + futuras receitas mês - futuras despesas mês
-    const projected = balance + futureIn - futureOut;
+    // Saldo previsto = saldo atual + futuras receitas mês - TOTAL despesas mês
+    const projected = balance + futureIn - totalMonthExpenses;
     const projectedDiff = projected - balance;
 
     const prevIn = incomes
