@@ -13,7 +13,7 @@ import { IncomeDashboard } from "./IncomeDashboard";
 import { IncomeForm, INCOME_CATEGORIES } from "./IncomeForm";
 import { ConfirmDeleteDialog } from "./ConfirmDeleteDialog";
 import { MonthTransactionsSheet } from "./MonthTransactionsSheet";
-import { Plus, Search, Copy, Pencil, Trash2, CheckCircle2, Clock, AlertTriangle, ArrowUpDown } from "lucide-react";
+import { Plus, Search, Copy, Pencil, Trash2, CheckCircle2, Clock, AlertTriangle, ArrowUpDown, ChevronLeft, ChevronRight } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
@@ -53,10 +53,20 @@ export function IncomeList({ readOnly }: Props) {
   const [sheetType, setSheetType] = useState<"incomes" | "expenses" | null>(null);
   const [sheetInitialFilter, setSheetInitialFilter] = useState<string | undefined>(undefined);
 
-  const monthKey = (() => {
-    const n = new Date();
-    return `${n.getFullYear()}-${String(n.getMonth() + 1).padStart(2, "0")}`;
-  })();
+  const nowD = new Date();
+  const [selectedMonth, setSelectedMonth] = useState<string>(
+    `${nowD.getFullYear()}-${String(nowD.getMonth() + 1).padStart(2, "0")}`,
+  );
+  const monthKey = selectedMonth;
+  const [selYear, selMonthNum] = selectedMonth.split("-").map(Number);
+  const prevMonth = () => {
+    const d = new Date(selYear, selMonthNum - 2, 1);
+    setSelectedMonth(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`);
+  };
+  const nextMonth = () => {
+    const d = new Date(selYear, selMonthNum, 1);
+    setSelectedMonth(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`);
+  };
 
   useEffect(() => {
     if (readOnly) return;
@@ -68,6 +78,7 @@ export function IncomeList({ readOnly }: Props) {
   const filtered = useMemo(() => {
     let arr = incomes.filter((i) => {
       if (i.source === "Ajuste manual") return false;
+      if (!i.receivedDate.startsWith(monthKey)) return false;
       if (statusFilter !== "all" && i.status !== statusFilter) return false;
       if (categoryFilter !== "all" && (i.category || "Outros") !== categoryFilter) return false;
       if (search.trim()) {
@@ -83,7 +94,7 @@ export function IncomeList({ readOnly }: Props) {
       return b.receivedDate.localeCompare(a.receivedDate);
     });
     return arr;
-  }, [incomes, search, statusFilter, categoryFilter, sortBy, clients]);
+  }, [incomes, search, statusFilter, categoryFilter, sortBy, clients, monthKey]);
 
   const clientName = (i: Income) =>
     i.clientId ? clients.find((c) => c.id === i.clientId)?.name || "—" : (i.source || "—");
@@ -130,6 +141,24 @@ export function IncomeList({ readOnly }: Props) {
       />
 
       <IncomeDashboard incomes={incomes.filter((i) => i.source !== "Ajuste manual")} />
+
+      <div className="flex items-center justify-center gap-2">
+        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={prevMonth}>
+          <ChevronLeft className="h-4 w-4" />
+        </Button>
+        <button
+          className="text-sm font-medium text-foreground min-w-[140px] text-center capitalize hover:text-primary transition-colors"
+          onClick={() => {
+            const n = new Date();
+            setSelectedMonth(`${n.getFullYear()}-${String(n.getMonth() + 1).padStart(2, "0")}`);
+          }}
+        >
+          {format(new Date(selYear, selMonthNum - 1, 1), "MMMM yyyy", { locale: ptBR })}
+        </button>
+        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={nextMonth}>
+          <ChevronRight className="h-4 w-4" />
+        </Button>
+      </div>
 
       <Card no3d className="p-4">
         <div className="flex flex-col sm:flex-row gap-2 sm:items-center justify-between mb-4">
