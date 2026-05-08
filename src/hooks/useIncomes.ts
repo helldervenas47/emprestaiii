@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
 import { todayInAppTz } from "@/lib/timezone";
@@ -221,18 +221,26 @@ export function useIncomes(enabled = true) {
 
   // Backfill: para receitas recorrentes antigas que ainda não foram expandidas,
   // gera as ocorrências restantes (semanal/quinzenal no mês; mensal/anual no horizonte futuro).
+  const processingRef = useRef<Set<string>>(new Set());
   useEffect(() => {
     if (!enabled || !dataOwnerId || incomes.length === 0) return;
     const parents = incomes.filter((i) =>
       (i.recurrence === "weekly" || i.recurrence === "biweekly" || i.recurrence === "monthly" || i.recurrence === "yearly")
       && !i.parentId
       && !((i.notes ?? "").includes("[Expanded]"))
+      && !processingRef.current.has(i.id)
     );
     if (parents.length === 0) return;
+    parents.forEach((p) => processingRef.current.add(p.id));
     let cancelled = false;
     (async () => {
       for (const p of parents) {
         if (cancelled) return;
+        // 1) Marca o pai como [Expanded] ANTES de inserir filhos para fechar a janela de corrida.
+        const baseNotes = (p.notes ?? "").trim();
+        const stamped = baseNotes ? `${baseNotes}\n[Expanded]` : "[Expanded]";
+        await supabase.from("incomes" as any).update({ notes: stamped }).eq("id", p.id);
+
         const today = todayInAppTz();
         let allDates: string[] = [];
         if (p.recurrence === "weekly" || p.recurrence === "biweekly") {
@@ -249,15 +257,17 @@ export function useIncomes(enabled = true) {
         } else if (p.recurrence === "yearly") {
           allDates = yearlyDates(p.receivedDate, FUTURE_MONTHS_HORIZON);
         }
-        // exclui a própria data do pai
         const childDates = allDates.filter((dt) => dt !== p.receivedDate);
-        const existingDates = new Set(
-          incomes
-            .filter((c) => c.parentId === p.id)
-            .map((c) => c.receivedDate)
-        );
-        const toCreate = childDates.filter((dt) => !existingDates.has(dt));
-        for (const dt of toCreate) {
+
+        // 2) Busca filhos já existentes direto do banco para evitar duplicatas em concorrência.
+        const { data: existingRows } = await supabase
+          .from("incomes" as any)
+          .select("received_date")
+          .eq("parent_id", p.id);
+        const existingDates = new Set(((existingRows as any[]) ?? []).map((r) => r.received_date));
+
+        for (const dt of childDates) {
+          if (existingDates.has(dt)) continue;
           await insertSingle({
             description: p.description,
             amount: p.amount,
@@ -271,10 +281,8 @@ export function useIncomes(enabled = true) {
             recurrence: "once",
             parentId: p.id,
           });
+          existingDates.add(dt);
         }
-        const newNotes = (p.notes ?? "").trim();
-        const stamped = newNotes ? `${newNotes}\n[Expanded]` : "[Expanded]";
-        await supabase.from("incomes" as any).update({ notes: stamped }).eq("id", p.id);
       }
       if (!cancelled) fetch();
     })();
