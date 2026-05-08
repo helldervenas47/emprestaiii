@@ -78,7 +78,7 @@ export function IncomeList({ readOnly }: Props) {
   const filtered = useMemo(() => {
     let arr = incomes.filter((i) => {
       if (i.source === "Ajuste manual") return false;
-      if (!i.receivedDate.startsWith(monthKey)) return false;
+      
       if (statusFilter !== "all" && i.status !== statusFilter) return false;
       if (categoryFilter !== "all" && (i.category || "Outros") !== categoryFilter) return false;
       if (search.trim()) {
@@ -104,10 +104,29 @@ export function IncomeList({ readOnly }: Props) {
 
   return (
     <div className="space-y-4 overflow-x-hidden max-w-full">
+      <div className="flex items-center justify-center gap-2">
+        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={prevMonth}>
+          <ChevronLeft className="h-4 w-4" />
+        </Button>
+        <button
+          className="text-sm font-medium text-foreground min-w-[140px] text-center capitalize hover:text-primary transition-colors"
+          onClick={() => {
+            const n = new Date();
+            setSelectedMonth(`${n.getFullYear()}-${String(n.getMonth() + 1).padStart(2, "0")}`);
+          }}
+        >
+          {format(new Date(selYear, selMonthNum - 1, 1), "MMMM yyyy", { locale: ptBR })}
+        </button>
+        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={nextMonth}>
+          <ChevronRight className="h-4 w-4" />
+        </Button>
+      </div>
+
       <IncomeBalanceCard
         incomes={incomes}
         expenses={expenses}
         readOnly={readOnly}
+        monthKey={monthKey}
         onOpenIncomes={() => { setSheetInitialFilter(undefined); setSheetType("incomes"); }}
         onOpenExpenses={() => { setSheetInitialFilter(undefined); setSheetType("expenses"); }}
         onOpenPendingIncomes={() => { setSheetInitialFilter("pending"); setSheetType("incomes"); }}
@@ -141,25 +160,6 @@ export function IncomeList({ readOnly }: Props) {
       />
 
       <IncomeDashboard incomes={incomes.filter((i) => i.source !== "Ajuste manual")} />
-
-      <div className="flex items-center justify-center gap-2">
-        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={prevMonth}>
-          <ChevronLeft className="h-4 w-4" />
-        </Button>
-        <button
-          className="text-sm font-medium text-foreground min-w-[140px] text-center capitalize hover:text-primary transition-colors"
-          onClick={() => {
-            const n = new Date();
-            setSelectedMonth(`${n.getFullYear()}-${String(n.getMonth() + 1).padStart(2, "0")}`);
-          }}
-        >
-          {format(new Date(selYear, selMonthNum - 1, 1), "MMMM yyyy", { locale: ptBR })}
-        </button>
-        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={nextMonth}>
-          <ChevronRight className="h-4 w-4" />
-        </Button>
-      </div>
-
       <Card no3d className="p-4">
         <div className="flex flex-col sm:flex-row gap-2 sm:items-center justify-between mb-4">
           <h2 className="text-lg font-semibold">Receitas ({filtered.length})</h2>
