@@ -208,6 +208,8 @@ export function AccountantReport({ loans, payments, sales, expenses }: Accountan
       breakdown,
       byKind,
       totalReceived,
+      periodSales,
+      periodExpenses,
     };
   }, [payments, expenses, loans, sales, period, monthFilter, yearFilter]);
 
