@@ -77,7 +77,47 @@ export function IncomeList({ readOnly }: Props) {
 
   return (
     <div className="space-y-4 overflow-x-hidden max-w-full">
-      <IncomeBalanceCard incomes={incomes} expenses={expenses} />
+      <IncomeBalanceCard
+        incomes={incomes}
+        expenses={expenses}
+        readOnly={readOnly}
+        onAdjust={async (delta) => {
+          if (!delta) return;
+          const today = new Date().toISOString().slice(0, 10);
+          if (delta > 0) {
+            await addIncome({
+              description: "Ajuste de saldo",
+              amount: Number(delta.toFixed(2)),
+              category: "Outros",
+              clientId: null,
+              source: "Ajuste manual",
+              paymentMethodId: null,
+              receivedDate: today,
+              status: "received",
+              notes: "Ajuste manual de saldo",
+              recurrence: "once",
+              parentId: null,
+            });
+          } else {
+            await addIncome({
+              description: "Ajuste de saldo (saída)",
+              amount: Number(Math.abs(delta).toFixed(2)),
+              category: "Outros",
+              clientId: null,
+              source: "Ajuste manual",
+              paymentMethodId: null,
+              receivedDate: today,
+              status: "received",
+              notes: "AJUSTE_NEGATIVO",
+              recurrence: "once",
+              parentId: null,
+            }).then((created) => {
+              // Marca o valor como negativo gravando como amount negativo via update
+              if (created) updateIncome(created.id, { amount: -Math.abs(delta) });
+            });
+          }
+        }}
+      />
 
       <IncomeDashboard incomes={incomes} />
 
