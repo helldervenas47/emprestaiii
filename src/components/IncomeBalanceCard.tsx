@@ -61,11 +61,14 @@ export function IncomeBalanceCard({ incomes, expenses, onAdjust, readOnly, onOpe
       .filter((e) => e.paid && (e.paidDate || "").startsWith(monthKey))
       .reduce((s, e) => s + e.amount, 0);
 
-    // Futuras do mês vigente (pendentes/agendadas, não canceladas)
-    // Para receitas recorrentes, expande as ocorrências restantes dentro do mês corrente
-    const startMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-    const endMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    // Futuras do mês selecionado (pendentes/agendadas, não canceladas)
+    // Para receitas recorrentes, expande as ocorrências dentro do mês selecionado
+    const startMonth = new Date(mkY, mkM - 1, 1);
+    const endMonth = new Date(mkY, mkM, 0);
+    const isCurrentMonth = mkY === now.getFullYear() && mkM - 1 === now.getMonth();
+    const today = isCurrentMonth
+      ? new Date(now.getFullYear(), now.getMonth(), now.getDate())
+      : startMonth;
     const pendingOccurrencesInMonth = (i: Income): number => {
       if (i.status !== "pending") return 0;
       const base = new Date(i.receivedDate + "T00:00:00");
@@ -73,9 +76,7 @@ export function IncomeBalanceCard({ incomes, expenses, onAdjust, readOnly, onOpe
         return i.receivedDate.startsWith(monthKey) ? 1 : 0;
       }
       if (i.recurrence === "weekly") {
-        // alinha a primeira ocorrência <= today (ou base, o que for maior)
         let d = new Date(base);
-        // se base é antes do início do mês, avança até entrar no mês
         while (d < startMonth) d.setDate(d.getDate() + 7);
         let count = 0;
         while (d <= endMonth) {
@@ -85,12 +86,12 @@ export function IncomeBalanceCard({ incomes, expenses, onAdjust, readOnly, onOpe
         return count;
       }
       if (i.recurrence === "monthly") {
-        const occ = new Date(now.getFullYear(), now.getMonth(), base.getDate());
+        const occ = new Date(mkY, mkM - 1, base.getDate());
         return occ >= today && occ <= endMonth && occ >= startMonth ? 1 : 0;
       }
       if (i.recurrence === "yearly") {
-        if (base.getMonth() !== now.getMonth()) return 0;
-        const occ = new Date(now.getFullYear(), now.getMonth(), base.getDate());
+        if (base.getMonth() !== mkM - 1) return 0;
+        const occ = new Date(mkY, mkM - 1, base.getDate());
         return occ >= today && occ <= endMonth ? 1 : 0;
       }
       return 0;
