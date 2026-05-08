@@ -1,28 +1,88 @@
-## Por que o card está grande
+# Plano: Área "Receitas e Despesas"
 
-O card "Saldos consolidados" em `src/components/LedgerView.tsx` (linhas ~155–188) tem três blocos verticais empilhados que somam altura mesmo sem mais conteúdo abaixo:
+## Objetivo
+Renomear a aba atual "Despesas" para "Receitas e Despesas" e adicionar sub-abas, sendo "Despesas" a estrutura existente intacta e "Receitas" uma nova área completa de gestão.
 
-1. **Ícone circular + label "Saldo Total" + valor** (com `mb-2` no ícone e `mt-1` no valor)
-2. **Espaço `mt-4`** entre o total e o grid
-3. **Grid Conta/Dinheiro**, onde cada caixa tem ícone + label em uma linha e valor numa segunda linha (`p-3 sm:p-4`)
+## Estrutura
 
-Somado ao padding do `CardContent` (`p-3 sm:p-5`), isso ocupa bastante altura vertical, especialmente no mobile (440px), dando a sensação de "card vazio e gigante".
+```
+Receitas e Despesas
+├── Receitas (NOVO)
+└── Despesas (existente: Empresariais + Pessoais)
+```
 
-## O que vou ajustar
+## Etapas
 
-Manter o mesmo layout (Total em cima, Conta + Dinheiro lado a lado embaixo) mas reduzir as alturas no mobile:
+### 1. Renomear aba e adicionar sub-abas
+- Em `src/pages/Index.tsx`, renomear o label da aba "Despesas" para "Receitas e Despesas".
+- Dentro do conteúdo, envolver o conteúdo atual em um `<Tabs>` com dois triggers: "Receitas" e "Despesas".
+- A sub-aba "Despesas" mantém exatamente o conteúdo atual (ExpenseList empresariais + PersonalExpenseList pessoais), sem alterações.
 
-- **CardContent**: `p-3 sm:p-5` → `p-2.5 sm:p-4`
-- **Bloco do Total**:
-  - Remover o ícone circular grande no mobile (manter só no `sm:`) — ou trocar por um ícone inline pequeno ao lado do label
-  - Reduzir `mb-1 sm:mb-2` do ícone e `mt-0.5 sm:mt-1` do valor
-- **Espaço entre Total e grid**: `mt-3 sm:mt-4` → `mt-2 sm:mt-3`
-- **Caixas Conta/Dinheiro**:
-  - Padding interno: `p-2.5 sm:p-4` → `p-2 sm:p-3`
-  - Colocar ícone + label + valor em layout mais compacto (label menor, sem `mb` extra)
+### 2. Backend (Lovable Cloud)
+Criar tabela `incomes` via migration:
+- campos: descrição, valor, categoria, client_id (opcional), origem (texto), payment_method_id, data_recebimento, status (`pending`|`received`|`overdue`), observação, recorrência (`once`|`weekly`|`monthly`|`yearly`), parent_id (para recorrência), user_id
+- RLS: políticas baseadas em `get_data_owner_id(auth.uid())` (mesmo padrão das demais tabelas multi-usuário)
+- Trigger `updated_at`
 
-Resultado esperado no mobile: card com cerca de 40–50% menos altura, sem espaço vazio sobrando, mantendo a hierarquia visual (Total destacado em cima, Conta/Dinheiro menores abaixo).
+Tabela `income_categories` (similar a personal_expense_categories) — opcional, ou usar campo texto livre + lista pré-definida.
 
-## Arquivos afetados
+### 3. Hook `useIncomes`
+- CRUD completo
+- Filtros, busca, ordenação
+- Cálculo de totais (mês atual, mês anterior, previsto)
+- Realtime subscription
 
-- `src/components/LedgerView.tsx` — apenas o bloco do card "Saldos consolidados" (~linhas 156–189). Nenhuma mudança em lógica, dados ou outros cards.
+### 4. Componente `IncomeList` (nova sub-aba)
+Layout inspirado em apps financeiros modernos:
+
+**Topo — Card "Saldo em Conta"**
+- Saldo atual (vem de `getBalances()` já existente)
+- Entradas do mês (receitas recebidas + pagamentos de empréstimos)
+- Saídas do mês (despesas pagas)
+- Saldo previsto (atual + pendentes - despesas pendentes)
+- Comparação % com mês anterior
+- Indicador visual (positivo/neutro/negativo) com cor semântica
+
+**Dashboard de gráficos** (recharts já no projeto)
+- Receitas por período (linha)
+- Receitas por categoria (pizza)
+- Recebidas vs Pendentes (barras)
+- Evolução mensal
+- Top 5 fontes de receita
+- Projeção financeira
+
+**Lista de receitas**
+- Filtros: status, categoria, período, forma de pagamento
+- Busca em tempo real
+- Ordenação por data/valor/status
+- Ações: editar inline, duplicar, marcar como recebido, excluir, ações em lote
+- Badges de status com cores semânticas
+- Cadastro rápido + dialog completo
+
+### 5. Componente `IncomeForm`
+Dialog com todos os campos. Quando recorrente, gerar instâncias futuras (lógica similar a credit card installments).
+
+### 6. Integração financeira
+- Receita marcada como "recebida" → `recordLedger({direction:"in", category:"other", ...})` para refletir no saldo automaticamente.
+- Reverter ao cancelar/excluir via `removeLedgerByRef`.
+- Card "Saldo em Conta" inclui pagamentos de empréstimos (já no ledger via category `payment`) e despesas pagas — somando do `account_ledger` para o mês corrente.
+
+## Arquivos
+**Novos**
+- `supabase/migrations/<timestamp>_incomes.sql`
+- `src/hooks/useIncomes.ts`
+- `src/components/IncomeList.tsx`
+- `src/components/IncomeForm.tsx`
+- `src/components/IncomeBalanceCard.tsx`
+- `src/components/IncomeDashboard.tsx`
+
+**Editados**
+- `src/pages/Index.tsx` (renomear aba + sub-abas)
+
+## Detalhes técnicos
+- Design tokens semânticos do `index.css` (sem cores hard-coded)
+- shadcn `Tabs`, `Card`, `Dialog`, `Select`, `Popover` + Calendar
+- recharts para gráficos
+- Animações com classes existentes do Tailwind/`tailwindcss-animate`
+- Mobile-first com `overflow-x-hidden` no container principal
+- Realtime via canal Supabase na tabela `incomes`

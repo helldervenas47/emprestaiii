@@ -31,6 +31,7 @@ const ExpenseForm = lazy(() => import("@/components/ExpenseForm").then(m => ({ d
 const ExpenseList = lazy(() => import("@/components/ExpenseList").then(m => ({ default: m.ExpenseList })));
 const PersonalExpenseForm = lazy(() => import("@/components/PersonalExpenseForm").then(m => ({ default: m.PersonalExpenseForm })));
 const PersonalExpenseList = lazy(() => import("@/components/PersonalExpenseList").then(m => ({ default: m.PersonalExpenseList })));
+const IncomeList = lazy(() => import("@/components/IncomeList").then(m => ({ default: m.IncomeList })));
 const CreditCardList = lazy(() => import("@/components/CreditCardList").then(m => ({ default: m.CreditCardList })));
 const PiggyBankList = lazy(() => import("@/components/PiggyBankList").then(m => ({ default: m.PiggyBankList })));
 const UserManagement = lazy(() => import("@/components/UserManagement").then(m => ({ default: m.UserManagement })));
@@ -100,6 +101,7 @@ type PlanMgmtSubTab = "subscribers" | "plans";
 type OverdueSubTab = "cobrancas" | "inadimplencia-acumulada" | "metas" | "planejamento" | "bot-telegram" | "whatsapp-cobranca";
 type ExpenseSubTab = "business" | "personal";
 type PersonalSubTab = "expenses" | "cards";
+type IncExpTab = "incomes" | "expenses";
 
 const tabConfig = [
   { id: "overview" as Tab, label: "Dashboard", icon: BarChart3 },
@@ -108,7 +110,7 @@ const tabConfig = [
   { id: "vehicles" as Tab, label: "Veículos", icon: Car },
   { id: "calendar" as Tab, label: "Calendário", icon: CalendarDays },
   { id: "clients" as Tab, label: "Cadastro", icon: Users },
-  { id: "expenses" as Tab, label: "Despesas", icon: Receipt },
+  { id: "expenses" as Tab, label: "Receitas e Despesas", icon: Receipt },
   { id: "accountant" as Tab, label: "Contador", icon: Calculator },
   
   { id: "overdue" as Tab, label: "Relatório", icon: AlertTriangle },
@@ -338,6 +340,7 @@ const Index = () => {
   const [overdueSubTab, setOverdueSubTab] = useState<OverdueSubTab>("cobrancas");
   const [expenseSubTab, setExpenseSubTab] = useState<ExpenseSubTab>("personal");
   const [personalSubTab, setPersonalSubTab] = useState<PersonalSubTab>("expenses");
+  const [incExpTab, setIncExpTab] = useState<IncExpTab>("incomes");
 
   // Filter data by linked clients if user has client restrictions
   const hasClientFilter = Array.isArray(linkedClientIds) && linkedClientIds.length > 0;
@@ -826,60 +829,91 @@ const Index = () => {
           </div>
         )}
         {tab === "expenses" && (
-          <SubscriptionGate requiredTier={2} featureName="Despesas">
-          <div>
+          <SubscriptionGate requiredTier={2} featureName="Receitas e Despesas">
+          <div className="overflow-x-hidden max-w-full">
             <div className="w-full bg-muted/50 rounded-xl p-1 flex gap-0.5 mb-4">
               <button
-                onClick={() => setExpenseSubTab("business")}
-                className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-all duration-200 ${
-                  expenseSubTab === "business"
+                onClick={() => setIncExpTab("incomes")}
+                className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                  incExpTab === "incomes"
                     ? "bg-card text-foreground shadow-sm"
                     : "text-muted-foreground hover:text-foreground"
                 }`}
               >
-                <Receipt className="h-3.5 w-3.5 shrink-0" />
-                <span className="truncate">Despesas Empresa</span>
+                <Wallet className="h-4 w-4 shrink-0" />
+                <span className="truncate">Receitas</span>
               </button>
               <button
-                onClick={() => setExpenseSubTab("personal")}
-                className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-all duration-200 ${
-                  expenseSubTab === "personal"
+                onClick={() => setIncExpTab("expenses")}
+                className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                  incExpTab === "expenses"
                     ? "bg-card text-foreground shadow-sm"
                     : "text-muted-foreground hover:text-foreground"
                 }`}
               >
-                <User className="h-3.5 w-3.5 shrink-0" />
-                <span className="truncate">Despesas Pessoais</span>
+                <Receipt className="h-4 w-4 shrink-0" />
+                <span className="truncate">Despesas</span>
               </button>
             </div>
-            {expenseSubTab === "business" ? (
-              <>
-                <h2 className="text-lg font-semibold text-foreground mb-4">Despesas Empresa ({businessExpenses.length})</h2>
-                <ExpenseList expenses={businessExpenses} onPay={payExpense} onUnpay={unpayExpense} onDelete={deleteExpense} onUpdate={updateExpense} readOnly={isReadOnly} />
-              </>
-             ) : (
-               <div className="-mx-3 sm:mx-0 px-2 sm:px-0 overflow-x-hidden max-w-full">
-                 <h2 className="text-lg font-semibold text-foreground mb-4">Despesas Pessoais ({personalExpenses.length})</h2>
-                 <PersonalExpenseList
-                   expenses={personalExpenses}
-                   onPay={payExpense}
-                   onUnpay={unpayExpense}
-                   onDelete={deleteExpense}
-                   onUpdate={updateExpense}
-                   readOnly={isReadOnly}
-                   afterEvolution={({ selectedMonth }) => (
-                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-4">
-                       <section className="rounded-2xl border border-border/40 bg-card/60 backdrop-blur-sm p-3 sm:p-4 shadow-[0_1px_8px_-4px_hsl(0_0%_0%/0.05)] overflow-hidden">
-                         <CreditCardList readOnly={isReadOnly} referenceMonth={selectedMonth} />
-                       </section>
-                       <section className="rounded-2xl border border-border/40 bg-card/40 backdrop-blur-sm p-3 sm:p-4 shadow-[0_1px_6px_-4px_hsl(0_0%_0%/0.04)] overflow-hidden">
-                         <PiggyBankList readOnly={isReadOnly} />
-                       </section>
-                     </div>
-                   )}
-                 />
-               </div>
-             )}
+
+            {incExpTab === "incomes" ? (
+              <IncomeList readOnly={isReadOnly} />
+            ) : (
+              <div>
+                <div className="w-full bg-muted/50 rounded-xl p-1 flex gap-0.5 mb-4">
+                  <button
+                    onClick={() => setExpenseSubTab("business")}
+                    className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-all duration-200 ${
+                      expenseSubTab === "business"
+                        ? "bg-card text-foreground shadow-sm"
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    <Receipt className="h-3.5 w-3.5 shrink-0" />
+                    <span className="truncate">Despesas Empresa</span>
+                  </button>
+                  <button
+                    onClick={() => setExpenseSubTab("personal")}
+                    className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-all duration-200 ${
+                      expenseSubTab === "personal"
+                        ? "bg-card text-foreground shadow-sm"
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    <User className="h-3.5 w-3.5 shrink-0" />
+                    <span className="truncate">Despesas Pessoais</span>
+                  </button>
+                </div>
+                {expenseSubTab === "business" ? (
+                  <>
+                    <h2 className="text-lg font-semibold text-foreground mb-4">Despesas Empresa ({businessExpenses.length})</h2>
+                    <ExpenseList expenses={businessExpenses} onPay={payExpense} onUnpay={unpayExpense} onDelete={deleteExpense} onUpdate={updateExpense} readOnly={isReadOnly} />
+                  </>
+                 ) : (
+                   <div className="-mx-3 sm:mx-0 px-2 sm:px-0 overflow-x-hidden max-w-full">
+                     <h2 className="text-lg font-semibold text-foreground mb-4">Despesas Pessoais ({personalExpenses.length})</h2>
+                     <PersonalExpenseList
+                       expenses={personalExpenses}
+                       onPay={payExpense}
+                       onUnpay={unpayExpense}
+                       onDelete={deleteExpense}
+                       onUpdate={updateExpense}
+                       readOnly={isReadOnly}
+                       afterEvolution={({ selectedMonth }) => (
+                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-4">
+                           <section className="rounded-2xl border border-border/40 bg-card/60 backdrop-blur-sm p-3 sm:p-4 shadow-[0_1px_8px_-4px_hsl(0_0%_0%/0.05)] overflow-hidden">
+                             <CreditCardList readOnly={isReadOnly} referenceMonth={selectedMonth} />
+                           </section>
+                           <section className="rounded-2xl border border-border/40 bg-card/40 backdrop-blur-sm p-3 sm:p-4 shadow-[0_1px_6px_-4px_hsl(0_0%_0%/0.04)] overflow-hidden">
+                             <PiggyBankList readOnly={isReadOnly} />
+                           </section>
+                         </div>
+                       )}
+                     />
+                   </div>
+                 )}
+              </div>
+            )}
           </div>
           </SubscriptionGate>
         )}
