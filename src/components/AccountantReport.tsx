@@ -1192,37 +1192,6 @@ export function AccountantReport({ loans, payments, sales, expenses }: Accountan
                       )
                     )}
 
-                    {dreCategory === "sales" && (
-                      (dre as any).periodSales.length === 0 ? (
-                        <p className="text-xs text-muted-foreground py-2 text-center">Nenhuma venda no período.</p>
-                      ) : (
-                        <div className="overflow-x-auto">
-                          <table className="w-full text-xs">
-                            <thead>
-                              <tr className="text-left text-muted-foreground border-b">
-                                <th className="py-1.5 pr-2">Data</th>
-                                <th className="py-1.5 pr-2">Descrição</th>
-                                <th className="py-1.5 text-right">Valor</th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {(dre as any).periodSales.map((s: any) => {
-                                const d = s.date ?? s.sale_date;
-                                const amt = Number(s.total ?? s.amount) || 0;
-                                const desc = s.customerName ?? s.customer_name ?? s.description ?? s.notes ?? "Venda";
-                                return (
-                                  <tr key={s.id} className="border-b">
-                                    <td className="py-1.5 pr-2 whitespace-nowrap">{d ? new Date(d + "T00:00:00").toLocaleDateString("pt-BR") : "—"}</td>
-                                    <td className="py-1.5 pr-2">{desc}</td>
-                                    <td className="py-1.5 text-right text-success">{fmt(amt, hidden)}</td>
-                                  </tr>
-                                );
-                              })}
-                            </tbody>
-                          </table>
-                        </div>
-                      )
-                    )}
 
                     {dreCategory === "expenses" && (
                       (dre as any).periodExpenses.length === 0 ? (
