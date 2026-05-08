@@ -60,6 +60,7 @@ export function IncomeList({ readOnly }: Props) {
   const [deleteScope, setDeleteScope] = useState<"single" | "pending" | "all">("single");
   const [sheetType, setSheetType] = useState<"incomes" | "expenses" | null>(null);
   const [sheetInitialFilter, setSheetInitialFilter] = useState<string | undefined>(undefined);
+  const [statementOpen, setStatementOpen] = useState(false);
   const [payTarget, setPayTarget] = useState<Income | null>(null);
   const [payDate, setPayDate] = useState<string>("");
   const [payAmount, setPayAmount] = useState<string>("");
