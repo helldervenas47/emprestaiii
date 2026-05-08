@@ -219,6 +219,13 @@ export function IncomeForm({ open, onClose, onSubmit, initial }: Props) {
           </Button>
         </DialogFooter>
       </DialogContent>
+
+      <PersonalCategoryCreator
+        open={creatorOpen}
+        onOpenChange={setCreatorOpen}
+        createCategory={createCategory}
+        onCreated={(c) => setCategory(c.name)}
+      />
     </Dialog>
   );
 }
