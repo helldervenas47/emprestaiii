@@ -14,6 +14,7 @@ import { DatePickerField } from "@/components/ui/date-picker-field";
 import { todayInAppTz } from "@/lib/timezone";
 import { IncomeBalanceCard } from "./IncomeBalanceCard";
 import { IncomeDashboard } from "./IncomeDashboard";
+import { IncomePendingCalendar } from "./IncomePendingCalendar";
 import { IncomeForm, INCOME_CATEGORIES } from "./IncomeForm";
 import { ConfirmDeleteDialog } from "./ConfirmDeleteDialog";
 import { MonthTransactionsSheet } from "./MonthTransactionsSheet";
@@ -167,6 +168,7 @@ export function IncomeList({ readOnly }: Props) {
         initialFilter={sheetInitialFilter}
       />
 
+      <IncomePendingCalendar incomes={incomes.filter((i) => i.source !== "Ajuste manual")} />
       <IncomeDashboard incomes={incomes.filter((i) => i.source !== "Ajuste manual")} />
       <Card no3d className="p-4">
         <div className="flex flex-col sm:flex-row gap-2 sm:items-center justify-between mb-4">
