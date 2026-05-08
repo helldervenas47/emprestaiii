@@ -624,7 +624,7 @@ Vou interpretar e cadastrar automaticamente.
 /aporte — fazer um aporte em uma caixinha (cofrinho). Você pode passar valor e nota: \`/aporte 200 aniversário\`
 /aportes\_saldo — saldo atual de todas as caixinhas
 /meus\_aportes — últimos 10 aportes nas caixinhas
-/resgatar — resgatar saldo de uma caixinha para a conta. Ex.: \`resgatar 200 da caixinha 1\` ou \`resgatar tudo do cofrinho\``
+/resgatar — resgatar saldo de uma caixinha para a conta. Ex.: \`resgatar 200 da caixinha 1\` ou \`resgatar tudo do cofrinho\`
 /help — esta mensagem
 /start CODIGO — vincular conta`;
 
