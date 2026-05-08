@@ -126,6 +126,7 @@ export function IncomeList({ readOnly }: Props) {
         monthKey={monthKey}
         incomes={incomes}
         expenses={expenses}
+        initialFilter={sheetInitialFilter}
       />
 
       <IncomeDashboard incomes={incomes.filter((i) => i.source !== "Ajuste manual")} />
