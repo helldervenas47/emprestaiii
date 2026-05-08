@@ -202,10 +202,26 @@ export function useIncomes(enabled = true) {
     await supabase.from("incomes" as any).update(updatePayload).eq("id", id);
   }, []);
 
-  const deleteIncome = useCallback(async (id: string) => {
-    setIncomes((arr) => arr.filter((i) => i.id !== id));
-    await supabase.from("incomes" as any).delete().eq("id", id);
-  }, []);
+  const deleteIncome = useCallback(async (id: string, scope: "single" | "pending" | "all" = "single") => {
+    const target = incomes.find((i) => i.id === id);
+    const rootId = target?.parentId ?? id;
+
+    if (scope === "single") {
+      setIncomes((arr) => arr.filter((i) => i.id !== id));
+      await supabase.from("incomes" as any).delete().eq("id", id);
+      return;
+    }
+
+    // Coletar IDs da série (raiz + filhos)
+    const seriesIds = incomes
+      .filter((i) => i.id === rootId || i.parentId === rootId)
+      .filter((i) => scope === "all" ? true : i.status !== "received")
+      .map((i) => i.id);
+
+    if (seriesIds.length === 0) return;
+    setIncomes((arr) => arr.filter((i) => !seriesIds.includes(i.id)));
+    await supabase.from("incomes" as any).delete().in("id", seriesIds);
+  }, [incomes]);
 
   const duplicateIncome = useCallback(async (id: string) => {
     const src = incomes.find((i) => i.id === id);
