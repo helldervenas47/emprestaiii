@@ -18,6 +18,8 @@ import { IncomePendingCalendar } from "./IncomePendingCalendar";
 import { IncomeForm, INCOME_CATEGORIES } from "./IncomeForm";
 import { ConfirmDeleteDialog } from "./ConfirmDeleteDialog";
 import { MonthTransactionsSheet } from "./MonthTransactionsSheet";
+import { FinancialStatement } from "./FinancialStatement";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Plus, Search, Copy, Pencil, Trash2, CheckCircle2, Clock, AlertTriangle, ArrowUpDown, ChevronLeft, ChevronRight } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
