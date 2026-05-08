@@ -110,7 +110,10 @@ export function useIncomes(enabled = true) {
         dates.push(iso);
         d.setDate(d.getDate() + stepDays);
       }
-      // primeiro registro: pai (mantém recorrência); demais: filhos "once"
+      // primeiro registro: pai (mantém recorrência) já com marcador [Expanded] para evitar
+      // que o backfill em paralelo (disparado pelo realtime) duplique as ocorrências
+      const baseNotes = (input.notes ?? "").trim();
+      const stampedNotes = baseNotes ? `${baseNotes}\n[Expanded]` : "[Expanded]";
       let parent: Income | null = null;
       const created: Income[] = [];
       for (let i = 0; i < dates.length; i++) {
@@ -121,6 +124,7 @@ export function useIncomes(enabled = true) {
           status: dates[i] > today ? "pending" : input.status,
           recurrence: isFirst ? input.recurrence : "once",
           parentId: isFirst ? input.parentId : (parent?.id ?? null),
+          notes: isFirst ? stampedNotes : input.notes,
         });
         if (!inc) continue;
         if (isFirst) parent = inc;
@@ -128,13 +132,6 @@ export function useIncomes(enabled = true) {
       }
       if (created.length > 0) {
         setIncomes((prev) => [...created, ...prev]);
-      }
-      // Marca o pai como expandido para evitar reprocessamento pelo backfill
-      if (parent) {
-        const baseNotes = (input.notes ?? "").trim();
-        const stamped = baseNotes ? `${baseNotes}\n[Expanded]` : "[Expanded]";
-        await supabase.from("incomes" as any).update({ notes: stamped }).eq("id", parent.id);
-        setIncomes((prev) => prev.map((p) => p.id === parent!.id ? { ...p, notes: stamped } : p));
       }
       return parent;
     }
