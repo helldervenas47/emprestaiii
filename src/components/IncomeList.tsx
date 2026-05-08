@@ -147,6 +147,7 @@ export function IncomeList({ readOnly }: Props) {
         onOpenIncomes={() => { setSheetInitialFilter(undefined); setSheetType("incomes"); }}
         onOpenExpenses={() => { setSheetInitialFilter(undefined); setSheetType("expenses"); }}
         onOpenPendingIncomes={() => { setSheetInitialFilter("pending"); setSheetType("incomes"); }}
+        onOpenStatement={() => setStatementOpen(true)}
         onAdjust={async (delta) => {
           if (!delta) return;
           const today = new Date().toISOString().slice(0, 10);
