@@ -624,6 +624,7 @@ Vou interpretar e cadastrar automaticamente.
 /aporte — fazer um aporte em uma caixinha (cofrinho). Você pode passar valor e nota: \`/aporte 200 aniversário\`
 /aportes\_saldo — saldo atual de todas as caixinhas
 /meus\_aportes — últimos 10 aportes nas caixinhas
+/resgatar — resgatar saldo de uma caixinha para a conta. Ex.: \`resgatar 200 da caixinha 1\` ou \`resgatar tudo do cofrinho\`
 /help — esta mensagem
 /start CODIGO — vincular conta`;
 
@@ -815,6 +816,179 @@ async function finalizePiggyAporte(
     .reduce((s: number, d: any) => s + (Number(d.amount) || 0), 0);
 
   return `✅ Aporte de ${fmtBRL(amount)} adicionado em *${bank.name}*\n💰 Saldo atual: *${fmtBRL(balance)}*`;
+}
+
+// Resgate (withdrawal) from a piggy bank back into the main account.
+// Performs a NEGATIVE deposit on the piggy bank and registers an income with
+// category "Resgate Cofrinho" so the value composes the account balance and
+// shows up in the Extrato Financeiro automatically.
+async function finalizePiggyResgate(
+  admin: any,
+  userId: string,
+  bank: { id: string; name: string },
+  amount: number,
+): Promise<string> {
+  const ownerId = await resolvePiggyOwner(admin, userId);
+  const today = todayBR();
+
+  // Verify available balance.
+  const { data: existingDeposits, error: balErr } = await admin
+    .from("piggy_bank_deposits")
+    .select("amount")
+    .eq("user_id", ownerId)
+    .eq("piggy_bank_id", bank.id);
+  if (balErr) return "❌ Erro ao consultar saldo da caixinha: " + balErr.message;
+  const currentBalance = ((existingDeposits ?? []) as any[])
+    .reduce((s, d) => s + (Number(d.amount) || 0), 0);
+  if (amount > currentBalance + 0.005) {
+    return `❌ Saldo insuficiente em *${bank.name}*.\n💰 Disponível: *${fmtBRL(currentBalance)}*`;
+  }
+
+  // 1) Negative deposit = withdrawal.
+  const { error: depErr } = await admin
+    .from("piggy_bank_deposits")
+    .insert({
+      user_id: ownerId,
+      piggy_bank_id: bank.id,
+      expense_id: null,
+      amount: -amount,
+      deposit_date: today,
+      source: "telegram_withdraw",
+    });
+  if (depErr) return "❌ Erro ao registrar resgate: " + depErr.message;
+
+  // 2) Income entry to credit the main account & populate the extrato.
+  const { error: incErr } = await admin.from("incomes").insert({
+    user_id: ownerId,
+    description: `Resgate da caixinha ${bank.name}`,
+    amount,
+    category: "Resgate Cofrinho",
+    source: "Cofrinho",
+    received_date: today,
+    status: "received",
+    recurrence: "once",
+    notes: `[bot][cofrinho:${bank.id}]`,
+  });
+  if (incErr) {
+    // Best-effort rollback of the deposit so balances stay consistent.
+    await admin.from("piggy_bank_deposits")
+      .delete()
+      .eq("user_id", ownerId)
+      .eq("piggy_bank_id", bank.id)
+      .eq("source", "telegram_withdraw")
+      .eq("deposit_date", today)
+      .eq("amount", -amount);
+    return "❌ Erro ao registrar entrada na conta: " + incErr.message;
+  }
+
+  const newBalance = currentBalance - amount;
+  return [
+    `✅ Resgate de ${fmtBRL(amount)} de *${bank.name}*`,
+    `🐷 Saldo da caixinha: *${fmtBRL(newBalance)}*`,
+    `🏦 Crédito lançado em receitas como _Resgate Cofrinho_`,
+  ].join("\n");
+}
+
+// Detects natural-language requests to transfer money from a piggy bank back
+// into the main account, e.g.:
+//   "transferir saldo da caixinha para conta"
+//   "resgatar 200 do cofrinho"
+//   "mandar 100 da caixinha 1 para a conta"
+function looksLikeResgate(text: string): boolean {
+  const t = text.toLowerCase();
+  if (/^\/resgat/i.test(t)) return true;
+  const verb = /(transfer|resgat|sacar|saca|mandar|enviar|retirar|tira(r)?)/i;
+  const piggy = /(caixinha|cofrinho|cofre)/i;
+  if (!verb.test(t) || !piggy.test(t)) return false;
+  // Avoid matching "transferir 100 para caixinha" (that's an aporte).
+  // Heuristic: piggy must come before "conta" OR after the verb.
+  if (/para\s+(a\s+)?(caixinha|cofrinho)/i.test(t)) return false;
+  return true;
+}
+
+// Parses "<verb> [valor] [da|do caixinha|cofrinho [ref]] [para conta]".
+// Returns amount (null = "todo o saldo") and bank reference token (null = ask).
+function parseResgateText(text: string): { amount: number | null; bankToken: string | null; allBalance: boolean } {
+  const t = text.trim();
+  // amount: first number-like token in the message.
+  const amtMatch = t.match(/R?\$?\s*(\d{1,3}(?:[.,]\d{3})*(?:[.,]\d{1,2})?|\d+(?:[.,]\d{1,2})?)/i);
+  const amount = amtMatch ? parseAmount(amtMatch[1].replace(/\s/g, "")) : null;
+  const allBalance = !amount && /(tudo|todo|saldo\s+(total|inteiro|todo)|esvaziar)/i.test(t);
+
+  // bank ref: after "caixinha"/"cofrinho" optionally a number or quoted name.
+  let bankToken: string | null = null;
+  const refMatch = t.match(/(?:caixinha|cofrinho|cofre)\s+(?:["“']([^"“”']+)["”']|#?(\d{1,2})|([A-Za-zÀ-ÿ][\wÀ-ÿ-]{1,40}))/i);
+  if (refMatch) {
+    bankToken = (refMatch[1] || refMatch[2] || refMatch[3] || "").trim() || null;
+    // Filter common stop words that look like names.
+    if (bankToken && /^(para|pra|conta|principal|do|da|no|na|de)$/i.test(bankToken)) bankToken = null;
+  }
+  return { amount, bankToken, allBalance };
+}
+
+async function handleResgateCommand(
+  admin: any,
+  userId: string,
+  chatId: number,
+  text: string,
+  lovableKey: string,
+  telegramKey: string,
+): Promise<void> {
+  const { banks } = await listUserPiggyBanks(admin, userId);
+  if (banks.length === 0) {
+    await tgSend(chatId, "🐷 Você ainda não tem nenhuma caixinha cadastrada.", lovableKey, telegramKey);
+    return;
+  }
+
+  const parsed = parseResgateText(text);
+  let bank: PiggyBankRef | null = null;
+  if (parsed.bankToken) {
+    const r = resolvePiggyBankByToken(banks, parsed.bankToken);
+    if (r.ambiguous && r.ambiguous.length > 0) {
+      const list = r.ambiguous.map((b) => `• *${b.name}* — \`${b.id.slice(0, 8)}\``).join("\n");
+      await tgSend(chatId, `⚠️ Encontrei mais de uma caixinha com "${parsed.bankToken}":\n${list}`, lovableKey, telegramKey);
+      return;
+    }
+    bank = r.bank ?? null;
+    if (!bank) {
+      await tgSend(chatId, `❌ Caixinha "${parsed.bankToken}" não encontrada.\n\n${formatPiggyBanksList(banks)}`, lovableKey, telegramKey);
+      return;
+    }
+  } else if (banks.length === 1) {
+    bank = banks[0];
+  } else {
+    await tgSend(
+      chatId,
+      `🐷 Você tem mais de uma caixinha. Diga qual usar.\n\n${formatPiggyBanksList(banks)}\n\nEx.: \`resgatar 200 da caixinha 1\``,
+      lovableKey, telegramKey,
+    );
+    return;
+  }
+
+  let amount = parsed.amount;
+  if (amount === null && parsed.allBalance) {
+    const { data: deps } = await admin
+      .from("piggy_bank_deposits")
+      .select("amount")
+      .eq("piggy_bank_id", bank.id);
+    amount = ((deps ?? []) as any[]).reduce((s, d) => s + (Number(d.amount) || 0), 0);
+    if (amount <= 0) {
+      await tgSend(chatId, `ℹ️ A caixinha *${bank.name}* não tem saldo para resgatar.`, lovableKey, telegramKey);
+      return;
+    }
+  }
+
+  if (amount === null || amount <= 0) {
+    await tgSend(
+      chatId,
+      `🐷 Quanto você quer resgatar de *${bank.name}*?\nEx.: \`resgatar 200 da caixinha ${bank.shortId ?? bank.name}\` ou \`resgatar tudo da caixinha ${bank.shortId ?? bank.name}\``,
+      lovableKey, telegramKey,
+    );
+    return;
+  }
+
+  const reply = await finalizePiggyResgate(admin, userId, bank, amount);
+  await tgSend(chatId, reply, lovableKey, telegramKey);
 }
 
 function ymd(d: Date): string {
@@ -2573,6 +2747,8 @@ Deno.serve(async (req) => {
             } else if (/^\/?aportes?[_\s-]*(saldo|saldos)(?:@\w+)?\b/i.test(text)) {
               const reply = await handleAportesSaldo(admin, link.user_id);
               await tgSend(chatId, reply, LOVABLE_API_KEY, TELEGRAM_API_KEY);
+            } else if (looksLikeResgate(text)) {
+              await handleResgateCommand(admin, link.user_id, chatId, text, LOVABLE_API_KEY, TELEGRAM_API_KEY);
             } else if (/^\/?aporte(?:@\w+)?\b/i.test(text)) {
               // Accepts both /aporte and plain "aporte" (any message containing
               // the word at the start). Supported forms:
