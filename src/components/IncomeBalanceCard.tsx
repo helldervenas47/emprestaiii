@@ -217,7 +217,11 @@ export function IncomeBalanceCard({ incomes, expenses, onAdjust, readOnly, onOpe
           <div className="text-lg font-semibold mt-1">{fmt(calc.monthOut, hide)}</div>
           <div className="text-[10px] mt-0.5 text-rose-700/70 dark:text-rose-400/70">Toque para ver detalhes</div>
         </button>
-        <div className="rounded-xl bg-amber-500/10 border border-amber-500/20 p-3">
+        <button
+          type="button"
+          onClick={onOpenPendingIncomes}
+          className="text-left rounded-xl bg-amber-500/10 border border-amber-500/20 p-3 transition-all hover:border-amber-500/40 hover:bg-amber-500/15 hover:scale-[1.02] active:scale-[0.99] focus:outline-none focus:ring-2 focus:ring-amber-500/40"
+        >
           <div className="flex items-center justify-between gap-1">
             <span className="text-xs text-amber-700 dark:text-amber-400 font-medium">Receitas pendentes</span>
             {calc.futureIn > 0
@@ -228,7 +232,7 @@ export function IncomeBalanceCard({ incomes, expenses, onAdjust, readOnly, onOpe
           <div className="text-[10px] mt-0.5 text-amber-700/80 dark:text-amber-400/80">
             {calc.pendingInCount} {calc.pendingInCount === 1 ? "recebimento" : "recebimentos"} pendente{calc.pendingInCount === 1 ? "" : "s"}
           </div>
-        </div>
+        </button>
         <div className={`rounded-xl border p-3 ${calc.projected >= calc.balance ? "bg-primary/10 border-primary/20" : "bg-rose-500/10 border-rose-500/30"}`}>
           <div className="flex items-center justify-between gap-1">
             <span className={`text-xs font-medium ${calc.projected >= calc.balance ? "text-primary" : "text-rose-700 dark:text-rose-400"}`}>Saldo previsto</span>
