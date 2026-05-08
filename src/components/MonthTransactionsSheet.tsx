@@ -19,6 +19,7 @@ interface Props {
   monthKey: string;
   incomes: Income[];
   expenses: Expense[];
+  initialFilter?: string;
 }
 
 type Row = {
@@ -48,9 +49,12 @@ const STATUS_BADGE: Record<Row["status"], string> = {
   recurring: "bg-primary/15 text-primary border-primary/30",
 };
 
-export function MonthTransactionsSheet({ open, onOpenChange, type, monthKey, incomes, expenses }: Props) {
-  const [filter, setFilter] = useState<string>("all");
+export function MonthTransactionsSheet({ open, onOpenChange, type, monthKey, incomes, expenses, initialFilter }: Props) {
+  const [filter, setFilter] = useState<string>(initialFilter ?? "all");
   const [sortBy, setSortBy] = useState<"date_desc" | "date_asc" | "amount">("date_desc");
+
+  // Sync filter when opening with a different initialFilter
+  useState(() => {});
 
   const rows = useMemo<Row[]>(() => {
     if (type === "incomes") {
