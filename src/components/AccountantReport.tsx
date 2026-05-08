@@ -14,6 +14,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { AccountantAuditCard } from "@/components/AccountantAuditCard";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import type { AuditTotals } from "@/lib/accountantAudit";
+import { calculateTotalWithInterest } from "@/hooks/useLoans";
 
 interface AccountantReportProps {
   loans: any[];
@@ -130,21 +131,18 @@ export function AccountantReport({ loans, payments, sales, expenses }: Accountan
           interest = amt;
           kind = "sem_vinculo";
           reason = "Pagamento sem empréstimo vinculado → assume 100% juros";
-        } else if (inst === -1) {
-          const principal = Number(loan.amount) || 0;
-          const totalInstall = Math.max(1, Number(loan.installments) || 1);
-          const paidBefore = Math.max(0, Number(loan.paid_installments ?? loan.paidInstallments ?? 0));
-          const principalRestante = Math.max(0, principal - (principal / totalInstall) * paidBefore);
-          interest = Math.max(0, amt - principalRestante);
-          kind = "quitacao";
-          reason = `Quitação total: principal restante = ${principalRestante.toFixed(2)} (principal ${principal.toFixed(2)} − ${paidBefore} parcelas pagas)`;
         } else {
           const principal = Number(loan.amount) || 0;
-          const totalInstall = Math.max(1, Number(loan.installments) || 1);
-          const principalPerInstall = principal / totalInstall;
-          interest = Math.max(0, amt - principalPerInstall);
-          kind = "parcela";
-          reason = `Parcela ${inst}/${totalInstall}: principal/parcela = ${principalPerInstall.toFixed(2)} (principal ${principal.toFixed(2)} ÷ ${totalInstall})`;
+          const totalWithInterest = calculateTotalWithInterest(principal, Number(loan.interestRate) || 0, Number(loan.installments) || 1);
+          const interestRatio = totalWithInterest > 0 ? 1 - principal / totalWithInterest : 0;
+          interest = Math.max(0, amt * interestRatio);
+          if (inst === -1) {
+            kind = "quitacao";
+            reason = `Quitação/parcial: juros = pagamento × proporção de juros do contrato (${(interestRatio * 100).toFixed(2)}%)`;
+          } else {
+            kind = "parcela";
+            reason = `Parcela ${inst}/${Math.max(1, Number(loan.installments) || 1)}: juros = pagamento × proporção de juros do contrato (${(interestRatio * 100).toFixed(2)}%)`;
+          }
         }
       }
 
