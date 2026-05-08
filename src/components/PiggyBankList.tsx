@@ -31,7 +31,7 @@ interface Props {
 
 export function PiggyBankList({ readOnly = false }: Props) {
   const { mask } = useHideValues();
-  const { piggyBanks, deposits, balances, createPiggyBank, updatePiggyBank, deletePiggyBank, adjustBalance, updateDeposit, deleteDeposit } = usePiggyBanks();
+  const { piggyBanks, deposits, balances, detailed, createPiggyBank, updatePiggyBank, deletePiggyBank, adjustBalance, updateDeposit, deleteDeposit, setPiggyRate } = usePiggyBanks();
 
   const [createOpen, setCreateOpen] = useState(false);
   const [editing, setEditing] = useState<PiggyBankType | null>(null);
@@ -44,6 +44,8 @@ export function PiggyBankList({ readOnly = false }: Props) {
   const [editDeposit, setEditDeposit] = useState<PiggyBankDeposit | null>(null);
   const [editDepositDraft, setEditDepositDraft] = useState({ amount: "", depositDate: "" });
   const [deleteDepositId, setDeleteDepositId] = useState<string | null>(null);
+  // Diálogo de escolha quando a taxa muda no editar
+  const [rateChangePending, setRateChangePending] = useState<{ pb: PiggyBankType; newRate: number } | null>(null);
 
   const openEditDeposit = (d: PiggyBankDeposit) => {
     setEditDepositDraft({ amount: d.amount.toFixed(2), depositDate: d.depositDate });
