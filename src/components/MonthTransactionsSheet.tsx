@@ -93,16 +93,9 @@ export function MonthTransactionsSheet({ open, onOpenChange, type, monthKey, inc
             status: i.status as Row["status"],
           });
         };
-        if (i.recurrence === "once") {
+        if (i.recurrence === "once" || i.recurrence === "weekly" || i.recurrence === "biweekly") {
+          // Semanais/quinzenais agora são linhas separadas: usar somente a própria data
           if (i.receivedDate.startsWith(monthKey)) pushOcc(base, 0);
-        } else if (i.recurrence === "weekly") {
-          let d = new Date(base);
-          while (d < startMonth) d.setDate(d.getDate() + 7);
-          let idx = 0;
-          while (d <= endMonth) {
-            pushOcc(new Date(d), idx++);
-            d.setDate(d.getDate() + 7);
-          }
         } else if (i.recurrence === "monthly") {
           const occ = new Date(y, m, base.getDate());
           if (occ >= startMonth && occ <= endMonth) pushOcc(occ, 0);
