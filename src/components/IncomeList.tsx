@@ -97,8 +97,9 @@ export function IncomeList({ readOnly }: Props) {
         incomes={incomes}
         expenses={expenses}
         readOnly={readOnly}
-        onOpenIncomes={() => setSheetType("incomes")}
-        onOpenExpenses={() => setSheetType("expenses")}
+        onOpenIncomes={() => { setSheetInitialFilter(undefined); setSheetType("incomes"); }}
+        onOpenExpenses={() => { setSheetInitialFilter(undefined); setSheetType("expenses"); }}
+        onOpenPendingIncomes={() => { setSheetInitialFilter("pending"); setSheetType("incomes"); }}
         onAdjust={async (delta) => {
           if (!delta) return;
           const today = new Date().toISOString().slice(0, 10);
