@@ -45,9 +45,20 @@ export function IncomeBalanceCard({ incomes, expenses }: Props) {
     const futureIn = incomes
       .filter((i) => i.status === "pending" && i.receivedDate.startsWith(monthKey))
       .reduce((s, i) => s + i.amount, 0);
+    // Para recorrentes parceladas: usar parcela mensal (amount / installments)
+    // Para fixas / recorrentes sem parcela: usar amount cheio
+    const monthlyExpenseAmount = (e: Expense) => {
+      if (e.type === "recorrente" && e.installments && e.installments > 1) {
+        return e.amount / e.installments;
+      }
+      return e.amount;
+    };
     const futureOut = expenses
       .filter((e) => !e.paid && (e.dueDate || "").startsWith(monthKey))
-      .reduce((s, e) => s + e.amount, 0);
+      .reduce((s, e) => s + monthlyExpenseAmount(e), 0);
+    const pendingInCount = incomes
+      .filter((i) => i.status === "pending" && i.receivedDate.startsWith(monthKey))
+      .length;
 
     // Saldo previsto = saldo atual + futuras receitas mês - futuras despesas mês
     const projected = balance + futureIn - futureOut;
