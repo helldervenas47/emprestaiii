@@ -4,7 +4,7 @@ import { useAuth } from "./useAuth";
 import { todayInAppTz } from "@/lib/timezone";
 
 export type IncomeStatus = "pending" | "received" | "overdue";
-export type IncomeRecurrence = "once" | "weekly" | "monthly" | "yearly";
+export type IncomeRecurrence = "once" | "weekly" | "biweekly" | "monthly" | "yearly";
 
 export interface Income {
   id: string;
