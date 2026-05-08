@@ -105,6 +105,8 @@ export function LedgerView({ readOnly = false }: Props) {
   const filtered = useMemo(() => {
     return entries
       .filter((e) => {
+        // Transferências internas entre carteiras não são receita/despesa real
+        if (e.category === "transfer") return false;
         if (filterDir !== "all" && e.direction !== filterDir) return false;
         if (filterCat !== "all" && e.category !== filterCat) return false;
         if (filterWallet !== "all" && (e.wallet ?? "account") !== filterWallet) return false;
