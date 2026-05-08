@@ -98,15 +98,55 @@ export function AccountantReport({ loans, payments, sales, expenses }: Accountan
     };
     const breakdown: Breakdown[] = [];
 
+    // Identifica contratos quitados no período (mesma lógica do Dashboard):
+    // status === "paid" e o último pagamento do contrato cai no período selecionado.
+    const quitadoLoanIds = new Set<string>();
+    loans.forEach((l: any) => {
+      if ((l.status ?? l.status) !== "paid") return;
+      const loanPays = payments.filter((pp) => (pp.loanId ?? (pp as any).loan_id) === l.id);
+      if (loanPays.length === 0) return;
+      const lastPayDate = loanPays.reduce((max, pp) => (pp.date > max ? pp.date : max), loanPays[0].date);
+      if (matchPeriod(lastPayDate)) quitadoLoanIds.add(l.id);
+    });
+
     let totalReceived = 0;
     let interestRevenue = 0;
+
+    // 1) Juros de contratos quitados no período: lucro total = totalPago − principal,
+    //    atribuído ao período em que o contrato foi quitado.
+    quitadoLoanIds.forEach((loanId) => {
+      const loan: any = loans.find((l) => l.id === loanId);
+      if (!loan) return;
+      const allPays = payments.filter((pp) => (pp.loanId ?? (pp as any).loan_id) === loanId);
+      const totalPaid = allPays.reduce((s, pp) => s + (Number(pp.amount) || 0), 0);
+      const profit = Math.max(0, totalPaid - (Number(loan.amount) || 0));
+      const lastPay = allPays.reduce((acc, pp) => (pp.date > acc.date ? pp : acc), allPays[0]);
+      const borrowerName = loan?.borrowerName ?? loan?.borrower_name ?? "Sem contrato";
+      interestRevenue += profit;
+      breakdown.push({
+        id: lastPay.id,
+        date: lastPay.date,
+        loanId,
+        borrowerName,
+        amount: totalPaid,
+        interest: profit,
+        principal: Math.max(0, totalPaid - profit),
+        kind: "quitacao",
+        kindLabel: "Quitação",
+        reason: `Contrato quitado no período: lucro = total pago (${totalPaid.toFixed(2)}) − principal (${(Number(loan.amount) || 0).toFixed(2)})`,
+      });
+    });
+
+    // 2) Demais pagamentos do período (excluindo os de contratos quitados, já contados acima)
     periodPayments.forEach((p) => {
+      const loanId = p.loanId ?? (p as any).loan_id ?? null;
       const amt = Number(p.amount) || 0;
       totalReceived += amt;
-      const loanId = p.loanId ?? p.loan_id ?? null;
-      const loan = loans.find((l) => l.id === loanId);
+      if (loanId && quitadoLoanIds.has(loanId)) return; // já incluído via quitação
+
+      const loan: any = loans.find((l) => l.id === loanId);
       const borrowerName = loan?.borrowerName ?? loan?.borrower_name ?? "Sem contrato";
-      const meta: any = p.metadata || {};
+      const meta: any = (p as any).metadata || {};
       const splitInterest = Number(meta?.split?.interest ?? meta?.interest_amount);
 
       let interest = 0;
@@ -118,7 +158,7 @@ export function AccountantReport({ loans, payments, sales, expenses }: Accountan
         kind = "split";
         reason = `Split explícito no pagamento: juros = ${splitInterest.toFixed(2)}`;
       } else {
-        const inst = Number(p.installmentNumber ?? p.installment_number ?? 0);
+        const inst = Number(p.installmentNumber ?? (p as any).installment_number ?? 0);
         if (inst === 0) {
           interest = amt;
           kind = "juros_puro";
@@ -136,13 +176,8 @@ export function AccountantReport({ loans, payments, sales, expenses }: Accountan
           const totalWithInterest = calculateTotalWithInterest(principal, Number(loan.interestRate) || 0, Number(loan.installments) || 1);
           const interestRatio = totalWithInterest > 0 ? 1 - principal / totalWithInterest : 0;
           interest = Math.max(0, amt * interestRatio);
-          if (inst === -1) {
-            kind = "quitacao";
-            reason = `Quitação/parcial: juros = pagamento × proporção de juros do contrato (${(interestRatio * 100).toFixed(2)}%)`;
-          } else {
-            kind = "parcela";
-            reason = `Parcela ${inst}/${Math.max(1, Number(loan.installments) || 1)}: juros = pagamento × proporção de juros do contrato (${(interestRatio * 100).toFixed(2)}%)`;
-          }
+          kind = inst === -1 ? "quitacao" : "parcela";
+          reason = `${kind === "quitacao" ? "Pagamento parcial" : `Parcela ${inst}`}: juros = pagamento × proporção do contrato (${(interestRatio * 100).toFixed(2)}%)`;
         }
       }
 
