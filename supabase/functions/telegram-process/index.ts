@@ -1613,8 +1613,8 @@ Se faltar valor interpret\u00e1vel, retorne confidence baixo (<0.6).`,
   try { return JSON.parse(call.function.arguments); } catch { return null; }
 }
 
+async function downloadTelegramFile(fileId: string, lovableKey: string, telegramKey: string): Promise<{ base64: string; filePath: string } | null> {
   try {
-    const fileResp = await fetch(`${GATEWAY_URL}/getFile`, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${lovableKey}`,
