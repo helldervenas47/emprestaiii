@@ -1149,7 +1149,6 @@ export function AccountantReport({ loans, payments, sales, expenses }: Accountan
                     <div className="flex items-center justify-between">
                       <h4 className="text-xs font-semibold">
                         {dreCategory === "interest" && `Lançamentos — Receita de Juros (${(dre as any).breakdown.filter((b: any) => b.interest > 0).length})`}
-                        {dreCategory === "sales" && `Lançamentos — Receita de Vendas (${(dre as any).periodSales.length})`}
                         {dreCategory === "expenses" && `Lançamentos — Despesas Operacionais (${(dre as any).periodExpenses.length})`}
                       </h4>
                       <button
