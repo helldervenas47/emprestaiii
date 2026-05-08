@@ -19,6 +19,8 @@ interface Props {
   expenses: Expense[];
   onAdjust?: (delta: number) => Promise<void> | void;
   readOnly?: boolean;
+  onOpenIncomes?: () => void;
+  onOpenExpenses?: () => void;
 }
 
 export function IncomeBalanceCard({ incomes, expenses, onAdjust, readOnly }: Props) {
