@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { useIncomes, Income, IncomeStatus } from "@/hooks/useIncomes";
+import { useExpenses } from "@/hooks/useExpenses";
 import { useClients } from "@/hooks/useClients";
 import { usePaymentMethods } from "@/hooks/usePaymentMethods";
 import { Button } from "@/components/ui/button";
@@ -37,6 +38,7 @@ interface Props {
 
 export function IncomeList({ readOnly }: Props) {
   const { incomes, addIncome, updateIncome, deleteIncome, duplicateIncome, markReceived } = useIncomes();
+  const { expenses } = useExpenses();
   const { clients } = useClients();
   const { activeMethods } = usePaymentMethods();
 
@@ -75,7 +77,7 @@ export function IncomeList({ readOnly }: Props) {
 
   return (
     <div className="space-y-4 overflow-x-hidden max-w-full">
-      <IncomeBalanceCard incomes={incomes} />
+      <IncomeBalanceCard incomes={incomes} expenses={expenses} />
 
       <IncomeDashboard incomes={incomes} />
 

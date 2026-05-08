@@ -1,7 +1,6 @@
 import { useState, useCallback, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
-import { recordLedger, removeLedgerByRef } from "@/lib/ledger";
 import { todayInAppTz } from "@/lib/timezone";
 
 export type IncomeStatus = "pending" | "received" | "overdue";
@@ -90,24 +89,10 @@ export function useIncomes(enabled = true) {
     if (error || !data) return null;
     const inc = rowToIncome(data);
     setIncomes((prev) => [inc, ...prev]);
-    if (inc.status === "received") {
-      await recordLedger({
-        direction: "in",
-        category: "other",
-        amount: inc.amount,
-        description: `Receita - ${inc.description}`,
-        occurred_on: inc.receivedDate,
-        source: "income",
-        payment_method_id: inc.paymentMethodId,
-        metadata: { income_id: inc.id, category: inc.category, source: inc.source },
-      });
-    }
     return inc;
   }, [dataOwnerId]);
 
   const updateIncome = useCallback(async (id: string, patch: Partial<Income>) => {
-    const prev = incomes.find((i) => i.id === id);
-    if (!prev) return;
     const updatePayload: any = {};
     if (patch.description !== undefined) updatePayload.description = patch.description;
     if (patch.amount !== undefined) updatePayload.amount = patch.amount;
@@ -122,56 +107,12 @@ export function useIncomes(enabled = true) {
 
     setIncomes((arr) => arr.map((i) => i.id === id ? { ...i, ...patch } : i));
     await supabase.from("incomes" as any).update(updatePayload).eq("id", id);
-
-    // Sync ledger on status changes
-    const wasReceived = prev.status === "received";
-    const nowReceived = (patch.status ?? prev.status) === "received";
-    if (wasReceived && !nowReceived) {
-      await removeLedgerByRef({ expense_id: undefined, payment_id: undefined, loan_id: undefined });
-      // Removal is keyed by metadata; do scoped removal manually:
-      const { data: rows } = await supabase
-        .from("account_ledger")
-        .select("id, direction, amount, wallet")
-        .contains("metadata", { income_id: id } as any);
-      if (rows && rows.length) {
-        await supabase.from("account_ledger").delete().in("id", rows.map((r: any) => r.id));
-      }
-    }
-    if (!wasReceived && nowReceived) {
-      const final = { ...prev, ...patch };
-      await recordLedger({
-        direction: "in",
-        category: "other",
-        amount: final.amount,
-        description: `Receita - ${final.description}`,
-        occurred_on: final.receivedDate,
-        source: "income",
-        payment_method_id: final.paymentMethodId,
-        metadata: { income_id: id, category: final.category, source: final.source },
-      });
-    }
-  }, [incomes]);
+  }, []);
 
   const deleteIncome = useCallback(async (id: string) => {
-    const prev = incomes.find((i) => i.id === id);
     setIncomes((arr) => arr.filter((i) => i.id !== id));
-    if (prev?.status === "received") {
-      const { data: rows } = await supabase
-        .from("account_ledger")
-        .select("id, direction, amount, wallet")
-        .contains("metadata", { income_id: id } as any);
-      if (rows && rows.length) {
-        // remove and adjust balance
-        const { adjustBalance } = await import("@/lib/balance");
-        await supabase.from("account_ledger").delete().in("id", rows.map((r: any) => r.id));
-        for (const r of rows as any[]) {
-          const delta = r.direction === "in" ? -Number(r.amount) : Number(r.amount);
-          await adjustBalance(delta, (r.wallet as any) || "account");
-        }
-      }
-    }
     await supabase.from("incomes" as any).delete().eq("id", id);
-  }, [incomes]);
+  }, []);
 
   const duplicateIncome = useCallback(async (id: string) => {
     const src = incomes.find((i) => i.id === id);
