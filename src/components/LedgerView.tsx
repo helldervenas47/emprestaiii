@@ -105,6 +105,8 @@ export function LedgerView({ readOnly = false }: Props) {
   const filtered = useMemo(() => {
     return entries
       .filter((e) => {
+        // Transferências internas entre carteiras não são receita/despesa real
+        if (e.category === "transfer") return false;
         if (filterDir !== "all" && e.direction !== filterDir) return false;
         if (filterCat !== "all" && e.category !== filterCat) return false;
         if (filterWallet !== "all" && (e.wallet ?? "account") !== filterWallet) return false;
@@ -237,9 +239,11 @@ export function LedgerView({ readOnly = false }: Props) {
           <SelectTrigger className="h-9 flex-1 min-w-[140px] sm:flex-none sm:w-[180px]"><SelectValue /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Todas as categorias</SelectItem>
-            {Object.entries(categoryLabels).map(([k, v]) => (
-              <SelectItem key={k} value={k}>{v}</SelectItem>
-            ))}
+            {Object.entries(categoryLabels)
+              .filter(([k]) => k !== "transfer")
+              .map(([k, v]) => (
+                <SelectItem key={k} value={k}>{v}</SelectItem>
+              ))}
           </SelectContent>
         </Select>
         <Select value={filterMonth} onValueChange={(v) => setFilterMonth(v)}>
