@@ -92,9 +92,9 @@ export function IncomeBalanceCard({ incomes, expenses, onAdjust, readOnly, onOpe
     : calc.balance < 0 ? "text-rose-600 dark:text-rose-400" : "text-foreground";
 
   return (
-    <Card no3d className="p-5 sm:p-6 bg-gradient-to-br from-primary/5 via-card to-card border-primary/20">
+    <Card no3d className="p-5 sm:p-6 bg-gradient-to-br from-primary/5 via-card to-card border border-border/50 shadow-[0_1px_8px_-4px_hsl(0_0%_0%/0.08)] animate-fade-in">
       <div className="flex items-start justify-between gap-3 flex-wrap">
-        <div>
+        <div className="min-w-0">
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <Wallet className="h-4 w-4" />
             <span>Saldo em Conta</span>
@@ -105,40 +105,50 @@ export function IncomeBalanceCard({ incomes, expenses, onAdjust, readOnly, onOpe
           <div className="mt-1 text-xs text-muted-foreground">
             Calculado apenas com receitas e despesas desta área
           </div>
-        </div>
-        <div className="flex flex-col items-end gap-2">
-          <div className={`flex items-center gap-1 text-sm font-medium ${trendColor}`}>
-            {trend === "up" && <TrendingUp className="h-4 w-4" />}
-            {trend === "down" && <TrendingDown className="h-4 w-4" />}
-            {calc.prevIn > 0 ? `${pct >= 0 ? "+" : ""}${pct.toFixed(1)}% vs mês anterior` : "Sem histórico"}
+          <div className="mt-3 flex items-center gap-2 flex-wrap">
+            <div className={`flex items-center gap-1 text-sm font-medium whitespace-nowrap ${trendColor}`}>
+              {trend === "up" && <TrendingUp className="h-4 w-4" />}
+              {trend === "down" && <TrendingDown className="h-4 w-4" />}
+              {calc.prevIn > 0 ? `${pct >= 0 ? "+" : ""}${pct.toFixed(1)}% vs mês anterior` : "Sem histórico"}
+            </div>
+            {!readOnly && onAdjust && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-8 gap-1.5 whitespace-nowrap"
+                onClick={() => { setTarget(calc.balance.toFixed(2)); setAdjustOpen(true); }}
+              >
+                <Settings2 className="h-3.5 w-3.5" />
+                Ajustar saldo
+              </Button>
+            )}
           </div>
-          {!readOnly && onAdjust && (
-            <Button
-              variant="outline"
-              size="sm"
-              className="h-8 gap-1.5"
-              onClick={() => { setTarget(calc.balance.toFixed(2)); setAdjustOpen(true); }}
-            >
-              <Settings2 className="h-3.5 w-3.5" />
-              Ajustar saldo
-            </Button>
-          )}
         </div>
       </div>
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-5">
-        <div className="rounded-xl bg-emerald-500/10 border border-emerald-500/20 p-3">
+        <button
+          type="button"
+          onClick={onOpenIncomes}
+          className="text-left rounded-xl bg-emerald-500/10 border border-emerald-500/20 p-3 transition-all hover:border-emerald-500/40 hover:bg-emerald-500/15 hover:scale-[1.02] active:scale-[0.99] focus:outline-none focus:ring-2 focus:ring-emerald-500/40"
+        >
           <div className="flex items-center gap-1 text-xs text-emerald-700 dark:text-emerald-400 font-medium">
             <ArrowUpRight className="h-3 w-3" /> Entradas mês
           </div>
           <div className="text-lg font-semibold mt-1">{fmt(calc.monthIn, hide)}</div>
-        </div>
-        <div className="rounded-xl bg-rose-500/10 border border-rose-500/20 p-3">
+          <div className="text-[10px] mt-0.5 text-emerald-700/70 dark:text-emerald-400/70">Toque para ver detalhes</div>
+        </button>
+        <button
+          type="button"
+          onClick={onOpenExpenses}
+          className="text-left rounded-xl bg-rose-500/10 border border-rose-500/20 p-3 transition-all hover:border-rose-500/40 hover:bg-rose-500/15 hover:scale-[1.02] active:scale-[0.99] focus:outline-none focus:ring-2 focus:ring-rose-500/40"
+        >
           <div className="flex items-center gap-1 text-xs text-rose-700 dark:text-rose-400 font-medium">
             <ArrowDownRight className="h-3 w-3" /> Saídas mês
           </div>
           <div className="text-lg font-semibold mt-1">{fmt(calc.monthOut, hide)}</div>
-        </div>
+          <div className="text-[10px] mt-0.5 text-rose-700/70 dark:text-rose-400/70">Toque para ver detalhes</div>
+        </button>
         <div className="rounded-xl bg-amber-500/10 border border-amber-500/20 p-3">
           <div className="flex items-center justify-between gap-1">
             <span className="text-xs text-amber-700 dark:text-amber-400 font-medium">Receitas pendentes</span>
