@@ -69,22 +69,33 @@ export function IncomeBalanceCard({ incomes, expenses, onAdjust, readOnly, onOpe
   const prevKey = `${prevDate.getFullYear()}-${String(prevDate.getMonth() + 1).padStart(2, "0")}`;
 
   const calc = useMemo(() => {
-    // Saldo em Conta = receitas recebidas - despesas pagas (todos os períodos)
+    // Saldo em Conta = receitas recebidas + recebimentos efetivos de vendas
+    //                  − despesas pagas − aportes ao cofrinho (todos os períodos)
     const totalIncomeReceived = incomes
       .filter((i) => i.status === "received")
       .reduce((s, i) => s + i.amount, 0);
+    const totalSalesReceived = sales.reduce((s, sale) => s + saleReceivedTotal(sale), 0);
     const totalExpensePaid = expenses
       .filter((e) => e.paid)
       .reduce((s, e) => s + e.amount, 0);
-    const balance = totalIncomeReceived - totalExpensePaid;
+    // Aportes manuais/recorrentes ao cofrinho (não vinculados a despesa).
+    // Aportes vinculados a uma despesa cofrinho já estão contabilizados em totalExpensePaid.
+    const totalPiggyManualDeposits = piggyDeposits
+      .filter((d) => !d.expenseId)
+      .reduce((s, d) => s + (Number(d.amount) || 0), 0);
+    const balance = totalIncomeReceived + totalSalesReceived - totalExpensePaid - totalPiggyManualDeposits;
 
     // Movimentação do mês vigente
     const monthIn = incomes
       .filter((i) => i.status === "received" && i.receivedDate.startsWith(monthKey))
-      .reduce((s, i) => s + i.amount, 0);
+      .reduce((s, i) => s + i.amount, 0)
+      + sales.reduce((s, sale) => s + saleReceivedInMonth(sale, monthKey), 0);
     const monthOut = expenses
       .filter((e) => e.paid && (e.paidDate || "").startsWith(monthKey))
-      .reduce((s, e) => s + e.amount, 0);
+      .reduce((s, e) => s + e.amount, 0)
+      + piggyDeposits
+        .filter((d) => !d.expenseId && (d.depositDate || "").startsWith(monthKey))
+        .reduce((s, d) => s + (Number(d.amount) || 0), 0);
 
     // Futuras do mês selecionado (pendentes/agendadas, não canceladas).
     // Receitas recorrentes são materializadas como lançamentos mensais separados;
