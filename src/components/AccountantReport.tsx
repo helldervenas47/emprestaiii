@@ -1116,17 +1116,6 @@ export function AccountantReport({ loans, payments, sales, expenses }: Accountan
                   </span>
                   <span className="text-success">{fmt(dre.interestRevenue, hidden)}</span>
                 </button>
-                <button
-                  type="button"
-                  onClick={() => setDreCategory((c) => (c === "sales" ? null : "sales"))}
-                  className={`w-full flex justify-between py-2 border-b text-left transition-colors hover:bg-muted/40 rounded px-2 -mx-2 ${dreCategory === "sales" ? "bg-muted/50" : ""}`}
-                >
-                  <span className="font-medium flex items-center gap-1">
-                    <ChevronRight className={`h-3 w-3 transition-transform ${dreCategory === "sales" ? "rotate-90" : ""}`} />
-                    (+) Receita de Vendas
-                  </span>
-                  <span className="text-success">{fmt(dre.salesRevenue, hidden)}</span>
-                </button>
                 <div className="flex justify-between py-2 border-b font-semibold bg-muted/30 px-2 rounded">
                   <span>(=) Receita Bruta</span>
                   <span>{fmt(dre.totalRevenue, hidden)}</span>
