@@ -64,15 +64,8 @@ export function IncomeBalanceCard({ incomes, expenses, onAdjust, readOnly, onOpe
     // Futuras do mês selecionado (pendentes/agendadas, não canceladas).
     // Receitas recorrentes são materializadas como lançamentos mensais separados;
     // por isso cada linha deve contar apenas a própria data para evitar duplicidade visual.
-    const startMonth = new Date(mkY, mkM - 1, 1);
-    const endMonth = new Date(mkY, mkM, 0);
-    const isCurrentMonth = mkY === now.getFullYear() && mkM - 1 === now.getMonth();
-    const today = isCurrentMonth
-      ? new Date(now.getFullYear(), now.getMonth(), now.getDate())
-      : startMonth;
     const pendingOccurrencesInMonth = (i: Income): number => {
       if (i.status !== "pending") return 0;
-      const base = new Date(i.receivedDate + "T00:00:00");
       if (
         i.recurrence === "once" ||
         i.recurrence === "weekly" ||
