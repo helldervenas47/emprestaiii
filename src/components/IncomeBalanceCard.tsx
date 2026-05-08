@@ -104,13 +104,17 @@ export function IncomeBalanceCard({ incomes, expenses }: Props) {
           </div>
           <div className="text-lg font-semibold mt-1">{fmt(calc.monthOut, hide)}</div>
         </div>
-        <div className="rounded-xl bg-amber-500/10 border border-amber-500/20 p-3">
-          <div className="text-xs text-amber-700 dark:text-amber-400 font-medium">Receitas pendentes</div>
-          <div className="text-lg font-semibold mt-1">{fmt(calc.pendingIn, hide)}</div>
-        </div>
-        <div className="rounded-xl bg-primary/10 border border-primary/20 p-3">
-          <div className="text-xs text-primary font-medium">Saldo previsto</div>
+        <div className={`rounded-xl border p-3 ${calc.projected >= calc.balance ? "bg-primary/10 border-primary/20" : "bg-rose-500/10 border-rose-500/30"}`}>
+          <div className="flex items-center justify-between gap-1">
+            <span className={`text-xs font-medium ${calc.projected >= calc.balance ? "text-primary" : "text-rose-700 dark:text-rose-400"}`}>Saldo previsto</span>
+            {calc.projectedDiff >= 0
+              ? <TrendingUp className="h-3 w-3 text-emerald-600 dark:text-emerald-400" />
+              : <TrendingDown className="h-3 w-3 text-rose-600 dark:text-rose-400" />}
+          </div>
           <div className="text-lg font-semibold mt-1">{fmt(calc.projected, hide)}</div>
+          <div className={`text-[10px] mt-0.5 ${calc.projectedDiff >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"}`}>
+            {calc.projectedDiff >= 0 ? "+" : ""}{fmt(calc.projectedDiff, hide)} vs atual
+          </div>
         </div>
       </div>
     </Card>
