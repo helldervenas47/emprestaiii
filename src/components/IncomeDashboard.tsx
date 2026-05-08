@@ -14,10 +14,11 @@ function fmtBRL(n: number) {
 
 interface Props {
   incomes: Income[];
+  allMonthIncomes?: Income[];
   monthKey: string;
 }
 
-export function IncomeDashboard({ incomes, monthKey }: Props) {
+export function IncomeDashboard({ incomes, allMonthIncomes, monthKey }: Props) {
   const byCategory = useMemo(() => {
     const map = new Map<string, number>();
     incomes.forEach((i) => {
