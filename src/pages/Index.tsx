@@ -31,6 +31,7 @@ const ExpenseForm = lazy(() => import("@/components/ExpenseForm").then(m => ({ d
 const ExpenseList = lazy(() => import("@/components/ExpenseList").then(m => ({ default: m.ExpenseList })));
 const PersonalExpenseForm = lazy(() => import("@/components/PersonalExpenseForm").then(m => ({ default: m.PersonalExpenseForm })));
 const PersonalExpenseList = lazy(() => import("@/components/PersonalExpenseList").then(m => ({ default: m.PersonalExpenseList })));
+const IncomeList = lazy(() => import("@/components/IncomeList").then(m => ({ default: m.IncomeList })));
 const CreditCardList = lazy(() => import("@/components/CreditCardList").then(m => ({ default: m.CreditCardList })));
 const PiggyBankList = lazy(() => import("@/components/PiggyBankList").then(m => ({ default: m.PiggyBankList })));
 const UserManagement = lazy(() => import("@/components/UserManagement").then(m => ({ default: m.UserManagement })));
