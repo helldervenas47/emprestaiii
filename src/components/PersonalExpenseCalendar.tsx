@@ -214,7 +214,7 @@ export function PersonalExpenseCalendar({ expenses }: Props) {
                       <button
                         key={day}
                         onClick={() => handleDayClick(day)}
-                        className={`relative flex flex-col items-center justify-start rounded-lg p-1 min-h-[52px] text-xs transition-colors
+                        className={`relative flex flex-col items-center justify-start rounded-lg p-1 min-h-[58px] sm:min-h-[52px] text-xs transition-colors
                           ${isSelected ? "bg-primary text-primary-foreground ring-2 ring-primary" : ""}
                           ${isToday && !isSelected ? "bg-accent font-bold" : ""}
                           ${has && !isSelected ? (isHigh ? "bg-destructive/10" : "bg-warning/10") : ""}
@@ -225,7 +225,7 @@ export function PersonalExpenseCalendar({ expenses }: Props) {
                           {day}
                         </span>
                         {has && (
-                          <span className={`mt-0.5 text-[9px] sm:text-[10px] font-semibold leading-tight tabular-nums truncate max-w-full px-0.5 ${
+                          <span className={`mt-0.5 text-[8px] sm:text-[10px] font-semibold leading-tight tabular-nums whitespace-nowrap ${
                             isSelected ? "text-primary-foreground" : isHigh ? "text-destructive" : "text-warning"
                           }`}>
                             {compactCurrency(total)}
