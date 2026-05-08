@@ -83,10 +83,23 @@ export function IncomeForm({ open, onClose, onSubmit, initial }: Props) {
     }
   }, [open, initial, clients]);
 
+  // Auto: para novas receitas com data futura → status pendente
+  useEffect(() => {
+    if (!open || initial) return;
+    const today = todayInAppTz();
+    if (receivedDate > today && status === "received") setStatus("pending");
+    else if (receivedDate <= today && status === "pending") setStatus("received");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [receivedDate, open, initial]);
+
   const handleSave = async () => {
     if (!description.trim() || !amount) return;
     setSaving(true);
     const matched = clients.find((c) => c.name.toLowerCase() === clientName.trim().toLowerCase());
+    const today = todayInAppTz();
+    const finalStatus: IncomeStatus = !initial && receivedDate > today && status === "received"
+      ? "pending"
+      : status;
     await onSubmit({
       description: description.trim(),
       amount: Number(amount),
@@ -95,7 +108,7 @@ export function IncomeForm({ open, onClose, onSubmit, initial }: Props) {
       source: !matched && clientName.trim() ? clientName.trim() : null,
       paymentMethodId: paymentMethodId || null,
       receivedDate,
-      status,
+      status: finalStatus,
       notes: notes.trim() || null,
       recurrence,
       parentId: initial?.parentId || null,
