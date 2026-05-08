@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { useIncomes, Income, IncomeStatus } from "@/hooks/useIncomes";
+import { useExpenses } from "@/hooks/useExpenses";
 import { useClients } from "@/hooks/useClients";
 import { usePaymentMethods } from "@/hooks/usePaymentMethods";
 import { Button } from "@/components/ui/button";
