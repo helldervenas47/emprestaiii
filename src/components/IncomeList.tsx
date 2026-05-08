@@ -297,12 +297,18 @@ export function IncomeList({ readOnly }: Props) {
           </div>
         )}
       </Card>
-        </TabsContent>
 
-        <TabsContent value="statement" className="mt-4">
-          <FinancialStatement />
-        </TabsContent>
-      </Tabs>
+      <Sheet open={statementOpen} onOpenChange={setStatementOpen}>
+        <SheetContent side="right" className="w-full sm:max-w-4xl overflow-y-auto">
+          <SheetHeader>
+            <SheetTitle>Extrato Financeiro</SheetTitle>
+          </SheetHeader>
+          <div className="mt-4">
+            <FinancialStatement />
+          </div>
+        </SheetContent>
+      </Sheet>
+
 
       <IncomeForm
         open={formOpen}
