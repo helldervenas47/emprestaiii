@@ -136,9 +136,7 @@ export function IncomeBalanceCard({ incomes, expenses, onAdjust, readOnly, onOpe
       return s + x.total;
     }, 0);
     const futureOut = personalPendingExpenses + cardInvoicePendingMonth;
-    const pendingInCount = incomes
-      .filter((i) => i.status === "pending" && i.receivedDate.startsWith(monthKey))
-      .length;
+    const pendingInCount = incomes.reduce((s, i) => s + pendingOccurrencesInMonth(i), 0);
 
     // Saldo previsto = saldo em conta + receitas pendentes do mês - despesas pessoais pendentes do mês
     const projected = balance + futureIn - futureOut;
