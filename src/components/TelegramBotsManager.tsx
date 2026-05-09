@@ -404,6 +404,29 @@ export function TelegramBotsManager() {
             </div>
 
             <div className="space-y-1.5">
+              <Label>Finalidade</Label>
+              <div className="grid grid-cols-3 gap-1.5">
+                {(["reports", "expenses", "general"] as const).map((p) => (
+                  <button
+                    key={p}
+                    type="button"
+                    onClick={() => setForm(f => ({ ...f, purpose: p }))}
+                    className={`text-xs px-2 py-2 rounded-md border transition-colors ${
+                      form.purpose === p
+                        ? "bg-primary text-primary-foreground border-primary"
+                        : "bg-background border-border hover:bg-muted"
+                    }`}
+                  >
+                    {p === "reports" ? "Relatórios" : p === "expenses" ? "Despesas" : "Geral"}
+                  </button>
+                ))}
+              </div>
+              <p className="text-[10px] text-muted-foreground">
+                <strong>Relatórios</strong> recebe planejamento diário, cobranças e insights. <strong>Despesas</strong> processa lançamentos. <strong>Geral</strong> serve para ambos.
+              </p>
+            </div>
+
+            <div className="space-y-1.5">
               <Label htmlFor="bot-desc">Descrição (opcional)</Label>
               <Textarea id="bot-desc" value={form.description}
                 onChange={(e) => setForm(f => ({ ...f, description: e.target.value }))}
