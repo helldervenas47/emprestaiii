@@ -1,11 +1,13 @@
 import { useMemo, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight, ChevronDown, ChevronUp, CalendarDays, Wallet, TrendingUp } from "lucide-react";
+import { ChevronLeft, ChevronRight, ChevronDown, ChevronUp, CalendarDays, TrendingUp, ArrowUpCircle, ArrowDownCircle } from "lucide-react";
 import type { Income } from "@/hooks/useIncomes";
+import type { Expense } from "@/types/loan";
 
 interface Props {
   incomes: Income[];
+  expenses?: Expense[];
 }
 
 const monthNames = [
@@ -18,8 +20,10 @@ const formatCurrency = (v: number) =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v);
 
 const compactCurrency = (v: number) => {
-  if (v >= 1000) return `R$ ${(v / 1000).toFixed(v >= 10000 ? 0 : 1)}k`;
-  return `R$ ${Math.round(v)}`;
+  const abs = Math.abs(v);
+  const sign = v < 0 ? "-" : "";
+  if (abs >= 1000) return `${sign}R$${(abs / 1000).toFixed(abs >= 10000 ? 0 : 1)}k`;
+  return `${sign}R$${Math.round(abs)}`;
 };
 
 const formatLocalDate = (d: Date) => {
@@ -29,11 +33,18 @@ const formatLocalDate = (d: Date) => {
   return `${y}-${m}-${day}`;
 };
 
+type DayInfo = {
+  incomes: Income[];
+  expenses: Expense[];
+  totalIncome: number;
+  totalExpense: number;
+};
+
 /**
- * Calendário de receitas pendentes de recebimento.
- * Agrupa receitas com status "pending" ou "overdue" pela data prevista (receivedDate).
+ * Calendário diário: exibe receitas e despesas pessoais por dia,
+ * com totais por categoria e saldo final do dia.
  */
-export function IncomePendingCalendar({ incomes }: Props) {
+export function IncomePendingCalendar({ incomes, expenses = [] }: Props) {
   const today = new Date();
   const todayStr = formatLocalDate(today);
 
@@ -42,22 +53,33 @@ export function IncomePendingCalendar({ incomes }: Props) {
   const [month, setMonth] = useState(today.getMonth());
   const [selectedDate, setSelectedDate] = useState<string | null>(todayStr);
 
-  const pending = useMemo(
-    () => incomes.filter((i) => i.status === "pending" || i.status === "overdue"),
-    [incomes]
+  const personalExpenses = useMemo(
+    () => expenses.filter((e) => (e.scope ?? "business") === "personal"),
+    [expenses]
   );
 
   const dayMap = useMemo(() => {
-    const map: Record<string, { items: Income[]; total: number }> = {};
-    for (const i of pending) {
-      const dateStr = i.receivedDate;
-      if (!dateStr) continue;
-      if (!map[dateStr]) map[dateStr] = { items: [], total: 0 };
-      map[dateStr].items.push(i);
-      map[dateStr].total += Number(i.amount) || 0;
+    const map: Record<string, DayInfo> = {};
+    const ensure = (d: string) => {
+      if (!map[d]) map[d] = { incomes: [], expenses: [], totalIncome: 0, totalExpense: 0 };
+      return map[d];
+    };
+    for (const i of incomes) {
+      const d = i.receivedDate;
+      if (!d) continue;
+      const e = ensure(d);
+      e.incomes.push(i);
+      e.totalIncome += Number(i.amount) || 0;
+    }
+    for (const ex of personalExpenses) {
+      const d = ex.paid && ex.paidDate ? ex.paidDate : ex.dueDate;
+      if (!d) continue;
+      const e = ensure(d);
+      e.expenses.push(ex);
+      e.totalExpense += Number(ex.amount) || 0;
     }
     return map;
-  }, [pending]);
+  }, [incomes, personalExpenses]);
 
   const calendarDays = useMemo(() => {
     const firstDay = new Date(year, month, 1);
@@ -82,13 +104,16 @@ export function IncomePendingCalendar({ incomes }: Props) {
     });
   }, []);
 
-  const monthTotal = useMemo(() => {
-    let sum = 0;
+  const monthTotals = useMemo(() => {
+    let inc = 0, exp = 0;
     Object.entries(dayMap).forEach(([date, info]) => {
       const [y, m] = date.split("-").map(Number);
-      if (y === year && m === month + 1) sum += info.total;
+      if (y === year && m === month + 1) {
+        inc += info.totalIncome;
+        exp += info.totalExpense;
+      }
     });
-    return sum;
+    return { inc, exp, balance: inc - exp };
   }, [dayMap, year, month]);
 
   const prevMonth = () => {
@@ -116,19 +141,22 @@ export function IncomePendingCalendar({ incomes }: Props) {
     setMonth(d.getMonth());
   };
 
-  const selectedItems = selectedDate ? (dayMap[selectedDate]?.items ?? []) : [];
-  const selectedTotal = selectedDate ? (dayMap[selectedDate]?.total ?? 0) : 0;
+  const selectedInfo: DayInfo = selectedDate
+    ? (dayMap[selectedDate] ?? { incomes: [], expenses: [], totalIncome: 0, totalExpense: 0 })
+    : { incomes: [], expenses: [], totalIncome: 0, totalExpense: 0 };
+  const selectedBalance = selectedInfo.totalIncome - selectedInfo.totalExpense;
 
-  const maxDayTotal = useMemo(() => {
-    let max = 0;
-    calendarDays.forEach((day) => {
-      if (day === null) return;
-      const ds = `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
-      const t = dayMap[ds]?.total ?? 0;
-      if (t > max) max = t;
-    });
-    return max;
-  }, [calendarDays, dayMap, year, month]);
+  // Group by category for selected day
+  const groupByCategory = <T extends { category?: string | null; amount: number }>(items: T[]) => {
+    const m = new Map<string, number>();
+    for (const it of items) {
+      const cat = it.category && String(it.category).trim() ? String(it.category) : "Outros";
+      m.set(cat, (m.get(cat) || 0) + (Number(it.amount) || 0));
+    }
+    return Array.from(m.entries()).sort((a, b) => b[1] - a[1]);
+  };
+  const incomeByCat = useMemo(() => groupByCategory(selectedInfo.incomes), [selectedInfo]);
+  const expenseByCat = useMemo(() => groupByCategory(selectedInfo.expenses), [selectedInfo]);
 
   return (
     <Card no3d className="animate-fade-in">
@@ -137,10 +165,10 @@ export function IncomePendingCalendar({ incomes }: Props) {
           <div className="flex items-center gap-2 min-w-0">
             <CalendarDays className="h-4 w-4 text-primary shrink-0" />
             <h3 className="text-sm font-semibold text-foreground truncate">
-              Calendário de Recebimentos
+              Calendário diário
             </h3>
             <span className="text-xs text-muted-foreground hidden sm:inline">
-              · {monthNames[month]} {year}: <span className="font-semibold text-foreground">{formatCurrency(monthTotal)}</span>
+              · {monthNames[month]} {year}: <span className={`font-semibold ${monthTotals.balance >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"}`}>{formatCurrency(monthTotals.balance)}</span>
             </span>
           </div>
           <Button
@@ -187,12 +215,11 @@ export function IncomePendingCalendar({ incomes }: Props) {
                     if (day === null) return <div key={`empty-${idx}`} />;
                     const dateStr = `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
                     const info = dayMap[dateStr];
-                    const total = info?.total ?? 0;
-                    const has = total > 0;
+                    const balance = (info?.totalIncome ?? 0) - (info?.totalExpense ?? 0);
                     const isToday = dateStr === todayStr;
                     const isSelected = dateStr === selectedDate;
-                    const isHigh = has && maxDayTotal > 0 && total >= maxDayTotal * 0.66;
-                    const isOverdue = has && dateStr < todayStr;
+                    const positive = balance > 0;
+                    const negative = balance < 0;
 
                     return (
                       <button
@@ -201,20 +228,25 @@ export function IncomePendingCalendar({ incomes }: Props) {
                         className={`relative flex flex-col items-center justify-start rounded-lg p-1 min-h-[58px] sm:min-h-[52px] text-xs transition-colors
                           ${isSelected ? "bg-primary text-primary-foreground ring-2 ring-primary" : ""}
                           ${isToday && !isSelected ? "bg-accent font-bold" : ""}
-                          ${has && !isSelected ? (isOverdue ? "bg-destructive/10" : isHigh ? "bg-emerald-500/15" : "bg-emerald-500/10") : ""}
-                          ${!isSelected && !isToday && !has ? "hover:bg-muted" : ""}
+                          ${!isSelected && !isToday && positive ? "bg-emerald-500/10" : ""}
+                          ${!isSelected && !isToday && negative ? "bg-rose-500/10" : ""}
+                          ${!isSelected && !isToday && !positive && !negative ? "hover:bg-muted" : ""}
                         `}
                       >
                         <span className={isSelected ? "text-primary-foreground" : "text-foreground"}>
                           {day}
                         </span>
-                        {has && (
-                          <span className={`mt-0.5 text-[8px] sm:text-[10px] font-semibold leading-tight tabular-nums whitespace-nowrap ${
-                            isSelected ? "text-primary-foreground" : isOverdue ? "text-destructive" : "text-emerald-600 dark:text-emerald-400"
-                          }`}>
-                            {compactCurrency(total)}
-                          </span>
-                        )}
+                        <span className={`mt-0.5 text-[8px] sm:text-[10px] font-semibold leading-tight tabular-nums whitespace-nowrap ${
+                          isSelected
+                            ? "text-primary-foreground"
+                            : positive
+                              ? "text-emerald-600 dark:text-emerald-400"
+                              : negative
+                                ? "text-rose-600 dark:text-rose-400"
+                                : "text-muted-foreground"
+                        }`}>
+                          {compactCurrency(balance)}
+                        </span>
                       </button>
                     );
                   })}
@@ -222,13 +254,13 @@ export function IncomePendingCalendar({ incomes }: Props) {
 
                 <div className="flex items-center gap-3 mt-3 text-[11px] text-muted-foreground flex-wrap">
                   <div className="flex items-center gap-1">
-                    <span className="h-2 w-2 rounded-full bg-emerald-500" /> A receber
+                    <span className="h-2 w-2 rounded-full bg-emerald-500" /> Saldo positivo
                   </div>
                   <div className="flex items-center gap-1">
-                    <span className="h-2 w-2 rounded-full bg-destructive" /> Atrasado
+                    <span className="h-2 w-2 rounded-full bg-rose-500" /> Saldo negativo
                   </div>
                   <div className="ml-auto">
-                    Total mês: <span className="font-semibold text-foreground">{formatCurrency(monthTotal)}</span>
+                    Saldo mês: <span className={`font-semibold ${monthTotals.balance >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"}`}>{formatCurrency(monthTotals.balance)}</span>
                   </div>
                 </div>
               </>
@@ -242,11 +274,11 @@ export function IncomePendingCalendar({ incomes }: Props) {
                   {weekDays.map((d) => {
                     const dateStr = formatLocalDate(d);
                     const info = dayMap[dateStr];
-                    const total = info?.total ?? 0;
-                    const has = total > 0;
+                    const balance = (info?.totalIncome ?? 0) - (info?.totalExpense ?? 0);
                     const isToday = dateStr === todayStr;
                     const isSelected = dateStr === selectedDate;
-                    const isOverdue = has && dateStr < todayStr;
+                    const positive = balance > 0;
+                    const negative = balance < 0;
                     return (
                       <button
                         key={dateStr}
@@ -254,8 +286,9 @@ export function IncomePendingCalendar({ incomes }: Props) {
                         className={`flex flex-col items-center justify-center rounded-lg p-2 min-h-[64px] text-xs transition-colors
                           ${isSelected ? "bg-primary text-primary-foreground ring-2 ring-primary" : ""}
                           ${isToday && !isSelected ? "bg-accent font-bold" : ""}
-                          ${has && !isSelected && !isToday ? (isOverdue ? "bg-destructive/10" : "bg-emerald-500/10") : ""}
-                          ${!isSelected && !isToday && !has ? "hover:bg-muted" : ""}
+                          ${!isSelected && !isToday && positive ? "bg-emerald-500/10" : ""}
+                          ${!isSelected && !isToday && negative ? "bg-rose-500/10" : ""}
+                          ${!isSelected && !isToday && !positive && !negative ? "hover:bg-muted" : ""}
                         `}
                       >
                         <span className={`text-[10px] uppercase ${isSelected ? "text-primary-foreground/80" : "text-muted-foreground"}`}>
@@ -264,13 +297,17 @@ export function IncomePendingCalendar({ incomes }: Props) {
                         <span className={`text-base font-semibold ${isSelected ? "text-primary-foreground" : "text-foreground"}`}>
                           {d.getDate()}
                         </span>
-                        {has && (
-                          <span className={`text-[10px] font-semibold tabular-nums truncate max-w-full ${
-                            isSelected ? "text-primary-foreground" : isOverdue ? "text-destructive" : "text-emerald-600 dark:text-emerald-400"
-                          }`}>
-                            {compactCurrency(total)}
-                          </span>
-                        )}
+                        <span className={`text-[10px] font-semibold tabular-nums truncate max-w-full ${
+                          isSelected
+                            ? "text-primary-foreground"
+                            : positive
+                              ? "text-emerald-600 dark:text-emerald-400"
+                              : negative
+                                ? "text-rose-600 dark:text-rose-400"
+                                : "text-muted-foreground"
+                        }`}>
+                          {compactCurrency(balance)}
+                        </span>
                       </button>
                     );
                   })}
@@ -286,7 +323,7 @@ export function IncomePendingCalendar({ incomes }: Props) {
             {!selectedDate ? (
               <div className="flex h-full min-h-[180px] flex-col items-center justify-center text-center">
                 <TrendingUp className="h-7 w-7 text-muted-foreground mb-2" />
-                <p className="text-xs text-muted-foreground">Selecione um dia para ver as receitas pendentes.</p>
+                <p className="text-xs text-muted-foreground">Selecione um dia para ver os lançamentos.</p>
               </div>
             ) : (
               <>
@@ -299,47 +336,80 @@ export function IncomePendingCalendar({ incomes }: Props) {
                     })}
                   </h4>
                   <div className="text-right shrink-0">
-                    <p className="text-[10px] text-muted-foreground uppercase">Total</p>
-                    <p className="text-sm font-bold text-foreground tabular-nums">{formatCurrency(selectedTotal)}</p>
+                    <p className="text-[10px] text-muted-foreground uppercase">Saldo do dia</p>
+                    <p className={`text-sm font-bold tabular-nums ${selectedBalance >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"}`}>
+                      {formatCurrency(selectedBalance)}
+                    </p>
                   </div>
                 </div>
 
-                {selectedItems.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center text-center py-6">
-                    <Wallet className="h-6 w-6 text-muted-foreground mb-2" />
-                    <p className="text-xs text-muted-foreground">Nenhuma receita pendente neste dia.</p>
-                  </div>
-                ) : (
-                  <ul className="space-y-2 max-h-[280px] overflow-y-auto pr-1">
-                    {selectedItems
-                      .slice()
-                      .sort((a, b) => Number(b.amount) - Number(a.amount))
-                      .map((i) => {
-                        const isOverdue = i.status === "overdue" || i.receivedDate < todayStr;
-                        return (
+                <div className="space-y-3 max-h-[360px] overflow-y-auto pr-1">
+                  {/* Receitas */}
+                  <section>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <div className="flex items-center gap-1.5 text-xs font-semibold text-emerald-700 dark:text-emerald-400">
+                        <ArrowUpCircle className="h-3.5 w-3.5" /> Receitas
+                      </div>
+                      <span className="text-xs font-semibold tabular-nums text-emerald-700 dark:text-emerald-400">
+                        {formatCurrency(selectedInfo.totalIncome)}
+                      </span>
+                    </div>
+                    {incomeByCat.length === 0 ? (
+                      <p className="text-[11px] text-muted-foreground italic px-1">Sem receitas neste dia.</p>
+                    ) : (
+                      <ul className="space-y-1">
+                        {incomeByCat.map(([cat, val]) => (
                           <li
-                            key={i.id}
-                            className="flex items-center justify-between gap-2 rounded-md bg-card border border-border/40 px-2.5 py-2"
+                            key={`inc-${cat}`}
+                            className="flex items-center justify-between gap-2 rounded-md bg-emerald-500/5 border border-emerald-500/20 px-2.5 py-1.5"
                           >
-                            <div className="min-w-0">
-                              <p className="text-xs font-medium text-foreground truncate">{i.description}</p>
-                              <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
-                                {i.category && <span className="truncate">{i.category}</span>}
-                                <span
-                                  className={`px-1.5 rounded-full ${isOverdue ? "bg-destructive/15 text-destructive" : "bg-amber-500/15 text-amber-700 dark:text-amber-400"}`}
-                                >
-                                  {isOverdue ? "Atrasado" : "Pendente"}
-                                </span>
-                              </div>
-                            </div>
-                            <p className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 tabular-nums shrink-0">
-                              {formatCurrency(Number(i.amount) || 0)}
-                            </p>
+                            <span className="text-xs text-foreground truncate">{cat}</span>
+                            <span className="text-xs font-semibold text-emerald-700 dark:text-emerald-400 tabular-nums shrink-0">
+                              {formatCurrency(val)}
+                            </span>
                           </li>
-                        );
-                      })}
-                  </ul>
-                )}
+                        ))}
+                      </ul>
+                    )}
+                  </section>
+
+                  {/* Despesas */}
+                  <section>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <div className="flex items-center gap-1.5 text-xs font-semibold text-rose-700 dark:text-rose-400">
+                        <ArrowDownCircle className="h-3.5 w-3.5" /> Despesas
+                      </div>
+                      <span className="text-xs font-semibold tabular-nums text-rose-700 dark:text-rose-400">
+                        {formatCurrency(selectedInfo.totalExpense)}
+                      </span>
+                    </div>
+                    {expenseByCat.length === 0 ? (
+                      <p className="text-[11px] text-muted-foreground italic px-1">Sem despesas neste dia.</p>
+                    ) : (
+                      <ul className="space-y-1">
+                        {expenseByCat.map(([cat, val]) => (
+                          <li
+                            key={`exp-${cat}`}
+                            className="flex items-center justify-between gap-2 rounded-md bg-rose-500/5 border border-rose-500/20 px-2.5 py-1.5"
+                          >
+                            <span className="text-xs text-foreground truncate">{cat}</span>
+                            <span className="text-xs font-semibold text-rose-700 dark:text-rose-400 tabular-nums shrink-0">
+                              {formatCurrency(val)}
+                            </span>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </section>
+
+                  {/* Saldo final */}
+                  <div className="rounded-md border border-border bg-card px-3 py-2 flex items-center justify-between">
+                    <span className="text-xs font-semibold text-foreground">Saldo final do dia</span>
+                    <span className={`text-sm font-bold tabular-nums ${selectedBalance >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"}`}>
+                      {formatCurrency(selectedBalance)}
+                    </span>
+                  </div>
+                </div>
               </>
             )}
           </div>
