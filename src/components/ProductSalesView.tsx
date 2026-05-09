@@ -1782,17 +1782,6 @@ export function ProductSalesView({ sales, onDeleteSale, onUpdateSale, clients = 
                 <Receipt className="h-5 w-5" />
                 Despesas de Veículos ({vehicleExpenses.length})
               </h3>
-              {allVehicleExpenses.some(e => e.paid || (e.paidInstallments && e.paidInstallments > 0)) && onUpdateExpense && (
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  className="h-8 text-destructive hover:text-destructive hover:bg-destructive/10 text-xs gap-1"
-                  onClick={() => setShowDeleteAllExpenses(true)}
-                >
-                  <Trash2 className="h-3.5 w-3.5" />
-                  Limpar Pagamentos
-                </Button>
-              )}
             </div>
 
             {/* Dialog de confirmação para limpar pagamentos */}
