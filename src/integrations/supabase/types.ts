@@ -2219,6 +2219,60 @@ export type Database = {
         }
         Relationships: []
       }
+      system_telegram_bots: {
+        Row: {
+          active: boolean
+          bot_id: number | null
+          bot_username: string | null
+          created_at: string
+          created_by: string | null
+          description: string | null
+          id: string
+          last_polled_at: string | null
+          last_validated_at: string | null
+          name: string
+          purpose: string
+          token: string
+          update_offset: number
+          updated_at: string
+          validation_status: string | null
+        }
+        Insert: {
+          active?: boolean
+          bot_id?: number | null
+          bot_username?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          last_polled_at?: string | null
+          last_validated_at?: string | null
+          name: string
+          purpose?: string
+          token: string
+          update_offset?: number
+          updated_at?: string
+          validation_status?: string | null
+        }
+        Update: {
+          active?: boolean
+          bot_id?: number | null
+          bot_username?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          last_polled_at?: string | null
+          last_validated_at?: string | null
+          name?: string
+          purpose?: string
+          token?: string
+          update_offset?: number
+          updated_at?: string
+          validation_status?: string | null
+        }
+        Relationships: []
+      }
       telegram_accumulated_delinquency_prefs: {
         Row: {
           created_at: string

@@ -58,7 +58,8 @@ function maskToken(token: string) {
 }
 
 export function TelegramBotsManager() {
-  const { user } = useAuth();
+  const { user, role } = useAuth();
+  const isAdmin = role === "admin";
   const [bots, setBots] = useState<BotRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -98,7 +99,7 @@ export function TelegramBotsManager() {
   const load = async () => {
     setLoading(true);
     const { data, error } = await supabase
-      .from("user_telegram_bots" as any)
+      .from("system_telegram_bots" as any)
       .select("*")
       .order("created_at", { ascending: true });
     if (error) toast.error("Erro ao carregar bots", { description: error.message });
@@ -106,7 +107,7 @@ export function TelegramBotsManager() {
     setLoading(false);
   };
 
-  useEffect(() => { load(); loadConnected(); }, []);
+  useEffect(() => { if (isAdmin) load(); else setLoading(false); loadConnected(); }, [isAdmin]);
 
   const openAdd = () => {
     setEditing(null);
@@ -186,7 +187,6 @@ export function TelegramBotsManager() {
       }
 
       const payload = {
-        owner_id: user.id,
         name: form.name.trim(),
         token: form.token.trim(),
         description: form.description.trim() || null,
@@ -196,17 +196,18 @@ export function TelegramBotsManager() {
         bot_username: validation.bot_username ?? null,
         last_validated_at: new Date().toISOString(),
         validation_status: "valid",
+        ...(editing ? {} : { created_by: user.id }),
       };
 
       if (editing) {
         const { error } = await supabase
-          .from("user_telegram_bots" as any)
+          .from("system_telegram_bots" as any)
           .update(payload)
           .eq("id", editing.id);
         if (error) throw error;
         toast.success("Bot atualizado");
       } else {
-        const { error } = await supabase.from("user_telegram_bots" as any).insert(payload);
+        const { error } = await supabase.from("system_telegram_bots" as any).insert(payload);
         if (error) throw error;
         toast.success("Bot cadastrado");
       }
@@ -222,7 +223,7 @@ export function TelegramBotsManager() {
   const handleDelete = async () => {
     if (!deleteTarget) return;
     const { error } = await supabase
-      .from("user_telegram_bots" as any).delete().eq("id", deleteTarget.id);
+      .from("system_telegram_bots" as any).delete().eq("id", deleteTarget.id);
     if (error) toast.error("Erro ao excluir", { description: error.message });
     else { toast.success("Bot removido"); load(); }
     setDeleteTarget(null);
@@ -230,7 +231,7 @@ export function TelegramBotsManager() {
 
   const toggleActive = async (b: BotRow) => {
     const { error } = await supabase
-      .from("user_telegram_bots" as any)
+      .from("system_telegram_bots" as any)
       .update({ active: !b.active })
       .eq("id", b.id);
     if (error) toast.error("Erro ao atualizar", { description: error.message });
@@ -243,15 +244,19 @@ export function TelegramBotsManager() {
         <div className="flex items-start justify-between gap-3 flex-wrap">
           <div>
             <h3 className="text-sm font-semibold flex items-center gap-2">
-              <Bot className="h-4 w-4 text-primary" /> Meus bots do Telegram
+              <Bot className="h-4 w-4 text-primary" /> Bots do Telegram (globais)
             </h3>
             <p className="text-xs text-muted-foreground mt-1">
-              Cadastre múltiplos bots do BotFather. Tokens ficam protegidos por RLS — somente você acessa.
+              {isAdmin
+                ? "Bots compartilhados por todo o sistema. Cada conta vincula seu chat individualmente via /code."
+                : "Use o comando /code no bot do Telegram para vincular sua conta. Os bots são gerenciados pelos administradores."}
             </p>
           </div>
-          <Button size="sm" onClick={openAdd} className="gap-1.5">
-            <Plus className="h-4 w-4" /> Adicionar bot
-          </Button>
+          {isAdmin && (
+            <Button size="sm" onClick={openAdd} className="gap-1.5">
+              <Plus className="h-4 w-4" /> Adicionar bot
+            </Button>
+          )}
         </div>
 
         {/* Bots já conectados via /code no app */}
@@ -296,66 +301,70 @@ export function TelegramBotsManager() {
           )}
         </div>
 
-        <div className="flex items-center gap-2 pt-1">
-          <Bot className="h-3.5 w-3.5 text-primary" />
-          <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-            Bots cadastrados manualmente
-          </h4>
-        </div>
+        {isAdmin && (
+          <>
+            <div className="flex items-center gap-2 pt-1">
+              <Bot className="h-3.5 w-3.5 text-primary" />
+              <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                Bots globais do sistema
+              </h4>
+            </div>
 
-        {loading ? (
-          <div className="flex justify-center py-6"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>
-        ) : bots.length === 0 ? (
-          <p className="text-xs text-center text-muted-foreground py-6">
-            Nenhum bot cadastrado ainda.
-          </p>
-        ) : (
-          <ul className="space-y-2">
-            {bots.map(b => (
-              <li key={b.id} className="rounded-md border p-3 flex items-start justify-between gap-3 flex-wrap">
-                <div className="min-w-0 flex-1 space-y-1">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="font-medium text-sm truncate">{b.name}</span>
-                    {b.active
-                      ? <Badge variant="default" className="text-[10px] bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/20">Ativo</Badge>
-                      : <Badge variant="secondary" className="text-[10px]">Inativo</Badge>}
-                    {b.validation_status === "valid" && (
-                      <Badge variant="outline" className="text-[10px] gap-1">
-                        <ShieldCheck className="h-3 w-3" /> validado
-                      </Badge>
-                    )}
-                    {b.purpose === "reports" && (
-                      <Badge className="text-[10px] gap-1 bg-primary/15 text-primary border-primary/30 hover:bg-primary/20">
-                        <BarChart3 className="h-3 w-3" /> Relatórios
-                      </Badge>
-                    )}
-                    {b.purpose === "expenses" && (
-                      <Badge className="text-[10px] gap-1 bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/30">
-                        <Wallet className="h-3 w-3" /> Despesas
-                      </Badge>
-                    )}
-                  </div>
-                  {b.bot_username && (
-                    <p className="text-xs text-muted-foreground">@{b.bot_username}</p>
-                  )}
-                  <p className="text-[11px] text-muted-foreground font-mono">{maskToken(b.token)}</p>
-                  {b.description && (
-                    <p className="text-xs text-muted-foreground">{b.description}</p>
-                  )}
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <Switch checked={b.active} onCheckedChange={() => toggleActive(b)} />
-                  <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => openEdit(b)}>
-                    <Pencil className="h-4 w-4" />
-                  </Button>
-                  <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive hover:text-destructive"
-                    onClick={() => setDeleteTarget(b)}>
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </div>
-              </li>
-            ))}
-          </ul>
+            {loading ? (
+              <div className="flex justify-center py-6"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>
+            ) : bots.length === 0 ? (
+              <p className="text-xs text-center text-muted-foreground py-6">
+                Nenhum bot cadastrado ainda.
+              </p>
+            ) : (
+              <ul className="space-y-2">
+                {bots.map(b => (
+                  <li key={b.id} className="rounded-md border p-3 flex items-start justify-between gap-3 flex-wrap">
+                    <div className="min-w-0 flex-1 space-y-1">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-medium text-sm truncate">{b.name}</span>
+                        {b.active
+                          ? <Badge variant="default" className="text-[10px] bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/20">Ativo</Badge>
+                          : <Badge variant="secondary" className="text-[10px]">Inativo</Badge>}
+                        {b.validation_status === "valid" && (
+                          <Badge variant="outline" className="text-[10px] gap-1">
+                            <ShieldCheck className="h-3 w-3" /> validado
+                          </Badge>
+                        )}
+                        {b.purpose === "reports" && (
+                          <Badge className="text-[10px] gap-1 bg-primary/15 text-primary border-primary/30 hover:bg-primary/20">
+                            <BarChart3 className="h-3 w-3" /> Relatórios
+                          </Badge>
+                        )}
+                        {b.purpose === "expenses" && (
+                          <Badge className="text-[10px] gap-1 bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/30">
+                            <Wallet className="h-3 w-3" /> Despesas
+                          </Badge>
+                        )}
+                      </div>
+                      {b.bot_username && (
+                        <p className="text-xs text-muted-foreground">@{b.bot_username}</p>
+                      )}
+                      <p className="text-[11px] text-muted-foreground font-mono">{maskToken(b.token)}</p>
+                      {b.description && (
+                        <p className="text-xs text-muted-foreground">{b.description}</p>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <Switch checked={b.active} onCheckedChange={() => toggleActive(b)} />
+                      <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => openEdit(b)}>
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                      <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive hover:text-destructive"
+                        onClick={() => setDeleteTarget(b)}>
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </>
         )}
       </CardContent>
 

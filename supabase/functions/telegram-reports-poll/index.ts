@@ -40,7 +40,7 @@ async function deleteWebhook(token: string) {
 
 async function processBot(
   supabase: any,
-  bot: { id: string; token: string; owner_id: string; bot_username: string | null; update_offset: number },
+  bot: { id: string; token: string; bot_username: string | null; update_offset: number },
   budgetMs: number,
 ) {
   const startedAt = Date.now();
@@ -83,7 +83,7 @@ async function processBot(
       // 401 unauthorized → token invalid; mark as such
       if (r.status === 401) {
         await supabase
-          .from("user_telegram_bots")
+          .from("system_telegram_bots")
           .update({ validation_status: "invalid", last_validated_at: new Date().toISOString() })
           .eq("id", bot.id);
       }
@@ -160,7 +160,7 @@ async function processBot(
     const newOffset = Math.max(...updates.map((u: any) => u.update_id)) + 1;
     currentOffset = newOffset;
     await supabase
-      .from("user_telegram_bots")
+      .from("system_telegram_bots")
       .update({ update_offset: newOffset, last_polled_at: new Date().toISOString() })
       .eq("id", bot.id);
   }
@@ -174,10 +174,10 @@ Deno.serve(async () => {
   const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
   const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
-  // Load all active reports bots registered by users
+  // Load all active GLOBAL reports bots (system-wide, shared by all accounts)
   const { data: bots, error } = await supabase
-    .from("user_telegram_bots")
-    .select("id, token, owner_id, bot_username, update_offset, purpose, active")
+    .from("system_telegram_bots")
+    .select("id, token, bot_username, update_offset, purpose, active")
     .eq("active", true)
     .in("purpose", ["reports", "general"]);
 
