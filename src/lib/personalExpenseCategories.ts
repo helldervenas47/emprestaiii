@@ -37,6 +37,7 @@ export const personalCategories: PersonalCategory[] = [
   { name: "Moradia",         icon: Home,            color: "210 80% 55%" },
   { name: "Alimentação",     icon: UtensilsCrossed, color: "25 85% 55%" },
   { name: "Transporte",      icon: Car,             color: "200 70% 50%" },
+  { name: "Combustível",     icon: Fuel,            color: "15 85% 50%" },
   { name: "Saúde",           icon: HeartPulse,      color: "0 75% 60%" },
   { name: "Educação",        icon: GraduationCap,   color: "260 70% 60%" },
   { name: "Lazer",           icon: Gamepad2,        color: "290 70% 60%" },
