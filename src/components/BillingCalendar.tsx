@@ -613,11 +613,56 @@ export function BillingCalendar({ loans, payments, installmentSchedules, sales =
                 })}
               </h3>
 
-              {sortedSelectedItems.length === 0 ? (
-                <p className="text-sm text-muted-foreground">Nenhum contrato a receber nesta data.</p>
+              {sortedSelectedItems.length === 0 && selectedSaleItems.length === 0 ? (
+                <p className="text-sm text-muted-foreground">Nenhuma parcela a receber nesta data.</p>
               ) : (
                 <div className="space-y-3 animate-fade-in">
                   {sortedSelectedItems.map((item) => renderItemWithActions(item, item.date < todayStr))}
+
+                  {selectedSaleItems.length > 0 && (
+                    <div className="space-y-2">
+                      <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground pt-1">
+                        Vendas e Veículos
+                      </p>
+                      {selectedSaleItems
+                        .slice()
+                        .sort((a, b) => b.amount - a.amount)
+                        .map((s) => {
+                          const isOverdue = s.date < todayStr;
+                          const Icon = s.kind === "vehicle" ? Car : ShoppingBag;
+                          return (
+                            <div
+                              key={`${s.kind}-${s.saleId}-${s.installmentNumber}`}
+                              className={`flex items-center justify-between gap-2 rounded-lg border p-3 ${
+                                isOverdue ? "bg-destructive/5 border-destructive/20" : "bg-muted/30 border-border/40"
+                              }`}
+                            >
+                              <div className="flex items-center gap-3 min-w-0">
+                                <div className={`h-8 w-8 rounded-full flex items-center justify-center shrink-0 ${
+                                  isOverdue ? "bg-destructive/10 text-destructive" : "bg-primary/10 text-primary"
+                                }`}>
+                                  <Icon className="h-4 w-4" />
+                                </div>
+                                <div className="min-w-0">
+                                  <p className="text-sm font-medium text-foreground truncate">{s.customerName}</p>
+                                  <p className="text-xs text-muted-foreground truncate">
+                                    {s.description} · Parcela {s.installmentNumber}/{s.totalInstallments}
+                                  </p>
+                                </div>
+                              </div>
+                              <div className="text-right shrink-0">
+                                <p className={`text-sm font-bold ${isOverdue ? "text-destructive" : "text-foreground"}`}>
+                                  {formatCurrency(s.amount)}
+                                </p>
+                                <Badge variant="outline" className="text-[10px]">
+                                  {s.kind === "vehicle" ? "Veículo" : "Venda"}
+                                </Badge>
+                              </div>
+                            </div>
+                          );
+                        })}
+                    </div>
+                  )}
 
                   {/* Total */}
                   <div className="flex items-center justify-between pt-2 border-t mt-2">
@@ -625,7 +670,10 @@ export function BillingCalendar({ loans, payments, installmentSchedules, sales =
                       <DollarSign className="h-4 w-4" /> Total a cobrar
                     </div>
                     <p className="text-sm font-bold text-foreground">
-                      {formatCurrency(sortedSelectedItems.reduce((s, i) => s + i.amount, 0))}
+                      {formatCurrency(
+                        sortedSelectedItems.reduce((s, i) => s + i.amount, 0) +
+                        selectedSaleItems.reduce((s, i) => s + i.amount, 0)
+                      )}
                     </p>
                   </div>
                 </div>
