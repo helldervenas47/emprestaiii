@@ -1,41 +1,28 @@
-// Shared helpers for the user-registered "reports" Telegram bot.
-// Each user can register their own bot in Settings → Telegram Bots.
-// We use the raw Telegram Bot API (api.telegram.org) directly with the
-// stored token, completely independent from the expenses bot.
+// Shared helpers for the GLOBAL "reports" Telegram bot.
+// Bots are now system-wide (table: system_telegram_bots) and the same bot is
+// reused by every account. Per-account routing is done via telegram_reports_links
+// (chat_id linked through the /code flow).
 
 export interface ReportsBot {
   id: string;
   token: string;
   name: string;
   bot_username: string | null;
-  owner_id: string;
 }
 
 /**
- * Resolves the active "reports" bot for a given user (resolves through user_owner
- * so shared accounts use the owner's bot). Falls back to a "general" purpose bot
- * if no explicit reports bot is registered.
+ * Returns the active GLOBAL "reports" bot (or a "general" bot as fallback).
+ * The same bot is shared by every account in the system.
  */
-export async function getReportsBotForUser(
-  supabase: any,
-  userId: string,
-): Promise<ReportsBot | null> {
-  const { data: ownerRow } = await supabase
-    .from("user_owner")
-    .select("owner_id")
-    .eq("user_id", userId)
-    .maybeSingle();
-  const ownerId = (ownerRow as any)?.owner_id ?? userId;
-
+export async function getReportsBot(supabase: any): Promise<ReportsBot | null> {
   const { data, error } = await supabase
-    .from("user_telegram_bots")
-    .select("id, token, name, bot_username, owner_id, purpose, validation_status")
-    .eq("owner_id", ownerId)
+    .from("system_telegram_bots")
+    .select("id, token, name, bot_username, purpose")
     .eq("active", true)
     .in("purpose", ["reports", "general"]);
 
   if (error) {
-    console.error("[getReportsBotForUser] query error", error);
+    console.error("[getReportsBot] query error", error);
     return null;
   }
   if (!data?.length) return null;
@@ -48,8 +35,17 @@ export async function getReportsBotForUser(
     token: chosen.token,
     name: chosen.name,
     bot_username: chosen.bot_username,
-    owner_id: chosen.owner_id,
   };
+}
+
+/**
+ * Backwards-compatible alias. The userId argument is ignored — the bot is global.
+ */
+export async function getReportsBotForUser(
+  supabase: any,
+  _userId: string,
+): Promise<ReportsBot | null> {
+  return getReportsBot(supabase);
 }
 
 /**
@@ -77,7 +73,6 @@ export async function tgDirectSend(
     if (!r.ok) {
       const body = await r.text().catch(() => "");
       console.error(`[reports-bot] sendMessage failed ${r.status}`, body);
-      // Retry without markdown (most common cause of 400)
       if (r.status === 400) {
         r = await send({ chat_id: chatId, text });
         if (!r.ok) {
@@ -97,26 +92,24 @@ export async function tgDirectSend(
 }
 
 /**
- * Combined helper: looks up the reports bot for the user and sends a message
+ * Combined helper: looks up the global reports bot and sends a message
  * to the given chat. Returns false (with logged reason) if no bot is configured.
  */
 export async function sendReportsMessage(
   supabase: any,
-  userId: string,
+  _userId: string,
   chatId: number | string,
   text: string,
   opts?: { parse_mode?: "Markdown" | "HTML" },
 ): Promise<{ sent: boolean; reason?: string }> {
-  const bot = await getReportsBotForUser(supabase, userId);
+  const bot = await getReportsBot(supabase);
   if (!bot) {
     console.warn(
-      `[reports-bot] No active reports bot for user=${userId}. ` +
-        "Ask the user to register one in Settings → Bots do Telegram.",
+      "[reports-bot] No active GLOBAL reports bot configured. " +
+        "Ask an admin to register one in Settings → Bots do Telegram.",
     );
     return { sent: false, reason: "no_reports_bot_configured" };
   }
   const ok = await tgDirectSend(bot.token, chatId, text, opts);
-  return ok
-    ? { sent: true }
-    : { sent: false, reason: "telegram_send_failed" };
+  return ok ? { sent: true } : { sent: false, reason: "telegram_send_failed" };
 }
