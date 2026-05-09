@@ -80,9 +80,19 @@ const formatLocalDate = (d: Date) => {
   return `${y}-${m}-${day}`;
 };
 
+type CardInvoiceEntry = {
+  cardId: string;
+  cardLabel: string;
+  total: number;
+  paidTotal: number;
+  remaining: number;
+  paid: boolean;
+};
+
 type DayInfo = {
   incomes: Income[];
   expenses: Expense[];
+  cardInvoices: CardInvoiceEntry[];
   totalIncome: number;
   totalExpense: number;
 };
