@@ -245,13 +245,24 @@ export function IncomePendingCalendar({
     const cursor = new Date(start);
     while (cursor <= end) {
       const ds = formatLocalDate(cursor);
+      // Override do saldo no dia 1 de cada mês (definido pelo usuário).
+      // O override representa o saldo final previsto do dia 1 e ancora a projeção a partir dele.
+      if (cursor.getDate() === 1) {
+        const monthKey = ds.slice(0, 7); // YYYY-MM
+        if (overrides[monthKey] !== undefined) {
+          running = overrides[monthKey];
+          map[ds] = running;
+          cursor.setDate(cursor.getDate() + 1);
+          continue;
+        }
+      }
       const info = dayMap[ds];
       running += (info?.totalIncome ?? 0) - (info?.totalExpense ?? 0);
       map[ds] = running;
       cursor.setDate(cursor.getDate() + 1);
     }
     return map;
-  }, [dayMap, baseBalance, year, month, weekDays]);
+  }, [dayMap, baseBalance, year, month, weekDays, overrides]);
 
   const selectedHasMovement = selectedInfo.totalIncome > 0 || selectedInfo.totalExpense > 0;
   const selectedBalance = selectedDate
