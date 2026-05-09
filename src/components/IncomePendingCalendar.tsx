@@ -270,7 +270,10 @@ export function IncomePendingCalendar({
                     if (day === null) return <div key={`empty-${idx}`} />;
                     const dateStr = `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
                     const info = dayMap[dateStr];
-                    const balance = (info?.totalIncome ?? 0) - (info?.totalExpense ?? 0);
+                    const hasMovement = (info?.totalIncome ?? 0) > 0 || (info?.totalExpense ?? 0) > 0;
+                    const balance = hasMovement
+                      ? baseBalance + (info?.totalIncome ?? 0) - (info?.totalExpense ?? 0)
+                      : baseBalance;
                     const isToday = dateStr === todayStr;
                     const isSelected = dateStr === selectedDate;
                     const positive = balance > 0;
