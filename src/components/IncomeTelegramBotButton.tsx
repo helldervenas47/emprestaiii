@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "@/components/ui/dialog";
+import { CheckCircle2, Unlink } from "lucide-react";
 import { toast } from "sonner";
 
 const TelegramIcon = ({ className }: { className?: string }) => (
