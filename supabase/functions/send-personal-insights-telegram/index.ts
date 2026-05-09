@@ -88,7 +88,8 @@ async function processUser(
 
   const message = `${headerText}\n\n${insight.content}\n\n—\n_Gerado por IA com base nos seus gastos do mês._`;
 
-  await tgSend(Number(tgLink.chat_id), message, lovableKey, telegramKey);
+  const sendRes = await sendReportsMessage(supabase, ownerId, Number(tgLink.chat_id), safeTruncate(message));
+  if (!sendRes.sent) return { skipped: sendRes.reason ?? "send_failed" };
 
   // Update last_sent map
   const slotKey = mode === "scheduled" ? `scheduled-${today}` : `trigger-${today}-${Date.now()}`;
