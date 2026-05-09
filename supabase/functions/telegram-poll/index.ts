@@ -113,8 +113,10 @@ Deno.serve(async (req) => {
           // hit the cooldown and exit gracefully.
           continue;
         }
-        console.error("getUpdates 409 — recovery cooldown active, giving up this run", { sinceLast });
-        return new Response(JSON.stringify({ error: data, recovery: "cooldown" }), { status: 409, headers: corsHeaders });
+        // Cooldown still active — exit silently with 200 so the next cron just
+        // retries. Returning 409 marks the cron as failed and creates noise.
+        console.warn("getUpdates 409 — another poll likely in flight, will retry next tick", { sinceLast });
+        return new Response(JSON.stringify({ ok: true, skipped: "409-in-flight" }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
       }
 
       console.error("getUpdates failed", data);
