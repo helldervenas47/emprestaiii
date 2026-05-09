@@ -107,8 +107,6 @@ async function processOwner(
     target_manager_client_id?: string | null;
     skip_chat_check?: boolean;
   },
-  lovableKey: string,
-  telegramKey: string,
   today: string,
 ) {
   // Load preferences (template / enabled). For manual/preview, we don't require enabled.
