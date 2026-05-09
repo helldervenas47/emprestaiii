@@ -76,9 +76,9 @@ export function IncomeTelegramBotButton() {
         <Button
           variant="ghost"
           size="icon"
-          className="h-8 w-8 text-muted-foreground hover:text-primary"
-          title="Vincular bot do Telegram"
-          aria-label="Vincular bot do Telegram"
+          className={`h-8 w-8 transition-colors ${connected ? "text-emerald-500 hover:text-emerald-600" : "text-muted-foreground hover:text-foreground"}`}
+          title={connected ? "Bot do Telegram conectado" : "Vincular bot do Telegram"}
+          aria-label={connected ? "Bot do Telegram conectado" : "Vincular bot do Telegram"}
         >
           <TelegramIcon className="h-4 w-4" />
         </Button>
