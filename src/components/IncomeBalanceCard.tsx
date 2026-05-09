@@ -49,10 +49,11 @@ interface Props {
   onOpenExpenses?: () => void;
   onOpenPendingIncomes?: () => void;
   onOpenStatement?: () => void;
+  statementLeftSlot?: React.ReactNode;
   monthKey?: string;
-}
+};
 
-export function IncomeBalanceCard({ incomes, expenses, onAdjust, readOnly, onOpenIncomes, onOpenExpenses, onOpenPendingIncomes, onOpenStatement, monthKey: monthKeyProp }: Props) {
+export function IncomeBalanceCard({ incomes, expenses, onAdjust, readOnly, onOpenIncomes, onOpenExpenses, onOpenPendingIncomes, onOpenStatement, statementLeftSlot, monthKey: monthKeyProp }: Props) {
   const { hidden: hide } = useHideValues();
   const { cards } = useCreditCards();
   const { openings } = useCreditCardOpenings();
@@ -188,16 +189,21 @@ export function IncomeBalanceCard({ incomes, expenses, onAdjust, readOnly, onOpe
               <Wallet className="h-4 w-4" />
               <span>Saldo em Conta</span>
             </div>
-            {onOpenStatement && (
-              <Button
-                variant="outline"
-                size="sm"
-                className="h-8 gap-1.5 whitespace-nowrap"
-                onClick={onOpenStatement}
-              >
-                <Receipt className="h-3.5 w-3.5" />
-                Extrato
-              </Button>
+            {(onOpenStatement || statementLeftSlot) && (
+              <div className="flex items-center gap-1.5">
+                {statementLeftSlot}
+                {onOpenStatement && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-8 gap-1.5 whitespace-nowrap"
+                    onClick={onOpenStatement}
+                  >
+                    <Receipt className="h-3.5 w-3.5" />
+                    Extrato
+                  </Button>
+                )}
+              </div>
             )}
           </div>
           <div className={`mt-2 text-3xl sm:text-4xl font-bold tracking-tight ${balanceColor}`}>
