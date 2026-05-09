@@ -2375,6 +2375,7 @@ export type Database = {
       telegram_bots: {
         Row: {
           bot_code: string
+          bot_id: string | null
           chat_id: number
           created_at: string
           created_by_user_id: string | null
@@ -2385,6 +2386,7 @@ export type Database = {
         }
         Insert: {
           bot_code: string
+          bot_id?: string | null
           chat_id: number
           created_at?: string
           created_by_user_id?: string | null
@@ -2395,6 +2397,7 @@ export type Database = {
         }
         Update: {
           bot_code?: string
+          bot_id?: string | null
           chat_id?: number
           created_at?: string
           created_by_user_id?: string | null
@@ -2403,7 +2406,15 @@ export type Database = {
           kind?: string
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "telegram_bots_bot_id_fkey"
+            columns: ["bot_id"]
+            isOneToOne: false
+            referencedRelation: "system_telegram_bots"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       telegram_link_codes: {
         Row: {
