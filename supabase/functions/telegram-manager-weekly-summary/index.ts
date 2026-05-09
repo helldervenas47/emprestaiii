@@ -296,13 +296,13 @@ async function processOwner(
         continue;
       }
       const message = renderMessage(m.name, items);
-      const send = await sendReportsMessage(admin, ownerId, chatId, message, { parse_mode: "HTML" });
+      const send = await sendReportsMessage(admin, ownerId, chatId, message);
       results.push({
         client_id: m.client_id,
         name: m.name,
         loans_count: items.length,
-        success: send.ok,
-        error: send.ok ? null : `HTTP ${send.status}: ${send.body.slice(0, 300)}`,
+        success: send.sent,
+        error: send.sent ? null : (send.reason ?? "send_failed"),
       });
     } catch (e) {
       results.push({ client_id: m.client_id, name: m.name, success: false, error: String(e) });
