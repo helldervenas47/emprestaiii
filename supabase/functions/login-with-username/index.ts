@@ -26,12 +26,8 @@ Deno.serve(async (req) => {
 
     const adminClient = createClient(supabaseUrl, serviceRoleKey);
 
-    // Look up email by username
-    const { data: profile } = await adminClient
-      .from("profiles")
-      .select("user_id")
-      .ilike("username", username.trim())
-      .maybeSingle();
+    const input = username.trim();
+    const isEmail = input.includes("@");
 
     // Generic error to avoid username enumeration
     const genericError = new Response(
@@ -39,11 +35,28 @@ Deno.serve(async (req) => {
       { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
 
-    if (!profile) return genericError;
+    let email: string;
+    let user: any = null;
 
-    const { data: userResp } = await adminClient.auth.admin.getUserById(profile.user_id);
-    const user = userResp?.user;
-    if (!user?.email) return genericError;
+    if (isEmail) {
+      email = input.toLowerCase();
+      // Try to fetch user to check banned status (best-effort)
+      const { data: list } = await adminClient.auth.admin.listUsers();
+      user = list?.users?.find((u: any) => u.email?.toLowerCase() === email) ?? null;
+    } else {
+      const { data: profile } = await adminClient
+        .from("profiles")
+        .select("user_id")
+        .ilike("username", input)
+        .maybeSingle();
+
+      if (!profile) return genericError;
+
+      const { data: userResp } = await adminClient.auth.admin.getUserById(profile.user_id);
+      user = userResp?.user;
+      if (!user?.email) return genericError;
+      email = user.email;
+    }
 
     // Check if user is banned/inactive
     if (user.banned_until && new Date(user.banned_until) > new Date()) {
