@@ -1,11 +1,13 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const GATEWAY_URL = "https://connector-gateway.lovable.dev/telegram";
-const MAX_RUNTIME_MS = 55_000;
+// Keep below the cron interval (≈60s) so consecutive invocations don't overlap
+// and trigger 409 "terminated by other getUpdates" errors.
+const MAX_RUNTIME_MS = 40_000;
 const MIN_REMAINING_MS = 5_000;
-// Minimum interval between auto webhook-recoveries to avoid loops if Telegram
-// keeps returning 409 for unrelated reasons (e.g., another running poller).
-const RECOVERY_COOLDOWN_MS = 10 * 60 * 1000; // 10 min
+// Short cooldown — 409 usually means another in-flight poll, just let the next
+// cron tick retry instead of blocking polling for 10 minutes.
+const RECOVERY_COOLDOWN_MS = 30_000;
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
