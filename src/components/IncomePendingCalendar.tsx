@@ -1,11 +1,39 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight, ChevronDown, ChevronUp, CalendarDays, TrendingUp, ArrowUpCircle, ArrowDownCircle, Wallet } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription,
+} from "@/components/ui/dialog";
+import { ChevronLeft, ChevronRight, ChevronDown, ChevronUp, CalendarDays, TrendingUp, ArrowUpCircle, ArrowDownCircle, Wallet, Pencil, RotateCcw } from "lucide-react";
 import type { Income } from "@/hooks/useIncomes";
 import type { Expense, Sale } from "@/types/loan";
 import { useProducts } from "@/hooks/useProducts";
 import { usePiggyBanks } from "@/hooks/usePiggyBanks";
+
+const MONTH_BALANCE_OVERRIDES_KEY = "calendar:incomeMonthDay1BalanceOverrides";
+
+function loadOverrides(): Record<string, number> {
+  if (typeof window === "undefined") return {};
+  try {
+    const raw = window.localStorage.getItem(MONTH_BALANCE_OVERRIDES_KEY);
+    if (!raw) return {};
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === "object" ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
+function saveOverrides(map: Record<string, number>) {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(MONTH_BALANCE_OVERRIDES_KEY, JSON.stringify(map));
+  } catch {
+    // ignore
+  }
+}
 
 interface Props {
   incomes: Income[];
@@ -74,6 +102,11 @@ export function IncomePendingCalendar({
   const [year, setYear] = useState(today.getFullYear());
   const [month, setMonth] = useState(today.getMonth());
   const [selectedDate, setSelectedDate] = useState<string | null>(todayStr);
+  const [overrides, setOverrides] = useState<Record<string, number>>(() => loadOverrides());
+  const [editOpen, setEditOpen] = useState(false);
+  const [editValue, setEditValue] = useState("");
+
+  useEffect(() => { saveOverrides(overrides); }, [overrides]);
 
   const { sales } = useProducts(true);
   const { deposits: piggyDeposits } = usePiggyBanks();
@@ -212,13 +245,24 @@ export function IncomePendingCalendar({
     const cursor = new Date(start);
     while (cursor <= end) {
       const ds = formatLocalDate(cursor);
+      // Override do saldo no dia 1 de cada mês (definido pelo usuário).
+      // O override representa o saldo final previsto do dia 1 e ancora a projeção a partir dele.
+      if (cursor.getDate() === 1) {
+        const monthKey = ds.slice(0, 7); // YYYY-MM
+        if (overrides[monthKey] !== undefined) {
+          running = overrides[monthKey];
+          map[ds] = running;
+          cursor.setDate(cursor.getDate() + 1);
+          continue;
+        }
+      }
       const info = dayMap[ds];
       running += (info?.totalIncome ?? 0) - (info?.totalExpense ?? 0);
       map[ds] = running;
       cursor.setDate(cursor.getDate() + 1);
     }
     return map;
-  }, [dayMap, baseBalance, year, month, weekDays]);
+  }, [dayMap, baseBalance, year, month, weekDays, overrides]);
 
   const selectedHasMovement = selectedInfo.totalIncome > 0 || selectedInfo.totalExpense > 0;
   const selectedBalance = selectedDate
@@ -490,36 +534,134 @@ export function IncomePendingCalendar({
                   </section>
 
                   {/* Saldo previsto acumulado: parte do saldo do dia anterior */}
-                  <div className="rounded-md border border-border bg-card px-3 py-2 space-y-1">
-                    <div className="flex items-center justify-between text-[11px] text-muted-foreground">
-                      <span className="flex items-center gap-1"><Wallet className="h-3 w-3" /> Saldo previsto do dia anterior</span>
-                      <span className="tabular-nums">{formatCurrency(selectedPrevBalance)}</span>
-                    </div>
-                    {selectedHasMovement && (
-                      <>
-                        <div className="flex items-center justify-between text-[11px] text-emerald-700 dark:text-emerald-400">
-                          <span>+ Recebimentos do dia</span>
-                          <span className="tabular-nums">{formatCurrency(selectedInfo.totalIncome)}</span>
+                  {(() => {
+                    const isFirstOfMonth = !!selectedDate && selectedDate.endsWith("-01");
+                    const monthKey = selectedDate ? selectedDate.slice(0, 7) : "";
+                    const hasOverride = isFirstOfMonth && overrides[monthKey] !== undefined;
+                    return (
+                      <div className="rounded-md border border-border bg-card px-3 py-2 space-y-1">
+                        {isFirstOfMonth ? (
+                          <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+                            <span className="flex items-center gap-1">
+                              <Wallet className="h-3 w-3" /> Saldo de abertura do mês
+                            </span>
+                            <span className="tabular-nums">
+                              {hasOverride ? "definido manualmente" : "automático"}
+                            </span>
+                          </div>
+                        ) : (
+                          <>
+                            <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+                              <span className="flex items-center gap-1"><Wallet className="h-3 w-3" /> Saldo previsto do dia anterior</span>
+                              <span className="tabular-nums">{formatCurrency(selectedPrevBalance)}</span>
+                            </div>
+                            {selectedHasMovement && (
+                              <>
+                                <div className="flex items-center justify-between text-[11px] text-emerald-700 dark:text-emerald-400">
+                                  <span>+ Recebimentos do dia</span>
+                                  <span className="tabular-nums">{formatCurrency(selectedInfo.totalIncome)}</span>
+                                </div>
+                                <div className="flex items-center justify-between text-[11px] text-rose-700 dark:text-rose-400">
+                                  <span>− Despesas do dia</span>
+                                  <span className="tabular-nums">{formatCurrency(selectedInfo.totalExpense)}</span>
+                                </div>
+                              </>
+                            )}
+                          </>
+                        )}
+                        <div className="flex items-center justify-between pt-1 border-t border-border/60">
+                          <span className="text-xs font-semibold text-foreground">Saldo previsto do dia</span>
+                          <span className={`text-sm font-bold tabular-nums ${selectedBalance >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"}`}>
+                            {formatCurrency(selectedBalance)}
+                          </span>
                         </div>
-                        <div className="flex items-center justify-between text-[11px] text-rose-700 dark:text-rose-400">
-                          <span>− Despesas do dia</span>
-                          <span className="tabular-nums">{formatCurrency(selectedInfo.totalExpense)}</span>
-                        </div>
-                      </>
-                    )}
-                    <div className="flex items-center justify-between pt-1 border-t border-border/60">
-                      <span className="text-xs font-semibold text-foreground">Saldo previsto do dia</span>
-                      <span className={`text-sm font-bold tabular-nums ${selectedBalance >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"}`}>
-                        {formatCurrency(selectedBalance)}
-                      </span>
-                    </div>
-                  </div>
+                        {isFirstOfMonth && (
+                          <div className="flex items-center gap-2 pt-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="h-7 text-xs gap-1 flex-1"
+                              onClick={() => {
+                                setEditValue(
+                                  (overrides[monthKey] ?? selectedBalance).toFixed(2)
+                                );
+                                setEditOpen(true);
+                              }}
+                            >
+                              <Pencil className="h-3 w-3" /> Alterar saldo do dia
+                            </Button>
+                            {hasOverride && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-7 text-xs gap-1"
+                                onClick={() => {
+                                  setOverrides((prev) => {
+                                    const next = { ...prev };
+                                    delete next[monthKey];
+                                    return next;
+                                  });
+                                }}
+                              >
+                                <RotateCcw className="h-3 w-3" /> Resetar
+                              </Button>
+                            )}
+                          </div>
+                        )}
+                        {isFirstOfMonth && !hasOverride && (
+                          <p className="text-[10px] text-muted-foreground italic pt-1">
+                            Apenas o dia 1 de cada mês pode ter o saldo ajustado manualmente.
+                          </p>
+                        )}
+                      </div>
+                    );
+                  })()}
                 </div>
               </>
             )}
           </div>
         </div>
       </CardContent>
+
+      <Dialog open={editOpen} onOpenChange={setEditOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Alterar saldo do dia 1</DialogTitle>
+            <DialogDescription>
+              Defina o saldo previsto do dia 1 de{" "}
+              {selectedDate
+                ? new Date(selectedDate + "T00:00:00").toLocaleDateString("pt-BR", { month: "long", year: "numeric" })
+                : ""}
+              . A projeção dos próximos dias passa a ser calculada a partir desse valor.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2">
+            <Label htmlFor="day1-balance">Saldo do dia (R$)</Label>
+            <Input
+              id="day1-balance"
+              type="number"
+              step="0.01"
+              value={editValue}
+              onChange={(e) => setEditValue(e.target.value)}
+            />
+          </div>
+          <DialogFooter className="gap-2">
+            <Button variant="ghost" onClick={() => setEditOpen(false)}>Cancelar</Button>
+            <Button
+              onClick={() => {
+                const v = Number(editValue);
+                if (!selectedDate || isNaN(v)) return;
+                const monthKey = selectedDate.slice(0, 7);
+                setOverrides((prev) => ({ ...prev, [monthKey]: v }));
+                setEditOpen(false);
+              }}
+              disabled={editValue === "" || isNaN(Number(editValue))}
+            >
+              Salvar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 }
