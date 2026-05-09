@@ -2933,10 +2933,13 @@ export type Database = {
           created_at: string
           description: string | null
           id: string
+          last_polled_at: string | null
           last_validated_at: string | null
           name: string
           owner_id: string
+          purpose: string
           token: string
+          update_offset: number
           updated_at: string
           validation_status: string | null
         }
@@ -2947,10 +2950,13 @@ export type Database = {
           created_at?: string
           description?: string | null
           id?: string
+          last_polled_at?: string | null
           last_validated_at?: string | null
           name: string
           owner_id: string
+          purpose?: string
           token: string
+          update_offset?: number
           updated_at?: string
           validation_status?: string | null
         }
@@ -2961,10 +2967,13 @@ export type Database = {
           created_at?: string
           description?: string | null
           id?: string
+          last_polled_at?: string | null
           last_validated_at?: string | null
           name?: string
           owner_id?: string
+          purpose?: string
           token?: string
+          update_offset?: number
           updated_at?: string
           validation_status?: string | null
         }
