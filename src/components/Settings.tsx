@@ -22,6 +22,7 @@ const WebhookSettings = lazy(() => import("@/components/WebhookSettings").then(m
 const TelegramConnectCard = lazy(() => import("@/components/TelegramConnectCard").then(m => ({ default: m.TelegramConnectCard })));
 const TelegramReportsConnectCard = lazy(() => import("@/components/TelegramReportsConnectCard").then(m => ({ default: m.TelegramReportsConnectCard })));
 const TelegramBillingScheduleCard = lazy(() => import("@/components/TelegramBillingScheduleCard").then(m => ({ default: m.TelegramBillingScheduleCard })));
+const TelegramBotsManager = lazy(() => import("@/components/TelegramBotsManager").then(m => ({ default: m.TelegramBotsManager })));
 const PushNotificationToggle = lazy(() => import("@/components/PushNotificationToggle").then(m => ({ default: m.PushNotificationToggle })));
 const UserManagement = lazy(() => import("@/components/UserManagement").then(m => ({ default: m.UserManagement })));
 const BackupExport = lazy(() => import("@/components/BackupExport").then(m => ({ default: m.BackupExport })));
