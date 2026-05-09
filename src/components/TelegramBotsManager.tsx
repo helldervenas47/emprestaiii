@@ -191,6 +191,7 @@ export function TelegramBotsManager() {
         token: form.token.trim(),
         description: form.description.trim() || null,
         active: form.active,
+        purpose: form.purpose,
         bot_id: validation.bot_id ?? null,
         bot_username: validation.bot_username ?? null,
         last_validated_at: new Date().toISOString(),
