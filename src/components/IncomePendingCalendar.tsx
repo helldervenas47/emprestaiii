@@ -270,41 +270,38 @@ export function IncomePendingCalendar({
                     if (day === null) return <div key={`empty-${idx}`} />;
                     const dateStr = `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
                     const info = dayMap[dateStr];
-                    const hasMovement = (info?.totalIncome ?? 0) > 0 || (info?.totalExpense ?? 0) > 0;
-                    const balance = hasMovement
-                      ? baseBalance + (info?.totalIncome ?? 0) - (info?.totalExpense ?? 0)
-                      : baseBalance;
+                    const hasIncome = (info?.totalIncome ?? 0) > 0;
+                    const hasExpense = (info?.totalExpense ?? 0) > 0;
+                    const hasMovement = hasIncome || hasExpense;
                     const isToday = dateStr === todayStr;
                     const isSelected = dateStr === selectedDate;
-                    const positive = balance > 0;
-                    const negative = balance < 0;
 
                     return (
                       <button
                         key={day}
                         onClick={() => handleDayClick(day)}
-                        className={`relative flex flex-col items-center justify-start rounded-lg p-1 min-h-[58px] sm:min-h-[52px] text-xs transition-colors
+                        className={`relative flex flex-col items-center justify-center rounded-lg p-1 min-h-[44px] sm:min-h-[44px] text-xs transition-colors
                           ${isSelected ? "bg-primary text-primary-foreground ring-2 ring-primary" : ""}
                           ${isToday && !isSelected ? "bg-accent font-bold" : ""}
-                          ${!isSelected && !isToday && positive ? "bg-emerald-500/10" : ""}
-                          ${!isSelected && !isToday && negative ? "bg-rose-500/10" : ""}
-                          ${!isSelected && !isToday && !positive && !negative ? "hover:bg-muted" : ""}
+                          ${!isSelected && !isToday && hasMovement && hasIncome && !hasExpense ? "bg-emerald-500/10" : ""}
+                          ${!isSelected && !isToday && hasMovement && hasExpense && !hasIncome ? "bg-rose-500/10" : ""}
+                          ${!isSelected && !isToday && hasIncome && hasExpense ? "bg-amber-500/10" : ""}
+                          ${!isSelected && !isToday && !hasMovement ? "bg-background hover:bg-muted" : ""}
                         `}
                       >
                         <span className={isSelected ? "text-primary-foreground" : "text-foreground"}>
                           {day}
                         </span>
-                        <span className={`mt-0.5 text-[8px] sm:text-[10px] font-semibold leading-tight tabular-nums whitespace-nowrap ${
-                          isSelected
-                            ? "text-primary-foreground"
-                            : positive
-                              ? "text-emerald-600 dark:text-emerald-400"
-                              : negative
-                                ? "text-rose-600 dark:text-rose-400"
-                                : "text-muted-foreground"
-                        }`}>
-                          {compactCurrency(balance)}
-                        </span>
+                        {hasMovement && (
+                          <span className="mt-0.5 flex items-center gap-0.5">
+                            {hasIncome && (
+                              <span className={`h-1.5 w-1.5 rounded-full ${isSelected ? "bg-primary-foreground" : "bg-emerald-500"}`} />
+                            )}
+                            {hasExpense && (
+                              <span className={`h-1.5 w-1.5 rounded-full ${isSelected ? "bg-primary-foreground" : "bg-rose-500"}`} />
+                            )}
+                          </span>
+                        )}
                       </button>
                     );
                   })}
@@ -312,10 +309,10 @@ export function IncomePendingCalendar({
 
                 <div className="flex items-center gap-3 mt-3 text-[11px] text-muted-foreground flex-wrap">
                   <div className="flex items-center gap-1">
-                    <span className="h-2 w-2 rounded-full bg-emerald-500" /> Saldo positivo
+                    <span className="h-2 w-2 rounded-full bg-emerald-500" /> Recebimentos
                   </div>
                   <div className="flex items-center gap-1">
-                    <span className="h-2 w-2 rounded-full bg-rose-500" /> Saldo negativo
+                    <span className="h-2 w-2 rounded-full bg-rose-500" /> Despesas
                   </div>
                   <div className="ml-auto">
                     Saldo mês: <span className={`font-semibold ${monthTotals.balance >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"}`}>{formatCurrency(monthTotals.balance)}</span>
@@ -332,24 +329,22 @@ export function IncomePendingCalendar({
                   {weekDays.map((d) => {
                     const dateStr = formatLocalDate(d);
                     const info = dayMap[dateStr];
-                    const hasMovement = (info?.totalIncome ?? 0) > 0 || (info?.totalExpense ?? 0) > 0;
-                    const balance = hasMovement
-                      ? baseBalance + (info?.totalIncome ?? 0) - (info?.totalExpense ?? 0)
-                      : baseBalance;
+                    const hasIncome = (info?.totalIncome ?? 0) > 0;
+                    const hasExpense = (info?.totalExpense ?? 0) > 0;
+                    const hasMovement = hasIncome || hasExpense;
                     const isToday = dateStr === todayStr;
                     const isSelected = dateStr === selectedDate;
-                    const positive = balance > 0;
-                    const negative = balance < 0;
                     return (
                       <button
                         key={dateStr}
                         onClick={() => handleWeekDayClick(d)}
-                        className={`flex flex-col items-center justify-center rounded-lg p-2 min-h-[64px] text-xs transition-colors
+                        className={`flex flex-col items-center justify-center rounded-lg p-2 min-h-[60px] text-xs transition-colors
                           ${isSelected ? "bg-primary text-primary-foreground ring-2 ring-primary" : ""}
                           ${isToday && !isSelected ? "bg-accent font-bold" : ""}
-                          ${!isSelected && !isToday && positive ? "bg-emerald-500/10" : ""}
-                          ${!isSelected && !isToday && negative ? "bg-rose-500/10" : ""}
-                          ${!isSelected && !isToday && !positive && !negative ? "hover:bg-muted" : ""}
+                          ${!isSelected && !isToday && hasMovement && hasIncome && !hasExpense ? "bg-emerald-500/10" : ""}
+                          ${!isSelected && !isToday && hasMovement && hasExpense && !hasIncome ? "bg-rose-500/10" : ""}
+                          ${!isSelected && !isToday && hasIncome && hasExpense ? "bg-amber-500/10" : ""}
+                          ${!isSelected && !isToday && !hasMovement ? "bg-background hover:bg-muted" : ""}
                         `}
                       >
                         <span className={`text-[10px] uppercase ${isSelected ? "text-primary-foreground/80" : "text-muted-foreground"}`}>
@@ -358,17 +353,16 @@ export function IncomePendingCalendar({
                         <span className={`text-base font-semibold ${isSelected ? "text-primary-foreground" : "text-foreground"}`}>
                           {d.getDate()}
                         </span>
-                        <span className={`text-[10px] font-semibold tabular-nums truncate max-w-full ${
-                          isSelected
-                            ? "text-primary-foreground"
-                            : positive
-                              ? "text-emerald-600 dark:text-emerald-400"
-                              : negative
-                                ? "text-rose-600 dark:text-rose-400"
-                                : "text-muted-foreground"
-                        }`}>
-                          {compactCurrency(balance)}
-                        </span>
+                        {hasMovement && (
+                          <span className="mt-0.5 flex items-center gap-0.5">
+                            {hasIncome && (
+                              <span className={`h-1.5 w-1.5 rounded-full ${isSelected ? "bg-primary-foreground" : "bg-emerald-500"}`} />
+                            )}
+                            {hasExpense && (
+                              <span className={`h-1.5 w-1.5 rounded-full ${isSelected ? "bg-primary-foreground" : "bg-rose-500"}`} />
+                            )}
+                          </span>
+                        )}
                       </button>
                     );
                   })}

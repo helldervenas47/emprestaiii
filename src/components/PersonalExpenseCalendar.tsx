@@ -214,22 +214,20 @@ export function PersonalExpenseCalendar({ expenses }: Props) {
                       <button
                         key={day}
                         onClick={() => handleDayClick(day)}
-                        className={`relative flex flex-col items-center justify-start rounded-lg p-1 min-h-[58px] sm:min-h-[52px] text-xs transition-colors
+                        className={`relative flex flex-col items-center justify-center rounded-lg p-1 min-h-[44px] text-xs transition-colors
                           ${isSelected ? "bg-primary text-primary-foreground ring-2 ring-primary" : ""}
                           ${isToday && !isSelected ? "bg-accent font-bold" : ""}
-                          ${has && !isSelected ? (isHigh ? "bg-destructive/10" : "bg-warning/10") : ""}
-                          ${!isSelected && !isToday && !has ? "hover:bg-muted" : ""}
+                          ${has && !isSelected && !isToday ? (isHigh ? "bg-destructive/10" : "bg-warning/10") : ""}
+                          ${!isSelected && !isToday && !has ? "bg-background hover:bg-muted" : ""}
                         `}
                       >
                         <span className={isSelected ? "text-primary-foreground" : "text-foreground"}>
                           {day}
                         </span>
                         {has && (
-                          <span className={`mt-0.5 text-[8px] sm:text-[10px] font-semibold leading-tight tabular-nums whitespace-nowrap ${
-                            isSelected ? "text-primary-foreground" : isHigh ? "text-destructive" : "text-warning"
-                          }`}>
-                            {compactCurrency(total)}
-                          </span>
+                          <span className={`mt-0.5 h-1.5 w-1.5 rounded-full ${
+                            isSelected ? "bg-primary-foreground" : isHigh ? "bg-destructive" : "bg-warning"
+                          }`} />
                         )}
                       </button>
                     );
@@ -268,11 +266,11 @@ export function PersonalExpenseCalendar({ expenses }: Props) {
                       <button
                         key={dateStr}
                         onClick={() => handleWeekDayClick(d)}
-                        className={`flex flex-col items-center justify-center rounded-lg p-2 min-h-[64px] text-xs transition-colors
+                        className={`flex flex-col items-center justify-center rounded-lg p-2 min-h-[60px] text-xs transition-colors
                           ${isSelected ? "bg-primary text-primary-foreground ring-2 ring-primary" : ""}
                           ${isToday && !isSelected ? "bg-accent font-bold" : ""}
                           ${has && !isSelected && !isToday ? "bg-warning/10" : ""}
-                          ${!isSelected && !isToday && !has ? "hover:bg-muted" : ""}
+                          ${!isSelected && !isToday && !has ? "bg-background hover:bg-muted" : ""}
                         `}
                       >
                         <span className={`text-[10px] uppercase ${isSelected ? "text-primary-foreground/80" : "text-muted-foreground"}`}>
@@ -282,11 +280,9 @@ export function PersonalExpenseCalendar({ expenses }: Props) {
                           {d.getDate()}
                         </span>
                         {has && (
-                          <span className={`text-[10px] font-semibold tabular-nums truncate max-w-full ${
-                            isSelected ? "text-primary-foreground" : "text-warning"
-                          }`}>
-                            {compactCurrency(total)}
-                          </span>
+                          <span className={`mt-0.5 h-1.5 w-1.5 rounded-full ${
+                            isSelected ? "bg-primary-foreground" : "bg-warning"
+                          }`} />
                         )}
                       </button>
                     );
