@@ -101,33 +101,55 @@ export function IncomeTelegramBotButton() {
       <DialogContent className="max-w-sm">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <TelegramIcon className="h-4 w-4 text-primary" />
-            Vincular bot do Telegram
+            <TelegramIcon className={`h-4 w-4 ${connected ? "text-emerald-500" : "text-primary"}`} />
+            {connected ? "Bot do Telegram conectado" : "Vincular bot do Telegram"}
           </DialogTitle>
           <DialogDescription className="text-xs">
-            Use bots diferentes para registrar lançamentos em contas distintas.
+            {connected
+              ? "Seus lançamentos do Telegram estão chegando neste app. Para usar outro bot, desconecte primeiro."
+              : "Use bots diferentes para registrar lançamentos em contas distintas."}
           </DialogDescription>
         </DialogHeader>
 
-        <ol className="text-xs text-muted-foreground space-y-1.5 list-decimal pl-4">
-          <li>Abra o bot desejado no Telegram.</li>
-          <li>Envie o comando <code className="font-mono px-1 py-0.5 rounded bg-muted">/code</code>.</li>
-          <li>Cole abaixo o código recebido.</li>
-        </ol>
+        {connected ? (
+          <div className="space-y-3 pt-1">
+            <div className="flex items-center gap-2 rounded-md border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-sm text-emerald-700 dark:text-emerald-400">
+              <CheckCircle2 className="h-4 w-4" />
+              <span>Conexão ativa</span>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              className="w-full gap-2"
+              onClick={handleDisconnect}
+            >
+              <Unlink className="h-4 w-4" />
+              Desconectar bot
+            </Button>
+          </div>
+        ) : (
+          <>
+            <ol className="text-xs text-muted-foreground space-y-1.5 list-decimal pl-4">
+              <li>Abra o bot desejado no Telegram.</li>
+              <li>Envie o comando <code className="font-mono px-1 py-0.5 rounded bg-muted">/code</code>.</li>
+              <li>Cole abaixo o código recebido.</li>
+            </ol>
 
-        <div className="flex gap-2 pt-1">
-          <Input
-            value={code}
-            onChange={(e) => setCode(e.target.value)}
-            placeholder="Código de conexão"
-            className="font-mono"
-            onKeyDown={(e) => { if (e.key === "Enter") handleLink(); }}
-            autoFocus
-          />
-          <Button size="sm" onClick={handleLink} disabled={linking || !code.trim()}>
-            {linking ? "Vinculando…" : "Vincular"}
-          </Button>
-        </div>
+            <div className="flex gap-2 pt-1">
+              <Input
+                value={code}
+                onChange={(e) => setCode(e.target.value)}
+                placeholder="Código de conexão"
+                className="font-mono"
+                onKeyDown={(e) => { if (e.key === "Enter") handleLink(); }}
+                autoFocus
+              />
+              <Button size="sm" onClick={handleLink} disabled={linking || !code.trim()}>
+                {linking ? "Vinculando…" : "Vincular"}
+              </Button>
+            </div>
+          </>
+        )}
       </DialogContent>
     </Dialog>
   );
