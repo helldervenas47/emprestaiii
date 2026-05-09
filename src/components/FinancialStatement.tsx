@@ -254,9 +254,8 @@ export function FinancialStatement() {
                 <colgroup>
                   <col className="w-[110px]" />
                   <col />
-                  <col className="w-[160px]" />
+                  <col className="w-[180px]" />
                   <col className="w-[120px]" />
-                  <col className="w-[140px]" />
                   <col className="w-[140px]" />
                   <col className="w-[130px]" />
                 </colgroup>
@@ -266,7 +265,6 @@ export function FinancialStatement() {
                     <th className="text-left px-4 py-2">Descrição</th>
                     <th className="text-left px-4 py-2">Categoria</th>
                     <th className="text-left px-4 py-2">Tipo</th>
-                    <th className="text-left px-4 py-2">Pagamento</th>
                     <th className="text-left px-4 py-2">Conta</th>
                     <th className="text-right px-4 py-2">Valor</th>
                   </tr>
@@ -277,7 +275,7 @@ export function FinancialStatement() {
                       <td className="px-4 py-2 whitespace-nowrap align-middle">
                         {format(new Date(r.date + "T00:00:00"), "dd/MM/yyyy", { locale: ptBR })}
                       </td>
-                      <td className="px-4 py-2 align-middle truncate" title={r.description}>{r.description}</td>
+                      <td className="px-4 py-2 align-middle truncate pr-6" title={r.description}>{r.description}</td>
                       <td className="px-4 py-2 align-middle">
                         <Badge
                           variant="secondary"
@@ -298,7 +296,6 @@ export function FinancialStatement() {
                           </Badge>
                         )}
                       </td>
-                      <td className="px-4 py-2 align-middle text-muted-foreground truncate" title={r.paymentMethod}>{r.paymentMethod}</td>
                       <td className="px-4 py-2 align-middle text-muted-foreground truncate" title={r.account}>{r.account}</td>
                       <td className={`px-4 py-2 text-right font-semibold whitespace-nowrap align-middle ${
                         r.type === "income"
