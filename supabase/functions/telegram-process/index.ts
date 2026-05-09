@@ -2436,7 +2436,6 @@ Deno.serve(async (req) => {
               }
             }
           }
-          }
         } else if (data.startsWith("canc:")) {
           const expenseId = data.slice(5);
           await tgAnswerCallback(cbId, undefined, LOVABLE_API_KEY, TELEGRAM_API_KEY);
