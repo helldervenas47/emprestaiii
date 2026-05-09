@@ -189,7 +189,7 @@ async function learnCategoryFromExpense(
   description: string,
   category: string,
 ) {
-  if (!CATEGORIES.includes(category)) return;
+  if (!category || !category.trim()) return;
   const tokens = tokensFromDescription(description);
   if (tokens.length === 0) return;
   const nowIso = new Date().toISOString();
