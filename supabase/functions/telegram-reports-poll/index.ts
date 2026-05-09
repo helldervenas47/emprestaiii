@@ -83,7 +83,7 @@ async function processBot(
       // 401 unauthorized → token invalid; mark as such
       if (r.status === 401) {
         await supabase
-          .from("user_telegram_bots")
+          .from("system_telegram_bots")
           .update({ validation_status: "invalid", last_validated_at: new Date().toISOString() })
           .eq("id", bot.id);
       }
