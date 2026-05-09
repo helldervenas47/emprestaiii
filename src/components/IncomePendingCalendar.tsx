@@ -309,10 +309,12 @@ export function IncomePendingCalendar({
 
                 <div className="flex items-center gap-3 mt-3 text-[11px] text-muted-foreground flex-wrap">
                   <div className="flex items-center gap-1">
-                    <span className="h-2 w-2 rounded-full bg-emerald-500" /> Saldo positivo
+                <div className="flex items-center gap-3 mt-3 text-[11px] text-muted-foreground flex-wrap">
+                  <div className="flex items-center gap-1">
+                    <span className="h-2 w-2 rounded-full bg-emerald-500" /> Recebimentos
                   </div>
                   <div className="flex items-center gap-1">
-                    <span className="h-2 w-2 rounded-full bg-rose-500" /> Saldo negativo
+                    <span className="h-2 w-2 rounded-full bg-rose-500" /> Despesas
                   </div>
                   <div className="ml-auto">
                     Saldo mês: <span className={`font-semibold ${monthTotals.balance >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"}`}>{formatCurrency(monthTotals.balance)}</span>
