@@ -622,6 +622,46 @@ export function IncomePendingCalendar({
           </div>
         </div>
       </CardContent>
+
+      <Dialog open={editOpen} onOpenChange={setEditOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Alterar saldo do dia 1</DialogTitle>
+            <DialogDescription>
+              Defina o saldo previsto do dia 1 de{" "}
+              {selectedDate
+                ? new Date(selectedDate + "T00:00:00").toLocaleDateString("pt-BR", { month: "long", year: "numeric" })
+                : ""}
+              . A projeção dos próximos dias passa a ser calculada a partir desse valor.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2">
+            <Label htmlFor="day1-balance">Saldo do dia (R$)</Label>
+            <Input
+              id="day1-balance"
+              type="number"
+              step="0.01"
+              value={editValue}
+              onChange={(e) => setEditValue(e.target.value)}
+            />
+          </div>
+          <DialogFooter className="gap-2">
+            <Button variant="ghost" onClick={() => setEditOpen(false)}>Cancelar</Button>
+            <Button
+              onClick={() => {
+                const v = Number(editValue);
+                if (!selectedDate || isNaN(v)) return;
+                const monthKey = selectedDate.slice(0, 7);
+                setOverrides((prev) => ({ ...prev, [monthKey]: v }));
+                setEditOpen(false);
+              }}
+              disabled={editValue === "" || isNaN(Number(editValue))}
+            >
+              Salvar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 }
