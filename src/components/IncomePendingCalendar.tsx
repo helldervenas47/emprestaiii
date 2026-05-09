@@ -296,9 +296,8 @@ export function IncomePendingCalendar({
     setMonth(d.getMonth());
   };
 
-  const selectedInfo: DayInfo = selectedDate
-    ? (dayMap[selectedDate] ?? { incomes: [], expenses: [], totalIncome: 0, totalExpense: 0 })
-    : { incomes: [], expenses: [], totalIncome: 0, totalExpense: 0 };
+  const emptyDay: DayInfo = { incomes: [], expenses: [], cardInvoices: [], totalIncome: 0, totalExpense: 0 };
+  const selectedInfo: DayInfo = selectedDate ? (dayMap[selectedDate] ?? emptyDay) : emptyDay;
   // Saldo previsto acumulado dia a dia.
   // Cobre tanto o mês expandido quanto a semana atual.
   const runningBalanceMap = useMemo(() => {
