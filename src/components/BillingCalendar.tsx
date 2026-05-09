@@ -623,6 +623,12 @@ export function BillingCalendar({ loans, payments, installmentSchedules, sales =
                         Empréstimos
                       </p>
                       {sortedSelectedItems.map((item) => renderItemWithActions(item, item.date < todayStr))}
+                      <div className="flex items-center justify-between pt-1.5 border-t border-border/40">
+                        <span className="text-xs font-medium text-muted-foreground">Subtotal Empréstimos</span>
+                        <span className="text-xs font-bold text-foreground">
+                          {formatCurrency(sortedSelectedItems.reduce((s, i) => s + i.amount, 0))}
+                        </span>
+                      </div>
                     </div>
                   )}
 
@@ -631,6 +637,7 @@ export function BillingCalendar({ loans, payments, installmentSchedules, sales =
                     if (list.length === 0) return null;
                     const label = kind === "vehicle" ? "Veículos" : "Vendas";
                     const Icon = kind === "vehicle" ? Car : ShoppingBag;
+                    const subtotal = list.reduce((s, i) => s + i.amount, 0);
                     return (
                       <div key={kind} className="space-y-2">
                         <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
@@ -672,14 +679,18 @@ export function BillingCalendar({ loans, payments, installmentSchedules, sales =
                               </div>
                             );
                           })}
+                        <div className="flex items-center justify-between pt-1.5 border-t border-border/40">
+                          <span className="text-xs font-medium text-muted-foreground">Subtotal {label}</span>
+                          <span className="text-xs font-bold text-foreground">{formatCurrency(subtotal)}</span>
+                        </div>
                       </div>
                     );
                   })}
 
-                  {/* Total */}
+                  {/* Total geral */}
                   <div className="flex items-center justify-between pt-2 border-t mt-2">
                     <div className="flex items-center gap-2 text-sm font-medium text-foreground">
-                      <DollarSign className="h-4 w-4" /> Total a cobrar
+                      <DollarSign className="h-4 w-4" /> Total geral
                     </div>
                     <p className="text-sm font-bold text-foreground">
                       {formatCurrency(
