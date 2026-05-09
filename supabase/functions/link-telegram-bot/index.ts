@@ -46,7 +46,7 @@ Deno.serve(async (req) => {
 
     const { data: bot, error: botErr } = await admin
       .from("telegram_bots")
-      .select("id, bot_code, kind, chat_id, expires_at")
+      .select("id, bot_code, kind, chat_id, bot_id, expires_at")
       .eq("bot_code", code)
       .maybeSingle();
 
@@ -70,7 +70,7 @@ Deno.serve(async (req) => {
     const { error: upsertErr } = await admin
       .from(targetTable)
       .upsert(
-        { user_id: userId, chat_id: chatId, bot_code: code, label },
+        { user_id: userId, chat_id: chatId, bot_id: (bot as any).bot_id ?? null, bot_code: code, label },
         { onConflict: "user_id,chat_id" },
       );
 
