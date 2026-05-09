@@ -309,8 +309,6 @@ export function IncomePendingCalendar({
 
                 <div className="flex items-center gap-3 mt-3 text-[11px] text-muted-foreground flex-wrap">
                   <div className="flex items-center gap-1">
-                <div className="flex items-center gap-3 mt-3 text-[11px] text-muted-foreground flex-wrap">
-                  <div className="flex items-center gap-1">
                     <span className="h-2 w-2 rounded-full bg-emerald-500" /> Recebimentos
                   </div>
                   <div className="flex items-center gap-1">
