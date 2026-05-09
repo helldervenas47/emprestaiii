@@ -894,6 +894,36 @@ export type Database = {
         }
         Relationships: []
       }
+      income_category_hints: {
+        Row: {
+          category: string
+          created_at: string
+          hits: number
+          id: string
+          keyword: string
+          last_used: string
+          user_id: string
+        }
+        Insert: {
+          category: string
+          created_at?: string
+          hits?: number
+          id?: string
+          keyword: string
+          last_used?: string
+          user_id: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          hits?: number
+          id?: string
+          keyword?: string
+          last_used?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       incomes: {
         Row: {
           amount: number
