@@ -7,7 +7,7 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   const LOVABLE = Deno.env.get("LOVABLE_API_KEY")!;
-  const TG = Deno.env.get("TELEGRAM_API_KEY_2")!;
+  const TG = Deno.env.get("TELEGRAM_API_KEY")!;
   const url = new URL(req.url);
   const action = url.searchParams.get("action") ?? "info";
 
