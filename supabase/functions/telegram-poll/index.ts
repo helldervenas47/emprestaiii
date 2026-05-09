@@ -1,11 +1,13 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const GATEWAY_URL = "https://connector-gateway.lovable.dev/telegram";
-const MAX_RUNTIME_MS = 55_000;
+// Keep below the cron interval (≈60s) so consecutive invocations don't overlap
+// and trigger 409 "terminated by other getUpdates" errors.
+const MAX_RUNTIME_MS = 40_000;
 const MIN_REMAINING_MS = 5_000;
-// Minimum interval between auto webhook-recoveries to avoid loops if Telegram
-// keeps returning 409 for unrelated reasons (e.g., another running poller).
-const RECOVERY_COOLDOWN_MS = 10 * 60 * 1000; // 10 min
+// Short cooldown — 409 usually means another in-flight poll, just let the next
+// cron tick retry instead of blocking polling for 10 minutes.
+const RECOVERY_COOLDOWN_MS = 30_000;
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -66,7 +68,8 @@ Deno.serve(async (req) => {
     const elapsed = Date.now() - startTime;
     const remainingMs = MAX_RUNTIME_MS - elapsed;
     if (remainingMs < MIN_REMAINING_MS) break;
-    const timeout = Math.min(50, Math.floor(remainingMs / 1000) - 5);
+    // Cap each long-poll well under runtime budget so we always finish cleanly.
+    const timeout = Math.min(20, Math.floor(remainingMs / 1000) - 5);
     if (timeout < 1) break;
 
     const resp = await fetch(`${GATEWAY_URL}/getUpdates`, {
@@ -110,8 +113,10 @@ Deno.serve(async (req) => {
           // hit the cooldown and exit gracefully.
           continue;
         }
-        console.error("getUpdates 409 — recovery cooldown active, giving up this run", { sinceLast });
-        return new Response(JSON.stringify({ error: data, recovery: "cooldown" }), { status: 409, headers: corsHeaders });
+        // Cooldown still active — exit silently with 200 so the next cron just
+        // retries. Returning 409 marks the cron as failed and creates noise.
+        console.warn("getUpdates 409 — another poll likely in flight, will retry next tick", { sinceLast });
+        return new Response(JSON.stringify({ ok: true, skipped: "409-in-flight" }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
       }
 
       console.error("getUpdates failed", data);
