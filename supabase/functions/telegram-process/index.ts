@@ -2401,17 +2401,20 @@ Deno.serve(async (req) => {
         } else if (data.startsWith("cat:")) {
           const expenseId = data.slice(4);
           await tgAnswerCallback(cbId, undefined, LOVABLE_API_KEY, TELEGRAM_API_KEY);
-          await tgEditReplyMarkup(chatId, messageId, buildCategoryKeyboard(expenseId), LOVABLE_API_KEY, TELEGRAM_API_KEY);
+          const cats = await getAvailableCategories(admin, link.user_id);
+          await tgEditReplyMarkup(chatId, messageId, buildCategoryKeyboard(expenseId, cats), LOVABLE_API_KEY, TELEGRAM_API_KEY);
         } else if (data.startsWith("setcat:")) {
           const rest = data.slice(7);
           const sep = rest.indexOf(":");
           const expenseId = rest.slice(0, sep);
           const newCat = rest.slice(sep + 1);
-          if (!CATEGORIES.includes(newCat)) {
+          const allowedCats = await getAvailableCategories(admin, link.user_id);
+          const matched = allowedCats.find((c) => c.toLowerCase() === newCat.toLowerCase()) || null;
+          if (!matched) {
             await tgAnswerCallback(cbId, "Categoria inválida", LOVABLE_API_KEY, TELEGRAM_API_KEY);
           } else {
             const { data: exp, error: updErr } = await admin.from("expenses")
-              .update({ category: newCat })
+              .update({ category: matched })
               .eq("id", expenseId).eq("user_id", link.user_id)
               .select("amount, description, paid_date, due_date").maybeSingle();
             if (updErr || !exp) {
@@ -2422,16 +2425,17 @@ Deno.serve(async (req) => {
               const date = exp.paid_date || exp.due_date || "";
               await tgEditMessage(
                 chatId, messageId,
-                `✏️ *Despesa atualizada*\n\n💰 ${fmt}\n📂 ${newCat}\n📝 ${exp.description}\n📅 ${date}`,
+                `✏️ *Despesa atualizada*\n\n💰 ${fmt}\n📂 ${matched}\n📝 ${exp.description}\n📅 ${date}`,
                 buildExpenseKeyboard(expenseId),
                 LOVABLE_API_KEY, TELEGRAM_API_KEY,
               );
-              await checkBudgetAndAlert(admin, link.user_id, chatId, newCat, LOVABLE_API_KEY, TELEGRAM_API_KEY);
+              await checkBudgetAndAlert(admin, link.user_id, chatId, matched, LOVABLE_API_KEY, TELEGRAM_API_KEY);
               if (exp.description) {
-                learnCategoryFromExpense(admin, link.user_id, exp.description, newCat)
+                learnCategoryFromExpense(admin, link.user_id, exp.description, matched)
                   .catch((e) => console.error("learn (setcat) err", e));
               }
             }
+          }
           }
         } else if (data.startsWith("canc:")) {
           const expenseId = data.slice(5);
