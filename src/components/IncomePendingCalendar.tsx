@@ -756,7 +756,7 @@ export function IncomePendingCalendar({
                 const v = Number(editValue);
                 if (!selectedDate || isNaN(v)) return;
                 const monthKey = selectedDate.slice(0, 7);
-                setOverrides((prev) => ({ ...prev, [monthKey]: v }));
+                void setOverrideBalance(monthKey, v);
                 setEditOpen(false);
               }}
               disabled={editValue === "" || isNaN(Number(editValue))}
