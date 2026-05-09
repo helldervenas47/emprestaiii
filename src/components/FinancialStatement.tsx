@@ -254,9 +254,8 @@ export function FinancialStatement() {
                 <colgroup>
                   <col className="w-[110px]" />
                   <col />
-                  <col className="w-[160px]" />
+                  <col className="w-[180px]" />
                   <col className="w-[120px]" />
-                  <col className="w-[140px]" />
                   <col className="w-[140px]" />
                   <col className="w-[130px]" />
                 </colgroup>
@@ -266,7 +265,6 @@ export function FinancialStatement() {
                     <th className="text-left px-4 py-2">Descrição</th>
                     <th className="text-left px-4 py-2">Categoria</th>
                     <th className="text-left px-4 py-2">Tipo</th>
-                    <th className="text-left px-4 py-2">Pagamento</th>
                     <th className="text-left px-4 py-2">Conta</th>
                     <th className="text-right px-4 py-2">Valor</th>
                   </tr>
