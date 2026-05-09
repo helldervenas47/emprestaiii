@@ -14,6 +14,7 @@ import { usePiggyBanks } from "@/hooks/usePiggyBanks";
 import { useCreditCards } from "@/hooks/useCreditCards";
 import { useCreditCardOpenings } from "@/hooks/useCreditCardOpenings";
 import { getCardInvoiceTotalsForMonth, isCreditCardExpense } from "@/lib/creditCardInvoiceTotals";
+import { useMonthlyOpeningBalances } from "@/hooks/useMonthlyOpeningBalances";
 
 const MONTH_BALANCE_OVERRIDES_KEY = "calendar:incomeMonthDay1BalanceOverrides";
 
@@ -115,11 +116,9 @@ export function IncomePendingCalendar({
   const [year, setYear] = useState(today.getFullYear());
   const [month, setMonth] = useState(today.getMonth());
   const [selectedDate, setSelectedDate] = useState<string | null>(todayStr);
-  const [overrides, setOverrides] = useState<Record<string, number>>(() => loadOverrides());
+  const { overrides, setBalance: setOverrideBalance, clearBalance: clearOverrideBalance } = useMonthlyOpeningBalances();
   const [editOpen, setEditOpen] = useState(false);
   const [editValue, setEditValue] = useState("");
-
-  useEffect(() => { saveOverrides(overrides); }, [overrides]);
 
   const { sales } = useProducts(true);
   const { deposits: piggyDeposits } = usePiggyBanks();
@@ -705,11 +704,7 @@ export function IncomePendingCalendar({
                                 size="sm"
                                 className="h-7 text-xs gap-1"
                                 onClick={() => {
-                                  setOverrides((prev) => {
-                                    const next = { ...prev };
-                                    delete next[monthKey];
-                                    return next;
-                                  });
+                                  void clearOverrideBalance(monthKey);
                                 }}
                               >
                                 <RotateCcw className="h-3 w-3" /> Resetar
@@ -761,7 +756,7 @@ export function IncomePendingCalendar({
                 const v = Number(editValue);
                 if (!selectedDate || isNaN(v)) return;
                 const monthKey = selectedDate.slice(0, 7);
-                setOverrides((prev) => ({ ...prev, [monthKey]: v }));
+                void setOverrideBalance(monthKey, v);
                 setEditOpen(false);
               }}
               disabled={editValue === "" || isNaN(Number(editValue))}

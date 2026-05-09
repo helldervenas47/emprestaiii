@@ -1423,6 +1423,33 @@ export type Database = {
         }
         Relationships: []
       }
+      monthly_opening_balances: {
+        Row: {
+          amount: number
+          created_at: string
+          id: string
+          month: string
+          owner_id: string
+          updated_at: string
+        }
+        Insert: {
+          amount?: number
+          created_at?: string
+          id?: string
+          month: string
+          owner_id: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          id?: string
+          month?: string
+          owner_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       notification_preferences: {
         Row: {
           created_at: string | null
