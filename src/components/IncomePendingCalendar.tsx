@@ -518,7 +518,7 @@ export function IncomePendingCalendar({
             )}
           </div>
 
-          <div className={`rounded-lg border border-border/50 bg-muted/20 p-3 min-h-[200px] ${expanded ? "" : "hidden md:block"}`}>
+          <div className={`rounded-lg border border-border/50 bg-muted/20 p-3 min-h-[200px] animate-fade-in ${expanded || selectedDate ? "" : "hidden md:block"}`}>
             {!selectedDate ? (
               <div className="flex h-full min-h-[180px] flex-col items-center justify-center text-center">
                 <TrendingUp className="h-7 w-7 text-muted-foreground mb-2" />
