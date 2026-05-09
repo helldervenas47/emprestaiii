@@ -244,15 +244,19 @@ export function TelegramBotsManager() {
         <div className="flex items-start justify-between gap-3 flex-wrap">
           <div>
             <h3 className="text-sm font-semibold flex items-center gap-2">
-              <Bot className="h-4 w-4 text-primary" /> Meus bots do Telegram
+              <Bot className="h-4 w-4 text-primary" /> Bots do Telegram (globais)
             </h3>
             <p className="text-xs text-muted-foreground mt-1">
-              Cadastre múltiplos bots do BotFather. Tokens ficam protegidos por RLS — somente você acessa.
+              {isAdmin
+                ? "Bots compartilhados por todo o sistema. Cada conta vincula seu chat individualmente via /code."
+                : "Use o comando /code no bot do Telegram para vincular sua conta. Os bots são gerenciados pelos administradores."}
             </p>
           </div>
-          <Button size="sm" onClick={openAdd} className="gap-1.5">
-            <Plus className="h-4 w-4" /> Adicionar bot
-          </Button>
+          {isAdmin && (
+            <Button size="sm" onClick={openAdd} className="gap-1.5">
+              <Plus className="h-4 w-4" /> Adicionar bot
+            </Button>
+          )}
         </div>
 
         {/* Bots já conectados via /code no app */}
