@@ -60,7 +60,13 @@ type DayInfo = {
  * Calendário diário: exibe receitas e despesas pessoais por dia,
  * com totais por categoria e saldo final do dia.
  */
-export function IncomePendingCalendar({ incomes, expenses = [] }: Props) {
+export function IncomePendingCalendar({
+  incomes,
+  expenses = [],
+  accountBalance,
+  allIncomes,
+  allExpenses,
+}: Props) {
   const today = new Date();
   const todayStr = formatLocalDate(today);
 
@@ -68,6 +74,28 @@ export function IncomePendingCalendar({ incomes, expenses = [] }: Props) {
   const [year, setYear] = useState(today.getFullYear());
   const [month, setMonth] = useState(today.getMonth());
   const [selectedDate, setSelectedDate] = useState<string | null>(todayStr);
+
+  const { sales } = useProducts(true);
+  const { deposits: piggyDeposits } = usePiggyBanks();
+
+  // Saldo em conta (mesma fórmula do IncomeBalanceCard)
+  const computedBalance = useMemo(() => {
+    const incSrc = allIncomes ?? incomes;
+    const expSrc = allExpenses ?? expenses;
+    const totalIncomeReceived = incSrc
+      .filter((i) => i.status === "received")
+      .reduce((s, i) => s + (Number(i.amount) || 0), 0);
+    const totalSalesReceived = (sales || []).reduce((s, sale) => s + saleReceivedTotal(sale), 0);
+    const totalExpensePaid = expSrc
+      .filter((e) => e.paid)
+      .reduce((s, e) => s + (Number(e.amount) || 0), 0);
+    const totalPiggyManualDeposits = (piggyDeposits || [])
+      .filter((d) => !d.expenseId)
+      .reduce((s, d) => s + (Number(d.amount) || 0), 0);
+    return totalIncomeReceived + totalSalesReceived - totalExpensePaid - totalPiggyManualDeposits;
+  }, [allIncomes, allExpenses, incomes, expenses, sales, piggyDeposits]);
+
+  const baseBalance = accountBalance ?? computedBalance;
 
   const personalExpenses = useMemo(
     () => expenses.filter((e) => (e.scope ?? "business") === "personal"),
