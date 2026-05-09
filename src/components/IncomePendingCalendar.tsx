@@ -196,7 +196,10 @@ export function IncomePendingCalendar({
   const selectedInfo: DayInfo = selectedDate
     ? (dayMap[selectedDate] ?? { incomes: [], expenses: [], totalIncome: 0, totalExpense: 0 })
     : { incomes: [], expenses: [], totalIncome: 0, totalExpense: 0 };
-  const selectedBalance = selectedInfo.totalIncome - selectedInfo.totalExpense;
+  const selectedHasMovement = selectedInfo.totalIncome > 0 || selectedInfo.totalExpense > 0;
+  const selectedBalance = selectedHasMovement
+    ? baseBalance + selectedInfo.totalIncome - selectedInfo.totalExpense
+    : baseBalance;
 
   // Group by category for selected day
   const groupByCategory = <T extends { category?: string | null; amount: number }>(items: T[]) => {
