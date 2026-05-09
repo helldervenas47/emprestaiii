@@ -549,9 +549,10 @@ export function BillingCalendar({ loans, payments, installmentSchedules, sales =
               if (day === null) return <div key={`empty-${idx}`} />;
               const dateStr = `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
               const items = dueMap[dateStr] || [];
+              const saleItems = salesDueMap[dateStr] || [];
               const isToday = dateStr === todayStr;
               const isSelected = dateStr === selectedDate;
-              const hasDue = items.length > 0;
+              const hasDue = items.length > 0 || saleItems.length > 0;
               const isOverdue = dateStr < todayStr && hasDue;
               const isUpcoming = dateStr >= todayStr && hasDue;
 
