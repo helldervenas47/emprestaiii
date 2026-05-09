@@ -139,7 +139,6 @@ export function IncomeList({ readOnly }: Props) {
         <Button variant="ghost" size="icon" className="h-8 w-8" onClick={nextMonth}>
           <ChevronRight className="h-4 w-4" />
         </Button>
-        {!readOnly && <IncomeTelegramBotButton />}
       </div>
 
       <IncomeBalanceCard
@@ -151,6 +150,7 @@ export function IncomeList({ readOnly }: Props) {
         onOpenExpenses={() => { setSheetInitialFilter(undefined); setSheetType("expenses"); }}
         onOpenPendingIncomes={() => { setSheetInitialFilter("pending"); setSheetType("incomes"); }}
         onOpenStatement={() => setStatementOpen(true)}
+        statementLeftSlot={!readOnly ? <IncomeTelegramBotButton /> : undefined}
         onAdjust={async (delta) => {
           if (!delta) return;
           const today = new Date().toISOString().slice(0, 10);
