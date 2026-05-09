@@ -6,11 +6,14 @@ import { Label } from "@/components/ui/label";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription,
 } from "@/components/ui/dialog";
-import { ChevronLeft, ChevronRight, ChevronDown, ChevronUp, CalendarDays, TrendingUp, ArrowUpCircle, ArrowDownCircle, Wallet, Pencil, RotateCcw } from "lucide-react";
+import { ChevronLeft, ChevronRight, ChevronDown, ChevronUp, CalendarDays, TrendingUp, ArrowUpCircle, ArrowDownCircle, Wallet, Pencil, RotateCcw, CreditCard as CreditCardIcon } from "lucide-react";
 import type { Income } from "@/hooks/useIncomes";
 import type { Expense, Sale } from "@/types/loan";
 import { useProducts } from "@/hooks/useProducts";
 import { usePiggyBanks } from "@/hooks/usePiggyBanks";
+import { useCreditCards } from "@/hooks/useCreditCards";
+import { useCreditCardOpenings } from "@/hooks/useCreditCardOpenings";
+import { getCardInvoiceTotalsForMonth, isCreditCardExpense } from "@/lib/creditCardInvoiceTotals";
 
 const MONTH_BALANCE_OVERRIDES_KEY = "calendar:incomeMonthDay1BalanceOverrides";
 
