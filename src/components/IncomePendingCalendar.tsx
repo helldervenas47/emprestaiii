@@ -1,13 +1,29 @@
 import { useMemo, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight, ChevronDown, ChevronUp, CalendarDays, TrendingUp, ArrowUpCircle, ArrowDownCircle } from "lucide-react";
+import { ChevronLeft, ChevronRight, ChevronDown, ChevronUp, CalendarDays, TrendingUp, ArrowUpCircle, ArrowDownCircle, Wallet } from "lucide-react";
 import type { Income } from "@/hooks/useIncomes";
-import type { Expense } from "@/types/loan";
+import type { Expense, Sale } from "@/types/loan";
+import { useProducts } from "@/hooks/useProducts";
+import { usePiggyBanks } from "@/hooks/usePiggyBanks";
 
 interface Props {
   incomes: Income[];
   expenses?: Expense[];
+  /** Override the auto-computed account balance baseline. */
+  accountBalance?: number;
+  /** All incomes (incl. ajustes) used to compute the account balance baseline. */
+  allIncomes?: Income[];
+  /** All expenses (incl. business) used to compute the account balance baseline. */
+  allExpenses?: Expense[];
+}
+
+function saleReceivedTotal(sale: Sale): number {
+  if (sale.paymentHistory && sale.paymentHistory.length > 0) {
+    return sale.paymentHistory.reduce((s, p) => s + (Number(p.amount) || 0), 0);
+  }
+  const iv = sale.installmentValue ?? (sale.installments > 0 ? sale.total / sale.installments : sale.total);
+  return (sale.downPayment || 0) + (sale.paidInstallments || 0) * iv + (sale.partialPaid || 0);
 }
 
 const monthNames = [
