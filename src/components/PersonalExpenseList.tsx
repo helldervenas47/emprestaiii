@@ -42,7 +42,7 @@ import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as ReTooltip, LineCha
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { PersonalAIInsightsCard } from "@/components/PersonalAIInsightsCard";
-import { PersonalExpenseCalendar } from "@/components/PersonalExpenseCalendar";
+
 
 
 interface Props {
@@ -703,8 +703,6 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, onUpda
         })()}
       />
 
-      {/* Calendário de gastos pessoais (logo abaixo do Relatório Inteligente) */}
-      <PersonalExpenseCalendar expenses={expenses} />
 
       {typeof afterEvolution === "function"
         ? afterEvolution({ selectedMonth })
