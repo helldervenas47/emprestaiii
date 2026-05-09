@@ -99,7 +99,7 @@ export function TelegramBotsManager() {
   const load = async () => {
     setLoading(true);
     const { data, error } = await supabase
-      .from("user_telegram_bots" as any)
+      .from("system_telegram_bots" as any)
       .select("*")
       .order("created_at", { ascending: true });
     if (error) toast.error("Erro ao carregar bots", { description: error.message });
@@ -201,13 +201,13 @@ export function TelegramBotsManager() {
 
       if (editing) {
         const { error } = await supabase
-          .from("user_telegram_bots" as any)
+          .from("system_telegram_bots" as any)
           .update(payload)
           .eq("id", editing.id);
         if (error) throw error;
         toast.success("Bot atualizado");
       } else {
-        const { error } = await supabase.from("user_telegram_bots" as any).insert(payload);
+        const { error } = await supabase.from("system_telegram_bots" as any).insert(payload);
         if (error) throw error;
         toast.success("Bot cadastrado");
       }
@@ -223,7 +223,7 @@ export function TelegramBotsManager() {
   const handleDelete = async () => {
     if (!deleteTarget) return;
     const { error } = await supabase
-      .from("user_telegram_bots" as any).delete().eq("id", deleteTarget.id);
+      .from("system_telegram_bots" as any).delete().eq("id", deleteTarget.id);
     if (error) toast.error("Erro ao excluir", { description: error.message });
     else { toast.success("Bot removido"); load(); }
     setDeleteTarget(null);
@@ -231,7 +231,7 @@ export function TelegramBotsManager() {
 
   const toggleActive = async (b: BotRow) => {
     const { error } = await supabase
-      .from("user_telegram_bots" as any)
+      .from("system_telegram_bots" as any)
       .update({ active: !b.active })
       .eq("id", b.id);
     if (error) toast.error("Erro ao atualizar", { description: error.message });
