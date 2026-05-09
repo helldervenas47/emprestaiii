@@ -138,6 +138,7 @@ export function IncomeList({ readOnly }: Props) {
         <Button variant="ghost" size="icon" className="h-8 w-8" onClick={nextMonth}>
           <ChevronRight className="h-4 w-4" />
         </Button>
+        {!readOnly && <IncomeTelegramBotButton />}
       </div>
 
       <IncomeBalanceCard
