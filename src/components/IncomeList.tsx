@@ -98,7 +98,9 @@ export function IncomeList({ readOnly }: Props) {
       const carriedOver = !belongsToRecurringSeries && i.status !== "received" && i.receivedDate < monthKey + "-01";
       if (!inMonth && !carriedOver) return false;
       
-      if (statusFilter !== "all" && i.status !== statusFilter) return false;
+      if (statusFilter === "pending_all") {
+        if (i.status !== "pending" && i.status !== "overdue") return false;
+      } else if (statusFilter !== "all" && i.status !== statusFilter) return false;
       if (categoryFilter !== "all" && (i.category || "Outros") !== categoryFilter) return false;
       if (search.trim()) {
         const q = search.toLowerCase();
@@ -109,8 +111,8 @@ export function IncomeList({ readOnly }: Props) {
       return true;
     });
     arr = [...arr].sort((a, b) => {
-      if (sortBy === "amount") return b.amount - a.amount;
-      return b.receivedDate.localeCompare(a.receivedDate);
+      if (sortBy === "amount") return a.amount - b.amount;
+      return a.receivedDate.localeCompare(b.receivedDate);
     });
     return arr;
   }, [incomes, search, statusFilter, categoryFilter, sortBy, clients, monthKey]);
@@ -204,6 +206,36 @@ export function IncomeList({ readOnly }: Props) {
           )}
         </div>
 
+        <div className="flex flex-wrap gap-2 mb-3">
+          <Button
+            type="button"
+            size="sm"
+            variant={statusFilter === "all" ? "default" : "outline"}
+            className="h-8 rounded-full px-3"
+            onClick={() => setStatusFilter("all")}
+          >
+            Todas
+          </Button>
+          <Button
+            type="button"
+            size="sm"
+            variant={statusFilter === "received" ? "default" : "outline"}
+            className="h-8 rounded-full px-3 gap-1.5"
+            onClick={() => setStatusFilter("received")}
+          >
+            <CheckCircle2 className="h-3.5 w-3.5" /> Pagas
+          </Button>
+          <Button
+            type="button"
+            size="sm"
+            variant={statusFilter === "pending_all" ? "default" : "outline"}
+            className="h-8 rounded-full px-3 gap-1.5"
+            onClick={() => setStatusFilter("pending_all")}
+          >
+            <Clock className="h-3.5 w-3.5" /> Pendentes
+          </Button>
+        </div>
+
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 mb-4">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -216,6 +248,7 @@ export function IncomeList({ readOnly }: Props) {
               <SelectItem value="received">Recebido</SelectItem>
               <SelectItem value="pending">Pendente</SelectItem>
               <SelectItem value="overdue">Atrasado</SelectItem>
+              <SelectItem value="pending_all">Pendente + Atrasado</SelectItem>
             </SelectContent>
           </Select>
           <Select value={categoryFilter} onValueChange={setCategoryFilter}>
@@ -231,8 +264,8 @@ export function IncomeList({ readOnly }: Props) {
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="date">Mais recente</SelectItem>
-              <SelectItem value="amount">Maior valor</SelectItem>
+              <SelectItem value="date">Mais antiga</SelectItem>
+              <SelectItem value="amount">Menor valor</SelectItem>
             </SelectContent>
           </Select>
         </div>
