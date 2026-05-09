@@ -77,19 +77,7 @@ function fmtBR(date: string) {
   return `${d}/${m}/${y}`;
 }
 
-async function tgSend(chatId: number, text: string, lovableKey: string, telegramKey: string) {
-  const r = await fetch(`${GATEWAY_URL}/sendMessage`, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${lovableKey}`,
-      "X-Connection-Api-Key": telegramKey,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ chat_id: chatId, text }),
-  });
-  const body = await r.text();
-  return { ok: r.ok, status: r.status, body };
-}
+import { sendReportsMessage } from "../_shared/reports-bot.ts";
 
 const DEFAULT_TEMPLATE =
   `Olá {nome_gerente}! 👋
@@ -119,8 +107,6 @@ async function processOwner(
     target_manager_client_id?: string | null;
     skip_chat_check?: boolean;
   },
-  lovableKey: string,
-  telegramKey: string,
   today: string,
 ) {
   // Load preferences (template / enabled). For manual/preview, we don't require enabled.
@@ -310,13 +296,13 @@ async function processOwner(
         continue;
       }
       const message = renderMessage(m.name, items);
-      const send = await tgSend(chatId, message, lovableKey, telegramKey);
+      const send = await sendReportsMessage(admin, ownerId, chatId, message);
       results.push({
         client_id: m.client_id,
         name: m.name,
         loans_count: items.length,
-        success: send.ok,
-        error: send.ok ? null : `HTTP ${send.status}: ${send.body.slice(0, 300)}`,
+        success: send.sent,
+        error: send.sent ? null : (send.reason ?? "send_failed"),
       });
     } catch (e) {
       results.push({ client_id: m.client_id, name: m.name, success: false, error: String(e) });
@@ -331,8 +317,6 @@ Deno.serve(async (req) => {
   try {
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
     const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY")!;
-    const TELEGRAM_API_KEY = Deno.env.get("TELEGRAM_API_KEY_1")!; // reports bot
     const admin = createClient(SUPABASE_URL, SERVICE_KEY);
 
     let body: any = {};
@@ -362,7 +346,7 @@ Deno.serve(async (req) => {
           target_manager_client_id: targetManagerClientId,
           skip_chat_check: previewOnly || listManagers,
         },
-        LOVABLE_API_KEY, TELEGRAM_API_KEY, today,
+        today,
       );
 
       // For real send (manualRun) update last_sent_date
@@ -400,7 +384,7 @@ Deno.serve(async (req) => {
         const result = await processOwner(
           admin, (p as any).user_id,
           { skip_chat_check: false },
-          LOVABLE_API_KEY, TELEGRAM_API_KEY, today,
+          today,
         );
 
         // Mark as sent only if we actually attempted sending (not skipped)

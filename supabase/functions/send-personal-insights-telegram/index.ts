@@ -33,37 +33,10 @@ function timeWithinWindow(target: string | null | undefined, nowH: number, nowM:
   return diff >= 0 && diff < 5; // within 5-minute window after target
 }
 
-async function tgSend(chatId: number, text: string, lovableKey: string, telegramKey: string) {
-  // Telegram caps messages at 4096 chars. Truncate generously.
-  const MAX = 3800;
-  const safe = text.length > MAX ? text.slice(0, MAX) + "\n\n…(truncado)" : text;
-  try {
-    const r = await fetch(`${TELEGRAM_GATEWAY}/sendMessage`, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${lovableKey}`,
-        "X-Connection-Api-Key": telegramKey,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ chat_id: chatId, text: safe, parse_mode: "Markdown" }),
-    });
-    if (!r.ok) {
-      const t = await r.text();
-      console.error("[tgSend] failed", r.status, t);
-      // Retry without parse_mode in case of markdown parsing issue
-      await fetch(`${TELEGRAM_GATEWAY}/sendMessage`, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${lovableKey}`,
-          "X-Connection-Api-Key": telegramKey,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ chat_id: chatId, text: safe }),
-      });
-    }
-  } catch (e) {
-    console.error("[tgSend] error", e);
-  }
+import { sendReportsMessage } from "../_shared/reports-bot.ts";
+
+function safeTruncate(text: string, max = 3800) {
+  return text.length > max ? text.slice(0, max) + "\n\n…(truncado)" : text;
 }
 
 async function generateInsight(supabase: any, ownerId: string, force = false) {
@@ -103,9 +76,6 @@ async function processUser(
     .maybeSingle();
   if (!tgLink?.chat_id) return { skipped: "no-telegram-link" };
 
-  const lovableKey = Deno.env.get("LOVABLE_API_KEY");
-  const telegramKey = Deno.env.get("TELEGRAM_API_KEY_1");
-  if (!lovableKey || !telegramKey) return { skipped: "missing-keys" };
 
   // Generate insight (forced for triggers, cached for scheduled)
   const insight = await generateInsight(supabase, ownerId, mode === "trigger");
@@ -118,7 +88,8 @@ async function processUser(
 
   const message = `${headerText}\n\n${insight.content}\n\n—\n_Gerado por IA com base nos seus gastos do mês._`;
 
-  await tgSend(Number(tgLink.chat_id), message, lovableKey, telegramKey);
+  const sendRes = await sendReportsMessage(supabase, ownerId, Number(tgLink.chat_id), safeTruncate(message));
+  if (!sendRes.sent) return { skipped: sendRes.reason ?? "send_failed" };
 
   // Update last_sent map
   const slotKey = mode === "scheduled" ? `scheduled-${today}` : `trigger-${today}-${Date.now()}`;

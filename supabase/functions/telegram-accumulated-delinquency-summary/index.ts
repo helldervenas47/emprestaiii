@@ -205,21 +205,7 @@ function buildTelegramMessage(items: ReportItem[]) {
   return lines.join("\n").trim();
 }
 
-async function tgSend(chatId: number, text: string, lovableKey: string, telegramKey: string) {
-  const response = await fetch(`${GATEWAY_URL}/sendMessage`, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${lovableKey}`,
-      "X-Connection-Api-Key": telegramKey,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ chat_id: chatId, text, parse_mode: "Markdown" }),
-  });
-
-  if (!response.ok) {
-    throw new Error(`Telegram send failed [${response.status}]: ${await response.text()}`);
-  }
-}
+import { sendReportsMessage } from "../_shared/reports-bot.ts";
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -227,8 +213,6 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY")!;
-    const TELEGRAM_API_KEY = Deno.env.get("TELEGRAM_API_KEY_1")!;
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
     const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -322,7 +306,11 @@ Deno.serve(async (req) => {
         );
 
         const report = buildTelegramMessage(items);
-        await tgSend(Number(link.chat_id), report, LOVABLE_API_KEY, TELEGRAM_API_KEY);
+        const sendRes = await sendReportsMessage(admin, pref.user_id, Number(link.chat_id), report);
+        if (!sendRes.sent) {
+          console.warn("[accumulated-delinquency] send skipped for", pref.user_id, sendRes.reason);
+          continue;
+        }
 
         if (!forceUserId) {
           const merged = { ...(pref.last_sent ?? {}) } as Record<string, string>;

@@ -38,18 +38,7 @@ function calcLoanTotal(amount: number, rate: number, installments: number) {
   return amount * (1 + (rate / 100) * installments);
 }
 
-async function tgSend(chatId: number, text: string, lovableKey: string, telegramKey: string) {
-  const r = await fetch(`${GATEWAY_URL}/sendMessage`, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${lovableKey}`,
-      "X-Connection-Api-Key": telegramKey,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ chat_id: chatId, text, parse_mode: "Markdown" }),
-  });
-  if (!r.ok) console.error("sendMessage failed", r.status, await r.text());
-}
+import { sendReportsMessage } from "../_shared/reports-bot.ts";
 
 interface Row { origin: string; description: string; amount: number; }
 
@@ -57,8 +46,6 @@ async function buildAndSend(
   admin: any,
   userId: string,
   date: string,
-  lovableKey: string,
-  telegramKey: string,
   brandName: string,
   titleLabel = "Planejamento do Dia",
 ): Promise<boolean> {
@@ -201,15 +188,13 @@ async function buildAndSend(
     lines.push("_Nenhum lançamento previsto para este dia._");
   }
 
-  await tgSend(chatId, lines.join("\n"), lovableKey, telegramKey);
-  return true;
+  const sendRes = await sendReportsMessage(admin, userId, chatId, lines.join("\n"));
+  return sendRes.sent;
 }
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
-  const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY")!;
-  const TELEGRAM_API_KEY = Deno.env.get("TELEGRAM_API_KEY_1")!;
   const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
   const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
@@ -253,7 +238,7 @@ Deno.serve(async (req) => {
       } else if (body.date === today) {
         manualLabel = "Planejamento do Dia";
       }
-      const ok = await buildAndSend(admin, user.id, manualTarget, LOVABLE_API_KEY, TELEGRAM_API_KEY, brandName, manualLabel);
+      const ok = await buildAndSend(admin, user.id, manualTarget, brandName, manualLabel);
       return new Response(JSON.stringify({ ok: true, sent: ok ? 1 : 0, date: manualTarget }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -270,7 +255,7 @@ Deno.serve(async (req) => {
     if (userErr || !user) return new Response(JSON.stringify({ error: "Invalid token" }), { status: 401, headers: corsHeaders });
     if (user.id !== queryUserId) return new Response(JSON.stringify({ error: "Forbidden" }), { status: 403, headers: corsHeaders });
 
-    const ok = await buildAndSend(admin, queryUserId, tomorrow, LOVABLE_API_KEY, TELEGRAM_API_KEY, brandName, "Planejamento de Amanhã");
+    const ok = await buildAndSend(admin, queryUserId, tomorrow, brandName, "Planejamento de Amanhã");
     return new Response(JSON.stringify({ ok: true, sent: ok ? 1 : 0 }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
@@ -313,7 +298,7 @@ Deno.serve(async (req) => {
       const isToday = (pref as any).send_target === "today";
       const targetDate = isToday ? today : tomorrow;
       const label = isToday ? "Planejamento do Dia" : "Planejamento de Amanhã";
-      const ok = await buildAndSend(admin, (pref as any).user_id, targetDate, LOVABLE_API_KEY, TELEGRAM_API_KEY, brandName, label);
+      const ok = await buildAndSend(admin, (pref as any).user_id, targetDate, brandName, label);
       if (ok) {
         const newLast = { ...lastSent, [firedSlot]: today };
         await admin.from("daily_planning_telegram_prefs")

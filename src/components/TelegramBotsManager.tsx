@@ -37,6 +37,7 @@ interface BotRow {
   last_validated_at: string | null;
   validation_status: string | null;
   created_at: string;
+  purpose: "reports" | "expenses" | "general";
 }
 
 interface FormState {
@@ -44,9 +45,10 @@ interface FormState {
   token: string;
   description: string;
   active: boolean;
+  purpose: "reports" | "expenses" | "general";
 }
 
-const EMPTY_FORM: FormState = { name: "", token: "", description: "", active: true };
+const EMPTY_FORM: FormState = { name: "", token: "", description: "", active: true, purpose: "reports" };
 
 function maskToken(token: string) {
   if (!token) return "";
@@ -121,6 +123,7 @@ export function TelegramBotsManager() {
       token: b.token,
       description: b.description ?? "",
       active: b.active,
+      purpose: (b.purpose ?? "general") as FormState["purpose"],
     });
     setShowToken(false);
     setValidationResult(b.validation_status === "valid" && b.bot_username
@@ -188,6 +191,7 @@ export function TelegramBotsManager() {
         token: form.token.trim(),
         description: form.description.trim() || null,
         active: form.active,
+        purpose: form.purpose,
         bot_id: validation.bot_id ?? null,
         bot_username: validation.bot_username ?? null,
         last_validated_at: new Date().toISOString(),
@@ -320,6 +324,16 @@ export function TelegramBotsManager() {
                         <ShieldCheck className="h-3 w-3" /> validado
                       </Badge>
                     )}
+                    {b.purpose === "reports" && (
+                      <Badge className="text-[10px] gap-1 bg-primary/15 text-primary border-primary/30 hover:bg-primary/20">
+                        <BarChart3 className="h-3 w-3" /> Relatórios
+                      </Badge>
+                    )}
+                    {b.purpose === "expenses" && (
+                      <Badge className="text-[10px] gap-1 bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/30">
+                        <Wallet className="h-3 w-3" /> Despesas
+                      </Badge>
+                    )}
                   </div>
                   {b.bot_username && (
                     <p className="text-xs text-muted-foreground">@{b.bot_username}</p>
@@ -387,6 +401,29 @@ export function TelegramBotsManager() {
                   </span>
                 )}
               </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label>Finalidade</Label>
+              <div className="grid grid-cols-3 gap-1.5">
+                {(["reports", "expenses", "general"] as const).map((p) => (
+                  <button
+                    key={p}
+                    type="button"
+                    onClick={() => setForm(f => ({ ...f, purpose: p }))}
+                    className={`text-xs px-2 py-2 rounded-md border transition-colors ${
+                      form.purpose === p
+                        ? "bg-primary text-primary-foreground border-primary"
+                        : "bg-background border-border hover:bg-muted"
+                    }`}
+                  >
+                    {p === "reports" ? "Relatórios" : p === "expenses" ? "Despesas" : "Geral"}
+                  </button>
+                ))}
+              </div>
+              <p className="text-[10px] text-muted-foreground">
+                <strong>Relatórios</strong> recebe planejamento diário, cobranças e insights. <strong>Despesas</strong> processa lançamentos. <strong>Geral</strong> serve para ambos.
+              </p>
             </div>
 
             <div className="space-y-1.5">
