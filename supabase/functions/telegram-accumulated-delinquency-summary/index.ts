@@ -306,7 +306,11 @@ Deno.serve(async (req) => {
         );
 
         const report = buildTelegramMessage(items);
-        await tgSend(Number(link.chat_id), report, LOVABLE_API_KEY, TELEGRAM_API_KEY);
+        const sendRes = await sendReportsMessage(admin, pref.user_id, Number(link.chat_id), report);
+        if (!sendRes.sent) {
+          console.warn("[accumulated-delinquency] send skipped for", pref.user_id, sendRes.reason);
+          continue;
+        }
 
         if (!forceUserId) {
           const merged = { ...(pref.last_sent ?? {}) } as Record<string, string>;
