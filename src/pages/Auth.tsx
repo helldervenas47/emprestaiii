@@ -77,9 +77,16 @@ const Auth = () => {
       const { data, error } = await supabase.functions.invoke("login-with-username", {
         body: { username: loginId, password },
       });
+      let serverError: string | undefined = data?.error;
+      if (error && (error as any).context instanceof Response) {
+        try {
+          const body = await (error as any).context.clone().json();
+          serverError = body?.error ?? serverError;
+        } catch { /* noop */ }
+      }
       if (error || data?.error) {
         setLoading(false);
-        toast.error(data?.error || "Usuário não encontrado");
+        toast.error(serverError || "Email/usuário ou senha incorretos");
         return;
       }
       emailToUse = data.email;
