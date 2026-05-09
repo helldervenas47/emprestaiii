@@ -197,6 +197,17 @@ export function Settings({ backup, locadores, onSaveLocador, onRemoveLocador, is
               </AccordionContent>
             </AccordionItem>
 
+            <AccordionItem value="telegram-bots">
+              <AccordionTrigger className="text-sm">
+                <span className="flex items-center gap-2"><Send className="h-4 w-4" /> Bots do Telegram</span>
+              </AccordionTrigger>
+              <AccordionContent>
+                <Suspense fallback={<SectionLoader />}>
+                  <TelegramBotsManager />
+                </Suspense>
+              </AccordionContent>
+            </AccordionItem>
+
             <AccordionItem value="telegram-billing">
               <AccordionTrigger className="text-sm">
                 <span className="flex items-center gap-2"><Send className="h-4 w-4" /> Telegram — Cobrança</span>
