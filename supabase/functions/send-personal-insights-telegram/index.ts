@@ -76,9 +76,6 @@ async function processUser(
     .maybeSingle();
   if (!tgLink?.chat_id) return { skipped: "no-telegram-link" };
 
-  const lovableKey = Deno.env.get("LOVABLE_API_KEY");
-  const telegramKey = Deno.env.get("TELEGRAM_API_KEY_1");
-  if (!lovableKey || !telegramKey) return { skipped: "missing-keys" };
 
   // Generate insight (forced for triggers, cached for scheduled)
   const insight = await generateInsight(supabase, ownerId, mode === "trigger");
