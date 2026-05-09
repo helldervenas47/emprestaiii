@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,6 +15,27 @@ export function IncomeTelegramBotButton() {
   const [open, setOpen] = useState(false);
   const [code, setCode] = useState("");
   const [linking, setLinking] = useState(false);
+  const [connected, setConnected] = useState(false);
+
+  const refresh = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) { setConnected(false); return; }
+    const { data } = await supabase
+      .from("telegram_links" as any)
+      .select("chat_id")
+      .eq("user_id", user.id)
+      .maybeSingle();
+    setConnected(!!data);
+  };
+
+  useEffect(() => {
+    refresh();
+    const channel = supabase
+      .channel("telegram_links_income_btn")
+      .on("postgres_changes", { event: "*", schema: "public", table: "telegram_links" }, () => refresh())
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, []);
 
   const handleLink = async () => {
     const trimmed = code.trim();
