@@ -144,14 +144,19 @@ export function IncomePendingCalendar({
   const baseBalance = accountBalance ?? computedBalance;
 
   const personalExpenses = useMemo(
-    () => expenses.filter((e) => (e.scope ?? "business") === "personal"),
+    () => expenses.filter(
+      (e) => (e.scope ?? "business") === "personal" && !isCreditCardExpense(e),
+    ),
     [expenses]
   );
+
+  const { cards } = useCreditCards();
+  const { openings } = useCreditCardOpenings();
 
   const dayMap = useMemo(() => {
     const map: Record<string, DayInfo> = {};
     const ensure = (d: string) => {
-      if (!map[d]) map[d] = { incomes: [], expenses: [], totalIncome: 0, totalExpense: 0 };
+      if (!map[d]) map[d] = { incomes: [], expenses: [], cardInvoices: [], totalIncome: 0, totalExpense: 0 };
       return map[d];
     };
     for (const i of incomes) {
@@ -176,8 +181,58 @@ export function IncomePendingCalendar({
       e.expenses.push(item);
       e.totalExpense += amount;
     }
+
+    // Faturas de cartão de crédito — uma entrada por cartão por mês,
+    // lançada no dia exato do vencimento da fatura.
+    // Cobrimos meses prev/atual/próximo para suportar tanto o mês visível
+    // (modo expandido) quanto a semana atual (que pode cruzar meses).
+    const monthsToCover = new Set<string>();
+    const addMonth = (y: number, m: number) => {
+      monthsToCover.add(`${y}-${String(m + 1).padStart(2, "0")}`);
+    };
+    addMonth(year, month);
+    const prev = new Date(year, month - 1, 1);
+    const next = new Date(year, month + 1, 1);
+    addMonth(prev.getFullYear(), prev.getMonth());
+    addMonth(next.getFullYear(), next.getMonth());
+    // Cobre semana atual também
+    if (weekDays.length) {
+      addMonth(weekDays[0].getFullYear(), weekDays[0].getMonth());
+      const last = weekDays[weekDays.length - 1];
+      addMonth(last.getFullYear(), last.getMonth());
+    }
+
+    for (const ym of monthsToCover) {
+      const totals = getCardInvoiceTotalsForMonth(expenses, cards, openings, ym);
+      const [y, mm] = ym.split("-").map(Number);
+      for (const t of totals) {
+        if (t.total <= 0) continue;
+        const remaining = Math.max(0, t.total - t.paidTotal);
+        const lastDay = new Date(y, mm, 0).getDate();
+        const day = Math.min(t.card.dueDay, lastDay);
+        const ds = `${y}-${String(mm).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+        const e = ensure(ds);
+        const label =
+          t.card.nickname?.trim() ||
+          (t.card.lastFour ? `Final ${t.card.lastFour}` : t.card.bank || "Cartão");
+        e.cardInvoices.push({
+          cardId: t.card.id,
+          cardLabel: label,
+          total: t.total,
+          paidTotal: t.paidTotal,
+          remaining,
+          paid: t.paid,
+        });
+        // Para o saldo previsto do dia, considera apenas a parcela ainda em aberto.
+        // Faturas já pagas não devem ser subtraídas novamente (o pagamento real já
+        // está refletido no saldo em conta atual via baseBalance).
+        if (!t.paid && remaining > 0) {
+          e.totalExpense += remaining;
+        }
+      }
+    }
     return map;
-  }, [incomes, personalExpenses]);
+  }, [incomes, personalExpenses, expenses, cards, openings, year, month, weekDays]);
 
   const calendarDays = useMemo(() => {
     const firstDay = new Date(year, month, 1);
