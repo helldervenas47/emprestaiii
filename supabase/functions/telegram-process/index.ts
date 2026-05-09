@@ -9,7 +9,7 @@ const corsHeaders = {
 };
 
 const CATEGORIES = [
-  "Alimentação", "Assinaturas", "Cartão de Crédito", "Compras", "Contas",
+  "Alimentação", "Assinaturas", "Cartão de Crédito", "Combustível", "Compras", "Contas",
   "Educação", "Lazer", "Moradia", "Outros", "Pets", "Presentes", "Saúde", "Transporte",
 ];
 
@@ -34,7 +34,8 @@ function invalidateLinkCache(chatId: number) {
 // Keyword → category mapping for regex pre-parser.
 // Order matters only within a category; first matching category wins.
 const CATEGORY_KEYWORDS: Array<{ category: string; words: string[] }> = [
-  { category: "Transporte", words: ["uber", "99", "99pop", "taxi", "táxi", "cabify", "indrive", "blablacar", "onibus", "ônibus", "metro", "metrô", "trem", "brt", "passagem", "gasolina", "combustivel", "combustível", "etanol", "alcool", "álcool", "diesel", "posto", "ipva", "pedagio", "pedágio", "estacionamento", "zona azul", "lavagem", "lava jato", "lava-jato", "oficina", "mecanico", "mecânico"] },
+  { category: "Combustível", words: ["gasolina", "combustivel", "combustível", "etanol", "alcool", "álcool", "diesel", "posto", "posto de gasolina", "abastecer", "abasteci", "abastecimento", "shell", "ipiranga", "petrobras", "ale", "br mania"] },
+  { category: "Transporte", words: ["uber", "99", "99pop", "taxi", "táxi", "cabify", "indrive", "blablacar", "onibus", "ônibus", "metro", "metrô", "trem", "brt", "passagem", "ipva", "pedagio", "pedágio", "estacionamento", "zona azul", "lavagem", "lava jato", "lava-jato", "oficina", "mecanico", "mecânico"] },
   { category: "Alimentação", words: ["mercado", "supermercado", "feira", "padaria", "açougue", "acougue", "hortifruti", "sacolao", "sacolão", "ifood", "rappi", "delivery", "lanche", "lanchonete", "restaurante", "almoço", "almoco", "janta", "jantar", "café", "cafe", "cafeteria", "starbucks", "mc donalds", "mcdonalds", "mc", "burger", "bk", "burger king", "subway", "pizza", "pizzaria", "sushi", "japones", "japonês", "churrascaria", "marmita", "quentinha", "açai", "acai"] },
   { category: "Assinaturas", words: ["netflix", "spotify", "disney", "disney+", "hbo", "max", "prime video", "amazon prime", "youtube premium", "apple music", "deezer", "tidal", "globoplay", "paramount", "crunchyroll", "icloud", "google one", "drive", "dropbox", "chatgpt", "claude", "midjourney", "canva", "notion", "office", "microsoft 365"] },
   { category: "Contas", words: ["luz", "energia", "agua", "água", "gas", "gás", "internet", "wifi", "telefone", "celular", "claro", "vivo", "tim", "oi", "net", "iptu", "condominio", "condomínio", "aluguel", "boleto", "fatura", "conta de luz", "conta de agua", "conta de água"] },

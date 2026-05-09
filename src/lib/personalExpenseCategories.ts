@@ -2,7 +2,7 @@ import {
   Home, UtensilsCrossed, Car, HeartPulse, GraduationCap, Gamepad2,
   ShoppingBag, Receipt, CreditCard, Repeat, PawPrint, Gift, Package,
   Plane, Dumbbell, Music, Film, Book, Coffee, Wrench, Smartphone,
-  Wifi, Zap, Droplet, Briefcase, Baby, Sparkles, Hammer, Heart,
+  Wifi, Zap, Droplet, Briefcase, Baby, Sparkles, Hammer, Heart, Fuel,
   type LucideIcon,
 } from "lucide-react";
 
@@ -22,7 +22,7 @@ export const personalIconMap: Record<string, LucideIcon> = {
   Home, UtensilsCrossed, Car, HeartPulse, GraduationCap, Gamepad2,
   ShoppingBag, Receipt, CreditCard, Repeat, PawPrint, Gift, Package,
   Plane, Dumbbell, Music, Film, Book, Coffee, Wrench, Smartphone,
-  Wifi, Zap, Droplet, Briefcase, Baby, Sparkles, Hammer, Heart,
+  Wifi, Zap, Droplet, Briefcase, Baby, Sparkles, Hammer, Heart, Fuel,
 };
 
 /** Curated palette (HSL token-friendly) for category creation. */
@@ -37,6 +37,7 @@ export const personalCategories: PersonalCategory[] = [
   { name: "Moradia",         icon: Home,            color: "210 80% 55%" },
   { name: "Alimentação",     icon: UtensilsCrossed, color: "25 85% 55%" },
   { name: "Transporte",      icon: Car,             color: "200 70% 50%" },
+  { name: "Combustível",     icon: Fuel,            color: "15 85% 50%" },
   { name: "Saúde",           icon: HeartPulse,      color: "0 75% 60%" },
   { name: "Educação",        icon: GraduationCap,   color: "260 70% 60%" },
   { name: "Lazer",           icon: Gamepad2,        color: "290 70% 60%" },
