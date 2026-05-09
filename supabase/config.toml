@@ -41,3 +41,6 @@ verify_jwt = false
 
 [functions.telegram-manager-weekly-summary]
 verify_jwt = false
+
+[functions.telegram-debug]
+verify_jwt = false
