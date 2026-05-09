@@ -137,9 +137,10 @@ export function TelegramBotsManager() {
     try {
       // Validate token if changed or never validated
       const tokenChanged = !editing || editing.token !== form.token.trim();
-      let validation = validationResult && validationResult.ok
-        ? { ok: true, bot_id: validationResult.bot_id, bot_username: validationResult.bot_username }
-        : null;
+      let validation: { ok: boolean; bot_id?: number; bot_username?: string } | null =
+        validationResult && validationResult.ok
+          ? { ok: true, bot_id: validationResult.bot_id, bot_username: validationResult.bot_username }
+          : null;
 
       if (tokenChanged || !validation) {
         validation = await handleValidate();
