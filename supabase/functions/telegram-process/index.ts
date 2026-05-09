@@ -9,7 +9,7 @@ const corsHeaders = {
 };
 
 const CATEGORIES = [
-  "Alimentação", "Assinaturas", "Cartão de Crédito", "Compras", "Contas",
+  "Alimentação", "Assinaturas", "Cartão de Crédito", "Combustível", "Compras", "Contas",
   "Educação", "Lazer", "Moradia", "Outros", "Pets", "Presentes", "Saúde", "Transporte",
 ];
 
