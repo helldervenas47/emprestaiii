@@ -46,8 +46,6 @@ async function buildAndSend(
   admin: any,
   userId: string,
   date: string,
-  lovableKey: string,
-  telegramKey: string,
   brandName: string,
   titleLabel = "Planejamento do Dia",
 ): Promise<boolean> {
