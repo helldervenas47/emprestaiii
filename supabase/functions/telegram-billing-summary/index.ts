@@ -173,29 +173,11 @@ async function buildBillingReport(admin: any, ownerId: string, today: string, br
   return lines.join("\n");
 }
 
-async function tgSend(chatId: number, text: string, lovableKey: string, telegramKey: string) {
-  const r = await fetch(`${GATEWAY_URL}/sendMessage`, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${lovableKey}`,
-      "X-Connection-Api-Key": telegramKey,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ chat_id: chatId, text, parse_mode: "Markdown" }),
-  });
-  if (!r.ok) {
-    const body = await r.text();
-    console.error("sendMessage failed", r.status, body);
-    throw new Error(`Telegram send failed [${r.status}]: ${body}`);
-  }
-}
+import { sendReportsMessage } from "../_shared/reports-bot.ts";
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
-  const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY")!;
-  // Use the dedicated reports bot (independent from the expenses bot)
-  const TELEGRAM_API_KEY = Deno.env.get("TELEGRAM_API_KEY_1")!;
   const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
   const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
