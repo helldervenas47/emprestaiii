@@ -894,8 +894,8 @@ const Index = () => {
                     <ExpenseList expenses={businessExpenses} onPay={payExpense} onUnpay={unpayExpense} onDelete={deleteExpense} onUpdate={updateExpense} readOnly={isReadOnly} />
                   </>
                  ) : (
-                   <div className="-mx-3 sm:mx-0 px-2 sm:px-0 overflow-x-hidden max-w-full">
-                     <h2 className="text-lg font-semibold text-foreground mb-4">Despesas Pessoais ({personalExpenses.length})</h2>
+                   <div className="-mx-3 sm:mx-0 px-0 sm:px-0 overflow-x-hidden max-w-full">
+                     <h2 className="text-lg font-semibold text-foreground mb-4 px-3 sm:px-0">Despesas Pessoais ({personalExpenses.length})</h2>
                      <PersonalExpenseList
                        expenses={personalExpenses}
                        onPay={payExpense}
