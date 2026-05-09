@@ -275,7 +275,7 @@ export function FinancialStatement() {
                       <td className="px-4 py-2 whitespace-nowrap align-middle">
                         {format(new Date(r.date + "T00:00:00"), "dd/MM/yyyy", { locale: ptBR })}
                       </td>
-                      <td className="px-4 py-2 align-middle truncate" title={r.description}>{r.description}</td>
+                      <td className="px-4 py-2 align-middle truncate pr-6" title={r.description}>{r.description}</td>
                       <td className="px-4 py-2 align-middle">
                         <Badge
                           variant="secondary"
@@ -296,7 +296,6 @@ export function FinancialStatement() {
                           </Badge>
                         )}
                       </td>
-                      <td className="px-4 py-2 align-middle text-muted-foreground truncate" title={r.paymentMethod}>{r.paymentMethod}</td>
                       <td className="px-4 py-2 align-middle text-muted-foreground truncate" title={r.account}>{r.account}</td>
                       <td className={`px-4 py-2 text-right font-semibold whitespace-nowrap align-middle ${
                         r.type === "income"
