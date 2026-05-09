@@ -434,7 +434,7 @@ export function RenegotiateLoanDialog({
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-md w-full sm:max-h-[90vh] max-h-[100dvh] h-[100dvh] sm:h-auto sm:rounded-2xl rounded-none overflow-y-auto overflow-x-hidden break-words">
         <DialogHeader>
           <DialogTitle>Renegociar contrato</DialogTitle>
           <DialogDescription>
