@@ -26,12 +26,8 @@ Deno.serve(async (req) => {
 
     const adminClient = createClient(supabaseUrl, serviceRoleKey);
 
-    // Look up email by username
-    const { data: profile } = await adminClient
-      .from("profiles")
-      .select("user_id")
-      .ilike("username", username.trim())
-      .maybeSingle();
+    const input = username.trim();
+    const isEmail = input.includes("@");
 
     // Generic error to avoid username enumeration
     const genericError = new Response(
@@ -39,14 +35,31 @@ Deno.serve(async (req) => {
       { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
 
-    if (!profile) return genericError;
+    let email: string;
+    let user: any = null;
 
-    const { data: userResp } = await adminClient.auth.admin.getUserById(profile.user_id);
-    const user = userResp?.user;
-    if (!user?.email) return genericError;
+    if (isEmail) {
+      email = input.toLowerCase();
+      // Try to fetch user to check banned status (best-effort)
+      const { data: list } = await adminClient.auth.admin.listUsers();
+      user = list?.users?.find((u: any) => u.email?.toLowerCase() === email) ?? null;
+    } else {
+      const { data: profile } = await adminClient
+        .from("profiles")
+        .select("user_id")
+        .ilike("username", input)
+        .maybeSingle();
+
+      if (!profile) return genericError;
+
+      const { data: userResp } = await adminClient.auth.admin.getUserById(profile.user_id);
+      user = userResp?.user;
+      if (!user?.email) return genericError;
+      email = user.email;
+    }
 
     // Check if user is banned/inactive
-    if (user.banned_until && new Date(user.banned_until) > new Date()) {
+    if (user?.banned_until && new Date(user.banned_until) > new Date()) {
       return new Response(JSON.stringify({ error: "Usuário inativo. Contate o administrador." }), {
         status: 403,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -54,22 +67,19 @@ Deno.serve(async (req) => {
     }
 
     // CRITICAL: Validate the password server-side before returning the email.
-    // Without this, anyone could enumerate emails from usernames.
     const verifyClient = createClient(supabaseUrl, anonKey, {
       auth: { persistSession: false, autoRefreshToken: false },
     });
     const { error: signInError } = await verifyClient.auth.signInWithPassword({
-      email: user.email,
+      email,
       password,
     });
 
     if (signInError) return genericError;
 
-    // Sign out the verification session immediately (we don't want to keep it server-side)
     await verifyClient.auth.signOut();
 
-    // Return the email so client can sign in normally and own the session
-    return new Response(JSON.stringify({ email: user.email }), {
+    return new Response(JSON.stringify({ email }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (error) {
