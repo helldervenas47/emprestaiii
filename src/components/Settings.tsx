@@ -22,6 +22,7 @@ const WebhookSettings = lazy(() => import("@/components/WebhookSettings").then(m
 const TelegramConnectCard = lazy(() => import("@/components/TelegramConnectCard").then(m => ({ default: m.TelegramConnectCard })));
 const TelegramReportsConnectCard = lazy(() => import("@/components/TelegramReportsConnectCard").then(m => ({ default: m.TelegramReportsConnectCard })));
 const TelegramBillingScheduleCard = lazy(() => import("@/components/TelegramBillingScheduleCard").then(m => ({ default: m.TelegramBillingScheduleCard })));
+const TelegramBotsManager = lazy(() => import("@/components/TelegramBotsManager").then(m => ({ default: m.TelegramBotsManager })));
 const PushNotificationToggle = lazy(() => import("@/components/PushNotificationToggle").then(m => ({ default: m.PushNotificationToggle })));
 const UserManagement = lazy(() => import("@/components/UserManagement").then(m => ({ default: m.UserManagement })));
 const BackupExport = lazy(() => import("@/components/BackupExport").then(m => ({ default: m.BackupExport })));
@@ -192,6 +193,17 @@ export function Settings({ backup, locadores, onSaveLocador, onRemoveLocador, is
                   <div className="mt-4">
                     <PaymentFeedbackSettings />
                   </div>
+                </Suspense>
+              </AccordionContent>
+            </AccordionItem>
+
+            <AccordionItem value="telegram-bots">
+              <AccordionTrigger className="text-sm">
+                <span className="flex items-center gap-2"><Send className="h-4 w-4" /> Bots do Telegram</span>
+              </AccordionTrigger>
+              <AccordionContent>
+                <Suspense fallback={<SectionLoader />}>
+                  <TelegramBotsManager />
                 </Suspense>
               </AccordionContent>
             </AccordionItem>
