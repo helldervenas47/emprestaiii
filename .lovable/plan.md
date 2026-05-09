@@ -1,100 +1,48 @@
-# Plano: Cofrinhos na aba Receitas + Telegram
+## Diagnóstico
 
-## 1. Mover Cofrinhos da aba Despesas Pessoais → Receitas
+Os relatórios não chegam ao **Bot de Relatórios** porque a chave de conexão dele (`TELEGRAM_API_KEY_1`) **não está configurada** no projeto.
 
-- `src/pages/Index.tsx`: remover `<PiggyBankList />` do bloco `afterEvolution` em Despesas Pessoais (linha ~912). Manter o `CreditCardList` no lugar.
-- `src/components/IncomeList.tsx`: adicionar uma nova seção `<PiggyBankList readOnly={isReadOnly} />` logo abaixo do balanço/extrato, dentro de um `<section>` no mesmo padrão visual atual.
+### Como descobri
 
-## 2. Detalhes expandidos por cofrinho
+1. Você possui **dois bots distintos** no Telegram:
+   - **Bot de Despesas** → usa o secret `TELEGRAM_API_KEY` e escreve/lê em `telegram_links`.
+   - **Bot de Relatórios** → deveria usar `TELEGRAM_API_KEY_1` e escrever em `telegram_reports_links`.
 
-Em `src/components/PiggyBankList.tsx`, no card de cada cofrinho, exibir:
+2. Todas as edge functions de relatório apontam corretamente para o segundo bot:
+   - `telegram-billing-summary` (cobranças)
+   - `telegram-accumulated-delinquency-summary` (inadimplência acumulada)
+   - `telegram-manager-weekly-summary` (resumo semanal do gestor)
+   - `daily-planning-summary` (planejamento do dia)
+   - `send-personal-insights-telegram` (insights pessoais)
+   - `telegram-reports-poll` (recebe `/code` no bot)
 
-- **Saldo atual** (já existe)
-- **Rendimento bruto acumulado** = saldo − principal aportado (já calculado em `computePiggyBalance().yield`)
-- **Imposto pago/descontado** = `bruto × aliquotaIR(diasMédios)` — IR regressivo brasileiro:
-  - até 180d: 22,5%
-  - 181–360d: 20%
-  - 361–720d: 17,5%
-  - >720d: 15%
-- **Rendimento líquido acumulado** = bruto − imposto
-- **Projeção líquida até fim do mês** = simular `computePiggyBalance` com `asOf = último dia do mês corrente`, subtrair imposto projetado, mostrar diferença vs. hoje
-- **Taxa CDI atual** (já temos `annualRate`); rotular como "% CDI a.a."
+   Todas chamam `Deno.env.get("TELEGRAM_API_KEY_1")`.
 
-Layout: grid 2 colunas em desktop, stack em mobile, sem quebrar o card existente. Ícones lucide leves (`TrendingUp`, `Percent`, `Receipt`, `CalendarClock`).
+3. Listando os secrets do projeto, só existe `TELEGRAM_API_KEY` — **`TELEGRAM_API_KEY_1` não existe**. Por isso, ao tentar enviar via gateway, o Telegram recusa (chave ausente/ inválida) e nenhuma mensagem chega, embora:
+   - O cron esteja disparando (vejo as functions bootando de minuto em minuto nos logs).
+   - O seu vínculo exista em `telegram_reports_links` (chat_id `8727068214`).
 
-Helper novo em `src/lib/piggyTax.ts`: `irRate(days)`, `computePiggyDetailed(deposits, annualRate, asOf)` retornando `{ principal, gross, tax, net, balance, projectionNetEom }`.
+## Como resolver
 
-## 3. Editar taxa CDI individual com 2 opções
+Conectar uma **segunda conexão do Telegram** no projeto, vinculada ao bot de relatórios, e expô-la como `TELEGRAM_API_KEY_1`.
 
-Hoje editar a taxa altera o `annual_rate` da caixinha e como o cálculo é client-side baseado em `(1+rate/100)^(days/365)`, qualquer mudança automaticamente recalcula tudo. Para suportar "manter rendimentos já calculados", precisamos:
+Passos:
 
-### Migração
+1. Em **Connectors → Telegram**, criar uma nova conexão usando o token do **bot de relatórios** (o `BotFather` do bot que recebe os relatórios). A primeira conexão (do bot de despesas) deve ser mantida.
+2. Garantir que a nova conexão exponha o secret com o nome **`TELEGRAM_API_KEY_1`** (é o nome esperado por todas as functions acima). Se o connector criar com outro nome, podemos renomear/duplicar via secrets.
+3. Após salvar, o `telegram-reports-poll` passa a responder `/start` e `/code` no bot certo, e os horários configurados em:
+   - Cobranças (`telegram_billing_prefs`)
+   - Inadimplência acumulada (`telegram_accumulated_delinquency_prefs`)
+   - Resumo do gestor (`telegram_manager_weekly_prefs`)
+   - Planejamento diário (`daily_planning_telegram_prefs`)
+   - Insights pessoais (`telegram_personal_insights_prefs`)
+   começam a entregar normalmente.
+4. Validação rápida: invocar manualmente `telegram-billing-summary` com `force_user_id` igual ao seu `user_id` e confirmar a mensagem chegando no bot de relatórios.
 
-Nova tabela `piggy_bank_rate_history`:
-```
-id uuid pk
-piggy_bank_id uuid fk → piggy_banks
-user_id uuid (data owner)
-annual_rate numeric
-effective_from date
-created_at timestamptz
-```
-RLS: select/insert/update/delete por `user_id = get_data_owner_id(auth.uid())`.
+## Observações
 
-Trigger/função opcional para popular registro inicial com `annual_rate` corrente quando o cofrinho é criado (ou backfill via migration: para cada cofrinho existente inserir 1 linha com `effective_from = created_at`).
+- Não há nada errado no código das functions nem nos crons — o problema é puramente de configuração de credencial.
+- Enquanto `TELEGRAM_API_KEY_1` não existir, qualquer "Try to fix" ou alteração de código não vai resolver.
+- Se preferir consolidar tudo em um único bot, a alternativa é trocar `TELEGRAM_API_KEY_1` por `TELEGRAM_API_KEY` em todas as functions de relatório e usar `telegram_links` no lugar de `telegram_reports_links` — mas isso mistura despesas pessoais com relatórios de cobrança no mesmo chat. **Recomendo manter dois bots** e apenas configurar o secret faltante.
 
-### Cálculo
-
-`computePiggyBalance` passa a aceitar uma função `rateAt(date) → annualRate` ou um array de períodos `[{from, rate}]`. Para cada depósito, calcula juros segmentando o período em janelas de taxa.
-
-### UI no editar
-
-No diálogo de edição (`PiggyBankList.tsx`, ~linha 275), quando o usuário muda a taxa e clica Salvar:
-- Se a taxa mudou, abrir um `AlertDialog` secundário com 2 opções:
-  1. **"Aplicar apenas aos próximos rendimentos"** → adiciona linha em `piggy_bank_rate_history` com `effective_from = hoje`. `annual_rate` da caixinha vira a nova (representa "atual").
-  2. **"Recalcular tudo com a nova taxa"** → apaga o histórico e insere uma única linha com `effective_from = createdAt` da caixinha. Atualiza `annual_rate`.
-
-`usePiggyBanks` carrega `rate_history` por caixinha e expõe via `balances`. `computePiggyBalance` é trocado pela versão segmentada.
-
-## 4. Telegram: transferência caixinha → conta
-
-Adicionar comando ao bot de despesas (`TELEGRAM_API_KEY_2`).
-
-### Edge function
-
-Em `supabase/functions/telegram-webhook` (ou equivalente bot de despesas — verificar qual function processa mensagens livres), adicionar handler de NLP simples:
-
-- Regex/heurística (case-insensitive, sem acento): `(transfer|resgat|sacar|mandar|enviar).*(caixinha|cofrinho).*(conta)` ou `(caixinha|cofrinho).*(para|pra|→).*conta`.
-- Extrair valor: `R?\$?\s*([\d\.]+(?:,\d{1,2})?)` → normalizar para number. Se ausente, perguntar.
-- Extrair nome/numero da caixinha opcional: `caixinha (\d+)` ou `caixinha "Nome"`. Se múltiplas e não especificada, listar opções.
-
-### Ação
-
-1. Localizar `piggy_bank` do owner (1 → ok; >1 → pedir escolha).
-2. Validar saldo ≥ valor.
-3. Inserir `piggy_bank_deposits` com `amount = -valor`, `source = 'telegram_withdraw'`, `expense_id = null`.
-4. Ajustar saldo da carteira `account` via tabela `balance` (RPC ou update direto): `account_amount += valor`.
-5. Registrar uma `incomes` com `category = 'Resgate Cofrinho'`, `status = 'received'`, `received_at = hoje`, `amount = valor`, `notes = '[cofrinho:<id>]'` para que apareça automaticamente no Extrato Financeiro.
-6. Responder no chat com saldo novo e confirmação.
-
-Atualizar `telegram-set-commands` para incluir `/resgatar` como atalho documentado, mantendo o NLP livre.
-
-## 5. Critérios de aceitação
-
-- Cofrinhos não aparecem mais em Despesas Pessoais; aparecem em Receitas com layout responsivo.
-- Cada card mostra os 6 campos descritos; números atualizam ao depositar/resgatar.
-- Editar taxa abre o diálogo de escolha; cada escolha tem efeito visível imediato.
-- Mensagem "transferir saldo da caixinha 1 para a conta R$50" no Telegram debita cofrinho, credita saldo em conta, registra entrada no Extrato.
-
-## Arquivos a tocar
-
-- `src/pages/Index.tsx` (remover PiggyBank do bloco)
-- `src/components/IncomeList.tsx` (adicionar PiggyBank)
-- `src/components/PiggyBankList.tsx` (detalhes + diálogo de taxa)
-- `src/hooks/usePiggyBanks.ts` (cálculo segmentado por taxa, CRUD rate history)
-- `src/lib/piggyTax.ts` (novo)
-- migração SQL: tabela `piggy_bank_rate_history` + RLS + backfill
-- Edge function do bot de despesas (handler NLP + ação de transferência)
-- `supabase/functions/telegram-set-commands/index.ts` (opcional novo comando)
-
-Posso começar pela parte 1+2 (mover + detalhes) e seguir para 3 e 4 em ordem? Ou prefere outra prioridade?
+Quer que eu prepare a troca para um bot único, ou você prefere conectar o segundo bot via Connectors (recomendado)?
