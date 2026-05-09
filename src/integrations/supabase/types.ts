@@ -2432,6 +2432,7 @@ export type Database = {
       telegram_links: {
         Row: {
           bot_code: string | null
+          bot_id: string | null
           chat_id: number
           created_at: string
           id: string
@@ -2440,6 +2441,7 @@ export type Database = {
         }
         Insert: {
           bot_code?: string | null
+          bot_id?: string | null
           chat_id: number
           created_at?: string
           id?: string
@@ -2448,13 +2450,22 @@ export type Database = {
         }
         Update: {
           bot_code?: string | null
+          bot_id?: string | null
           chat_id?: number
           created_at?: string
           id?: string
           label?: string | null
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "telegram_links_bot_id_fkey"
+            columns: ["bot_id"]
+            isOneToOne: false
+            referencedRelation: "system_telegram_bots"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       telegram_manager_weekly_prefs: {
         Row: {
@@ -2633,6 +2644,7 @@ export type Database = {
       telegram_reports_links: {
         Row: {
           bot_code: string | null
+          bot_id: string | null
           chat_id: number
           created_at: string
           id: string
@@ -2641,6 +2653,7 @@ export type Database = {
         }
         Insert: {
           bot_code?: string | null
+          bot_id?: string | null
           chat_id: number
           created_at?: string
           id?: string
@@ -2649,13 +2662,22 @@ export type Database = {
         }
         Update: {
           bot_code?: string | null
+          bot_id?: string | null
           chat_id?: number
           created_at?: string
           id?: string
           label?: string | null
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "telegram_reports_links_bot_id_fkey"
+            columns: ["bot_id"]
+            isOneToOne: false
+            referencedRelation: "system_telegram_bots"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       telegram_summary_prefs: {
         Row: {
