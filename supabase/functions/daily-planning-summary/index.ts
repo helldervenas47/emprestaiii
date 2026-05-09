@@ -188,8 +188,8 @@ async function buildAndSend(
     lines.push("_Nenhum lançamento previsto para este dia._");
   }
 
-  await tgSend(chatId, lines.join("\n"), lovableKey, telegramKey);
-  return true;
+  const sendRes = await sendReportsMessage(admin, userId, chatId, lines.join("\n"));
+  return sendRes.sent;
 }
 
 Deno.serve(async (req) => {
