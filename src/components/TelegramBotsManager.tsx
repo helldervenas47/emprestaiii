@@ -250,6 +250,55 @@ export function TelegramBotsManager() {
           </Button>
         </div>
 
+        {/* Bots já conectados via /code no app */}
+        <div className="space-y-2">
+          <div className="flex items-center gap-2">
+            <Link2 className="h-3.5 w-3.5 text-primary" />
+            <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              Bots conectados ao app
+            </h4>
+          </div>
+          {loadingConnected ? (
+            <div className="flex justify-center py-4"><Loader2 className="h-4 w-4 animate-spin text-muted-foreground" /></div>
+          ) : connected.length === 0 ? (
+            <p className="text-xs text-muted-foreground py-2">
+              Nenhum bot vinculado via código ainda. Use o comando <code className="font-mono px-1 py-0.5 rounded bg-muted">/code</code> em um bot e cole no app.
+            </p>
+          ) : (
+            <ul className="space-y-1.5">
+              {connected.map(link => (
+                <li key={`${link.kind}-${link.id}`} className="rounded-md border p-2.5 flex items-center justify-between gap-2 flex-wrap">
+                  <div className="min-w-0 flex-1 space-y-0.5">
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      {link.kind === "reports"
+                        ? <BarChart3 className="h-3.5 w-3.5 text-primary" />
+                        : <Wallet className="h-3.5 w-3.5 text-primary" />}
+                      <span className="text-sm font-medium">
+                        {link.label || (link.kind === "reports" ? "Bot de Relatórios" : "Bot de Despesas")}
+                      </span>
+                      <Badge variant="outline" className="text-[10px]">
+                        {link.kind === "reports" ? "Relatórios" : "Despesas"}
+                      </Badge>
+                    </div>
+                    <p className="text-[11px] text-muted-foreground font-mono">chat_id: {link.chat_id}</p>
+                  </div>
+                  <Button size="sm" variant="ghost" className="h-7 px-2 text-destructive hover:text-destructive gap-1"
+                    onClick={() => disconnectLink(link)}>
+                    <Unlink className="h-3.5 w-3.5" /> Desconectar
+                  </Button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+
+        <div className="flex items-center gap-2 pt-1">
+          <Bot className="h-3.5 w-3.5 text-primary" />
+          <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            Bots cadastrados manualmente
+          </h4>
+        </div>
+
         {loading ? (
           <div className="flex justify-center py-6"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>
         ) : bots.length === 0 ? (
