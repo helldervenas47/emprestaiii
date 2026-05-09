@@ -63,6 +63,7 @@ export function IncomeTelegramBotButton() {
       toast.success("Bot vinculado com sucesso");
       setCode("");
       setOpen(false);
+      refresh();
     } catch (e: any) {
       toast.error("Código inválido", { description: e.message });
     } finally {
