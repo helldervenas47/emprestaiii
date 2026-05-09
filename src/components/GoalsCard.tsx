@@ -668,7 +668,7 @@ export function GoalsCard({ loans, payments, expenses, clients, installmentSched
 
       let pct = 0;
       if (g.targetValue > 0) {
-        pct = g.goalType === "max_default_rate"
+        pct = (g.goalType === "max_default_rate" || g.goalType === "renegotiation_rate")
           ? (actual <= g.targetValue ? 100 : 0)
           : meta?.inverse
             ? Math.max(0, 100 - (actual / g.targetValue) * 100)
