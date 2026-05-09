@@ -68,7 +68,8 @@ Deno.serve(async (req) => {
     const elapsed = Date.now() - startTime;
     const remainingMs = MAX_RUNTIME_MS - elapsed;
     if (remainingMs < MIN_REMAINING_MS) break;
-    const timeout = Math.min(50, Math.floor(remainingMs / 1000) - 5);
+    // Cap each long-poll well under runtime budget so we always finish cleanly.
+    const timeout = Math.min(20, Math.floor(remainingMs / 1000) - 5);
     if (timeout < 1) break;
 
     const resp = await fetch(`${GATEWAY_URL}/getUpdates`, {
