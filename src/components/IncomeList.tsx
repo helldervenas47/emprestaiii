@@ -231,38 +231,11 @@ export function IncomeList({ readOnly }: Props) {
           </Button>
         </div>
 
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 mb-4">
-          <div className="relative col-span-2 lg:col-span-1">
+        <div className="mb-4">
+          <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Buscar..." className="pl-9 w-full" />
           </div>
-          <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-full"><SelectValue placeholder="Status" /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todos status</SelectItem>
-              <SelectItem value="received">Recebido</SelectItem>
-              <SelectItem value="pending">Pendente</SelectItem>
-              <SelectItem value="overdue">Atrasado</SelectItem>
-              <SelectItem value="pending_all">Pendente + Atrasado</SelectItem>
-            </SelectContent>
-          </Select>
-          <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-            <SelectTrigger className="w-full"><SelectValue placeholder="Categoria" /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todas categorias</SelectItem>
-              {INCOME_CATEGORIES.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
-            </SelectContent>
-          </Select>
-          <Select value={sortBy} onValueChange={(v: any) => setSortBy(v)}>
-            <SelectTrigger className="w-full">
-              <ArrowUpDown className="h-4 w-4 mr-1" />
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="date">Mais antiga</SelectItem>
-              <SelectItem value="amount">Menor valor</SelectItem>
-            </SelectContent>
-          </Select>
         </div>
 
         {filtered.length === 0 ? (
