@@ -58,7 +58,8 @@ function maskToken(token: string) {
 }
 
 export function TelegramBotsManager() {
-  const { user } = useAuth();
+  const { user, role } = useAuth();
+  const isAdmin = role === "admin";
   const [bots, setBots] = useState<BotRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
