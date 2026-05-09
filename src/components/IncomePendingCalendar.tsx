@@ -196,10 +196,42 @@ export function IncomePendingCalendar({
   const selectedInfo: DayInfo = selectedDate
     ? (dayMap[selectedDate] ?? { incomes: [], expenses: [], totalIncome: 0, totalExpense: 0 })
     : { incomes: [], expenses: [], totalIncome: 0, totalExpense: 0 };
+  // Saldo previsto acumulado dia a dia.
+  // Cobre tanto o mês expandido quanto a semana atual.
+  const runningBalanceMap = useMemo(() => {
+    const map: Record<string, number> = {};
+    // Determinar período: união do mês visível e da semana atual.
+    const monthStart = new Date(year, month, 1);
+    const monthEnd = new Date(year, month + 1, 0);
+    const weekStart = weekDays[0];
+    const weekEnd = weekDays[weekDays.length - 1];
+    const start = monthStart < weekStart ? monthStart : weekStart;
+    const end = monthEnd > weekEnd ? monthEnd : weekEnd;
+
+    let running = baseBalance;
+    const cursor = new Date(start);
+    while (cursor <= end) {
+      const ds = formatLocalDate(cursor);
+      const info = dayMap[ds];
+      running += (info?.totalIncome ?? 0) - (info?.totalExpense ?? 0);
+      map[ds] = running;
+      cursor.setDate(cursor.getDate() + 1);
+    }
+    return map;
+  }, [dayMap, baseBalance, year, month, weekDays]);
+
   const selectedHasMovement = selectedInfo.totalIncome > 0 || selectedInfo.totalExpense > 0;
-  const selectedBalance = selectedHasMovement
-    ? baseBalance + selectedInfo.totalIncome - selectedInfo.totalExpense
+  const selectedBalance = selectedDate
+    ? (runningBalanceMap[selectedDate] ?? baseBalance)
     : baseBalance;
+  // Saldo do dia anterior (base do cálculo do dia)
+  const selectedPrevBalance = (() => {
+    if (!selectedDate) return baseBalance;
+    const d = new Date(selectedDate + "T00:00:00");
+    d.setDate(d.getDate() - 1);
+    const prevDs = formatLocalDate(d);
+    return runningBalanceMap[prevDs] ?? baseBalance;
+  })();
 
   // Group by category for selected day
   const groupByCategory = <T extends { category?: string | null; amount: number }>(items: T[]) => {
