@@ -69,6 +69,29 @@ export function TelegramBotsManager() {
     { ok: boolean; message: string; bot_username?: string; bot_id?: number } | null
   >(null);
   const [deleteTarget, setDeleteTarget] = useState<BotRow | null>(null);
+  const [connected, setConnected] = useState<ConnectedLink[]>([]);
+  const [loadingConnected, setLoadingConnected] = useState(true);
+
+  const loadConnected = async () => {
+    setLoadingConnected(true);
+    const [expRes, repRes] = await Promise.all([
+      supabase.from("telegram_links" as any).select("id, chat_id, label, created_at"),
+      supabase.from("telegram_reports_links" as any).select("id, chat_id, label, created_at"),
+    ]);
+    const items: ConnectedLink[] = [
+      ...(((expRes.data as any[]) ?? []).map(r => ({ ...r, kind: "expenses" as const }))),
+      ...(((repRes.data as any[]) ?? []).map(r => ({ ...r, kind: "reports" as const }))),
+    ];
+    setConnected(items);
+    setLoadingConnected(false);
+  };
+
+  const disconnectLink = async (link: ConnectedLink) => {
+    const table = link.kind === "reports" ? "telegram_reports_links" : "telegram_links";
+    const { error } = await supabase.from(table as any).delete().eq("id", link.id);
+    if (error) toast.error("Erro ao desconectar", { description: error.message });
+    else { toast.success("Bot desconectado"); loadConnected(); }
+  };
 
   const load = async () => {
     setLoading(true);
@@ -81,7 +104,7 @@ export function TelegramBotsManager() {
     setLoading(false);
   };
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => { load(); loadConnected(); }, []);
 
   const openAdd = () => {
     setEditing(null);
