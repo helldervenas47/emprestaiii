@@ -15,8 +15,16 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Plus, Pencil, Trash2, Loader2, CheckCircle2, XCircle, Eye, EyeOff, ShieldCheck, Bot } from "lucide-react";
+import { Plus, Pencil, Trash2, Loader2, CheckCircle2, XCircle, Eye, EyeOff, ShieldCheck, Bot, Wallet, BarChart3, Unlink, Link2 } from "lucide-react";
 import { toast } from "sonner";
+
+interface ConnectedLink {
+  id: string;
+  chat_id: number;
+  label: string | null;
+  created_at: string;
+  kind: "expenses" | "reports";
+}
 
 interface BotRow {
   id: string;
