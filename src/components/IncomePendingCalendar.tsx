@@ -602,6 +602,46 @@ export function IncomePendingCalendar({
                     )}
                   </section>
 
+                  {/* Faturas de cartão de crédito vencendo no dia */}
+                  {selectedInfo.cardInvoices.length > 0 && (
+                    <section>
+                      <div className="flex items-center justify-between mb-1.5">
+                        <div className="flex items-center gap-1.5 text-xs font-semibold text-violet-700 dark:text-violet-400">
+                          <CreditCardIcon className="h-3.5 w-3.5" /> Faturas de cartão
+                        </div>
+                        <span className="text-xs font-semibold tabular-nums text-violet-700 dark:text-violet-400">
+                          {formatCurrency(
+                            selectedInfo.cardInvoices.reduce((s, c) => s + c.total, 0),
+                          )}
+                        </span>
+                      </div>
+                      <ul className="space-y-1">
+                        {selectedInfo.cardInvoices.map((c) => (
+                          <li
+                            key={`inv-${c.cardId}`}
+                            className="flex items-center justify-between gap-2 rounded-md bg-violet-500/5 border border-violet-500/20 px-2.5 py-1.5"
+                          >
+                            <span className="flex items-center gap-1.5 text-xs text-foreground truncate min-w-0">
+                              <CreditCardIcon className="h-3 w-3 text-violet-600 dark:text-violet-400 shrink-0" />
+                              <span className="truncate">{c.cardLabel}</span>
+                              {c.paid && (
+                                <span className="text-[10px] font-medium text-emerald-700 dark:text-emerald-400 shrink-0">
+                                  paga
+                                </span>
+                              )}
+                            </span>
+                            <span className="text-xs font-semibold text-violet-700 dark:text-violet-400 tabular-nums shrink-0">
+                              {formatCurrency(c.total)}
+                            </span>
+                          </li>
+                        ))}
+                      </ul>
+                      <p className="text-[10px] text-muted-foreground italic mt-1 px-1">
+                        Faturas em aberto entram no cálculo do saldo previsto do dia.
+                      </p>
+                    </section>
+                  )}
+
                   {/* Saldo previsto acumulado: parte do saldo do dia anterior */}
                   {(() => {
                     const isFirstOfMonth = !!selectedDate && selectedDate.endsWith("-01");
