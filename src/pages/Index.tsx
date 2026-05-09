@@ -834,7 +834,7 @@ const Index = () => {
         )}
         {tab === "expenses" && (
           <SubscriptionGate requiredTier={2} featureName="Receitas e Despesas">
-          <div className="overflow-x-hidden max-w-full">
+          <div className="max-w-full">
             <div className="w-full bg-muted/50 rounded-xl p-1 flex gap-0.5 mb-4">
               <button
                 onClick={() => setIncExpTab("incomes")}
