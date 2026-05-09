@@ -123,6 +123,7 @@ export function TelegramBotsManager() {
       token: b.token,
       description: b.description ?? "",
       active: b.active,
+      purpose: (b.purpose ?? "general") as FormState["purpose"],
     });
     setShowToken(false);
     setValidationResult(b.validation_status === "valid" && b.bot_username
