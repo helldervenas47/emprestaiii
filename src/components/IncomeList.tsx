@@ -186,6 +186,8 @@ export function IncomeList({ readOnly }: Props) {
       <IncomePendingCalendar
         incomes={incomes.filter((i) => i.source !== "Ajuste manual")}
         expenses={expenses}
+        allIncomes={incomes}
+        allExpenses={expenses}
       />
       <IncomeDashboard
         incomes={incomes.filter(

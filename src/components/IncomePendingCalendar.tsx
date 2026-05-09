@@ -1,13 +1,29 @@
 import { useMemo, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight, ChevronDown, ChevronUp, CalendarDays, TrendingUp, ArrowUpCircle, ArrowDownCircle } from "lucide-react";
+import { ChevronLeft, ChevronRight, ChevronDown, ChevronUp, CalendarDays, TrendingUp, ArrowUpCircle, ArrowDownCircle, Wallet } from "lucide-react";
 import type { Income } from "@/hooks/useIncomes";
-import type { Expense } from "@/types/loan";
+import type { Expense, Sale } from "@/types/loan";
+import { useProducts } from "@/hooks/useProducts";
+import { usePiggyBanks } from "@/hooks/usePiggyBanks";
 
 interface Props {
   incomes: Income[];
   expenses?: Expense[];
+  /** Override the auto-computed account balance baseline. */
+  accountBalance?: number;
+  /** All incomes (incl. ajustes) used to compute the account balance baseline. */
+  allIncomes?: Income[];
+  /** All expenses (incl. business) used to compute the account balance baseline. */
+  allExpenses?: Expense[];
+}
+
+function saleReceivedTotal(sale: Sale): number {
+  if (sale.paymentHistory && sale.paymentHistory.length > 0) {
+    return sale.paymentHistory.reduce((s, p) => s + (Number(p.amount) || 0), 0);
+  }
+  const iv = sale.installmentValue ?? (sale.installments > 0 ? sale.total / sale.installments : sale.total);
+  return (sale.downPayment || 0) + (sale.paidInstallments || 0) * iv + (sale.partialPaid || 0);
 }
 
 const monthNames = [
@@ -44,7 +60,13 @@ type DayInfo = {
  * Calendário diário: exibe receitas e despesas pessoais por dia,
  * com totais por categoria e saldo final do dia.
  */
-export function IncomePendingCalendar({ incomes, expenses = [] }: Props) {
+export function IncomePendingCalendar({
+  incomes,
+  expenses = [],
+  accountBalance,
+  allIncomes,
+  allExpenses,
+}: Props) {
   const today = new Date();
   const todayStr = formatLocalDate(today);
 
@@ -52,6 +74,28 @@ export function IncomePendingCalendar({ incomes, expenses = [] }: Props) {
   const [year, setYear] = useState(today.getFullYear());
   const [month, setMonth] = useState(today.getMonth());
   const [selectedDate, setSelectedDate] = useState<string | null>(todayStr);
+
+  const { sales } = useProducts(true);
+  const { deposits: piggyDeposits } = usePiggyBanks();
+
+  // Saldo em conta (mesma fórmula do IncomeBalanceCard)
+  const computedBalance = useMemo(() => {
+    const incSrc = allIncomes ?? incomes;
+    const expSrc = allExpenses ?? expenses;
+    const totalIncomeReceived = incSrc
+      .filter((i) => i.status === "received")
+      .reduce((s, i) => s + (Number(i.amount) || 0), 0);
+    const totalSalesReceived = (sales || []).reduce((s, sale) => s + saleReceivedTotal(sale), 0);
+    const totalExpensePaid = expSrc
+      .filter((e) => e.paid)
+      .reduce((s, e) => s + (Number(e.amount) || 0), 0);
+    const totalPiggyManualDeposits = (piggyDeposits || [])
+      .filter((d) => !d.expenseId)
+      .reduce((s, d) => s + (Number(d.amount) || 0), 0);
+    return totalIncomeReceived + totalSalesReceived - totalExpensePaid - totalPiggyManualDeposits;
+  }, [allIncomes, allExpenses, incomes, expenses, sales, piggyDeposits]);
+
+  const baseBalance = accountBalance ?? computedBalance;
 
   const personalExpenses = useMemo(
     () => expenses.filter((e) => (e.scope ?? "business") === "personal"),
@@ -152,7 +196,10 @@ export function IncomePendingCalendar({ incomes, expenses = [] }: Props) {
   const selectedInfo: DayInfo = selectedDate
     ? (dayMap[selectedDate] ?? { incomes: [], expenses: [], totalIncome: 0, totalExpense: 0 })
     : { incomes: [], expenses: [], totalIncome: 0, totalExpense: 0 };
-  const selectedBalance = selectedInfo.totalIncome - selectedInfo.totalExpense;
+  const selectedHasMovement = selectedInfo.totalIncome > 0 || selectedInfo.totalExpense > 0;
+  const selectedBalance = selectedHasMovement
+    ? baseBalance + selectedInfo.totalIncome - selectedInfo.totalExpense
+    : baseBalance;
 
   // Group by category for selected day
   const groupByCategory = <T extends { category?: string | null; amount: number }>(items: T[]) => {
@@ -223,7 +270,10 @@ export function IncomePendingCalendar({ incomes, expenses = [] }: Props) {
                     if (day === null) return <div key={`empty-${idx}`} />;
                     const dateStr = `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
                     const info = dayMap[dateStr];
-                    const balance = (info?.totalIncome ?? 0) - (info?.totalExpense ?? 0);
+                    const hasMovement = (info?.totalIncome ?? 0) > 0 || (info?.totalExpense ?? 0) > 0;
+                    const balance = hasMovement
+                      ? baseBalance + (info?.totalIncome ?? 0) - (info?.totalExpense ?? 0)
+                      : baseBalance;
                     const isToday = dateStr === todayStr;
                     const isSelected = dateStr === selectedDate;
                     const positive = balance > 0;
@@ -282,7 +332,10 @@ export function IncomePendingCalendar({ incomes, expenses = [] }: Props) {
                   {weekDays.map((d) => {
                     const dateStr = formatLocalDate(d);
                     const info = dayMap[dateStr];
-                    const balance = (info?.totalIncome ?? 0) - (info?.totalExpense ?? 0);
+                    const hasMovement = (info?.totalIncome ?? 0) > 0 || (info?.totalExpense ?? 0) > 0;
+                    const balance = hasMovement
+                      ? baseBalance + (info?.totalIncome ?? 0) - (info?.totalExpense ?? 0)
+                      : baseBalance;
                     const isToday = dateStr === todayStr;
                     const isSelected = dateStr === selectedDate;
                     const positive = balance > 0;
@@ -410,12 +463,30 @@ export function IncomePendingCalendar({ incomes, expenses = [] }: Props) {
                     )}
                   </section>
 
-                  {/* Saldo final */}
-                  <div className="rounded-md border border-border bg-card px-3 py-2 flex items-center justify-between">
-                    <span className="text-xs font-semibold text-foreground">Saldo final do dia</span>
-                    <span className={`text-sm font-bold tabular-nums ${selectedBalance >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"}`}>
-                      {formatCurrency(selectedBalance)}
-                    </span>
+                  {/* Saldo final = Saldo em conta + recebimentos − despesas */}
+                  <div className="rounded-md border border-border bg-card px-3 py-2 space-y-1">
+                    <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+                      <span className="flex items-center gap-1"><Wallet className="h-3 w-3" /> Saldo em conta</span>
+                      <span className="tabular-nums">{formatCurrency(baseBalance)}</span>
+                    </div>
+                    {selectedHasMovement && (
+                      <>
+                        <div className="flex items-center justify-between text-[11px] text-emerald-700 dark:text-emerald-400">
+                          <span>+ Recebimentos do dia</span>
+                          <span className="tabular-nums">{formatCurrency(selectedInfo.totalIncome)}</span>
+                        </div>
+                        <div className="flex items-center justify-between text-[11px] text-rose-700 dark:text-rose-400">
+                          <span>− Despesas do dia</span>
+                          <span className="tabular-nums">{formatCurrency(selectedInfo.totalExpense)}</span>
+                        </div>
+                      </>
+                    )}
+                    <div className="flex items-center justify-between pt-1 border-t border-border/60">
+                      <span className="text-xs font-semibold text-foreground">Saldo final do dia</span>
+                      <span className={`text-sm font-bold tabular-nums ${selectedBalance >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"}`}>
+                        {formatCurrency(selectedBalance)}
+                      </span>
+                    </div>
                   </div>
                 </div>
               </>
