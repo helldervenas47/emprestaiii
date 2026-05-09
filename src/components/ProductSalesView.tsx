@@ -1859,7 +1859,7 @@ export function ProductSalesView({ sales, onDeleteSale, onUpdateSale, clients = 
                                 <span>{exp.paidInstallments || 0}/{exp.installments} parcelas</span>
                               )}
                             </div>
-                            <div className="flex items-center justify-between mt-2 pt-2 border-t border-border/40">
+                            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mt-2 pt-2 border-t border-border/40">
                               {isRecorrente ? (
                                 <div className="flex flex-col">
                                   <p className="font-bold text-sm leading-tight">
@@ -1873,26 +1873,26 @@ export function ProductSalesView({ sales, onDeleteSale, onUpdateSale, clients = 
                               ) : (
                                 <p className="font-bold text-sm">{formatCurrency(exp.amount)}</p>
                               )}
-                              <div className="flex items-center gap-1">
+                              <div className="flex items-center gap-1.5 flex-wrap justify-end w-full sm:w-auto">
                                 {hasPaidSomething && onUpdateExpense && (
-                                  <Button size="sm" variant="outline" onClick={() => setViewPaymentsExpenseId(exp.id)} className="h-7 text-xs">
-                                    <Receipt className="h-3.5 w-3.5 mr-1" />
-                                    Pagamentos
+                                  <Button size="sm" variant="outline" onClick={() => setViewPaymentsExpenseId(exp.id)} className="h-8 px-2.5 text-xs flex-1 sm:flex-none min-w-0">
+                                    <Receipt className="h-3.5 w-3.5 sm:mr-1" />
+                                    <span className="hidden xs:inline">Pagamentos</span>
                                   </Button>
                                 )}
                                 {!readOnly && !exp.paid && onPayExpense && (
-                                  <Button size="sm" variant="outline" onClick={() => setPayingExpenseId(exp.id)} className="h-7 text-xs">
-                                    <CheckCircle className="h-3.5 w-3.5 mr-1" />
-                                    Pagar
+                                  <Button size="sm" variant="outline" onClick={() => setPayingExpenseId(exp.id)} className="h-8 px-2.5 text-xs flex-1 sm:flex-none min-w-0 text-success border-success/30 hover:bg-success hover:text-success-foreground">
+                                    <CheckCircle className="h-3.5 w-3.5 sm:mr-1" />
+                                    <span className="hidden xs:inline">Pagar</span>
                                   </Button>
                                 )}
                                 {!readOnly && onUpdateExpense && (
-                                  <Button size="sm" variant="ghost" onClick={() => setEditingExpenseId(exp.id)} className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground">
+                                  <Button size="sm" variant="ghost" onClick={() => setEditingExpenseId(exp.id)} className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground shrink-0">
                                     <Pencil className="h-3.5 w-3.5" />
                                   </Button>
                                 )}
                                 {!readOnly && onDeleteExpense && (
-                                  <Button size="sm" variant="ghost" onClick={() => setDeleteExpenseId(exp.id)} className="h-7 w-7 p-0 text-destructive hover:text-destructive">
+                                  <Button size="sm" variant="ghost" onClick={() => setDeleteExpenseId(exp.id)} className="h-8 w-8 p-0 text-destructive hover:text-destructive shrink-0">
                                     <Trash2 className="h-3.5 w-3.5" />
                                   </Button>
                                 )}
