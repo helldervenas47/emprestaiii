@@ -77,19 +77,7 @@ function fmtBR(date: string) {
   return `${d}/${m}/${y}`;
 }
 
-async function tgSend(chatId: number, text: string, lovableKey: string, telegramKey: string) {
-  const r = await fetch(`${GATEWAY_URL}/sendMessage`, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${lovableKey}`,
-      "X-Connection-Api-Key": telegramKey,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ chat_id: chatId, text }),
-  });
-  const body = await r.text();
-  return { ok: r.ok, status: r.status, body };
-}
+import { sendReportsMessage } from "../_shared/reports-bot.ts";
 
 const DEFAULT_TEMPLATE =
   `Olá {nome_gerente}! 👋
