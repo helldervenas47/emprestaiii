@@ -5,7 +5,7 @@ const corsHeaders = {
 
 const GATEWAY_URL = 'https://connector-gateway.lovable.dev/telegram';
 
-// Comandos do bot de DESPESAS (TELEGRAM_API_KEY_2)
+// Comandos do bot de DESPESAS (TELEGRAM_API_KEY)
 const EXPENSES_COMMANDS = [
   { command: 'saldo', description: 'Gastos do mês por categoria' },
   { command: 'mes', description: 'Resumo completo do mês atual' },
@@ -67,7 +67,7 @@ Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
 
   const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
-  const EXPENSES_KEY = Deno.env.get('TELEGRAM_API_KEY_2');
+  const EXPENSES_KEY = Deno.env.get('TELEGRAM_API_KEY');
   const REPORTS_KEY = Deno.env.get('TELEGRAM_API_KEY_1');
 
   if (!LOVABLE_API_KEY) {
@@ -83,7 +83,7 @@ Deno.serve(async (req) => {
     if (EXPENSES_KEY) {
       result.expenses = await publishCommands(LOVABLE_API_KEY, EXPENSES_KEY, EXPENSES_COMMANDS);
     } else {
-      result.expenses = { skipped: 'missing TELEGRAM_API_KEY_2' };
+      result.expenses = { skipped: 'missing TELEGRAM_API_KEY' };
     }
 
     if (REPORTS_KEY) {
