@@ -227,6 +227,7 @@ export function BillingCalendar({ loans, payments, installmentSchedules, sales =
   };
 
   const selectedItems = selectedDate ? (dueMap[selectedDate] || []) : [];
+  const selectedSaleItems = selectedDate ? (salesDueMap[selectedDate] || []) : [];
   const overdueSelected = selectedItems.filter((i) => i.date < todayStr);
   const upcomingSelected = selectedItems.filter((i) => i.date >= todayStr);
 
