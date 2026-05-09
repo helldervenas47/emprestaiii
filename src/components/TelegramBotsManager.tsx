@@ -324,6 +324,16 @@ export function TelegramBotsManager() {
                         <ShieldCheck className="h-3 w-3" /> validado
                       </Badge>
                     )}
+                    {b.purpose === "reports" && (
+                      <Badge className="text-[10px] gap-1 bg-primary/15 text-primary border-primary/30 hover:bg-primary/20">
+                        <BarChart3 className="h-3 w-3" /> Relatórios
+                      </Badge>
+                    )}
+                    {b.purpose === "expenses" && (
+                      <Badge className="text-[10px] gap-1 bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/30">
+                        <Wallet className="h-3 w-3" /> Despesas
+                      </Badge>
+                    )}
                   </div>
                   {b.bot_username && (
                     <p className="text-xs text-muted-foreground">@{b.bot_username}</p>
