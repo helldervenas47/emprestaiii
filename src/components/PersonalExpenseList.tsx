@@ -703,8 +703,6 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, onUpda
         })()}
       />
 
-      {/* Calendário de gastos pessoais (logo abaixo do Relatório Inteligente) */}
-      <PersonalExpenseCalendar expenses={expenses} />
 
       {typeof afterEvolution === "function"
         ? afterEvolution({ selectedMonth })
