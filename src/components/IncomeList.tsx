@@ -197,21 +197,16 @@ export function IncomeList({ readOnly }: Props) {
         monthKey={monthKey}
       />
       <Card no3d className="p-4">
-        <div className="flex flex-col sm:flex-row gap-2 sm:items-center justify-between mb-4">
+        <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-semibold">Receitas ({filtered.length})</h2>
-          {!readOnly && (
-            <Button onClick={() => { setEditing(null); setFormOpen(true); }} className="gap-2">
-              <Plus className="h-4 w-4" /> Nova receita
-            </Button>
-          )}
         </div>
 
-        <div className="flex flex-wrap gap-2 mb-3">
+        <div className="flex w-full gap-2 mb-3">
           <Button
             type="button"
             size="sm"
             variant={statusFilter === "all" ? "default" : "outline"}
-            className="h-8 rounded-full px-3"
+            className="h-9 rounded-full flex-1 min-w-0"
             onClick={() => setStatusFilter("all")}
           >
             Todas
@@ -220,7 +215,7 @@ export function IncomeList({ readOnly }: Props) {
             type="button"
             size="sm"
             variant={statusFilter === "received" ? "default" : "outline"}
-            className="h-8 rounded-full px-3 gap-1.5"
+            className="h-9 rounded-full flex-1 min-w-0 gap-1.5"
             onClick={() => setStatusFilter("received")}
           >
             <CheckCircle2 className="h-3.5 w-3.5" /> Pagas
@@ -229,20 +224,20 @@ export function IncomeList({ readOnly }: Props) {
             type="button"
             size="sm"
             variant={statusFilter === "pending_all" ? "default" : "outline"}
-            className="h-8 rounded-full px-3 gap-1.5"
+            className="h-9 rounded-full flex-1 min-w-0 gap-1.5"
             onClick={() => setStatusFilter("pending_all")}
           >
             <Clock className="h-3.5 w-3.5" /> Pendentes
           </Button>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 mb-4">
-          <div className="relative">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 mb-4">
+          <div className="relative col-span-2 lg:col-span-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Buscar..." className="pl-9" />
+            <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Buscar..." className="pl-9 w-full" />
           </div>
           <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger><SelectValue placeholder="Status" /></SelectTrigger>
+            <SelectTrigger className="w-full"><SelectValue placeholder="Status" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Todos status</SelectItem>
               <SelectItem value="received">Recebido</SelectItem>
@@ -252,14 +247,14 @@ export function IncomeList({ readOnly }: Props) {
             </SelectContent>
           </Select>
           <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-            <SelectTrigger><SelectValue placeholder="Categoria" /></SelectTrigger>
+            <SelectTrigger className="w-full"><SelectValue placeholder="Categoria" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Todas categorias</SelectItem>
               {INCOME_CATEGORIES.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
             </SelectContent>
           </Select>
           <Select value={sortBy} onValueChange={(v: any) => setSortBy(v)}>
-            <SelectTrigger>
+            <SelectTrigger className="w-full">
               <ArrowUpDown className="h-4 w-4 mr-1" />
               <SelectValue />
             </SelectTrigger>
