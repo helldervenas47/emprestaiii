@@ -186,8 +186,8 @@ export function FinancialStatement() {
       </div>
 
       <Card no3d className="p-4 space-y-3">
-        <div className="flex flex-col lg:flex-row gap-2 lg:items-end justify-between">
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 flex-1">
+        <div className="flex flex-col lg:flex-row gap-3 lg:items-end justify-between">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 flex-1 w-full">
             <div>
               <label className="text-xs text-muted-foreground">De</label>
               <DatePickerField value={from} onChange={setFrom} />
@@ -196,36 +196,45 @@ export function FinancialStatement() {
               <label className="text-xs text-muted-foreground">Até</label>
               <DatePickerField value={to} onChange={setTo} />
             </div>
-            <Select value={typeFilter} onValueChange={(v: any) => setTypeFilter(v)}>
-              <SelectTrigger><SelectValue placeholder="Tipo" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todos os tipos</SelectItem>
-                <SelectItem value="income">Receitas</SelectItem>
-                <SelectItem value="expense">Despesas</SelectItem>
-              </SelectContent>
-            </Select>
-            <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-              <SelectTrigger><SelectValue placeholder="Categoria" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todas categorias</SelectItem>
-                {categories.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
-              </SelectContent>
-            </Select>
-            <div className="relative col-span-2 sm:col-span-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="Buscar descrição..."
-                className="pl-9"
-              />
+            <div>
+              <label className="text-xs text-muted-foreground">Tipo</label>
+              <Select value={typeFilter} onValueChange={(v: any) => setTypeFilter(v)}>
+                <SelectTrigger className="h-10"><SelectValue placeholder="Tipo" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos os tipos</SelectItem>
+                  <SelectItem value="income">Receitas</SelectItem>
+                  <SelectItem value="expense">Despesas</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <label className="text-xs text-muted-foreground">Categoria</label>
+              <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+                <SelectTrigger className="h-10"><SelectValue placeholder="Categoria" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todas categorias</SelectItem>
+                  {categories.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="col-span-2 sm:col-span-1">
+              <label className="text-xs text-muted-foreground">Buscar</label>
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder="Descrição..."
+                  className="pl-9 h-10"
+                />
+              </div>
             </div>
           </div>
-          <div className="flex gap-2">
-            <Button variant="outline" size="sm" onClick={exportPDF} className="gap-1" disabled={filtered.length === 0}>
+          <div className="flex gap-2 w-full lg:w-auto sm:justify-end">
+            <Button variant="outline" onClick={exportPDF} className="gap-1 h-10 flex-1 sm:flex-none" disabled={filtered.length === 0}>
               <FileDown className="h-4 w-4" /> PDF
             </Button>
-            <Button variant="outline" size="sm" onClick={exportXLSX} className="gap-1" disabled={filtered.length === 0}>
+            <Button variant="outline" onClick={exportXLSX} className="gap-1 h-10 flex-1 sm:flex-none" disabled={filtered.length === 0}>
               <FileSpreadsheet className="h-4 w-4" /> Excel
             </Button>
           </div>
