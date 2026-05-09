@@ -71,21 +71,9 @@ export function FinancialStatement() {
         paymentMethod: methodName(i.paymentMethodId),
         account: clientName(i.clientId) || i.source || "—",
       }));
-    const expenseRows: Row[] = expenses
-      .filter((e) => e.paid && !!e.paidDate)
-      .map((e: Expense) => ({
-        id: `e-${e.id}`,
-        date: e.paidDate!,
-        description: e.description,
-        category: e.category || "Outros",
-        type: "expense",
-        amount: e.amount,
-        paymentMethod: methodName(e.paymentMethodId),
-        account: e.scope === "personal" ? "Pessoal" : "Empresa",
-      }));
-    return [...incomeRows, ...expenseRows];
+    return incomeRows;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [incomes, expenses, activeMethods, clients]);
+  }, [incomes, activeMethods, clients]);
 
   const categories = useMemo(() => {
     const set = new Set<string>();
