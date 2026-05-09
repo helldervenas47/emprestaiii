@@ -320,6 +320,149 @@ async function resolveCategoryHybrid(
 }
 
 // ============================================================
+// 🧠 Income learned categorization (mirrors expense logic)
+// ============================================================
+
+async function suggestIncomeCategoryFromHints(
+  admin: any,
+  userId: string,
+  description: string,
+): Promise<{ category: string; hits: number } | null> {
+  const tokens = tokensFromDescription(description);
+  if (tokens.length === 0) return null;
+  const { data } = await admin
+    .from("income_category_hints")
+    .select("keyword, category, hits")
+    .eq("user_id", userId)
+    .in("keyword", tokens);
+  if (!data || data.length === 0) return null;
+  const byCat = new Map<string, number>();
+  for (const r of data) {
+    byCat.set(r.category, (byCat.get(r.category) || 0) + (Number(r.hits) || 1));
+  }
+  let best: { category: string; hits: number } | null = null;
+  for (const [cat, hits] of byCat) {
+    if (!best || hits > best.hits) best = { category: cat, hits };
+  }
+  return best;
+}
+
+async function learnIncomeCategory(
+  admin: any,
+  userId: string,
+  description: string,
+  category: string,
+) {
+  // INCOME_CATEGORIES is declared later; validate by simple guard list inline.
+  const allowed = ["Vendas","Serviços","Comissões","Aluguel","Investimentos","Salário","Reembolso","Outros"];
+  if (!allowed.includes(category)) return;
+  const tokens = tokensFromDescription(description);
+  if (tokens.length === 0) return;
+  const nowIso = new Date().toISOString();
+  const { data: existing } = await admin
+    .from("income_category_hints")
+    .select("id, keyword, category, hits")
+    .eq("user_id", userId)
+    .in("keyword", tokens);
+  const map = new Map<string, { id: string; category: string; hits: number }>();
+  for (const r of existing ?? []) {
+    map.set(`${r.keyword}::${r.category}`, { id: r.id, category: r.category, hits: Number(r.hits) || 1 });
+  }
+  const toInsert: any[] = [];
+  const toUpdate: Array<{ id: string; hits: number }> = [];
+  for (const kw of tokens) {
+    const key = `${kw}::${category}`;
+    const row = map.get(key);
+    if (row) toUpdate.push({ id: row.id, hits: row.hits + 1 });
+    else toInsert.push({ user_id: userId, keyword: kw, category, hits: 1, last_used: nowIso });
+  }
+  if (toInsert.length > 0) await admin.from("income_category_hints").insert(toInsert);
+  for (const u of toUpdate) {
+    await admin.from("income_category_hints")
+      .update({ hits: u.hits, last_used: nowIso })
+      .eq("id", u.id);
+  }
+}
+
+async function suggestIncomeCategoryWithLLM(
+  admin: any,
+  userId: string,
+  description: string,
+  lovableKey: string,
+): Promise<string | null> {
+  const allowed = ["Vendas","Serviços","Comissões","Aluguel","Investimentos","Salário","Reembolso","Outros"];
+  const { data: recent } = await admin
+    .from("incomes")
+    .select("description, category")
+    .eq("user_id", userId)
+    .order("created_at", { ascending: false })
+    .limit(30);
+  const examples = (recent ?? [])
+    .filter((e: any) => e.description && e.category && allowed.includes(e.category))
+    .slice(0, 20)
+    .map((e: any) => `- "${e.description}" → ${e.category}`)
+    .join("\n");
+  if (!examples) return null;
+  try {
+    const resp = await fetch(AI_GATEWAY, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${lovableKey}`, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: "google/gemini-3-flash-preview",
+        messages: [
+          { role: "system", content: `Classifique a receita em UMA das categorias: ${allowed.join(", ")}.
+Use os exemplos do próprio usuário como referência principal. Se nada parecer próximo, use "Outros".
+
+Exemplos do usuário:
+${examples}` },
+          { role: "user", content: `Receita: "${description}"` },
+        ],
+        tools: [{
+          type: "function",
+          function: {
+            name: "pick_category",
+            description: "Escolhe a melhor categoria de receita",
+            parameters: {
+              type: "object",
+              properties: { category: { type: "string", enum: allowed } },
+              required: ["category"],
+              additionalProperties: false,
+            },
+          },
+        }],
+        tool_choice: { type: "function", function: { name: "pick_category" } },
+      }),
+    });
+    if (!resp.ok) return null;
+    const data = await resp.json();
+    const call = data.choices?.[0]?.message?.tool_calls?.[0];
+    if (!call) return null;
+    const args = JSON.parse(call.function.arguments);
+    return allowed.includes(args.category) ? args.category : null;
+  } catch (e) {
+    console.error("suggestIncomeCategoryWithLLM err", e);
+    return null;
+  }
+}
+
+async function resolveIncomeCategoryHybrid(
+  admin: any,
+  userId: string,
+  description: string,
+  initialGuess: string,
+  lovableKey: string,
+): Promise<string> {
+  const allowed = ["Vendas","Serviços","Comissões","Aluguel","Investimentos","Salário","Reembolso","Outros"];
+  const learned = await suggestIncomeCategoryFromHints(admin, userId, description);
+  if (learned && learned.hits >= 1) return learned.category;
+  if (!initialGuess || initialGuess === "Outros") {
+    const llm = await suggestIncomeCategoryWithLLM(admin, userId, description, lovableKey);
+    if (llm) return llm;
+  }
+  return initialGuess && allowed.includes(initialGuess) ? initialGuess : "Outros";
+}
+
+// ============================================================
 // Credit card detection
 // ============================================================
 
@@ -2903,7 +3046,14 @@ Deno.serve(async (req) => {
                 await tgSend(chatId, "🤔 Não consegui entender a receita. Tente algo como:\n_\"recebi 500 do cliente João pix\"_ ou _\"salário 3500 hoje\"_", LOVABLE_API_KEY, TELEGRAM_API_KEY);
               } else {
                 const finalDate = sanitizeDate(extracted.date);
-                const category = INCOME_CATEGORIES.includes(extracted.category) ? extracted.category : "Outros";
+                const initialIncomeCat = INCOME_CATEGORIES.includes(extracted.category) ? extracted.category : "Outros";
+                const category = await resolveIncomeCategoryHybrid(
+                  admin,
+                  link.user_id,
+                  extracted.description || text.slice(0, 80),
+                  initialIncomeCat,
+                  LOVABLE_API_KEY,
+                );
                 const status = extracted.status === "pending" ? "pending" : "received";
                 const ownerId = await resolvePiggyOwner(admin, link.user_id);
                 const payload: Record<string, any> = {
@@ -2921,6 +3071,9 @@ Deno.serve(async (req) => {
                 if (insErr) {
                   await tgSend(chatId, "❌ Erro ao salvar receita: " + insErr.message, LOVABLE_API_KEY, TELEGRAM_API_KEY);
                 } else {
+                  // Reinforce learning for next time
+                  learnIncomeCategory(admin, link.user_id, payload.description, category)
+                    .catch((e) => console.error("learnIncomeCategory err", e));
                   const fmtV = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(extracted.amount);
                   const statusLine = status === "received" ? "✅ Recebido" : "⏳ Pendente";
                   const sourceLine = extracted.source ? `\n👤 ${extracted.source}` : "";
