@@ -196,10 +196,42 @@ export function IncomePendingCalendar({
   const selectedInfo: DayInfo = selectedDate
     ? (dayMap[selectedDate] ?? { incomes: [], expenses: [], totalIncome: 0, totalExpense: 0 })
     : { incomes: [], expenses: [], totalIncome: 0, totalExpense: 0 };
+  // Saldo previsto acumulado dia a dia.
+  // Cobre tanto o mês expandido quanto a semana atual.
+  const runningBalanceMap = useMemo(() => {
+    const map: Record<string, number> = {};
+    // Determinar período: união do mês visível e da semana atual.
+    const monthStart = new Date(year, month, 1);
+    const monthEnd = new Date(year, month + 1, 0);
+    const weekStart = weekDays[0];
+    const weekEnd = weekDays[weekDays.length - 1];
+    const start = monthStart < weekStart ? monthStart : weekStart;
+    const end = monthEnd > weekEnd ? monthEnd : weekEnd;
+
+    let running = baseBalance;
+    const cursor = new Date(start);
+    while (cursor <= end) {
+      const ds = formatLocalDate(cursor);
+      const info = dayMap[ds];
+      running += (info?.totalIncome ?? 0) - (info?.totalExpense ?? 0);
+      map[ds] = running;
+      cursor.setDate(cursor.getDate() + 1);
+    }
+    return map;
+  }, [dayMap, baseBalance, year, month, weekDays]);
+
   const selectedHasMovement = selectedInfo.totalIncome > 0 || selectedInfo.totalExpense > 0;
-  const selectedBalance = selectedHasMovement
-    ? baseBalance + selectedInfo.totalIncome - selectedInfo.totalExpense
+  const selectedBalance = selectedDate
+    ? (runningBalanceMap[selectedDate] ?? baseBalance)
     : baseBalance;
+  // Saldo do dia anterior (base do cálculo do dia)
+  const selectedPrevBalance = (() => {
+    if (!selectedDate) return baseBalance;
+    const d = new Date(selectedDate + "T00:00:00");
+    d.setDate(d.getDate() - 1);
+    const prevDs = formatLocalDate(d);
+    return runningBalanceMap[prevDs] ?? baseBalance;
+  })();
 
   // Group by category for selected day
   const groupByCategory = <T extends { category?: string | null; amount: number }>(items: T[]) => {
@@ -457,11 +489,11 @@ export function IncomePendingCalendar({
                     )}
                   </section>
 
-                  {/* Saldo final = Saldo em conta + recebimentos − despesas */}
+                  {/* Saldo previsto acumulado: parte do saldo do dia anterior */}
                   <div className="rounded-md border border-border bg-card px-3 py-2 space-y-1">
                     <div className="flex items-center justify-between text-[11px] text-muted-foreground">
-                      <span className="flex items-center gap-1"><Wallet className="h-3 w-3" /> Saldo em conta</span>
-                      <span className="tabular-nums">{formatCurrency(baseBalance)}</span>
+                      <span className="flex items-center gap-1"><Wallet className="h-3 w-3" /> Saldo previsto do dia anterior</span>
+                      <span className="tabular-nums">{formatCurrency(selectedPrevBalance)}</span>
                     </div>
                     {selectedHasMovement && (
                       <>
@@ -476,7 +508,7 @@ export function IncomePendingCalendar({
                       </>
                     )}
                     <div className="flex items-center justify-between pt-1 border-t border-border/60">
-                      <span className="text-xs font-semibold text-foreground">Saldo final do dia</span>
+                      <span className="text-xs font-semibold text-foreground">Saldo previsto do dia</span>
                       <span className={`text-sm font-bold tabular-nums ${selectedBalance >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"}`}>
                         {formatCurrency(selectedBalance)}
                       </span>
