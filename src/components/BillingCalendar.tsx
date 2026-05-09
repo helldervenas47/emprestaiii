@@ -21,6 +21,7 @@ interface Props {
   loans: Loan[];
   payments: Payment[];
   installmentSchedules: InstallmentSchedule[];
+  sales?: Sale[];
   onPayment?: (loanId: string, paymentDate?: string, paymentMethodId?: string | null) => void;
   onPartialPayment?: (loanId: string, amount: number, paymentDate?: string, paymentMethodId?: string | null) => void;
   onFullPayment?: (loanId: string, paymentDate?: string, customAmount?: number, paymentMethodId?: string | null) => void;
