@@ -33,37 +33,10 @@ function timeWithinWindow(target: string | null | undefined, nowH: number, nowM:
   return diff >= 0 && diff < 5; // within 5-minute window after target
 }
 
-async function tgSend(chatId: number, text: string, lovableKey: string, telegramKey: string) {
-  // Telegram caps messages at 4096 chars. Truncate generously.
-  const MAX = 3800;
-  const safe = text.length > MAX ? text.slice(0, MAX) + "\n\n…(truncado)" : text;
-  try {
-    const r = await fetch(`${TELEGRAM_GATEWAY}/sendMessage`, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${lovableKey}`,
-        "X-Connection-Api-Key": telegramKey,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ chat_id: chatId, text: safe, parse_mode: "Markdown" }),
-    });
-    if (!r.ok) {
-      const t = await r.text();
-      console.error("[tgSend] failed", r.status, t);
-      // Retry without parse_mode in case of markdown parsing issue
-      await fetch(`${TELEGRAM_GATEWAY}/sendMessage`, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${lovableKey}`,
-          "X-Connection-Api-Key": telegramKey,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ chat_id: chatId, text: safe }),
-      });
-    }
-  } catch (e) {
-    console.error("[tgSend] error", e);
-  }
+import { sendReportsMessage } from "../_shared/reports-bot.ts";
+
+function safeTruncate(text: string, max = 3800) {
+  return text.length > max ? text.slice(0, max) + "\n\n…(truncado)" : text;
 }
 
 async function generateInsight(supabase: any, ownerId: string, force = false) {
