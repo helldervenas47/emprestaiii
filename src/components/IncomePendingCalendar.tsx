@@ -534,30 +534,88 @@ export function IncomePendingCalendar({
                   </section>
 
                   {/* Saldo previsto acumulado: parte do saldo do dia anterior */}
-                  <div className="rounded-md border border-border bg-card px-3 py-2 space-y-1">
-                    <div className="flex items-center justify-between text-[11px] text-muted-foreground">
-                      <span className="flex items-center gap-1"><Wallet className="h-3 w-3" /> Saldo previsto do dia anterior</span>
-                      <span className="tabular-nums">{formatCurrency(selectedPrevBalance)}</span>
-                    </div>
-                    {selectedHasMovement && (
-                      <>
-                        <div className="flex items-center justify-between text-[11px] text-emerald-700 dark:text-emerald-400">
-                          <span>+ Recebimentos do dia</span>
-                          <span className="tabular-nums">{formatCurrency(selectedInfo.totalIncome)}</span>
+                  {(() => {
+                    const isFirstOfMonth = !!selectedDate && selectedDate.endsWith("-01");
+                    const monthKey = selectedDate ? selectedDate.slice(0, 7) : "";
+                    const hasOverride = isFirstOfMonth && overrides[monthKey] !== undefined;
+                    return (
+                      <div className="rounded-md border border-border bg-card px-3 py-2 space-y-1">
+                        {isFirstOfMonth ? (
+                          <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+                            <span className="flex items-center gap-1">
+                              <Wallet className="h-3 w-3" /> Saldo de abertura do mês
+                            </span>
+                            <span className="tabular-nums">
+                              {hasOverride ? "definido manualmente" : "automático"}
+                            </span>
+                          </div>
+                        ) : (
+                          <>
+                            <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+                              <span className="flex items-center gap-1"><Wallet className="h-3 w-3" /> Saldo previsto do dia anterior</span>
+                              <span className="tabular-nums">{formatCurrency(selectedPrevBalance)}</span>
+                            </div>
+                            {selectedHasMovement && (
+                              <>
+                                <div className="flex items-center justify-between text-[11px] text-emerald-700 dark:text-emerald-400">
+                                  <span>+ Recebimentos do dia</span>
+                                  <span className="tabular-nums">{formatCurrency(selectedInfo.totalIncome)}</span>
+                                </div>
+                                <div className="flex items-center justify-between text-[11px] text-rose-700 dark:text-rose-400">
+                                  <span>− Despesas do dia</span>
+                                  <span className="tabular-nums">{formatCurrency(selectedInfo.totalExpense)}</span>
+                                </div>
+                              </>
+                            )}
+                          </>
+                        )}
+                        <div className="flex items-center justify-between pt-1 border-t border-border/60">
+                          <span className="text-xs font-semibold text-foreground">Saldo previsto do dia</span>
+                          <span className={`text-sm font-bold tabular-nums ${selectedBalance >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"}`}>
+                            {formatCurrency(selectedBalance)}
+                          </span>
                         </div>
-                        <div className="flex items-center justify-between text-[11px] text-rose-700 dark:text-rose-400">
-                          <span>− Despesas do dia</span>
-                          <span className="tabular-nums">{formatCurrency(selectedInfo.totalExpense)}</span>
-                        </div>
-                      </>
-                    )}
-                    <div className="flex items-center justify-between pt-1 border-t border-border/60">
-                      <span className="text-xs font-semibold text-foreground">Saldo previsto do dia</span>
-                      <span className={`text-sm font-bold tabular-nums ${selectedBalance >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"}`}>
-                        {formatCurrency(selectedBalance)}
-                      </span>
-                    </div>
-                  </div>
+                        {isFirstOfMonth && (
+                          <div className="flex items-center gap-2 pt-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="h-7 text-xs gap-1 flex-1"
+                              onClick={() => {
+                                setEditValue(
+                                  (overrides[monthKey] ?? selectedBalance).toFixed(2)
+                                );
+                                setEditOpen(true);
+                              }}
+                            >
+                              <Pencil className="h-3 w-3" /> Alterar saldo do dia
+                            </Button>
+                            {hasOverride && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-7 text-xs gap-1"
+                                onClick={() => {
+                                  setOverrides((prev) => {
+                                    const next = { ...prev };
+                                    delete next[monthKey];
+                                    return next;
+                                  });
+                                }}
+                              >
+                                <RotateCcw className="h-3 w-3" /> Resetar
+                              </Button>
+                            )}
+                          </div>
+                        )}
+                        {isFirstOfMonth && !hasOverride && (
+                          <p className="text-[10px] text-muted-foreground italic pt-1">
+                            Apenas o dia 1 de cada mês pode ter o saldo ajustado manualmente.
+                          </p>
+                        )}
+                      </div>
+                    );
+                  })()}
                 </div>
               </>
             )}
