@@ -2925,6 +2925,51 @@ export type Database = {
         }
         Relationships: []
       }
+      user_telegram_bots: {
+        Row: {
+          active: boolean
+          bot_id: number | null
+          bot_username: string | null
+          created_at: string
+          description: string | null
+          id: string
+          last_validated_at: string | null
+          name: string
+          owner_id: string
+          token: string
+          updated_at: string
+          validation_status: string | null
+        }
+        Insert: {
+          active?: boolean
+          bot_id?: number | null
+          bot_username?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          last_validated_at?: string | null
+          name: string
+          owner_id: string
+          token: string
+          updated_at?: string
+          validation_status?: string | null
+        }
+        Update: {
+          active?: boolean
+          bot_id?: number | null
+          bot_username?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          last_validated_at?: string | null
+          name?: string
+          owner_id?: string
+          token?: string
+          updated_at?: string
+          validation_status?: string | null
+        }
+        Relationships: []
+      }
       vehicle_balance: {
         Row: {
           amount: number
