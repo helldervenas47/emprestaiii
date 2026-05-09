@@ -250,7 +250,16 @@ export function FinancialStatement() {
           <>
             {/* Desktop table */}
             <div className="hidden md:block overflow-x-auto">
-              <table className="w-full text-sm">
+              <table className="w-full text-sm table-fixed">
+                <colgroup>
+                  <col className="w-[110px]" />
+                  <col />
+                  <col className="w-[160px]" />
+                  <col className="w-[120px]" />
+                  <col className="w-[140px]" />
+                  <col className="w-[140px]" />
+                  <col className="w-[130px]" />
+                </colgroup>
                 <thead className="bg-muted/50 text-xs uppercase text-muted-foreground">
                   <tr>
                     <th className="text-left px-4 py-2">Data</th>
@@ -264,28 +273,34 @@ export function FinancialStatement() {
                 </thead>
                 <tbody>
                   {visible.map((r) => (
-                    <tr key={r.id} className="border-t border-border/40 hover:bg-muted/30">
-                      <td className="px-4 py-2 whitespace-nowrap">
+                    <tr key={r.id} className="border-t border-border/40 hover:bg-muted/30 h-12">
+                      <td className="px-4 py-2 whitespace-nowrap align-middle">
                         {format(new Date(r.date + "T00:00:00"), "dd/MM/yyyy", { locale: ptBR })}
                       </td>
-                      <td className="px-4 py-2">{r.description}</td>
-                      <td className="px-4 py-2">
-                        <Badge variant="secondary" className="text-xs">{r.category}</Badge>
+                      <td className="px-4 py-2 align-middle truncate" title={r.description}>{r.description}</td>
+                      <td className="px-4 py-2 align-middle">
+                        <Badge
+                          variant="secondary"
+                          className="text-xs max-w-full inline-block truncate align-middle"
+                          title={r.category}
+                        >
+                          {r.category}
+                        </Badge>
                       </td>
-                      <td className="px-4 py-2">
+                      <td className="px-4 py-2 align-middle">
                         {r.type === "income" ? (
-                          <Badge className="bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30 gap-1">
+                          <Badge className="bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30 gap-1 whitespace-nowrap">
                             <ArrowUpCircle className="h-3 w-3" /> Receita
                           </Badge>
                         ) : (
-                          <Badge className="bg-rose-500/15 text-rose-700 dark:text-rose-400 border border-rose-500/30 gap-1">
+                          <Badge className="bg-rose-500/15 text-rose-700 dark:text-rose-400 border border-rose-500/30 gap-1 whitespace-nowrap">
                             <ArrowDownCircle className="h-3 w-3" /> Despesa
                           </Badge>
                         )}
                       </td>
-                      <td className="px-4 py-2 text-muted-foreground">{r.paymentMethod}</td>
-                      <td className="px-4 py-2 text-muted-foreground">{r.account}</td>
-                      <td className={`px-4 py-2 text-right font-semibold whitespace-nowrap ${
+                      <td className="px-4 py-2 align-middle text-muted-foreground truncate" title={r.paymentMethod}>{r.paymentMethod}</td>
+                      <td className="px-4 py-2 align-middle text-muted-foreground truncate" title={r.account}>{r.account}</td>
+                      <td className={`px-4 py-2 text-right font-semibold whitespace-nowrap align-middle ${
                         r.type === "income"
                           ? "text-emerald-600 dark:text-emerald-400"
                           : "text-rose-600 dark:text-rose-400"
