@@ -38,18 +38,7 @@ function calcLoanTotal(amount: number, rate: number, installments: number) {
   return amount * (1 + (rate / 100) * installments);
 }
 
-async function tgSend(chatId: number, text: string, lovableKey: string, telegramKey: string) {
-  const r = await fetch(`${GATEWAY_URL}/sendMessage`, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${lovableKey}`,
-      "X-Connection-Api-Key": telegramKey,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ chat_id: chatId, text, parse_mode: "Markdown" }),
-  });
-  if (!r.ok) console.error("sendMessage failed", r.status, await r.text());
-}
+import { sendReportsMessage } from "../_shared/reports-bot.ts";
 
 interface Row { origin: string; description: string; amount: number; }
 
