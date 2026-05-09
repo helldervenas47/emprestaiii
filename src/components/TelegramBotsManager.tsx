@@ -37,6 +37,7 @@ interface BotRow {
   last_validated_at: string | null;
   validation_status: string | null;
   created_at: string;
+  purpose: "reports" | "expenses" | "general";
 }
 
 interface FormState {
@@ -44,9 +45,10 @@ interface FormState {
   token: string;
   description: string;
   active: boolean;
+  purpose: "reports" | "expenses" | "general";
 }
 
-const EMPTY_FORM: FormState = { name: "", token: "", description: "", active: true };
+const EMPTY_FORM: FormState = { name: "", token: "", description: "", active: true, purpose: "reports" };
 
 function maskToken(token: string) {
   if (!token) return "";
