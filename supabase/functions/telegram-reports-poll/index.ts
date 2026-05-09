@@ -160,7 +160,7 @@ async function processBot(
     const newOffset = Math.max(...updates.map((u: any) => u.update_id)) + 1;
     currentOffset = newOffset;
     await supabase
-      .from("user_telegram_bots")
+      .from("system_telegram_bots")
       .update({ update_offset: newOffset, last_polled_at: new Date().toISOString() })
       .eq("id", bot.id);
   }
