@@ -139,6 +139,58 @@ export function BillingCalendar({ loans, payments, installmentSchedules, sales =
     return map;
   }, [loans, payments, installmentSchedules]);
 
+  // Map of date -> sale/vehicle pending installments
+  const salesDueMap = useMemo(() => {
+    const map: Record<string, SaleDueItem[]> = {};
+    const addDays = (d: Date, n: number) => { const x = new Date(d); x.setDate(x.getDate() + n); return x; };
+    const addByFrequency = (d: Date, freq: string, n: number) => {
+      if (["Diário", "Diária", "Diario", "Diaria", "daily"].includes(freq)) return addDays(d, n);
+      if (freq === "Semanal") return addDays(d, n * 7);
+      if (freq === "Quinzenal") return addDays(d, n * 15);
+      const x = new Date(d); x.setMonth(x.getMonth() + n); return x;
+    };
+
+    sales.forEach((sale) => {
+      const isRecorrente = sale.paymentMode === "recorrente";
+      const totalInst = isRecorrente ? Math.max(1, sale.installments || 1) : 1;
+      if (sale.paidInstallments >= totalInst) return;
+      const baseDate = new Date(sale.date + "T00:00:00");
+      const kind: "sale" | "vehicle" = sale.businessType === "aluguel_veiculo" ? "vehicle" : "sale";
+
+      for (let i = sale.paidInstallments; i < totalInst; i++) {
+        const customDate = sale.installmentDates && sale.installmentDates[i];
+        const due = customDate
+          ? new Date(customDate + "T00:00:00")
+          : (isRecorrente ? addByFrequency(baseDate, sale.frequency || "Mensal", i) : baseDate);
+        const dateStr = formatLocalDate(due);
+
+        let amount = 0;
+        if (sale.installmentAmounts && sale.installmentAmounts[i] != null) {
+          amount = Number(sale.installmentAmounts[i]) || 0;
+        } else if (sale.installmentValue && sale.installmentValue > 0) {
+          amount = sale.installmentValue;
+        } else {
+          const base = Math.max(0, (sale.total || 0) - (sale.downPayment || 0));
+          amount = isRecorrente ? base / totalInst : base;
+        }
+
+        if (!map[dateStr]) map[dateStr] = [];
+        map[dateStr].push({
+          kind,
+          saleId: sale.id,
+          customerName: sale.customerName || "—",
+          description: sale.description || sale.productName || "Venda",
+          installmentNumber: i + 1,
+          totalInstallments: totalInst,
+          amount,
+          date: dateStr,
+        });
+      }
+    });
+
+    return map;
+  }, [sales]);
+
   // Calendar grid
   const firstDay = new Date(year, month, 1);
   const lastDay = new Date(year, month + 1, 0);
