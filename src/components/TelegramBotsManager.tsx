@@ -187,7 +187,6 @@ export function TelegramBotsManager() {
       }
 
       const payload = {
-        owner_id: user.id,
         name: form.name.trim(),
         token: form.token.trim(),
         description: form.description.trim() || null,
@@ -197,6 +196,7 @@ export function TelegramBotsManager() {
         bot_username: validation.bot_username ?? null,
         last_validated_at: new Date().toISOString(),
         validation_status: "valid",
+        ...(editing ? {} : { created_by: user.id }),
       };
 
       if (editing) {
