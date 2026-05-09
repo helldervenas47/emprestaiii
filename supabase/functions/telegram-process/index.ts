@@ -2764,8 +2764,16 @@ Deno.serve(async (req) => {
           }
         }
         const expiresAt = new Date(Date.now() + 15 * 60 * 1000).toISOString();
+        const { data: expenseBot } = await admin
+          .from("system_telegram_bots")
+          .select("id")
+          .eq("active", true)
+          .eq("purpose", "expenses")
+          .order("created_at", { ascending: true })
+          .limit(1)
+          .maybeSingle();
         const { error: insErr } = await admin.from("telegram_bots").insert({
-          bot_code: botCode, kind: "expenses", chat_id: chatId, expires_at: expiresAt,
+          bot_code: botCode, kind: "expenses", chat_id: chatId, bot_id: expenseBot?.id ?? null, expires_at: expiresAt,
         });
         if (insErr || !botCode) {
           await tgSend(chatId, "⚠️ Não consegui gerar o código agora. Tente novamente em instantes.", LOVABLE_API_KEY, TELEGRAM_API_KEY);
