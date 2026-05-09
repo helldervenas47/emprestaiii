@@ -1721,17 +1721,42 @@ function formatPiggyBanksList(banks: PiggyBankRef[]): string {
   ].join("\n");
 }
 
-function buildCategoryKeyboard(expenseId: string) {
+function buildCategoryKeyboard(expenseId: string, categories: string[] = CATEGORIES) {
   const rows: any[] = [];
-  for (let i = 0; i < CATEGORIES.length; i += 2) {
-    const row = [{ text: CATEGORIES[i], callback_data: `setcat:${expenseId}:${CATEGORIES[i]}` }];
-    if (CATEGORIES[i + 1]) {
-      row.push({ text: CATEGORIES[i + 1], callback_data: `setcat:${expenseId}:${CATEGORIES[i + 1]}` });
+  // Telegram callback_data limit is 64 bytes — truncate long names defensively.
+  const safe = (n: string) => n.length > 40 ? n.slice(0, 40) : n;
+  for (let i = 0; i < categories.length; i += 2) {
+    const row = [{ text: categories[i], callback_data: `setcat:${expenseId}:${safe(categories[i])}` }];
+    if (categories[i + 1]) {
+      row.push({ text: categories[i + 1], callback_data: `setcat:${expenseId}:${safe(categories[i + 1])}` });
     }
     rows.push(row);
   }
   rows.push([{ text: "❌ Cancelar", callback_data: `canc:${expenseId}` }]);
   return rows;
+}
+
+/** Returns the union of built-in CATEGORIES + user's custom personal_expense_categories. */
+async function getAvailableCategories(admin: any, userId: string): Promise<string[]> {
+  try {
+    const { data: ownerData } = await admin.rpc("get_data_owner_id", { _user_id: userId });
+    const ownerId = (ownerData as string | null) ?? userId;
+    const { data } = await admin
+      .from("personal_expense_categories")
+      .select("name")
+      .eq("user_id", ownerId);
+    const customs = (data ?? []).map((r: any) => String(r.name || "").trim()).filter(Boolean);
+    const seen = new Set<string>();
+    const out: string[] = [];
+    for (const n of [...CATEGORIES, ...customs]) {
+      const key = n.toLowerCase();
+      if (!seen.has(key)) { seen.add(key); out.push(n); }
+    }
+    return out;
+  } catch (e) {
+    console.error("getAvailableCategories err", e);
+    return [...CATEGORIES];
+  }
 }
 
 async function extractExpense(text: string, lovableKey: string) {
