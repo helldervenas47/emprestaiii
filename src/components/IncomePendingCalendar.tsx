@@ -704,11 +704,7 @@ export function IncomePendingCalendar({
                                 size="sm"
                                 className="h-7 text-xs gap-1"
                                 onClick={() => {
-                                  setOverrides((prev) => {
-                                    const next = { ...prev };
-                                    delete next[monthKey];
-                                    return next;
-                                  });
+                                  void clearOverrideBalance(monthKey);
                                 }}
                               >
                                 <RotateCcw className="h-3 w-3" /> Resetar
