@@ -317,8 +317,6 @@ Deno.serve(async (req) => {
   try {
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
     const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY")!;
-    const TELEGRAM_API_KEY = Deno.env.get("TELEGRAM_API_KEY_1")!; // reports bot
     const admin = createClient(SUPABASE_URL, SERVICE_KEY);
 
     let body: any = {};
@@ -348,7 +346,7 @@ Deno.serve(async (req) => {
           target_manager_client_id: targetManagerClientId,
           skip_chat_check: previewOnly || listManagers,
         },
-        LOVABLE_API_KEY, TELEGRAM_API_KEY, today,
+        today,
       );
 
       // For real send (manualRun) update last_sent_date
@@ -386,7 +384,7 @@ Deno.serve(async (req) => {
         const result = await processOwner(
           admin, (p as any).user_id,
           { skip_chat_check: false },
-          LOVABLE_API_KEY, TELEGRAM_API_KEY, today,
+          today,
         );
 
         // Mark as sent only if we actually attempted sending (not skipped)
