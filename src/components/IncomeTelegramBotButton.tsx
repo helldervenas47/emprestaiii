@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,6 +15,27 @@ export function IncomeTelegramBotButton() {
   const [open, setOpen] = useState(false);
   const [code, setCode] = useState("");
   const [linking, setLinking] = useState(false);
+  const [connected, setConnected] = useState(false);
+
+  const refresh = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) { setConnected(false); return; }
+    const { data } = await supabase
+      .from("telegram_links" as any)
+      .select("chat_id")
+      .eq("user_id", user.id)
+      .maybeSingle();
+    setConnected(!!data);
+  };
+
+  useEffect(() => {
+    refresh();
+    const channel = supabase
+      .channel("telegram_links_income_btn")
+      .on("postgres_changes", { event: "*", schema: "public", table: "telegram_links" }, () => refresh())
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, []);
 
   const handleLink = async () => {
     const trimmed = code.trim();
@@ -42,6 +63,7 @@ export function IncomeTelegramBotButton() {
       toast.success("Bot vinculado com sucesso");
       setCode("");
       setOpen(false);
+      refresh();
     } catch (e: any) {
       toast.error("Código inválido", { description: e.message });
     } finally {
@@ -55,9 +77,9 @@ export function IncomeTelegramBotButton() {
         <Button
           variant="ghost"
           size="icon"
-          className="h-8 w-8 text-muted-foreground hover:text-primary"
-          title="Vincular bot do Telegram"
-          aria-label="Vincular bot do Telegram"
+          className={`h-8 w-8 transition-colors ${connected ? "text-emerald-500 hover:text-emerald-600" : "text-muted-foreground hover:text-foreground"}`}
+          title={connected ? "Bot do Telegram conectado" : "Vincular bot do Telegram"}
+          aria-label={connected ? "Bot do Telegram conectado" : "Vincular bot do Telegram"}
         >
           <TelegramIcon className="h-4 w-4" />
         </Button>
