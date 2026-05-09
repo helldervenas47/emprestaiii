@@ -15,8 +15,16 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Plus, Pencil, Trash2, Loader2, CheckCircle2, XCircle, Eye, EyeOff, ShieldCheck, Bot } from "lucide-react";
+import { Plus, Pencil, Trash2, Loader2, CheckCircle2, XCircle, Eye, EyeOff, ShieldCheck, Bot, Wallet, BarChart3, Unlink, Link2 } from "lucide-react";
 import { toast } from "sonner";
+
+interface ConnectedLink {
+  id: string;
+  chat_id: number;
+  label: string | null;
+  created_at: string;
+  kind: "expenses" | "reports";
+}
 
 interface BotRow {
   id: string;
@@ -61,6 +69,29 @@ export function TelegramBotsManager() {
     { ok: boolean; message: string; bot_username?: string; bot_id?: number } | null
   >(null);
   const [deleteTarget, setDeleteTarget] = useState<BotRow | null>(null);
+  const [connected, setConnected] = useState<ConnectedLink[]>([]);
+  const [loadingConnected, setLoadingConnected] = useState(true);
+
+  const loadConnected = async () => {
+    setLoadingConnected(true);
+    const [expRes, repRes] = await Promise.all([
+      supabase.from("telegram_links" as any).select("id, chat_id, label, created_at"),
+      supabase.from("telegram_reports_links" as any).select("id, chat_id, label, created_at"),
+    ]);
+    const items: ConnectedLink[] = [
+      ...(((expRes.data as any[]) ?? []).map(r => ({ ...r, kind: "expenses" as const }))),
+      ...(((repRes.data as any[]) ?? []).map(r => ({ ...r, kind: "reports" as const }))),
+    ];
+    setConnected(items);
+    setLoadingConnected(false);
+  };
+
+  const disconnectLink = async (link: ConnectedLink) => {
+    const table = link.kind === "reports" ? "telegram_reports_links" : "telegram_links";
+    const { error } = await supabase.from(table as any).delete().eq("id", link.id);
+    if (error) toast.error("Erro ao desconectar", { description: error.message });
+    else { toast.success("Bot desconectado"); loadConnected(); }
+  };
 
   const load = async () => {
     setLoading(true);
@@ -73,7 +104,7 @@ export function TelegramBotsManager() {
     setLoading(false);
   };
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => { load(); loadConnected(); }, []);
 
   const openAdd = () => {
     setEditing(null);
@@ -217,6 +248,55 @@ export function TelegramBotsManager() {
           <Button size="sm" onClick={openAdd} className="gap-1.5">
             <Plus className="h-4 w-4" /> Adicionar bot
           </Button>
+        </div>
+
+        {/* Bots já conectados via /code no app */}
+        <div className="space-y-2">
+          <div className="flex items-center gap-2">
+            <Link2 className="h-3.5 w-3.5 text-primary" />
+            <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              Bots conectados ao app
+            </h4>
+          </div>
+          {loadingConnected ? (
+            <div className="flex justify-center py-4"><Loader2 className="h-4 w-4 animate-spin text-muted-foreground" /></div>
+          ) : connected.length === 0 ? (
+            <p className="text-xs text-muted-foreground py-2">
+              Nenhum bot vinculado via código ainda. Use o comando <code className="font-mono px-1 py-0.5 rounded bg-muted">/code</code> em um bot e cole no app.
+            </p>
+          ) : (
+            <ul className="space-y-1.5">
+              {connected.map(link => (
+                <li key={`${link.kind}-${link.id}`} className="rounded-md border p-2.5 flex items-center justify-between gap-2 flex-wrap">
+                  <div className="min-w-0 flex-1 space-y-0.5">
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      {link.kind === "reports"
+                        ? <BarChart3 className="h-3.5 w-3.5 text-primary" />
+                        : <Wallet className="h-3.5 w-3.5 text-primary" />}
+                      <span className="text-sm font-medium">
+                        {link.label || (link.kind === "reports" ? "Bot de Relatórios" : "Bot de Despesas")}
+                      </span>
+                      <Badge variant="outline" className="text-[10px]">
+                        {link.kind === "reports" ? "Relatórios" : "Despesas"}
+                      </Badge>
+                    </div>
+                    <p className="text-[11px] text-muted-foreground font-mono">chat_id: {link.chat_id}</p>
+                  </div>
+                  <Button size="sm" variant="ghost" className="h-7 px-2 text-destructive hover:text-destructive gap-1"
+                    onClick={() => disconnectLink(link)}>
+                    <Unlink className="h-3.5 w-3.5" /> Desconectar
+                  </Button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+
+        <div className="flex items-center gap-2 pt-1">
+          <Bot className="h-3.5 w-3.5 text-primary" />
+          <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            Bots cadastrados manualmente
+          </h4>
         </div>
 
         {loading ? (
