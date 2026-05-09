@@ -3046,7 +3046,14 @@ Deno.serve(async (req) => {
                 await tgSend(chatId, "🤔 Não consegui entender a receita. Tente algo como:\n_\"recebi 500 do cliente João pix\"_ ou _\"salário 3500 hoje\"_", LOVABLE_API_KEY, TELEGRAM_API_KEY);
               } else {
                 const finalDate = sanitizeDate(extracted.date);
-                const category = INCOME_CATEGORIES.includes(extracted.category) ? extracted.category : "Outros";
+                const initialIncomeCat = INCOME_CATEGORIES.includes(extracted.category) ? extracted.category : "Outros";
+                const category = await resolveIncomeCategoryHybrid(
+                  admin,
+                  link.user_id,
+                  extracted.description || text.slice(0, 80),
+                  initialIncomeCat,
+                  LOVABLE_API_KEY,
+                );
                 const status = extracted.status === "pending" ? "pending" : "received";
                 const ownerId = await resolvePiggyOwner(admin, link.user_id);
                 const payload: Record<string, any> = {
@@ -3064,6 +3071,9 @@ Deno.serve(async (req) => {
                 if (insErr) {
                   await tgSend(chatId, "❌ Erro ao salvar receita: " + insErr.message, LOVABLE_API_KEY, TELEGRAM_API_KEY);
                 } else {
+                  // Reinforce learning for next time
+                  learnIncomeCategory(admin, link.user_id, payload.description, category)
+                    .catch((e) => console.error("learnIncomeCategory err", e));
                   const fmtV = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(extracted.amount);
                   const statusLine = status === "received" ? "✅ Recebido" : "⏳ Pendente";
                   const sourceLine = extracted.source ? `\n👤 ${extracted.source}` : "";
