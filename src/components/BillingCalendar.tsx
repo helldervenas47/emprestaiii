@@ -58,7 +58,18 @@ interface DueItem {
   loan: Loan;
 }
 
-export function BillingCalendar({ loans, payments, installmentSchedules, onPayment, onPartialPayment, onFullPayment, onInterestPayment, onUpdate, readOnly = false }: Props) {
+interface SaleDueItem {
+  kind: "sale" | "vehicle";
+  saleId: string;
+  customerName: string;
+  description: string;
+  installmentNumber: number;
+  totalInstallments: number;
+  amount: number;
+  date: string;
+}
+
+export function BillingCalendar({ loans, payments, installmentSchedules, sales = [], onPayment, onPartialPayment, onFullPayment, onInterestPayment, onUpdate, readOnly = false }: Props) {
   const { mask } = useHideValues();
   const formatCurrency = useCallback((v: number) => mask(rawFormatCurrency(v)), [mask]);
   const today = new Date();
