@@ -98,7 +98,9 @@ export function IncomeList({ readOnly }: Props) {
       const carriedOver = !belongsToRecurringSeries && i.status !== "received" && i.receivedDate < monthKey + "-01";
       if (!inMonth && !carriedOver) return false;
       
-      if (statusFilter !== "all" && i.status !== statusFilter) return false;
+      if (statusFilter === "pending_all") {
+        if (i.status !== "pending" && i.status !== "overdue") return false;
+      } else if (statusFilter !== "all" && i.status !== statusFilter) return false;
       if (categoryFilter !== "all" && (i.category || "Outros") !== categoryFilter) return false;
       if (search.trim()) {
         const q = search.toLowerCase();
@@ -109,8 +111,8 @@ export function IncomeList({ readOnly }: Props) {
       return true;
     });
     arr = [...arr].sort((a, b) => {
-      if (sortBy === "amount") return b.amount - a.amount;
-      return b.receivedDate.localeCompare(a.receivedDate);
+      if (sortBy === "amount") return a.amount - b.amount;
+      return a.receivedDate.localeCompare(b.receivedDate);
     });
     return arr;
   }, [incomes, search, statusFilter, categoryFilter, sortBy, clients, monthKey]);
