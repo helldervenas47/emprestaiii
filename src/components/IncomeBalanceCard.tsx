@@ -49,10 +49,11 @@ interface Props {
   onOpenExpenses?: () => void;
   onOpenPendingIncomes?: () => void;
   onOpenStatement?: () => void;
+  statementLeftSlot?: React.ReactNode;
   monthKey?: string;
-}
+};
 
-export function IncomeBalanceCard({ incomes, expenses, onAdjust, readOnly, onOpenIncomes, onOpenExpenses, onOpenPendingIncomes, onOpenStatement, monthKey: monthKeyProp }: Props) {
+export function IncomeBalanceCard({ incomes, expenses, onAdjust, readOnly, onOpenIncomes, onOpenExpenses, onOpenPendingIncomes, onOpenStatement, statementLeftSlot, monthKey: monthKeyProp }: Props) {
   const { hidden: hide } = useHideValues();
   const { cards } = useCreditCards();
   const { openings } = useCreditCardOpenings();
