@@ -143,6 +143,30 @@ export function IncomePendingCalendar({
 
   const baseBalance = accountBalance ?? computedBalance;
 
+  const calendarDays = useMemo(() => {
+    const firstDay = new Date(year, month, 1);
+    const lastDay = new Date(year, month + 1, 0);
+    const startWeekday = firstDay.getDay();
+    const daysInMonth = lastDay.getDate();
+    const arr: (number | null)[] = [];
+    for (let i = 0; i < startWeekday; i++) arr.push(null);
+    for (let i = 1; i <= daysInMonth; i++) arr.push(i);
+    return arr;
+  }, [year, month]);
+
+  const weekDays = useMemo(() => {
+    const base = new Date();
+    const dow = base.getDay();
+    const start = new Date(base);
+    start.setDate(base.getDate() - dow);
+    return Array.from({ length: 7 }, (_, i) => {
+      const d = new Date(start);
+      d.setDate(start.getDate() + i);
+      return d;
+    });
+  }, []);
+
+
   const personalExpenses = useMemo(
     () => expenses.filter(
       (e) => (e.scope ?? "business") === "personal" && !isCreditCardExpense(e),
