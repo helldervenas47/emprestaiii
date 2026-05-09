@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Calendar as CalendarUI } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
-import { ChevronLeft, ChevronRight, CalendarDays, User, DollarSign, CheckCircle, Percent, HandCoins, ChevronDown, ChevronUp, Calendar as CalendarIcon } from "lucide-react";
+import { ChevronLeft, ChevronRight, CalendarDays, User, DollarSign, CheckCircle, Percent, HandCoins, ChevronDown, ChevronUp, Calendar as CalendarIcon, ShoppingBag, Car } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { getDueStatusBadge } from "@/lib/dueStatus";
 
