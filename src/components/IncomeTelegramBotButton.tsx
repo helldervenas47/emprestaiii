@@ -72,6 +72,19 @@ export function IncomeTelegramBotButton() {
     }
   };
 
+  const handleDisconnect = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+    const { error } = await supabase.from("telegram_links" as any).delete().eq("user_id", user.id);
+    if (error) {
+      toast.error("Erro ao desconectar", { description: error.message });
+      return;
+    }
+    toast.success("Bot desconectado");
+    setOpen(false);
+    refresh();
+  };
+
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
