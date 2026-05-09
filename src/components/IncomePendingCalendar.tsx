@@ -74,9 +74,17 @@ export function IncomePendingCalendar({ incomes, expenses = [] }: Props) {
     for (const ex of personalExpenses) {
       const d = ex.paid && ex.paidDate ? ex.paidDate : ex.dueDate;
       if (!d) continue;
+      // Recurring/fixed expenses store the total across installments in `amount`.
+      // The calendar should reflect just the monthly installment value.
+      const isRecurringParent =
+        ex.type === "recorrente" && (ex.installments ?? 0) > 1;
+      const amount = isRecurringParent
+        ? (Number(ex.amount) || 0) / (ex.installments as number)
+        : Number(ex.amount) || 0;
+      const item = isRecurringParent ? { ...ex, amount } : ex;
       const e = ensure(d);
-      e.expenses.push(ex);
-      e.totalExpense += Number(ex.amount) || 0;
+      e.expenses.push(item);
+      e.totalExpense += amount;
     }
     return map;
   }, [incomes, personalExpenses]);
