@@ -332,7 +332,10 @@ export function IncomePendingCalendar({
                   {weekDays.map((d) => {
                     const dateStr = formatLocalDate(d);
                     const info = dayMap[dateStr];
-                    const balance = (info?.totalIncome ?? 0) - (info?.totalExpense ?? 0);
+                    const hasMovement = (info?.totalIncome ?? 0) > 0 || (info?.totalExpense ?? 0) > 0;
+                    const balance = hasMovement
+                      ? baseBalance + (info?.totalIncome ?? 0) - (info?.totalExpense ?? 0)
+                      : baseBalance;
                     const isToday = dateStr === todayStr;
                     const isSelected = dateStr === selectedDate;
                     const positive = balance > 0;
