@@ -102,6 +102,11 @@ export function IncomePendingCalendar({
   const [year, setYear] = useState(today.getFullYear());
   const [month, setMonth] = useState(today.getMonth());
   const [selectedDate, setSelectedDate] = useState<string | null>(todayStr);
+  const [overrides, setOverrides] = useState<Record<string, number>>(() => loadOverrides());
+  const [editOpen, setEditOpen] = useState(false);
+  const [editValue, setEditValue] = useState("");
+
+  useEffect(() => { saveOverrides(overrides); }, [overrides]);
 
   const { sales } = useProducts(true);
   const { deposits: piggyDeposits } = usePiggyBanks();
