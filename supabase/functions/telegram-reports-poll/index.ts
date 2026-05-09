@@ -40,7 +40,7 @@ async function deleteWebhook(token: string) {
 
 async function processBot(
   supabase: any,
-  bot: { id: string; token: string; owner_id: string; bot_username: string | null; update_offset: number },
+  bot: { id: string; token: string; bot_username: string | null; update_offset: number },
   budgetMs: number,
 ) {
   const startedAt = Date.now();
