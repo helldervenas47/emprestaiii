@@ -1000,7 +1000,7 @@ const Index = () => {
           </SubscriptionGate>
         )}
         {tab === "calendar" && (
-          <BillingCalendar loans={filteredLoans} payments={filteredPayments} installmentSchedules={filteredInstallments} onPayment={addPayment} onPartialPayment={addPartialPayment} onFullPayment={payOffLoan} onInterestPayment={addInterestOnlyPayment} onUpdate={updateLoan} readOnly={isReadOnly} />
+          <BillingCalendar loans={filteredLoans} payments={filteredPayments} installmentSchedules={filteredInstallments} sales={filteredSales} onPayment={addPayment} onPartialPayment={addPartialPayment} onFullPayment={payOffLoan} onInterestPayment={addInterestOnlyPayment} onUpdate={updateLoan} readOnly={isReadOnly} />
         )}
         {tab === "products" && (
           <SubscriptionGate requiredTier={2} featureName="Vendas">

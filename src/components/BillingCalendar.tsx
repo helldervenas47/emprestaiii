@@ -1,6 +1,6 @@
 import { useState, useMemo, useCallback } from "react";
 import { useHideValues } from "@/contexts/HideValuesContext";
-import { Loan, Payment, InstallmentSchedule } from "@/types/loan";
+import { Loan, Payment, InstallmentSchedule, Sale } from "@/types/loan";
 import { calculateInstallment, calculateTotalWithInterest } from "@/hooks/useLoans";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Calendar as CalendarUI } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
-import { ChevronLeft, ChevronRight, CalendarDays, User, DollarSign, CheckCircle, Percent, HandCoins, ChevronDown, ChevronUp, Calendar as CalendarIcon } from "lucide-react";
+import { ChevronLeft, ChevronRight, CalendarDays, User, DollarSign, CheckCircle, Percent, HandCoins, ChevronDown, ChevronUp, Calendar as CalendarIcon, ShoppingBag, Car } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { getDueStatusBadge } from "@/lib/dueStatus";
 
@@ -21,6 +21,7 @@ interface Props {
   loans: Loan[];
   payments: Payment[];
   installmentSchedules: InstallmentSchedule[];
+  sales?: Sale[];
   onPayment?: (loanId: string, paymentDate?: string, paymentMethodId?: string | null) => void;
   onPartialPayment?: (loanId: string, amount: number, paymentDate?: string, paymentMethodId?: string | null) => void;
   onFullPayment?: (loanId: string, paymentDate?: string, customAmount?: number, paymentMethodId?: string | null) => void;
@@ -57,7 +58,18 @@ interface DueItem {
   loan: Loan;
 }
 
-export function BillingCalendar({ loans, payments, installmentSchedules, onPayment, onPartialPayment, onFullPayment, onInterestPayment, onUpdate, readOnly = false }: Props) {
+interface SaleDueItem {
+  kind: "sale" | "vehicle";
+  saleId: string;
+  customerName: string;
+  description: string;
+  installmentNumber: number;
+  totalInstallments: number;
+  amount: number;
+  date: string;
+}
+
+export function BillingCalendar({ loans, payments, installmentSchedules, sales = [], onPayment, onPartialPayment, onFullPayment, onInterestPayment, onUpdate, readOnly = false }: Props) {
   const { mask } = useHideValues();
   const formatCurrency = useCallback((v: number) => mask(rawFormatCurrency(v)), [mask]);
   const today = new Date();
@@ -127,6 +139,58 @@ export function BillingCalendar({ loans, payments, installmentSchedules, onPayme
     return map;
   }, [loans, payments, installmentSchedules]);
 
+  // Map of date -> sale/vehicle pending installments
+  const salesDueMap = useMemo(() => {
+    const map: Record<string, SaleDueItem[]> = {};
+    const addDays = (d: Date, n: number) => { const x = new Date(d); x.setDate(x.getDate() + n); return x; };
+    const addByFrequency = (d: Date, freq: string, n: number) => {
+      if (["Diário", "Diária", "Diario", "Diaria", "daily"].includes(freq)) return addDays(d, n);
+      if (freq === "Semanal") return addDays(d, n * 7);
+      if (freq === "Quinzenal") return addDays(d, n * 15);
+      const x = new Date(d); x.setMonth(x.getMonth() + n); return x;
+    };
+
+    sales.forEach((sale) => {
+      const isRecorrente = sale.paymentMode === "recorrente";
+      const totalInst = isRecorrente ? Math.max(1, sale.installments || 1) : 1;
+      if (sale.paidInstallments >= totalInst) return;
+      const baseDate = new Date(sale.date + "T00:00:00");
+      const kind: "sale" | "vehicle" = sale.businessType === "aluguel_veiculo" ? "vehicle" : "sale";
+
+      for (let i = sale.paidInstallments; i < totalInst; i++) {
+        const customDate = sale.installmentDates && sale.installmentDates[i];
+        const due = customDate
+          ? new Date(customDate + "T00:00:00")
+          : (isRecorrente ? addByFrequency(baseDate, sale.frequency || "Mensal", i) : baseDate);
+        const dateStr = formatLocalDate(due);
+
+        let amount = 0;
+        if (sale.installmentAmounts && sale.installmentAmounts[i] != null) {
+          amount = Number(sale.installmentAmounts[i]) || 0;
+        } else if (sale.installmentValue && sale.installmentValue > 0) {
+          amount = sale.installmentValue;
+        } else {
+          const base = Math.max(0, (sale.total || 0) - (sale.downPayment || 0));
+          amount = isRecorrente ? base / totalInst : base;
+        }
+
+        if (!map[dateStr]) map[dateStr] = [];
+        map[dateStr].push({
+          kind,
+          saleId: sale.id,
+          customerName: sale.customerName || "—",
+          description: sale.description || sale.productName || "Venda",
+          installmentNumber: i + 1,
+          totalInstallments: totalInst,
+          amount,
+          date: dateStr,
+        });
+      }
+    });
+
+    return map;
+  }, [sales]);
+
   // Calendar grid
   const firstDay = new Date(year, month, 1);
   const lastDay = new Date(year, month + 1, 0);
@@ -163,6 +227,7 @@ export function BillingCalendar({ loans, payments, installmentSchedules, onPayme
   };
 
   const selectedItems = selectedDate ? (dueMap[selectedDate] || []) : [];
+  const selectedSaleItems = selectedDate ? (salesDueMap[selectedDate] || []) : [];
   const overdueSelected = selectedItems.filter((i) => i.date < todayStr);
   const upcomingSelected = selectedItems.filter((i) => i.date >= todayStr);
 
@@ -484,9 +549,10 @@ export function BillingCalendar({ loans, payments, installmentSchedules, onPayme
               if (day === null) return <div key={`empty-${idx}`} />;
               const dateStr = `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
               const items = dueMap[dateStr] || [];
+              const saleItems = salesDueMap[dateStr] || [];
               const isToday = dateStr === todayStr;
               const isSelected = dateStr === selectedDate;
-              const hasDue = items.length > 0;
+              const hasDue = items.length > 0 || saleItems.length > 0;
               const isOverdue = dateStr < todayStr && hasDue;
               const isUpcoming = dateStr >= todayStr && hasDue;
 
@@ -547,11 +613,56 @@ export function BillingCalendar({ loans, payments, installmentSchedules, onPayme
                 })}
               </h3>
 
-              {sortedSelectedItems.length === 0 ? (
-                <p className="text-sm text-muted-foreground">Nenhum contrato a receber nesta data.</p>
+              {sortedSelectedItems.length === 0 && selectedSaleItems.length === 0 ? (
+                <p className="text-sm text-muted-foreground">Nenhuma parcela a receber nesta data.</p>
               ) : (
                 <div className="space-y-3 animate-fade-in">
                   {sortedSelectedItems.map((item) => renderItemWithActions(item, item.date < todayStr))}
+
+                  {selectedSaleItems.length > 0 && (
+                    <div className="space-y-2">
+                      <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground pt-1">
+                        Vendas e Veículos
+                      </p>
+                      {selectedSaleItems
+                        .slice()
+                        .sort((a, b) => b.amount - a.amount)
+                        .map((s) => {
+                          const isOverdue = s.date < todayStr;
+                          const Icon = s.kind === "vehicle" ? Car : ShoppingBag;
+                          return (
+                            <div
+                              key={`${s.kind}-${s.saleId}-${s.installmentNumber}`}
+                              className={`flex items-center justify-between gap-2 rounded-lg border p-3 ${
+                                isOverdue ? "bg-destructive/5 border-destructive/20" : "bg-muted/30 border-border/40"
+                              }`}
+                            >
+                              <div className="flex items-center gap-3 min-w-0">
+                                <div className={`h-8 w-8 rounded-full flex items-center justify-center shrink-0 ${
+                                  isOverdue ? "bg-destructive/10 text-destructive" : "bg-primary/10 text-primary"
+                                }`}>
+                                  <Icon className="h-4 w-4" />
+                                </div>
+                                <div className="min-w-0">
+                                  <p className="text-sm font-medium text-foreground truncate">{s.customerName}</p>
+                                  <p className="text-xs text-muted-foreground truncate">
+                                    {s.description} · Parcela {s.installmentNumber}/{s.totalInstallments}
+                                  </p>
+                                </div>
+                              </div>
+                              <div className="text-right shrink-0">
+                                <p className={`text-sm font-bold ${isOverdue ? "text-destructive" : "text-foreground"}`}>
+                                  {formatCurrency(s.amount)}
+                                </p>
+                                <Badge variant="outline" className="text-[10px]">
+                                  {s.kind === "vehicle" ? "Veículo" : "Venda"}
+                                </Badge>
+                              </div>
+                            </div>
+                          );
+                        })}
+                    </div>
+                  )}
 
                   {/* Total */}
                   <div className="flex items-center justify-between pt-2 border-t mt-2">
@@ -559,7 +670,10 @@ export function BillingCalendar({ loans, payments, installmentSchedules, onPayme
                       <DollarSign className="h-4 w-4" /> Total a cobrar
                     </div>
                     <p className="text-sm font-bold text-foreground">
-                      {formatCurrency(sortedSelectedItems.reduce((s, i) => s + i.amount, 0))}
+                      {formatCurrency(
+                        sortedSelectedItems.reduce((s, i) => s + i.amount, 0) +
+                        selectedSaleItems.reduce((s, i) => s + i.amount, 0)
+                      )}
                     </p>
                   </div>
                 </div>
