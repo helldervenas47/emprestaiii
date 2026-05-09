@@ -107,7 +107,7 @@ export function TelegramBotsManager() {
     setLoading(false);
   };
 
-  useEffect(() => { load(); loadConnected(); }, []);
+  useEffect(() => { if (isAdmin) load(); else setLoading(false); loadConnected(); }, [isAdmin]);
 
   const openAdd = () => {
     setEditing(null);
