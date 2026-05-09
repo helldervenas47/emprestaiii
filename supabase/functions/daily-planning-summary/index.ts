@@ -195,9 +195,7 @@ async function buildAndSend(
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
-  const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY")!;
-  const TELEGRAM_API_KEY = Deno.env.get("TELEGRAM_API_KEY_1")!;
-  const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
+  const SUPABASE_URL_VAL = Deno.env.get("SUPABASE_URL")!;
   const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
   const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
