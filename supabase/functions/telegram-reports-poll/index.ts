@@ -140,7 +140,7 @@ async function processBot(
         }
         const expiresAt = new Date(Date.now() + 15 * 60 * 1000).toISOString();
         const { error: insErr } = await supabase.from("telegram_bots").insert({
-          bot_code: botCode, kind: "reports", chat_id: chatId, expires_at: expiresAt,
+          bot_code: botCode, kind: "reports", chat_id: chatId, bot_id: bot.id, expires_at: expiresAt,
         });
         if (insErr) {
           console.error("[reports-poll] insert telegram_bots failed", insErr);
@@ -184,7 +184,7 @@ Deno.serve(async () => {
     .from("system_telegram_bots")
     .select("id, token, bot_username, update_offset, purpose, active")
     .eq("active", true)
-    .in("purpose", ["reports", "general"]);
+    .eq("purpose", "reports");
 
   if (error) {
     console.error("[reports-poll] failed to list bots", error);

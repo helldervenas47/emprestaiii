@@ -11,7 +11,7 @@ export interface ReportsBot {
 }
 
 /**
- * Returns the active GLOBAL "reports" bot (or a "general" bot as fallback).
+ * Returns the active GLOBAL "reports" bot.
  * The same bot is shared by every account in the system.
  */
 export async function getReportsBot(supabase: any): Promise<ReportsBot | null> {
@@ -19,7 +19,7 @@ export async function getReportsBot(supabase: any): Promise<ReportsBot | null> {
     .from("system_telegram_bots")
     .select("id, token, name, bot_username, purpose")
     .eq("active", true)
-    .in("purpose", ["reports", "general"]);
+    .eq("purpose", "reports");
 
   if (error) {
     console.error("[getReportsBot] query error", error);
@@ -27,8 +27,7 @@ export async function getReportsBot(supabase: any): Promise<ReportsBot | null> {
   }
   if (!data?.length) return null;
 
-  const reports = (data as any[]).find((b) => b.purpose === "reports");
-  const chosen = reports ?? (data as any[])[0];
+  const chosen = (data as any[])[0];
   if (!chosen?.token) return null;
   return {
     id: chosen.id,
@@ -92,9 +91,9 @@ export async function tgDirectSend(
 }
 
 /**
- * Resolves the bot that the given chat was linked through (via /code).
- * Looks up telegram_reports_links.bot_id first, then telegram_links.bot_id
- * as fallback. Returns null if no link or no active bot is found.
+ * Resolves the reports bot that the given chat was linked through (via /code).
+ * Only telegram_reports_links is considered here; reports must never fall back
+ * to the expenses link, even if both links share the same chat_id.
  */
 export async function getBotForChat(
   supabase: any,
@@ -111,25 +110,15 @@ export async function getBotForChat(
     .eq("chat_id", numericChat)
     .maybeSingle();
 
-  let botId: string | null = (rLink as any)?.bot_id ?? null;
-
-  if (!botId) {
-    const { data: eLink } = await supabase
-      .from("telegram_links")
-      .select("bot_id")
-      .eq("user_id", userId)
-      .eq("chat_id", numericChat)
-      .maybeSingle();
-    botId = (eLink as any)?.bot_id ?? null;
-  }
+  const botId: string | null = (rLink as any)?.bot_id ?? null;
 
   if (botId) {
     const { data: bot } = await supabase
       .from("system_telegram_bots")
-      .select("id, token, name, bot_username, active")
+      .select("id, token, name, bot_username, active, purpose")
       .eq("id", botId)
       .maybeSingle();
-    if (bot && (bot as any).active && (bot as any).token) {
+    if (bot && (bot as any).active && (bot as any).purpose === "reports" && (bot as any).token) {
       return {
         id: (bot as any).id,
         token: (bot as any).token,
