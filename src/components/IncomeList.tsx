@@ -183,7 +183,10 @@ export function IncomeList({ readOnly }: Props) {
       />
 
       <PiggyBanksSummaryCard readOnly={readOnly} />
-      <IncomePendingCalendar incomes={incomes.filter((i) => i.source !== "Ajuste manual")} />
+      <IncomePendingCalendar
+        incomes={incomes.filter((i) => i.source !== "Ajuste manual")}
+        expenses={expenses}
+      />
       <IncomeDashboard
         incomes={incomes.filter(
           (i) =>
