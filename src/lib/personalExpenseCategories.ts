@@ -2,7 +2,7 @@ import {
   Home, UtensilsCrossed, Car, HeartPulse, GraduationCap, Gamepad2,
   ShoppingBag, Receipt, CreditCard, Repeat, PawPrint, Gift, Package,
   Plane, Dumbbell, Music, Film, Book, Coffee, Wrench, Smartphone,
-  Wifi, Zap, Droplet, Briefcase, Baby, Sparkles, Hammer, Heart,
+  Wifi, Zap, Droplet, Briefcase, Baby, Sparkles, Hammer, Heart, Fuel,
   type LucideIcon,
 } from "lucide-react";
 
