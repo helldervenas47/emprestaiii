@@ -92,21 +92,81 @@ export async function tgDirectSend(
 }
 
 /**
- * Combined helper: looks up the global reports bot and sends a message
- * to the given chat. Returns false (with logged reason) if no bot is configured.
+ * Resolves the bot that the given chat was linked through (via /code).
+ * Looks up telegram_reports_links.bot_id first, then telegram_links.bot_id
+ * as fallback. Returns null if no link or no active bot is found.
+ */
+export async function getBotForChat(
+  supabase: any,
+  userId: string,
+  chatId: number | string,
+): Promise<ReportsBot | null> {
+  const numericChat = Number(chatId);
+
+  // Prefer the reports link for this user+chat
+  const { data: rLink } = await supabase
+    .from("telegram_reports_links")
+    .select("bot_id")
+    .eq("user_id", userId)
+    .eq("chat_id", numericChat)
+    .maybeSingle();
+
+  let botId: string | null = (rLink as any)?.bot_id ?? null;
+
+  if (!botId) {
+    const { data: eLink } = await supabase
+      .from("telegram_links")
+      .select("bot_id")
+      .eq("user_id", userId)
+      .eq("chat_id", numericChat)
+      .maybeSingle();
+    botId = (eLink as any)?.bot_id ?? null;
+  }
+
+  if (botId) {
+    const { data: bot } = await supabase
+      .from("system_telegram_bots")
+      .select("id, token, name, bot_username, active")
+      .eq("id", botId)
+      .maybeSingle();
+    if (bot && (bot as any).active && (bot as any).token) {
+      return {
+        id: (bot as any).id,
+        token: (bot as any).token,
+        name: (bot as any).name,
+        bot_username: (bot as any).bot_username,
+      };
+    }
+  }
+  return null;
+}
+
+/**
+ * Combined helper: routes the message through the SAME bot the user linked
+ * with /code (resolved via chat_id). Falls back to the default global reports
+ * bot only if the link has no bot_id (legacy rows).
  */
 export async function sendReportsMessage(
   supabase: any,
-  _userId: string,
+  userId: string,
   chatId: number | string,
   text: string,
   opts?: { parse_mode?: "Markdown" | "HTML" },
 ): Promise<{ sent: boolean; reason?: string }> {
-  const bot = await getReportsBot(supabase);
+  let bot = await getBotForChat(supabase, userId, chatId);
+  if (!bot) {
+    bot = await getReportsBot(supabase);
+    if (bot) {
+      console.warn(
+        `[reports-bot] No bot_id on link for user=${userId} chat=${chatId}; ` +
+          `falling back to default global reports bot=${bot.id}`,
+      );
+    }
+  }
   if (!bot) {
     console.warn(
-      "[reports-bot] No active GLOBAL reports bot configured. " +
-        "Ask an admin to register one in Settings → Bots do Telegram.",
+      "[reports-bot] No bot resolved for chat and no GLOBAL reports bot configured. " +
+        "Ask the user to /code again, or an admin to register a bot.",
     );
     return { sent: false, reason: "no_reports_bot_configured" };
   }
