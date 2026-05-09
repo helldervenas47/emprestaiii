@@ -1,6 +1,6 @@
 import { useState, useMemo, useCallback } from "react";
 import { useHideValues } from "@/contexts/HideValuesContext";
-import { Loan, Payment, InstallmentSchedule } from "@/types/loan";
+import { Loan, Payment, InstallmentSchedule, Sale } from "@/types/loan";
 import { calculateInstallment, calculateTotalWithInterest } from "@/hooks/useLoans";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
