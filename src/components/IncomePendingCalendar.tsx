@@ -595,21 +595,31 @@ export function IncomePendingCalendar({
                         {formatCurrency(selectedInfo.totalExpense)}
                       </span>
                     </div>
-                    {expenseByCat.length === 0 ? (
+                    {dayExpenseItems.length === 0 ? (
                       <p className="text-[11px] text-muted-foreground italic px-1">Sem despesas neste dia.</p>
                     ) : (
                       <ul className="space-y-1">
-                        {expenseByCat.map(([cat, val]) => (
-                          <li
-                            key={`exp-${cat}`}
-                            className="flex items-center justify-between gap-2 rounded-md bg-rose-500/5 border border-rose-500/20 px-2.5 py-1.5"
-                          >
-                            <span className="text-xs text-foreground truncate">{cat}</span>
-                            <span className="text-xs font-semibold text-rose-700 dark:text-rose-400 tabular-nums shrink-0">
-                              {formatCurrency(val)}
-                            </span>
-                          </li>
-                        ))}
+                        {dayExpenseItems.map((ex) => {
+                          const isPaid = !!ex.paid;
+                          return (
+                            <li
+                              key={`exp-${ex.id}`}
+                              className="flex items-center justify-between gap-2 rounded-md bg-rose-500/5 border border-rose-500/20 px-2.5 py-1.5"
+                            >
+                              <span className="flex items-center gap-2 min-w-0">
+                                <span
+                                  aria-label={isPaid ? "Paga" : "Pendente"}
+                                  title={isPaid ? "Paga" : "Pendente"}
+                                  className={`h-2 w-2 rounded-full shrink-0 ${isPaid ? "bg-emerald-500" : "bg-rose-500"}`}
+                                />
+                                <span className="text-xs text-foreground truncate">{ex.description}</span>
+                              </span>
+                              <span className="text-xs font-semibold text-rose-700 dark:text-rose-400 tabular-nums shrink-0">
+                                {formatCurrency(Number(ex.amount) || 0)}
+                              </span>
+                            </li>
+                          );
+                        })}
                       </ul>
                     )}
                   </section>
