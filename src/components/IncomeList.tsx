@@ -214,7 +214,7 @@ export function IncomeList({ readOnly }: Props) {
             <div className="text-[11px] text-muted-foreground leading-none">
               {statusFilter === "all" && "Total"}
               {statusFilter === "received" && "Total recebido"}
-              {statusFilter === "pending" && "Total pendente"}
+              {statusFilter === "pending" && "Total a receber"}
               {statusFilter === "overdue" && "Total vencido"}
               {statusFilter === "pending_all" && "Total a receber"}
             </div>
