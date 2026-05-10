@@ -3237,7 +3237,7 @@ Deno.serve(async (req) => {
 
                 const basePayload: Record<string, any> = {
                   user_id: link.user_id,
-                  description: extracted.description || text.slice(0, 80),
+                  description: capitalizeFirst(extracted.description || text.slice(0, 80)),
                   amount: extracted.amount,
                   category: nonVehicleCategory(finalCategory),
                   type: installmentsN ? "recorrente" : "fixa",
