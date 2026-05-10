@@ -27,12 +27,13 @@ function getCycleForRef(ref: Date, closingDay: number, dueDay: number) {
   const m = ref.getMonth();
   const day = ref.getDate();
   const closingThis = new Date(y, m, Math.min(closingDay, new Date(y, m + 1, 0).getDate()));
+  // Compras feitas no dia do fechamento (ou depois) entram no próximo ciclo.
   const closingNext =
-    day > closingDay
+    day >= closingDay
       ? new Date(y, m + 1, Math.min(closingDay, new Date(y, m + 2, 0).getDate()))
       : closingThis;
   const closingPrev =
-    day > closingDay
+    day >= closingDay
       ? closingThis
       : new Date(y, m - 1, Math.min(closingDay, new Date(y, m, 0).getDate()));
   const dueMonth = dueDay > closingDay ? closingNext.getMonth() : closingNext.getMonth() + 1;
