@@ -25,7 +25,7 @@ const ClientList = lazy(() => import("@/components/ClientList").then(m => ({ def
 const ProductForm = lazy(() => import("@/components/ProductForm").then(m => ({ default: m.ProductForm })));
 const SaleForm = lazy(() => import("@/components/SaleForm").then(m => ({ default: m.SaleForm })));
 const ProductSalesView = lazy(() => import("@/components/ProductSalesView").then(m => ({ default: m.ProductSalesView })));
-const OverdueLoans = lazy(() => import("@/components/OverdueLoans").then(m => ({ default: m.OverdueLoans })));
+
 const BillingCalendar = lazy(() => import("@/components/BillingCalendar").then(m => ({ default: m.BillingCalendar })));
 const ExpenseForm = lazy(() => import("@/components/ExpenseForm").then(m => ({ default: m.ExpenseForm })));
 const ExpenseList = lazy(() => import("@/components/ExpenseList").then(m => ({ default: m.ExpenseList })));
@@ -48,8 +48,6 @@ const VehicleExpenseForm = lazy(() => import("@/components/VehicleExpenseForm").
 const NotificationSettings = lazy(() => import("@/components/NotificationSettings").then(m => ({ default: m.NotificationSettings })));
 const MonthlyGoalsManager = lazy(() => import("@/components/MonthlyGoalsManager").then(m => ({ default: m.MonthlyGoalsManager })));
 const AccountantReport = lazy(() => import("@/components/AccountantReport").then(m => ({ default: m.AccountantReport })));
-const DailyPlanningReport = lazy(() => import("@/components/DailyPlanningReport").then(m => ({ default: m.DailyPlanningReport })));
-const AccumulatedDelinquencyReport = lazy(() => import("@/components/AccumulatedDelinquencyReport").then(m => ({ default: m.AccumulatedDelinquencyReport })));
 const TelegramBotsHub = lazy(() => import("@/components/TelegramBotsHub").then(m => ({ default: m.TelegramBotsHub })));
 const WhatsappBillingCard = lazy(() => import("@/components/WhatsappBillingCard").then(m => ({ default: m.WhatsappBillingCard })));
 const WhatsappAutoBillingCard = lazy(() => import("@/components/WhatsappAutoBillingCard").then(m => ({ default: m.WhatsappAutoBillingCard })));
