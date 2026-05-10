@@ -166,7 +166,7 @@ export function CreditCardInvoice({ card, onClose, referenceMonth, originRect }:
       })
       .filter((e) => {
         const d = new Date(e.dueDate + "T00:00:00");
-        return d > from && d <= to;
+        return d >= from && d < to;
       });
 
   const items = useMemo(
