@@ -2014,13 +2014,9 @@ Se faltar valor interpret\u00e1vel, retorne confidence baixo (<0.6).`,
 
 async function downloadTelegramFile(fileId: string, lovableKey: string, telegramKey: string): Promise<{ base64: string; filePath: string } | null> {
   try {
-    const fileResp = await fetch(`${GATEWAY_URL}/getFile`, {
+    const fileResp = await fetch(telegramMethodUrl("getFile", telegramKey), {
       method: "POST",
-      headers: {
-        Authorization: `Bearer ${lovableKey}`,
-        "X-Connection-Api-Key": telegramKey,
-        "Content-Type": "application/json",
-      },
+      headers: telegramHeaders(lovableKey, telegramKey),
       body: JSON.stringify({ file_id: fileId }),
     });
     const fileData = await fileResp.json();
@@ -2031,12 +2027,12 @@ async function downloadTelegramFile(fileId: string, lovableKey: string, telegram
     const filePath = fileData.result?.file_path;
     if (!filePath) return null;
 
-    const dl = await fetch(`${GATEWAY_URL}/file/${filePath}`, {
-      headers: {
-        Authorization: `Bearer ${lovableKey}`,
-        "X-Connection-Api-Key": telegramKey,
-      },
-    });
+    const dl = await fetch(
+      isRawTelegramToken(telegramKey)
+        ? `https://api.telegram.org/file/bot${telegramKey}/${filePath}`
+        : `${GATEWAY_URL}/file/${filePath}`,
+      { headers: telegramHeaders(lovableKey, telegramKey, false) },
+    );
     if (!dl.ok) {
       console.error("file download failed", dl.status);
       return null;
