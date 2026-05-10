@@ -205,11 +205,9 @@ export function IncomePendingCalendar({
       if (!d) continue;
       const e = ensure(d);
       e.incomes.push(i);
-      // Apenas receitas efetivamente recebidas entram no saldo realizado.
-      // (Pendentes aparecem no calendário com indicador, mas não somam ao total do dia.)
-      if (i.status === "received") {
-        e.totalIncome += Number(i.amount) || 0;
-      }
+      // Soma tanto recebidas quanto pendentes para o total previsto do dia
+      // (mesma lógica das despesas, que contam mesmo quando ainda não pagas).
+      e.totalIncome += Number(i.amount) || 0;
     }
     for (const ex of personalExpenses) {
       const d = ex.paid && ex.paidDate ? ex.paidDate : ex.dueDate;
