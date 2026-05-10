@@ -351,7 +351,7 @@ export function CreditCardList({ readOnly = false, referenceMonth }: Props) {
         .filter(matchesCard);
       const inCycle = cardExpenses.filter((e) => {
         const d = new Date(e.dueDate + "T00:00:00");
-        return d > cycle.from && d <= cycle.to;
+        return d >= cycle.from && d < cycle.to;
       });
       const transactions = inCycle.reduce((s, e) => {
         const isRec = e.type === "recorrente" && e.installments && e.installments > 1;
