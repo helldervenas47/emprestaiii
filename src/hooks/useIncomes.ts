@@ -231,8 +231,15 @@ export function useIncomes(enabled = true) {
   }, [incomes, addIncome]);
 
   const markReceived = useCallback(async (id: string) => {
-    await updateIncome(id, { status: "received", receivedDate: todayInAppTz() });
-  }, [updateIncome]);
+    const target = incomes.find((i) => i.id === id);
+    const isRecurringOccurrence =
+      !!target && (!!target.parentId || target.recurrence !== "once");
+    // Em séries recorrentes, preservar a data agendada para não colidir com outra ocorrência.
+    const patch: Partial<Income> = isRecurringOccurrence
+      ? { status: "received" }
+      : { status: "received", receivedDate: todayInAppTz() };
+    await updateIncome(id, patch);
+  }, [incomes, updateIncome]);
 
   // Backfill: para receitas recorrentes antigas que ainda não foram expandidas,
   // gera as ocorrências restantes (semanal/quinzenal no mês; mensal/anual no horizonte futuro).
