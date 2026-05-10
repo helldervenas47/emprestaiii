@@ -164,6 +164,8 @@ function buildAccumulatedDelinquencyItems(loans: LoanRow[], schedules: ScheduleR
       continue;
     }
 
+    // Fallback só se aplica a empréstimos sem schedule (ex.: parcela única).
+    if (loanSchedules.length > 0) continue;
     if (loan.due_date >= currentMonthStart) continue;
     if (remainingForLoan <= 0) continue;
 

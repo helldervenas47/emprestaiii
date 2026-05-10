@@ -137,6 +137,8 @@ export const AccumulatedDelinquencyReport = forwardRef<HTMLDivElement, Props>(fu
         return;
       }
 
+      // Fallback só se aplica a empréstimos sem schedule (ex.: parcela única).
+      if (schedules.length > 0) return;
       if (loan.dueDate >= currentMonthStart) return;
       if (remainingForLoan <= 0) return;
 
