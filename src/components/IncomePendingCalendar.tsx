@@ -350,17 +350,15 @@ export function IncomePendingCalendar({
     return runningBalanceMap[prevDs] ?? baseBalance;
   })();
 
-  // Group by category for selected day
-  const groupByCategory = <T extends { category?: string | null; amount: number }>(items: T[]) => {
-    const m = new Map<string, number>();
-    for (const it of items) {
-      const cat = it.category && String(it.category).trim() ? String(it.category) : "Outros";
-      m.set(cat, (m.get(cat) || 0) + (Number(it.amount) || 0));
-    }
-    return Array.from(m.entries()).sort((a, b) => b[1] - a[1]);
-  };
-  const incomeByCat = useMemo(() => groupByCategory(selectedInfo.incomes), [selectedInfo]);
-  const expenseByCat = useMemo(() => groupByCategory(selectedInfo.expenses), [selectedInfo]);
+  // Itens individuais do dia (por descrição), ordenados pelo valor.
+  const dayIncomeItems = useMemo(
+    () => [...selectedInfo.incomes].sort((a, b) => (Number(b.amount) || 0) - (Number(a.amount) || 0)),
+    [selectedInfo],
+  );
+  const dayExpenseItems = useMemo(
+    () => [...selectedInfo.expenses].sort((a, b) => (Number(b.amount) || 0) - (Number(a.amount) || 0)),
+    [selectedInfo],
+  );
 
   return (
     <Card no3d className="animate-fade-in">
