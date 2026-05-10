@@ -895,14 +895,7 @@ function SalesList({ sales, onDeleteSale, onUpdateSale, clients = [], hideOnTrac
     if (categoryFilter === "all") return getSaleCategory(s) !== "paid";
     return getSaleCategory(s) === categoryFilter;
   }).sort((a, b) => {
-    const catA = getSaleCategory(a);
-    const catB = getSaleCategory(b);
-    const isPaidA = catA === "paid";
-    const isPaidB = catB === "paid";
-    // Pagos vão pro final
-    if (isPaidA && !isPaidB) return 1;
-    if (!isPaidA && isPaidB) return -1;
-    // Entre não-pagos, ordena por data de vencimento (mais próximo primeiro)
+    // Sempre ordena por data de vencimento (mais antiga primeiro)
     return getNextDueDate(a).getTime() - getNextDueDate(b).getTime();
   });
 
