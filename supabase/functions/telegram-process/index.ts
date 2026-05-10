@@ -660,12 +660,12 @@ function getCycleForRef(ref: Date, closingDay: number, dueDay: number) {
   const closingThis = new Date(Date.UTC(y, m, Math.min(closingDay, lastDayThis)));
   const lastDayNext = new Date(Date.UTC(y, m + 2, 0)).getUTCDate();
   const closingNext =
-    day > closingDay
+    day >= closingDay
       ? new Date(Date.UTC(y, m + 1, Math.min(closingDay, lastDayNext)))
       : closingThis;
   const lastDayPrev = new Date(Date.UTC(y, m, 0)).getUTCDate();
   const closingPrev =
-    day > closingDay
+    day >= closingDay
       ? closingThis
       : new Date(Date.UTC(y, m - 1, Math.min(closingDay, lastDayPrev)));
   return { from: closingPrev, to: closingNext };
