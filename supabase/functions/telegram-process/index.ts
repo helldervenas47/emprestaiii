@@ -15,6 +15,7 @@ const CATEGORIES = [
 
 // In-memory cache (per-isolate) for chat_id → user_id lookups. TTL 5min.
 const linkCache = new Map<number, { userId: string | null; expires: number }>();
+const botTokenCache = new Map<string, { token: string | null; expires: number }>();
 const LINK_CACHE_TTL_MS = 5 * 60 * 1000;
 
 async function getLinkedUserId(admin: any, chatId: number): Promise<string | null> {
@@ -29,6 +30,51 @@ async function getLinkedUserId(admin: any, chatId: number): Promise<string | nul
 
 function invalidateLinkCache(chatId: number) {
   linkCache.delete(chatId);
+}
+
+async function getExpenseBotTokenForMessage(admin: any, msg: any, fallback: string): Promise<string> {
+  const raw = msg.raw_update as any;
+  const rawBotId = raw?._system_bot_id as string | undefined;
+  const chatId = Number(msg.chat_id);
+  const cacheKey = rawBotId ? `bot:${rawBotId}` : `chat:${chatId}`;
+  const cached = botTokenCache.get(cacheKey);
+  if (cached && cached.expires > Date.now()) return cached.token || fallback;
+
+  let token: string | null = null;
+  if (rawBotId) {
+    const { data } = await admin
+      .from("system_telegram_bots")
+      .select("token")
+      .eq("id", rawBotId)
+      .eq("purpose", "expenses")
+      .eq("active", true)
+      .maybeSingle();
+    token = (data as any)?.token ?? null;
+  }
+
+  if (!token) {
+    const { data: link } = await admin
+      .from("telegram_links")
+      .select("bot_id, system_telegram_bots(token)")
+      .eq("chat_id", chatId)
+      .maybeSingle();
+    token = (link as any)?.system_telegram_bots?.token ?? null;
+  }
+
+  if (!token) {
+    const { data: activeBot } = await admin
+      .from("system_telegram_bots")
+      .select("token")
+      .eq("active", true)
+      .eq("purpose", "expenses")
+      .order("created_at", { ascending: true })
+      .limit(1)
+      .maybeSingle();
+    token = (activeBot as any)?.token ?? null;
+  }
+
+  botTokenCache.set(cacheKey, { token, expires: Date.now() + LINK_CACHE_TTL_MS });
+  return token || fallback;
 }
 
 // Keyword → category mapping for regex pre-parser.
