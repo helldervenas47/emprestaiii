@@ -17,7 +17,7 @@ const CATEGORIES = [
 // bot do Telegram pode ficar nessas categorias — caso contrário apareceria
 // nessa aba. Mapeamos para a categoria não-veicular mais próxima.
 const VEHICLE_CATEGORY_MAP: Record<string, string> = {
-  "Combustível": "Transporte",
+  // "Combustível" intencionalmente fora do mapa: é uma categoria exclusiva da aba Despesas.
   "Manutenção": "Transporte",
   "Seguro": "Contas",
   "IPVA": "Transporte",
