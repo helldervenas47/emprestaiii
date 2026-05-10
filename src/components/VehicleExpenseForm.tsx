@@ -18,6 +18,22 @@ export const vehicleExpenseCategories = [
   "Guincho", "Financiamento", "Outros (Veículo)",
 ];
 
+const normalizeVehicleCategory = (value?: string | null) =>
+  (value ?? "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().toLowerCase();
+
+export const isFuelExpense = (expense: Pick<Expense, "category" | "description" | "notes">) => {
+  const text = normalizeVehicleCategory(`${expense.category} ${expense.description ?? ""} ${expense.notes ?? ""}`);
+  return /\b(combustivel|gasolina|etanol|alcool|diesel|posto|abastec)/i.test(text);
+};
+
+export const isVehicleExpenseCategory = (category?: string | null) => {
+  const normalized = normalizeVehicleCategory(category);
+  return vehicleExpenseCategories.some((c) => normalizeVehicleCategory(c) === normalized);
+};
+
+export const isVehicleExpenseForVehicles = (expense: Pick<Expense, "category" | "description" | "notes">) =>
+  isVehicleExpenseCategory(expense.category) && !isFuelExpense(expense);
+
 interface Props {
   onAdd: (expense: Omit<Expense, "id" | "paid" | "paidDate" | "createdAt">) => void;
   onClose: () => void;
