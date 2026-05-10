@@ -493,34 +493,34 @@ export function ExpenseList({ expenses, onPay, onUnpay, onDelete, onUpdate, read
                       {isRecorrente && expense.installments! < FIXED_RECURRING_INSTALLMENTS && (
                         <p className="text-xs text-muted-foreground">Total: {formatCurrency(expense.amount)} ({expense.installments}x de {formatCurrency(installmentAmount)})</p>
                       )}
-                      <div className="flex items-center justify-between gap-2 mt-2 pt-2 border-t border-border/40 flex-wrap">
+                      <div className="mt-2 pt-2 border-t border-border/40 space-y-2">
                         <p className="text-base sm:text-lg font-bold text-foreground">{formatCurrency(installmentAmount)}</p>
-                        <div className="flex items-center gap-1 flex-wrap justify-end">
-                          <Button size="icon" variant="ghost" onClick={() => setViewDateExpenseId(expense.id)} className="h-7 w-7" title="Ver data de pagamento" aria-label="Ver data de pagamento">
-                            <CalendarCheck className="h-3.5 w-3.5" />
+                        <div className="flex items-center justify-between gap-1">
+                          <Button size="icon" variant="ghost" onClick={() => setViewDateExpenseId(expense.id)} className="h-9 flex-1" title="Ver data de pagamento" aria-label="Ver data de pagamento">
+                            <CalendarCheck className="h-4 w-4" />
                           </Button>
                           {hasPaidSomething && onUpdate && (
-                            <Button size="icon" variant="outline" onClick={() => setViewPaymentsExpenseId(expense.id)} className="h-7 w-7" title="Pagamentos" aria-label="Pagamentos">
-                              <Receipt className="h-3.5 w-3.5" />
+                            <Button size="icon" variant="outline" onClick={() => setViewPaymentsExpenseId(expense.id)} className="h-9 flex-1" title="Pagamentos" aria-label="Pagamentos">
+                              <Receipt className="h-4 w-4" />
                             </Button>
                           )}
                           {!readOnly && !expense.paid && (
-                            <Button size="icon" variant="outline" className="text-success border-success/30 hover:bg-success hover:text-success-foreground h-7 w-7" title="Pagar" aria-label="Pagar" onClick={() => {
+                            <Button size="icon" variant="outline" className="text-success border-success/30 hover:bg-success hover:text-success-foreground h-9 flex-1" title="Pagar" aria-label="Pagar" onClick={() => {
                               setPayDate(todayInAppTz());
                               setPaidAmountInput("");
                               setPayingExpenseId(expense.id);
                             }}>
-                              <CheckCircle className="h-3.5 w-3.5" />
+                              <CheckCircle className="h-4 w-4" />
                             </Button>
                           )}
                           {!readOnly && onUpdate && (
-                            <Button size="icon" variant="ghost" onClick={() => setEditingExpenseId(expense.id)} className="h-7 w-7 text-muted-foreground hover:text-foreground" title="Editar" aria-label="Editar">
-                              <Pencil className="h-3.5 w-3.5" />
+                            <Button size="icon" variant="ghost" onClick={() => setEditingExpenseId(expense.id)} className="h-9 flex-1 text-muted-foreground hover:text-foreground" title="Editar" aria-label="Editar">
+                              <Pencil className="h-4 w-4" />
                             </Button>
                           )}
                           {!readOnly && (
-                          <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive hover:bg-destructive hover:text-destructive-foreground" title="Excluir" aria-label="Excluir" onClick={() => setDeleteExpenseId(expense.id)}>
-                            <Trash2 className="h-3.5 w-3.5" />
+                          <Button size="icon" variant="ghost" className="h-9 flex-1 text-destructive hover:bg-destructive hover:text-destructive-foreground" title="Excluir" aria-label="Excluir" onClick={() => setDeleteExpenseId(expense.id)}>
+                            <Trash2 className="h-4 w-4" />
                           </Button>
                           )}
                         </div>
