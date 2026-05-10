@@ -86,19 +86,21 @@ async function processBot(supabase: any, bot: ExpenseBot, budgetMs: number) {
     const rows = updates
       .map((u: any) => {
         if (u.message) {
+          const rawUpdate = { ...u, _system_bot_id: bot.id };
           return {
             update_id: u.update_id,
             chat_id: u.message.chat.id,
             text: u.message.text ?? u.message.caption ?? null,
-            raw_update: u,
+            raw_update: rawUpdate,
           };
         }
         if (u.callback_query?.message?.chat?.id) {
+          const rawUpdate = { ...u, _system_bot_id: bot.id };
           return {
             update_id: u.update_id,
             chat_id: u.callback_query.message.chat.id,
             text: null,
-            raw_update: u,
+            raw_update: rawUpdate,
           };
         }
         return null;
