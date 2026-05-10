@@ -184,9 +184,10 @@ export function IncomePendingCalendar({
     };
     for (const i of incomes) {
       // Apenas receitas efetivamente recebidas aparecem no calendário,
-      // posicionadas pela data de recebimento.
+      // posicionadas pela data real do recebimento (actualReceivedDate),
+      // com fallback para receivedDate quando ainda não houver registro.
       if (i.status !== "received") continue;
-      const d = i.receivedDate;
+      const d = i.actualReceivedDate || i.receivedDate;
       if (!d) continue;
       const e = ensure(d);
       e.incomes.push(i);
