@@ -204,6 +204,7 @@ export function useIncomes(enabled = true) {
     if (patch.source !== undefined) updatePayload.source = patch.source;
     if (patch.paymentMethodId !== undefined) updatePayload.payment_method_id = patch.paymentMethodId;
     if (patch.receivedDate !== undefined) updatePayload.received_date = patch.receivedDate;
+    if (patch.actualReceivedDate !== undefined) updatePayload.actual_received_date = patch.actualReceivedDate;
     if (patch.status !== undefined) updatePayload.status = patch.status;
     if (patch.notes !== undefined) updatePayload.notes = patch.notes;
     if (patch.recurrence !== undefined) updatePayload.recurrence = patch.recurrence;
