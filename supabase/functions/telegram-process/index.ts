@@ -1211,6 +1211,13 @@ function ymd(d: Date): string {
 
 // Returns today's date in America/Sao_Paulo as YYYY-MM-DD.
 // The Edge runtime is UTC, so toISOString() can return tomorrow after 21:00 BRT.
+/** Capitaliza a primeira letra (preservando acentos), deixando o restante intacto. */
+function capitalizeFirst(s: string | null | undefined): string {
+  const t = (s ?? "").trim();
+  if (!t) return t;
+  return t.charAt(0).toLocaleUpperCase("pt-BR") + t.slice(1);
+}
+
 function todayBR(): string {
   const parts = new Intl.DateTimeFormat("en-CA", {
     timeZone: "America/Sao_Paulo",
@@ -2621,7 +2628,7 @@ Deno.serve(async (req) => {
 
               const basePayload: Record<string, any> = {
                 user_id: link.user_id,
-                description: extracted.description || "Comprovante",
+                description: capitalizeFirst(extracted.description || "Comprovante"),
                 amount: extracted.amount,
                 category: nonVehicleCategory(finalCategory),
                 type: "fixa",
@@ -2729,7 +2736,7 @@ Deno.serve(async (req) => {
 
               const basePayload: Record<string, any> = {
                 user_id: link.user_id,
-                description: extracted.description || transcript.slice(0, 80),
+                description: capitalizeFirst(extracted.description || transcript.slice(0, 80)),
                 amount: extracted.amount,
                 category: nonVehicleCategory(finalCategory),
                 type: installmentsN ? "recorrente" : "fixa",
@@ -3166,7 +3173,7 @@ Deno.serve(async (req) => {
                 const ownerId = await resolvePiggyOwner(admin, link.user_id);
                 const payload: Record<string, any> = {
                   user_id: ownerId,
-                  description: extracted.description || text.slice(0, 80),
+                  description: capitalizeFirst(extracted.description || text.slice(0, 80)),
                   amount: extracted.amount,
                   category,
                   source: extracted.source || "Telegram",
@@ -3230,7 +3237,7 @@ Deno.serve(async (req) => {
 
                 const basePayload: Record<string, any> = {
                   user_id: link.user_id,
-                  description: extracted.description || text.slice(0, 80),
+                  description: capitalizeFirst(extracted.description || text.slice(0, 80)),
                   amount: extracted.amount,
                   category: nonVehicleCategory(finalCategory),
                   type: installmentsN ? "recorrente" : "fixa",
