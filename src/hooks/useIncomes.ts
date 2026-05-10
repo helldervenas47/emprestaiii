@@ -41,6 +41,7 @@ function rowToIncome(r: any): Income {
     source: r.source,
     paymentMethodId: r.payment_method_id,
     receivedDate: r.received_date,
+    actualReceivedDate: r.actual_received_date ?? null,
     status: deriveStatus(persisted, r.received_date),
     notes: r.notes,
     recurrence: r.recurrence,
