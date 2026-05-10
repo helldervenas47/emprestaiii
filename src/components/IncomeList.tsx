@@ -98,10 +98,8 @@ export function IncomeList({ readOnly }: Props) {
       const carriedOver = !belongsToRecurringSeries && i.status !== "received" && i.receivedDate < monthKey + "-01";
       if (!inMonth && !carriedOver) return false;
       
-      if (statusFilter === "pending_all") {
+      if (statusFilter === "pending_all" || statusFilter === "pending") {
         if (i.status !== "pending" && i.status !== "overdue") return false;
-      } else if (statusFilter === "pending") {
-        if (i.status !== "pending") return false;
       } else if (statusFilter === "overdue") {
         if (i.status !== "overdue") return false;
       } else if (statusFilter === "received") {
