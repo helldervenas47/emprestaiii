@@ -53,7 +53,7 @@ export function IncomeList({ readOnly }: Props) {
   const { activeMethods } = usePaymentMethods();
 
   const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [statusFilter, setStatusFilter] = useState<string>("pending");
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
   const [sortBy, setSortBy] = useState<"date" | "amount">("date");
   const [formOpen, setFormOpen] = useState(false);
@@ -100,7 +100,15 @@ export function IncomeList({ readOnly }: Props) {
       
       if (statusFilter === "pending_all") {
         if (i.status !== "pending" && i.status !== "overdue") return false;
-      } else if (statusFilter !== "all" && i.status !== statusFilter) return false;
+      } else if (statusFilter === "pending") {
+        if (i.status !== "pending") return false;
+      } else if (statusFilter === "overdue") {
+        if (i.status !== "overdue") return false;
+      } else if (statusFilter === "received") {
+        if (i.status !== "received") return false;
+      } else if (statusFilter !== "all") {
+        if (i.status !== statusFilter) return false;
+      }
       if (categoryFilter !== "all" && (i.category || "Outros") !== categoryFilter) return false;
       if (search.trim()) {
         const q = search.toLowerCase();
@@ -202,16 +210,33 @@ export function IncomeList({ readOnly }: Props) {
         monthKey={monthKey}
       />
       <Card no3d className="p-4">
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center justify-between mb-3 gap-2 flex-wrap">
           <h2 className="text-lg font-semibold">Receitas ({filtered.length})</h2>
+          <div className="text-right">
+            <div className="text-[11px] text-muted-foreground leading-none">
+              {statusFilter === "all" && "Total"}
+              {statusFilter === "received" && "Total recebido"}
+              {statusFilter === "pending" && "Total pendente"}
+              {statusFilter === "overdue" && "Total vencido"}
+              {statusFilter === "pending_all" && "Total a receber"}
+            </div>
+            <div className={`text-base font-bold ${
+              statusFilter === "received" ? "text-emerald-600 dark:text-emerald-400" :
+              statusFilter === "overdue" ? "text-rose-600 dark:text-rose-400" :
+              statusFilter === "pending" ? "text-amber-600 dark:text-amber-400" :
+              "text-foreground"
+            }`}>
+              {fmtBRL(filtered.reduce((s, i) => s + i.amount, 0))}
+            </div>
+          </div>
         </div>
 
-        <div className="flex w-full gap-2 mb-3">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3">
           <Button
             type="button"
             size="sm"
             variant={statusFilter === "all" ? "default" : "outline"}
-            className="h-9 rounded-full flex-1 min-w-0"
+            className="h-9 rounded-full min-w-0"
             onClick={() => setStatusFilter("all")}
           >
             Todas
@@ -219,20 +244,29 @@ export function IncomeList({ readOnly }: Props) {
           <Button
             type="button"
             size="sm"
-            variant={statusFilter === "received" ? "default" : "outline"}
-            className="h-9 rounded-full flex-1 min-w-0 gap-1.5"
-            onClick={() => setStatusFilter("received")}
+            variant={statusFilter === "pending" ? "default" : "outline"}
+            className="h-9 rounded-full min-w-0 gap-1.5"
+            onClick={() => setStatusFilter("pending")}
           >
-            <CheckCircle2 className="h-3.5 w-3.5" /> Pagas
+            <Clock className="h-3.5 w-3.5" /> Pendentes
           </Button>
           <Button
             type="button"
             size="sm"
-            variant={statusFilter === "pending_all" ? "default" : "outline"}
-            className="h-9 rounded-full flex-1 min-w-0 gap-1.5"
-            onClick={() => setStatusFilter("pending_all")}
+            variant={statusFilter === "overdue" ? "default" : "outline"}
+            className="h-9 rounded-full min-w-0 gap-1.5"
+            onClick={() => setStatusFilter("overdue")}
           >
-            <Clock className="h-3.5 w-3.5" /> Pendentes
+            <AlertTriangle className="h-3.5 w-3.5" /> Vencidas
+          </Button>
+          <Button
+            type="button"
+            size="sm"
+            variant={statusFilter === "received" ? "default" : "outline"}
+            className="h-9 rounded-full min-w-0 gap-1.5"
+            onClick={() => setStatusFilter("received")}
+          >
+            <CheckCircle2 className="h-3.5 w-3.5" /> Pagas
           </Button>
         </div>
 
