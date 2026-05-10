@@ -55,7 +55,7 @@ const WhatsappAssistantCard = lazy(() => import("@/components/WhatsappAssistantC
 const Settings = lazy(() => import("@/components/Settings").then(m => ({ default: m.Settings })));
 const SystemHealth = lazy(() => import("@/components/SystemHealth").then(m => ({ default: m.SystemHealth })));
 // Direct import for the constant used at render time
-import { vehicleExpenseCategories } from "@/components/VehicleExpenseForm";
+import { isVehicleExpenseForVehicles } from "@/components/VehicleExpenseForm";
 import { PushNotificationToggle } from "@/components/PushNotificationToggle";
 
 import { NotificationsFeedButton } from "@/components/NotificationsFeedButton";
@@ -363,7 +363,7 @@ const Index = () => {
       })
     : sales;
 
-  const nonVehicleExpenses = expenses.filter(e => !vehicleExpenseCategories.includes(e.category));
+  const nonVehicleExpenses = expenses.filter(e => !isVehicleExpenseForVehicles(e));
   const businessExpenses = nonVehicleExpenses.filter(e => (e.scope ?? "business") === "business");
   const personalExpenses = expenses.filter(e => e.scope === "personal");
   const [showLoanForm, setShowLoanForm] = useState(false);
@@ -735,7 +735,7 @@ const Index = () => {
         <Suspense fallback={<div className="flex justify-center py-12"><div className="animate-spin h-8 w-8 border-2 border-primary border-t-transparent rounded-full" /></div>}>
         {tab === "overview" && (
           <SubscriptionGate requiredTier={1} featureName="Dashboard">
-          <DashboardOverview loans={filteredLoans} sales={filteredSales} payments={filteredPayments} expenses={expenses.filter(e => (e.scope ?? "business") === "business" && !vehicleExpenseCategories.includes(e.category))} installmentSchedules={filteredInstallments} clients={clients} onDeletePayment={deletePayment} onDeleteSale={deleteSale} onDeleteLoan={deleteLoan} readOnly={isReadOnly} />
+          <DashboardOverview loans={filteredLoans} sales={filteredSales} payments={filteredPayments} expenses={expenses.filter(e => (e.scope ?? "business") === "business" && !isVehicleExpenseForVehicles(e))} installmentSchedules={filteredInstallments} clients={clients} onDeletePayment={deletePayment} onDeleteSale={deleteSale} onDeleteLoan={deleteLoan} readOnly={isReadOnly} />
           </SubscriptionGate>
         )}
         {tab === "dashboard" && (
