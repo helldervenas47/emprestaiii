@@ -1590,33 +1590,27 @@ async function tgEditMessage(chatId: number, messageId: number, text: string, ke
 }
 
 async function tgEditReplyMarkup(chatId: number, messageId: number, keyboard: any, lovableKey: string, telegramKey: string) {
-  await fetch(`${GATEWAY_URL}/editMessageReplyMarkup`, {
+  const r = await fetch(telegramMethodUrl("editMessageReplyMarkup", telegramKey), {
     method: "POST",
-    headers: {
-      Authorization: `Bearer ${lovableKey}`,
-      "X-Connection-Api-Key": telegramKey,
-      "Content-Type": "application/json",
-    },
+    headers: telegramHeaders(lovableKey, telegramKey),
     body: JSON.stringify({
       chat_id: chatId,
       message_id: messageId,
       reply_markup: { inline_keyboard: keyboard },
     }),
-  }).catch((e) => console.error("editReplyMarkup err", e));
+  }).catch((e) => ({ ok: false, status: 0, text: async () => String(e) } as Response));
+  if (!r.ok) console.error("editReplyMarkup err", r.status, await r.text().catch(() => ""));
 }
 
 async function tgAnswerCallback(callbackId: string, text: string | undefined, lovableKey: string, telegramKey: string) {
   const body: any = { callback_query_id: callbackId };
   if (text) body.text = text;
-  await fetch(`${GATEWAY_URL}/answerCallbackQuery`, {
+  const r = await fetch(telegramMethodUrl("answerCallbackQuery", telegramKey), {
     method: "POST",
-    headers: {
-      Authorization: `Bearer ${lovableKey}`,
-      "X-Connection-Api-Key": telegramKey,
-      "Content-Type": "application/json",
-    },
+    headers: telegramHeaders(lovableKey, telegramKey),
     body: JSON.stringify(body),
-  }).catch((e) => console.error("answerCb err", e));
+  }).catch((e) => ({ ok: false, status: 0, text: async () => String(e) } as Response));
+  if (!r.ok) console.error("answerCb err", r.status, await r.text().catch(() => ""));
 }
 
 function buildExpenseKeyboard(expenseId: string) {
