@@ -1536,47 +1536,57 @@ async function checkBudgetAndAlert(
   }
 }
 
+function isRawTelegramToken(key: string) {
+  return /^\d+:[A-Za-z0-9_-]{20,}$/.test(key);
+}
+
+function telegramMethodUrl(method: string, telegramKey: string) {
+  return isRawTelegramToken(telegramKey)
+    ? `https://api.telegram.org/bot${telegramKey}/${method}`
+    : `${GATEWAY_URL}/${method}`;
+}
+
+function telegramHeaders(lovableKey: string, telegramKey: string, json = true) {
+  const headers: Record<string, string> = json ? { "Content-Type": "application/json" } : {};
+  if (!isRawTelegramToken(telegramKey)) {
+    headers.Authorization = `Bearer ${lovableKey}`;
+    headers["X-Connection-Api-Key"] = telegramKey;
+  }
+  return headers;
+}
+
 async function tgSend(chatId: number, text: string, lovableKey: string, telegramKey: string) {
-  await fetch(`${GATEWAY_URL}/sendMessage`, {
+  const r = await fetch(telegramMethodUrl("sendMessage", telegramKey), {
     method: "POST",
-    headers: {
-      Authorization: `Bearer ${lovableKey}`,
-      "X-Connection-Api-Key": telegramKey,
-      "Content-Type": "application/json",
-    },
+    headers: telegramHeaders(lovableKey, telegramKey),
     body: JSON.stringify({ chat_id: chatId, text, parse_mode: "Markdown" }),
-  }).catch((e) => console.error("sendMessage err", e));
+  }).catch((e) => ({ ok: false, status: 0, text: async () => String(e) } as Response));
+  if (!r.ok) console.error("sendMessage err", r.status, await r.text().catch(() => ""));
 }
 
 async function tgSendWithKeyboard(chatId: number, text: string, keyboard: any, lovableKey: string, telegramKey: string) {
-  await fetch(`${GATEWAY_URL}/sendMessage`, {
+  const r = await fetch(telegramMethodUrl("sendMessage", telegramKey), {
     method: "POST",
-    headers: {
-      Authorization: `Bearer ${lovableKey}`,
-      "X-Connection-Api-Key": telegramKey,
-      "Content-Type": "application/json",
-    },
+    headers: telegramHeaders(lovableKey, telegramKey),
     body: JSON.stringify({
       chat_id: chatId,
       text,
       parse_mode: "Markdown",
       reply_markup: { inline_keyboard: keyboard },
     }),
-  }).catch((e) => console.error("sendMessage kb err", e));
+  }).catch((e) => ({ ok: false, status: 0, text: async () => String(e) } as Response));
+  if (!r.ok) console.error("sendMessage kb err", r.status, await r.text().catch(() => ""));
 }
 
 async function tgEditMessage(chatId: number, messageId: number, text: string, keyboard: any | null, lovableKey: string, telegramKey: string) {
   const body: any = { chat_id: chatId, message_id: messageId, text, parse_mode: "Markdown" };
   if (keyboard) body.reply_markup = { inline_keyboard: keyboard };
-  await fetch(`${GATEWAY_URL}/editMessageText`, {
+  const r = await fetch(telegramMethodUrl("editMessageText", telegramKey), {
     method: "POST",
-    headers: {
-      Authorization: `Bearer ${lovableKey}`,
-      "X-Connection-Api-Key": telegramKey,
-      "Content-Type": "application/json",
-    },
+    headers: telegramHeaders(lovableKey, telegramKey),
     body: JSON.stringify(body),
-  }).catch((e) => console.error("editMessage err", e));
+  }).catch((e) => ({ ok: false, status: 0, text: async () => String(e) } as Response));
+  if (!r.ok) console.error("editMessage err", r.status, await r.text().catch(() => ""));
 }
 
 async function tgEditReplyMarkup(chatId: number, messageId: number, keyboard: any, lovableKey: string, telegramKey: string) {
