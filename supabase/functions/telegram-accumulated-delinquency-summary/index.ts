@@ -232,7 +232,11 @@ function buildTelegramMessage(items: ReportItem[]) {
     lines.push(`Atraso: ${client.maxDaysOverdue} dias`);
 
     for (const item of client.items.slice(0, 5)) {
-      lines.push(`• ${fmtBRL(item.installmentAmount)} • venc. ${item.dueDate.split("-").reverse().join("/")} • ${item.daysOverdue} dias`);
+      const feeParts: string[] = [];
+      if (item.lateInterest > 0) feeParts.push(`juros ${fmtBRL(item.lateInterest)}`);
+      if (item.penalty > 0) feeParts.push(`multa ${fmtBRL(item.penalty)}`);
+      const feeSuffix = feeParts.length > 0 ? ` (base ${fmtBRL(item.baseAmount)} + ${feeParts.join(" + ")})` : "";
+      lines.push(`• ${fmtBRL(item.installmentAmount)} • venc. ${item.dueDate.split("-").reverse().join("/")} • ${item.daysOverdue} dias${feeSuffix}`);
     }
 
     if (client.items.length > 5) {
