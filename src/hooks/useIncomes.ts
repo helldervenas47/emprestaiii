@@ -15,6 +15,7 @@ export interface Income {
   source: string | null;
   paymentMethodId: string | null;
   receivedDate: string;
+  actualReceivedDate: string | null;
   status: IncomeStatus;
   notes: string | null;
   recurrence: IncomeRecurrence;
