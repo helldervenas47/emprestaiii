@@ -7,6 +7,8 @@ import { TrendingUp, TrendingDown, Wallet, AlertTriangle, Send, Loader2 } from "
 import { Loan, Payment, InstallmentSchedule, Sale, Expense } from "@/types/loan";
 import { calculateTotalWithInterest } from "@/hooks/useLoans";
 import { useCreditCards } from "@/hooks/useCreditCards";
+import { useCreditCardOpenings } from "@/hooks/useCreditCardOpenings";
+import { getCardInvoiceTotalsForMonth } from "@/lib/creditCardInvoiceTotals";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
