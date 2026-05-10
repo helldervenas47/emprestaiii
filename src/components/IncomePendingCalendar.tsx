@@ -502,9 +502,8 @@ export function IncomePendingCalendar({
                   {weekDays.map((d) => {
                     const dateStr = formatLocalDate(d);
                     const info = dayMap[dateStr];
-                    const hasIncome = (info?.totalIncome ?? 0) > 0;
-                    const hasExpense = (info?.totalExpense ?? 0) > 0;
-                    const hasMovement = hasIncome || hasExpense;
+                    const status = getDayStatus(info);
+                    const hasMovement = status !== "none";
                     const isToday = dateStr === todayStr;
                     const isSelected = dateStr === selectedDate;
                     return (
@@ -514,10 +513,9 @@ export function IncomePendingCalendar({
                         className={`flex flex-col items-center justify-center rounded-lg p-2 min-h-[60px] text-xs transition-colors
                           ${isSelected ? "bg-primary text-primary-foreground ring-2 ring-primary" : ""}
                           ${isToday && !isSelected ? "bg-accent font-bold" : ""}
-                          ${!isSelected && !isToday && hasMovement && hasIncome && !hasExpense ? "bg-emerald-500/10" : ""}
-                          ${!isSelected && !isToday && hasMovement && hasExpense && !hasIncome ? "bg-rose-500/10" : ""}
-                          ${!isSelected && !isToday && hasIncome && hasExpense ? "bg-amber-500/10" : ""}
-                          ${!isSelected && !isToday && !hasMovement ? "bg-background hover:bg-muted" : ""}
+                          ${!isSelected && !isToday && status === "paid" ? "bg-emerald-500/10" : ""}
+                          ${!isSelected && !isToday && status === "pending" ? "bg-rose-500/10" : ""}
+                          ${!isSelected && !isToday && status === "none" ? "bg-background hover:bg-muted" : ""}
                         `}
                       >
                         <span className={`text-[10px] uppercase ${isSelected ? "text-primary-foreground/80" : "text-muted-foreground"}`}>
@@ -527,14 +525,15 @@ export function IncomePendingCalendar({
                           {d.getDate()}
                         </span>
                         {hasMovement && (
-                          <span className="mt-0.5 flex items-center gap-0.5">
-                            {hasIncome && (
-                              <span className={`h-1.5 w-1.5 rounded-full ${isSelected ? "bg-primary-foreground" : "bg-emerald-500"}`} />
-                            )}
-                            {hasExpense && (
-                              <span className={`h-1.5 w-1.5 rounded-full ${isSelected ? "bg-primary-foreground" : "bg-rose-500"}`} />
-                            )}
-                          </span>
+                          <span
+                            className={`mt-0.5 h-1.5 w-1.5 rounded-full ${
+                              isSelected
+                                ? "bg-primary-foreground"
+                                : status === "paid"
+                                  ? "bg-emerald-500"
+                                  : "bg-rose-500"
+                            }`}
+                          />
                         )}
                       </button>
                     );
