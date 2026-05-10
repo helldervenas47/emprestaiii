@@ -1,30 +1,27 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-const GATEWAY_URL = "https://connector-gateway.lovable.dev/telegram";
 // Keep below the cron interval (≈60s) so consecutive invocations don't overlap
 // and trigger 409 "terminated by other getUpdates" errors.
 const MAX_RUNTIME_MS = 40_000;
 const MIN_REMAINING_MS = 5_000;
-// Short cooldown — 409 usually means another in-flight poll, just let the next
-// cron tick retry instead of blocking polling for 10 minutes.
-const RECOVERY_COOLDOWN_MS = 30_000;
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-// Try to clear any active webhook on the bot. Returns true if Telegram accepted it.
-async function deleteWebhook(lovableKey: string, telegramKey: string): Promise<{ ok: boolean; info: any }> {
+type ExpenseBot = {
+  id: string;
+  token: string;
+  bot_username: string | null;
+  update_offset: number;
+};
+
+async function deleteWebhook(token: string): Promise<{ ok: boolean; info: any }> {
   try {
-    const r = await fetch(`${GATEWAY_URL}/deleteWebhook`, {
+    const r = await fetch(`https://api.telegram.org/bot${token}/deleteWebhook`, {
       method: "POST",
-      headers: {
-        Authorization: `Bearer ${lovableKey}`,
-        "X-Connection-Api-Key": telegramKey,
-        "Content-Type": "application/json",
-      },
-      // Keep pending updates so we don't lose user messages during recovery.
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ drop_pending_updates: false }),
     });
     const info = await r.json().catch(() => ({}));
@@ -34,97 +31,57 @@ async function deleteWebhook(lovableKey: string, telegramKey: string): Promise<{
   }
 }
 
-Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
-
-  const startTime = Date.now();
-  const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-  const TELEGRAM_API_KEY = Deno.env.get("TELEGRAM_API_KEY");
-  const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
-  const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-
-  if (!LOVABLE_API_KEY || !TELEGRAM_API_KEY || !SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
-    return new Response(JSON.stringify({ error: "Missing env" }), { status: 500, headers: corsHeaders });
-  }
-
-  const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
-
-  const { data: state, error: stateErr } = await supabase
-    .from("telegram_bot_state")
-    .select("update_offset, last_webhook_recovery_at, webhook_recovery_count")
-    .eq("id", 1)
-    .single();
-  if (stateErr) return new Response(JSON.stringify({ error: stateErr.message }), { status: 500, headers: corsHeaders });
-
-  let currentOffset: number = (state as any).update_offset;
-  let lastRecoveryAt: number = (state as any).last_webhook_recovery_at
-    ? new Date((state as any).last_webhook_recovery_at).getTime()
-    : 0;
-  let recoveriesThisRun = 0;
+async function processBot(supabase: any, bot: ExpenseBot, budgetMs: number) {
+  const startedAt = Date.now();
+  let currentOffset = Number(bot.update_offset || 0);
+  let recovered = false;
   let totalProcessed = 0;
   let hasNew = false;
 
   while (true) {
-    const elapsed = Date.now() - startTime;
-    const remainingMs = MAX_RUNTIME_MS - elapsed;
+    const remainingMs = budgetMs - (Date.now() - startedAt);
     if (remainingMs < MIN_REMAINING_MS) break;
-    // Cap each long-poll well under runtime budget so we always finish cleanly.
-    const timeout = Math.min(20, Math.floor(remainingMs / 1000) - 5);
+    const timeout = Math.min(20, Math.max(1, Math.floor(remainingMs / 1000) - 5));
     if (timeout < 1) break;
 
-    const resp = await fetch(`${GATEWAY_URL}/getUpdates`, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "X-Connection-Api-Key": TELEGRAM_API_KEY,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ offset: currentOffset, timeout, allowed_updates: ["message", "callback_query"] }),
-    });
+    let resp: Response;
+    try {
+      resp = await fetch(`https://api.telegram.org/bot${bot.token}/getUpdates`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ offset: currentOffset, timeout, allowed_updates: ["message", "callback_query"] }),
+      });
+    } catch (e) {
+      console.error(`[telegram-poll] getUpdates fetch error bot=${bot.id}`, e);
+      break;
+    }
 
     const data = await resp.json().catch(() => ({}));
-
-    // ---------- Auto-recovery: handle 409 Conflict (webhook left active) ----------
-    // Telegram returns either HTTP 409 directly or a body { ok:false, error_code:409, ... }.
     const is409 =
       resp.status === 409 ||
       data?.error_code === 409 ||
       (typeof data?.description === "string" && data.description.includes("terminated by other getUpdates"));
 
     if (!resp.ok || data?.ok === false) {
-      if (is409) {
-        const sinceLast = Date.now() - lastRecoveryAt;
-        if (recoveriesThisRun < 1 && sinceLast > RECOVERY_COOLDOWN_MS) {
-          console.warn("getUpdates 409 detected — attempting auto-recovery via deleteWebhook");
-          const rec = await deleteWebhook(LOVABLE_API_KEY, TELEGRAM_API_KEY);
-          recoveriesThisRun++;
-          lastRecoveryAt = Date.now();
-          await supabase
-            .from("telegram_bot_state")
-            .update({
-              last_webhook_recovery_at: new Date(lastRecoveryAt).toISOString(),
-              webhook_recovery_count: ((state as any).webhook_recovery_count ?? 0) + 1,
-              updated_at: new Date().toISOString(),
-            })
-            .eq("id", 1);
-          console.warn("auto-recovery result", rec);
-          // Whether or not delete succeeded, retry the loop. If the cause is
-          // another running poller (not a webhook), the next 409 will simply
-          // hit the cooldown and exit gracefully.
-          continue;
-        }
-        // Cooldown still active — exit silently with 200 so the next cron just
-        // retries. Returning 409 marks the cron as failed and creates noise.
-        console.warn("getUpdates 409 — another poll likely in flight, will retry next tick", { sinceLast });
-        return new Response(JSON.stringify({ ok: true, skipped: "409-in-flight" }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      if (is409 && !recovered) {
+        console.warn(`[telegram-poll] bot=${bot.id} 409 — limpando webhook e tentando novamente`);
+        const rec = await deleteWebhook(bot.token);
+        console.warn(`[telegram-poll] deleteWebhook result bot=${bot.id}`, rec);
+        recovered = true;
+        continue;
       }
-
-      console.error("getUpdates failed", data);
-      return new Response(JSON.stringify({ error: data }), { status: 502, headers: corsHeaders });
+      if (resp.status === 401) {
+        await supabase
+          .from("system_telegram_bots")
+          .update({ validation_status: "invalid", last_validated_at: new Date().toISOString() })
+          .eq("id", bot.id);
+      }
+      console.error(`[telegram-poll] bot=${bot.id} getUpdates failed`, resp.status, data);
+      break;
     }
 
     const updates = data.result ?? [];
-    if (updates.length === 0) continue;
+    if (updates.length === 0) break;
 
     const rows = updates
       .map((u: any) => {
@@ -150,17 +107,70 @@ Deno.serve(async (req) => {
 
     if (rows.length > 0) {
       const { error: insertErr } = await supabase
-        .from("telegram_messages").upsert(rows, { onConflict: "update_id" });
-      if (insertErr) return new Response(JSON.stringify({ error: insertErr.message }), { status: 500, headers: corsHeaders });
+        .from("telegram_messages")
+        .upsert(rows, { onConflict: "update_id" });
+      if (insertErr) throw new Error(insertErr.message);
       totalProcessed += rows.length;
       hasNew = true;
     }
 
     const newOffset = Math.max(...updates.map((u: any) => u.update_id)) + 1;
-    await supabase.from("telegram_bot_state")
-      .update({ update_offset: newOffset, updated_at: new Date().toISOString() })
-      .eq("id", 1);
     currentOffset = newOffset;
+    await supabase
+      .from("system_telegram_bots")
+      .update({ update_offset: newOffset, last_polled_at: new Date().toISOString() })
+      .eq("id", bot.id);
+  }
+
+  return { processed: totalProcessed, hasNew };
+}
+
+Deno.serve(async (req) => {
+  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+
+  const startTime = Date.now();
+  const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
+  const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+
+  if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
+    return new Response(JSON.stringify({ error: "Missing env" }), { status: 500, headers: corsHeaders });
+  }
+
+  const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+
+  const { data: bots, error: botsErr } = await supabase
+    .from("system_telegram_bots")
+    .select("id, token, bot_username, update_offset")
+    .eq("active", true)
+    .eq("purpose", "expenses")
+    .order("created_at", { ascending: true });
+
+  if (botsErr) {
+    console.error("[telegram-poll] failed to list expense bots", botsErr);
+    return new Response(JSON.stringify({ error: botsErr.message }), { status: 500, headers: corsHeaders });
+  }
+
+  const list = (bots ?? []) as ExpenseBot[];
+  if (list.length === 0) {
+    return new Response(JSON.stringify({ ok: true, processed: 0, bots: 0, note: "no active expense bots" }), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
+  let totalProcessed = 0;
+  let hasNew = false;
+
+  const perBotBudget = Math.max(8_000, Math.floor((MAX_RUNTIME_MS - 2_000) / list.length));
+  for (const bot of list) {
+    const remaining = MAX_RUNTIME_MS - (Date.now() - startTime);
+    if (remaining < MIN_REMAINING_MS) break;
+    try {
+      const result = await processBot(supabase, bot, Math.min(perBotBudget, remaining));
+      totalProcessed += result.processed;
+      hasNew = hasNew || result.hasNew;
+    } catch (e) {
+      console.error(`[telegram-poll] processBot failed bot=${bot.id}`, e);
+    }
   }
 
   // Trigger processor (fire-and-forget) if we got new messages.
@@ -180,7 +190,7 @@ Deno.serve(async (req) => {
     }
   }
 
-  return new Response(JSON.stringify({ ok: true, processed: totalProcessed, recoveries: recoveriesThisRun }), {
+  return new Response(JSON.stringify({ ok: true, processed: totalProcessed, bots: list.length }), {
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
 });
