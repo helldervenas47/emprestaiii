@@ -3173,7 +3173,7 @@ Deno.serve(async (req) => {
                 const ownerId = await resolvePiggyOwner(admin, link.user_id);
                 const payload: Record<string, any> = {
                   user_id: ownerId,
-                  description: extracted.description || text.slice(0, 80),
+                  description: capitalizeFirst(extracted.description || text.slice(0, 80)),
                   amount: extracted.amount,
                   category,
                   source: extracted.source || "Telegram",
