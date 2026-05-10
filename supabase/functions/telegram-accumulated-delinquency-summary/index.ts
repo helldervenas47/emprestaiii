@@ -19,6 +19,9 @@ type LoanRow = {
   amount: number;
   interest_rate: number;
   status: string;
+  late_interest_type: string | null;
+  late_interest_value: number | null;
+  penalty_value: number | null;
 };
 
 type ScheduleRow = {
@@ -38,10 +41,26 @@ type ReportItem = {
   clientKey: string;
   clientName: string;
   phone: string;
+  baseAmount: number;
+  lateInterest: number;
+  penalty: number;
   installmentAmount: number;
   dueDate: string;
   daysOverdue: number;
 };
+
+function calcLateFeesFor(loan: LoanRow, baseAmount: number, daysOverdue: number) {
+  if (daysOverdue <= 0) return { lateInterest: 0, penalty: 0 };
+  const lateValue = loan.late_interest_value != null ? Number(loan.late_interest_value) : 0;
+  const lateInterest = lateValue > 0
+    ? loan.late_interest_type === "fixed"
+      ? lateValue * daysOverdue
+      : baseAmount * (lateValue / 100) * daysOverdue
+    : 0;
+  const penaltyValue = loan.penalty_value != null ? Number(loan.penalty_value) : 0;
+  const penalty = penaltyValue > 0 ? penaltyValue : 0;
+  return { lateInterest, penalty };
+}
 
 function fmtBRL(value: number) {
   return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value);
@@ -116,32 +135,53 @@ function buildAccumulatedDelinquencyItems(loans: LoanRow[], schedules: ScheduleR
     const phone = relatedClient?.phone || "";
     const clientKey = loan.borrower_id || normalizeName(clientName);
     const loanSchedules = (schedulesByLoan.get(loan.id) ?? []).sort((a, b) => a.installment_number - b.installment_number);
-    const unpaidSchedules = loanSchedules.filter((schedule) => schedule.installment_number > Number(loan.paid_installments));
+    const unpaidSchedules = loanSchedules.filter((schedule) => schedule.installment_number > Number(loan.paid_installments) && schedule.due_date < currentMonthStart);
+
+    const loanRemaining = Math.max(0, Number(loan.remaining_amount ?? 0));
+    let remainingForLoan = loanRemaining;
 
     if (unpaidSchedules.length > 0) {
       for (const schedule of unpaidSchedules) {
-        if (schedule.due_date >= currentMonthStart) continue;
+        if (remainingForLoan <= 0) break;
+        const scheduleAmount = Number(schedule.amount || 0);
+        const base = Math.min(scheduleAmount, remainingForLoan);
+        if (base <= 0) continue;
+        remainingForLoan -= base;
+        const days = getDaysOverdue(schedule.due_date, today);
+        const fees = calcLateFeesFor(loan, base, days);
         items.push({
           clientKey,
           clientName,
           phone,
-          installmentAmount: Number(schedule.amount || 0),
+          baseAmount: base,
+          lateInterest: fees.lateInterest,
+          penalty: fees.penalty,
+          installmentAmount: base + fees.lateInterest + fees.penalty,
           dueDate: schedule.due_date,
-          daysOverdue: getDaysOverdue(schedule.due_date, today),
+          daysOverdue: days,
         });
       }
       continue;
     }
 
     if (loan.due_date >= currentMonthStart) continue;
+    if (remainingForLoan <= 0) continue;
 
+    const fallbackBase = getFallbackInstallmentAmount(loan);
+    const base = Math.min(fallbackBase, remainingForLoan);
+    if (base <= 0) continue;
+    const days = getDaysOverdue(loan.due_date, today);
+    const fees = calcLateFeesFor(loan, base, days);
     items.push({
       clientKey,
       clientName,
       phone,
-      installmentAmount: getFallbackInstallmentAmount(loan),
+      baseAmount: base,
+      lateInterest: fees.lateInterest,
+      penalty: fees.penalty,
+      installmentAmount: base + fees.lateInterest + fees.penalty,
       dueDate: loan.due_date,
-      daysOverdue: getDaysOverdue(loan.due_date, today),
+      daysOverdue: days,
     });
   }
 
@@ -192,7 +232,11 @@ function buildTelegramMessage(items: ReportItem[]) {
     lines.push(`Atraso: ${client.maxDaysOverdue} dias`);
 
     for (const item of client.items.slice(0, 5)) {
-      lines.push(`• ${fmtBRL(item.installmentAmount)} • venc. ${item.dueDate.split("-").reverse().join("/")} • ${item.daysOverdue} dias`);
+      const feeParts: string[] = [];
+      if (item.lateInterest > 0) feeParts.push(`juros ${fmtBRL(item.lateInterest)}`);
+      if (item.penalty > 0) feeParts.push(`multa ${fmtBRL(item.penalty)}`);
+      const feeSuffix = feeParts.length > 0 ? ` (base ${fmtBRL(item.baseAmount)} + ${feeParts.join(" + ")})` : "";
+      lines.push(`• ${fmtBRL(item.installmentAmount)} • venc. ${item.dueDate.split("-").reverse().join("/")} • ${item.daysOverdue} dias${feeSuffix}`);
     }
 
     if (client.items.length > 5) {
@@ -290,7 +334,7 @@ Deno.serve(async (req) => {
 
         const [{ data: link }, { data: loans }, { data: schedules }, { data: clients }] = await Promise.all([
           admin.from("telegram_reports_links").select("chat_id").eq("user_id", pref.user_id).maybeSingle(),
-          admin.from("loans").select("id, user_id, borrower_id, borrower_name, due_date, installments, paid_installments, remaining_amount, custom_installment_value, amount, interest_rate, status").eq("user_id", resolvedOwnerId).neq("status", "paid"),
+          admin.from("loans").select("id, user_id, borrower_id, borrower_name, due_date, installments, paid_installments, remaining_amount, custom_installment_value, amount, interest_rate, status, late_interest_type, late_interest_value, penalty_value").eq("user_id", resolvedOwnerId).neq("status", "paid"),
           admin.from("loan_installments").select("loan_id, installment_number, due_date, amount").eq("user_id", resolvedOwnerId),
           admin.from("clients").select("id, name, phone").eq("user_id", resolvedOwnerId),
         ]);
