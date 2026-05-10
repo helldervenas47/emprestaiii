@@ -22,7 +22,15 @@ export interface Income {
   createdAt: string;
 }
 
+function deriveStatus(persisted: IncomeStatus, receivedDate: string): IncomeStatus {
+  if (persisted === "received") return "received";
+  // Qualquer parcela com vencimento anterior a hoje é considerada vencida
+  if (receivedDate && receivedDate < todayInAppTz()) return "overdue";
+  return "pending";
+}
+
 function rowToIncome(r: any): Income {
+  const persisted = (r.status as IncomeStatus) ?? "pending";
   return {
     id: r.id,
     description: r.description,
@@ -32,7 +40,7 @@ function rowToIncome(r: any): Income {
     source: r.source,
     paymentMethodId: r.payment_method_id,
     receivedDate: r.received_date,
-    status: r.status,
+    status: deriveStatus(persisted, r.received_date),
     notes: r.notes,
     recurrence: r.recurrence,
     parentId: r.parent_id,
