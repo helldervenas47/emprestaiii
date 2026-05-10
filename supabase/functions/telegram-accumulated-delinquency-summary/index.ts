@@ -135,32 +135,53 @@ function buildAccumulatedDelinquencyItems(loans: LoanRow[], schedules: ScheduleR
     const phone = relatedClient?.phone || "";
     const clientKey = loan.borrower_id || normalizeName(clientName);
     const loanSchedules = (schedulesByLoan.get(loan.id) ?? []).sort((a, b) => a.installment_number - b.installment_number);
-    const unpaidSchedules = loanSchedules.filter((schedule) => schedule.installment_number > Number(loan.paid_installments));
+    const unpaidSchedules = loanSchedules.filter((schedule) => schedule.installment_number > Number(loan.paid_installments) && schedule.due_date < currentMonthStart);
+
+    const loanRemaining = Math.max(0, Number(loan.remaining_amount ?? 0));
+    let remainingForLoan = loanRemaining;
 
     if (unpaidSchedules.length > 0) {
       for (const schedule of unpaidSchedules) {
-        if (schedule.due_date >= currentMonthStart) continue;
+        if (remainingForLoan <= 0) break;
+        const scheduleAmount = Number(schedule.amount || 0);
+        const base = Math.min(scheduleAmount, remainingForLoan);
+        if (base <= 0) continue;
+        remainingForLoan -= base;
+        const days = getDaysOverdue(schedule.due_date, today);
+        const fees = calcLateFeesFor(loan, base, days);
         items.push({
           clientKey,
           clientName,
           phone,
-          installmentAmount: Number(schedule.amount || 0),
+          baseAmount: base,
+          lateInterest: fees.lateInterest,
+          penalty: fees.penalty,
+          installmentAmount: base + fees.lateInterest + fees.penalty,
           dueDate: schedule.due_date,
-          daysOverdue: getDaysOverdue(schedule.due_date, today),
+          daysOverdue: days,
         });
       }
       continue;
     }
 
     if (loan.due_date >= currentMonthStart) continue;
+    if (remainingForLoan <= 0) continue;
 
+    const fallbackBase = getFallbackInstallmentAmount(loan);
+    const base = Math.min(fallbackBase, remainingForLoan);
+    if (base <= 0) continue;
+    const days = getDaysOverdue(loan.due_date, today);
+    const fees = calcLateFeesFor(loan, base, days);
     items.push({
       clientKey,
       clientName,
       phone,
-      installmentAmount: getFallbackInstallmentAmount(loan),
+      baseAmount: base,
+      lateInterest: fees.lateInterest,
+      penalty: fees.penalty,
+      installmentAmount: base + fees.lateInterest + fees.penalty,
       dueDate: loan.due_date,
-      daysOverdue: getDaysOverdue(loan.due_date, today),
+      daysOverdue: days,
     });
   }
 
