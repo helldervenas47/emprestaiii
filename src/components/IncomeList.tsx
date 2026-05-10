@@ -22,7 +22,7 @@ import { FinancialStatement } from "./FinancialStatement";
 import { PiggyBanksSummaryCard } from "./PiggyBanksSummaryCard";
 import { IncomeTelegramBotButton } from "./IncomeTelegramBotButton";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import { Plus, Search, Copy, Pencil, Trash2, CheckCircle2, Clock, AlertTriangle, ArrowUpDown, ChevronLeft, ChevronRight } from "lucide-react";
+import { Plus, Search, Copy, Pencil, Trash2, CheckCircle2, Clock, AlertTriangle, ArrowUpDown, ChevronLeft, ChevronRight, CalendarCheck } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
@@ -67,6 +67,7 @@ export function IncomeList({ readOnly }: Props) {
   const [payDate, setPayDate] = useState<string>("");
   const [payAmount, setPayAmount] = useState<string>("");
   const [paySaving, setPaySaving] = useState(false);
+  const [viewDateTarget, setViewDateTarget] = useState<Income | null>(null);
 
   const nowD = new Date();
   const [selectedMonth, setSelectedMonth] = useState<string>(
@@ -304,6 +305,14 @@ export function IncomeList({ readOnly }: Props) {
                 </div>
                 {!readOnly && (
                   <div className="flex flex-wrap gap-1 mt-3 pt-3 border-t border-border/30">
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => setViewDateTarget(i)}
+                      className="h-8 gap-1"
+                    >
+                      <CalendarCheck className="h-3.5 w-3.5" /> Ver data de pagamento
+                    </Button>
                     {i.status !== "received" && (
                       <Button
                         size="sm"
