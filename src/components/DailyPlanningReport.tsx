@@ -47,6 +47,7 @@ export function DailyPlanningReport({ loans, payments, installmentSchedules, sal
   const [date, setDate] = useState<string>(todayISO());
   const { user } = useAuth();
   const { cards } = useCreditCards();
+  const { openings } = useCreditCardOpenings();
   const { linked } = useTelegramReportsLink();
   const { prefs, loading: prefsLoading, save } = useDailyPlanningTelegramPrefs();
   const [sending, setSending] = useState(false);
