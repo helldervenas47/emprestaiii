@@ -138,10 +138,16 @@ export function IncomeForm({ open, onClose, onSubmit, initial }: Props) {
               <Input type="number" step="0.01" value={amount} onChange={(e) => setAmount(e.target.value)} />
             </div>
             <div>
-              <Label>Data</Label>
+              <Label>Vencimento</Label>
               <DatePickerField value={receivedDate} onChange={setReceivedDate} />
             </div>
           </div>
+          {status === "received" && (
+            <div>
+              <Label>Data de pagamento</Label>
+              <DatePickerField value={actualReceivedDate || receivedDate} onChange={setActualReceivedDate} />
+            </div>
+          )}
           <div className="grid grid-cols-2 gap-3">
             <div>
               <div className="flex items-center justify-between">
