@@ -243,6 +243,8 @@ export function ExpenseList({ expenses, onPay, onUnpay, onDelete, onUpdate, read
   const [unpayingExpenseId, setUnpayingExpenseId] = useState<string | null>(null);
   const [unpayConfirm, setUnpayConfirm] = useState<{ run: () => void | Promise<void>; label: string } | null>(null);
   const [viewDateExpenseId, setViewDateExpenseId] = useState<string | null>(null);
+  const [editingPaidDate, setEditingPaidDate] = useState(false);
+  const [editPaidDateValue, setEditPaidDateValue] = useState("");
 
   const getInstallmentAmount = useCallback((e: Expense) => {
     const isRec = e.type === "recorrente" && e.installments && e.installments > 1;
@@ -715,7 +717,7 @@ export function ExpenseList({ expenses, onPay, onUnpay, onDelete, onUpdate, read
         </DialogContent>
       </Dialog>
       {/* Dialog Ver data de pagamento */}
-      <Dialog open={!!viewDateExpenseId} onOpenChange={(o) => { if (!o) setViewDateExpenseId(null); }}>
+      <Dialog open={!!viewDateExpenseId} onOpenChange={(o) => { if (!o) { setViewDateExpenseId(null); setEditingPaidDate(false); } }}>
         <DialogContent className="sm:max-w-sm">
           {(() => {
             const exp = expenses.find((e) => e.id === viewDateExpenseId);
@@ -730,9 +732,47 @@ export function ExpenseList({ expenses, onPay, onUnpay, onDelete, onUpdate, read
                   {exp.paid && exp.paidDate ? (
                     <div className="rounded-lg bg-success/10 border border-success/30 p-3">
                       <p className="text-xs text-muted-foreground">Pago em</p>
-                      <p className="text-base font-semibold text-success">
-                        {format(new Date(exp.paidDate + "T00:00:00"), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
-                      </p>
+                      {editingPaidDate ? (
+                        <div className="mt-1 space-y-2">
+                          <DatePickerField value={editPaidDateValue} onChange={setEditPaidDateValue} />
+                          <div className="flex gap-2 justify-end">
+                            <Button size="sm" variant="ghost" onClick={() => setEditingPaidDate(false)}>Cancelar</Button>
+                            <Button
+                              size="sm"
+                              disabled={!editPaidDateValue || !onUpdate}
+                              onClick={() => {
+                                if (onUpdate) {
+                                  onUpdate(exp.id, { paidDate: editPaidDateValue });
+                                  setEditingPaidDate(false);
+                                }
+                              }}
+                            >
+                              Salvar
+                            </Button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="flex items-center justify-between gap-2">
+                          <p className="text-base font-semibold text-success">
+                            {format(new Date(exp.paidDate + "T00:00:00"), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
+                          </p>
+                          {onUpdate && (
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="h-7 w-7"
+                              title="Alterar data de pagamento"
+                              aria-label="Alterar data de pagamento"
+                              onClick={() => {
+                                setEditPaidDateValue(exp.paidDate!);
+                                setEditingPaidDate(true);
+                              }}
+                            >
+                              <Pencil className="h-3.5 w-3.5" />
+                            </Button>
+                          )}
+                        </div>
+                      )}
                     </div>
                   ) : (
                     <div className="rounded-lg bg-warning/10 border border-warning/30 p-3">
@@ -745,7 +785,7 @@ export function ExpenseList({ expenses, onPay, onUnpay, onDelete, onUpdate, read
                   )}
                 </div>
                 <DialogFooter>
-                  <Button variant="outline" onClick={() => setViewDateExpenseId(null)}>Fechar</Button>
+                  <Button variant="outline" onClick={() => { setViewDateExpenseId(null); setEditingPaidDate(false); }}>Fechar</Button>
                 </DialogFooter>
               </>
             );
