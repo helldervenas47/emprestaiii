@@ -19,6 +19,9 @@ type LoanRow = {
   amount: number;
   interest_rate: number;
   status: string;
+  late_interest_type: string | null;
+  late_interest_value: number | null;
+  penalty_value: number | null;
 };
 
 type ScheduleRow = {
