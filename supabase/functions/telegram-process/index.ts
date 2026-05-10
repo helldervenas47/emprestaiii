@@ -618,9 +618,8 @@ function nextDueDateForCard(closingDay: number, dueDay: number): string {
   const yr = ref.getUTCFullYear();
   const mo = ref.getUTCMonth();
 
-  // The cycle that contains "today" closes at closingDay of either this month (if today <= closingDay)
-  // or next month (if today > closingDay).
-  const closingNextMonth = day > closingDay ? mo + 1 : mo;
+  // Compras feitas no dia do fechamento (ou depois) entram no próximo ciclo.
+  const closingNextMonth = day >= closingDay ? mo + 1 : mo;
   // Due date falls in the month after closing (or same month if dueDay > closingDay).
   const dueMonth = dueDay > closingDay ? closingNextMonth : closingNextMonth + 1;
   const lastDay = new Date(Date.UTC(yr, dueMonth + 1, 0)).getUTCDate();
