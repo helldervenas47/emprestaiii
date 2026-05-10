@@ -245,10 +245,12 @@ export function useIncomes(enabled = true) {
     const target = incomes.find((i) => i.id === id);
     const isRecurringOccurrence =
       !!target && (!!target.parentId || target.recurrence !== "once");
-    // Em séries recorrentes, preservar a data agendada para não colidir com outra ocorrência.
+    const today = todayInAppTz();
+    // Em séries recorrentes, preservar a data agendada (received_date) para não colidir com outra ocorrência.
+    // Sempre registramos a data efetiva do recebimento em actual_received_date.
     const patch: Partial<Income> = isRecurringOccurrence
-      ? { status: "received" }
-      : { status: "received", receivedDate: todayInAppTz() };
+      ? { status: "received", actualReceivedDate: today }
+      : { status: "received", receivedDate: today, actualReceivedDate: today };
     await updateIncome(id, patch);
   }, [incomes, updateIncome]);
 
