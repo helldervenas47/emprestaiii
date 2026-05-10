@@ -95,7 +95,7 @@ function getLoanRemaining(loan: any, payments: any[], schedules: any[], today: s
 async function buildBillingReport(admin: any, ownerId: string, today: string, brandName: string): Promise<string> {
   const [{ data: loans }, { data: payments }, { data: schedules }] = await Promise.all([
     admin.from("loans").select("*").eq("user_id", ownerId).neq("status", "paid"),
-    admin.from("payments").select("loan_id, amount").eq("user_id", ownerId),
+    admin.from("payments").select("loan_id, amount, installment_number").eq("user_id", ownerId),
     admin.from("loan_installments").select("loan_id, installment_number, due_date, amount").eq("user_id", ownerId),
   ]);
 
