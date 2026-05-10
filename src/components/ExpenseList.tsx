@@ -1,6 +1,6 @@
 import { useState, useCallback, useMemo, useEffect } from "react";
 import { usePaymentCelebration } from "@/hooks/usePaymentCelebration";
-import { todayInAppTz } from "@/lib/timezone";
+import { todayInAppTz, todayDateInAppTz } from "@/lib/timezone";
 import { getDueStatusBadge } from "@/lib/dueStatus";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -231,7 +231,7 @@ export function ExpenseList({ expenses, onPay, onUnpay, onDelete, onUpdate, read
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<Filter>("all");
   
-  const now = new Date();
+  const now = todayDateInAppTz();
   const [selectedMonth, setSelectedMonth] = useState(`${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`);
   const [editingExpenseId, setEditingExpenseId] = useState<string | null>(null);
   const [viewPaymentsExpenseId, setViewPaymentsExpenseId] = useState<string | null>(null);
@@ -350,7 +350,7 @@ export function ExpenseList({ expenses, onPay, onUnpay, onDelete, onUpdate, read
         <button
           className="text-sm font-medium text-foreground min-w-[140px] text-center capitalize hover:text-primary transition-colors"
           onClick={() => {
-            const n = new Date();
+            const n = todayDateInAppTz();
             setSelectedMonth(`${n.getFullYear()}-${String(n.getMonth() + 1).padStart(2, "0")}`);
           }}
         >

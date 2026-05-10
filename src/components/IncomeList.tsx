@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { DatePickerField } from "@/components/ui/date-picker-field";
-import { todayInAppTz } from "@/lib/timezone";
+import { todayInAppTz, todayDateInAppTz } from "@/lib/timezone";
 import { IncomeBalanceCard } from "./IncomeBalanceCard";
 import { IncomeDashboard } from "./IncomeDashboard";
 import { IncomePendingCalendar } from "./IncomePendingCalendar";
@@ -72,7 +72,7 @@ export function IncomeList({ readOnly }: Props) {
   const [editPayDateValue, setEditPayDateValue] = useState("");
   const [savingPayDate, setSavingPayDate] = useState(false);
 
-  const nowD = new Date();
+  const nowD = todayDateInAppTz();
   const [selectedMonth, setSelectedMonth] = useState<string>(
     `${nowD.getFullYear()}-${String(nowD.getMonth() + 1).padStart(2, "0")}`,
   );
@@ -142,7 +142,7 @@ export function IncomeList({ readOnly }: Props) {
         <button
           className="text-sm font-medium text-foreground min-w-[140px] text-center capitalize hover:text-primary transition-colors"
           onClick={() => {
-            const n = new Date();
+            const n = todayDateInAppTz();
             setSelectedMonth(`${n.getFullYear()}-${String(n.getMonth() + 1).padStart(2, "0")}`);
           }}
         >
@@ -165,7 +165,7 @@ export function IncomeList({ readOnly }: Props) {
         statementLeftSlot={!readOnly ? <IncomeTelegramBotButton /> : undefined}
         onAdjust={async (delta) => {
           if (!delta) return;
-          const today = new Date().toISOString().slice(0, 10);
+          const today = todayInAppTz();
           await addIncome({
             description: delta >= 0 ? "Ajuste de saldo (entrada)" : "Ajuste de saldo (saída)",
             amount: Number(delta.toFixed(2)),
