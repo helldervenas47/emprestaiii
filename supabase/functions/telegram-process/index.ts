@@ -701,7 +701,7 @@ async function computeCurrentInvoiceTotal(
       .select("amount, type, installments, notes")
       .eq("user_id", userId)
       .gte("due_date", fromYmd)
-      .lte("due_date", toYmd);
+      .lt("due_date", toYmd);
 
     let itemsTotal = 0;
     for (const e of (rows ?? []) as any[]) {
