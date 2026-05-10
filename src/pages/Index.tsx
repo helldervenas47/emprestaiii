@@ -98,7 +98,7 @@ type Tab = "overview" | "dashboard" | "clients" | "products" | "vehicles" | "ove
 type ClientSubTab = "clientes" | "veiculos";
 type VehicleSubTab = "veiculos" | "locadores";
 type PlanMgmtSubTab = "subscribers" | "plans";
-type OverdueSubTab = "cobrancas" | "inadimplencia-acumulada" | "metas" | "planejamento" | "bot-telegram" | "whatsapp-cobranca";
+type OverdueSubTab = "metas" | "bot-telegram" | "whatsapp-cobranca";
 type ExpenseSubTab = "business" | "personal";
 type PersonalSubTab = "expenses" | "cards";
 type IncExpTab = "incomes" | "expenses";
@@ -337,7 +337,7 @@ const Index = () => {
   const [clientSubTab, setClientSubTab] = useState<ClientSubTab>("clientes");
   const [vehicleSubTab, setVehicleSubTab] = useState<VehicleSubTab>("veiculos");
   const [planMgmtSubTab, setPlanMgmtSubTab] = useState<PlanMgmtSubTab>("subscribers");
-  const [overdueSubTab, setOverdueSubTab] = useState<OverdueSubTab>("cobrancas");
+  const [overdueSubTab, setOverdueSubTab] = useState<OverdueSubTab>("metas");
   const [expenseSubTab, setExpenseSubTab] = useState<ExpenseSubTab>("personal");
   const [personalSubTab, setPersonalSubTab] = useState<PersonalSubTab>("expenses");
   const [incExpTab, setIncExpTab] = useState<IncExpTab>("incomes");
@@ -928,32 +928,11 @@ const Index = () => {
           <div>
             <div className="flex gap-2 mb-4 flex-wrap">
               <Button
-                variant={overdueSubTab === "cobrancas" ? "default" : "outline"}
-                size="sm"
-                onClick={() => setOverdueSubTab("cobrancas")}
-              >
-                <AlertTriangle className="h-4 w-4 mr-1" /> Cobranças
-              </Button>
-              <Button
-                variant={overdueSubTab === "inadimplencia-acumulada" ? "default" : "outline"}
-                size="sm"
-                onClick={() => setOverdueSubTab("inadimplencia-acumulada")}
-              >
-                <AlertTriangle className="h-4 w-4 mr-1" /> Inadimplência Acumulada
-              </Button>
-              <Button
                 variant={overdueSubTab === "metas" ? "default" : "outline"}
                 size="sm"
                 onClick={() => setOverdueSubTab("metas")}
               >
                 <Target className="h-4 w-4 mr-1" /> Metas
-              </Button>
-              <Button
-                variant={overdueSubTab === "planejamento" ? "default" : "outline"}
-                size="sm"
-                onClick={() => setOverdueSubTab("planejamento")}
-              >
-                <CalendarClock className="h-4 w-4 mr-1" /> Planejamento do Dia
               </Button>
               <Button
                 variant={overdueSubTab === "bot-telegram" ? "default" : "outline"}
@@ -970,23 +949,8 @@ const Index = () => {
                 <MessageCircle className="h-4 w-4 mr-1" /> Cobrança WhatsApp
               </Button>
             </div>
-            {overdueSubTab === "cobrancas" && (
-              <OverdueLoans loans={filteredLoans} payments={filteredPayments} clients={filteredClients} installmentSchedules={filteredInstallments} />
-            )}
-            {overdueSubTab === "inadimplencia-acumulada" && (
-              <AccumulatedDelinquencyReport loans={filteredLoans} clients={filteredClients} installmentSchedules={filteredInstallments} />
-            )}
             {overdueSubTab === "metas" && (
               <MonthlyGoalsManager readOnly={isReadOnly} />
-            )}
-            {overdueSubTab === "planejamento" && (
-              <DailyPlanningReport
-                loans={filteredLoans}
-                payments={filteredPayments}
-                installmentSchedules={filteredInstallments}
-                sales={filteredSales}
-                expenses={expenses}
-              />
             )}
             {overdueSubTab === "bot-telegram" && (
               <TelegramBotsHub />
