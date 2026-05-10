@@ -2670,7 +2670,7 @@ Deno.serve(async (req) => {
             audioMsg.file_id,
             audioMsg.mime_type || "",
             LOVABLE_API_KEY,
-            TELEGRAM_API_KEY,
+            telegramKey,
           );
           if (!transcript) {
             await tgSend(chatId, "🤔 Não consegui transcrever o áudio. Tente novamente ou envie por texto.", LOVABLE_API_KEY, telegramKey);
