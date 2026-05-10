@@ -107,7 +107,8 @@ export function getCardInvoiceTotalsForMonth(
         }
       }
       const due = new Date(e.dueDate + "T00:00:00");
-      return due >= cycle.from && due <= cycle.to;
+      // cycle.from inclusivo (dia do fechamento abre o novo ciclo); cycle.to exclusivo.
+      return due >= cycle.from && due < cycle.to;
     });
 
     const installmentValue = (e: Expense) => {
