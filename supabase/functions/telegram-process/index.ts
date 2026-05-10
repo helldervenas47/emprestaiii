@@ -2624,7 +2624,7 @@ Deno.serve(async (req) => {
                 user_id: link.user_id,
                 description: extracted.description || "Comprovante",
                 amount: extracted.amount,
-                category: finalCategory,
+                category: nonVehicleCategory(finalCategory),
                 type: "fixa",
                 scope: "personal",
               };
@@ -2732,7 +2732,7 @@ Deno.serve(async (req) => {
                 user_id: link.user_id,
                 description: extracted.description || transcript.slice(0, 80),
                 amount: extracted.amount,
-                category: finalCategory,
+                category: nonVehicleCategory(finalCategory),
                 type: installmentsN ? "recorrente" : "fixa",
                 scope: "personal",
               };
@@ -3202,7 +3202,7 @@ Deno.serve(async (req) => {
                 extracted = {
                   description: quick.description,
                   amount: quick.amount,
-                  category: quick.category,
+                  category: nonVehicleCategory(quick.category),
                   date: today,
                   installments: quick.installments ?? undefined,
                   confidence: 1,
@@ -3233,7 +3233,7 @@ Deno.serve(async (req) => {
                   user_id: link.user_id,
                   description: extracted.description || text.slice(0, 80),
                   amount: extracted.amount,
-                  category: finalCategory,
+                  category: nonVehicleCategory(finalCategory),
                   type: installmentsN ? "recorrente" : "fixa",
                   scope: "personal",
                 };
