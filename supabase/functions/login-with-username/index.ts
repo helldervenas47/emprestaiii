@@ -2,7 +2,8 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type",
 };
 
 Deno.serve(async (req) => {
@@ -13,11 +14,17 @@ Deno.serve(async (req) => {
   try {
     const { username, password } = await req.json();
 
-    if (!username || !password || typeof username !== "string" || typeof password !== "string") {
-      return new Response(JSON.stringify({ error: "Usuário e senha são obrigatórios" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+    if (
+      !username || !password || typeof username !== "string" ||
+      typeof password !== "string"
+    ) {
+      return new Response(
+        JSON.stringify({ error: "Usuário e senha são obrigatórios" }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
+      );
     }
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
@@ -29,10 +36,14 @@ Deno.serve(async (req) => {
     const input = username.trim();
     const isEmail = input.includes("@");
 
-    // Generic error to avoid username enumeration
+    // Generic app-level error to avoid username enumeration.
+    // Keep HTTP 200 so expected invalid-login attempts do not surface as runtime errors in the preview.
     const genericError = new Response(
       JSON.stringify({ error: "Email/usuário ou senha incorretos" }),
-      { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      },
     );
 
     let email: string;
@@ -42,7 +53,8 @@ Deno.serve(async (req) => {
       email = input.toLowerCase();
       // Try to fetch user to check banned status (best-effort)
       const { data: list } = await adminClient.auth.admin.listUsers();
-      user = list?.users?.find((u: any) => u.email?.toLowerCase() === email) ?? null;
+      user = list?.users?.find((u: any) => u.email?.toLowerCase() === email) ??
+        null;
     } else {
       const { data: profile } = await adminClient
         .from("profiles")
@@ -52,7 +64,9 @@ Deno.serve(async (req) => {
 
       if (!profile) return genericError;
 
-      const { data: userResp } = await adminClient.auth.admin.getUserById(profile.user_id);
+      const { data: userResp } = await adminClient.auth.admin.getUserById(
+        profile.user_id,
+      );
       user = userResp?.user;
       if (!user?.email) return genericError;
       email = user.email;
@@ -60,10 +74,13 @@ Deno.serve(async (req) => {
 
     // Check if user is banned/inactive
     if (user?.banned_until && new Date(user.banned_until) > new Date()) {
-      return new Response(JSON.stringify({ error: "Usuário inativo. Contate o administrador." }), {
-        status: 403,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return new Response(
+        JSON.stringify({ error: "Usuário inativo. Contate o administrador." }),
+        {
+          status: 200,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
+      );
     }
 
     // CRITICAL: Validate the password server-side before returning the email.
