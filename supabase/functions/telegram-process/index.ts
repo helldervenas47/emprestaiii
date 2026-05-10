@@ -13,6 +13,31 @@ const CATEGORIES = [
   "Educação", "Lazer", "Moradia", "Outros", "Pets", "Presentes", "Saúde", "Transporte",
 ];
 
+// Categorias usadas pela aba "Veículos" do app. Nenhum lançamento criado pelo
+// bot do Telegram pode ficar nessas categorias — caso contrário apareceria
+// nessa aba. Mapeamos para a categoria não-veicular mais próxima.
+const VEHICLE_CATEGORY_MAP: Record<string, string> = {
+  "Combustível": "Transporte",
+  "Manutenção": "Transporte",
+  "Seguro": "Contas",
+  "IPVA": "Transporte",
+  "Multas": "Transporte",
+  "Lavagem": "Transporte",
+  "Estacionamento": "Transporte",
+  "Pneus": "Transporte",
+  "Documentação": "Outros",
+  "Peças": "Transporte",
+  "Guincho": "Transporte",
+  "Financiamento": "Contas",
+  "Outros (Veículo)": "Outros",
+};
+
+/** Garante que despesas criadas pelo bot nunca caiam em categorias da aba Veículos. */
+function nonVehicleCategory(cat: string | null | undefined): string {
+  if (!cat) return "Outros";
+  return VEHICLE_CATEGORY_MAP[cat] ?? cat;
+}
+
 // In-memory cache (per-isolate) for chat_id → user_id lookups. TTL 5min.
 const linkCache = new Map<number, { userId: string | null; expires: number }>();
 const botTokenCache = new Map<string, { token: string | null; expires: number }>();
@@ -2599,7 +2624,7 @@ Deno.serve(async (req) => {
                 user_id: link.user_id,
                 description: extracted.description || "Comprovante",
                 amount: extracted.amount,
-                category: finalCategory,
+                category: nonVehicleCategory(finalCategory),
                 type: "fixa",
                 scope: "personal",
               };
@@ -2707,7 +2732,7 @@ Deno.serve(async (req) => {
                 user_id: link.user_id,
                 description: extracted.description || transcript.slice(0, 80),
                 amount: extracted.amount,
-                category: finalCategory,
+                category: nonVehicleCategory(finalCategory),
                 type: installmentsN ? "recorrente" : "fixa",
                 scope: "personal",
               };
@@ -3177,7 +3202,7 @@ Deno.serve(async (req) => {
                 extracted = {
                   description: quick.description,
                   amount: quick.amount,
-                  category: quick.category,
+                  category: nonVehicleCategory(quick.category),
                   date: today,
                   installments: quick.installments ?? undefined,
                   confidence: 1,
@@ -3208,7 +3233,7 @@ Deno.serve(async (req) => {
                   user_id: link.user_id,
                   description: extracted.description || text.slice(0, 80),
                   amount: extracted.amount,
-                  category: finalCategory,
+                  category: nonVehicleCategory(finalCategory),
                   type: installmentsN ? "recorrente" : "fixa",
                   scope: "personal",
                 };
