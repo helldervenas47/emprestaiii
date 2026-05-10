@@ -931,17 +931,17 @@ function SalesList({ sales, onDeleteSale, onUpdateSale, clients = [], hideOnTrac
       const hasOverdue = salesGroup.some((s) => getSaleCategory(s) === "overdue");
       saleGroups.push({ name, sales: salesGroup, totalAmount: salesGroup.reduce((s, sale) => s + sale.total, 0), totalPaid, totalReceivable, hasOverdue });
     });
-    saleGroups.sort((a, b) => (a.hasOverdue === b.hasOverdue ? a.name.localeCompare(b.name) : a.hasOverdue ? -1 : 1));
+    // Ordena grupos pela venda com vencimento mais antigo
+    const earliestDue = (g: SaleClientGroup) => Math.min(...g.sales.map((s) => getNextDueDateHelper(s).getTime()));
+    saleGroups.sort((a, b) => earliestDue(a) - earliestDue(b));
+    // Ordena vendas dentro de cada grupo por vencimento ascendente
+    saleGroups.forEach((g) => g.sales.sort((a, b) => getNextDueDateHelper(a).getTime() - getNextDueDateHelper(b).getTime()));
     return { saleGroups, saleSingles };
   }, [filtered, folderEligibleNames]);
 
-  // Sorted list for list view (by due date)
+  // Sorted list for list view (by due date ascending)
   const listSorted = useMemo(() => {
     return [...filtered].sort((a, b) => {
-      const catA = getSaleCategory(a);
-      const catB = getSaleCategory(b);
-      if (catA === "paid" && catB !== "paid") return 1;
-      if (catA !== "paid" && catB === "paid") return -1;
       return getNextDueDateHelper(a).getTime() - getNextDueDateHelper(b).getTime();
     });
   }, [filtered]);
