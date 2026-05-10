@@ -37,11 +37,11 @@ function getCycleForRef(ref: Date, closingDay: number, dueDay: number) {
   const day = ref.getDate();
   const closingThis = new Date(y, m, Math.min(closingDay, new Date(y, m + 1, 0).getDate()));
   const closingNext =
-    day > closingDay
+    day >= closingDay
       ? new Date(y, m + 1, Math.min(closingDay, new Date(y, m + 2, 0).getDate()))
       : closingThis;
   const closingPrev =
-    day > closingDay
+    day >= closingDay
       ? closingThis
       : new Date(y, m - 1, Math.min(closingDay, new Date(y, m, 0).getDate()));
   const dueMonth = dueDay > closingDay ? closingNext.getMonth() : closingNext.getMonth() + 1;
@@ -351,7 +351,7 @@ export function CreditCardList({ readOnly = false, referenceMonth }: Props) {
         .filter(matchesCard);
       const inCycle = cardExpenses.filter((e) => {
         const d = new Date(e.dueDate + "T00:00:00");
-        return d > cycle.from && d <= cycle.to;
+        return d >= cycle.from && d < cycle.to;
       });
       const transactions = inCycle.reduce((s, e) => {
         const isRec = e.type === "recorrente" && e.installments && e.installments > 1;

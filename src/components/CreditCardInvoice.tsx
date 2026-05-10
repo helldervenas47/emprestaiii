@@ -67,11 +67,11 @@ function getCycle(ref: Date, closingDay: number, dueDay: number) {
   const day = ref.getDate();
   const closingThis = new Date(y, m, Math.min(closingDay, new Date(y, m + 1, 0).getDate()));
   const closingNext =
-    day > closingDay
+    day >= closingDay
       ? new Date(y, m + 1, Math.min(closingDay, new Date(y, m + 2, 0).getDate()))
       : closingThis;
   const closingPrev =
-    day > closingDay
+    day >= closingDay
       ? closingThis
       : new Date(y, m - 1, Math.min(closingDay, new Date(y, m, 0).getDate()));
   const dueMonth = dueDay > closingDay ? closingNext.getMonth() : closingNext.getMonth() + 1;
@@ -166,7 +166,7 @@ export function CreditCardInvoice({ card, onClose, referenceMonth, originRect }:
       })
       .filter((e) => {
         const d = new Date(e.dueDate + "T00:00:00");
-        return d > from && d <= to;
+        return d >= from && d < to;
       });
 
   const items = useMemo(
