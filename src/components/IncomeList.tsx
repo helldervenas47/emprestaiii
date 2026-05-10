@@ -100,7 +100,15 @@ export function IncomeList({ readOnly }: Props) {
       
       if (statusFilter === "pending_all") {
         if (i.status !== "pending" && i.status !== "overdue") return false;
-      } else if (statusFilter !== "all" && i.status !== statusFilter) return false;
+      } else if (statusFilter === "pending") {
+        if (i.status !== "pending") return false;
+      } else if (statusFilter === "overdue") {
+        if (i.status !== "overdue") return false;
+      } else if (statusFilter === "received") {
+        if (i.status !== "received") return false;
+      } else if (statusFilter !== "all") {
+        if (i.status !== statusFilter) return false;
+      }
       if (categoryFilter !== "all" && (i.category || "Outros") !== categoryFilter) return false;
       if (search.trim()) {
         const q = search.toLowerCase();
