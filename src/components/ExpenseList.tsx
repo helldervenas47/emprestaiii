@@ -717,6 +717,44 @@ export function ExpenseList({ expenses, onPay, onUnpay, onDelete, onUpdate, read
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      {/* Dialog Ver data de pagamento */}
+      <Dialog open={!!viewDateExpenseId} onOpenChange={(o) => { if (!o) setViewDateExpenseId(null); }}>
+        <DialogContent className="sm:max-w-sm">
+          {(() => {
+            const exp = expenses.find((e) => e.id === viewDateExpenseId);
+            if (!exp) return null;
+            return (
+              <>
+                <DialogHeader>
+                  <DialogTitle>Data de pagamento</DialogTitle>
+                  <DialogDescription>{exp.description}</DialogDescription>
+                </DialogHeader>
+                <div className="space-y-2 text-sm">
+                  {exp.paid && exp.paidDate ? (
+                    <div className="rounded-lg bg-success/10 border border-success/30 p-3">
+                      <p className="text-xs text-muted-foreground">Pago em</p>
+                      <p className="text-base font-semibold text-success">
+                        {format(new Date(exp.paidDate + "T00:00:00"), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="rounded-lg bg-warning/10 border border-warning/30 p-3">
+                      <p className="text-xs text-muted-foreground">Status</p>
+                      <p className="text-base font-semibold text-warning">Ainda não paga</p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Vencimento: {format(new Date(exp.dueDate + "T00:00:00"), "dd/MM/yyyy", { locale: ptBR })}
+                      </p>
+                    </div>
+                  )}
+                </div>
+                <DialogFooter>
+                  <Button variant="outline" onClick={() => setViewDateExpenseId(null)}>Fechar</Button>
+                </DialogFooter>
+              </>
+            );
+          })()}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
