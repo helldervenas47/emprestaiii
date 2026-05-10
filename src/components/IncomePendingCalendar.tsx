@@ -556,21 +556,31 @@ export function IncomePendingCalendar({
                         {formatCurrency(selectedInfo.totalIncome)}
                       </span>
                     </div>
-                    {incomeByCat.length === 0 ? (
+                    {dayIncomeItems.length === 0 ? (
                       <p className="text-[11px] text-muted-foreground italic px-1">Sem receitas neste dia.</p>
                     ) : (
                       <ul className="space-y-1">
-                        {incomeByCat.map(([cat, val]) => (
-                          <li
-                            key={`inc-${cat}`}
-                            className="flex items-center justify-between gap-2 rounded-md bg-emerald-500/5 border border-emerald-500/20 px-2.5 py-1.5"
-                          >
-                            <span className="text-xs text-foreground truncate">{cat}</span>
-                            <span className="text-xs font-semibold text-emerald-700 dark:text-emerald-400 tabular-nums shrink-0">
-                              {formatCurrency(val)}
-                            </span>
-                          </li>
-                        ))}
+                        {dayIncomeItems.map((inc) => {
+                          const isReceived = inc.status === "received";
+                          return (
+                            <li
+                              key={`inc-${inc.id}`}
+                              className="flex items-center justify-between gap-2 rounded-md bg-emerald-500/5 border border-emerald-500/20 px-2.5 py-1.5"
+                            >
+                              <span className="flex items-center gap-2 min-w-0">
+                                <span
+                                  aria-label={isReceived ? "Recebida" : "Pendente"}
+                                  title={isReceived ? "Recebida" : "Pendente"}
+                                  className={`h-2 w-2 rounded-full shrink-0 ${isReceived ? "bg-emerald-500" : "bg-rose-500"}`}
+                                />
+                                <span className="text-xs text-foreground truncate">{inc.description}</span>
+                              </span>
+                              <span className="text-xs font-semibold text-emerald-700 dark:text-emerald-400 tabular-nums shrink-0">
+                                {formatCurrency(Number(inc.amount) || 0)}
+                              </span>
+                            </li>
+                          );
+                        })}
                       </ul>
                     )}
                   </section>
