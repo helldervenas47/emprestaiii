@@ -1211,6 +1211,13 @@ function ymd(d: Date): string {
 
 // Returns today's date in America/Sao_Paulo as YYYY-MM-DD.
 // The Edge runtime is UTC, so toISOString() can return tomorrow after 21:00 BRT.
+/** Capitaliza a primeira letra (preservando acentos), deixando o restante intacto. */
+function capitalizeFirst(s: string | null | undefined): string {
+  const t = (s ?? "").trim();
+  if (!t) return t;
+  return t.charAt(0).toLocaleUpperCase("pt-BR") + t.slice(1);
+}
+
 function todayBR(): string {
   const parts = new Intl.DateTimeFormat("en-CA", {
     timeZone: "America/Sao_Paulo",
