@@ -2422,6 +2422,7 @@ Deno.serve(async (req) => {
       const photos = (msg.raw_update as any)?.message?.photo as any[] | undefined;
       const caption = ((msg.raw_update as any)?.message?.caption as string | null)?.trim() ?? "";
       const callback = (msg.raw_update as any)?.callback_query;
+      const telegramKey = await getExpenseBotTokenForMessage(admin, msg, TELEGRAM_API_KEY);
 
       try {
       // 🎛️ Callback query (inline button press)
@@ -2433,16 +2434,16 @@ Deno.serve(async (req) => {
         const userId = await getLinkedUserId(admin, chatId);
         const link = userId ? { user_id: userId } : null;
         if (!link || !messageId) {
-          await tgAnswerCallback(cbId, "Conta não vinculada", LOVABLE_API_KEY, TELEGRAM_API_KEY);
+          await tgAnswerCallback(cbId, "Conta não vinculada", LOVABLE_API_KEY, telegramKey);
         } else if (data.startsWith("del:")) {
           const expenseId = data.slice(4);
           const { error: delErr } = await admin.from("expenses")
             .delete().eq("id", expenseId).eq("user_id", link.user_id);
           if (delErr) {
-            await tgAnswerCallback(cbId, "Erro ao apagar", LOVABLE_API_KEY, TELEGRAM_API_KEY);
+            await tgAnswerCallback(cbId, "Erro ao apagar", LOVABLE_API_KEY, telegramKey);
           } else {
-            await tgAnswerCallback(cbId, "Despesa removida", LOVABLE_API_KEY, TELEGRAM_API_KEY);
-            await tgEditMessage(chatId, messageId, "🗑️ *Despesa removida.*", null, LOVABLE_API_KEY, TELEGRAM_API_KEY);
+            await tgAnswerCallback(cbId, "Despesa removida", LOVABLE_API_KEY, telegramKey);
+            await tgEditMessage(chatId, messageId, "🗑️ *Despesa removida.*", null, LOVABLE_API_KEY, telegramKey);
           }
         } else if (data.startsWith("cat:")) {
           const expenseId = data.slice(4);
