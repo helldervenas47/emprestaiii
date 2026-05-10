@@ -7,6 +7,8 @@ import { TrendingUp, TrendingDown, Wallet, AlertTriangle, Send, Loader2 } from "
 import { Loan, Payment, InstallmentSchedule, Sale, Expense } from "@/types/loan";
 import { calculateTotalWithInterest } from "@/hooks/useLoans";
 import { useCreditCards } from "@/hooks/useCreditCards";
+import { useCreditCardOpenings } from "@/hooks/useCreditCardOpenings";
+import { getCardInvoiceTotalsForMonth } from "@/lib/creditCardInvoiceTotals";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
@@ -45,6 +47,7 @@ export function DailyPlanningReport({ loans, payments, installmentSchedules, sal
   const [date, setDate] = useState<string>(todayISO());
   const { user } = useAuth();
   const { cards } = useCreditCards();
+  const { openings } = useCreditCardOpenings();
   const { linked } = useTelegramReportsLink();
   const { prefs, loading: prefsLoading, save } = useDailyPlanningTelegramPrefs();
   const [sending, setSending] = useState(false);
@@ -121,19 +124,24 @@ export function DailyPlanningReport({ loans, payments, installmentSchedules, sal
 
     // Credit card invoices due today (by due_day)
     const day = Number(date.slice(8, 10));
+    const yyyymm = date.slice(0, 7);
+    const invoiceTotals = getCardInvoiceTotalsForMonth(expenses, cards, openings, yyyymm);
     for (const card of cards) {
       if (!card.active) continue;
       if (card.dueDay !== day) continue;
+      const inv = invoiceTotals.find((t) => t.card.id === card.id);
+      if (inv && inv.paid) continue; // já paga
+      const remaining = inv ? Math.max(0, inv.total - inv.paidTotal) : 0;
       out.push({
         origin: "Cartão",
         description: `Fatura ${card.nickname || card.bank} ${card.lastFour ? "•••• " + card.lastFour : ""}`.trim(),
-        amount: 0, // valor da fatura é dinâmico — sem cálculo aqui
+        amount: remaining,
         category: "Cartão de Crédito",
       });
     }
 
     return out.sort((a, b) => b.amount - a.amount);
-  }, [expenses, cards, date]);
+  }, [expenses, cards, openings, date]);
 
   const totalIncome = incomeRows.reduce((s, r) => s + r.amount, 0);
   const totalExpense = expenseRows.reduce((s, r) => s + r.amount, 0);
