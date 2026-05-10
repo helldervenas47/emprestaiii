@@ -125,16 +125,24 @@ async function buildAndSend(
 
   // Expenses (business + personal) due today, not paid
   const { data: expenses } = await admin.from("expenses")
-    .select("description, amount, category, scope, paid")
+    .select("description, amount, category, scope, paid, installments, parent_expense_id, type")
     .eq("user_id", userId)
     .eq("due_date", date)
     .eq("paid", false);
 
-  const expenseRows: Row[] = (expenses ?? []).map((e: any) => ({
-    origin: e.scope === "personal" ? "Pessoal" : "Empresa",
-    description: e.description,
-    amount: Number(e.amount || 0),
-  }));
+  const expenseRows: Row[] = (expenses ?? []).map((e: any) => {
+    const total = Number(e.amount || 0);
+    const installments = Number(e.installments || 0);
+    // Para a despesa-mãe (sem parent_expense_id) com várias parcelas,
+    // `amount` representa o valor total. O que vence no mês é uma parcela.
+    const isParentInstallment = !e.parent_expense_id && installments > 1;
+    const monthly = isParentInstallment ? total / installments : total;
+    return {
+      origin: e.scope === "personal" ? "Pessoal" : "Empresa",
+      description: e.description,
+      amount: monthly,
+    };
+  });
 
   // Credit card invoices due today
   const { data: cards } = await admin.from("credit_cards")
