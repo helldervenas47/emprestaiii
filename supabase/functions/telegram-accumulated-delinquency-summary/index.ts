@@ -38,10 +38,26 @@ type ReportItem = {
   clientKey: string;
   clientName: string;
   phone: string;
+  baseAmount: number;
+  lateInterest: number;
+  penalty: number;
   installmentAmount: number;
   dueDate: string;
   daysOverdue: number;
 };
+
+function calcLateFeesFor(loan: LoanRow, baseAmount: number, daysOverdue: number) {
+  if (daysOverdue <= 0) return { lateInterest: 0, penalty: 0 };
+  const lateValue = loan.late_interest_value != null ? Number(loan.late_interest_value) : 0;
+  const lateInterest = lateValue > 0
+    ? loan.late_interest_type === "fixed"
+      ? lateValue * daysOverdue
+      : baseAmount * (lateValue / 100) * daysOverdue
+    : 0;
+  const penaltyValue = loan.penalty_value != null ? Number(loan.penalty_value) : 0;
+  const penalty = penaltyValue > 0 ? penaltyValue : 0;
+  return { lateInterest, penalty };
+}
 
 function fmtBRL(value: number) {
   return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value);
