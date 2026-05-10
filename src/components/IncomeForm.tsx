@@ -67,6 +67,7 @@ export function IncomeForm({ open, onClose, onSubmit, initial }: Props) {
         setClientName(c?.name || initial.source || "");
         setPaymentMethodId(initial.paymentMethodId || "");
         setReceivedDate(initial.receivedDate);
+        setActualReceivedDate(initial.actualReceivedDate || (initial.status === "received" ? initial.receivedDate : ""));
         setStatus(initial.status);
         setRecurrence(initial.recurrence);
         setNotes(initial.notes || "");
@@ -77,6 +78,7 @@ export function IncomeForm({ open, onClose, onSubmit, initial }: Props) {
         setClientName("");
         setPaymentMethodId("");
         setReceivedDate(todayInAppTz());
+        setActualReceivedDate(todayInAppTz());
         setStatus("received");
         setRecurrence("once");
         setNotes("");
