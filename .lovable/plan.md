@@ -1,48 +1,32 @@
-## Diagnóstico
+## Causa
 
-Os relatórios não chegam ao **Bot de Relatórios** porque a chave de conexão dele (`TELEGRAM_API_KEY_1`) **não está configurada** no projeto.
+No relatório de Inadimplência Acumulada, o contrato parcelado do Darlan Machado (3x, 1 paga) tem:
 
-### Como descobri
+- Parcela #1 (29/04) — paga
+- Parcela #2 (09/05) — vencida, mas no mês atual
+- Parcela #3 (16/05) — futura
+- `loans.due_date` = 2026-04-29 (não foi avançada após o pagamento da #1)
 
-1. Você possui **dois bots distintos** no Telegram:
-   - **Bot de Despesas** → usa o secret `TELEGRAM_API_KEY` e escreve/lê em `telegram_links`.
-   - **Bot de Relatórios** → deveria usar `TELEGRAM_API_KEY_1` e escrever em `telegram_reports_links`.
+A regra atual filtra parcelas com `dueDate < início do mês atual`. Como a única parcela vencida (#2) é de 09/05, a lista filtrada fica vazia. Aí o código cai no **fallback**, que usa `loan.due_date` diretamente. Como `loan.due_date` ainda aponta para 29/04 (mês anterior), o contrato é exibido como vencido em 29/04 com ~12 dias de atraso e valor igual ao saldo restante do contrato.
 
-2. Todas as edge functions de relatório apontam corretamente para o segundo bot:
-   - `telegram-billing-summary` (cobranças)
-   - `telegram-accumulated-delinquency-summary` (inadimplência acumulada)
-   - `telegram-manager-weekly-summary` (resumo semanal do gestor)
-   - `daily-planning-summary` (planejamento do dia)
-   - `send-personal-insights-telegram` (insights pessoais)
-   - `telegram-reports-poll` (recebe `/code` no bot)
+O fallback foi pensado para empréstimos **sem schedule** (ex.: parcela única). Quando o contrato é parcelado e tem schedules, ele nunca deveria ser usado — basta confiar no que está em `loan_installments`.
 
-   Todas chamam `Deno.env.get("TELEGRAM_API_KEY_1")`.
+## Correção proposta
 
-3. Listando os secrets do projeto, só existe `TELEGRAM_API_KEY` — **`TELEGRAM_API_KEY_1` não existe**. Por isso, ao tentar enviar via gateway, o Telegram recusa (chave ausente/ inválida) e nenhuma mensagem chega, embora:
-   - O cron esteja disparando (vejo as functions bootando de minuto em minuto nos logs).
-   - O seu vínculo exista em `telegram_reports_links` (chat_id `8727068214`).
+Aplicar a mesma regra em dois lugares:
 
-## Como resolver
+1. **`src/components/AccumulatedDelinquencyReport.tsx`** — bloco de fallback (linhas ~140–160).
+2. **`supabase/functions/telegram-accumulated-delinquency-summary/index.ts`** — função `buildAccumulatedDelinquencyItems` (bloco equivalente após o `continue;`).
 
-Conectar uma **segunda conexão do Telegram** no projeto, vinculada ao bot de relatórios, e expô-la como `TELEGRAM_API_KEY_1`.
+Mudança em ambos:
 
-Passos:
+- Só executar o fallback quando o contrato **não possuir nenhum registro em `loan_installments`** (`schedules.length === 0`).
+- Quando o contrato tem schedules e nenhuma parcela vencida em meses anteriores, simplesmente sair sem emitir linha.
 
-1. Em **Connectors → Telegram**, criar uma nova conexão usando o token do **bot de relatórios** (o `BotFather` do bot que recebe os relatórios). A primeira conexão (do bot de despesas) deve ser mantida.
-2. Garantir que a nova conexão exponha o secret com o nome **`TELEGRAM_API_KEY_1`** (é o nome esperado por todas as functions acima). Se o connector criar com outro nome, podemos renomear/duplicar via secrets.
-3. Após salvar, o `telegram-reports-poll` passa a responder `/start` e `/code` no bot certo, e os horários configurados em:
-   - Cobranças (`telegram_billing_prefs`)
-   - Inadimplência acumulada (`telegram_accumulated_delinquency_prefs`)
-   - Resumo do gestor (`telegram_manager_weekly_prefs`)
-   - Planejamento diário (`daily_planning_telegram_prefs`)
-   - Insights pessoais (`telegram_personal_insights_prefs`)
-   começam a entregar normalmente.
-4. Validação rápida: invocar manualmente `telegram-billing-summary` com `force_user_id` igual ao seu `user_id` e confirmar a mensagem chegando no bot de relatórios.
+### Resultado esperado
 
-## Observações
+- Darlan Machado deixa de aparecer no relatório de inadimplência acumulada (a única parcela em atraso, 09/05, é do mês corrente).
+- Empréstimos parcelados sem nenhuma parcela vencida antes do mês atual nunca mais geram linha de fallback.
+- Empréstimos de parcela única continuam funcionando como hoje (caem no fallback porque `schedules.length === 0`).
 
-- Não há nada errado no código das functions nem nos crons — o problema é puramente de configuração de credencial.
-- Enquanto `TELEGRAM_API_KEY_1` não existir, qualquer "Try to fix" ou alteração de código não vai resolver.
-- Se preferir consolidar tudo em um único bot, a alternativa é trocar `TELEGRAM_API_KEY_1` por `TELEGRAM_API_KEY` em todas as functions de relatório e usar `telegram_links` no lugar de `telegram_reports_links` — mas isso mistura despesas pessoais com relatórios de cobrança no mesmo chat. **Recomendo manter dois bots** e apenas configurar o secret faltante.
-
-Quer que eu prepare a troca para um bot único, ou você prefere conectar o segundo bot via Connectors (recomendado)?
+Nenhuma mudança em UI, schema ou lógica de pagamentos — apenas a condição que dispara o fallback.
