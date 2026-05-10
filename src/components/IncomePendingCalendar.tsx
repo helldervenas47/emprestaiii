@@ -183,6 +183,9 @@ export function IncomePendingCalendar({
       return map[d];
     };
     for (const i of incomes) {
+      // Apenas receitas efetivamente recebidas aparecem no calendário,
+      // posicionadas pela data de recebimento.
+      if (i.status !== "received") continue;
       const d = i.receivedDate;
       if (!d) continue;
       const e = ensure(d);
