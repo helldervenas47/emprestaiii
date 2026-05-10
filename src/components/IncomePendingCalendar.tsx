@@ -387,6 +387,16 @@ export function IncomePendingCalendar({
           </Button>
         </div>
 
+        {/* Legenda de status dos lançamentos */}
+        <div className="flex items-center gap-3 mb-3 text-[11px] text-muted-foreground flex-wrap">
+          <span className="flex items-center gap-1.5">
+            <span className="h-2 w-2 rounded-full bg-emerald-500" /> Pago / Recebido
+          </span>
+          <span className="flex items-center gap-1.5">
+            <span className="h-2 w-2 rounded-full bg-rose-500" /> Pendente / Não pago
+          </span>
+        </div>
+
         <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)]">
           <div>
             {expanded ? (
