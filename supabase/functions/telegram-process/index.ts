@@ -618,9 +618,8 @@ function nextDueDateForCard(closingDay: number, dueDay: number): string {
   const yr = ref.getUTCFullYear();
   const mo = ref.getUTCMonth();
 
-  // The cycle that contains "today" closes at closingDay of either this month (if today <= closingDay)
-  // or next month (if today > closingDay).
-  const closingNextMonth = day > closingDay ? mo + 1 : mo;
+  // Compras feitas no dia do fechamento (ou depois) entram no próximo ciclo.
+  const closingNextMonth = day >= closingDay ? mo + 1 : mo;
   // Due date falls in the month after closing (or same month if dueDay > closingDay).
   const dueMonth = dueDay > closingDay ? closingNextMonth : closingNextMonth + 1;
   const lastDay = new Date(Date.UTC(yr, dueMonth + 1, 0)).getUTCDate();
@@ -661,12 +660,12 @@ function getCycleForRef(ref: Date, closingDay: number, dueDay: number) {
   const closingThis = new Date(Date.UTC(y, m, Math.min(closingDay, lastDayThis)));
   const lastDayNext = new Date(Date.UTC(y, m + 2, 0)).getUTCDate();
   const closingNext =
-    day > closingDay
+    day >= closingDay
       ? new Date(Date.UTC(y, m + 1, Math.min(closingDay, lastDayNext)))
       : closingThis;
   const lastDayPrev = new Date(Date.UTC(y, m, 0)).getUTCDate();
   const closingPrev =
-    day > closingDay
+    day >= closingDay
       ? closingThis
       : new Date(Date.UTC(y, m - 1, Math.min(closingDay, lastDayPrev)));
   return { from: closingPrev, to: closingNext };
@@ -702,7 +701,7 @@ async function computeCurrentInvoiceTotal(
       .select("amount, type, installments, notes")
       .eq("user_id", userId)
       .gte("due_date", fromYmd)
-      .lte("due_date", toYmd);
+      .lt("due_date", toYmd);
 
     let itemsTotal = 0;
     for (const e of (rows ?? []) as any[]) {
