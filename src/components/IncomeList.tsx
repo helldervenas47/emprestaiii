@@ -304,37 +304,41 @@ export function IncomeList({ readOnly }: Props) {
                   </div>
                 </div>
                 {!readOnly && (
-                  <div className="flex flex-wrap gap-1 mt-3 pt-3 border-t border-border/30">
+                  <div className="flex items-center gap-1 mt-3 pt-3 border-t border-border/30">
                     <Button
-                      size="sm"
+                      size="icon"
                       variant="ghost"
                       onClick={() => setViewDateTarget(i)}
-                      className="h-8 gap-1"
+                      className="h-8 w-8"
+                      title="Ver data de pagamento"
+                      aria-label="Ver data de pagamento"
                     >
-                      <CalendarCheck className="h-3.5 w-3.5" /> Ver data de pagamento
+                      <CalendarCheck className="h-4 w-4" />
                     </Button>
                     {i.status !== "received" && (
                       <Button
-                        size="sm"
+                        size="icon"
                         variant="outline"
                         onClick={() => {
                           setPayTarget(i);
                           setPayDate(todayInAppTz());
                           setPayAmount("");
                         }}
-                        className="h-8 gap-1"
+                        className="h-8 w-8"
+                        title="Pagar"
+                        aria-label="Pagar"
                       >
-                        <CheckCircle2 className="h-3.5 w-3.5" /> Pagar
+                        <CheckCircle2 className="h-4 w-4" />
                       </Button>
                     )}
-                    <Button size="sm" variant="ghost" onClick={() => { setEditing(i); setFormOpen(true); }} className="h-8 gap-1">
-                      <Pencil className="h-3.5 w-3.5" /> Editar
+                    <Button size="icon" variant="ghost" onClick={() => { setEditing(i); setFormOpen(true); }} className="h-8 w-8" title="Editar" aria-label="Editar">
+                      <Pencil className="h-4 w-4" />
                     </Button>
-                    <Button size="sm" variant="ghost" onClick={() => duplicateIncome(i.id)} className="h-8 gap-1">
-                      <Copy className="h-3.5 w-3.5" /> Duplicar
+                    <Button size="icon" variant="ghost" onClick={() => duplicateIncome(i.id)} className="h-8 w-8" title="Duplicar" aria-label="Duplicar">
+                      <Copy className="h-4 w-4" />
                     </Button>
-                    <Button size="sm" variant="ghost" onClick={() => { setDeleteTarget(i); setDeleteScope("single"); }} className="h-8 gap-1 text-destructive hover:text-destructive">
-                      <Trash2 className="h-3.5 w-3.5" /> Excluir
+                    <Button size="icon" variant="ghost" onClick={() => { setDeleteTarget(i); setDeleteScope("single"); }} className="h-8 w-8 text-destructive hover:text-destructive" title="Excluir" aria-label="Excluir">
+                      <Trash2 className="h-4 w-4" />
                     </Button>
                   </div>
                 )}
