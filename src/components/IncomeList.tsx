@@ -98,10 +98,8 @@ export function IncomeList({ readOnly }: Props) {
       const carriedOver = !belongsToRecurringSeries && i.status !== "received" && i.receivedDate < monthKey + "-01";
       if (!inMonth && !carriedOver) return false;
       
-      if (statusFilter === "pending_all") {
+      if (statusFilter === "pending_all" || statusFilter === "pending") {
         if (i.status !== "pending" && i.status !== "overdue") return false;
-      } else if (statusFilter === "pending") {
-        if (i.status !== "pending") return false;
       } else if (statusFilter === "overdue") {
         if (i.status !== "overdue") return false;
       } else if (statusFilter === "received") {
@@ -216,7 +214,7 @@ export function IncomeList({ readOnly }: Props) {
             <div className="text-[11px] text-muted-foreground leading-none">
               {statusFilter === "all" && "Total"}
               {statusFilter === "received" && "Total recebido"}
-              {statusFilter === "pending" && "Total pendente"}
+              {statusFilter === "pending" && "Total a receber"}
               {statusFilter === "overdue" && "Total vencido"}
               {statusFilter === "pending_all" && "Total a receber"}
             </div>
@@ -231,7 +229,7 @@ export function IncomeList({ readOnly }: Props) {
           </div>
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3">
+        <div className="grid grid-cols-3 gap-2 mb-3">
           <Button
             type="button"
             size="sm"
@@ -249,15 +247,6 @@ export function IncomeList({ readOnly }: Props) {
             onClick={() => setStatusFilter("pending")}
           >
             <Clock className="h-3.5 w-3.5" /> Pendentes
-          </Button>
-          <Button
-            type="button"
-            size="sm"
-            variant={statusFilter === "overdue" ? "default" : "outline"}
-            className="h-9 rounded-full min-w-0 gap-1.5"
-            onClick={() => setStatusFilter("overdue")}
-          >
-            <AlertTriangle className="h-3.5 w-3.5" /> Vencidas
           </Button>
           <Button
             type="button"
