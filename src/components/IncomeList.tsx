@@ -68,6 +68,9 @@ export function IncomeList({ readOnly }: Props) {
   const [payAmount, setPayAmount] = useState<string>("");
   const [paySaving, setPaySaving] = useState(false);
   const [viewDateTarget, setViewDateTarget] = useState<Income | null>(null);
+  const [editingPayDate, setEditingPayDate] = useState(false);
+  const [editPayDateValue, setEditPayDateValue] = useState("");
+  const [savingPayDate, setSavingPayDate] = useState(false);
 
   const nowD = new Date();
   const [selectedMonth, setSelectedMonth] = useState<string>(
@@ -498,7 +501,7 @@ export function IncomeList({ readOnly }: Props) {
         );
       })()}
 
-      <Dialog open={!!viewDateTarget} onOpenChange={(o) => { if (!o) setViewDateTarget(null); }}>
+      <Dialog open={!!viewDateTarget} onOpenChange={(o) => { if (!o) { setViewDateTarget(null); setEditingPayDate(false); } }}>
         <DialogContent className="max-w-sm">
           <DialogHeader>
             <DialogTitle>Data de pagamento</DialogTitle>
@@ -512,13 +515,51 @@ export function IncomeList({ readOnly }: Props) {
                 <>
                   <div className="rounded-lg bg-emerald-500/10 border border-emerald-500/30 p-3">
                     <p className="text-xs text-muted-foreground">Recebido em</p>
-                    <p className="text-base font-semibold text-emerald-700 dark:text-emerald-400">
-                      {format(
-                        new Date((viewDateTarget.actualReceivedDate || viewDateTarget.receivedDate) + "T00:00:00"),
-                        "dd 'de' MMMM 'de' yyyy",
-                        { locale: ptBR },
-                      )}
-                    </p>
+                    {editingPayDate ? (
+                      <div className="mt-1 space-y-2">
+                        <DatePickerField value={editPayDateValue} onChange={setEditPayDateValue} />
+                        <div className="flex gap-2 justify-end">
+                          <Button size="sm" variant="ghost" onClick={() => setEditingPayDate(false)}>Cancelar</Button>
+                          <Button
+                            size="sm"
+                            disabled={savingPayDate || !editPayDateValue}
+                            onClick={async () => {
+                              if (!viewDateTarget) return;
+                              setSavingPayDate(true);
+                              await updateIncome(viewDateTarget.id, { actualReceivedDate: editPayDateValue } as any);
+                              setSavingPayDate(false);
+                              setEditingPayDate(false);
+                              setViewDateTarget({ ...viewDateTarget, actualReceivedDate: editPayDateValue });
+                            }}
+                          >
+                            {savingPayDate ? "Salvando..." : "Salvar"}
+                          </Button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="text-base font-semibold text-emerald-700 dark:text-emerald-400">
+                          {format(
+                            new Date((viewDateTarget.actualReceivedDate || viewDateTarget.receivedDate) + "T00:00:00"),
+                            "dd 'de' MMMM 'de' yyyy",
+                            { locale: ptBR },
+                          )}
+                        </p>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="h-7 w-7"
+                          title="Alterar data de pagamento"
+                          aria-label="Alterar data de pagamento"
+                          onClick={() => {
+                            setEditPayDateValue(viewDateTarget.actualReceivedDate || viewDateTarget.receivedDate);
+                            setEditingPayDate(true);
+                          }}
+                        >
+                          <Pencil className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
+                    )}
                   </div>
                   <div className="text-xs text-muted-foreground">
                     Valor: <span className="font-semibold text-foreground">{fmtBRL(viewDateTarget.amount)}</span>
@@ -538,7 +579,7 @@ export function IncomeList({ readOnly }: Props) {
             </div>
           )}
           <DialogFooter>
-            <Button variant="outline" onClick={() => setViewDateTarget(null)}>Fechar</Button>
+            <Button variant="outline" onClick={() => { setViewDateTarget(null); setEditingPayDate(false); }}>Fechar</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
