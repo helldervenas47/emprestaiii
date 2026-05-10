@@ -35,7 +35,7 @@ import { cn } from "@/lib/utils";
 import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
 import { parseNotesWithMerchandise } from "@/lib/saleMerchandise";
 
-import { VehicleExpenseForm, vehicleExpenseCategories } from "@/components/VehicleExpenseForm";
+import { VehicleExpenseForm, isVehicleExpenseForVehicles, vehicleExpenseCategories } from "@/components/VehicleExpenseForm";
 import { VehicleLocadorManager } from "@/components/VehicleLocadorManager";
 import { useLocadorInfo, LocadorInfo } from "@/hooks/useLocadorInfo";
 import { useVehicleRegistry, VehicleInfo } from "@/hooks/useVehicleRegistry";
@@ -1488,7 +1488,7 @@ export function ProductSalesView({ sales, onDeleteSale, onUpdateSale, clients = 
   const [selectedMonth, setSelectedMonth] = useState(`${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`);
 
   // All vehicle-related expenses (used for "Limpar Pagamentos" actions)
-  const allVehicleExpenses = expenses.filter(e => vehicleExpenseCategories.includes(e.category));
+  const allVehicleExpenses = expenses.filter(isVehicleExpenseForVehicles);
 
   // Monthly vehicle expenses - consider installment due dates
   const [selYear, selMonthNum] = selectedMonth.split("-").map(Number);
