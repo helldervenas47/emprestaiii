@@ -27,6 +27,16 @@ export function todayInAppTz(date: Date = new Date()): string {
   return formatYmdInTz(date, cachedTz);
 }
 
+/**
+ * Returns a Date whose local Y/M/D components match "today" in the configured
+ * app timezone (time set to 00:00 local). Useful as a TZ-aware replacement for
+ * `new Date()` whenever you only care about the calendar day.
+ */
+export function todayDateInAppTz(): Date {
+  const [y, m, d] = todayInAppTz().split("-").map(Number);
+  return new Date(y, m - 1, d);
+}
+
 /** Format any Date as "YYYY-MM-DD" in the configured timezone. */
 export function formatYmdInAppTz(date: Date): string {
   return formatYmdInTz(date, cachedTz);
