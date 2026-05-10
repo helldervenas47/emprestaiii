@@ -17,7 +17,7 @@ import { DatePickerField } from "@/components/ui/date-picker-field";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
   Search, Trash2, CheckCircle, Receipt, Calendar, Tag,
-  CircleDollarSign, ChevronLeft, ChevronRight, Undo2, Pencil, Check,
+  CircleDollarSign, ChevronLeft, ChevronRight, Undo2, Pencil, Check, CalendarCheck,
 } from "lucide-react";
 import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
 
@@ -242,6 +242,7 @@ export function ExpenseList({ expenses, onPay, onUnpay, onDelete, onUpdate, read
   const [paidAmountInput, setPaidAmountInput] = useState<string>("");
   const [unpayingExpenseId, setUnpayingExpenseId] = useState<string | null>(null);
   const [unpayConfirm, setUnpayConfirm] = useState<{ run: () => void | Promise<void>; label: string } | null>(null);
+  const [viewDateExpenseId, setViewDateExpenseId] = useState<string | null>(null);
 
   const getInstallmentAmount = useCallback((e: Expense) => {
     const isRec = e.type === "recorrente" && e.installments && e.installments > 1;
@@ -493,6 +494,10 @@ export function ExpenseList({ expenses, onPay, onUnpay, onDelete, onUpdate, read
                       <div className="flex items-center justify-between gap-2 mt-2 pt-2 border-t border-border/40 flex-wrap">
                         <p className="text-base sm:text-lg font-bold text-foreground">{formatCurrency(installmentAmount)}</p>
                         <div className="flex items-center gap-1 flex-wrap justify-end">
+                          <Button size="sm" variant="ghost" onClick={() => setViewDateExpenseId(expense.id)} className="h-7 px-2 text-xs">
+                            <CalendarCheck className="h-3.5 w-3.5 sm:mr-1" />
+                            <span className="hidden sm:inline">Data pagto</span>
+                          </Button>
                           {hasPaidSomething && onUpdate && (
                             <Button size="sm" variant="outline" onClick={() => setViewPaymentsExpenseId(expense.id)} className="h-7 px-2 text-xs">
                               <Receipt className="h-3.5 w-3.5 sm:mr-1" />
@@ -710,6 +715,44 @@ export function ExpenseList({ expenses, onPay, onUnpay, onDelete, onUpdate, read
               Confirmar estorno
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      {/* Dialog Ver data de pagamento */}
+      <Dialog open={!!viewDateExpenseId} onOpenChange={(o) => { if (!o) setViewDateExpenseId(null); }}>
+        <DialogContent className="sm:max-w-sm">
+          {(() => {
+            const exp = expenses.find((e) => e.id === viewDateExpenseId);
+            if (!exp) return null;
+            return (
+              <>
+                <DialogHeader>
+                  <DialogTitle>Data de pagamento</DialogTitle>
+                  <DialogDescription>{exp.description}</DialogDescription>
+                </DialogHeader>
+                <div className="space-y-2 text-sm">
+                  {exp.paid && exp.paidDate ? (
+                    <div className="rounded-lg bg-success/10 border border-success/30 p-3">
+                      <p className="text-xs text-muted-foreground">Pago em</p>
+                      <p className="text-base font-semibold text-success">
+                        {format(new Date(exp.paidDate + "T00:00:00"), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="rounded-lg bg-warning/10 border border-warning/30 p-3">
+                      <p className="text-xs text-muted-foreground">Status</p>
+                      <p className="text-base font-semibold text-warning">Ainda não paga</p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Vencimento: {format(new Date(exp.dueDate + "T00:00:00"), "dd/MM/yyyy", { locale: ptBR })}
+                      </p>
+                    </div>
+                  )}
+                </div>
+                <DialogFooter>
+                  <Button variant="outline" onClick={() => setViewDateExpenseId(null)}>Fechar</Button>
+                </DialogFooter>
+              </>
+            );
+          })()}
         </DialogContent>
       </Dialog>
     </div>

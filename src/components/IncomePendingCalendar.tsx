@@ -183,15 +183,16 @@ export function IncomePendingCalendar({
       return map[d];
     };
     for (const i of incomes) {
-      // Apenas receitas efetivamente recebidas aparecem no calendário,
-      // posicionadas pela data real do recebimento (actualReceivedDate),
-      // com fallback para receivedDate quando ainda não houver registro.
-      if (i.status !== "received") continue;
-      const d = i.actualReceivedDate || i.receivedDate;
+      // Posiciona pela data real do recebimento quando recebida; senão pela data prevista.
+      const d = i.status === "received" ? (i.actualReceivedDate || i.receivedDate) : i.receivedDate;
       if (!d) continue;
       const e = ensure(d);
       e.incomes.push(i);
-      e.totalIncome += Number(i.amount) || 0;
+      // Apenas receitas efetivamente recebidas entram no saldo realizado.
+      // (Pendentes aparecem no calendário com indicador, mas não somam ao total do dia.)
+      if (i.status === "received") {
+        e.totalIncome += Number(i.amount) || 0;
+      }
     }
     for (const ex of personalExpenses) {
       const d = ex.paid && ex.paidDate ? ex.paidDate : ex.dueDate;
@@ -349,17 +350,15 @@ export function IncomePendingCalendar({
     return runningBalanceMap[prevDs] ?? baseBalance;
   })();
 
-  // Group by category for selected day
-  const groupByCategory = <T extends { category?: string | null; amount: number }>(items: T[]) => {
-    const m = new Map<string, number>();
-    for (const it of items) {
-      const cat = it.category && String(it.category).trim() ? String(it.category) : "Outros";
-      m.set(cat, (m.get(cat) || 0) + (Number(it.amount) || 0));
-    }
-    return Array.from(m.entries()).sort((a, b) => b[1] - a[1]);
-  };
-  const incomeByCat = useMemo(() => groupByCategory(selectedInfo.incomes), [selectedInfo]);
-  const expenseByCat = useMemo(() => groupByCategory(selectedInfo.expenses), [selectedInfo]);
+  // Itens individuais do dia (por descrição), ordenados pelo valor.
+  const dayIncomeItems = useMemo(
+    () => [...selectedInfo.incomes].sort((a, b) => (Number(b.amount) || 0) - (Number(a.amount) || 0)),
+    [selectedInfo],
+  );
+  const dayExpenseItems = useMemo(
+    () => [...selectedInfo.expenses].sort((a, b) => (Number(b.amount) || 0) - (Number(a.amount) || 0)),
+    [selectedInfo],
+  );
 
   return (
     <Card no3d className="animate-fade-in">
@@ -386,6 +385,16 @@ export function IncomePendingCalendar({
               <><ChevronDown className="h-3.5 w-3.5" /> Expandir</>
             )}
           </Button>
+        </div>
+
+        {/* Legenda de status dos lançamentos */}
+        <div className="flex items-center gap-3 mb-3 text-[11px] text-muted-foreground flex-wrap">
+          <span className="flex items-center gap-1.5">
+            <span className="h-2 w-2 rounded-full bg-emerald-500" /> Pago / Recebido
+          </span>
+          <span className="flex items-center gap-1.5">
+            <span className="h-2 w-2 rounded-full bg-rose-500" /> Pendente / Não pago
+          </span>
         </div>
 
         <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)]">
@@ -557,21 +566,31 @@ export function IncomePendingCalendar({
                         {formatCurrency(selectedInfo.totalIncome)}
                       </span>
                     </div>
-                    {incomeByCat.length === 0 ? (
+                    {dayIncomeItems.length === 0 ? (
                       <p className="text-[11px] text-muted-foreground italic px-1">Sem receitas neste dia.</p>
                     ) : (
                       <ul className="space-y-1">
-                        {incomeByCat.map(([cat, val]) => (
-                          <li
-                            key={`inc-${cat}`}
-                            className="flex items-center justify-between gap-2 rounded-md bg-emerald-500/5 border border-emerald-500/20 px-2.5 py-1.5"
-                          >
-                            <span className="text-xs text-foreground truncate">{cat}</span>
-                            <span className="text-xs font-semibold text-emerald-700 dark:text-emerald-400 tabular-nums shrink-0">
-                              {formatCurrency(val)}
-                            </span>
-                          </li>
-                        ))}
+                        {dayIncomeItems.map((inc) => {
+                          const isReceived = inc.status === "received";
+                          return (
+                            <li
+                              key={`inc-${inc.id}`}
+                              className="flex items-center justify-between gap-2 rounded-md bg-emerald-500/5 border border-emerald-500/20 px-2.5 py-1.5"
+                            >
+                              <span className="flex items-center gap-2 min-w-0">
+                                <span
+                                  aria-label={isReceived ? "Recebida" : "Pendente"}
+                                  title={isReceived ? "Recebida" : "Pendente"}
+                                  className={`h-2 w-2 rounded-full shrink-0 ${isReceived ? "bg-emerald-500" : "bg-rose-500"}`}
+                                />
+                                <span className="text-xs text-foreground truncate">{inc.description}</span>
+                              </span>
+                              <span className="text-xs font-semibold text-emerald-700 dark:text-emerald-400 tabular-nums shrink-0">
+                                {formatCurrency(Number(inc.amount) || 0)}
+                              </span>
+                            </li>
+                          );
+                        })}
                       </ul>
                     )}
                   </section>
@@ -586,21 +605,31 @@ export function IncomePendingCalendar({
                         {formatCurrency(selectedInfo.totalExpense)}
                       </span>
                     </div>
-                    {expenseByCat.length === 0 ? (
+                    {dayExpenseItems.length === 0 ? (
                       <p className="text-[11px] text-muted-foreground italic px-1">Sem despesas neste dia.</p>
                     ) : (
                       <ul className="space-y-1">
-                        {expenseByCat.map(([cat, val]) => (
-                          <li
-                            key={`exp-${cat}`}
-                            className="flex items-center justify-between gap-2 rounded-md bg-rose-500/5 border border-rose-500/20 px-2.5 py-1.5"
-                          >
-                            <span className="text-xs text-foreground truncate">{cat}</span>
-                            <span className="text-xs font-semibold text-rose-700 dark:text-rose-400 tabular-nums shrink-0">
-                              {formatCurrency(val)}
-                            </span>
-                          </li>
-                        ))}
+                        {dayExpenseItems.map((ex) => {
+                          const isPaid = !!ex.paid;
+                          return (
+                            <li
+                              key={`exp-${ex.id}`}
+                              className="flex items-center justify-between gap-2 rounded-md bg-rose-500/5 border border-rose-500/20 px-2.5 py-1.5"
+                            >
+                              <span className="flex items-center gap-2 min-w-0">
+                                <span
+                                  aria-label={isPaid ? "Paga" : "Pendente"}
+                                  title={isPaid ? "Paga" : "Pendente"}
+                                  className={`h-2 w-2 rounded-full shrink-0 ${isPaid ? "bg-emerald-500" : "bg-rose-500"}`}
+                                />
+                                <span className="text-xs text-foreground truncate">{ex.description}</span>
+                              </span>
+                              <span className="text-xs font-semibold text-rose-700 dark:text-rose-400 tabular-nums shrink-0">
+                                {formatCurrency(Number(ex.amount) || 0)}
+                              </span>
+                            </li>
+                          );
+                        })}
                       </ul>
                     )}
                   </section>

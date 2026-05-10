@@ -22,7 +22,7 @@ import { FinancialStatement } from "./FinancialStatement";
 import { PiggyBanksSummaryCard } from "./PiggyBanksSummaryCard";
 import { IncomeTelegramBotButton } from "./IncomeTelegramBotButton";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import { Plus, Search, Copy, Pencil, Trash2, CheckCircle2, Clock, AlertTriangle, ArrowUpDown, ChevronLeft, ChevronRight } from "lucide-react";
+import { Plus, Search, Copy, Pencil, Trash2, CheckCircle2, Clock, AlertTriangle, ArrowUpDown, ChevronLeft, ChevronRight, CalendarCheck } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
@@ -67,6 +67,7 @@ export function IncomeList({ readOnly }: Props) {
   const [payDate, setPayDate] = useState<string>("");
   const [payAmount, setPayAmount] = useState<string>("");
   const [paySaving, setPaySaving] = useState(false);
+  const [viewDateTarget, setViewDateTarget] = useState<Income | null>(null);
 
   const nowD = new Date();
   const [selectedMonth, setSelectedMonth] = useState<string>(
@@ -304,6 +305,14 @@ export function IncomeList({ readOnly }: Props) {
                 </div>
                 {!readOnly && (
                   <div className="flex flex-wrap gap-1 mt-3 pt-3 border-t border-border/30">
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => setViewDateTarget(i)}
+                      className="h-8 gap-1"
+                    >
+                      <CalendarCheck className="h-3.5 w-3.5" /> Ver data de pagamento
+                    </Button>
                     {i.status !== "received" && (
                       <Button
                         size="sm"
@@ -484,6 +493,51 @@ export function IncomeList({ readOnly }: Props) {
           </Dialog>
         );
       })()}
+
+      <Dialog open={!!viewDateTarget} onOpenChange={(o) => { if (!o) setViewDateTarget(null); }}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Data de pagamento</DialogTitle>
+            <DialogDescription>
+              {viewDateTarget?.description}
+            </DialogDescription>
+          </DialogHeader>
+          {viewDateTarget && (
+            <div className="space-y-2 text-sm">
+              {viewDateTarget.status === "received" ? (
+                <>
+                  <div className="rounded-lg bg-emerald-500/10 border border-emerald-500/30 p-3">
+                    <p className="text-xs text-muted-foreground">Recebido em</p>
+                    <p className="text-base font-semibold text-emerald-700 dark:text-emerald-400">
+                      {format(
+                        new Date((viewDateTarget.actualReceivedDate || viewDateTarget.receivedDate) + "T00:00:00"),
+                        "dd 'de' MMMM 'de' yyyy",
+                        { locale: ptBR },
+                      )}
+                    </p>
+                  </div>
+                  <div className="text-xs text-muted-foreground">
+                    Valor: <span className="font-semibold text-foreground">{fmtBRL(viewDateTarget.amount)}</span>
+                  </div>
+                </>
+              ) : (
+                <div className="rounded-lg bg-amber-500/10 border border-amber-500/30 p-3">
+                  <p className="text-xs text-muted-foreground">Status</p>
+                  <p className="text-base font-semibold text-amber-700 dark:text-amber-400">
+                    Ainda não recebida
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Vencimento: {format(new Date(viewDateTarget.receivedDate + "T00:00:00"), "dd/MM/yyyy", { locale: ptBR })}
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setViewDateTarget(null)}>Fechar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
