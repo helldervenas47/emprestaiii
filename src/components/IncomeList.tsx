@@ -380,11 +380,19 @@ export function IncomeList({ readOnly }: Props) {
                 const finalAmount = payAmount.trim() && Number(payAmount) > 0
                   ? Number(payAmount)
                   : payTarget.amount;
-                await updateIncome(payTarget.id, {
+                // Para receitas recorrentes (parcelas de uma série), NÃO sobrescrever
+                // a data agendada — caso contrário a data muda e pode colidir com outra
+                // ocorrência da mesma série, causando duplicidade.
+                const isRecurringOccurrence =
+                  !!payTarget.parentId || payTarget.recurrence !== "once";
+                const patch: any = {
                   status: "received",
-                  receivedDate: payDate,
                   amount: finalAmount,
-                });
+                };
+                if (!isRecurringOccurrence) {
+                  patch.receivedDate = payDate;
+                }
+                await updateIncome(payTarget.id, patch);
                 setPaySaving(false);
                 setPayTarget(null);
               }}
