@@ -15,6 +15,7 @@ const CATEGORIES = [
 
 // In-memory cache (per-isolate) for chat_id → user_id lookups. TTL 5min.
 const linkCache = new Map<number, { userId: string | null; expires: number }>();
+const botTokenCache = new Map<string, { token: string | null; expires: number }>();
 const LINK_CACHE_TTL_MS = 5 * 60 * 1000;
 
 async function getLinkedUserId(admin: any, chatId: number): Promise<string | null> {
@@ -29,6 +30,51 @@ async function getLinkedUserId(admin: any, chatId: number): Promise<string | nul
 
 function invalidateLinkCache(chatId: number) {
   linkCache.delete(chatId);
+}
+
+async function getExpenseBotTokenForMessage(admin: any, msg: any, fallback: string): Promise<string> {
+  const raw = msg.raw_update as any;
+  const rawBotId = raw?._system_bot_id as string | undefined;
+  const chatId = Number(msg.chat_id);
+  const cacheKey = rawBotId ? `bot:${rawBotId}` : `chat:${chatId}`;
+  const cached = botTokenCache.get(cacheKey);
+  if (cached && cached.expires > Date.now()) return cached.token || fallback;
+
+  let token: string | null = null;
+  if (rawBotId) {
+    const { data } = await admin
+      .from("system_telegram_bots")
+      .select("token")
+      .eq("id", rawBotId)
+      .eq("purpose", "expenses")
+      .eq("active", true)
+      .maybeSingle();
+    token = (data as any)?.token ?? null;
+  }
+
+  if (!token) {
+    const { data: link } = await admin
+      .from("telegram_links")
+      .select("bot_id, system_telegram_bots(token)")
+      .eq("chat_id", chatId)
+      .maybeSingle();
+    token = (link as any)?.system_telegram_bots?.token ?? null;
+  }
+
+  if (!token) {
+    const { data: activeBot } = await admin
+      .from("system_telegram_bots")
+      .select("token")
+      .eq("active", true)
+      .eq("purpose", "expenses")
+      .order("created_at", { ascending: true })
+      .limit(1)
+      .maybeSingle();
+    token = (activeBot as any)?.token ?? null;
+  }
+
+  botTokenCache.set(cacheKey, { token, expires: Date.now() + LINK_CACHE_TTL_MS });
+  return token || fallback;
 }
 
 // Keyword → category mapping for regex pre-parser.
@@ -1490,77 +1536,81 @@ async function checkBudgetAndAlert(
   }
 }
 
+function isRawTelegramToken(key: string) {
+  return /^\d+:[A-Za-z0-9_-]{20,}$/.test(key);
+}
+
+function telegramMethodUrl(method: string, telegramKey: string) {
+  return isRawTelegramToken(telegramKey)
+    ? `https://api.telegram.org/bot${telegramKey}/${method}`
+    : `${GATEWAY_URL}/${method}`;
+}
+
+function telegramHeaders(lovableKey: string, telegramKey: string, json = true) {
+  const headers: Record<string, string> = json ? { "Content-Type": "application/json" } : {};
+  if (!isRawTelegramToken(telegramKey)) {
+    headers.Authorization = `Bearer ${lovableKey}`;
+    headers["X-Connection-Api-Key"] = telegramKey;
+  }
+  return headers;
+}
+
 async function tgSend(chatId: number, text: string, lovableKey: string, telegramKey: string) {
-  await fetch(`${GATEWAY_URL}/sendMessage`, {
+  const r = await fetch(telegramMethodUrl("sendMessage", telegramKey), {
     method: "POST",
-    headers: {
-      Authorization: `Bearer ${lovableKey}`,
-      "X-Connection-Api-Key": telegramKey,
-      "Content-Type": "application/json",
-    },
+    headers: telegramHeaders(lovableKey, telegramKey),
     body: JSON.stringify({ chat_id: chatId, text, parse_mode: "Markdown" }),
-  }).catch((e) => console.error("sendMessage err", e));
+  }).catch((e) => ({ ok: false, status: 0, text: async () => String(e) } as Response));
+  if (!r.ok) console.error("sendMessage err", r.status, await r.text().catch(() => ""));
 }
 
 async function tgSendWithKeyboard(chatId: number, text: string, keyboard: any, lovableKey: string, telegramKey: string) {
-  await fetch(`${GATEWAY_URL}/sendMessage`, {
+  const r = await fetch(telegramMethodUrl("sendMessage", telegramKey), {
     method: "POST",
-    headers: {
-      Authorization: `Bearer ${lovableKey}`,
-      "X-Connection-Api-Key": telegramKey,
-      "Content-Type": "application/json",
-    },
+    headers: telegramHeaders(lovableKey, telegramKey),
     body: JSON.stringify({
       chat_id: chatId,
       text,
       parse_mode: "Markdown",
       reply_markup: { inline_keyboard: keyboard },
     }),
-  }).catch((e) => console.error("sendMessage kb err", e));
+  }).catch((e) => ({ ok: false, status: 0, text: async () => String(e) } as Response));
+  if (!r.ok) console.error("sendMessage kb err", r.status, await r.text().catch(() => ""));
 }
 
 async function tgEditMessage(chatId: number, messageId: number, text: string, keyboard: any | null, lovableKey: string, telegramKey: string) {
   const body: any = { chat_id: chatId, message_id: messageId, text, parse_mode: "Markdown" };
   if (keyboard) body.reply_markup = { inline_keyboard: keyboard };
-  await fetch(`${GATEWAY_URL}/editMessageText`, {
+  const r = await fetch(telegramMethodUrl("editMessageText", telegramKey), {
     method: "POST",
-    headers: {
-      Authorization: `Bearer ${lovableKey}`,
-      "X-Connection-Api-Key": telegramKey,
-      "Content-Type": "application/json",
-    },
+    headers: telegramHeaders(lovableKey, telegramKey),
     body: JSON.stringify(body),
-  }).catch((e) => console.error("editMessage err", e));
+  }).catch((e) => ({ ok: false, status: 0, text: async () => String(e) } as Response));
+  if (!r.ok) console.error("editMessage err", r.status, await r.text().catch(() => ""));
 }
 
 async function tgEditReplyMarkup(chatId: number, messageId: number, keyboard: any, lovableKey: string, telegramKey: string) {
-  await fetch(`${GATEWAY_URL}/editMessageReplyMarkup`, {
+  const r = await fetch(telegramMethodUrl("editMessageReplyMarkup", telegramKey), {
     method: "POST",
-    headers: {
-      Authorization: `Bearer ${lovableKey}`,
-      "X-Connection-Api-Key": telegramKey,
-      "Content-Type": "application/json",
-    },
+    headers: telegramHeaders(lovableKey, telegramKey),
     body: JSON.stringify({
       chat_id: chatId,
       message_id: messageId,
       reply_markup: { inline_keyboard: keyboard },
     }),
-  }).catch((e) => console.error("editReplyMarkup err", e));
+  }).catch((e) => ({ ok: false, status: 0, text: async () => String(e) } as Response));
+  if (!r.ok) console.error("editReplyMarkup err", r.status, await r.text().catch(() => ""));
 }
 
 async function tgAnswerCallback(callbackId: string, text: string | undefined, lovableKey: string, telegramKey: string) {
   const body: any = { callback_query_id: callbackId };
   if (text) body.text = text;
-  await fetch(`${GATEWAY_URL}/answerCallbackQuery`, {
+  const r = await fetch(telegramMethodUrl("answerCallbackQuery", telegramKey), {
     method: "POST",
-    headers: {
-      Authorization: `Bearer ${lovableKey}`,
-      "X-Connection-Api-Key": telegramKey,
-      "Content-Type": "application/json",
-    },
+    headers: telegramHeaders(lovableKey, telegramKey),
     body: JSON.stringify(body),
-  }).catch((e) => console.error("answerCb err", e));
+  }).catch((e) => ({ ok: false, status: 0, text: async () => String(e) } as Response));
+  if (!r.ok) console.error("answerCb err", r.status, await r.text().catch(() => ""));
 }
 
 function buildExpenseKeyboard(expenseId: string) {
@@ -1964,13 +2014,9 @@ Se faltar valor interpret\u00e1vel, retorne confidence baixo (<0.6).`,
 
 async function downloadTelegramFile(fileId: string, lovableKey: string, telegramKey: string): Promise<{ base64: string; filePath: string } | null> {
   try {
-    const fileResp = await fetch(`${GATEWAY_URL}/getFile`, {
+    const fileResp = await fetch(telegramMethodUrl("getFile", telegramKey), {
       method: "POST",
-      headers: {
-        Authorization: `Bearer ${lovableKey}`,
-        "X-Connection-Api-Key": telegramKey,
-        "Content-Type": "application/json",
-      },
+      headers: telegramHeaders(lovableKey, telegramKey),
       body: JSON.stringify({ file_id: fileId }),
     });
     const fileData = await fileResp.json();
@@ -1981,12 +2027,12 @@ async function downloadTelegramFile(fileId: string, lovableKey: string, telegram
     const filePath = fileData.result?.file_path;
     if (!filePath) return null;
 
-    const dl = await fetch(`${GATEWAY_URL}/file/${filePath}`, {
-      headers: {
-        Authorization: `Bearer ${lovableKey}`,
-        "X-Connection-Api-Key": telegramKey,
-      },
-    });
+    const dl = await fetch(
+      isRawTelegramToken(telegramKey)
+        ? `https://api.telegram.org/file/bot${telegramKey}/${filePath}`
+        : `${GATEWAY_URL}/file/${filePath}`,
+      { headers: telegramHeaders(lovableKey, telegramKey, false) },
+    );
     if (!dl.ok) {
       console.error("file download failed", dl.status);
       return null;
@@ -2376,6 +2422,7 @@ Deno.serve(async (req) => {
       const photos = (msg.raw_update as any)?.message?.photo as any[] | undefined;
       const caption = ((msg.raw_update as any)?.message?.caption as string | null)?.trim() ?? "";
       const callback = (msg.raw_update as any)?.callback_query;
+      const telegramKey = await getExpenseBotTokenForMessage(admin, msg, TELEGRAM_API_KEY);
 
       try {
       // 🎛️ Callback query (inline button press)
@@ -2387,22 +2434,22 @@ Deno.serve(async (req) => {
         const userId = await getLinkedUserId(admin, chatId);
         const link = userId ? { user_id: userId } : null;
         if (!link || !messageId) {
-          await tgAnswerCallback(cbId, "Conta não vinculada", LOVABLE_API_KEY, TELEGRAM_API_KEY);
+          await tgAnswerCallback(cbId, "Conta não vinculada", LOVABLE_API_KEY, telegramKey);
         } else if (data.startsWith("del:")) {
           const expenseId = data.slice(4);
           const { error: delErr } = await admin.from("expenses")
             .delete().eq("id", expenseId).eq("user_id", link.user_id);
           if (delErr) {
-            await tgAnswerCallback(cbId, "Erro ao apagar", LOVABLE_API_KEY, TELEGRAM_API_KEY);
+            await tgAnswerCallback(cbId, "Erro ao apagar", LOVABLE_API_KEY, telegramKey);
           } else {
-            await tgAnswerCallback(cbId, "Despesa removida", LOVABLE_API_KEY, TELEGRAM_API_KEY);
-            await tgEditMessage(chatId, messageId, "🗑️ *Despesa removida.*", null, LOVABLE_API_KEY, TELEGRAM_API_KEY);
+            await tgAnswerCallback(cbId, "Despesa removida", LOVABLE_API_KEY, telegramKey);
+            await tgEditMessage(chatId, messageId, "🗑️ *Despesa removida.*", null, LOVABLE_API_KEY, telegramKey);
           }
         } else if (data.startsWith("cat:")) {
           const expenseId = data.slice(4);
-          await tgAnswerCallback(cbId, undefined, LOVABLE_API_KEY, TELEGRAM_API_KEY);
+          await tgAnswerCallback(cbId, undefined, LOVABLE_API_KEY, telegramKey);
           const cats = await getAvailableCategories(admin, link.user_id);
-          await tgEditReplyMarkup(chatId, messageId, buildCategoryKeyboard(expenseId, cats), LOVABLE_API_KEY, TELEGRAM_API_KEY);
+          await tgEditReplyMarkup(chatId, messageId, buildCategoryKeyboard(expenseId, cats), LOVABLE_API_KEY, telegramKey);
         } else if (data.startsWith("setcat:")) {
           const rest = data.slice(7);
           const sep = rest.indexOf(":");
@@ -2411,25 +2458,25 @@ Deno.serve(async (req) => {
           const allowedCats = await getAvailableCategories(admin, link.user_id);
           const matched = allowedCats.find((c) => c.toLowerCase() === newCat.toLowerCase()) || null;
           if (!matched) {
-            await tgAnswerCallback(cbId, "Categoria inválida", LOVABLE_API_KEY, TELEGRAM_API_KEY);
+            await tgAnswerCallback(cbId, "Categoria inválida", LOVABLE_API_KEY, telegramKey);
           } else {
             const { data: exp, error: updErr } = await admin.from("expenses")
               .update({ category: matched })
               .eq("id", expenseId).eq("user_id", link.user_id)
               .select("amount, description, paid_date, due_date").maybeSingle();
             if (updErr || !exp) {
-              await tgAnswerCallback(cbId, "Erro ao atualizar", LOVABLE_API_KEY, TELEGRAM_API_KEY);
+              await tgAnswerCallback(cbId, "Erro ao atualizar", LOVABLE_API_KEY, telegramKey);
             } else {
-              await tgAnswerCallback(cbId, "Categoria atualizada", LOVABLE_API_KEY, TELEGRAM_API_KEY);
+              await tgAnswerCallback(cbId, "Categoria atualizada", LOVABLE_API_KEY, telegramKey);
               const fmt = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(Number(exp.amount) || 0);
               const date = exp.paid_date || exp.due_date || "";
               await tgEditMessage(
                 chatId, messageId,
                 `✏️ *Despesa atualizada*\n\n💰 ${fmt}\n📂 ${matched}\n📝 ${exp.description}\n📅 ${date}`,
                 buildExpenseKeyboard(expenseId),
-                LOVABLE_API_KEY, TELEGRAM_API_KEY,
+                LOVABLE_API_KEY, telegramKey,
               );
-              await checkBudgetAndAlert(admin, link.user_id, chatId, matched, LOVABLE_API_KEY, TELEGRAM_API_KEY);
+              await checkBudgetAndAlert(admin, link.user_id, chatId, matched, LOVABLE_API_KEY, telegramKey);
               if (exp.description) {
                 learnCategoryFromExpense(admin, link.user_id, exp.description, matched)
                   .catch((e) => console.error("learn (setcat) err", e));
@@ -2438,8 +2485,8 @@ Deno.serve(async (req) => {
           }
         } else if (data.startsWith("canc:")) {
           const expenseId = data.slice(5);
-          await tgAnswerCallback(cbId, undefined, LOVABLE_API_KEY, TELEGRAM_API_KEY);
-          await tgEditReplyMarkup(chatId, messageId, buildExpenseKeyboard(expenseId), LOVABLE_API_KEY, TELEGRAM_API_KEY);
+          await tgAnswerCallback(cbId, undefined, LOVABLE_API_KEY, telegramKey);
+          await tgEditReplyMarkup(chatId, messageId, buildExpenseKeyboard(expenseId), LOVABLE_API_KEY, telegramKey);
         } else if (data.startsWith("edit:")) {
           const expenseId = data.slice(5);
           const expiresAt = new Date(Date.now() + 5 * 60 * 1000).toISOString();
@@ -2451,11 +2498,11 @@ Deno.serve(async (req) => {
             expires_at: expiresAt,
           }, { onConflict: "chat_id" });
           if (upErr) {
-            await tgAnswerCallback(cbId, "Erro ao iniciar edição", LOVABLE_API_KEY, TELEGRAM_API_KEY);
+            await tgAnswerCallback(cbId, "Erro ao iniciar edição", LOVABLE_API_KEY, telegramKey);
           } else {
-            await tgAnswerCallback(cbId, "Envie o novo valor", LOVABLE_API_KEY, TELEGRAM_API_KEY);
-            await tgEditReplyMarkup(chatId, messageId, [], LOVABLE_API_KEY, TELEGRAM_API_KEY);
-            await tgSend(chatId, "✏️ *Editar valor*\nEnvie o novo valor (ex: `45,90`) ou `/cancelar`.", LOVABLE_API_KEY, TELEGRAM_API_KEY);
+            await tgAnswerCallback(cbId, "Envie o novo valor", LOVABLE_API_KEY, telegramKey);
+            await tgEditReplyMarkup(chatId, messageId, [], LOVABLE_API_KEY, telegramKey);
+            await tgSend(chatId, "✏️ *Editar valor*\nEnvie o novo valor (ex: `45,90`) ou `/cancelar`.", LOVABLE_API_KEY, telegramKey);
           }
         } else if (data.startsWith("pgapt:")) {
           // User chose a piggy bank.
@@ -2465,7 +2512,7 @@ Deno.serve(async (req) => {
           const { banks } = await listUserPiggyBanks(admin, link.user_id);
           const bank = banks.find((b) => b.id === piggyBankId);
           if (!bank) {
-            await tgAnswerCallback(cbId, "Caixinha não encontrada", LOVABLE_API_KEY, TELEGRAM_API_KEY);
+            await tgAnswerCallback(cbId, "Caixinha não encontrada", LOVABLE_API_KEY, telegramKey);
           } else {
             // Read any pre-filled amount/note from the pending row (set by /aporte <amount> <note>).
             const { data: existingPending } = await admin
@@ -2481,14 +2528,14 @@ Deno.serve(async (req) => {
             if (preAmount && preAmount > 0) {
               // Auto-finalize: amount was provided inline with /aporte.
               await admin.from("telegram_pending_piggy_aporte").delete().eq("chat_id", chatId);
-              await tgAnswerCallback(cbId, "Registrando aporte…", LOVABLE_API_KEY, TELEGRAM_API_KEY);
+              await tgAnswerCallback(cbId, "Registrando aporte…", LOVABLE_API_KEY, telegramKey);
               const reply = await finalizePiggyAporte(admin, link.user_id, bank, preAmount, preNote);
               await tgEditMessage(
                 chatId, messageId,
                 `🐷 *Aporte na caixinha "${bank.name}"*`,
-                null, LOVABLE_API_KEY, TELEGRAM_API_KEY,
+                null, LOVABLE_API_KEY, telegramKey,
               );
-              await tgSend(chatId, reply, LOVABLE_API_KEY, TELEGRAM_API_KEY);
+              await tgSend(chatId, reply, LOVABLE_API_KEY, telegramKey);
             } else {
               const { error: upErr } = await admin.from("telegram_pending_piggy_aporte").upsert({
                 chat_id: chatId,
@@ -2499,24 +2546,24 @@ Deno.serve(async (req) => {
                 expires_at: expiresAt,
               }, { onConflict: "chat_id" });
               if (upErr) {
-                await tgAnswerCallback(cbId, "Erro ao iniciar aporte", LOVABLE_API_KEY, TELEGRAM_API_KEY);
+                await tgAnswerCallback(cbId, "Erro ao iniciar aporte", LOVABLE_API_KEY, telegramKey);
               } else {
-                await tgAnswerCallback(cbId, "Envie o valor do aporte", LOVABLE_API_KEY, TELEGRAM_API_KEY);
+                await tgAnswerCallback(cbId, "Envie o valor do aporte", LOVABLE_API_KEY, telegramKey);
                 const noteLine = preNote ? `\n📝 Nota: _${preNote}_` : "";
                 await tgEditMessage(
                   chatId, messageId,
                   `🐷 *Aporte na caixinha "${bank.name}"*${noteLine}\n\nEnvie o valor do aporte (ex: \`200\` ou \`200,50 nota opcional\`) ou \`/cancelar\` para sair.`,
-                  null, LOVABLE_API_KEY, TELEGRAM_API_KEY,
+                  null, LOVABLE_API_KEY, telegramKey,
                 );
               }
             }
           }
         } else if (data === "pgaptc") {
           await admin.from("telegram_pending_piggy_aporte").delete().eq("chat_id", chatId);
-          await tgAnswerCallback(cbId, "Aporte cancelado", LOVABLE_API_KEY, TELEGRAM_API_KEY);
-          await tgEditMessage(chatId, messageId, "❌ Aporte cancelado.", null, LOVABLE_API_KEY, TELEGRAM_API_KEY);
+          await tgAnswerCallback(cbId, "Aporte cancelado", LOVABLE_API_KEY, telegramKey);
+          await tgEditMessage(chatId, messageId, "❌ Aporte cancelado.", null, LOVABLE_API_KEY, telegramKey);
         } else {
-          await tgAnswerCallback(cbId, undefined, LOVABLE_API_KEY, TELEGRAM_API_KEY);
+          await tgAnswerCallback(cbId, undefined, LOVABLE_API_KEY, telegramKey);
         }
 
         await admin.from("telegram_messages")
@@ -2531,16 +2578,16 @@ Deno.serve(async (req) => {
         const userId = await getLinkedUserId(admin, chatId);
         const link = userId ? { user_id: userId } : null;
         if (!link) {
-          await tgSend(chatId, "🔒 Conta não vinculada. Use o app para gerar um código e envie `/start CODIGO`.", LOVABLE_API_KEY, TELEGRAM_API_KEY);
+          await tgSend(chatId, "🔒 Conta não vinculada. Use o app para gerar um código e envie `/start CODIGO`.", LOVABLE_API_KEY, telegramKey);
         } else {
           const largest = photos[photos.length - 1];
-          const dataUrl = await downloadTelegramPhoto(largest.file_id, LOVABLE_API_KEY, TELEGRAM_API_KEY);
+          const dataUrl = await downloadTelegramPhoto(largest.file_id, LOVABLE_API_KEY, telegramKey);
           if (!dataUrl) {
-            await tgSend(chatId, "❌ Não consegui baixar a imagem. Tente novamente.", LOVABLE_API_KEY, TELEGRAM_API_KEY);
+            await tgSend(chatId, "❌ Não consegui baixar a imagem. Tente novamente.", LOVABLE_API_KEY, telegramKey);
           } else {
             const extracted = await extractExpenseFromImage(dataUrl, caption, LOVABLE_API_KEY);
             if (!extracted || !extracted.amount || extracted.confidence < 0.5) {
-              await tgSend(chatId, "🤔 Não consegui ler o comprovante. Tente uma foto mais nítida ou envie por texto.", LOVABLE_API_KEY, TELEGRAM_API_KEY);
+              await tgSend(chatId, "🤔 Não consegui ler o comprovante. Tente uma foto mais nítida ou envie por texto.", LOVABLE_API_KEY, telegramKey);
             } else {
               const finalDate = sanitizeDate(extracted.date);
               const initialCat = CATEGORIES.includes(extracted.category) ? extracted.category : "Outros";
@@ -2576,7 +2623,7 @@ Deno.serve(async (req) => {
                 .insert(basePayload)
                 .select("id").single();
               if (insErr || !ins) {
-                await tgSend(chatId, "❌ Erro ao salvar: " + (insErr?.message ?? "desconhecido"), LOVABLE_API_KEY, TELEGRAM_API_KEY);
+                await tgSend(chatId, "❌ Erro ao salvar: " + (insErr?.message ?? "desconhecido"), LOVABLE_API_KEY, telegramKey);
               } else {
                 const fmt = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(extracted.amount);
                 const header = card
@@ -2592,9 +2639,9 @@ Deno.serve(async (req) => {
                 await tgSendWithKeyboard(chatId,
                   `${header}\n\n💰 ${fmt}\n📂 ${finalCategory}${cardLine}\n📝 ${extracted.description}\n📅 ${displayDate}${invoiceLine}`,
                   buildExpenseKeyboard(ins.id),
-                  LOVABLE_API_KEY, TELEGRAM_API_KEY);
+                  LOVABLE_API_KEY, telegramKey);
                 if (!card) {
-                  await checkBudgetAndAlert(admin, link.user_id, chatId, finalCategory, LOVABLE_API_KEY, TELEGRAM_API_KEY);
+                  await checkBudgetAndAlert(admin, link.user_id, chatId, finalCategory, LOVABLE_API_KEY, telegramKey);
                 }
                 learnCategoryFromExpense(admin, link.user_id, extracted.description || "Comprovante", finalCategory)
                   .catch((e) => console.error("learn (photo) err", e));
@@ -2617,33 +2664,33 @@ Deno.serve(async (req) => {
         const userId = await getLinkedUserId(admin, chatId);
         const link = userId ? { user_id: userId } : null;
         if (!link) {
-          await tgSend(chatId, "🔒 Conta não vinculada. Use o app para gerar um código e envie `/start CODIGO`.", LOVABLE_API_KEY, TELEGRAM_API_KEY);
+          await tgSend(chatId, "🔒 Conta não vinculada. Use o app para gerar um código e envie `/start CODIGO`.", LOVABLE_API_KEY, telegramKey);
         } else {
           const transcript = await transcribeAudio(
             audioMsg.file_id,
             audioMsg.mime_type || "",
             LOVABLE_API_KEY,
-            TELEGRAM_API_KEY,
+            telegramKey,
           );
           if (!transcript) {
-            await tgSend(chatId, "🤔 Não consegui transcrever o áudio. Tente novamente ou envie por texto.", LOVABLE_API_KEY, TELEGRAM_API_KEY);
+            await tgSend(chatId, "🤔 Não consegui transcrever o áudio. Tente novamente ou envie por texto.", LOVABLE_API_KEY, telegramKey);
           } else if (looksLikeQuestion(transcript)) {
             // 🗣️ Áudio com pergunta em linguagem natural — interpreta com IA e consulta o banco.
             try {
               const reply = await answerNaturalQuery(admin, link.user_id, transcript, LOVABLE_API_KEY);
               if (reply) {
-                await tgSend(chatId, `🎤 _"${transcript}"_\n\n${reply}`, LOVABLE_API_KEY, TELEGRAM_API_KEY);
+                await tgSend(chatId, `🎤 _"${transcript}"_\n\n${reply}`, LOVABLE_API_KEY, telegramKey);
               } else {
-                await tgSend(chatId, `🎤 Transcrevi: _"${transcript}"_\n\n🤔 Não consegui entender a pergunta. Tente reformular.`, LOVABLE_API_KEY, TELEGRAM_API_KEY);
+                await tgSend(chatId, `🎤 Transcrevi: _"${transcript}"_\n\n🤔 Não consegui entender a pergunta. Tente reformular.`, LOVABLE_API_KEY, telegramKey);
               }
             } catch (e) {
               console.error("answerNaturalQuery (audio) err", e);
-              await tgSend(chatId, "❌ Erro ao processar sua pergunta. Tente novamente.", LOVABLE_API_KEY, TELEGRAM_API_KEY);
+              await tgSend(chatId, "❌ Erro ao processar sua pergunta. Tente novamente.", LOVABLE_API_KEY, telegramKey);
             }
           } else {
             const extracted = await extractExpense(transcript, LOVABLE_API_KEY);
             if (!extracted || !extracted.amount || extracted.confidence < 0.6) {
-              await tgSend(chatId, `🎤 Transcrevi: _"${transcript}"_\n\n🤔 Mas não consegui identificar a despesa. Tente reformular.`, LOVABLE_API_KEY, TELEGRAM_API_KEY);
+              await tgSend(chatId, `🎤 Transcrevi: _"${transcript}"_\n\n🤔 Mas não consegui identificar a despesa. Tente reformular.`, LOVABLE_API_KEY, telegramKey);
             } else {
               const finalDate = sanitizeDate(extracted.date);
               const initialCat = CATEGORIES.includes(extracted.category) ? extracted.category : "Outros";
@@ -2688,7 +2735,7 @@ Deno.serve(async (req) => {
                 .insert(basePayload)
                 .select("id").single();
               if (insErr || !ins) {
-                await tgSend(chatId, "❌ Erro ao salvar: " + (insErr?.message ?? "desconhecido"), LOVABLE_API_KEY, TELEGRAM_API_KEY);
+                await tgSend(chatId, "❌ Erro ao salvar: " + (insErr?.message ?? "desconhecido"), LOVABLE_API_KEY, telegramKey);
               } else {
                 const fmt = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(extracted.amount);
                 const installmentValue = installmentsN ? extracted.amount / installmentsN : extracted.amount;
@@ -2707,9 +2754,9 @@ Deno.serve(async (req) => {
                 await tgSendWithKeyboard(chatId,
                   `${header}\n\n_"${transcript}"_\n\n💰 ${fmt}${parcelLine}\n📂 ${finalCategory}${cardLine}\n📝 ${extracted.description}\n📅 ${displayDate}${invoiceLine}`,
                   buildExpenseKeyboard(ins.id),
-                  LOVABLE_API_KEY, TELEGRAM_API_KEY);
+                  LOVABLE_API_KEY, telegramKey);
                 if (!card) {
-                  await checkBudgetAndAlert(admin, link.user_id, chatId, finalCategory, LOVABLE_API_KEY, TELEGRAM_API_KEY);
+                  await checkBudgetAndAlert(admin, link.user_id, chatId, finalCategory, LOVABLE_API_KEY, telegramKey);
                 }
                 learnCategoryFromExpense(admin, link.user_id, extracted.description || transcript.slice(0, 80), finalCategory)
                   .catch((e) => console.error("learn (audio) err", e));
@@ -2731,10 +2778,10 @@ Deno.serve(async (req) => {
         const { data: codeRow } = await admin.from("telegram_link_codes")
           .select("*").eq("code", code).maybeSingle();
         if (!codeRow) {
-          await tgSend(chatId, "❌ Código inválido ou expirado. Gere um novo no app.", LOVABLE_API_KEY, TELEGRAM_API_KEY);
+          await tgSend(chatId, "❌ Código inválido ou expirado. Gere um novo no app.", LOVABLE_API_KEY, telegramKey);
         } else if (new Date(codeRow.expires_at).getTime() < Date.now()) {
           await admin.from("telegram_link_codes").delete().eq("id", codeRow.id);
-          await tgSend(chatId, "⏰ Código expirado. Gere um novo no app.", LOVABLE_API_KEY, TELEGRAM_API_KEY);
+          await tgSend(chatId, "⏰ Código expirado. Gere um novo no app.", LOVABLE_API_KEY, telegramKey);
         } else {
           // Remove any prior link for this chat or user
           await admin.from("telegram_links").delete().or(`chat_id.eq.${chatId},user_id.eq.${codeRow.user_id}`);
@@ -2742,11 +2789,11 @@ Deno.serve(async (req) => {
           const { error: linkErr } = await admin.from("telegram_links")
             .insert({ user_id: codeRow.user_id, chat_id: chatId });
           if (linkErr) {
-            await tgSend(chatId, "❌ Erro ao vincular: " + linkErr.message, LOVABLE_API_KEY, TELEGRAM_API_KEY);
+            await tgSend(chatId, "❌ Erro ao vincular: " + linkErr.message, LOVABLE_API_KEY, telegramKey);
           } else {
             await admin.from("telegram_link_codes").delete().eq("id", codeRow.id);
             invalidateLinkCache(chatId);
-            await tgSend(chatId, "✅ *Conta vinculada!*\n\n" + HELP_TEXT, LOVABLE_API_KEY, TELEGRAM_API_KEY);
+            await tgSend(chatId, "✅ *Conta vinculada!*\n\n" + HELP_TEXT, LOVABLE_API_KEY, telegramKey);
           }
         }
       } else if (/^\/c(?:ode|odigo|ódigo)?(?:@\w+)?\s*$/i.test(text)) {
@@ -2776,25 +2823,25 @@ Deno.serve(async (req) => {
           bot_code: botCode, kind: "expenses", chat_id: chatId, bot_id: expenseBot?.id ?? null, expires_at: expiresAt,
         });
         if (insErr || !botCode) {
-          await tgSend(chatId, "⚠️ Não consegui gerar o código agora. Tente novamente em instantes.", LOVABLE_API_KEY, TELEGRAM_API_KEY);
+          await tgSend(chatId, "⚠️ Não consegui gerar o código agora. Tente novamente em instantes.", LOVABLE_API_KEY, telegramKey);
         } else {
           await tgSend(chatId,
             `🔑 *Seu código de vínculo:*\n\n\`${botCode}\`\n\n` +
             `1. Abra o app\n2. Vá em *Configurações → Bot do Telegram*\n` +
             `3. Cole este código no campo *"Tenho um código"*\n\n` +
             `_Válido por 15 min._`,
-            LOVABLE_API_KEY, TELEGRAM_API_KEY);
+            LOVABLE_API_KEY, telegramKey);
         }
       } else if (/^\/start\b/i.test(text)) {
-        await tgSend(chatId, "👋 Para vincular sua conta, gere um código de 6 dígitos no app e envie:\n`/start 123456`\n\nOu envie /code aqui e cole o código no app.", LOVABLE_API_KEY, TELEGRAM_API_KEY);
+        await tgSend(chatId, "👋 Para vincular sua conta, gere um código de 6 dígitos no app e envie:\n`/start 123456`\n\nOu envie /code aqui e cole o código no app.", LOVABLE_API_KEY, telegramKey);
       } else if (/^\/help\b/i.test(text)) {
-        await tgSend(chatId, HELP_TEXT, LOVABLE_API_KEY, TELEGRAM_API_KEY);
+        await tgSend(chatId, HELP_TEXT, LOVABLE_API_KEY, telegramKey);
       } else if (text) {
         // Resolve user (cached)
         const userId = await getLinkedUserId(admin, chatId);
         const link = userId ? { user_id: userId } : null;
         if (!link) {
-          await tgSend(chatId, "🔒 Conta não vinculada. Use o app para gerar um código e envie `/start CODIGO`.", LOVABLE_API_KEY, TELEGRAM_API_KEY);
+          await tgSend(chatId, "🔒 Conta não vinculada. Use o app para gerar um código e envie `/start CODIGO`.", LOVABLE_API_KEY, telegramKey);
         } else {
           // 🐷 Pending piggy-bank aporte interception (highest priority)
           const { data: pendingPiggy } = await admin.from("telegram_pending_piggy_aporte")
@@ -2808,19 +2855,19 @@ Deno.serve(async (req) => {
               await admin.from("telegram_pending_piggy_aporte").delete().eq("chat_id", chatId);
             } else if (/^\/cancelar\b/i.test(text)) {
               await admin.from("telegram_pending_piggy_aporte").delete().eq("chat_id", chatId);
-              await tgSend(chatId, "❌ Aporte cancelado.", LOVABLE_API_KEY, TELEGRAM_API_KEY);
+              await tgSend(chatId, "❌ Aporte cancelado.", LOVABLE_API_KEY, telegramKey);
               pendingHandled = true;
             } else {
               const parsed = parseAmountWithNote(text);
               if (!parsed) {
-                await tgSend(chatId, "❌ Não entendi o valor. Envie `200`, `200,50` ou `200 aniversário` (ou `/cancelar`).", LOVABLE_API_KEY, TELEGRAM_API_KEY);
+                await tgSend(chatId, "❌ Não entendi o valor. Envie `200`, `200,50` ou `200 aniversário` (ou `/cancelar`).", LOVABLE_API_KEY, telegramKey);
                 pendingHandled = true;
               } else if (!pendingPiggy.piggy_bank_id) {
                 // Bank not yet picked — store amount/note and re-ask the user to pick one.
                 const { banks } = await listUserPiggyBanks(admin, link.user_id);
                 if (banks.length === 0) {
                   await admin.from("telegram_pending_piggy_aporte").delete().eq("chat_id", chatId);
-                  await tgSend(chatId, "🐷 Você ainda não tem nenhuma caixinha. Crie uma no app.", LOVABLE_API_KEY, TELEGRAM_API_KEY);
+                  await tgSend(chatId, "🐷 Você ainda não tem nenhuma caixinha. Crie uma no app.", LOVABLE_API_KEY, telegramKey);
                 } else {
                   await admin.from("telegram_pending_piggy_aporte").update({
                     pending_amount: parsed.amount,
@@ -2831,7 +2878,7 @@ Deno.serve(async (req) => {
                     chatId,
                     `🐷 *Aporte em caixinha*\n💰 Valor: *${fmtBRL(parsed.amount)}*${noteLine}\n\nEscolha em qual caixinha:`,
                     buildPiggyBanksKeyboard(banks),
-                    LOVABLE_API_KEY, TELEGRAM_API_KEY,
+                    LOVABLE_API_KEY, telegramKey,
                   );
                 }
                 pendingHandled = true;
@@ -2845,12 +2892,12 @@ Deno.serve(async (req) => {
                   .maybeSingle();
                 await admin.from("telegram_pending_piggy_aporte").delete().eq("chat_id", chatId);
                 if (!bank) {
-                  await tgSend(chatId, "❌ Caixinha não encontrada.", LOVABLE_API_KEY, TELEGRAM_API_KEY);
+                  await tgSend(chatId, "❌ Caixinha não encontrada.", LOVABLE_API_KEY, telegramKey);
                 } else {
                   // Note priority: inline note (this message) overrides any previously stored note.
                   const finalNote = parsed.note ?? (pendingPiggy.notes ?? null);
                   const reply = await finalizePiggyAporte(admin, link.user_id, bank, parsed.amount, finalNote);
-                  await tgSend(chatId, reply, LOVABLE_API_KEY, TELEGRAM_API_KEY);
+                  await tgSend(chatId, reply, LOVABLE_API_KEY, telegramKey);
                 }
                 pendingHandled = true;
               }
@@ -2869,13 +2916,13 @@ Deno.serve(async (req) => {
               await admin.from("telegram_pending_edits").delete().eq("chat_id", chatId);
             } else if (/^\/cancelar\b/i.test(text)) {
               await admin.from("telegram_pending_edits").delete().eq("chat_id", chatId);
-              await tgEditReplyMarkup(chatId, pending.message_id, buildExpenseKeyboard(pending.expense_id), LOVABLE_API_KEY, TELEGRAM_API_KEY);
-              await tgSend(chatId, "✏️ Edição cancelada.", LOVABLE_API_KEY, TELEGRAM_API_KEY);
+              await tgEditReplyMarkup(chatId, pending.message_id, buildExpenseKeyboard(pending.expense_id), LOVABLE_API_KEY, telegramKey);
+              await tgSend(chatId, "✏️ Edição cancelada.", LOVABLE_API_KEY, telegramKey);
               pendingHandled = true;
             } else {
               const newAmount = parseAmount(text);
               if (newAmount === null) {
-                await tgSend(chatId, "❌ Não entendi o valor. Envie só o número (ex: `45,90`) ou `/cancelar` para sair.", LOVABLE_API_KEY, TELEGRAM_API_KEY);
+                await tgSend(chatId, "❌ Não entendi o valor. Envie só o número (ex: `45,90`) ou `/cancelar` para sair.", LOVABLE_API_KEY, telegramKey);
                 pendingHandled = true;
               } else {
                 const { data: exp, error: updErr } = await admin.from("expenses")
@@ -2884,7 +2931,7 @@ Deno.serve(async (req) => {
                   .select("description, category, paid_date, due_date").maybeSingle();
                 await admin.from("telegram_pending_edits").delete().eq("chat_id", chatId);
                 if (updErr || !exp) {
-                  await tgSend(chatId, "❌ Erro ao atualizar valor.", LOVABLE_API_KEY, TELEGRAM_API_KEY);
+                  await tgSend(chatId, "❌ Erro ao atualizar valor.", LOVABLE_API_KEY, telegramKey);
                 } else {
                   const fmt = fmtBRL(newAmount);
                   const date = exp.paid_date || exp.due_date || "";
@@ -2892,10 +2939,10 @@ Deno.serve(async (req) => {
                     chatId, pending.message_id,
                     `✏️ *Despesa atualizada*\n\n💰 ${fmt}\n📂 ${exp.category}\n📝 ${exp.description}\n📅 ${date}`,
                     buildExpenseKeyboard(pending.expense_id),
-                    LOVABLE_API_KEY, TELEGRAM_API_KEY,
+                    LOVABLE_API_KEY, telegramKey,
                   );
-                  await tgSend(chatId, `✅ Valor atualizado para *${fmt}*`, LOVABLE_API_KEY, TELEGRAM_API_KEY);
-                  await checkBudgetAndAlert(admin, link.user_id, chatId, exp.category, LOVABLE_API_KEY, TELEGRAM_API_KEY);
+                  await tgSend(chatId, `✅ Valor atualizado para *${fmt}*`, LOVABLE_API_KEY, telegramKey);
+                  await checkBudgetAndAlert(admin, link.user_id, chatId, exp.category, LOVABLE_API_KEY, telegramKey);
                 }
                 pendingHandled = true;
               }
@@ -2905,30 +2952,30 @@ Deno.serve(async (req) => {
           if (!pendingHandled) {
             if (/^\/saldo(?:@\w+)?\b/i.test(text)) {
               const reply = await handleSaldo(admin, link.user_id);
-              await tgSend(chatId, reply, LOVABLE_API_KEY, TELEGRAM_API_KEY);
+              await tgSend(chatId, reply, LOVABLE_API_KEY, telegramKey);
             } else if (/^\/mes(?:@\w+)?\b/i.test(text)) {
               const reply = await handleMes(admin, link.user_id);
-              await tgSend(chatId, reply, LOVABLE_API_KEY, TELEGRAM_API_KEY);
+              await tgSend(chatId, reply, LOVABLE_API_KEY, telegramKey);
             } else if (/^\/semana(?:@\w+)?\b/i.test(text)) {
               const reply = await handleSemana(admin, link.user_id);
-              await tgSend(chatId, reply, LOVABLE_API_KEY, TELEGRAM_API_KEY);
+              await tgSend(chatId, reply, LOVABLE_API_KEY, telegramKey);
             } else if (/^\/comparar(?:@\w+)?\b/i.test(text)) {
               const reply = await handleComparar(admin, link.user_id);
-              await tgSend(chatId, reply, LOVABLE_API_KEY, TELEGRAM_API_KEY);
+              await tgSend(chatId, reply, LOVABLE_API_KEY, telegramKey);
             } else if (/^\/orcamento(?:s)?(?:@\w+)?\b/i.test(text)) {
               const reply = await handleOrcamento(admin, link.user_id);
-              await tgSend(chatId, reply, LOVABLE_API_KEY, TELEGRAM_API_KEY);
+              await tgSend(chatId, reply, LOVABLE_API_KEY, telegramKey);
             } else if (/^\/ultimas(?:@\w+)?\b/i.test(text)) {
               const reply = await handleUltimas(admin, link.user_id);
-              await tgSend(chatId, reply, LOVABLE_API_KEY, TELEGRAM_API_KEY);
+              await tgSend(chatId, reply, LOVABLE_API_KEY, telegramKey);
             } else if (/^\/apagar(?:@\w+)?\b/i.test(text)) {
               const reply = await handleApagar(admin, link.user_id);
-              await tgSend(chatId, reply, LOVABLE_API_KEY, TELEGRAM_API_KEY);
+              await tgSend(chatId, reply, LOVABLE_API_KEY, telegramKey);
             } else if (/^\/?aportes?[_\s-]*(saldo|saldos)(?:@\w+)?\b/i.test(text)) {
               const reply = await handleAportesSaldo(admin, link.user_id);
-              await tgSend(chatId, reply, LOVABLE_API_KEY, TELEGRAM_API_KEY);
+              await tgSend(chatId, reply, LOVABLE_API_KEY, telegramKey);
             } else if (looksLikeResgate(text)) {
-              await handleResgateCommand(admin, link.user_id, chatId, text, LOVABLE_API_KEY, TELEGRAM_API_KEY);
+              await handleResgateCommand(admin, link.user_id, chatId, text, LOVABLE_API_KEY, telegramKey);
             } else if (/^\/?aporte(?:@\w+)?\b/i.test(text)) {
               // Accepts both /aporte and plain "aporte" (any message containing
               // the word at the start). Supported forms:
@@ -2943,11 +2990,11 @@ Deno.serve(async (req) => {
                 await tgSend(
                   chatId,
                   "🐷 Você ainda não tem nenhuma caixinha (cofrinho).\nCrie uma no app e tente novamente.",
-                  LOVABLE_API_KEY, TELEGRAM_API_KEY,
+                  LOVABLE_API_KEY, telegramKey,
                 );
               } else if (!rest) {
                 // No args → list available caixinhas with short IDs.
-                await tgSend(chatId, formatPiggyBanksList(banks), LOVABLE_API_KEY, TELEGRAM_API_KEY);
+                await tgSend(chatId, formatPiggyBanksList(banks), LOVABLE_API_KEY, telegramKey);
               } else {
                 // Try "<ref> <valor> [nota]" first when there are >=2 tokens.
                 // A short_id like "5" looks like a valid amount on its own, so we
@@ -2981,7 +3028,7 @@ Deno.serve(async (req) => {
                       await tgSend(
                         chatId,
                         `⚠️ Encontrei mais de uma caixinha com "${candidate}":\n${list}\n\nUse o ID curto, ex: \`aporte ${r.ambiguous[0].id.slice(0, 8)} <valor>\``,
-                        LOVABLE_API_KEY, TELEGRAM_API_KEY,
+                        LOVABLE_API_KEY, telegramKey,
                       );
                       aporteHandled = true;
                       break;
@@ -3016,7 +3063,7 @@ Deno.serve(async (req) => {
                         chatId,
                         headerLines.join("\n"),
                         buildPiggyBanksKeyboard(banks),
-                        LOVABLE_API_KEY, TELEGRAM_API_KEY,
+                        LOVABLE_API_KEY, telegramKey,
                       );
                       aporteHandled = true;
                     } else {
@@ -3024,7 +3071,7 @@ Deno.serve(async (req) => {
                       await tgSend(
                         chatId,
                         `❌ Caixinha "${firstTok}" não encontrada.\n\n${formatPiggyBanksList(banks)}`,
-                        LOVABLE_API_KEY, TELEGRAM_API_KEY,
+                        LOVABLE_API_KEY, telegramKey,
                       );
                       aporteHandled = true;
                     }
@@ -3033,7 +3080,7 @@ Deno.serve(async (req) => {
                   if (!aporteHandled && resolvedBank && amount !== null) {
                     // Direct finalize — no extra prompts, no expense created.
                     const reply = await finalizePiggyAporte(admin, link.user_id, resolvedBank, amount, note);
-                    await tgSend(chatId, reply, LOVABLE_API_KEY, TELEGRAM_API_KEY);
+                    await tgSend(chatId, reply, LOVABLE_API_KEY, telegramKey);
                   }
                 } else {
                   // Legacy flow: only amount given → show picker.
@@ -3056,31 +3103,31 @@ Deno.serve(async (req) => {
                     chatId,
                     headerLines.join("\n"),
                     buildPiggyBanksKeyboard(banks),
-                    LOVABLE_API_KEY, TELEGRAM_API_KEY,
+                    LOVABLE_API_KEY, telegramKey,
                   );
                 }
               }
             } else if (/^\/(meus[_-]?aportes|meusaportes)(?:@\w+)?\b/i.test(text)) {
               const reply = await handleMeusAportes(admin, link.user_id);
-              await tgSend(chatId, reply, LOVABLE_API_KEY, TELEGRAM_API_KEY);
+              await tgSend(chatId, reply, LOVABLE_API_KEY, telegramKey);
             } else if (looksLikeQuestion(text)) {
               // 🗣️ Pergunta em linguagem natural — interpreta com IA e consulta o banco.
               try {
                 const reply = await answerNaturalQuery(admin, link.user_id, text, LOVABLE_API_KEY);
                 if (reply) {
-                  await tgSend(chatId, reply, LOVABLE_API_KEY, TELEGRAM_API_KEY);
+                  await tgSend(chatId, reply, LOVABLE_API_KEY, telegramKey);
                 } else {
-                  await tgSend(chatId, "🤔 Não consegui entender sua pergunta. Tente reformular, ex.:\n_\"quanto gastei esta semana?\"_\n_\"quanto recebi em maio?\"_\n_\"meus maiores gastos nos últimos 30 dias\"_", LOVABLE_API_KEY, TELEGRAM_API_KEY);
+                  await tgSend(chatId, "🤔 Não consegui entender sua pergunta. Tente reformular, ex.:\n_\"quanto gastei esta semana?\"_\n_\"quanto recebi em maio?\"_\n_\"meus maiores gastos nos últimos 30 dias\"_", LOVABLE_API_KEY, telegramKey);
                 }
               } catch (e) {
                 console.error("answerNaturalQuery err", e);
-                await tgSend(chatId, "❌ Erro ao processar sua pergunta. Tente novamente.", LOVABLE_API_KEY, TELEGRAM_API_KEY);
+                await tgSend(chatId, "❌ Erro ao processar sua pergunta. Tente novamente.", LOVABLE_API_KEY, telegramKey);
               }
             } else if (looksLikeIncome(text)) {
               // 💵 Receita detectada — extrai e cadastra em "incomes".
               const extracted = await extractIncome(text, LOVABLE_API_KEY);
               if (!extracted || !extracted.amount || extracted.confidence < 0.6) {
-                await tgSend(chatId, "🤔 Não consegui entender a receita. Tente algo como:\n_\"recebi 500 do cliente João pix\"_ ou _\"salário 3500 hoje\"_", LOVABLE_API_KEY, TELEGRAM_API_KEY);
+                await tgSend(chatId, "🤔 Não consegui entender a receita. Tente algo como:\n_\"recebi 500 do cliente João pix\"_ ou _\"salário 3500 hoje\"_", LOVABLE_API_KEY, telegramKey);
               } else {
                 const finalDate = sanitizeDate(extracted.date);
                 const initialIncomeCat = INCOME_CATEGORIES.includes(extracted.category) ? extracted.category : "Outros";
@@ -3106,7 +3153,7 @@ Deno.serve(async (req) => {
                 };
                 const { error: insErr } = await admin.from("incomes").insert(payload);
                 if (insErr) {
-                  await tgSend(chatId, "❌ Erro ao salvar receita: " + insErr.message, LOVABLE_API_KEY, TELEGRAM_API_KEY);
+                  await tgSend(chatId, "❌ Erro ao salvar receita: " + insErr.message, LOVABLE_API_KEY, telegramKey);
                 } else {
                   // Reinforce learning for next time
                   learnIncomeCategory(admin, link.user_id, payload.description, category)
@@ -3117,7 +3164,7 @@ Deno.serve(async (req) => {
                   await tgSend(
                     chatId,
                     `💵 *Receita registrada*\n\n💰 ${fmtV}\n📂 ${category}${sourceLine}\n📝 ${payload.description}\n📅 ${finalDate}\n${statusLine}`,
-                    LOVABLE_API_KEY, TELEGRAM_API_KEY,
+                    LOVABLE_API_KEY, telegramKey,
                   );
                 }
               }
@@ -3139,7 +3186,7 @@ Deno.serve(async (req) => {
                 extracted = await extractExpense(text, LOVABLE_API_KEY);
               }
               if (!extracted || !extracted.amount || extracted.confidence < 0.6) {
-                await tgSend(chatId, "🤔 Não consegui entender. Tente algo como:\n_\"mercado 80 alimentação\"_ ou _\"uber 25 ontem\"_", LOVABLE_API_KEY, TELEGRAM_API_KEY);
+                await tgSend(chatId, "🤔 Não consegui entender. Tente algo como:\n_\"mercado 80 alimentação\"_ ou _\"uber 25 ontem\"_", LOVABLE_API_KEY, telegramKey);
               } else {
                 const finalDate = sanitizeDate(extracted.date);
                 const initialCat = CATEGORIES.includes(extracted.category) ? extracted.category : "Outros";
@@ -3227,7 +3274,7 @@ Deno.serve(async (req) => {
                   .select("id").single();
 
                 if (insErr || !ins) {
-                  await tgSend(chatId, "❌ Erro ao salvar no banco: " + (insErr?.message ?? "desconhecido"), LOVABLE_API_KEY, TELEGRAM_API_KEY);
+                  await tgSend(chatId, "❌ Erro ao salvar no banco: " + (insErr?.message ?? "desconhecido"), LOVABLE_API_KEY, telegramKey);
                 } else {
                   // Confirmação final com teclado de ações após o registro persistir.
                   // Para despesas de cartão, anexa o valor atualizado da fatura
@@ -3238,9 +3285,9 @@ Deno.serve(async (req) => {
                     const fmtInvoice = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(invoiceTotal);
                     finalSummary = `${summaryText}\n💳 Fatura atual: ${fmtInvoice}`;
                   }
-                  await tgSendWithKeyboard(chatId, finalSummary, buildExpenseKeyboard(ins.id), LOVABLE_API_KEY, TELEGRAM_API_KEY);
+                  await tgSendWithKeyboard(chatId, finalSummary, buildExpenseKeyboard(ins.id), LOVABLE_API_KEY, telegramKey);
                   if (!card) {
-                    checkBudgetAndAlert(admin, link.user_id, chatId, finalCategory, LOVABLE_API_KEY, TELEGRAM_API_KEY)
+                    checkBudgetAndAlert(admin, link.user_id, chatId, finalCategory, LOVABLE_API_KEY, telegramKey)
                       .catch((e) => console.error("budget alert bg err", e));
                   }
                   learnCategoryFromExpense(admin, link.user_id, extracted.description || text.slice(0, 80), finalCategory)
