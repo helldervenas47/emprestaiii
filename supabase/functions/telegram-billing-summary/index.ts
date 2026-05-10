@@ -71,10 +71,22 @@ function getLoanRemaining(loan: any, payments: any[], schedules: any[], today: s
   const total = calcTotalWithInterest(Number(loan.amount), Number(loan.interest_rate), Number(loan.installments));
   const totalPaid = payments.filter(p => p.loan_id === loan.id).reduce((s, p) => s + Number(p.amount), 0);
   if (Number(loan.installments) >= 2) {
-    const overdueSum = schedules
-      .filter(s => s.loan_id === loan.id && s.installment_number > Number(loan.paid_installments) && s.due_date <= today)
+    const loanScheds = schedules
+      .filter(s => s.loan_id === loan.id)
+      .sort((a, b) => Number(a.installment_number) - Number(b.installment_number));
+    // Soma planejada das parcelas já totalmente quitadas
+    const completedSum = loanScheds
+      .filter(s => Number(s.installment_number) <= Number(loan.paid_installments))
       .reduce((s, x) => s + Number(x.amount), 0);
-    if (overdueSum > 0) return overdueSum;
+    // Pagamentos extras já lançados sobre parcelas em aberto (parciais)
+    const partialCredit = Math.max(0, totalPaid - completedSum);
+    const overdueScheds = loanScheds.filter(
+      s => Number(s.installment_number) > Number(loan.paid_installments) && s.due_date <= today,
+    );
+    if (overdueScheds.length > 0) {
+      const overdueSum = overdueScheds.reduce((s, x) => s + Number(x.amount), 0);
+      return Math.max(0, overdueSum - partialCredit);
+    }
   }
   if (loan.remaining_amount != null && Number(loan.remaining_amount) > 0) return Number(loan.remaining_amount);
   return Math.max(0, total - totalPaid);
@@ -83,7 +95,7 @@ function getLoanRemaining(loan: any, payments: any[], schedules: any[], today: s
 async function buildBillingReport(admin: any, ownerId: string, today: string, brandName: string): Promise<string> {
   const [{ data: loans }, { data: payments }, { data: schedules }] = await Promise.all([
     admin.from("loans").select("*").eq("user_id", ownerId).neq("status", "paid"),
-    admin.from("payments").select("loan_id, amount").eq("user_id", ownerId),
+    admin.from("payments").select("loan_id, amount, installment_number").eq("user_id", ownerId),
     admin.from("loan_installments").select("loan_id, installment_number, due_date, amount").eq("user_id", ownerId),
   ]);
 
