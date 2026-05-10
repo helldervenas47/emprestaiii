@@ -11,8 +11,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Plus, X } from "lucide-react";
 import { Expense } from "@/types/loan";
 
+// "Combustível" é uma categoria exclusiva da aba Despesas — NÃO incluir aqui.
 export const vehicleExpenseCategories = [
-  "Combustível", "Manutenção", "Seguro", "IPVA", "Multas",
+  "Manutenção", "Seguro", "IPVA", "Multas",
   "Lavagem", "Estacionamento", "Pneus", "Documentação", "Peças",
   "Guincho", "Financiamento", "Outros (Veículo)",
 ];
