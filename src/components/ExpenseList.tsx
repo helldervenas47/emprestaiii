@@ -494,33 +494,30 @@ export function ExpenseList({ expenses, onPay, onUnpay, onDelete, onUpdate, read
                       <div className="flex items-center justify-between gap-2 mt-2 pt-2 border-t border-border/40 flex-wrap">
                         <p className="text-base sm:text-lg font-bold text-foreground">{formatCurrency(installmentAmount)}</p>
                         <div className="flex items-center gap-1 flex-wrap justify-end">
-                          <Button size="sm" variant="ghost" onClick={() => setViewDateExpenseId(expense.id)} className="h-7 px-2 text-xs">
-                            <CalendarCheck className="h-3.5 w-3.5 sm:mr-1" />
-                            <span className="hidden sm:inline">Data pagto</span>
+                          <Button size="icon" variant="ghost" onClick={() => setViewDateExpenseId(expense.id)} className="h-7 w-7" title="Ver data de pagamento" aria-label="Ver data de pagamento">
+                            <CalendarCheck className="h-3.5 w-3.5" />
                           </Button>
                           {hasPaidSomething && onUpdate && (
-                            <Button size="sm" variant="outline" onClick={() => setViewPaymentsExpenseId(expense.id)} className="h-7 px-2 text-xs">
-                              <Receipt className="h-3.5 w-3.5 sm:mr-1" />
-                              <span className="hidden sm:inline">Pagamentos</span>
+                            <Button size="icon" variant="outline" onClick={() => setViewPaymentsExpenseId(expense.id)} className="h-7 w-7" title="Pagamentos" aria-label="Pagamentos">
+                              <Receipt className="h-3.5 w-3.5" />
                             </Button>
                           )}
                           {!readOnly && !expense.paid && (
-                            <Button size="sm" variant="outline" className="text-success border-success/30 hover:bg-success hover:text-success-foreground h-7 px-2 text-xs" onClick={() => {
+                            <Button size="icon" variant="outline" className="text-success border-success/30 hover:bg-success hover:text-success-foreground h-7 w-7" title="Pagar" aria-label="Pagar" onClick={() => {
                               setPayDate(todayInAppTz());
                               setPaidAmountInput("");
                               setPayingExpenseId(expense.id);
                             }}>
-                              <CheckCircle className="h-3.5 w-3.5 sm:mr-1" />
-                              <span className="hidden sm:inline">Pagar</span>
+                              <CheckCircle className="h-3.5 w-3.5" />
                             </Button>
                           )}
                           {!readOnly && onUpdate && (
-                            <Button size="sm" variant="ghost" onClick={() => setEditingExpenseId(expense.id)} className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground">
+                            <Button size="icon" variant="ghost" onClick={() => setEditingExpenseId(expense.id)} className="h-7 w-7 text-muted-foreground hover:text-foreground" title="Editar" aria-label="Editar">
                               <Pencil className="h-3.5 w-3.5" />
                             </Button>
                           )}
                           {!readOnly && (
-                          <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive hover:bg-destructive hover:text-destructive-foreground" onClick={() => setDeleteExpenseId(expense.id)}>
+                          <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive hover:bg-destructive hover:text-destructive-foreground" title="Excluir" aria-label="Excluir" onClick={() => setDeleteExpenseId(expense.id)}>
                             <Trash2 className="h-3.5 w-3.5" />
                           </Button>
                           )}
