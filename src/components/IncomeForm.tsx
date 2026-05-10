@@ -44,6 +44,7 @@ export function IncomeForm({ open, onClose, onSubmit, initial }: Props) {
   const [clientName, setClientName] = useState("");
   const [paymentMethodId, setPaymentMethodId] = useState<string>("");
   const [receivedDate, setReceivedDate] = useState(todayInAppTz());
+  const [actualReceivedDate, setActualReceivedDate] = useState<string>("");
   const [status, setStatus] = useState<IncomeStatus>("received");
   const [recurrence, setRecurrence] = useState<IncomeRecurrence>("once");
   const [notes, setNotes] = useState("");
