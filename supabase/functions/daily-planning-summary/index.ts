@@ -146,17 +146,80 @@ async function buildAndSend(
 
   // Credit card invoices due today
   const { data: cards } = await admin.from("credit_cards")
-    .select("nickname, bank, last_four, due_day, active")
+    .select("id, nickname, bank, last_four, closing_day, due_day, active")
     .eq("user_id", userId)
     .eq("active", true)
     .eq("due_day", day);
 
-  for (const c of (cards ?? [])) {
-    expenseRows.push({
-      origin: "Cartão",
-      description: `Fatura ${(c as any).nickname || (c as any).bank}${(c as any).last_four ? " •••• " + (c as any).last_four : ""}`,
-      amount: 0,
-    });
+  if ((cards ?? []).length > 0) {
+    // Buscar todas as despesas marcadas como crédito do owner (sem filtro de data, pois precisamos do ciclo completo)
+    const { data: ccExpenses } = await admin.from("expenses")
+      .select("id, description, amount, due_date, paid, type, installments, parent_expense_id, notes")
+      .eq("user_id", userId);
+
+    const { data: openings } = await admin.from("credit_card_invoice_openings")
+      .select("card_id, cycle_key, opening_amount, notes")
+      .eq("user_id", userId);
+
+    const isCredito = (notes: string | null | undefined) => /\[\s*cr[eé]dito\s*\]/i.test(notes ?? "");
+
+    const lastDayOfMonth = (y: number, m: number) => new Date(y, m + 1, 0).getDate();
+    const buildCycleForDue = (dueDateRef: Date, closingDay: number, dueDay: number) => {
+      // dueDateRef = data de vencimento alvo. Closing do ciclo é o anterior (no mês anterior se due > closing, senão mesmo mês).
+      const dy = dueDateRef.getFullYear();
+      const dm = dueDateRef.getMonth();
+      // closingNext: fechamento que origina esta fatura
+      const closingMonth = dueDay > closingDay ? dm - 1 : dm;
+      const closingNext = new Date(dy, closingMonth, Math.min(closingDay, lastDayOfMonth(dy, closingMonth)));
+      const prevMonth = closingNext.getMonth() - 1;
+      const closingPrev = new Date(closingNext.getFullYear(), prevMonth, Math.min(closingDay, lastDayOfMonth(closingNext.getFullYear(), prevMonth)));
+      const cycleKey = `${closingNext.getFullYear()}-${String(closingNext.getMonth() + 1).padStart(2, "0")}`;
+      return { from: closingPrev, to: closingNext, cycleKey };
+    };
+
+    for (const c of cards) {
+      const card = c as any;
+      const cycle = buildCycleForDue(new Date(date + "T00:00:00"), Number(card.closing_day), Number(card.due_day));
+      const cardTag = (card.nickname || card.last_four || "").toLowerCase();
+
+      const items = (ccExpenses ?? []).filter((e: any) => {
+        if (!isCredito(e.notes)) return false;
+        if (cardTag) {
+          const n = String(e.notes ?? "").toLowerCase();
+          if (!n.includes(cardTag) && /cart[aã]o[:\s]/i.test(n)) return false;
+        }
+        const due = new Date(String(e.due_date) + "T00:00:00");
+        return due >= cycle.from && due <= cycle.to;
+      });
+
+      const installmentValue = (e: any) => {
+        const inst = Number(e.installments || 0);
+        const isRec = e.type === "recorrente" && inst > 1;
+        return isRec ? Number(e.amount || 0) / inst : Number(e.amount || 0);
+      };
+      const itemsTotal = items.reduce((s: number, e: any) => s + installmentValue(e), 0);
+
+      const opening = (openings ?? []).find((o: any) => o.card_id === card.id && o.cycle_key === cycle.cycleKey) as any;
+      const openingAmount = Number(opening?.opening_amount ?? 0);
+      const openingPaidFlag = /\[PAGA\]/i.test(opening?.notes ?? "");
+      const total = itemsTotal + openingAmount;
+
+      const cycleHasPending = items.some((e: any) => !e.paid) || openingAmount > 0;
+      const cycleEverHadValue = items.length > 0 || openingAmount > 0 || openingPaidFlag;
+      const paid = cycleEverHadValue && !cycleHasPending;
+      if (paid) continue;
+
+      const overrideMatch = /\[PAID:([0-9]+(?:\.[0-9]+)?)\]/i.exec(opening?.notes ?? "");
+      const itemsPaidTotal = items.filter((e: any) => e.paid).reduce((s: number, e: any) => s + installmentValue(e), 0);
+      const paidTotal = overrideMatch ? Number(overrideMatch[1]) : itemsPaidTotal;
+      const remaining = Math.max(0, total - paidTotal);
+
+      expenseRows.push({
+        origin: "Cartão",
+        description: `Fatura ${card.nickname || card.bank}${card.last_four ? " •••• " + card.last_four : ""}`,
+        amount: remaining,
+      });
+    }
   }
 
   const totalIncome = incomeRows.reduce((s, r) => s + r.amount, 0);
