@@ -53,7 +53,7 @@ export function IncomeList({ readOnly }: Props) {
   const { activeMethods } = usePaymentMethods();
 
   const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [statusFilter, setStatusFilter] = useState<string>("pending");
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
   const [sortBy, setSortBy] = useState<"date" | "amount">("date");
   const [formOpen, setFormOpen] = useState(false);
