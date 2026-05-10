@@ -926,6 +926,7 @@ export type Database = {
       }
       incomes: {
         Row: {
+          actual_received_date: string | null
           amount: number
           category: string | null
           client_id: string | null
@@ -944,6 +945,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          actual_received_date?: string | null
           amount?: number
           category?: string | null
           client_id?: string | null
@@ -962,6 +964,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          actual_received_date?: string | null
           amount?: number
           category?: string | null
           client_id?: string | null

@@ -15,6 +15,7 @@ export interface Income {
   source: string | null;
   paymentMethodId: string | null;
   receivedDate: string;
+  actualReceivedDate?: string | null;
   status: IncomeStatus;
   notes: string | null;
   recurrence: IncomeRecurrence;
@@ -40,6 +41,7 @@ function rowToIncome(r: any): Income {
     source: r.source,
     paymentMethodId: r.payment_method_id,
     receivedDate: r.received_date,
+    actualReceivedDate: r.actual_received_date ?? null,
     status: deriveStatus(persisted, r.received_date),
     notes: r.notes,
     recurrence: r.recurrence,
@@ -202,6 +204,7 @@ export function useIncomes(enabled = true) {
     if (patch.source !== undefined) updatePayload.source = patch.source;
     if (patch.paymentMethodId !== undefined) updatePayload.payment_method_id = patch.paymentMethodId;
     if (patch.receivedDate !== undefined) updatePayload.received_date = patch.receivedDate;
+    if (patch.actualReceivedDate !== undefined) updatePayload.actual_received_date = patch.actualReceivedDate;
     if (patch.status !== undefined) updatePayload.status = patch.status;
     if (patch.notes !== undefined) updatePayload.notes = patch.notes;
     if (patch.recurrence !== undefined) updatePayload.recurrence = patch.recurrence;
@@ -242,10 +245,12 @@ export function useIncomes(enabled = true) {
     const target = incomes.find((i) => i.id === id);
     const isRecurringOccurrence =
       !!target && (!!target.parentId || target.recurrence !== "once");
-    // Em séries recorrentes, preservar a data agendada para não colidir com outra ocorrência.
+    const today = todayInAppTz();
+    // Em séries recorrentes, preservar a data agendada (received_date) para não colidir com outra ocorrência.
+    // Sempre registramos a data efetiva do recebimento em actual_received_date.
     const patch: Partial<Income> = isRecurringOccurrence
-      ? { status: "received" }
-      : { status: "received", receivedDate: todayInAppTz() };
+      ? { status: "received", actualReceivedDate: today }
+      : { status: "received", receivedDate: today, actualReceivedDate: today };
     await updateIncome(id, patch);
   }, [incomes, updateIncome]);
 
