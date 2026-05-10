@@ -111,6 +111,7 @@ export function IncomeForm({ open, onClose, onSubmit, initial }: Props) {
       source: !matched && clientName.trim() ? clientName.trim() : null,
       paymentMethodId: paymentMethodId || null,
       receivedDate,
+      actualReceivedDate: finalStatus === "received" ? (actualReceivedDate || today) : null,
       status: finalStatus,
       notes: notes.trim() || null,
       recurrence,
