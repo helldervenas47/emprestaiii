@@ -183,15 +183,16 @@ export function IncomePendingCalendar({
       return map[d];
     };
     for (const i of incomes) {
-      // Apenas receitas efetivamente recebidas aparecem no calendário,
-      // posicionadas pela data real do recebimento (actualReceivedDate),
-      // com fallback para receivedDate quando ainda não houver registro.
-      if (i.status !== "received") continue;
-      const d = i.actualReceivedDate || i.receivedDate;
+      // Posiciona pela data real do recebimento quando recebida; senão pela data prevista.
+      const d = i.status === "received" ? (i.actualReceivedDate || i.receivedDate) : i.receivedDate;
       if (!d) continue;
       const e = ensure(d);
       e.incomes.push(i);
-      e.totalIncome += Number(i.amount) || 0;
+      // Apenas receitas efetivamente recebidas entram no saldo realizado.
+      // (Pendentes aparecem no calendário com indicador, mas não somam ao total do dia.)
+      if (i.status === "received") {
+        e.totalIncome += Number(i.amount) || 0;
+      }
     }
     for (const ex of personalExpenses) {
       const d = ex.paid && ex.paidDate ? ex.paidDate : ex.dueDate;
