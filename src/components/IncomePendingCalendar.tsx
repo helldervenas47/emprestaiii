@@ -15,6 +15,7 @@ import { useCreditCards } from "@/hooks/useCreditCards";
 import { useCreditCardOpenings } from "@/hooks/useCreditCardOpenings";
 import { getCardInvoiceTotalsForMonth, isCreditCardExpense } from "@/lib/creditCardInvoiceTotals";
 import { useMonthlyOpeningBalances } from "@/hooks/useMonthlyOpeningBalances";
+import { todayDateInAppTz } from "@/lib/timezone";
 
 const MONTH_BALANCE_OVERRIDES_KEY = "calendar:incomeMonthDay1BalanceOverrides";
 
@@ -109,7 +110,7 @@ export function IncomePendingCalendar({
   allIncomes,
   allExpenses,
 }: Props) {
-  const today = new Date();
+  const today = todayDateInAppTz();
   const todayStr = formatLocalDate(today);
 
   const [expanded, setExpanded] = useState(false);
@@ -154,7 +155,7 @@ export function IncomePendingCalendar({
   }, [year, month]);
 
   const weekDays = useMemo(() => {
-    const base = new Date();
+    const base = todayDateInAppTz();
     const dow = base.getDay();
     const start = new Date(base);
     start.setDate(base.getDate() - dow);
@@ -282,7 +283,7 @@ export function IncomePendingCalendar({
     if (month === 11) { setMonth(0); setYear(year + 1); } else setMonth(month + 1);
   };
   const goToToday = () => {
-    const n = new Date();
+    const n = todayDateInAppTz();
     setMonth(n.getMonth());
     setYear(n.getFullYear());
     setSelectedDate(formatLocalDate(n));
