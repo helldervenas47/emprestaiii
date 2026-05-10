@@ -44,6 +44,7 @@ export function IncomeForm({ open, onClose, onSubmit, initial }: Props) {
   const [clientName, setClientName] = useState("");
   const [paymentMethodId, setPaymentMethodId] = useState<string>("");
   const [receivedDate, setReceivedDate] = useState(todayInAppTz());
+  const [actualReceivedDate, setActualReceivedDate] = useState<string>("");
   const [status, setStatus] = useState<IncomeStatus>("received");
   const [recurrence, setRecurrence] = useState<IncomeRecurrence>("once");
   const [notes, setNotes] = useState("");
@@ -66,6 +67,7 @@ export function IncomeForm({ open, onClose, onSubmit, initial }: Props) {
         setClientName(c?.name || initial.source || "");
         setPaymentMethodId(initial.paymentMethodId || "");
         setReceivedDate(initial.receivedDate);
+        setActualReceivedDate(initial.actualReceivedDate || (initial.status === "received" ? initial.receivedDate : ""));
         setStatus(initial.status);
         setRecurrence(initial.recurrence);
         setNotes(initial.notes || "");
@@ -76,6 +78,7 @@ export function IncomeForm({ open, onClose, onSubmit, initial }: Props) {
         setClientName("");
         setPaymentMethodId("");
         setReceivedDate(todayInAppTz());
+        setActualReceivedDate(todayInAppTz());
         setStatus("received");
         setRecurrence("once");
         setNotes("");
@@ -108,6 +111,7 @@ export function IncomeForm({ open, onClose, onSubmit, initial }: Props) {
       source: !matched && clientName.trim() ? clientName.trim() : null,
       paymentMethodId: paymentMethodId || null,
       receivedDate,
+      actualReceivedDate: finalStatus === "received" ? (actualReceivedDate || today) : null,
       status: finalStatus,
       notes: notes.trim() || null,
       recurrence,
@@ -134,10 +138,16 @@ export function IncomeForm({ open, onClose, onSubmit, initial }: Props) {
               <Input type="number" step="0.01" value={amount} onChange={(e) => setAmount(e.target.value)} />
             </div>
             <div>
-              <Label>Data</Label>
+              <Label>Vencimento</Label>
               <DatePickerField value={receivedDate} onChange={setReceivedDate} />
             </div>
           </div>
+          {status === "received" && (
+            <div>
+              <Label>Data de pagamento</Label>
+              <DatePickerField value={actualReceivedDate || receivedDate} onChange={setActualReceivedDate} />
+            </div>
+          )}
           <div className="grid grid-cols-2 gap-3">
             <div>
               <div className="flex items-center justify-between">
