@@ -29,10 +29,11 @@ Deno.serve(async (req) => {
     const input = username.trim();
     const isEmail = input.includes("@");
 
-    // Generic error to avoid username enumeration
+    // Generic app-level error to avoid username enumeration.
+    // Keep HTTP 200 so expected invalid-login attempts do not surface as runtime errors in the preview.
     const genericError = new Response(
       JSON.stringify({ error: "Email/usuário ou senha incorretos" }),
-      { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
 
     let email: string;
@@ -61,7 +62,7 @@ Deno.serve(async (req) => {
     // Check if user is banned/inactive
     if (user?.banned_until && new Date(user.banned_until) > new Date()) {
       return new Response(JSON.stringify({ error: "Usuário inativo. Contate o administrador." }), {
-        status: 403,
+        status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
