@@ -1586,13 +1586,14 @@ function telegramHeaders(lovableKey: string, telegramKey: string, json = true) {
   return headers;
 }
 
-async function tgSend(chatId: number, text: string, lovableKey: string, telegramKey: string) {
+async function tgSend(chatId: number, text: string, lovableKey: string, telegramKey: string): Promise<number | null> {
   const r = await fetch(telegramMethodUrl("sendMessage", telegramKey), {
     method: "POST",
     headers: telegramHeaders(lovableKey, telegramKey),
     body: JSON.stringify({ chat_id: chatId, text, parse_mode: "Markdown" }),
-  }).catch((e) => ({ ok: false, status: 0, text: async () => String(e) } as Response));
-  if (!r.ok) console.error("sendMessage err", r.status, await r.text().catch(() => ""));
+  }).catch((e) => ({ ok: false, status: 0, text: async () => String(e), json: async () => null } as any));
+  if (!r.ok) { console.error("sendMessage err", r.status, await r.text().catch(() => "")); return null; }
+  try { const j: any = await (r as Response).json(); return j?.result?.message_id ?? null; } catch { return null; }
 }
 
 async function tgSendWithKeyboard(chatId: number, text: string, keyboard: any, lovableKey: string, telegramKey: string) {
