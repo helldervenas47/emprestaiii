@@ -62,10 +62,13 @@ export function getOverdueInstallments(
     .sort((a, b) => a.installmentNumber - b.installmentNumber);
 
   if (loanSchedules.length > 0) {
+    const nextNum = paid + 1;
     return loanSchedules.map((s) => ({
       installmentNumber: s.installmentNumber,
       dueDate: s.dueDate,
-      amount: s.amount,
+      amount: s.installmentNumber === nextNum
+        ? getInstallmentAmount(loan, schedules)
+        : s.amount,
     }));
   }
 
