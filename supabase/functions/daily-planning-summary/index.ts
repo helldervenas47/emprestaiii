@@ -60,18 +60,48 @@ async function buildAndSend(
 
   // Loans + schedules
   const { data: loans } = await admin.from("loans")
-    .select("id, borrower_name, installments, paid_installments, amount, interest_rate, custom_installment_value, due_date, status")
+    .select("id, borrower_name, installments, paid_installments, amount, interest_rate, custom_installment_value, due_date, status, remaining_amount")
     .eq("user_id", userId);
 
   const loanIds = (loans ?? []).map((l: any) => l.id);
-  let schedules: any[] = [];
+  let allSchedules: any[] = [];
   if (loanIds.length > 0) {
     const { data } = await admin.from("loan_installments")
       .select("loan_id, installment_number, due_date, amount")
-      .in("loan_id", loanIds)
-      .eq("due_date", date);
-    schedules = data ?? [];
+      .in("loan_id", loanIds);
+    allSchedules = data ?? [];
   }
+
+  // Calcula valor da parcela considerando pagamentos parciais já realizados.
+  // Para a próxima parcela em aberto: min(scheduled, remaining - somatório das parcelas futuras).
+  const installmentAmountFor = (loan: any, instNum: number): number => {
+    const loanScheds = allSchedules.filter(s => s.loan_id === loan.id);
+    const sched = loanScheds.find(s => s.installment_number === instNum);
+    const nextNum = (loan.paid_installments || 0) + 1;
+    const scheduledAmt = sched ? Number(sched.amount || 0) : null;
+
+    if (instNum === nextNum) {
+      const remaining = loan.remaining_amount != null ? Number(loan.remaining_amount) : null;
+      if (remaining != null && remaining >= 0) {
+        if (loanScheds.length > 0) {
+          const futureSum = loanScheds
+            .filter(s => s.installment_number > nextNum)
+            .reduce((acc, s) => acc + Number(s.amount || 0), 0);
+          const currentBalance = Math.max(0, remaining - futureSum);
+          if (scheduledAmt != null) return Math.min(currentBalance, scheduledAmt);
+          return currentBalance;
+        }
+        return remaining;
+      }
+    }
+    if (scheduledAmt != null) return scheduledAmt;
+    // fallback — sem cronograma
+    if (loan.custom_installment_value != null) return Number(loan.custom_installment_value);
+    const total = calcLoanTotal(Number(loan.amount), Number(loan.interest_rate), loan.installments);
+    return total / loan.installments;
+  };
+
+  const schedules = allSchedules.filter(s => s.due_date === date);
 
   const incomeRows: Row[] = [];
   for (const loan of (loans ?? [])) {
@@ -83,18 +113,16 @@ async function buildAndSend(
         incomeRows.push({
           origin: "Empréstimo",
           description: `${(loan as any).borrower_name} — ${s.installment_number}/${(loan as any).installments}`,
-          amount: Number(s.amount || 0),
+          amount: installmentAmountFor(loan, s.installment_number),
           group: "Empréstimos",
         });
       }
     } else if ((loan as any).due_date === date && (loan as any).paid_installments < (loan as any).installments) {
-      const total = calcLoanTotal(Number((loan as any).amount), Number((loan as any).interest_rate), (loan as any).installments);
-      const perInst = total / (loan as any).installments;
-      const amt = (loan as any).custom_installment_value != null ? Number((loan as any).custom_installment_value) : perInst;
+      const nextNum = (loan as any).paid_installments + 1;
       incomeRows.push({
         origin: "Empréstimo",
-        description: `${(loan as any).borrower_name} — ${(loan as any).paid_installments + 1}/${(loan as any).installments}`,
-        amount: amt,
+        description: `${(loan as any).borrower_name} — ${nextNum}/${(loan as any).installments}`,
+        amount: installmentAmountFor(loan, nextNum),
         group: "Empréstimos",
       });
     }
