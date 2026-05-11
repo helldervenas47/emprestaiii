@@ -19,6 +19,27 @@ import { useMonthlyOpeningBalances } from "@/hooks/useMonthlyOpeningBalances";
 import { todayDateInAppTz } from "@/lib/timezone";
 
 const MONTH_BALANCE_OVERRIDES_KEY = "calendar:incomeMonthDay1BalanceOverrides";
+const ALLOW_DAY1_OVERRIDE_KEY = "calendar:incomeAllowDay1BalanceOverride";
+
+function loadAllowDay1Override(): boolean {
+  if (typeof window === "undefined") return true;
+  try {
+    const raw = window.localStorage.getItem(ALLOW_DAY1_OVERRIDE_KEY);
+    if (raw === null) return true;
+    return raw === "true";
+  } catch {
+    return true;
+  }
+}
+
+function saveAllowDay1Override(v: boolean) {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(ALLOW_DAY1_OVERRIDE_KEY, String(v));
+  } catch {
+    // ignore
+  }
+}
 
 function loadOverrides(): Record<string, number> {
   if (typeof window === "undefined") return {};
