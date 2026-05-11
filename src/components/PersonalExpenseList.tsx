@@ -869,12 +869,33 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, onUpda
                               );
                             })()}
                             {isParceladaFinita && summaryTarget && (() => {
-                              const realPaidCount = expenses.filter(
-                                (c) => c.parentExpenseId === summaryTarget.id && c.paid,
-                              ).length;
+                              // Número desta parcela específica:
+                              // - linha pai (recorrente): próxima parcela em aberto = paidInstallments + 1
+                              //   (ou total quando já totalmente paga)
+                              // - linha filha (fixa, ligada por parentExpenseId): posição cronológica
+                              //   entre os irmãos pagos (ordenados por paid_date / created_at).
+                              const total = summaryTarget.installments!;
+                              let current: number;
+                              if (isParceladaFinitaSelf) {
+                                const paidSoFar = expense.paidInstallments ?? 0;
+                                current = expense.paid
+                                  ? total
+                                  : Math.min(paidSoFar + 1, total);
+                              } else {
+                                const siblings = expenses
+                                  .filter((c) => c.parentExpenseId === summaryTarget.id && c.paid)
+                                  .sort((a, b) => {
+                                    const da = a.paidDate ?? a.dueDate ?? "";
+                                    const db = b.paidDate ?? b.dueDate ?? "";
+                                    if (da !== db) return da.localeCompare(db);
+                                    return (a.id ?? "").localeCompare(b.id ?? "");
+                                  });
+                                const idx = siblings.findIndex((c) => c.id === expense.id);
+                                current = idx >= 0 ? idx + 1 : 1;
+                              }
                               return (
                                 <Badge variant="outline" className="text-[10px] px-1.5 py-0">
-                                  {realPaidCount}/{summaryTarget.installments} parcelas
+                                  {current}/{total} parcelas
                                 </Badge>
                               );
                             })()}
