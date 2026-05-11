@@ -6,7 +6,8 @@ import { Label } from "@/components/ui/label";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription,
 } from "@/components/ui/dialog";
-import { ChevronLeft, ChevronRight, ChevronDown, ChevronUp, CalendarDays, TrendingUp, ArrowUpCircle, ArrowDownCircle, Wallet, Pencil, RotateCcw, CreditCard as CreditCardIcon } from "lucide-react";
+import { ChevronLeft, ChevronRight, ChevronDown, ChevronUp, CalendarDays, TrendingUp, ArrowUpCircle, ArrowDownCircle, Wallet, Pencil, RotateCcw, CreditCard as CreditCardIcon, Lock } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
 import type { Income } from "@/hooks/useIncomes";
 import type { Expense, Sale } from "@/types/loan";
 import { useProducts } from "@/hooks/useProducts";
@@ -18,6 +19,27 @@ import { useMonthlyOpeningBalances } from "@/hooks/useMonthlyOpeningBalances";
 import { todayDateInAppTz } from "@/lib/timezone";
 
 const MONTH_BALANCE_OVERRIDES_KEY = "calendar:incomeMonthDay1BalanceOverrides";
+const ALLOW_DAY1_OVERRIDE_KEY = "calendar:incomeAllowDay1BalanceOverride";
+
+function loadAllowDay1Override(): boolean {
+  if (typeof window === "undefined") return true;
+  try {
+    const raw = window.localStorage.getItem(ALLOW_DAY1_OVERRIDE_KEY);
+    if (raw === null) return true;
+    return raw === "true";
+  } catch {
+    return true;
+  }
+}
+
+function saveAllowDay1Override(v: boolean) {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(ALLOW_DAY1_OVERRIDE_KEY, String(v));
+  } catch {
+    // ignore
+  }
+}
 
 function loadOverrides(): Record<string, number> {
   if (typeof window === "undefined") return {};
@@ -120,6 +142,11 @@ export function IncomePendingCalendar({
   const { overrides, setBalance: setOverrideBalance, clearBalance: clearOverrideBalance } = useMonthlyOpeningBalances();
   const [editOpen, setEditOpen] = useState(false);
   const [editValue, setEditValue] = useState("");
+  const [allowDay1Override, setAllowDay1Override] = useState<boolean>(() => loadAllowDay1Override());
+  const toggleAllowDay1Override = (v: boolean) => {
+    setAllowDay1Override(v);
+    saveAllowDay1Override(v);
+  };
 
   const { sales } = useProducts(true);
   const { deposits: piggyDeposits } = usePiggyBanks();
@@ -335,7 +362,7 @@ export function IncomePendingCalendar({
       const ds = formatLocalDate(cursor);
       // Override do saldo no dia 1 de cada mês (definido pelo usuário).
       // O override representa o saldo final previsto do dia 1 e ancora a projeção a partir dele.
-      if (cursor.getDate() === 1) {
+      if (allowDay1Override && cursor.getDate() === 1) {
         const monthKey = ds.slice(0, 7); // YYYY-MM
         if (overrides[monthKey] !== undefined) {
           running = overrides[monthKey];
@@ -350,7 +377,7 @@ export function IncomePendingCalendar({
       cursor.setDate(cursor.getDate() + 1);
     }
     return map;
-  }, [dayMap, baseBalance, year, month, weekDays, overrides]);
+  }, [dayMap, baseBalance, year, month, weekDays, overrides, allowDay1Override]);
 
   const selectedHasMovement = selectedInfo.totalIncome > 0 || selectedInfo.totalExpense > 0;
   const selectedBalance = selectedDate
@@ -400,6 +427,26 @@ export function IncomePendingCalendar({
               <><ChevronDown className="h-3.5 w-3.5" /> Expandir</>
             )}
           </Button>
+        </div>
+
+        {/* Flag: permitir alterar o saldo do dia 01 */}
+        <div className="flex items-center justify-between gap-2 mb-3 rounded-md border border-border/60 bg-muted/30 px-3 py-2">
+          <div className="flex items-center gap-2 min-w-0">
+            <Lock className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+            <div className="min-w-0">
+              <p className="text-xs font-medium text-foreground">Permitir alterar saldo do dia 01</p>
+              <p className="text-[10px] text-muted-foreground leading-tight">
+                {allowDay1Override
+                  ? "Você pode editar o saldo de abertura do mês."
+                  : "Edição bloqueada — projeção usa o saldo automático."}
+              </p>
+            </div>
+          </div>
+          <Switch
+            checked={allowDay1Override}
+            onCheckedChange={toggleAllowDay1Override}
+            aria-label="Permitir alterar saldo do dia 01"
+          />
         </div>
 
         {/* Legenda de status dos lançamentos */}
@@ -735,6 +782,7 @@ export function IncomePendingCalendar({
                               variant="outline"
                               size="sm"
                               className="h-7 text-xs gap-1 flex-1"
+                              disabled={!allowDay1Override}
                               onClick={() => {
                                 setEditValue(
                                   (overrides[monthKey] ?? selectedBalance).toFixed(2)
@@ -744,7 +792,7 @@ export function IncomePendingCalendar({
                             >
                               <Pencil className="h-3 w-3" /> Alterar saldo do dia
                             </Button>
-                            {hasOverride && (
+                            {hasOverride && allowDay1Override && (
                               <Button
                                 variant="ghost"
                                 size="sm"
@@ -758,7 +806,12 @@ export function IncomePendingCalendar({
                             )}
                           </div>
                         )}
-                        {isFirstOfMonth && !hasOverride && (
+                        {isFirstOfMonth && !allowDay1Override && (
+                          <p className="text-[10px] text-muted-foreground italic pt-1">
+                            Edição do saldo do dia 01 está desativada. Ative o botão no topo do calendário para liberar.
+                          </p>
+                        )}
+                        {isFirstOfMonth && allowDay1Override && !hasOverride && (
                           <p className="text-[10px] text-muted-foreground italic pt-1">
                             Apenas o dia 1 de cada mês pode ter o saldo ajustado manualmente.
                           </p>
