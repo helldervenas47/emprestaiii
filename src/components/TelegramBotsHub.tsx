@@ -4,6 +4,7 @@ import { TelegramReportsConnectCard } from "@/components/TelegramReportsConnectC
 import { TelegramBillingScheduleCard } from "@/components/TelegramBillingScheduleCard";
 import { TelegramAccumulatedDelinquencyScheduleCard } from "@/components/TelegramAccumulatedDelinquencyScheduleCard";
 import { TelegramDailyPlanningScheduleCard } from "@/components/TelegramDailyPlanningScheduleCard";
+import { TelegramIncomesExpensesScheduleCard } from "@/components/TelegramIncomesExpensesScheduleCard";
 import { TelegramManagerWeeklyCard } from "@/components/TelegramManagerWeeklyCard";
 
 export function TelegramBotsHub() {
