@@ -28,6 +28,52 @@ function nowInTZ(tz = "America/Sao_Paulo") {
 
 interface Row { origin: string; description: string; amount: number; }
 
+function isCreditCardExpense(notes: string | null | undefined): boolean {
+  return /\[\s*cr[eé]dito\s*\]/i.test(notes ?? "");
+}
+function addMonthsKeepDay(iso: string, months: number): string {
+  const d = new Date(iso + "T00:00:00");
+  const day = d.getDate();
+  d.setDate(1);
+  d.setMonth(d.getMonth() + months);
+  const last = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
+  d.setDate(Math.min(day, last));
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+function getCycleForRef(ref: Date, closingDay: number, dueDay: number) {
+  const y = ref.getFullYear();
+  const m = ref.getMonth();
+  const day = ref.getDate();
+  const closingThis = new Date(y, m, Math.min(closingDay, new Date(y, m + 1, 0).getDate()));
+  const closingNext = day >= closingDay
+    ? new Date(y, m + 1, Math.min(closingDay, new Date(y, m + 2, 0).getDate()))
+    : closingThis;
+  const closingPrev = day >= closingDay
+    ? closingThis
+    : new Date(y, m - 1, Math.min(closingDay, new Date(y, m, 0).getDate()));
+  const dueMonth = dueDay > closingDay ? closingNext.getMonth() : closingNext.getMonth() + 1;
+  const dueYear = closingNext.getFullYear();
+  const dueDate = new Date(dueYear, dueMonth, Math.min(dueDay, new Date(dueYear, dueMonth + 1, 0).getDate()));
+  return { from: closingPrev, to: closingNext, dueDate };
+}
+function getCycleForDueMonth(yyyymm: string, closingDay: number, dueDay: number) {
+  const [ty, tm] = yyyymm.split("-").map(Number);
+  for (let off = -36; off <= 36; off++) {
+    const d = new Date();
+    d.setDate(1);
+    d.setMonth(d.getMonth() + off);
+    const c = getCycleForRef(d, closingDay, dueDay);
+    if (c.dueDate.getFullYear() === ty && c.dueDate.getMonth() + 1 === tm) return c;
+  }
+  return null;
+}
+function cycleKeyFromDate(closingTo: Date): string {
+  return `${closingTo.getFullYear()}-${String(closingTo.getMonth() + 1).padStart(2, "0")}`;
+}
+function isoLocal(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
 async function buildAndSend(
   admin: any,
   userId: string,
@@ -53,28 +99,110 @@ async function buildAndSend(
     amount: Number(i.amount || 0),
   }));
 
-  // Expenses a pagar (todas — empresa + pessoal) com vencimento na data
-  const { data: expenses } = await admin.from("expenses")
-    .select("description, amount, scope, category, installments, parent_expense_id")
+  // Despesas pessoais (escopo personal) — ignora despesas da empresa.
+  // Carrega TODAS as pessoais para conseguir consolidar a fatura do mês.
+  const { data: allPersonal } = await admin.from("expenses")
+    .select("id, description, amount, scope, category, installments, paid_installments, parent_expense_id, due_date, paid, notes, type")
     .eq("user_id", userId)
-    .eq("due_date", date)
-    .eq("paid", false);
+    .eq("scope", "personal");
 
-  const expenseRows: { origin: "Empresa" | "Pessoal"; description: string; amount: number }[] =
-    (expenses ?? []).map((e: any) => {
-      const total = Number(e.amount || 0);
-      const installments = Number(e.installments || 0);
-      const isParentInstallment = !e.parent_expense_id && installments > 1;
-      const monthly = isParentInstallment ? total / installments : total;
-      return {
-        origin: e.scope === "personal" ? "Pessoal" : "Empresa",
-        description: e.description,
-        amount: monthly,
-      };
+  const personal = (allPersonal ?? []) as any[];
+
+  // Linhas de despesas pessoais NÃO-cartão com vencimento na data e não pagas.
+  const expenseRows: { description: string; amount: number }[] = [];
+  for (const e of personal) {
+    if (isCreditCardExpense(e.notes)) continue;
+    if (e.due_date !== date) continue;
+    if (e.paid) continue;
+    const total = Number(e.amount || 0);
+    const installments = Number(e.installments || 0);
+    const isParentInstallment = !e.parent_expense_id && installments > 1;
+    expenseRows.push({
+      description: e.description,
+      amount: isParentInstallment ? total / installments : total,
     });
+  }
+
+  // Faturas de cartão: uma linha por cartão cujo vencimento === date,
+  // somando apenas as compras da competência daquele mês.
+  const targetDate = new Date(date + "T00:00:00");
+  const yyyymm = `${targetDate.getFullYear()}-${String(targetDate.getMonth() + 1).padStart(2, "0")}`;
+  const dayOfMonth = targetDate.getDate();
+
+  const { data: cards } = await admin.from("credit_cards")
+    .select("id, nickname, last_four, closing_day, due_day, active")
+    .eq("user_id", userId);
+  const { data: openings } = await admin.from("credit_card_invoice_openings")
+    .select("card_id, cycle_key, opening_amount, notes")
+    .eq("user_id", userId);
+
+  const invoiceRows: { description: string; amount: number; paid: boolean }[] = [];
+
+  for (const card of (cards ?? []) as any[]) {
+    if (card.active === false) continue;
+    const cycle = getCycleForDueMonth(yyyymm, card.closing_day, card.due_day);
+    if (!cycle) continue;
+    if (isoLocal(cycle.dueDate) !== date) continue;
+    if (cycle.dueDate.getDate() !== dayOfMonth) continue;
+
+    const cardTag = String(card.nickname || card.last_four || "").toLowerCase();
+    let itemsTotal = 0;
+    let pendingCount = 0;
+    let totalCount = 0;
+
+    for (const e of personal) {
+      if (!isCreditCardExpense(e.notes)) continue;
+      const n = String(e.notes ?? "").toLowerCase();
+      if (cardTag) {
+        if (!n.includes(cardTag)) {
+          if (/cart[aã]o[:\s]/i.test(n)) continue;
+        }
+      }
+      const isParcelada = e.type === "recorrente" && Number(e.installments || 0) > 1 && !e.parent_expense_id;
+      const installmentValue = isParcelada ? Number(e.amount) / Number(e.installments) : Number(e.amount);
+
+      if (isParcelada) {
+        // expandir parcelas virtuais ainda em aberto
+        const total = Number(e.installments);
+        const paidInstallments = Number(e.paid_installments || 0);
+        const firstDue = addMonthsKeepDay(e.due_date, -paidInstallments);
+        for (let i = paidInstallments + 1; i <= total; i++) {
+          const due = new Date(addMonthsKeepDay(firstDue, i - 1) + "T00:00:00");
+          if (due >= cycle.from && due < cycle.to) {
+            itemsTotal += installmentValue;
+            totalCount++;
+            pendingCount++;
+          }
+        }
+      } else {
+        const due = new Date(e.due_date + "T00:00:00");
+        if (due >= cycle.from && due < cycle.to) {
+          itemsTotal += installmentValue;
+          totalCount++;
+          if (!e.paid) pendingCount++;
+        }
+      }
+    }
+
+    const ck = cycleKeyFromDate(cycle.to);
+    const opening = (openings ?? []).find((o: any) => o.card_id === card.id && o.cycle_key === ck);
+    const openingAmount = Number(opening?.opening_amount ?? 0);
+    const total = itemsTotal + openingAmount;
+    if (total <= 0) continue;
+
+    const cardLabel = card.nickname || (card.last_four ? `Final ${card.last_four}` : "Cartão");
+    invoiceRows.push({
+      description: `Fatura ${cardLabel} (${String(targetDate.getMonth() + 1).padStart(2, "0")}/${targetDate.getFullYear()})`,
+      amount: total,
+      paid: pendingCount === 0 && totalCount > 0,
+    });
+  }
 
   const totalIncome = incomeRows.reduce((s, r) => s + r.amount, 0);
-  const totalExpense = expenseRows.reduce((s, r) => s + r.amount, 0);
+  const totalInvoices = invoiceRows.reduce((s, r) => s + r.amount, 0);
+  const totalSimple = expenseRows.reduce((s, r) => s + r.amount, 0);
+  const totalExpense = totalSimple + totalInvoices;
+  const expenseCount = expenseRows.length + invoiceRows.length;
   const balance = totalIncome - totalExpense;
   const negative = balance < 0;
 
@@ -83,7 +211,7 @@ async function buildAndSend(
   lines.push(`🗓️ ${fmtDateBR(date)}`);
   lines.push("");
   lines.push(`🟢 *A receber:* ${fmtBRL(totalIncome)}  _(${incomeRows.length})_`);
-  lines.push(`🔴 *A pagar:* ${fmtBRL(totalExpense)}  _(${expenseRows.length})_`);
+  lines.push(`🔴 *A pagar:* ${fmtBRL(totalExpense)}  _(${expenseCount})_`);
   lines.push(`${negative ? "⚠️" : "💰"} *Saldo previsto:* ${fmtBRL(balance)}`);
   if (negative) lines.push(`_Atenção: saldo negativo previsto para o dia._`);
 
@@ -97,27 +225,22 @@ async function buildAndSend(
   }
 
   if (expenseRows.length > 0) {
-    const business = expenseRows.filter(r => r.origin === "Empresa");
-    const personal = expenseRows.filter(r => r.origin === "Pessoal");
-    if (business.length > 0) {
-      const sub = business.reduce((s, r) => s + r.amount, 0);
-      lines.push("");
-      lines.push(`*🏢 Despesas Empresa:* ${fmtBRL(sub)}  _(${business.length})_`);
-      for (const r of [...business].sort((a, b) => b.amount - a.amount)) {
-        lines.push(`• ${r.description} — *${fmtBRL(r.amount)}*`);
-      }
-    }
-    if (personal.length > 0) {
-      const sub = personal.reduce((s, r) => s + r.amount, 0);
-      lines.push("");
-      lines.push(`*👤 Despesas Pessoais:* ${fmtBRL(sub)}  _(${personal.length})_`);
-      for (const r of [...personal].sort((a, b) => b.amount - a.amount)) {
-        lines.push(`• ${r.description} — *${fmtBRL(r.amount)}*`);
-      }
+    lines.push("");
+    lines.push(`*👤 Despesas pessoais:* ${fmtBRL(totalSimple)}  _(${expenseRows.length})_`);
+    for (const r of [...expenseRows].sort((a, b) => b.amount - a.amount)) {
+      lines.push(`• ${r.description} — *${fmtBRL(r.amount)}*`);
     }
   }
 
-  if (incomeRows.length === 0 && expenseRows.length === 0) {
+  if (invoiceRows.length > 0) {
+    lines.push("");
+    lines.push(`*💳 Faturas de cartão:* ${fmtBRL(totalInvoices)}  _(${invoiceRows.length})_`);
+    for (const r of [...invoiceRows].sort((a, b) => b.amount - a.amount)) {
+      lines.push(`• ${r.description} — *${fmtBRL(r.amount)}*${r.paid ? " ✓" : ""}`);
+    }
+  }
+
+  if (incomeRows.length === 0 && expenseRows.length === 0 && invoiceRows.length === 0) {
     lines.push("");
     lines.push("_Nenhum lançamento previsto para este dia._");
   }
