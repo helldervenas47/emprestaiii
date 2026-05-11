@@ -77,6 +77,23 @@ function withSplit(base: Record<string, any> | null | undefined, split: PaymentS
   return { ...(base ?? {}), split };
 }
 
+function getOpenInstallmentAmountForLoan(loan: Loan, schedules: InstallmentSchedule[], installmentNumber: number): number {
+  const schedule = schedules.find((s) => s.loanId === loan.id && s.installmentNumber === installmentNumber);
+  if (installmentNumber !== loan.paidInstallments + 1) {
+    return schedule?.amount ?? (loan.customInstallmentValue || calculateInstallment(loan.amount, loan.interestRate, loan.installments));
+  }
+  if (!schedule) {
+    return loan.customInstallmentValue || calculateInstallment(loan.amount, loan.interestRate, loan.installments);
+  }
+  if (loan.remainingAmount != null && loan.remainingAmount >= 0) {
+    const futureSum = schedules
+      .filter((s) => s.loanId === loan.id && s.installmentNumber > installmentNumber)
+      .reduce((sum, s) => sum + Number(s.amount || 0), 0);
+    return Math.min(Number(schedule.amount), Math.max(0, Number(loan.remainingAmount) - futureSum));
+  }
+  return Number(schedule.amount);
+}
+
 async function applyPaymentBalance(amount: number, paymentMethodId: string | null, split: PaymentSplit | null, multiplier = 1) {
   if (split?.parts?.length) {
     for (const part of split.parts) {
@@ -351,11 +368,13 @@ export function useLoans() {
     const currentSchedule = installmentSchedules.find(
       (s) => s.loanId === loanId && s.installmentNumber === newPaid,
     );
-    let installmentAmount = currentSchedule?.amount != null && currentSchedule.amount > 0
-      ? currentSchedule.amount
-      : (loan.customInstallmentValue != null && loan.customInstallmentValue > 0
-        ? loan.customInstallmentValue
-        : calculatedInstallment);
+    let installmentAmount = getOpenInstallmentAmountForLoan(loan, installmentSchedules, newPaid) || (
+      currentSchedule?.amount != null && currentSchedule.amount > 0
+        ? currentSchedule.amount
+        : (loan.customInstallmentValue != null && loan.customInstallmentValue > 0
+          ? loan.customInstallmentValue
+          : calculatedInstallment)
+    );
     // Última parcela: usar o saldo restante para evitar centavos pendurados
     if (newPaid >= loan.installments) {
       installmentAmount = remaining;

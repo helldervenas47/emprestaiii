@@ -34,6 +34,29 @@ export function getInstallmentAmount(loan: Loan, schedules: InstallmentSchedule[
 }
 
 /**
+ * Retorna o valor exibido/cobrado para uma parcela específica em aberto.
+ * Pagamentos parciais abatem somente a próxima parcela pendente; parcelas futuras
+ * preservam o valor original do cronograma.
+ */
+export function getOpenInstallmentAmount(
+  loan: Loan,
+  schedules: InstallmentSchedule[],
+  installmentNumber: number,
+): number {
+  const schedule = schedules.find(
+    (s) => s.loanId === loan.id && s.installmentNumber === installmentNumber,
+  );
+
+  if (installmentNumber === loan.paidInstallments + 1) {
+    return getInstallmentAmount(loan, schedules);
+  }
+
+  if (schedule) return Number(schedule.amount || 0);
+
+  return loan.customInstallmentValue || calculateInstallment(loan.amount, loan.interestRate, loan.installments);
+}
+
+/**
  * Retorna a lista de parcelas vencidas (dueDate < hoje, ainda não pagas).
  * Usado para somar o valor TOTAL em atraso quando há múltiplas parcelas vencidas.
  */

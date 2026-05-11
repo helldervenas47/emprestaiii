@@ -16,6 +16,7 @@ import { getDueStatusBadge } from "@/lib/dueStatus";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { usePaymentMethods } from "@/hooks/usePaymentMethods";
 import { toast } from "sonner";
+import { getOpenInstallmentAmount } from "@/lib/loanInstallmentAmount";
 
 interface Props {
   loans: Loan[];
@@ -120,7 +121,7 @@ export function BillingCalendar({ loans, payments, installmentSchedules, sales =
           else d.setMonth(d.getMonth() + offsetFromNext);
           dateStr = formatLocalDate(d);
         }
-        const amount = schedule ? schedule.amount : defaultInstallmentAmount;
+        const amount = getOpenInstallmentAmount(loan, loanSchedules, i) || (schedule ? schedule.amount : defaultInstallmentAmount);
 
         if (!map[dateStr]) map[dateStr] = [];
         map[dateStr].push({
@@ -137,7 +138,7 @@ export function BillingCalendar({ loans, payments, installmentSchedules, sales =
     });
 
     return map;
-  }, [loans, payments, installmentSchedules]);
+  }, [loans, installmentSchedules]);
 
   // Map of date -> sale/vehicle pending installments
   const salesDueMap = useMemo(() => {
@@ -320,9 +321,7 @@ export function BillingCalendar({ loans, payments, installmentSchedules, sales =
     const lateFees = lateInterestTotal + penaltyTotal;
     const remaining = baseRemaining + lateFees;
 
-    const remainingInstallments = Math.max(1, loan.installments - loan.paidInstallments);
-    const calculatedInstallment = remaining / remainingInstallments;
-    const installment = loan.customInstallmentValue != null && loan.customInstallmentValue > 0 ? loan.customInstallmentValue : calculatedInstallment;
+    const installment = item.amount;
     const interestOnly = loan.customInterestValue != null && loan.customInterestValue > 0
       ? loan.customInterestValue
       : loan.amount * (loan.interestRate / 100);
