@@ -8,7 +8,6 @@ import { useAuth } from "./useAuth";
 import { toast } from "sonner";
 import { getLoanLateFees } from "@/lib/loanLateFees";
 import { notifyRemoteUpdate } from "@/lib/realtimeToast";
-import { getOpenInstallmentAmount } from "@/lib/loanInstallmentAmount";
 import {
   cacheRows, getCachedRows, upsertCachedRow, removeCachedRow,
   enqueueMutation, rewritePendingRecordId,
@@ -76,6 +75,23 @@ function normalizeSplit(split: PaymentSplit | null | undefined, expectedTotal: n
 function withSplit(base: Record<string, any> | null | undefined, split: PaymentSplit | null): Record<string, any> | undefined {
   if (!split) return base ?? undefined;
   return { ...(base ?? {}), split };
+}
+
+function getOpenInstallmentAmountForLoan(loan: Loan, schedules: InstallmentSchedule[], installmentNumber: number): number {
+  const schedule = schedules.find((s) => s.loanId === loan.id && s.installmentNumber === installmentNumber);
+  if (installmentNumber !== loan.paidInstallments + 1) {
+    return schedule?.amount ?? (loan.customInstallmentValue || calculateInstallment(loan.amount, loan.interestRate, loan.installments));
+  }
+  if (!schedule) {
+    return loan.customInstallmentValue || calculateInstallment(loan.amount, loan.interestRate, loan.installments);
+  }
+  if (loan.remainingAmount != null && loan.remainingAmount >= 0) {
+    const futureSum = schedules
+      .filter((s) => s.loanId === loan.id && s.installmentNumber > installmentNumber)
+      .reduce((sum, s) => sum + Number(s.amount || 0), 0);
+    return Math.min(Number(schedule.amount), Math.max(0, Number(loan.remainingAmount) - futureSum));
+  }
+  return Number(schedule.amount);
 }
 
 async function applyPaymentBalance(amount: number, paymentMethodId: string | null, split: PaymentSplit | null, multiplier = 1) {
@@ -352,7 +368,7 @@ export function useLoans() {
     const currentSchedule = installmentSchedules.find(
       (s) => s.loanId === loanId && s.installmentNumber === newPaid,
     );
-    let installmentAmount = getOpenInstallmentAmount(loan, installmentSchedules, newPaid) || (
+    let installmentAmount = getOpenInstallmentAmountForLoan(loan, installmentSchedules, newPaid) || (
       currentSchedule?.amount != null && currentSchedule.amount > 0
         ? currentSchedule.amount
         : (loan.customInstallmentValue != null && loan.customInstallmentValue > 0
