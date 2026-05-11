@@ -440,7 +440,7 @@ export function IncomePendingCalendar({
               <p className="text-[10px] text-muted-foreground leading-tight">
                 {allowDay1Override
                   ? "Você pode editar o saldo de abertura do mês."
-                  : "Edição bloqueada — projeção usa o saldo automático."}
+                  : "Edição bloqueada — valores já salvos permanecem aplicados na projeção."}
               </p>
             </div>
           </div>
