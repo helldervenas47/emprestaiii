@@ -61,16 +61,19 @@ export function DailyPlanningReport({ loans, payments, installmentSchedules, sal
   const incomeRows = useMemo<Row[]>(() => {
     const out: Row[] = [];
 
-    // Loan installments due on date, not yet paid
+    // Loan installments due on date — separa pago vs pendente
     for (const loan of loans) {
       if (loan.status === "paid") continue;
       const schedules = installmentSchedules.filter(s => s.loanId === loan.id && s.dueDate === date);
       for (const s of schedules) {
-        if (s.installmentNumber <= loan.paidInstallments) continue;
+        const isPaid = s.installmentNumber <= loan.paidInstallments
+          || payments.some(p => p.loanId === loan.id && p.installmentNumber === s.installmentNumber && p.date === date);
         out.push({
           origin: "Empréstimo",
+          group: "Empréstimos",
           description: `${loan.borrowerName} — Parcela ${s.installmentNumber}/${loan.installments}`,
           amount: Number(s.amount || 0),
+          status: isPaid ? "paid" : "pending",
         });
       }
       // Fallback for loans without explicit schedule rows: use dueDate field
@@ -79,14 +82,30 @@ export function DailyPlanningReport({ loans, payments, installmentSchedules, sal
         const perInst = total / loan.installments;
         out.push({
           origin: "Empréstimo",
+          group: "Empréstimos",
           description: `${loan.borrowerName} — Parcela ${loan.paidInstallments + 1}/${loan.installments}`,
           amount: Number(loan.customInstallmentValue ?? perInst),
+          status: "pending",
+        });
+      }
+      // Pagamentos avulsos do dia (sem schedule correspondente) — registra como recebido
+      for (const p of payments) {
+        if (p.loanId !== loan.id || p.date !== date) continue;
+        const matched = schedules.some(s => s.installmentNumber === p.installmentNumber);
+        if (matched) continue;
+        out.push({
+          origin: "Empréstimo",
+          group: "Empréstimos",
+          description: `${loan.borrowerName} — Parcela ${p.installmentNumber}/${loan.installments}`,
+          amount: Number(p.amount || 0),
+          status: "paid",
         });
       }
     }
 
-    // Sales: parcelas com vencimento no dia ainda não pagas
+    // Sales / Veículos: parcelas com vencimento no dia
     for (const sale of sales) {
+      const isVehicle = sale.businessType === "aluguel_veiculo";
       const dates = (sale.installmentDates ?? []) as string[];
       const amounts = (sale.installmentAmounts ?? []) as number[];
       const total = sale.installments || 1;
@@ -95,35 +114,38 @@ export function DailyPlanningReport({ loans, payments, installmentSchedules, sal
         const dueDate = dates[i];
         if (!dueDate || dueDate !== date) continue;
         const installmentNum = i + 1;
-        if (installmentNum <= sale.paidInstallments) continue;
         const amt = amounts[i] != null ? Number(amounts[i]) : Number(fallbackAmt);
+        const isPaid = installmentNum <= sale.paidInstallments;
         out.push({
-          origin: sale.businessType === "aluguel_veiculo" ? "Aluguel" : "Venda",
+          origin: isVehicle ? "Aluguel" : "Venda",
+          group: isVehicle ? "Veículos" : "Vendas",
           description: `${sale.customerName || sale.description} — Parcela ${installmentNum}/${total}`,
           amount: amt,
+          status: isPaid ? "paid" : "pending",
         });
       }
     }
 
     return out.sort((a, b) => b.amount - a.amount);
-  }, [loans, installmentSchedules, sales, date]);
+  }, [loans, payments, installmentSchedules, sales, date]);
 
-  // ---- EXPENSES ----
+  // ---- EXPENSES (apenas empresariais) ----
   const expenseRows = useMemo<Row[]>(() => {
     const out: Row[] = [];
 
     for (const e of expenses) {
-      if (e.dueDate !== date) continue;
-      if (e.paid) continue;
-      // Para despesas recorrentes/parceladas (incluindo "fixa mensal"), o campo amount
-      // armazena o total acumulado (valor mensal × parcelas). O valor do dia é o por parcela.
+      if (e.scope === "personal") continue; // somente despesas empresariais
+      const matchesDue = e.dueDate === date && !e.paid;
+      const matchesPaid = e.paid && e.paidDate === date;
+      if (!matchesDue && !matchesPaid) continue;
       const totalInst = Number(e.installments || 1);
       const perInstallment = totalInst > 1 ? Number(e.amount || 0) / totalInst : Number(e.amount || 0);
       out.push({
-        origin: e.scope === "personal" ? "Pessoal" : "Empresa",
+        origin: "Empresa",
         description: e.description,
         amount: perInstallment,
         category: e.category,
+        status: e.paid ? "paid" : "pending",
       });
     }
 
@@ -135,13 +157,14 @@ export function DailyPlanningReport({ loans, payments, installmentSchedules, sal
       if (!card.active) continue;
       if (card.dueDay !== day) continue;
       const inv = invoiceTotals.find((t) => t.card.id === card.id);
-      if (inv && inv.paid) continue; // já paga
+      const isPaid = !!(inv && inv.paid);
       const remaining = inv ? Math.max(0, inv.total - inv.paidTotal) : 0;
       out.push({
         origin: "Cartão",
         description: `Fatura ${card.nickname || card.bank} ${card.lastFour ? "•••• " + card.lastFour : ""}`.trim(),
-        amount: remaining,
+        amount: isPaid ? (inv?.total ?? 0) : remaining,
         category: "Cartão de Crédito",
+        status: isPaid ? "paid" : "pending",
       });
     }
 
@@ -149,9 +172,18 @@ export function DailyPlanningReport({ loans, payments, installmentSchedules, sal
   }, [expenses, cards, openings, date]);
 
   const totalIncome = incomeRows.reduce((s, r) => s + r.amount, 0);
+  const totalIncomePaid = incomeRows.filter(r => r.status === "paid").reduce((s, r) => s + r.amount, 0);
+  const totalIncomePending = incomeRows.filter(r => r.status === "pending").reduce((s, r) => s + r.amount, 0);
   const totalExpense = expenseRows.reduce((s, r) => s + r.amount, 0);
+  const totalExpensePaid = expenseRows.filter(r => r.status === "paid").reduce((s, r) => s + r.amount, 0);
+  const totalExpensePending = expenseRows.filter(r => r.status === "pending").reduce((s, r) => s + r.amount, 0);
   const balance = totalIncome - totalExpense;
   const isNegative = balance < 0;
+
+  const incomeGroups: RowGroup[] = ["Empréstimos", "Vendas", "Veículos"];
+  const groupTotal = (g: RowGroup, status?: RowStatus) =>
+    incomeRows.filter(r => r.group === g && (status ? r.status === status : true)).reduce((s, r) => s + r.amount, 0);
+
 
   const handleSendNow = async () => {
     if (!user) return;
