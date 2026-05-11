@@ -84,6 +84,7 @@ async function buildAndSend(
           origin: "Empréstimo",
           description: `${(loan as any).borrower_name} — ${s.installment_number}/${(loan as any).installments}`,
           amount: Number(s.amount || 0),
+          group: "Empréstimos",
         });
       }
     } else if ((loan as any).due_date === date && (loan as any).paid_installments < (loan as any).installments) {
