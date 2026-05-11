@@ -76,8 +76,9 @@ export function IncomeBalanceCard({ incomes, expenses, onAdjust, readOnly, onOpe
       .filter((i) => i.status === "received")
       .reduce((s, i) => s + i.amount, 0);
     const totalSalesReceived = sales.reduce((s, sale) => s + saleReceivedTotal(sale), 0);
+    // Despesas da empresa (scope=business) NÃO afetam o saldo nem o status da aba de Receitas.
     const totalExpensePaid = expenses
-      .filter((e) => e.paid)
+      .filter((e) => e.paid && (e.scope ?? "business") === "personal")
       .reduce((s, e) => s + e.amount, 0);
     // Aportes manuais/recorrentes ao cofrinho (não vinculados a despesa).
     // Aportes vinculados a uma despesa cofrinho já estão contabilizados em totalExpensePaid.
