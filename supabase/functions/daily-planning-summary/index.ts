@@ -95,6 +95,7 @@ async function buildAndSend(
         origin: "Empréstimo",
         description: `${(loan as any).borrower_name} — ${(loan as any).paid_installments + 1}/${(loan as any).installments}`,
         amount: amt,
+        group: "Empréstimos",
       });
     }
   }
