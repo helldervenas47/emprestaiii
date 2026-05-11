@@ -241,7 +241,11 @@ export function DailyPlanningReport({ loans, payments, installmentSchedules, sal
               <TrendingUp className="h-4 w-4 text-success" /> Receitas do dia
             </div>
             <p className="text-2xl font-bold text-success">{fmtBRL(totalIncome)}</p>
-            <p className="text-[11px] text-muted-foreground mt-1">{incomeRows.length} {incomeRows.length === 1 ? "lançamento" : "lançamentos"}</p>
+            <div className="flex items-center gap-2 text-[11px] text-muted-foreground mt-1">
+              <span className="text-success">✓ {fmtBRL(totalIncomePaid)}</span>
+              <span>•</span>
+              <span className="text-warning">⏳ {fmtBRL(totalIncomePending)}</span>
+            </div>
           </CardContent>
         </Card>
         <Card no3d>
@@ -250,7 +254,11 @@ export function DailyPlanningReport({ loans, payments, installmentSchedules, sal
               <TrendingDown className="h-4 w-4 text-destructive" /> Despesas do dia
             </div>
             <p className="text-2xl font-bold text-destructive">{fmtBRL(totalExpense)}</p>
-            <p className="text-[11px] text-muted-foreground mt-1">{expenseRows.length} {expenseRows.length === 1 ? "lançamento" : "lançamentos"}</p>
+            <div className="flex items-center gap-2 text-[11px] text-muted-foreground mt-1">
+              <span className="text-success">✓ {fmtBRL(totalExpensePaid)}</span>
+              <span>•</span>
+              <span className="text-warning">⏳ {fmtBRL(totalExpensePending)}</span>
+            </div>
           </CardContent>
         </Card>
         <Card no3d className={isNegative ? "border-destructive/40" : "border-success/40"}>
