@@ -36,11 +36,16 @@ function todayISO() {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
+type RowStatus = "paid" | "pending";
+type RowGroup = "Empréstimos" | "Vendas" | "Veículos";
+
 interface Row {
   origin: string;
   description: string;
   amount: number;
   category?: string;
+  status: RowStatus;
+  group?: RowGroup;
 }
 
 export function DailyPlanningReport({ loans, payments, installmentSchedules, sales, expenses }: Props) {
@@ -56,16 +61,19 @@ export function DailyPlanningReport({ loans, payments, installmentSchedules, sal
   const incomeRows = useMemo<Row[]>(() => {
     const out: Row[] = [];
 
-    // Loan installments due on date, not yet paid
+    // Loan installments due on date — separa pago vs pendente
     for (const loan of loans) {
       if (loan.status === "paid") continue;
       const schedules = installmentSchedules.filter(s => s.loanId === loan.id && s.dueDate === date);
       for (const s of schedules) {
-        if (s.installmentNumber <= loan.paidInstallments) continue;
+        const isPaid = s.installmentNumber <= loan.paidInstallments
+          || payments.some(p => p.loanId === loan.id && p.installmentNumber === s.installmentNumber && p.date === date);
         out.push({
           origin: "Empréstimo",
+          group: "Empréstimos",
           description: `${loan.borrowerName} — Parcela ${s.installmentNumber}/${loan.installments}`,
           amount: Number(s.amount || 0),
+          status: isPaid ? "paid" : "pending",
         });
       }
       // Fallback for loans without explicit schedule rows: use dueDate field
@@ -74,14 +82,30 @@ export function DailyPlanningReport({ loans, payments, installmentSchedules, sal
         const perInst = total / loan.installments;
         out.push({
           origin: "Empréstimo",
+          group: "Empréstimos",
           description: `${loan.borrowerName} — Parcela ${loan.paidInstallments + 1}/${loan.installments}`,
           amount: Number(loan.customInstallmentValue ?? perInst),
+          status: "pending",
+        });
+      }
+      // Pagamentos avulsos do dia (sem schedule correspondente) — registra como recebido
+      for (const p of payments) {
+        if (p.loanId !== loan.id || p.date !== date) continue;
+        const matched = schedules.some(s => s.installmentNumber === p.installmentNumber);
+        if (matched) continue;
+        out.push({
+          origin: "Empréstimo",
+          group: "Empréstimos",
+          description: `${loan.borrowerName} — Parcela ${p.installmentNumber}/${loan.installments}`,
+          amount: Number(p.amount || 0),
+          status: "paid",
         });
       }
     }
 
-    // Sales: parcelas com vencimento no dia ainda não pagas
+    // Sales / Veículos: parcelas com vencimento no dia
     for (const sale of sales) {
+      const isVehicle = sale.businessType === "aluguel_veiculo";
       const dates = (sale.installmentDates ?? []) as string[];
       const amounts = (sale.installmentAmounts ?? []) as number[];
       const total = sale.installments || 1;
@@ -90,35 +114,38 @@ export function DailyPlanningReport({ loans, payments, installmentSchedules, sal
         const dueDate = dates[i];
         if (!dueDate || dueDate !== date) continue;
         const installmentNum = i + 1;
-        if (installmentNum <= sale.paidInstallments) continue;
         const amt = amounts[i] != null ? Number(amounts[i]) : Number(fallbackAmt);
+        const isPaid = installmentNum <= sale.paidInstallments;
         out.push({
-          origin: sale.businessType === "aluguel_veiculo" ? "Aluguel" : "Venda",
+          origin: isVehicle ? "Aluguel" : "Venda",
+          group: isVehicle ? "Veículos" : "Vendas",
           description: `${sale.customerName || sale.description} — Parcela ${installmentNum}/${total}`,
           amount: amt,
+          status: isPaid ? "paid" : "pending",
         });
       }
     }
 
     return out.sort((a, b) => b.amount - a.amount);
-  }, [loans, installmentSchedules, sales, date]);
+  }, [loans, payments, installmentSchedules, sales, date]);
 
-  // ---- EXPENSES ----
+  // ---- EXPENSES (apenas empresariais) ----
   const expenseRows = useMemo<Row[]>(() => {
     const out: Row[] = [];
 
     for (const e of expenses) {
-      if (e.dueDate !== date) continue;
-      if (e.paid) continue;
-      // Para despesas recorrentes/parceladas (incluindo "fixa mensal"), o campo amount
-      // armazena o total acumulado (valor mensal × parcelas). O valor do dia é o por parcela.
+      if (e.scope === "personal") continue; // somente despesas empresariais
+      const matchesDue = e.dueDate === date && !e.paid;
+      const matchesPaid = e.paid && e.paidDate === date;
+      if (!matchesDue && !matchesPaid) continue;
       const totalInst = Number(e.installments || 1);
       const perInstallment = totalInst > 1 ? Number(e.amount || 0) / totalInst : Number(e.amount || 0);
       out.push({
-        origin: e.scope === "personal" ? "Pessoal" : "Empresa",
+        origin: "Empresa",
         description: e.description,
         amount: perInstallment,
         category: e.category,
+        status: e.paid ? "paid" : "pending",
       });
     }
 
@@ -130,13 +157,14 @@ export function DailyPlanningReport({ loans, payments, installmentSchedules, sal
       if (!card.active) continue;
       if (card.dueDay !== day) continue;
       const inv = invoiceTotals.find((t) => t.card.id === card.id);
-      if (inv && inv.paid) continue; // já paga
+      const isPaid = !!(inv && inv.paid);
       const remaining = inv ? Math.max(0, inv.total - inv.paidTotal) : 0;
       out.push({
         origin: "Cartão",
         description: `Fatura ${card.nickname || card.bank} ${card.lastFour ? "•••• " + card.lastFour : ""}`.trim(),
-        amount: remaining,
+        amount: isPaid ? (inv?.total ?? 0) : remaining,
         category: "Cartão de Crédito",
+        status: isPaid ? "paid" : "pending",
       });
     }
 
@@ -144,9 +172,18 @@ export function DailyPlanningReport({ loans, payments, installmentSchedules, sal
   }, [expenses, cards, openings, date]);
 
   const totalIncome = incomeRows.reduce((s, r) => s + r.amount, 0);
+  const totalIncomePaid = incomeRows.filter(r => r.status === "paid").reduce((s, r) => s + r.amount, 0);
+  const totalIncomePending = incomeRows.filter(r => r.status === "pending").reduce((s, r) => s + r.amount, 0);
   const totalExpense = expenseRows.reduce((s, r) => s + r.amount, 0);
+  const totalExpensePaid = expenseRows.filter(r => r.status === "paid").reduce((s, r) => s + r.amount, 0);
+  const totalExpensePending = expenseRows.filter(r => r.status === "pending").reduce((s, r) => s + r.amount, 0);
   const balance = totalIncome - totalExpense;
   const isNegative = balance < 0;
+
+  const incomeGroups: RowGroup[] = ["Empréstimos", "Vendas", "Veículos"];
+  const groupTotal = (g: RowGroup, status?: RowStatus) =>
+    incomeRows.filter(r => r.group === g && (status ? r.status === status : true)).reduce((s, r) => s + r.amount, 0);
+
 
   const handleSendNow = async () => {
     if (!user) return;
@@ -204,7 +241,11 @@ export function DailyPlanningReport({ loans, payments, installmentSchedules, sal
               <TrendingUp className="h-4 w-4 text-success" /> Receitas do dia
             </div>
             <p className="text-2xl font-bold text-success">{fmtBRL(totalIncome)}</p>
-            <p className="text-[11px] text-muted-foreground mt-1">{incomeRows.length} {incomeRows.length === 1 ? "lançamento" : "lançamentos"}</p>
+            <div className="flex items-center gap-2 text-[11px] text-muted-foreground mt-1">
+              <span className="text-success">✓ {fmtBRL(totalIncomePaid)}</span>
+              <span>•</span>
+              <span className="text-warning">⏳ {fmtBRL(totalIncomePending)}</span>
+            </div>
           </CardContent>
         </Card>
         <Card no3d>
@@ -213,7 +254,11 @@ export function DailyPlanningReport({ loans, payments, installmentSchedules, sal
               <TrendingDown className="h-4 w-4 text-destructive" /> Despesas do dia
             </div>
             <p className="text-2xl font-bold text-destructive">{fmtBRL(totalExpense)}</p>
-            <p className="text-[11px] text-muted-foreground mt-1">{expenseRows.length} {expenseRows.length === 1 ? "lançamento" : "lançamentos"}</p>
+            <div className="flex items-center gap-2 text-[11px] text-muted-foreground mt-1">
+              <span className="text-success">✓ {fmtBRL(totalExpensePaid)}</span>
+              <span>•</span>
+              <span className="text-warning">⏳ {fmtBRL(totalExpensePending)}</span>
+            </div>
           </CardContent>
         </Card>
         <Card no3d className={isNegative ? "border-destructive/40" : "border-success/40"}>
@@ -231,57 +276,85 @@ export function DailyPlanningReport({ loans, payments, installmentSchedules, sal
         </Card>
       </div>
 
-      {/* Income list */}
+      {/* Income list — agrupado por origem (Empréstimos / Vendas / Veículos), separando Recebido e Pendente */}
       <Card no3d>
-        <CardContent className="p-4">
-          <h3 className="font-semibold text-sm mb-3 flex items-center gap-2">
+        <CardContent className="p-4 space-y-4">
+          <h3 className="font-semibold text-sm flex items-center gap-2">
             <TrendingUp className="h-4 w-4 text-success" /> Receitas previstas
           </h3>
           {incomeRows.length === 0 ? (
             <p className="text-xs text-muted-foreground py-4 text-center">Nenhuma receita prevista para este dia.</p>
           ) : (
-            <div className="space-y-2">
-              {incomeRows.map((r, i) => (
-                <div key={i} className="flex items-center justify-between gap-3 p-2 rounded-md hover:bg-muted/50">
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2">
-                      <Badge variant="outline" className="text-[10px] shrink-0">{r.origin}</Badge>
-                      <p className="text-sm truncate">{r.description}</p>
+            incomeGroups.map((g) => {
+              const items = incomeRows.filter(r => r.group === g);
+              if (items.length === 0) return null;
+              const paid = items.filter(r => r.status === "paid");
+              const pending = items.filter(r => r.status === "pending");
+              return (
+                <div key={g} className="space-y-2">
+                  <div className="flex items-center justify-between border-b border-border/40 pb-1">
+                    <p className="text-xs font-semibold uppercase tracking-wide">{g}</p>
+                    <div className="flex items-center gap-2 text-[11px]">
+                      <span className="text-success">✓ {fmtBRL(groupTotal(g, "paid"))}</span>
+                      <span className="text-muted-foreground">•</span>
+                      <span className="text-warning">⏳ {fmtBRL(groupTotal(g, "pending"))}</span>
                     </div>
                   </div>
-                  <p className="text-sm font-semibold text-success shrink-0">{fmtBRL(r.amount)}</p>
+                  {[{ label: "Recebido", arr: paid, status: "paid" as const }, { label: "Pendente", arr: pending, status: "pending" as const }].map(({ label, arr, status }) => (
+                    arr.length > 0 && (
+                      <div key={label} className="space-y-1">
+                        <p className="text-[10px] text-muted-foreground pl-1">{label}</p>
+                        {arr.map((r, i) => (
+                          <div key={i} className="flex items-center justify-between gap-3 p-2 rounded-md hover:bg-muted/50">
+                            <div className="min-w-0 flex-1 flex items-center gap-2">
+                              <Badge variant={status === "paid" ? "default" : "outline"} className="text-[10px] shrink-0">{r.origin}</Badge>
+                              <p className="text-sm truncate">{r.description}</p>
+                            </div>
+                            <p className={`text-sm font-semibold shrink-0 ${status === "paid" ? "text-success" : "text-warning"}`}>{fmtBRL(r.amount)}</p>
+                          </div>
+                        ))}
+                      </div>
+                    )
+                  ))}
                 </div>
-              ))}
-            </div>
+              );
+            })
           )}
         </CardContent>
       </Card>
 
-      {/* Expense list */}
+      {/* Expense list — apenas empresariais, separando Pago e Pendente */}
       <Card no3d>
-        <CardContent className="p-4">
-          <h3 className="font-semibold text-sm mb-3 flex items-center gap-2">
-            <TrendingDown className="h-4 w-4 text-destructive" /> Despesas previstas
+        <CardContent className="p-4 space-y-3">
+          <h3 className="font-semibold text-sm flex items-center gap-2">
+            <TrendingDown className="h-4 w-4 text-destructive" /> Despesas empresariais
           </h3>
           {expenseRows.length === 0 ? (
-            <p className="text-xs text-muted-foreground py-4 text-center">Nenhuma despesa prevista para este dia.</p>
+            <p className="text-xs text-muted-foreground py-4 text-center">Nenhuma despesa empresarial para este dia.</p>
           ) : (
-            <div className="space-y-2">
-              {expenseRows.map((r, i) => (
-                <div key={i} className="flex items-center justify-between gap-3 p-2 rounded-md hover:bg-muted/50">
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <Badge variant="outline" className="text-[10px] shrink-0">{r.origin}</Badge>
-                      {r.category && <Badge variant="secondary" className="text-[10px] shrink-0">{r.category}</Badge>}
-                      <p className="text-sm truncate">{r.description}</p>
+            [{ label: "Pago", status: "paid" as const }, { label: "Pendente", status: "pending" as const }].map(({ label, status }) => {
+              const arr = expenseRows.filter(r => r.status === status);
+              if (arr.length === 0) return null;
+              return (
+                <div key={label} className="space-y-1">
+                  <p className="text-[10px] text-muted-foreground uppercase tracking-wide">{label}</p>
+                  {arr.map((r, i) => (
+                    <div key={i} className="flex items-center justify-between gap-3 p-2 rounded-md hover:bg-muted/50">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <Badge variant={status === "paid" ? "default" : "outline"} className="text-[10px] shrink-0">{r.origin}</Badge>
+                          {r.category && <Badge variant="secondary" className="text-[10px] shrink-0">{r.category}</Badge>}
+                          <p className="text-sm truncate">{r.description}</p>
+                        </div>
+                      </div>
+                      <p className={`text-sm font-semibold shrink-0 ${status === "paid" ? "text-success" : "text-destructive"}`}>
+                        {r.amount > 0 ? fmtBRL(r.amount) : "—"}
+                      </p>
                     </div>
-                  </div>
-                  <p className="text-sm font-semibold text-destructive shrink-0">
-                    {r.amount > 0 ? fmtBRL(r.amount) : "—"}
-                  </p>
+                  ))}
                 </div>
-              ))}
-            </div>
+              );
+            })
           )}
         </CardContent>
       </Card>
