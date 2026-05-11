@@ -128,22 +128,21 @@ async function buildAndSend(
     }
   }
 
-  // Expenses (business + personal) due today, not paid
+  // Expenses (business only) due today, not paid
   const { data: expenses } = await admin.from("expenses")
     .select("description, amount, category, scope, paid, installments, parent_expense_id, type")
     .eq("user_id", userId)
     .eq("due_date", date)
-    .eq("paid", false);
+    .eq("paid", false)
+    .neq("scope", "personal");
 
   const expenseRows: Row[] = (expenses ?? []).map((e: any) => {
     const total = Number(e.amount || 0);
     const installments = Number(e.installments || 0);
-    // Para a despesa-mãe (sem parent_expense_id) com várias parcelas,
-    // `amount` representa o valor total. O que vence no mês é uma parcela.
     const isParentInstallment = !e.parent_expense_id && installments > 1;
     const monthly = isParentInstallment ? total / installments : total;
     return {
-      origin: e.scope === "personal" ? "Pessoal" : "Empresa",
+      origin: "Empresa",
       description: e.description,
       amount: monthly,
     };
