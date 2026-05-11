@@ -10,10 +10,23 @@ export function getInstallmentAmount(loan: Loan, schedules: InstallmentSchedule[
   if (loan.installments === 1 && loan.remainingAmount && loan.remainingAmount > 0) {
     return loan.remainingAmount;
   }
+  const nextNum = loan.paidInstallments + 1;
   const schedule = schedules.find(
-    (s) => s.loanId === loan.id && s.installmentNumber === loan.paidInstallments + 1,
+    (s) => s.loanId === loan.id && s.installmentNumber === nextNum,
   );
-  if (schedule) return schedule.amount;
+  if (schedule) {
+    // Considera pagamentos parciais já aplicados ao saldo do contrato:
+    // saldoParcelaAtual = remainingAmount - somatório das parcelas futuras (> nextNum).
+    // Se for menor que o valor nominal da parcela, usa esse saldo.
+    if (loan.remainingAmount != null && loan.remainingAmount >= 0) {
+      const futureSum = schedules
+        .filter((s) => s.loanId === loan.id && s.installmentNumber > nextNum)
+        .reduce((acc, s) => acc + Number(s.amount || 0), 0);
+      const currentBalance = Math.max(0, Number(loan.remainingAmount) - futureSum);
+      return Math.min(currentBalance, Number(schedule.amount));
+    }
+    return schedule.amount;
+  }
   if (loan.remainingAmount && loan.remainingAmount > 0) {
     return loan.remainingAmount;
   }
@@ -49,10 +62,13 @@ export function getOverdueInstallments(
     .sort((a, b) => a.installmentNumber - b.installmentNumber);
 
   if (loanSchedules.length > 0) {
+    const nextNum = paid + 1;
     return loanSchedules.map((s) => ({
       installmentNumber: s.installmentNumber,
       dueDate: s.dueDate,
-      amount: s.amount,
+      amount: s.installmentNumber === nextNum
+        ? getInstallmentAmount(loan, schedules)
+        : s.amount,
     }));
   }
 
