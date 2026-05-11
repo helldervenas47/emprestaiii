@@ -276,57 +276,85 @@ export function DailyPlanningReport({ loans, payments, installmentSchedules, sal
         </Card>
       </div>
 
-      {/* Income list */}
+      {/* Income list — agrupado por origem (Empréstimos / Vendas / Veículos), separando Recebido e Pendente */}
       <Card no3d>
-        <CardContent className="p-4">
-          <h3 className="font-semibold text-sm mb-3 flex items-center gap-2">
+        <CardContent className="p-4 space-y-4">
+          <h3 className="font-semibold text-sm flex items-center gap-2">
             <TrendingUp className="h-4 w-4 text-success" /> Receitas previstas
           </h3>
           {incomeRows.length === 0 ? (
             <p className="text-xs text-muted-foreground py-4 text-center">Nenhuma receita prevista para este dia.</p>
           ) : (
-            <div className="space-y-2">
-              {incomeRows.map((r, i) => (
-                <div key={i} className="flex items-center justify-between gap-3 p-2 rounded-md hover:bg-muted/50">
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2">
-                      <Badge variant="outline" className="text-[10px] shrink-0">{r.origin}</Badge>
-                      <p className="text-sm truncate">{r.description}</p>
+            incomeGroups.map((g) => {
+              const items = incomeRows.filter(r => r.group === g);
+              if (items.length === 0) return null;
+              const paid = items.filter(r => r.status === "paid");
+              const pending = items.filter(r => r.status === "pending");
+              return (
+                <div key={g} className="space-y-2">
+                  <div className="flex items-center justify-between border-b border-border/40 pb-1">
+                    <p className="text-xs font-semibold uppercase tracking-wide">{g}</p>
+                    <div className="flex items-center gap-2 text-[11px]">
+                      <span className="text-success">✓ {fmtBRL(groupTotal(g, "paid"))}</span>
+                      <span className="text-muted-foreground">•</span>
+                      <span className="text-warning">⏳ {fmtBRL(groupTotal(g, "pending"))}</span>
                     </div>
                   </div>
-                  <p className="text-sm font-semibold text-success shrink-0">{fmtBRL(r.amount)}</p>
+                  {[{ label: "Recebido", arr: paid, status: "paid" as const }, { label: "Pendente", arr: pending, status: "pending" as const }].map(({ label, arr, status }) => (
+                    arr.length > 0 && (
+                      <div key={label} className="space-y-1">
+                        <p className="text-[10px] text-muted-foreground pl-1">{label}</p>
+                        {arr.map((r, i) => (
+                          <div key={i} className="flex items-center justify-between gap-3 p-2 rounded-md hover:bg-muted/50">
+                            <div className="min-w-0 flex-1 flex items-center gap-2">
+                              <Badge variant={status === "paid" ? "default" : "outline"} className="text-[10px] shrink-0">{r.origin}</Badge>
+                              <p className="text-sm truncate">{r.description}</p>
+                            </div>
+                            <p className={`text-sm font-semibold shrink-0 ${status === "paid" ? "text-success" : "text-warning"}`}>{fmtBRL(r.amount)}</p>
+                          </div>
+                        ))}
+                      </div>
+                    )
+                  ))}
                 </div>
-              ))}
-            </div>
+              );
+            })
           )}
         </CardContent>
       </Card>
 
-      {/* Expense list */}
+      {/* Expense list — apenas empresariais, separando Pago e Pendente */}
       <Card no3d>
-        <CardContent className="p-4">
-          <h3 className="font-semibold text-sm mb-3 flex items-center gap-2">
-            <TrendingDown className="h-4 w-4 text-destructive" /> Despesas previstas
+        <CardContent className="p-4 space-y-3">
+          <h3 className="font-semibold text-sm flex items-center gap-2">
+            <TrendingDown className="h-4 w-4 text-destructive" /> Despesas empresariais
           </h3>
           {expenseRows.length === 0 ? (
-            <p className="text-xs text-muted-foreground py-4 text-center">Nenhuma despesa prevista para este dia.</p>
+            <p className="text-xs text-muted-foreground py-4 text-center">Nenhuma despesa empresarial para este dia.</p>
           ) : (
-            <div className="space-y-2">
-              {expenseRows.map((r, i) => (
-                <div key={i} className="flex items-center justify-between gap-3 p-2 rounded-md hover:bg-muted/50">
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <Badge variant="outline" className="text-[10px] shrink-0">{r.origin}</Badge>
-                      {r.category && <Badge variant="secondary" className="text-[10px] shrink-0">{r.category}</Badge>}
-                      <p className="text-sm truncate">{r.description}</p>
+            [{ label: "Pago", status: "paid" as const }, { label: "Pendente", status: "pending" as const }].map(({ label, status }) => {
+              const arr = expenseRows.filter(r => r.status === status);
+              if (arr.length === 0) return null;
+              return (
+                <div key={label} className="space-y-1">
+                  <p className="text-[10px] text-muted-foreground uppercase tracking-wide">{label}</p>
+                  {arr.map((r, i) => (
+                    <div key={i} className="flex items-center justify-between gap-3 p-2 rounded-md hover:bg-muted/50">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <Badge variant={status === "paid" ? "default" : "outline"} className="text-[10px] shrink-0">{r.origin}</Badge>
+                          {r.category && <Badge variant="secondary" className="text-[10px] shrink-0">{r.category}</Badge>}
+                          <p className="text-sm truncate">{r.description}</p>
+                        </div>
+                      </div>
+                      <p className={`text-sm font-semibold shrink-0 ${status === "paid" ? "text-success" : "text-destructive"}`}>
+                        {r.amount > 0 ? fmtBRL(r.amount) : "—"}
+                      </p>
                     </div>
-                  </div>
-                  <p className="text-sm font-semibold text-destructive shrink-0">
-                    {r.amount > 0 ? fmtBRL(r.amount) : "—"}
-                  </p>
+                  ))}
                 </div>
-              ))}
-            </div>
+              );
+            })
           )}
         </CardContent>
       </Card>
