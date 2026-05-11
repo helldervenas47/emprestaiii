@@ -18,7 +18,6 @@ import { getCardInvoiceTotalsForMonth, isCreditCardExpense } from "@/lib/creditC
 import { useMonthlyOpeningBalances } from "@/hooks/useMonthlyOpeningBalances";
 import { todayDateInAppTz } from "@/lib/timezone";
 
-const MONTH_BALANCE_OVERRIDES_KEY = "calendar:incomeMonthDay1BalanceOverrides";
 const ALLOW_DAY1_OVERRIDE_KEY = "calendar:incomeAllowDay1BalanceOverride";
 
 function loadAllowDay1Override(): boolean {
@@ -36,27 +35,6 @@ function saveAllowDay1Override(v: boolean) {
   if (typeof window === "undefined") return;
   try {
     window.localStorage.setItem(ALLOW_DAY1_OVERRIDE_KEY, String(v));
-  } catch {
-    // ignore
-  }
-}
-
-function loadOverrides(): Record<string, number> {
-  if (typeof window === "undefined") return {};
-  try {
-    const raw = window.localStorage.getItem(MONTH_BALANCE_OVERRIDES_KEY);
-    if (!raw) return {};
-    const parsed = JSON.parse(raw);
-    return parsed && typeof parsed === "object" ? parsed : {};
-  } catch {
-    return {};
-  }
-}
-
-function saveOverrides(map: Record<string, number>) {
-  if (typeof window === "undefined") return;
-  try {
-    window.localStorage.setItem(MONTH_BALANCE_OVERRIDES_KEY, JSON.stringify(map));
   } catch {
     // ignore
   }
