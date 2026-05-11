@@ -40,7 +40,8 @@ function calcLoanTotal(amount: number, rate: number, installments: number) {
 
 import { sendReportsMessage } from "../_shared/reports-bot.ts";
 
-interface Row { origin: string; description: string; amount: number; }
+type IncomeGroup = "Empréstimos" | "Vendas" | "Veículos";
+interface Row { origin: string; description: string; amount: number; group?: IncomeGroup; }
 
 async function buildAndSend(
   admin: any,
@@ -83,6 +84,7 @@ async function buildAndSend(
           origin: "Empréstimo",
           description: `${(loan as any).borrower_name} — ${s.installment_number}/${(loan as any).installments}`,
           amount: Number(s.amount || 0),
+          group: "Empréstimos",
         });
       }
     } else if ((loan as any).due_date === date && (loan as any).paid_installments < (loan as any).installments) {
@@ -93,6 +95,7 @@ async function buildAndSend(
         origin: "Empréstimo",
         description: `${(loan as any).borrower_name} — ${(loan as any).paid_installments + 1}/${(loan as any).installments}`,
         amount: amt,
+        group: "Empréstimos",
       });
     }
   }
@@ -115,30 +118,31 @@ async function buildAndSend(
       const num = i + 1;
       if (num <= (sale as any).paid_installments) continue;
       const amt = amounts[i] != null ? Number(amounts[i]) : fallback;
+      const isVehicle = (sale as any).business_type === "aluguel_veiculo";
       incomeRows.push({
-        origin: (sale as any).business_type === "aluguel_veiculo" ? "Aluguel" : "Venda",
+        origin: isVehicle ? "Aluguel" : "Venda",
         description: `${(sale as any).customer_name || (sale as any).description} — ${num}/${total}`,
         amount: amt,
+        group: isVehicle ? "Veículos" : "Vendas",
       });
     }
   }
 
-  // Expenses (business + personal) due today, not paid
+  // Expenses (business only) due today, not paid
   const { data: expenses } = await admin.from("expenses")
     .select("description, amount, category, scope, paid, installments, parent_expense_id, type")
     .eq("user_id", userId)
     .eq("due_date", date)
-    .eq("paid", false);
+    .eq("paid", false)
+    .neq("scope", "personal");
 
   const expenseRows: Row[] = (expenses ?? []).map((e: any) => {
     const total = Number(e.amount || 0);
     const installments = Number(e.installments || 0);
-    // Para a despesa-mãe (sem parent_expense_id) com várias parcelas,
-    // `amount` representa o valor total. O que vence no mês é uma parcela.
     const isParentInstallment = !e.parent_expense_id && installments > 1;
     const monthly = isParentInstallment ? total / installments : total;
     return {
-      origin: e.scope === "personal" ? "Pessoal" : "Empresa",
+      origin: "Empresa",
       description: e.description,
       amount: monthly,
     };
@@ -237,17 +241,27 @@ async function buildAndSend(
   if (negative) lines.push(`_Atenção: saldo negativo previsto para o dia._`);
 
   if (incomeRows.length > 0) {
-    lines.push("");
-    lines.push("*🟢 Receitas:*");
-    const sorted = [...incomeRows].sort((a, b) => b.amount - a.amount);
-    for (const r of sorted) {
-      lines.push(`• [${r.origin}] ${r.description} — *${fmtBRL(r.amount)}*`);
+    const groupOrder: Array<{ key: IncomeGroup; emoji: string }> = [
+      { key: "Empréstimos", emoji: "💳" },
+      { key: "Vendas", emoji: "🛒" },
+      { key: "Veículos", emoji: "🚗" },
+    ];
+    for (const g of groupOrder) {
+      const items = incomeRows.filter(r => r.group === g.key);
+      if (items.length === 0) continue;
+      const subtotal = items.reduce((s, r) => s + r.amount, 0);
+      lines.push("");
+      lines.push(`${g.emoji} *${g.key}:* ${fmtBRL(subtotal)}  _(${items.length})_`);
+      const sorted = [...items].sort((a, b) => b.amount - a.amount);
+      for (const r of sorted) {
+        lines.push(`• ${r.description} — *${fmtBRL(r.amount)}*`);
+      }
     }
   }
 
   if (expenseRows.length > 0) {
     lines.push("");
-    lines.push("*🔴 Despesas:*");
+    lines.push("*🔴 Despesas da empresa:*");
     const sorted = [...expenseRows].sort((a, b) => b.amount - a.amount);
     for (const r of sorted) {
       lines.push(`• [${r.origin}] ${r.description} — *${r.amount > 0 ? fmtBRL(r.amount) : "—"}*`);
