@@ -138,7 +138,7 @@ async function buildBillingReport(admin: any, ownerId: string, today: string, br
   const due: Row[] = active
     .filter((l: any) => l.due_date === today)
     .map((l: any) => {
-      const base = getLoanRemaining(l, pays, schs, today);
+      const base = getInstallmentAmount(l, schs);
       const lateFees = calcLateFees(l, base, today);
       return { loan: l, amount: base + lateFees, lateFees };
     })
@@ -147,7 +147,9 @@ async function buildBillingReport(admin: any, ownerId: string, today: string, br
   const overdue: Row[] = active
     .filter((l: any) => l.due_date < today)
     .map((l: any) => {
-      const base = getLoanRemaining(l, pays, schs, today);
+      const installments = getOverdueInstallments(l, schs, today);
+      const base = installments.reduce((sum, inst) => sum + Number(inst.amount || 0), 0)
+        || getInstallmentAmount(l, schs);
       const lateFees = calcLateFees(l, base, today);
       return { loan: l, amount: base + lateFees, lateFees };
     })
