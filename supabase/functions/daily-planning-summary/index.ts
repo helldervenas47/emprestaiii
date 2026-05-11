@@ -40,7 +40,8 @@ function calcLoanTotal(amount: number, rate: number, installments: number) {
 
 import { sendReportsMessage } from "../_shared/reports-bot.ts";
 
-interface Row { origin: string; description: string; amount: number; }
+type IncomeGroup = "Empréstimos" | "Vendas" | "Veículos";
+interface Row { origin: string; description: string; amount: number; group?: IncomeGroup; }
 
 async function buildAndSend(
   admin: any,
