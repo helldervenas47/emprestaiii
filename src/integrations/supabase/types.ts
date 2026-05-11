@@ -984,6 +984,42 @@ export type Database = {
         }
         Relationships: []
       }
+      incomes_expenses_telegram_prefs: {
+        Row: {
+          created_at: string
+          enabled: boolean
+          last_sent: Json
+          send_target: string
+          send_time_1: string | null
+          send_time_2: string | null
+          send_time_3: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          enabled?: boolean
+          last_sent?: Json
+          send_target?: string
+          send_time_1?: string | null
+          send_time_2?: string | null
+          send_time_3?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          enabled?: boolean
+          last_sent?: Json
+          send_target?: string
+          send_time_1?: string | null
+          send_time_2?: string | null
+          send_time_3?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       invite_codes: {
         Row: {
           active: boolean
