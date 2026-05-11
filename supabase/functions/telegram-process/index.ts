@@ -3214,10 +3214,6 @@ Deno.serve(async (req) => {
                   confidence: 1,
                 };
               } else {
-                // ⚡ Aviso instantâneo antes da chamada de IA (que pode levar 2-5s).
-                // Garante que o usuário receba feedback em <2s.
-                tgSend(chatId, "📥 *Recebido!* Processando seu lançamento...", LOVABLE_API_KEY, telegramKey)
-                  .catch((e) => console.error("instant ack err", e));
                 extracted = await extractExpense(text, LOVABLE_API_KEY);
               }
               if (!extracted || !extracted.amount || extracted.confidence < 0.6) {

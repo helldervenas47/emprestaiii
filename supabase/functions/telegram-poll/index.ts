@@ -192,23 +192,6 @@ Deno.serve(async (req) => {
     }
   }
 
-  // Self re-trigger to eliminate the ~20s gap between cron cycles (cron is 1/min,
-  // each run lasts ≈40s). This keeps long-polling effectively continuous so
-  // messages are picked up within ~1s instead of waiting up to 20s.
-  const selfTrigger = fetch(`${SUPABASE_URL}/functions/v1/telegram-poll`, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
-      "Content-Type": "application/json",
-    },
-    body: "{}",
-  }).catch((e) => console.error("self re-trigger failed", e));
-  // @ts-ignore
-  if (typeof EdgeRuntime !== "undefined" && EdgeRuntime?.waitUntil) {
-    // @ts-ignore
-    EdgeRuntime.waitUntil(selfTrigger);
-  }
-
   return new Response(JSON.stringify({ ok: true, processed: totalProcessed, bots: list.length }), {
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
