@@ -36,11 +36,16 @@ function todayISO() {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
+type RowStatus = "paid" | "pending";
+type RowGroup = "Empréstimos" | "Vendas" | "Veículos";
+
 interface Row {
   origin: string;
   description: string;
   amount: number;
   category?: string;
+  status: RowStatus;
+  group?: RowGroup;
 }
 
 export function DailyPlanningReport({ loans, payments, installmentSchedules, sales, expenses }: Props) {
