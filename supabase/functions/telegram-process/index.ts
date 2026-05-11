@@ -3275,12 +3275,15 @@ Deno.serve(async (req) => {
                   : (card ? `💳 *Compra no cartão registrada*` : `✅ *Despesa registrada*`);
 
                 // ⚡ Confirmação instantânea — usa categoria inicial detectada.
-                // O refinamento (AI) e o insert acontecem em segundo plano.
-                const instantSummary = `${header}\n\n💰 ${fmt}${parcelLine}\n📂 ${initialCat}${cardLine}\n📝 ${description}\n📅 ${displayDate}\n💳 ${paymentMethod}`;
-                await tgSend(chatId, instantSummary, LOVABLE_API_KEY, telegramKey);
+                // O refinamento (AI) e o insert acontecem em segundo plano,
+                // e o teclado de ações é anexado a esta mesma mensagem ao concluir.
+                const buildSummary = (cat: string, invoiceLine?: string) =>
+                  `${header}\n\n💰 ${fmt}${parcelLine}\n📂 ${cat}${cardLine}\n📝 ${description}\n📅 ${displayDate}\n💳 ${paymentMethod}${invoiceLine ? `\n${invoiceLine}` : ""}`;
+                const instantSummary = buildSummary(initialCat);
+                const instantMsgId = await tgSend(chatId, instantSummary, LOVABLE_API_KEY, telegramKey);
 
                 // 🔄 Processamento em background: refina categoria, persiste e
-                // envia mensagem de ações com teclado quando concluir.
+                // anexa o teclado de ações à mensagem original (resumo + ações juntos).
                 const bgPersist = (async () => {
                   try {
                     const finalCategory = await resolveCategoryHybrid(
@@ -3321,17 +3324,19 @@ Deno.serve(async (req) => {
                       return;
                     }
 
-                    const parts: string[] = [];
-                    if (finalCategory !== initialCat) {
-                      parts.push(`📂 Categoria ajustada: *${finalCategory}*`);
-                    }
+                    let invoiceLine: string | undefined;
                     if (card) {
                       const invoiceTotal = await computeCurrentInvoiceTotal(admin, link.user_id, card);
                       const fmtInvoice = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(invoiceTotal);
-                      parts.push(`💳 Fatura atual: ${fmtInvoice}`);
+                      invoiceLine = `💳 Fatura atual: ${fmtInvoice}`;
                     }
-                    const actionsText = parts.length > 0 ? parts.join("\n") : "✨ _Ações disponíveis:_";
-                    await tgSendWithKeyboard(chatId, actionsText, buildExpenseKeyboard(ins.id), LOVABLE_API_KEY, telegramKey);
+                    const finalSummary = buildSummary(finalCategory, invoiceLine);
+                    const keyboard = buildExpenseKeyboard(ins.id);
+                    if (instantMsgId) {
+                      await tgEditMessage(chatId, instantMsgId, finalSummary, keyboard, LOVABLE_API_KEY, telegramKey);
+                    } else {
+                      await tgSendWithKeyboard(chatId, finalSummary, keyboard, LOVABLE_API_KEY, telegramKey);
+                    }
 
                     if (!card) {
                       checkBudgetAndAlert(admin, link.user_id, chatId, finalCategory, LOVABLE_API_KEY, telegramKey)
