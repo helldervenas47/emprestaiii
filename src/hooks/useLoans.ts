@@ -8,6 +8,7 @@ import { useAuth } from "./useAuth";
 import { toast } from "sonner";
 import { getLoanLateFees } from "@/lib/loanLateFees";
 import { notifyRemoteUpdate } from "@/lib/realtimeToast";
+import { getOpenInstallmentAmount } from "@/lib/loanInstallmentAmount";
 import {
   cacheRows, getCachedRows, upsertCachedRow, removeCachedRow,
   enqueueMutation, rewritePendingRecordId,
@@ -351,11 +352,13 @@ export function useLoans() {
     const currentSchedule = installmentSchedules.find(
       (s) => s.loanId === loanId && s.installmentNumber === newPaid,
     );
-    let installmentAmount = currentSchedule?.amount != null && currentSchedule.amount > 0
-      ? currentSchedule.amount
-      : (loan.customInstallmentValue != null && loan.customInstallmentValue > 0
-        ? loan.customInstallmentValue
-        : calculatedInstallment);
+    let installmentAmount = getOpenInstallmentAmount(loan, installmentSchedules, newPaid) || (
+      currentSchedule?.amount != null && currentSchedule.amount > 0
+        ? currentSchedule.amount
+        : (loan.customInstallmentValue != null && loan.customInstallmentValue > 0
+          ? loan.customInstallmentValue
+          : calculatedInstallment)
+    );
     // Última parcela: usar o saldo restante para evitar centavos pendurados
     if (newPaid >= loan.installments) {
       installmentAmount = remaining;
