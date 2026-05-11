@@ -3234,31 +3234,13 @@ Deno.serve(async (req) => {
                 const cardSearchText = aiPayMethod ? `${text}\n${aiPayMethod}` : text;
                 const card = detectCardInText(cardSearchText, userCards);
 
-                const basePayload: Record<string, any> = {
-                  user_id: link.user_id,
-                  description: capitalizeFirst(extracted.description || text.slice(0, 80)),
-                  amount: extracted.amount,
-                  category: nonVehicleCategory(finalCategory),
-                  type: installmentsN ? "recorrente" : "fixa",
-                  scope: "personal",
-                };
-                if (installmentsN) {
-                  basePayload.installments = installmentsN;
-                  basePayload.paid_installments = 0;
-                }
+                const description = capitalizeFirst(extracted.description || text.slice(0, 80));
+
                 let displayDate = finalDate;
+                let ccBuilt: ReturnType<typeof buildCreditCardExpense> | null = null;
                 if (card) {
-                  const cc = buildCreditCardExpense(card, basePayload.description);
-                  basePayload.due_date = cc.due_date;
-                  basePayload.paid = cc.paid;
-                  basePayload.paid_date = cc.paid_date;
-                  basePayload.notes = cc.notes;
-                  displayDate = cc.invoiceDueDate;
-                } else {
-                  basePayload.due_date = finalDate;
-                  // Parcelado: fica pendente até cada parcela ser paga manualmente.
-                  basePayload.paid = installmentsN ? false : true;
-                  basePayload.paid_date = installmentsN ? null : finalDate;
+                  ccBuilt = buildCreditCardExpense(card, description);
+                  displayDate = ccBuilt.invoiceDueDate;
                 }
 
                 const fmt = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(extracted.amount);
@@ -3266,7 +3248,6 @@ Deno.serve(async (req) => {
                 const fmtParcel = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(installmentValue);
                 const parcelLine = installmentsN ? `\n🔢 ${installmentsN}x de ${fmtParcel}` : "";
                 const cardLine = card ? `\n💳 ${card.nickname || card.bank} (vence ${displayDate})` : "";
-                // Resolve payment method label: prefer detected card → AI hint → regex on text → default.
                 const labelFromAi = (() => {
                   if (!aiPayMethod) return null;
                   const a = aiPayMethod.toLowerCase();
@@ -3288,40 +3269,86 @@ Deno.serve(async (req) => {
                       : /\bd[eé]bito\b/i.test(text) ? "Débito"
                       : "Não informado"));
 
-
-                // Mensagem intermediária removida — enviamos apenas a confirmação
-                // final logo após o insert (rápido o suficiente para parecer instantâneo).
-
                 const header = installmentsN
                   ? (card ? `💳 *Compra parcelada no cartão*` : `🧾 *Compra parcelada registrada*`)
                   : (card ? `💳 *Compra no cartão registrada*` : `✅ *Despesa registrada*`);
-                const summaryText = `${header}\n\n💰 ${fmt}${parcelLine}\n📂 ${finalCategory}${cardLine}\n📝 ${extracted.description}\n📅 ${displayDate}\n💳 ${paymentMethod}`;
 
-                basePayload.notes = basePayload.notes ? `[bot]\n${basePayload.notes}` : "[bot]";
-                const { data: ins, error: insErr } = await admin
-                  .from("expenses")
-                  .insert(basePayload)
-                  .select("id").single();
+                // ⚡ Confirmação instantânea — usa categoria inicial detectada.
+                // O refinamento (AI) e o insert acontecem em segundo plano.
+                const instantSummary = `${header}\n\n💰 ${fmt}${parcelLine}\n📂 ${initialCat}${cardLine}\n📝 ${description}\n📅 ${displayDate}\n💳 ${paymentMethod}`;
+                await tgSend(chatId, instantSummary, LOVABLE_API_KEY, telegramKey);
 
-                if (insErr || !ins) {
-                  await tgSend(chatId, "❌ Erro ao salvar no banco: " + (insErr?.message ?? "desconhecido"), LOVABLE_API_KEY, telegramKey);
+                // 🔄 Processamento em background: refina categoria, persiste e
+                // envia mensagem de ações com teclado quando concluir.
+                const bgPersist = (async () => {
+                  try {
+                    const finalCategory = await resolveCategoryHybrid(
+                      admin, link.user_id, description, initialCat, LOVABLE_API_KEY,
+                    );
+                    const basePayload: Record<string, any> = {
+                      user_id: link.user_id,
+                      description,
+                      amount: extracted.amount,
+                      category: nonVehicleCategory(finalCategory),
+                      type: installmentsN ? "recorrente" : "fixa",
+                      scope: "personal",
+                    };
+                    if (installmentsN) {
+                      basePayload.installments = installmentsN;
+                      basePayload.paid_installments = 0;
+                    }
+                    if (ccBuilt) {
+                      basePayload.due_date = ccBuilt.due_date;
+                      basePayload.paid = ccBuilt.paid;
+                      basePayload.paid_date = ccBuilt.paid_date;
+                      basePayload.notes = ccBuilt.notes;
+                    } else {
+                      basePayload.due_date = finalDate;
+                      basePayload.paid = installmentsN ? false : true;
+                      basePayload.paid_date = installmentsN ? null : finalDate;
+                    }
+                    basePayload.notes = basePayload.notes ? `[bot]\n${basePayload.notes}` : "[bot]";
+
+                    const { data: ins, error: insErr } = await admin
+                      .from("expenses")
+                      .insert(basePayload)
+                      .select("id").single();
+
+                    if (insErr || !ins) {
+                      console.error("bg insert err", insErr);
+                      await tgSend(chatId, "⚠️ Não consegui salvar o lançamento no app: " + (insErr?.message ?? "erro desconhecido"), LOVABLE_API_KEY, telegramKey);
+                      return;
+                    }
+
+                    const parts: string[] = [];
+                    if (finalCategory !== initialCat) {
+                      parts.push(`📂 Categoria ajustada: *${finalCategory}*`);
+                    }
+                    if (card) {
+                      const invoiceTotal = await computeCurrentInvoiceTotal(admin, link.user_id, card);
+                      const fmtInvoice = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(invoiceTotal);
+                      parts.push(`💳 Fatura atual: ${fmtInvoice}`);
+                    }
+                    const actionsText = parts.length > 0 ? parts.join("\n") : "✨ _Ações disponíveis:_";
+                    await tgSendWithKeyboard(chatId, actionsText, buildExpenseKeyboard(ins.id), LOVABLE_API_KEY, telegramKey);
+
+                    if (!card) {
+                      checkBudgetAndAlert(admin, link.user_id, chatId, finalCategory, LOVABLE_API_KEY, telegramKey)
+                        .catch((e) => console.error("budget alert bg err", e));
+                    }
+                    learnCategoryFromExpense(admin, link.user_id, description, finalCategory)
+                      .catch((e) => console.error("learn (text) err", e));
+                  } catch (e) {
+                    console.error("bg expense persist err", e);
+                    await tgSend(chatId, "⚠️ Houve um erro ao concluir o registro em segundo plano. Tente reenviar se o lançamento não aparecer no app.", LOVABLE_API_KEY, telegramKey).catch(() => {});
+                  }
+                })();
+                // @ts-ignore - EdgeRuntime is available in Supabase edge runtime
+                if (typeof EdgeRuntime !== "undefined" && (EdgeRuntime as any)?.waitUntil) {
+                  // @ts-ignore
+                  EdgeRuntime.waitUntil(bgPersist);
                 } else {
-                  // Confirmação final com teclado de ações após o registro persistir.
-                  // Para despesas de cartão, anexa o valor atualizado da fatura
-                  // (recalculado já com a nova despesa incluída).
-                  let finalSummary = summaryText;
-                  if (card) {
-                    const invoiceTotal = await computeCurrentInvoiceTotal(admin, link.user_id, card);
-                    const fmtInvoice = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(invoiceTotal);
-                    finalSummary = `${summaryText}\n💳 Fatura atual: ${fmtInvoice}`;
-                  }
-                  await tgSendWithKeyboard(chatId, finalSummary, buildExpenseKeyboard(ins.id), LOVABLE_API_KEY, telegramKey);
-                  if (!card) {
-                    checkBudgetAndAlert(admin, link.user_id, chatId, finalCategory, LOVABLE_API_KEY, telegramKey)
-                      .catch((e) => console.error("budget alert bg err", e));
-                  }
-                  learnCategoryFromExpense(admin, link.user_id, extracted.description || text.slice(0, 80), finalCategory)
-                    .catch((e) => console.error("learn (text) err", e));
+                  await bgPersist;
                 }
               }
             }
