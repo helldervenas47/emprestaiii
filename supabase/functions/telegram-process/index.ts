@@ -3221,7 +3221,6 @@ Deno.serve(async (req) => {
               } else {
                 const finalDate = sanitizeDate(extracted.date);
                 const initialCat = CATEGORIES.includes(extracted.category) ? extracted.category : "Outros";
-                const finalCategory = await resolveCategoryHybrid(admin, link.user_id, extracted.description || text.slice(0, 80), initialCat, LOVABLE_API_KEY);
                 const installmentsN = extracted.installments && Number(extracted.installments) >= 2
                   ? Math.min(36, Math.floor(Number(extracted.installments)))
                   : null;
