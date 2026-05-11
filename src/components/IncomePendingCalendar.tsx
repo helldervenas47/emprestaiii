@@ -782,6 +782,7 @@ export function IncomePendingCalendar({
                               variant="outline"
                               size="sm"
                               className="h-7 text-xs gap-1 flex-1"
+                              disabled={!allowDay1Override}
                               onClick={() => {
                                 setEditValue(
                                   (overrides[monthKey] ?? selectedBalance).toFixed(2)
@@ -791,7 +792,7 @@ export function IncomePendingCalendar({
                             >
                               <Pencil className="h-3 w-3" /> Alterar saldo do dia
                             </Button>
-                            {hasOverride && (
+                            {hasOverride && allowDay1Override && (
                               <Button
                                 variant="ghost"
                                 size="sm"
@@ -805,7 +806,12 @@ export function IncomePendingCalendar({
                             )}
                           </div>
                         )}
-                        {isFirstOfMonth && !hasOverride && (
+                        {isFirstOfMonth && !allowDay1Override && (
+                          <p className="text-[10px] text-muted-foreground italic pt-1">
+                            Edição do saldo do dia 01 está desativada. Ative o botão no topo do calendário para liberar.
+                          </p>
+                        )}
+                        {isFirstOfMonth && allowDay1Override && !hasOverride && (
                           <p className="text-[10px] text-muted-foreground italic pt-1">
                             Apenas o dia 1 de cada mês pode ter o saldo ajustado manualmente.
                           </p>
