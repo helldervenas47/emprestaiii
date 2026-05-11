@@ -43,10 +43,9 @@ function escapeMd(s: string) {
   return s.replace(/([_*`\[\]])/g, "\\$1");
 }
 
-function calcTotalWithInterest(amount: number, rate: number, installments: number) {
-  // Match calculateTotalWithInterest in useLoans (simple monthly interest * installments)
-  const interest = amount * (rate / 100) * installments;
-  return amount + interest;
+function calculateInstallment(principal: number, rate: number, installments: number) {
+  const total = principal * (1 + rate / 100);
+  return installments > 0 ? total / installments : total;
 }
 
 function getDaysOverdue(dueDate: string, today: string) {
@@ -67,29 +66,55 @@ function calcLateFees(loan: any, baseAmount: number, today: string) {
   return lateInterest + penalty;
 }
 
-function getLoanRemaining(loan: any, payments: any[], schedules: any[], today: string) {
-  const total = calcTotalWithInterest(Number(loan.amount), Number(loan.interest_rate), Number(loan.installments));
-  const totalPaid = payments.filter(p => p.loan_id === loan.id).reduce((s, p) => s + Number(p.amount), 0);
-  if (Number(loan.installments) >= 2) {
-    const loanScheds = schedules
-      .filter(s => s.loan_id === loan.id)
-      .sort((a, b) => Number(a.installment_number) - Number(b.installment_number));
-    // Soma planejada das parcelas já totalmente quitadas
-    const completedSum = loanScheds
-      .filter(s => Number(s.installment_number) <= Number(loan.paid_installments))
-      .reduce((s, x) => s + Number(x.amount), 0);
-    // Pagamentos extras já lançados sobre parcelas em aberto (parciais)
-    const partialCredit = Math.max(0, totalPaid - completedSum);
-    const overdueScheds = loanScheds.filter(
-      s => Number(s.installment_number) > Number(loan.paid_installments) && s.due_date <= today,
-    );
-    if (overdueScheds.length > 0) {
-      const overdueSum = overdueScheds.reduce((s, x) => s + Number(x.amount), 0);
-      return Math.max(0, overdueSum - partialCredit);
+function getInstallmentAmount(loan: any, schedules: any[]) {
+  if (Number(loan.installments) === 1 && Number(loan.remaining_amount) > 0) return Number(loan.remaining_amount);
+
+  const paid = Number(loan.paid_installments || 0);
+  const nextNum = paid + 1;
+  const schedule = schedules.find(s => s.loan_id === loan.id && Number(s.installment_number) === nextNum);
+
+  if (schedule) {
+    if (loan.remaining_amount != null && Number(loan.remaining_amount) >= 0) {
+      const futureSum = schedules
+        .filter(s => s.loan_id === loan.id && Number(s.installment_number) > nextNum)
+        .reduce((sum, s) => sum + Number(s.amount || 0), 0);
+      const currentBalance = Math.max(0, Number(loan.remaining_amount) - futureSum);
+      return Math.min(currentBalance, Number(schedule.amount || 0));
     }
+    return Number(schedule.amount || 0);
   }
-  if (loan.remaining_amount != null && Number(loan.remaining_amount) > 0) return Number(loan.remaining_amount);
-  return Math.max(0, total - totalPaid);
+
+  if (Number(loan.remaining_amount) > 0) return Number(loan.remaining_amount);
+  return Number(loan.custom_installment_value || 0) || calculateInstallment(Number(loan.amount), Number(loan.interest_rate), Number(loan.installments));
+}
+
+function getOverdueInstallments(loan: any, schedules: any[], today: string) {
+  const paid = Number(loan.paid_installments || 0);
+  if (Number(loan.installments) === 1) {
+    if (loan.due_date < today && paid < 1) {
+      return [{ installment_number: 1, due_date: loan.due_date, amount: getInstallmentAmount(loan, schedules) }];
+    }
+    return [];
+  }
+
+  const loanScheds = schedules
+    .filter(s => s.loan_id === loan.id && Number(s.installment_number) > paid && s.due_date < today)
+    .sort((a, b) => Number(a.installment_number) - Number(b.installment_number));
+
+  if (loanScheds.length > 0) {
+    const nextNum = paid + 1;
+    return loanScheds.map(s => ({
+      installment_number: Number(s.installment_number),
+      due_date: s.due_date,
+      amount: Number(s.installment_number) === nextNum ? getInstallmentAmount(loan, schedules) : Number(s.amount || 0),
+    }));
+  }
+
+  if (loan.due_date < today) {
+    return [{ installment_number: paid + 1, due_date: loan.due_date, amount: getInstallmentAmount(loan, schedules) }];
+  }
+
+  return [];
 }
 
 async function buildBillingReport(admin: any, ownerId: string, today: string, brandName: string): Promise<string> {
