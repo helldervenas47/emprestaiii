@@ -34,6 +34,9 @@ export function TelegramBotsHub() {
       {/* 3. Planejamento do dia anterior */}
       <TelegramDailyPlanningScheduleCard />
 
+      {/* 4. Receitas e Despesas (aba) */}
+      <TelegramIncomesExpensesScheduleCard />
+
       {/* 4. Resumo por gerente */}
       <Card no3d>
         <CardContent className="p-4 space-y-3">
