@@ -379,7 +379,7 @@ export function IncomePendingCalendar({
       cursor.setDate(cursor.getDate() + 1);
     }
     return map;
-  }, [dayMap, baseBalance, year, month, weekDays, overrides, allowDay1Override]);
+  }, [dayMap, baseBalance, year, month, weekDays, overrides]);
 
   const selectedHasMovement = selectedInfo.totalIncome > 0 || selectedInfo.totalExpense > 0;
   const selectedBalance = selectedDate
