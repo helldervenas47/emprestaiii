@@ -142,6 +142,11 @@ export function IncomePendingCalendar({
   const { overrides, setBalance: setOverrideBalance, clearBalance: clearOverrideBalance } = useMonthlyOpeningBalances();
   const [editOpen, setEditOpen] = useState(false);
   const [editValue, setEditValue] = useState("");
+  const [allowDay1Override, setAllowDay1Override] = useState<boolean>(() => loadAllowDay1Override());
+  const toggleAllowDay1Override = (v: boolean) => {
+    setAllowDay1Override(v);
+    saveAllowDay1Override(v);
+  };
 
   const { sales } = useProducts(true);
   const { deposits: piggyDeposits } = usePiggyBanks();
