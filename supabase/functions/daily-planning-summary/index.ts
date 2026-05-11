@@ -241,17 +241,27 @@ async function buildAndSend(
   if (negative) lines.push(`_Atenção: saldo negativo previsto para o dia._`);
 
   if (incomeRows.length > 0) {
-    lines.push("");
-    lines.push("*🟢 Receitas:*");
-    const sorted = [...incomeRows].sort((a, b) => b.amount - a.amount);
-    for (const r of sorted) {
-      lines.push(`• [${r.origin}] ${r.description} — *${fmtBRL(r.amount)}*`);
+    const groupOrder: Array<{ key: IncomeGroup; emoji: string }> = [
+      { key: "Empréstimos", emoji: "💳" },
+      { key: "Vendas", emoji: "🛒" },
+      { key: "Veículos", emoji: "🚗" },
+    ];
+    for (const g of groupOrder) {
+      const items = incomeRows.filter(r => r.group === g.key);
+      if (items.length === 0) continue;
+      const subtotal = items.reduce((s, r) => s + r.amount, 0);
+      lines.push("");
+      lines.push(`${g.emoji} *${g.key}:* ${fmtBRL(subtotal)}  _(${items.length})_`);
+      const sorted = [...items].sort((a, b) => b.amount - a.amount);
+      for (const r of sorted) {
+        lines.push(`• ${r.description} — *${fmtBRL(r.amount)}*`);
+      }
     }
   }
 
   if (expenseRows.length > 0) {
     lines.push("");
-    lines.push("*🔴 Despesas:*");
+    lines.push("*🔴 Despesas da empresa:*");
     const sorted = [...expenseRows].sort((a, b) => b.amount - a.amount);
     for (const r of sorted) {
       lines.push(`• [${r.origin}] ${r.description} — *${r.amount > 0 ? fmtBRL(r.amount) : "—"}*`);
