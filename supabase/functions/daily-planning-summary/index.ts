@@ -118,10 +118,12 @@ async function buildAndSend(
       const num = i + 1;
       if (num <= (sale as any).paid_installments) continue;
       const amt = amounts[i] != null ? Number(amounts[i]) : fallback;
+      const isVehicle = (sale as any).business_type === "aluguel_veiculo";
       incomeRows.push({
-        origin: (sale as any).business_type === "aluguel_veiculo" ? "Aluguel" : "Venda",
+        origin: isVehicle ? "Aluguel" : "Venda",
         description: `${(sale as any).customer_name || (sale as any).description} — ${num}/${total}`,
         amount: amt,
+        group: isVehicle ? "Veículos" : "Vendas",
       });
     }
   }
