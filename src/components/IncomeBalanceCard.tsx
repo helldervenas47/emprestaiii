@@ -93,7 +93,7 @@ export function IncomeBalanceCard({ incomes, expenses, onAdjust, readOnly, onOpe
       .reduce((s, i) => s + i.amount, 0)
       + sales.reduce((s, sale) => s + saleReceivedInMonth(sale, monthKey), 0);
     const monthOut = expenses
-      .filter((e) => e.paid && (e.paidDate || "").startsWith(monthKey))
+      .filter((e) => e.paid && (e.scope ?? "business") === "personal" && (e.paidDate || "").startsWith(monthKey))
       .reduce((s, e) => s + e.amount, 0)
       + piggyDeposits
         .filter((d) => !d.expenseId && (d.depositDate || "").startsWith(monthKey))
