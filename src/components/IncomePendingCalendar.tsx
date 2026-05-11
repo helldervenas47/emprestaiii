@@ -362,7 +362,7 @@ export function IncomePendingCalendar({
       const ds = formatLocalDate(cursor);
       // Override do saldo no dia 1 de cada mês (definido pelo usuário).
       // O override representa o saldo final previsto do dia 1 e ancora a projeção a partir dele.
-      if (cursor.getDate() === 1) {
+      if (allowDay1Override && cursor.getDate() === 1) {
         const monthKey = ds.slice(0, 7); // YYYY-MM
         if (overrides[monthKey] !== undefined) {
           running = overrides[monthKey];
@@ -377,7 +377,7 @@ export function IncomePendingCalendar({
       cursor.setDate(cursor.getDate() + 1);
     }
     return map;
-  }, [dayMap, baseBalance, year, month, weekDays, overrides]);
+  }, [dayMap, baseBalance, year, month, weekDays, overrides, allowDay1Override]);
 
   const selectedHasMovement = selectedInfo.totalIncome > 0 || selectedInfo.totalExpense > 0;
   const selectedBalance = selectedDate
