@@ -107,12 +107,26 @@ export function MonthlyGoalsManager({ readOnly = false }: { readOnly?: boolean }
   const enrichedGoals = useMemo(() =>
     goals.map((g) => {
       const meta = GOAL_TYPE_META[g.goalType];
-      const actual = computeActual(g.goalType, g.month);
+      let actual = computeActual(g.goalType, g.month);
+      let target = g.targetValue;
+      // Para "Média Geral Recebida por Dia": exibir e comparar em base diária
+      if (g.goalType === "daily_received_avg") {
+        const [yy, mm] = g.month.split("-").map(Number);
+        const today = new Date();
+        const currentMonth = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}`;
+        const daysInMonth = new Date(yy, mm, 0).getDate();
+        const isCurrent = g.month === currentMonth;
+        const daysElapsed = isCurrent
+          ? today.getDate()
+          : (g.month < currentMonth ? daysInMonth : 1);
+        actual = daysElapsed > 0 ? actual / daysElapsed : 0; // média diária recebida
+        target = g.targetValue / daysInMonth; // meta diária implícita
+      }
       let pct = 0;
-      if (g.targetValue > 0) {
+      if (target > 0) {
         pct = meta?.inverse
-          ? Math.max(0, 100 - (actual / g.targetValue) * 100)
-          : Math.min(100, (actual / g.targetValue) * 100);
+          ? Math.max(0, 100 - (actual / target) * 100)
+          : Math.min(100, (actual / target) * 100);
       }
       return { ...g, actual, pct };
     }),
