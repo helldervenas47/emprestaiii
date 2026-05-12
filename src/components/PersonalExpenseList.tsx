@@ -42,6 +42,9 @@ import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as ReTooltip, LineCha
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { PersonalAIInsightsCard } from "@/components/PersonalAIInsightsCard";
+import { CreditCardInvoice } from "@/components/CreditCardInvoice";
+import type { CreditCard } from "@/hooks/useCreditCards";
+import { CreditCard as CreditCardIcon } from "lucide-react";
 
 
 
@@ -119,6 +122,7 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, onUpda
   const [budgetEditOpen, setBudgetEditOpen] = useState(false);
   const [budgetDraft, setBudgetDraft] = useState<Record<string, string>>({});
   const [expensesExpanded, setExpensesExpanded] = useState(false);
+  const [invoiceCard, setInvoiceCard] = useState<CreditCard | null>(null);
   const {
     budgets,
     monthBudgets,
@@ -601,18 +605,110 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, onUpda
                 </Button>
               </div>
 
-              {/* List */}
-              {filtered.length === 0 ? (
-                <Card no3d>
-                  <CardContent className="py-12 text-center">
-                    <Receipt className="h-12 w-12 mx-auto text-muted-foreground/40 mb-3" />
-                    <p className="text-muted-foreground">
-                      {expenses.length === 0 ? "Nenhuma despesa pessoal cadastrada" : "Nenhuma despesa encontrada"}
-                    </p>
-                  </CardContent>
-                </Card>
-              ) : (
-                <div className="space-y-2">
+              {/* Virtual: pending credit card invoices for the current month (UI shortcut) */}
+              {(() => {
+                const todayStr = new Date().toISOString().slice(0, 10);
+                const [iy, im] = selectedMonth.split("-").map(Number);
+                const daysInMonth = new Date(iy, im, 0).getDate();
+                const searchLow = search.trim().toLowerCase();
+                const invoiceRows = cardInvoiceTotalsMonth
+                  .filter((x) => !x.paid && x.total > 0)
+                  .map((x) => {
+                    const dd = String(Math.min(x.card.dueDay, daysInMonth)).padStart(2, "0");
+                    const due = `${selectedMonth}-${dd}`;
+                    const overdue = due < todayStr;
+                    return { x, due, overdue };
+                  })
+                  .filter(({ overdue }) => {
+                    if (filter === "paid") return false;
+                    if (filter === "pending") return !overdue;
+                    if (filter === "overdue") return overdue;
+                    return true;
+                  })
+                  .filter(() =>
+                    !categoryFilter || categoryFilter === CREDIT_CARD_INVOICE_CATEGORY,
+                  )
+                  .filter(({ x }) => {
+                    if (!searchLow) return true;
+                    const label = `fatura cartão ${x.card.nickname ?? ""} ${x.card.lastFour ?? ""}`.toLowerCase();
+                    return label.includes(searchLow);
+                  })
+                  .filter(() => sourceFilter !== "auto"); // faturas não são do bot
+
+                const hasAny = filtered.length + invoiceRows.length > 0;
+
+                if (!hasAny) {
+                  return (
+                    <Card no3d>
+                      <CardContent className="py-12 text-center">
+                        <Receipt className="h-12 w-12 mx-auto text-muted-foreground/40 mb-3" />
+                        <p className="text-muted-foreground">
+                          {expenses.length === 0 ? "Nenhuma despesa pessoal cadastrada" : "Nenhuma despesa encontrada"}
+                        </p>
+                      </CardContent>
+                    </Card>
+                  );
+                }
+
+                return (
+                  <div className="space-y-2">
+                    {invoiceRows.map(({ x, due, overdue }) => (
+                      <Card
+                        no3d
+                        key={`invoice-${x.card.id}`}
+                        className={`border-primary/40 bg-primary/5 ${overdue ? "border-destructive/60" : ""}`}
+                      >
+                        <CardContent className="p-3 sm:p-4">
+                          <button
+                            type="button"
+                            onClick={() => setInvoiceCard(x.card)}
+                            className="flex items-start gap-3 w-full text-left rounded-lg -m-1 p-1 hover:bg-muted/40 transition-colors cursor-pointer"
+                            aria-label={`Pagar fatura do cartão ${x.card.nickname ?? x.card.lastFour ?? ""}`}
+                          >
+                            <div className="h-10 w-10 rounded-xl flex items-center justify-center shrink-0 bg-primary/15">
+                              <CreditCardIcon className="h-5 w-5 text-primary" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-start justify-between gap-2">
+                                <div className="min-w-0">
+                                  <p className="text-sm font-semibold text-foreground truncate">
+                                    Fatura de Cartão
+                                    {x.card.nickname || x.card.lastFour ? (
+                                      <span className="text-muted-foreground font-normal">
+                                        {" — "}
+                                        {x.card.nickname || `•••• ${x.card.lastFour}`}
+                                      </span>
+                                    ) : null}
+                                  </p>
+                                  <div className="flex items-center gap-2 mt-0.5 text-xs text-muted-foreground flex-wrap">
+                                    <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-primary/40 text-primary">
+                                      {CREDIT_CARD_INVOICE_CATEGORY}
+                                    </Badge>
+                                    <Badge
+                                      variant="outline"
+                                      className={`text-[10px] px-1.5 py-0 ${overdue ? "border-destructive/60 text-destructive" : "border-amber-500/40 text-amber-600 dark:text-amber-400"}`}
+                                    >
+                                      {overdue ? "Atrasada" : "A pagar"}
+                                    </Badge>
+                                    <span className="inline-flex items-center gap-1">
+                                      <Calendar className="h-3 w-3" />
+                                      {format(new Date(due + "T00:00:00"), "dd/MM/yyyy")}
+                                    </span>
+                                  </div>
+                                </div>
+                                <div className="text-right shrink-0">
+                                  <p className={`text-sm font-bold ${overdue ? "text-destructive" : "text-foreground"}`}>
+                                    {formatCurrency(x.total - x.paidTotal)}
+                                  </p>
+                                  <p className="text-[10px] text-primary mt-0.5">Pagar fatura →</p>
+                                </div>
+                              </div>
+                            </div>
+                          </button>
+                        </CardContent>
+                      </Card>
+                    ))}
+
                   {filtered.map((expense) => {
                     const overdue = isOverdue(expense);
                     const isRecorrente = expense.type === "recorrente" && expense.installments && expense.installments > 1;
@@ -755,8 +851,9 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, onUpda
                       </Card>
                     );
                   })}
-                </div>
-              )}
+                  </div>
+                );
+              })()}
             </div>
           </div>
         </CardContent>
@@ -1392,6 +1489,14 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, onUpda
           })()}
         </DialogContent>
       </Dialog>
+
+      {invoiceCard && (
+        <CreditCardInvoice
+          card={invoiceCard}
+          referenceMonth={selectedMonth}
+          onClose={() => setInvoiceCard(null)}
+        />
+      )}
     </div>
   );
 }
