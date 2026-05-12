@@ -15,6 +15,7 @@ import { AccountantAuditCard } from "@/components/AccountantAuditCard";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import type { AuditTotals } from "@/lib/accountantAudit";
 import { calculateTotalWithInterest } from "@/hooks/useLoans";
+import { isVehicleExpenseCategory } from "@/components/VehicleExpenseForm";
 
 interface AccountantReportProps {
   loans: any[];
@@ -80,7 +81,7 @@ export function AccountantReport({ loans, payments, sales, expenses }: Accountan
     const periodPayments = payments.filter((p) => matchPeriod(p.date));
     const periodExpenses = expenses.filter((e) => {
       const dt = e.paidDate ?? e.paid_date ?? e.dueDate ?? e.due_date;
-      return e.paid && (e.scope ?? "business") !== "personal" && matchPeriod(dt);
+      return e.paid && (e.scope ?? "business") !== "personal" && !isVehicleExpenseCategory(e.category) && matchPeriod(dt);
     });
 
     type Kind = "juros_puro" | "amortizacao" | "quitacao" | "parcela" | "sem_vinculo" | "split";
@@ -255,7 +256,7 @@ export function AccountantReport({ loans, payments, sales, expenses }: Accountan
       const c = (cat || "").toLowerCase();
       return TAX_CATEGORIES.some((t) => c.includes(t));
     };
-    const periodTaxes = expenses.filter((e) => isTax(e.category) && matchPeriod(e.dueDate ?? e.due_date));
+    const periodTaxes = expenses.filter((e) => isTax(e.category) && !isVehicleExpenseCategory(e.category) && matchPeriod(e.dueDate ?? e.due_date));
     const paid = periodTaxes.filter((e) => e.paid).reduce((s, x) => s + (Number(x.amount) || 0), 0);
     const pending = periodTaxes.filter((e) => !e.paid).reduce((s, x) => s + (Number(x.amount) || 0), 0);
     return { items: periodTaxes, paid, pending, total: paid + pending };
@@ -358,7 +359,7 @@ export function AccountantReport({ loans, payments, sales, expenses }: Accountan
     // Vendas excluídas do contador (apenas empréstimos e despesas empresariais)
     const outExpenses = expenses.filter((e) => {
       const dt = e.paidDate ?? e.paid_date ?? e.dueDate ?? e.due_date;
-      return e.paid && (e.scope ?? "business") !== "personal" && matchPeriod(dt);
+      return e.paid && (e.scope ?? "business") !== "personal" && !isVehicleExpenseCategory(e.category) && matchPeriod(dt);
     });
     outExpenses.forEach((e) => {
       const d = e.paidDate ?? e.paid_date ?? e.dueDate ?? e.due_date;
