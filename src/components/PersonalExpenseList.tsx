@@ -1025,26 +1025,12 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, onUpda
       {categoryData.length > 0 && (
         <Card no3d>
           <CardContent className="p-4">
-            <button
-              type="button"
-              onClick={() => setCategoryChartExpanded((v) => !v)}
-              className="w-full flex items-center justify-between gap-2 text-left"
-              aria-expanded={categoryChartExpanded}
-              aria-controls="category-chart-content"
-            >
-              <div className="flex items-center gap-2">
-                <h3 className="text-sm font-semibold text-foreground">Gastos por categoria</h3>
-                <ChevronDown
-                  className={`h-4 w-4 text-muted-foreground transition-transform duration-300 ${categoryChartExpanded ? "rotate-180" : ""}`}
-                />
-              </div>
+            <div className="w-full flex items-center justify-between gap-2">
+              <h3 className="text-sm font-semibold text-foreground">Gastos por categoria</h3>
               <span className="text-xs text-muted-foreground">{formatCurrency(totalCategorized)}</span>
-            </button>
-            <div
-              id="category-chart-content"
-              className={`grid transition-all duration-300 ease-in-out ${categoryChartExpanded ? "grid-rows-[1fr] opacity-100 mt-3" : "grid-rows-[0fr] opacity-0"}`}
-            >
-              <div className="overflow-hidden min-h-0">
+            </div>
+            <div className="mt-3">
+              <div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
                   <div className="h-48">
                     <ResponsiveContainer width="100%" height="100%">
