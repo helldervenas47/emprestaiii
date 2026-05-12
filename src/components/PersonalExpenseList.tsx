@@ -649,9 +649,15 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, onUpda
               />
             </div>
             <div className="text-right">
-              <div className="text-[11px] text-muted-foreground leading-none">Total</div>
-              <div className="text-base font-bold text-foreground">
-                {formatCurrency(filtered.reduce((s, e) => s + getInstallmentAmount(e), 0))}
+              <div className="text-[11px] text-muted-foreground leading-none">
+                {expensesExpanded ? "Total" : "Pendente"}
+              </div>
+              <div className={`text-base font-bold ${expensesExpanded ? "text-foreground" : "text-amber-600 dark:text-amber-400"}`}>
+                {formatCurrency(
+                  expensesExpanded
+                    ? filtered.reduce((s, e) => s + getInstallmentAmount(e), 0)
+                    : totalPending,
+                )}
               </div>
             </div>
           </button>
