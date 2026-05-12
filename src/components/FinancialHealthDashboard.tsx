@@ -314,7 +314,7 @@ export function FinancialHealthDashboard({ incomes, expenses, monthKey }: Props)
       </div>
 
       {/* Cards de insights */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
+      <div className={`${expanded ? "grid" : "hidden"} sm:grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6`}>
         <InsightCard
           icon={<Wallet className="h-4 w-4" />}
           accent={data.current.income >= data.current.expense ? COLOR_GREEN : COLOR_RED}
