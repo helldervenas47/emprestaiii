@@ -200,6 +200,11 @@ export function IncomeList({ readOnly }: Props) {
         allIncomes={incomes}
         allExpenses={expenses}
       />
+      <FinancialHealthDashboard
+        incomes={incomes}
+        expenses={expenses}
+        monthKey={monthKey}
+      />
       <IncomeDashboard
         incomes={incomes.filter(
           (i) =>
