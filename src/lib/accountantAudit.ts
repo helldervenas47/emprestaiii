@@ -1,5 +1,6 @@
 // Auditoria do Contador: cruza os totais exibidos contra os dados de origem.
 // Não altera dados de origem. Apenas detecta divergências e produz um relatório.
+import { isVehicleExpenseCategory } from "@/components/VehicleExpenseForm";
 
 export type AuditSeverity = "ok" | "warn" | "error";
 
