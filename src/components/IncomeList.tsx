@@ -14,6 +14,7 @@ import { DatePickerField } from "@/components/ui/date-picker-field";
 import { todayInAppTz, todayDateInAppTz } from "@/lib/timezone";
 import { IncomeBalanceCard } from "./IncomeBalanceCard";
 import { IncomeDashboard } from "./IncomeDashboard";
+import { FinancialHealthDashboard } from "./FinancialHealthDashboard";
 import { IncomePendingCalendar } from "./IncomePendingCalendar";
 import { IncomeForm, INCOME_CATEGORIES } from "./IncomeForm";
 import { ConfirmDeleteDialog } from "./ConfirmDeleteDialog";
