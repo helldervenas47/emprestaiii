@@ -188,6 +188,22 @@ const GOAL_EXPLANATIONS: Record<GoalType, {
     },
     measurement: "Meta INVERSA: quanto menor, melhor. Atingimento = máx(0, 100 − (Realizado ÷ Meta) × 100).",
   },
+  daily_received_avg: {
+    formula: "Média diária = Total recebido no mês ÷ Dias corridos do mês até hoje",
+    indicators: [
+      "Total Recebido = soma de todos os pagamentos com data no mês",
+      "Dias corridos = somente dias do início do mês até a data atual (não conta o mês inteiro)",
+      "Necessário/dia = (Meta mensal − Total recebido) ÷ Dias restantes do mês",
+      "Atingimento medido contra a Meta MENSAL cadastrada",
+    ],
+    dataSource: ["Tabela de Pagamentos (payments)", "Campo: amount, date", "Filtro: date no mês selecionado"],
+    example: {
+      setup: "Hoje é dia 10 do mês. Meta mensal: R$ 60.000. Total recebido: R$ 20.000.",
+      calc: "Média diária = 20.000 ÷ 10 = R$ 2.000/dia. Necessário/dia = (60.000 − 20.000) ÷ 20 dias restantes",
+      result: "Média diária atual = R$ 2.000/dia · Necessário = R$ 2.000/dia",
+    },
+    measurement: "Atingimento = (Total Recebido ÷ Meta Mensal) × 100. Quando atingir 100%, exibe 'Meta atingida'.",
+  },
 };
 
 type Unit = "%" | "R$" | "qtd";
@@ -204,6 +220,7 @@ const GOAL_TYPE_META: Record<GoalType, { label: string; icon: any; unit: Unit; c
   max_default_rate:   { label: "Inadimplência Máxima",             icon: AlertTriangle, unit: "%",   color: "text-destructive", bgColor: "bg-destructive/15", description: "Limite máximo de % de parcelas em atraso (meta inversa).", inverse: true },
   new_clients_count:  { label: "Novos Clientes",                   icon: UserPlus,      unit: "qtd", color: "text-primary",     bgColor: "bg-primary/15",     description: "Clientes cadastrados no período." },
   renegotiation_rate: { label: "Taxa de Renegociação",             icon: RefreshCw,     unit: "%",   color: "text-destructive", bgColor: "bg-destructive/15", description: "% do valor a receber no mês que foi renegociado (meta inversa).", inverse: true },
+  daily_received_avg: { label: "Média Recebida por Dia",           icon: HandCoins,     unit: "R$",  color: "text-success",     bgColor: "bg-success/15",     description: "Meta mensal com média diária e necessário/dia restante." },
 };
 
 interface Props {
