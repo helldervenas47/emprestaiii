@@ -702,7 +702,26 @@ export function GoalsCard({ loans, payments, expenses, clients, installmentSched
       const targetAmount = g.goalType === "profit" && expectedReceivable !== null
         ? expectedReceivable * (g.targetValue / 100)
         : null;
-      return { ...g, actual, pct, meta, expectedReceivable, targetAmount, isLocked: monthClosed && !!snapshot?.finalized };
+
+      // Para "Média Geral Recebida por Dia": exibir como média diária e comparar contra meta diária implícita
+      let receivedTotal: number | null = null;
+      let monthlyPct: number | null = null;
+      if (g.goalType === "daily_received_avg") {
+        const [yy, mm] = computeMonth.split("-").map(Number);
+        const today = new Date();
+        const cur = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}`;
+        const daysInMonth = new Date(yy, mm, 0).getDate();
+        const isCurrent = computeMonth === cur;
+        const daysElapsed = isCurrent ? today.getDate() : (computeMonth < cur ? daysInMonth : 1);
+        receivedTotal = actual;
+        monthlyPct = g.targetValue > 0 ? Math.min(100, (actual / g.targetValue) * 100) : 0;
+        const dailyAvg = daysElapsed > 0 ? actual / daysElapsed : 0;
+        const dailyTarget = daysInMonth > 0 ? g.targetValue / daysInMonth : 0;
+        actual = dailyAvg;
+        pct = dailyTarget > 0 ? Math.min(100, (dailyAvg / dailyTarget) * 100) : 0;
+      }
+
+      return { ...g, actual, pct, meta, expectedReceivable, targetAmount, receivedTotal, monthlyPct, isLocked: monthClosed && !!snapshot?.finalized };
     });
   }, [goals, loans, payments, expenses, clients, installmentSchedules, renegotiations, selectedMonth, currentMonth, currentActiveCapital, getSnapshotAmount, getSnapshot]);
 
