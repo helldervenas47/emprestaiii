@@ -230,9 +230,16 @@ Deno.serve(async (req) => {
 
   const auth = req.headers.get("Authorization") || "";
   const token = auth.replace(/^Bearer\s+/i, "");
-  const isCron = token === SERVICE_ROLE;
+  const cronTokenHeader = req.headers.get("X-Backup-Cron-Token") || "";
 
   const admin = createClient(SUPABASE_URL, SERVICE_ROLE);
+
+  // Verifica se a chamada veio do cron interno
+  let isCron = false;
+  if (cronTokenHeader) {
+    const { data } = await admin.from("app_internal_config").select("value").eq("key", "backup_cron_token").maybeSingle();
+    if (data?.value && data.value === cronTokenHeader) isCron = true;
+  }
 
   try {
     if (isCron) {
