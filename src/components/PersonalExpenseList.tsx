@@ -19,7 +19,7 @@ import {
 import {
   Search, Trash2, CheckCircle, Receipt, Calendar,
   CircleDollarSign, ChevronLeft, ChevronRight, Undo2, TrendingUp, CalendarDays, Target, Pencil,
-  Sparkles, Plus,
+  Sparkles, Plus, ChevronDown,
 } from "lucide-react";
 import { PersonalCategoryCreator } from "@/components/PersonalCategoryCreator";
 import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
