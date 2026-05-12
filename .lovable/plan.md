@@ -1,52 +1,48 @@
-## Backup diário automático no Google Drive
+## Restaurar backup do Google Drive no app
 
-Snapshot completo dos dados de cada usuário enviado todo dia para uma pasta no Google Drive (sua conta, conectada via conector nativo do Lovable).
+Hoje o backup automático **gera** o JSON e envia pro Drive, mas o app não tem como **importar de volta**. A importação atual só aceita CSV por entidade. Vou adicionar um fluxo dedicado de restauração.
 
-## Como vai funcionar
+## Como vai funcionar (UX)
 
-1. **Conector Google Drive** ligado ao projeto (você autoriza uma vez sua conta Google).
-2. **Edge function `daily-backup`**: para cada `owner_id`, lê todas as tabelas relevantes e gera um JSON único.
-3. **Upload no Drive** em `Backups Empresta.aí / {nome ou e-mail do usuário}/{YYYY-MM-DD}.json`.
-4. **Agendamento `pg_cron`** roda a função todo dia às 03:00.
-5. **Retenção**: mantém últimos 30 backups por usuário, apaga mais antigos.
-6. **UI em Configurações → Backup**:
-   - Status: "Backup automático: ativo · último em DD/MM HH:MM"
-   - Botão "Gerar backup agora"
-   - Lista dos últimos backups com link direto para abrir no Drive
-   - Toggle on/off por usuário
+Em **Configurações → Backup**, dentro do card "Backup automático no Google Drive":
+
+1. Botão **"Restaurar backup"** abre um diálogo com duas opções:
+   - **Selecionar do histórico** — lista os backups recentes do Drive (já existe a lista) com botão "Restaurar" em cada um.
+   - **Enviar arquivo JSON** — upload manual de um `.json` que o usuário baixou do Drive.
+2. Antes de restaurar, mostra confirmação clara com:
+   - Data do backup, tamanho, quantas linhas por tabela
+   - Modo: **Mesclar** (default — só insere o que falta, não toca em nada existente) ou **Substituir** (apaga tudo do owner e reinsere — exige digitar "RESTAURAR" para confirmar)
+3. Durante a restauração: barra de progresso por tabela, e ao final um resumo (X linhas restauradas, Y ignoradas por já existirem, Z erros).
 
 ## O que será criado
 
-**Banco**
-- `account_settings.auto_backup_enabled boolean default true`
-- `account_settings.last_auto_backup_at timestamptz`
-- `account_settings.last_auto_backup_drive_url text`
-- Tabela `backup_history` (id, owner_id, created_at, drive_file_id, drive_url, size_bytes, status, error)
-- Job `pg_cron` diário chamando a edge function
-
-**Edge functions**
-- `daily-backup` — modo agendado (todos os usuários ativos) e modo on-demand (usuário autenticado)
-- `list-backups` — lê `backup_history` do usuário
+**Edge function `restore-backup`**
+- Recebe `{ source: "drive" | "upload", driveFileId?, jsonContent?, mode: "merge" | "replace" }`
+- Valida JWT do usuário e descobre `owner_id` real (via `get_data_owner_id`)
+- Se `source=drive`: baixa o arquivo do Drive via gateway (`GET /drive/v3/files/{id}?alt=media`) e valida que o `__meta.owner_id` do JSON bate com o owner do usuário autenticado (segurança — impede restaurar backup de outro)
+- Para cada tabela do snapshot:
+   - **merge**: `upsert` por `id` com `onConflict: 'id', ignoreDuplicates: true` — preserva o que já existe
+   - **replace**: `delete` filtrando pelo `ownerCol` do owner, depois `insert` em lote
+- Respeita ordem de tabelas para evitar quebrar foreign keys (clientes antes de empréstimos, empréstimos antes de pagamentos/parcelas, etc.)
+- Retorna resumo `{ table: { inserted, skipped, errors } }`
 
 **Frontend**
-- `src/components/BackupExport.tsx` — novo bloco "Backup automático no Google Drive"
-- Hook `useAutoBackups.ts`
+- `RestoreBackupDialog.tsx` — novo diálogo com as duas opções, preview, escolha de modo e confirmação
+- Botão "Restaurar backup" no `AutoBackupCard.tsx`
+- Após sucesso, dispara recarga dos hooks (invalidar caches de loans/clients/etc) e toast
 
-## Detalhes técnicos
+**Sem mudanças de schema** — o JSON do backup já contém `id` e todos os campos.
 
-- Snapshot em JSON (formato fiel; reimportação manual já existe pela tela atual).
-- Tabelas incluídas: loans, payments, clients, sales, expenses, incomes, monthly_goals, payment_methods, piggy_banks, products, vehicles, credit_cards, notes — confirmar lista final na implementação.
-- Edge function usa `service_role` para ler dados de todos os owners no modo agendado; on-demand valida JWT.
-- Upload no Drive via gateway `https://connector-gateway.lovable.dev/google_drive/...` com `multipart` upload.
-- Estrutura da pasta criada na primeira execução; `folder_id` cacheado em `account_settings`.
+## Detalhes técnicos / segurança
 
-## Limitações importantes
+- Restauração só pode acontecer para o **próprio owner** do usuário logado. O `owner_id` do JSON é checado contra `get_data_owner_id(auth.uid())`. Tentativa de restaurar backup de outro retorna 403.
+- Modo **replace** é destrutivo: a função roda dentro de uma sequência de deletes ordenados (filhos antes de pais) e exige confirmação textual no frontend.
+- Modo **merge** é seguro e idempotente: usa `upsert` ignorando conflitos por `id`. Útil para "restaurar dados perdidos sem mexer no que está atual".
+- Se o JSON tiver tabelas que não existem mais no schema atual, são ignoradas com aviso no resumo.
+- Tamanho do arquivo: backups grandes (>5MB) são processados em chunks de 500 linhas por tabela.
 
-- **Todos os backups vão para a sua conta Google** (do dono do app), não para a conta de cada usuário final. Se quiser que cada usuário receba na própria conta, é preciso OAuth por usuário (fluxo bem mais complexo) — não está incluso aqui.
-- Não é point-in-time recovery do banco, é snapshot lógico diário.
-- Restauração automática a partir de um backup do Drive não está inclusa nesta entrega; o usuário pode baixar o JSON e usar "Importar" manualmente (precisa do importador JSON, que adiciono se ainda não existir).
+## Limitações
 
-## Pré-requisitos antes de implementar
-
-- Conectar o Google Drive ao projeto (vou te chamar o seletor de conexão na hora).
-- Confirmar se quer 30 dias de retenção e horário 03:00 (BRT).
+- Restaurar **não recria usuários nem auth** — só os dados do owner. Login, perfis em `auth.users`, senhas, sessões: nada disso é mexido.
+- Tabelas relacionadas a Telegram/WhatsApp **não fazem parte** da restauração no modo replace (evita duplicar mensagens, links, bots) — só são restauradas em merge.
+- Não restaura arquivos de storage (logos, branding) — só dados tabulares.

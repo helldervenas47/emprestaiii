@@ -2,14 +2,16 @@ import { useEffect, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
-import { Cloud, ExternalLink, Loader2, RefreshCw } from "lucide-react";
+import { Cloud, ExternalLink, Loader2, RefreshCw, RotateCcw } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { RestoreBackupDialog } from "./RestoreBackupDialog";
 
 interface BackupHistoryItem {
   id: string;
   created_at: string;
   drive_url: string | null;
+  drive_file_id: string | null;
   filename: string | null;
   size_bytes: number | null;
   status: string;
@@ -36,6 +38,7 @@ export function AutoBackupCard() {
   const [running, setRunning] = useState(false);
   const [history, setHistory] = useState<BackupHistoryItem[]>([]);
   const [savingToggle, setSavingToggle] = useState(false);
+  const [restoreOpen, setRestoreOpen] = useState(false);
 
   async function load() {
     setLoading(true);
@@ -53,7 +56,7 @@ export function AutoBackupCard() {
       }
       const { data: hist } = await supabase
         .from("backup_history")
-        .select("id, created_at, drive_url, filename, size_bytes, status, error, triggered_by")
+        .select("id, created_at, drive_url, drive_file_id, filename, size_bytes, status, error, triggered_by")
         .order("created_at", { ascending: false })
         .limit(20);
       setHistory((hist as BackupHistoryItem[]) || []);
@@ -134,6 +137,9 @@ export function AutoBackupCard() {
                 </a>
               </Button>
             )}
+            <Button variant="outline" size="sm" onClick={() => setRestoreOpen(true)} className="gap-1">
+              <RotateCcw className="h-3.5 w-3.5" /> Restaurar
+            </Button>
             <Button size="sm" onClick={runNow} disabled={running} className="gap-1">
               {running ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
               Gerar agora
@@ -169,6 +175,12 @@ export function AutoBackupCard() {
           </div>
         )}
       </CardContent>
+      <RestoreBackupDialog
+        open={restoreOpen}
+        onOpenChange={setRestoreOpen}
+        history={history}
+        onRestored={() => { load(); setTimeout(() => window.location.reload(), 1500); }}
+      />
     </Card>
   );
 }
