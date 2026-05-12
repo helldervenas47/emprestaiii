@@ -102,7 +102,7 @@ function computeScore(m: MonthMetrics, piggyBalance: number, avgExpense: number)
 export function FinancialHealthDashboard({ incomes, expenses, monthKey }: Props) {
   const { hidden } = useHideValues();
   const { deposits } = usePiggyBanks();
-  const [expanded, setExpanded] = useState(true);
+  const [expanded, setExpanded] = useState(false);
 
   const data = useMemo(() => {
     const piggyBalance = deposits.reduce((s, d) => s + (Number(d.amount) || 0), 0);
