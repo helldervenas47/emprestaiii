@@ -175,6 +175,12 @@ export function AutoBackupCard() {
           </div>
         )}
       </CardContent>
+      <RestoreBackupDialog
+        open={restoreOpen}
+        onOpenChange={setRestoreOpen}
+        history={history}
+        onRestored={() => { load(); setTimeout(() => window.location.reload(), 1500); }}
+      />
     </Card>
   );
 }
