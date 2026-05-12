@@ -2235,7 +2235,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
               )}
               <div className="border-t pt-2 flex justify-between text-sm font-semibold px-2">
                 <span>Total</span>
-                <span className="text-accent">{formatCurrency(data.totalIncome)}</span>
+                <span className="text-accent text-green-400">{formatCurrency(data.totalIncome)}</span>
               </div>
             </div>
           </CardContent>
