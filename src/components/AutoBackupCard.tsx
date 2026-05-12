@@ -2,10 +2,11 @@ import { useEffect, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
-import { Cloud, ExternalLink, Loader2, RefreshCw, RotateCcw } from "lucide-react";
+import { Cloud, ExternalLink, Key, Loader2, RefreshCw, RotateCcw } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { RestoreBackupDialog } from "./RestoreBackupDialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 interface BackupHistoryItem {
   id: string;
@@ -39,6 +40,7 @@ export function AutoBackupCard() {
   const [history, setHistory] = useState<BackupHistoryItem[]>([]);
   const [savingToggle, setSavingToggle] = useState(false);
   const [restoreOpen, setRestoreOpen] = useState(false);
+  const [apiKeyOpen, setApiKeyOpen] = useState(false);
 
   async function load() {
     setLoading(true);
@@ -137,6 +139,9 @@ export function AutoBackupCard() {
                 </a>
               </Button>
             )}
+            <Button variant="outline" size="sm" onClick={() => setApiKeyOpen(true)} className="gap-1">
+              <Key className="h-3.5 w-3.5" /> Chave API
+            </Button>
             <Button variant="outline" size="sm" onClick={() => setRestoreOpen(true)} className="gap-1">
               <RotateCcw className="h-3.5 w-3.5" /> Restaurar
             </Button>
@@ -181,6 +186,32 @@ export function AutoBackupCard() {
         history={history}
         onRestored={() => { load(); setTimeout(() => window.location.reload(), 1500); }}
       />
+      <Dialog open={apiKeyOpen} onOpenChange={setApiKeyOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2"><Key className="h-5 w-5" /> Chave API do Google Drive</DialogTitle>
+            <DialogDescription>
+              Os backups são enviados para a conta Google conectada ao app. Para trocar a conta que recebe os backups, reconecte a integração do Google Drive.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 text-sm">
+            <ol className="list-decimal pl-5 space-y-2 text-muted-foreground">
+              <li>Abra a tela de <strong>Conectores</strong> do Lovable Cloud.</li>
+              <li>Localize <strong>Google Drive</strong> na lista de conexões.</li>
+              <li>Clique em <strong>Reconectar</strong> e faça login com a conta Google que deve receber os backups.</li>
+              <li>Volte aqui e clique em <em>Gerar agora</em> para validar.</li>
+            </ol>
+            <Button asChild className="w-full gap-1">
+              <a href="https://lovable.dev/projects/a2e7985c-0a3e-4625-9cac-584b7fc384f5/connectors" target="_blank" rel="noreferrer">
+                <ExternalLink className="h-4 w-4" /> Abrir Conectores
+              </a>
+            </Button>
+            <p className="text-xs text-muted-foreground">
+              Após trocar a conta, novos backups irão para a nova conta. Os arquivos antigos continuam na conta anterior do Drive.
+            </p>
+          </div>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 }
