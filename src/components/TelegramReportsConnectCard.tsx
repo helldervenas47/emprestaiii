@@ -10,7 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useTelegramReportsLink } from "@/hooks/useTelegramReportsLink";
 import { usePersonalInsightsTelegramPrefs, type InsightTone } from "@/hooks/usePersonalInsightsTelegramPrefs";
-import { TelegramManagerWeeklyCard } from "@/components/TelegramManagerWeeklyCard";
+
 
 const TONE_OPTIONS: { value: InsightTone; label: string; hint: string }[] = [
   { value: "balanced", label: "⚖️ Equilibrado", hint: "Profissional e acolhedor" },
@@ -263,11 +263,6 @@ export const TelegramReportsConnectCard = forwardRef<HTMLDivElement, Record<stri
           </div>
         )}
 
-        {linked && (
-          <div className="border-t pt-3 mt-3">
-            <TelegramManagerWeeklyCard />
-          </div>
-        )}
       </CardContent>
     </Card>
   );
