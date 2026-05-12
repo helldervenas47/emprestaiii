@@ -308,41 +308,44 @@ export function IncomeList({ readOnly }: Props) {
                 </div>
                 {!readOnly && (
                    <div className="flex items-center justify-between gap-1 mt-3 pt-3 border-t border-border/30">
-                     <Button
-                       size="icon"
-                       variant="ghost"
-                       onClick={() => setViewDateTarget(i)}
-                       className="h-9 flex-1"
-                       title="Ver data de pagamento"
-                       aria-label="Ver data de pagamento"
-                     >
-                       <CalendarCheck className="h-4 w-4" />
-                     </Button>
-                     {i.status !== "received" && (
-                       <Button
-                         size="icon"
-                         variant="outline"
-                         onClick={() => {
-                           setPayTarget(i);
-                           setPayDate(todayInAppTz());
-                           setPayAmount("");
-                         }}
-                         className="h-9 flex-1"
-                         title="Pagar"
-                         aria-label="Pagar"
-                       >
-                         <CheckCircle2 className="h-4 w-4" />
-                       </Button>
-                     )}
-                     <Button size="icon" variant="ghost" onClick={() => { setEditing(i); setFormOpen(true); }} className="h-9 flex-1" title="Editar" aria-label="Editar">
-                       <Pencil className="h-4 w-4" />
-                     </Button>
-                     <Button size="icon" variant="ghost" onClick={() => duplicateIncome(i.id)} className="h-9 flex-1" title="Duplicar" aria-label="Duplicar">
-                       <Copy className="h-4 w-4" />
-                     </Button>
-                     <Button size="icon" variant="ghost" onClick={() => { setDeleteTarget(i); setDeleteScope("single"); }} className="h-9 flex-1 text-destructive hover:text-destructive" title="Excluir" aria-label="Excluir">
-                       <Trash2 className="h-4 w-4" />
-                     </Button>
+                      <Button
+                        variant="ghost"
+                        onClick={() => setViewDateTarget(i)}
+                        className="h-9 w-9 md:w-auto md:px-3 flex-1 min-h-0"
+                        title="Ver data de pagamento"
+                        aria-label="Ver data de pagamento"
+                      >
+                        <CalendarCheck className="h-4 w-4" />
+                        <span className="hidden md:inline">Data</span>
+                      </Button>
+                      {i.status !== "received" && (
+                        <Button
+                          variant="outline"
+                          onClick={() => {
+                            setPayTarget(i);
+                            setPayDate(todayInAppTz());
+                            setPayAmount("");
+                          }}
+                          className="h-9 w-9 md:w-auto md:px-3 flex-1 min-h-0"
+                          title="Pagar"
+                          aria-label="Pagar"
+                        >
+                          <CheckCircle2 className="h-4 w-4" />
+                          <span className="hidden md:inline">Pagar</span>
+                        </Button>
+                      )}
+                      <Button variant="ghost" onClick={() => { setEditing(i); setFormOpen(true); }} className="h-9 w-9 md:w-auto md:px-3 flex-1 min-h-0" title="Editar" aria-label="Editar">
+                        <Pencil className="h-4 w-4" />
+                        <span className="hidden md:inline">Editar</span>
+                      </Button>
+                      <Button variant="ghost" onClick={() => duplicateIncome(i.id)} className="h-9 w-9 md:w-auto md:px-3 flex-1 min-h-0" title="Duplicar" aria-label="Duplicar">
+                        <Copy className="h-4 w-4" />
+                        <span className="hidden md:inline">Duplicar</span>
+                      </Button>
+                      <Button variant="ghost" onClick={() => { setDeleteTarget(i); setDeleteScope("single"); }} className="h-9 w-9 md:w-auto md:px-3 flex-1 min-h-0 text-destructive hover:text-destructive" title="Excluir" aria-label="Excluir">
+                        <Trash2 className="h-4 w-4" />
+                        <span className="hidden md:inline">Excluir</span>
+                      </Button>
                    </div>
                 )}
               </div>
