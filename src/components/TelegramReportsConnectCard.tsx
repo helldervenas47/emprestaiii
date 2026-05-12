@@ -263,11 +263,6 @@ export const TelegramReportsConnectCard = forwardRef<HTMLDivElement, Record<stri
           </div>
         )}
 
-        {linked && (
-          <div className="border-t pt-3 mt-3">
-            <TelegramManagerWeeklyCard />
-          </div>
-        )}
       </CardContent>
     </Card>
   );
