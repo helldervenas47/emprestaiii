@@ -5,17 +5,17 @@ import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 
 const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-xl text-sm font-medium ring-offset-background transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 touch-manipulation active:scale-[0.97] active:opacity-90 relative after:absolute after:inset-[-4px] after:content-[''] md:after:hidden ripple-touch",
+  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-2xl text-sm font-medium ring-offset-background transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 touch-manipulation active:scale-[0.97] active:opacity-90 relative after:absolute after:inset-[-4px] after:content-[''] md:after:hidden ripple-touch",
   {
     variants: {
       variant: {
-        default: "btn-gradient-hover btn-gradient-hover--primary bg-primary text-primary-foreground shadow-[0_0_16px_-2px_hsl(var(--primary)/0.5)] hover:shadow-[0_0_24px_-2px_hsl(var(--primary)/0.7)]",
-        destructive: "btn-gradient-hover btn-gradient-hover--destructive bg-destructive text-destructive-foreground shadow-[0_0_16px_-2px_hsl(var(--destructive)/0.5)] hover:shadow-[0_0_24px_-2px_hsl(var(--destructive)/0.7)]",
-        outline: "btn-sweep-hover border border-input bg-background",
-        secondary: "bg-secondary text-secondary-foreground hover:bg-secondary/80",
-        ghost: "hover:bg-accent hover:text-accent-foreground",
+        default: "btn-gradient-hover btn-gradient-hover--primary bg-primary text-primary-foreground shadow-[0_8px_24px_-8px_hsl(var(--primary)/0.55)] hover:shadow-[0_12px_32px_-8px_hsl(var(--primary)/0.75)]",
+        destructive: "btn-gradient-hover btn-gradient-hover--destructive bg-destructive text-destructive-foreground shadow-[0_8px_24px_-8px_hsl(var(--destructive)/0.55)] hover:shadow-[0_12px_32px_-8px_hsl(var(--destructive)/0.75)]",
+        outline: "btn-sweep-hover border border-white/15 dark:border-white/[0.08] bg-white/5 dark:bg-white/[0.04] backdrop-blur-md hover:bg-white/10 dark:hover:bg-white/[0.08]",
+        secondary: "bg-secondary/70 text-secondary-foreground backdrop-blur-md border border-white/10 hover:bg-secondary/90",
+        ghost: "hover:bg-white/10 dark:hover:bg-white/[0.06] hover:text-accent-foreground",
         link: "text-primary underline-offset-4 hover:underline",
-        success: "btn-gradient-hover btn-gradient-hover--success bg-success text-success-foreground shadow-[0_0_16px_-2px_hsl(var(--success)/0.5)] hover:shadow-[0_0_24px_-2px_hsl(var(--success)/0.7)]",
+        success: "btn-gradient-hover btn-gradient-hover--success bg-success text-success-foreground shadow-[0_8px_24px_-8px_hsl(var(--success)/0.55)] hover:shadow-[0_12px_32px_-8px_hsl(var(--success)/0.75)]",
       },
       size: {
         default: "h-11 px-4 py-2 min-h-[44px]",
