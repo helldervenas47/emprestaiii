@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Income } from "@/hooks/useIncomes";
 import { Expense } from "@/types/loan";
@@ -32,6 +32,8 @@ import {
   Wallet,
   PiggyBank,
   ArrowDownRight,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react";
 
 const COLOR_GREEN = "#10B981";
@@ -100,6 +102,7 @@ function computeScore(m: MonthMetrics, piggyBalance: number, avgExpense: number)
 export function FinancialHealthDashboard({ incomes, expenses, monthKey }: Props) {
   const { hidden } = useHideValues();
   const { deposits } = usePiggyBanks();
+  const [expanded, setExpanded] = useState(true);
 
   const data = useMemo(() => {
     const piggyBalance = deposits.reduce((s, d) => s + (Number(d.amount) || 0), 0);
@@ -205,9 +208,19 @@ export function FinancialHealthDashboard({ incomes, expenses, monthKey }: Props)
             <p className="text-muted-foreground text-xs">Visão geral do mês</p>
           </div>
         </div>
-        <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-foreground/5 border border-black/10 dark:border-white/10 backdrop-blur-md">
-          <Sparkles className="h-3.5 w-3.5" style={{ color: scoreColor }} />
-          <span className="text-xs text-muted-foreground font-medium">Powered by AI insights</span>
+        <div className="flex items-center gap-2">
+          <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-foreground/5 border border-black/10 dark:border-white/10 backdrop-blur-md">
+            <Sparkles className="h-3.5 w-3.5" style={{ color: scoreColor }} />
+            <span className="text-xs text-muted-foreground font-medium">Powered by AI insights</span>
+          </div>
+          <button
+            type="button"
+            onClick={() => setExpanded((v) => !v)}
+            className="sm:hidden flex h-9 w-9 items-center justify-center rounded-full bg-foreground/5 border border-black/10 dark:border-white/10 backdrop-blur-md text-foreground/80 active:scale-95 transition"
+            aria-label={expanded ? "Recolher" : "Expandir"}
+          >
+            {expanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+          </button>
         </div>
       </div>
 
@@ -301,7 +314,7 @@ export function FinancialHealthDashboard({ incomes, expenses, monthKey }: Props)
       </div>
 
       {/* Cards de insights */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
+      <div className={`${expanded ? "grid" : "hidden"} sm:grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6`}>
         <InsightCard
           icon={<Wallet className="h-4 w-4" />}
           accent={data.current.income >= data.current.expense ? COLOR_GREEN : COLOR_RED}
