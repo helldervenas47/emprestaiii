@@ -38,6 +38,7 @@ export function AutoBackupCard() {
   const [running, setRunning] = useState(false);
   const [history, setHistory] = useState<BackupHistoryItem[]>([]);
   const [savingToggle, setSavingToggle] = useState(false);
+  const [restoreOpen, setRestoreOpen] = useState(false);
 
   async function load() {
     setLoading(true);
