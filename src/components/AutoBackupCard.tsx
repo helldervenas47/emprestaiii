@@ -41,6 +41,31 @@ export function AutoBackupCard() {
   const [savingToggle, setSavingToggle] = useState(false);
   const [restoreOpen, setRestoreOpen] = useState(false);
   const [apiKeyOpen, setApiKeyOpen] = useState(false);
+  const [apiKeyValue, setApiKeyValue] = useState("");
+  const [savingApiKey, setSavingApiKey] = useState(false);
+
+  useEffect(() => {
+    if (apiKeyOpen) {
+      setApiKeyValue(localStorage.getItem("gdrive_api_key_override") || "");
+    }
+  }, [apiKeyOpen]);
+
+  async function saveApiKey() {
+    setSavingApiKey(true);
+    try {
+      const trimmed = apiKeyValue.trim();
+      if (trimmed) {
+        localStorage.setItem("gdrive_api_key_override", trimmed);
+        toast.success("Chave API salva. Os próximos backups usarão esta conta.");
+      } else {
+        localStorage.removeItem("gdrive_api_key_override");
+        toast.success("Chave API removida. Voltando à conta padrão.");
+      }
+      setApiKeyOpen(false);
+    } finally {
+      setSavingApiKey(false);
+    }
+  }
 
   async function load() {
     setLoading(true);
