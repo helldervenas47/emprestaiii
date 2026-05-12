@@ -81,7 +81,7 @@ export function AccountantReport({ loans, payments, sales, expenses }: Accountan
     const periodPayments = payments.filter((p) => matchPeriod(p.date));
     const periodExpenses = expenses.filter((e) => {
       const dt = e.paidDate ?? e.paid_date ?? e.dueDate ?? e.due_date;
-      return e.paid && (e.scope ?? "business") !== "personal" && matchPeriod(dt);
+      return e.paid && (e.scope ?? "business") !== "personal" && !isVehicleExpenseCategory(e.category) && matchPeriod(dt);
     });
 
     type Kind = "juros_puro" | "amortizacao" | "quitacao" | "parcela" | "sem_vinculo" | "split";
