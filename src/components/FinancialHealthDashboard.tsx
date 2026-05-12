@@ -181,13 +181,13 @@ export function FinancialHealthDashboard({ incomes, expenses, monthKey }: Props)
   const gaugeData = [{ name: "score", value: data.score, fill: scoreColor }];
 
   return (
-    <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#0B1120] via-[#0F172A] to-[#1E293B] p-5 sm:p-7 shadow-[0_30px_80px_-20px_rgba(0,0,0,0.6)] border border-white/5">
+    <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-white via-slate-50 to-blue-50/60 dark:from-[#0B1120] dark:via-[#0F172A] dark:to-[#1E293B] p-5 sm:p-7 shadow-[0_20px_60px_-20px_hsl(220_30%_8%/0.18)] dark:shadow-[0_30px_80px_-20px_rgba(0,0,0,0.6)] border border-black/5 dark:border-white/5">
       {/* Glow accents */}
       <div
-        className="pointer-events-none absolute -top-24 -right-24 h-72 w-72 rounded-full blur-3xl opacity-30"
+        className="pointer-events-none absolute -top-24 -right-24 h-72 w-72 rounded-full blur-3xl opacity-25 dark:opacity-30"
         style={{ background: `radial-gradient(circle, ${scoreColor}, transparent 70%)` }}
       />
-      <div className="pointer-events-none absolute -bottom-32 -left-20 h-72 w-72 rounded-full blur-3xl opacity-20"
+      <div className="pointer-events-none absolute -bottom-32 -left-20 h-72 w-72 rounded-full blur-3xl opacity-15 dark:opacity-20"
         style={{ background: "radial-gradient(circle, #6366F1, transparent 70%)" }}
       />
 
@@ -195,19 +195,19 @@ export function FinancialHealthDashboard({ incomes, expenses, monthKey }: Props)
       <div className="relative flex items-center justify-between mb-6">
         <div className="flex items-center gap-2.5">
           <div
-            className="flex h-10 w-10 items-center justify-center rounded-2xl border border-white/10 backdrop-blur-md"
+            className="flex h-10 w-10 items-center justify-center rounded-2xl border border-black/10 dark:border-white/10 backdrop-blur-md"
             style={{ background: `linear-gradient(135deg, ${scoreColor}33, transparent)` }}
           >
             <Heart className="h-5 w-5" style={{ color: scoreColor }} />
           </div>
           <div>
-            <h3 className="text-white text-base sm:text-lg font-semibold tracking-tight">Saúde Financeira</h3>
-            <p className="text-white/50 text-xs">Visão geral do mês</p>
+            <h3 className="text-foreground text-base sm:text-lg font-semibold tracking-tight">Saúde Financeira</h3>
+            <p className="text-muted-foreground text-xs">Visão geral do mês</p>
           </div>
         </div>
-        <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 backdrop-blur-md">
+        <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-foreground/5 border border-black/10 dark:border-white/10 backdrop-blur-md">
           <Sparkles className="h-3.5 w-3.5" style={{ color: scoreColor }} />
-          <span className="text-xs text-white/70 font-medium">Powered by AI insights</span>
+          <span className="text-xs text-muted-foreground font-medium">Powered by AI insights</span>
         </div>
       </div>
 
@@ -231,9 +231,8 @@ export function FinancialHealthDashboard({ incomes, expenses, monthKey }: Props)
                 </linearGradient>
               </defs>
               <PolarAngleAxis type="number" domain={[0, 100]} tick={false} />
-              {/* Background track */}
               <RadialBar
-                background={{ fill: "rgba(255,255,255,0.06)" }}
+                background={{ fill: "hsl(var(--foreground) / 0.06)" }}
                 dataKey="value"
                 cornerRadius={20}
                 fill="url(#gaugeFill)"
@@ -243,16 +242,15 @@ export function FinancialHealthDashboard({ incomes, expenses, monthKey }: Props)
             </RadialBarChart>
           </ResponsiveContainer>
 
-          {/* Color zones below as text legend */}
           <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center text-center">
-            <span className="text-white/50 text-[11px] tracking-widest uppercase">Score</span>
+            <span className="text-muted-foreground text-[11px] tracking-widest uppercase">Score</span>
             <span
               className="text-6xl sm:text-7xl font-bold leading-none mt-1 transition-all"
               style={{ color: scoreColor, textShadow: `0 0 32px ${scoreColor}66` }}
             >
               {data.score}
             </span>
-            <span className="text-white/40 text-sm mt-1">de 100</span>
+            <span className="text-muted-foreground text-sm mt-1">de 100</span>
             <div
               className="mt-3 inline-flex items-center gap-1.5 px-3 py-1 rounded-full border backdrop-blur-md"
               style={{
@@ -271,15 +269,15 @@ export function FinancialHealthDashboard({ incomes, expenses, monthKey }: Props)
         <div className="-mt-4 flex items-center justify-between px-2 text-[10px] uppercase tracking-wider">
           <div className="flex items-center gap-1.5">
             <span className="h-2 w-2 rounded-full" style={{ background: COLOR_RED }} />
-            <span className="text-white/40">0-39</span>
+            <span className="text-muted-foreground">0-39</span>
           </div>
           <div className="flex items-center gap-1.5">
             <span className="h-2 w-2 rounded-full" style={{ background: COLOR_YELLOW }} />
-            <span className="text-white/40">40-69</span>
+            <span className="text-muted-foreground">40-69</span>
           </div>
           <div className="flex items-center gap-1.5">
             <span className="h-2 w-2 rounded-full" style={{ background: COLOR_GREEN }} />
-            <span className="text-white/40">70-100</span>
+            <span className="text-muted-foreground">70-100</span>
           </div>
         </div>
       </div>
@@ -288,7 +286,7 @@ export function FinancialHealthDashboard({ incomes, expenses, monthKey }: Props)
       <div className="text-center mb-7">
         <div
           className={`inline-flex items-center gap-1.5 text-sm ${
-            data.improvementPct >= 0 ? "text-emerald-400" : "text-rose-400"
+            data.improvementPct >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"
           }`}
         >
           {data.improvementPct >= 0 ? (
@@ -331,9 +329,9 @@ export function FinancialHealthDashboard({ incomes, expenses, monthKey }: Props)
 function GlassCard({ title, children, className = "" }: { title: string; children: React.ReactNode; className?: string }) {
   return (
     <div
-      className={`rounded-2xl border border-white/10 bg-white/[0.03] backdrop-blur-xl p-4 shadow-[0_8px_32px_-12px_rgba(0,0,0,0.4)] ${className}`}
+      className={`rounded-2xl border border-black/10 dark:border-white/10 bg-foreground/[0.03] backdrop-blur-xl p-4 shadow-[0_8px_32px_-12px_hsl(220_30%_8%/0.18)] dark:shadow-[0_8px_32px_-12px_rgba(0,0,0,0.4)] ${className}`}
     >
-      <h4 className="text-white/80 text-xs font-semibold uppercase tracking-wider mb-3">{title}</h4>
+      <h4 className="text-foreground/80 text-xs font-semibold uppercase tracking-wider mb-3">{title}</h4>
       {children}
     </div>
   );
@@ -351,7 +349,7 @@ function InsightCard({
   value: string;
 }) {
   return (
-    <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-white/[0.03] backdrop-blur-xl p-4 transition-all hover:bg-white/[0.06] hover:scale-[1.02]">
+    <div className="relative overflow-hidden rounded-2xl border border-black/10 dark:border-white/10 bg-foreground/[0.03] backdrop-blur-xl p-4 transition-all hover:bg-foreground/[0.06] hover:scale-[1.02]">
       <div
         className="absolute inset-x-0 top-0 h-px"
         style={{ background: `linear-gradient(90deg, transparent, ${accent}, transparent)` }}
@@ -363,9 +361,9 @@ function InsightCard({
         >
           {icon}
         </span>
-        <span className="text-white/60 text-xs">{title}</span>
+        <span className="text-muted-foreground text-xs">{title}</span>
       </div>
-      <div className="text-white text-xl font-bold tracking-tight">{value}</div>
+      <div className="text-foreground text-xl font-bold tracking-tight">{value}</div>
     </div>
   );
 }
