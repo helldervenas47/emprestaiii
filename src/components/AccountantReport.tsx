@@ -256,7 +256,7 @@ export function AccountantReport({ loans, payments, sales, expenses }: Accountan
       const c = (cat || "").toLowerCase();
       return TAX_CATEGORIES.some((t) => c.includes(t));
     };
-    const periodTaxes = expenses.filter((e) => isTax(e.category) && matchPeriod(e.dueDate ?? e.due_date));
+    const periodTaxes = expenses.filter((e) => isTax(e.category) && !isVehicleExpenseCategory(e.category) && matchPeriod(e.dueDate ?? e.due_date));
     const paid = periodTaxes.filter((e) => e.paid).reduce((s, x) => s + (Number(x.amount) || 0), 0);
     const pending = periodTaxes.filter((e) => !e.paid).reduce((s, x) => s + (Number(x.amount) || 0), 0);
     return { items: periodTaxes, paid, pending, total: paid + pending };
