@@ -55,7 +55,7 @@ export function AutoBackupCard() {
       }
       const { data: hist } = await supabase
         .from("backup_history")
-        .select("id, created_at, drive_url, filename, size_bytes, status, error, triggered_by")
+        .select("id, created_at, drive_url, drive_file_id, filename, size_bytes, status, error, triggered_by")
         .order("created_at", { ascending: false })
         .limit(20);
       setHistory((hist as BackupHistoryItem[]) || []);
