@@ -702,7 +702,26 @@ export function GoalsCard({ loans, payments, expenses, clients, installmentSched
       const targetAmount = g.goalType === "profit" && expectedReceivable !== null
         ? expectedReceivable * (g.targetValue / 100)
         : null;
-      return { ...g, actual, pct, meta, expectedReceivable, targetAmount, isLocked: monthClosed && !!snapshot?.finalized };
+
+      // Para "Média Geral Recebida por Dia": exibir como média diária e comparar contra meta diária implícita
+      let receivedTotal: number | null = null;
+      let monthlyPct: number | null = null;
+      if (g.goalType === "daily_received_avg") {
+        const [yy, mm] = computeMonth.split("-").map(Number);
+        const today = new Date();
+        const cur = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}`;
+        const daysInMonth = new Date(yy, mm, 0).getDate();
+        const isCurrent = computeMonth === cur;
+        const daysElapsed = isCurrent ? today.getDate() : (computeMonth < cur ? daysInMonth : 1);
+        receivedTotal = actual;
+        monthlyPct = g.targetValue > 0 ? Math.min(100, (actual / g.targetValue) * 100) : 0;
+        const dailyAvg = daysElapsed > 0 ? actual / daysElapsed : 0;
+        const dailyTarget = daysInMonth > 0 ? g.targetValue / daysInMonth : 0;
+        actual = dailyAvg;
+        pct = dailyTarget > 0 ? Math.min(100, (dailyAvg / dailyTarget) * 100) : 0;
+      }
+
+      return { ...g, actual, pct, meta, expectedReceivable, targetAmount, receivedTotal, monthlyPct, isLocked: monthClosed && !!snapshot?.finalized };
     });
   }, [goals, loans, payments, expenses, clients, installmentSchedules, renegotiations, selectedMonth, currentMonth, currentActiveCapital, getSnapshotAmount, getSnapshot]);
 
@@ -1368,11 +1387,12 @@ function GoalDetailDialog({ open, onClose, goal, viewingMonth, payments, loans, 
                     ? today.getDate()
                     : (computeMonth < currentMonth ? daysInMonth : 1);
                   const daysLeft = isCurrent ? Math.max(0, daysInMonth - today.getDate()) : 0;
-                  const receivedTotal = goal.actual; // já é o total recebido no mês
+                  const receivedTotal = (goal as any).receivedTotal ?? goal.actual;
                   const dailyAvg = daysElapsed > 0 ? receivedTotal / daysElapsed : 0;
                   const reached = receivedTotal >= goal.targetValue;
                   const remaining = Math.max(0, goal.targetValue - receivedTotal);
                   const neededPerDay = !reached && daysLeft > 0 ? remaining / daysLeft : 0;
+                  const monthlyPct = (goal as any).monthlyPct ?? (goal.targetValue > 0 ? Math.min(100, (receivedTotal / goal.targetValue) * 100) : 0);
                   return (
                     <div className="mt-3 space-y-2">
                       <div className="grid grid-cols-2 gap-2 text-center">
@@ -1384,7 +1404,7 @@ function GoalDetailDialog({ open, onClose, goal, viewingMonth, payments, loans, 
                         <div className="rounded-md border border-border bg-card/60 p-2">
                           <p className="text-[10px] text-muted-foreground uppercase">Meta mensal</p>
                           <p className="text-sm font-bold text-foreground">{fmtValue(goal.targetValue, "R$", hidden)}</p>
-                          <p className="text-[9px] text-muted-foreground mt-0.5">{goal.pct.toFixed(0)}% atingido</p>
+                          <p className="text-[9px] text-muted-foreground mt-0.5">{monthlyPct.toFixed(0)}% atingido</p>
                         </div>
                         <div className="rounded-md border border-border bg-card/60 p-2">
                           <p className="text-[10px] text-muted-foreground uppercase">Recebido total</p>
