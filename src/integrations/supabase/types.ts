@@ -84,8 +84,12 @@ export type Database = {
       }
       account_settings: {
         Row: {
+          auto_backup_enabled: boolean
+          backup_drive_folder_id: string | null
           created_at: string
           id: string
+          last_auto_backup_at: string | null
+          last_auto_backup_drive_url: string | null
           max_credit_limit: number | null
           owner_id: string
           require_approval: boolean
@@ -94,8 +98,12 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          auto_backup_enabled?: boolean
+          backup_drive_folder_id?: string | null
           created_at?: string
           id?: string
+          last_auto_backup_at?: string | null
+          last_auto_backup_drive_url?: string | null
           max_credit_limit?: number | null
           owner_id: string
           require_approval?: boolean
@@ -104,8 +112,12 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          auto_backup_enabled?: boolean
+          backup_drive_folder_id?: string | null
           created_at?: string
           id?: string
+          last_auto_backup_at?: string | null
+          last_auto_backup_drive_url?: string | null
           max_credit_limit?: number | null
           owner_id?: string
           require_approval?: boolean
@@ -241,6 +253,45 @@ export type Database = {
           sizes?: Json
           updated_at?: string
           updated_by?: string | null
+        }
+        Relationships: []
+      }
+      backup_history: {
+        Row: {
+          created_at: string
+          drive_file_id: string | null
+          drive_url: string | null
+          error: string | null
+          filename: string | null
+          id: string
+          owner_id: string
+          size_bytes: number | null
+          status: string
+          triggered_by: string
+        }
+        Insert: {
+          created_at?: string
+          drive_file_id?: string | null
+          drive_url?: string | null
+          error?: string | null
+          filename?: string | null
+          id?: string
+          owner_id: string
+          size_bytes?: number | null
+          status?: string
+          triggered_by?: string
+        }
+        Update: {
+          created_at?: string
+          drive_file_id?: string | null
+          drive_url?: string | null
+          error?: string | null
+          filename?: string | null
+          id?: string
+          owner_id?: string
+          size_bytes?: number | null
+          status?: string
+          triggered_by?: string
         }
         Relationships: []
       }
