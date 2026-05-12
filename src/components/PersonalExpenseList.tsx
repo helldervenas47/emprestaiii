@@ -1489,6 +1489,14 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, onUpda
           })()}
         </DialogContent>
       </Dialog>
+
+      {invoiceCard && (
+        <CreditCardInvoice
+          card={invoiceCard}
+          referenceMonth={selectedMonth}
+          onClose={() => setInvoiceCard(null)}
+        />
+      )}
     </div>
   );
 }
