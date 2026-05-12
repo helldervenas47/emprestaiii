@@ -220,23 +220,29 @@ export function AutoBackupCard() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2"><Key className="h-5 w-5" /> Chave API do Google Drive</DialogTitle>
             <DialogDescription>
-              Os backups são enviados para a conta Google conectada ao app. Para trocar a conta que recebe os backups, reconecte a integração do Google Drive.
+              Cole abaixo a chave/token da conta Google que deve receber os próximos backups. Deixe em branco para voltar à conta padrão.
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-3 text-sm">
-            <ol className="list-decimal pl-5 space-y-2 text-muted-foreground">
-              <li>Abra a tela de <strong>Conectores</strong> do Lovable Cloud.</li>
-              <li>Localize <strong>Google Drive</strong> na lista de conexões.</li>
-              <li>Clique em <strong>Reconectar</strong> e faça login com a conta Google que deve receber os backups.</li>
-              <li>Volte aqui e clique em <em>Gerar agora</em> para validar.</li>
-            </ol>
-            <Button asChild className="w-full gap-1">
-              <a href="https://lovable.dev/projects/a2e7985c-0a3e-4625-9cac-584b7fc384f5/connectors" target="_blank" rel="noreferrer">
-                <ExternalLink className="h-4 w-4" /> Abrir Conectores
-              </a>
-            </Button>
+          <div className="space-y-3">
+            <div className="space-y-1.5">
+              <Label htmlFor="gdrive-api-key" className="text-sm">Chave API</Label>
+              <Input
+                id="gdrive-api-key"
+                type="password"
+                placeholder="Cole sua chave API aqui"
+                value={apiKeyValue}
+                onChange={(e) => setApiKeyValue(e.target.value)}
+                autoComplete="off"
+              />
+            </div>
+            <div className="flex justify-end gap-2 pt-1">
+              <Button variant="ghost" size="sm" onClick={() => setApiKeyOpen(false)}>Cancelar</Button>
+              <Button size="sm" onClick={saveApiKey} disabled={savingApiKey} className="gap-1">
+                {savingApiKey && <Loader2 className="h-3.5 w-3.5 animate-spin" />} Salvar
+              </Button>
+            </div>
             <p className="text-xs text-muted-foreground">
-              Após trocar a conta, novos backups irão para a nova conta. Os arquivos antigos continuam na conta anterior do Drive.
+              A chave fica armazenada apenas neste dispositivo. Os arquivos antigos continuam na conta anterior.
             </p>
           </div>
         </DialogContent>
