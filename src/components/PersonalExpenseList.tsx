@@ -122,6 +122,7 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, onUpda
   const [budgetEditOpen, setBudgetEditOpen] = useState(false);
   const [budgetDraft, setBudgetDraft] = useState<Record<string, string>>({});
   const [expensesExpanded, setExpensesExpanded] = useState(false);
+  const [categoryChartExpanded, setCategoryChartExpanded] = useState(false);
   const [invoiceCard, setInvoiceCard] = useState<CreditCard | null>(null);
   const {
     budgets,
