@@ -136,17 +136,23 @@ async function deleteFile(id: string): Promise<void> {
 
 async function backupOwner(supabase: any, ownerId: string, profile: { display_name?: string; email?: string }, triggeredBy: "cron" | "manual"): Promise<{ ok: true; url: string; size: number; filename: string } | { ok: false; error: string }> {
   try {
+    // Coleta todos os user_ids que pertencem a esse owner (owner + sub-contas)
+    const { data: linked } = await supabase.from("user_owner").select("user_id").eq("owner_id", ownerId);
+    const userIds = Array.from(new Set([ownerId, ...((linked || []).map((r: any) => r.user_id))]));
+
     // Snapshot
     const snapshot: Record<string, any> = {
       __meta: {
-        version: 1,
+        version: 2,
         owner_id: ownerId,
+        member_user_ids: userIds,
         generated_at: new Date().toISOString(),
         triggered_by: triggeredBy,
       },
     };
     for (const t of TABLES) {
-      const { data, error } = await supabase.from(t.name).select("*").eq(t.ownerCol, ownerId);
+      const filterValues = t.ownerCol === "owner_id" ? [ownerId] : userIds;
+      const { data, error } = await supabase.from(t.name).select("*").in(t.ownerCol, filterValues);
       if (error) {
         snapshot[t.name] = { __error: error.message };
       } else {
