@@ -359,7 +359,7 @@ export function AccountantReport({ loans, payments, sales, expenses }: Accountan
     // Vendas excluídas do contador (apenas empréstimos e despesas empresariais)
     const outExpenses = expenses.filter((e) => {
       const dt = e.paidDate ?? e.paid_date ?? e.dueDate ?? e.due_date;
-      return e.paid && (e.scope ?? "business") !== "personal" && matchPeriod(dt);
+      return e.paid && (e.scope ?? "business") !== "personal" && !isVehicleExpenseCategory(e.category) && matchPeriod(dt);
     });
     outExpenses.forEach((e) => {
       const d = e.paidDate ?? e.paid_date ?? e.dueDate ?? e.due_date;
