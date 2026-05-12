@@ -186,6 +186,32 @@ export function AutoBackupCard() {
         history={history}
         onRestored={() => { load(); setTimeout(() => window.location.reload(), 1500); }}
       />
+      <Dialog open={apiKeyOpen} onOpenChange={setApiKeyOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2"><Key className="h-5 w-5" /> Chave API do Google Drive</DialogTitle>
+            <DialogDescription>
+              Os backups são enviados para a conta Google conectada ao app. Para trocar a conta que recebe os backups, reconecte a integração do Google Drive.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 text-sm">
+            <ol className="list-decimal pl-5 space-y-2 text-muted-foreground">
+              <li>Abra a tela de <strong>Conectores</strong> do Lovable Cloud.</li>
+              <li>Localize <strong>Google Drive</strong> na lista de conexões.</li>
+              <li>Clique em <strong>Reconectar</strong> e faça login com a conta Google que deve receber os backups.</li>
+              <li>Volte aqui e clique em <em>Gerar agora</em> para validar.</li>
+            </ol>
+            <Button asChild className="w-full gap-1">
+              <a href="https://lovable.dev/projects/a2e7985c-0a3e-4625-9cac-584b7fc384f5/connectors" target="_blank" rel="noreferrer">
+                <ExternalLink className="h-4 w-4" /> Abrir Conectores
+              </a>
+            </Button>
+            <p className="text-xs text-muted-foreground">
+              Após trocar a conta, novos backups irão para a nova conta. Os arquivos antigos continuam na conta anterior do Drive.
+            </p>
+          </div>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 }
