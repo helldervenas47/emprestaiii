@@ -496,31 +496,36 @@ export function ExpenseList({ expenses, onPay, onUnpay, onDelete, onUpdate, read
                       <div className="mt-2 pt-2 border-t border-border/40 space-y-2">
                         <p className="text-base sm:text-lg font-bold text-foreground">{formatCurrency(installmentAmount)}</p>
                         <div className="flex items-center justify-between gap-1">
-                          <Button size="icon" variant="ghost" onClick={() => setViewDateExpenseId(expense.id)} className="h-9 flex-1" title="Ver data de pagamento" aria-label="Ver data de pagamento">
+                          <Button variant="ghost" onClick={() => setViewDateExpenseId(expense.id)} className="h-9 w-9 md:w-auto md:px-3 flex-1 min-h-0" title="Ver data de pagamento" aria-label="Ver data de pagamento">
                             <CalendarCheck className="h-4 w-4" />
+                            <span className="hidden md:inline">Data</span>
                           </Button>
                           {hasPaidSomething && onUpdate && (
-                            <Button size="icon" variant="outline" onClick={() => setViewPaymentsExpenseId(expense.id)} className="h-9 flex-1" title="Pagamentos" aria-label="Pagamentos">
+                            <Button variant="outline" onClick={() => setViewPaymentsExpenseId(expense.id)} className="h-9 w-9 md:w-auto md:px-3 flex-1 min-h-0" title="Pagamentos" aria-label="Pagamentos">
                               <Receipt className="h-4 w-4" />
+                              <span className="hidden md:inline">Pagamentos</span>
                             </Button>
                           )}
                           {!readOnly && !expense.paid && (
-                            <Button size="icon" variant="outline" className="text-success border-success/30 hover:bg-success hover:text-success-foreground h-9 flex-1" title="Pagar" aria-label="Pagar" onClick={() => {
+                            <Button variant="outline" className="text-success border-success/30 hover:bg-success hover:text-success-foreground h-9 w-9 md:w-auto md:px-3 flex-1 min-h-0" title="Pagar" aria-label="Pagar" onClick={() => {
                               setPayDate(todayInAppTz());
                               setPaidAmountInput("");
                               setPayingExpenseId(expense.id);
                             }}>
                               <CheckCircle className="h-4 w-4" />
+                              <span className="hidden md:inline">Pagar</span>
                             </Button>
                           )}
                           {!readOnly && onUpdate && (
-                            <Button size="icon" variant="ghost" onClick={() => setEditingExpenseId(expense.id)} className="h-9 flex-1 text-muted-foreground hover:text-foreground" title="Editar" aria-label="Editar">
+                            <Button variant="ghost" onClick={() => setEditingExpenseId(expense.id)} className="h-9 w-9 md:w-auto md:px-3 flex-1 min-h-0 text-muted-foreground hover:text-foreground" title="Editar" aria-label="Editar">
                               <Pencil className="h-4 w-4" />
+                              <span className="hidden md:inline">Editar</span>
                             </Button>
                           )}
                           {!readOnly && (
-                          <Button size="icon" variant="ghost" className="h-9 flex-1 text-destructive hover:bg-destructive hover:text-destructive-foreground" title="Excluir" aria-label="Excluir" onClick={() => setDeleteExpenseId(expense.id)}>
+                          <Button variant="ghost" className="h-9 w-9 md:w-auto md:px-3 flex-1 min-h-0 text-destructive hover:bg-destructive hover:text-destructive-foreground" title="Excluir" aria-label="Excluir" onClick={() => setDeleteExpenseId(expense.id)}>
                             <Trash2 className="h-4 w-4" />
+                            <span className="hidden md:inline">Excluir</span>
                           </Button>
                           )}
                         </div>
