@@ -42,7 +42,7 @@ export function ProductForm({ onAdd, onClose }: Props) {
   return (
     <div className="fixed inset-0 bg-foreground/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
       <SuccessAnimation show={showSuccess} onComplete={onClose} message="Produto cadastrado!" />
-      <Card className="w-full max-w-md">
+      <Card className="!bg-card !backdrop-blur-none supports-[backdrop-filter]:!bg-card dark:!bg-card w-full max-w-md">
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle className="text-xl">Novo Produto</CardTitle>
           <Button variant="ghost" size="icon" onClick={onClose}><X className="h-5 w-5" /></Button>
