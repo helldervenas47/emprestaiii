@@ -103,7 +103,7 @@ export function runAccountantAudit(input: AuditInput): AuditReport {
 
   const periodPayments = payments.filter((p) => matchPeriod(p.date));
   const periodSales = sales.filter((s) => matchPeriod(s.sale_date));
-  const periodExpenses = expenses.filter((e) => e.paid && matchPeriod(e.paid_date || e.due_date));
+  const periodExpenses = expenses.filter((e) => e.paid && !isVehicleExpenseCategory(e.category) && matchPeriod(e.paid_date || e.due_date));
 
   const loanById = new Map<string, any>();
   loans.forEach((l) => loanById.set(l.id, l));
