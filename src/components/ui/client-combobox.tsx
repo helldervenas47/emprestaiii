@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Check, ChevronsUpDown, Plus, User } from "lucide-react";
+import { Check, ChevronsUpDown, Plus, User, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -62,7 +62,21 @@ export function ClientCombobox({
             <User className="h-4 w-4 shrink-0 text-muted-foreground" />
             <span className="truncate">{value || placeholder}</span>
           </span>
-          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+          <span className="flex items-center gap-1 shrink-0">
+            {value && (
+              <span
+                role="button"
+                tabIndex={0}
+                aria-label="Remover cliente"
+                onClick={(e) => { e.stopPropagation(); e.preventDefault(); onChange(""); }}
+                onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.stopPropagation(); e.preventDefault(); onChange(""); } }}
+                className="ml-1 inline-flex h-5 w-5 items-center justify-center rounded hover:bg-muted text-muted-foreground hover:text-foreground"
+              >
+                <X className="h-3.5 w-3.5" />
+              </span>
+            )}
+            <ChevronsUpDown className="ml-1 h-4 w-4 opacity-50" />
+          </span>
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
@@ -72,12 +86,24 @@ export function ClientCombobox({
             value={search}
             onValueChange={setSearch}
           />
-          <CommandList>
+          <CommandList className="max-h-72 overflow-y-auto overscroll-contain">
             <CommandEmpty>
               {trimmedSearch
                 ? "Nenhum resultado. Pressione Enter para usar este nome."
                 : emptyHint}
             </CommandEmpty>
+            {value && (
+              <CommandGroup>
+                <CommandItem
+                  value="__clear__"
+                  onSelect={() => { onChange(""); setOpen(false); }}
+                  className="text-destructive"
+                >
+                  <X className="mr-2 h-4 w-4" />
+                  Remover cliente selecionado
+                </CommandItem>
+              </CommandGroup>
+            )}
             {showCreate && (
               <CommandGroup heading="Novo">
                 <CommandItem
