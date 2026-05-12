@@ -349,7 +349,7 @@ function InsightCard({
   value: string;
 }) {
   return (
-    <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-white/[0.03] backdrop-blur-xl p-4 transition-all hover:bg-white/[0.06] hover:scale-[1.02]">
+    <div className="relative overflow-hidden rounded-2xl border border-black/10 dark:border-white/10 bg-foreground/[0.03] backdrop-blur-xl p-4 transition-all hover:bg-foreground/[0.06] hover:scale-[1.02]">
       <div
         className="absolute inset-x-0 top-0 h-px"
         style={{ background: `linear-gradient(90deg, transparent, ${accent}, transparent)` }}
@@ -361,9 +361,9 @@ function InsightCard({
         >
           {icon}
         </span>
-        <span className="text-white/60 text-xs">{title}</span>
+        <span className="text-muted-foreground text-xs">{title}</span>
       </div>
-      <div className="text-white text-xl font-bold tracking-tight">{value}</div>
+      <div className="text-foreground text-xl font-bold tracking-tight">{value}</div>
     </div>
   );
 }
