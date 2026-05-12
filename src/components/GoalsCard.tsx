@@ -1357,6 +1357,61 @@ function GoalDetailDialog({ open, onClose, goal, viewingMonth, payments, loans, 
                     </div>
                   );
                 })()}
+                {goal.goalType === "daily_received_avg" && (() => {
+                  const computeMonth = viewingMonth || goal.month;
+                  const [yy, mm] = computeMonth.split("-").map(Number);
+                  const today = new Date();
+                  const currentMonth = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}`;
+                  const isCurrent = computeMonth === currentMonth;
+                  const daysInMonth = new Date(yy, mm, 0).getDate();
+                  const daysElapsed = isCurrent
+                    ? today.getDate()
+                    : (computeMonth < currentMonth ? daysInMonth : 1);
+                  const daysLeft = isCurrent ? Math.max(0, daysInMonth - today.getDate()) : 0;
+                  const receivedTotal = goal.actual; // já é o total recebido no mês
+                  const dailyAvg = daysElapsed > 0 ? receivedTotal / daysElapsed : 0;
+                  const reached = receivedTotal >= goal.targetValue;
+                  const remaining = Math.max(0, goal.targetValue - receivedTotal);
+                  const neededPerDay = !reached && daysLeft > 0 ? remaining / daysLeft : 0;
+                  return (
+                    <div className="mt-3 space-y-2">
+                      <div className="grid grid-cols-2 gap-2 text-center">
+                        <div className="rounded-md border border-success/30 bg-success/5 p-2">
+                          <p className="text-[10px] text-muted-foreground uppercase">Média diária atual</p>
+                          <p className="text-sm font-bold text-success">{fmtValue(dailyAvg, "R$", hidden)}</p>
+                          <p className="text-[9px] text-muted-foreground mt-0.5">em {daysElapsed} {daysElapsed === 1 ? "dia" : "dias"}</p>
+                        </div>
+                        <div className="rounded-md border border-border bg-card/60 p-2">
+                          <p className="text-[10px] text-muted-foreground uppercase">Meta mensal</p>
+                          <p className="text-sm font-bold text-foreground">{fmtValue(goal.targetValue, "R$", hidden)}</p>
+                          <p className="text-[9px] text-muted-foreground mt-0.5">{goal.pct.toFixed(0)}% atingido</p>
+                        </div>
+                        <div className="rounded-md border border-border bg-card/60 p-2">
+                          <p className="text-[10px] text-muted-foreground uppercase">Recebido total</p>
+                          <p className="text-sm font-bold text-foreground">{fmtValue(receivedTotal, "R$", hidden)}</p>
+                        </div>
+                        {reached ? (
+                          <div className="rounded-md border border-success/40 bg-success/10 p-2 flex flex-col items-center justify-center">
+                            <CheckCircle2 className="h-4 w-4 text-success mb-0.5" />
+                            <p className="text-sm font-bold text-success">Meta atingida</p>
+                          </div>
+                        ) : isCurrent && daysLeft > 0 ? (
+                          <div className="rounded-md border border-warning/30 bg-warning/5 p-2">
+                            <p className="text-[10px] text-muted-foreground uppercase">Necessário/dia</p>
+                            <p className="text-sm font-bold text-warning">{fmtValue(neededPerDay, "R$", hidden)}</p>
+                            <p className="text-[9px] text-muted-foreground mt-0.5">em {daysLeft} {daysLeft === 1 ? "dia restante" : "dias restantes"}</p>
+                          </div>
+                        ) : (
+                          <div className="rounded-md border border-destructive/30 bg-destructive/5 p-2">
+                            <p className="text-[10px] text-muted-foreground uppercase">Falta para a meta</p>
+                            <p className="text-sm font-bold text-destructive">{fmtValue(remaining, "R$", hidden)}</p>
+                            <p className="text-[9px] text-muted-foreground mt-0.5">sem dias restantes</p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })()}
               </CardContent>
             </Card>
 
