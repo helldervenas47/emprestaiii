@@ -666,19 +666,12 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, onUpda
                     {combined.map((item) => {
                       if (item.kind === "invoice") {
                         const { x, due, overdue } = item.data;
+                        const remaining = x.total - x.paidTotal;
+                        const cardLabel = x.card.nickname || (x.card.lastFour ? `•••• ${x.card.lastFour}` : "");
                         return (
-                          <Card
-                            no3d
-                            key={`invoice-${x.card.id}`}
-                            className={`border-primary/40 bg-primary/5 ${overdue ? "border-destructive/60" : ""}`}
-                          >
+                          <Card no3d key={`invoice-${x.card.id}`} className={overdue ? "border-destructive/50" : ""}>
                             <CardContent className="p-3 sm:p-4">
-                              <button
-                                type="button"
-                                onClick={() => setInvoiceCard(x.card)}
-                                className="flex items-start gap-3 w-full text-left rounded-lg -m-1 p-1 hover:bg-muted/40 transition-colors cursor-pointer"
-                                aria-label={`Pagar fatura do cartão ${x.card.nickname ?? x.card.lastFour ?? ""}`}
-                              >
+                              <div className="flex items-start gap-3">
                                 <div className="h-10 w-10 rounded-xl flex items-center justify-center shrink-0 bg-primary/15">
                                   <CreditCardIcon className="h-5 w-5 text-primary" />
                                 </div>
@@ -686,16 +679,13 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, onUpda
                                   <div className="flex items-start justify-between gap-2">
                                     <div className="min-w-0">
                                       <p className="text-sm font-semibold text-foreground truncate">
-                                        Fatura de Cartão
-                                        {x.card.nickname || x.card.lastFour ? (
-                                          <span className="text-muted-foreground font-normal">
-                                            {" — "}
-                                            {x.card.nickname || `•••• ${x.card.lastFour}`}
-                                          </span>
-                                        ) : null}
+                                        Fatura de Cartão{cardLabel ? ` — ${cardLabel}` : ""}
                                       </p>
                                       <div className="flex items-center gap-2 mt-0.5 text-xs text-muted-foreground flex-wrap">
-                                        <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-primary/40 text-primary">
+                                        <Badge
+                                          variant="outline"
+                                          className="text-[10px] px-1.5 py-0 border-primary/40 text-primary"
+                                        >
                                           {CREDIT_CARD_INVOICE_CATEGORY}
                                         </Badge>
                                         <Badge
@@ -712,13 +702,24 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, onUpda
                                     </div>
                                     <div className="text-right shrink-0">
                                       <p className={`text-sm font-bold ${overdue ? "text-destructive" : "text-foreground"}`}>
-                                        {formatCurrency(x.total - x.paidTotal)}
+                                        {formatCurrency(remaining)}
                                       </p>
-                                      <p className="text-[10px] text-primary mt-0.5">Pagar fatura →</p>
                                     </div>
                                   </div>
+                                  {!readOnly && (
+                                    <div className="flex items-center gap-1.5 mt-3">
+                                      <Button
+                                        size="sm"
+                                        className="h-7 text-xs"
+                                        onClick={() => setInvoiceCard(x.card)}
+                                      >
+                                        <CheckCircle className="h-3 w-3 mr-1" />
+                                        Pagar fatura
+                                      </Button>
+                                    </div>
+                                  )}
                                 </div>
-                              </button>
+                              </div>
                             </CardContent>
                           </Card>
                         );
