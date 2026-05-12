@@ -19,7 +19,7 @@ import {
 import {
   Search, Trash2, CheckCircle, Receipt, Calendar,
   CircleDollarSign, ChevronLeft, ChevronRight, Undo2, TrendingUp, CalendarDays, Target, Pencil,
-  Sparkles, Plus,
+  Sparkles, Plus, ChevronDown,
 } from "lucide-react";
 import { PersonalCategoryCreator } from "@/components/PersonalCategoryCreator";
 import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
@@ -118,6 +118,7 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, onUpda
   const [summaryExpense, setSummaryExpense] = useState<Expense | null>(null);
   const [budgetEditOpen, setBudgetEditOpen] = useState(false);
   const [budgetDraft, setBudgetDraft] = useState<Record<string, string>>({});
+  const [expensesExpanded, setExpensesExpanded] = useState(false);
   const {
     budgets,
     monthBudgets,
@@ -631,6 +632,274 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, onUpda
         </CardContent>
       </Card>
 
+      {/* Despesas (collapsible) */}
+      <Card no3d>
+        <CardContent className="p-3 sm:p-4">
+          <button
+            type="button"
+            onClick={() => setExpensesExpanded((v) => !v)}
+            className="w-full flex items-center justify-between gap-2 text-left rounded-lg -m-1 p-1 hover:bg-muted/40 active:bg-muted/60 transition-colors"
+            aria-expanded={expensesExpanded}
+            aria-controls="despesas-content"
+          >
+            <div className="flex items-center gap-2">
+              <h3 className="text-sm font-semibold text-foreground">Despesas ({filtered.length})</h3>
+              <ChevronDown
+                className={`h-4 w-4 text-muted-foreground transition-transform duration-300 ${expensesExpanded ? "rotate-180" : ""}`}
+              />
+            </div>
+            <div className="text-right">
+              <div className="text-[11px] text-muted-foreground leading-none">Total</div>
+              <div className="text-base font-bold text-foreground">
+                {formatCurrency(filtered.reduce((s, e) => s + getInstallmentAmount(e), 0))}
+              </div>
+            </div>
+          </button>
+
+          <div
+            id="despesas-content"
+            className={`grid transition-all duration-300 ease-in-out ${expensesExpanded ? "grid-rows-[1fr] opacity-100 mt-3" : "grid-rows-[0fr] opacity-0"}`}
+          >
+            <div className="overflow-hidden min-h-0 space-y-3">
+              <div className="flex flex-col sm:flex-row gap-3">
+                <div className="relative flex-1">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Buscar despesa..."
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    className="pl-10"
+                  />
+                </div>
+                <div className="grid grid-cols-2 sm:flex gap-1">
+                  {filters.map((f) => (
+                    <Button
+                      key={f.id}
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setFilter(f.id)}
+                      className={`rounded-xl transition-all duration-200 ${filter === f.id ? "bg-primary text-primary-foreground border-primary" : ""}`}
+                    >
+                      {f.label} ({f.count})
+                    </Button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Category filter */}
+              <div className="flex items-center gap-2">
+                <Select
+                  value={categoryFilter ?? "__all__"}
+                  onValueChange={(v) => setCategoryFilter(v === "__all__" ? null : v)}
+                >
+                  <SelectTrigger className="h-9 w-full sm:w-64">
+                    <SelectValue placeholder="Filtrar por categoria" />
+                  </SelectTrigger>
+                  <SelectContent className="max-h-72">
+                    <SelectItem value="__all__">Todas categorias</SelectItem>
+                    {allBudgetCategories.map((c) => {
+                      const Icon = c.icon;
+                      return (
+                        <SelectItem key={c.name} value={c.name}>
+                          <span className="inline-flex items-center gap-2">
+                            <Icon className="h-3.5 w-3.5" style={{ color: `hsl(${c.color})` }} />
+                            {c.name}
+                          </span>
+                        </SelectItem>
+                      );
+                    })}
+                  </SelectContent>
+                </Select>
+                {categoryFilter && (
+                  <Button variant="ghost" size="sm" className="h-9 text-xs" onClick={() => setCategoryFilter(null)}>
+                    Limpar
+                  </Button>
+                )}
+              </div>
+
+              {/* Source filter (auto vs manual) */}
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setSourceFilter(sourceFilter === "auto" ? "all" : "auto")}
+                  className={`rounded-xl transition-all duration-200 ${sourceFilter === "auto" ? "bg-primary text-primary-foreground border-primary" : ""}`}
+                  title="Despesas lançadas pelo bot do Telegram"
+                >
+                  Automáticas ({listVisibleMonth.filter(isBotExpense).length})
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setSourceFilter(sourceFilter === "manual" ? "all" : "manual")}
+                  className={`rounded-xl transition-all duration-200 ${sourceFilter === "manual" ? "bg-primary text-primary-foreground border-primary" : ""}`}
+                  title="Despesas registradas manualmente no app"
+                >
+                  Manuais ({listVisibleMonth.filter((e) => !isBotExpense(e)).length})
+                </Button>
+              </div>
+
+              {/* List */}
+              {filtered.length === 0 ? (
+                <Card no3d>
+                  <CardContent className="py-12 text-center">
+                    <Receipt className="h-12 w-12 mx-auto text-muted-foreground/40 mb-3" />
+                    <p className="text-muted-foreground">
+                      {expenses.length === 0 ? "Nenhuma despesa pessoal cadastrada" : "Nenhuma despesa encontrada"}
+                    </p>
+                  </CardContent>
+                </Card>
+              ) : (
+                <div className="space-y-2">
+                  {filtered.map((expense) => {
+                    const overdue = isOverdue(expense);
+                    const isRecorrente = expense.type === "recorrente" && expense.installments && expense.installments > 1;
+                    const installmentAmount = isRecorrente ? expense.amount / expense.installments! : expense.amount;
+                    const parentExpense = expense.parentExpenseId
+                      ? expenses.find((p) => p.id === expense.parentExpenseId)
+                      : null;
+                    const parentIsParcelada =
+                      !!parentExpense &&
+                      parentExpense.type === "recorrente" &&
+                      !!parentExpense.installments &&
+                      parentExpense.installments > 1 &&
+                      parentExpense.installments !== FIXED_RECURRING_INSTALLMENTS;
+                    const cat = resolveCategory(expense.category);
+                    const Icon = cat.icon;
+
+                    return (
+                      <Card no3d key={expense.id} className={overdue ? "border-destructive/50" : ""}>
+                        <CardContent className="p-3 sm:p-4">
+                          {(() => {
+                            const isParceladaFinitaSelf =
+                              isRecorrente && expense.installments !== FIXED_RECURRING_INSTALLMENTS;
+                            const isParceladaFinita = isParceladaFinitaSelf || parentIsParcelada;
+                            const summaryTarget = isParceladaFinitaSelf ? expense : parentExpense;
+                            const InnerWrapper: any = isParceladaFinita ? "button" : "div";
+                            const wrapperProps = isParceladaFinita
+                              ? {
+                                  type: "button",
+                                  onClick: () => summaryTarget && setSummaryExpense(summaryTarget),
+                                  className:
+                                    "flex items-start gap-3 w-full text-left rounded-lg -m-1 p-1 hover:bg-muted/40 transition-colors cursor-pointer",
+                                  "aria-label": `Ver resumo de ${expense.description}`,
+                                }
+                              : { className: "flex items-start gap-3" };
+                            return (
+                              <InnerWrapper {...wrapperProps}>
+                            <div
+                              className="h-10 w-10 rounded-xl flex items-center justify-center shrink-0"
+                              style={{ backgroundColor: `hsl(${cat.color} / 0.15)` }}
+                            >
+                              <Icon className="h-5 w-5" style={{ color: `hsl(${cat.color})` }} />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-start justify-between gap-2">
+                                <div className="min-w-0">
+                                  <p className="text-sm font-semibold text-foreground truncate">{expense.description}</p>
+                                  <div className="flex items-center gap-2 mt-0.5 text-xs text-muted-foreground flex-wrap">
+                                    <Badge
+                                      variant="outline"
+                                      className="text-[10px] px-1.5 py-0"
+                                      style={{ borderColor: `hsl(${cat.color} / 0.5)`, color: `hsl(${cat.color})` }}
+                                    >
+                                      {expense.category}
+                                    </Badge>
+                                    {(() => {
+                                      const badge = getDueStatusBadge(expense.dueDate, expense.paid, { overdue: "Atrasada" });
+                                      return (
+                                        <Badge variant={badge.variant} className={`${badge.className} text-[10px] px-1.5 py-0`}>
+                                          {badge.label}
+                                        </Badge>
+                                      );
+                                    })()}
+                                    {isParceladaFinita && summaryTarget && (() => {
+                                      const total = summaryTarget.installments!;
+                                      let current: number;
+                                      if (isParceladaFinitaSelf) {
+                                        const paidSoFar = expense.paidInstallments ?? 0;
+                                        current = expense.paid
+                                          ? total
+                                          : Math.min(paidSoFar + 1, total);
+                                      } else {
+                                        const siblings = expenses
+                                          .filter((c) => c.parentExpenseId === summaryTarget.id && c.paid)
+                                          .sort((a, b) => {
+                                            const da = a.paidDate ?? a.dueDate ?? "";
+                                            const db = b.paidDate ?? b.dueDate ?? "";
+                                            if (da !== db) return da.localeCompare(db);
+                                            return (a.id ?? "").localeCompare(b.id ?? "");
+                                          });
+                                        const idx = siblings.findIndex((c) => c.id === expense.id);
+                                        current = idx >= 0 ? idx + 1 : 1;
+                                      }
+                                      return (
+                                        <Badge variant="outline" className="text-[10px] px-1.5 py-0">
+                                          {current}/{total} parcelas
+                                        </Badge>
+                                      );
+                                    })()}
+                                    <span className="inline-flex items-center gap-1">
+                                      <Calendar className="h-3 w-3" />
+                                      {format(new Date(expense.dueDate + "T00:00:00"), "dd/MM/yyyy")}
+                                    </span>
+                                  </div>
+                                </div>
+                                <div className="text-right shrink-0">
+                                  <p className={`text-sm font-bold ${expense.paid ? "text-success" : overdue ? "text-destructive" : "text-foreground"}`}>
+                                    {formatCurrency(installmentAmount)}
+                                  </p>
+                                  {expense.paid && expense.paidDate && (
+                                    <p className="text-[10px] text-muted-foreground mt-0.5">
+                                      Pago em {format(new Date(expense.paidDate + "T00:00:00"), "dd/MM/yyyy")}
+                                    </p>
+                                  )}
+                                </div>
+                              </div>
+                              {!readOnly && (
+                                <div
+                                  className="flex items-center gap-1.5 mt-3"
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  {!expense.paid && (
+                                    <Button size="sm" className="h-7 text-xs" onClick={() => openPayDialog(expense.id)}>
+                                      <CheckCircle className="h-3 w-3 mr-1" />
+                                      Pagar
+                                    </Button>
+                                  )}
+                                  {expense.paid && onUnpay && (
+                                    <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => setUnpayingId(expense.id)}>
+                                      <Undo2 className="h-3 w-3 mr-1" />
+                                      Estornar
+                                    </Button>
+                                  )}
+                                  {onUpdate && (
+                                    <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => setEditingExpense(expense)}>
+                                      <Pencil className="h-3 w-3 mr-1" />
+                                      Editar
+                                    </Button>
+                                  )}
+                                  <Button size="sm" variant="ghost" className="h-7 text-xs text-destructive hover:text-destructive hover:bg-destructive/10" onClick={() => setDeleteId(expense.id)}>
+                                    <Trash2 className="h-3 w-3 mr-1" />
+                                    Excluir
+                                  </Button>
+                                </div>
+                              )}
+                            </div>
+                              </InnerWrapper>
+                            );
+                          })()}
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Category chart */}
       {categoryData.length > 0 && (
         <Card no3d>
@@ -714,247 +983,6 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, onUpda
       {typeof afterEvolution === "function"
         ? afterEvolution({ selectedMonth })
         : afterEvolution}
-
-      <div className="flex flex-col sm:flex-row gap-3">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Buscar despesa..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="pl-10"
-          />
-        </div>
-        <div className="grid grid-cols-2 sm:flex gap-1">
-          {filters.map((f) => (
-            <Button
-              key={f.id}
-              variant="outline"
-              size="sm"
-              onClick={() => setFilter(f.id)}
-              className={`rounded-xl transition-all duration-200 ${filter === f.id ? "bg-primary text-primary-foreground border-primary" : ""}`}
-            >
-              {f.label} ({f.count})
-            </Button>
-          ))}
-        </div>
-      </div>
-
-      {/* Category filter */}
-      <div className="flex items-center gap-2">
-        <Select
-          value={categoryFilter ?? "__all__"}
-          onValueChange={(v) => setCategoryFilter(v === "__all__" ? null : v)}
-        >
-          <SelectTrigger className="h-9 w-full sm:w-64">
-            <SelectValue placeholder="Filtrar por categoria" />
-          </SelectTrigger>
-          <SelectContent className="max-h-72">
-            <SelectItem value="__all__">Todas categorias</SelectItem>
-            {allBudgetCategories.map((c) => {
-              const Icon = c.icon;
-              return (
-                <SelectItem key={c.name} value={c.name}>
-                  <span className="inline-flex items-center gap-2">
-                    <Icon className="h-3.5 w-3.5" style={{ color: `hsl(${c.color})` }} />
-                    {c.name}
-                  </span>
-                </SelectItem>
-              );
-            })}
-          </SelectContent>
-        </Select>
-        {categoryFilter && (
-          <Button variant="ghost" size="sm" className="h-9 text-xs" onClick={() => setCategoryFilter(null)}>
-            Limpar
-          </Button>
-        )}
-      </div>
-
-      {/* Source filter (auto vs manual) */}
-      <div className="flex flex-wrap gap-2">
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => setSourceFilter(sourceFilter === "auto" ? "all" : "auto")}
-          className={`rounded-xl transition-all duration-200 ${sourceFilter === "auto" ? "bg-primary text-primary-foreground border-primary" : ""}`}
-          title="Despesas lançadas pelo bot do Telegram"
-        >
-          Automáticas ({listVisibleMonth.filter(isBotExpense).length})
-        </Button>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => setSourceFilter(sourceFilter === "manual" ? "all" : "manual")}
-          className={`rounded-xl transition-all duration-200 ${sourceFilter === "manual" ? "bg-primary text-primary-foreground border-primary" : ""}`}
-          title="Despesas registradas manualmente no app"
-        >
-          Manuais ({listVisibleMonth.filter((e) => !isBotExpense(e)).length})
-        </Button>
-      </div>
-
-      {/* List */}
-      {filtered.length === 0 ? (
-        <Card no3d>
-          <CardContent className="py-12 text-center">
-            <Receipt className="h-12 w-12 mx-auto text-muted-foreground/40 mb-3" />
-            <p className="text-muted-foreground">
-              {expenses.length === 0 ? "Nenhuma despesa pessoal cadastrada" : "Nenhuma despesa encontrada"}
-            </p>
-          </CardContent>
-        </Card>
-      ) : (
-        <div className="space-y-2">
-          {filtered.map((expense) => {
-            const overdue = isOverdue(expense);
-            const isRecorrente = expense.type === "recorrente" && expense.installments && expense.installments > 1;
-            const installmentAmount = isRecorrente ? expense.amount / expense.installments! : expense.amount;
-            // Find parent for child rows (existing installments are stored as separate "fixa" rows linked via parentExpenseId)
-            const parentExpense = expense.parentExpenseId
-              ? expenses.find((p) => p.id === expense.parentExpenseId)
-              : null;
-            const parentIsParcelada =
-              !!parentExpense &&
-              parentExpense.type === "recorrente" &&
-              !!parentExpense.installments &&
-              parentExpense.installments > 1 &&
-              parentExpense.installments !== FIXED_RECURRING_INSTALLMENTS;
-            const cat = resolveCategory(expense.category);
-            const Icon = cat.icon;
-
-            return (
-              <Card no3d key={expense.id} className={overdue ? "border-destructive/50" : ""}>
-                <CardContent className="p-3 sm:p-4">
-                  {(() => {
-                    const isParceladaFinitaSelf =
-                      isRecorrente && expense.installments !== FIXED_RECURRING_INSTALLMENTS;
-                    const isParceladaFinita = isParceladaFinitaSelf || parentIsParcelada;
-                    const summaryTarget = isParceladaFinitaSelf ? expense : parentExpense;
-                    const InnerWrapper: any = isParceladaFinita ? "button" : "div";
-                    const wrapperProps = isParceladaFinita
-                      ? {
-                          type: "button",
-                          onClick: () => summaryTarget && setSummaryExpense(summaryTarget),
-                          className:
-                            "flex items-start gap-3 w-full text-left rounded-lg -m-1 p-1 hover:bg-muted/40 transition-colors cursor-pointer",
-                          "aria-label": `Ver resumo de ${expense.description}`,
-                        }
-                      : { className: "flex items-start gap-3" };
-                    return (
-                      <InnerWrapper {...wrapperProps}>
-                    <div
-                      className="h-10 w-10 rounded-xl flex items-center justify-center shrink-0"
-                      style={{ backgroundColor: `hsl(${cat.color} / 0.15)` }}
-                    >
-                      <Icon className="h-5 w-5" style={{ color: `hsl(${cat.color})` }} />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="min-w-0">
-                          <p className="text-sm font-semibold text-foreground truncate">{expense.description}</p>
-                          <div className="flex items-center gap-2 mt-0.5 text-xs text-muted-foreground flex-wrap">
-                            <Badge
-                              variant="outline"
-                              className="text-[10px] px-1.5 py-0"
-                              style={{ borderColor: `hsl(${cat.color} / 0.5)`, color: `hsl(${cat.color})` }}
-                            >
-                              {expense.category}
-                            </Badge>
-                            {(() => {
-                              const badge = getDueStatusBadge(expense.dueDate, expense.paid, { overdue: "Atrasada" });
-                              return (
-                                <Badge variant={badge.variant} className={`${badge.className} text-[10px] px-1.5 py-0`}>
-                                  {badge.label}
-                                </Badge>
-                              );
-                            })()}
-                            {isParceladaFinita && summaryTarget && (() => {
-                              // Número desta parcela específica:
-                              // - linha pai (recorrente): próxima parcela em aberto = paidInstallments + 1
-                              //   (ou total quando já totalmente paga)
-                              // - linha filha (fixa, ligada por parentExpenseId): posição cronológica
-                              //   entre os irmãos pagos (ordenados por paid_date / created_at).
-                              const total = summaryTarget.installments!;
-                              let current: number;
-                              if (isParceladaFinitaSelf) {
-                                const paidSoFar = expense.paidInstallments ?? 0;
-                                current = expense.paid
-                                  ? total
-                                  : Math.min(paidSoFar + 1, total);
-                              } else {
-                                const siblings = expenses
-                                  .filter((c) => c.parentExpenseId === summaryTarget.id && c.paid)
-                                  .sort((a, b) => {
-                                    const da = a.paidDate ?? a.dueDate ?? "";
-                                    const db = b.paidDate ?? b.dueDate ?? "";
-                                    if (da !== db) return da.localeCompare(db);
-                                    return (a.id ?? "").localeCompare(b.id ?? "");
-                                  });
-                                const idx = siblings.findIndex((c) => c.id === expense.id);
-                                current = idx >= 0 ? idx + 1 : 1;
-                              }
-                              return (
-                                <Badge variant="outline" className="text-[10px] px-1.5 py-0">
-                                  {current}/{total} parcelas
-                                </Badge>
-                              );
-                            })()}
-                            <span className="inline-flex items-center gap-1">
-                              <Calendar className="h-3 w-3" />
-                              {format(new Date(expense.dueDate + "T00:00:00"), "dd/MM/yyyy")}
-                            </span>
-                          </div>
-                        </div>
-                        <div className="text-right shrink-0">
-                          <p className={`text-sm font-bold ${expense.paid ? "text-success" : overdue ? "text-destructive" : "text-foreground"}`}>
-                            {formatCurrency(installmentAmount)}
-                          </p>
-                          {expense.paid && expense.paidDate && (
-                            <p className="text-[10px] text-muted-foreground mt-0.5">
-                              Pago em {format(new Date(expense.paidDate + "T00:00:00"), "dd/MM/yyyy")}
-                            </p>
-                          )}
-                        </div>
-                      </div>
-                      {!readOnly && (
-                        <div
-                          className="flex items-center gap-1.5 mt-3"
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          {!expense.paid && (
-                            <Button size="sm" className="h-7 text-xs" onClick={() => openPayDialog(expense.id)}>
-                              <CheckCircle className="h-3 w-3 mr-1" />
-                              Pagar
-                            </Button>
-                          )}
-                          {expense.paid && onUnpay && (
-                            <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => setUnpayingId(expense.id)}>
-                              <Undo2 className="h-3 w-3 mr-1" />
-                              Estornar
-                            </Button>
-                          )}
-                          {onUpdate && (
-                            <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => setEditingExpense(expense)}>
-                              <Pencil className="h-3 w-3 mr-1" />
-                              Editar
-                            </Button>
-                          )}
-                          <Button size="sm" variant="ghost" className="h-7 text-xs text-destructive hover:text-destructive hover:bg-destructive/10" onClick={() => setDeleteId(expense.id)}>
-                            <Trash2 className="h-3 w-3 mr-1" />
-                            Excluir
-                          </Button>
-                        </div>
-                      )}
-                    </div>
-                      </InnerWrapper>
-                    );
-                  })()}
-                </CardContent>
-              </Card>
-            );
-          })}
-        </div>
-      )}
 
       {/* Pay dialog */}
       <Dialog open={!!payingId} onOpenChange={(o) => !o && setPayingId(null)}>
