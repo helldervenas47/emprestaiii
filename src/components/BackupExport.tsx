@@ -231,6 +231,8 @@ export function BackupExport({ loans, payments, clients, sales, expenses, onImpo
 
   return (
     <div className="space-y-6">
+      <AutoBackupCard />
+
       {/* Hidden file inputs */}
       {sections.map((s) => s.fileRef && (
         <input
