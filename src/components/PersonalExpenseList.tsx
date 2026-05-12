@@ -101,7 +101,7 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, onUpda
   }, [customCategoryList]);
 
   const [search, setSearch] = useState("");
-  const [filter, setFilter] = useState<Filter>("all");
+  const [filter, setFilter] = useState<Filter>("pending");
   const [sourceFilter, setSourceFilter] = useState<"all" | "auto" | "manual">("all");
   const [budgetDetailCat, setBudgetDetailCat] = useState<string | null>(null);
   const [categoryFilter, setCategoryFilter] = useState<string | null>(null);
