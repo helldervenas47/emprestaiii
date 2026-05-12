@@ -711,7 +711,7 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, onUpda
                                     <div className="flex items-center gap-1.5 mt-3">
                                       <Button
                                         size="sm"
-                                        className="h-7 text-xs"
+                                        className="h-7 text-xs flex-1"
                                         onClick={() => setInvoiceCard(x.card)}
                                       >
                                         <CheckCircle className="h-3 w-3 mr-1" />
