@@ -2,10 +2,11 @@ import { useEffect, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
-import { Cloud, ExternalLink, Loader2, RefreshCw, RotateCcw } from "lucide-react";
+import { Cloud, ExternalLink, Key, Loader2, RefreshCw, RotateCcw } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { RestoreBackupDialog } from "./RestoreBackupDialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 interface BackupHistoryItem {
   id: string;
