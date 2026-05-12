@@ -51,3 +51,6 @@ verify_jwt = false
 [functions.list-backups]
 verify_jwt = false
 
+[functions.restore-backup]
+verify_jwt = false
+
