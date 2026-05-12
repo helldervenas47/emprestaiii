@@ -162,6 +162,17 @@
     letter-spacing: -0.01em;
     min-height: 100vh;
     min-height: 100dvh;
+    background-image:
+      radial-gradient(1200px 600px at 12% -10%, hsl(225 90% 65% / 0.18), transparent 60%),
+      radial-gradient(900px 500px at 110% 10%, hsl(262 80% 65% / 0.16), transparent 60%),
+      radial-gradient(800px 600px at 50% 110%, hsl(190 90% 55% / 0.14), transparent 65%);
+    background-attachment: fixed;
+  }
+  .dark body {
+    background-image:
+      radial-gradient(1200px 600px at 12% -10%, hsl(225 90% 55% / 0.22), transparent 60%),
+      radial-gradient(900px 500px at 110% 10%, hsl(262 80% 55% / 0.18), transparent 60%),
+      radial-gradient(800px 600px at 50% 110%, hsl(190 90% 45% / 0.14), transparent 65%);
   }
 
   /* Imersivo: quando rodando como PWA instalado, ocupa tela inteira sem chrome do browser */
