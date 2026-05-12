@@ -72,6 +72,7 @@ export function IncomeList({ readOnly }: Props) {
   const [editingPayDate, setEditingPayDate] = useState(false);
   const [editPayDateValue, setEditPayDateValue] = useState("");
   const [savingPayDate, setSavingPayDate] = useState(false);
+  const [incomesExpanded, setIncomesExpanded] = useState(false);
 
   const nowD = todayDateInAppTz();
   const [selectedMonth, setSelectedMonth] = useState<string>(
