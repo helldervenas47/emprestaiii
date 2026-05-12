@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Loan, Payment, Client, Sale, Expense } from "@/types/loan";
 import { exportLoansToCSV, exportClientsToCSV, exportSalesToCSV, importLoansFromCSV, importClientsFromCSV, importSalesFromCSV, downloadCSV } from "@/lib/csv";
 import { toast } from "sonner";
+import { AutoBackupCard } from "./AutoBackupCard";
 
 interface BackupExportProps {
   loans: Loan[];
@@ -230,6 +231,8 @@ export function BackupExport({ loans, payments, clients, sales, expenses, onImpo
 
   return (
     <div className="space-y-6">
+      <AutoBackupCard />
+
       {/* Hidden file inputs */}
       {sections.map((s) => s.fileRef && (
         <input

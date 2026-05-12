@@ -45,3 +45,9 @@ verify_jwt = false
 [functions.telegram-manager-weekly-summary]
 verify_jwt = false
 
+[functions.daily-backup]
+verify_jwt = false
+
+[functions.list-backups]
+verify_jwt = false
+
