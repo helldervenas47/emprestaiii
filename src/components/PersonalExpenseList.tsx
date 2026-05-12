@@ -851,8 +851,9 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, onUpda
                       </Card>
                     );
                   })}
-                </div>
-              )}
+                  </div>
+                );
+              })()}
             </div>
           </div>
         </CardContent>
