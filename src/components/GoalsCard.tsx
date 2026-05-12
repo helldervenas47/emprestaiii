@@ -188,6 +188,22 @@ const GOAL_EXPLANATIONS: Record<GoalType, {
     },
     measurement: "Meta INVERSA: quanto menor, melhor. Atingimento = máx(0, 100 − (Realizado ÷ Meta) × 100).",
   },
+  daily_received_avg: {
+    formula: "Média diária = Total recebido no mês ÷ Dias corridos do mês até hoje",
+    indicators: [
+      "Total Recebido = soma de todos os pagamentos com data no mês",
+      "Dias corridos = somente dias do início do mês até a data atual (não conta o mês inteiro)",
+      "Necessário/dia = (Meta mensal − Total recebido) ÷ Dias restantes do mês",
+      "Atingimento medido contra a Meta MENSAL cadastrada",
+    ],
+    dataSource: ["Tabela de Pagamentos (payments)", "Campo: amount, date", "Filtro: date no mês selecionado"],
+    example: {
+      setup: "Hoje é dia 10 do mês. Meta mensal: R$ 60.000. Total recebido: R$ 20.000.",
+      calc: "Média diária = 20.000 ÷ 10 = R$ 2.000/dia. Necessário/dia = (60.000 − 20.000) ÷ 20 dias restantes",
+      result: "Média diária atual = R$ 2.000/dia · Necessário = R$ 2.000/dia",
+    },
+    measurement: "Atingimento = (Total Recebido ÷ Meta Mensal) × 100. Quando atingir 100%, exibe 'Meta atingida'.",
+  },
 };
 
 type Unit = "%" | "R$" | "qtd";
@@ -204,6 +220,7 @@ const GOAL_TYPE_META: Record<GoalType, { label: string; icon: any; unit: Unit; c
   max_default_rate:   { label: "Inadimplência Máxima",             icon: AlertTriangle, unit: "%",   color: "text-destructive", bgColor: "bg-destructive/15", description: "Limite máximo de % de parcelas em atraso (meta inversa).", inverse: true },
   new_clients_count:  { label: "Novos Clientes",                   icon: UserPlus,      unit: "qtd", color: "text-primary",     bgColor: "bg-primary/15",     description: "Clientes cadastrados no período." },
   renegotiation_rate: { label: "Taxa de Renegociação",             icon: RefreshCw,     unit: "%",   color: "text-destructive", bgColor: "bg-destructive/15", description: "% do valor a receber no mês que foi renegociado (meta inversa).", inverse: true },
+  daily_received_avg: { label: "Média Recebida por Dia",           icon: HandCoins,     unit: "R$",  color: "text-success",     bgColor: "bg-success/15",     description: "Meta mensal com média diária e necessário/dia restante." },
 };
 
 interface Props {
@@ -512,6 +529,13 @@ export function computeActual(
       if (expected <= 0) return 0;
       return (received / expected) * 100;
     }
+    case "daily_received_avg": {
+      // Total recebido no mês — pct é calculado contra a meta MENSAL.
+      // A média diária e o necessário/dia são derivados na visualização (small card e dashboard).
+      return payments
+        .filter((p: any) => inMonth(p.date, m))
+        .reduce((s: number, p: any) => s + (Number(p.amount) || 0), 0);
+    }
     default:
       return 0;
   }
@@ -521,7 +545,7 @@ const MAX_VISIBLE_GOALS = 8;
 const ALL_GOAL_TYPES: GoalType[] = [
   "interest_rate", "profit", "loan_volume", "new_loans_count",
   "received_total", "interest_received", "active_capital", "net_profit",
-  "max_default_rate", "new_clients_count", "renegotiation_rate",
+  "max_default_rate", "new_clients_count", "renegotiation_rate", "daily_received_avg",
 ];
 
 function loadGoalPrefs(userId: string | null | undefined): { selected: GoalType[]; order: GoalType[] } {
@@ -1329,6 +1353,61 @@ function GoalDetailDialog({ open, onClose, goal, viewingMonth, payments, loans, 
                             {targetReached ? "✓" : fmtValue(diffToTarget, "R$", hidden)}
                           </p>
                         </div>
+                      </div>
+                    </div>
+                  );
+                })()}
+                {goal.goalType === "daily_received_avg" && (() => {
+                  const computeMonth = viewingMonth || goal.month;
+                  const [yy, mm] = computeMonth.split("-").map(Number);
+                  const today = new Date();
+                  const currentMonth = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}`;
+                  const isCurrent = computeMonth === currentMonth;
+                  const daysInMonth = new Date(yy, mm, 0).getDate();
+                  const daysElapsed = isCurrent
+                    ? today.getDate()
+                    : (computeMonth < currentMonth ? daysInMonth : 1);
+                  const daysLeft = isCurrent ? Math.max(0, daysInMonth - today.getDate()) : 0;
+                  const receivedTotal = goal.actual; // já é o total recebido no mês
+                  const dailyAvg = daysElapsed > 0 ? receivedTotal / daysElapsed : 0;
+                  const reached = receivedTotal >= goal.targetValue;
+                  const remaining = Math.max(0, goal.targetValue - receivedTotal);
+                  const neededPerDay = !reached && daysLeft > 0 ? remaining / daysLeft : 0;
+                  return (
+                    <div className="mt-3 space-y-2">
+                      <div className="grid grid-cols-2 gap-2 text-center">
+                        <div className="rounded-md border border-success/30 bg-success/5 p-2">
+                          <p className="text-[10px] text-muted-foreground uppercase">Média diária atual</p>
+                          <p className="text-sm font-bold text-success">{fmtValue(dailyAvg, "R$", hidden)}</p>
+                          <p className="text-[9px] text-muted-foreground mt-0.5">em {daysElapsed} {daysElapsed === 1 ? "dia" : "dias"}</p>
+                        </div>
+                        <div className="rounded-md border border-border bg-card/60 p-2">
+                          <p className="text-[10px] text-muted-foreground uppercase">Meta mensal</p>
+                          <p className="text-sm font-bold text-foreground">{fmtValue(goal.targetValue, "R$", hidden)}</p>
+                          <p className="text-[9px] text-muted-foreground mt-0.5">{goal.pct.toFixed(0)}% atingido</p>
+                        </div>
+                        <div className="rounded-md border border-border bg-card/60 p-2">
+                          <p className="text-[10px] text-muted-foreground uppercase">Recebido total</p>
+                          <p className="text-sm font-bold text-foreground">{fmtValue(receivedTotal, "R$", hidden)}</p>
+                        </div>
+                        {reached ? (
+                          <div className="rounded-md border border-success/40 bg-success/10 p-2 flex flex-col items-center justify-center">
+                            <CheckCircle2 className="h-4 w-4 text-success mb-0.5" />
+                            <p className="text-sm font-bold text-success">Meta atingida</p>
+                          </div>
+                        ) : isCurrent && daysLeft > 0 ? (
+                          <div className="rounded-md border border-warning/30 bg-warning/5 p-2">
+                            <p className="text-[10px] text-muted-foreground uppercase">Necessário/dia</p>
+                            <p className="text-sm font-bold text-warning">{fmtValue(neededPerDay, "R$", hidden)}</p>
+                            <p className="text-[9px] text-muted-foreground mt-0.5">em {daysLeft} {daysLeft === 1 ? "dia restante" : "dias restantes"}</p>
+                          </div>
+                        ) : (
+                          <div className="rounded-md border border-destructive/30 bg-destructive/5 p-2">
+                            <p className="text-[10px] text-muted-foreground uppercase">Falta para a meta</p>
+                            <p className="text-sm font-bold text-destructive">{fmtValue(remaining, "R$", hidden)}</p>
+                            <p className="text-[9px] text-muted-foreground mt-0.5">sem dias restantes</p>
+                          </div>
+                        )}
                       </div>
                     </div>
                   );

@@ -36,6 +36,7 @@ const GOAL_TYPE_META: Record<GoalType, { label: string; icon: any; unit: Unit; c
   max_default_rate:   { label: "Inadimplência Máxima",             icon: AlertTriangle, unit: "%",   color: "text-destructive", description: "Limite máximo de % de parcelas em atraso (meta inversa).", inverse: true },
   new_clients_count:  { label: "Novos Clientes no Mês",            icon: UserPlus,      unit: "qtd", color: "text-primary",     description: "Clientes cadastrados no período." },
   renegotiation_rate: { label: "Taxa de Renegociação Máxima",      icon: RefreshCw,     unit: "%",   color: "text-destructive", description: "Limite máximo de % do valor a receber renegociado no mês (meta inversa).", inverse: true },
+  daily_received_avg: { label: "Média Geral Recebida por Dia",     icon: HandCoins,     unit: "R$",  color: "text-success",     description: "Meta mensal de recebimentos. Mostra média diária e quanto falta receber por dia até o fim do mês." },
 };
 
 const ALL_TYPES = Object.keys(GOAL_TYPE_META) as GoalType[];
