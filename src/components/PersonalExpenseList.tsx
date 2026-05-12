@@ -42,6 +42,9 @@ import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as ReTooltip, LineCha
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { PersonalAIInsightsCard } from "@/components/PersonalAIInsightsCard";
+import { CreditCardInvoice } from "@/components/CreditCardInvoice";
+import type { CreditCard } from "@/hooks/useCreditCards";
+import { CreditCard as CreditCardIcon } from "lucide-react";
 
 
 
