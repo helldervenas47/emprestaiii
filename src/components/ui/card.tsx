@@ -7,7 +7,8 @@ interface CardProps extends React.HTMLAttributes<HTMLDivElement> {
 }
 
 const CARD_GLASS =
-  "rounded-2xl border border-white/10 dark:border-white/[0.08] bg-card/70 dark:bg-card/55 text-card-foreground shadow-[0_8px_32px_-12px_hsl(220_30%_8%/0.18)] backdrop-blur-xl backdrop-saturate-150 supports-[backdrop-filter]:bg-card/60 h-full transition-colors duration-300";
+  "rounded-3xl border border-white/10 dark:border-white/[0.08] bg-card/65 dark:bg-white/[0.04] text-card-foreground shadow-[0_12px_40px_-16px_hsl(220_40%_4%/0.25)] dark:shadow-[0_20px_60px_-20px_hsl(220_60%_2%/0.6)] backdrop-blur-2xl backdrop-saturate-150 supports-[backdrop-filter]:bg-card/55 dark:supports-[backdrop-filter]:bg-white/[0.04] h-full transition-all duration-300";
+
 
 const Card = React.forwardRef<HTMLDivElement, CardProps>(({ className, no3d, ...props }, ref) => {
   if (no3d) {
