@@ -529,6 +529,13 @@ export function computeActual(
       if (expected <= 0) return 0;
       return (received / expected) * 100;
     }
+    case "daily_received_avg": {
+      // Total recebido no mês — pct é calculado contra a meta MENSAL.
+      // A média diária e o necessário/dia são derivados na visualização (small card e dashboard).
+      return payments
+        .filter((p: any) => inMonth(p.date, m))
+        .reduce((s: number, p: any) => s + (Number(p.amount) || 0), 0);
+    }
     default:
       return 0;
   }
@@ -538,7 +545,7 @@ const MAX_VISIBLE_GOALS = 8;
 const ALL_GOAL_TYPES: GoalType[] = [
   "interest_rate", "profit", "loan_volume", "new_loans_count",
   "received_total", "interest_received", "active_capital", "net_profit",
-  "max_default_rate", "new_clients_count", "renegotiation_rate",
+  "max_default_rate", "new_clients_count", "renegotiation_rate", "daily_received_avg",
 ];
 
 function loadGoalPrefs(userId: string | null | undefined): { selected: GoalType[]; order: GoalType[] } {
