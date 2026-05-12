@@ -194,6 +194,167 @@ export function IncomeList({ readOnly }: Props) {
         initialFilter={sheetInitialFilter}
       />
 
+      <Card no3d className="p-4">
+        <button
+          type="button"
+          onClick={() => setIncomesExpanded((v) => !v)}
+          className="w-full flex items-center justify-between gap-2 flex-wrap text-left rounded-lg -m-1 p-1 hover:bg-muted/40 active:bg-muted/60 transition-colors"
+          aria-expanded={incomesExpanded}
+          aria-controls="receitas-content"
+        >
+          <div className="flex items-center gap-2">
+            <h2 className="text-lg font-semibold">Receitas ({filtered.length})</h2>
+            <ChevronDown
+              className={`h-4 w-4 text-muted-foreground transition-transform duration-300 ${incomesExpanded ? "rotate-180" : ""}`}
+            />
+          </div>
+          <div className="text-right">
+            <div className="text-[11px] text-muted-foreground leading-none">
+              {statusFilter === "all" && "Total"}
+              {statusFilter === "received" && "Total recebido"}
+              {statusFilter === "pending" && "Total a receber"}
+              {statusFilter === "overdue" && "Total vencido"}
+              {statusFilter === "pending_all" && "Total a receber"}
+            </div>
+            <div className={`text-base font-bold ${
+              statusFilter === "received" ? "text-emerald-600 dark:text-emerald-400" :
+              statusFilter === "overdue" ? "text-rose-600 dark:text-rose-400" :
+              statusFilter === "pending" ? "text-amber-600 dark:text-amber-400" :
+              "text-foreground"
+            }`}>
+              {fmtBRL(filtered.reduce((s, i) => s + i.amount, 0))}
+            </div>
+          </div>
+        </button>
+
+        <div
+          id="receitas-content"
+          className={`grid transition-all duration-300 ease-in-out ${incomesExpanded ? "grid-rows-[1fr] opacity-100 mt-3" : "grid-rows-[0fr] opacity-0"}`}
+        >
+          <div className="overflow-hidden min-h-0">
+            <div className="grid grid-cols-3 gap-2 mb-3">
+              <Button
+                type="button"
+                size="sm"
+                variant={statusFilter === "all" ? "default" : "outline"}
+                className="h-9 rounded-full min-w-0"
+                onClick={() => setStatusFilter("all")}
+              >
+                Todas
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant={statusFilter === "pending" ? "default" : "outline"}
+                className="h-9 rounded-full min-w-0 gap-1.5"
+                onClick={() => setStatusFilter("pending")}
+              >
+                <Clock className="h-3.5 w-3.5" /> Pendentes
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant={statusFilter === "received" ? "default" : "outline"}
+                className="h-9 rounded-full min-w-0 gap-1.5"
+                onClick={() => setStatusFilter("received")}
+              >
+                <CheckCircle2 className="h-3.5 w-3.5" /> Pagas
+              </Button>
+            </div>
+
+            <div className="mb-4">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Buscar..." className="pl-9 w-full" />
+              </div>
+            </div>
+
+            {filtered.length === 0 ? (
+              <div className="text-center py-12 text-muted-foreground">
+                <p className="text-sm">Nenhuma receita encontrada</p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {filtered.map((i) => (
+                  <div
+                    key={i.id}
+                    className="rounded-xl border border-border/40 bg-card/60 p-3 sm:p-4 hover:border-border/80 transition-all"
+                  >
+                    <div className="flex items-start gap-3 flex-wrap">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="font-medium truncate">{i.description}</span>
+                          <Badge variant="outline" className={STATUS_BADGE[i.status]}>
+                            {i.status === "received" && <CheckCircle2 className="h-3 w-3 mr-1" />}
+                            {i.status === "pending" && <Clock className="h-3 w-3 mr-1" />}
+                            {i.status === "overdue" && <AlertTriangle className="h-3 w-3 mr-1" />}
+                            {STATUS_LABEL[i.status]}
+                          </Badge>
+                          {i.category && <Badge variant="secondary" className="text-xs">{i.category}</Badge>}
+                        </div>
+                        <div className="text-xs text-muted-foreground mt-1 flex flex-wrap gap-x-3 gap-y-0.5">
+                          <span>{format(new Date(i.receivedDate + "T00:00:00"), "dd/MM/yyyy", { locale: ptBR })}</span>
+                          <span>{clientName(i)}</span>
+                          <span>{methodName(i.paymentMethodId)}</span>
+                          {i.recurrence !== "once" && <span className="text-primary">↻ {({ weekly: "Semanal", biweekly: "Quinzenal", monthly: "Mensal", yearly: "Anual" } as Record<string, string>)[i.recurrence] ?? i.recurrence}</span>}
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-lg font-bold text-emerald-600 dark:text-emerald-400">
+                          {fmtBRL(i.amount)}
+                        </div>
+                      </div>
+                    </div>
+                    {!readOnly && (
+                       <div className="flex items-center justify-between gap-1 mt-3 pt-3 border-t border-border/30">
+                          <Button
+                            variant="ghost"
+                            onClick={() => setViewDateTarget(i)}
+                            className="h-9 w-9 md:w-auto md:px-3 flex-1 min-h-0"
+                            title="Ver data de pagamento"
+                            aria-label="Ver data de pagamento"
+                          >
+                            <CalendarCheck className="h-4 w-4" />
+                            <span className="hidden md:inline">Data</span>
+                          </Button>
+                          {i.status !== "received" && (
+                            <Button
+                              variant="outline"
+                              onClick={() => {
+                                setPayTarget(i);
+                                setPayDate(todayInAppTz());
+                                setPayAmount("");
+                              }}
+                              className="h-9 w-9 md:w-auto md:px-3 flex-1 min-h-0"
+                              title="Pagar"
+                              aria-label="Pagar"
+                            >
+                              <CheckCircle2 className="h-4 w-4" />
+                              <span className="hidden md:inline">Pagar</span>
+                            </Button>
+                          )}
+                          <Button variant="ghost" onClick={() => { setEditing(i); setFormOpen(true); }} className="h-9 w-9 md:w-auto md:px-3 flex-1 min-h-0" title="Editar" aria-label="Editar">
+                            <Pencil className="h-4 w-4" />
+                            <span className="hidden md:inline">Editar</span>
+                          </Button>
+                          <Button variant="ghost" onClick={() => duplicateIncome(i.id)} className="h-9 w-9 md:w-auto md:px-3 flex-1 min-h-0" title="Duplicar" aria-label="Duplicar">
+                            <Copy className="h-4 w-4" />
+                            <span className="hidden md:inline">Duplicar</span>
+                          </Button>
+                          <Button variant="ghost" onClick={() => { setDeleteTarget(i); setDeleteScope("single"); }} className="h-9 w-9 md:w-auto md:px-3 flex-1 min-h-0 text-destructive hover:text-destructive" title="Excluir" aria-label="Excluir">
+                            <Trash2 className="h-4 w-4" />
+                            <span className="hidden md:inline">Excluir</span>
+                          </Button>
+                       </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      </Card>
+
       <PiggyBanksSummaryCard readOnly={readOnly} />
       <IncomePendingCalendar
         incomes={incomes.filter((i) => i.source !== "Ajuste manual")}
@@ -218,148 +379,6 @@ export function IncomeList({ readOnly }: Props) {
         )}
         monthKey={monthKey}
       />
-      <Card no3d className="p-4">
-        <div className="flex items-center justify-between mb-3 gap-2 flex-wrap">
-          <h2 className="text-lg font-semibold">Receitas ({filtered.length})</h2>
-          <div className="text-right">
-            <div className="text-[11px] text-muted-foreground leading-none">
-              {statusFilter === "all" && "Total"}
-              {statusFilter === "received" && "Total recebido"}
-              {statusFilter === "pending" && "Total a receber"}
-              {statusFilter === "overdue" && "Total vencido"}
-              {statusFilter === "pending_all" && "Total a receber"}
-            </div>
-            <div className={`text-base font-bold ${
-              statusFilter === "received" ? "text-emerald-600 dark:text-emerald-400" :
-              statusFilter === "overdue" ? "text-rose-600 dark:text-rose-400" :
-              statusFilter === "pending" ? "text-amber-600 dark:text-amber-400" :
-              "text-foreground"
-            }`}>
-              {fmtBRL(filtered.reduce((s, i) => s + i.amount, 0))}
-            </div>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-3 gap-2 mb-3">
-          <Button
-            type="button"
-            size="sm"
-            variant={statusFilter === "all" ? "default" : "outline"}
-            className="h-9 rounded-full min-w-0"
-            onClick={() => setStatusFilter("all")}
-          >
-            Todas
-          </Button>
-          <Button
-            type="button"
-            size="sm"
-            variant={statusFilter === "pending" ? "default" : "outline"}
-            className="h-9 rounded-full min-w-0 gap-1.5"
-            onClick={() => setStatusFilter("pending")}
-          >
-            <Clock className="h-3.5 w-3.5" /> Pendentes
-          </Button>
-          <Button
-            type="button"
-            size="sm"
-            variant={statusFilter === "received" ? "default" : "outline"}
-            className="h-9 rounded-full min-w-0 gap-1.5"
-            onClick={() => setStatusFilter("received")}
-          >
-            <CheckCircle2 className="h-3.5 w-3.5" /> Pagas
-          </Button>
-        </div>
-
-        <div className="mb-4">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Buscar..." className="pl-9 w-full" />
-          </div>
-        </div>
-
-        {filtered.length === 0 ? (
-          <div className="text-center py-12 text-muted-foreground">
-            <p className="text-sm">Nenhuma receita encontrada</p>
-          </div>
-        ) : (
-          <div className="space-y-2">
-            {filtered.map((i) => (
-              <div
-                key={i.id}
-                className="rounded-xl border border-border/40 bg-card/60 p-3 sm:p-4 hover:border-border/80 transition-all"
-              >
-                <div className="flex items-start gap-3 flex-wrap">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="font-medium truncate">{i.description}</span>
-                      <Badge variant="outline" className={STATUS_BADGE[i.status]}>
-                        {i.status === "received" && <CheckCircle2 className="h-3 w-3 mr-1" />}
-                        {i.status === "pending" && <Clock className="h-3 w-3 mr-1" />}
-                        {i.status === "overdue" && <AlertTriangle className="h-3 w-3 mr-1" />}
-                        {STATUS_LABEL[i.status]}
-                      </Badge>
-                      {i.category && <Badge variant="secondary" className="text-xs">{i.category}</Badge>}
-                    </div>
-                    <div className="text-xs text-muted-foreground mt-1 flex flex-wrap gap-x-3 gap-y-0.5">
-                      <span>{format(new Date(i.receivedDate + "T00:00:00"), "dd/MM/yyyy", { locale: ptBR })}</span>
-                      <span>{clientName(i)}</span>
-                      <span>{methodName(i.paymentMethodId)}</span>
-                      {i.recurrence !== "once" && <span className="text-primary">↻ {({ weekly: "Semanal", biweekly: "Quinzenal", monthly: "Mensal", yearly: "Anual" } as Record<string, string>)[i.recurrence] ?? i.recurrence}</span>}
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <div className="text-lg font-bold text-emerald-600 dark:text-emerald-400">
-                      {fmtBRL(i.amount)}
-                    </div>
-                  </div>
-                </div>
-                {!readOnly && (
-                   <div className="flex items-center justify-between gap-1 mt-3 pt-3 border-t border-border/30">
-                      <Button
-                        variant="ghost"
-                        onClick={() => setViewDateTarget(i)}
-                        className="h-9 w-9 md:w-auto md:px-3 flex-1 min-h-0"
-                        title="Ver data de pagamento"
-                        aria-label="Ver data de pagamento"
-                      >
-                        <CalendarCheck className="h-4 w-4" />
-                        <span className="hidden md:inline">Data</span>
-                      </Button>
-                      {i.status !== "received" && (
-                        <Button
-                          variant="outline"
-                          onClick={() => {
-                            setPayTarget(i);
-                            setPayDate(todayInAppTz());
-                            setPayAmount("");
-                          }}
-                          className="h-9 w-9 md:w-auto md:px-3 flex-1 min-h-0"
-                          title="Pagar"
-                          aria-label="Pagar"
-                        >
-                          <CheckCircle2 className="h-4 w-4" />
-                          <span className="hidden md:inline">Pagar</span>
-                        </Button>
-                      )}
-                      <Button variant="ghost" onClick={() => { setEditing(i); setFormOpen(true); }} className="h-9 w-9 md:w-auto md:px-3 flex-1 min-h-0" title="Editar" aria-label="Editar">
-                        <Pencil className="h-4 w-4" />
-                        <span className="hidden md:inline">Editar</span>
-                      </Button>
-                      <Button variant="ghost" onClick={() => duplicateIncome(i.id)} className="h-9 w-9 md:w-auto md:px-3 flex-1 min-h-0" title="Duplicar" aria-label="Duplicar">
-                        <Copy className="h-4 w-4" />
-                        <span className="hidden md:inline">Duplicar</span>
-                      </Button>
-                      <Button variant="ghost" onClick={() => { setDeleteTarget(i); setDeleteScope("single"); }} className="h-9 w-9 md:w-auto md:px-3 flex-1 min-h-0 text-destructive hover:text-destructive" title="Excluir" aria-label="Excluir">
-                        <Trash2 className="h-4 w-4" />
-                        <span className="hidden md:inline">Excluir</span>
-                      </Button>
-                   </div>
-                )}
-              </div>
-            ))}
-          </div>
-        )}
-      </Card>
 
       <Sheet open={statementOpen} onOpenChange={setStatementOpen}>
         <SheetContent side="right" className="w-full sm:max-w-4xl overflow-y-auto">
