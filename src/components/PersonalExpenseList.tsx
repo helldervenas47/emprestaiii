@@ -1025,55 +1025,73 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, onUpda
       {categoryData.length > 0 && (
         <Card no3d>
           <CardContent className="p-4">
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="text-sm font-semibold text-foreground">Gastos por categoria</h3>
-              <span className="text-xs text-muted-foreground">{formatCurrency(totalCategorized)}</span>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
-              <div className="h-48">
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={categoryData}
-                      dataKey="value"
-                      nameKey="name"
-                      innerRadius={45}
-                      outerRadius={75}
-                      paddingAngle={2}
-                    >
-                      {categoryData.map((entry, idx) => (
-                        <Cell key={idx} fill={`hsl(${entry.cat.color})`} />
-                      ))}
-                    </Pie>
-                    <ReTooltip
-                      formatter={(value: number) => fmt(value)}
-                      contentStyle={{
-                        background: "hsl(var(--popover))",
-                        border: "1px solid hsl(var(--border))",
-                        borderRadius: 8,
-                        fontSize: 12,
-                      }}
-                    />
-                  </PieChart>
-                </ResponsiveContainer>
+            <button
+              type="button"
+              onClick={() => setCategoryChartExpanded((v) => !v)}
+              className="w-full flex items-center justify-between gap-2 text-left"
+              aria-expanded={categoryChartExpanded}
+              aria-controls="category-chart-content"
+            >
+              <div className="flex items-center gap-2">
+                <h3 className="text-sm font-semibold text-foreground">Gastos por categoria</h3>
+                <ChevronDown
+                  className={`h-4 w-4 text-muted-foreground transition-transform duration-300 ${categoryChartExpanded ? "rotate-180" : ""}`}
+                />
               </div>
-              <div className="space-y-1.5">
-                {categoryData.map((entry) => {
-                  const Icon = entry.cat.icon;
-                  const pct = totalCategorized > 0 ? (entry.value / totalCategorized) * 100 : 0;
-                  return (
-                    <div key={entry.name} className="flex items-center justify-between text-xs">
-                      <div className="flex items-center gap-2 min-w-0">
-                        <Icon className="h-3.5 w-3.5 shrink-0" style={{ color: `hsl(${entry.cat.color})` }} />
-                        <span className="truncate text-foreground">{entry.name}</span>
-                      </div>
-                      <div className="flex items-center gap-2 shrink-0">
-                        <span className="text-muted-foreground">{pct.toFixed(0)}%</span>
-                        <span className="font-medium text-foreground">{formatCurrency(entry.value)}</span>
-                      </div>
-                    </div>
-                  );
-                })}
+              <span className="text-xs text-muted-foreground">{formatCurrency(totalCategorized)}</span>
+            </button>
+            <div
+              id="category-chart-content"
+              className={`grid transition-all duration-300 ease-in-out ${categoryChartExpanded ? "grid-rows-[1fr] opacity-100 mt-3" : "grid-rows-[0fr] opacity-0"}`}
+            >
+              <div className="overflow-hidden min-h-0">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
+                  <div className="h-48">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={categoryData}
+                          dataKey="value"
+                          nameKey="name"
+                          innerRadius={45}
+                          outerRadius={75}
+                          paddingAngle={2}
+                        >
+                          {categoryData.map((entry, idx) => (
+                            <Cell key={idx} fill={`hsl(${entry.cat.color})`} />
+                          ))}
+                        </Pie>
+                        <ReTooltip
+                          formatter={(value: number) => fmt(value)}
+                          contentStyle={{
+                            background: "hsl(var(--popover))",
+                            border: "1px solid hsl(var(--border))",
+                            borderRadius: 8,
+                            fontSize: 12,
+                          }}
+                        />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </div>
+                  <div className="space-y-1.5">
+                    {categoryData.map((entry) => {
+                      const Icon = entry.cat.icon;
+                      const pct = totalCategorized > 0 ? (entry.value / totalCategorized) * 100 : 0;
+                      return (
+                        <div key={entry.name} className="flex items-center justify-between text-xs">
+                          <div className="flex items-center gap-2 min-w-0">
+                            <Icon className="h-3.5 w-3.5 shrink-0" style={{ color: `hsl(${entry.cat.color})` }} />
+                            <span className="truncate text-foreground">{entry.name}</span>
+                          </div>
+                          <div className="flex items-center gap-2 shrink-0">
+                            <span className="text-muted-foreground">{pct.toFixed(0)}%</span>
+                            <span className="font-medium text-foreground">{formatCurrency(entry.value)}</span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
               </div>
             </div>
           </CardContent>
