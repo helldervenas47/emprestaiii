@@ -68,12 +68,6 @@ export function IncomeDashboard({ incomes, allMonthIncomes, monthKey }: Props) {
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-      <Card no3d className="p-4 lg:col-span-2">
-        <div className="flex items-baseline justify-between">
-          <h3 className="text-sm font-semibold capitalize">A receber — {monthLabel}</h3>
-          <span className="text-base font-semibold text-primary">{fmtBRL(totalToReceive)}</span>
-        </div>
-      </Card>
 
       <Card no3d className="p-4">
         <h3 className="text-sm font-semibold mb-3">A receber por categoria</h3>
