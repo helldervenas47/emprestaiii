@@ -503,7 +503,7 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, onUpda
             aria-controls="despesas-content"
           >
             <div className="flex items-center gap-2">
-              <h3 className="text-sm font-semibold text-foreground">Despesas ({filtered.length})</h3>
+              <h3 className="text-sm font-semibold text-foreground">Despesas ({filtered.length + cardInvoiceTotalsMonth.filter((x) => !x.paid && !x.hasPaidOverride && (x.total - x.paidTotal) > 0).length})</h3>
               <ChevronDown
                 className={`h-4 w-4 text-muted-foreground transition-transform duration-300 ${expensesExpanded ? "rotate-180" : ""}`}
               />
@@ -515,7 +515,8 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, onUpda
               <div className={`text-base font-bold ${expensesExpanded ? "text-foreground" : "text-amber-600 dark:text-amber-400"}`}>
                 {formatCurrency(
                   expensesExpanded
-                    ? filtered.reduce((s, e) => s + getInstallmentAmount(e), 0)
+                    ? filtered.reduce((s, e) => s + getInstallmentAmount(e), 0) +
+                        cardInvoiceTotalsMonth.reduce((s, x) => s + Math.max(0, x.total - x.paidTotal), 0)
                     : totalPending,
                 )}
               </div>
