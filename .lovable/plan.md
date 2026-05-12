@@ -1,32 +1,52 @@
-## Causa
+## Backup diário automático no Google Drive
 
-No relatório de Inadimplência Acumulada, o contrato parcelado do Darlan Machado (3x, 1 paga) tem:
+Snapshot completo dos dados de cada usuário enviado todo dia para uma pasta no Google Drive (sua conta, conectada via conector nativo do Lovable).
 
-- Parcela #1 (29/04) — paga
-- Parcela #2 (09/05) — vencida, mas no mês atual
-- Parcela #3 (16/05) — futura
-- `loans.due_date` = 2026-04-29 (não foi avançada após o pagamento da #1)
+## Como vai funcionar
 
-A regra atual filtra parcelas com `dueDate < início do mês atual`. Como a única parcela vencida (#2) é de 09/05, a lista filtrada fica vazia. Aí o código cai no **fallback**, que usa `loan.due_date` diretamente. Como `loan.due_date` ainda aponta para 29/04 (mês anterior), o contrato é exibido como vencido em 29/04 com ~12 dias de atraso e valor igual ao saldo restante do contrato.
+1. **Conector Google Drive** ligado ao projeto (você autoriza uma vez sua conta Google).
+2. **Edge function `daily-backup`**: para cada `owner_id`, lê todas as tabelas relevantes e gera um JSON único.
+3. **Upload no Drive** em `Backups Empresta.aí / {nome ou e-mail do usuário}/{YYYY-MM-DD}.json`.
+4. **Agendamento `pg_cron`** roda a função todo dia às 03:00.
+5. **Retenção**: mantém últimos 30 backups por usuário, apaga mais antigos.
+6. **UI em Configurações → Backup**:
+   - Status: "Backup automático: ativo · último em DD/MM HH:MM"
+   - Botão "Gerar backup agora"
+   - Lista dos últimos backups com link direto para abrir no Drive
+   - Toggle on/off por usuário
 
-O fallback foi pensado para empréstimos **sem schedule** (ex.: parcela única). Quando o contrato é parcelado e tem schedules, ele nunca deveria ser usado — basta confiar no que está em `loan_installments`.
+## O que será criado
 
-## Correção proposta
+**Banco**
+- `account_settings.auto_backup_enabled boolean default true`
+- `account_settings.last_auto_backup_at timestamptz`
+- `account_settings.last_auto_backup_drive_url text`
+- Tabela `backup_history` (id, owner_id, created_at, drive_file_id, drive_url, size_bytes, status, error)
+- Job `pg_cron` diário chamando a edge function
 
-Aplicar a mesma regra em dois lugares:
+**Edge functions**
+- `daily-backup` — modo agendado (todos os usuários ativos) e modo on-demand (usuário autenticado)
+- `list-backups` — lê `backup_history` do usuário
 
-1. **`src/components/AccumulatedDelinquencyReport.tsx`** — bloco de fallback (linhas ~140–160).
-2. **`supabase/functions/telegram-accumulated-delinquency-summary/index.ts`** — função `buildAccumulatedDelinquencyItems` (bloco equivalente após o `continue;`).
+**Frontend**
+- `src/components/BackupExport.tsx` — novo bloco "Backup automático no Google Drive"
+- Hook `useAutoBackups.ts`
 
-Mudança em ambos:
+## Detalhes técnicos
 
-- Só executar o fallback quando o contrato **não possuir nenhum registro em `loan_installments`** (`schedules.length === 0`).
-- Quando o contrato tem schedules e nenhuma parcela vencida em meses anteriores, simplesmente sair sem emitir linha.
+- Snapshot em JSON (formato fiel; reimportação manual já existe pela tela atual).
+- Tabelas incluídas: loans, payments, clients, sales, expenses, incomes, monthly_goals, payment_methods, piggy_banks, products, vehicles, credit_cards, notes — confirmar lista final na implementação.
+- Edge function usa `service_role` para ler dados de todos os owners no modo agendado; on-demand valida JWT.
+- Upload no Drive via gateway `https://connector-gateway.lovable.dev/google_drive/...` com `multipart` upload.
+- Estrutura da pasta criada na primeira execução; `folder_id` cacheado em `account_settings`.
 
-### Resultado esperado
+## Limitações importantes
 
-- Darlan Machado deixa de aparecer no relatório de inadimplência acumulada (a única parcela em atraso, 09/05, é do mês corrente).
-- Empréstimos parcelados sem nenhuma parcela vencida antes do mês atual nunca mais geram linha de fallback.
-- Empréstimos de parcela única continuam funcionando como hoje (caem no fallback porque `schedules.length === 0`).
+- **Todos os backups vão para a sua conta Google** (do dono do app), não para a conta de cada usuário final. Se quiser que cada usuário receba na própria conta, é preciso OAuth por usuário (fluxo bem mais complexo) — não está incluso aqui.
+- Não é point-in-time recovery do banco, é snapshot lógico diário.
+- Restauração automática a partir de um backup do Drive não está inclusa nesta entrega; o usuário pode baixar o JSON e usar "Importar" manualmente (precisa do importador JSON, que adiciono se ainda não existir).
 
-Nenhuma mudança em UI, schema ou lógica de pagamentos — apenas a condição que dispara o fallback.
+## Pré-requisitos antes de implementar
+
+- Conectar o Google Drive ao projeto (vou te chamar o seletor de conexão na hora).
+- Confirmar se quer 30 dias de retenção e horário 03:00 (BRT).
