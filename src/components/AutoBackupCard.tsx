@@ -117,9 +117,14 @@ export function AutoBackupCard() {
               </CardDescription>
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-muted-foreground">{enabled ? "Ativo" : "Desativado"}</span>
-            <Switch checked={enabled} disabled={savingToggle} onCheckedChange={toggle} />
+          <div className="flex flex-col items-end gap-2">
+            <Button variant="outline" size="sm" onClick={() => setApiKeyOpen(true)} className="gap-1">
+              <Key className="h-3.5 w-3.5" /> Chave API
+            </Button>
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-muted-foreground">{enabled ? "Ativo" : "Desativado"}</span>
+              <Switch checked={enabled} disabled={savingToggle} onCheckedChange={toggle} />
+            </div>
           </div>
         </div>
       </CardHeader>
@@ -139,9 +144,6 @@ export function AutoBackupCard() {
                 </a>
               </Button>
             )}
-            <Button variant="outline" size="sm" onClick={() => setApiKeyOpen(true)} className="gap-1">
-              <Key className="h-3.5 w-3.5" /> Chave API
-            </Button>
             <Button variant="outline" size="sm" onClick={() => setRestoreOpen(true)} className="gap-1">
               <RotateCcw className="h-3.5 w-3.5" /> Restaurar
             </Button>
