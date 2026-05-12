@@ -144,9 +144,6 @@ export function AutoBackupCard() {
                 </a>
               </Button>
             )}
-            <Button variant="outline" size="sm" onClick={() => setApiKeyOpen(true)} className="gap-1">
-              <Key className="h-3.5 w-3.5" /> Chave API
-            </Button>
             <Button variant="outline" size="sm" onClick={() => setRestoreOpen(true)} className="gap-1">
               <RotateCcw className="h-3.5 w-3.5" /> Restaurar
             </Button>
