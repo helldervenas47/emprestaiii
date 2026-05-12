@@ -118,6 +118,7 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, onUpda
   const [summaryExpense, setSummaryExpense] = useState<Expense | null>(null);
   const [budgetEditOpen, setBudgetEditOpen] = useState(false);
   const [budgetDraft, setBudgetDraft] = useState<Record<string, string>>({});
+  const [expensesExpanded, setExpensesExpanded] = useState(false);
   const {
     budgets,
     monthBudgets,
