@@ -294,7 +294,7 @@ export function LoanForm({ onAdd, onSaveSchedule, onClose, clients, loans, payme
   return (
     <div className="fixed inset-0 bg-foreground/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
       <SuccessAnimation show={showSuccess} onComplete={onClose} message="Empréstimo registrado!" />
-      <Card className="w-full max-w-lg max-h-[90vh] overflow-y-auto">
+      <Card className="!bg-card !backdrop-blur-none supports-[backdrop-filter]:!bg-card dark:!bg-card w-full max-w-lg max-h-[90vh] overflow-y-auto">
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle className="text-xl">Novo Empréstimo</CardTitle>
           <Button variant="ghost" size="icon" onClick={onClose}>

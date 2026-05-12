@@ -59,7 +59,7 @@ export function ClientForm({ onAdd, onClose }: Props) {
 
   return (
     <div className="fixed inset-0 bg-foreground/40 backdrop-blur-sm z-50 flex items-center justify-center p-2 sm:p-4">
-      <Card className="w-full max-w-lg max-h-[92vh] overflow-y-auto overflow-x-hidden">
+      <Card className="!bg-card !backdrop-blur-none supports-[backdrop-filter]:!bg-card dark:!bg-card w-full max-w-lg max-h-[92vh] overflow-y-auto overflow-x-hidden">
         <CardHeader className="flex flex-row items-center justify-between p-4 sm:p-6">
           <CardTitle className="text-lg sm:text-xl">Novo Cliente</CardTitle>
           <Button variant="ghost" size="icon" onClick={onClose}>

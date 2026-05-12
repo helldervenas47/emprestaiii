@@ -190,7 +190,7 @@ export function SaleForm({ onAdd, onClose, defaultBusinessType = "venda", client
   return (
     <div className="fixed inset-0 bg-foreground/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
       <SuccessAnimation show={showSuccess} onComplete={onClose} message={isVehicleRental ? "Aluguel registrado!" : "Lançamento registrado!"} />
-      <Card className="w-full max-w-md max-h-[90vh] overflow-y-auto">
+      <Card className="!bg-card !backdrop-blur-none supports-[backdrop-filter]:!bg-card dark:!bg-card w-full max-w-md max-h-[90vh] overflow-y-auto">
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle className="text-xl">{formTitle}</CardTitle>
           <Button variant="ghost" size="icon" onClick={onClose}><X className="h-5 w-5" /></Button>
