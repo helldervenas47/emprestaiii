@@ -56,59 +56,55 @@
   }
 
   .dark {
-    /* Background principal — mais suave (#15181D) */
-    --background: 220 12% 10%;
-    /* Texto primário — off-white com contraste AAA (~13.5:1) sem ser branco puro */
-    --foreground: 220 12% 92%;
+    /* Deep navy base — alinhada ao gradient #0B1120 → #0F172A → #1E293B do FinancialHealthDashboard */
+    --background: 222 47% 8%;
+    --foreground: 210 40% 96%;
 
-    /* Cards / superfícies (~#21252C) */
-    --card: 220 11% 16%;
-    --card-foreground: 220 12% 92%;
+    /* Cards / superfícies translúcidas premium */
+    --card: 222 40% 13%;
+    --card-foreground: 210 40% 96%;
 
-    --popover: 220 11% 16%;
-    --popover-foreground: 220 12% 92%;
+    --popover: 222 40% 13%;
+    --popover-foreground: 210 40% 96%;
 
-    --primary: 220 95% 68%;
-    --primary-foreground: 0 0% 100%;
+    --primary: 158 84% 45%;
+    --primary-foreground: 222 47% 8%;
 
-    /* Superfícies elevadas / hover (~#2A2F37) — texto secundário com contraste AA (~7:1) */
-    --secondary: 220 10% 21%;
-    --secondary-foreground: 220 10% 80%;
+    --secondary: 222 30% 18%;
+    --secondary-foreground: 210 30% 88%;
 
-    /* Muted (~#1D2026) — texto secundário/disabled com ~5.5:1 (AA para texto normal) */
-    --muted: 220 10% 15%;
-    --muted-foreground: 220 8% 72%;
+    --muted: 222 30% 14%;
+    --muted-foreground: 215 20% 70%;
 
-    --accent: 168 60% 50%;
-    --accent-foreground: 0 0% 100%;
+    --accent: 188 95% 55%;
+    --accent-foreground: 222 47% 8%;
 
-    --destructive: 0 70% 62%;
-    --destructive-foreground: 220 10% 96%;
+    --destructive: 0 84% 62%;
+    --destructive-foreground: 210 40% 96%;
 
-    /* Bordas / divisores (~#2E333B) — mais suaves */
-    --border: 220 9% 22%;
-    --input: 220 9% 20%;
-    --ring: 220 95% 68%;
+    --border: 215 25% 22%;
+    --input: 215 25% 22%;
+    --ring: 158 84% 45%;
 
-    --radius: 0.875rem;
+    --radius: 1rem;
 
-    --warning: 38 85% 62%;
-    --warning-foreground: 220 10% 96%;
+    --warning: 38 92% 60%;
+    --warning-foreground: 222 47% 8%;
 
-    --success: 158 60% 52%;
-    --success-foreground: 0 0% 100%;
+    --success: 158 84% 45%;
+    --success-foreground: 222 47% 8%;
 
-    --purple: 262 65% 75%;
-    --purple-foreground: 220 10% 96%;
+    --purple: 262 83% 70%;
+    --purple-foreground: 222 47% 8%;
 
-    --sidebar-background: 220 11% 11%;
-    --sidebar-foreground: 220 8% 75%;
-    --sidebar-primary: 220 95% 68%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 220 11% 16%;
-    --sidebar-accent-foreground: 220 10% 88%;
-    --sidebar-border: 220 9% 22%;
-    --sidebar-ring: 220 95% 68%;
+    --sidebar-background: 222 47% 9%;
+    --sidebar-foreground: 215 20% 75%;
+    --sidebar-primary: 158 84% 45%;
+    --sidebar-primary-foreground: 222 47% 8%;
+    --sidebar-accent: 222 40% 13%;
+    --sidebar-accent-foreground: 210 30% 90%;
+    --sidebar-border: 215 25% 22%;
+    --sidebar-ring: 158 84% 45%;
   }
 }
 
@@ -163,16 +159,17 @@
     min-height: 100vh;
     min-height: 100dvh;
     background-image:
-      radial-gradient(1200px 600px at 12% -10%, hsl(225 90% 65% / 0.18), transparent 60%),
-      radial-gradient(900px 500px at 110% 10%, hsl(262 80% 65% / 0.16), transparent 60%),
-      radial-gradient(800px 600px at 50% 110%, hsl(190 90% 55% / 0.14), transparent 65%);
+      radial-gradient(1100px 600px at 10% -10%, hsl(188 95% 55% / 0.10), transparent 60%),
+      radial-gradient(900px 500px at 110% 5%, hsl(262 80% 65% / 0.10), transparent 60%),
+      radial-gradient(800px 600px at 50% 110%, hsl(158 84% 45% / 0.08), transparent 65%);
     background-attachment: fixed;
   }
   .dark body {
+    background-color: hsl(222 47% 6%);
     background-image:
-      radial-gradient(1200px 600px at 12% -10%, hsl(225 90% 55% / 0.22), transparent 60%),
-      radial-gradient(900px 500px at 110% 10%, hsl(262 80% 55% / 0.18), transparent 60%),
-      radial-gradient(800px 600px at 50% 110%, hsl(190 90% 45% / 0.14), transparent 65%);
+      radial-gradient(1200px 600px at 10% -10%, hsl(188 95% 50% / 0.18), transparent 60%),
+      radial-gradient(900px 500px at 110% 5%, hsl(262 70% 55% / 0.16), transparent 60%),
+      radial-gradient(900px 700px at 50% 115%, hsl(158 84% 40% / 0.14), transparent 65%);
   }
 
   /* Imersivo: quando rodando como PWA instalado, ocupa tela inteira sem chrome do browser */
