@@ -210,19 +210,33 @@ export function IncomeList({ readOnly }: Props) {
           </div>
           <div className="text-right">
             <div className="text-[11px] text-muted-foreground leading-none">
-              {statusFilter === "all" && "Total"}
-              {statusFilter === "received" && "Total recebido"}
-              {statusFilter === "pending" && "Total a receber"}
-              {statusFilter === "overdue" && "Total vencido"}
-              {statusFilter === "pending_all" && "Total a receber"}
+              {!incomesExpanded
+                ? "Pendente"
+                : statusFilter === "all" ? "Total"
+                : statusFilter === "received" ? "Total recebido"
+                : statusFilter === "pending" ? "Total a receber"
+                : statusFilter === "overdue" ? "Total vencido"
+                : statusFilter === "pending_all" ? "Total a receber"
+                : "Total"}
             </div>
             <div className={`text-base font-bold ${
+              !incomesExpanded ? "text-amber-600 dark:text-amber-400" :
               statusFilter === "received" ? "text-emerald-600 dark:text-emerald-400" :
               statusFilter === "overdue" ? "text-rose-600 dark:text-rose-400" :
               statusFilter === "pending" ? "text-amber-600 dark:text-amber-400" :
               "text-foreground"
             }`}>
-              {fmtBRL(filtered.reduce((s, i) => s + i.amount, 0))}
+              {fmtBRL(
+                !incomesExpanded
+                  ? incomes
+                      .filter((i) =>
+                        i.source !== "Ajuste manual" &&
+                        i.receivedDate.startsWith(monthKey) &&
+                        (i.status === "pending" || i.status === "overdue"),
+                      )
+                      .reduce((s, i) => s + i.amount, 0)
+                  : filtered.reduce((s, i) => s + i.amount, 0),
+              )}
             </div>
           </div>
         </button>
