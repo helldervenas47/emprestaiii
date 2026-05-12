@@ -234,56 +234,64 @@ export function IncomeBalanceCard({ incomes, expenses, onAdjust, readOnly, onOpe
         </div>
       </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-5">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3 mt-5">
         <button
           type="button"
           onClick={onOpenIncomes}
-          className="text-left rounded-xl bg-emerald-500/10 border border-emerald-500/20 p-3 transition-all hover:border-emerald-500/40 hover:bg-emerald-500/15 hover:scale-[1.02] active:scale-[0.99] focus:outline-none focus:ring-2 focus:ring-emerald-500/40"
+          className="rounded-2xl p-3 sm:p-4 bg-card border border-border/20 shadow-[0_1px_8px_-4px_hsl(0_0%_0%/0.05)] animate-fade-in flex flex-col items-center text-center transition-all hover:scale-[1.02] active:scale-[0.99] focus:outline-none focus:ring-2 focus:ring-success/40"
+          style={{ animationDelay: '0ms', animationFillMode: 'backwards' }}
         >
-          <div className="flex items-center gap-1 text-xs text-emerald-700 dark:text-emerald-400 font-medium">
-            <ArrowUpRight className="h-3 w-3" /> Entradas mês
+          <div className="h-8 w-8 rounded-lg bg-success/10 flex items-center justify-center mb-2">
+            <ArrowUpRight className="h-4 w-4 text-success" />
           </div>
-          <div className="text-lg font-semibold mt-1">{fmt(calc.monthIn, hide)}</div>
-          <div className="text-[10px] mt-0.5 text-emerald-700/70 dark:text-emerald-400/70">Toque para ver detalhes</div>
+          <p className="text-[10px] sm:text-xs text-muted-foreground">Entradas mês</p>
+          <p className="text-sm sm:text-xl font-bold text-success mt-0.5">{fmt(calc.monthIn, hide)}</p>
+          <p className="text-[10px] text-muted-foreground mt-1">Toque para detalhes</p>
         </button>
         <button
           type="button"
           onClick={onOpenExpenses}
-          className="text-left rounded-xl bg-rose-500/10 border border-rose-500/20 p-3 transition-all hover:border-rose-500/40 hover:bg-rose-500/15 hover:scale-[1.02] active:scale-[0.99] focus:outline-none focus:ring-2 focus:ring-rose-500/40"
+          className="rounded-2xl p-3 sm:p-4 bg-card border border-border/20 shadow-[0_1px_8px_-4px_hsl(0_0%_0%/0.05)] animate-fade-in flex flex-col items-center text-center transition-all hover:scale-[1.02] active:scale-[0.99] focus:outline-none focus:ring-2 focus:ring-destructive/40"
+          style={{ animationDelay: '80ms', animationFillMode: 'backwards' }}
         >
-          <div className="flex items-center gap-1 text-xs text-rose-700 dark:text-rose-400 font-medium">
-            <ArrowDownRight className="h-3 w-3" /> Saídas mês
+          <div className="h-8 w-8 rounded-lg bg-destructive/10 flex items-center justify-center mb-2">
+            <ArrowDownRight className="h-4 w-4 text-destructive" />
           </div>
-          <div className="text-lg font-semibold mt-1">{fmt(calc.monthOut, hide)}</div>
-          <div className="text-[10px] mt-0.5 text-rose-700/70 dark:text-rose-400/70">Toque para ver detalhes</div>
+          <p className="text-[10px] sm:text-xs text-muted-foreground">Saídas mês</p>
+          <p className="text-sm sm:text-xl font-bold text-destructive mt-0.5">{fmt(calc.monthOut, hide)}</p>
+          <p className="text-[10px] text-muted-foreground mt-1">Toque para detalhes</p>
         </button>
         <button
           type="button"
           onClick={onOpenPendingIncomes}
-          className="text-left rounded-xl bg-amber-500/10 border border-amber-500/20 p-3 transition-all hover:border-amber-500/40 hover:bg-amber-500/15 hover:scale-[1.02] active:scale-[0.99] focus:outline-none focus:ring-2 focus:ring-amber-500/40"
+          className="rounded-2xl p-3 sm:p-4 bg-card border border-border/20 shadow-[0_1px_8px_-4px_hsl(0_0%_0%/0.05)] animate-fade-in flex flex-col items-center text-center transition-all hover:scale-[1.02] active:scale-[0.99] focus:outline-none focus:ring-2 focus:ring-warning/40"
+          style={{ animationDelay: '160ms', animationFillMode: 'backwards' }}
         >
-          <div className="flex items-center justify-between gap-1">
-            <span className="text-xs text-amber-700 dark:text-amber-400 font-medium">Receitas pendentes</span>
+          <div className="h-8 w-8 rounded-lg bg-warning/10 flex items-center justify-center mb-2">
             {calc.futureIn > 0
-              ? <TrendingUp className="h-3 w-3 text-amber-600 dark:text-amber-400" />
-              : <TrendingDown className="h-3 w-3 text-muted-foreground" />}
+              ? <TrendingUp className="h-4 w-4 text-warning" />
+              : <TrendingDown className="h-4 w-4 text-warning" />}
           </div>
-          <div className="text-lg font-semibold mt-1">{fmt(calc.futureIn, hide)}</div>
-          <div className="text-[10px] mt-0.5 text-amber-700/80 dark:text-amber-400/80">
-            {calc.pendingInCount} {calc.pendingInCount === 1 ? "recebimento" : "recebimentos"} pendente{calc.pendingInCount === 1 ? "" : "s"}
-          </div>
+          <p className="text-[10px] sm:text-xs text-muted-foreground">Receitas pendentes</p>
+          <p className="text-sm sm:text-xl font-bold text-warning mt-0.5">{fmt(calc.futureIn, hide)}</p>
+          <p className="text-[10px] text-muted-foreground mt-1">
+            {calc.pendingInCount} pendente{calc.pendingInCount === 1 ? "" : "s"}
+          </p>
         </button>
-        <div className={`rounded-xl border p-3 ${calc.projected >= calc.balance ? "bg-primary/10 border-primary/20" : "bg-rose-500/10 border-rose-500/30"}`}>
-          <div className="flex items-center justify-between gap-1">
-            <span className={`text-xs font-medium ${calc.projected >= calc.balance ? "text-primary" : "text-rose-700 dark:text-rose-400"}`}>Saldo previsto</span>
+        <div
+          className="rounded-2xl p-3 sm:p-4 bg-card border border-border/20 shadow-[0_1px_8px_-4px_hsl(0_0%_0%/0.05)] animate-fade-in flex flex-col items-center text-center"
+          style={{ animationDelay: '240ms', animationFillMode: 'backwards' }}
+        >
+          <div className={`h-8 w-8 rounded-lg flex items-center justify-center mb-2 ${calc.projected >= calc.balance ? "bg-primary/10" : "bg-destructive/10"}`}>
             {calc.projectedDiff >= 0
-              ? <TrendingUp className="h-3 w-3 text-emerald-600 dark:text-emerald-400" />
-              : <TrendingDown className="h-3 w-3 text-rose-600 dark:text-rose-400" />}
+              ? <TrendingUp className={`h-4 w-4 ${calc.projected >= calc.balance ? "text-primary" : "text-destructive"}`} />
+              : <TrendingDown className={`h-4 w-4 ${calc.projected >= calc.balance ? "text-primary" : "text-destructive"}`} />}
           </div>
-          <div className="text-lg font-semibold mt-1">{fmt(calc.projected, hide)}</div>
-          <div className={`text-[10px] mt-0.5 ${calc.projectedDiff >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"}`}>
+          <p className="text-[10px] sm:text-xs text-muted-foreground">Saldo previsto</p>
+          <p className={`text-sm sm:text-xl font-bold mt-0.5 ${calc.projected >= calc.balance ? "text-primary" : "text-destructive"}`}>{fmt(calc.projected, hide)}</p>
+          <p className={`text-[10px] mt-1 ${calc.projectedDiff >= 0 ? "text-success" : "text-destructive"}`}>
             {calc.projectedDiff >= 0 ? "+" : ""}{fmt(calc.projectedDiff, hide)} vs atual
-          </div>
+          </p>
         </div>
       </div>
 
