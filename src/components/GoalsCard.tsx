@@ -1404,7 +1404,7 @@ function GoalDetailDialog({ open, onClose, goal, viewingMonth, payments, loans, 
                         <div className="rounded-md border border-border bg-card/60 p-2">
                           <p className="text-[10px] text-muted-foreground uppercase">Meta mensal</p>
                           <p className="text-sm font-bold text-foreground">{fmtValue(goal.targetValue, "R$", hidden)}</p>
-                          <p className="text-[9px] text-muted-foreground mt-0.5">{goal.pct.toFixed(0)}% atingido</p>
+                          <p className="text-[9px] text-muted-foreground mt-0.5">{monthlyPct.toFixed(0)}% atingido</p>
                         </div>
                         <div className="rounded-md border border-border bg-card/60 p-2">
                           <p className="text-[10px] text-muted-foreground uppercase">Recebido total</p>
