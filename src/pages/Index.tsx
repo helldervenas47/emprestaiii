@@ -323,8 +323,8 @@ const Index = () => {
   useAutoAdjustCreditLimits(clients, loans, payments);
 
   // Defer heavy hooks until their tabs are active
-  const needsProducts = tab === "overview" || tab === "products" || tab === "vehicles" || tab === "calendar";
-  const needsExpenses = tab === "overview" || tab === "expenses" || tab === "vehicles" || tab === "overdue" || tab === "accountant";
+  const needsProducts = tab === "overview" || tab === "products" || tab === "vehicles" || tab === "calendar" || tab === "settings";
+  const needsExpenses = tab === "overview" || tab === "expenses" || tab === "vehicles" || tab === "overdue" || tab === "accountant" || tab === "settings";
   const needsVehicles = tab === "clients" || tab === "vehicles";
   const needsLocadores = tab === "vehicles" || tab === "settings";
 
