@@ -260,31 +260,7 @@ export function Settings({ backup, locadores, onSaveLocador, onRemoveLocador, is
         </CardContent>
       </Card>
 
-      {/* Identidade visual (admin) */}
-      {isAdmin && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-base">
-              <ImageIcon className="h-4 w-4 text-primary" /> Identidade visual
-            </CardTitle>
-            <CardDescription>
-              Defina a logo oficial do sistema e personalize o tamanho em pixels para cada área e dispositivo.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Suspense fallback={<SectionLoader />}>
-              <BrandingSettings />
-            </Suspense>
-          </CardContent>
-        </Card>
-      )}
 
-      {/* Gerenciamento de usuários (admin) */}
-      {isAdmin && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-base">
-              <UsersIcon className="h-4 w-4 text-primary" /> Gerenciamento de usuários
             </CardTitle>
             <CardDescription>Crie e gerencie usuários, papéis e permissões.</CardDescription>
           </CardHeader>
