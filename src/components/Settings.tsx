@@ -16,6 +16,7 @@ import { PendingSyncCard } from "@/components/PendingSyncCard";
 import { TimezoneSettingsCard } from "@/components/TimezoneSettingsCard";
 import { AIVoiceSettingsCard } from "@/components/AIVoiceSettingsCard";
 import { ThemeSettingsCard } from "@/components/ThemeSettingsCard";
+import { ChangePasswordCard } from "@/components/ChangePasswordCard";
 
 const NotificationSettings = lazy(() => import("@/components/NotificationSettings").then(m => ({ default: m.NotificationSettings })));
 const PaymentFeedbackSettings = lazy(() => import("@/components/PaymentFeedbackSettings").then(m => ({ default: m.PaymentFeedbackSettings })));
@@ -137,6 +138,9 @@ export function Settings({ backup, locadores, onSaveLocador, onRemoveLocador, is
 
       {/* Voz dos relatórios por IA */}
       <AIVoiceSettingsCard />
+
+      {/* Alteração de senha */}
+      <ChangePasswordCard />
 
       {/* Notificações e integrações */}
       <Card>
