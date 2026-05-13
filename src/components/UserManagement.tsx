@@ -33,17 +33,7 @@ interface ManagedUser {
   plan_id?: string;
 }
 
-const ALL_TABS = [
-  { id: "overview", label: "Dashboard" },
-  { id: "dashboard", label: "Empréstimos" },
-  { id: "products", label: "Vendas" },
-  { id: "vehicles", label: "Veículos" },
-  { id: "calendar", label: "Calendário" },
-  { id: "clients", label: "Cadastro" },
-  { id: "expenses", label: "Despesas" },
-  { id: "overdue", label: "Relatório" },
-  { id: "settings", label: "Configurações" },
-];
+const ALL_TABS = APP_TABS;
 
 export function UserManagement() {
   const [users, setUsers] = useState<ManagedUser[]>([]);
