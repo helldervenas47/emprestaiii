@@ -223,13 +223,13 @@ export function PiggyBankList({ readOnly = false }: Props) {
                     <PiggyBank className="h-4.5 w-4.5" style={{ color: `hsl(${pb.color})` }} />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-1.5 min-w-0">
+                    <div className="flex items-center gap-1.5 min-w-0 flex-wrap">
                       {pb.shortId != null && (
                         <span className="text-[10px] font-mono font-semibold text-muted-foreground bg-muted px-1.5 py-0.5 rounded shrink-0">
                           #{pb.shortId}
                         </span>
                       )}
-                      <p className="text-sm font-semibold text-foreground truncate">{pb.name}</p>
+                      <p className="text-sm font-semibold text-foreground break-words min-w-0 flex-1">{pb.name}</p>
                       <Badge variant="outline" className="text-[9px] px-1 py-0 h-4 shrink-0">
                         {pb.annualRate.toFixed(2)}% a.a.
                       </Badge>
@@ -238,9 +238,9 @@ export function PiggyBankList({ readOnly = false }: Props) {
                       Aportado: {mask(fmt(b?.principal ?? 0))}
                     </p>
                   </div>
-                  <div className="text-right shrink-0" onClick={(e) => e.stopPropagation()}>
-                    <p className="text-sm font-bold text-foreground">{mask(fmt(b?.balance ?? 0))}</p>
-                    <div className="flex gap-0.5 justify-end mt-0.5">
+                  <div className="text-right shrink-0 ml-1" onClick={(e) => e.stopPropagation()}>
+                    <p className="text-sm font-bold text-foreground whitespace-nowrap">{mask(fmt(b?.balance ?? 0))}</p>
+                    <div className="flex gap-0.5 justify-end mt-0.5 flex-wrap">
                       <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => setHistoryTarget(pb)} title="Histórico de aportes">
                         <History className="h-3 w-3" />
                       </Button>
