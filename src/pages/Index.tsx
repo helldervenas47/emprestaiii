@@ -1062,6 +1062,9 @@ const Index = () => {
             onToggleTheme={toggleTheme}
           />
         )}
+        {tab === "system" && canAccessTab("system") && (
+          <SystemSettings />
+        )}
         {tab === "system-health" && role === "admin" && (
           <SystemHealth />
         )}
