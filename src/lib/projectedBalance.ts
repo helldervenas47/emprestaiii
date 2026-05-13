@@ -47,15 +47,33 @@ export function buildDailyDeltas(opts: {
   const personalExpenses = opts.expenses.filter(
     (e) => (e.scope ?? "business") === "personal" && !isCreditCardExpense(e),
   );
+  // Limite final da projeção (último dia de toMonth) para materializar recorrências.
+  const projectionEnd = new Date(opts.toYear, opts.toMonth + 1, 0);
   for (const ex of personalExpenses) {
-    const d = ex.paid && ex.paidDate ? ex.paidDate : ex.dueDate;
-    if (!d) continue;
     const isRecParent =
       ex.type === "recorrente" && (ex.installments ?? 0) > 1;
-    const amount = isRecParent
-      ? (Number(ex.amount) || 0) / (ex.installments as number)
-      : Number(ex.amount) || 0;
-    ensure(d).expense += amount;
+
+    if (isRecParent) {
+      // Materializa cada parcela restante (uma por mês) a partir da próxima dueDate.
+      const installmentAmount =
+        (Number(ex.amount) || 0) / (ex.installments as number);
+      const remaining =
+        (ex.installments as number) - (ex.paidInstallments ?? 0);
+      if (remaining <= 0 || !ex.dueDate) continue;
+      const start = new Date(ex.dueDate + "T00:00:00");
+      for (let i = 0; i < remaining; i++) {
+        const occ = new Date(start);
+        occ.setMonth(start.getMonth() + i);
+        if (occ > projectionEnd) break;
+        ensure(fmt(occ)).expense += installmentAmount;
+      }
+      continue;
+    }
+
+    // Despesa simples (type === "fixa" no schema atual = lançamento único).
+    const d = ex.paid && ex.paidDate ? ex.paidDate : ex.dueDate;
+    if (!d) continue;
+    ensure(d).expense += Number(ex.amount) || 0;
   }
 
   // Faturas de cartão (apenas em aberto) no dia do vencimento.
