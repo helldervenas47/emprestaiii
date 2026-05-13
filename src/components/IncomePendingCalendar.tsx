@@ -249,6 +249,18 @@ export function IncomePendingCalendar({
       const last = weekDays[weekDays.length - 1];
       addMonth(last.getFullYear(), last.getMonth());
     }
+    // Encadeamento entre meses: para projetar corretamente o saldo de meses futuros,
+    // cobrimos todos os meses entre o mês corrente e o mês navegado (em ambos os sentidos).
+    {
+      const todayRef = todayDateInAppTz();
+      const fromIdx = todayRef.getFullYear() * 12 + todayRef.getMonth();
+      const toIdx = year * 12 + month;
+      const lo = Math.min(fromIdx, toIdx);
+      const hi = Math.max(fromIdx, toIdx);
+      for (let idx = lo; idx <= hi; idx++) {
+        addMonth(Math.floor(idx / 12), idx % 12);
+      }
+    }
 
     for (const ym of monthsToCover) {
       const totals = getCardInvoiceTotalsForMonth(expenses, cards, openings, ym);
