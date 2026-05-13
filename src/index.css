@@ -474,3 +474,225 @@
     box-shadow: 0 1px 0 0 hsl(var(--border) / 0.35);
   }
 }
+
+/* ──────────────────────────────────────────────────────────────────────────
+   App themes — escopo por [data-theme="..."] no <html>
+   "padrao" não tem overrides (usa as variáveis padrão acima).
+   ────────────────────────────────────────────────────────────────────────── */
+
+/* Cyberpunk Neon — sempre dark */
+html[data-theme="cyberpunk"].dark,
+html[data-theme="cyberpunk"] {
+  --background: 250 50% 5%;
+  --foreground: 280 20% 96%;
+  --card: 258 45% 9%;
+  --card-foreground: 280 20% 96%;
+  --popover: 258 45% 9%;
+  --popover-foreground: 280 20% 96%;
+  --primary: 280 95% 65%;
+  --primary-foreground: 250 50% 5%;
+  --secondary: 250 35% 16%;
+  --secondary-foreground: 195 95% 75%;
+  --muted: 250 30% 14%;
+  --muted-foreground: 270 25% 78%;
+  --accent: 195 100% 55%;
+  --accent-foreground: 250 50% 5%;
+  --destructive: 340 95% 60%;
+  --destructive-foreground: 0 0% 100%;
+  --border: 270 50% 28%;
+  --input: 270 40% 22%;
+  --ring: 280 95% 65%;
+  --warning: 50 100% 60%;
+  --warning-foreground: 250 50% 5%;
+  --success: 150 90% 55%;
+  --success-foreground: 250 50% 5%;
+  --purple: 280 95% 70%;
+  --sidebar-background: 252 55% 7%;
+  --sidebar-foreground: 280 20% 90%;
+  --sidebar-primary: 280 95% 65%;
+  --sidebar-accent: 250 35% 14%;
+  --sidebar-accent-foreground: 195 95% 75%;
+  --sidebar-border: 270 50% 26%;
+  --sidebar-ring: 280 95% 65%;
+}
+html[data-theme="cyberpunk"] body {
+  background-color: hsl(250 50% 4%);
+  background-image:
+    radial-gradient(1100px 600px at 8% -10%, hsl(280 95% 60% / 0.22), transparent 60%),
+    radial-gradient(900px 500px at 110% 8%, hsl(195 100% 55% / 0.18), transparent 60%),
+    radial-gradient(900px 700px at 50% 115%, hsl(225 100% 60% / 0.18), transparent 65%);
+}
+
+/* Glassmorphism — funciona em qualquer modo */
+html[data-theme="glass"] {
+  --background: 220 40% 96%;
+  --foreground: 222 45% 14%;
+  --card: 0 0% 100%;
+  --card-foreground: 222 45% 14%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 222 45% 14%;
+  --primary: 222 80% 56%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 220 50% 92%;
+  --secondary-foreground: 222 45% 22%;
+  --muted: 220 35% 92%;
+  --muted-foreground: 222 20% 42%;
+  --accent: 200 95% 55%;
+  --accent-foreground: 0 0% 100%;
+  --border: 220 25% 86%;
+  --input: 220 25% 86%;
+  --ring: 222 80% 56%;
+}
+html[data-theme="glass"].dark {
+  --background: 222 38% 10%;
+  --foreground: 220 25% 95%;
+  --card: 222 35% 16%;
+  --card-foreground: 220 25% 95%;
+  --popover: 222 35% 16%;
+  --popover-foreground: 220 25% 95%;
+  --primary: 222 95% 70%;
+  --primary-foreground: 222 38% 8%;
+  --secondary: 222 30% 22%;
+  --secondary-foreground: 220 20% 90%;
+  --muted: 222 30% 18%;
+  --muted-foreground: 220 15% 75%;
+  --accent: 195 95% 60%;
+  --accent-foreground: 222 38% 8%;
+  --border: 220 25% 28%;
+  --input: 220 25% 28%;
+  --ring: 222 95% 70%;
+}
+html[data-theme="glass"] body,
+html[data-theme="glass"].dark body {
+  background-image:
+    radial-gradient(1200px 700px at 0% 0%, hsl(222 95% 65% / 0.18), transparent 60%),
+    radial-gradient(1000px 600px at 100% 10%, hsl(280 90% 65% / 0.16), transparent 60%),
+    radial-gradient(900px 700px at 50% 115%, hsl(195 95% 55% / 0.14), transparent 65%);
+}
+html[data-theme="glass"] .glass-surface,
+html[data-theme="glass"] .card {
+  backdrop-filter: blur(28px) saturate(200%);
+  -webkit-backdrop-filter: blur(28px) saturate(200%);
+}
+
+/* Dark AI — dark premium com verde/violeta */
+html[data-theme="dark-ai"].dark,
+html[data-theme="dark-ai"] {
+  --background: 222 30% 7%;
+  --foreground: 210 30% 95%;
+  --card: 222 28% 11%;
+  --card-foreground: 210 30% 95%;
+  --popover: 222 28% 11%;
+  --popover-foreground: 210 30% 95%;
+  --primary: 158 78% 48%;
+  --primary-foreground: 222 30% 7%;
+  --secondary: 222 22% 18%;
+  --secondary-foreground: 210 25% 88%;
+  --muted: 222 22% 14%;
+  --muted-foreground: 215 15% 72%;
+  --accent: 262 85% 70%;
+  --accent-foreground: 222 30% 7%;
+  --destructive: 0 78% 60%;
+  --destructive-foreground: 0 0% 100%;
+  --border: 222 18% 22%;
+  --input: 222 18% 22%;
+  --ring: 158 78% 48%;
+  --warning: 38 92% 60%;
+  --success: 158 78% 48%;
+  --purple: 262 85% 70%;
+  --sidebar-background: 222 30% 8%;
+  --sidebar-foreground: 215 15% 78%;
+  --sidebar-primary: 158 78% 48%;
+  --sidebar-accent: 222 28% 12%;
+  --sidebar-accent-foreground: 210 25% 90%;
+  --sidebar-border: 222 18% 22%;
+  --sidebar-ring: 158 78% 48%;
+}
+html[data-theme="dark-ai"] body {
+  background-image:
+    radial-gradient(1100px 600px at 12% -10%, hsl(158 78% 45% / 0.16), transparent 60%),
+    radial-gradient(900px 500px at 108% 5%, hsl(262 85% 65% / 0.16), transparent 60%),
+    radial-gradient(900px 700px at 50% 115%, hsl(195 80% 45% / 0.10), transparent 65%);
+}
+
+/* Data Vision — dashboards e gráficos */
+html[data-theme="data-vision"].dark,
+html[data-theme="data-vision"] {
+  --background: 205 60% 6%;
+  --foreground: 200 25% 96%;
+  --card: 205 50% 10%;
+  --card-foreground: 200 25% 96%;
+  --popover: 205 50% 10%;
+  --popover-foreground: 200 25% 96%;
+  --primary: 199 95% 55%;
+  --primary-foreground: 205 60% 6%;
+  --secondary: 205 40% 16%;
+  --secondary-foreground: 200 20% 90%;
+  --muted: 205 40% 13%;
+  --muted-foreground: 200 18% 75%;
+  --accent: 38 95% 58%;
+  --accent-foreground: 205 60% 6%;
+  --destructive: 0 84% 60%;
+  --destructive-foreground: 0 0% 100%;
+  --border: 205 35% 22%;
+  --input: 205 35% 22%;
+  --ring: 199 95% 55%;
+  --warning: 38 95% 58%;
+  --success: 158 78% 48%;
+  --purple: 262 80% 70%;
+  --sidebar-background: 205 60% 7%;
+  --sidebar-foreground: 200 18% 80%;
+  --sidebar-primary: 199 95% 55%;
+  --sidebar-accent: 205 50% 11%;
+  --sidebar-accent-foreground: 200 20% 92%;
+  --sidebar-border: 205 35% 22%;
+  --sidebar-ring: 199 95% 55%;
+}
+html[data-theme="data-vision"] body {
+  background-image:
+    radial-gradient(1100px 600px at 8% -10%, hsl(199 95% 50% / 0.18), transparent 60%),
+    radial-gradient(900px 500px at 110% 8%, hsl(38 95% 55% / 0.12), transparent 60%),
+    radial-gradient(900px 700px at 50% 115%, hsl(158 80% 45% / 0.12), transparent 65%);
+}
+
+/* Light Future — sempre claro */
+html[data-theme="light-future"],
+html[data-theme="light-future"].dark {
+  --background: 220 40% 98%;
+  --foreground: 230 35% 14%;
+  --card: 0 0% 100%;
+  --card-foreground: 230 35% 14%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 230 35% 14%;
+  --primary: 262 88% 62%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 220 50% 95%;
+  --secondary-foreground: 230 35% 24%;
+  --muted: 220 35% 94%;
+  --muted-foreground: 225 15% 42%;
+  --accent: 188 95% 50%;
+  --accent-foreground: 0 0% 100%;
+  --destructive: 0 82% 60%;
+  --destructive-foreground: 0 0% 100%;
+  --border: 220 25% 88%;
+  --input: 220 25% 88%;
+  --ring: 262 88% 62%;
+  --warning: 32 95% 55%;
+  --success: 158 78% 42%;
+  --purple: 262 88% 62%;
+  --sidebar-background: 220 45% 99%;
+  --sidebar-foreground: 230 28% 28%;
+  --sidebar-primary: 262 88% 62%;
+  --sidebar-accent: 220 50% 95%;
+  --sidebar-accent-foreground: 230 30% 14%;
+  --sidebar-border: 220 25% 88%;
+  --sidebar-ring: 262 88% 62%;
+}
+html[data-theme="light-future"] body,
+html[data-theme="light-future"].dark body {
+  background-color: hsl(220 40% 98%);
+  background-image:
+    radial-gradient(1200px 700px at 0% 0%, hsl(262 88% 70% / 0.18), transparent 60%),
+    radial-gradient(1000px 600px at 100% 10%, hsl(188 95% 55% / 0.18), transparent 60%),
+    radial-gradient(900px 700px at 50% 115%, hsl(330 90% 70% / 0.14), transparent 65%);
+}

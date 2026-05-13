@@ -15,6 +15,7 @@ import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
 import { PendingSyncCard } from "@/components/PendingSyncCard";
 import { TimezoneSettingsCard } from "@/components/TimezoneSettingsCard";
 import { AIVoiceSettingsCard } from "@/components/AIVoiceSettingsCard";
+import { ThemeSettingsCard } from "@/components/ThemeSettingsCard";
 
 const NotificationSettings = lazy(() => import("@/components/NotificationSettings").then(m => ({ default: m.NotificationSettings })));
 const PaymentFeedbackSettings = lazy(() => import("@/components/PaymentFeedbackSettings").then(m => ({ default: m.PaymentFeedbackSettings })));
@@ -123,6 +124,9 @@ export function Settings({ backup, locadores, onSaveLocador, onRemoveLocador, is
       {/* Sincronização offline */}
       <PendingSyncCard />
 
+      {/* Personalização visual (temas) */}
+      <ThemeSettingsCard />
+
       {/* Preferências de exibição */}
       <Card>
         <CardHeader>
@@ -131,16 +135,6 @@ export function Settings({ backup, locadores, onSaveLocador, onRemoveLocador, is
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              {dark ? <Moon className="h-4 w-4 text-muted-foreground" /> : <Sun className="h-4 w-4 text-muted-foreground" />}
-              <div>
-                <p className="text-sm font-medium">Tema escuro</p>
-                <p className="text-xs text-muted-foreground">Alterna entre modo claro e escuro</p>
-              </div>
-            </div>
-            <Switch checked={dark} onCheckedChange={onToggleTheme} />
-          </div>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               {hidden ? <EyeOff className="h-4 w-4 text-muted-foreground" /> : <Eye className="h-4 w-4 text-muted-foreground" />}
