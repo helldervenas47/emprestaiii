@@ -17,6 +17,7 @@ import { Plus, Trash2, Shield, UserPlus, Pencil, ChevronDown, Settings2, Link2, 
 import { toast } from "sonner";
 import { useViewAsUser } from "@/hooks/useViewAsUser";
 import { useAuth } from "@/hooks/useAuth";
+import { APP_TABS, APP_TAB_IDS, sanitizeAllowedTabs } from "@/lib/appTabs";
 
 interface ManagedUser {
   id: string;
@@ -32,17 +33,7 @@ interface ManagedUser {
   plan_id?: string;
 }
 
-const ALL_TABS = [
-  { id: "overview", label: "Dashboard" },
-  { id: "dashboard", label: "Empréstimos" },
-  { id: "products", label: "Vendas" },
-  { id: "vehicles", label: "Veículos" },
-  { id: "calendar", label: "Calendário" },
-  { id: "clients", label: "Cadastro" },
-  { id: "expenses", label: "Despesas" },
-  { id: "overdue", label: "Relatório" },
-  { id: "settings", label: "Configurações" },
-];
+const ALL_TABS = APP_TABS;
 
 export function UserManagement() {
   const [users, setUsers] = useState<ManagedUser[]>([]);
@@ -216,7 +207,8 @@ export function UserManagement() {
 
   const openPermissions = (user: ManagedUser) => {
     setPermissionsUser(user);
-    setPermTabs(user.allowed_tabs || ALL_TABS.map(t => t.id));
+    // Sanitize: drop tab ids that no longer exist in the app, default to all current tabs.
+    setPermTabs(user.allowed_tabs ? sanitizeAllowedTabs(user.allowed_tabs) : APP_TAB_IDS.slice());
   };
 
   const handleToggleTab = (tabId: string) => {
@@ -228,8 +220,9 @@ export function UserManagement() {
   const handleSavePermissions = async () => {
     if (!permissionsUser) return;
     setSavingPerms(true);
+    const cleaned = sanitizeAllowedTabs(permTabs);
     const { data, error } = await supabase.functions.invoke("admin-manage-user", {
-      body: { action: "update_permissions", user_id: permissionsUser.id, allowed_tabs: permTabs },
+      body: { action: "update_permissions", user_id: permissionsUser.id, allowed_tabs: cleaned },
     });
     if (error || data?.error) {
       toast.error(data?.error || "Erro ao salvar permissões");
