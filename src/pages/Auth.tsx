@@ -19,6 +19,7 @@ const Auth = () => {
   const [googleLoading, setGoogleLoading] = useState(false);
   const { branding } = useAppBranding();
   const brandName = branding.brand_name;
+  const authInputClass = "h-12 rounded-xl border-input bg-background/60 focus-visible:ring-inset focus-visible:ring-offset-0 focus-visible:shadow-none";
 
   // Check if a Google OAuth user was just auto-created (no prior account)
   useEffect(() => {
@@ -139,7 +140,7 @@ const Auth = () => {
               <Label htmlFor="email">Email</Label>
               <div className="relative">
                 <Mail className="absolute left-3 top-3.5 h-4 w-4 text-muted-foreground z-10 pointer-events-none" />
-                <Input id="email" type="email" placeholder="seu@email.com" value={email} onChange={(e) => setEmail(e.target.value)} className="pl-9 h-12 rounded-xl" required />
+                <Input id="email" type="email" placeholder="seu@email.com" value={email} onChange={(e) => setEmail(e.target.value)} className={`pl-9 ${authInputClass}`} required />
               </div>
             </div>
             <Button type="submit" className="w-full h-12 rounded-xl text-base font-semibold" disabled={loading}>
@@ -169,7 +170,7 @@ const Auth = () => {
             <Label htmlFor="loginId">Email ou Usuário</Label>
             <div className="relative">
               <Mail className="absolute left-3 top-3.5 h-4 w-4 text-muted-foreground z-10 pointer-events-none" />
-              <Input id="loginId" type="text" placeholder="email ou nome de usuário" value={loginId} onChange={(e) => setLoginId(e.target.value)} className="pl-9 h-12 rounded-xl" required />
+              <Input id="loginId" type="text" placeholder="email ou nome de usuário" value={loginId} onChange={(e) => setLoginId(e.target.value)} className={`pl-9 ${authInputClass}`} required />
             </div>
           </div>
           <div className="space-y-2">
@@ -182,7 +183,7 @@ const Auth = () => {
                 placeholder="••••••"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="pl-9 pr-9 h-12 rounded-xl"
+                className={`pl-9 pr-9 ${authInputClass}`}
                 required
               />
               <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-3.5 text-muted-foreground hover:text-foreground">
