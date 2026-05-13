@@ -105,12 +105,13 @@ function importPaymentsFromCSV(csv: string): { loanId: string; amount: number; d
   }).filter((p) => p.loanId && p.amount > 0 && p.date);
 }
 
-export function BackupExport({ loans, payments, clients, sales, expenses, onImportLoans, onImportClients, onImportSales, onImportExpenses }: BackupExportProps) {
+export function BackupExport({ loans, payments, clients, sales, expenses, onImportLoans, onImportClients, onImportSales, onImportExpenses, onImportPayments }: BackupExportProps) {
   const loanFileRef = useRef<HTMLInputElement>(null);
   const clientFileRef = useRef<HTMLInputElement>(null);
   const saleFileRef = useRef<HTMLInputElement>(null);
   const vehicleFileRef = useRef<HTMLInputElement>(null);
   const expenseFileRef = useRef<HTMLInputElement>(null);
+  const paymentFileRef = useRef<HTMLInputElement>(null);
 
   const handleFileImport = (ref: React.RefObject<HTMLInputElement>) => ref.current?.click();
 
