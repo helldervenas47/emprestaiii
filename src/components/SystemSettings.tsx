@@ -77,6 +77,22 @@ export function SystemSettings() {
           <Suspense fallback={<SectionLoader />}>
             <InviteAndApprovalSettings />
           </Suspense>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-base">
+                <Activity className="h-4 w-4 text-primary" /> Saúde do sistema
+              </CardTitle>
+              <CardDescription>
+                Painel administrativo com indicadores em tempo real: latência do banco, sessões ativas, contagens e status online.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Suspense fallback={<SectionLoader />}>
+                <SystemHealth />
+              </Suspense>
+            </CardContent>
+          </Card>
         </section>
       )}
 
