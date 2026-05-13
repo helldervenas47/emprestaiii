@@ -17,6 +17,8 @@ interface Props {
 }
 
 export function IncomeDashboard({ incomes, allMonthIncomes, monthKey }: Props) {
+  const palette = useThemePalette();
+  const COLORS = palette.chart;
   // Considera receitas pagas + pendentes (consolidado por categoria)
   const consolidated = allMonthIncomes ?? incomes;
 
