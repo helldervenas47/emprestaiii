@@ -15,6 +15,7 @@ import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
 import { PendingSyncCard } from "@/components/PendingSyncCard";
 import { TimezoneSettingsCard } from "@/components/TimezoneSettingsCard";
 import { AIVoiceSettingsCard } from "@/components/AIVoiceSettingsCard";
+import { ThemeSettingsCard } from "@/components/ThemeSettingsCard";
 
 const NotificationSettings = lazy(() => import("@/components/NotificationSettings").then(m => ({ default: m.NotificationSettings })));
 const PaymentFeedbackSettings = lazy(() => import("@/components/PaymentFeedbackSettings").then(m => ({ default: m.PaymentFeedbackSettings })));
