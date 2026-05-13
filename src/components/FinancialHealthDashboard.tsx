@@ -9,6 +9,7 @@ import { Income } from "@/hooks/useIncomes";
 import { Expense } from "@/types/loan";
 import { usePiggyBanks } from "@/hooks/usePiggyBanks";
 import { useHideValues } from "@/contexts/HideValuesContext";
+import { useThemePalette } from "@/hooks/useThemePalette";
 import {
   ResponsiveContainer,
   RadialBarChart,
