@@ -207,7 +207,8 @@ export function UserManagement() {
 
   const openPermissions = (user: ManagedUser) => {
     setPermissionsUser(user);
-    setPermTabs(user.allowed_tabs || ALL_TABS.map(t => t.id));
+    // Sanitize: drop tab ids that no longer exist in the app, default to all current tabs.
+    setPermTabs(user.allowed_tabs ? sanitizeAllowedTabs(user.allowed_tabs) : APP_TAB_IDS.slice());
   };
 
   const handleToggleTab = (tabId: string) => {
