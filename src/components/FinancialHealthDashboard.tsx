@@ -251,10 +251,16 @@ export function FinancialHealthDashboard({ incomes, expenses, monthKey }: Props)
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-foreground/5 border border-black/10 dark:border-white/10 backdrop-blur-md">
-            <Sparkles className="h-3.5 w-3.5" style={{ color: scoreColor }} />
-            <span className="text-xs text-muted-foreground font-medium">Powered by AI insights</span>
-          </div>
+          <Button
+            type="button"
+            size="sm"
+            onClick={generateReport}
+            disabled={reportLoading}
+            className="h-9 gap-1.5 rounded-full bg-gradient-to-r from-violet-500 to-indigo-500 text-white hover:from-violet-600 hover:to-indigo-600 border-0 shadow-md"
+          >
+            {reportLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
+            <span className="hidden sm:inline text-xs font-medium">Relatório IA</span>
+          </Button>
           <button
             type="button"
             onClick={() => setExpanded((v) => !v)}
