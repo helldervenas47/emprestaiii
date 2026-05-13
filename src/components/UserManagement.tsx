@@ -220,8 +220,9 @@ export function UserManagement() {
   const handleSavePermissions = async () => {
     if (!permissionsUser) return;
     setSavingPerms(true);
+    const cleaned = sanitizeAllowedTabs(permTabs);
     const { data, error } = await supabase.functions.invoke("admin-manage-user", {
-      body: { action: "update_permissions", user_id: permissionsUser.id, allowed_tabs: permTabs },
+      body: { action: "update_permissions", user_id: permissionsUser.id, allowed_tabs: cleaned },
     });
     if (error || data?.error) {
       toast.error(data?.error || "Erro ao salvar permissões");
