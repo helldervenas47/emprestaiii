@@ -14,6 +14,9 @@ import { getCardInvoiceTotalsForMonth, isCreditCardExpense } from "@/lib/creditC
 import { isPiggyExpense, usePiggyBanks } from "@/hooks/usePiggyBanks";
 import { useProducts } from "@/hooks/useProducts";
 import { Sale } from "@/types/loan";
+import { useMonthlyOpeningBalances } from "@/hooks/useMonthlyOpeningBalances";
+import { getMonthEndProjectedBalance } from "@/lib/projectedBalance";
+import { todayDateInAppTz } from "@/lib/timezone";
 
 /** Total efetivamente recebido de uma venda (não os lançamentos previstos). */
 function saleReceivedTotal(sale: Sale): number {
