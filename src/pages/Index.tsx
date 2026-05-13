@@ -53,6 +53,7 @@ const WhatsappBillingCard = lazy(() => import("@/components/WhatsappBillingCard"
 const WhatsappAutoBillingCard = lazy(() => import("@/components/WhatsappAutoBillingCard").then(m => ({ default: m.WhatsappAutoBillingCard })));
 const WhatsappAssistantCard = lazy(() => import("@/components/WhatsappAssistantCard").then(m => ({ default: m.WhatsappAssistantCard })));
 const Settings = lazy(() => import("@/components/Settings").then(m => ({ default: m.Settings })));
+const SystemSettings = lazy(() => import("@/components/SystemSettings").then(m => ({ default: m.SystemSettings })));
 const SystemHealth = lazy(() => import("@/components/SystemHealth").then(m => ({ default: m.SystemHealth })));
 // Direct import for the constant used at render time
 import { isVehicleExpenseForVehicles } from "@/components/VehicleExpenseForm";
