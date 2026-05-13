@@ -375,6 +375,8 @@ export function IncomeList({ readOnly }: Props) {
         expenses={expenses}
         allIncomes={incomes}
         allExpenses={expenses}
+        monthKey={monthKey}
+        onMonthChange={setSelectedMonth}
       />
       <FinancialHealthDashboard
         incomes={incomes}
