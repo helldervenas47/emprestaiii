@@ -138,7 +138,7 @@ const Auth = () => {
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <div className="relative">
-                <Mail className="absolute left-3 top-3.5 h-4 w-4 text-muted-foreground" />
+                <Mail className="absolute left-3 top-3.5 h-4 w-4 text-muted-foreground z-10 pointer-events-none" />
                 <Input id="email" type="email" placeholder="seu@email.com" value={email} onChange={(e) => setEmail(e.target.value)} className="pl-9 h-12 rounded-xl" required />
               </div>
             </div>
@@ -168,14 +168,14 @@ const Auth = () => {
           <div className="space-y-2">
             <Label htmlFor="loginId">Email ou Usuário</Label>
             <div className="relative">
-              <Mail className="absolute left-3 top-3.5 h-4 w-4 text-muted-foreground" />
+              <Mail className="absolute left-3 top-3.5 h-4 w-4 text-muted-foreground z-10 pointer-events-none" />
               <Input id="loginId" type="text" placeholder="email ou nome de usuário" value={loginId} onChange={(e) => setLoginId(e.target.value)} className="pl-9 h-12 rounded-xl" required />
             </div>
           </div>
           <div className="space-y-2">
             <Label htmlFor="password">Senha</Label>
             <div className="relative">
-              <Lock className="absolute left-3 top-3.5 h-4 w-4 text-muted-foreground" />
+              <Lock className="absolute left-3 top-3.5 h-4 w-4 text-muted-foreground z-10 pointer-events-none" />
               <Input
                 id="password"
                 type={showPassword ? "text" : "password"}
