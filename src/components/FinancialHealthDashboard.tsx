@@ -39,6 +39,7 @@ import {
   ArrowDownRight,
   ChevronDown,
   ChevronUp,
+  Loader2,
 } from "lucide-react";
 
 const COLOR_GREEN = "#10B981";
