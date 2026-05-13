@@ -424,6 +424,13 @@ export function IncomePendingCalendar({
     return map;
   }, [dayMap, baseBalance, year, month, weekDays, overrides]);
 
+  // Saldo Previsto do último dia do mês selecionado — espelhado em "Saldo mês".
+  const monthEndProjectedBalance = useMemo(() => {
+    const lastDay = new Date(year, month + 1, 0);
+    const ds = formatLocalDate(lastDay);
+    return runningBalanceMap[ds] ?? baseBalance;
+  }, [runningBalanceMap, year, month, baseBalance]);
+
   const selectedHasMovement = selectedInfo.totalIncome > 0 || selectedInfo.totalExpense > 0;
   const selectedBalance = selectedDate
     ? (runningBalanceMap[selectedDate] ?? baseBalance)
