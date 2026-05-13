@@ -108,24 +108,8 @@ export function Settings({ backup, locadores, onSaveLocador, onRemoveLocador, is
         <p className="text-sm text-muted-foreground mt-1">Gerencie preferências, notificações, dados e sua conta.</p>
       </div>
 
-      {/* Plano */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-base">
-            <CreditCard className="h-4 w-4 text-primary" /> Plano e assinatura
-          </CardTitle>
-          <CardDescription>Plano atual: <span className="font-semibold text-foreground">{planLabel}</span></CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Button onClick={() => navigate("/planos")} variant="outline" size="sm">Gerenciar plano</Button>
-        </CardContent>
-      </Card>
-
       {/* Sincronização offline */}
       <PendingSyncCard />
-
-      {/* Personalização visual (temas) */}
-      <ThemeSettingsCard />
 
       {/* Preferências de exibição */}
       <Card>
