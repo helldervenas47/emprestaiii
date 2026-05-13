@@ -1046,7 +1046,7 @@ const Index = () => {
           aria-label={primaryLabel}
           title={primaryLabel}
           className="group fixed z-50 h-11 w-11 md:h-12 md:w-12 rounded-full flex items-center justify-center animate-fade-in touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 transition-all duration-200 hover:scale-105 active:scale-95 gradient-primary text-primary-foreground shadow-[0_8px_24px_-8px_hsl(var(--primary)/0.6)] hover:shadow-[0_12px_32px_-8px_hsl(var(--primary)/0.8)]"
-          style={{ right: `calc(env(safe-area-inset-right) + 12px)`, top: `calc(env(safe-area-inset-top) + 8px)` }}
+          style={{ right: `calc(env(safe-area-inset-right) + 16px)`, bottom: isMobile ? `calc(env(safe-area-inset-bottom) + 76px)` : `calc(env(safe-area-inset-bottom) + 20px)` }}
         >
           <Plus className="h-5 w-5 relative drop-shadow-[0_1px_2px_hsl(var(--primary)/0.5)]" strokeWidth={2.75} />
         </button>
@@ -1058,7 +1058,7 @@ const Index = () => {
           aria-label="Registrar Despesa"
           title="Registrar Despesa"
           className="fixed z-50 h-10 w-10 md:h-11 md:w-11 rounded-full flex items-center justify-center animate-fade-in touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 transition-all duration-200 hover:scale-105 active:scale-95 bg-card text-foreground border border-border shadow-md hover:shadow-lg"
-          style={{ right: `calc(env(safe-area-inset-right) + 12px + 52px)`, top: `calc(env(safe-area-inset-top) + 10px)` }}
+          style={{ right: `calc(env(safe-area-inset-right) + 16px)`, bottom: isMobile ? `calc(env(safe-area-inset-bottom) + 76px + 58px)` : `calc(env(safe-area-inset-bottom) + 20px + 64px)` }}
         >
           <Receipt className="h-4 w-4 relative" strokeWidth={2.5} />
         </button>
