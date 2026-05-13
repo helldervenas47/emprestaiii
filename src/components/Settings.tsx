@@ -108,24 +108,8 @@ export function Settings({ backup, locadores, onSaveLocador, onRemoveLocador, is
         <p className="text-sm text-muted-foreground mt-1">Gerencie preferências, notificações, dados e sua conta.</p>
       </div>
 
-      {/* Plano */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-base">
-            <CreditCard className="h-4 w-4 text-primary" /> Plano e assinatura
-          </CardTitle>
-          <CardDescription>Plano atual: <span className="font-semibold text-foreground">{planLabel}</span></CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Button onClick={() => navigate("/planos")} variant="outline" size="sm">Gerenciar plano</Button>
-        </CardContent>
-      </Card>
-
       {/* Sincronização offline */}
       <PendingSyncCard />
-
-      {/* Personalização visual (temas) */}
-      <ThemeSettingsCard />
 
       {/* Preferências de exibição */}
       <Card>
@@ -276,48 +260,6 @@ export function Settings({ backup, locadores, onSaveLocador, onRemoveLocador, is
         </CardContent>
       </Card>
 
-      {/* Identidade visual (admin) */}
-      {isAdmin && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-base">
-              <ImageIcon className="h-4 w-4 text-primary" /> Identidade visual
-            </CardTitle>
-            <CardDescription>
-              Defina a logo oficial do sistema e personalize o tamanho em pixels para cada área e dispositivo.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Suspense fallback={<SectionLoader />}>
-              <BrandingSettings />
-            </Suspense>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Gerenciamento de usuários (admin) */}
-      {isAdmin && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-base">
-              <UsersIcon className="h-4 w-4 text-primary" /> Gerenciamento de usuários
-            </CardTitle>
-            <CardDescription>Crie e gerencie usuários, papéis e permissões.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Suspense fallback={<SectionLoader />}>
-              <UserManagement />
-            </Suspense>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Aprovação e convites (admin) */}
-      {isAdmin && (
-        <Suspense fallback={<SectionLoader />}>
-          <InviteAndApprovalSettings />
-        </Suspense>
-      )}
 
       {/* Limpeza de cache */}
       <Card className="border-destructive/30">
