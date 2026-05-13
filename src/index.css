@@ -696,3 +696,108 @@ html[data-theme="light-future"].dark body {
     radial-gradient(1000px 600px at 100% 10%, hsl(188 95% 55% / 0.18), transparent 60%),
     radial-gradient(900px 700px at 50% 115%, hsl(330 90% 70% / 0.14), transparent 65%);
 }
+
+/* ──────────────────────────────────────────────────────────────────────────
+   Chart palette tokens — adapta gráficos/dashboards a cada tema.
+   Sempre HSL no formato "H S% L%" (sem hsl()).
+   ────────────────────────────────────────────────────────────────────────── */
+:root {
+  --chart-1: 235 85% 60%;
+  --chart-2: 172 78% 42%;
+  --chart-3: 38 95% 55%;
+  --chart-4: 0 82% 60%;
+  --chart-5: 262 80% 62%;
+  --chart-6: 195 90% 50%;
+  --chart-grid: 220 20% 88%;
+  --chart-positive: 158 78% 42%;
+  --chart-warning: 38 95% 55%;
+  --chart-negative: 0 82% 60%;
+}
+.dark {
+  --chart-1: 230 90% 65%;
+  --chart-2: 188 95% 55%;
+  --chart-3: 38 92% 60%;
+  --chart-4: 0 84% 62%;
+  --chart-5: 262 83% 70%;
+  --chart-6: 158 84% 50%;
+  --chart-grid: 215 25% 22%;
+  --chart-positive: 158 84% 50%;
+  --chart-warning: 38 92% 60%;
+  --chart-negative: 0 84% 62%;
+}
+html[data-theme="cyberpunk"],
+html[data-theme="cyberpunk"].dark {
+  --chart-1: 280 95% 65%;
+  --chart-2: 195 100% 55%;
+  --chart-3: 50 100% 60%;
+  --chart-4: 340 95% 60%;
+  --chart-5: 225 100% 65%;
+  --chart-6: 150 90% 55%;
+  --chart-grid: 270 50% 28%;
+  --chart-positive: 150 90% 55%;
+  --chart-warning: 50 100% 60%;
+  --chart-negative: 340 95% 60%;
+}
+html[data-theme="dark-ai"],
+html[data-theme="dark-ai"].dark {
+  --chart-1: 158 78% 48%;
+  --chart-2: 262 85% 70%;
+  --chart-3: 38 92% 60%;
+  --chart-4: 0 78% 60%;
+  --chart-5: 195 80% 55%;
+  --chart-6: 280 85% 70%;
+  --chart-grid: 222 18% 22%;
+  --chart-positive: 158 78% 48%;
+  --chart-warning: 38 92% 60%;
+  --chart-negative: 0 78% 60%;
+}
+html[data-theme="data-vision"],
+html[data-theme="data-vision"].dark {
+  --chart-1: 199 95% 55%;
+  --chart-2: 38 95% 58%;
+  --chart-3: 158 78% 48%;
+  --chart-4: 0 84% 60%;
+  --chart-5: 262 80% 70%;
+  --chart-6: 280 85% 65%;
+  --chart-grid: 205 35% 22%;
+  --chart-positive: 158 78% 48%;
+  --chart-warning: 38 95% 58%;
+  --chart-negative: 0 84% 60%;
+}
+html[data-theme="glass"] {
+  --chart-1: 222 80% 56%;
+  --chart-2: 200 95% 55%;
+  --chart-3: 38 95% 55%;
+  --chart-4: 0 82% 60%;
+  --chart-5: 262 80% 62%;
+  --chart-6: 158 78% 45%;
+  --chart-grid: 220 25% 86%;
+  --chart-positive: 158 78% 42%;
+  --chart-warning: 38 95% 55%;
+  --chart-negative: 0 82% 60%;
+}
+html[data-theme="glass"].dark {
+  --chart-1: 222 95% 70%;
+  --chart-2: 195 95% 60%;
+  --chart-3: 38 92% 60%;
+  --chart-4: 0 84% 62%;
+  --chart-5: 262 83% 70%;
+  --chart-6: 158 84% 50%;
+  --chart-grid: 220 25% 28%;
+  --chart-positive: 158 84% 50%;
+  --chart-warning: 38 92% 60%;
+  --chart-negative: 0 84% 62%;
+}
+html[data-theme="light-future"],
+html[data-theme="light-future"].dark {
+  --chart-1: 262 88% 62%;
+  --chart-2: 188 95% 50%;
+  --chart-3: 32 95% 55%;
+  --chart-4: 0 82% 60%;
+  --chart-5: 330 90% 62%;
+  --chart-6: 158 78% 42%;
+  --chart-grid: 220 25% 88%;
+  --chart-positive: 158 78% 42%;
+  --chart-warning: 32 95% 55%;
+  --chart-negative: 0 82% 60%;
+}

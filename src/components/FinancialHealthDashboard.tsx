@@ -9,6 +9,7 @@ import { Income } from "@/hooks/useIncomes";
 import { Expense } from "@/types/loan";
 import { usePiggyBanks } from "@/hooks/usePiggyBanks";
 import { useHideValues } from "@/contexts/HideValuesContext";
+import { useThemePalette } from "@/hooks/useThemePalette";
 import {
   ResponsiveContainer,
   RadialBarChart,
@@ -42,10 +43,11 @@ import {
   Loader2,
 } from "lucide-react";
 
-const COLOR_GREEN = "#10B981";
-const COLOR_YELLOW = "#F59E0B";
-const COLOR_RED = "#EF4444";
-const DONUT_COLORS = ["#10B981", "#06B6D4", "#8B5CF6", "#F59E0B", "#EF4444", "#EC4899"];
+// Cores fallback caso a paleta de tema ainda não tenha sido lida.
+const FALLBACK_GREEN = "#10B981";
+const FALLBACK_YELLOW = "#F59E0B";
+const FALLBACK_RED = "#EF4444";
+const FALLBACK_DONUT = ["#10B981", "#06B6D4", "#8B5CF6", "#F59E0B", "#EF4444", "#EC4899"];
 
 interface Props {
   incomes: Income[];
@@ -112,6 +114,12 @@ function computeScore(m: MonthMetrics, piggyBalance: number, avgExpense: number)
 
 export function FinancialHealthDashboard({ incomes, expenses, monthKey }: Props) {
   const { hidden } = useHideValues();
+  const palette = useThemePalette();
+  const COLOR_GREEN = palette.positive || FALLBACK_GREEN;
+  const COLOR_YELLOW = palette.warning || FALLBACK_YELLOW;
+  const COLOR_RED = palette.negative || FALLBACK_RED;
+  const DONUT_COLORS = palette.chart.length ? palette.chart : FALLBACK_DONUT;
+  void DONUT_COLORS;
   const { deposits } = usePiggyBanks();
   const [expanded, setExpanded] = useState(false);
   const [reportOpen, setReportOpen] = useState(false);
