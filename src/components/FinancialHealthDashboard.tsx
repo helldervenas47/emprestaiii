@@ -79,6 +79,11 @@ interface MonthMetrics {
   pendingExpense: number;
 }
 
+function monthlyExpenseAmount(e: Expense): number {
+  const isRec = e.type === "recorrente" && e.installments && e.installments > 1;
+  return isRec ? Number(e.amount) / Number(e.installments) : Number(e.amount);
+}
+
 function computeMonthMetrics(incomes: Income[], expenses: Expense[], key: string): MonthMetrics {
   const income = incomes
     .filter((i) => i.status === "received" && i.receivedDate.startsWith(key))
@@ -86,10 +91,10 @@ function computeMonthMetrics(incomes: Income[], expenses: Expense[], key: string
   const personal = expenses.filter((e) => (e.scope ?? "business") === "personal");
   const expense = personal
     .filter((e) => e.paid && (e.paidDate || "").startsWith(key))
-    .reduce((s, e) => s + e.amount, 0);
+    .reduce((s, e) => s + monthlyExpenseAmount(e), 0);
   const pendingExpense = personal
     .filter((e) => !e.paid && (e.dueDate || "").startsWith(key))
-    .reduce((s, e) => s + e.amount, 0);
+    .reduce((s, e) => s + monthlyExpenseAmount(e), 0);
   return { income, expense, pendingExpense };
 }
 
@@ -156,7 +161,7 @@ export function FinancialHealthDashboard({ incomes, expenses, monthKey }: Props)
       .filter((e) => (e.scope ?? "business") === "personal" && e.paid && (e.paidDate || "").startsWith(monthKey))
       .forEach((e) => {
         const k = e.category || "Outros";
-        map.set(k, (map.get(k) || 0) + e.amount);
+        map.set(k, (map.get(k) || 0) + monthlyExpenseAmount(e));
       });
     const sorted = Array.from(map.entries()).sort((a, b) => b[1] - a[1]);
     const top = sorted.slice(0, 4);
