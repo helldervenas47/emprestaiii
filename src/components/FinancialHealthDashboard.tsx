@@ -383,6 +383,40 @@ export function FinancialHealthDashboard({ incomes, expenses, monthKey }: Props)
         />
       </div>
 
+      <Dialog open={reportOpen} onOpenChange={setReportOpen}>
+        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Sparkles className="h-5 w-5 text-violet-500" />
+              Relatório IA — Saúde da aba Receitas
+            </DialogTitle>
+            <DialogDescription>
+              Análise personalizada com recomendações para melhorar sua saúde financeira.
+            </DialogDescription>
+          </DialogHeader>
+          {reportLoading ? (
+            <div className="flex flex-col items-center justify-center py-12 gap-3">
+              <Loader2 className="h-8 w-8 animate-spin text-violet-500" />
+              <p className="text-sm text-muted-foreground">Gerando análise personalizada...</p>
+            </div>
+          ) : (
+            <div className="prose prose-sm dark:prose-invert max-w-none prose-headings:mt-4 prose-headings:mb-2 prose-p:my-2 prose-ul:my-2">
+              <ReactMarkdown>{reportContent}</ReactMarkdown>
+            </div>
+          )}
+          <div className="flex justify-end gap-2 pt-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => { setReportContent(""); generateReport(); }}
+              disabled={reportLoading}
+            >
+              Gerar novamente
+            </Button>
+            <Button size="sm" onClick={() => setReportOpen(false)}>Fechar</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
