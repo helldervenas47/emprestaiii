@@ -54,7 +54,7 @@ const WhatsappAutoBillingCard = lazy(() => import("@/components/WhatsappAutoBill
 const WhatsappAssistantCard = lazy(() => import("@/components/WhatsappAssistantCard").then(m => ({ default: m.WhatsappAssistantCard })));
 const Settings = lazy(() => import("@/components/Settings").then(m => ({ default: m.Settings })));
 const SystemSettings = lazy(() => import("@/components/SystemSettings").then(m => ({ default: m.SystemSettings })));
-const SystemHealth = lazy(() => import("@/components/SystemHealth").then(m => ({ default: m.SystemHealth })));
+
 // Direct import for the constant used at render time
 import { isVehicleExpenseForVehicles } from "@/components/VehicleExpenseForm";
 import { PushNotificationToggle } from "@/components/PushNotificationToggle";
@@ -93,7 +93,7 @@ import { useExpenses } from "@/hooks/useExpenses";
 import { useVehicleRegistry } from "@/hooks/useVehicleRegistry";
 import { useLocadorInfo } from "@/hooks/useLocadorInfo";
 
-type Tab = "overview" | "dashboard" | "clients" | "products" | "vehicles" | "overdue" | "expenses" | "accountant" | "calendar" | "settings" | "system" | "system-health";
+type Tab = "overview" | "dashboard" | "clients" | "products" | "vehicles" | "overdue" | "expenses" | "accountant" | "calendar" | "settings" | "system";
 type ClientSubTab = "clientes" | "veiculos";
 type VehicleSubTab = "veiculos" | "locadores";
 type PlanMgmtSubTab = "subscribers" | "plans";
@@ -115,7 +115,7 @@ const tabConfig = [
   { id: "overdue" as Tab, label: "Relatório", icon: AlertTriangle },
   { id: "settings" as Tab, label: "Configurações", icon: SettingsIcon },
   { id: "system" as Tab, label: "Sistema", icon: Sliders },
-  { id: "system-health" as Tab, label: "Saúde do Sistema", icon: Activity, adminOnly: true },
+  
 ];
 
 const tabHelp: Record<Tab, { title: string; items: string[] }> = {
@@ -213,15 +213,6 @@ const tabHelp: Record<Tab, { title: string; items: string[] }> = {
       "Administração: gerenciamento de usuários, aprovações e links de convite.",
       "Conta e Assinatura: visualize e altere o plano contratado.",
       "Personalização: identidade visual e temas do sistema.",
-    ],
-  },
-  "system-health": {
-    title: "Saúde do Sistema",
-    items: [
-      "Painel administrativo com indicadores em tempo real.",
-      "Métricas reais: latência do banco, sessões ativas, contagens, status online.",
-      "Métricas marcadas como 'Estimado' são aproximações calculadas no aparelho.",
-      "Use o botão Atualizar ou ative o auto-refresh (30s).",
     ],
   },
 };
@@ -1064,9 +1055,6 @@ const Index = () => {
         )}
         {tab === "system" && canAccessTab("system") && (
           <SystemSettings />
-        )}
-        {tab === "system-health" && role === "admin" && (
-          <SystemHealth />
         )}
         </Suspense>
       </main>
