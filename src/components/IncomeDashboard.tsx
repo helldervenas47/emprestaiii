@@ -57,7 +57,7 @@ export function IncomeDashboard({ incomes, allMonthIncomes, monthKey }: Props) {
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
       <Card no3d className="p-4">
-        <h3 className="text-sm font-semibold mb-3 text-foreground">A receber por categoria</h3>
+        <h3 className="text-sm font-semibold mb-3 text-foreground">Receitas por categoria</h3>
         <ResponsiveContainer width="100%" height={220}>
           <PieChart>
             <Pie data={byCategory} dataKey="value" nameKey="name" outerRadius={75} label={(e: any) => e.name}>
