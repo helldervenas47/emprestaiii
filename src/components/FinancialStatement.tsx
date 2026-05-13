@@ -220,7 +220,7 @@ export function FinancialStatement() {
             <div className="col-span-2 sm:col-span-1">
               <label className="text-xs text-muted-foreground">Buscar</label>
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground z-10 pointer-events-none" />
                 <Input
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
