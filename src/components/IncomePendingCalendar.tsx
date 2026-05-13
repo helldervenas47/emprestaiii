@@ -21,13 +21,13 @@ import { todayDateInAppTz } from "@/lib/timezone";
 const ALLOW_DAY1_OVERRIDE_KEY = "calendar:incomeAllowDay1BalanceOverride";
 
 function loadAllowDay1Override(): boolean {
-  if (typeof window === "undefined") return true;
+  if (typeof window === "undefined") return false;
   try {
     const raw = window.localStorage.getItem(ALLOW_DAY1_OVERRIDE_KEY);
-    if (raw === null) return true;
+    if (raw === null) return false;
     return raw === "true";
   } catch {
-    return true;
+    return false;
   }
 }
 
