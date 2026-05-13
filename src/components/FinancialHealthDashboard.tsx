@@ -161,7 +161,7 @@ export function FinancialHealthDashboard({ incomes, expenses, monthKey }: Props)
       .filter((e) => (e.scope ?? "business") === "personal" && e.paid && (e.paidDate || "").startsWith(monthKey))
       .forEach((e) => {
         const k = e.category || "Outros";
-        map.set(k, (map.get(k) || 0) + e.amount);
+        map.set(k, (map.get(k) || 0) + monthlyExpenseAmount(e));
       });
     const sorted = Array.from(map.entries()).sort((a, b) => b[1] - a[1]);
     const top = sorted.slice(0, 4);
