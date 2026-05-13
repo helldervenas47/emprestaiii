@@ -49,6 +49,10 @@ interface Props {
   allIncomes?: Income[];
   /** All expenses (incl. business) used to compute the account balance baseline. */
   allExpenses?: Expense[];
+  /** Mês selecionado externamente (YYYY-MM). Mantém calendário sincronizado com o filtro geral. */
+  monthKey?: string;
+  /** Notifica mudança de mês ao navegar pelo calendário. */
+  onMonthChange?: (monthKey: string) => void;
 }
 
 function saleReceivedTotal(sale: Sale): number {
