@@ -179,11 +179,44 @@ export function FinancialHealthDashboard({ incomes, expenses, monthKey }: Props)
       radar,
       categories,
       current,
+      previous,
       monthsCovered,
       expenseDelta,
       piggyBalance,
     };
   }, [incomes, expenses, monthKey, deposits]);
+
+  const generateReport = async () => {
+    setReportOpen(true);
+    if (reportContent) return;
+    setReportLoading(true);
+    try {
+      const { data: res, error } = await supabase.functions.invoke("generate-income-health-report", {
+        body: {
+          metrics: {
+            score: data.score,
+            improvementPct: data.improvementPct,
+            monthsCovered: data.monthsCovered,
+            expenseDelta: data.expenseDelta,
+            piggyBalance: data.piggyBalance,
+            current: data.current,
+            previous: data.previous,
+            radar: data.radar,
+            categories: data.categories,
+            monthKey,
+          },
+        },
+      });
+      if (error) throw error;
+      if ((res as any)?.error) throw new Error((res as any).error);
+      setReportContent((res as any)?.content || "Não foi possível gerar o relatório.");
+    } catch (e: any) {
+      toast.error(e?.message || "Erro ao gerar relatório");
+      setReportOpen(false);
+    } finally {
+      setReportLoading(false);
+    }
+  };
 
   const scoreColor =
     data.score >= 70 ? COLOR_GREEN : data.score >= 40 ? COLOR_YELLOW : COLOR_RED;
