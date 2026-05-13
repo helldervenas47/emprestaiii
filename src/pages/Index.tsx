@@ -1024,6 +1024,24 @@ const Index = () => {
               onImportExpenses: async (imported) => {
                 await Promise.all(imported.map((expense) => addExpense(expense)));
               },
+              onImportPayments: async (imported) => {
+                const loanIdSet = new Set(loans.map((l) => l.id));
+                let importedCount = 0;
+                let skipped = 0;
+                const valid = imported.filter((p) => {
+                  if (!loanIdSet.has(p.loanId)) { skipped++; return false; }
+                  return true;
+                });
+                const BATCH = 5;
+                for (let i = 0; i < valid.length; i += BATCH) {
+                  const batch = valid.slice(i, i + BATCH);
+                  await Promise.all(batch.map(async (p) => {
+                    await addPartialPayment(p.loanId, p.amount, p.date);
+                    importedCount++;
+                  }));
+                }
+                return { imported: importedCount, skipped };
+              },
             }}
             locadores={locadores}
             onSaveLocador={saveLocador}
