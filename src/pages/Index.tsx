@@ -115,7 +115,7 @@ const tabConfig = [
   { id: "overdue" as Tab, label: "Relatório", icon: AlertTriangle },
   { id: "settings" as Tab, label: "Configurações", icon: SettingsIcon },
   { id: "system" as Tab, label: "Sistema", icon: Sliders },
-  { id: "system-health" as Tab, label: "Saúde do Sistema", icon: Activity, adminOnly: true },
+  
 ];
 
 const tabHelp: Record<Tab, { title: string; items: string[] }> = {
