@@ -4,7 +4,21 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
-import { Eye, EyeOff, Lock, Loader2, ShieldCheck, AlertCircle, CheckCircle2 } from "lucide-react";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
+import {
+  Eye,
+  EyeOff,
+  Lock,
+  Loader2,
+  ShieldCheck,
+  AlertCircle,
+  CheckCircle2,
+  ChevronDown,
+} from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
@@ -33,13 +47,12 @@ const MAX_ATTEMPTS = 5;
 const COOLDOWN_MS = 60_000;
 
 export function ChangePasswordCard() {
-  const { user, signOut } = useAuth();
+  const { user } = useAuth();
+  const [open, setOpen] = useState(false);
   const [current, setCurrent] = useState("");
   const [next, setNext] = useState("");
   const [confirm, setConfirm] = useState("");
-  const [showCurrent, setShowCurrent] = useState(false);
-  const [showNext, setShowNext] = useState(false);
-  const [showConfirm, setShowConfirm] = useState(false);
+  const [showAll, setShowAll] = useState(false);
   const [revokeOthers, setRevokeOthers] = useState(true);
   const [loading, setLoading] = useState(false);
   const [attempts, setAttempts] = useState(0);
@@ -61,12 +74,23 @@ export function ChangePasswordCard() {
     !mismatch &&
     confirm === next;
 
+  const reset = () => {
+    setCurrent("");
+    setNext("");
+    setConfirm("");
+    setShowAll(false);
+  };
+
+  const handleOpenChange = (v: boolean) => {
+    setOpen(v);
+    if (!v) reset();
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!canSubmit || !user?.email) return;
     setLoading(true);
     try {
-      // 1) Validate current password by re-authenticating
       const { error: signInErr } = await supabase.auth.signInWithPassword({
         email: user.email,
         password: current,
@@ -83,30 +107,27 @@ export function ChangePasswordCard() {
         return;
       }
 
-      // 2) Update password (Supabase hashes server-side)
       const { error: updateErr } = await supabase.auth.updateUser({ password: next });
       if (updateErr) {
         toast.error(updateErr.message || "Erro ao atualizar senha.");
         return;
       }
 
-      // 3) Optionally revoke other sessions
       if (revokeOthers) {
         try {
           await supabase.auth.signOut({ scope: "others" });
         } catch {
-          /* não bloqueia o sucesso */
+          /* noop */
         }
       }
 
       toast.success("Senha alterada com sucesso!", {
         icon: <CheckCircle2 className="h-4 w-4 text-emerald-500" />,
       });
-      setCurrent("");
-      setNext("");
-      setConfirm("");
+      reset();
       setAttempts(0);
       setLockUntil(null);
+      setOpen(false);
     } catch (err: any) {
       toast.error(err?.message || "Falha inesperada ao alterar senha.");
     } finally {
@@ -114,157 +135,174 @@ export function ChangePasswordCard() {
     }
   };
 
-  const PwInput = ({
-    id,
-    label,
-    value,
-    onChange,
-    show,
-    setShow,
-    autoComplete,
-    error,
-  }: {
-    id: string;
-    label: string;
-    value: string;
-    onChange: (v: string) => void;
-    show: boolean;
-    setShow: (v: boolean) => void;
-    autoComplete: string;
-    error?: string;
-  }) => (
-    <div className="space-y-1.5">
-      <Label htmlFor={id} className="text-xs font-medium">
-        {label}
-      </Label>
-      <div className="relative group">
-        <Input
-          id={id}
-          type={show ? "text" : "password"}
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          autoComplete={autoComplete}
-          className={cn(
-            "pr-10 transition-all duration-200",
-            error && "border-destructive focus-visible:ring-destructive/40",
-          )}
-        />
-        <button
-          type="button"
-          onClick={() => setShow(!show)}
-          tabIndex={-1}
-          aria-label={show ? "Ocultar senha" : "Mostrar senha"}
-          className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-        >
-          {show ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-        </button>
-      </div>
-      {error && (
-        <p className="flex items-center gap-1 text-[11px] text-destructive animate-in fade-in slide-in-from-top-1">
-          <AlertCircle className="h-3 w-3" /> {error}
-        </p>
-      )}
-    </div>
-  );
+  const inputType = showAll ? "text" : "password";
 
   return (
     <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-base">
-          <Lock className="h-4 w-4 text-primary" /> Alteração de senha
-        </CardTitle>
-        <CardDescription>
-          Atualize sua senha de acesso. Recomendamos uma senha forte e única.
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <PwInput
-            id="cp-current"
-            label="Senha atual"
-            value={current}
-            onChange={setCurrent}
-            show={showCurrent}
-            setShow={setShowCurrent}
-            autoComplete="current-password"
-          />
-          <PwInput
-            id="cp-next"
-            label="Nova senha"
-            value={next}
-            onChange={setNext}
-            show={showNext}
-            setShow={setShowNext}
-            autoComplete="new-password"
-            error={
-              tooShort
-                ? `Mínimo de ${MIN_LENGTH} caracteres`
-                : sameAsCurrent
-                  ? "A nova senha deve ser diferente da atual"
-                  : undefined
-            }
-          />
-
-          {next.length > 0 && (
-            <div className="space-y-1 animate-in fade-in slide-in-from-top-1">
-              <div className="flex h-1.5 gap-1">
-                {[0, 1, 2, 3].map((i) => (
-                  <div
-                    key={i}
-                    className={cn(
-                      "flex-1 rounded-full transition-all duration-300",
-                      i < strength.score ? strength.color : "bg-muted",
-                    )}
-                  />
-                ))}
+      <Collapsible open={open} onOpenChange={handleOpenChange}>
+        <CollapsibleTrigger asChild>
+          <button
+            type="button"
+            className="w-full text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-ring/60 rounded-t-xl"
+          >
+            <CardHeader className="flex-row items-center justify-between space-y-0">
+              <div className="space-y-1">
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <Lock className="h-4 w-4 text-primary" /> Alterar senha
+                </CardTitle>
+                <CardDescription>
+                  Atualize sua senha de acesso com segurança.
+                </CardDescription>
               </div>
-              <p className="text-[11px] text-muted-foreground">
-                Força: <span className="font-medium text-foreground">{strength.label}</span>
-              </p>
-            </div>
-          )}
+              <ChevronDown
+                className={cn(
+                  "h-5 w-5 text-muted-foreground transition-transform duration-300",
+                  open && "rotate-180",
+                )}
+              />
+            </CardHeader>
+          </button>
+        </CollapsibleTrigger>
 
-          <PwInput
-            id="cp-confirm"
-            label="Confirmar nova senha"
-            value={confirm}
-            onChange={setConfirm}
-            show={showConfirm}
-            setShow={setShowConfirm}
-            autoComplete="new-password"
-            error={mismatch ? "As senhas não coincidem" : undefined}
-          />
+        <CollapsibleContent className="overflow-hidden data-[state=closed]:animate-accordion-up data-[state=open]:animate-accordion-down">
+          <CardContent>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="flex items-center justify-between gap-3 rounded-lg border border-border/50 bg-muted/30 p-2.5">
+                <div className="flex items-center gap-2">
+                  {showAll ? (
+                    <Eye className="h-4 w-4 text-primary" />
+                  ) : (
+                    <EyeOff className="h-4 w-4 text-muted-foreground" />
+                  )}
+                  <span className="text-xs font-medium">
+                    {showAll ? "Senhas visíveis" : "Mostrar senhas"}
+                  </span>
+                </div>
+                <Switch checked={showAll} onCheckedChange={setShowAll} />
+              </div>
 
-          <div className="flex items-start justify-between gap-3 rounded-lg border border-border/50 bg-muted/30 p-3">
-            <div className="flex items-start gap-2">
-              <ShieldCheck className="h-4 w-4 text-primary mt-0.5 shrink-0" />
-              <div>
-                <p className="text-xs font-medium">Encerrar outras sessões</p>
-                <p className="text-[11px] text-muted-foreground">
-                  Desconecta esta conta dos outros dispositivos após salvar.
+              <div className="space-y-1.5">
+                <Label htmlFor="cp-current" className="text-xs font-medium">
+                  Senha atual
+                </Label>
+                <Input
+                  id="cp-current"
+                  type={inputType}
+                  value={current}
+                  onChange={(e) => setCurrent(e.target.value)}
+                  autoComplete="current-password"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="cp-next" className="text-xs font-medium">
+                  Nova senha
+                </Label>
+                <Input
+                  id="cp-next"
+                  type={inputType}
+                  value={next}
+                  onChange={(e) => setNext(e.target.value)}
+                  autoComplete="new-password"
+                  className={cn(
+                    (tooShort || sameAsCurrent) &&
+                      "border-destructive focus-visible:ring-destructive/40",
+                  )}
+                />
+                {(tooShort || sameAsCurrent) && (
+                  <p className="flex items-center gap-1 text-[11px] text-destructive animate-in fade-in slide-in-from-top-1">
+                    <AlertCircle className="h-3 w-3" />
+                    {tooShort
+                      ? `Mínimo de ${MIN_LENGTH} caracteres`
+                      : "A nova senha deve ser diferente da atual"}
+                  </p>
+                )}
+              </div>
+
+              {next.length > 0 && (
+                <div className="space-y-1 animate-in fade-in slide-in-from-top-1">
+                  <div className="flex h-1.5 gap-1">
+                    {[0, 1, 2, 3].map((i) => (
+                      <div
+                        key={i}
+                        className={cn(
+                          "flex-1 rounded-full transition-all duration-300",
+                          i < strength.score ? strength.color : "bg-muted",
+                        )}
+                      />
+                    ))}
+                  </div>
+                  <p className="text-[11px] text-muted-foreground">
+                    Força:{" "}
+                    <span className="font-medium text-foreground">{strength.label}</span>
+                  </p>
+                </div>
+              )}
+
+              <div className="space-y-1.5">
+                <Label htmlFor="cp-confirm" className="text-xs font-medium">
+                  Confirmar nova senha
+                </Label>
+                <Input
+                  id="cp-confirm"
+                  type={inputType}
+                  value={confirm}
+                  onChange={(e) => setConfirm(e.target.value)}
+                  autoComplete="new-password"
+                  className={cn(
+                    mismatch && "border-destructive focus-visible:ring-destructive/40",
+                  )}
+                />
+                {mismatch && (
+                  <p className="flex items-center gap-1 text-[11px] text-destructive animate-in fade-in slide-in-from-top-1">
+                    <AlertCircle className="h-3 w-3" /> As senhas não coincidem
+                  </p>
+                )}
+              </div>
+
+              <div className="flex items-start justify-between gap-3 rounded-lg border border-border/50 bg-muted/30 p-3">
+                <div className="flex items-start gap-2">
+                  <ShieldCheck className="h-4 w-4 text-primary mt-0.5 shrink-0" />
+                  <div>
+                    <p className="text-xs font-medium">Encerrar outras sessões</p>
+                    <p className="text-[11px] text-muted-foreground">
+                      Desconecta esta conta dos outros dispositivos após salvar.
+                    </p>
+                  </div>
+                </div>
+                <Switch checked={revokeOthers} onCheckedChange={setRevokeOthers} />
+              </div>
+
+              {locked && (
+                <p className="flex items-center gap-1 text-xs text-destructive">
+                  <AlertCircle className="h-3 w-3" /> Bloqueado temporariamente. Tente novamente em alguns segundos.
                 </p>
+              )}
+
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="flex-1"
+                  onClick={() => handleOpenChange(false)}
+                  disabled={loading}
+                >
+                  Cancelar
+                </Button>
+                <Button type="submit" disabled={!canSubmit} className="flex-1">
+                  {loading ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" /> Salvando...
+                    </>
+                  ) : (
+                    "Salvar nova senha"
+                  )}
+                </Button>
               </div>
-            </div>
-            <Switch checked={revokeOthers} onCheckedChange={setRevokeOthers} />
-          </div>
-
-          {locked && (
-            <p className="flex items-center gap-1 text-xs text-destructive">
-              <AlertCircle className="h-3 w-3" /> Bloqueado temporariamente. Tente novamente em alguns segundos.
-            </p>
-          )}
-
-          <Button type="submit" disabled={!canSubmit} className="w-full">
-            {loading ? (
-              <>
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" /> Salvando...
-              </>
-            ) : (
-              "Salvar nova senha"
-            )}
-          </Button>
-        </form>
-      </CardContent>
+            </form>
+          </CardContent>
+        </CollapsibleContent>
+      </Collapsible>
     </Card>
   );
 }
