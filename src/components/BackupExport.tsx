@@ -88,6 +88,23 @@ function exportPaymentsToCSV(payments: Payment[]): string {
   return [headers, ...rows].map((r) => r.map((c) => `"${(c ?? "").replace(/"/g, '""')}"`).join(",")).join("\n");
 }
 
+function importPaymentsFromCSV(csv: string): { loanId: string; amount: number; date: string; installmentNumber?: number; previousDueDate?: string }[] {
+  const lines = csv.split("\n").filter((l) => l.trim());
+  if (lines.length < 2) return [];
+  return lines.slice(1).map((line) => {
+    const cols = parseCSVLine(line);
+    const amount = parseFloat(cols[1]) || 0;
+    const installment = parseInt(cols[3]);
+    return {
+      loanId: (cols[0] || "").trim(),
+      amount,
+      date: (cols[2] || todayInAppTz()).trim(),
+      installmentNumber: Number.isFinite(installment) ? installment : undefined,
+      previousDueDate: (cols[4] || "").trim() || undefined,
+    };
+  }).filter((p) => p.loanId && p.amount > 0 && p.date);
+}
+
 export function BackupExport({ loans, payments, clients, sales, expenses, onImportLoans, onImportClients, onImportSales, onImportExpenses }: BackupExportProps) {
   const loanFileRef = useRef<HTMLInputElement>(null);
   const clientFileRef = useRef<HTMLInputElement>(null);
