@@ -1,6 +1,9 @@
 import { createRoot } from "react-dom/client";
 import App from "./App.tsx";
 import "./index.css";
+import { bootstrapAppTheme } from "./hooks/useAppTheme";
+
+bootstrapAppTheme();
 
 // Guard: never register service workers in preview/iframe contexts
 const isInIframe = (() => {
