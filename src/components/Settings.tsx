@@ -138,6 +138,9 @@ export function Settings({ backup, locadores, onSaveLocador, onRemoveLocador, is
       {/* Voz dos relatórios por IA */}
       <AIVoiceSettingsCard />
 
+      {/* Alteração de senha */}
+      <ChangePasswordCard />
+
       {/* Notificações e integrações */}
       <Card>
         <CardHeader>
