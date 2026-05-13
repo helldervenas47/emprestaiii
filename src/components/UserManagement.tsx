@@ -17,6 +17,7 @@ import { Plus, Trash2, Shield, UserPlus, Pencil, ChevronDown, Settings2, Link2, 
 import { toast } from "sonner";
 import { useViewAsUser } from "@/hooks/useViewAsUser";
 import { useAuth } from "@/hooks/useAuth";
+import { APP_TABS, APP_TAB_IDS, sanitizeAllowedTabs } from "@/lib/appTabs";
 
 interface ManagedUser {
   id: string;
