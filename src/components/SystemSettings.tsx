@@ -1,7 +1,7 @@
 import { lazy, Suspense } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { CreditCard, Users as UsersIcon, Image as ImageIcon, Loader2, ShieldCheck, Palette, Wallet } from "lucide-react";
+import { CreditCard, Users as UsersIcon, Image as ImageIcon, Loader2, ShieldCheck, Palette, Wallet, Activity } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
 import { useSubscription } from "@/hooks/useSubscription";
@@ -10,6 +10,7 @@ import { ThemeSettingsCard } from "@/components/ThemeSettingsCard";
 const UserManagement = lazy(() => import("@/components/UserManagement").then(m => ({ default: m.UserManagement })));
 const BrandingSettings = lazy(() => import("@/components/BrandingSettings").then(m => ({ default: m.BrandingSettings })));
 const InviteAndApprovalSettings = lazy(() => import("@/components/InviteAndApprovalSettings").then(m => ({ default: m.InviteAndApprovalSettings })));
+const SystemHealth = lazy(() => import("@/components/SystemHealth").then(m => ({ default: m.SystemHealth })));
 
 const SectionLoader = () => (
   <div className="flex justify-center py-8"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>
