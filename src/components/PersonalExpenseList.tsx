@@ -289,7 +289,7 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, onUpda
     if (arr.length <= 6) return arr;
     const top = arr.slice(0, 5);
     const rest = arr.slice(5).reduce((s, it) => s + it.value, 0);
-    return [...top, { name: "Outros", value: rest, cat: resolveCategory("Outros") }];
+    return [...top, { name: "Outras categorias", value: rest, cat: resolveCategory("Outros") }];
   }, [spendingMonth, getInstallmentAmount, resolveCategory, cardInvoiceMonthTotal]);
 
   const totalCategorized = categoryData.reduce((s, it) => s + it.value, 0);
