@@ -57,6 +57,19 @@ export function IncomeDashboard({ incomes, allMonthIncomes, monthKey }: Props) {
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
       <Card no3d className="p-4">
+        <h3 className="text-sm font-semibold mb-3 text-foreground">Top 5 categorias</h3>
+        <div className="space-y-2">
+          {topCategories.map((s, idx) => (
+            <div key={s.name} className="flex items-center gap-3">
+              <span className="w-5 text-xs text-muted-foreground">{idx + 1}.</span>
+              <span className="flex-1 text-sm truncate text-foreground">{s.name}</span>
+              <span className="text-sm font-semibold text-foreground">{fmtBRL(s.value)}</span>
+            </div>
+          ))}
+        </div>
+      </Card>
+
+      <Card no3d className="p-4">
         <h3 className="text-sm font-semibold mb-3 text-foreground">Receitas por categoria</h3>
         <ResponsiveContainer width="100%" height={220}>
           <PieChart>
@@ -71,19 +84,6 @@ export function IncomeDashboard({ incomes, allMonthIncomes, monthKey }: Props) {
             />
           </PieChart>
         </ResponsiveContainer>
-      </Card>
-
-      <Card no3d className="p-4">
-        <h3 className="text-sm font-semibold mb-3 text-foreground">Top 5 categorias</h3>
-        <div className="space-y-2">
-          {topCategories.map((s, idx) => (
-            <div key={s.name} className="flex items-center gap-3">
-              <span className="w-5 text-xs text-muted-foreground">{idx + 1}.</span>
-              <span className="flex-1 text-sm truncate text-foreground">{s.name}</span>
-              <span className="text-sm font-semibold text-foreground">{fmtBRL(s.value)}</span>
-            </div>
-          ))}
-        </div>
       </Card>
     </div>
   );
