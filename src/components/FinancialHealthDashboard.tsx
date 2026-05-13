@@ -109,6 +109,9 @@ export function FinancialHealthDashboard({ incomes, expenses, monthKey }: Props)
   const { hidden } = useHideValues();
   const { deposits } = usePiggyBanks();
   const [expanded, setExpanded] = useState(false);
+  const [reportOpen, setReportOpen] = useState(false);
+  const [reportLoading, setReportLoading] = useState(false);
+  const [reportContent, setReportContent] = useState<string>("");
 
   const data = useMemo(() => {
     const piggyBalance = deposits.reduce((s, d) => s + (Number(d.amount) || 0), 0);
