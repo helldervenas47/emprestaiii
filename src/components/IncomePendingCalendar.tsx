@@ -49,6 +49,10 @@ interface Props {
   allIncomes?: Income[];
   /** All expenses (incl. business) used to compute the account balance baseline. */
   allExpenses?: Expense[];
+  /** Mês selecionado externamente (YYYY-MM). Mantém calendário sincronizado com o filtro geral. */
+  monthKey?: string;
+  /** Notifica mudança de mês ao navegar pelo calendário. */
+  onMonthChange?: (monthKey: string) => void;
 }
 
 function saleReceivedTotal(sale: Sale): number {
@@ -109,13 +113,35 @@ export function IncomePendingCalendar({
   accountBalance,
   allIncomes,
   allExpenses,
+  monthKey,
+  onMonthChange,
 }: Props) {
   const today = todayDateInAppTz();
   const todayStr = formatLocalDate(today);
 
   const [expanded, setExpanded] = useState(false);
-  const [year, setYear] = useState(today.getFullYear());
-  const [month, setMonth] = useState(today.getMonth());
+  const initialY = monthKey ? Number(monthKey.split("-")[0]) : today.getFullYear();
+  const initialM = monthKey ? Number(monthKey.split("-")[1]) - 1 : today.getMonth();
+  const [year, setYear] = useState(initialY);
+  const [month, setMonth] = useState(initialM);
+
+  // Sincroniza com o filtro externo (monthKey controlado).
+  useEffect(() => {
+    if (!monthKey) return;
+    const [y, m] = monthKey.split("-").map(Number);
+    if (!y || !m) return;
+    if (y !== year) setYear(y);
+    if (m - 1 !== month) setMonth(m - 1);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [monthKey]);
+
+  // Notifica o pai quando o mês muda pelo calendário.
+  useEffect(() => {
+    if (!onMonthChange) return;
+    const mk = `${year}-${String(month + 1).padStart(2, "0")}`;
+    if (mk !== monthKey) onMonthChange(mk);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [year, month]);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const { overrides, setBalance: setOverrideBalance, clearBalance: clearOverrideBalance } = useMonthlyOpeningBalances();
   const [editOpen, setEditOpen] = useState(false);
