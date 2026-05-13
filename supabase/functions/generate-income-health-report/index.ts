@@ -18,49 +18,73 @@ interface Metrics {
   radar: { axis: string; value: number }[];
   categories: { name: string; value: number }[];
   monthKey: string;
+  monthLabel?: string;
+  periodStart?: string;
+  periodEnd?: string;
 }
 
 function buildPrompt(m: Metrics): string {
   const lines: string[] = [];
-  lines.push(`Mês de referência: ${m.monthKey}`);
+  const balance = m.current.income - m.current.expense;
+  const label = m.monthLabel || m.monthKey;
+  lines.push(`MÊS DE REFERÊNCIA: ${label} (${m.monthKey})`);
+  if (m.periodStart && m.periodEnd) {
+    lines.push(`PERÍODO CONSIDERADO: ${m.periodStart} a ${m.periodEnd}`);
+  }
   lines.push(`Score de saúde financeira: ${m.score}/100 (variação vs mês anterior: ${m.improvementPct >= 0 ? "+" : ""}${m.improvementPct}%)`);
   lines.push("");
-  lines.push("Mês atual:");
-  lines.push(`- Receitas recebidas: ${fmt(m.current.income)}`);
-  lines.push(`- Despesas pessoais pagas: ${fmt(m.current.expense)}`);
-  lines.push(`- Despesas pessoais pendentes: ${fmt(m.current.pendingExpense)}`);
-  lines.push(`- Saldo do mês: ${fmt(m.current.income - m.current.expense)}`);
+  lines.push(`>>> TODOS os valores abaixo são EXCLUSIVAMENTE do mês ${label}. NÃO some, NÃO some com outros meses, NÃO invente outros totais. <<<`);
   lines.push("");
-  lines.push(`Reserva (cofrinhos): ${fmt(m.piggyBalance)} — cobre ${m.monthsCovered.toFixed(1)} meses de despesa média`);
-  lines.push(`Variação de despesa vs mês anterior: ${m.expenseDelta >= 0 ? "+" : ""}${m.expenseDelta}%`);
+  lines.push(`Receitas recebidas no mês: ${fmt(m.current.income)}`);
+  lines.push(`Despesas pessoais pagas no mês: ${fmt(m.current.expense)}`);
+  lines.push(`Despesas pessoais pendentes (com vencimento no mês): ${fmt(m.current.pendingExpense)}`);
+  lines.push(`Lucro/Prejuízo do mês (receitas - despesas pagas): ${fmt(balance)}`);
+  lines.push("");
+  if (m.previous) {
+    const prevBalance = m.previous.income - m.previous.expense;
+    lines.push("Comparativo com o mês anterior (apenas referência, NÃO é o mês atual):");
+    lines.push(`- Receitas mês anterior: ${fmt(m.previous.income)}`);
+    lines.push(`- Despesas pagas mês anterior: ${fmt(m.previous.expense)}`);
+    lines.push(`- Saldo mês anterior: ${fmt(prevBalance)}`);
+    lines.push(`- Variação de despesa: ${m.expenseDelta >= 0 ? "+" : ""}${m.expenseDelta}%`);
+    lines.push("");
+  }
+  lines.push(`Reserva acumulada (cofrinhos, saldo total): ${fmt(m.piggyBalance)} — cobre ${m.monthsCovered.toFixed(1)} meses de despesa média`);
   lines.push("");
   lines.push("Componentes do score (0-100):");
   for (const r of m.radar) lines.push(`- ${r.axis}: ${r.value}`);
   if (m.categories.length > 0) {
     lines.push("");
-    lines.push("Top categorias de despesa pessoal no mês:");
+    lines.push(`Top categorias de despesa pessoal NO MÊS de ${label}:`);
     for (const c of m.categories) lines.push(`- ${c.name}: ${fmt(c.value)}`);
   }
   return lines.join("\n");
 }
 
-const SYSTEM_PROMPT = `Você é um consultor financeiro pessoal especializado em fluxo de receitas e saúde financeira. Recebe um diagnóstico mensal com score, receitas, despesas, reserva e componentes (controle, reserva, dívidas, investimentos, estabilidade).
+const SYSTEM_PROMPT = `Você é um consultor financeiro pessoal especializado em fluxo de receitas e saúde financeira. Recebe um diagnóstico de UM ÚNICO MÊS com score, receitas, despesas, reserva e componentes (controle, reserva, dívidas, investimentos, estabilidade).
+
+REGRAS CRÍTICAS DE DADOS (não negocie):
+1. Use SOMENTE os valores literais fornecidos no input. Nunca invente, estime ou some números.
+2. Todos os totais de receitas/despesas/saldo se referem APENAS ao mês de referência informado. Não cite valores de outros períodos como se fossem do mês atual.
+3. Sempre cite o mês de referência ao mencionar valores (ex.: "em ${"$"}{mês}, suas despesas foram R$ X").
+4. Se o usuário tiver despesas pendentes, mantenha-as separadas das pagas — não some os dois ao falar do "valor gasto no mês".
+5. A reserva (cofrinhos) é um saldo acumulado total, não confunda com fluxo do mês.
 
 Responda em português do Brasil, em Markdown enxuto, sem títulos H1, com no máximo 320 palavras, organizada nestas seções (use exatamente esses títulos com ##):
 
 ## 📊 Diagnóstico
-2-3 frases objetivas sobre o estado atual: receitas vs despesas, score, tendência.
+2-3 frases objetivas sobre o estado do MÊS DE REFERÊNCIA: receitas vs despesas pagas, lucro/prejuízo, score, tendência vs mês anterior. Cite o nome do mês.
 
 ## ⚠️ Pontos de atenção
-Bullets curtos com os componentes mais frágeis (score baixo) e riscos detectados (ex.: reserva insuficiente, despesas crescendo, pendências altas). Cite números concretos.
+Bullets curtos com componentes frágeis (score baixo) e riscos do mês (reserva insuficiente, despesas crescendo, pendências altas). Cite números literais do input.
 
 ## 💡 Como melhorar a saúde da aba Receitas
-3-5 bullets PRÁTICOS e específicos: aumentar entradas (diversificar fontes, antecipar recebíveis, renegociar prazos), reduzir despesas que estão pesando, fortalecer reserva, ajustar categorias com gasto alto. Personalize com os dados recebidos.
+3-5 bullets PRÁTICOS e específicos baseados nos dados do mês: aumentar entradas, reduzir categorias que estão pesando NO MÊS, fortalecer reserva.
 
 ## ✅ Próximas ações desta semana
-3-4 ações concretas no infinitivo (ex.: "Lançar receitas pendentes", "Definir meta de R$ X de reserva", "Cobrar clientes em atraso", "Revisar assinatura de Y").
+3-4 ações concretas no infinitivo (ex.: "Lançar receitas pendentes", "Definir meta de R$ X de reserva", "Cobrar clientes em atraso").
 
-Tom equilibrado, profissional e acolhedor. Nunca invente categorias ou valores que não estão nos dados. Se receitas = 0, oriente o usuário a cadastrar receitas primeiro.`;
+Tom equilibrado, profissional e acolhedor. Se receitas do mês = 0, oriente a cadastrar receitas primeiro.`;
 
 async function callAI(userPrompt: string): Promise<string> {
   const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
