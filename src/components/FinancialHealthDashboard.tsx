@@ -42,10 +42,11 @@ import {
   Loader2,
 } from "lucide-react";
 
-const COLOR_GREEN = "#10B981";
-const COLOR_YELLOW = "#F59E0B";
-const COLOR_RED = "#EF4444";
-const DONUT_COLORS = ["#10B981", "#06B6D4", "#8B5CF6", "#F59E0B", "#EF4444", "#EC4899"];
+// Cores fallback caso a paleta de tema ainda não tenha sido lida.
+const FALLBACK_GREEN = "#10B981";
+const FALLBACK_YELLOW = "#F59E0B";
+const FALLBACK_RED = "#EF4444";
+const FALLBACK_DONUT = ["#10B981", "#06B6D4", "#8B5CF6", "#F59E0B", "#EF4444", "#EC4899"];
 
 interface Props {
   incomes: Income[];
