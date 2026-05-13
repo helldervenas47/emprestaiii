@@ -129,7 +129,7 @@ export function PlanManagement() {
 
   const openTabsConfig = (plan: Plan) => {
     setTabsPlan(plan);
-    setSelectedTabs(plan.allowed_tabs || ALL_TABS.map(t => t.id));
+    setSelectedTabs(plan.allowed_tabs ? sanitizeAllowedTabs(plan.allowed_tabs) : APP_TAB_IDS.slice());
   };
 
   const toggleTab = (tabId: string) => {
@@ -140,7 +140,8 @@ export function PlanManagement() {
 
   const saveTabsConfig = async () => {
     if (!tabsPlan) return;
-    const { error } = await supabase.from("plans").update({ allowed_tabs: selectedTabs }).eq("id", tabsPlan.id);
+    const cleaned = sanitizeAllowedTabs(selectedTabs);
+    const { error } = await supabase.from("plans").update({ allowed_tabs: cleaned }).eq("id", tabsPlan.id);
     if (error) { toast.error("Erro ao salvar abas"); return; }
     toast.success("Abas do plano atualizadas!");
     setTabsPlan(null);
