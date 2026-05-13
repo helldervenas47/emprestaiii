@@ -191,6 +191,11 @@ export function FinancialHealthDashboard({ incomes, expenses, monthKey }: Props)
     if (reportContent) return;
     setReportLoading(true);
     try {
+      const [yy, mm] = monthKey.split("-").map(Number);
+      const periodStart = `${monthKey}-01`;
+      const lastDay = new Date(yy, mm, 0).getDate();
+      const periodEnd = `${monthKey}-${String(lastDay).padStart(2, "0")}`;
+      const monthLabelFull = new Date(yy, mm - 1, 1).toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
       const { data: res, error } = await supabase.functions.invoke("generate-income-health-report", {
         body: {
           metrics: {
@@ -204,6 +209,9 @@ export function FinancialHealthDashboard({ incomes, expenses, monthKey }: Props)
             radar: data.radar,
             categories: data.categories,
             monthKey,
+            monthLabel: monthLabelFull,
+            periodStart,
+            periodEnd,
           },
         },
       });
