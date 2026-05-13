@@ -10,17 +10,9 @@ import { Plus, Pencil, Trash2, Star, LayoutGrid } from "lucide-react";
 import { toast } from "sonner";
 import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
 import { Checkbox } from "@/components/ui/checkbox";
+import { APP_TABS, APP_TAB_IDS, sanitizeAllowedTabs } from "@/lib/appTabs";
 
-const ALL_TABS = [
-  { id: "overview", label: "Dashboard" },
-  { id: "dashboard", label: "Empréstimos" },
-  { id: "calendar", label: "Calendário" },
-  { id: "clients", label: "Clientes" },
-  { id: "products", label: "Vendas" },
-  { id: "vehicles", label: "Veículos" },
-  { id: "expenses", label: "Despesas" },
-  { id: "overdue", label: "Relatório" },
-];
+const ALL_TABS = APP_TABS;
 
 interface Plan {
   id: string;
