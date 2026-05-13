@@ -1058,7 +1058,7 @@ const Index = () => {
           aria-label="Registrar Despesa"
           title="Registrar Despesa"
           className="fixed z-50 h-10 w-10 md:h-11 md:w-11 rounded-full flex items-center justify-center animate-fade-in touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 transition-all duration-200 hover:scale-105 active:scale-95 bg-card text-foreground border border-border shadow-md hover:shadow-lg"
-          style={{ right: `calc(env(safe-area-inset-right) + 12px + 52px)`, top: `calc(env(safe-area-inset-top) + 10px)` }}
+          style={{ right: `calc(env(safe-area-inset-right) + 16px)`, bottom: isMobile ? `calc(env(safe-area-inset-bottom) + 76px + 58px)` : `calc(env(safe-area-inset-bottom) + 20px + 64px)` }}
         >
           <Receipt className="h-4 w-4 relative" strokeWidth={2.5} />
         </button>
