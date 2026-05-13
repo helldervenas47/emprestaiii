@@ -1,39 +1,35 @@
-## Causa raiz
+## Por que o botão não aparece hoje
 
-Suas despesas pessoais "passam de 200 mil" porque o cálculo do dashboard de Saúde Financeira (e, por consequência, o relatório por IA) está somando o **valor total do contrato** das despesas recorrentes em vez do **valor mensal** de cada uma.
+Em `src/components/BackupExport.tsx`, todas as seções (Empréstimos, Clientes, Vendas, Despesas…) possuem `fileRef` + `onImportFile`. A seção **Pagamentos** (linhas 199–211) está com ambos `null`, e o grid de cards só renderiza o botão "Importar" quando os dois existem. Foi deixado assim de propósito porque cada `Payment` pertence a um `Loan` (`loanId`), e importar pagamentos sem o empréstimo correspondente criaria registros órfãos.
 
-Olhando o banco, os 7 lançamentos pessoais pendentes em maio/2026 somam exatamente **R$ 278.906,06**, e estão dominados por três contratos recorrentes com `installments = 999` (que significa "mensal por tempo indeterminado") cujo campo `amount` guarda o valor cheio do contrato:
+## O que vou implementar
 
-| Despesa      | amount (DB) | installments | mensal real (amount/installments) |
-|--------------|-------------|--------------|------------------------------------|
-| Seguro Carro | R$ 169.740,09 | 999 | ~R$ 169,91 |
-| Claro        | R$ 49.850,10  | 999 | ~R$ 49,90  |
-| Internet     | R$ 44.955,00  | 999 | ~R$ 45,00  |
-| Parcela Biz  | R$ 11.532,60  | 45  | ~R$ 256,28 |
-| Iphone 13    | R$ 2.120,00   | 5   | R$ 424,00  |
-| Roupa anselmo| R$ 680,00     | 5   | R$ 136,00  |
-| Lovable      | R$ 28,27      | -   | R$ 28,27   |
+Adicionar o botão Importar na seção Pagamentos, vinculando cada linha do CSV a um empréstimo existente (sem criar empréstimos faltantes).
 
-Somando os valores **mensais corretos**, o pendente do mês cai de ~R$ 278.906 para ~R$ 1.109.
+### Mudanças
 
-O resto do app já trata isso certo. Em `src/hooks/useExpenses.ts` o pagamento de uma parcela recorrente faz `originalInstallment = expense.amount / expense.installments`, e a edge function `generate-personal-insights` também divide:
-```
-const isRec = e.type === "recorrente" && e.installments && e.installments > 1;
-const amt = isRec ? Number(e.amount) / Number(e.installments) : Number(e.amount);
-```
+1. **`src/components/BackupExport.tsx`**
+   - Criar `paymentFileRef` e `importPaymentsFromCSV(csv)` parseando os mesmos cabeçalhos exportados: `ID Empréstimo`, `Valor`, `Data`, `Nº Parcela`, `Data Vencimento Anterior`.
+   - Trocar `fileRef: null` / `onImportFile: null` da seção Pagamentos por handlers reais.
+   - O handler chama `onImportPayments(parsed)` (nova prop) e mostra toast com:
+     - quantos foram importados,
+     - quantos foram ignorados por `loanId` inexistente.
+   - Adicionar `onImportPayments` à interface `BackupExportProps`.
 
-Mas `src/components/FinancialHealthDashboard.tsx → computeMonthMetrics` soma `e.amount` direto, sem dividir, tanto na despesa paga quanto na pendente, e o mesmo acontece no donut por categoria. Por isso o score, os insights e o prompt enviado para a IA herdam o valor inflado.
+2. **`src/pages/Index.tsx`**
+   - Passar `onImportPayments` no objeto `backup`. A implementação:
+     - Para cada linha, valida se existe `loan` em `loans` com aquele `loanId`. Se não existir, acumula no contador "ignorados".
+     - Para parcelas válidas, chama `addPartialPayment(loanId, amount, date, …)` (já exposto por `useLoans`), processando em lotes de 5 igual ao `onImportLoans`.
+   - Sem migração de banco — usa as APIs/RLS existentes.
 
-## Correção proposta
+### Comportamento e validações
+- CSV exportado pelo próprio sistema é o formato de entrada de referência.
+- Linhas com `loanId` vazio ou que não bate com nenhum empréstimo do usuário → ignoradas, contadas no toast final ("X importados, Y ignorados — empréstimo não encontrado").
+- Linhas com valor inválido (≤ 0 ou NaN) → também ignoradas.
+- Não cria novos empréstimos automaticamente.
+- Não duplica deduplicação por `(loanId, date, installmentNumber)` neste primeiro passo (pode ser adicionado depois se necessário).
 
-Aplicar a mesma regra de divisão usada em `useExpenses` e `generate-personal-insights` dentro do `FinancialHealthDashboard`:
-
-1. Em `computeMonthMetrics` (`expense` e `pendingExpense`): se `e.type === "recorrente"` e `e.installments > 1`, usar `e.amount / e.installments`; caso contrário, usar `e.amount`.
-2. Aplicar a mesma normalização ao agrupamento por categoria (`map.set(k, ...)`) que alimenta os "Top categorias" exibidos e enviados ao relatório IA.
-3. Sem mexer em receitas — o problema é só no lado das despesas recorrentes.
-
-Resultado esperado:
-- Score, "gastou mais/menos do que ganhou", "suas despesas subiram/caíram %" e a reserva em meses voltam a refletir o gasto mensal real.
-- O relatório por IA passa a receber `current.expense` e `current.pendingExpense` coerentes com o restante do app, evitando recomendações baseadas em "R$ 278 mil de despesa".
-
-Sem mudanças em banco, hooks compartilhados, ou na função de backup. É uma alteração isolada de cálculo no `FinancialHealthDashboard.tsx`.
+### Fora de escopo
+- Migrações de banco.
+- Criar empréstimos faltantes a partir do CSV de pagamentos.
+- Mudar o formato do CSV exportado.
