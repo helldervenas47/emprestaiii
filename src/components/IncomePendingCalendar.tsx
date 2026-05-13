@@ -464,7 +464,7 @@ export function IncomePendingCalendar({
               Calendário diário
             </h3>
             <span className="text-xs text-muted-foreground hidden sm:inline">
-              · {monthNames[month]} {year}: <span className={`font-semibold ${monthTotals.balance >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"}`}>{formatCurrency(monthTotals.balance)}</span>
+              · {monthNames[month]} {year}: <span className={`font-semibold ${monthEndProjectedBalance >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"}`}>{formatCurrency(monthEndProjectedBalance)}</span>
             </span>
           </div>
           <Button
