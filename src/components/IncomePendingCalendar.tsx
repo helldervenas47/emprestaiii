@@ -249,6 +249,18 @@ export function IncomePendingCalendar({
       const last = weekDays[weekDays.length - 1];
       addMonth(last.getFullYear(), last.getMonth());
     }
+    // Encadeamento entre meses: para projetar corretamente o saldo de meses futuros,
+    // cobrimos todos os meses entre o mês corrente e o mês navegado (em ambos os sentidos).
+    {
+      const todayRef = todayDateInAppTz();
+      const fromIdx = todayRef.getFullYear() * 12 + todayRef.getMonth();
+      const toIdx = year * 12 + month;
+      const lo = Math.min(fromIdx, toIdx);
+      const hi = Math.max(fromIdx, toIdx);
+      for (let idx = lo; idx <= hi; idx++) {
+        addMonth(Math.floor(idx / 12), idx % 12);
+      }
+    }
 
     for (const ym of monthsToCover) {
       const totals = getCardInvoiceTotalsForMonth(expenses, cards, openings, ym);
@@ -326,12 +338,17 @@ export function IncomePendingCalendar({
   // Cobre tanto o mês expandido quanto a semana atual.
   const runningBalanceMap = useMemo(() => {
     const map: Record<string, number> = {};
-    // Determinar período: união do mês visível e da semana atual.
+    // Determinar período: união do mês visível, da semana atual e do mês corrente.
+    // Anchorar em "hoje" (onde baseBalance é válido) garante que meses futuros
+    // herdem o saldo do último dia do mês anterior em vez de reiniciar em baseBalance.
     const monthStart = new Date(year, month, 1);
     const monthEnd = new Date(year, month + 1, 0);
     const weekStart = weekDays[0];
     const weekEnd = weekDays[weekDays.length - 1];
-    const start = monthStart < weekStart ? monthStart : weekStart;
+    const todayRef = todayDateInAppTz();
+    const todayMonthStart = new Date(todayRef.getFullYear(), todayRef.getMonth(), 1);
+    let start = monthStart < weekStart ? monthStart : weekStart;
+    if (todayMonthStart < start) start = todayMonthStart;
     const end = monthEnd > weekEnd ? monthEnd : weekEnd;
 
     let running = baseBalance;

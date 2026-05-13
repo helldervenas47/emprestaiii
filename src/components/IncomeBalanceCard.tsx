@@ -14,6 +14,9 @@ import { getCardInvoiceTotalsForMonth, isCreditCardExpense } from "@/lib/creditC
 import { isPiggyExpense, usePiggyBanks } from "@/hooks/usePiggyBanks";
 import { useProducts } from "@/hooks/useProducts";
 import { Sale } from "@/types/loan";
+import { useMonthlyOpeningBalances } from "@/hooks/useMonthlyOpeningBalances";
+import { getMonthEndProjectedBalance } from "@/lib/projectedBalance";
+import { todayDateInAppTz } from "@/lib/timezone";
 
 /** Total efetivamente recebido de uma venda (não os lançamentos previstos). */
 function saleReceivedTotal(sale: Sale): number {
@@ -59,6 +62,7 @@ export function IncomeBalanceCard({ incomes, expenses, onAdjust, readOnly, onOpe
   const { openings } = useCreditCardOpenings();
   const { sales } = useProducts(true);
   const { deposits: piggyDeposits } = usePiggyBanks();
+  const { overrides: openingOverrides } = useMonthlyOpeningBalances();
   const [adjustOpen, setAdjustOpen] = useState(false);
   const [target, setTarget] = useState("");
   const [saving, setSaving] = useState(false);
@@ -161,8 +165,20 @@ export function IncomeBalanceCard({ incomes, expenses, onAdjust, readOnly, onOpe
     const futureOut = personalPendingExpenses + cardInvoicePendingMonth;
     const pendingInCount = incomes.reduce((s, i) => s + pendingOccurrencesInMonth(i), 0);
 
-    // Saldo previsto = saldo em conta + receitas pendentes do mês - despesas pessoais pendentes do mês
-    const projected = balance + futureIn - futureOut;
+    // Saldo previsto: reflete o "Saldo Previsto do último dia do mês selecionado",
+    // calculado pela mesma projeção dia a dia do calendário (encadeando meses).
+    // Para meses passados, mantém a aproximação antiga (saldo + pendentes - a pagar).
+    const monthEndProjected = getMonthEndProjectedBalance({
+      baseBalance: balance,
+      monthKey,
+      today: todayDateInAppTz(),
+      incomes,
+      expenses,
+      cards,
+      openings,
+      overrides: openingOverrides,
+    });
+    const projected = monthEndProjected ?? (balance + futureIn - futureOut);
     const projectedDiff = projected - balance;
 
     const prevIn = incomes
@@ -170,7 +186,7 @@ export function IncomeBalanceCard({ incomes, expenses, onAdjust, readOnly, onOpe
       .reduce((s, i) => s + i.amount, 0);
 
     return { balance, monthIn, monthOut, futureIn, futureOut, projected, projectedDiff, prevIn, pendingInCount };
-  }, [incomes, expenses, monthKey, prevKey, cards, openings, sales, piggyDeposits]);
+  }, [incomes, expenses, monthKey, prevKey, cards, openings, sales, piggyDeposits, openingOverrides]);
 
   const diff = calc.monthIn - calc.prevIn;
   const pct = calc.prevIn > 0 ? (diff / calc.prevIn) * 100 : 0;
