@@ -1056,9 +1056,6 @@ const Index = () => {
         {tab === "system" && canAccessTab("system") && (
           <SystemSettings />
         )}
-        {tab === "system-health" && role === "admin" && (
-          <SystemHealth />
-        )}
         </Suspense>
       </main>
 
