@@ -184,6 +184,34 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
+  // Realtime: when admin changes this user's tab/client permissions or role,
+  // refresh local state immediately — no relogin or app restart needed.
+  useEffect(() => {
+    if (!user?.id) return;
+    const uid = user.id;
+    const channel = supabase
+      .channel(`user-perms-${uid}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "user_tab_permissions", filter: `user_id=eq.${uid}` },
+        () => fetchTabPermissions(uid),
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "user_client_permissions", filter: `user_id=eq.${uid}` },
+        () => fetchLinkedClients(uid),
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "user_roles", filter: `user_id=eq.${uid}` },
+        () => fetchRole(uid),
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user?.id]);
+
   const signOut = async () => {
     // scope: 'local' ensures other devices remain logged in
     await supabase.auth.signOut({ scope: "local" });
