@@ -261,24 +261,6 @@ export function Settings({ backup, locadores, onSaveLocador, onRemoveLocador, is
       </Card>
 
 
-            </CardTitle>
-            <CardDescription>Crie e gerencie usuários, papéis e permissões.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Suspense fallback={<SectionLoader />}>
-              <UserManagement />
-            </Suspense>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Aprovação e convites (admin) */}
-      {isAdmin && (
-        <Suspense fallback={<SectionLoader />}>
-          <InviteAndApprovalSettings />
-        </Suspense>
-      )}
-
       {/* Limpeza de cache */}
       <Card className="border-destructive/30">
         <CardHeader>
