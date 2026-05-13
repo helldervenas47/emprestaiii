@@ -1,5 +1,10 @@
 import { useMemo, useState } from "react";
+import ReactMarkdown from "react-markdown";
 import { Card } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 import { Income } from "@/hooks/useIncomes";
 import { Expense } from "@/types/loan";
 import { usePiggyBanks } from "@/hooks/usePiggyBanks";
@@ -34,6 +39,7 @@ import {
   ArrowDownRight,
   ChevronDown,
   ChevronUp,
+  Loader2,
 } from "lucide-react";
 
 const COLOR_GREEN = "#10B981";
@@ -103,6 +109,9 @@ export function FinancialHealthDashboard({ incomes, expenses, monthKey }: Props)
   const { hidden } = useHideValues();
   const { deposits } = usePiggyBanks();
   const [expanded, setExpanded] = useState(false);
+  const [reportOpen, setReportOpen] = useState(false);
+  const [reportLoading, setReportLoading] = useState(false);
+  const [reportContent, setReportContent] = useState<string>("");
 
   const data = useMemo(() => {
     const piggyBalance = deposits.reduce((s, d) => s + (Number(d.amount) || 0), 0);
@@ -170,11 +179,44 @@ export function FinancialHealthDashboard({ incomes, expenses, monthKey }: Props)
       radar,
       categories,
       current,
+      previous,
       monthsCovered,
       expenseDelta,
       piggyBalance,
     };
   }, [incomes, expenses, monthKey, deposits]);
+
+  const generateReport = async () => {
+    setReportOpen(true);
+    if (reportContent) return;
+    setReportLoading(true);
+    try {
+      const { data: res, error } = await supabase.functions.invoke("generate-income-health-report", {
+        body: {
+          metrics: {
+            score: data.score,
+            improvementPct: data.improvementPct,
+            monthsCovered: data.monthsCovered,
+            expenseDelta: data.expenseDelta,
+            piggyBalance: data.piggyBalance,
+            current: data.current,
+            previous: data.previous,
+            radar: data.radar,
+            categories: data.categories,
+            monthKey,
+          },
+        },
+      });
+      if (error) throw error;
+      if ((res as any)?.error) throw new Error((res as any).error);
+      setReportContent((res as any)?.content || "Não foi possível gerar o relatório.");
+    } catch (e: any) {
+      toast.error(e?.message || "Erro ao gerar relatório");
+      setReportOpen(false);
+    } finally {
+      setReportLoading(false);
+    }
+  };
 
   const scoreColor =
     data.score >= 70 ? COLOR_GREEN : data.score >= 40 ? COLOR_YELLOW : COLOR_RED;
@@ -209,10 +251,16 @@ export function FinancialHealthDashboard({ incomes, expenses, monthKey }: Props)
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-foreground/5 border border-black/10 dark:border-white/10 backdrop-blur-md">
-            <Sparkles className="h-3.5 w-3.5" style={{ color: scoreColor }} />
-            <span className="text-xs text-muted-foreground font-medium">Powered by AI insights</span>
-          </div>
+          <Button
+            type="button"
+            size="sm"
+            onClick={generateReport}
+            disabled={reportLoading}
+            className="h-9 gap-1.5 rounded-full bg-gradient-to-r from-violet-500 to-indigo-500 text-white hover:from-violet-600 hover:to-indigo-600 border-0 shadow-md"
+          >
+            {reportLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
+            <span className="hidden sm:inline text-xs font-medium">Relatório IA</span>
+          </Button>
           <button
             type="button"
             onClick={() => setExpanded((v) => !v)}
@@ -335,6 +383,40 @@ export function FinancialHealthDashboard({ incomes, expenses, monthKey }: Props)
         />
       </div>
 
+      <Dialog open={reportOpen} onOpenChange={setReportOpen}>
+        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Sparkles className="h-5 w-5 text-violet-500" />
+              Relatório IA — Saúde da aba Receitas
+            </DialogTitle>
+            <DialogDescription>
+              Análise personalizada com recomendações para melhorar sua saúde financeira.
+            </DialogDescription>
+          </DialogHeader>
+          {reportLoading ? (
+            <div className="flex flex-col items-center justify-center py-12 gap-3">
+              <Loader2 className="h-8 w-8 animate-spin text-violet-500" />
+              <p className="text-sm text-muted-foreground">Gerando análise personalizada...</p>
+            </div>
+          ) : (
+            <div className="prose prose-sm dark:prose-invert max-w-none prose-headings:mt-4 prose-headings:mb-2 prose-p:my-2 prose-ul:my-2">
+              <ReactMarkdown>{reportContent}</ReactMarkdown>
+            </div>
+          )}
+          <div className="flex justify-end gap-2 pt-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => { setReportContent(""); generateReport(); }}
+              disabled={reportLoading}
+            >
+              Gerar novamente
+            </Button>
+            <Button size="sm" onClick={() => setReportOpen(false)}>Fechar</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
