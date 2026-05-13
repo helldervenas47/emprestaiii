@@ -114,6 +114,12 @@ function computeScore(m: MonthMetrics, piggyBalance: number, avgExpense: number)
 
 export function FinancialHealthDashboard({ incomes, expenses, monthKey }: Props) {
   const { hidden } = useHideValues();
+  const palette = useThemePalette();
+  const COLOR_GREEN = palette.positive || FALLBACK_GREEN;
+  const COLOR_YELLOW = palette.warning || FALLBACK_YELLOW;
+  const COLOR_RED = palette.negative || FALLBACK_RED;
+  const DONUT_COLORS = palette.chart.length ? palette.chart : FALLBACK_DONUT;
+  void DONUT_COLORS;
   const { deposits } = usePiggyBanks();
   const [expanded, setExpanded] = useState(false);
   const [reportOpen, setReportOpen] = useState(false);
