@@ -1045,10 +1045,10 @@ const Index = () => {
           onClick={handlePrimaryAction}
           aria-label={primaryLabel}
           title={primaryLabel}
-          className="group fixed z-50 right-4 md:right-8 h-12 w-12 md:h-14 md:w-14 rounded-full bg-primary text-primary-foreground shadow-[0_8px_24px_-4px_hsl(var(--primary)/0.55)] hover:shadow-[0_12px_32px_-4px_hsl(var(--primary)/0.7)] hover:scale-[1.03] active:scale-95 transition-all duration-200 flex items-center justify-center animate-fade-in touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-          style={{ bottom: isMobile ? `calc(env(safe-area-inset-bottom) + 80px)` : `calc(env(safe-area-inset-bottom) + 24px)` }}
+          className="group fixed z-50 h-11 w-11 md:h-12 md:w-12 rounded-full flex items-center justify-center animate-fade-in touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 transition-all duration-200 hover:scale-[1.05] active:scale-95 bg-primary/55 hover:bg-primary/70 text-primary-foreground border border-white/25 dark:border-white/15 backdrop-blur-xl backdrop-saturate-150 shadow-[0_6px_20px_-6px_hsl(var(--primary)/0.45),inset_0_1px_0_0_hsl(0_0%_100%/0.25)] hover:shadow-[0_10px_28px_-6px_hsl(var(--primary)/0.6),inset_0_1px_0_0_hsl(0_0%_100%/0.3)] before:content-[''] before:absolute before:inset-0 before:rounded-full before:bg-gradient-to-b before:from-white/25 before:to-transparent before:pointer-events-none relative overflow-hidden"
+          style={{ right: `calc(env(safe-area-inset-right) + 16px)`, bottom: isMobile ? `calc(env(safe-area-inset-bottom) + 76px)` : `calc(env(safe-area-inset-bottom) + 20px)` }}
         >
-          <Plus className="h-5 w-5 md:h-6 md:w-6" strokeWidth={2.5} />
+          <Plus className="h-5 w-5 relative drop-shadow-[0_1px_2px_hsl(var(--primary)/0.5)]" strokeWidth={2.75} />
         </button>
       )}
       {!isReadOnly && tab === "vehicles" && (
@@ -1057,10 +1057,10 @@ const Index = () => {
           onClick={() => setShowVehicleExpenseForm(true)}
           aria-label="Registrar Despesa"
           title="Registrar Despesa"
-          className="fixed z-40 right-4 md:right-8 h-11 w-11 md:h-12 md:w-12 rounded-full bg-secondary text-secondary-foreground border border-border/60 shadow-md hover:shadow-lg hover:scale-[1.03] active:scale-95 transition-all duration-200 flex items-center justify-center animate-fade-in touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-          style={{ bottom: isMobile ? `calc(env(safe-area-inset-bottom) + 80px + 64px)` : `calc(env(safe-area-inset-bottom) + 24px + 72px)` }}
+          className="fixed z-40 h-10 w-10 md:h-11 md:w-11 rounded-full flex items-center justify-center animate-fade-in touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 transition-all duration-200 hover:scale-[1.05] active:scale-95 bg-card/45 hover:bg-card/65 text-foreground border border-white/20 dark:border-white/10 backdrop-blur-xl backdrop-saturate-150 shadow-[0_4px_16px_-6px_hsl(220_30%_5%/0.35),inset_0_1px_0_0_hsl(0_0%_100%/0.2)] before:content-[''] before:absolute before:inset-0 before:rounded-full before:bg-gradient-to-b before:from-white/20 before:to-transparent before:pointer-events-none relative overflow-hidden"
+          style={{ right: `calc(env(safe-area-inset-right) + 16px)`, bottom: isMobile ? `calc(env(safe-area-inset-bottom) + 76px + 58px)` : `calc(env(safe-area-inset-bottom) + 20px + 64px)` }}
         >
-          <Receipt className="h-4 w-4 md:h-5 md:w-5" strokeWidth={2.5} />
+          <Receipt className="h-4 w-4 relative" strokeWidth={2.5} />
         </button>
       )}
 
