@@ -1045,8 +1045,8 @@ const Index = () => {
           onClick={handlePrimaryAction}
           aria-label={primaryLabel}
           title={primaryLabel}
-          className="group fixed z-50 h-11 w-11 md:h-12 md:w-12 rounded-full flex items-center justify-center animate-fade-in touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 transition-all duration-200 hover:scale-[1.05] active:scale-95 bg-primary/55 hover:bg-primary/70 text-primary-foreground border border-white/25 dark:border-white/15 backdrop-blur-xl backdrop-saturate-150 shadow-[0_6px_20px_-6px_hsl(var(--primary)/0.45),inset_0_1px_0_0_hsl(0_0%_100%/0.25)] hover:shadow-[0_10px_28px_-6px_hsl(var(--primary)/0.6),inset_0_1px_0_0_hsl(0_0%_100%/0.3)] before:content-[''] before:absolute before:inset-0 before:rounded-full before:bg-gradient-to-b before:from-white/25 before:to-transparent before:pointer-events-none relative overflow-hidden"
-          style={{ right: `calc(env(safe-area-inset-right) + 16px)`, bottom: isMobile ? `calc(env(safe-area-inset-bottom) + 76px)` : `calc(env(safe-area-inset-bottom) + 20px)` }}
+          className="group fixed z-50 h-11 w-11 md:h-12 md:w-12 rounded-full flex items-center justify-center animate-fade-in touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 transition-all duration-200 hover:scale-105 active:scale-95 gradient-primary text-primary-foreground shadow-[0_8px_24px_-8px_hsl(var(--primary)/0.6)] hover:shadow-[0_12px_32px_-8px_hsl(var(--primary)/0.8)]"
+          style={{ right: `calc(env(safe-area-inset-right) + 16px)`, top: `calc(env(safe-area-inset-top) + 14px)` }}
         >
           <Plus className="h-5 w-5 relative drop-shadow-[0_1px_2px_hsl(var(--primary)/0.5)]" strokeWidth={2.75} />
         </button>
