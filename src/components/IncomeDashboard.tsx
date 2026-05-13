@@ -4,7 +4,8 @@ import { Card } from "@/components/ui/card";
 import {
   ResponsiveContainer, PieChart, Pie, Cell, Tooltip,
 } from "recharts";
-import { useThemePalette } from "@/hooks/useThemePalette";
+
+const COLORS = ["hsl(var(--primary))", "hsl(var(--accent))", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6", "#06b6d4", "#84cc16"];
 
 function fmtBRL(n: number) {
   return n.toLocaleString("pt-BR", { style: "currency", currency: "BRL", minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -17,8 +18,6 @@ interface Props {
 }
 
 export function IncomeDashboard({ incomes, allMonthIncomes, monthKey }: Props) {
-  const palette = useThemePalette();
-  const COLORS = palette.chart;
   // Considera receitas pagas + pendentes (consolidado por categoria)
   const consolidated = allMonthIncomes ?? incomes;
 

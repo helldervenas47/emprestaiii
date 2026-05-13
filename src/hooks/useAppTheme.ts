@@ -109,8 +109,6 @@ function applyToDom(theme: AppThemeId, mode: AppMode, primary: string | null, se
   else root.style.removeProperty("--accent");
   // mantém compat com legado
   safeSet(LEGACY_DARK_KEY, isDark ? "dark" : "light");
-  // Notifica componentes que dependem das CSS vars (ex.: useThemePalette)
-  try { window.dispatchEvent(new CustomEvent("app-theme-change")); } catch {}
 }
 
 export function useAppTheme() {
