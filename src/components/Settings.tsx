@@ -109,6 +109,9 @@ export function Settings({ backup, locadores, onSaveLocador, onRemoveLocador, is
         <p className="text-sm text-muted-foreground mt-1">Gerencie preferências, notificações, dados e sua conta.</p>
       </div>
 
+      {/* Alteração de senha */}
+      <ChangePasswordCard />
+
       {/* Sincronização offline */}
       <PendingSyncCard />
 
@@ -138,9 +141,6 @@ export function Settings({ backup, locadores, onSaveLocador, onRemoveLocador, is
 
       {/* Voz dos relatórios por IA */}
       <AIVoiceSettingsCard />
-
-      {/* Alteração de senha */}
-      <ChangePasswordCard />
 
       {/* Notificações e integrações */}
       <Card>
