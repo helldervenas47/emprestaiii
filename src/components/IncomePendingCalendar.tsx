@@ -424,6 +424,13 @@ export function IncomePendingCalendar({
     return map;
   }, [dayMap, baseBalance, year, month, weekDays, overrides]);
 
+  // Saldo Previsto do último dia do mês selecionado — espelhado em "Saldo mês".
+  const monthEndProjectedBalance = useMemo(() => {
+    const lastDay = new Date(year, month + 1, 0);
+    const ds = formatLocalDate(lastDay);
+    return runningBalanceMap[ds] ?? baseBalance;
+  }, [runningBalanceMap, year, month, baseBalance]);
+
   const selectedHasMovement = selectedInfo.totalIncome > 0 || selectedInfo.totalExpense > 0;
   const selectedBalance = selectedDate
     ? (runningBalanceMap[selectedDate] ?? baseBalance)
@@ -578,7 +585,7 @@ export function IncomePendingCalendar({
                     <span className="h-2 w-2 rounded-full bg-rose-500" /> Pendente
                   </div>
                   <div className="ml-auto">
-                    Saldo mês: <span className={`font-semibold ${monthTotals.balance >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"}`}>{formatCurrency(monthTotals.balance)}</span>
+                    Saldo mês: <span className={`font-semibold ${monthEndProjectedBalance >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"}`}>{formatCurrency(monthEndProjectedBalance)}</span>
                   </div>
                 </div>
               </>
