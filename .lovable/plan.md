@@ -1,48 +1,39 @@
-## Restaurar backup do Google Drive no app
+## Causa raiz
 
-Hoje o backup automático **gera** o JSON e envia pro Drive, mas o app não tem como **importar de volta**. A importação atual só aceita CSV por entidade. Vou adicionar um fluxo dedicado de restauração.
+Suas despesas pessoais "passam de 200 mil" porque o cálculo do dashboard de Saúde Financeira (e, por consequência, o relatório por IA) está somando o **valor total do contrato** das despesas recorrentes em vez do **valor mensal** de cada uma.
 
-## Como vai funcionar (UX)
+Olhando o banco, os 7 lançamentos pessoais pendentes em maio/2026 somam exatamente **R$ 278.906,06**, e estão dominados por três contratos recorrentes com `installments = 999` (que significa "mensal por tempo indeterminado") cujo campo `amount` guarda o valor cheio do contrato:
 
-Em **Configurações → Backup**, dentro do card "Backup automático no Google Drive":
+| Despesa      | amount (DB) | installments | mensal real (amount/installments) |
+|--------------|-------------|--------------|------------------------------------|
+| Seguro Carro | R$ 169.740,09 | 999 | ~R$ 169,91 |
+| Claro        | R$ 49.850,10  | 999 | ~R$ 49,90  |
+| Internet     | R$ 44.955,00  | 999 | ~R$ 45,00  |
+| Parcela Biz  | R$ 11.532,60  | 45  | ~R$ 256,28 |
+| Iphone 13    | R$ 2.120,00   | 5   | R$ 424,00  |
+| Roupa anselmo| R$ 680,00     | 5   | R$ 136,00  |
+| Lovable      | R$ 28,27      | -   | R$ 28,27   |
 
-1. Botão **"Restaurar backup"** abre um diálogo com duas opções:
-   - **Selecionar do histórico** — lista os backups recentes do Drive (já existe a lista) com botão "Restaurar" em cada um.
-   - **Enviar arquivo JSON** — upload manual de um `.json` que o usuário baixou do Drive.
-2. Antes de restaurar, mostra confirmação clara com:
-   - Data do backup, tamanho, quantas linhas por tabela
-   - Modo: **Mesclar** (default — só insere o que falta, não toca em nada existente) ou **Substituir** (apaga tudo do owner e reinsere — exige digitar "RESTAURAR" para confirmar)
-3. Durante a restauração: barra de progresso por tabela, e ao final um resumo (X linhas restauradas, Y ignoradas por já existirem, Z erros).
+Somando os valores **mensais corretos**, o pendente do mês cai de ~R$ 278.906 para ~R$ 1.109.
 
-## O que será criado
+O resto do app já trata isso certo. Em `src/hooks/useExpenses.ts` o pagamento de uma parcela recorrente faz `originalInstallment = expense.amount / expense.installments`, e a edge function `generate-personal-insights` também divide:
+```
+const isRec = e.type === "recorrente" && e.installments && e.installments > 1;
+const amt = isRec ? Number(e.amount) / Number(e.installments) : Number(e.amount);
+```
 
-**Edge function `restore-backup`**
-- Recebe `{ source: "drive" | "upload", driveFileId?, jsonContent?, mode: "merge" | "replace" }`
-- Valida JWT do usuário e descobre `owner_id` real (via `get_data_owner_id`)
-- Se `source=drive`: baixa o arquivo do Drive via gateway (`GET /drive/v3/files/{id}?alt=media`) e valida que o `__meta.owner_id` do JSON bate com o owner do usuário autenticado (segurança — impede restaurar backup de outro)
-- Para cada tabela do snapshot:
-   - **merge**: `upsert` por `id` com `onConflict: 'id', ignoreDuplicates: true` — preserva o que já existe
-   - **replace**: `delete` filtrando pelo `ownerCol` do owner, depois `insert` em lote
-- Respeita ordem de tabelas para evitar quebrar foreign keys (clientes antes de empréstimos, empréstimos antes de pagamentos/parcelas, etc.)
-- Retorna resumo `{ table: { inserted, skipped, errors } }`
+Mas `src/components/FinancialHealthDashboard.tsx → computeMonthMetrics` soma `e.amount` direto, sem dividir, tanto na despesa paga quanto na pendente, e o mesmo acontece no donut por categoria. Por isso o score, os insights e o prompt enviado para a IA herdam o valor inflado.
 
-**Frontend**
-- `RestoreBackupDialog.tsx` — novo diálogo com as duas opções, preview, escolha de modo e confirmação
-- Botão "Restaurar backup" no `AutoBackupCard.tsx`
-- Após sucesso, dispara recarga dos hooks (invalidar caches de loans/clients/etc) e toast
+## Correção proposta
 
-**Sem mudanças de schema** — o JSON do backup já contém `id` e todos os campos.
+Aplicar a mesma regra de divisão usada em `useExpenses` e `generate-personal-insights` dentro do `FinancialHealthDashboard`:
 
-## Detalhes técnicos / segurança
+1. Em `computeMonthMetrics` (`expense` e `pendingExpense`): se `e.type === "recorrente"` e `e.installments > 1`, usar `e.amount / e.installments`; caso contrário, usar `e.amount`.
+2. Aplicar a mesma normalização ao agrupamento por categoria (`map.set(k, ...)`) que alimenta os "Top categorias" exibidos e enviados ao relatório IA.
+3. Sem mexer em receitas — o problema é só no lado das despesas recorrentes.
 
-- Restauração só pode acontecer para o **próprio owner** do usuário logado. O `owner_id` do JSON é checado contra `get_data_owner_id(auth.uid())`. Tentativa de restaurar backup de outro retorna 403.
-- Modo **replace** é destrutivo: a função roda dentro de uma sequência de deletes ordenados (filhos antes de pais) e exige confirmação textual no frontend.
-- Modo **merge** é seguro e idempotente: usa `upsert` ignorando conflitos por `id`. Útil para "restaurar dados perdidos sem mexer no que está atual".
-- Se o JSON tiver tabelas que não existem mais no schema atual, são ignoradas com aviso no resumo.
-- Tamanho do arquivo: backups grandes (>5MB) são processados em chunks de 500 linhas por tabela.
+Resultado esperado:
+- Score, "gastou mais/menos do que ganhou", "suas despesas subiram/caíram %" e a reserva em meses voltam a refletir o gasto mensal real.
+- O relatório por IA passa a receber `current.expense` e `current.pendingExpense` coerentes com o restante do app, evitando recomendações baseadas em "R$ 278 mil de despesa".
 
-## Limitações
-
-- Restaurar **não recria usuários nem auth** — só os dados do owner. Login, perfis em `auth.users`, senhas, sessões: nada disso é mexido.
-- Tabelas relacionadas a Telegram/WhatsApp **não fazem parte** da restauração no modo replace (evita duplicar mensagens, links, bots) — só são restauradas em merge.
-- Não restaura arquivos de storage (logos, branding) — só dados tabulares.
+Sem mudanças em banco, hooks compartilhados, ou na função de backup. É uma alteração isolada de cálculo no `FinancialHealthDashboard.tsx`.
