@@ -214,20 +214,68 @@ export function IncomePendingCalendar({
       // (mesma lógica das despesas, que contam mesmo quando ainda não pagas).
       e.totalIncome += Number(i.amount) || 0;
     }
+    // Determina o intervalo (em meses) que precisa ser projetado, considerando o mês
+    // visível, a semana atual e o mês corrente — assim despesas fixas/parceladas
+    // aparecem antecipadamente nos próximos meses, espelhando a aba "Despesas pessoais".
+    const todayRefForExp = todayDateInAppTz();
+    const visibleMonthIdxs = [
+      todayRefForExp.getFullYear() * 12 + todayRefForExp.getMonth(),
+      year * 12 + month,
+    ];
+    if (weekDays.length) {
+      visibleMonthIdxs.push(
+        weekDays[0].getFullYear() * 12 + weekDays[0].getMonth(),
+        weekDays[weekDays.length - 1].getFullYear() * 12 +
+          weekDays[weekDays.length - 1].getMonth(),
+      );
+    }
+    const projHiIdx = Math.max(...visibleMonthIdxs);
+    const projEnd = new Date(
+      Math.floor(projHiIdx / 12),
+      (projHiIdx % 12) + 1,
+      0,
+    );
+
     for (const ex of personalExpenses) {
-      const d = ex.paid && ex.paidDate ? ex.paidDate : ex.dueDate;
-      if (!d) continue;
-      // Recurring/fixed expenses store the total across installments in `amount`.
-      // The calendar should reflect just the monthly installment value.
       const isRecurringParent =
         ex.type === "recorrente" && (ex.installments ?? 0) > 1;
-      const amount = isRecurringParent
-        ? (Number(ex.amount) || 0) / (ex.installments as number)
-        : Number(ex.amount) || 0;
-      const item = isRecurringParent ? { ...ex, amount } : ex;
-      const e = ensure(d);
-      e.expenses.push(item);
-      e.totalExpense += amount;
+
+      if (ex.paid && ex.paidDate) {
+        const e = ensure(ex.paidDate);
+        e.expenses.push(ex);
+        e.totalExpense += Number(ex.amount) || 0;
+        continue;
+      }
+
+      if (isRecurringParent) {
+        const installmentAmount =
+          (Number(ex.amount) || 0) / (ex.installments as number);
+        const remaining =
+          (ex.installments as number) - (ex.paidInstallments ?? 0);
+        if (remaining <= 0 || !ex.dueDate) continue;
+        const start = new Date(ex.dueDate + "T00:00:00");
+        for (let i = 0; i < remaining; i++) {
+          const occ = new Date(start);
+          occ.setMonth(start.getMonth() + i);
+          if (occ > projEnd) break;
+          const lastDay = new Date(
+            occ.getFullYear(),
+            occ.getMonth() + 1,
+            0,
+          ).getDate();
+          const day = Math.min(start.getDate(), lastDay);
+          const ds = `${occ.getFullYear()}-${String(occ.getMonth() + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+          const e = ensure(ds);
+          e.expenses.push({ ...ex, amount: installmentAmount, dueDate: ds });
+          e.totalExpense += installmentAmount;
+        }
+        continue;
+      }
+
+      if (!ex.dueDate) continue;
+      const e = ensure(ex.dueDate);
+      e.expenses.push(ex);
+      e.totalExpense += Number(ex.amount) || 0;
     }
 
     // Faturas de cartão de crédito — uma entrada por cartão por mês,
