@@ -18,6 +18,7 @@ interface BackupExportProps {
   onImportClients: (clients: Omit<Client, "id" | "createdAt">[]) => Promise<void>;
   onImportSales: (sales: Omit<Sale, "id">[]) => Promise<void>;
   onImportExpenses: (expenses: Omit<Expense, "id" | "paid" | "paidDate" | "createdAt">[]) => Promise<void>;
+  onImportPayments: (payments: { loanId: string; amount: number; date: string; installmentNumber?: number; previousDueDate?: string }[]) => Promise<{ imported: number; skipped: number }>;
 }
 
 function exportExpensesToCSV(expenses: Expense[]): string {
