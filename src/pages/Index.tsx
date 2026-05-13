@@ -205,6 +205,15 @@ const tabHelp: Record<Tab, { title: string; items: string[] }> = {
       "Use 'Limpar cache' para forçar atualização do app sem perder dados.",
     ],
   },
+  system: {
+    title: "Sistema",
+    items: [
+      "Funcionalidades administrativas e operacionais centralizadas.",
+      "Administração: gerenciamento de usuários, aprovações e links de convite.",
+      "Conta e Assinatura: visualize e altere o plano contratado.",
+      "Personalização: identidade visual e temas do sistema.",
+    ],
+  },
   "system-health": {
     title: "Saúde do Sistema",
     items: [
