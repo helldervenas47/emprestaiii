@@ -220,13 +220,21 @@ export function BackupExport({ loans, payments, clients, sales, expenses, onImpo
       description: `${payments.length} registros`,
       icon: Database,
       count: payments.length,
-      fileRef: null,
+      fileRef: paymentFileRef,
       onExport: () => {
         if (payments.length === 0) return toast.error("Nenhum pagamento para exportar");
         downloadCSV(exportPaymentsToCSV(payments), `pagamentos_backup_${todayInAppTz()}.csv`);
         toast.success("Pagamentos exportados!");
       },
-      onImportFile: null,
+      onImportFile: (csv: string) => {
+        const parsed = importPaymentsFromCSV(csv);
+        if (parsed.length === 0) { toast.error("Nenhum pagamento válido encontrado no CSV."); return; }
+        onImportPayments(parsed).then(({ imported, skipped }) => {
+          if (imported > 0 && skipped === 0) toast.success(`${imported} pagamento(s) importado(s)!`);
+          else if (imported > 0 && skipped > 0) toast.success(`${imported} importado(s), ${skipped} ignorado(s) (empréstimo não encontrado)`);
+          else toast.error(`Nenhum pagamento importado — ${skipped} ignorado(s) (empréstimo não encontrado)`);
+        });
+      },
     },
   ];
 
