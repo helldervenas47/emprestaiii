@@ -33,7 +33,7 @@ function timeWithinWindow(target: string | null | undefined, nowH: number, nowM:
   return diff >= 0 && diff < 5; // within 5-minute window after target
 }
 
-import { sendReportsMessage } from "../_shared/reports-bot.ts";
+import { sendReportsAsImage } from "../_shared/reports-bot.ts";
 
 function safeTruncate(text: string, max = 3800) {
   return text.length > max ? text.slice(0, max) + "\n\n…(truncado)" : text;
