@@ -2019,6 +2019,7 @@ export type Database = {
         Row: {
           annual_rate: number
           auto_rate: boolean
+          cdi_percent: number
           color: string
           created_at: string
           icon: string
@@ -2031,6 +2032,7 @@ export type Database = {
         Insert: {
           annual_rate?: number
           auto_rate?: boolean
+          cdi_percent?: number
           color?: string
           created_at?: string
           icon?: string
@@ -2043,6 +2045,7 @@ export type Database = {
         Update: {
           annual_rate?: number
           auto_rate?: boolean
+          cdi_percent?: number
           color?: string
           created_at?: string
           icon?: string
