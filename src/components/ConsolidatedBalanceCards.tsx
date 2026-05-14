@@ -91,11 +91,15 @@ export function ConsolidatedBalanceCards() {
     [loans],
   );
   const pendingSales = useMemo(
-    () => sales.reduce((s, sale) => s + Math.max(0, sale.total - saleReceivedTotal(sale)), 0),
+    () => sales
+      .filter((s) => !isSalePaid(s))
+      .reduce((s, sale) => s + Math.max(0, sale.total - getSalePaidAmount(sale)), 0),
     [sales],
   );
   const totalNaRua = pendingLoans + pendingSales;
 
+  // Saldo em Conta (Receitas) — espelha exatamente IncomeBalanceCard:
+  //  recebidos + vendas recebidas − despesas pessoais pagas − aportes manuais ao cofrinho.
   const incomesBalance = useMemo(() => {
     const totalIncomeReceived = incomes
       .filter((i) => i.status === "received")
@@ -104,8 +108,11 @@ export function ConsolidatedBalanceCards() {
     const totalExpensePaid = expenses
       .filter((e) => e.paid && (e.scope ?? "business") === "personal")
       .reduce((s, e) => s + e.amount, 0);
-    return totalIncomeReceived + totalSalesReceived - totalExpensePaid;
-  }, [incomes, sales, expenses]);
+    const totalPiggyManualDeposits = piggyDeposits
+      .filter((d) => !d.expenseId)
+      .reduce((s, d) => s + (Number(d.amount) || 0), 0);
+    return totalIncomeReceived + totalSalesReceived - totalExpensePaid - totalPiggyManualDeposits;
+  }, [incomes, sales, expenses, piggyDeposits]);
 
   const piggyTotal = useMemo(() => {
     let sum = 0;
