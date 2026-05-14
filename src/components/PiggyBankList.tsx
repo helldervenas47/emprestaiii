@@ -33,12 +33,13 @@ interface Props {
 
 export function PiggyBankList({ readOnly = false }: Props) {
   const { mask } = useHideValues();
-  const { piggyBanks, deposits, balances, detailed, createPiggyBank, updatePiggyBank, deletePiggyBank, adjustBalance, updateDeposit, deleteDeposit, setPiggyRate } = usePiggyBanks();
+  const { piggyBanks, deposits, balances, detailed, cdiRate, createPiggyBank, updatePiggyBank, deletePiggyBank, adjustBalance, updateDeposit, deleteDeposit, setPiggyRate, refreshCdiNow } = usePiggyBanks();
 
   const [createOpen, setCreateOpen] = useState(false);
   const [editing, setEditing] = useState<PiggyBankType | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
-  const [draft, setDraft] = useState({ name: "", color: PALETTE[0], annualRate: "11.15", shortId: "" });
+  const [draft, setDraft] = useState({ name: "", color: PALETTE[0], annualRate: "11.15", autoRate: false, shortId: "" });
+  const [refreshingCdi, setRefreshingCdi] = useState(false);
   const [adjustTarget, setAdjustTarget] = useState<PiggyBankType | null>(null);
   const [adjustValue, setAdjustValue] = useState("");
   const [historyTarget, setHistoryTarget] = useState<PiggyBankType | null>(null);
