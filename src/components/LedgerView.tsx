@@ -14,7 +14,7 @@ import {
   type LedgerEntry, type LedgerCategory, type LedgerDirection,
 } from "@/lib/ledger";
 import { getBalances, type Wallet as WalletType } from "@/lib/balance";
-import { todayInAppTz } from "@/lib/timezone";
+import { todayInAppTz, getAppTimezone } from "@/lib/timezone";
 import { usePaymentMethods } from "@/hooks/usePaymentMethods";
 import { PaymentMethodPicker } from "@/components/PaymentMethodPicker";
 import { supabase } from "@/integrations/supabase/client";
