@@ -227,6 +227,47 @@ export function PiggyBankList({ readOnly = false }: Props) {
         )}
       </div>
 
+      {/* CDI rate pill — fonte automatizada via Banco Central */}
+      <TooltipProvider delayDuration={200}>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <div className="flex items-center justify-between gap-2 rounded-xl border border-border/40 bg-muted/30 px-3 py-2">
+              <div className="flex items-center gap-2 min-w-0">
+                <div className="h-7 w-7 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                  <Zap className="h-3.5 w-3.5 text-primary" />
+                </div>
+                <div className="min-w-0 leading-tight">
+                  <p className="text-[11px] font-semibold text-foreground">
+                    CDI hoje: {cdiRate ? `${cdiRate.annualRate.toFixed(2)}% a.a.` : "—"}
+                  </p>
+                  <p className="text-[10px] text-muted-foreground truncate">
+                    {cdiRate
+                      ? `Atualizado ${cdiUpdatedLabel}${cdiRate.source ? ` · ${cdiRate.source}` : ""}`
+                      : "Aguardando primeira sincronização…"}
+                  </p>
+                </div>
+              </div>
+              {!readOnly && (
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  className="h-7 w-7 shrink-0"
+                  onClick={handleRefreshCdi}
+                  disabled={refreshingCdi}
+                  title="Atualizar agora"
+                >
+                  <RefreshCw className={`h-3.5 w-3.5 ${refreshingCdi ? "animate-spin" : ""}`} />
+                </Button>
+              )}
+            </div>
+          </TooltipTrigger>
+          <TooltipContent side="bottom">
+            Taxa CDI obtida do Banco Central (série SGS 4389).<br />
+            Cofrinhos com modo automático seguem essa taxa.
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+
       {piggyBanks.length === 0 ? (
         <div className="rounded-xl border border-dashed border-border/60 p-4 text-center">
           <Sparkles className="h-6 w-6 mx-auto text-muted-foreground/50 mb-1.5" />
