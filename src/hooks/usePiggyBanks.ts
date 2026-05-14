@@ -25,6 +25,7 @@ export interface PiggyBank {
   icon: string;
   annualRate: number;
   autoRate: boolean;
+  cdiPercent: number;
   createdAt: string;
 }
 
@@ -167,6 +168,7 @@ export function usePiggyBanks() {
         icon: r.icon,
         annualRate: Number(r.annual_rate),
         autoRate: Boolean(r.auto_rate),
+        cdiPercent: r.cdi_percent != null ? Number(r.cdi_percent) : 100,
         createdAt: r.created_at,
       })));
     }
@@ -273,7 +275,7 @@ export function usePiggyBanks() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [recurrences, dataOwnerId]);
 
-  const createPiggyBank = useCallback(async (data: { name: string; color?: string; icon?: string; annualRate?: number; autoRate?: boolean; shortId?: number | null }) => {
+  const createPiggyBank = useCallback(async (data: { name: string; color?: string; icon?: string; annualRate?: number; autoRate?: boolean; cdiPercent?: number; shortId?: number | null }) => {
     if (!user || !dataOwnerId) return null;
     const payload: any = {
       user_id: dataOwnerId,
@@ -282,6 +284,7 @@ export function usePiggyBanks() {
       icon: data.icon ?? "PiggyBank",
       annual_rate: data.annualRate ?? 11.15,
       auto_rate: data.autoRate ?? false,
+      cdi_percent: data.cdiPercent ?? 100,
     };
     if (data.shortId !== undefined && data.shortId !== null) payload.short_id = data.shortId;
     const { data: row, error } = await (supabase as any).from("piggy_banks").insert(payload).select().single();
@@ -298,13 +301,14 @@ export function usePiggyBanks() {
     return (row as any)?.id as string;
   }, [user, dataOwnerId, reload]);
 
-  const updatePiggyBank = useCallback(async (id: string, patch: Partial<{ name: string; color: string; icon: string; annualRate: number; autoRate: boolean; shortId: number | null }>) => {
+  const updatePiggyBank = useCallback(async (id: string, patch: Partial<{ name: string; color: string; icon: string; annualRate: number; autoRate: boolean; cdiPercent: number; shortId: number | null }>) => {
     const dbPatch: any = {};
     if (patch.name !== undefined) dbPatch.name = patch.name;
     if (patch.color !== undefined) dbPatch.color = patch.color;
     if (patch.icon !== undefined) dbPatch.icon = patch.icon;
     if (patch.annualRate !== undefined) dbPatch.annual_rate = patch.annualRate;
     if (patch.autoRate !== undefined) dbPatch.auto_rate = patch.autoRate;
+    if (patch.cdiPercent !== undefined) dbPatch.cdi_percent = patch.cdiPercent;
     if (patch.shortId !== undefined) dbPatch.short_id = patch.shortId;
     const { error } = await supabase.from("piggy_banks" as any).update(dbPatch).eq("id", id);
     if (error) {
@@ -431,14 +435,17 @@ export function usePiggyBanks() {
     let base: RatePeriod[] = hist.length === 0
       ? [{ effectiveFrom: pb.createdAt.slice(0, 10), annualRate: pb.annualRate }]
       : hist;
-    // CDI sempre vigente: garante que o último período reflita a taxa CDI atual.
+    // CDI sempre vigente: garante que o último período reflita a taxa CDI atual,
+    // ajustada pela porcentagem do CDI configurada na caixinha (ex.: 80%, 110%).
     if (cdiRate) {
+      const pct = (pb.cdiPercent ?? 100) / 100;
+      const effectiveCdi = cdiRate.annualRate * pct;
       const last = base[base.length - 1];
       const cdiFrom = cdiRate.referenceDate || ymd(new Date());
-      const sameRate = Math.abs(last.annualRate - cdiRate.annualRate) < 0.01;
+      const sameRate = Math.abs(last.annualRate - effectiveCdi) < 0.01;
       if (!sameRate) {
         const effectiveFrom = cdiFrom > last.effectiveFrom ? cdiFrom : last.effectiveFrom;
-        base = [...base, { effectiveFrom, annualRate: cdiRate.annualRate }];
+        base = [...base, { effectiveFrom, annualRate: effectiveCdi }];
       }
     }
     return base;
