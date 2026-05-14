@@ -193,6 +193,14 @@ export function FinancialHealthDashboard({ incomes, expenses, monthKey }: Props)
       monthsCovered,
       expenseDelta,
       piggyBalance,
+      avgExpense,
+      indicatorScores: {
+        control: Math.round(spendControl),
+        reserve: Math.round(reserve),
+        debts: Math.round(debts),
+        investments: Math.round(investments),
+        stability: Math.round(stability),
+      },
     };
   }, [incomes, expenses, monthKey, deposits]);
 
