@@ -4283,6 +4283,19 @@ function ClientFolder({
           </div>
         </div>
         <div className="hidden sm:flex items-center gap-4 text-xs shrink-0">
+          {open && (
+            <span
+              role="button"
+              tabIndex={0}
+              aria-label="Enviar para WhatsApp"
+              onClick={handleShareWhatsApp}
+              onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); handleShareWhatsApp(e as any); } }}
+              className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-[#25D366]/10 hover:bg-[#25D366]/20 text-[#25D366] transition-colors disabled:opacity-50"
+              aria-disabled={sharing}
+            >
+              <MessageCircle className="h-4 w-4" />
+            </span>
+          )}
           <div className="text-right">
             <p className="text-[9px] text-muted-foreground uppercase">Emprestado</p>
             <p className="font-bold text-foreground">{formatCurrency(group.totalAmount)}</p>
@@ -4311,7 +4324,16 @@ function ClientFolder({
               </div>
             </div>
             {/* Mobile summary */}
-            <div className="flex sm:hidden items-center justify-between text-xs border-b border-border/30 pb-3">
+            <div className="flex sm:hidden items-center justify-between gap-2 text-xs border-b border-border/30 pb-3">
+              <button
+                type="button"
+                aria-label="Enviar para WhatsApp"
+                onClick={handleShareWhatsApp}
+                disabled={sharing}
+                className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-[#25D366]/10 hover:bg-[#25D366]/20 text-[#25D366] transition-colors shrink-0 disabled:opacity-50"
+              >
+                <MessageCircle className="h-4 w-4" />
+              </button>
               <div className="text-center flex-1">
                 <p className="text-[9px] text-muted-foreground uppercase">Emprestado</p>
                 <p className="font-bold text-foreground">{formatCurrency(group.totalAmount)}</p>
@@ -4348,18 +4370,6 @@ function ClientFolder({
                 </tbody>
               </table>
             </div>
-          </div>
-          <div className="flex justify-end pt-1">
-            <Button
-              type="button"
-              size="sm"
-              onClick={handleShareWhatsApp}
-              disabled={sharing}
-              className="gap-1.5 bg-[#25D366] hover:bg-[#1ebe57] text-white border-0"
-            >
-              <MessageCircle className="h-3.5 w-3.5" />
-              {sharing ? "Gerando..." : "Enviar para WhatsApp"}
-            </Button>
           </div>
         </CardContent>
       )}
