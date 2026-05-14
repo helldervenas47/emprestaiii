@@ -72,12 +72,13 @@ export function PiggyBankList({ readOnly = false }: Props) {
   const openCreate = () => {
     const next = nextAvailableShortId();
     const startRate = cdiRate?.annualRate ? cdiRate.annualRate.toFixed(2) : "11.15";
-    setDraft({ name: "", color: PALETTE[0], annualRate: startRate, autoRate: !!cdiRate, shortId: next ? String(next) : "" });
+    setDraft({ name: "", color: PALETTE[0], annualRate: startRate, autoRate: true, shortId: next ? String(next) : "" });
     setEditing(null);
     setCreateOpen(true);
   };
   const openEdit = (pb: PiggyBankType) => {
-    setDraft({ name: pb.name, color: pb.color, annualRate: String(pb.annualRate), autoRate: pb.autoRate, shortId: pb.shortId ? String(pb.shortId) : "" });
+    const startRate = cdiRate?.annualRate ? cdiRate.annualRate.toFixed(2) : String(pb.annualRate);
+    setDraft({ name: pb.name, color: pb.color, annualRate: startRate, autoRate: true, shortId: pb.shortId ? String(pb.shortId) : "" });
     setEditing(pb);
     setCreateOpen(true);
   };
