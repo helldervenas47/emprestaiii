@@ -17,6 +17,28 @@ async function ensureWasm() {
   return _wasmReady;
 }
 
+// Resvg-wasm has no built-in fonts; fetch Noto Sans (regular + bold) once per
+// cold start so text is actually rendered in the PNG.
+let _fontsReady: Promise<Uint8Array[]> | null = null;
+async function ensureFonts(): Promise<Uint8Array[]> {
+  if (!_fontsReady) {
+    _fontsReady = (async () => {
+      const urls = [
+        "https://raw.githubusercontent.com/googlefonts/noto-fonts/main/hinted/ttf/NotoSans/NotoSans-Regular.ttf",
+        "https://raw.githubusercontent.com/googlefonts/noto-fonts/main/hinted/ttf/NotoSans/NotoSans-Bold.ttf",
+        "https://raw.githubusercontent.com/googlefonts/noto-fonts/main/hinted/ttf/NotoSans/NotoSans-Italic.ttf",
+      ];
+      const buffers = await Promise.all(
+        urls.map((u) =>
+          fetch(u).then((r) => r.arrayBuffer()).then((b) => new Uint8Array(b))
+        ),
+      );
+      return buffers;
+    })();
+  }
+  return _fontsReady;
+}
+
 export function fmtBRL(n: number): string {
   return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(n);
 }
