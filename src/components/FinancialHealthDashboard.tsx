@@ -439,19 +439,31 @@ export function FinancialHealthDashboard({ incomes, expenses, monthKey }: Props)
             Indicadores essenciais
           </h4>
         </div>
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5">
-          {INDICATORS.map((ind) => {
-            const score = data.indicatorScores[ind.key];
-            return (
-              <IndicatorGaugeCard
-                key={ind.key}
-                title={ind.label}
-                icon={ind.icon}
-                score={score}
-                onClick={() => setOpenIndicator(ind.key)}
-              />
-            );
-          })}
+        <div className="space-y-2.5">
+          {/* Card de destaque: Reserva financeira */}
+          <IndicatorGaugeCard
+            key="reserve"
+            title="Reserva financeira"
+            icon={<Shield className="h-4 w-4" />}
+            score={data.indicatorScores.reserve}
+            onClick={() => setOpenIndicator("reserve")}
+            featured
+          />
+          {/* 2x2 grid: demais indicadores */}
+          <div className="grid grid-cols-2 gap-2.5">
+            {INDICATORS.filter((i) => i.key !== "reserve").map((ind) => {
+              const score = data.indicatorScores[ind.key];
+              return (
+                <IndicatorGaugeCard
+                  key={ind.key}
+                  title={ind.label}
+                  icon={ind.icon}
+                  score={score}
+                  onClick={() => setOpenIndicator(ind.key)}
+                />
+              );
+            })}
+          </div>
         </div>
       </div>
 
