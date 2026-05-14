@@ -4300,43 +4300,66 @@ function ClientFolder({
       </button>
       {open && (
         <CardContent className="pt-0 pb-3 px-3 space-y-3">
-          {/* Mobile summary */}
-          <div className="flex sm:hidden items-center justify-between text-xs border-b border-border/30 pb-3">
-            <div className="text-center flex-1">
-              <p className="text-[9px] text-muted-foreground uppercase">Emprestado</p>
-              <p className="font-bold text-foreground">{formatCurrency(group.totalAmount)}</p>
+          <div ref={captureRef} className="space-y-3 bg-card p-3 rounded-xl">
+            <div className="flex items-center gap-3">
+              <div className={`h-10 w-10 rounded-lg flex items-center justify-center text-primary-foreground font-bold text-sm shrink-0 shadow-md ${group.hasOverdue ? "bg-destructive" : "gradient-primary"}`}>
+                {group.name.charAt(0).toUpperCase()}
+              </div>
+              <div className="flex-1 min-w-0">
+                <h3 className="font-bold text-foreground text-sm">{group.name}</h3>
+                <p className="text-[10px] text-muted-foreground">{group.loans.length} empréstimo(s) · {new Date().toLocaleDateString("pt-BR")}</p>
+              </div>
             </div>
-            <div className="text-center flex-1">
-              <p className="text-[9px] text-muted-foreground uppercase">Recebido</p>
-              <p className="font-bold text-success">{formatCurrency(group.totalPaid)}</p>
+            {/* Mobile summary */}
+            <div className="flex sm:hidden items-center justify-between text-xs border-b border-border/30 pb-3">
+              <div className="text-center flex-1">
+                <p className="text-[9px] text-muted-foreground uppercase">Emprestado</p>
+                <p className="font-bold text-foreground">{formatCurrency(group.totalAmount)}</p>
+              </div>
+              <div className="text-center flex-1">
+                <p className="text-[9px] text-muted-foreground uppercase">Recebido</p>
+                <p className="font-bold text-success">{formatCurrency(group.totalPaid)}</p>
+              </div>
+              <div className="text-center flex-1">
+                <p className="text-[9px] text-muted-foreground uppercase">A Receber</p>
+                <p className={`font-bold ${group.hasOverdue ? "text-destructive" : "text-warning"}`}>{formatCurrency(group.totalReceivable)}</p>
+              </div>
             </div>
-            <div className="text-center flex-1">
-              <p className="text-[9px] text-muted-foreground uppercase">A Receber</p>
-              <p className={`font-bold ${group.hasOverdue ? "text-destructive" : "text-warning"}`}>{formatCurrency(group.totalReceivable)}</p>
+            <div className="rounded-2xl border border-border/30 overflow-hidden shadow-[0_1px_8px_-4px_hsl(0_0%_0%/0.05)]">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b border-border/30">
+                    <th className="px-1.5 sm:px-4 py-2.5 text-left text-[10px] sm:text-xs font-medium text-muted-foreground">Cliente</th>
+                    <th className="hidden sm:table-cell px-1.5 sm:px-4 py-2.5 text-left text-[10px] sm:text-xs font-medium text-muted-foreground">Status</th>
+                    <th className="hidden sm:table-cell px-4 py-2.5 text-left text-xs font-medium text-muted-foreground">Emprestado</th>
+                    <th className="px-1.5 sm:px-4 py-2.5 text-left text-[10px] sm:text-xs font-medium text-muted-foreground">Restante</th>
+                    <th className="hidden sm:table-cell px-4 py-2.5 text-left text-xs font-medium text-muted-foreground">Parcelas</th>
+                    <th className="px-1.5 sm:px-4 py-2.5 text-left text-[10px] sm:text-xs font-medium text-muted-foreground">Venc.</th>
+                    <th className="hidden sm:table-cell px-4 py-2.5 text-left text-xs font-medium text-muted-foreground">Etiquetas</th>
+                    <th className="hidden sm:table-cell px-4 py-2.5 text-right text-xs font-medium text-muted-foreground"></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {group.loans.map((loan) => (
+                    <LoanRowView key={loan.id} loan={loan} payments={payments} installmentSchedules={installmentSchedules} readOnly={readOnly} existingTags={[...new Set(group.loans.flatMap(l => l.tags || []))]} clients={clients} renegotiations={renegotiations.filter((r) => r.loanId === loan.id)}
+                      onPayment={(date, mid) => onPayment(loan.id, date, mid)} onPartialPayment={(amt, date, mid) => onPartialPayment(loan.id, amt, date, mid)} onFullPayment={onFullPayment ? (date, custom, mid) => onFullPayment(loan.id, date, custom, mid) : undefined}
+                      onInterestPayment={(date, custom, fees, mid, split, opts) => onInterestPayment(loan.id, date, custom, fees, mid, split, opts)} onAmortize={onAmortize ? (amt, date, mid) => onAmortize(loan.id, amt, date, mid) : undefined} onRenegotiate={onRenegotiate ? (params) => onRenegotiate(loan.id, params) : undefined} onUpdate={(d) => onUpdate(loan.id, d)} onDelete={() => onDelete(loan.id)} onDeletePayment={onDeletePayment} onSaveSchedule={onSaveSchedule} />
+                  ))}
+                </tbody>
+              </table>
             </div>
           </div>
-          <div className="rounded-2xl border border-border/30 overflow-hidden shadow-[0_1px_8px_-4px_hsl(0_0%_0%/0.05)]">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-border/30">
-                  <th className="px-1.5 sm:px-4 py-2.5 text-left text-[10px] sm:text-xs font-medium text-muted-foreground">Cliente</th>
-                  <th className="hidden sm:table-cell px-1.5 sm:px-4 py-2.5 text-left text-[10px] sm:text-xs font-medium text-muted-foreground">Status</th>
-                  <th className="hidden sm:table-cell px-4 py-2.5 text-left text-xs font-medium text-muted-foreground">Emprestado</th>
-                  <th className="px-1.5 sm:px-4 py-2.5 text-left text-[10px] sm:text-xs font-medium text-muted-foreground">Restante</th>
-                  <th className="hidden sm:table-cell px-4 py-2.5 text-left text-xs font-medium text-muted-foreground">Parcelas</th>
-                  <th className="px-1.5 sm:px-4 py-2.5 text-left text-[10px] sm:text-xs font-medium text-muted-foreground">Venc.</th>
-                  <th className="hidden sm:table-cell px-4 py-2.5 text-left text-xs font-medium text-muted-foreground">Etiquetas</th>
-                  <th className="hidden sm:table-cell px-4 py-2.5 text-right text-xs font-medium text-muted-foreground"></th>
-                </tr>
-              </thead>
-              <tbody>
-                {group.loans.map((loan) => (
-                  <LoanRowView key={loan.id} loan={loan} payments={payments} installmentSchedules={installmentSchedules} readOnly={readOnly} existingTags={[...new Set(group.loans.flatMap(l => l.tags || []))]} clients={clients} renegotiations={renegotiations.filter((r) => r.loanId === loan.id)}
-                    onPayment={(date, mid) => onPayment(loan.id, date, mid)} onPartialPayment={(amt, date, mid) => onPartialPayment(loan.id, amt, date, mid)} onFullPayment={onFullPayment ? (date, custom, mid) => onFullPayment(loan.id, date, custom, mid) : undefined}
-                    onInterestPayment={(date, custom, fees, mid, split, opts) => onInterestPayment(loan.id, date, custom, fees, mid, split, opts)} onAmortize={onAmortize ? (amt, date, mid) => onAmortize(loan.id, amt, date, mid) : undefined} onRenegotiate={onRenegotiate ? (params) => onRenegotiate(loan.id, params) : undefined} onUpdate={(d) => onUpdate(loan.id, d)} onDelete={() => onDelete(loan.id)} onDeletePayment={onDeletePayment} onSaveSchedule={onSaveSchedule} />
-                ))}
-              </tbody>
-            </table>
+          <div className="flex justify-end pt-1">
+            <Button
+              type="button"
+              size="sm"
+              onClick={handleShareWhatsApp}
+              disabled={sharing}
+              className="gap-1.5 bg-[#25D366] hover:bg-[#1ebe57] text-white border-0"
+            >
+              <MessageCircle className="h-3.5 w-3.5" />
+              {sharing ? "Gerando..." : "Enviar para WhatsApp"}
+            </Button>
           </div>
         </CardContent>
       )}
