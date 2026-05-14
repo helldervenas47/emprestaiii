@@ -173,10 +173,13 @@ export async function tgDirectSendPhoto(
   caption: string,
 ): Promise<boolean> {
   try {
+    const cleanCaption = caption.trim();
     const fd = new FormData();
     fd.append("chat_id", String(chatId));
-    fd.append("caption", caption);
-    fd.append("parse_mode", "Markdown");
+    if (cleanCaption) {
+      fd.append("caption", cleanCaption);
+      fd.append("parse_mode", "Markdown");
+    }
     fd.append("photo", new Blob([pngBytes], { type: "image/png" }), "report.png");
 
     let r = await fetch(`https://api.telegram.org/bot${token}/sendPhoto`, {
@@ -189,7 +192,7 @@ export async function tgDirectSendPhoto(
       // retry without parse_mode (caption may have invalid Markdown)
       const fd2 = new FormData();
       fd2.append("chat_id", String(chatId));
-      fd2.append("caption", caption);
+      if (cleanCaption) fd2.append("caption", cleanCaption);
       fd2.append("photo", new Blob([pngBytes], { type: "image/png" }), "report.png");
       r = await fetch(`https://api.telegram.org/bot${token}/sendPhoto`, {
         method: "POST",
