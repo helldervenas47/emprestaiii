@@ -950,25 +950,8 @@ export function GoalsCard({ loans, payments, expenses, clients, installmentSched
                           </button>
                         </div>
                       ) : (
-                        <span className="inline-flex items-center gap-1">
-                          <span className="text-xs sm:text-sm font-semibold text-foreground break-all sm:break-normal">
-                            {fmtValue(g.targetValue, unit, hidden)}
-                          </span>
-                          {!monthLocked && (
-                            <button
-                              type="button"
-                              aria-label={`Editar meta de ${g.meta?.label || ""} para ${formatMonthLabel(targetMonth)}`}
-                              title={`Editar meta para ${formatMonthLabel(targetMonth)}`}
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setEditingGoalType(g.goalType);
-                                setEditingValue(String(g.targetValue ?? 0));
-                              }}
-                              className="h-5 w-5 inline-flex items-center justify-center rounded text-muted-foreground hover:text-primary hover:bg-primary/10"
-                            >
-                              <Pencil className="h-3 w-3" />
-                            </button>
-                          )}
+                        <span className="text-xs sm:text-sm font-semibold text-foreground break-all sm:break-normal">
+                          {fmtValue(g.targetValue, unit, hidden)}
                         </span>
                       )}
                     </div>
