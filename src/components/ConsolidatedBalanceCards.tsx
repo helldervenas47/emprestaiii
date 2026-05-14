@@ -92,7 +92,7 @@ export function ConsolidatedBalanceCards() {
   );
   const pendingSales = useMemo(
     () => sales
-      .filter((s) => !isSalePaid(s))
+      .filter((s) => s.businessType === "venda" && !isSalePaid(s))
       .reduce((s, sale) => s + Math.max(0, sale.total - getSalePaidAmount(sale)), 0),
     [sales],
   );
