@@ -422,10 +422,13 @@ export async function tgSendPhoto(
   lovableKey: string,
   telegramKey: string,
 ): Promise<void> {
+  const cleanCaption = caption.trim();
   const fd = new FormData();
   fd.append("chat_id", String(chatId));
-  fd.append("caption", caption);
-  fd.append("parse_mode", "Markdown");
+  if (cleanCaption) {
+    fd.append("caption", cleanCaption);
+    fd.append("parse_mode", "Markdown");
+  }
   fd.append("photo", new Blob([pngBytes], { type: "image/png" }), "report.png");
 
   const r = await fetch(`${GATEWAY_URL}/sendPhoto`, {
