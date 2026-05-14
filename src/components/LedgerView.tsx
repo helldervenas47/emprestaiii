@@ -211,11 +211,11 @@ export function LedgerView({ readOnly = false }: Props) {
       {/* Entradas/Saídas do período filtrado */}
       <div className="grid grid-cols-2 gap-2 sm:gap-3">
         <Card no3d>
-          <CardContent className="p-3 sm:p-4 flex items-center gap-2">
+          <CardContent className="p-3 sm:p-4 flex items-center justify-center gap-2">
             <div className="h-8 w-8 rounded-full bg-success/10 flex items-center justify-center shrink-0">
               <ArrowUpRight className="h-4 w-4 text-success" />
             </div>
-            <div className="min-w-0">
+            <div className="min-w-0 text-center">
               <p className="text-[11px] text-muted-foreground truncate">
                 Entradas {filterMonth !== "all" ? `· ${formatMonthLabel(filterMonth)}` : "· Todo período"}
               </p>
@@ -224,11 +224,11 @@ export function LedgerView({ readOnly = false }: Props) {
           </CardContent>
         </Card>
         <Card no3d>
-          <CardContent className="p-3 sm:p-4 flex items-center gap-2">
+          <CardContent className="p-3 sm:p-4 flex items-center justify-center gap-2">
             <div className="h-8 w-8 rounded-full bg-destructive/10 flex items-center justify-center shrink-0">
               <ArrowDownRight className="h-4 w-4 text-destructive" />
             </div>
-            <div className="min-w-0">
+            <div className="min-w-0 text-center">
               <p className="text-[11px] text-muted-foreground truncate">
                 Saídas {filterMonth !== "all" ? `· ${formatMonthLabel(filterMonth)}` : "· Todo período"}
               </p>
