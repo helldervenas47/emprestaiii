@@ -40,6 +40,10 @@ import {
   ChevronDown,
   ChevronUp,
   Loader2,
+  Gauge,
+  Scale,
+  Banknote,
+  LineChart as LineChartIcon,
 } from "lucide-react";
 
 const COLOR_GREEN = "#10B981";
@@ -117,6 +121,7 @@ export function FinancialHealthDashboard({ incomes, expenses, monthKey }: Props)
   const [reportOpen, setReportOpen] = useState(false);
   const [reportLoading, setReportLoading] = useState(false);
   const [reportContent, setReportContent] = useState<string>("");
+  const [openIndicator, setOpenIndicator] = useState<IndicatorKey | null>(null);
 
   const data = useMemo(() => {
     const piggyBalance = deposits.reduce((s, d) => s + (Number(d.amount) || 0), 0);
@@ -188,6 +193,14 @@ export function FinancialHealthDashboard({ incomes, expenses, monthKey }: Props)
       monthsCovered,
       expenseDelta,
       piggyBalance,
+      avgExpense,
+      indicatorScores: {
+        control: Math.round(spendControl),
+        reserve: Math.round(reserve),
+        debts: Math.round(debts),
+        investments: Math.round(investments),
+        stability: Math.round(stability),
+      },
     };
   }, [incomes, expenses, monthKey, deposits]);
 
@@ -396,6 +409,39 @@ export function FinancialHealthDashboard({ incomes, expenses, monthKey }: Props)
         />
       </div>
 
+      {/* Indicadores de saúde — 5 velocímetros clicáveis */}
+      <div className={`${expanded ? "block" : "hidden"} sm:block mb-6`}>
+        <div className="flex items-center gap-2 mb-3">
+          <Gauge className="h-4 w-4 text-muted-foreground" />
+          <h4 className="text-foreground/80 text-xs font-semibold uppercase tracking-wider">
+            Indicadores essenciais
+          </h4>
+        </div>
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5">
+          {INDICATORS.map((ind) => {
+            const score = data.indicatorScores[ind.key];
+            return (
+              <IndicatorGaugeCard
+                key={ind.key}
+                title={ind.label}
+                icon={ind.icon}
+                score={score}
+                onClick={() => setOpenIndicator(ind.key)}
+              />
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Dialog: ações concretas por indicador */}
+      <IndicatorActionsDialog
+        open={openIndicator !== null}
+        onOpenChange={(o) => !o && setOpenIndicator(null)}
+        indicatorKey={openIndicator}
+        data={data}
+        hidden={hidden}
+      />
+
       <Dialog open={reportOpen} onOpenChange={setReportOpen}>
         <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
           <DialogHeader>
@@ -473,5 +519,318 @@ function InsightCard({
       </div>
       <div className="text-foreground text-xl font-bold tracking-tight">{value}</div>
     </div>
+  );
+}
+
+// =====================================================================
+// Indicadores essenciais — 5 velocímetros clicáveis
+// =====================================================================
+
+type IndicatorKey = "control" | "reserve" | "debts" | "investments" | "stability";
+
+const INDICATORS: { key: IndicatorKey; label: string; icon: React.ReactNode }[] = [
+  { key: "control", label: "Controle", icon: <Wallet className="h-3.5 w-3.5" /> },
+  { key: "reserve", label: "Reserva", icon: <Shield className="h-3.5 w-3.5" /> },
+  { key: "debts", label: "Dívidas", icon: <Scale className="h-3.5 w-3.5" /> },
+  { key: "investments", label: "Investim.", icon: <Banknote className="h-3.5 w-3.5" /> },
+  { key: "stability", label: "Estabilid.", icon: <LineChartIcon className="h-3.5 w-3.5" /> },
+];
+
+function scoreColorOf(score: number): string {
+  if (score >= 70) return COLOR_GREEN;
+  if (score >= 40) return COLOR_YELLOW;
+  return COLOR_RED;
+}
+
+function scoreLabelOf(score: number): string {
+  if (score >= 70) return "Bom";
+  if (score >= 40) return "Atenção";
+  return "Ruim";
+}
+
+function IndicatorGaugeCard({
+  title,
+  icon,
+  score,
+  onClick,
+}: {
+  title: string;
+  icon: React.ReactNode;
+  score: number;
+  onClick: () => void;
+}) {
+  const color = scoreColorOf(score);
+  const label = scoreLabelOf(score);
+  const gaugeData = [{ name: "score", value: score, fill: color }];
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="group relative overflow-hidden rounded-2xl border border-black/10 dark:border-white/10 bg-foreground/[0.03] backdrop-blur-xl p-3 text-left transition-all hover:bg-foreground/[0.07] active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+    >
+      <div
+        className="absolute inset-x-0 top-0 h-px"
+        style={{ background: `linear-gradient(90deg, transparent, ${color}, transparent)` }}
+      />
+      <div className="flex items-center justify-between gap-1.5 mb-1.5">
+        <div className="flex items-center gap-1.5 min-w-0">
+          <span
+            className="flex h-6 w-6 items-center justify-center rounded-md shrink-0"
+            style={{ background: `${color}22`, color }}
+          >
+            {icon}
+          </span>
+          <span className="text-foreground/80 text-[11px] font-semibold truncate">{title}</span>
+        </div>
+      </div>
+      <div className="relative aspect-[2/1] -mb-1">
+        <ResponsiveContainer width="100%" height="100%">
+          <RadialBarChart
+            cx="50%"
+            cy="100%"
+            innerRadius="78%"
+            outerRadius="115%"
+            startAngle={180}
+            endAngle={0}
+            data={gaugeData}
+          >
+            <PolarAngleAxis type="number" domain={[0, 100]} tick={false} />
+            <RadialBar
+              background={{ fill: "hsl(var(--foreground) / 0.07)" }}
+              dataKey="value"
+              cornerRadius={10}
+              fill={color}
+              isAnimationActive
+              animationDuration={1100}
+            />
+          </RadialBarChart>
+        </ResponsiveContainer>
+        <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-end pb-0.5">
+          <span
+            className="text-2xl font-bold leading-none tabular-nums"
+            style={{ color }}
+          >
+            {score}
+          </span>
+          <span className="text-[9px] text-muted-foreground tracking-wider uppercase">/ 100</span>
+        </div>
+      </div>
+      <div
+        className="mt-1 inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[9px] font-semibold"
+        style={{ background: `${color}1f`, color }}
+      >
+        <span className="h-1 w-1 rounded-full" style={{ background: color }} />
+        {label}
+      </div>
+    </button>
+  );
+}
+
+interface ActionsData {
+  current: MonthMetrics;
+  previous: MonthMetrics;
+  piggyBalance: number;
+  avgExpense: number;
+  monthsCovered: number;
+  indicatorScores: Record<IndicatorKey, number>;
+}
+
+function buildActions(key: IndicatorKey, d: ActionsData, hidden: boolean): {
+  title: string;
+  subtitle: string;
+  bullets: string[];
+} {
+  const fmt = (n: number) => fmtBRL(Math.max(0, n), hidden);
+  const inc = d.current.income;
+  const exp = d.current.expense;
+
+  switch (key) {
+    case "control": {
+      const ratio = inc > 0 ? (exp / inc) * 100 : 0;
+      const target = inc * 0.65; // gastar até 65% para entrar em zona saudável
+      const gap = exp - target;
+      return {
+        title: "Controle de gastos",
+        subtitle:
+          inc <= 0
+            ? "Sem receitas registradas neste mês — registre seus recebimentos para medir o controle."
+            : `Você gastou ${ratio.toFixed(0)}% da sua renda este mês.`,
+        bullets:
+          inc <= 0
+            ? ["Registre suas receitas do mês para que o app calcule o seu controle."]
+            : gap > 0
+            ? [
+                `Reduza ${fmt(gap)} nas despesas do mês para chegar à meta de 65% da renda.`,
+                "Abra o donut de categorias e revise as 1-2 categorias com maior gasto.",
+                "Adie despesas não essenciais para o próximo ciclo.",
+              ]
+            : [
+                "Você já está dentro da meta — mantenha o ritmo.",
+                "Direcione a sobra deste mês ao cofrinho de reserva.",
+              ],
+      };
+    }
+    case "reserve": {
+      const target = d.avgExpense * 6;
+      const missing = target - d.piggyBalance;
+      return {
+        title: "Reserva de emergência",
+        subtitle:
+          d.avgExpense > 0
+            ? `Sua reserva cobre ${d.monthsCovered.toFixed(1)} meses de despesa (meta: 6 meses).`
+            : "Ainda não há despesas suficientes para calcular a reserva ideal.",
+        bullets:
+          missing > 0
+            ? [
+                `Aporte ${fmt(missing)} no cofrinho para alcançar 6 meses de despesa.`,
+                "Programe um aporte recorrente mensal para o cofrinho de reserva.",
+                "Evite usar a reserva para gastos não emergenciais.",
+              ]
+            : [
+                "Reserva completa — parabéns!",
+                "Considere mover o excedente para um cofrinho de investimento.",
+              ],
+      };
+    }
+    case "debts": {
+      const ratio = inc > 0 ? (d.current.pendingExpense / inc) * 100 : 0;
+      const safe = inc * 0.3;
+      const overdue = d.current.pendingExpense - safe;
+      return {
+        title: "Dívidas e contas em aberto",
+        subtitle:
+          inc > 0
+            ? `${ratio.toFixed(0)}% da sua renda está comprometida com contas em aberto este mês.`
+            : "Sem receitas neste mês para calcular o comprometimento.",
+        bullets:
+          d.current.pendingExpense <= 0
+            ? ["Nenhuma despesa pendente — saúde excelente neste indicador."]
+            : overdue > 0
+            ? [
+                `Antecipe ${fmt(overdue)} em pagamentos para reduzir o comprometimento abaixo de 30%.`,
+                "Priorize quitar as contas com maior valor primeiro.",
+                "Renegocie prazos das despesas que não couberem no orçamento do mês.",
+              ]
+            : [
+                "Comprometimento dentro da faixa segura (<30%).",
+                "Quite as contas pendentes ainda este mês para manter o score em alta.",
+              ],
+      };
+    }
+    case "investments": {
+      const target = inc * 3;
+      const missing = target - d.piggyBalance;
+      return {
+        title: "Investimentos / patrimônio",
+        subtitle:
+          inc > 0
+            ? `Saldo investido equivale a ${(d.piggyBalance / inc).toFixed(1)}× sua renda mensal (meta: 3×).`
+            : "Registre receitas para que o app calcule sua meta de investimento.",
+        bullets:
+          missing > 0
+            ? [
+                `Acumule ${fmt(missing)} em cofrinhos para alcançar 3× a renda mensal.`,
+                "Aumente em 5-10% o aporte mensal recorrente do cofrinho.",
+                "Crie um cofrinho separado da reserva, voltado a longo prazo.",
+              ]
+            : [
+                "Você atingiu a meta de patrimônio (3× a renda).",
+                "Reavalie sua estratégia: diversifique os cofrinhos por objetivo.",
+              ],
+      };
+    }
+    case "stability": {
+      const ratio = inc > 0 ? exp / inc : 0;
+      const diff = (ratio - 0.6) * 100;
+      return {
+        title: "Estabilidade financeira",
+        subtitle:
+          inc > 0
+            ? `Seus gastos estão em ${(ratio * 100).toFixed(0)}% da renda (faixa ideal: ~60%).`
+            : "Sem receitas para medir a estabilidade.",
+        bullets:
+          inc <= 0
+            ? ["Registre as receitas do mês para o cálculo."]
+            : Math.abs(diff) <= 10
+            ? [
+                "Você está dentro da faixa ideal de estabilidade.",
+                "Mantenha receitas e despesas equilibradas mês a mês.",
+              ]
+            : diff > 10
+            ? [
+                `Reduza ${fmt(inc * (ratio - 0.6))} nas despesas para voltar à faixa ideal.`,
+                "Evite picos de gasto: divida compras grandes em parcelas planejadas.",
+              ]
+            : [
+                "Você está gastando bem abaixo de 60% — ótimo controle.",
+                "Direcione o excedente para reserva ou investimento, em vez de deixar parado.",
+              ],
+      };
+    }
+  }
+}
+
+function IndicatorActionsDialog({
+  open,
+  onOpenChange,
+  indicatorKey,
+  data,
+  hidden,
+}: {
+  open: boolean;
+  onOpenChange: (o: boolean) => void;
+  indicatorKey: IndicatorKey | null;
+  data: ActionsData;
+  hidden: boolean;
+}) {
+  if (!indicatorKey) return null;
+  const score = data.indicatorScores[indicatorKey];
+  const color = scoreColorOf(score);
+  const label = scoreLabelOf(score);
+  const content = buildActions(indicatorKey, data, hidden);
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <span
+              className="flex h-9 w-9 items-center justify-center rounded-xl"
+              style={{ background: `${color}22`, color }}
+            >
+              <Gauge className="h-4 w-4" />
+            </span>
+            <div className="flex flex-col">
+              <span>{content.title}</span>
+              <span className="text-xs font-normal text-muted-foreground">
+                Score atual: <span className="font-semibold" style={{ color }}>{score}/100</span> · {label}
+              </span>
+            </div>
+          </DialogTitle>
+          <DialogDescription className="pt-1.5">{content.subtitle}</DialogDescription>
+        </DialogHeader>
+        <div className="space-y-2 pt-1">
+          <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+            O que fazer agora
+          </p>
+          <ul className="space-y-2">
+            {content.bullets.map((b, i) => (
+              <li
+                key={i}
+                className="flex items-start gap-2.5 rounded-xl border border-black/5 dark:border-white/5 bg-foreground/[0.02] p-3"
+              >
+                <span
+                  className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[10px] font-bold mt-0.5"
+                  style={{ background: `${color}22`, color }}
+                >
+                  {i + 1}
+                </span>
+                <span className="text-sm text-foreground/90 leading-snug">{b}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }
