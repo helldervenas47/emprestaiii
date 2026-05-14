@@ -2,7 +2,8 @@ import { useEffect, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { Image as ImageIcon } from "lucide-react";
+import { Image as ImageIcon, ChevronDown } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 const STORAGE_KEY = "telegram_image_delivery_prefs_v1";
 
@@ -56,6 +57,7 @@ export function loadImageDeliveryPrefs(): ImageDeliveryPrefs {
 
 export function TelegramImageDeliveryCard() {
   const [prefs, setPrefs] = useState<ImageDeliveryPrefs>(DEFAULT_PREFS);
+  const [open, setOpen] = useState(false);
 
   useEffect(() => {
     setPrefs(loadImageDeliveryPrefs());
@@ -73,57 +75,73 @@ export function TelegramImageDeliveryCard() {
   return (
     <Card no3d>
       <CardContent className="p-4 space-y-3">
-        <div className="flex items-center gap-2">
+        <button
+          type="button"
+          onClick={() => setOpen((v) => !v)}
+          className="flex items-center gap-2 w-full text-left"
+          aria-expanded={open}
+        >
           <div className="h-9 w-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
             <ImageIcon className="h-4 w-4 text-primary" />
           </div>
-          <div className="min-w-0">
+          <div className="min-w-0 flex-1">
             <p className="font-semibold text-sm">Envio em formato de imagem</p>
             <p className="text-xs text-muted-foreground">
               Selecione quais relatórios serão enviados como imagem no Telegram.
             </p>
           </div>
-        </div>
+          <ChevronDown
+            className={cn(
+              "h-4 w-4 text-muted-foreground shrink-0 transition-transform",
+              open && "rotate-180",
+            )}
+          />
+        </button>
 
-        <div className="border-t pt-3 space-y-2">
-          {REPORTS.map((r) => (
-            <label
-              key={r.key}
-              className="flex items-center justify-between gap-3 py-1.5"
-            >
-              <div className="min-w-0">
-                <p className="text-sm text-foreground truncate">{r.label}</p>
-                <p className="text-[11px] text-muted-foreground truncate">{r.hint}</p>
-              </div>
-              <Switch
-                checked={prefs.reports[r.key]}
-                onCheckedChange={(v) => toggleReport(r.key, v)}
-              />
-            </label>
-          ))}
-        </div>
-
-        <div className="border-t pt-3">
-          <label className="flex items-center justify-between gap-3">
-            <div className="min-w-0">
-              <p className="text-sm font-medium text-foreground">
-                Incluir mensagem de texto junto à imagem
-              </p>
-              <p className="text-[11px] text-muted-foreground">
-                Quando desativado, apenas a imagem será enviada (sem legenda).
-              </p>
+        {open && (
+          <>
+            <div className="border-t pt-3 space-y-2">
+              {REPORTS.map((r) => (
+                <label
+                  key={r.key}
+                  className="flex items-center justify-between gap-3 py-1.5"
+                >
+                  <div className="min-w-0">
+                    <p className="text-sm text-foreground truncate">{r.label}</p>
+                    <p className="text-[11px] text-muted-foreground truncate">{r.hint}</p>
+                  </div>
+                  <Switch
+                    checked={prefs.reports[r.key]}
+                    onCheckedChange={(v) => toggleReport(r.key, v)}
+                  />
+                </label>
+              ))}
             </div>
-            <Switch
-              checked={prefs.includeText}
-              onCheckedChange={(v) => update({ ...prefs, includeText: v })}
-            />
-          </label>
-        </div>
 
-        <p className="text-[10px] text-muted-foreground">
-          As preferências são salvas neste dispositivo.
-        </p>
+            <div className="border-t pt-3">
+              <label className="flex items-center justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="text-sm font-medium text-foreground">
+                    Incluir mensagem de texto junto à imagem
+                  </p>
+                  <p className="text-[11px] text-muted-foreground">
+                    Quando desativado, apenas a imagem será enviada (sem legenda).
+                  </p>
+                </div>
+                <Switch
+                  checked={prefs.includeText}
+                  onCheckedChange={(v) => update({ ...prefs, includeText: v })}
+                />
+              </label>
+            </div>
+
+            <p className="text-[10px] text-muted-foreground">
+              As preferências são salvas neste dispositivo.
+            </p>
+          </>
+        )}
       </CardContent>
     </Card>
   );
 }
+
