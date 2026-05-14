@@ -4371,18 +4371,6 @@ function ClientFolder({
               </table>
             </div>
           </div>
-          <div className="flex justify-end pt-1">
-            <Button
-              type="button"
-              size="sm"
-              onClick={handleShareWhatsApp}
-              disabled={sharing}
-              className="gap-1.5 bg-[#25D366] hover:bg-[#1ebe57] text-white border-0"
-            >
-              <MessageCircle className="h-3.5 w-3.5" />
-              {sharing ? "Gerando..." : "Enviar para WhatsApp"}
-            </Button>
-          </div>
         </CardContent>
       )}
     </Card>
