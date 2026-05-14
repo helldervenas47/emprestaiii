@@ -369,6 +369,58 @@ export function IncomeBalanceCard({ incomes, expenses, onAdjust, readOnly, onOpe
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <Dialog open={projInfoOpen} onOpenChange={setProjInfoOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Info className="h-4 w-4 text-primary" />
+              Como o Saldo previsto é calculado
+            </DialogTitle>
+            <DialogDescription>
+              Projeção do saldo no último dia do mês selecionado ({monthKey}), encadeando dia a dia receitas e despesas previstas a partir do saldo atual.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 text-sm">
+            <div className="rounded-lg bg-muted/40 p-3 font-mono text-xs leading-relaxed">
+              Saldo previsto = Saldo em conta<br />
+              &nbsp;&nbsp;+ Receitas pendentes do mês<br />
+              &nbsp;&nbsp;− Despesas pessoais a pagar do mês<br />
+              &nbsp;&nbsp;− Faturas de cartão pendentes do mês
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <div className="rounded-md border border-border/40 p-2">
+                <p className="text-[10px] text-muted-foreground uppercase">Saldo em conta</p>
+                <p className="font-semibold">{fmt(calc.balance, false)}</p>
+              </div>
+              <div className="rounded-md border border-border/40 p-2">
+                <p className="text-[10px] text-muted-foreground uppercase">Receitas pendentes</p>
+                <p className="font-semibold text-warning">+ {fmt(calc.futureIn, false)}</p>
+              </div>
+              <div className="rounded-md border border-border/40 p-2">
+                <p className="text-[10px] text-muted-foreground uppercase">A pagar no mês</p>
+                <p className="font-semibold text-destructive">− {fmt(calc.futureOut, false)}</p>
+              </div>
+              <div className="rounded-md border border-border/40 p-2">
+                <p className="text-[10px] text-muted-foreground uppercase">Variação vs atual</p>
+                <p className={`font-semibold ${calc.projectedDiff >= 0 ? "text-success" : "text-destructive"}`}>
+                  {calc.projectedDiff >= 0 ? "+" : ""}{fmt(calc.projectedDiff, false)}
+                </p>
+              </div>
+            </div>
+            <div className="rounded-lg border border-primary/30 bg-primary/5 p-3">
+              <p className="text-[10px] text-muted-foreground uppercase">Saldo previsto (fim do mês)</p>
+              <p className="text-lg font-bold text-primary">{fmt(calc.projected, false)}</p>
+            </div>
+            <p className="text-[11px] text-muted-foreground leading-snug">
+              Observação: a projeção dia a dia considera receitas recebidas, vendas, despesas pessoais pagas/a pagar, faturas de cartão e aportes ao cofrinho. Despesas da empresa não afetam este saldo.
+            </p>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setProjInfoOpen(false)}>Fechar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 }
