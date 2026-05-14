@@ -497,6 +497,22 @@ export function usePiggyBanks() {
     await reload();
   }, [dataOwnerId, piggyBanks, reload]);
 
+  const refreshCdiNow = useCallback(async () => {
+    try {
+      const { data, error } = await supabase.functions.invoke("sync-cdi-rate", { body: {} });
+      if (error) throw error;
+      await reload();
+      const rate = (data as any)?.annual_rate;
+      if (typeof rate === "number") {
+        toast.success(`Taxa CDI atualizada: ${rate.toFixed(2)}% a.a.`);
+      }
+      return data;
+    } catch (e: any) {
+      toast.error("Não foi possível atualizar a taxa CDI agora");
+      return null;
+    }
+  }, [reload]);
+
   return {
     piggyBanks,
     deposits,
@@ -504,6 +520,7 @@ export function usePiggyBanks() {
     rateHistory,
     balances,
     detailed,
+    cdiRate,
     loading,
     createPiggyBank,
     updatePiggyBank,
@@ -515,6 +532,7 @@ export function usePiggyBanks() {
     adjustBalance,
     createRecurrence,
     setPiggyRate,
+    refreshCdiNow,
     reload,
   };
 }
