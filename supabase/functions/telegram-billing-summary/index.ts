@@ -212,7 +212,7 @@ async function buildBillingReport(admin: any, ownerId: string, today: string, br
   return lines.join("\n");
 }
 
-import { sendReportsMessage } from "../_shared/reports-bot.ts";
+import { sendReportsAsImage } from "../_shared/reports-bot.ts";
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
