@@ -80,9 +80,9 @@ export function VehicleExpenseForm({ onAdd, onClose }: Props) {
     setForm((prev) => ({ ...prev, [field]: value }));
 
   return (
-    <div className="fixed inset-0 bg-foreground/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div className="fixed inset-0 bg-foreground/40 backdrop-blur-sm z-50 flex items-stretch justify-center p-0 sm:items-center sm:p-4">
       <SuccessAnimation show={showSuccess} onComplete={onClose} message="Despesa cadastrada!" />
-      <Card className="!bg-card !backdrop-blur-none supports-[backdrop-filter]:!bg-card dark:!bg-card w-full max-w-lg max-h-[90vh] overflow-y-auto">
+      <Card className="!bg-card !backdrop-blur-none supports-[backdrop-filter]:!bg-card dark:!bg-card w-full h-[100dvh] max-h-[100dvh] rounded-none border-0 overflow-y-auto pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] sm:h-auto sm:max-h-[90vh] sm:max-w-lg sm:rounded-2xl sm:border sm:pt-0 sm:pb-0">
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle className="text-xl">Despesa de Veículo</CardTitle>
           <Button variant="ghost" size="icon" onClick={onClose}>
