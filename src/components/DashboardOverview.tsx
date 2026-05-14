@@ -2020,7 +2020,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
                 <p className="text-lg font-bold text-foreground mt-1">{yearlyAverages.interestRate.rate !== null ? `${yearlyAverages.interestRate.rate.toFixed(2)}%` : "Sem dados"}</p>
               </div>
               <div className="rounded-xl border border-border/30 bg-muted/20 p-4">
-                <p className="text-xs text-muted-foreground">Juros recebidos (ano)</p>
+                <p className="text-xs text-muted-foreground">Média juros recebidos (ano)</p>
                 <p className="text-lg font-bold text-foreground mt-1">{formatCurrency(yearlyAverages.interestReceived)}</p>
               </div>
             </div>
