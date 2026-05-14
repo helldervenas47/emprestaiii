@@ -16,8 +16,20 @@ import {
 import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
 import { useHideValues } from "@/contexts/HideValuesContext";
 import { usePiggyBanks, type PiggyBank as PiggyBankType, type PiggyBankDeposit } from "@/hooks/usePiggyBanks";
+import { useIncomes } from "@/hooks/useIncomes";
+import { useExpenses } from "@/hooks/useExpenses";
+import { useProducts } from "@/hooks/useProducts";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+
+/** Total efetivamente recebido de uma venda (espelha IncomeBalanceCard). */
+function saleReceivedTotal(sale: any): number {
+  if (sale.paymentHistory && sale.paymentHistory.length > 0) {
+    return sale.paymentHistory.reduce((s: number, p: any) => s + (Number(p.amount) || 0), 0);
+  }
+  const iv = sale.installmentValue ?? (sale.installments > 0 ? sale.total / sale.installments : sale.total);
+  return (sale.downPayment || 0) + (sale.paidInstallments || 0) * iv + (sale.partialPaid || 0);
+}
 
 const fmt = (v: number) =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v);
@@ -34,19 +46,35 @@ interface Props {
 export function PiggyBankList({ readOnly = false }: Props) {
   const { mask } = useHideValues();
   const { piggyBanks, deposits, balances, detailed, cdiRate, createPiggyBank, updatePiggyBank, deletePiggyBank, adjustBalance, updateDeposit, deleteDeposit, setPiggyRate, refreshCdiNow, storeMoney, withdrawMoney } = usePiggyBanks();
+  const { incomes } = useIncomes();
+  const { expenses } = useExpenses();
+  const { sales } = useProducts(true);
 
   const [transferTarget, setTransferTarget] = useState<PiggyBankType | null>(null);
   const [transferMode, setTransferMode] = useState<"store" | "withdraw">("store");
   const [transferValue, setTransferValue] = useState("");
   const [transferring, setTransferring] = useState(false);
-  const [accountBalance, setAccountBalance] = useState<number>(0);
   const [pulseId, setPulseId] = useState<string | null>(null);
+
+  // Saldo em conta da aba Receitas e Despesas (mesma fórmula de IncomeBalanceCard).
+  const accountBalance = useMemo(() => {
+    const totalIncomeReceived = incomes
+      .filter((i) => i.status === "received")
+      .reduce((s, i) => s + i.amount, 0);
+    const totalSalesReceived = sales.reduce((s, sale) => s + saleReceivedTotal(sale), 0);
+    const totalExpensePaid = expenses
+      .filter((e: any) => e.paid && (e.scope ?? "business") === "personal")
+      .reduce((s: number, e: any) => s + e.amount, 0);
+    const totalPiggyManualDeposits = deposits
+      .filter((d) => !d.expenseId)
+      .reduce((s, d) => s + (Number(d.amount) || 0), 0);
+    return totalIncomeReceived + totalSalesReceived - totalExpensePaid - totalPiggyManualDeposits;
+  }, [incomes, sales, expenses, deposits]);
 
   const openTransfer = (pb: PiggyBankType, mode: "store" | "withdraw") => {
     setTransferTarget(pb);
     setTransferMode(mode);
     setTransferValue("");
-    import("@/lib/balance").then(({ getBalances }) => getBalances().then((b) => setAccountBalance(b.account)));
   };
   const confirmTransfer = async () => {
     if (!transferTarget) return;
