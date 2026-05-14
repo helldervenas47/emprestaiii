@@ -316,11 +316,21 @@ export function buildTextReportSVG(
       bodyWrapped.push([[]]);
       continue;
     }
+    // Drop pure separator lines like "━━━━" or "—"
+    if (/^[—━\-]{2,}$/.test(raw.trim()) || raw.trim() === "—") {
+      bodyHeights.push(EMPTY_H);
+      bodyWrapped.push([[]]);
+      continue;
+    }
     const indent = raw.match(/^[\s]*/)?.[0].length ?? 0;
-    const cleaned = raw.replace(/^[\s]+/, "");
+    const cleaned = stripEmojis(raw.replace(/^[\s]+/, ""));
+    if (!cleaned.trim()) {
+      bodyHeights.push(EMPTY_H);
+      bodyWrapped.push([[]]);
+      continue;
+    }
     const segs = parseInline(cleaned);
     const wrapped = wrapSegments(segs, MAX_CHARS - Math.floor(indent / 2));
-    // store indent on first seg via a trailing marker isn't ideal — encode via leading space seg
     if (indent > 0) wrapped[0] = [{ text: " ".repeat(indent) }, ...wrapped[0]];
     bodyWrapped.push(wrapped);
     bodyHeights.push(wrapped.length * LINE_H);
