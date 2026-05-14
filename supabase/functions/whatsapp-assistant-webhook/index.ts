@@ -192,6 +192,18 @@ Deno.serve(async (req: Request) => {
     const API_KEY = Deno.env.get("WHATSMIAU_API_KEY") ?? "";
     const admin = createClient(SUPABASE_URL, SERVICE_KEY);
 
+    // Verify webhook came from the WhatsApp provider via shared apikey header
+    const providerKey =
+      req.headers.get("apikey") ||
+      req.headers.get("x-api-key") ||
+      req.headers.get("x-webhook-secret") ||
+      "";
+    if (!API_KEY || providerKey !== API_KEY) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const payload = await req.json().catch(() => ({}));
     const msg = extractMessage(payload);
 
