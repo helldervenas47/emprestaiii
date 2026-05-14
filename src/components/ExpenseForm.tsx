@@ -11,6 +11,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Plus, X } from "lucide-react";
 import { Expense } from "@/types/loan";
 import { PaymentMethodPicker } from "@/components/PaymentMethodPicker";
+import { MoneyInput } from "@/components/ui/money-input";
+import { useDescriptionHistory } from "@/hooks/useDescriptionHistory";
 
 const categories = [
   "Aluguel", "Energia", "Água", "Internet", "Telefone",
@@ -33,6 +35,7 @@ export function ExpenseForm({ onAdd, onClose, scope = "business" }: Props) {
   const [submitting, setSubmitting] = useState(false);
   const [showFormError, setShowFormError] = useState(false);
   const [paymentMethodId, setPaymentMethodId] = useState<string | null>(null);
+  const { suggestions, record } = useDescriptionHistory(`expense-${scope}`);
   const [form, setForm] = useState({
     description: "",
     amount: "",
@@ -94,6 +97,7 @@ export function ExpenseForm({ onAdd, onClose, scope = "business" }: Props) {
 
     try {
       await onAdd(payload);
+      record(form.description);
       setShowSuccess(true);
     } finally {
       setSubmitting(false);
@@ -126,19 +130,22 @@ export function ExpenseForm({ onAdd, onClose, scope = "business" }: Props) {
                 value={form.description}
                 onChange={(e) => update("description", e.target.value)}
                 placeholder="Ex: Aluguel do escritório"
+                list="expense-desc-history"
+                autoFocus
                 required
               />
+              <datalist id="expense-desc-history">
+                {suggestions.map((s) => <option key={s} value={s} />)}
+              </datalist>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="amount">{amountLabel}</Label>
-                <Input
+                <MoneyInput
                   id="amount"
-                  type="number"
-                  step="0.01"
                   value={form.amount}
-                  onChange={(e) => update("amount", e.target.value)}
-                  placeholder="500.00"
+                  onChange={(v) => update("amount", v)}
+                  placeholder="R$ 0,00"
                   required
                 />
               </div>

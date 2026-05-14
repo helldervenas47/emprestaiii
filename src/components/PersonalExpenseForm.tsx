@@ -16,6 +16,8 @@ import { usePiggyBanks, buildPiggyTag } from "@/hooks/usePiggyBanks";
 import { useCreditCards } from "@/hooks/useCreditCards";
 import { usePersonalExpenseCategories } from "@/hooks/usePersonalExpenseCategories";
 import { PersonalCategoryCreator } from "@/components/PersonalCategoryCreator";
+import { MoneyInput } from "@/components/ui/money-input";
+import { useDescriptionHistory } from "@/hooks/useDescriptionHistory";
 
 /** Pick the user's default credit card — prefers Nubank, falls back to first card. */
 function pickDefaultCard<T extends { bank: string; nickname: string }>(cards: T[]): T | null {
@@ -45,6 +47,7 @@ export function PersonalExpenseForm({ onAdd, onClose }: Props) {
   const [showSuccess, setShowSuccess] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [creatorOpen, setCreatorOpen] = useState(false);
+  const { suggestions, record } = useDescriptionHistory("personal-expense");
 
   const [form, setForm] = useState({
     description: "",
@@ -121,6 +124,7 @@ export function PersonalExpenseForm({ onAdd, onClose }: Props) {
             description: form.description,
           });
         }
+        record(form.description);
         setShowSuccess(true);
       } finally {
         setSubmitting(false);
@@ -173,6 +177,7 @@ export function PersonalExpenseForm({ onAdd, onClose }: Props) {
     }
     try {
       await onAdd(payload);
+      record(form.description);
       setShowSuccess(true);
     } finally {
       setSubmitting(false);
@@ -205,19 +210,22 @@ export function PersonalExpenseForm({ onAdd, onClose }: Props) {
                 value={form.description}
                 onChange={(e) => update("description", e.target.value)}
                 placeholder={toPiggy ? "Ex: Aporte mensal" : "Ex: Supermercado do mês"}
+                list="personal-expense-desc-history"
+                autoFocus
                 required
               />
+              <datalist id="personal-expense-desc-history">
+                {suggestions.map((s) => <option key={s} value={s} />)}
+              </datalist>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="amount">{amountLabel}</Label>
-                <Input
+                <MoneyInput
                   id="amount"
-                  type="number"
-                  step="0.01"
                   value={form.amount}
-                  onChange={(e) => update("amount", e.target.value)}
-                  placeholder="250.00"
+                  onChange={(v) => update("amount", v)}
+                  placeholder="R$ 0,00"
                   required
                 />
               </div>

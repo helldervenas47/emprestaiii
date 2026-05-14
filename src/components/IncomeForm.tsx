@@ -15,6 +15,8 @@ import { PersonalCategoryCreator } from "@/components/PersonalCategoryCreator";
 import { personalIconMap } from "@/lib/personalExpenseCategories";
 import { PlusCircle } from "lucide-react";
 import { todayInAppTz } from "@/lib/timezone";
+import { MoneyInput } from "@/components/ui/money-input";
+import { useDescriptionHistory } from "@/hooks/useDescriptionHistory";
 
 export const INCOME_CATEGORIES = [
   "Vendas",
@@ -50,6 +52,7 @@ export function IncomeForm({ open, onClose, onSubmit, initial }: Props) {
   const [notes, setNotes] = useState("");
   const [saving, setSaving] = useState(false);
   const [creatorOpen, setCreatorOpen] = useState(false);
+  const { suggestions, record } = useDescriptionHistory("income");
 
   const allCategories = useMemo(() => {
     const customNames = new Set(customCategories.map((c) => c.name.trim().toLowerCase()));
@@ -117,6 +120,7 @@ export function IncomeForm({ open, onClose, onSubmit, initial }: Props) {
       recurrence,
       parentId: initial?.parentId || null,
     });
+    record(description);
     setSaving(false);
     onClose();
   };
@@ -130,12 +134,21 @@ export function IncomeForm({ open, onClose, onSubmit, initial }: Props) {
         <div className="space-y-3">
           <div>
             <Label>Descrição</Label>
-            <Input value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Ex.: Venda do produto X" />
+            <Input
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="Ex.: Venda do produto X"
+              list="income-desc-history"
+              autoFocus
+            />
+            <datalist id="income-desc-history">
+              {suggestions.map((s) => <option key={s} value={s} />)}
+            </datalist>
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
               <Label>Valor</Label>
-              <Input type="number" step="0.01" value={amount} onChange={(e) => setAmount(e.target.value)} />
+              <MoneyInput value={amount} onChange={setAmount} placeholder="R$ 0,00" />
             </div>
             <div>
               <Label>Vencimento</Label>
