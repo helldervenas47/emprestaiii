@@ -22,6 +22,26 @@ function saleReceivedTotal(sale: Sale): number {
   return (sale.downPayment || 0) + (sale.paidInstallments || 0) * iv + (sale.partialPaid || 0);
 }
 
+/** Mesmo cálculo da aba Vendas: total pago considerando installmentAmounts/downPayment/partialPaid. */
+function getSalePaidAmount(s: Sale): number {
+  const amounts = s.installmentAmounts;
+  if (amounts && amounts.length > 0) {
+    let paid = s.downPayment || 0;
+    for (let i = 0; i < s.paidInstallments && i < amounts.length; i++) {
+      paid += amounts[i] || 0;
+    }
+    return paid + (s.partialPaid || 0);
+  }
+  const vp = s.installments > 0 ? Math.max(0, s.total - (s.downPayment || 0)) / s.installments : s.total;
+  return vp * s.paidInstallments + (s.downPayment || 0) + (s.partialPaid || 0);
+}
+
+/** Categoriza igual à aba Vendas, para excluir vendas quitadas do "a receber". */
+function isSalePaid(s: Sale): boolean {
+  const isRecorrente = s.paymentMode === "recorrente" && s.installments > 1;
+  return isRecorrente ? s.paidInstallments >= s.installments : s.paidInstallments >= 1;
+}
+
 export function ConsolidatedBalanceCards() {
   const { loans } = useLoans();
   const { sales } = useProducts(true);
