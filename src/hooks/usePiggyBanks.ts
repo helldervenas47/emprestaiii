@@ -624,6 +624,8 @@ export function usePiggyBanks() {
     updateDeposit,
     deleteDeposit,
     adjustBalance,
+    storeMoney,
+    withdrawMoney,
     createRecurrence,
     setPiggyRate,
     refreshCdiNow,
