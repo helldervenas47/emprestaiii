@@ -33,7 +33,38 @@ interface Props {
 
 export function PiggyBankList({ readOnly = false }: Props) {
   const { mask } = useHideValues();
-  const { piggyBanks, deposits, balances, detailed, cdiRate, createPiggyBank, updatePiggyBank, deletePiggyBank, adjustBalance, updateDeposit, deleteDeposit, setPiggyRate, refreshCdiNow } = usePiggyBanks();
+  const { piggyBanks, deposits, balances, detailed, cdiRate, createPiggyBank, updatePiggyBank, deletePiggyBank, adjustBalance, updateDeposit, deleteDeposit, setPiggyRate, refreshCdiNow, storeMoney, withdrawMoney } = usePiggyBanks();
+
+  const [transferTarget, setTransferTarget] = useState<PiggyBankType | null>(null);
+  const [transferMode, setTransferMode] = useState<"store" | "withdraw">("store");
+  const [transferValue, setTransferValue] = useState("");
+  const [transferring, setTransferring] = useState(false);
+  const [accountBalance, setAccountBalance] = useState<number>(0);
+  const [pulseId, setPulseId] = useState<string | null>(null);
+
+  const openTransfer = (pb: PiggyBankType, mode: "store" | "withdraw") => {
+    setTransferTarget(pb);
+    setTransferMode(mode);
+    setTransferValue("");
+    import("@/lib/balance").then(({ getBalances }) => getBalances().then((b) => setAccountBalance(b.account)));
+  };
+  const confirmTransfer = async () => {
+    if (!transferTarget) return;
+    const v = Number(transferValue.replace(",", "."));
+    if (!Number.isFinite(v) || v <= 0) return;
+    setTransferring(true);
+    const ok = transferMode === "store"
+      ? await storeMoney(transferTarget.id, v)
+      : await withdrawMoney(transferTarget.id, v);
+    setTransferring(false);
+    if (ok) {
+      setPulseId(transferTarget.id);
+      setTimeout(() => setPulseId(null), 900);
+      setTransferTarget(null);
+    }
+  };
+
+
 
   const [createOpen, setCreateOpen] = useState(false);
   const [editing, setEditing] = useState<PiggyBankType | null>(null);
@@ -224,6 +255,85 @@ export function PiggyBankList({ readOnly = false }: Props) {
         )}
       </div>
 
+      {/* Guardar / Resgatar dialog */}
+      <Dialog open={!!transferTarget} onOpenChange={(o) => !o && setTransferTarget(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>{transferTarget?.name}</DialogTitle>
+            <DialogDescription>
+              Movimente dinheiro entre o saldo em conta e este cofrinho. Não afeta receitas, despesas nem relatórios.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 py-1">
+            <div className="grid grid-cols-2 gap-2">
+              <Button
+                type="button"
+                variant={transferMode === "store" ? "default" : "outline"}
+                onClick={() => setTransferMode("store")}
+                className="h-11"
+              >
+                <ArrowDownCircle className="h-4 w-4 mr-1.5" /> Guardar
+              </Button>
+              <Button
+                type="button"
+                variant={transferMode === "withdraw" ? "default" : "outline"}
+                onClick={() => setTransferMode("withdraw")}
+                className="h-11"
+              >
+                <ArrowUpCircle className="h-4 w-4 mr-1.5" /> Resgatar
+              </Button>
+            </div>
+            <div className="rounded-lg bg-muted/50 p-2.5 text-xs space-y-1">
+              <div className="flex items-center justify-between">
+                <span className="text-muted-foreground">Saldo em conta:</span>
+                <span className="font-semibold tabular-nums">{fmt(accountBalance)}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-muted-foreground">Saldo do cofrinho:</span>
+                <span className="font-semibold tabular-nums">
+                  {fmt(transferTarget ? balances.get(transferTarget.id)?.balance ?? 0 : 0)}
+                </span>
+              </div>
+            </div>
+            <div>
+              <Label htmlFor="transfer-value">Valor (R$)</Label>
+              <Input
+                id="transfer-value"
+                type="number"
+                step="0.01"
+                min="0"
+                inputMode="decimal"
+                value={transferValue}
+                onChange={(e) => setTransferValue(e.target.value)}
+                autoFocus
+                placeholder="0,00"
+              />
+              {transferTarget && (() => {
+                const v = Number(transferValue.replace(",", "."));
+                if (!Number.isFinite(v) || v <= 0) return null;
+                const max = transferMode === "store"
+                  ? accountBalance
+                  : (balances.get(transferTarget.id)?.balance ?? 0);
+                if (v > max + 0.0001) {
+                  return <p className="text-[11px] mt-1.5 text-destructive">Valor maior que o disponível ({fmt(max)})</p>;
+                }
+                return (
+                  <p className="text-[11px] mt-1.5 text-muted-foreground">
+                    {transferMode === "store" ? "Conta → Cofrinho" : "Cofrinho → Conta"}: {fmt(v)}
+                  </p>
+                );
+              })()}
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setTransferTarget(null)} disabled={transferring}>Cancelar</Button>
+            <Button onClick={confirmTransfer} disabled={transferring || !transferValue}>
+              {transferMode === "store" ? "Guardar" : "Resgatar"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
 
       {piggyBanks.length === 0 ? (
         <div className="rounded-xl border border-dashed border-border/60 p-4 text-center">
@@ -240,18 +350,19 @@ export function PiggyBankList({ readOnly = false }: Props) {
             return (
               <div
                 key={pb.id}
-                className="rounded-xl border border-border/40 p-3 hover:border-border transition-colors"
+                className={`rounded-xl border border-border/40 p-3 hover:border-border transition-all ${pulseId === pb.id ? "animate-scale-in ring-2 ring-primary/40" : ""}`}
                 style={{ background: `hsl(${pb.color} / 0.05)` }}
               >
                 <div
-                  role="button"
-                  tabIndex={0}
-                  onClick={() => setHistoryTarget(pb)}
+                  role={readOnly ? undefined : "button"}
+                  tabIndex={readOnly ? -1 : 0}
+                  onClick={() => { if (!readOnly) openTransfer(pb, "store"); }}
                   onKeyDown={(e) => {
-                    if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setHistoryTarget(pb); }
+                    if (readOnly) return;
+                    if (e.key === "Enter" || e.key === " ") { e.preventDefault(); openTransfer(pb, "store"); }
                   }}
-                  className="flex items-center gap-3 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-lg"
-                  title="Ver histórico de aportes"
+                  className={`flex items-center gap-3 ${readOnly ? "" : "cursor-pointer"} focus:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-lg`}
+                  title={readOnly ? undefined : "Guardar ou resgatar dinheiro"}
                 >
                   <div
                     className="h-9 w-9 rounded-lg flex items-center justify-center shrink-0"
