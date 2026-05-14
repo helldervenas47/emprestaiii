@@ -481,7 +481,6 @@ export function FinancialHealthDashboard({ incomes, expenses, monthKey }: Props)
           })}
         </div>
       </div>
-      </div>
 
       {/* Dialog: ações concretas por indicador */}
       <IndicatorActionsDialog
