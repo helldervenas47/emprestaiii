@@ -54,6 +54,11 @@ export function SystemSettings() {
             <Palette className="h-3.5 w-3.5" /> Personalização
           </TabsTrigger>
           {isAdmin && (
+            <TabsTrigger value="api-keys" className="flex items-center gap-1.5 flex-1 min-w-[120px]">
+              <KeyRound className="h-3.5 w-3.5" /> Chaves APIs
+            </TabsTrigger>
+          )}
+          {isAdmin && (
             <TabsTrigger value="health" className="flex items-center gap-1.5 flex-1 min-w-[120px]">
               <Activity className="h-3.5 w-3.5" /> Saúde do Sistema
             </TabsTrigger>
