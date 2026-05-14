@@ -421,6 +421,8 @@ export function usePiggyBanks() {
   /**
    * Retorna os períodos de taxa de uma caixinha. Sempre garante pelo menos um
    * período: se não houver histórico, usa a taxa atual valendo desde a criação.
+   * Todos os cofrinhos seguem o CDI automaticamente: o último período sempre
+   * reflete a taxa CDI vigente quando ela está disponível.
    */
   const periodsFor = useCallback((pb: PiggyBank): RatePeriod[] => {
     const hist = rateHistory
@@ -429,9 +431,8 @@ export function usePiggyBanks() {
     let base: RatePeriod[] = hist.length === 0
       ? [{ effectiveFrom: pb.createdAt.slice(0, 10), annualRate: pb.annualRate }]
       : hist;
-    // Se o cofrinho está em modo automático e existe taxa CDI cacheada,
-    // garante que o último período reflita a taxa CDI vigente.
-    if (pb.autoRate && cdiRate) {
+    // CDI sempre vigente: garante que o último período reflita a taxa CDI atual.
+    if (cdiRate) {
       const last = base[base.length - 1];
       const cdiFrom = cdiRate.referenceDate || ymd(new Date());
       const sameRate = Math.abs(last.annualRate - cdiRate.annualRate) < 0.01;
