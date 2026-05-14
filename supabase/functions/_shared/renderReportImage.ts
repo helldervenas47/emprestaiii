@@ -196,9 +196,15 @@ export function buildMonthlySummarySVG(data: MonthlySummaryData, brand: BrandInf
 
 export async function svgToPng(svg: string): Promise<Uint8Array> {
   await ensureWasm();
+  const fonts = await ensureFonts();
   const resvg = new Resvg(svg, {
     fitTo: { mode: "width", value: 1080 },
     background: "#ffffff",
+    font: {
+      fontBuffers: fonts,
+      defaultFontFamily: "Noto Sans",
+      loadSystemFonts: false,
+    },
   });
   const rendered = resvg.render();
   return rendered.asPng();
