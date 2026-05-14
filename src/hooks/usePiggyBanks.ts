@@ -25,6 +25,7 @@ export interface PiggyBank {
   icon: string;
   annualRate: number;
   autoRate: boolean;
+  cdiPercent: number;
   createdAt: string;
 }
 
