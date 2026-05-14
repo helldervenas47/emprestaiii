@@ -17,6 +17,7 @@ import { getBalances, type Wallet as WalletType } from "@/lib/balance";
 import { todayInAppTz, getAppTimezone } from "@/lib/timezone";
 import { usePaymentMethods } from "@/hooks/usePaymentMethods";
 import { PaymentMethodPicker } from "@/components/PaymentMethodPicker";
+import { ConsolidatedBalanceCards } from "@/components/ConsolidatedBalanceCards";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
