@@ -95,10 +95,18 @@ type CardInvoiceEntry = {
   paid: boolean;
 };
 
+type PiggyMovementEntry = {
+  id: string;
+  piggyBankId: string;
+  piggyName?: string;
+  amount: number; // positive = guardar (saída), negative = resgatar (entrada)
+};
+
 type DayInfo = {
   incomes: Income[];
   expenses: Expense[];
   cardInvoices: CardInvoiceEntry[];
+  piggyMovements: PiggyMovementEntry[];
   totalIncome: number;
   totalExpense: number;
 };
