@@ -621,24 +621,8 @@ function IndicatorGaugeCard({
           </span>
         )}
       </div>
-      {/* Pontuação numérica em destaque, ACIMA do velocímetro */}
-      <div className="flex flex-col items-center">
-        <span
-          className={`font-bold leading-none tabular-nums ${featured ? "text-3xl" : "text-[1.375rem]"}`}
-          style={{ color }}
-        >
-          {score}
-        </span>
-        <span
-          className={`text-muted-foreground tracking-wider uppercase ${
-            featured ? "text-[10px]" : "text-[8px]"
-          }`}
-        >
-          / 100
-        </span>
-      </div>
-      {/* Velocímetro logo abaixo, bem próximo da pontuação */}
-      <div className={`relative w-full -mt-1 ${featured ? "aspect-[2.2/1]" : "aspect-[1.9/1]"}`}>
+      {/* Velocímetro com pontuação centralizada dentro */}
+      <div className={`relative w-full ${featured ? "aspect-[2.2/1]" : "aspect-[1.9/1]"}`}>
         <ResponsiveContainer width="100%" height="100%">
           <RadialBarChart
             cx="50%"
@@ -660,6 +644,15 @@ function IndicatorGaugeCard({
             />
           </RadialBarChart>
         </ResponsiveContainer>
+        {/* Pontuação posicionada acima do arco, próxima ao centro do velocímetro */}
+        <div className="pointer-events-none absolute inset-x-0 bottom-[18%] flex justify-center">
+          <span
+            className={`font-bold leading-none tabular-nums ${featured ? "text-4xl" : "text-2xl"}`}
+            style={{ color }}
+          >
+            {score}
+          </span>
+        </div>
       </div>
       {!featured && (
         <div
