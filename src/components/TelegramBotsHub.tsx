@@ -23,9 +23,6 @@ export function TelegramBotsHub() {
         </CardContent>
       </Card>
 
-      {/* Configuração de envio em formato de imagem */}
-      <TelegramImageDeliveryCard />
-
       {/* Conexão do bot de relatórios */}
       <TelegramReportsConnectCard />
 
