@@ -33,6 +33,38 @@ interface Props {
 
 export function PiggyBankList({ readOnly = false }: Props) {
   const { mask } = useHideValues();
+  const { piggyBanks, deposits, balances, detailed, cdiRate, createPiggyBank, updatePiggyBank, deletePiggyBank, adjustBalance, updateDeposit, deleteDeposit, setPiggyRate, refreshCdiNow, storeMoney, withdrawMoney } = usePiggyBanks();
+
+  const [transferTarget, setTransferTarget] = useState<PiggyBankType | null>(null);
+  const [transferMode, setTransferMode] = useState<"store" | "withdraw">("store");
+  const [transferValue, setTransferValue] = useState("");
+  const [transferring, setTransferring] = useState(false);
+  const [accountBalance, setAccountBalance] = useState<number>(0);
+  const [pulseId, setPulseId] = useState<string | null>(null);
+
+  const openTransfer = (pb: PiggyBankType, mode: "store" | "withdraw") => {
+    setTransferTarget(pb);
+    setTransferMode(mode);
+    setTransferValue("");
+    import("@/lib/balance").then(({ getBalances }) => getBalances().then((b) => setAccountBalance(b.account)));
+  };
+  const confirmTransfer = async () => {
+    if (!transferTarget) return;
+    const v = Number(transferValue.replace(",", "."));
+    if (!Number.isFinite(v) || v <= 0) return;
+    setTransferring(true);
+    const ok = transferMode === "store"
+      ? await storeMoney(transferTarget.id, v)
+      : await withdrawMoney(transferTarget.id, v);
+    setTransferring(false);
+    if (ok) {
+      setPulseId(transferTarget.id);
+      setTimeout(() => setPulseId(null), 900);
+      setTransferTarget(null);
+    }
+  };
+
+  const { mask } = useHideValues();
   const { piggyBanks, deposits, balances, detailed, cdiRate, createPiggyBank, updatePiggyBank, deletePiggyBank, adjustBalance, updateDeposit, deleteDeposit, setPiggyRate, refreshCdiNow } = usePiggyBanks();
 
   const [createOpen, setCreateOpen] = useState(false);
