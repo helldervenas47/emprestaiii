@@ -1,94 +1,98 @@
-
 ## Objetivo
 
-Permitir que cada cofrinho use automaticamente a taxa CDI vigente (derivada da Selic publicada pelo Banco Central) em vez de uma taxa fixa digitada pelo usuário. O sistema busca a taxa diariamente, recalcula os rendimentos futuros sem alterar histórico, e exibe na UI a taxa aplicada e a data da última atualização.
+Permitir que **todos os relatórios automáticos da aba "Bot Telegram"** sejam enviados como **imagem PNG (visual fiel ao app) + caption resumida**, em vez de mensagens de texto Markdown.
 
-## Fonte de dados
+Hoje cada cron envia `sendMessage` com texto. Vamos passar a gerar uma imagem do relatório via serviço externo de HTML→PNG e enviar com `sendPhoto`.
 
-API pública do Banco Central (sem chave, sem custo, sem CORS issues quando chamada do servidor):
+## Escopo
 
-- **Série SGS 4389** — *Taxa de juros - CDI anualizada base 252* (% a.a.)
-- Endpoint: `https://api.bcb.gov.br/dados/serie/bcdata.sgs.4389/dados/ultimos/1?formato=json`
-- Fallback: série **1178** (Selic anualizada) caso 4389 fique indisponível.
+Aplicar a todos os relatórios disparados pela aba Bot Telegram:
 
-## Mudanças no backend
+- `telegram-summary` (resumo diário de despesas)
+- `telegram-weekly-summary` (resumo semanal)
+- `telegram-billing-summary` (cobrança)
+- `telegram-daily-planning` (planejamento diário)
+- `telegram-incomes-expenses` (receitas/despesas do dia)
+- `telegram-accumulated-delinquency` (inadimplência acumulada)
+- `telegram-manager-weekly-summary` (resumo do gestor)
 
-1. **Nova tabela `market_rates`** (cache global, 1 linha por indicador):
-   - `indicator text primary key` (ex.: `'cdi'`)
-   - `annual_rate numeric not null`
-   - `source text` (ex.: `'BCB SGS 4389'`)
-   - `reference_date date` (data do dado retornado pelo BCB)
-   - `fetched_at timestamptz default now()`
-   - RLS: leitura liberada para qualquer usuário autenticado; escrita só via service role (edge function).
+Cada um continua respeitando seus horários, prefs e modo manual ("Enviar agora").
 
-2. **Coluna nova em `piggy_banks`**:
-   - `auto_rate boolean not null default false`
-   - Quando `true`, o cálculo usa a taxa do `market_rates.cdi` em vez de `annual_rate`.
-
-3. **Edge function `sync-cdi-rate`**:
-   - Busca a série 4389 no BCB.
-   - Faz `upsert` em `market_rates` (indicator='cdi').
-   - Para cada cofrinho com `auto_rate=true` cuja `annual_rate` diferir da nova taxa em mais de 0,01 p.p., insere uma nova linha em `piggy_bank_rate_history` com `effective_from = hoje` e atualiza `piggy_banks.annual_rate`. Isso preserva o cálculo segmentado por períodos já existente em `src/lib/piggyTax.ts` (rendimento passado mantém a taxa antiga; só o futuro usa a nova).
-   - `verify_jwt = false` (chamada por cron e por trigger client-side de "atualizar agora").
-
-4. **Cron diário** via `pg_cron` + `pg_net` chamando a edge function (08:00 BRT, dias úteis).
-
-## Mudanças no frontend
-
-5. **`usePiggyBanks.ts`**:
-   - Carregar `market_rates` (linha cdi) e expor `cdiRate`, `cdiUpdatedAt`, `cdiSource`.
-   - Mapear `auto_rate` no `PiggyBank`.
-   - Em `periodsFor(pb)`: se `pb.autoRate`, usar histórico + ponto final com a taxa CDI atual (`effectiveFrom = max(history.effectiveFrom, market_rates.reference_date)`).
-   - Função `refreshCdiNow()` que invoca a edge function e recarrega.
-
-6. **Form do cofrinho (`PiggyBankList.tsx`)**:
-   - Toggle "Atualizar taxa automaticamente com CDI". Quando ligado, o input de taxa fica desabilitado e mostra a taxa atual em modo somente leitura.
-   - Ao salvar com toggle ligado, gravar `auto_rate=true` e usar a taxa CDI atual como `annual_rate` inicial.
-
-7. **Card do cofrinho**:
-   - Substituir `{pb.annualRate.toFixed(2)}% a.a.` por:
-     - Se `autoRate`: badge "CDI" + `X,XX% a.a.` + tooltip "Atualizada em DD/MM/AAAA · fonte BCB".
-     - Se manual: como hoje.
-
-8. **Indicador global** no topo da aba Cofrinhos:
-   - Pequena pílula: `CDI hoje: X,XX% a.a. · atualizado HH:mm` com botão de refresh manual (chama `refreshCdiNow()`).
-
-## Detalhes técnicos
-
-- **Cálculo retroativo seguro**: a engine atual (`compoundWithSegments`) já aplica taxas diferentes em janelas. Basta acrescentar a nova taxa CDI como período começando hoje — rendimentos passados não são reescritos.
-- **Refresh client-side defensivo**: ao montar o app (após auth), se `cdiUpdatedAt < hoje - 12h`, dispara `refreshCdiNow()` em background. Garante atualização mesmo se o cron falhar.
-- **Erro / offline**: se a API do BCB falhar, a edge function não toca em `market_rates` e retorna 502; a UI continua usando o último valor cacheado.
-- **Migração de dados existentes**: nenhum cofrinho existente é alterado (default `auto_rate=false`). O usuário ativa quando quiser.
-
-## Diagrama do fluxo
+## Arquitetura
 
 ```text
- pg_cron (diário) ─┐
- botão "atualizar"─┼──► edge: sync-cdi-rate ──► BCB SGS 4389
-                  │            │
- useEffect 12h ───┘            ▼
-                       upsert market_rates(cdi)
-                               │
-                               ▼
-                  para cada piggy auto_rate=true:
-                   - insert piggy_bank_rate_history
-                   - update piggy_banks.annual_rate
-                               │
-                               ▼
-                  Realtime ► usePiggyBanks ► UI recalcula
+cron / "Enviar agora"
+        │
+        ▼
+edge function existente (ex: telegram-weekly-summary)
+        │  monta dados → buildHtml(report)
+        ▼
+shared/report-image.ts  ──►  serviço HTML→PNG  ──►  PNG bytes
+        │                                              │
+        └──────────────► sendPhoto(chat_id, photo, caption)
 ```
 
-## Arquivos afetados
+## Decisões
 
-- Migração SQL: nova tabela `market_rates`, coluna `auto_rate` em `piggy_banks`, RLS.
-- `supabase/functions/sync-cdi-rate/index.ts` (nova).
-- Cron via `supabase--insert` (não migração — contém URL/anon key).
-- `src/hooks/usePiggyBanks.ts` — carregar CDI cache, expor `refreshCdiNow`, suportar `autoRate` no `periodsFor`.
-- `src/components/PiggyBankList.tsx` — toggle no form, badge no card, pílula global.
-- `src/lib/piggyTax.ts` — sem mudanças (já suporta períodos).
+1. **Serviço de render**: usar um provider externo de screenshot (ex.: Browserless, ScreenshotOne ou htmlcsstoimage). A escolha final depende de qual já tiver conta/token; caso contrário sugiro **htmlcsstoimage.com** (API simples, paga por imagem, sem manter Chromium).
+   - Adicionar segredo `HTML_TO_IMAGE_API_KEY` (e `HTML_TO_IMAGE_USER_ID` se necessário).
+2. **Caption resumida**: cada relatório define 3–5 linhas com os números-chave (ex.: total da semana, top categoria, n.º de despesas) — vai como `caption` do `sendPhoto`, com `parse_mode: Markdown`.
+3. **Sem fallback de texto longo**: se a geração de imagem falhar, cai para `sendMessage` com o texto atual (mantendo robustez).
+4. **Visual**: HTML inline com tokens do app (cores HSL do `index.css`), largura fixa 720px, fonte Inter, cabeçalho com `brand_name`, blocos por seção, formatação BRL — fiel ao look dos cards.
 
-## Pontos para confirmar antes de implementar
+## Implementação
 
-1. **Indicador**: usar **CDI (SGS 4389)** ou **Selic Meta (SGS 432)**? CDI é o que tipicamente remunera renda fixa pós-fixada, então é a escolha padrão — ok seguir com CDI?
-2. **Granularidade do toggle**: por cofrinho (proposta) ou um único switch global que afeta todos? A proposta atual é por cofrinho para dar flexibilidade.
-3. **Frequência do cron**: 1x/dia em dia útil às 8h BRT está ok? (o BCB publica dado D-1)
+### 1. Helper compartilhado
+`supabase/functions/_shared/report-image.ts`
+- `renderHtmlToPng(html: string): Promise<Uint8Array>` — chama o provider com `HTML_TO_IMAGE_API_KEY`, retorna PNG.
+- `tgSendPhoto(chatId, png, caption, lovableKey, telegramKey)` — `multipart/form-data` para `${GATEWAY_URL}/sendPhoto`.
+- `tgSendMessageFallback(...)` — usa texto se a imagem falhar.
+
+### 2. Templates HTML por relatório
+`supabase/functions/_shared/report-templates/`
+- `weeklySummary.ts`, `dailySummary.ts`, `billing.ts`, `dailyPlanning.ts`, `incomesExpenses.ts`, `accumulatedDelinquency.ts`, `managerWeekly.ts`.
+- Cada um exporta `buildHtml(data, brandName)` e `buildCaption(data, brandName)`.
+- Estilo comum em `report-templates/_base.ts` (CSS inline, paleta, helpers `fmtBRL`, `fmtDateBR`).
+
+### 3. Atualizar as edge functions
+Em cada uma das 7 functions listadas no Escopo:
+- Substituir a montagem de `lines.join("\n")` + `tgSend(...)` por:
+  ```ts
+  const html = buildHtml(data, brandName);
+  const caption = buildCaption(data, brandName);
+  try {
+    const png = await renderHtmlToPng(html);
+    await tgSendPhoto(chatId, png, caption, ...);
+  } catch (e) {
+    console.error("image render failed, falling back to text", e);
+    await tgSend(chatId, legacyText, ...); // texto atual como fallback
+  }
+  ```
+- Manter exatamente a lógica de auth, cron, prefs e `last_*_sent_date`.
+
+### 4. Segredo e configuração
+- `add_secret HTML_TO_IMAGE_API_KEY` (e `_USER_ID` se aplicável) — pedir ao usuário onde obter.
+- Sem migrações de banco.
+- `supabase/config.toml` não precisa mudar (mesmas funções).
+
+### 5. UI da aba Bot Telegram
+- Nada obrigatório a mudar (o "Enviar agora" passa a entregar imagem automaticamente).
+- Opcional (decidir depois): badge "Enviado como imagem" no card de cada agendamento.
+
+## Fora de escopo
+
+- WhatsApp (continua como está).
+- Mudança no design dos próprios cards do app.
+- Persistir o PNG gerado (ele é só enviado e descartado).
+- Internacionalização — segue pt-BR.
+
+## Pré-requisitos do usuário
+
+1. Confirmar o provider de HTML→PNG (sugestão: htmlcsstoimage.com).
+2. Após aprovar o plano, fornecer a API key via prompt seguro.
+
+## Riscos
+
+- **Custo por imagem**: cada envio = 1 render. Múltiplos horários × usuários multiplicam.
+- **Latência**: ~1–3s a mais por envio; aceitável para cron.
+- **Falha do provider**: mitigada pelo fallback automático para texto.
