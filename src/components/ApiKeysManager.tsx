@@ -88,6 +88,14 @@ function formatDate(iso: string | null): string {
   }
 }
 
+interface AppIntegration {
+  name: string;
+  envVar: string;
+  description: string;
+  maskedKey: string;
+  configured: boolean;
+}
+
 export function ApiKeysManager() {
   const [keys, setKeys] = useState<ApiKeyEntry[]>([]);
   const [revealed, setRevealed] = useState<Record<string, boolean>>({});
@@ -95,9 +103,26 @@ export function ApiKeysManager() {
   const [creating, setCreating] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [form, setForm] = useState({ name: "", key: "" });
+  const [integrations, setIntegrations] = useState<AppIntegration[]>([]);
+  const [loadingIntegrations, setLoadingIntegrations] = useState(true);
+
+  const loadIntegrations = async () => {
+    setLoadingIntegrations(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("list-app-integrations");
+      if (error) throw error;
+      setIntegrations((data as any)?.integrations ?? []);
+    } catch (e: any) {
+      console.error("[ApiKeysManager] loadIntegrations", e);
+      setIntegrations([]);
+    } finally {
+      setLoadingIntegrations(false);
+    }
+  };
 
   useEffect(() => {
     setKeys(loadKeys());
+    loadIntegrations();
   }, []);
 
   const persist = (next: ApiKeyEntry[]) => {
