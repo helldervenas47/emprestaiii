@@ -10,6 +10,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus, X } from "lucide-react";
 import { Expense } from "@/types/loan";
+import { MoneyInput } from "@/components/ui/money-input";
+import { useDescriptionHistory } from "@/hooks/useDescriptionHistory";
 
 // "Combustível" é uma categoria exclusiva da aba Despesas — NÃO incluir aqui.
 export const vehicleExpenseCategories = [
@@ -42,6 +44,7 @@ interface Props {
 export function VehicleExpenseForm({ onAdd, onClose }: Props) {
   const [showSuccess, setShowSuccess] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const { suggestions, record } = useDescriptionHistory("vehicle-expense");
   const [form, setForm] = useState({
     description: "",
     amount: "",
@@ -69,6 +72,7 @@ export function VehicleExpenseForm({ onAdd, onClose }: Props) {
       dueDate: form.dueDate,
       notes: form.notes,
     });
+    record(form.description);
     setShowSuccess(true);
   };
 
@@ -94,19 +98,22 @@ export function VehicleExpenseForm({ onAdd, onClose }: Props) {
                 value={form.description}
                 onChange={(e) => update("description", e.target.value)}
                 placeholder="Ex: Troca de óleo do veículo X"
+                list="vehicle-expense-desc-history"
+                autoFocus
                 required
               />
+              <datalist id="vehicle-expense-desc-history">
+                {suggestions.map((s) => <option key={s} value={s} />)}
+              </datalist>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="amount">{form.type === "recorrente" ? "Valor da Parcela (R$)" : "Valor (R$)"}</Label>
-                <Input
+                <MoneyInput
                   id="amount"
-                  type="number"
-                  step="0.01"
                   value={form.amount}
-                  onChange={(e) => update("amount", e.target.value)}
-                  placeholder="500.00"
+                  onChange={(v) => update("amount", v)}
+                  placeholder="R$ 0,00"
                   required
                 />
               </div>
