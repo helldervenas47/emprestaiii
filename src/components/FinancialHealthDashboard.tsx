@@ -553,11 +553,13 @@ function IndicatorGaugeCard({
   icon,
   score,
   onClick,
+  featured = false,
 }: {
   title: string;
   icon: React.ReactNode;
   score: number;
   onClick: () => void;
+  featured?: boolean;
 }) {
   const color = scoreColorOf(score);
   const label = scoreLabelOf(score);
@@ -566,30 +568,54 @@ function IndicatorGaugeCard({
     <button
       type="button"
       onClick={onClick}
-      className="group relative overflow-hidden rounded-2xl border border-black/10 dark:border-white/10 bg-foreground/[0.03] backdrop-blur-xl p-3 text-left transition-all hover:bg-foreground/[0.07] active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+      className={`group relative overflow-hidden rounded-2xl border border-black/10 dark:border-white/10 bg-foreground/[0.03] backdrop-blur-xl text-left transition-all hover:bg-foreground/[0.07] active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
+        featured ? "p-5 shadow-lg shadow-black/5" : "p-3"
+      }`}
+      style={
+        featured
+          ? { background: `linear-gradient(180deg, ${color}10, hsl(var(--foreground) / 0.03))` }
+          : undefined
+      }
     >
       <div
-        className="absolute inset-x-0 top-0 h-px"
+        className={`absolute inset-x-0 top-0 ${featured ? "h-[3px]" : "h-px"}`}
         style={{ background: `linear-gradient(90deg, transparent, ${color}, transparent)` }}
       />
-      <div className="flex items-center justify-between gap-1.5 mb-1.5">
-        <div className="flex items-center gap-1.5 min-w-0">
+      <div className={`flex items-center justify-between gap-2 ${featured ? "mb-2" : "mb-1.5"}`}>
+        <div className="flex items-center gap-2 min-w-0">
           <span
-            className="flex h-6 w-6 items-center justify-center rounded-md shrink-0"
+            className={`flex items-center justify-center rounded-xl shrink-0 ${
+              featured ? "h-9 w-9" : "h-6 w-6 rounded-md"
+            }`}
             style={{ background: `${color}22`, color }}
           >
             {icon}
           </span>
-          <span className="text-foreground/80 text-[11px] font-semibold truncate">{title}</span>
+          <span
+            className={`text-foreground/90 font-semibold truncate ${
+              featured ? "text-sm" : "text-[11px]"
+            }`}
+          >
+            {title}
+          </span>
         </div>
+        {featured && (
+          <span
+            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold"
+            style={{ background: `${color}1f`, color }}
+          >
+            <span className="h-1.5 w-1.5 rounded-full" style={{ background: color }} />
+            {label}
+          </span>
+        )}
       </div>
-      <div className="relative aspect-[2/1] -mb-1">
+      <div className={`relative ${featured ? "aspect-[2.6/1]" : "aspect-[2.2/1]"}`}>
         <ResponsiveContainer width="100%" height="100%">
           <RadialBarChart
             cx="50%"
-            cy="100%"
-            innerRadius="78%"
-            outerRadius="115%"
+            cy="95%"
+            innerRadius={featured ? "82%" : "78%"}
+            outerRadius={featured ? "118%" : "112%"}
             startAngle={180}
             endAngle={0}
             data={gaugeData}
@@ -605,23 +631,31 @@ function IndicatorGaugeCard({
             />
           </RadialBarChart>
         </ResponsiveContainer>
-        <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-end pb-0.5">
+        <div className="pointer-events-none absolute inset-x-0 bottom-1 flex flex-col items-center">
           <span
-            className="text-2xl font-bold leading-none tabular-nums"
+            className={`font-bold leading-none tabular-nums ${featured ? "text-5xl" : "text-3xl"}`}
             style={{ color }}
           >
             {score}
           </span>
-          <span className="text-[9px] text-muted-foreground tracking-wider uppercase">/ 100</span>
+          <span
+            className={`text-muted-foreground tracking-wider uppercase mt-0.5 ${
+              featured ? "text-[10px]" : "text-[9px]"
+            }`}
+          >
+            / 100
+          </span>
         </div>
       </div>
-      <div
-        className="mt-1 inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[9px] font-semibold"
-        style={{ background: `${color}1f`, color }}
-      >
-        <span className="h-1 w-1 rounded-full" style={{ background: color }} />
-        {label}
-      </div>
+      {!featured && (
+        <div
+          className="mt-1.5 inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[9px] font-semibold"
+          style={{ background: `${color}1f`, color }}
+        >
+          <span className="h-1 w-1 rounded-full" style={{ background: color }} />
+          {label}
+        </div>
+      )}
     </button>
   );
 }
