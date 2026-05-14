@@ -57,12 +57,52 @@ export function loadImageDeliveryPrefs(): ImageDeliveryPrefs {
   }
 }
 
+interface UsageState {
+  loading: boolean;
+  used: number | null;
+  limit: number | null;
+  error: string | null;
+  configured: boolean;
+}
+
 export function TelegramImageDeliveryCard() {
   const [prefs, setPrefs] = useState<ImageDeliveryPrefs>(DEFAULT_PREFS);
   const [open, setOpen] = useState(false);
+  const [usage, setUsage] = useState<UsageState>({
+    loading: true,
+    used: null,
+    limit: null,
+    error: null,
+    configured: true,
+  });
+
+  const loadUsage = async () => {
+    setUsage((u) => ({ ...u, loading: true, error: null }));
+    try {
+      const { data, error } = await supabase.functions.invoke("html-to-image-usage");
+      if (error) throw error;
+      const d = data as any;
+      setUsage({
+        loading: false,
+        used: typeof d?.used === "number" ? d.used : null,
+        limit: typeof d?.limit === "number" ? d.limit : null,
+        error: d?.error ?? null,
+        configured: d?.configured !== false,
+      });
+    } catch (e: any) {
+      setUsage({
+        loading: false,
+        used: null,
+        limit: null,
+        error: e?.message || "Erro ao consultar consumo",
+        configured: true,
+      });
+    }
+  };
 
   useEffect(() => {
     setPrefs(loadImageDeliveryPrefs());
+    loadUsage();
   }, []);
 
   const update = (next: ImageDeliveryPrefs) => {
