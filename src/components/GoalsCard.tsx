@@ -839,9 +839,24 @@ export function GoalsCard({ loans, payments, expenses, clients, installmentSched
                     if (isEditing) return;
                     if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setSelectedGoalId(g.id); }
                   }}
-                  className="rounded-lg border border-border bg-card/50 hover:bg-card hover:border-primary/40 hover:shadow-sm transition-all p-2.5 sm:p-4 flex flex-col items-center text-center gap-2 sm:gap-3 sm:items-stretch sm:text-left cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary/40"
+                  className="relative rounded-lg border border-border bg-card/50 hover:bg-card hover:border-primary/40 hover:shadow-sm transition-all p-2.5 sm:p-4 flex flex-col items-center text-center gap-2 sm:gap-3 sm:items-stretch sm:text-left cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary/40"
                 >
-                  <div className="flex flex-col items-center gap-1.5 sm:flex-row sm:items-center sm:gap-2">
+                  {!monthLocked && (
+                    <button
+                      type="button"
+                      aria-label={`Editar meta de ${g.meta?.label || ""} para ${formatMonthLabel(targetMonth)}`}
+                      title={`Editar meta para ${formatMonthLabel(targetMonth)}`}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setEditingGoalType(g.goalType);
+                        setEditingValue(String(g.targetValue ?? 0));
+                      }}
+                      className="absolute top-1.5 right-1.5 sm:top-2 sm:right-2 h-6 w-6 inline-flex items-center justify-center rounded text-muted-foreground hover:text-primary hover:bg-primary/10 z-10"
+                    >
+                      <Pencil className="h-3 w-3" />
+                    </button>
+                  )}
+                  <div className="flex flex-col items-center gap-1.5 sm:flex-row sm:items-center sm:gap-2 pr-6 sm:pr-7">
                     <div className={`h-7 w-7 sm:h-8 sm:w-8 rounded-md ${g.meta?.bgColor || "bg-primary/15"} flex items-center justify-center shrink-0`}>
                       <Icon className={`h-3.5 w-3.5 sm:h-4 sm:w-4 ${g.meta?.color || "text-primary"}`} />
                     </div>
