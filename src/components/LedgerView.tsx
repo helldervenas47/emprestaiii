@@ -365,7 +365,14 @@ export function LedgerView({ readOnly = false }: Props) {
                     const methodName = getMethodName(e);
                     return (
                       <TableRow key={e.id}>
-                        <TableCell className="whitespace-nowrap text-sm">{e.occurred_on}</TableCell>
+                        <TableCell className="whitespace-nowrap text-sm tabular-nums">
+                          <div className="flex flex-col leading-tight">
+                            <span>{e.occurred_on}</span>
+                            {formatTimeInAppTz(e.created_at) && (
+                              <span className="text-[11px] text-muted-foreground">{formatTimeInAppTz(e.created_at)}</span>
+                            )}
+                          </div>
+                        </TableCell>
                         <TableCell className="text-sm">{e.description}</TableCell>
                         <TableCell>
                           <Badge variant="outline" className="text-[10px]">
