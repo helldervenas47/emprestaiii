@@ -577,11 +577,14 @@ function normalizePrefs(
 }
 
 export function GoalsCard({ loans, payments, expenses, clients, installmentSchedules = [], renegotiations = [], selectedMonth, periodLabel }: Props) {
-  const { goals } = useMonthlyGoals();
+  const { goals, upsertGoal } = useMonthlyGoals();
   const { hidden } = useHideValues();
   const { user } = useAuth();
   const [selectedGoalId, setSelectedGoalId] = useState<string | null>(null);
   const [showCustomize, setShowCustomize] = useState(false);
+  const [editingGoalType, setEditingGoalType] = useState<GoalType | null>(null);
+  const [editingValue, setEditingValue] = useState<string>("");
+  const [savingGoal, setSavingGoal] = useState(false);
   // Cache imediato via localStorage (evita flicker enquanto sincroniza com o backend)
   const { getSnapshot, upsertSnapshot } = useGoalSnapshots();
   const [prefs, setPrefs] = useState<{ selected: GoalType[]; order: GoalType[] }>(() => loadGoalPrefs(user?.id));
