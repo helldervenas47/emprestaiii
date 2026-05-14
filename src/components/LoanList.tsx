@@ -4225,14 +4225,30 @@ function ClientFolder({
       const { toBlob } = await import("html-to-image");
       const original = captureRef.current;
 
-      const blob = await toBlob(original, {
-        filter: (node) => !(node instanceof HTMLElement && node.dataset.whatsappExportHidden === "true"),
-        pixelRatio: 2,
-        backgroundColor: getComputedStyle(document.body).backgroundColor || "#ffffff",
-        cacheBust: true,
-        width: original.scrollWidth,
-        height: original.scrollHeight,
+      // Temporarily hide elements marked for exclusion so the layout reflows
+      // (filter alone leaves a gap because layout is still computed with them).
+      const hiddenNodes = Array.from(
+        original.querySelectorAll<HTMLElement>('[data-whatsapp-export-hidden="true"]')
+      );
+      const previousDisplay = hiddenNodes.map((n) => n.style.display);
+      hiddenNodes.forEach((n) => {
+        n.style.display = "none";
       });
+
+      let blob: Blob | null = null;
+      try {
+        blob = await toBlob(original, {
+          pixelRatio: 2,
+          backgroundColor: getComputedStyle(document.body).backgroundColor || "#ffffff",
+          cacheBust: true,
+          width: original.scrollWidth,
+          height: original.scrollHeight,
+        });
+      } finally {
+        hiddenNodes.forEach((n, i) => {
+          n.style.display = previousDisplay[i];
+        });
+      }
 
       if (!blob) throw new Error("Falha ao gerar imagem");
       const file = new File([blob], `emprestimos-${group.name.replace(/\s+/g, "-").toLowerCase()}.png`, { type: "image/png" });
