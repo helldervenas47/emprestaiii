@@ -278,6 +278,37 @@ export async function getImageDeliveryPrefs(
   }
 }
 
+/**
+ * Resolves whether the recipient `userId` is allowed (by the admin/owner) to
+ * receive reports as image. The admin maintains a list of allowed users in
+ * their own row of telegram_image_delivery_prefs.allowed_user_ids.
+ *
+ * - If the owner's list is null/empty → every user is allowed (back-compat).
+ * - Otherwise → only users in the list receive images; others fall back to text.
+ */
+export async function isImageDeliveryAllowedForUser(
+  supabase: any,
+  userId: string,
+): Promise<boolean> {
+  try {
+    const { data: ownerRow } = await supabase.rpc("get_data_owner_id", {
+      _user_id: userId,
+    });
+    const ownerId: string = (ownerRow as any) ?? userId;
+    const { data } = await supabase
+      .from("telegram_image_delivery_prefs")
+      .select("allowed_user_ids")
+      .eq("user_id", ownerId)
+      .maybeSingle();
+    const list: string[] | null = (data?.allowed_user_ids as any) ?? null;
+    if (!Array.isArray(list) || list.length === 0) return true;
+    return list.includes(userId);
+  } catch (e) {
+    console.error("[isImageDeliveryAllowedForUser] error", e);
+    return true;
+  }
+}
+
 export async function sendReportsAsImage(
   supabase: any,
   userId: string,
@@ -291,6 +322,13 @@ export async function sendReportsAsImage(
     const key = opts?.reportKey;
     // Per-report toggle: if explicitly disabled, send as plain text.
     if (key && prefs.reports[key] === false) {
+      const text = opts?.fallbackText ?? lines.join("\n");
+      const r = await sendReportsMessage(supabase, userId, chatId, text);
+      return { sent: r.sent, reason: r.reason, mode: "text" };
+    }
+    // Admin-controlled allow-list: if recipient not allowed, send as text.
+    const allowed = await isImageDeliveryAllowedForUser(supabase, userId);
+    if (!allowed) {
       const text = opts?.fallbackText ?? lines.join("\n");
       const r = await sendReportsMessage(supabase, userId, chatId, text);
       return { sent: r.sent, reason: r.reason, mode: "text" };
