@@ -302,7 +302,7 @@ async function processOwner(
         chatId,
         message.split("\n"),
         { name: "EmprestAI" },
-        { fallbackText: message },
+        { fallbackText: message, reportKey: "manager_weekly" },
       );
       results.push({
         client_id: m.client_id,
