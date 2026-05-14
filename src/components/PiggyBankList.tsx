@@ -437,6 +437,29 @@ export function PiggyBankList({ readOnly = false }: Props) {
                 ))}
               </div>
             </div>
+            <div className="rounded-lg border border-border/50 bg-muted/20 p-2.5 flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <Label htmlFor="pb-auto" className="text-xs font-semibold flex items-center gap-1.5">
+                  <Zap className="h-3.5 w-3.5 text-primary" />
+                  Atualizar automaticamente com CDI
+                </Label>
+                <p className="text-[10px] text-muted-foreground mt-0.5">
+                  {cdiRate
+                    ? `Atual: ${cdiRate.annualRate.toFixed(2)}% a.a. · ${cdiUpdatedLabel}`
+                    : "Aguardando primeira sincronização do BCB."}
+                </p>
+              </div>
+              <Switch
+                id="pb-auto"
+                checked={draft.autoRate}
+                disabled={!cdiRate}
+                onCheckedChange={(v) => setDraft((p) => ({
+                  ...p,
+                  autoRate: v,
+                  annualRate: v && cdiRate ? cdiRate.annualRate.toFixed(2) : p.annualRate,
+                }))}
+              />
+            </div>
             <div>
               <Label htmlFor="pb-rate">Taxa anual (%)</Label>
               <Input
@@ -444,10 +467,13 @@ export function PiggyBankList({ readOnly = false }: Props) {
                 type="number"
                 step="0.01"
                 value={draft.annualRate}
+                disabled={draft.autoRate}
                 onChange={(e) => setDraft((p) => ({ ...p, annualRate: e.target.value }))}
               />
               <p className="text-[10px] text-muted-foreground mt-1">
-                100% CDI ≈ 11,15% a.a. (referência PicPay).
+                {draft.autoRate
+                  ? "Em modo automático, a taxa segue o CDI publicado pelo Banco Central."
+                  : "100% CDI ≈ 11,15% a.a. (referência PicPay)."}
               </p>
             </div>
           </div>
