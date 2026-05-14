@@ -201,6 +201,7 @@ export function getMonthEndProjectedBalance(opts: {
     expenses: opts.expenses,
     cards: opts.cards,
     openings: opts.openings,
+    piggyDeposits: opts.piggyDeposits,
     fromYear: startDate.getFullYear(),
     fromMonth: startDate.getMonth(),
     toYear: targetEnd.getFullYear(),
