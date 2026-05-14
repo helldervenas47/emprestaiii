@@ -88,7 +88,15 @@ async function processUser(
 
   const message = `${headerText}\n\n${insight.content}\n\n—\n_Gerado por IA com base nos seus gastos do mês._`;
 
-  const sendRes = await sendReportsMessage(supabase, ownerId, Number(tgLink.chat_id), safeTruncate(message));
+  const truncated = safeTruncate(message);
+  const sendRes = await sendReportsAsImage(
+    supabase,
+    ownerId,
+    Number(tgLink.chat_id),
+    truncated.split("\n"),
+    { name: brandName },
+    { fallbackText: truncated },
+  );
   if (!sendRes.sent) return { skipped: sendRes.reason ?? "send_failed" };
 
   // Update last_sent map
