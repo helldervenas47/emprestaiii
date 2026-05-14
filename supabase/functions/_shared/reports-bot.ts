@@ -162,3 +162,101 @@ export async function sendReportsMessage(
   const ok = await tgDirectSend(bot.token, chatId, text, opts);
   return ok ? { sent: true } : { sent: false, reason: "telegram_send_failed" };
 }
+
+/**
+ * Sends a PNG photo via the raw Bot API (multipart/form-data).
+ */
+export async function tgDirectSendPhoto(
+  token: string,
+  chatId: number | string,
+  pngBytes: Uint8Array,
+  caption: string,
+): Promise<boolean> {
+  try {
+    const fd = new FormData();
+    fd.append("chat_id", String(chatId));
+    fd.append("caption", caption);
+    fd.append("parse_mode", "Markdown");
+    fd.append("photo", new Blob([pngBytes], { type: "image/png" }), "report.png");
+
+    let r = await fetch(`https://api.telegram.org/bot${token}/sendPhoto`, {
+      method: "POST",
+      body: fd,
+    });
+    if (!r.ok) {
+      const body = await r.text().catch(() => "");
+      console.error(`[reports-bot] sendPhoto failed ${r.status}`, body);
+      // retry without parse_mode (caption may have invalid Markdown)
+      const fd2 = new FormData();
+      fd2.append("chat_id", String(chatId));
+      fd2.append("caption", caption);
+      fd2.append("photo", new Blob([pngBytes], { type: "image/png" }), "report.png");
+      r = await fetch(`https://api.telegram.org/bot${token}/sendPhoto`, {
+        method: "POST",
+        body: fd2,
+      });
+      if (!r.ok) {
+        const body2 = await r.text().catch(() => "");
+        console.error(`[reports-bot] sendPhoto plain retry failed ${r.status}`, body2);
+        return false;
+      }
+    }
+    return true;
+  } catch (e) {
+    console.error("[reports-bot] sendPhoto exception", e);
+    return false;
+  }
+}
+
+/**
+ * Combined helper: sends a PNG photo + caption via the same bot the user linked
+ * with /code (resolved via chat_id). Falls back to the GLOBAL reports bot when
+ * the link has no bot_id.
+ */
+export async function sendReportsPhoto(
+  supabase: any,
+  userId: string,
+  chatId: number | string,
+  pngBytes: Uint8Array,
+  caption: string,
+): Promise<{ sent: boolean; reason?: string }> {
+  let bot = await getBotForChat(supabase, userId, chatId);
+  if (!bot) bot = await getReportsBot(supabase);
+  if (!bot) {
+    return { sent: false, reason: "no_reports_bot_configured" };
+  }
+  const ok = await tgDirectSendPhoto(bot.token, chatId, pngBytes, caption);
+  return ok ? { sent: true } : { sent: false, reason: "telegram_send_failed" };
+}
+
+/**
+ * Renders the given lines into an SVG report, converts to PNG, and sends as
+ * a Telegram photo via the reports bot. Falls back to a plain text message if
+ * image generation or sendPhoto fails. `lines` is the full markdown-style
+ * report (used both to render and as fallback text).
+ */
+export async function sendReportsAsImage(
+  supabase: any,
+  userId: string,
+  chatId: number | string,
+  lines: string[],
+  brand: { name: string; primaryHsl?: string | null },
+  opts?: { title?: string; subtitle?: string; fallbackText?: string },
+): Promise<{ sent: boolean; reason?: string; mode?: "image" | "text" }> {
+  try {
+    const { buildTextReportSVG, svgToPng, buildCaptionFromLines } = await import("./renderReportImage.ts");
+    const svg = buildTextReportSVG(lines, brand, { title: opts?.title, subtitle: opts?.subtitle });
+    const png = await svgToPng(svg);
+    const caption = buildCaptionFromLines(lines, brand);
+    const res = await sendReportsPhoto(supabase, userId, chatId, png, caption);
+    if (res.sent) return { sent: true, mode: "image" };
+    const text = opts?.fallbackText ?? lines.join("\n");
+    const r2 = await sendReportsMessage(supabase, userId, chatId, text);
+    return { sent: r2.sent, reason: r2.reason, mode: "text" };
+  } catch (e) {
+    console.error("[reports-bot] image render failed, falling back to text", e);
+    const text = opts?.fallbackText ?? lines.join("\n");
+    const r = await sendReportsMessage(supabase, userId, chatId, text);
+    return { sent: r.sent, reason: r.reason, mode: "text" };
+  }
+}
