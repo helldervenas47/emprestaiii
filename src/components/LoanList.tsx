@@ -2856,7 +2856,7 @@ function LoanRowView({
                         onClick={(e) => e.stopPropagation()}
                         aria-label="Possui observação"
                       >
-                        <StickyNote className="h-2.5 w-2.5 sm:h-3 sm:w-3" />
+                        <MessageCircle className="h-2.5 w-2.5 sm:h-3 sm:w-3" />
                       </span>
                     </TooltipTrigger>
                     <TooltipContent side="top" className="text-xs max-w-[240px]">
