@@ -373,8 +373,30 @@ export function IncomePendingCalendar({
         }
       }
     }
+    // Movimentações de cofrinhos (guardar/resgatar) — apenas movimentos manuais
+    // (sem expenseId), pois aportes vinculados a despesa já são contabilizados
+    // pela própria despesa. Guardar (amount > 0) reduz o saldo do dia; resgatar
+    // (amount < 0) aumenta o saldo do dia.
+    const piggyNameById = new Map(piggyBanks.map((pb) => [pb.id, pb.name]));
+    for (const d of piggyDeposits) {
+      if (d.expenseId) continue;
+      if (!d.depositDate) continue;
+      const e = ensure(d.depositDate);
+      const amt = Number(d.amount) || 0;
+      e.piggyMovements.push({
+        id: d.id,
+        piggyBankId: d.piggyBankId,
+        piggyName: piggyNameById.get(d.piggyBankId),
+        amount: amt,
+      });
+      if (amt >= 0) {
+        e.totalExpense += amt;
+      } else {
+        e.totalIncome += -amt;
+      }
+    }
     return map;
-  }, [incomes, personalExpenses, expenses, cards, openings, year, month, weekDays]);
+  }, [incomes, personalExpenses, expenses, cards, openings, year, month, weekDays, piggyDeposits, piggyBanks]);
 
 
   const monthTotals = useMemo(() => {
