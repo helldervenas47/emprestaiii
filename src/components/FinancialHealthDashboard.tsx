@@ -580,7 +580,7 @@ function IndicatorGaugeCard({
     <button
       type="button"
       onClick={onClick}
-      className={`group relative overflow-hidden rounded-2xl border border-black/10 dark:border-white/10 bg-foreground/[0.03] backdrop-blur-xl text-left transition-all hover:bg-foreground/[0.07] active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
+      className={`group relative w-full overflow-hidden rounded-2xl border border-black/10 dark:border-white/10 bg-foreground/[0.03] backdrop-blur-xl text-left transition-all hover:bg-foreground/[0.07] active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
         featured ? "p-3 shadow-md shadow-black/5" : "p-2.5"
       }`}
       style={
