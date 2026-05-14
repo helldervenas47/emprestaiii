@@ -23,6 +23,7 @@ import {
   HandCoins, Coins, Wallet, PiggyBank, AlertTriangle, UserPlus,
   Sparkles, CheckCircle2, AlertCircle, TrendingDown, Lightbulb,
   BookOpen, Calculator, Database, FlaskConical, Settings2, ArrowUp, ArrowDown, GripVertical, RefreshCw, Lock,
+  Pencil, Check, X,
 } from "lucide-react";
 
 // Mês "YYYY-MM" — true se já é estritamente anterior ao mês corrente no fuso do app
@@ -576,11 +577,16 @@ function normalizePrefs(
 }
 
 export function GoalsCard({ loans, payments, expenses, clients, installmentSchedules = [], renegotiations = [], selectedMonth, periodLabel }: Props) {
-  const { goals } = useMonthlyGoals();
+  const { goals, upsertGoal } = useMonthlyGoals();
   const { hidden } = useHideValues();
   const { user } = useAuth();
   const [selectedGoalId, setSelectedGoalId] = useState<string | null>(null);
   const [showCustomize, setShowCustomize] = useState(false);
+  const [editingGoalType, setEditingGoalType] = useState<GoalType | null>(null);
+  const [editingValue, setEditingValue] = useState<string>("");
+  const [savingGoal, setSavingGoal] = useState(false);
+  // Cancela edição ao trocar de mês
+  useEffect(() => { setEditingGoalType(null); }, [selectedMonth]);
   // Cache imediato via localStorage (evita flicker enquanto sincroniza com o backend)
   const { getSnapshot, upsertSnapshot } = useGoalSnapshots();
   const [prefs, setPrefs] = useState<{ selected: GoalType[]; order: GoalType[] }>(() => loadGoalPrefs(user?.id));
@@ -819,11 +825,20 @@ export function GoalsCard({ loans, payments, expenses, clients, installmentSched
               const statusColor =
                 status === "success" ? "text-success" : status === "warning" ? "text-warning" : "text-destructive";
               const progressClassName = status === "success" ? "h-1.5 [&>div]:bg-success" : status === "destructive" ? "h-1.5 [&>div]:bg-destructive" : "h-1.5 [&>div]:bg-warning";
+              const targetMonth = selectedMonth || g.month;
+              const monthLocked = (g as any).isLocked || isMonthClosed(targetMonth);
+              const isEditing = editingGoalType === g.goalType;
+              const unit = g.meta?.unit || "qtd";
               return (
-                <button
+                <div
                   key={g.id}
-                  type="button"
-                  onClick={() => setSelectedGoalId(g.id)}
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => { if (!isEditing) setSelectedGoalId(g.id); }}
+                  onKeyDown={(e) => {
+                    if (isEditing) return;
+                    if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setSelectedGoalId(g.id); }
+                  }}
                   className="rounded-lg border border-border bg-card/50 hover:bg-card hover:border-primary/40 hover:shadow-sm transition-all p-2.5 sm:p-4 flex flex-col items-center text-center gap-2 sm:gap-3 sm:items-stretch sm:text-left cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary/40"
                 >
                   <div className="flex flex-col items-center gap-1.5 sm:flex-row sm:items-center sm:gap-2">
@@ -855,16 +870,97 @@ export function GoalsCard({ loans, payments, expenses, clients, installmentSched
                   </div>
 
                   <div className="flex flex-col items-center gap-1.5 sm:gap-2 w-full sm:items-stretch">
-                    <div className="flex flex-col items-center sm:flex-row sm:items-center sm:justify-between">
+                    <div className="flex flex-col items-center sm:flex-row sm:items-center sm:justify-between gap-1">
                       <span className="text-[10px] sm:text-xs text-muted-foreground leading-tight">Meta</span>
-                      <span className="text-xs sm:text-sm font-semibold text-foreground break-all sm:break-normal">
-                        {fmtValue(g.targetValue, g.meta?.unit || "qtd", hidden)}
-                      </span>
+                      {isEditing ? (
+                        <div
+                          className="flex items-center gap-1 w-full sm:w-auto"
+                          onClick={(e) => e.stopPropagation()}
+                          onKeyDown={(e) => e.stopPropagation()}
+                        >
+                          <Input
+                            type="number"
+                            min={0}
+                            step={unit === "%" ? "0.01" : unit === "qtd" ? "1" : "0.01"}
+                            value={editingValue}
+                            autoFocus
+                            onChange={(e) => setEditingValue(e.target.value)}
+                            onKeyDown={async (e) => {
+                              if (e.key === "Enter") {
+                                e.preventDefault();
+                                const parsed = Number(String(editingValue).replace(",", "."));
+                                if (!Number.isFinite(parsed) || parsed < 0) {
+                                  toast.error("Informe um valor válido (≥ 0)");
+                                  return;
+                                }
+                                setSavingGoal(true);
+                                await upsertGoal(g.goalType, targetMonth, parsed);
+                                setSavingGoal(false);
+                                setEditingGoalType(null);
+                              } else if (e.key === "Escape") {
+                                setEditingGoalType(null);
+                              }
+                            }}
+                            className="h-7 w-full sm:w-24 text-xs px-2"
+                            disabled={savingGoal}
+                          />
+                          <button
+                            type="button"
+                            aria-label="Salvar meta"
+                            disabled={savingGoal}
+                            onClick={async (e) => {
+                              e.stopPropagation();
+                              const parsed = Number(String(editingValue).replace(",", "."));
+                              if (!Number.isFinite(parsed) || parsed < 0) {
+                                toast.error("Informe um valor válido (≥ 0)");
+                                return;
+                              }
+                              setSavingGoal(true);
+                              await upsertGoal(g.goalType, targetMonth, parsed);
+                              setSavingGoal(false);
+                              setEditingGoalType(null);
+                            }}
+                            className="h-7 w-7 inline-flex items-center justify-center rounded-md bg-success/15 text-success hover:bg-success/25 disabled:opacity-50"
+                          >
+                            <Check className="h-3.5 w-3.5" />
+                          </button>
+                          <button
+                            type="button"
+                            aria-label="Cancelar edição"
+                            disabled={savingGoal}
+                            onClick={(e) => { e.stopPropagation(); setEditingGoalType(null); }}
+                            className="h-7 w-7 inline-flex items-center justify-center rounded-md bg-muted text-muted-foreground hover:bg-muted/70"
+                          >
+                            <X className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
+                      ) : (
+                        <span className="inline-flex items-center gap-1">
+                          <span className="text-xs sm:text-sm font-semibold text-foreground break-all sm:break-normal">
+                            {fmtValue(g.targetValue, unit, hidden)}
+                          </span>
+                          {!monthLocked && (
+                            <button
+                              type="button"
+                              aria-label={`Editar meta de ${g.meta?.label || ""} para ${formatMonthLabel(targetMonth)}`}
+                              title={`Editar meta para ${formatMonthLabel(targetMonth)}`}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setEditingGoalType(g.goalType);
+                                setEditingValue(String(g.targetValue ?? 0));
+                              }}
+                              className="h-5 w-5 inline-flex items-center justify-center rounded text-muted-foreground hover:text-primary hover:bg-primary/10"
+                            >
+                              <Pencil className="h-3 w-3" />
+                            </button>
+                          )}
+                        </span>
+                      )}
                     </div>
                     <div className="flex flex-col items-center sm:flex-row sm:items-center sm:justify-between">
                       <span className="text-[10px] sm:text-xs text-muted-foreground leading-tight">Realizado</span>
                       <span className={`text-xs sm:text-sm font-semibold ${statusColor} break-all sm:break-normal`}>
-                        {fmtValue(g.actual, g.meta?.unit || "qtd", hidden)}
+                        {fmtValue(g.actual, unit, hidden)}
                       </span>
                     </div>
                     <div className="border-t border-border w-full my-0.5 sm:my-1" />
@@ -878,7 +974,7 @@ export function GoalsCard({ loans, payments, expenses, clients, installmentSched
                       </div>
                     </div>
                   </div>
-                </button>
+                </div>
               );
             })}
           </div>
