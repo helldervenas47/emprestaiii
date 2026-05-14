@@ -235,19 +235,68 @@ export async function sendReportsPhoto(
  * image generation or sendPhoto fails. `lines` is the full markdown-style
  * report (used both to render and as fallback text).
  */
+export type ImageReportKey =
+  | "billing"
+  | "accumulated_delinquency"
+  | "daily_planning"
+  | "incomes_expenses"
+  | "manager_weekly"
+  | "personal_insights"
+  | "daily_summary"
+  | "weekly_summary"
+  | "monthly_summary";
+
+export interface ImageDeliveryPrefs {
+  reports: Partial<Record<ImageReportKey, boolean>>;
+  includeText: boolean;
+}
+
+/**
+ * Reads the per-user image delivery prefs (table: telegram_image_delivery_prefs).
+ * Defaults: every report sends as image, includeText = true.
+ */
+export async function getImageDeliveryPrefs(
+  supabase: any,
+  userId: string,
+): Promise<ImageDeliveryPrefs> {
+  try {
+    const { data } = await supabase
+      .from("telegram_image_delivery_prefs")
+      .select("reports, include_text")
+      .eq("user_id", userId)
+      .maybeSingle();
+    return {
+      reports: (data?.reports as any) ?? {},
+      includeText: data?.include_text !== false,
+    };
+  } catch (e) {
+    console.error("[getImageDeliveryPrefs] error", e);
+    return { reports: {}, includeText: true };
+  }
+}
+
 export async function sendReportsAsImage(
   supabase: any,
   userId: string,
   chatId: number | string,
   lines: string[],
   brand: { name: string; primaryHsl?: string | null },
-  opts?: { title?: string; subtitle?: string; fallbackText?: string },
+  opts?: { title?: string; subtitle?: string; fallbackText?: string; reportKey?: ImageReportKey },
 ): Promise<{ sent: boolean; reason?: string; mode?: "image" | "text" }> {
   try {
+    const prefs = await getImageDeliveryPrefs(supabase, userId);
+    const key = opts?.reportKey;
+    // Per-report toggle: if explicitly disabled, send as plain text.
+    if (key && prefs.reports[key] === false) {
+      const text = opts?.fallbackText ?? lines.join("\n");
+      const r = await sendReportsMessage(supabase, userId, chatId, text);
+      return { sent: r.sent, reason: r.reason, mode: "text" };
+    }
+
     const { buildTextReportSVG, svgToPng, buildCaptionFromLines } = await import("./renderReportImage.ts");
     const svg = buildTextReportSVG(lines, brand, { title: opts?.title, subtitle: opts?.subtitle });
     const png = await svgToPng(svg);
-    const caption = buildCaptionFromLines(lines, brand);
+    const caption = prefs.includeText ? buildCaptionFromLines(lines, brand) : "";
     const res = await sendReportsPhoto(supabase, userId, chatId, png, caption);
     if (res.sent) return { sent: true, mode: "image" };
     const text = opts?.fallbackText ?? lines.join("\n");
