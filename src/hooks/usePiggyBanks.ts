@@ -435,14 +435,17 @@ export function usePiggyBanks() {
     let base: RatePeriod[] = hist.length === 0
       ? [{ effectiveFrom: pb.createdAt.slice(0, 10), annualRate: pb.annualRate }]
       : hist;
-    // CDI sempre vigente: garante que o último período reflita a taxa CDI atual.
+    // CDI sempre vigente: garante que o último período reflita a taxa CDI atual,
+    // ajustada pela porcentagem do CDI configurada na caixinha (ex.: 80%, 110%).
     if (cdiRate) {
+      const pct = (pb.cdiPercent ?? 100) / 100;
+      const effectiveCdi = cdiRate.annualRate * pct;
       const last = base[base.length - 1];
       const cdiFrom = cdiRate.referenceDate || ymd(new Date());
-      const sameRate = Math.abs(last.annualRate - cdiRate.annualRate) < 0.01;
+      const sameRate = Math.abs(last.annualRate - effectiveCdi) < 0.01;
       if (!sameRate) {
         const effectiveFrom = cdiFrom > last.effectiveFrom ? cdiFrom : last.effectiveFrom;
-        base = [...base, { effectiveFrom, annualRate: cdiRate.annualRate }];
+        base = [...base, { effectiveFrom, annualRate: effectiveCdi }];
       }
     }
     return base;
