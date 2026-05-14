@@ -41,6 +41,8 @@ export function PiggyBankList({ readOnly = false }: Props) {
   const [transferring, setTransferring] = useState(false);
   const [accountBalance, setAccountBalance] = useState<number>(0);
   const [pulseId, setPulseId] = useState<string | null>(null);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const toggleExpand = (id: string) => setExpandedId((cur) => (cur === id ? null : id));
 
   const openTransfer = (pb: PiggyBankType, mode: "store" | "withdraw") => {
     setTransferTarget(pb);
@@ -305,7 +307,6 @@ export function PiggyBankList({ readOnly = false }: Props) {
                 inputMode="decimal"
                 value={transferValue}
                 onChange={(e) => setTransferValue(e.target.value)}
-                autoFocus
                 placeholder="0,00"
               />
               {transferTarget && (() => {
@@ -347,22 +348,25 @@ export function PiggyBankList({ readOnly = false }: Props) {
           {piggyBanks.map((pb) => {
             const b = balances.get(pb.id);
             const det = detailed.get(pb.id);
+            const isExpanded = expandedId === pb.id;
             return (
               <div
                 key={pb.id}
-                className={`rounded-xl border border-border/40 p-3 hover:border-border transition-all ${pulseId === pb.id ? "animate-scale-in ring-2 ring-primary/40" : ""}`}
+                className={`rounded-xl border border-border/40 p-3 transition-all select-none ${
+                  pulseId === pb.id ? "animate-scale-in ring-2 ring-primary/40" : ""
+                } ${isExpanded ? "border-border/80 bg-white/[0.03]" : "hover:border-border/70 active:scale-[0.99]"}`}
                 style={{ background: `hsl(${pb.color} / 0.05)` }}
               >
                 <div
                   role={readOnly ? undefined : "button"}
                   tabIndex={readOnly ? -1 : 0}
-                  onClick={() => { if (!readOnly) openTransfer(pb, "store"); }}
+                  onClick={() => { if (!readOnly) toggleExpand(pb.id); }}
                   onKeyDown={(e) => {
                     if (readOnly) return;
-                    if (e.key === "Enter" || e.key === " ") { e.preventDefault(); openTransfer(pb, "store"); }
+                    if (e.key === "Enter" || e.key === " ") { e.preventDefault(); toggleExpand(pb.id); }
                   }}
-                  className={`flex items-center gap-3 ${readOnly ? "" : "cursor-pointer"} focus:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-lg`}
-                  title={readOnly ? undefined : "Guardar ou resgatar dinheiro"}
+                  className={`flex items-center gap-3 ${readOnly ? "" : "cursor-pointer"} focus:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-lg touch-manipulation`}
+                  title={readOnly ? undefined : "Abrir detalhes do cofrinho"}
                 >
                   <div
                     className="h-9 w-9 rounded-lg flex items-center justify-center shrink-0"
@@ -392,22 +396,32 @@ export function PiggyBankList({ readOnly = false }: Props) {
                       </p>
                     </div>
                     <div className="flex gap-0.5 justify-end mt-1" onClick={(e) => e.stopPropagation()}>
-                      <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => setHistoryTarget(pb)} title="Histórico de aportes">
+                      {!readOnly && (
+                        <>
+                          <Button size="icon" variant="ghost" className="h-6 w-6" onClick={(e) => { e.stopPropagation(); openTransfer(pb, "store"); }} title="Guardar dinheiro">
+                            <ArrowDownCircle className="h-3 w-3" />
+                          </Button>
+                          <Button size="icon" variant="ghost" className="h-6 w-6" onClick={(e) => { e.stopPropagation(); openTransfer(pb, "withdraw"); }} title="Resgatar dinheiro">
+                            <ArrowUpCircle className="h-3 w-3" />
+                          </Button>
+                        </>
+                      )}
+                      <Button size="icon" variant="ghost" className="h-6 w-6" onClick={(e) => { e.stopPropagation(); setHistoryTarget(pb); }} title="Histórico de aportes">
                         <History className="h-3 w-3" />
                       </Button>
                       {!readOnly && (
                         <>
-                          <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => openAdjust(pb)} title="Ajustar saldo">
+                          <Button size="icon" variant="ghost" className="h-6 w-6" onClick={(e) => { e.stopPropagation(); openAdjust(pb); }} title="Ajustar saldo">
                             <Wallet className="h-3 w-3" />
                           </Button>
-                          <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => openEdit(pb)} title="Editar">
+                          <Button size="icon" variant="ghost" className="h-6 w-6" onClick={(e) => { e.stopPropagation(); openEdit(pb); }} title="Editar">
                             <Pencil className="h-3 w-3" />
                           </Button>
                           <Button
                             size="icon"
                             variant="ghost"
                             className="h-6 w-6 text-destructive hover:text-destructive hover:bg-destructive/10"
-                            onClick={() => setDeleteId(pb.id)}
+                            onClick={(e) => { e.stopPropagation(); setDeleteId(pb.id); }}
                             title="Excluir"
                           >
                             <Trash2 className="h-3 w-3" />
@@ -417,8 +431,8 @@ export function PiggyBankList({ readOnly = false }: Props) {
                     </div>
                   </div>
                 </div>
-                {det && (
-                  <div className="mt-2.5 pt-2.5 border-t border-border/40 grid grid-cols-2 gap-x-3 gap-y-1.5 text-[11px]">
+                {isExpanded && det && (
+                  <div className="mt-2.5 pt-2.5 border-t border-border/40 grid grid-cols-2 gap-x-3 gap-y-1.5 text-[11px] animate-in fade-in slide-in-from-top-1 duration-300">
                     <div className="flex items-center justify-between">
                       <span className="inline-flex items-center gap-1 text-muted-foreground"><TrendingUp className="h-3 w-3" /> Rend. bruto</span>
                       <span className="font-medium text-success tabular-nums">{mask(fmt(det.gross))}</span>
