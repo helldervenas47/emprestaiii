@@ -585,6 +585,8 @@ export function GoalsCard({ loans, payments, expenses, clients, installmentSched
   const [editingGoalType, setEditingGoalType] = useState<GoalType | null>(null);
   const [editingValue, setEditingValue] = useState<string>("");
   const [savingGoal, setSavingGoal] = useState(false);
+  // Cancela edição ao trocar de mês
+  useEffect(() => { setEditingGoalType(null); }, [selectedMonth]);
   // Cache imediato via localStorage (evita flicker enquanto sincroniza com o backend)
   const { getSnapshot, upsertSnapshot } = useGoalSnapshots();
   const [prefs, setPrefs] = useState<{ selected: GoalType[]; order: GoalType[] }>(() => loadGoalPrefs(user?.id));
