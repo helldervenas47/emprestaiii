@@ -114,6 +114,7 @@ export function ApiKeysManager() {
       const { data, error } = await supabase.functions.invoke("list-app-integrations");
       if (error) throw error;
       setIntegrations((data as any)?.integrations ?? []);
+      setIntegrationsLoaded(true);
     } catch (e: any) {
       console.error("[ApiKeysManager] loadIntegrations", e);
       setIntegrations([]);
@@ -124,8 +125,17 @@ export function ApiKeysManager() {
 
   useEffect(() => {
     setKeys(loadKeys());
-    loadIntegrations();
   }, []);
+
+  const toggleIntegrations = () => {
+    setIntegrationsOpen((open) => {
+      const next = !open;
+      if (next && !integrationsLoaded && !loadingIntegrations) {
+        loadIntegrations();
+      }
+      return next;
+    });
+  };
 
   const persist = (next: ApiKeyEntry[]) => {
     setKeys(next);
