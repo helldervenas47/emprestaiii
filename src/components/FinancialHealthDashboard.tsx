@@ -401,6 +401,39 @@ export function FinancialHealthDashboard({ incomes, expenses, monthKey }: Props)
         />
       </div>
 
+      {/* Indicadores de saúde — 5 velocímetros clicáveis */}
+      <div className={`${expanded ? "block" : "hidden"} sm:block mb-6`}>
+        <div className="flex items-center gap-2 mb-3">
+          <Gauge className="h-4 w-4 text-muted-foreground" />
+          <h4 className="text-foreground/80 text-xs font-semibold uppercase tracking-wider">
+            Indicadores essenciais
+          </h4>
+        </div>
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5">
+          {INDICATORS.map((ind) => {
+            const score = data.indicatorScores[ind.key];
+            return (
+              <IndicatorGaugeCard
+                key={ind.key}
+                title={ind.label}
+                icon={ind.icon}
+                score={score}
+                onClick={() => setOpenIndicator(ind.key)}
+              />
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Dialog: ações concretas por indicador */}
+      <IndicatorActionsDialog
+        open={openIndicator !== null}
+        onOpenChange={(o) => !o && setOpenIndicator(null)}
+        indicatorKey={openIndicator}
+        data={data}
+        hidden={hidden}
+      />
+
       <Dialog open={reportOpen} onOpenChange={setReportOpen}>
         <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
           <DialogHeader>
