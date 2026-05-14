@@ -305,7 +305,6 @@ export function PiggyBankList({ readOnly = false }: Props) {
                 inputMode="decimal"
                 value={transferValue}
                 onChange={(e) => setTransferValue(e.target.value)}
-                autoFocus
                 placeholder="0,00"
               />
               {transferTarget && (() => {
