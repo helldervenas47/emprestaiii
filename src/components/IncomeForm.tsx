@@ -139,7 +139,7 @@ export function IncomeForm({ open, onClose, onSubmit, initial }: Props) {
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Ex.: Venda do produto X"
               list="income-desc-history"
-              autoFocus
+              
             />
             <datalist id="income-desc-history">
               {suggestions.map((s) => <option key={s} value={s} />)}
