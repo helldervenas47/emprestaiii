@@ -21,6 +21,7 @@ Deno.serve(async (req) => {
       headers: { Authorization: `Basic ${auth}` },
     });
     const text = await r.text();
+    console.log("[html-to-image-usage] HCTI status:", r.status, "body:", text.slice(0, 500));
     let data: any = {};
     try { data = JSON.parse(text); } catch { /* keep empty */ }
 
@@ -28,7 +29,8 @@ Deno.serve(async (req) => {
       return new Response(
         JSON.stringify({
           configured: true,
-          error: data?.error || `Falha ao consultar uso (${r.status})`,
+          status: r.status,
+          error: data?.message || data?.error || `Falha ao consultar uso (${r.status})`,
         }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
