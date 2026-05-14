@@ -211,7 +211,6 @@ export function PersonalExpenseForm({ onAdd, onClose }: Props) {
                 onChange={(e) => update("description", e.target.value)}
                 placeholder={toPiggy ? "Ex: Aporte mensal" : "Ex: Supermercado do mês"}
                 list="personal-expense-desc-history"
-                autoFocus
                 required
               />
               <datalist id="personal-expense-desc-history">

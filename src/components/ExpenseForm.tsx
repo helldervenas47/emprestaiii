@@ -131,7 +131,6 @@ export function ExpenseForm({ onAdd, onClose, scope = "business" }: Props) {
                 onChange={(e) => update("description", e.target.value)}
                 placeholder="Ex: Aluguel do escritório"
                 list="expense-desc-history"
-                autoFocus
                 required
               />
               <datalist id="expense-desc-history">
