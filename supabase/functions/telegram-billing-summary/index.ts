@@ -212,7 +212,7 @@ async function buildBillingReport(admin: any, ownerId: string, today: string, br
   return lines.join("\n");
 }
 
-import { sendReportsMessage } from "../_shared/reports-bot.ts";
+import { sendReportsAsImage } from "../_shared/reports-bot.ts";
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
@@ -290,7 +290,14 @@ Deno.serve(async (req) => {
 
       const report = await buildBillingReport(admin, pref.user_id, today, brandName);
 
-      const sendRes = await sendReportsMessage(admin, pref.user_id, Number(link.chat_id), report);
+      const sendRes = await sendReportsAsImage(
+        admin,
+        pref.user_id,
+        Number(link.chat_id),
+        report.split("\n"),
+        { name: brandName },
+        { fallbackText: report },
+      );
       if (!sendRes.sent) {
         errors.push(`${pref.user_id}: ${sendRes.reason ?? "send_failed"}`);
         continue;

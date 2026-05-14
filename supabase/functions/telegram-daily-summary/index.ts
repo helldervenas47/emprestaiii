@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { buildTextReportSVG, svgToPng, tgSendPhoto, buildCaptionFromLines } from "../_shared/renderReportImage.ts";
 
 const GATEWAY_URL = "https://connector-gateway.lovable.dev/telegram";
 
@@ -199,7 +200,16 @@ Deno.serve(async (req) => {
         lines.push("_Sem orçamentos configurados._");
       }
 
-      await tgSend(Number(link.chat_id), lines.join("\n"), LOVABLE_API_KEY, TELEGRAM_API_KEY);
+      // Try image first; fall back to text on any failure.
+      try {
+        const svg = buildTextReportSVG(lines, { name: brandName });
+        const png = await svgToPng(svg);
+        const caption = buildCaptionFromLines(lines, { name: brandName });
+        await tgSendPhoto(Number(link.chat_id), png, caption, LOVABLE_API_KEY, TELEGRAM_API_KEY);
+      } catch (e) {
+        console.error("daily-summary image render failed, falling back to text", e);
+        await tgSend(Number(link.chat_id), lines.join("\n"), LOVABLE_API_KEY, TELEGRAM_API_KEY);
+      }
 
       if (!forceUserId) {
         await admin.from("telegram_summary_prefs")

@@ -33,7 +33,7 @@ function timeWithinWindow(target: string | null | undefined, nowH: number, nowM:
   return diff >= 0 && diff < 5; // within 5-minute window after target
 }
 
-import { sendReportsMessage } from "../_shared/reports-bot.ts";
+import { sendReportsAsImage } from "../_shared/reports-bot.ts";
 
 function safeTruncate(text: string, max = 3800) {
   return text.length > max ? text.slice(0, max) + "\n\n…(truncado)" : text;
@@ -88,7 +88,15 @@ async function processUser(
 
   const message = `${headerText}\n\n${insight.content}\n\n—\n_Gerado por IA com base nos seus gastos do mês._`;
 
-  const sendRes = await sendReportsMessage(supabase, ownerId, Number(tgLink.chat_id), safeTruncate(message));
+  const truncated = safeTruncate(message);
+  const sendRes = await sendReportsAsImage(
+    supabase,
+    ownerId,
+    Number(tgLink.chat_id),
+    truncated.split("\n"),
+    { name: brandName },
+    { fallbackText: truncated },
+  );
   if (!sendRes.sent) return { skipped: sendRes.reason ?? "send_failed" };
 
   // Update last_sent map
