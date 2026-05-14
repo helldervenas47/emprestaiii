@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
-import { PiggyBank, Plus, TrendingUp, Trash2, Pencil, Sparkles, Wallet, History, ArrowDownCircle, ArrowUpCircle, Repeat, Receipt, Percent, CalendarClock, Coins } from "lucide-react";
+import { PiggyBank, Plus, TrendingUp, Trash2, Pencil, Sparkles, Wallet, History, ArrowDownCircle, ArrowUpCircle, Repeat, Receipt, Percent, CalendarClock, Coins, RefreshCw, Zap } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -31,12 +33,13 @@ interface Props {
 
 export function PiggyBankList({ readOnly = false }: Props) {
   const { mask } = useHideValues();
-  const { piggyBanks, deposits, balances, detailed, createPiggyBank, updatePiggyBank, deletePiggyBank, adjustBalance, updateDeposit, deleteDeposit, setPiggyRate } = usePiggyBanks();
+  const { piggyBanks, deposits, balances, detailed, cdiRate, createPiggyBank, updatePiggyBank, deletePiggyBank, adjustBalance, updateDeposit, deleteDeposit, setPiggyRate, refreshCdiNow } = usePiggyBanks();
 
   const [createOpen, setCreateOpen] = useState(false);
   const [editing, setEditing] = useState<PiggyBankType | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
-  const [draft, setDraft] = useState({ name: "", color: PALETTE[0], annualRate: "11.15", shortId: "" });
+  const [draft, setDraft] = useState({ name: "", color: PALETTE[0], annualRate: "11.15", autoRate: false, shortId: "" });
+  const [refreshingCdi, setRefreshingCdi] = useState(false);
   const [adjustTarget, setAdjustTarget] = useState<PiggyBankType | null>(null);
   const [adjustValue, setAdjustValue] = useState("");
   const [historyTarget, setHistoryTarget] = useState<PiggyBankType | null>(null);
@@ -68,12 +71,13 @@ export function PiggyBankList({ readOnly = false }: Props) {
 
   const openCreate = () => {
     const next = nextAvailableShortId();
-    setDraft({ name: "", color: PALETTE[0], annualRate: "11.15", shortId: next ? String(next) : "" });
+    const startRate = cdiRate?.annualRate ? cdiRate.annualRate.toFixed(2) : "11.15";
+    setDraft({ name: "", color: PALETTE[0], annualRate: startRate, autoRate: !!cdiRate, shortId: next ? String(next) : "" });
     setEditing(null);
     setCreateOpen(true);
   };
   const openEdit = (pb: PiggyBankType) => {
-    setDraft({ name: pb.name, color: pb.color, annualRate: String(pb.annualRate), shortId: pb.shortId ? String(pb.shortId) : "" });
+    setDraft({ name: pb.name, color: pb.color, annualRate: String(pb.annualRate), autoRate: pb.autoRate, shortId: pb.shortId ? String(pb.shortId) : "" });
     setEditing(pb);
     setCreateOpen(true);
   };
@@ -128,7 +132,11 @@ export function PiggyBankList({ readOnly = false }: Props) {
 
   const save = async () => {
     if (!draft.name.trim()) return;
-    const rate = Number(draft.annualRate.replace(",", ".")) || 11.15;
+    // Quando o modo automático está ligado e há taxa CDI cacheada, usamos sempre o CDI vigente.
+    const useAuto = draft.autoRate && !!cdiRate;
+    const rate = useAuto
+      ? Number(cdiRate!.annualRate.toFixed(4))
+      : Number(draft.annualRate.replace(",", ".")) || 11.15;
 
     // Validate short id (1..99, unique within this account).
     let shortId: number | null = null;
@@ -148,18 +156,49 @@ export function PiggyBankList({ readOnly = false }: Props) {
 
     if (editing) {
       const rateChanged = Math.abs(editing.annualRate - rate) > 0.0001;
-      // Salva metadados (nome/cor/nº) imediatamente; taxa é tratada via setPiggyRate
-      await updatePiggyBank(editing.id, { name: draft.name.trim(), color: draft.color, shortId });
+      const autoChanged = editing.autoRate !== draft.autoRate;
+      // Salva metadados (nome/cor/nº/auto) imediatamente; taxa é tratada via setPiggyRate
+      await updatePiggyBank(editing.id, {
+        name: draft.name.trim(),
+        color: draft.color,
+        shortId,
+        autoRate: draft.autoRate,
+      });
       if (rateChanged) {
-        // Abre diálogo de escolha (não fechamos o modal de edição ainda)
-        setRateChangePending({ pb: editing, newRate: rate });
-        return;
+        if (useAuto || autoChanged) {
+          // Em modo auto, aplica forward (mantém histórico) sem perguntar.
+          await setPiggyRate(editing.id, rate, "forward");
+        } else {
+          setRateChangePending({ pb: editing, newRate: rate });
+          return;
+        }
       }
     } else {
-      await createPiggyBank({ name: draft.name.trim(), color: draft.color, annualRate: rate, shortId });
+      await createPiggyBank({
+        name: draft.name.trim(),
+        color: draft.color,
+        annualRate: rate,
+        autoRate: draft.autoRate,
+        shortId,
+      });
     }
     setCreateOpen(false);
   };
+
+  const handleRefreshCdi = async () => {
+    setRefreshingCdi(true);
+    try { await refreshCdiNow(); } finally { setRefreshingCdi(false); }
+  };
+
+  const cdiUpdatedLabel = useMemo(() => {
+    if (!cdiRate?.fetchedAt) return "";
+    try {
+      return new Date(cdiRate.fetchedAt).toLocaleString("pt-BR", {
+        day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit",
+      });
+    } catch { return ""; }
+  }, [cdiRate?.fetchedAt]);
+
 
   const totalBalance = piggyBanks.reduce((s, pb) => s + (balances.get(pb.id)?.balance ?? 0), 0);
   const totalYield = piggyBanks.reduce((s, pb) => s + (balances.get(pb.id)?.yield ?? 0), 0);
@@ -187,6 +226,47 @@ export function PiggyBankList({ readOnly = false }: Props) {
           </Button>
         )}
       </div>
+
+      {/* CDI rate pill — fonte automatizada via Banco Central */}
+      <TooltipProvider delayDuration={200}>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <div className="flex items-center justify-between gap-2 rounded-xl border border-border/40 bg-muted/30 px-3 py-2">
+              <div className="flex items-center gap-2 min-w-0">
+                <div className="h-7 w-7 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                  <Zap className="h-3.5 w-3.5 text-primary" />
+                </div>
+                <div className="min-w-0 leading-tight">
+                  <p className="text-[11px] font-semibold text-foreground">
+                    CDI hoje: {cdiRate ? `${cdiRate.annualRate.toFixed(2)}% a.a.` : "—"}
+                  </p>
+                  <p className="text-[10px] text-muted-foreground truncate">
+                    {cdiRate
+                      ? `Atualizado ${cdiUpdatedLabel}${cdiRate.source ? ` · ${cdiRate.source}` : ""}`
+                      : "Aguardando primeira sincronização…"}
+                  </p>
+                </div>
+              </div>
+              {!readOnly && (
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  className="h-7 w-7 shrink-0"
+                  onClick={handleRefreshCdi}
+                  disabled={refreshingCdi}
+                  title="Atualizar agora"
+                >
+                  <RefreshCw className={`h-3.5 w-3.5 ${refreshingCdi ? "animate-spin" : ""}`} />
+                </Button>
+              )}
+            </div>
+          </TooltipTrigger>
+          <TooltipContent side="bottom">
+            Taxa CDI obtida do Banco Central (série SGS 4389).<br />
+            Cofrinhos com modo automático seguem essa taxa.
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
 
       {piggyBanks.length === 0 ? (
         <div className="rounded-xl border border-dashed border-border/60 p-4 text-center">
@@ -230,8 +310,9 @@ export function PiggyBankList({ readOnly = false }: Props) {
                         </span>
                       )}
                       <p className="text-sm font-semibold text-foreground truncate flex-1 min-w-0">{pb.name}</p>
-                      <Badge variant="outline" className="text-[9px] px-1 py-0 h-4 shrink-0">
-                        {pb.annualRate.toFixed(2)}% a.a.
+                      <Badge variant="outline" className={`text-[9px] px-1 py-0 h-4 shrink-0 inline-flex items-center gap-0.5 ${pb.autoRate ? "border-primary/40 text-primary" : ""}`}>
+                        {pb.autoRate && <Zap className="h-2.5 w-2.5" />}
+                        {pb.annualRate.toFixed(2)}% a.a.{pb.autoRate ? " · CDI" : ""}
                       </Badge>
                     </div>
                     <div className="flex items-center justify-between gap-2 mt-0.5">
@@ -356,6 +437,29 @@ export function PiggyBankList({ readOnly = false }: Props) {
                 ))}
               </div>
             </div>
+            <div className="rounded-lg border border-border/50 bg-muted/20 p-2.5 flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <Label htmlFor="pb-auto" className="text-xs font-semibold flex items-center gap-1.5">
+                  <Zap className="h-3.5 w-3.5 text-primary" />
+                  Atualizar automaticamente com CDI
+                </Label>
+                <p className="text-[10px] text-muted-foreground mt-0.5">
+                  {cdiRate
+                    ? `Atual: ${cdiRate.annualRate.toFixed(2)}% a.a. · ${cdiUpdatedLabel}`
+                    : "Aguardando primeira sincronização do BCB."}
+                </p>
+              </div>
+              <Switch
+                id="pb-auto"
+                checked={draft.autoRate}
+                disabled={!cdiRate}
+                onCheckedChange={(v) => setDraft((p) => ({
+                  ...p,
+                  autoRate: v,
+                  annualRate: v && cdiRate ? cdiRate.annualRate.toFixed(2) : p.annualRate,
+                }))}
+              />
+            </div>
             <div>
               <Label htmlFor="pb-rate">Taxa anual (%)</Label>
               <Input
@@ -363,10 +467,13 @@ export function PiggyBankList({ readOnly = false }: Props) {
                 type="number"
                 step="0.01"
                 value={draft.annualRate}
+                disabled={draft.autoRate}
                 onChange={(e) => setDraft((p) => ({ ...p, annualRate: e.target.value }))}
               />
               <p className="text-[10px] text-muted-foreground mt-1">
-                100% CDI ≈ 11,15% a.a. (referência PicPay).
+                {draft.autoRate
+                  ? "Em modo automático, a taxa segue o CDI publicado pelo Banco Central."
+                  : "100% CDI ≈ 11,15% a.a. (referência PicPay)."}
               </p>
             </div>
           </div>

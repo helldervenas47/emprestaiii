@@ -1456,6 +1456,33 @@ export type Database = {
         }
         Relationships: []
       }
+      market_rates: {
+        Row: {
+          annual_rate: number
+          fetched_at: string
+          indicator: string
+          reference_date: string | null
+          source: string | null
+          updated_at: string
+        }
+        Insert: {
+          annual_rate: number
+          fetched_at?: string
+          indicator: string
+          reference_date?: string | null
+          source?: string | null
+          updated_at?: string
+        }
+        Update: {
+          annual_rate?: number
+          fetched_at?: string
+          indicator?: string
+          reference_date?: string | null
+          source?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       monthly_goal_snapshots: {
         Row: {
           attainment_pct: number | null
@@ -1991,6 +2018,7 @@ export type Database = {
       piggy_banks: {
         Row: {
           annual_rate: number
+          auto_rate: boolean
           color: string
           created_at: string
           icon: string
@@ -2002,6 +2030,7 @@ export type Database = {
         }
         Insert: {
           annual_rate?: number
+          auto_rate?: boolean
           color?: string
           created_at?: string
           icon?: string
@@ -2013,6 +2042,7 @@ export type Database = {
         }
         Update: {
           annual_rate?: number
+          auto_rate?: boolean
           color?: string
           created_at?: string
           icon?: string
