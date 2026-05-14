@@ -102,7 +102,7 @@ interface UsageState {
 
 export function TelegramImageDeliveryCard() {
   const [prefs, setPrefs] = useState<ImageDeliveryPrefs>(DEFAULT_PREFS);
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(true);
   const [usage, setUsage] = useState<UsageState>({
     loading: true,
     used: null,
