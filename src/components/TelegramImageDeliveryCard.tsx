@@ -129,11 +129,18 @@ export function TelegramImageDeliveryCard() {
   useEffect(() => {
     setPrefs(loadImageDeliveryPrefs());
     loadUsage();
+    fetchPrefsFromDB().then((p) => {
+      if (p) {
+        setPrefs(p);
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(p));
+      }
+    });
   }, []);
 
   const update = (next: ImageDeliveryPrefs) => {
     setPrefs(next);
     localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+    void savePrefsToDB(next);
   };
 
   const toggleReport = (key: ReportKey, value: boolean) => {
