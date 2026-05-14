@@ -318,6 +318,8 @@ export function usePiggyBanks() {
     }
     await reload();
   }, [reload]);
+
+  const deletePiggyBank = useCallback(async (id: string) => {
     const { error } = await supabase.from("piggy_banks" as any).delete().eq("id", id);
     if (error) { toast.error("Erro ao excluir cofrinho"); return; }
     await reload();
