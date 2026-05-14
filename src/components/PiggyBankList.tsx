@@ -310,8 +310,9 @@ export function PiggyBankList({ readOnly = false }: Props) {
                         </span>
                       )}
                       <p className="text-sm font-semibold text-foreground truncate flex-1 min-w-0">{pb.name}</p>
-                      <Badge variant="outline" className="text-[9px] px-1 py-0 h-4 shrink-0">
-                        {pb.annualRate.toFixed(2)}% a.a.
+                      <Badge variant="outline" className={`text-[9px] px-1 py-0 h-4 shrink-0 inline-flex items-center gap-0.5 ${pb.autoRate ? "border-primary/40 text-primary" : ""}`}>
+                        {pb.autoRate && <Zap className="h-2.5 w-2.5" />}
+                        {pb.annualRate.toFixed(2)}% a.a.{pb.autoRate ? " · CDI" : ""}
                       </Badge>
                     </div>
                     <div className="flex items-center justify-between gap-2 mt-0.5">
