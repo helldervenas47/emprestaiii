@@ -37,8 +37,9 @@ import {
   DropdownMenuTrigger,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
-import { Eye, EyeOff, Copy, Pencil, Trash2, Plus, MoreVertical, KeyRound } from "lucide-react";
+import { Eye, EyeOff, Copy, Pencil, Trash2, Plus, MoreVertical, KeyRound, Plug, RefreshCw, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 const STORAGE_KEY = "app_api_keys_v1";
 
@@ -87,6 +88,14 @@ function formatDate(iso: string | null): string {
   }
 }
 
+interface AppIntegration {
+  name: string;
+  envVar: string;
+  description: string;
+  maskedKey: string;
+  configured: boolean;
+}
+
 export function ApiKeysManager() {
   const [keys, setKeys] = useState<ApiKeyEntry[]>([]);
   const [revealed, setRevealed] = useState<Record<string, boolean>>({});
@@ -94,9 +103,26 @@ export function ApiKeysManager() {
   const [creating, setCreating] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [form, setForm] = useState({ name: "", key: "" });
+  const [integrations, setIntegrations] = useState<AppIntegration[]>([]);
+  const [loadingIntegrations, setLoadingIntegrations] = useState(true);
+
+  const loadIntegrations = async () => {
+    setLoadingIntegrations(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("list-app-integrations");
+      if (error) throw error;
+      setIntegrations((data as any)?.integrations ?? []);
+    } catch (e: any) {
+      console.error("[ApiKeysManager] loadIntegrations", e);
+      setIntegrations([]);
+    } finally {
+      setLoadingIntegrations(false);
+    }
+  };
 
   useEffect(() => {
     setKeys(loadKeys());
+    loadIntegrations();
   }, []);
 
   const persist = (next: ApiKeyEntry[]) => {
@@ -173,15 +199,87 @@ export function ApiKeysManager() {
   const empty = useMemo(() => keys.length === 0, [keys]);
 
   return (
-    <div className="space-y-3">
-      <div className="flex items-center justify-between gap-2">
-        <p className="text-xs text-muted-foreground">
-          Gerencie as chaves de API utilizadas pelas integrações do sistema.
-        </p>
-        <Button size="sm" onClick={openCreate}>
-          <Plus className="h-3.5 w-3.5 mr-1" /> Nova chave
-        </Button>
-      </div>
+    <div className="space-y-6">
+      {/* Conexões existentes do app (configuradas no backend) */}
+      <section className="space-y-3">
+        <div className="flex items-center justify-between gap-2">
+          <div>
+            <h3 className="text-sm font-semibold flex items-center gap-1.5">
+              <Plug className="h-4 w-4 text-primary" /> Conexões existentes do app
+            </h3>
+            <p className="text-xs text-muted-foreground">
+              Integrações já configuradas no backend. Por segurança, os valores não são exibidos.
+            </p>
+          </div>
+          <Button size="sm" variant="outline" onClick={loadIntegrations} disabled={loadingIntegrations}>
+            {loadingIntegrations ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <RefreshCw className="h-3.5 w-3.5" />
+            )}
+          </Button>
+        </div>
+
+        {loadingIntegrations ? (
+          <div className="flex items-center justify-center py-6">
+            <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+          </div>
+        ) : integrations.length === 0 ? (
+          <div className="border border-dashed rounded-lg py-6 text-center text-xs text-muted-foreground">
+            Nenhuma conexão encontrada.
+          </div>
+        ) : (
+          <div className="border rounded-lg overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Integração</TableHead>
+                  <TableHead className="hidden sm:table-cell">Identificador</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="hidden md:table-cell">Descrição</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {integrations.map((it) => (
+                  <TableRow key={it.envVar}>
+                    <TableCell className="font-medium">{it.name}</TableCell>
+                    <TableCell className="hidden sm:table-cell">
+                      <code className="font-mono text-[11px] text-muted-foreground">{it.envVar}</code>
+                    </TableCell>
+                    <TableCell>
+                      <Badge
+                        variant={it.configured ? "default" : "secondary"}
+                        className="text-[10px]"
+                      >
+                        {it.configured ? "Configurada" : "Não configurada"}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="hidden md:table-cell text-xs text-muted-foreground">
+                      {it.description}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        )}
+      </section>
+
+      {/* Chaves customizadas (gerenciadas pelo usuário) */}
+      <section className="space-y-3">
+        <div className="flex items-center justify-between gap-2">
+          <div>
+            <h3 className="text-sm font-semibold flex items-center gap-1.5">
+              <KeyRound className="h-4 w-4 text-primary" /> Minhas chaves
+            </h3>
+            <p className="text-xs text-muted-foreground">
+              Chaves personalizadas gerenciadas neste dispositivo.
+            </p>
+          </div>
+          <Button size="sm" onClick={openCreate}>
+            <Plus className="h-3.5 w-3.5 mr-1" /> Nova chave
+          </Button>
+        </div>
 
       {empty ? (
         <div className="border border-dashed rounded-lg py-10 flex flex-col items-center text-center gap-2">
@@ -285,6 +383,8 @@ export function ApiKeysManager() {
           </Table>
         </div>
       )}
+      </section>
+
 
       <Dialog open={dialogOpen} onOpenChange={(o) => !o && closeDialog()}>
         <DialogContent>
