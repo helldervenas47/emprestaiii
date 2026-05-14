@@ -15,7 +15,7 @@ interface Props {
 
 export function PiggyBanksSummaryCard({ readOnly = false }: Props) {
   const [expanded, setExpanded] = useState(false);
-  const { piggyBanks, balances } = usePiggyBanks();
+  const { piggyBanks, balances, cdiRate } = usePiggyBanks();
   const { mask } = useHideValues();
 
   const total = useMemo(() => {
@@ -39,6 +39,11 @@ export function PiggyBanksSummaryCard({ readOnly = false }: Props) {
             <span className="text-xs text-muted-foreground hidden sm:inline">
               · {piggyBanks.length} {piggyBanks.length === 1 ? "cofrinho" : "cofrinhos"}
             </span>
+            {cdiRate && (
+              <span className="ml-1 inline-flex items-center gap-1 rounded-full border border-primary/20 bg-primary/10 px-2 py-0.5 text-[10px] font-semibold text-primary tabular-nums">
+                CDI {cdiRate.annualRate.toFixed(2)}%
+              </span>
+            )}
           </div>
           <div className="flex items-center gap-3">
             <div className="text-right">
