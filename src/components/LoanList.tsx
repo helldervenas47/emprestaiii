@@ -2847,6 +2847,24 @@ function LoanRowView({
           <div className="min-w-0">
             <div className="flex items-center gap-1 flex-wrap">
               <span className="font-medium text-[11px] sm:text-sm text-foreground truncate block max-w-[80px] sm:max-w-none">{loan.borrowerName}</span>
+              {loan.notes?.trim() && (
+                <TooltipProvider delayDuration={300}>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span
+                        className="inline-flex items-center justify-center h-4 w-4 sm:h-5 sm:w-5 rounded-full bg-muted text-muted-foreground border border-border/50 shrink-0 cursor-help"
+                        onClick={(e) => e.stopPropagation()}
+                        aria-label="Possui observação"
+                      >
+                        <StickyNote className="h-2.5 w-2.5 sm:h-3 sm:w-3" />
+                      </span>
+                    </TooltipTrigger>
+                    <TooltipContent side="top" className="text-xs max-w-[240px]">
+                      {loan.notes}
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              )}
               {renegotiations.length > 0 && (
                 <TooltipProvider delayDuration={300}>
                   <Tooltip>
