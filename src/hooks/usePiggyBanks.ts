@@ -275,7 +275,7 @@ export function usePiggyBanks() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [recurrences, dataOwnerId]);
 
-  const createPiggyBank = useCallback(async (data: { name: string; color?: string; icon?: string; annualRate?: number; autoRate?: boolean; shortId?: number | null }) => {
+  const createPiggyBank = useCallback(async (data: { name: string; color?: string; icon?: string; annualRate?: number; autoRate?: boolean; cdiPercent?: number; shortId?: number | null }) => {
     if (!user || !dataOwnerId) return null;
     const payload: any = {
       user_id: dataOwnerId,
@@ -284,6 +284,7 @@ export function usePiggyBanks() {
       icon: data.icon ?? "PiggyBank",
       annual_rate: data.annualRate ?? 11.15,
       auto_rate: data.autoRate ?? false,
+      cdi_percent: data.cdiPercent ?? 100,
     };
     if (data.shortId !== undefined && data.shortId !== null) payload.short_id = data.shortId;
     const { data: row, error } = await (supabase as any).from("piggy_banks").insert(payload).select().single();
