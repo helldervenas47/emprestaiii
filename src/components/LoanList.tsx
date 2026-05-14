@@ -4324,7 +4324,16 @@ function ClientFolder({
               </div>
             </div>
             {/* Mobile summary */}
-            <div className="flex sm:hidden items-center justify-between text-xs border-b border-border/30 pb-3">
+            <div className="flex sm:hidden items-center justify-between gap-2 text-xs border-b border-border/30 pb-3">
+              <button
+                type="button"
+                aria-label="Enviar para WhatsApp"
+                onClick={handleShareWhatsApp}
+                disabled={sharing}
+                className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-[#25D366]/10 hover:bg-[#25D366]/20 text-[#25D366] transition-colors shrink-0 disabled:opacity-50"
+              >
+                <MessageCircle className="h-4 w-4" />
+              </button>
               <div className="text-center flex-1">
                 <p className="text-[9px] text-muted-foreground uppercase">Emprestado</p>
                 <p className="font-bold text-foreground">{formatCurrency(group.totalAmount)}</p>
