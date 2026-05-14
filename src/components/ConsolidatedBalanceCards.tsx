@@ -59,7 +59,7 @@ export function ConsolidatedBalanceCards() {
       getBalances(),
       supabase.auth.getSession(),
     ]);
-    setDashboardBalance(b.account);
+    setDashboardBalance(b.total);
     const user = session?.user;
     if (user) {
       const { data: ownerRow } = await supabase
