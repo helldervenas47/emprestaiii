@@ -4223,11 +4223,52 @@ function ClientFolder({
     setSharing(true);
     try {
       const { toBlob } = await import("html-to-image");
-      const blob = await toBlob(captureRef.current, {
+
+      // Clone capture node so we can hide/remove elements only for the exported image
+      const original = captureRef.current;
+      const clone = original.cloneNode(true) as HTMLDivElement;
+
+      // Remove WhatsApp button from clone
+      const whatsappBtn = clone.querySelector('button[aria-label="Enviar para WhatsApp"]');
+      if (whatsappBtn) whatsappBtn.remove();
+
+      // Remove "Recebido" column from mobile summary in clone
+      const mobileSummary = clone.querySelector('.flex.sm\\:hidden');
+      if (mobileSummary) {
+        const children = Array.from(mobileSummary.children) as HTMLElement[];
+        for (const child of children) {
+          const label = child.querySelector('p.text-\\[9px\\]');
+          if (label && label.textContent?.trim() === 'Recebido') {
+            child.remove();
+            break;
+          }
+        }
+      }
+
+      // Also remove any other "Recebido" desktop summary blocks if they exist inside the clone
+      clone.querySelectorAll('p').forEach((el) => {
+        if (el.textContent?.trim() === 'Recebido') {
+          const parent = el.closest('div.text-center, div.text-right');
+          if (parent) parent.remove();
+        }
+      });
+
+      // Temporarily mount clone for html-to-image rendering
+      clone.style.position = 'absolute';
+      clone.style.left = '-99999px';
+      clone.style.top = '0';
+      clone.style.width = `${original.offsetWidth}px`;
+      clone.style.visibility = 'hidden';
+      document.body.appendChild(clone);
+
+      const blob = await toBlob(clone, {
         pixelRatio: 2,
         backgroundColor: getComputedStyle(document.body).backgroundColor || "#ffffff",
         cacheBust: true,
       });
+
+      document.body.removeChild(clone);
+
       if (!blob) throw new Error("Falha ao gerar imagem");
       const file = new File([blob], `emprestimos-${group.name.replace(/\s+/g, "-").toLowerCase()}.png`, { type: "image/png" });
       const text = `Empréstimos de ${group.name}`;
