@@ -22,6 +22,7 @@ export type ReportKey =
 export interface ImageDeliveryPrefs {
   reports: Record<ReportKey, boolean>;
   includeText: boolean;
+  allowedUserIds: string[] | null; // null = todos
 }
 
 const REPORTS: { key: ReportKey; label: string; hint: string }[] = [
