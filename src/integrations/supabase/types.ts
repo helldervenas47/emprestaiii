@@ -2559,18 +2559,21 @@ export type Database = {
       }
       telegram_image_delivery_prefs: {
         Row: {
+          allowed_user_ids: string[] | null
           include_text: boolean
           reports: Json
           updated_at: string
           user_id: string
         }
         Insert: {
+          allowed_user_ids?: string[] | null
           include_text?: boolean
           reports?: Json
           updated_at?: string
           user_id: string
         }
         Update: {
+          allowed_user_ids?: string[] | null
           include_text?: boolean
           reports?: Json
           updated_at?: string
