@@ -23,6 +23,24 @@ import { toast } from "sonner";
 const formatBRL = (n: number) =>
   n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
+/** Format the exact time portion (HH:mm:ss) of a timestamptz in the app timezone. */
+const formatTimeInAppTz = (iso?: string | null): string => {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return "";
+  try {
+    return new Intl.DateTimeFormat("pt-BR", {
+      timeZone: getAppTimezone(),
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      hour12: false,
+    }).format(d);
+  } catch {
+    return d.toISOString().slice(11, 19);
+  }
+};
+
 const categoryLabels: Record<LedgerCategory, string> = {
   loan: "Empréstimo",
   payment: "Pagamento",
