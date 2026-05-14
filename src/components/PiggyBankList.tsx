@@ -397,44 +397,19 @@ export function PiggyBankList({ readOnly = false }: Props) {
                 ))}
               </div>
             </div>
-            <div className="rounded-lg border border-border/50 bg-muted/20 p-2.5 flex items-start justify-between gap-3">
-              <div className="min-w-0">
-                <Label htmlFor="pb-auto" className="text-xs font-semibold flex items-center gap-1.5">
-                  <Zap className="h-3.5 w-3.5 text-primary" />
-                  Atualizar automaticamente com CDI
-                </Label>
-                <p className="text-[10px] text-muted-foreground mt-0.5">
+            <div className="rounded-lg border border-primary/30 bg-primary/5 p-2.5 flex items-start gap-2">
+              <Zap className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+              <div className="min-w-0 text-xs">
+                <p className="font-semibold text-foreground">Rendimento atrelado ao CDI</p>
+                <p className="text-[11px] text-muted-foreground mt-0.5">
                   {cdiRate
-                    ? `Atual: ${cdiRate.annualRate.toFixed(2)}% a.a. · ${cdiUpdatedLabel}`
-                    : "Aguardando primeira sincronização do BCB."}
+                    ? `Taxa atual: ${cdiRate.annualRate.toFixed(2)}% a.a. · ${cdiUpdatedLabel}`
+                    : "Aguardando primeira sincronização do Banco Central."}
+                </p>
+                <p className="text-[10px] text-muted-foreground mt-1">
+                  Todos os cofrinhos seguem automaticamente a taxa CDI publicada pelo Banco Central, recalculada diariamente.
                 </p>
               </div>
-              <Switch
-                id="pb-auto"
-                checked={draft.autoRate}
-                disabled={!cdiRate}
-                onCheckedChange={(v) => setDraft((p) => ({
-                  ...p,
-                  autoRate: v,
-                  annualRate: v && cdiRate ? cdiRate.annualRate.toFixed(2) : p.annualRate,
-                }))}
-              />
-            </div>
-            <div>
-              <Label htmlFor="pb-rate">Taxa anual (%)</Label>
-              <Input
-                id="pb-rate"
-                type="number"
-                step="0.01"
-                value={draft.annualRate}
-                disabled={draft.autoRate}
-                onChange={(e) => setDraft((p) => ({ ...p, annualRate: e.target.value }))}
-              />
-              <p className="text-[10px] text-muted-foreground mt-1">
-                {draft.autoRate
-                  ? "Em modo automático, a taxa segue o CDI publicado pelo Banco Central."
-                  : "100% CDI ≈ 11,15% a.a. (referência PicPay)."}
-              </p>
             </div>
           </div>
           <DialogFooter>
