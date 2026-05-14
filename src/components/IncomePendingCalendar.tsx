@@ -161,7 +161,7 @@ export function IncomePendingCalendar({
   };
 
   const { sales } = useProducts(true);
-  const { deposits: piggyDeposits } = usePiggyBanks();
+  const { deposits: piggyDeposits, piggyBanks } = usePiggyBanks();
 
   // Saldo em conta (mesma fórmula do IncomeBalanceCard)
   const computedBalance = useMemo(() => {
