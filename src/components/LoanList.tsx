@@ -18,7 +18,7 @@ import { Calendar as CalendarUI } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { calculateInstallment, calculateTotalWithInterest } from "@/hooks/useLoans";
 import { getInstallmentAmount } from "@/lib/loanInstallmentAmount";
-import { getLoanLateFees } from "@/lib/loanLateFees";
+import { getLoanLateFees, getBaseRemainingAmount } from "@/lib/loanLateFees";
 import { cn } from "@/lib/utils";
 import {
   CheckCircle, Trash2, DollarSign, User, Calendar as CalendarIcon, LayoutGrid, List,
@@ -4575,13 +4575,19 @@ export function LoanList({ loans, payments, installmentSchedules, onPayment, onP
      Object.entries(byName).forEach(([name, loans]) => {
        if (loans.length > 1) {
          const totalPaid = loans.reduce((s, l) => s + getTotalPaid(l, payments), 0);
+         // "A Receber" do cliente = saldo restante + multas/juros de atraso + penalidades de renegociação
+         //  - exclui empréstimos quitados
+         //  - usa getBaseRemainingAmount (mesma fonte usada no card de cada empréstimo)
+         //  - inclui lateFees (juros de atraso + multa) e renegotiationPenaltyTotal pendente
          const totalReceivable = loans.reduce((s, l) => {
-           const t = calculateTotalWithInterest(l.amount, l.interestRate, l.installments);
-           const paid = getTotalPaid(l, payments);
-           return s + Math.max(0, (l.remainingAmount != null && l.remainingAmount > 0 ? l.remainingAmount : t - paid));
+           if (l.status === "paid") return s;
+           const base = getBaseRemainingAmount(l, payments, installmentSchedules);
+           const fees = getLoanLateFees(l, payments, installmentSchedules);
+           const renegPenalty = Number(l.renegotiationPenaltyTotal || 0);
+           return s + Math.max(0, base + fees.lateFees + renegPenalty);
          }, 0);
          const hasOverdue = loans.some((l) => l.status !== "paid" && getLoanCategory(l, payments, installmentSchedules) === "overdue");
-          grouped.push({ name, loans, totalAmount: loans.reduce((s, l) => s + l.amount, 0), totalPaid, totalReceivable, hasOverdue });
+          grouped.push({ name, loans, totalAmount: loans.reduce((s, l) => s + l.amount, 0), totalPaid, totalReceivable: Math.round(totalReceivable * 100) / 100, hasOverdue });
       } else {
         singles.push(loans[0]);
       }
