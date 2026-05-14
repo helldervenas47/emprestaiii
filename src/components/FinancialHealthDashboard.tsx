@@ -624,7 +624,7 @@ function IndicatorGaugeCard({
       {/* Pontuação numérica em destaque, ACIMA do velocímetro */}
       <div className="flex flex-col items-center">
         <span
-          className={`font-bold leading-none tabular-nums ${featured ? "text-4xl" : "text-2xl"}`}
+          className={`font-bold leading-none tabular-nums ${featured ? "text-3xl" : "text-base"}`}
           style={{ color }}
         >
           {score}
