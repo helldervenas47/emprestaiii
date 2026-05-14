@@ -4254,11 +4254,14 @@ function ClientFolder({
       });
 
       // Temporarily mount clone for html-to-image rendering
-      clone.style.position = 'absolute';
-      clone.style.left = '-99999px';
+      // Note: visibility:hidden makes html-to-image render blank — use opacity instead
+      clone.style.position = 'fixed';
+      clone.style.left = '0';
       clone.style.top = '0';
+      clone.style.zIndex = '-1';
+      clone.style.opacity = '0';
+      clone.style.pointerEvents = 'none';
       clone.style.width = `${original.offsetWidth}px`;
-      clone.style.visibility = 'hidden';
       document.body.appendChild(clone);
 
       const blob = await toBlob(clone, {
