@@ -36,26 +36,21 @@ Deno.serve(async (req) => {
       );
     }
 
-    // hcti.io returns fields like: monthly_request_count, monthly_request_limit
-    const used = Number(
-      data.monthly_request_count ??
-      data.monthly_image_count ??
-      data.usage ??
-      0,
-    );
-    const limit = Number(
-      data.monthly_request_limit ??
-      data.monthly_image_count_limit ??
-      data.limit ??
-      0,
-    );
+    // HCTI /v1/usage retorna { data: { month: { "YYYY-MM-01T00:00:00Z": n } }, per_billing_period: [{ total_images, start, end }] }
+    const period = Array.isArray(data?.per_billing_period) ? data.per_billing_period[0] : null;
+    const monthMap = (data?.data?.month ?? {}) as Record<string, number>;
+    const monthSum = Object.values(monthMap).reduce((acc: number, v: any) => acc + Number(v || 0), 0);
+    const used = Number(period?.total_images ?? monthSum ?? 0);
+    const envLimit = Number(Deno.env.get("HTML_TO_IMAGE_MONTHLY_LIMIT") ?? 0);
+    const limit = envLimit > 0 ? envLimit : 50; // plano free padrão HCTI
 
     return new Response(
       JSON.stringify({
         configured: true,
         used,
         limit,
-        plan: data.plan ?? null,
+        period_start: period?.start ?? null,
+        period_end: period?.end ?? null,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
