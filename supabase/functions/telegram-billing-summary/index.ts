@@ -296,7 +296,7 @@ Deno.serve(async (req) => {
         Number(link.chat_id),
         report.split("\n"),
         { name: brandName },
-        { fallbackText: report },
+        { fallbackText: report, reportKey: "billing" },
       );
       if (!sendRes.sent) {
         errors.push(`${pref.user_id}: ${sendRes.reason ?? "send_failed"}`);

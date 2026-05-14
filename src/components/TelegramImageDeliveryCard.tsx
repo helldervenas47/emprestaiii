@@ -57,6 +57,32 @@ export function loadImageDeliveryPrefs(): ImageDeliveryPrefs {
   }
 }
 
+async function fetchPrefsFromDB(): Promise<ImageDeliveryPrefs | null> {
+  const { data: auth } = await supabase.auth.getUser();
+  if (!auth?.user) return null;
+  const { data } = await supabase
+    .from("telegram_image_delivery_prefs")
+    .select("reports, include_text")
+    .eq("user_id", auth.user.id)
+    .maybeSingle();
+  if (!data) return null;
+  return {
+    reports: { ...DEFAULT_PREFS.reports, ...((data.reports as any) || {}) },
+    includeText: data.include_text !== false,
+  };
+}
+
+async function savePrefsToDB(prefs: ImageDeliveryPrefs) {
+  const { data: auth } = await supabase.auth.getUser();
+  if (!auth?.user) return;
+  await supabase.from("telegram_image_delivery_prefs").upsert({
+    user_id: auth.user.id,
+    reports: prefs.reports as any,
+    include_text: prefs.includeText,
+    updated_at: new Date().toISOString(),
+  });
+}
+
 interface UsageState {
   loading: boolean;
   used: number | null;
@@ -103,11 +129,18 @@ export function TelegramImageDeliveryCard() {
   useEffect(() => {
     setPrefs(loadImageDeliveryPrefs());
     loadUsage();
+    fetchPrefsFromDB().then((p) => {
+      if (p) {
+        setPrefs(p);
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(p));
+      }
+    });
   }, []);
 
   const update = (next: ImageDeliveryPrefs) => {
     setPrefs(next);
     localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+    void savePrefsToDB(next);
   };
 
   const toggleReport = (key: ReportKey, value: boolean) => {

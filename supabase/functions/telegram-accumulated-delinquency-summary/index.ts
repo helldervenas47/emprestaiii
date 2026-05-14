@@ -358,7 +358,7 @@ Deno.serve(async (req) => {
           Number(link.chat_id),
           report.split("\n"),
           { name: brandName },
-          { fallbackText: report },
+          { fallbackText: report, reportKey: "accumulated_delinquency" },
         );
         if (!sendRes.sent) {
           console.warn("[accumulated-delinquency] send skipped for", pref.user_id, sendRes.reason);

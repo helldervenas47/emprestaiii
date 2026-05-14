@@ -2557,6 +2557,27 @@ export type Database = {
           },
         ]
       }
+      telegram_image_delivery_prefs: {
+        Row: {
+          include_text: boolean
+          reports: Json
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          include_text?: boolean
+          reports?: Json
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          include_text?: boolean
+          reports?: Json
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       telegram_link_codes: {
         Row: {
           code: string
