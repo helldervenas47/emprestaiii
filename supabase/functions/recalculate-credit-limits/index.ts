@@ -103,6 +103,23 @@ Deno.serve(async (req: Request) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     );
 
+    // Auth: require shared cron secret (header or query) matching app_internal_config.cron_secret
+    const cronToken =
+      req.headers.get("X-Cron-Secret") ||
+      new URL(req.url).searchParams.get("cron_secret") ||
+      "";
+    const { data: cfg } = await supabase
+      .from("app_internal_config")
+      .select("value")
+      .eq("key", "cron_secret")
+      .maybeSingle();
+    if (!cfg?.value || !cronToken || cronToken !== cfg.value) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     // Fetch all auto-mode credit limits
     const { data: limits, error: limitsErr } = await supabase
       .from("credit_limits")

@@ -92,6 +92,15 @@ Deno.serve(async (req: Request) => {
       if (j?.manager_user_id) targetManagerId = String(j.manager_user_id);
     } catch { /* no body */ }
 
+    // AUTH: per-owner request requires the caller's JWT; cron path requires the shared secret.
+    if (forceOwner) {
+      const owned = await validateUserOwner(admin, req, forceOwner);
+      if (!owned.ok) return unauthorized(corsHeaders, owned.reason || "Unauthorized");
+    } else {
+      const isCron = await validateCronSecret(admin, req);
+      if (!isCron) return unauthorized(corsHeaders);
+    }
+
     const today = todayStr();
     const nowParts = nowInTz();
     const currentDow = nowParts.getDay(); // 0..6

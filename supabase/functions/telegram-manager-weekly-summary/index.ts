@@ -334,6 +334,15 @@ Deno.serve(async (req) => {
     const refDateValid = refDateRaw && /^\d{4}-\d{2}-\d{2}$/.test(refDateRaw) && !Number.isNaN(Date.parse(`${refDateRaw}T12:00:00Z`));
     const referenceDate: string | null = refDateValid ? refDateRaw : null;
 
+    // AUTH: per-owner request requires the caller's JWT; cron path requires shared secret.
+    if (ownerId) {
+      const owned = await validateUserOwner(admin, req, ownerId);
+      if (!owned.ok) return unauthorized(corsHeaders, owned.reason || "Unauthorized");
+    } else {
+      const isCron = await validateCronSecret(admin, req);
+      if (!isCron) return unauthorized(corsHeaders);
+    }
+
     // Manual / preview / list path — single owner
     if (ownerId && (manualRun || previewOnly || listManagers || targetManagerClientId)) {
       const { date: realToday } = nowInTz();

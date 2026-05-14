@@ -1,4 +1,5 @@
 import { createClient } from "npm:@supabase/supabase-js@2.95.0";
+import { validateCronSecret, validateUserOwner, unauthorized } from "../_shared/auth-guard.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -133,6 +134,16 @@ Deno.serve(async (req: Request) => {
       if (json?.owner_id) forceOwner = json.owner_id;
       manualRun = json?.manual_run === true;
     } catch { /* no body */ }
+
+    // AUTH: per-owner manual run requires the caller's JWT to belong to that owner;
+    // cron path (no owner_id) requires the shared cron secret header.
+    if (forceOwner) {
+      const owned = await validateUserOwner(admin, req, forceOwner);
+      if (!owned.ok) return unauthorized(corsHeaders, owned.reason || "Unauthorized");
+    } else {
+      const isCron = await validateCronSecret(admin, req);
+      if (!isCron) return unauthorized(corsHeaders);
+    }
 
     const today = todayStr();
     const nowHM = (() => {
