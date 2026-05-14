@@ -2,7 +2,8 @@ import { useEffect, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { Image as ImageIcon } from "lucide-react";
+import { Image as ImageIcon, ChevronDown } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 const STORAGE_KEY = "telegram_image_delivery_prefs_v1";
 
