@@ -219,6 +219,13 @@ export async function svgToPng(svg: string): Promise<Uint8Array> {
 
 interface InlineSeg { text: string; bold?: boolean; italic?: boolean }
 
+// Strips emoji glyphs that the embedded Noto Sans font cannot render.
+// Emojis remain in the Telegram caption (which renders them natively).
+const EMOJI_RE = /[\u{1F300}-\u{1F6FF}\u{1F900}-\u{1FAFF}\u{2600}-\u{27BF}\u{1F000}-\u{1F2FF}\u{FE0F}\u{200D}]/gu;
+function stripEmojis(s: string): string {
+  return s.replace(EMOJI_RE, "").replace(/\s{2,}/g, " ").trimEnd();
+}
+
 function parseInline(line: string): InlineSeg[] {
   const out: InlineSeg[] = [];
   let buf = "";
