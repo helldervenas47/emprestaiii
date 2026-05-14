@@ -177,6 +177,7 @@ export function IncomeBalanceCard({ incomes, expenses, onAdjust, readOnly, onOpe
       expenses,
       cards,
       openings,
+      piggyDeposits,
       overrides: openingOverrides,
     });
     const projected = monthEndProjected ?? (balance + futureIn - futureOut);
