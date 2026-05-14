@@ -16,8 +16,20 @@ import {
 import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
 import { useHideValues } from "@/contexts/HideValuesContext";
 import { usePiggyBanks, type PiggyBank as PiggyBankType, type PiggyBankDeposit } from "@/hooks/usePiggyBanks";
+import { useIncomes } from "@/hooks/useIncomes";
+import { useExpenses } from "@/hooks/useExpenses";
+import { useProducts } from "@/hooks/useProducts";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+
+/** Total efetivamente recebido de uma venda (espelha IncomeBalanceCard). */
+function saleReceivedTotal(sale: any): number {
+  if (sale.paymentHistory && sale.paymentHistory.length > 0) {
+    return sale.paymentHistory.reduce((s: number, p: any) => s + (Number(p.amount) || 0), 0);
+  }
+  const iv = sale.installmentValue ?? (sale.installments > 0 ? sale.total / sale.installments : sale.total);
+  return (sale.downPayment || 0) + (sale.paidInstallments || 0) * iv + (sale.partialPaid || 0);
+}
 
 const fmt = (v: number) =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v);
