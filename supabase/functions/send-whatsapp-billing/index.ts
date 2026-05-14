@@ -135,6 +135,16 @@ Deno.serve(async (req: Request) => {
       manualRun = json?.manual_run === true;
     } catch { /* no body */ }
 
+    // AUTH: per-owner manual run requires the caller's JWT to belong to that owner;
+    // cron path (no owner_id) requires the shared cron secret header.
+    if (forceOwner) {
+      const owned = await validateUserOwner(admin, req, forceOwner);
+      if (!owned.ok) return unauthorized(corsHeaders, owned.reason || "Unauthorized");
+    } else {
+      const isCron = await validateCronSecret(admin, req);
+      if (!isCron) return unauthorized(corsHeaders);
+    }
+
     const today = todayStr();
     const nowHM = (() => {
       const d = nowInTz();
