@@ -4283,6 +4283,19 @@ function ClientFolder({
           </div>
         </div>
         <div className="hidden sm:flex items-center gap-4 text-xs shrink-0">
+          {open && (
+            <span
+              role="button"
+              tabIndex={0}
+              aria-label="Enviar para WhatsApp"
+              onClick={handleShareWhatsApp}
+              onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); handleShareWhatsApp(e as any); } }}
+              className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-[#25D366]/10 hover:bg-[#25D366]/20 text-[#25D366] transition-colors disabled:opacity-50"
+              aria-disabled={sharing}
+            >
+              <MessageCircle className="h-4 w-4" />
+            </span>
+          )}
           <div className="text-right">
             <p className="text-[9px] text-muted-foreground uppercase">Emprestado</p>
             <p className="font-bold text-foreground">{formatCurrency(group.totalAmount)}</p>
