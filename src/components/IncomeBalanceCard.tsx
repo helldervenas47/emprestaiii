@@ -296,9 +296,18 @@ export function IncomeBalanceCard({ incomes, expenses, onAdjust, readOnly, onOpe
           </p>
         </button>
         <div
-          className="rounded-2xl p-3 sm:p-4 bg-foreground/[0.04] dark:bg-white/[0.05] border border-border/40 shadow-[0_4px_16px_-6px_hsl(0_0%_0%/0.25)] animate-fade-in flex flex-col items-center text-center"
+          className="relative rounded-2xl p-3 sm:p-4 bg-foreground/[0.04] dark:bg-white/[0.05] border border-border/40 shadow-[0_4px_16px_-6px_hsl(0_0%_0%/0.25)] animate-fade-in flex flex-col items-center text-center"
           style={{ animationDelay: '240ms', animationFillMode: 'backwards' }}
         >
+          <button
+            type="button"
+            aria-label="Ver dados usados no cálculo do saldo previsto"
+            title="Ver cálculo do saldo previsto"
+            onClick={() => setProjInfoOpen(true)}
+            className="absolute top-1.5 right-1.5 h-6 w-6 inline-flex items-center justify-center rounded-full text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors"
+          >
+            <Info className="h-3.5 w-3.5" />
+          </button>
           <div className={`h-8 w-8 rounded-lg flex items-center justify-center mb-2 ${calc.projected >= calc.balance ? "bg-primary/10" : "bg-destructive/10"}`}>
             {calc.projectedDiff >= 0
               ? <TrendingUp className={`h-4 w-4 ${calc.projected >= calc.balance ? "text-primary" : "text-destructive"}`} />
