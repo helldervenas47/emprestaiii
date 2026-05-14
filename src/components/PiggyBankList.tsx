@@ -64,8 +64,7 @@ export function PiggyBankList({ readOnly = false }: Props) {
     }
   };
 
-  const { mask } = useHideValues();
-  const { piggyBanks, deposits, balances, detailed, cdiRate, createPiggyBank, updatePiggyBank, deletePiggyBank, adjustBalance, updateDeposit, deleteDeposit, setPiggyRate, refreshCdiNow } = usePiggyBanks();
+
 
   const [createOpen, setCreateOpen] = useState(false);
   const [editing, setEditing] = useState<PiggyBankType | null>(null);
