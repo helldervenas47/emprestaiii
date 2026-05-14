@@ -296,7 +296,14 @@ async function processOwner(
         continue;
       }
       const message = renderMessage(m.name, items);
-      const send = await sendReportsMessage(admin, ownerId, chatId, message);
+      const send = await sendReportsAsImage(
+        admin,
+        ownerId,
+        chatId,
+        message.split("\n"),
+        { name: "EmprestAI" },
+        { fallbackText: message },
+      );
       results.push({
         client_id: m.client_id,
         name: m.name,
