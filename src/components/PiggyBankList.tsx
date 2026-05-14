@@ -133,10 +133,12 @@ export function PiggyBankList({ readOnly = false }: Props) {
 
   const save = async () => {
     if (!draft.name.trim()) return;
-    // Todos os cofrinhos seguem o CDI vigente; cai para 11.15% se ainda não há cache.
-    const rate = cdiRate
-      ? Number(cdiRate.annualRate.toFixed(4))
-      : 11.15;
+    // % do CDI escolhida pelo usuário (1..200). 100% = 1x CDI.
+    const pctRaw = Number(draft.cdiPercent.replace(",", "."));
+    const pct = Number.isFinite(pctRaw) && pctRaw > 0 ? Math.min(pctRaw, 500) : 100;
+    // Taxa efetiva = CDI vigente * pct/100 (cai para 11.15% se ainda não há cache).
+    const baseCdi = cdiRate ? cdiRate.annualRate : 11.15;
+    const rate = Number((baseCdi * (pct / 100)).toFixed(4));
 
     // Validate short id (1..99, unique within this account).
     let shortId: number | null = null;
@@ -161,6 +163,7 @@ export function PiggyBankList({ readOnly = false }: Props) {
         color: draft.color,
         shortId,
         autoRate: true,
+        cdiPercent: pct,
       });
       if (rateChanged) {
         // Forward: mantém histórico de rendimentos passados intacto.
@@ -172,6 +175,7 @@ export function PiggyBankList({ readOnly = false }: Props) {
         color: draft.color,
         annualRate: rate,
         autoRate: true,
+        cdiPercent: pct,
         shortId,
       });
     }
