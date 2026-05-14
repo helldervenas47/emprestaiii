@@ -1,5 +1,6 @@
 import type { Income } from "@/hooks/useIncomes";
 import type { Expense } from "@/types/loan";
+import type { PiggyBankDeposit } from "@/hooks/usePiggyBanks";
 import type { CreditCard } from "@/hooks/useCreditCards";
 import type { InvoiceOpening } from "@/hooks/useCreditCardOpenings";
 import {
@@ -25,6 +26,7 @@ export function buildDailyDeltas(opts: {
   expenses: Expense[];
   cards: CreditCard[];
   openings: InvoiceOpening[];
+  piggyDeposits?: PiggyBankDeposit[];
   /** Faixa de meses (inclusiva, 0-indexed) coberta pelas faturas de cartão. */
   fromYear: number;
   fromMonth: number;
@@ -106,6 +108,18 @@ export function buildDailyDeltas(opts: {
     }
   }
 
+  // Movimentações manuais de cofrinhos (guardar/resgatar). Aportes vinculados
+  // a despesa (expenseId) já estão refletidos via despesa correspondente.
+  if (opts.piggyDeposits) {
+    for (const d of opts.piggyDeposits) {
+      if (d.expenseId) continue;
+      if (!d.depositDate) continue;
+      const amt = Number(d.amount) || 0;
+      if (amt >= 0) ensure(d.depositDate).expense += amt;
+      else ensure(d.depositDate).income += -amt;
+    }
+  }
+
   return map;
 }
 
@@ -156,6 +170,7 @@ export function getMonthEndProjectedBalance(opts: {
   expenses: Expense[];
   cards: CreditCard[];
   openings: InvoiceOpening[];
+  piggyDeposits?: PiggyBankDeposit[];
   overrides: Record<string, number>;
 }): number | null {
   const [tgtY, tgtM] = opts.monthKey.split("-").map(Number);
@@ -186,6 +201,7 @@ export function getMonthEndProjectedBalance(opts: {
     expenses: opts.expenses,
     cards: opts.cards,
     openings: opts.openings,
+    piggyDeposits: opts.piggyDeposits,
     fromYear: startDate.getFullYear(),
     fromMonth: startDate.getMonth(),
     toYear: targetEnd.getFullYear(),

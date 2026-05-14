@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription,
 } from "@/components/ui/dialog";
-import { ChevronLeft, ChevronRight, ChevronDown, ChevronUp, CalendarDays, TrendingUp, ArrowUpCircle, ArrowDownCircle, Wallet, Pencil, RotateCcw, CreditCard as CreditCardIcon, Lock } from "lucide-react";
+import { ChevronLeft, ChevronRight, ChevronDown, ChevronUp, CalendarDays, TrendingUp, ArrowUpCircle, ArrowDownCircle, Wallet, Pencil, RotateCcw, CreditCard as CreditCardIcon, Lock, PiggyBank as PiggyBankIcon } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import type { Income } from "@/hooks/useIncomes";
 import type { Expense, Sale } from "@/types/loan";
@@ -95,10 +95,18 @@ type CardInvoiceEntry = {
   paid: boolean;
 };
 
+type PiggyMovementEntry = {
+  id: string;
+  piggyBankId: string;
+  piggyName?: string;
+  amount: number; // positive = guardar (saída), negative = resgatar (entrada)
+};
+
 type DayInfo = {
   incomes: Income[];
   expenses: Expense[];
   cardInvoices: CardInvoiceEntry[];
+  piggyMovements: PiggyMovementEntry[];
   totalIncome: number;
   totalExpense: number;
 };
@@ -153,7 +161,7 @@ export function IncomePendingCalendar({
   };
 
   const { sales } = useProducts(true);
-  const { deposits: piggyDeposits } = usePiggyBanks();
+  const { deposits: piggyDeposits, piggyBanks } = usePiggyBanks();
 
   // Saldo em conta (mesma fórmula do IncomeBalanceCard)
   const computedBalance = useMemo(() => {
@@ -227,7 +235,7 @@ export function IncomePendingCalendar({
   const dayMap = useMemo(() => {
     const map: Record<string, DayInfo> = {};
     const ensure = (d: string) => {
-      if (!map[d]) map[d] = { incomes: [], expenses: [], cardInvoices: [], totalIncome: 0, totalExpense: 0 };
+      if (!map[d]) map[d] = { incomes: [], expenses: [], cardInvoices: [], piggyMovements: [], totalIncome: 0, totalExpense: 0 };
       return map[d];
     };
     for (const i of incomes) {
@@ -365,8 +373,30 @@ export function IncomePendingCalendar({
         }
       }
     }
+    // Movimentações de cofrinhos (guardar/resgatar) — apenas movimentos manuais
+    // (sem expenseId), pois aportes vinculados a despesa já são contabilizados
+    // pela própria despesa. Guardar (amount > 0) reduz o saldo do dia; resgatar
+    // (amount < 0) aumenta o saldo do dia.
+    const piggyNameById = new Map(piggyBanks.map((pb) => [pb.id, pb.name]));
+    for (const d of piggyDeposits) {
+      if (d.expenseId) continue;
+      if (!d.depositDate) continue;
+      const e = ensure(d.depositDate);
+      const amt = Number(d.amount) || 0;
+      e.piggyMovements.push({
+        id: d.id,
+        piggyBankId: d.piggyBankId,
+        piggyName: piggyNameById.get(d.piggyBankId),
+        amount: amt,
+      });
+      if (amt >= 0) {
+        e.totalExpense += amt;
+      } else {
+        e.totalIncome += -amt;
+      }
+    }
     return map;
-  }, [incomes, personalExpenses, expenses, cards, openings, year, month, weekDays]);
+  }, [incomes, personalExpenses, expenses, cards, openings, year, month, weekDays, piggyDeposits, piggyBanks]);
 
 
   const monthTotals = useMemo(() => {
@@ -406,7 +436,7 @@ export function IncomePendingCalendar({
     setMonth(d.getMonth());
   };
 
-  const emptyDay: DayInfo = { incomes: [], expenses: [], cardInvoices: [], totalIncome: 0, totalExpense: 0 };
+  const emptyDay: DayInfo = { incomes: [], expenses: [], cardInvoices: [], piggyMovements: [], totalIncome: 0, totalExpense: 0 };
   const selectedInfo: DayInfo = selectedDate ? (dayMap[selectedDate] ?? emptyDay) : emptyDay;
   // Saldo previsto acumulado dia a dia.
   // Cobre tanto o mês expandido quanto a semana atual.
@@ -808,6 +838,58 @@ export function IncomePendingCalendar({
                       </ul>
                       <p className="text-[10px] text-muted-foreground italic mt-1 px-1">
                         Faturas em aberto entram no cálculo do saldo previsto do dia.
+                      </p>
+                    </section>
+                  )}
+
+                  {/* Movimentações de cofrinhos no dia */}
+                  {selectedInfo.piggyMovements.length > 0 && (
+                    <section>
+                      <div className="flex items-center justify-between mb-1.5">
+                        <div className="flex items-center gap-1.5 text-xs font-semibold text-amber-700 dark:text-amber-400">
+                          <PiggyBankIcon className="h-3.5 w-3.5" /> Cofrinhos
+                        </div>
+                        <span className="text-xs font-semibold tabular-nums text-amber-700 dark:text-amber-400">
+                          {formatCurrency(
+                            selectedInfo.piggyMovements.reduce((s, p) => s - p.amount, 0),
+                          )}
+                        </span>
+                      </div>
+                      <ul className="space-y-1">
+                        {selectedInfo.piggyMovements.map((p) => {
+                          const isStore = p.amount >= 0;
+                          return (
+                            <li
+                              key={`piggy-${p.id}`}
+                              className="flex items-center justify-between gap-2 rounded-md bg-amber-500/5 border border-amber-500/20 px-2.5 py-1.5"
+                            >
+                              <span className="flex items-center gap-1.5 text-xs text-foreground truncate min-w-0">
+                                {isStore ? (
+                                  <ArrowDownCircle className="h-3 w-3 text-rose-600 dark:text-rose-400 shrink-0" />
+                                ) : (
+                                  <ArrowUpCircle className="h-3 w-3 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                                )}
+                                <span className="truncate">
+                                  {isStore ? "Guardar" : "Resgatar"}
+                                  {p.piggyName ? ` · ${p.piggyName}` : ""}
+                                </span>
+                              </span>
+                              <span
+                                className={`text-xs font-semibold tabular-nums shrink-0 ${
+                                  isStore
+                                    ? "text-rose-700 dark:text-rose-400"
+                                    : "text-emerald-700 dark:text-emerald-400"
+                                }`}
+                              >
+                                {isStore ? "-" : "+"}
+                                {formatCurrency(Math.abs(p.amount))}
+                              </span>
+                            </li>
+                          );
+                        })}
+                      </ul>
+                      <p className="text-[10px] text-muted-foreground italic mt-1 px-1">
+                        Movimentações dos cofrinhos afetam apenas o saldo previsto, não receitas/despesas.
                       </p>
                     </section>
                   )}
