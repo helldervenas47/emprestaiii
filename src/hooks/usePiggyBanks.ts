@@ -427,16 +427,9 @@ export function usePiggyBanks() {
       source: "transfer_in",
     });
     if (error) { toast.error("Erro ao guardar no cofrinho"); return false; }
-    await recordLedger({
-      direction: "out",
-      category: "transfer",
-      amount: value,
-      description: `Guardar no cofrinho: ${pb.name}`,
-      occurred_on: today,
-      source: "piggy_transfer",
-      wallet: "account",
-      metadata: { piggy_bank_id: piggyBankId, piggy_name: pb.name, type: "store" },
-    });
+    // NÃO grava no account_ledger: o saldo do Dashboard não deve ser afetado.
+    // O saldo de "Receitas e Despesas" é derivado dos próprios piggy_bank_deposits.
+    try { window.dispatchEvent(new CustomEvent("balance:changed")); } catch { /* noop */ }
     toast.success(`Guardado ${value.toFixed(2)} em "${pb.name}"`);
     await reload();
     return true;
