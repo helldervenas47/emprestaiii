@@ -147,13 +147,16 @@ export function usePiggyBanks() {
   const [rateHistory, setRateHistory] = useState<PiggyBankRateHistory[]>([]);
   const [loading, setLoading] = useState(true);
 
+  const [cdiRate, setCdiRate] = useState<MarketRate | null>(null);
+
   const reload = useCallback(async () => {
     if (!dataOwnerId) return;
-    const [pbRes, dpRes, rcRes, rhRes] = await Promise.all([
+    const [pbRes, dpRes, rcRes, rhRes, mrRes] = await Promise.all([
       supabase.from("piggy_banks" as any).select("*").eq("user_id", dataOwnerId).order("created_at"),
       supabase.from("piggy_bank_deposits" as any).select("*").eq("user_id", dataOwnerId),
       supabase.from("piggy_bank_recurrences" as any).select("*").eq("user_id", dataOwnerId),
       supabase.from("piggy_bank_rate_history" as any).select("*").eq("user_id", dataOwnerId).order("effective_from"),
+      supabase.from("market_rates" as any).select("*").eq("indicator", "cdi").maybeSingle(),
     ]);
     if (!pbRes.error) {
       setPiggyBanks(((pbRes.data as any[]) || []).map((r) => ({
@@ -163,6 +166,7 @@ export function usePiggyBanks() {
         color: r.color,
         icon: r.icon,
         annualRate: Number(r.annual_rate),
+        autoRate: Boolean(r.auto_rate),
         createdAt: r.created_at,
       })));
     }
@@ -199,6 +203,16 @@ export function usePiggyBanks() {
         createdAt: r.created_at,
       })));
     }
+    if (!mrRes.error && mrRes.data) {
+      const r: any = mrRes.data;
+      setCdiRate({
+        indicator: r.indicator,
+        annualRate: Number(r.annual_rate),
+        source: r.source,
+        referenceDate: r.reference_date,
+        fetchedAt: r.fetched_at,
+      });
+    }
     setLoading(false);
   }, [dataOwnerId]);
 
@@ -213,9 +227,19 @@ export function usePiggyBanks() {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'piggy_banks' }, () => { reload(); })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'piggy_bank_recurrences' }, () => { reload(); })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'piggy_bank_rate_history' }, () => { reload(); })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'market_rates' }, () => { reload(); })
       .subscribe();
     return () => { supabase.removeChannel(channel); };
   }, [dataOwnerId, reload]);
+
+  // Auto-refresh CDI rate if cache is stale (>12h) — fire-and-forget.
+  useEffect(() => {
+    if (!dataOwnerId) return;
+    const stale = !cdiRate || (Date.now() - new Date(cdiRate.fetchedAt).getTime()) > 12 * 3600 * 1000;
+    if (!stale) return;
+    supabase.functions.invoke("sync-cdi-rate", { body: {} }).catch(() => { /* silent */ });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dataOwnerId, cdiRate?.fetchedAt]);
 
   // Auto-catch-up: generate missing recurring deposits whenever recurrences load.
   useEffect(() => {
