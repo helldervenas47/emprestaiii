@@ -99,7 +99,6 @@ export function VehicleExpenseForm({ onAdd, onClose }: Props) {
                 onChange={(e) => update("description", e.target.value)}
                 placeholder="Ex: Troca de óleo do veículo X"
                 list="vehicle-expense-desc-history"
-                autoFocus
                 required
               />
               <datalist id="vehicle-expense-desc-history">
