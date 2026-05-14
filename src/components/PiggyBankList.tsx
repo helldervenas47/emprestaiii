@@ -72,12 +72,13 @@ export function PiggyBankList({ readOnly = false }: Props) {
   const openCreate = () => {
     const next = nextAvailableShortId();
     const startRate = cdiRate?.annualRate ? cdiRate.annualRate.toFixed(2) : "11.15";
-    setDraft({ name: "", color: PALETTE[0], annualRate: startRate, autoRate: !!cdiRate, shortId: next ? String(next) : "" });
+    setDraft({ name: "", color: PALETTE[0], annualRate: startRate, autoRate: true, shortId: next ? String(next) : "" });
     setEditing(null);
     setCreateOpen(true);
   };
   const openEdit = (pb: PiggyBankType) => {
-    setDraft({ name: pb.name, color: pb.color, annualRate: String(pb.annualRate), autoRate: pb.autoRate, shortId: pb.shortId ? String(pb.shortId) : "" });
+    const startRate = cdiRate?.annualRate ? cdiRate.annualRate.toFixed(2) : String(pb.annualRate);
+    setDraft({ name: pb.name, color: pb.color, annualRate: startRate, autoRate: true, shortId: pb.shortId ? String(pb.shortId) : "" });
     setEditing(pb);
     setCreateOpen(true);
   };
@@ -132,11 +133,10 @@ export function PiggyBankList({ readOnly = false }: Props) {
 
   const save = async () => {
     if (!draft.name.trim()) return;
-    // Quando o modo automático está ligado e há taxa CDI cacheada, usamos sempre o CDI vigente.
-    const useAuto = draft.autoRate && !!cdiRate;
-    const rate = useAuto
-      ? Number(cdiRate!.annualRate.toFixed(4))
-      : Number(draft.annualRate.replace(",", ".")) || 11.15;
+    // Todos os cofrinhos seguem o CDI vigente; cai para 11.15% se ainda não há cache.
+    const rate = cdiRate
+      ? Number(cdiRate.annualRate.toFixed(4))
+      : 11.15;
 
     // Validate short id (1..99, unique within this account).
     let shortId: number | null = null;
@@ -156,29 +156,22 @@ export function PiggyBankList({ readOnly = false }: Props) {
 
     if (editing) {
       const rateChanged = Math.abs(editing.annualRate - rate) > 0.0001;
-      const autoChanged = editing.autoRate !== draft.autoRate;
-      // Salva metadados (nome/cor/nº/auto) imediatamente; taxa é tratada via setPiggyRate
       await updatePiggyBank(editing.id, {
         name: draft.name.trim(),
         color: draft.color,
         shortId,
-        autoRate: draft.autoRate,
+        autoRate: true,
       });
       if (rateChanged) {
-        if (useAuto || autoChanged) {
-          // Em modo auto, aplica forward (mantém histórico) sem perguntar.
-          await setPiggyRate(editing.id, rate, "forward");
-        } else {
-          setRateChangePending({ pb: editing, newRate: rate });
-          return;
-        }
+        // Forward: mantém histórico de rendimentos passados intacto.
+        await setPiggyRate(editing.id, rate, "forward");
       }
     } else {
       await createPiggyBank({
         name: draft.name.trim(),
         color: draft.color,
         annualRate: rate,
-        autoRate: draft.autoRate,
+        autoRate: true,
         shortId,
       });
     }
@@ -397,44 +390,19 @@ export function PiggyBankList({ readOnly = false }: Props) {
                 ))}
               </div>
             </div>
-            <div className="rounded-lg border border-border/50 bg-muted/20 p-2.5 flex items-start justify-between gap-3">
-              <div className="min-w-0">
-                <Label htmlFor="pb-auto" className="text-xs font-semibold flex items-center gap-1.5">
-                  <Zap className="h-3.5 w-3.5 text-primary" />
-                  Atualizar automaticamente com CDI
-                </Label>
-                <p className="text-[10px] text-muted-foreground mt-0.5">
+            <div className="rounded-lg border border-primary/30 bg-primary/5 p-2.5 flex items-start gap-2">
+              <Zap className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+              <div className="min-w-0 text-xs">
+                <p className="font-semibold text-foreground">Rendimento atrelado ao CDI</p>
+                <p className="text-[11px] text-muted-foreground mt-0.5">
                   {cdiRate
-                    ? `Atual: ${cdiRate.annualRate.toFixed(2)}% a.a. · ${cdiUpdatedLabel}`
-                    : "Aguardando primeira sincronização do BCB."}
+                    ? `Taxa atual: ${cdiRate.annualRate.toFixed(2)}% a.a. · ${cdiUpdatedLabel}`
+                    : "Aguardando primeira sincronização do Banco Central."}
+                </p>
+                <p className="text-[10px] text-muted-foreground mt-1">
+                  Todos os cofrinhos seguem automaticamente a taxa CDI publicada pelo Banco Central, recalculada diariamente.
                 </p>
               </div>
-              <Switch
-                id="pb-auto"
-                checked={draft.autoRate}
-                disabled={!cdiRate}
-                onCheckedChange={(v) => setDraft((p) => ({
-                  ...p,
-                  autoRate: v,
-                  annualRate: v && cdiRate ? cdiRate.annualRate.toFixed(2) : p.annualRate,
-                }))}
-              />
-            </div>
-            <div>
-              <Label htmlFor="pb-rate">Taxa anual (%)</Label>
-              <Input
-                id="pb-rate"
-                type="number"
-                step="0.01"
-                value={draft.annualRate}
-                disabled={draft.autoRate}
-                onChange={(e) => setDraft((p) => ({ ...p, annualRate: e.target.value }))}
-              />
-              <p className="text-[10px] text-muted-foreground mt-1">
-                {draft.autoRate
-                  ? "Em modo automático, a taxa segue o CDI publicado pelo Banco Central."
-                  : "100% CDI ≈ 11,15% a.a. (referência PicPay)."}
-              </p>
             </div>
           </div>
           <DialogFooter>
