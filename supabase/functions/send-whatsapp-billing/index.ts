@@ -1,4 +1,5 @@
 import { createClient } from "npm:@supabase/supabase-js@2.95.0";
+import { validateCronSecret, validateUserOwner, unauthorized } from "../_shared/auth-guard.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
