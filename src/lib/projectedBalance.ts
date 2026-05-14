@@ -108,6 +108,18 @@ export function buildDailyDeltas(opts: {
     }
   }
 
+  // Movimentações manuais de cofrinhos (guardar/resgatar). Aportes vinculados
+  // a despesa (expenseId) já estão refletidos via despesa correspondente.
+  if (opts.piggyDeposits) {
+    for (const d of opts.piggyDeposits) {
+      if (d.expenseId) continue;
+      if (!d.depositDate) continue;
+      const amt = Number(d.amount) || 0;
+      if (amt >= 0) ensure(d.depositDate).expense += amt;
+      else ensure(d.depositDate).income += -amt;
+    }
+  }
+
   return map;
 }
 
