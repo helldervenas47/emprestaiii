@@ -273,8 +273,19 @@ export function FinancialHealthDashboard({ incomes, expenses, monthKey }: Props)
 
   const gaugeData = [{ name: "score", value: data.score, fill: scoreColor }];
 
+  const toggleExpandedMobile = (e: React.MouseEvent) => {
+    // Só age em mobile (sm:hidden equivalente). Ignora se o clique veio de um elemento interativo.
+    if (typeof window !== "undefined" && window.matchMedia("(min-width: 640px)").matches) return;
+    const target = e.target as HTMLElement;
+    if (target.closest("button, a, [role='button'], input, select, textarea")) return;
+    setExpanded((v) => !v);
+  };
+
   return (
-    <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-white via-slate-50 to-blue-50/60 dark:from-[#0B1120] dark:via-[#0F172A] dark:to-[#1E293B] p-5 sm:p-7 shadow-[0_20px_60px_-20px_hsl(220_30%_8%/0.18)] dark:shadow-[0_30px_80px_-20px_rgba(0,0,0,0.6)] border border-black/5 dark:border-white/5">
+    <div
+      onClick={toggleExpandedMobile}
+      className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-white via-slate-50 to-blue-50/60 dark:from-[#0B1120] dark:via-[#0F172A] dark:to-[#1E293B] p-5 sm:p-7 shadow-[0_20px_60px_-20px_hsl(220_30%_8%/0.18)] dark:shadow-[0_30px_80px_-20px_rgba(0,0,0,0.6)] border border-black/5 dark:border-white/5 cursor-pointer sm:cursor-default select-none sm:select-auto"
+    >
       {/* Glow accents */}
       <div
         className="pointer-events-none absolute -top-24 -right-24 h-72 w-72 rounded-full blur-3xl opacity-25 dark:opacity-30"
