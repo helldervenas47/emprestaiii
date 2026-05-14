@@ -399,7 +399,91 @@ export function usePiggyBanks() {
     await reload();
   }, [dataOwnerId, piggyBanks, deposits, reload]);
 
-  /** Create a recurring deposit rule. Returns the id of the recurrence so caller can link an expense if needed. */
+  /**
+   * Guarda dinheiro: debita o saldo da conta e credita no cofrinho.
+   * Registra uma transferência interna (categoria 'transfer') que NÃO entra
+   * em receitas/despesas operacionais nem em relatórios contábeis.
+   */
+  const storeMoney = useCallback(async (piggyBankId: string, amount: number) => {
+    if (!dataOwnerId) return false;
+    const value = Number(amount.toFixed(2));
+    if (!Number.isFinite(value) || value <= 0) {
+      toast.error("Informe um valor válido");
+      return false;
+    }
+    const pb = piggyBanks.find((p) => p.id === piggyBankId);
+    if (!pb) return false;
+    const bal = await getBalances();
+    if (value > bal.account + 0.0001) {
+      toast.error(`Saldo em conta insuficiente (disponível: ${bal.account.toFixed(2)})`);
+      return false;
+    }
+    const today = ymd(new Date());
+    const { error } = await supabase.from("piggy_bank_deposits" as any).insert({
+      user_id: dataOwnerId,
+      piggy_bank_id: piggyBankId,
+      amount: value,
+      deposit_date: today,
+      source: "transfer_in",
+    });
+    if (error) { toast.error("Erro ao guardar no cofrinho"); return false; }
+    await recordLedger({
+      direction: "out",
+      category: "transfer",
+      amount: value,
+      description: `Guardar no cofrinho: ${pb.name}`,
+      occurred_on: today,
+      source: "piggy_transfer",
+      wallet: "account",
+      metadata: { piggy_bank_id: piggyBankId, piggy_name: pb.name, type: "store" },
+    });
+    toast.success(`Guardado ${value.toFixed(2)} em "${pb.name}"`);
+    await reload();
+    return true;
+  }, [dataOwnerId, piggyBanks, reload]);
+
+  /**
+   * Resgata dinheiro: credita o saldo da conta e debita do cofrinho.
+   */
+  const withdrawMoney = useCallback(async (piggyBankId: string, amount: number) => {
+    if (!dataOwnerId) return false;
+    const value = Number(amount.toFixed(2));
+    if (!Number.isFinite(value) || value <= 0) {
+      toast.error("Informe um valor válido");
+      return false;
+    }
+    const pb = piggyBanks.find((p) => p.id === piggyBankId);
+    if (!pb) return false;
+    const ds = deposits.filter((d) => d.piggyBankId === piggyBankId);
+    const current = computePiggyBalance(ds, pb.annualRate).balance;
+    if (value > current + 0.0001) {
+      toast.error(`Saldo do cofrinho insuficiente (disponível: ${current.toFixed(2)})`);
+      return false;
+    }
+    const today = ymd(new Date());
+    const { error } = await supabase.from("piggy_bank_deposits" as any).insert({
+      user_id: dataOwnerId,
+      piggy_bank_id: piggyBankId,
+      amount: -value,
+      deposit_date: today,
+      source: "transfer_out",
+    });
+    if (error) { toast.error("Erro ao resgatar do cofrinho"); return false; }
+    await recordLedger({
+      direction: "in",
+      category: "transfer",
+      amount: value,
+      description: `Resgate do cofrinho: ${pb.name}`,
+      occurred_on: today,
+      source: "piggy_transfer",
+      wallet: "account",
+      metadata: { piggy_bank_id: piggyBankId, piggy_name: pb.name, type: "withdraw" },
+    });
+    toast.success(`Resgatado ${value.toFixed(2)} de "${pb.name}"`);
+    await reload();
+    return true;
+  }, [dataOwnerId, piggyBanks, deposits, reload]);
+
   const createRecurrence = useCallback(async (input: {
     piggyBankId: string;
     amount: number;
