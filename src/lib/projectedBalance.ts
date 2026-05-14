@@ -26,6 +26,7 @@ export function buildDailyDeltas(opts: {
   expenses: Expense[];
   cards: CreditCard[];
   openings: InvoiceOpening[];
+  piggyDeposits?: PiggyBankDeposit[];
   /** Faixa de meses (inclusiva, 0-indexed) coberta pelas faturas de cartão. */
   fromYear: number;
   fromMonth: number;
