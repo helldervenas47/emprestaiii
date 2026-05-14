@@ -235,7 +235,7 @@ export function IncomePendingCalendar({
   const dayMap = useMemo(() => {
     const map: Record<string, DayInfo> = {};
     const ensure = (d: string) => {
-      if (!map[d]) map[d] = { incomes: [], expenses: [], cardInvoices: [], totalIncome: 0, totalExpense: 0 };
+      if (!map[d]) map[d] = { incomes: [], expenses: [], cardInvoices: [], piggyMovements: [], totalIncome: 0, totalExpense: 0 };
       return map[d];
     };
     for (const i of incomes) {
@@ -414,7 +414,7 @@ export function IncomePendingCalendar({
     setMonth(d.getMonth());
   };
 
-  const emptyDay: DayInfo = { incomes: [], expenses: [], cardInvoices: [], totalIncome: 0, totalExpense: 0 };
+  const emptyDay: DayInfo = { incomes: [], expenses: [], cardInvoices: [], piggyMovements: [], totalIncome: 0, totalExpense: 0 };
   const selectedInfo: DayInfo = selectedDate ? (dayMap[selectedDate] ?? emptyDay) : emptyDay;
   // Saldo previsto acumulado dia a dia.
   // Cobre tanto o mês expandido quanto a semana atual.
