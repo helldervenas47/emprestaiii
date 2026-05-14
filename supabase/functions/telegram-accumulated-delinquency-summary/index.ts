@@ -352,7 +352,14 @@ Deno.serve(async (req) => {
         );
 
         const report = buildTelegramMessage(items);
-        const sendRes = await sendReportsMessage(admin, pref.user_id, Number(link.chat_id), report);
+        const sendRes = await sendReportsAsImage(
+          admin,
+          pref.user_id,
+          Number(link.chat_id),
+          report.split("\n"),
+          { name: brandName },
+          { fallbackText: report },
+        );
         if (!sendRes.sent) {
           console.warn("[accumulated-delinquency] send skipped for", pref.user_id, sendRes.reason);
           continue;
