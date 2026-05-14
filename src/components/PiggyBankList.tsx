@@ -133,11 +133,10 @@ export function PiggyBankList({ readOnly = false }: Props) {
 
   const save = async () => {
     if (!draft.name.trim()) return;
-    // Quando o modo automático está ligado e há taxa CDI cacheada, usamos sempre o CDI vigente.
-    const useAuto = draft.autoRate && !!cdiRate;
-    const rate = useAuto
-      ? Number(cdiRate!.annualRate.toFixed(4))
-      : Number(draft.annualRate.replace(",", ".")) || 11.15;
+    // Todos os cofrinhos seguem o CDI vigente; cai para 11.15% se ainda não há cache.
+    const rate = cdiRate
+      ? Number(cdiRate.annualRate.toFixed(4))
+      : 11.15;
 
     // Validate short id (1..99, unique within this account).
     let shortId: number | null = null;
@@ -157,29 +156,22 @@ export function PiggyBankList({ readOnly = false }: Props) {
 
     if (editing) {
       const rateChanged = Math.abs(editing.annualRate - rate) > 0.0001;
-      const autoChanged = editing.autoRate !== draft.autoRate;
-      // Salva metadados (nome/cor/nº/auto) imediatamente; taxa é tratada via setPiggyRate
       await updatePiggyBank(editing.id, {
         name: draft.name.trim(),
         color: draft.color,
         shortId,
-        autoRate: draft.autoRate,
+        autoRate: true,
       });
       if (rateChanged) {
-        if (useAuto || autoChanged) {
-          // Em modo auto, aplica forward (mantém histórico) sem perguntar.
-          await setPiggyRate(editing.id, rate, "forward");
-        } else {
-          setRateChangePending({ pb: editing, newRate: rate });
-          return;
-        }
+        // Forward: mantém histórico de rendimentos passados intacto.
+        await setPiggyRate(editing.id, rate, "forward");
       }
     } else {
       await createPiggyBank({
         name: draft.name.trim(),
         color: draft.color,
         annualRate: rate,
-        autoRate: draft.autoRate,
+        autoRate: true,
         shortId,
       });
     }
