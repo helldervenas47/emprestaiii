@@ -115,9 +115,10 @@ async function buildAndSendWeekly(
   }
 
   try {
+    const prefs = await getImageDeliveryPrefs(admin, userId);
     const svg = buildTextReportSVG(lines, { name: brandName });
     const png = await svgToPng(svg);
-    const caption = buildCaptionFromLines(lines, { name: brandName });
+    const caption = prefs.includeText ? buildCaptionFromLines(lines, { name: brandName }) : "";
     await tgSendPhoto(Number(link.chat_id), png, caption, lovableKey, telegramKey);
   } catch (e) {
     console.error("weekly-summary image render failed, falling back to text", e);
