@@ -142,6 +142,79 @@ export function TelegramImageDeliveryCard() {
 
         {open && (
           <>
+            {/* Indicador de consumo da API HTML→Imagem */}
+            {(() => {
+              const used = usage.used ?? 0;
+              const limit = usage.limit ?? 0;
+              const pct = limit > 0 ? Math.min(100, Math.round((used / limit) * 100)) : 0;
+              const warning = limit > 0 && pct >= 80 && pct < 100;
+              const critical = limit > 0 && pct >= 100;
+              const tone = critical
+                ? "text-destructive"
+                : warning
+                  ? "text-warning"
+                  : "text-foreground";
+              const barClass = critical
+                ? "[&>div]:bg-destructive"
+                : warning
+                  ? "[&>div]:bg-warning"
+                  : "";
+              return (
+                <div className="border-t pt-3">
+                  <div className="flex items-center justify-between gap-2 mb-2">
+                    <div className="flex items-center gap-1.5 min-w-0">
+                      <Activity className="h-3.5 w-3.5 text-primary shrink-0" />
+                      <p className="text-xs font-medium text-foreground truncate">
+                        Consumo da API (HTML → Imagem)
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={loadUsage}
+                      disabled={usage.loading}
+                      className="text-muted-foreground hover:text-foreground disabled:opacity-50"
+                      aria-label="Atualizar consumo"
+                    >
+                      {usage.loading ? (
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      ) : (
+                        <RefreshCw className="h-3.5 w-3.5" />
+                      )}
+                    </button>
+                  </div>
+
+                  {usage.loading && usage.used === null ? (
+                    <p className="text-[11px] text-muted-foreground">Carregando…</p>
+                  ) : !usage.configured ? (
+                    <p className="text-[11px] text-muted-foreground">
+                      Integração HTML→Imagem não configurada.
+                    </p>
+                  ) : usage.error ? (
+                    <p className="text-[11px] text-destructive flex items-center gap-1">
+                      <AlertTriangle className="h-3 w-3" /> {usage.error}
+                    </p>
+                  ) : (
+                    <>
+                      <div className="flex items-baseline justify-between mb-1.5">
+                        <span className={cn("text-sm font-semibold tabular-nums", tone)}>
+                          {used}/{limit > 0 ? limit : "∞"}
+                        </span>
+                        <span className="text-[11px] text-muted-foreground">
+                          {limit > 0 ? `${pct}% utilizado` : "sem limite"}
+                        </span>
+                      </div>
+                      <Progress value={pct} className={cn("h-2", barClass)} />
+                      <p className="text-[10px] text-muted-foreground mt-1.5">
+                        Imagens geradas no mês atual.
+                        {warning && " Atenção: aproximando do limite."}
+                        {critical && " Limite atingido — gerações podem falhar."}
+                      </p>
+                    </>
+                  )}
+                </div>
+              );
+            })()}
+
             <div className="border-t pt-3 space-y-2">
               {REPORTS.map((r) => (
                 <label
