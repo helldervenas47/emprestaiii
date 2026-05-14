@@ -4223,54 +4223,16 @@ function ClientFolder({
     setSharing(true);
     try {
       const { toBlob } = await import("html-to-image");
-
-      // Clone capture node so we can hide/remove elements only for the exported image
       const original = captureRef.current;
-      const clone = original.cloneNode(true) as HTMLDivElement;
 
-      // Remove WhatsApp button from clone
-      const whatsappBtn = clone.querySelector('button[aria-label="Enviar para WhatsApp"]');
-      if (whatsappBtn) whatsappBtn.remove();
-
-      // Remove "Recebido" column from mobile summary in clone
-      const mobileSummary = clone.querySelector('.flex.sm\\:hidden');
-      if (mobileSummary) {
-        const children = Array.from(mobileSummary.children) as HTMLElement[];
-        for (const child of children) {
-          const label = child.querySelector('p.text-\\[9px\\]');
-          if (label && label.textContent?.trim() === 'Recebido') {
-            child.remove();
-            break;
-          }
-        }
-      }
-
-      // Also remove any other "Recebido" desktop summary blocks if they exist inside the clone
-      clone.querySelectorAll('p').forEach((el) => {
-        if (el.textContent?.trim() === 'Recebido') {
-          const parent = el.closest('div.text-center, div.text-right');
-          if (parent) parent.remove();
-        }
-      });
-
-      // Temporarily mount clone for html-to-image rendering
-      // Note: visibility:hidden makes html-to-image render blank — use opacity instead
-      clone.style.position = 'fixed';
-      clone.style.left = '0';
-      clone.style.top = '0';
-      clone.style.zIndex = '-1';
-      clone.style.opacity = '0';
-      clone.style.pointerEvents = 'none';
-      clone.style.width = `${original.offsetWidth}px`;
-      document.body.appendChild(clone);
-
-      const blob = await toBlob(clone, {
+      const blob = await toBlob(original, {
+        filter: (node) => !(node instanceof HTMLElement && node.dataset.whatsappExportHidden === "true"),
         pixelRatio: 2,
         backgroundColor: getComputedStyle(document.body).backgroundColor || "#ffffff",
         cacheBust: true,
+        width: original.scrollWidth,
+        height: original.scrollHeight,
       });
-
-      document.body.removeChild(clone);
 
       if (!blob) throw new Error("Falha ao gerar imagem");
       const file = new File([blob], `emprestimos-${group.name.replace(/\s+/g, "-").toLowerCase()}.png`, { type: "image/png" });
@@ -4369,6 +4331,7 @@ function ClientFolder({
               <button
                 type="button"
                 aria-label="Enviar para WhatsApp"
+                data-whatsapp-export-hidden="true"
                 onClick={handleShareWhatsApp}
                 disabled={sharing}
                 className="sm:hidden inline-flex h-9 w-9 items-center justify-center rounded-full bg-[#25D366]/10 hover:bg-[#25D366]/20 text-[#25D366] transition-colors shrink-0 disabled:opacity-50"
@@ -4382,7 +4345,7 @@ function ClientFolder({
                 <p className="text-[9px] text-muted-foreground uppercase">Emprestado</p>
                 <p className="font-bold text-foreground">{formatCurrency(group.totalAmount)}</p>
               </div>
-              <div className="text-center flex-1">
+              <div className="text-center flex-1" data-whatsapp-export-hidden="true">
                 <p className="text-[9px] text-muted-foreground uppercase">Recebido</p>
                 <p className="font-bold text-success">{formatCurrency(group.totalPaid)}</p>
               </div>
