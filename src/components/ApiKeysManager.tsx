@@ -104,7 +104,9 @@ export function ApiKeysManager() {
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [form, setForm] = useState({ name: "", key: "" });
   const [integrations, setIntegrations] = useState<AppIntegration[]>([]);
-  const [loadingIntegrations, setLoadingIntegrations] = useState(true);
+  const [loadingIntegrations, setLoadingIntegrations] = useState(false);
+  const [integrationsOpen, setIntegrationsOpen] = useState(false);
+  const [integrationsLoaded, setIntegrationsLoaded] = useState(false);
 
   const loadIntegrations = async () => {
     setLoadingIntegrations(true);
