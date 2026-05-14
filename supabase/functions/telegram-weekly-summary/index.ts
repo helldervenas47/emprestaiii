@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { buildTextReportSVG, svgToPng, tgSendPhoto, buildCaptionFromLines } from "../_shared/renderReportImage.ts";
 
 const GATEWAY_URL = "https://connector-gateway.lovable.dev/telegram";
 
