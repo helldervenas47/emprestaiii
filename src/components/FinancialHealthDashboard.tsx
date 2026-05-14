@@ -630,15 +630,15 @@ function IndicatorGaugeCard({
           {score}
         </span>
         <span
-          className={`text-muted-foreground tracking-wider uppercase mt-0.5 ${
+          className={`text-muted-foreground tracking-wider uppercase ${
             featured ? "text-[10px]" : "text-[8px]"
           }`}
         >
           / 100
         </span>
       </div>
-      {/* Velocímetro logo abaixo */}
-      <div className={`relative w-full ${featured ? "aspect-[3.4/1] mt-1" : "aspect-[2.8/1] mt-1"}`}>
+      {/* Velocímetro logo abaixo, bem próximo da pontuação */}
+      <div className={`relative w-full -mt-1 ${featured ? "aspect-[3.4/1]" : "aspect-[2.8/1]"}`}>
         <ResponsiveContainer width="100%" height="100%">
           <RadialBarChart
             cx="50%"
