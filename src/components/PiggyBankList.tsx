@@ -78,7 +78,7 @@ export function PiggyBankList({ readOnly = false }: Props) {
   };
   const openEdit = (pb: PiggyBankType) => {
     const startRate = cdiRate?.annualRate ? cdiRate.annualRate.toFixed(2) : String(pb.annualRate);
-    setDraft({ name: pb.name, color: pb.color, annualRate: startRate, autoRate: true, shortId: pb.shortId ? String(pb.shortId) : "" });
+    setDraft({ name: pb.name, color: pb.color, annualRate: startRate, autoRate: true, cdiPercent: String(pb.cdiPercent ?? 100), shortId: pb.shortId ? String(pb.shortId) : "" });
     setEditing(pb);
     setCreateOpen(true);
   };
