@@ -4211,9 +4211,51 @@ function ClientFolder({
   const { mask } = useHideValues();
   const formatCurrency = useCallback((v: number) => mask(rawFormatCurrency(v)), [mask]);
   const [open, setOpen] = useState(false);
+  const [sharing, setSharing] = useState(false);
+  const captureRef = useRef<HTMLDivElement>(null);
   const activeCount = group.loans.filter((l) => l.status !== "paid").length;
   const paidCount = group.loans.filter((l) => l.status === "paid").length;
   const managerCount = group.loans.filter((l) => l.hasManager).length;
+
+  const handleShareWhatsApp = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!captureRef.current || sharing) return;
+    setSharing(true);
+    try {
+      const { toBlob } = await import("html-to-image");
+      const blob = await toBlob(captureRef.current, {
+        pixelRatio: 2,
+        backgroundColor: getComputedStyle(document.body).backgroundColor || "#ffffff",
+        cacheBust: true,
+      });
+      if (!blob) throw new Error("Falha ao gerar imagem");
+      const file = new File([blob], `emprestimos-${group.name.replace(/\s+/g, "-").toLowerCase()}.png`, { type: "image/png" });
+      const text = `Empréstimos de ${group.name}`;
+      const nav = navigator as any;
+      if (nav.canShare?.({ files: [file] })) {
+        try {
+          await nav.share({ files: [file], title: text, text });
+          return;
+        } catch (err: any) {
+          if (err?.name === "AbortError") return;
+        }
+      }
+      // Fallback: baixa imagem e abre WhatsApp Web com texto
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = file.name;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      window.open(`https://wa.me/?text=${encodeURIComponent(text + " (imagem baixada — anexe no WhatsApp)")}`, "_blank");
+    } catch (err: any) {
+      toast.error(err?.message || "Erro ao gerar imagem");
+    } finally {
+      setSharing(false);
+    }
+  };
 
   return (
     <Card no3d className={`overflow-hidden transition-shadow hover:shadow-lg ${open ? "ring-1 ring-primary/20" : ""} ${group.hasOverdue ? "border-destructive/40" : ""}`}>
