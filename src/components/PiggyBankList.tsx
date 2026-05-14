@@ -394,18 +394,48 @@ export function PiggyBankList({ readOnly = false }: Props) {
                 ))}
               </div>
             </div>
-            <div className="rounded-lg border border-primary/30 bg-primary/5 p-2.5 flex items-start gap-2">
-              <Zap className="h-4 w-4 text-primary shrink-0 mt-0.5" />
-              <div className="min-w-0 text-xs">
-                <p className="font-semibold text-foreground">Rendimento atrelado ao CDI</p>
-                <p className="text-[11px] text-muted-foreground mt-0.5">
-                  {cdiRate
-                    ? `Taxa atual: ${cdiRate.annualRate.toFixed(2)}% a.a. · ${cdiUpdatedLabel}`
-                    : "Aguardando primeira sincronização do Banco Central."}
-                </p>
-                <p className="text-[10px] text-muted-foreground mt-1">
-                  Todos os cofrinhos seguem automaticamente a taxa CDI publicada pelo Banco Central, recalculada diariamente.
-                </p>
+            <div className="rounded-lg border border-primary/30 bg-primary/5 p-2.5 space-y-2">
+              <div className="flex items-start gap-2">
+                <Zap className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+                <div className="min-w-0 text-xs">
+                  <p className="font-semibold text-foreground">Rendimento atrelado ao CDI</p>
+                  <p className="text-[11px] text-muted-foreground mt-0.5">
+                    {cdiRate
+                      ? `CDI atual: ${cdiRate.annualRate.toFixed(2)}% a.a. · ${cdiUpdatedLabel}`
+                      : "Aguardando primeira sincronização do Banco Central."}
+                  </p>
+                </div>
+              </div>
+              <div>
+                <Label htmlFor="pb-cdi-pct" className="text-xs">% do CDI</Label>
+                <div className="relative mt-1">
+                  <Input
+                    id="pb-cdi-pct"
+                    type="number"
+                    min={1}
+                    max={500}
+                    step="1"
+                    inputMode="decimal"
+                    placeholder="Ex: 100"
+                    value={draft.cdiPercent}
+                    onChange={(e) => setDraft((p) => ({ ...p, cdiPercent: e.target.value.replace(/[^\d.,]/g, "") }))}
+                    className="pr-9"
+                  />
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground pointer-events-none">%</span>
+                </div>
+                {(() => {
+                  const pctRaw = Number(draft.cdiPercent.replace(",", "."));
+                  const pct = Number.isFinite(pctRaw) && pctRaw > 0 ? pctRaw : 0;
+                  const baseCdi = cdiRate?.annualRate ?? 11.15;
+                  const eff = baseCdi * (pct / 100);
+                  return (
+                    <p className="text-[10px] text-muted-foreground mt-1">
+                      {pct > 0
+                        ? <>Equivale a <span className="font-semibold text-foreground">{eff.toFixed(2)}% a.a.</span> ({pct.toFixed(0)}% do CDI atual)</>
+                        : "Informe a porcentagem do CDI desejada (ex.: 100, 110)."}
+                    </p>
+                  );
+                })()}
               </div>
             </div>
           </div>
