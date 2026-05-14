@@ -638,13 +638,13 @@ function IndicatorGaugeCard({
         </span>
       </div>
       {/* Velocímetro logo abaixo, bem próximo da pontuação */}
-      <div className={`relative w-full -mt-1 ${featured ? "aspect-[3.4/1]" : "aspect-[2.8/1]"}`}>
+      <div className={`relative w-full -mt-1 ${featured ? "aspect-[2.2/1]" : "aspect-[1.9/1]"}`}>
         <ResponsiveContainer width="100%" height="100%">
           <RadialBarChart
             cx="50%"
             cy="95%"
-            innerRadius={featured ? "76%" : "72%"}
-            outerRadius={featured ? "108%" : "104%"}
+            innerRadius={featured ? "82%" : "78%"}
+            outerRadius={featured ? "118%" : "114%"}
             startAngle={180}
             endAngle={0}
             data={gaugeData}
