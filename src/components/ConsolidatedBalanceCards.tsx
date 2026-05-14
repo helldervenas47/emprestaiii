@@ -27,7 +27,7 @@ export function ConsolidatedBalanceCards() {
   const { sales } = useProducts(true);
   const { incomes } = useIncomes(true);
   const { expenses } = useExpenses(true);
-  const { piggyBanks, balances: piggyBalances } = usePiggyBanks();
+  const { piggyBanks, balances: piggyBalances, deposits: piggyDeposits } = usePiggyBanks();
 
   const [dashboardBalance, setDashboardBalance] = useState(0);
   const [vehicleBalance, setVehicleBalance] = useState(0);
