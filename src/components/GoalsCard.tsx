@@ -856,7 +856,7 @@ export function GoalsCard({ loans, payments, expenses, clients, installmentSched
                       <Pencil className="h-3 w-3" />
                     </button>
                   )}
-                  <div className="flex flex-col items-center gap-1.5 sm:flex-row sm:items-center sm:gap-2 pr-6 sm:pr-7">
+                  <div className="flex flex-col items-center gap-1.5 sm:flex-row sm:items-center sm:gap-2 sm:pr-7">
                     <div className={`h-7 w-7 sm:h-8 sm:w-8 rounded-md ${g.meta?.bgColor || "bg-primary/15"} flex items-center justify-center shrink-0`}>
                       <Icon className={`h-3.5 w-3.5 sm:h-4 sm:w-4 ${g.meta?.color || "text-primary"}`} />
                     </div>
