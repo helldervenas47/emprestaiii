@@ -66,6 +66,7 @@ export function IncomeBalanceCard({ incomes, expenses, onAdjust, readOnly, onOpe
   const [adjustOpen, setAdjustOpen] = useState(false);
   const [target, setTarget] = useState("");
   const [saving, setSaving] = useState(false);
+  const [projInfoOpen, setProjInfoOpen] = useState(false);
 
   const now = new Date();
   const monthKey = monthKeyProp ?? `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
