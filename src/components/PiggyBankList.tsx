@@ -132,7 +132,11 @@ export function PiggyBankList({ readOnly = false }: Props) {
 
   const save = async () => {
     if (!draft.name.trim()) return;
-    const rate = Number(draft.annualRate.replace(",", ".")) || 11.15;
+    // Quando o modo automático está ligado e há taxa CDI cacheada, usamos sempre o CDI vigente.
+    const useAuto = draft.autoRate && !!cdiRate;
+    const rate = useAuto
+      ? Number(cdiRate!.annualRate.toFixed(4))
+      : Number(draft.annualRate.replace(",", ".")) || 11.15;
 
     // Validate short id (1..99, unique within this account).
     let shortId: number | null = null;
@@ -152,18 +156,49 @@ export function PiggyBankList({ readOnly = false }: Props) {
 
     if (editing) {
       const rateChanged = Math.abs(editing.annualRate - rate) > 0.0001;
-      // Salva metadados (nome/cor/nº) imediatamente; taxa é tratada via setPiggyRate
-      await updatePiggyBank(editing.id, { name: draft.name.trim(), color: draft.color, shortId });
+      const autoChanged = editing.autoRate !== draft.autoRate;
+      // Salva metadados (nome/cor/nº/auto) imediatamente; taxa é tratada via setPiggyRate
+      await updatePiggyBank(editing.id, {
+        name: draft.name.trim(),
+        color: draft.color,
+        shortId,
+        autoRate: draft.autoRate,
+      });
       if (rateChanged) {
-        // Abre diálogo de escolha (não fechamos o modal de edição ainda)
-        setRateChangePending({ pb: editing, newRate: rate });
-        return;
+        if (useAuto || autoChanged) {
+          // Em modo auto, aplica forward (mantém histórico) sem perguntar.
+          await setPiggyRate(editing.id, rate, "forward");
+        } else {
+          setRateChangePending({ pb: editing, newRate: rate });
+          return;
+        }
       }
     } else {
-      await createPiggyBank({ name: draft.name.trim(), color: draft.color, annualRate: rate, shortId });
+      await createPiggyBank({
+        name: draft.name.trim(),
+        color: draft.color,
+        annualRate: rate,
+        autoRate: draft.autoRate,
+        shortId,
+      });
     }
     setCreateOpen(false);
   };
+
+  const handleRefreshCdi = async () => {
+    setRefreshingCdi(true);
+    try { await refreshCdiNow(); } finally { setRefreshingCdi(false); }
+  };
+
+  const cdiUpdatedLabel = useMemo(() => {
+    if (!cdiRate?.fetchedAt) return "";
+    try {
+      return new Date(cdiRate.fetchedAt).toLocaleString("pt-BR", {
+        day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit",
+      });
+    } catch { return ""; }
+  }, [cdiRate?.fetchedAt]);
+
 
   const totalBalance = piggyBanks.reduce((s, pb) => s + (balances.get(pb.id)?.balance ?? 0), 0);
   const totalYield = piggyBanks.reduce((s, pb) => s + (balances.get(pb.id)?.yield ?? 0), 0);
