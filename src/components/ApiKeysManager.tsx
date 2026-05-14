@@ -383,6 +383,8 @@ export function ApiKeysManager() {
           </Table>
         </div>
       )}
+      </section>
+
 
       <Dialog open={dialogOpen} onOpenChange={(o) => !o && closeDialog()}>
         <DialogContent>
