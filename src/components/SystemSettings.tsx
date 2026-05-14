@@ -85,6 +85,8 @@ export function SystemSettings() {
             <Suspense fallback={<SectionLoader />}>
               <InviteAndApprovalSettings />
             </Suspense>
+
+            <TelegramImageDeliveryCard />
           </TabsContent>
         )}
 
