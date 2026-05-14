@@ -14,7 +14,7 @@ import {
   type LedgerEntry, type LedgerCategory, type LedgerDirection,
 } from "@/lib/ledger";
 import { getBalances, type Wallet as WalletType } from "@/lib/balance";
-import { todayInAppTz } from "@/lib/timezone";
+import { todayInAppTz, getAppTimezone } from "@/lib/timezone";
 import { usePaymentMethods } from "@/hooks/usePaymentMethods";
 import { PaymentMethodPicker } from "@/components/PaymentMethodPicker";
 import { supabase } from "@/integrations/supabase/client";
@@ -22,6 +22,24 @@ import { toast } from "sonner";
 
 const formatBRL = (n: number) =>
   n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+
+/** Format the exact time portion (HH:mm:ss) of a timestamptz in the app timezone. */
+const formatTimeInAppTz = (iso?: string | null): string => {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return "";
+  try {
+    return new Intl.DateTimeFormat("pt-BR", {
+      timeZone: getAppTimezone(),
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      hour12: false,
+    }).format(d);
+  } catch {
+    return d.toISOString().slice(11, 19);
+  }
+};
 
 const categoryLabels: Record<LedgerCategory, string> = {
   loan: "Empréstimo",
@@ -287,7 +305,12 @@ export function LedgerView({ readOnly = false }: Props) {
                       <div className="min-w-0 flex-1">
                         <p className="text-sm font-medium text-foreground line-clamp-2">{e.description}</p>
                         <div className="flex items-center gap-1.5 mt-1 flex-wrap">
-                          <span className="text-[11px] text-muted-foreground">{e.occurred_on}</span>
+                          <span className="text-[11px] text-muted-foreground tabular-nums">
+                            {e.occurred_on}
+                            {formatTimeInAppTz(e.created_at) && (
+                              <span className="ml-1 opacity-80">· {formatTimeInAppTz(e.created_at)}</span>
+                            )}
+                          </span>
                           <Badge variant="outline" className="text-[10px] h-4 px-1.5">
                             {categoryLabels[e.category]}
                           </Badge>
@@ -342,7 +365,14 @@ export function LedgerView({ readOnly = false }: Props) {
                     const methodName = getMethodName(e);
                     return (
                       <TableRow key={e.id}>
-                        <TableCell className="whitespace-nowrap text-sm">{e.occurred_on}</TableCell>
+                        <TableCell className="whitespace-nowrap text-sm tabular-nums">
+                          <div className="flex flex-col leading-tight">
+                            <span>{e.occurred_on}</span>
+                            {formatTimeInAppTz(e.created_at) && (
+                              <span className="text-[11px] text-muted-foreground">{formatTimeInAppTz(e.created_at)}</span>
+                            )}
+                          </div>
+                        </TableCell>
                         <TableCell className="text-sm">{e.description}</TableCell>
                         <TableCell>
                           <Badge variant="outline" className="text-[10px]">
