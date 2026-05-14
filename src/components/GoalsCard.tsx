@@ -23,6 +23,7 @@ import {
   HandCoins, Coins, Wallet, PiggyBank, AlertTriangle, UserPlus,
   Sparkles, CheckCircle2, AlertCircle, TrendingDown, Lightbulb,
   BookOpen, Calculator, Database, FlaskConical, Settings2, ArrowUp, ArrowDown, GripVertical, RefreshCw, Lock,
+  Pencil, Check, X,
 } from "lucide-react";
 
 // Mês "YYYY-MM" — true se já é estritamente anterior ao mês corrente no fuso do app
