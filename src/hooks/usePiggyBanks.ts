@@ -426,11 +426,22 @@ export function usePiggyBanks() {
     const hist = rateHistory
       .filter((h) => h.piggyBankId === pb.id)
       .map<RatePeriod>((h) => ({ effectiveFrom: h.effectiveFrom, annualRate: h.annualRate }));
-    if (hist.length === 0) {
-      return [{ effectiveFrom: pb.createdAt.slice(0, 10), annualRate: pb.annualRate }];
+    let base: RatePeriod[] = hist.length === 0
+      ? [{ effectiveFrom: pb.createdAt.slice(0, 10), annualRate: pb.annualRate }]
+      : hist;
+    // Se o cofrinho está em modo automático e existe taxa CDI cacheada,
+    // garante que o último período reflita a taxa CDI vigente.
+    if (pb.autoRate && cdiRate) {
+      const last = base[base.length - 1];
+      const cdiFrom = cdiRate.referenceDate || ymd(new Date());
+      const sameRate = Math.abs(last.annualRate - cdiRate.annualRate) < 0.01;
+      if (!sameRate) {
+        const effectiveFrom = cdiFrom > last.effectiveFrom ? cdiFrom : last.effectiveFrom;
+        base = [...base, { effectiveFrom, annualRate: cdiRate.annualRate }];
+      }
     }
-    return hist;
-  }, [rateHistory]);
+    return base;
+  }, [rateHistory, cdiRate]);
 
   const balances = useMemo(() => {
     const map = new Map<string, ReturnType<typeof computePiggyBalance>>();
