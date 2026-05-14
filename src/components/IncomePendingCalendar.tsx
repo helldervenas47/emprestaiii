@@ -842,6 +842,58 @@ export function IncomePendingCalendar({
                     </section>
                   )}
 
+                  {/* Movimentações de cofrinhos no dia */}
+                  {selectedInfo.piggyMovements.length > 0 && (
+                    <section>
+                      <div className="flex items-center justify-between mb-1.5">
+                        <div className="flex items-center gap-1.5 text-xs font-semibold text-amber-700 dark:text-amber-400">
+                          <PiggyBankIcon className="h-3.5 w-3.5" /> Cofrinhos
+                        </div>
+                        <span className="text-xs font-semibold tabular-nums text-amber-700 dark:text-amber-400">
+                          {formatCurrency(
+                            selectedInfo.piggyMovements.reduce((s, p) => s - p.amount, 0),
+                          )}
+                        </span>
+                      </div>
+                      <ul className="space-y-1">
+                        {selectedInfo.piggyMovements.map((p) => {
+                          const isStore = p.amount >= 0;
+                          return (
+                            <li
+                              key={`piggy-${p.id}`}
+                              className="flex items-center justify-between gap-2 rounded-md bg-amber-500/5 border border-amber-500/20 px-2.5 py-1.5"
+                            >
+                              <span className="flex items-center gap-1.5 text-xs text-foreground truncate min-w-0">
+                                {isStore ? (
+                                  <ArrowDownCircle className="h-3 w-3 text-rose-600 dark:text-rose-400 shrink-0" />
+                                ) : (
+                                  <ArrowUpCircle className="h-3 w-3 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                                )}
+                                <span className="truncate">
+                                  {isStore ? "Guardar" : "Resgatar"}
+                                  {p.piggyName ? ` · ${p.piggyName}` : ""}
+                                </span>
+                              </span>
+                              <span
+                                className={`text-xs font-semibold tabular-nums shrink-0 ${
+                                  isStore
+                                    ? "text-rose-700 dark:text-rose-400"
+                                    : "text-emerald-700 dark:text-emerald-400"
+                                }`}
+                              >
+                                {isStore ? "-" : "+"}
+                                {formatCurrency(Math.abs(p.amount))}
+                              </span>
+                            </li>
+                          );
+                        })}
+                      </ul>
+                      <p className="text-[10px] text-muted-foreground italic mt-1 px-1">
+                        Movimentações dos cofrinhos afetam apenas o saldo previsto, não receitas/despesas.
+                      </p>
+                    </section>
+                  )}
+
                   {/* Saldo previsto acumulado: parte do saldo do dia anterior */}
                   {(() => {
                     const isFirstOfMonth = !!selectedDate && selectedDate.endsWith("-01");
