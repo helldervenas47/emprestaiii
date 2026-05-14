@@ -204,6 +204,9 @@ export function LedgerView({ readOnly = false }: Props) {
         </Card>
       </div>
 
+      {/* Indicadores consolidados */}
+      <ConsolidatedBalanceCards />
+
       {/* Entradas/Saídas do período filtrado */}
       <div className="grid grid-cols-2 gap-2 sm:gap-3">
         <Card no3d>
