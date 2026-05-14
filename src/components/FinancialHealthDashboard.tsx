@@ -645,7 +645,7 @@ function IndicatorGaugeCard({
           </RadialBarChart>
         </ResponsiveContainer>
         {/* Pontuação posicionada acima do arco, próxima ao centro do velocímetro */}
-        <div className={`pointer-events-none absolute inset-x-0 flex justify-center ${featured ? "bottom-[58%]" : "bottom-[45%]"}`}>
+        <div className={`pointer-events-none absolute inset-x-0 flex justify-center ${featured ? "bottom-[51%]" : "bottom-[45%]"}`}>
           <span
             className={`font-bold leading-none tabular-nums ${featured ? "text-4xl" : "text-2xl"}`}
             style={{ color }}
