@@ -2,7 +2,7 @@ import { lazy, Suspense, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { CreditCard, Users as UsersIcon, Image as ImageIcon, Loader2, ShieldCheck, Palette, Wallet, Activity } from "lucide-react";
+import { CreditCard, Users as UsersIcon, Image as ImageIcon, Loader2, ShieldCheck, Palette, Wallet, Activity, KeyRound } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
 import { useSubscription } from "@/hooks/useSubscription";
@@ -12,6 +12,7 @@ const UserManagement = lazy(() => import("@/components/UserManagement").then(m =
 const BrandingSettings = lazy(() => import("@/components/BrandingSettings").then(m => ({ default: m.BrandingSettings })));
 const InviteAndApprovalSettings = lazy(() => import("@/components/InviteAndApprovalSettings").then(m => ({ default: m.InviteAndApprovalSettings })));
 const SystemHealth = lazy(() => import("@/components/SystemHealth").then(m => ({ default: m.SystemHealth })));
+const ApiKeysManager = lazy(() => import("@/components/ApiKeysManager").then(m => ({ default: m.ApiKeysManager })));
 
 const SectionLoader = () => (
   <div className="flex justify-center py-8"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>
@@ -52,6 +53,11 @@ export function SystemSettings() {
           <TabsTrigger value="appearance" className="flex items-center gap-1.5 flex-1 min-w-[120px]">
             <Palette className="h-3.5 w-3.5" /> Personalização
           </TabsTrigger>
+          {isAdmin && (
+            <TabsTrigger value="api-keys" className="flex items-center gap-1.5 flex-1 min-w-[120px]">
+              <KeyRound className="h-3.5 w-3.5" /> Chaves APIs
+            </TabsTrigger>
+          )}
           {isAdmin && (
             <TabsTrigger value="health" className="flex items-center gap-1.5 flex-1 min-w-[120px]">
               <Activity className="h-3.5 w-3.5" /> Saúde do Sistema
@@ -120,6 +126,26 @@ export function SystemSettings() {
 
           <ThemeSettingsCard />
         </TabsContent>
+
+        {isAdmin && (
+          <TabsContent value="api-keys" className="space-y-4 mt-4">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <KeyRound className="h-4 w-4 text-primary" /> Chaves APIs
+                </CardTitle>
+                <CardDescription>
+                  Liste, edite, ative/desative e remova as chaves de API utilizadas pelas integrações do aplicativo.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Suspense fallback={<SectionLoader />}>
+                  <ApiKeysManager />
+                </Suspense>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        )}
 
         {isAdmin && (
           <TabsContent value="health" className="space-y-4 mt-4">
