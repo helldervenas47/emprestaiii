@@ -44,6 +44,7 @@ const DEFAULT_PREFS: ImageDeliveryPrefs = {
     personal_insights: true,
   },
   includeText: true,
+  allowedUserIds: null,
 };
 
 export function loadImageDeliveryPrefs(): ImageDeliveryPrefs {
@@ -54,6 +55,7 @@ export function loadImageDeliveryPrefs(): ImageDeliveryPrefs {
     return {
       reports: { ...DEFAULT_PREFS.reports, ...(parsed.reports || {}) },
       includeText: parsed.includeText ?? true,
+      allowedUserIds: Array.isArray(parsed.allowedUserIds) ? parsed.allowedUserIds : null,
     };
   } catch {
     return DEFAULT_PREFS;
@@ -65,13 +67,16 @@ async function fetchPrefsFromDB(): Promise<ImageDeliveryPrefs | null> {
   if (!auth?.user) return null;
   const { data } = await supabase
     .from("telegram_image_delivery_prefs")
-    .select("reports, include_text")
+    .select("reports, include_text, allowed_user_ids")
     .eq("user_id", auth.user.id)
     .maybeSingle();
   if (!data) return null;
   return {
     reports: { ...DEFAULT_PREFS.reports, ...((data.reports as any) || {}) },
     includeText: data.include_text !== false,
+    allowedUserIds: Array.isArray((data as any).allowed_user_ids)
+      ? ((data as any).allowed_user_ids as string[])
+      : null,
   };
 }
 
@@ -82,6 +87,7 @@ async function savePrefsToDB(prefs: ImageDeliveryPrefs) {
     user_id: auth.user.id,
     reports: prefs.reports as any,
     include_text: prefs.includeText,
+    allowed_user_ids: prefs.allowedUserIds as any,
     updated_at: new Date().toISOString(),
   });
 }
