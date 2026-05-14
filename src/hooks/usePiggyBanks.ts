@@ -301,13 +301,14 @@ export function usePiggyBanks() {
     return (row as any)?.id as string;
   }, [user, dataOwnerId, reload]);
 
-  const updatePiggyBank = useCallback(async (id: string, patch: Partial<{ name: string; color: string; icon: string; annualRate: number; autoRate: boolean; shortId: number | null }>) => {
+  const updatePiggyBank = useCallback(async (id: string, patch: Partial<{ name: string; color: string; icon: string; annualRate: number; autoRate: boolean; cdiPercent: number; shortId: number | null }>) => {
     const dbPatch: any = {};
     if (patch.name !== undefined) dbPatch.name = patch.name;
     if (patch.color !== undefined) dbPatch.color = patch.color;
     if (patch.icon !== undefined) dbPatch.icon = patch.icon;
     if (patch.annualRate !== undefined) dbPatch.annual_rate = patch.annualRate;
     if (patch.autoRate !== undefined) dbPatch.auto_rate = patch.autoRate;
+    if (patch.cdiPercent !== undefined) dbPatch.cdi_percent = patch.cdiPercent;
     if (patch.shortId !== undefined) dbPatch.short_id = patch.shortId;
     const { error } = await supabase.from("piggy_banks" as any).update(dbPatch).eq("id", id);
     if (error) {
