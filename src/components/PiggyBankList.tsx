@@ -271,18 +271,19 @@ export function PiggyBankList({ readOnly = false }: Props) {
             return (
               <div
                 key={pb.id}
-                className="rounded-xl border border-border/40 p-3 hover:border-border transition-colors"
+                className={`rounded-xl border border-border/40 p-3 hover:border-border transition-all ${pulseId === pb.id ? "animate-scale-in ring-2 ring-primary/40" : ""}`}
                 style={{ background: `hsl(${pb.color} / 0.05)` }}
               >
                 <div
-                  role="button"
-                  tabIndex={0}
-                  onClick={() => setHistoryTarget(pb)}
+                  role={readOnly ? undefined : "button"}
+                  tabIndex={readOnly ? -1 : 0}
+                  onClick={() => { if (!readOnly) openTransfer(pb, "store"); }}
                   onKeyDown={(e) => {
-                    if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setHistoryTarget(pb); }
+                    if (readOnly) return;
+                    if (e.key === "Enter" || e.key === " ") { e.preventDefault(); openTransfer(pb, "store"); }
                   }}
-                  className="flex items-center gap-3 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-lg"
-                  title="Ver histórico de aportes"
+                  className={`flex items-center gap-3 ${readOnly ? "" : "cursor-pointer"} focus:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-lg`}
+                  title={readOnly ? undefined : "Guardar ou resgatar dinheiro"}
                 >
                   <div
                     className="h-9 w-9 rounded-lg flex items-center justify-center shrink-0"
