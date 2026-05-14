@@ -170,6 +170,7 @@ export function getMonthEndProjectedBalance(opts: {
   expenses: Expense[];
   cards: CreditCard[];
   openings: InvoiceOpening[];
+  piggyDeposits?: PiggyBankDeposit[];
   overrides: Record<string, number>;
 }): number | null {
   const [tgtY, tgtM] = opts.monthKey.split("-").map(Number);
