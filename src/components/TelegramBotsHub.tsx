@@ -6,6 +6,7 @@ import { TelegramAccumulatedDelinquencyScheduleCard } from "@/components/Telegra
 import { TelegramDailyPlanningScheduleCard } from "@/components/TelegramDailyPlanningScheduleCard";
 import { TelegramIncomesExpensesScheduleCard } from "@/components/TelegramIncomesExpensesScheduleCard";
 import { TelegramManagerWeeklyCard } from "@/components/TelegramManagerWeeklyCard";
+import { TelegramImageDeliveryCard } from "@/components/TelegramImageDeliveryCard";
 
 export function TelegramBotsHub() {
   return (
@@ -21,6 +22,9 @@ export function TelegramBotsHub() {
           </p>
         </CardContent>
       </Card>
+
+      {/* Configuração de envio em formato de imagem */}
+      <TelegramImageDeliveryCard />
 
       {/* Conexão do bot de relatórios */}
       <TelegramReportsConnectCard />
