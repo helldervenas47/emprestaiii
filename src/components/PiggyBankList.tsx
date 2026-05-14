@@ -255,6 +255,85 @@ export function PiggyBankList({ readOnly = false }: Props) {
         )}
       </div>
 
+      {/* Guardar / Resgatar dialog */}
+      <Dialog open={!!transferTarget} onOpenChange={(o) => !o && setTransferTarget(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>{transferTarget?.name}</DialogTitle>
+            <DialogDescription>
+              Movimente dinheiro entre o saldo em conta e este cofrinho. Não afeta receitas, despesas nem relatórios.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 py-1">
+            <div className="grid grid-cols-2 gap-2">
+              <Button
+                type="button"
+                variant={transferMode === "store" ? "default" : "outline"}
+                onClick={() => setTransferMode("store")}
+                className="h-11"
+              >
+                <ArrowDownCircle className="h-4 w-4 mr-1.5" /> Guardar
+              </Button>
+              <Button
+                type="button"
+                variant={transferMode === "withdraw" ? "default" : "outline"}
+                onClick={() => setTransferMode("withdraw")}
+                className="h-11"
+              >
+                <ArrowUpCircle className="h-4 w-4 mr-1.5" /> Resgatar
+              </Button>
+            </div>
+            <div className="rounded-lg bg-muted/50 p-2.5 text-xs space-y-1">
+              <div className="flex items-center justify-between">
+                <span className="text-muted-foreground">Saldo em conta:</span>
+                <span className="font-semibold tabular-nums">{fmt(accountBalance)}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-muted-foreground">Saldo do cofrinho:</span>
+                <span className="font-semibold tabular-nums">
+                  {fmt(transferTarget ? balances.get(transferTarget.id)?.balance ?? 0 : 0)}
+                </span>
+              </div>
+            </div>
+            <div>
+              <Label htmlFor="transfer-value">Valor (R$)</Label>
+              <Input
+                id="transfer-value"
+                type="number"
+                step="0.01"
+                min="0"
+                inputMode="decimal"
+                value={transferValue}
+                onChange={(e) => setTransferValue(e.target.value)}
+                autoFocus
+                placeholder="0,00"
+              />
+              {transferTarget && (() => {
+                const v = Number(transferValue.replace(",", "."));
+                if (!Number.isFinite(v) || v <= 0) return null;
+                const max = transferMode === "store"
+                  ? accountBalance
+                  : (balances.get(transferTarget.id)?.balance ?? 0);
+                if (v > max + 0.0001) {
+                  return <p className="text-[11px] mt-1.5 text-destructive">Valor maior que o disponível ({fmt(max)})</p>;
+                }
+                return (
+                  <p className="text-[11px] mt-1.5 text-muted-foreground">
+                    {transferMode === "store" ? "Conta → Cofrinho" : "Cofrinho → Conta"}: {fmt(v)}
+                  </p>
+                );
+              })()}
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setTransferTarget(null)} disabled={transferring}>Cancelar</Button>
+            <Button onClick={confirmTransfer} disabled={transferring || !transferValue}>
+              {transferMode === "store" ? "Guardar" : "Resgatar"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
 
       {piggyBanks.length === 0 ? (
         <div className="rounded-xl border border-dashed border-border/60 p-4 text-center">
