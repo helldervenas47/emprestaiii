@@ -621,13 +621,30 @@ function IndicatorGaugeCard({
           </span>
         )}
       </div>
-      <div className={`relative ${featured ? "aspect-[2.6/1]" : "aspect-[2.2/1]"}`}>
+      {/* Pontuação numérica em destaque, ACIMA do velocímetro */}
+      <div className="flex flex-col items-center">
+        <span
+          className={`font-bold leading-none tabular-nums ${featured ? "text-6xl" : "text-4xl"}`}
+          style={{ color }}
+        >
+          {score}
+        </span>
+        <span
+          className={`text-muted-foreground tracking-wider uppercase mt-1 ${
+            featured ? "text-[11px]" : "text-[9px]"
+          }`}
+        >
+          / 100
+        </span>
+      </div>
+      {/* Velocímetro logo abaixo */}
+      <div className={`relative w-full ${featured ? "aspect-[3/1] mt-2" : "aspect-[2.4/1] mt-1.5"}`}>
         <ResponsiveContainer width="100%" height="100%">
           <RadialBarChart
             cx="50%"
             cy="95%"
-            innerRadius={featured ? "82%" : "78%"}
-            outerRadius={featured ? "118%" : "112%"}
+            innerRadius={featured ? "78%" : "74%"}
+            outerRadius={featured ? "112%" : "108%"}
             startAngle={180}
             endAngle={0}
             data={gaugeData}
@@ -643,25 +660,10 @@ function IndicatorGaugeCard({
             />
           </RadialBarChart>
         </ResponsiveContainer>
-        <div className="pointer-events-none absolute inset-x-0 bottom-1 flex flex-col items-center">
-          <span
-            className={`font-bold leading-none tabular-nums ${featured ? "text-5xl" : "text-3xl"}`}
-            style={{ color }}
-          >
-            {score}
-          </span>
-          <span
-            className={`text-muted-foreground tracking-wider uppercase mt-0.5 ${
-              featured ? "text-[10px]" : "text-[9px]"
-            }`}
-          >
-            / 100
-          </span>
-        </div>
       </div>
       {!featured && (
         <div
-          className="mt-1.5 inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[9px] font-semibold"
+          className="mt-2 inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[9px] font-semibold"
           style={{ background: `${color}1f`, color }}
         >
           <span className="h-1 w-1 rounded-full" style={{ background: color }} />
