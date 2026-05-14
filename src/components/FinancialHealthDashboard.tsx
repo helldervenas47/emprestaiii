@@ -581,7 +581,7 @@ function IndicatorGaugeCard({
       type="button"
       onClick={onClick}
       className={`group relative overflow-hidden rounded-2xl border border-black/10 dark:border-white/10 bg-foreground/[0.03] backdrop-blur-xl text-left transition-all hover:bg-foreground/[0.07] active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
-        featured ? "p-5 shadow-lg shadow-black/5" : "p-3"
+        featured ? "p-3 shadow-md shadow-black/5" : "p-2.5"
       }`}
       style={
         featured
@@ -590,14 +590,14 @@ function IndicatorGaugeCard({
       }
     >
       <div
-        className={`absolute inset-x-0 top-0 ${featured ? "h-[3px]" : "h-px"}`}
+        className={`absolute inset-x-0 top-0 ${featured ? "h-[2px]" : "h-px"}`}
         style={{ background: `linear-gradient(90deg, transparent, ${color}, transparent)` }}
       />
-      <div className={`flex items-center justify-between gap-2 ${featured ? "mb-2" : "mb-1.5"}`}>
-        <div className="flex items-center gap-2 min-w-0">
+      <div className={`flex items-center justify-between gap-2 ${featured ? "mb-1" : "mb-1"}`}>
+        <div className="flex items-center gap-1.5 min-w-0">
           <span
-            className={`flex items-center justify-center rounded-xl shrink-0 ${
-              featured ? "h-9 w-9" : "h-6 w-6 rounded-md"
+            className={`flex items-center justify-center rounded-md shrink-0 ${
+              featured ? "h-7 w-7" : "h-5 w-5"
             }`}
             style={{ background: `${color}22`, color }}
           >
@@ -605,7 +605,7 @@ function IndicatorGaugeCard({
           </span>
           <span
             className={`text-foreground/90 font-semibold truncate ${
-              featured ? "text-sm" : "text-[11px]"
+              featured ? "text-[13px]" : "text-[11px]"
             }`}
           >
             {title}
@@ -613,7 +613,7 @@ function IndicatorGaugeCard({
         </div>
         {featured && (
           <span
-            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold"
+            className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-semibold"
             style={{ background: `${color}1f`, color }}
           >
             <span className="h-1.5 w-1.5 rounded-full" style={{ background: color }} />
@@ -624,27 +624,27 @@ function IndicatorGaugeCard({
       {/* Pontuação numérica em destaque, ACIMA do velocímetro */}
       <div className="flex flex-col items-center">
         <span
-          className={`font-bold leading-none tabular-nums ${featured ? "text-6xl" : "text-4xl"}`}
+          className={`font-bold leading-none tabular-nums ${featured ? "text-4xl" : "text-2xl"}`}
           style={{ color }}
         >
           {score}
         </span>
         <span
-          className={`text-muted-foreground tracking-wider uppercase mt-1 ${
-            featured ? "text-[11px]" : "text-[9px]"
+          className={`text-muted-foreground tracking-wider uppercase mt-0.5 ${
+            featured ? "text-[10px]" : "text-[8px]"
           }`}
         >
           / 100
         </span>
       </div>
       {/* Velocímetro logo abaixo */}
-      <div className={`relative w-full ${featured ? "aspect-[3/1] mt-2" : "aspect-[2.4/1] mt-1.5"}`}>
+      <div className={`relative w-full ${featured ? "aspect-[3.4/1] mt-1" : "aspect-[2.8/1] mt-1"}`}>
         <ResponsiveContainer width="100%" height="100%">
           <RadialBarChart
             cx="50%"
             cy="95%"
-            innerRadius={featured ? "78%" : "74%"}
-            outerRadius={featured ? "112%" : "108%"}
+            innerRadius={featured ? "76%" : "72%"}
+            outerRadius={featured ? "108%" : "104%"}
             startAngle={180}
             endAngle={0}
             data={gaugeData}
@@ -663,7 +663,7 @@ function IndicatorGaugeCard({
       </div>
       {!featured && (
         <div
-          className="mt-2 inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[9px] font-semibold"
+          className="mt-1 inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[9px] font-semibold"
           style={{ background: `${color}1f`, color }}
         >
           <span className="h-1 w-1 rounded-full" style={{ background: color }} />
