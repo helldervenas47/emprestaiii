@@ -22,12 +22,32 @@ function saleReceivedTotal(sale: Sale): number {
   return (sale.downPayment || 0) + (sale.paidInstallments || 0) * iv + (sale.partialPaid || 0);
 }
 
+/** Mesmo cálculo da aba Vendas: total pago considerando installmentAmounts/downPayment/partialPaid. */
+function getSalePaidAmount(s: Sale): number {
+  const amounts = s.installmentAmounts;
+  if (amounts && amounts.length > 0) {
+    let paid = s.downPayment || 0;
+    for (let i = 0; i < s.paidInstallments && i < amounts.length; i++) {
+      paid += amounts[i] || 0;
+    }
+    return paid + (s.partialPaid || 0);
+  }
+  const vp = s.installments > 0 ? Math.max(0, s.total - (s.downPayment || 0)) / s.installments : s.total;
+  return vp * s.paidInstallments + (s.downPayment || 0) + (s.partialPaid || 0);
+}
+
+/** Categoriza igual à aba Vendas, para excluir vendas quitadas do "a receber". */
+function isSalePaid(s: Sale): boolean {
+  const isRecorrente = s.paymentMode === "recorrente" && s.installments > 1;
+  return isRecorrente ? s.paidInstallments >= s.installments : s.paidInstallments >= 1;
+}
+
 export function ConsolidatedBalanceCards() {
   const { loans } = useLoans();
   const { sales } = useProducts(true);
   const { incomes } = useIncomes(true);
   const { expenses } = useExpenses(true);
-  const { piggyBanks, balances: piggyBalances } = usePiggyBanks();
+  const { piggyBanks, balances: piggyBalances, deposits: piggyDeposits } = usePiggyBanks();
 
   const [dashboardBalance, setDashboardBalance] = useState(0);
   const [vehicleBalance, setVehicleBalance] = useState(0);
@@ -71,11 +91,15 @@ export function ConsolidatedBalanceCards() {
     [loans],
   );
   const pendingSales = useMemo(
-    () => sales.reduce((s, sale) => s + Math.max(0, sale.total - saleReceivedTotal(sale)), 0),
+    () => sales
+      .filter((s) => !isSalePaid(s))
+      .reduce((s, sale) => s + Math.max(0, sale.total - getSalePaidAmount(sale)), 0),
     [sales],
   );
   const totalNaRua = pendingLoans + pendingSales;
 
+  // Saldo em Conta (Receitas) — espelha exatamente IncomeBalanceCard:
+  //  recebidos + vendas recebidas − despesas pessoais pagas − aportes manuais ao cofrinho.
   const incomesBalance = useMemo(() => {
     const totalIncomeReceived = incomes
       .filter((i) => i.status === "received")
@@ -84,8 +108,11 @@ export function ConsolidatedBalanceCards() {
     const totalExpensePaid = expenses
       .filter((e) => e.paid && (e.scope ?? "business") === "personal")
       .reduce((s, e) => s + e.amount, 0);
-    return totalIncomeReceived + totalSalesReceived - totalExpensePaid;
-  }, [incomes, sales, expenses]);
+    const totalPiggyManualDeposits = piggyDeposits
+      .filter((d) => !d.expenseId)
+      .reduce((s, d) => s + (Number(d.amount) || 0), 0);
+    return totalIncomeReceived + totalSalesReceived - totalExpensePaid - totalPiggyManualDeposits;
+  }, [incomes, sales, expenses, piggyDeposits]);
 
   const piggyTotal = useMemo(() => {
     let sum = 0;
