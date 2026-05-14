@@ -331,6 +331,77 @@ export function TelegramImageDeliveryCard() {
               ))}
             </div>
 
+            {/* Lista de usuários autorizados a receber em formato de imagem */}
+            <div className="border-t pt-3">
+              <div className="flex items-center justify-between gap-2 mb-2">
+                <div className="flex items-center gap-1.5 min-w-0">
+                  <Users className="h-3.5 w-3.5 text-primary shrink-0" />
+                  <p className="text-sm font-medium text-foreground truncate">
+                    Usuários autorizados a receber imagem
+                  </p>
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  <button
+                    type="button"
+                    onClick={selectAllUsers}
+                    className="text-[11px] text-primary hover:underline"
+                  >
+                    Todos
+                  </button>
+                  <span className="text-muted-foreground/50">·</span>
+                  <button
+                    type="button"
+                    onClick={clearAllUsers}
+                    className="text-[11px] text-muted-foreground hover:underline"
+                  >
+                    Nenhum
+                  </button>
+                </div>
+              </div>
+              <p className="text-[11px] text-muted-foreground mb-2">
+                Apenas os usuários marcados receberão relatórios em formato de imagem. Os
+                demais continuarão recebendo no formato padrão (texto).
+              </p>
+
+              {usersLoading ? (
+                <p className="text-[11px] text-muted-foreground flex items-center gap-1">
+                  <Loader2 className="h-3 w-3 animate-spin" /> Carregando usuários…
+                </p>
+              ) : usersError ? (
+                <p className="text-[11px] text-destructive flex items-center gap-1">
+                  <AlertTriangle className="h-3 w-3" /> {usersError}
+                </p>
+              ) : systemUsers.length === 0 ? (
+                <p className="text-[11px] text-muted-foreground">
+                  Nenhum usuário cadastrado.
+                </p>
+              ) : (
+                <ScrollArea className="max-h-48 pr-2">
+                  <div className="space-y-1.5">
+                    {systemUsers.map((u) => (
+                      <label
+                        key={u.id}
+                        className="flex items-center gap-2 py-1 cursor-pointer"
+                      >
+                        <Checkbox
+                          checked={isUserAllowed(u.id)}
+                          onCheckedChange={(v) => toggleUser(u.id, v === true)}
+                        />
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm text-foreground truncate">
+                            {u.display_name}
+                          </p>
+                          <p className="text-[11px] text-muted-foreground truncate">
+                            {u.email}
+                          </p>
+                        </div>
+                      </label>
+                    ))}
+                  </div>
+                </ScrollArea>
+              )}
+            </div>
+
             <div className="border-t pt-3">
               <label className="flex items-center justify-between gap-3">
                 <div className="min-w-0">
