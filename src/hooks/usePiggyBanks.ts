@@ -24,7 +24,16 @@ export interface PiggyBank {
   color: string;
   icon: string;
   annualRate: number;
+  autoRate: boolean;
   createdAt: string;
+}
+
+export interface MarketRate {
+  indicator: string;
+  annualRate: number;
+  source: string | null;
+  referenceDate: string | null;
+  fetchedAt: string;
 }
 
 export interface PiggyBankDeposit {
