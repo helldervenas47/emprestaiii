@@ -128,6 +128,26 @@ export function SystemSettings() {
         </TabsContent>
 
         {isAdmin && (
+          <TabsContent value="api-keys" className="space-y-4 mt-4">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <KeyRound className="h-4 w-4 text-primary" /> Chaves APIs
+                </CardTitle>
+                <CardDescription>
+                  Liste, edite, ative/desative e remova as chaves de API utilizadas pelas integrações do aplicativo.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Suspense fallback={<SectionLoader />}>
+                  <ApiKeysManager />
+                </Suspense>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        )}
+
+        {isAdmin && (
           <TabsContent value="health" className="space-y-4 mt-4">
             <Card>
               <CardHeader>
