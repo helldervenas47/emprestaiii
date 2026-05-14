@@ -548,28 +548,6 @@ function InsightCard({
 // Indicadores essenciais — 5 velocímetros clicáveis
 // =====================================================================
 
-type IndicatorKey = "control" | "reserve" | "debts" | "investments" | "stability";
-
-const INDICATORS: { key: IndicatorKey; label: string; icon: React.ReactNode }[] = [
-  { key: "control", label: "Controle", icon: <Wallet className="h-3.5 w-3.5" /> },
-  { key: "reserve", label: "Reserva", icon: <Shield className="h-3.5 w-3.5" /> },
-  { key: "debts", label: "Dívidas", icon: <Scale className="h-3.5 w-3.5" /> },
-  { key: "investments", label: "Investim.", icon: <Banknote className="h-3.5 w-3.5" /> },
-  { key: "stability", label: "Estabilid.", icon: <LineChartIcon className="h-3.5 w-3.5" /> },
-];
-
-function scoreColorOf(score: number): string {
-  if (score >= 70) return COLOR_GREEN;
-  if (score >= 40) return COLOR_YELLOW;
-  return COLOR_RED;
-}
-
-function scoreLabelOf(score: number): string {
-  if (score >= 70) return "Bom";
-  if (score >= 40) return "Atenção";
-  return "Ruim";
-}
-
 function IndicatorGaugeCard({
   title,
   icon,
