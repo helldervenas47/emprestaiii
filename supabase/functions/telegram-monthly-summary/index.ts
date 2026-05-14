@@ -5,6 +5,7 @@ import {
   tgSendPhoto,
   type BrandInfo,
 } from "../_shared/renderReportImage.ts";
+import { getImageDeliveryPrefs } from "../_shared/reports-bot.ts";
 
 const GATEWAY_URL = "https://connector-gateway.lovable.dev/telegram";
 
