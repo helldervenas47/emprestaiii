@@ -296,7 +296,7 @@ export function buildTextReportSVG(
     // first non-empty line becomes title
     const idx = lines.findIndex((l) => l.trim().length > 0);
     if (idx >= 0) {
-      title = lines[idx].replace(/^[\s•▸━—-]+/, "").replace(/\*/g, "").trim();
+      title = stripEmojis(lines[idx].replace(/^[\s•▸━—-]+/, "").replace(/\*/g, "")).trim();
       lines.splice(idx, 1);
       // also drop a separator/empty line directly after
       if (lines[idx]?.trim() === "" || /^[—━-]+$/.test(lines[idx]?.trim() ?? "")) lines.splice(idx, 1);
