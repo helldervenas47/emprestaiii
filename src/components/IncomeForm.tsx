@@ -127,7 +127,7 @@ export function IncomeForm({ open, onClose, onSubmit, initial }: Props) {
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+      <DialogContent className="top-0 left-0 translate-x-0 translate-y-0 w-screen h-[100dvh] max-w-none max-h-[100dvh] rounded-none border-0 overflow-y-auto sm:top-[50%] sm:left-[50%] sm:translate-x-[-50%] sm:translate-y-[-50%] sm:w-full sm:h-auto sm:max-w-lg sm:max-h-[90vh] sm:rounded-2xl sm:border">
         <DialogHeader>
           <DialogTitle>{initial ? "Editar receita" : "Nova receita"}</DialogTitle>
         </DialogHeader>
