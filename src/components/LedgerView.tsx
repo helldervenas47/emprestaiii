@@ -305,7 +305,12 @@ export function LedgerView({ readOnly = false }: Props) {
                       <div className="min-w-0 flex-1">
                         <p className="text-sm font-medium text-foreground line-clamp-2">{e.description}</p>
                         <div className="flex items-center gap-1.5 mt-1 flex-wrap">
-                          <span className="text-[11px] text-muted-foreground">{e.occurred_on}</span>
+                          <span className="text-[11px] text-muted-foreground tabular-nums">
+                            {e.occurred_on}
+                            {formatTimeInAppTz(e.created_at) && (
+                              <span className="ml-1 opacity-80">· {formatTimeInAppTz(e.created_at)}</span>
+                            )}
+                          </span>
                           <Badge variant="outline" className="text-[10px] h-4 px-1.5">
                             {categoryLabels[e.category]}
                           </Badge>
