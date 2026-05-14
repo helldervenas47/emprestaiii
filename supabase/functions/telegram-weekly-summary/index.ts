@@ -113,7 +113,15 @@ async function buildAndSendWeekly(
     }
   }
 
-  await tgSend(Number(link.chat_id), lines.join("\n"), lovableKey, telegramKey);
+  try {
+    const svg = buildTextReportSVG(lines, { name: brandName });
+    const png = await svgToPng(svg);
+    const caption = buildCaptionFromLines(lines, { name: brandName });
+    await tgSendPhoto(Number(link.chat_id), png, caption, lovableKey, telegramKey);
+  } catch (e) {
+    console.error("weekly-summary image render failed, falling back to text", e);
+    await tgSend(Number(link.chat_id), lines.join("\n"), lovableKey, telegramKey);
+  }
   return true;
 }
 
