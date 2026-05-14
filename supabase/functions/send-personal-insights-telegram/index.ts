@@ -95,7 +95,7 @@ async function processUser(
     Number(tgLink.chat_id),
     truncated.split("\n"),
     { name: brandName },
-    { fallbackText: truncated },
+    { fallbackText: truncated, reportKey: "personal_insights" },
   );
   if (!sendRes.sent) return { skipped: sendRes.reason ?? "send_failed" };
 
