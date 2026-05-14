@@ -37,8 +37,9 @@ import {
   DropdownMenuTrigger,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
-import { Eye, EyeOff, Copy, Pencil, Trash2, Plus, MoreVertical, KeyRound } from "lucide-react";
+import { Eye, EyeOff, Copy, Pencil, Trash2, Plus, MoreVertical, KeyRound, Plug, RefreshCw, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 const STORAGE_KEY = "app_api_keys_v1";
 
