@@ -1,5 +1,6 @@
 import type { Income } from "@/hooks/useIncomes";
 import type { Expense } from "@/types/loan";
+import type { PiggyBankDeposit } from "@/hooks/usePiggyBanks";
 import type { CreditCard } from "@/hooks/useCreditCards";
 import type { InvoiceOpening } from "@/hooks/useCreditCardOpenings";
 import {
