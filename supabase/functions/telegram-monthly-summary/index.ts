@@ -153,7 +153,10 @@ async function buildAndSendMonthly(
         brand,
       );
       const png = await svgToPng(svg);
-      const caption = `📆 *${brand.name} — Resumo mensal* — ${monthNamePt(currMonth)}\n💸 Total: *${fmtBRL(currS.total)}*  ${variation(currS.total, prevS.total)}`;
+      const monthlyPrefs = await getImageDeliveryPrefs(admin, userId);
+      const caption = monthlyPrefs.includeText
+        ? `📆 *${brand.name} — Resumo mensal* — ${monthNamePt(currMonth)}\n💸 Total: *${fmtBRL(currS.total)}*  ${variation(currS.total, prevS.total)}`
+        : "";
       await tgSendPhoto(Number((link as any).chat_id), png, caption, lovableKey, telegramKey);
       return true;
     } catch (e) {
