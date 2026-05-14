@@ -40,6 +40,10 @@ import {
   ChevronDown,
   ChevronUp,
   Loader2,
+  Gauge,
+  Scale,
+  Banknote,
+  LineChart as LineChartIcon,
 } from "lucide-react";
 
 const COLOR_GREEN = "#10B981";
