@@ -168,19 +168,32 @@ export function getMonthEndProjectedBalance(opts: {
   );
   if (targetEnd < todayMonthStart) return null;
 
+  // A projeção começa NO DIA SEGUINTE a hoje, pois `baseBalance` já reflete
+  // todas as movimentações até a data atual (inclusive). Iniciar no dia 1 do
+  // mês corrente provoca dupla contagem das receitas/despesas já realizadas.
+  const startDate = new Date(
+    opts.today.getFullYear(),
+    opts.today.getMonth(),
+    opts.today.getDate() + 1,
+  );
+
+  // Caso já estejamos no/após o último dia do mês alvo, o próprio saldo atual
+  // é a melhor estimativa de fechamento.
+  if (startDate > targetEnd) return opts.baseBalance;
+
   const deltas = buildDailyDeltas({
     incomes: opts.incomes,
     expenses: opts.expenses,
     cards: opts.cards,
     openings: opts.openings,
-    fromYear: todayMonthStart.getFullYear(),
-    fromMonth: todayMonthStart.getMonth(),
+    fromYear: startDate.getFullYear(),
+    fromMonth: startDate.getMonth(),
     toYear: targetEnd.getFullYear(),
     toMonth: targetEnd.getMonth(),
   });
   const map = computeRunningBalance({
     baseBalance: opts.baseBalance,
-    startDate: todayMonthStart,
+    startDate,
     endDate: targetEnd,
     deltas,
     overrides: opts.overrides,
