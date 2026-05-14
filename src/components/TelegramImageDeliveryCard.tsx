@@ -135,9 +135,40 @@ export function TelegramImageDeliveryCard() {
     }
   };
 
+  // Lista de usuários do sistema (somente admin tem acesso ao endpoint)
+  const [systemUsers, setSystemUsers] = useState<
+    { id: string; display_name: string; email: string }[]
+  >([]);
+  const [usersLoading, setUsersLoading] = useState(false);
+  const [usersError, setUsersError] = useState<string | null>(null);
+
+  const loadSystemUsers = async () => {
+    setUsersLoading(true);
+    setUsersError(null);
+    try {
+      const { data, error } = await supabase.functions.invoke("admin-manage-user", {
+        body: { action: "list" },
+      });
+      if (error || (data as any)?.error) {
+        throw new Error((data as any)?.error || error?.message || "Erro ao carregar usuários");
+      }
+      const list = ((data as any)?.users || []).map((u: any) => ({
+        id: u.id,
+        display_name: u.display_name || u.email,
+        email: u.email,
+      }));
+      setSystemUsers(list);
+    } catch (e: any) {
+      setUsersError(e?.message || "Erro ao carregar usuários");
+    } finally {
+      setUsersLoading(false);
+    }
+  };
+
   useEffect(() => {
     setPrefs(loadImageDeliveryPrefs());
     loadUsage();
+    loadSystemUsers();
     fetchPrefsFromDB().then((p) => {
       if (p) {
         setPrefs(p);
@@ -154,6 +185,31 @@ export function TelegramImageDeliveryCard() {
 
   const toggleReport = (key: ReportKey, value: boolean) => {
     update({ ...prefs, reports: { ...prefs.reports, [key]: value } });
+  };
+
+  const isUserAllowed = (uid: string) => {
+    // null/empty = todos liberados (back-compat)
+    if (!prefs.allowedUserIds || prefs.allowedUserIds.length === 0) return true;
+    return prefs.allowedUserIds.includes(uid);
+  };
+
+  const toggleUser = (uid: string, value: boolean) => {
+    // Quando saindo do estado "todos" (null), materializa a lista atual
+    const baseList: string[] = prefs.allowedUserIds && prefs.allowedUserIds.length > 0
+      ? [...prefs.allowedUserIds]
+      : systemUsers.map((u) => u.id);
+    const set = new Set(baseList);
+    if (value) set.add(uid);
+    else set.delete(uid);
+    update({ ...prefs, allowedUserIds: Array.from(set) });
+  };
+
+  const selectAllUsers = () => {
+    update({ ...prefs, allowedUserIds: null });
+  };
+
+  const clearAllUsers = () => {
+    update({ ...prefs, allowedUserIds: [] });
   };
 
   return (
