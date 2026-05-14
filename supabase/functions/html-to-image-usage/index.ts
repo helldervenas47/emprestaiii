@@ -17,7 +17,7 @@ Deno.serve(async (req) => {
     }
 
     const auth = btoa(`${userId}:${apiKey}`);
-    const r = await fetch("https://hcti.io/v1/users", {
+    const r = await fetch("https://hcti.io/v1/usage", {
       headers: { Authorization: `Basic ${auth}` },
     });
     const text = await r.text();
