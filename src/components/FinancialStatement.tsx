@@ -109,7 +109,7 @@ export function FinancialStatement() {
         const isFull = p.type !== "partial";
         saleRows.push({
           id: `s-${s.id}-p${idx}`,
-          date: p.date || s.sale_date || s.date,
+          date: p.date || s.date,
           description: desc,
           category: "Venda",
           type: "income",
