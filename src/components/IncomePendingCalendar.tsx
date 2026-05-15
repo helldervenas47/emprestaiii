@@ -777,7 +777,7 @@ export function IncomePendingCalendar({
             className={
               isMobile
                 ? (selectedDate
-                    ? "fixed inset-x-0 bottom-0 z-50 max-h-[88vh] overflow-y-auto rounded-t-2xl border-t border-border bg-card p-4 pb-[calc(env(safe-area-inset-bottom)+1rem)] shadow-2xl animate-slide-in-from-bottom"
+                    ? "fixed inset-x-0 bottom-0 z-50 max-h-[88vh] overflow-y-auto rounded-t-2xl border-t border-border bg-card p-4 pb-[calc(env(safe-area-inset-bottom)+1rem)] shadow-2xl animate-in slide-in-from-bottom duration-300"
                     : "hidden")
                 : `rounded-lg border border-border/50 bg-muted/20 p-3 min-h-[200px] animate-fade-in ${expanded || selectedDate ? "" : "hidden md:block"}`
             }
