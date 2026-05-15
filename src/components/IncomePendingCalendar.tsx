@@ -615,12 +615,12 @@ export function IncomePendingCalendar({
                 {dayIncomeItems.map((inc) => {
                   const isReceived = inc.status === "received";
                   return (
-                    <li key={`inc-${inc.id}`} className="flex items-center justify-between gap-2 rounded-md bg-emerald-500/5 border border-emerald-500/20 px-2.5 py-1.5">
-                      <span className="flex items-center gap-2 min-w-0">
-                        <span aria-label={isReceived ? "Recebida" : "Pendente"} title={isReceived ? "Recebida" : "Pendente"} className={`h-2 w-2 rounded-full shrink-0 ${isReceived ? "bg-emerald-500" : "bg-rose-500"}`} />
-                        <span className="text-xs text-foreground truncate">{inc.description}</span>
+                    <li key={`inc-${inc.id}`} className="flex items-start justify-between gap-2 rounded-md bg-emerald-500/5 border border-emerald-500/20 px-2.5 py-1.5">
+                      <span className="flex items-start gap-2 min-w-0 flex-1">
+                        <span aria-label={isReceived ? "Recebida" : "Pendente"} title={isReceived ? "Recebida" : "Pendente"} className={`h-2 w-2 mt-1 rounded-full shrink-0 ${isReceived ? "bg-emerald-500" : "bg-rose-500"}`} />
+                        <span className="text-xs text-foreground break-words leading-snug">{inc.description}</span>
                       </span>
-                      <span className="text-xs font-semibold text-emerald-700 dark:text-emerald-400 tabular-nums shrink-0">
+                      <span className="text-xs font-semibold text-emerald-700 dark:text-emerald-400 tabular-nums shrink-0 whitespace-nowrap">
                         {formatCurrency(Number(inc.amount) || 0)}
                       </span>
                     </li>
