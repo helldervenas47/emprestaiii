@@ -122,9 +122,6 @@ export function ClientLoanHistory({ loans, payments }: Props) {
                 <TableRow key={r.name}>
                   <TableCell className="font-medium">
                     {r.name}
-                    {r.contracts > 1 && (
-                      <span className="ml-2 text-xs text-muted-foreground">({r.contracts} contratos)</span>
-                    )}
                   </TableCell>
                   <TableCell className="text-right tabular-nums">{mask(formatCurrency(r.borrowed))}</TableCell>
                   <TableCell className="text-right tabular-nums text-success">{mask(formatCurrency(r.paid))}</TableCell>
