@@ -467,7 +467,7 @@ function ClientLoansList({ loans, paymentsByLoan, hidden }: ClientLoansListProps
       {/* Mobile — Cards */}
       <div className="md:hidden space-y-2">
         {loans.map((l) => {
-          const { value, isPaid } = computeValueCell(l);
+          const { remaining, paid, isPaid } = computeValueCell(l);
           const { label, className } = statusMeta(l);
           return (
             <div
@@ -498,11 +498,15 @@ function ClientLoansList({ loans, paymentsByLoan, hidden }: ClientLoansListProps
                   <div className="tabular-nums font-medium">{mask(formatCurrency(l.amount))}</div>
                 </div>
                 <div>
-                  <div className="text-muted-foreground">{isPaid ? "Pago" : "Restante"}</div>
-                  <div
-                    className={`tabular-nums font-medium ${isPaid ? "text-success" : "text-warning"}`}
-                  >
-                    {mask(formatCurrency(value))}
+                  <div className="text-muted-foreground">Restante</div>
+                  <div className="tabular-nums font-medium text-warning">
+                    {mask(formatCurrency(remaining))}
+                  </div>
+                </div>
+                <div>
+                  <div className="text-muted-foreground">Pago</div>
+                  <div className="tabular-nums font-medium text-success">
+                    {mask(formatCurrency(paid))}
                   </div>
                 </div>
               </div>
