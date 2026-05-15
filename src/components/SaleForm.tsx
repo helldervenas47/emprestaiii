@@ -538,6 +538,10 @@ export function SaleForm({ onAdd, onClose, defaultBusinessType = "venda", client
               </div>
             )}
             <div>
+              <Label>Categoria</Label>
+              <SaleCategoryPicker value={form.category} onChange={(v) => update("category", v)} />
+            </div>
+            <div>
               <Label>Observações</Label>
               <Input value={form.notes} onChange={(e) => update("notes", e.target.value)} placeholder="Notas..." />
             </div>
