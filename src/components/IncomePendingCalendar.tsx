@@ -615,12 +615,12 @@ export function IncomePendingCalendar({
                 {dayIncomeItems.map((inc) => {
                   const isReceived = inc.status === "received";
                   return (
-                    <li key={`inc-${inc.id}`} className="flex items-center justify-between gap-2 rounded-md bg-emerald-500/5 border border-emerald-500/20 px-2.5 py-1.5">
-                      <span className="flex items-center gap-2 min-w-0">
-                        <span aria-label={isReceived ? "Recebida" : "Pendente"} title={isReceived ? "Recebida" : "Pendente"} className={`h-2 w-2 rounded-full shrink-0 ${isReceived ? "bg-emerald-500" : "bg-rose-500"}`} />
-                        <span className="text-xs text-foreground truncate">{inc.description}</span>
+                    <li key={`inc-${inc.id}`} className="flex items-start justify-between gap-2 rounded-md bg-emerald-500/5 border border-emerald-500/20 px-2.5 py-1.5">
+                      <span className="flex items-start gap-2 min-w-0 flex-1">
+                        <span aria-label={isReceived ? "Recebida" : "Pendente"} title={isReceived ? "Recebida" : "Pendente"} className={`h-2 w-2 mt-1 rounded-full shrink-0 ${isReceived ? "bg-emerald-500" : "bg-rose-500"}`} />
+                        <span className="text-xs text-foreground break-words leading-snug">{inc.description}</span>
                       </span>
-                      <span className="text-xs font-semibold text-emerald-700 dark:text-emerald-400 tabular-nums shrink-0">
+                      <span className="text-xs font-semibold text-emerald-700 dark:text-emerald-400 tabular-nums shrink-0 whitespace-nowrap">
                         {formatCurrency(Number(inc.amount) || 0)}
                       </span>
                     </li>
@@ -646,12 +646,12 @@ export function IncomePendingCalendar({
                 {dayExpenseItems.map((ex) => {
                   const isPaid = !!ex.paid;
                   return (
-                    <li key={`exp-${ex.id}`} className="flex items-center justify-between gap-2 rounded-md bg-rose-500/5 border border-rose-500/20 px-2.5 py-1.5">
-                      <span className="flex items-center gap-2 min-w-0">
-                        <span aria-label={isPaid ? "Paga" : "Pendente"} title={isPaid ? "Paga" : "Pendente"} className={`h-2 w-2 rounded-full shrink-0 ${isPaid ? "bg-emerald-500" : "bg-rose-500"}`} />
-                        <span className="text-xs text-foreground truncate">{ex.description}</span>
+                    <li key={`exp-${ex.id}`} className="flex items-start justify-between gap-2 rounded-md bg-rose-500/5 border border-rose-500/20 px-2.5 py-1.5">
+                      <span className="flex items-start gap-2 min-w-0 flex-1">
+                        <span aria-label={isPaid ? "Paga" : "Pendente"} title={isPaid ? "Paga" : "Pendente"} className={`h-2 w-2 mt-1 rounded-full shrink-0 ${isPaid ? "bg-emerald-500" : "bg-rose-500"}`} />
+                        <span className="text-xs text-foreground break-words leading-snug">{ex.description}</span>
                       </span>
-                      <span className="text-xs font-semibold text-rose-700 dark:text-rose-400 tabular-nums shrink-0">
+                      <span className="text-xs font-semibold text-rose-700 dark:text-rose-400 tabular-nums shrink-0 whitespace-nowrap">
                         {formatCurrency(Number(ex.amount) || 0)}
                       </span>
                     </li>
@@ -673,13 +673,13 @@ export function IncomePendingCalendar({
               </div>
               <ul className="space-y-1">
                 {selectedInfo.cardInvoices.map((c) => (
-                  <li key={`inv-${c.cardId}`} className="flex items-center justify-between gap-2 rounded-md bg-violet-500/5 border border-violet-500/20 px-2.5 py-1.5">
-                    <span className="flex items-center gap-1.5 text-xs text-foreground truncate min-w-0">
-                      <CreditCardIcon className="h-3 w-3 text-violet-600 dark:text-violet-400 shrink-0" />
-                      <span className="truncate">{c.cardLabel}</span>
+                  <li key={`inv-${c.cardId}`} className="flex items-start justify-between gap-2 rounded-md bg-violet-500/5 border border-violet-500/20 px-2.5 py-1.5">
+                    <span className="flex items-start gap-1.5 text-xs text-foreground min-w-0 flex-1">
+                      <CreditCardIcon className="h-3 w-3 mt-0.5 text-violet-600 dark:text-violet-400 shrink-0" />
+                      <span className="break-words leading-snug">{c.cardLabel}</span>
                       {c.paid && <span className="text-[10px] font-medium text-emerald-700 dark:text-emerald-400 shrink-0">paga</span>}
                     </span>
-                    <span className="text-xs font-semibold text-violet-700 dark:text-violet-400 tabular-nums shrink-0">
+                    <span className="text-xs font-semibold text-violet-700 dark:text-violet-400 tabular-nums shrink-0 whitespace-nowrap">
                       {formatCurrency(c.total)}
                     </span>
                   </li>
@@ -705,15 +705,15 @@ export function IncomePendingCalendar({
                 {selectedInfo.piggyMovements.map((p) => {
                   const isStore = p.amount >= 0;
                   return (
-                    <li key={`piggy-${p.id}`} className="flex items-center justify-between gap-2 rounded-md bg-amber-500/5 border border-amber-500/20 px-2.5 py-1.5">
-                      <span className="flex items-center gap-1.5 text-xs text-foreground truncate min-w-0">
-                        {isStore ? <ArrowDownCircle className="h-3 w-3 text-rose-600 dark:text-rose-400 shrink-0" /> : <ArrowUpCircle className="h-3 w-3 text-emerald-600 dark:text-emerald-400 shrink-0" />}
-                        <span className="truncate">
+                    <li key={`piggy-${p.id}`} className="flex items-start justify-between gap-2 rounded-md bg-amber-500/5 border border-amber-500/20 px-2.5 py-1.5">
+                      <span className="flex items-start gap-1.5 text-xs text-foreground min-w-0 flex-1">
+                        {isStore ? <ArrowDownCircle className="h-3 w-3 mt-0.5 text-rose-600 dark:text-rose-400 shrink-0" /> : <ArrowUpCircle className="h-3 w-3 mt-0.5 text-emerald-600 dark:text-emerald-400 shrink-0" />}
+                        <span className="break-words leading-snug">
                           {isStore ? "Guardar" : "Resgatar"}
                           {p.piggyName ? ` · ${p.piggyName}` : ""}
                         </span>
                       </span>
-                      <span className={`text-xs font-semibold tabular-nums shrink-0 ${isStore ? "text-rose-700 dark:text-rose-400" : "text-emerald-700 dark:text-emerald-400"}`}>
+                      <span className={`text-xs font-semibold tabular-nums shrink-0 whitespace-nowrap ${isStore ? "text-rose-700 dark:text-rose-400" : "text-emerald-700 dark:text-emerald-400"}`}>
                         {isStore ? "-" : "+"}{formatCurrency(Math.abs(p.amount))}
                       </span>
                     </li>
@@ -853,7 +853,9 @@ export function IncomePendingCalendar({
         </div>
 
         <div className={`grid gap-4 ${selectedDate ? "" : "md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)]"}`}>
-          <div className={selectedDate ? "hidden" : ""}>
+          {/* Quando uma data está selecionada no mobile: oculta apenas o grid mensal expandido,
+              mantendo a faixa da semana visível acima dos detalhes para contexto. */}
+          <div className={selectedDate && expanded ? "hidden md:block" : ""}>
             {expanded ? (
               <>
                 <div className="flex items-center justify-between mb-3">
