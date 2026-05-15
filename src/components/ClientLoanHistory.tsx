@@ -526,6 +526,7 @@ function ClientLoansList({ loans, paymentsByLoan, lastPaymentDateByLoan, hidden 
           const { remaining, paid, isPaid } = computeValueCell(l);
           const { label, className } = statusMeta(l);
           const settlementDate = lastPaymentDateByLoan[l.id];
+          const isSettled = l.status === "paid" && remaining === 0 && !!settlementDate;
           return (
             <div
               key={l.id}
@@ -566,16 +567,16 @@ function ClientLoansList({ loans, paymentsByLoan, lastPaymentDateByLoan, hidden 
                     {mask(formatCurrency(paid))}
                   </div>
                 </div>
-                {isPaid && remaining === 0 && settlementDate && (
+                {isSettled && (
                   <div>
-                    <div className="text-muted-foreground">Quitado em</div>
+                    <div className="text-muted-foreground">Quitação</div>
                     <div className="tabular-nums font-medium text-primary">
                       {formatDate(settlementDate)}
                     </div>
                   </div>
                 )}
                 {l.tags && l.tags.length > 0 && (
-                  <div className={isPaid && settlementDate ? "" : "col-span-2"}>
+                  <div className={isSettled ? "" : "col-span-2"}>
                     <div className="text-muted-foreground">Etiquetas</div>
                     <div className="mt-0.5">{renderTags(l.tags)}</div>
                   </div>
@@ -593,7 +594,7 @@ function ClientLoansList({ loans, paymentsByLoan, lastPaymentDateByLoan, hidden 
             <tr className="border-b border-border/60 text-muted-foreground">
               <th className="text-left font-medium py-2 px-2 whitespace-nowrap">Data</th>
               <th className="text-left font-medium py-2 px-2 whitespace-nowrap">Vencimento</th>
-              <th className="text-left font-medium py-2 px-2 whitespace-nowrap">Quitado em</th>
+              <th className="text-left font-medium py-2 px-2 whitespace-nowrap">Quitado</th>
               <th className="text-right font-medium py-2 px-2 whitespace-nowrap">Valor</th>
               <th className="text-right font-medium py-2 px-2 whitespace-nowrap">Restante</th>
               <th className="text-right font-medium py-2 px-2 whitespace-nowrap">Pago</th>
@@ -607,12 +608,13 @@ function ClientLoansList({ loans, paymentsByLoan, lastPaymentDateByLoan, hidden 
               const { remaining, paid } = computeValueCell(l);
               const { label, className } = statusMeta(l);
               const settlementDate = lastPaymentDateByLoan[l.id];
+              const isSettled = l.status === "paid" && remaining === 0 && !!settlementDate;
               return (
                 <tr key={l.id} className="border-b border-border/30 last:border-0 hover:bg-muted/30 transition-colors">
                   <td className="py-2 px-2 tabular-nums whitespace-nowrap">{formatDate(l.startDate)}</td>
                   <td className="py-2 px-2 tabular-nums whitespace-nowrap">{formatDate(l.dueDate)}</td>
                   <td className="py-2 px-2 tabular-nums whitespace-nowrap font-medium text-primary">
-                    {l.status === "paid" && remaining === 0 && settlementDate ? formatDate(settlementDate) : "—"}
+                    {isSettled ? formatDate(settlementDate) : "—"}
                   </td>
                   <td className="py-2 px-2 tabular-nums text-right whitespace-nowrap font-medium">
                     {mask(formatCurrency(l.amount))}
