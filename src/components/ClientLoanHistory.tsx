@@ -442,13 +442,13 @@ function ClientLoansList({ loans, paymentsByLoan, hidden }: ClientLoansListProps
   const computeValueCell = (l: Loan) => {
     const totalPaid = paymentsByLoan[l.id] ?? 0;
     const isPaid = l.status === "paid";
-    if (isPaid) return { value: totalPaid, isPaid };
+    if (isPaid) return { remaining: 0, paid: totalPaid, isPaid };
     const expected = calculateTotalWithInterest(l.amount, l.interestRate, l.installments);
-    const value =
+    const remaining =
       l.remainingAmount != null && l.remainingAmount > 0
         ? l.remainingAmount
         : Math.max(0, expected - totalPaid);
-    return { value, isPaid };
+    return { remaining, paid: totalPaid, isPaid };
   };
 
   const statusMeta = (l: Loan) => {
