@@ -425,64 +425,65 @@ function ClientLoansList({ loans, paymentsByLoan, hidden }: ClientLoansListProps
   }
 
   return (
-    <div className="space-y-2">
-      {loans.map((l, idx) => {
-        const totalPaid = paymentsByLoan[l.id] ?? 0;
-        let remaining = 0;
-        if (l.status !== "paid") {
-          const expected = calculateTotalWithInterest(l.amount, l.interestRate, l.installments);
-          remaining = l.remainingAmount != null && l.remainingAmount > 0
-            ? l.remainingAmount
-            : Math.max(0, expected - totalPaid);
-        }
+    <div className="w-full overflow-x-auto">
+      <table className="w-full text-[11px] sm:text-xs border-collapse">
+        <thead>
+          <tr className="border-b border-border/60 text-muted-foreground">
+            <th className="text-left font-medium py-2 px-2 whitespace-nowrap">Data</th>
+            <th className="text-left font-medium py-2 px-2 whitespace-nowrap">Vencimento</th>
+            <th className="text-right font-medium py-2 px-2 whitespace-nowrap">Valor</th>
+            <th className="text-right font-medium py-2 px-2 whitespace-nowrap">
+              <span className="hidden sm:inline">Restante / Pago</span>
+              <span className="sm:hidden">Rest./Pago</span>
+            </th>
+            <th className="text-center font-medium py-2 px-2 whitespace-nowrap">Parcelas</th>
+            <th className="text-center font-medium py-2 px-2 whitespace-nowrap">Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          {loans.map((l) => {
+            const totalPaid = paymentsByLoan[l.id] ?? 0;
+            const isPaid = l.status === "paid";
+            let valueCell = 0;
+            if (isPaid) {
+              valueCell = totalPaid;
+            } else {
+              const expected = calculateTotalWithInterest(l.amount, l.interestRate, l.installments);
+              valueCell = l.remainingAmount != null && l.remainingAmount > 0
+                ? l.remainingAmount
+                : Math.max(0, expected - totalPaid);
+            }
 
-        const statusLabel =
-          l.status === "paid" ? "Pago" : l.status === "overdue" ? "Atrasado" : "Pendente";
-        const statusClass =
-          l.status === "paid"
-            ? "bg-success/15 text-success border-success/30"
-            : l.status === "overdue"
-              ? "bg-destructive/15 text-destructive border-destructive/30"
-              : "bg-warning/15 text-warning border-warning/30";
+            const statusLabel = isPaid ? "Pago" : l.status === "overdue" ? "Atrasado" : "Pendente";
+            const statusClass = isPaid
+              ? "bg-success/15 text-success border-success/30"
+              : l.status === "overdue"
+                ? "bg-destructive/15 text-destructive border-destructive/30"
+                : "bg-warning/15 text-warning border-warning/30";
 
-        return (
-          <div
-            key={l.id}
-            className={`rounded-lg border border-border/50 bg-card/40 px-3 py-2 ${idx > 0 ? "" : ""}`}
-          >
-            <div className="flex items-center justify-between gap-2 mb-1.5">
-              <span className="text-[11px] text-muted-foreground">
-                Empréstimo de {formatDate(l.startDate)}
-              </span>
-              <Badge variant="outline" className={`text-[10px] px-1.5 py-0 h-5 ${statusClass}`}>
-                {statusLabel}
-              </Badge>
-            </div>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px]">
-              <div>
-                <div className="text-muted-foreground">Vencimento</div>
-                <div className="tabular-nums font-medium">{formatDate(l.dueDate)}</div>
-              </div>
-              <div>
-                <div className="text-muted-foreground">Valor</div>
-                <div className="tabular-nums font-medium">{mask(formatCurrency(l.amount))}</div>
-              </div>
-              <div>
-                <div className="text-muted-foreground">Restante</div>
-                <div className="tabular-nums font-medium text-warning">
-                  {mask(formatCurrency(remaining))}
-                </div>
-              </div>
-              <div>
-                <div className="text-muted-foreground">Parcelas</div>
-                <div className="tabular-nums font-medium">
+            return (
+              <tr key={l.id} className="border-b border-border/30 last:border-0 hover:bg-muted/30 transition-colors">
+                <td className="py-2 px-2 tabular-nums whitespace-nowrap">{formatDate(l.startDate)}</td>
+                <td className="py-2 px-2 tabular-nums whitespace-nowrap">{formatDate(l.dueDate)}</td>
+                <td className="py-2 px-2 tabular-nums text-right whitespace-nowrap font-medium">
+                  {mask(formatCurrency(l.amount))}
+                </td>
+                <td className={`py-2 px-2 tabular-nums text-right whitespace-nowrap font-medium ${isPaid ? "text-success" : "text-warning"}`}>
+                  {mask(formatCurrency(valueCell))}
+                </td>
+                <td className="py-2 px-2 tabular-nums text-center whitespace-nowrap">
                   {l.paidInstallments ?? 0} / {l.installments}
-                </div>
-              </div>
-            </div>
-          </div>
-        );
-      })}
+                </td>
+                <td className="py-2 px-2 text-center whitespace-nowrap">
+                  <Badge variant="outline" className={`text-[10px] px-1.5 py-0 h-5 ${statusClass}`}>
+                    {statusLabel}
+                  </Badge>
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
     </div>
   );
 }
