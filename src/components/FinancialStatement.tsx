@@ -9,13 +9,16 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { DatePickerField } from "@/components/ui/date-picker-field";
-import { Search, ArrowUpCircle, ArrowDownCircle, FileDown, FileSpreadsheet } from "lucide-react";
+import { Search, ArrowUpCircle, ArrowDownCircle, FileDown, FileSpreadsheet, ShoppingCart } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import * as XLSX from "xlsx";
-import { Expense } from "@/types/loan";
+import { Expense, Sale } from "@/types/loan";
+import { useProducts } from "@/hooks/useProducts";
+
+type RowOrigin = "income" | "expense" | "sale-full" | "sale-partial";
 
 type Row = {
   id: string;
@@ -23,6 +26,7 @@ type Row = {
   description: string;
   category: string;
   type: "income" | "expense";
+  origin: RowOrigin;
   amount: number;
   paymentMethod: string;
   account: string;
@@ -37,6 +41,7 @@ const PAGE_SIZE = 30;
 export function FinancialStatement() {
   const { incomes } = useIncomes();
   const { expenses } = useExpenses();
+  const { sales } = useProducts(true);
   const { clients } = useClients();
   const { activeMethods } = usePaymentMethods();
 
@@ -67,6 +72,7 @@ export function FinancialStatement() {
         description: i.description,
         category: i.category || "Outros",
         type: "income",
+        origin: "income",
         amount: i.amount,
         paymentMethod: methodName(i.paymentMethodId),
         account: clientName(i.clientId) || i.source || "—",
@@ -79,13 +85,60 @@ export function FinancialStatement() {
         description: e.description,
         category: e.category || "Outros",
         type: "expense",
+        origin: "expense",
         amount: e.amount,
         paymentMethod: methodName(e.paymentMethodId),
         account: "Pessoal",
       }));
-    return [...incomeRows, ...expenseRows];
+
+    // Vendas: cada pagamento (paymentHistory) vira um lançamento individual no extrato.
+    // Sem duplicidade — fallback só para vendas antigas sem histórico de pagamentos.
+    const saleRows: Row[] = [];
+    sales.forEach((s: Sale) => {
+      const desc = s.description || s.productName || "Venda";
+      const account = s.customerName || "—";
+      const history = s.paymentHistory || [];
+      if (history.length > 0) {
+        history.forEach((p, idx) => {
+          const amt = Number(p.amount) || 0;
+          if (amt <= 0) return;
+          const isFull = p.type !== "partial";
+          saleRows.push({
+            id: `s-${s.id}-p${idx}`,
+            date: p.date || s.date,
+            description: desc,
+            category: "Venda",
+            type: "income",
+            origin: isFull ? "sale-full" : "sale-partial",
+            amount: amt,
+            paymentMethod: "—",
+            account,
+          });
+        });
+      } else {
+        // Fallback: vendas antigas sem histórico — usa downPayment/paidInstallments + partialPaid
+        const iv = s.installmentValue ?? (s.installments > 0 ? s.total / s.installments : s.total);
+        const total = (s.downPayment || 0) + (s.paidInstallments || 0) * iv + (s.partialPaid || 0);
+        if (total > 0) {
+          const isFullyPaid = s.paidInstallments >= s.installments && (s.partialPaid || 0) === 0;
+          saleRows.push({
+            id: `s-${s.id}-legacy`,
+            date: s.date,
+            description: desc,
+            category: "Venda",
+            type: "income",
+            origin: isFullyPaid ? "sale-full" : "sale-partial",
+            amount: total,
+            paymentMethod: "—",
+            account,
+          });
+        }
+      }
+    });
+
+    return [...incomeRows, ...expenseRows, ...saleRows];
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [incomes, expenses, activeMethods, clients]);
+  }, [incomes, expenses, sales, activeMethods, clients]);
 
   const categories = useMemo(() => {
     const set = new Set<string>();
@@ -286,15 +339,27 @@ export function FinancialStatement() {
                         </Badge>
                       </td>
                       <td className="px-4 py-2 align-middle">
-                        {r.type === "income" ? (
-                          <Badge className="bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30 gap-1 whitespace-nowrap">
-                            <ArrowUpCircle className="h-3 w-3" /> Receita
-                          </Badge>
-                        ) : (
-                          <Badge className="bg-rose-500/15 text-rose-700 dark:text-rose-400 border border-rose-500/30 gap-1 whitespace-nowrap">
-                            <ArrowDownCircle className="h-3 w-3" /> Despesa
-                          </Badge>
-                        )}
+                        <div className="flex items-center gap-1 flex-wrap">
+                          {r.type === "income" ? (
+                            <Badge className="bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30 gap-1 whitespace-nowrap">
+                              <ArrowUpCircle className="h-3 w-3" /> Receita
+                            </Badge>
+                          ) : (
+                            <Badge className="bg-rose-500/15 text-rose-700 dark:text-rose-400 border border-rose-500/30 gap-1 whitespace-nowrap">
+                              <ArrowDownCircle className="h-3 w-3" /> Despesa
+                            </Badge>
+                          )}
+                          {r.origin === "sale-full" && (
+                            <Badge className="bg-primary/15 text-primary border border-primary/30 gap-1 whitespace-nowrap">
+                              <ShoppingCart className="h-3 w-3" /> Venda
+                            </Badge>
+                          )}
+                          {r.origin === "sale-partial" && (
+                            <Badge className="bg-amber-500/15 text-amber-700 dark:text-amber-400 border border-amber-500/30 gap-1 whitespace-nowrap">
+                              <ShoppingCart className="h-3 w-3" /> Pagamento Parcial
+                            </Badge>
+                          )}
+                        </div>
                       </td>
                       <td className="px-4 py-2 align-middle text-muted-foreground truncate" title={r.account}>{r.account}</td>
                       <td className={`px-4 py-2 text-right font-semibold whitespace-nowrap align-middle ${
@@ -322,7 +387,19 @@ export function FinancialStatement() {
                     )}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="font-medium truncate">{r.description}</div>
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <span className="font-medium truncate">{r.description}</span>
+                      {r.origin === "sale-full" && (
+                        <Badge className="bg-primary/15 text-primary border border-primary/30 gap-1 whitespace-nowrap text-[10px] px-1.5 py-0">
+                          <ShoppingCart className="h-2.5 w-2.5" /> Venda
+                        </Badge>
+                      )}
+                      {r.origin === "sale-partial" && (
+                        <Badge className="bg-amber-500/15 text-amber-700 dark:text-amber-400 border border-amber-500/30 gap-1 whitespace-nowrap text-[10px] px-1.5 py-0">
+                          <ShoppingCart className="h-2.5 w-2.5" /> Parcial
+                        </Badge>
+                      )}
+                    </div>
                     <div className="text-xs text-muted-foreground mt-0.5 flex flex-wrap gap-x-2">
                       <span>{format(new Date(r.date + "T00:00:00"), "dd/MM/yyyy", { locale: ptBR })}</span>
                       <span>· {r.category}</span>
