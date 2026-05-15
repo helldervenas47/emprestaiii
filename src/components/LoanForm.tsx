@@ -21,6 +21,7 @@ import { useCreditLimits } from "@/hooks/useCreditLimits";
 import { computeAvailableLimit, computeUsedLimit, formatBRL } from "@/lib/creditLimit";
 import { Wallet, AlertTriangle as AlertTriangleIcon } from "lucide-react";
 import { PaymentMethodPicker } from "@/components/PaymentMethodPicker";
+import { LoanPaymentSplitEditor, buildSplitFromState, type SplitState } from "@/components/LoanPaymentSplitEditor";
 
 interface Props {
   onAdd: (loan: Omit<Loan, "id" | "status" | "paidInstallments"> & { paymentMethodId?: string | null }) => Promise<string | null>;
