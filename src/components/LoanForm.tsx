@@ -362,6 +362,22 @@ export function LoanForm({ onAdd, onSaveSchedule, onClose, clients, loans, payme
               </div>
             )}
 
+            {/* Sale toggle */}
+            <div className="border border-border rounded-lg p-3 bg-muted/20">
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  id="isSale"
+                  checked={isSale}
+                  onChange={(e) => setIsSale(e.target.checked)}
+                  className="h-4 w-4 rounded border-border accent-primary"
+                />
+                <Label htmlFor="isSale" className="font-medium cursor-pointer text-sm">
+                  Contrato de venda
+                </Label>
+              </div>
+            </div>
+
             {/* Manager section */}
             <div className="border border-border rounded-lg p-3 space-y-3 bg-muted/20">
               <div className="flex items-center gap-2">
