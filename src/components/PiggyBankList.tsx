@@ -821,6 +821,75 @@ export function PiggyBankList({ readOnly = false }: Props) {
         description="Este aporte será removido do histórico do cofrinho. A despesa vinculada (se houver) permanece. Esta ação não pode ser desfeita."
       />
 
+      {/* Recorrências do cofrinho */}
+      <Dialog open={!!recurrenceTarget} onOpenChange={(o) => !o && setRecurrenceTarget(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Repeat className="h-4 w-4" />
+              Aportes recorrentes — {recurrenceTarget?.name}
+            </DialogTitle>
+            <DialogDescription>
+              Pause ou exclua aportes mensais automáticos. Excluir não remove os aportes já registrados no histórico.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="max-h-[60vh] overflow-y-auto -mx-2 px-2">
+            {(() => {
+              const list = recurrences.filter((r) => r.piggyBankId === recurrenceTarget?.id);
+              if (list.length === 0) {
+                return (
+                  <div className="rounded-lg border border-dashed border-border/60 p-6 text-center">
+                    <Repeat className="h-6 w-6 mx-auto text-muted-foreground/50 mb-1.5" />
+                    <p className="text-xs text-muted-foreground">
+                      Nenhum aporte recorrente cadastrado neste cofrinho.
+                    </p>
+                  </div>
+                );
+              }
+              return (
+                <ul className="divide-y divide-border/40">
+                  {list.map((r) => (
+                    <li key={r.id} className="py-3 flex items-start gap-3">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-foreground truncate">
+                          {r.description || "Aporte recorrente"}
+                        </p>
+                        <p className="text-[11px] text-muted-foreground mt-0.5">
+                          {fmt(r.amount)} · todo dia {r.dayOfMonth} · desde {r.startDate.split("-").reverse().join("/")}
+                          {r.endDate && <> até {r.endDate.split("-").reverse().join("/")}</>}
+                        </p>
+                        {!r.active && (
+                          <Badge variant="outline" className="text-[9px] px-1 py-0 h-4 mt-1">Pausada</Badge>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <Switch
+                          checked={r.active}
+                          onCheckedChange={(v) => setRecurrenceActive(r.id, v)}
+                          aria-label="Ativar/pausar"
+                        />
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="h-7 w-7 text-destructive hover:text-destructive hover:bg-destructive/10"
+                          onClick={() => deleteRecurrence(r.id)}
+                          title="Excluir recorrência"
+                        >
+                          <Trash2 className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              );
+            })()}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRecurrenceTarget(null)}>Fechar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* Diálogo: como aplicar a nova taxa CDI */}
       <AlertDialog open={!!rateChangePending} onOpenChange={(o) => !o && setRateChangePending(null)}>
         <AlertDialogContent>
