@@ -574,12 +574,13 @@ function getNextInstallmentValueHelper(s: Sale): number {
   return s.installments > 0 ? Math.max(0, s.total - (s.downPayment || 0)) / s.installments : s.total;
 }
 
-function SaleListRow({ sale, onEdit, onUpdate, formatCurrency, readOnly = false }: {
+function SaleListRow({ sale, onEdit, onUpdate, formatCurrency, readOnly = false, incomeCategoryByName }: {
   sale: Sale;
   onEdit: () => void;
   onUpdate: (data: Partial<Omit<Sale, "id">>) => void;
   formatCurrency: (v: number) => string;
   readOnly?: boolean;
+  incomeCategoryByName?: Map<string, CustomIncomeCategory>;
 }) {
   const [showPartial, setShowPartial] = useState(false);
   const [partialAmount, setPartialAmount] = useState("");
@@ -596,6 +597,10 @@ function SaleListRow({ sale, onEdit, onUpdate, formatCurrency, readOnly = false 
   const nextInstValue = getNextInstallmentValueHelper(sale);
   const partialOnNext = (sale.partialPaid || 0) > 0 ? Math.max(0, nextInstValue - (sale.partialPaid || 0)) : nextInstValue;
 
+  const incomeCat = sale.category ? incomeCategoryByName?.get(sale.category) : undefined;
+  const CatIcon = incomeCat ? (personalIconMap[incomeCat.icon] ?? personalIconMap.Package) : Tag;
+  const catColor = incomeCat ? `hsl(${incomeCat.color})` : undefined;
+
   return (
     <div className="flex items-center gap-2 px-2 sm:px-3 py-2 hover:bg-muted/30 transition-colors">
       <button onClick={onEdit} className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0 text-left">
@@ -606,6 +611,17 @@ function SaleListRow({ sale, onEdit, onUpdate, formatCurrency, readOnly = false 
         </div>
         <div className="flex-1 min-w-0">
           <p className="text-xs sm:text-sm font-semibold text-foreground truncate">{sale.customerName || "—"}</p>
+          <span
+            className="mt-0.5 inline-flex items-center gap-1 rounded-full border px-1.5 py-0.5 text-[9px] sm:text-[10px] font-medium max-w-full"
+            style={incomeCat ? {
+              borderColor: `hsl(${incomeCat.color} / 0.4)`,
+              backgroundColor: `hsl(${incomeCat.color} / 0.12)`,
+              color: catColor,
+            } : undefined}
+          >
+            <CatIcon className="h-2.5 w-2.5 shrink-0" style={catColor ? { color: catColor } : undefined} />
+            <span className="truncate">{incomeCat ? incomeCat.name : "Sem categoria"}</span>
+          </span>
         </div>
         <div className="hidden md:block flex-1 min-w-0 max-w-[200px]">
           <p className="text-sm font-bold text-foreground truncate">{sale.description || sale.productName || "—"}</p>
