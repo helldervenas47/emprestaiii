@@ -244,6 +244,7 @@ export function ClientLoanHistory({ loans, payments }: Props) {
             <ClientLoansList
               loans={clientLoans}
               paymentsByLoan={paymentsByLoan}
+              lastPaymentDateByLoan={lastPaymentDateByLoan}
               hidden={hidden}
             />
           </CardContent>
