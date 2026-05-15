@@ -22,6 +22,7 @@ function addByFrequency(date: Date, frequency: string, n: number): Date {
 import { cn } from "@/lib/utils";
 import { encodeNotesWithMerchandise, parseNotesWithMerchandise } from "@/lib/saleMerchandise";
 import { ClientCombobox } from "@/components/ui/client-combobox";
+import { SaleCategoryPicker } from "@/components/SaleCategoryPicker";
 
 const businessTypeLabels: Record<BusinessType, string> = {
   venda: "Venda",
@@ -63,6 +64,7 @@ export function SaleEditForm({ sale, onSave, onClose, clients = [], registeredVe
     notes: initialParsed.userNotes,
     frequency: sale.frequency || "Mensal",
     locadorId: sale.locadorId || (locadores.length === 1 ? (locadores[0].id || "") : ""),
+    category: sale.category || "",
   });
   const initialMerchValue = initialParsed.merchandise?.valor || 0;
   const [merchEnabled, setMerchEnabled] = useState<boolean>(!!initialParsed.merchandise);
@@ -148,6 +150,7 @@ export function SaleEditForm({ sale, onSave, onClose, clients = [], registeredVe
       installmentAmounts: amounts,
       installmentDates: dates,
       locadorId: form.businessType === "aluguel_veiculo" ? (form.locadorId || null) : null,
+      category: form.category || null,
     });
     onClose();
   };
@@ -534,6 +537,11 @@ export function SaleEditForm({ sale, onSave, onClose, clients = [], registeredVe
                 )}
               </div>
             )}
+
+            <div>
+              <Label>Categoria</Label>
+              <SaleCategoryPicker value={form.category} onChange={(v) => update("category", v)} />
+            </div>
 
             <div>
               <Label>Observações</Label>
