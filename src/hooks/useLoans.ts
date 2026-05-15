@@ -292,6 +292,7 @@ export function useLoans() {
     };
     setLoans((prev) => [optimistic, ...prev]);
 
+    const normalizedDisbSplit = normalizeSplit(loan.paymentSplit ?? null, loan.amount);
     const insertPayload = {
       id: tempId,
       user_id: dataOwnerId, borrower_name: loan.borrowerName, borrower_id: loan.borrowerId,
@@ -306,6 +307,9 @@ export function useLoans() {
       manager_id: loan.managerId ?? null,
       manager_commission_rate: loan.managerCommissionRate ?? 10,
       is_sale: loan.isSale ?? false,
+      payment_method_split: normalizedDisbSplit
+        ? { parts: normalizedDisbSplit.parts.map((p) => ({ payment_method_id: p.paymentMethodId, amount: p.amount })) }
+        : null,
     };
 
     await upsertCachedRow("loans", { ...insertPayload, created_at: optimistic.createdAt });
@@ -331,18 +335,36 @@ export function useLoans() {
       await removeCachedRow("loans", tempId);
       await upsertCachedRow("loans", data);
       await rewritePendingRecordId("loans", tempId, data.id);
+
+      // Helper: outflow ledger entries (one per split part, or one combined)
+      const recordDisbursement = async () => {
+        if (normalizedDisbSplit) {
+          for (const part of normalizedDisbSplit.parts) {
+            await recordLedger({
+              direction: "out", category: "loan", amount: Number(part.amount),
+              description: `Empréstimo concedido - ${loan.borrowerName}`,
+              occurred_on: loan.startDate, loan_id: data.id, source: "auto", syncBalance: false,
+              payment_method_id: part.paymentMethodId ?? null,
+              metadata: { split_part: true, total_amount: loan.amount },
+            });
+          }
+        } else {
+          await recordLedger({
+            direction: "out", category: "loan", amount: loan.amount,
+            description: `Empréstimo concedido - ${loan.borrowerName}`,
+            occurred_on: loan.startDate, loan_id: data.id, source: "auto", syncBalance: false,
+            payment_method_id: loan.paymentMethodId ?? null,
+          });
+        }
+      };
+
       if (status === "paid") {
         const totalReceived = calculateTotalWithInterest(loan.amount, loan.interestRate, loan.installments);
         // Net effect goes to selected wallet (out principal + in totalReceived)
+        await applyPaymentBalance(loan.amount, loan.paymentMethodId ?? null, normalizedDisbSplit, -1);
         const wallet = await resolveWalletKind(loan.paymentMethodId ?? null);
-        await adjustBalance(-loan.amount, wallet);
         await adjustBalance(totalReceived, wallet);
-        await recordLedger({
-          direction: "out", category: "loan", amount: loan.amount,
-          description: `Empréstimo concedido - ${loan.borrowerName}`,
-          occurred_on: loan.startDate, loan_id: data.id, source: "auto", syncBalance: false,
-          payment_method_id: loan.paymentMethodId ?? null,
-        });
+        await recordDisbursement();
         await recordLedger({
           direction: "in", category: "payment", amount: totalReceived,
           description: `Empréstimo quitado na criação - ${loan.borrowerName}`,
@@ -350,14 +372,8 @@ export function useLoans() {
           payment_method_id: loan.paymentMethodId ?? null,
         });
       } else {
-        const wallet = await resolveWalletKind(loan.paymentMethodId ?? null);
-        await adjustBalance(-loan.amount, wallet);
-        await recordLedger({
-          direction: "out", category: "loan", amount: loan.amount,
-          description: `Empréstimo concedido - ${loan.borrowerName}`,
-          occurred_on: loan.startDate, loan_id: data.id, source: "auto", syncBalance: false,
-          payment_method_id: loan.paymentMethodId ?? null,
-        });
+        await applyPaymentBalance(loan.amount, loan.paymentMethodId ?? null, normalizedDisbSplit, -1);
+        await recordDisbursement();
       }
       return data.id;
     }
