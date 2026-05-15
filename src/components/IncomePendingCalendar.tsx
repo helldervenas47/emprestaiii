@@ -997,6 +997,24 @@ export function IncomePendingCalendar({
         </div>
       </CardContent>
 
+      <Sheet open={isMobile && !!selectedDate} onOpenChange={(o) => { if (!o) setSelectedDate(null); }}>
+        <SheetContent side="bottom" className="h-[85vh] overflow-y-auto rounded-t-2xl px-4 pb-[calc(env(safe-area-inset-bottom)+1rem)]">
+          <SheetHeader className="text-left mb-2">
+            <SheetTitle className="text-base capitalize">
+              {selectedDate
+                ? new Date(selectedDate + "T00:00:00").toLocaleDateString("pt-BR", { weekday: "long", day: "2-digit", month: "long" })
+                : "Detalhes do dia"}
+            </SheetTitle>
+            <SheetDescription>
+              Receitas, despesas e saldo previsto deste dia.
+            </SheetDescription>
+          </SheetHeader>
+          <div className="pt-2 animate-fade-in">
+            {renderDayDetails()}
+          </div>
+        </SheetContent>
+      </Sheet>
+
       <Dialog open={editOpen} onOpenChange={setEditOpen}>
         <DialogContent className="max-w-sm">
           <DialogHeader>
