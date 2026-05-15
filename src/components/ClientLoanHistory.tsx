@@ -566,7 +566,7 @@ function ClientLoansList({ loans, paymentsByLoan, lastPaymentDateByLoan, hidden 
                     {mask(formatCurrency(paid))}
                   </div>
                 </div>
-                {isPaid && settlementDate && (
+                {isPaid && remaining === 0 && settlementDate && (
                   <div>
                     <div className="text-muted-foreground">Quitado em</div>
                     <div className="tabular-nums font-medium text-primary">
@@ -612,7 +612,7 @@ function ClientLoansList({ loans, paymentsByLoan, lastPaymentDateByLoan, hidden 
                   <td className="py-2 px-2 tabular-nums whitespace-nowrap">{formatDate(l.startDate)}</td>
                   <td className="py-2 px-2 tabular-nums whitespace-nowrap">{formatDate(l.dueDate)}</td>
                   <td className="py-2 px-2 tabular-nums whitespace-nowrap font-medium text-primary">
-                    {settlementDate ? formatDate(settlementDate) : "—"}
+                    {l.status === "paid" && remaining === 0 && settlementDate ? formatDate(settlementDate) : "—"}
                   </td>
                   <td className="py-2 px-2 tabular-nums text-right whitespace-nowrap font-medium">
                     {mask(formatCurrency(l.amount))}
