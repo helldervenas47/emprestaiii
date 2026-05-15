@@ -6,9 +6,6 @@ import { Label } from "@/components/ui/label";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription,
 } from "@/components/ui/dialog";
-import {
-  Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerClose, DrawerFooter,
-} from "@/components/ui/drawer";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { ChevronLeft, ChevronRight, ChevronDown, ChevronUp, CalendarDays, TrendingUp, ArrowUpCircle, ArrowDownCircle, Wallet, Pencil, RotateCcw, CreditCard as CreditCardIcon, Lock, PiggyBank as PiggyBankIcon, X } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
