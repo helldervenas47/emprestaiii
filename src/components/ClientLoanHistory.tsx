@@ -18,7 +18,6 @@ function formatCurrency(value: number): string {
 
 interface ClientRow {
   name: string;
-  contracts: number;
   borrowed: number;
   paid: number;
   pending: number;
@@ -64,7 +63,6 @@ export function ClientLoanHistory({ loans, payments }: Props) {
 
       return {
         name,
-        contracts: clientLoans.length,
         borrowed,
         paid,
         pending,
@@ -124,9 +122,6 @@ export function ClientLoanHistory({ loans, payments }: Props) {
                 <TableRow key={r.name}>
                   <TableCell className="font-medium">
                     {r.name}
-                    {r.contracts > 1 && (
-                      <span className="ml-2 text-xs text-muted-foreground">({r.contracts} contratos)</span>
-                    )}
                   </TableCell>
                   <TableCell className="text-right tabular-nums">{mask(formatCurrency(r.borrowed))}</TableCell>
                   <TableCell className="text-right tabular-nums text-success">{mask(formatCurrency(r.paid))}</TableCell>
@@ -156,9 +151,6 @@ export function ClientLoanHistory({ loans, payments }: Props) {
             <CardContent className="p-4 space-y-2">
               <div className="flex items-center justify-between gap-2">
                 <h3 className="font-semibold text-sm truncate">{r.name}</h3>
-                {r.contracts > 1 && (
-                  <span className="text-[10px] text-muted-foreground shrink-0">{r.contracts} contratos</span>
-                )}
               </div>
               <div className="grid grid-cols-2 gap-2 text-xs">
                 <div>
