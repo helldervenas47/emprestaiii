@@ -35,30 +35,9 @@ interface Props {
 export function PiggyBankList({ readOnly = false }: Props) {
   const { mask } = useHideValues();
   const { piggyBanks, deposits, recurrences, balances, detailed, cdiRate, createPiggyBank, updatePiggyBank, deletePiggyBank, adjustBalance, updateDeposit, deleteDeposit, setPiggyRate, refreshCdiNow, storeMoney, withdrawMoney, setRecurrenceActive, deleteRecurrence } = usePiggyBanks();
-  const { incomes } = useIncomes();
-  const { expenses } = useExpenses();
-  const { sales } = useProducts(true);
 
-  const [transferTarget, setTransferTarget] = useState<PiggyBankType | null>(null);
-  const [transferMode, setTransferMode] = useState<"store" | "withdraw">("store");
-  const [transferValue, setTransferValue] = useState("");
-  const [transferring, setTransferring] = useState(false);
-  const [pulseId, setPulseId] = useState<string | null>(null);
-
-  // Saldo em conta da aba Receitas e Despesas (mesma fórmula de IncomeBalanceCard).
-  const accountBalance = useMemo(() => {
-    const totalIncomeReceived = incomes
-      .filter((i) => i.status === "received")
-      .reduce((s, i) => s + i.amount, 0);
-    const totalSalesReceived = sales.reduce((s, sale) => s + saleReceivedTotal(sale), 0);
-    const totalExpensePaid = expenses
-      .filter((e: any) => e.paid && (e.scope ?? "business") === "personal")
-      .reduce((s: number, e: any) => s + e.amount, 0);
-    const totalPiggyManualDeposits = deposits
-      .filter((d) => !d.expenseId)
-      .reduce((s, d) => s + (Number(d.amount) || 0), 0);
-    return totalIncomeReceived + totalSalesReceived - totalExpensePaid - totalPiggyManualDeposits;
-  }, [incomes, sales, expenses, deposits]);
+  // Saldo em conta — fonte oficial unificada (aba Receitas e Despesas).
+  const accountBalance = useAccountBalance();
 
   const openTransfer = (pb: PiggyBankType, mode: "store" | "withdraw") => {
     setTransferTarget(pb);
