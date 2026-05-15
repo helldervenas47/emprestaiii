@@ -424,82 +424,142 @@ function ClientLoansList({ loans, paymentsByLoan, hidden }: ClientLoansListProps
     );
   }
 
+  const renderTags = (tags?: string[]) =>
+    tags && tags.length > 0 ? (
+      <div className="flex flex-wrap gap-1">
+        {tags.map((t) => (
+          <Badge
+            key={t}
+            variant="outline"
+            className="text-[10px] px-1.5 py-0 h-5 bg-primary/10 text-primary border-primary/30"
+          >
+            {t}
+          </Badge>
+        ))}
+      </div>
+    ) : null;
+
+  const computeValueCell = (l: Loan) => {
+    const totalPaid = paymentsByLoan[l.id] ?? 0;
+    const isPaid = l.status === "paid";
+    if (isPaid) return { value: totalPaid, isPaid };
+    const expected = calculateTotalWithInterest(l.amount, l.interestRate, l.installments);
+    const value =
+      l.remainingAmount != null && l.remainingAmount > 0
+        ? l.remainingAmount
+        : Math.max(0, expected - totalPaid);
+    return { value, isPaid };
+  };
+
+  const statusMeta = (l: Loan) => {
+    const isPaid = l.status === "paid";
+    const label = isPaid ? "Pago" : l.status === "overdue" ? "Atrasado" : "Pendente";
+    const className = isPaid
+      ? "bg-success/15 text-success border-success/30"
+      : l.status === "overdue"
+        ? "bg-destructive/15 text-destructive border-destructive/30"
+        : "bg-warning/15 text-warning border-warning/30";
+    return { label, className };
+  };
+
   return (
-    <div className="w-full overflow-x-auto">
-      <table className="w-full text-[11px] sm:text-xs border-collapse">
-        <thead>
-          <tr className="border-b border-border/60 text-muted-foreground">
-            <th className="text-left font-medium py-2 px-2 whitespace-nowrap">Data</th>
-            <th className="text-left font-medium py-2 px-2 whitespace-nowrap">Vencimento</th>
-            <th className="text-right font-medium py-2 px-2 whitespace-nowrap">Valor</th>
-            <th className="text-right font-medium py-2 px-2 whitespace-nowrap">
-              <span className="hidden sm:inline">Restante / Pago</span>
-              <span className="sm:hidden">Rest./Pago</span>
-            </th>
-            <th className="text-center font-medium py-2 px-2 whitespace-nowrap">Parcelas</th>
-            <th className="text-center font-medium py-2 px-2 whitespace-nowrap">Status</th>
-            <th className="text-left font-medium py-2 px-2 whitespace-nowrap">Etiquetas</th>
-          </tr>
-        </thead>
-        <tbody>
-          {loans.map((l) => {
-            const totalPaid = paymentsByLoan[l.id] ?? 0;
-            const isPaid = l.status === "paid";
-            let valueCell = 0;
-            if (isPaid) {
-              valueCell = totalPaid;
-            } else {
-              const expected = calculateTotalWithInterest(l.amount, l.interestRate, l.installments);
-              valueCell = l.remainingAmount != null && l.remainingAmount > 0
-                ? l.remainingAmount
-                : Math.max(0, expected - totalPaid);
-            }
+    <>
+      {/* Mobile — Cards */}
+      <div className="md:hidden space-y-2">
+        {loans.map((l) => {
+          const { value, isPaid } = computeValueCell(l);
+          const { label, className } = statusMeta(l);
+          return (
+            <div
+              key={l.id}
+              className="rounded-lg border border-border/50 bg-card/40 p-3 space-y-2"
+            >
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-[11px] text-muted-foreground">
+                  {formatDate(l.startDate)}
+                </span>
+                <Badge variant="outline" className={`text-[10px] px-1.5 py-0 h-5 ${className}`}>
+                  {label}
+                </Badge>
+              </div>
+              <div className="grid grid-cols-2 gap-2 text-[11px]">
+                <div>
+                  <div className="text-muted-foreground">Vencimento</div>
+                  <div className="tabular-nums font-medium">{formatDate(l.dueDate)}</div>
+                </div>
+                <div>
+                  <div className="text-muted-foreground">Parcelas</div>
+                  <div className="tabular-nums font-medium">
+                    {l.paidInstallments ?? 0} / {l.installments}
+                  </div>
+                </div>
+                <div>
+                  <div className="text-muted-foreground">Valor</div>
+                  <div className="tabular-nums font-medium">{mask(formatCurrency(l.amount))}</div>
+                </div>
+                <div>
+                  <div className="text-muted-foreground">{isPaid ? "Pago" : "Restante"}</div>
+                  <div
+                    className={`tabular-nums font-medium ${isPaid ? "text-success" : "text-warning"}`}
+                  >
+                    {mask(formatCurrency(value))}
+                  </div>
+                </div>
+              </div>
+              {l.tags && l.tags.length > 0 && (
+                <div className="pt-1.5 border-t border-border/40">
+                  <div className="text-[10px] text-muted-foreground mb-1">Etiquetas</div>
+                  {renderTags(l.tags)}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
 
-            const statusLabel = isPaid ? "Pago" : l.status === "overdue" ? "Atrasado" : "Pendente";
-            const statusClass = isPaid
-              ? "bg-success/15 text-success border-success/30"
-              : l.status === "overdue"
-                ? "bg-destructive/15 text-destructive border-destructive/30"
-                : "bg-warning/15 text-warning border-warning/30";
-
-            return (
-              <tr key={l.id} className="border-b border-border/30 last:border-0 hover:bg-muted/30 transition-colors">
-                <td className="py-2 px-2 tabular-nums whitespace-nowrap">{formatDate(l.startDate)}</td>
-                <td className="py-2 px-2 tabular-nums whitespace-nowrap">{formatDate(l.dueDate)}</td>
-                <td className="py-2 px-2 tabular-nums text-right whitespace-nowrap font-medium">
-                  {mask(formatCurrency(l.amount))}
-                </td>
-                <td className={`py-2 px-2 tabular-nums text-right whitespace-nowrap font-medium ${isPaid ? "text-success" : "text-warning"}`}>
-                  {mask(formatCurrency(valueCell))}
-                </td>
-                <td className="py-2 px-2 tabular-nums text-center whitespace-nowrap">
-                  {l.paidInstallments ?? 0} / {l.installments}
-                </td>
-                <td className="py-2 px-2 text-center whitespace-nowrap">
-                  <Badge variant="outline" className={`text-[10px] px-1.5 py-0 h-5 ${statusClass}`}>
-                    {statusLabel}
-                  </Badge>
-                </td>
-                <td className="py-2 px-2 whitespace-nowrap">
-                  {l.tags && l.tags.length > 0 ? (
-                    <div className="flex flex-wrap gap-1">
-                      {l.tags.map((t) => (
-                        <Badge
-                          key={t}
-                          variant="outline"
-                          className="text-[10px] px-1.5 py-0 h-5 bg-primary/10 text-primary border-primary/30"
-                        >
-                          {t}
-                        </Badge>
-                      ))}
-                    </div>
-                  ) : null}
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
-    </div>
+      {/* Desktop / Tablet — Table */}
+      <div className="hidden md:block w-full overflow-x-auto">
+        <table className="w-full text-xs border-collapse">
+          <thead>
+            <tr className="border-b border-border/60 text-muted-foreground">
+              <th className="text-left font-medium py-2 px-2 whitespace-nowrap">Data</th>
+              <th className="text-left font-medium py-2 px-2 whitespace-nowrap">Vencimento</th>
+              <th className="text-right font-medium py-2 px-2 whitespace-nowrap">Valor</th>
+              <th className="text-right font-medium py-2 px-2 whitespace-nowrap">Restante / Pago</th>
+              <th className="text-center font-medium py-2 px-2 whitespace-nowrap">Parcelas</th>
+              <th className="text-center font-medium py-2 px-2 whitespace-nowrap">Status</th>
+              <th className="text-left font-medium py-2 px-2 whitespace-nowrap">Etiquetas</th>
+            </tr>
+          </thead>
+          <tbody>
+            {loans.map((l) => {
+              const { value, isPaid } = computeValueCell(l);
+              const { label, className } = statusMeta(l);
+              return (
+                <tr key={l.id} className="border-b border-border/30 last:border-0 hover:bg-muted/30 transition-colors">
+                  <td className="py-2 px-2 tabular-nums whitespace-nowrap">{formatDate(l.startDate)}</td>
+                  <td className="py-2 px-2 tabular-nums whitespace-nowrap">{formatDate(l.dueDate)}</td>
+                  <td className="py-2 px-2 tabular-nums text-right whitespace-nowrap font-medium">
+                    {mask(formatCurrency(l.amount))}
+                  </td>
+                  <td className={`py-2 px-2 tabular-nums text-right whitespace-nowrap font-medium ${isPaid ? "text-success" : "text-warning"}`}>
+                    {mask(formatCurrency(value))}
+                  </td>
+                  <td className="py-2 px-2 tabular-nums text-center whitespace-nowrap">
+                    {l.paidInstallments ?? 0} / {l.installments}
+                  </td>
+                  <td className="py-2 px-2 text-center whitespace-nowrap">
+                    <Badge variant="outline" className={`text-[10px] px-1.5 py-0 h-5 ${className}`}>
+                      {label}
+                    </Badge>
+                  </td>
+                  <td className="py-2 px-2 whitespace-nowrap">{renderTags(l.tags)}</td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    </>
   );
 }
