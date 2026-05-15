@@ -169,6 +169,35 @@ export function ClientLoanHistory({ loans, payments }: Props) {
     );
   }
 
+  if (selectedClient) {
+    const clientLoans = loansByClient[selectedClient] ?? [];
+    return (
+      <div className="space-y-3 animate-in fade-in slide-in-from-right-4 duration-200">
+        <div className="flex items-center gap-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setSelectedClient(null)}
+            className="gap-1 -ml-2"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Voltar
+          </Button>
+          <h2 className="text-base font-semibold truncate">{selectedClient}</h2>
+        </div>
+        <Card>
+          <CardContent className="p-3 sm:p-4">
+            <ClientLoansList
+              loans={clientLoans}
+              paymentsByLoan={paymentsByLoan}
+              hidden={hidden}
+            />
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-3">
       <div className="flex flex-col md:flex-row items-stretch md:items-center gap-2">
