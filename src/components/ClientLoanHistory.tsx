@@ -129,6 +129,18 @@ export function ClientLoanHistory({ loans, payments }: Props) {
     return map;
   }, [payments]);
 
+  // Cache: last payment date by loanId
+  const lastPaymentDateByLoan = useMemo(() => {
+    const map: Record<string, string | undefined> = {};
+    payments.forEach((p) => {
+      const current = map[p.loanId];
+      if (!current || (p.date && p.date > current)) {
+        map[p.loanId] = p.date;
+      }
+    });
+    return map;
+  }, [payments]);
+
   // Cache: loans grouped by client name and pre-sorted by startDate ASC (oldest → newest)
   const loansByClient = useMemo(() => {
     const map: Record<string, Loan[]> = {};
@@ -232,6 +244,7 @@ export function ClientLoanHistory({ loans, payments }: Props) {
             <ClientLoansList
               loans={clientLoans}
               paymentsByLoan={paymentsByLoan}
+              lastPaymentDateByLoan={lastPaymentDateByLoan}
               hidden={hidden}
             />
           </CardContent>
@@ -452,10 +465,11 @@ function formatDate(d?: string): string {
 interface ClientLoansListProps {
   loans: Loan[];
   paymentsByLoan: Record<string, number>;
+  lastPaymentDateByLoan: Record<string, string | undefined>;
   hidden: boolean;
 }
 
-function ClientLoansList({ loans, paymentsByLoan, hidden }: ClientLoansListProps) {
+function ClientLoansList({ loans, paymentsByLoan, lastPaymentDateByLoan, hidden }: ClientLoansListProps) {
   const mask = (v: string) => (hidden ? "•••" : v);
 
   if (loans.length === 0) {
@@ -511,6 +525,7 @@ function ClientLoansList({ loans, paymentsByLoan, hidden }: ClientLoansListProps
         {loans.map((l) => {
           const { remaining, paid, isPaid } = computeValueCell(l);
           const { label, className } = statusMeta(l);
+          const settlementDate = lastPaymentDateByLoan[l.id];
           return (
             <div
               key={l.id}
@@ -551,8 +566,16 @@ function ClientLoansList({ loans, paymentsByLoan, hidden }: ClientLoansListProps
                     {mask(formatCurrency(paid))}
                   </div>
                 </div>
-                {l.tags && l.tags.length > 0 && (
+                {isPaid && settlementDate && (
                   <div>
+                    <div className="text-muted-foreground">Quitado em</div>
+                    <div className="tabular-nums font-medium text-primary">
+                      {formatDate(settlementDate)}
+                    </div>
+                  </div>
+                )}
+                {l.tags && l.tags.length > 0 && (
+                  <div className={isPaid && settlementDate ? "" : "col-span-2"}>
                     <div className="text-muted-foreground">Etiquetas</div>
                     <div className="mt-0.5">{renderTags(l.tags)}</div>
                   </div>
@@ -573,6 +596,7 @@ function ClientLoansList({ loans, paymentsByLoan, hidden }: ClientLoansListProps
               <th className="text-right font-medium py-2 px-2 whitespace-nowrap">Valor</th>
               <th className="text-right font-medium py-2 px-2 whitespace-nowrap">Restante</th>
               <th className="text-right font-medium py-2 px-2 whitespace-nowrap">Pago</th>
+              <th className="text-left font-medium py-2 px-2 whitespace-nowrap">Quitado em</th>
               <th className="text-center font-medium py-2 px-2 whitespace-nowrap">Parcelas</th>
               <th className="text-center font-medium py-2 px-2 whitespace-nowrap">Status</th>
               <th className="text-left font-medium py-2 px-2 whitespace-nowrap">Etiquetas</th>
@@ -582,6 +606,7 @@ function ClientLoansList({ loans, paymentsByLoan, hidden }: ClientLoansListProps
             {loans.map((l) => {
               const { remaining, paid } = computeValueCell(l);
               const { label, className } = statusMeta(l);
+              const settlementDate = lastPaymentDateByLoan[l.id];
               return (
                 <tr key={l.id} className="border-b border-border/30 last:border-0 hover:bg-muted/30 transition-colors">
                   <td className="py-2 px-2 tabular-nums whitespace-nowrap">{formatDate(l.startDate)}</td>
@@ -594,6 +619,9 @@ function ClientLoansList({ loans, paymentsByLoan, hidden }: ClientLoansListProps
                   </td>
                   <td className="py-2 px-2 tabular-nums text-right whitespace-nowrap font-medium text-success">
                     {mask(formatCurrency(paid))}
+                  </td>
+                  <td className="py-2 px-2 tabular-nums whitespace-nowrap font-medium text-primary">
+                    {settlementDate ? formatDate(settlementDate) : "—"}
                   </td>
                   <td className="py-2 px-2 tabular-nums text-center whitespace-nowrap">
                     {l.paidInstallments ?? 0} / {l.installments}
