@@ -20,7 +20,6 @@ import { toast } from "sonner";
 import { useCreditLimits } from "@/hooks/useCreditLimits";
 import { computeAvailableLimit, computeUsedLimit, formatBRL } from "@/lib/creditLimit";
 import { Wallet, AlertTriangle as AlertTriangleIcon } from "lucide-react";
-import { PaymentMethodPicker } from "@/components/PaymentMethodPicker";
 import { LoanPaymentSplitEditor, buildSplitFromState, type SplitState } from "@/components/LoanPaymentSplitEditor";
 
 interface Props {
