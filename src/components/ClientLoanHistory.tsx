@@ -526,6 +526,7 @@ function ClientLoansList({ loans, paymentsByLoan, lastPaymentDateByLoan, hidden 
           const { remaining, paid, isPaid } = computeValueCell(l);
           const { label, className } = statusMeta(l);
           const settlementDate = lastPaymentDateByLoan[l.id];
+          const isSettled = l.status === "paid" && remaining === 0 && !!settlementDate;
           return (
             <div
               key={l.id}
