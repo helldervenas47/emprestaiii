@@ -1391,6 +1391,12 @@ export function useLoans() {
     if (data.managerCommissionRate !== undefined) (updateData as any).manager_commission_rate = data.managerCommissionRate ?? 10;
     if (data.autoBillingEnabled !== undefined) (updateData as any).auto_billing_enabled = data.autoBillingEnabled;
     if (data.isSale !== undefined) (updateData as any).is_sale = data.isSale;
+    if (data.paymentSplit !== undefined) {
+      const split = data.paymentSplit;
+      (updateData as any).payment_method_split = split && split.parts && split.parts.length >= 2
+        ? { parts: split.parts.map((p) => ({ payment_method_id: p.paymentMethodId, amount: Number(p.amount) })) }
+        : null;
+    }
     if (!isOnline()) {
       await enqueueMutation({ table: "loans", op: "update", recordId: id, payload: updateData });
       return;
