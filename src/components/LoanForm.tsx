@@ -738,12 +738,15 @@ export function LoanForm({ onAdd, onSaveSchedule, onClose, clients, loans, payme
               </div>
             </div>
 
-            <PaymentMethodPicker
-              value={paymentMethodId}
-              onChange={(id) => { setPaymentMethodId(id); setShowFormError(false); }}
-              required
+            <LoanPaymentSplitEditor
+              total={amount}
+              state={{ ...splitState, method1Id: splitState.enabled ? splitState.method1Id : paymentMethodId }}
+              onChange={(next) => {
+                setShowFormError(false);
+                setPaymentMethodId(next.method1Id);
+                setSplitState(next);
+              }}
               showError={showFormError}
-              label="Forma de Pagamento (saída do empréstimo)"
             />
 
             <div>
