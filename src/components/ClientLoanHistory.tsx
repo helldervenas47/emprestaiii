@@ -525,6 +525,7 @@ function ClientLoansList({ loans, paymentsByLoan, lastPaymentDateByLoan, hidden 
         {loans.map((l) => {
           const { remaining, paid, isPaid } = computeValueCell(l);
           const { label, className } = statusMeta(l);
+          const settlementDate = lastPaymentDateByLoan[l.id];
           return (
             <div
               key={l.id}
@@ -565,8 +566,16 @@ function ClientLoansList({ loans, paymentsByLoan, lastPaymentDateByLoan, hidden 
                     {mask(formatCurrency(paid))}
                   </div>
                 </div>
-                {l.tags && l.tags.length > 0 && (
+                {isPaid && settlementDate && (
                   <div>
+                    <div className="text-muted-foreground">Quitado em</div>
+                    <div className="tabular-nums font-medium text-primary">
+                      {formatDate(settlementDate)}
+                    </div>
+                  </div>
+                )}
+                {l.tags && l.tags.length > 0 && (
+                  <div className={isPaid && settlementDate ? "" : "col-span-2"}>
                     <div className="text-muted-foreground">Etiquetas</div>
                     <div className="mt-0.5">{renderTags(l.tags)}</div>
                   </div>
