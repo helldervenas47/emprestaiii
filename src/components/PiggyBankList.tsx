@@ -423,6 +423,12 @@ export function PiggyBankList({ readOnly = false }: Props) {
                       <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => setHistoryTarget(pb)} title="Histórico de aportes">
                         <History className="h-3 w-3" />
                       </Button>
+                      <Button size="icon" variant="ghost" className="h-6 w-6 relative" onClick={() => setRecurrenceTarget(pb)} title="Aportes recorrentes">
+                        <Repeat className="h-3 w-3" />
+                        {recurrences.some((r) => r.piggyBankId === pb.id && r.active) && (
+                          <span className="absolute top-0.5 right-0.5 h-1.5 w-1.5 rounded-full bg-primary" />
+                        )}
+                      </Button>
                       {!readOnly && (
                         <>
                           <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => openAdjust(pb)} title="Ajustar saldo">
