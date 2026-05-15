@@ -24,7 +24,7 @@ import { PaymentMethodPicker } from "@/components/PaymentMethodPicker";
 import { LoanPaymentSplitEditor, buildSplitFromState, type SplitState } from "@/components/LoanPaymentSplitEditor";
 
 interface Props {
-  onAdd: (loan: Omit<Loan, "id" | "status" | "paidInstallments"> & { paymentMethodId?: string | null }) => Promise<string | null>;
+  onAdd: (loan: Omit<Loan, "id" | "status" | "paidInstallments"> & { paymentMethodId?: string | null; paymentSplit?: import("@/types/loan").PaymentSplit | null }) => Promise<string | null>;
   onSaveSchedule: (loanId: string, rows: { installmentNumber: number; dueDate: string; amount: number }[]) => Promise<void>;
   onClose: () => void;
   clients: Client[];
