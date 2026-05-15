@@ -566,7 +566,7 @@ function ClientLoansList({ loans, paymentsByLoan, lastPaymentDateByLoan, hidden 
                     {mask(formatCurrency(paid))}
                   </div>
                 </div>
-                {isPaid && settlementDate && (
+                {isPaid && remaining === 0 && settlementDate && (
                   <div>
                     <div className="text-muted-foreground">Quitado em</div>
                     <div className="tabular-nums font-medium text-primary">
