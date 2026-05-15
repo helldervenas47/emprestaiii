@@ -150,7 +150,7 @@ interface Props {
   clients?: Client[];
 }
 
-type Category = "all" | "overdue" | "paid_interest" | "paid" | "due_today" | "on_track" | "parcelado";
+type Category = "all" | "overdue" | "paid_interest" | "paid" | "due_today" | "on_track" | "parcelado" | "venda";
 
 const categoryConfig: { id: Category; label: string; color: string; activeColor: string }[] = [
   { id: "all", label: "Todos", color: "border-border text-muted-foreground", activeColor: "bg-primary text-primary-foreground border-primary" },
@@ -159,6 +159,7 @@ const categoryConfig: { id: Category; label: string; color: string; activeColor:
   { id: "due_today", label: "Vence Hoje", color: "border-warning/30 text-warning", activeColor: "bg-warning text-warning-foreground border-warning" },
   { id: "on_track", label: "Em Dia", color: "border-primary/30 text-primary", activeColor: "bg-primary text-primary-foreground border-primary" },
   { id: "parcelado", label: "Parcelados", color: "border-blue-400/30 text-blue-400", activeColor: "bg-blue-500 text-white border-blue-500" },
+  { id: "venda", label: "Vendas", color: "border-amber-500/30 text-amber-600 dark:text-amber-400", activeColor: "bg-amber-500 text-white border-amber-500" },
   { id: "paid", label: "Quitado", color: "border-success/30 text-success", activeColor: "bg-success text-success-foreground border-success" },
 ];
 
