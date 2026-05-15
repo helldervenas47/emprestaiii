@@ -438,6 +438,7 @@ function ClientLoansList({ loans, paymentsByLoan, hidden }: ClientLoansListProps
             </th>
             <th className="text-center font-medium py-2 px-2 whitespace-nowrap">Parcelas</th>
             <th className="text-center font-medium py-2 px-2 whitespace-nowrap">Status</th>
+            <th className="text-left font-medium py-2 px-2 whitespace-nowrap">Etiquetas</th>
           </tr>
         </thead>
         <tbody>
