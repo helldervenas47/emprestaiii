@@ -339,15 +339,27 @@ export function FinancialStatement() {
                         </Badge>
                       </td>
                       <td className="px-4 py-2 align-middle">
-                        {r.type === "income" ? (
-                          <Badge className="bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30 gap-1 whitespace-nowrap">
-                            <ArrowUpCircle className="h-3 w-3" /> Receita
-                          </Badge>
-                        ) : (
-                          <Badge className="bg-rose-500/15 text-rose-700 dark:text-rose-400 border border-rose-500/30 gap-1 whitespace-nowrap">
-                            <ArrowDownCircle className="h-3 w-3" /> Despesa
-                          </Badge>
-                        )}
+                        <div className="flex items-center gap-1 flex-wrap">
+                          {r.type === "income" ? (
+                            <Badge className="bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30 gap-1 whitespace-nowrap">
+                              <ArrowUpCircle className="h-3 w-3" /> Receita
+                            </Badge>
+                          ) : (
+                            <Badge className="bg-rose-500/15 text-rose-700 dark:text-rose-400 border border-rose-500/30 gap-1 whitespace-nowrap">
+                              <ArrowDownCircle className="h-3 w-3" /> Despesa
+                            </Badge>
+                          )}
+                          {r.origin === "sale-full" && (
+                            <Badge className="bg-primary/15 text-primary border border-primary/30 gap-1 whitespace-nowrap">
+                              <ShoppingCart className="h-3 w-3" /> Venda
+                            </Badge>
+                          )}
+                          {r.origin === "sale-partial" && (
+                            <Badge className="bg-amber-500/15 text-amber-700 dark:text-amber-400 border border-amber-500/30 gap-1 whitespace-nowrap">
+                              <ShoppingCart className="h-3 w-3" /> Pagamento Parcial
+                            </Badge>
+                          )}
+                        </div>
                       </td>
                       <td className="px-4 py-2 align-middle text-muted-foreground truncate" title={r.account}>{r.account}</td>
                       <td className={`px-4 py-2 text-right font-semibold whitespace-nowrap align-middle ${
