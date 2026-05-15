@@ -1,4 +1,4 @@
-import { useMemo, useState, useCallback } from "react";
+import { useMemo, useState, useCallback, useRef, useLayoutEffect } from "react";
 import { Loan, Payment } from "@/types/loan";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -53,7 +53,25 @@ export function ClientLoanHistory({ loans, payments }: Props) {
   const [showSummary, setShowSummary] = useState(false);
   const [sortBy, setSortBy] = useState<SortOption>("name-asc");
   const [selectedClient, setSelectedClient] = useState<string | null>(null);
+  const savedScrollRef = useRef<number | null>(null);
   const { hidden } = useHideValues();
+
+  const openClient = useCallback((name: string) => {
+    savedScrollRef.current = window.scrollY;
+    setSelectedClient(name);
+  }, []);
+
+  const closeClient = useCallback(() => {
+    setSelectedClient(null);
+  }, []);
+
+  useLayoutEffect(() => {
+    if (selectedClient === null && savedScrollRef.current != null) {
+      const y = savedScrollRef.current;
+      savedScrollRef.current = null;
+      requestAnimationFrame(() => window.scrollTo(0, y));
+    }
+  }, [selectedClient]);
 
   const rows = useMemo<ClientRow[]>(() => {
     const byName: Record<string, Loan[]> = {};
@@ -217,7 +235,7 @@ export function ClientLoanHistory({ loans, payments }: Props) {
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => setSelectedClient(null)}
+            onClick={closeClient}
             className="gap-1 -ml-2"
           >
             <ArrowLeft className="h-4 w-4" />
@@ -396,7 +414,7 @@ export function ClientLoanHistory({ loans, payments }: Props) {
                 <TableRow
                   key={r.name}
                   className="cursor-pointer hover:bg-muted/40 transition-colors"
-                  onClick={() => setSelectedClient(r.name)}
+                  onClick={() => openClient(r.name)}
                 >
                   <TableCell className="w-8">
                     <ChevronRight className="h-4 w-4 text-muted-foreground" />
@@ -430,7 +448,7 @@ export function ClientLoanHistory({ loans, payments }: Props) {
             <CardContent className="p-4 space-y-2">
               <button
                 type="button"
-                onClick={() => setSelectedClient(r.name)}
+                onClick={() => openClient(r.name)}
                 className="w-full flex items-center justify-center gap-2 focus-visible:outline-none"
               >
                 <h3 className="font-semibold text-sm truncate text-center">{r.name}</h3>
