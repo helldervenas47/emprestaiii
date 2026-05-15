@@ -231,7 +231,7 @@ export interface Sale {
   paymentHistory?: SalePaymentRecord[];
   locadorId?: string | null;
   category?: string | null;
-
+}
 export interface Expense {
   id: string;
   description: string;
