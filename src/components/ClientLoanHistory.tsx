@@ -285,10 +285,10 @@ export function ClientLoanHistory({ loans, payments }: Props) {
         {rows.map((r) => (
           <Card key={r.name}>
             <CardContent className="p-4 space-y-2">
-              <div className="flex items-center justify-between gap-2">
-                <h3 className="font-semibold text-sm truncate">{r.name}</h3>
+              <div className="flex items-center justify-center gap-2">
+                <h3 className="font-semibold text-sm truncate text-center">{r.name}</h3>
               </div>
-              <div className="grid grid-cols-2 gap-2 text-xs">
+              <div className="grid grid-cols-2 gap-2 text-xs text-center">
                 <div>
                   <div className="text-muted-foreground">Emprestado</div>
                   <div className="tabular-nums font-medium">{mask(formatCurrency(r.borrowed))}</div>
@@ -306,7 +306,7 @@ export function ClientLoanHistory({ loans, payments }: Props) {
                   <div className="tabular-nums font-semibold">{mask(formatCurrency(r.total))}</div>
                 </div>
                 <div className="col-span-2 pt-1 border-t border-border/40">
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-center gap-1">
                     <span className="text-muted-foreground">Taxa de Juros</span>
                     <span className="tabular-nums font-semibold text-primary">
                       {hidden ? "•••" : `${r.interestRate.toFixed(2).replace(".", ",")}%`}
