@@ -2873,6 +2873,11 @@ function LoanRowView({
           <div className="min-w-0">
             <div className="flex items-center gap-1 flex-wrap">
               <span className="font-medium text-[11px] sm:text-sm text-foreground truncate block max-w-[80px] sm:max-w-none">{loan.borrowerName}</span>
+              {loan.isSale && (
+                <Badge variant="outline" className="text-[10px] py-0 px-1.5 bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-500/40 gap-0.5">
+                  <ShoppingBag className="h-2.5 w-2.5" />Venda
+                </Badge>
+              )}
               {loan.notes?.trim() && (
                 <TooltipProvider delayDuration={300}>
                   <Tooltip>
