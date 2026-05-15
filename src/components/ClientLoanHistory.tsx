@@ -80,6 +80,16 @@ export function ClientLoanHistory({ loans, payments }: Props) {
     return filtered.sort((a, b) => a.name.localeCompare(b.name, "pt-BR"));
   }, [loans, payments, search]);
 
+  const totals = useMemo(() => {
+    const totalPending = rows.reduce((s, r) => s + r.pending, 0);
+    const totalPaid = rows.reduce((s, r) => s + r.paid, 0);
+    const totalBorrowed = rows.reduce((s, r) => s + r.borrowed, 0);
+    const grandTotal = totalPaid + totalPending;
+    const clientCount = rows.length;
+    const avgInterestRate = totalBorrowed > 0 ? ((grandTotal - totalBorrowed) / totalBorrowed) * 100 : 0;
+    return { totalPending, totalPaid, totalBorrowed, grandTotal, clientCount, avgInterestRate };
+  }, [rows]);
+
   const mask = (v: string) => (hidden ? "•••" : v);
 
   if (loans.length === 0) {
