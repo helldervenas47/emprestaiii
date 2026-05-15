@@ -233,9 +233,16 @@ export function LoanForm({ onAdd, onSaveSchedule, onClose, clients, loans, payme
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedClient || !amount || !installments || isNaN(rate) || rate < 0) return;
-    if (!paymentMethodId) {
+    const effectivePrimaryId = splitState.enabled ? splitState.method1Id : paymentMethodId;
+    if (!effectivePrimaryId) {
       setShowFormError(true);
       toast.error("Selecione a forma de pagamento (Conta ou Dinheiro).");
+      return;
+    }
+    const splitResult = buildSplitFromState(splitState, amount);
+    if (!splitResult.ok) {
+      setShowFormError(true);
+      toast.error(splitResult.error);
       return;
     }
     if (hasManager && !managerId) {
