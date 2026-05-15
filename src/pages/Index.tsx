@@ -746,16 +746,29 @@ const Index = () => {
           <>
             <div>
               <div className="flex items-center justify-between gap-2 mb-4 flex-wrap">
-                <h2 className="text-lg font-semibold text-foreground">
-                  {loanSubTab === "history" ? "Histórico do Cliente" : "Empréstimos"}
-                </h2>
+                <div className="flex items-center gap-2">
+                  <h2 className="text-lg font-semibold text-foreground">
+                    {loanSubTab === "history" ? "Histórico do Cliente" : "Empréstimos"}
+                  </h2>
+                  {loanSubTab === "history" && (
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      onClick={() => setLoanSubTab("loans")}
+                      className="md:hidden h-7 w-7 shrink-0"
+                      aria-label="Voltar para Empréstimos"
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  )}
+                </div>
                 <div className="flex items-center gap-2 flex-wrap">
                   {loanSubTab === "history" ? (
                     <Button
                       size="sm"
                       variant="outline"
                       onClick={() => setLoanSubTab("loans")}
-                      className="gap-1.5"
+                      className="gap-1.5 hidden md:inline-flex"
                     >
                       <LayoutDashboard className="h-4 w-4" />
                       Voltar para Empréstimos
