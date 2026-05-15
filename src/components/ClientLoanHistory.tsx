@@ -131,7 +131,7 @@ export function ClientLoanHistory({ loans, payments }: Props) {
           <Card className="h-full">
             <CardContent className="p-4 flex flex-col items-center justify-center text-center h-full">
               <div className="text-sm text-muted-foreground mb-1">Pendente</div>
-              <div className="text-2xl font-bold tabular-nums text-warning">
+              <div className="font-bold tabular-nums text-warning text-xl">
                 {mask(formatCurrency(totals.totalPending))}
               </div>
             </CardContent>
@@ -139,7 +139,7 @@ export function ClientLoanHistory({ loans, payments }: Props) {
           <Card className="h-full">
             <CardContent className="p-4 flex flex-col items-center justify-center text-center h-full">
               <div className="text-sm text-muted-foreground mb-1">Pago</div>
-              <div className="text-2xl font-bold tabular-nums text-success">
+              <div className="font-bold tabular-nums text-success text-xl">
                 {mask(formatCurrency(totals.totalPaid))}
               </div>
             </CardContent>
@@ -147,7 +147,7 @@ export function ClientLoanHistory({ loans, payments }: Props) {
           <Card className="h-full">
             <CardContent className="p-4 flex flex-col items-center justify-center text-center h-full">
               <div className="text-sm text-muted-foreground mb-1">Emprestado</div>
-              <div className="text-2xl font-bold tabular-nums">
+              <div className="font-bold tabular-nums text-xl">
                 {mask(formatCurrency(totals.totalBorrowed))}
               </div>
             </CardContent>
@@ -155,7 +155,7 @@ export function ClientLoanHistory({ loans, payments }: Props) {
           <Card className="h-full">
             <CardContent className="p-4 flex flex-col items-center justify-center text-center h-full">
               <div className="text-sm text-muted-foreground mb-1">Total</div>
-              <div className="text-2xl font-bold tabular-nums">
+              <div className="font-bold tabular-nums text-xl">
                 {mask(formatCurrency(totals.grandTotal))}
               </div>
             </CardContent>
@@ -163,7 +163,7 @@ export function ClientLoanHistory({ loans, payments }: Props) {
           <Card className="h-full">
             <CardContent className="p-4 flex flex-col items-center justify-center text-center h-full">
               <div className="text-sm text-muted-foreground mb-1">Qtd. Clientes</div>
-              <div className="text-2xl font-bold tabular-nums text-primary">
+              <div className="font-bold tabular-nums text-primary text-xl">
                 {totals.clientCount}
               </div>
             </CardContent>
@@ -171,7 +171,7 @@ export function ClientLoanHistory({ loans, payments }: Props) {
           <Card className="h-full">
             <CardContent className="p-4 flex flex-col items-center justify-center text-center h-full">
               <div className="text-sm text-muted-foreground mb-1">Taxa de Juros Média</div>
-              <div className="text-2xl font-bold tabular-nums text-primary">
+              <div className="font-bold tabular-nums text-primary text-xl">
                 {hidden ? "•••" : `${totals.avgInterestRate.toFixed(2).replace(".", ",")}%`}
               </div>
             </CardContent>
