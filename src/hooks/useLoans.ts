@@ -1365,6 +1365,7 @@ export function useLoans() {
     if (data.managerId !== undefined) (updateData as any).manager_id = data.managerId;
     if (data.managerCommissionRate !== undefined) (updateData as any).manager_commission_rate = data.managerCommissionRate ?? 10;
     if (data.autoBillingEnabled !== undefined) (updateData as any).auto_billing_enabled = data.autoBillingEnabled;
+    if (data.isSale !== undefined) (updateData as any).is_sale = data.isSale;
     if (!isOnline()) {
       await enqueueMutation({ table: "loans", op: "update", recordId: id, payload: updateData });
       return;
