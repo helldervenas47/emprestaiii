@@ -71,5 +71,52 @@ export function useIncomeCategories() {
     [user],
   );
 
-  return { categories, loading, create, reload: load };
+  const update = useCallback(
+    async (id: string, input: { name: string; icon: string; color: string }) => {
+      if (!user) return null;
+      const name = input.name.trim();
+      if (!name) return null;
+      const { data, error } = await supabase
+        .from("income_categories" as any)
+        .update({ name, icon: input.icon, color: input.color })
+        .eq("id", id)
+        .select("id, name, icon, color")
+        .single();
+      if (error) {
+        toast({
+          title: "Não foi possível atualizar categoria",
+          description: error.message.includes("duplicate") ? "Já existe uma categoria com esse nome." : error.message,
+          variant: "destructive",
+        });
+        return null;
+      }
+      const updated = data as any as CustomIncomeCategory;
+      setCategories((prev) =>
+        prev.map((c) => (c.id === id ? updated : c)).sort((a, b) => a.name.localeCompare(b.name, "pt-BR")),
+      );
+      toast({ title: "Categoria atualizada", description: name });
+      return updated;
+    },
+    [user],
+  );
+
+  const remove = useCallback(
+    async (id: string) => {
+      if (!user) return;
+      const { error } = await supabase.from("income_categories" as any).delete().eq("id", id);
+      if (error) {
+        toast({
+          title: "Não foi possível excluir categoria",
+          description: error.message,
+          variant: "destructive",
+        });
+        return;
+      }
+      setCategories((prev) => prev.filter((c) => c.id !== id));
+      toast({ title: "Categoria excluída" });
+    },
+    [user],
+  );
+
+  return { categories, loading, create, update, remove, reload: load };
 }
