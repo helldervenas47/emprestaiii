@@ -4,9 +4,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { TrendingUp, Wallet } from "lucide-react";
 import { useLoans } from "@/hooks/useLoans";
 import { useProducts } from "@/hooks/useProducts";
-import { useIncomes } from "@/hooks/useIncomes";
-import { useExpenses } from "@/hooks/useExpenses";
 import { usePiggyBanks } from "@/hooks/usePiggyBanks";
+import { useAccountBalance } from "@/hooks/useAccountBalance";
 import { getBalances } from "@/lib/balance";
 import { supabase } from "@/integrations/supabase/client";
 import type { Sale } from "@/types/loan";
