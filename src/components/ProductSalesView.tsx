@@ -887,9 +887,16 @@ function SalesList({ sales, onDeleteSale, onUpdateSale, clients = [], hideOnTrac
   const [editingSale, setEditingSale] = useState<Sale | null>(null);
   const [search, setSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState<SaleCategory>("all");
+  const [incomeCategoryFilter, setIncomeCategoryFilter] = useState<string>("all");
   const [view, setView] = useState<"cards" | "list" | "folders">("list");
   const { mask } = useHideValues();
   const formatCurrency = useCallback((v: number) => mask(rawFormatCurrency(v)), [mask]);
+  const { categories: incomeCategories } = useIncomeCategories();
+  const incomeCategoryByName = useMemo(() => {
+    const m = new Map<string, CustomIncomeCategory>();
+    incomeCategories.forEach((c) => m.set(c.name, c));
+    return m;
+  }, [incomeCategories]);
 
   // Count per category
   const counts = sales.reduce((acc, s) => {
