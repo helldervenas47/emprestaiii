@@ -458,7 +458,7 @@ export function IncomePendingCalendar({
       }
     }
     return map;
-  }, [incomes, personalExpenses, expenses, cards, openings, year, month, weekDays, piggyDeposits, piggyBanks]);
+  }, [incomes, personalExpenses, expenses, cards, openings, year, month, weekDays, piggyDeposits, piggyBanks, sales]);
 
 
   const monthTotals = useMemo(() => {
