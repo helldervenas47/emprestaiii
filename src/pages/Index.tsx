@@ -34,6 +34,7 @@ const PersonalExpenseList = lazy(() => import("@/components/PersonalExpenseList"
 const IncomeList = lazy(() => import("@/components/IncomeList").then(m => ({ default: m.IncomeList })));
 const CreditCardList = lazy(() => import("@/components/CreditCardList").then(m => ({ default: m.CreditCardList })));
 const PiggyBankList = lazy(() => import("@/components/PiggyBankList").then(m => ({ default: m.PiggyBankList })));
+const ClientLoanHistory = lazy(() => import("@/components/ClientLoanHistory").then(m => ({ default: m.ClientLoanHistory })));
 const UserManagement = lazy(() => import("@/components/UserManagement").then(m => ({ default: m.UserManagement })));
 const PlanManagement = lazy(() => import("@/components/PlanManagement").then(m => ({ default: m.PlanManagement })));
 const BackupExport = lazy(() => import("@/components/BackupExport").then(m => ({ default: m.BackupExport })));
