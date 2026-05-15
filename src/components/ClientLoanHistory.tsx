@@ -129,6 +129,18 @@ export function ClientLoanHistory({ loans, payments }: Props) {
     return map;
   }, [payments]);
 
+  // Cache: last payment date by loanId
+  const lastPaymentDateByLoan = useMemo(() => {
+    const map: Record<string, string | undefined> = {};
+    payments.forEach((p) => {
+      const current = map[p.loanId];
+      if (!current || (p.date && p.date > current)) {
+        map[p.loanId] = p.date;
+      }
+    });
+    return map;
+  }, [payments]);
+
   // Cache: loans grouped by client name and pre-sorted by startDate ASC (oldest → newest)
   const loansByClient = useMemo(() => {
     const map: Record<string, Loan[]> = {};
