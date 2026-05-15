@@ -28,6 +28,7 @@ interface ClientRow {
 
 export function ClientLoanHistory({ loans, payments }: Props) {
   const [search, setSearch] = useState("");
+  const [showSummary, setShowSummary] = useState(false);
   const { hidden } = useHideValues();
 
   const rows = useMemo<ClientRow[]>(() => {
