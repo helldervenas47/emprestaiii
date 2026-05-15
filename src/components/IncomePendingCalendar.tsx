@@ -766,7 +766,39 @@ export function IncomePendingCalendar({
             )}
           </div>
 
-          <div className={`rounded-lg border border-border/50 bg-muted/20 p-3 min-h-[200px] animate-fade-in ${expanded || selectedDate ? "" : "hidden md:block"}`}>
+          {isMobile && selectedDate && (
+            <div
+              className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm animate-fade-in md:hidden"
+              onClick={() => setSelectedDate(null)}
+              aria-hidden="true"
+            />
+          )}
+          <div
+            className={
+              isMobile
+                ? (selectedDate
+                    ? "fixed inset-x-0 bottom-0 z-50 max-h-[88vh] overflow-y-auto rounded-t-2xl border-t border-border bg-card p-4 pb-[calc(env(safe-area-inset-bottom)+1rem)] shadow-2xl animate-slide-in-from-bottom"
+                    : "hidden")
+                : `rounded-lg border border-border/50 bg-muted/20 p-3 min-h-[200px] animate-fade-in ${expanded || selectedDate ? "" : "hidden md:block"}`
+            }
+          >
+            {isMobile && selectedDate && (
+              <div className="sticky top-0 z-10 -mx-4 -mt-4 mb-3 flex items-center justify-between gap-2 border-b border-border/60 bg-card/95 backdrop-blur px-4 py-2.5">
+                <span className="absolute left-1/2 -translate-x-1/2 -top-0 h-1 w-10 rounded-full bg-muted-foreground/30 mt-1" aria-hidden="true" />
+                <span className="text-xs font-medium text-muted-foreground capitalize pt-1">
+                  {new Date(selectedDate + "T00:00:00").toLocaleDateString("pt-BR", { weekday: "short", day: "2-digit", month: "short" })}
+                </span>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8"
+                  onClick={() => setSelectedDate(null)}
+                  aria-label="Fechar"
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+            )}
             {!selectedDate ? (
               <div className="flex h-full min-h-[180px] flex-col items-center justify-center text-center">
                 <TrendingUp className="h-7 w-7 text-muted-foreground mb-2" />
