@@ -596,6 +596,7 @@ function ClientLoansList({ loans, paymentsByLoan, lastPaymentDateByLoan, hidden 
               <th className="text-right font-medium py-2 px-2 whitespace-nowrap">Valor</th>
               <th className="text-right font-medium py-2 px-2 whitespace-nowrap">Restante</th>
               <th className="text-right font-medium py-2 px-2 whitespace-nowrap">Pago</th>
+              <th className="text-left font-medium py-2 px-2 whitespace-nowrap">Quitado em</th>
               <th className="text-center font-medium py-2 px-2 whitespace-nowrap">Parcelas</th>
               <th className="text-center font-medium py-2 px-2 whitespace-nowrap">Status</th>
               <th className="text-left font-medium py-2 px-2 whitespace-nowrap">Etiquetas</th>
@@ -605,6 +606,7 @@ function ClientLoansList({ loans, paymentsByLoan, lastPaymentDateByLoan, hidden 
             {loans.map((l) => {
               const { remaining, paid } = computeValueCell(l);
               const { label, className } = statusMeta(l);
+              const settlementDate = lastPaymentDateByLoan[l.id];
               return (
                 <tr key={l.id} className="border-b border-border/30 last:border-0 hover:bg-muted/30 transition-colors">
                   <td className="py-2 px-2 tabular-nums whitespace-nowrap">{formatDate(l.startDate)}</td>
@@ -617,6 +619,9 @@ function ClientLoansList({ loans, paymentsByLoan, lastPaymentDateByLoan, hidden 
                   </td>
                   <td className="py-2 px-2 tabular-nums text-right whitespace-nowrap font-medium text-success">
                     {mask(formatCurrency(paid))}
+                  </td>
+                  <td className="py-2 px-2 tabular-nums whitespace-nowrap font-medium text-primary">
+                    {settlementDate ? formatDate(settlementDate) : "—"}
                   </td>
                   <td className="py-2 px-2 tabular-nums text-center whitespace-nowrap">
                     {l.paidInstallments ?? 0} / {l.installments}
