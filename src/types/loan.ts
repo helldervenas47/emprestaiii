@@ -26,6 +26,7 @@ export interface Loan {
   managerCommissionRate?: number | null;
   autoBillingEnabled?: boolean;
   renegotiationPenaltyTotal?: number;
+  isSale?: boolean;
   createdAt: string;
 }
 
