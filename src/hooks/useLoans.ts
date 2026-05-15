@@ -26,6 +26,14 @@ async function resolveWalletKind(paymentMethodId: string | null): Promise<"accou
 }
 
 function rowToLoan(l: any): Loan {
+  let paymentSplit: PaymentSplit | null = null;
+  const rawSplit = l.payment_method_split;
+  if (rawSplit && Array.isArray(rawSplit.parts)) {
+    const parts = rawSplit.parts
+      .filter((p: any) => p && Number(p.amount) > 0)
+      .map((p: any) => ({ paymentMethodId: p.payment_method_id ?? p.paymentMethodId ?? null, amount: Number(p.amount) }));
+    if (parts.length >= 2) paymentSplit = { parts };
+  }
   return {
     id: l.id, borrowerName: l.borrower_name, borrowerId: l.borrower_id,
     amount: Number(l.amount), interestRate: Number(l.interest_rate),
@@ -44,6 +52,7 @@ function rowToLoan(l: any): Loan {
     autoBillingEnabled: l.auto_billing_enabled ?? true,
     renegotiationPenaltyTotal: l.renegotiation_penalty_total != null ? Number(l.renegotiation_penalty_total) : 0,
     isSale: l.is_sale ?? false,
+    paymentSplit,
   };
 }
 
