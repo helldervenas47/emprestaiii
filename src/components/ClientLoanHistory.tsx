@@ -576,7 +576,7 @@ function ClientLoansList({ loans, paymentsByLoan, lastPaymentDateByLoan, hidden 
                   </div>
                 )}
                 {l.tags && l.tags.length > 0 && (
-                  <div className={isPaid && settlementDate ? "" : "col-span-2"}>
+                  <div className={isSettled ? "" : "col-span-2"}>
                     <div className="text-muted-foreground">Etiquetas</div>
                     <div className="mt-0.5">{renderTags(l.tags)}</div>
                   </div>
