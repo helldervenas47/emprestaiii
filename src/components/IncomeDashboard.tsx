@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import { Income } from "@/hooks/useIncomes";
+import { Sale } from "@/types/loan";
 import { Card } from "@/components/ui/card";
 import {
   ResponsiveContainer, PieChart, Pie, Cell, Tooltip,
@@ -15,11 +16,40 @@ interface Props {
   incomes: Income[];
   allMonthIncomes?: Income[];
   monthKey: string;
+  sales?: Sale[];
 }
 
-export function IncomeDashboard({ incomes, allMonthIncomes, monthKey }: Props) {
+/**
+ * Sums the amount actually received from a sale that falls inside `monthKey` (YYYY-MM).
+ * Considers downPayment (anchored to sale.date) + every entry in paymentHistory by its date.
+ * Excludes pending portions — pending = saldo previsto, not realizado.
+ */
+function salePaidInMonth(sale: Sale, monthKey: string): number {
+  let total = 0;
+  if ((sale.downPayment || 0) > 0 && sale.date?.startsWith(monthKey)) {
+    total += Number(sale.downPayment) || 0;
+  }
+  (sale.paymentHistory || []).forEach((p) => {
+    if (p?.date?.startsWith(monthKey)) total += Number(p.amount) || 0;
+  });
+  return total;
+}
+
+export function IncomeDashboard({ incomes, allMonthIncomes, monthKey, sales = [] }: Props) {
   // Considera receitas pagas + pendentes (consolidado por categoria)
   const consolidated = allMonthIncomes ?? incomes;
+
+  // Sales contribution per category — only the value effectively received in the period.
+  const salesByCategory = useMemo(() => {
+    const map = new Map<string, number>();
+    sales.forEach((s) => {
+      const paid = salePaidInMonth(s, monthKey);
+      if (paid <= 0) return;
+      const k = (s.category && s.category.trim()) || "Vendas";
+      map.set(k, (map.get(k) || 0) + paid);
+    });
+    return map;
+  }, [sales, monthKey]);
 
   const byCategory = useMemo(() => {
     const map = new Map<string, number>();
@@ -27,25 +57,30 @@ export function IncomeDashboard({ incomes, allMonthIncomes, monthKey }: Props) {
       const k = i.category || "Outros";
       map.set(k, (map.get(k) || 0) + i.amount);
     });
+    salesByCategory.forEach((v, k) => map.set(k, (map.get(k) || 0) + v));
     return Array.from(map.entries()).map(([name, value]) => ({ name, value }));
-  }, [consolidated]);
+  }, [consolidated, salesByCategory]);
 
   const topCategories = useMemo(() => {
     const map = new Map<string, number>();
-    consolidated.forEach((i) => {
-      const k = i.category || "Outros";
-      map.set(k, (map.get(k) || 0) + i.amount);
-    });
+    // Only realized values are considered for the ranking.
+    consolidated
+      .filter((i) => i.status === "received")
+      .forEach((i) => {
+        const k = i.category || "Outros";
+        map.set(k, (map.get(k) || 0) + i.amount);
+      });
+    salesByCategory.forEach((v, k) => map.set(k, (map.get(k) || 0) + v));
     return Array.from(map.entries())
       .sort((a, b) => b[1] - a[1])
       .slice(0, 5)
       .map(([name, value]) => ({ name, value }));
-  }, [consolidated]);
+  }, [consolidated, salesByCategory]);
 
   const [y, m] = monthKey.split("-").map(Number);
   const monthLabel = new Date(y, m - 1, 1).toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
 
-  if (consolidated.length === 0) {
+  if (consolidated.length === 0 && salesByCategory.size === 0) {
     return (
       <Card no3d className="p-4">
         <h3 className="text-sm font-semibold mb-1 text-foreground">Receitas — {monthLabel}</h3>
