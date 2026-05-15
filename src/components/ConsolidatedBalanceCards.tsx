@@ -44,9 +44,10 @@ function isSalePaid(s: Sale): boolean {
 export function ConsolidatedBalanceCards() {
   const { loans } = useLoans();
   const { sales } = useProducts(true);
-  const { incomes } = useIncomes(true);
-  const { expenses } = useExpenses(true);
-  const { piggyBanks, balances: piggyBalances, deposits: piggyDeposits } = usePiggyBanks();
+  const { piggyBanks, balances: piggyBalances } = usePiggyBanks();
+
+  // Saldo em Conta — fonte oficial única (aba Receitas e Despesas).
+  const incomesBalance = useAccountBalance();
 
   const [dashboardBalance, setDashboardBalance] = useState(0);
   const [vehicleBalance, setVehicleBalance] = useState(0);
@@ -97,22 +98,6 @@ export function ConsolidatedBalanceCards() {
   );
   const totalNaRua = pendingLoans + pendingSales;
 
-  // Saldo em Conta (Receitas) — espelha exatamente IncomeBalanceCard:
-  //  recebidos + vendas recebidas − despesas pessoais pagas − aportes manuais ao cofrinho.
-  const incomesBalance = useMemo(() => {
-    const totalIncomeReceived = incomes
-      .filter((i) => i.status === "received")
-      .reduce((s, i) => s + i.amount, 0);
-    const totalSalesReceived = sales.reduce((s, sale) => s + saleReceivedTotal(sale), 0);
-    const totalExpensePaid = expenses
-      .filter((e) => e.paid && (e.scope ?? "business") === "personal")
-      .reduce((s, e) => s + e.amount, 0);
-    const totalPiggyManualDeposits = piggyDeposits
-      .filter((d) => !d.expenseId)
-      .reduce((s, d) => s + (Number(d.amount) || 0), 0);
-    return totalIncomeReceived + totalSalesReceived - totalExpensePaid - totalPiggyManualDeposits;
-  }, [incomes, sales, expenses, piggyDeposits]);
-
   const piggyTotal = useMemo(() => {
     let sum = 0;
     piggyBanks.forEach((pb) => {
@@ -122,7 +107,10 @@ export function ConsolidatedBalanceCards() {
     return sum;
   }, [piggyBanks, piggyBalances]);
 
-  const totalEmMaos = dashboardBalance + incomesBalance + piggyTotal + vehicleBalance;
+  // "Saldo Total em Mãos" agora reflete EXATAMENTE o "Saldo em Conta" da aba
+  // Receitas e Despesas (fonte oficial). Demais valores aparecem apenas como
+  // detalhamento no diálogo.
+  const totalEmMaos = incomesBalance;
 
   const Row = ({ label, value }: { label: string; value: number }) => (
     <div className="flex items-center justify-between py-2 border-b border-border/40 last:border-0">
