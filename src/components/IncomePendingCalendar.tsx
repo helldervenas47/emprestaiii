@@ -853,9 +853,9 @@ export function IncomePendingCalendar({
         </div>
 
         <div className={`grid gap-4 ${selectedDate ? "" : "md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)]"}`}>
-          {/* Quando uma data está selecionada no mobile: oculta apenas o grid mensal expandido,
-              mantendo a faixa da semana visível acima dos detalhes para contexto. */}
-          <div className={selectedDate && expanded ? "hidden md:block" : ""}>
+          {/* Calendário (semana ou mês expandido) permanece sempre visível acima dos detalhes,
+              inclusive no mobile, dando contexto ao dia selecionado. */}
+          <div>
             {expanded ? (
               <>
                 <div className="flex items-center justify-between mb-3">
