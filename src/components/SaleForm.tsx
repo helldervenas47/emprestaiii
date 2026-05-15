@@ -16,6 +16,7 @@ import { LocadorInfo } from "@/hooks/useLocadorInfo";
 import { cn } from "@/lib/utils";
 import { encodeNotesWithMerchandise } from "@/lib/saleMerchandise";
 import { ClientCombobox } from "@/components/ui/client-combobox";
+import { SaleCategoryPicker } from "@/components/SaleCategoryPicker";
 
 
 const businessTypeLabels: Record<BusinessType, string> = {
@@ -57,6 +58,7 @@ export function SaleForm({ onAdd, onClose, defaultBusinessType = "venda", client
     frequency: defaultBusinessType === "aluguel_veiculo" ? "Diário" : "Mensal",
     firstInstallmentDate: todayInAppTz(),
     locadorId: defaultLocadorId,
+    category: "",
   });
   const [merchEnabled, setMerchEnabled] = useState(false);
   const [merchDescricao, setMerchDescricao] = useState("");
@@ -147,6 +149,7 @@ export function SaleForm({ onAdd, onClose, defaultBusinessType = "venda", client
       installmentDates: dates,
       partialPaid: 0,
       locadorId: form.businessType === "aluguel_veiculo" ? (form.locadorId || null) : null,
+      category: form.category || null,
     });
     setShowSuccess(true);
   };
