@@ -51,6 +51,7 @@ interface Props {
 export function IncomeList({ readOnly }: Props) {
   const { incomes, addIncome, updateIncome, deleteIncome, duplicateIncome, markReceived } = useIncomes();
   const { expenses } = useExpenses();
+  const { sales } = useProducts();
   const { clients } = useClients();
   const { activeMethods } = usePaymentMethods();
 
@@ -394,6 +395,7 @@ export function IncomeList({ readOnly }: Props) {
         allMonthIncomes={incomes.filter(
           (i) => i.source !== "Ajuste manual" && i.receivedDate.startsWith(monthKey),
         )}
+        sales={sales}
         monthKey={monthKey}
       />
 
