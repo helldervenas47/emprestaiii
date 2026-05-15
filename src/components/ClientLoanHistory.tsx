@@ -306,7 +306,7 @@ export function ClientLoanHistory({ loans, payments }: Props) {
                   <div className="tabular-nums font-semibold">{mask(formatCurrency(r.total))}</div>
                 </div>
                 <div className="col-span-2 pt-1 border-t border-border/40">
-                  <div className="flex items-center justify-center gap-1">
+                  <div className="flex items-center justify-between">
                     <span className="text-muted-foreground">Taxa de Juros</span>
                     <span className="tabular-nums font-semibold text-primary">
                       {hidden ? "•••" : `${r.interestRate.toFixed(2).replace(".", ",")}%`}
