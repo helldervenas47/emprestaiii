@@ -1,6 +1,32 @@
 import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { offlineDB, OFFLINE_TABLES } from "@/lib/offline/db";
+
+async function clearViewingCaches() {
+  // Clear offline cached rows (do not touch pending_mutations of the real user)
+  try {
+    await Promise.all(OFFLINE_TABLES.map((t) => (offlineDB as any)[t].clear()));
+    await offlineDB.meta.clear();
+  } catch {}
+  // Clear app-level localStorage caches that may be tied to the viewed user
+  try {
+    const toRemove: string[] = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (!k) continue;
+      if (
+        k.startsWith("rq-") ||
+        k.startsWith("cache:") ||
+        k.startsWith("emprestaii:") ||
+        k.includes("dataOwner") ||
+        k.includes("viewing")
+      ) toRemove.push(k);
+    }
+    toRemove.forEach((k) => localStorage.removeItem(k));
+    sessionStorage.clear();
+  } catch {}
+}
 
 interface ViewingSession {
   viewing_user_id: string;
@@ -61,8 +87,10 @@ export function useViewAsUser() {
           { onConflict: "admin_id" }
         );
       if (!error) {
-        // Reload page so all hooks rehydrate with new dataOwnerId
-        window.location.reload();
+        await clearViewingCaches();
+        const url = new URL(window.location.href);
+        url.searchParams.set("_r", Date.now().toString());
+        window.location.replace(url.toString());
       }
       return { error: error?.message };
     },
@@ -71,8 +99,14 @@ export function useViewAsUser() {
 
   const stopViewing = useCallback(async () => {
     if (!user) return;
-    await supabase.from("admin_viewing_sessions" as any).delete().eq("admin_id", user.id);
-    window.location.reload();
+    try {
+      await supabase.from("admin_viewing_sessions" as any).delete().eq("admin_id", user.id);
+    } catch {}
+    await clearViewingCaches();
+    // Hard reload with cache-bust to ensure no stale state from viewed user remains
+    const url = new URL(window.location.href);
+    url.searchParams.set("_r", Date.now().toString());
+    window.location.replace(url.toString());
   }, [user]);
 
   return {
