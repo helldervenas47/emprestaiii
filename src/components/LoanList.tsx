@@ -4840,6 +4840,18 @@ export function LoanList({ loans, payments, installmentSchedules, onPayment, onP
               ))}
             </div>
           )}
+          {/* Botão Histórico do Cliente — versão Mobile (abaixo de Ontem/Hoje/Amanhã) */}
+          {onOpenClientHistory && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onOpenClientHistory}
+              className="w-full md:hidden gap-1.5 mt-1"
+            >
+              <User className="h-3.5 w-3.5" />
+              Histórico do Cliente
+            </Button>
+          )}
         </div>
       </div>
 
