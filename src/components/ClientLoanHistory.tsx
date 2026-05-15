@@ -124,6 +124,32 @@ export function ClientLoanHistory({ loans, payments }: Props) {
     });
   }, [loans, payments, search, sortBy]);
 
+  // Cache: payments grouped by loanId — avoids re-filtering for each expanded client
+  const paymentsByLoan = useMemo(() => {
+    const map: Record<string, number> = {};
+    payments.forEach((p) => {
+      map[p.loanId] = (map[p.loanId] ?? 0) + (p.amount || 0);
+    });
+    return map;
+  }, [payments]);
+
+  // Cache: loans grouped by client name and pre-sorted by startDate ASC (oldest → newest)
+  const loansByClient = useMemo(() => {
+    const map: Record<string, Loan[]> = {};
+    loans.forEach((l) => {
+      const key = l.borrowerName?.trim() || "—";
+      (map[key] ??= []).push(l);
+    });
+    Object.keys(map).forEach((k) => {
+      map[k].sort((a, b) => {
+        const da = a.startDate ? new Date(a.startDate).getTime() : 0;
+        const db = b.startDate ? new Date(b.startDate).getTime() : 0;
+        return da - db;
+      });
+    });
+    return map;
+  }, [loans]);
+
   const totals = useMemo(() => {
     const totalPending = rows.reduce((s, r) => s + r.pending, 0);
     const totalPaid = rows.reduce((s, r) => s + r.paid, 0);
