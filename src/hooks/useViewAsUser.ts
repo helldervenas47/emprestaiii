@@ -97,8 +97,14 @@ export function useViewAsUser() {
 
   const stopViewing = useCallback(async () => {
     if (!user) return;
-    await supabase.from("admin_viewing_sessions" as any).delete().eq("admin_id", user.id);
-    window.location.reload();
+    try {
+      await supabase.from("admin_viewing_sessions" as any).delete().eq("admin_id", user.id);
+    } catch {}
+    await clearViewingCaches();
+    // Hard reload with cache-bust to ensure no stale state from viewed user remains
+    const url = new URL(window.location.href);
+    url.searchParams.set("_r", Date.now().toString());
+    window.location.replace(url.toString());
   }, [user]);
 
   return {
