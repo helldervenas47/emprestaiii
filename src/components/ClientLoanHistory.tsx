@@ -52,12 +52,8 @@ export function ClientLoanHistory({ loans, payments }: Props) {
   const [search, setSearch] = useState("");
   const [showSummary, setShowSummary] = useState(false);
   const [sortBy, setSortBy] = useState<SortOption>("name-asc");
-  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
+  const [selectedClient, setSelectedClient] = useState<string | null>(null);
   const { hidden } = useHideValues();
-
-  const toggleExpanded = useCallback((name: string) => {
-    setExpanded((prev) => ({ ...prev, [name]: !prev[name] }));
-  }, []);
 
   const rows = useMemo<ClientRow[]>(() => {
     const byName: Record<string, Loan[]> = {};
