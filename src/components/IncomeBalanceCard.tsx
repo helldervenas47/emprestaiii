@@ -20,19 +20,32 @@ import { todayDateInAppTz } from "@/lib/timezone";
 
 /** Total efetivamente recebido de uma venda (não os lançamentos previstos). */
 function saleReceivedTotal(sale: Sale): number {
-  if (sale.paymentHistory && sale.paymentHistory.length > 0) {
-    return sale.paymentHistory.reduce((s, p) => s + (Number(p.amount) || 0), 0);
-  }
+  const historyTotal = (sale.paymentHistory || []).reduce(
+    (s, p) => s + (Number(p.amount) || 0),
+    0,
+  );
   const iv = sale.installmentValue ?? (sale.installments > 0 ? sale.total / sale.installments : sale.total);
-  return (sale.downPayment || 0) + (sale.paidInstallments || 0) * iv + (sale.partialPaid || 0);
+  const legacyTotal = (sale.downPayment || 0) + (sale.paidInstallments || 0) * iv + (sale.partialPaid || 0);
+  // Usa o maior dos dois para cobrir vendas antigas cujas parcelas pagas
+  // não foram registradas no paymentHistory.
+  return Math.max(historyTotal, legacyTotal);
 }
 
 /** Total recebido de uma venda no mês (YYYY-MM). */
 function saleReceivedInMonth(sale: Sale, monthKey: string): number {
-  if (sale.paymentHistory && sale.paymentHistory.length > 0) {
-    return sale.paymentHistory
+  const history = sale.paymentHistory || [];
+  if (history.length > 0) {
+    const historyMonthSum = history
       .filter((p) => (p.date || "").startsWith(monthKey))
       .reduce((s, p) => s + (Number(p.amount) || 0), 0);
+    // Se o histórico cobre o total recebido, usa o filtro por mês.
+    const historyTotal = history.reduce((s, p) => s + (Number(p.amount) || 0), 0);
+    const iv = sale.installmentValue ?? (sale.installments > 0 ? sale.total / sale.installments : sale.total);
+    const legacyTotal = (sale.downPayment || 0) + (sale.paidInstallments || 0) * iv + (sale.partialPaid || 0);
+    if (historyTotal >= legacyTotal) return historyMonthSum;
+    // Caso histórico esteja incompleto, atribui a diferença ao mês da venda.
+    const missing = legacyTotal - historyTotal;
+    return historyMonthSum + ((sale.date || "").startsWith(monthKey) ? missing : 0);
   }
   // Sem histórico: considera o total recebido no mês da venda.
   return (sale.date || "").startsWith(monthKey) ? saleReceivedTotal(sale) : 0;
