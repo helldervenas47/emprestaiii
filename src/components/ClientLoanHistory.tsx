@@ -611,6 +611,9 @@ function ClientLoansList({ loans, paymentsByLoan, lastPaymentDateByLoan, hidden 
                 <tr key={l.id} className="border-b border-border/30 last:border-0 hover:bg-muted/30 transition-colors">
                   <td className="py-2 px-2 tabular-nums whitespace-nowrap">{formatDate(l.startDate)}</td>
                   <td className="py-2 px-2 tabular-nums whitespace-nowrap">{formatDate(l.dueDate)}</td>
+                  <td className="py-2 px-2 tabular-nums whitespace-nowrap font-medium text-primary">
+                    {settlementDate ? formatDate(settlementDate) : "—"}
+                  </td>
                   <td className="py-2 px-2 tabular-nums text-right whitespace-nowrap font-medium">
                     {mask(formatCurrency(l.amount))}
                   </td>
@@ -619,9 +622,6 @@ function ClientLoansList({ loans, paymentsByLoan, lastPaymentDateByLoan, hidden 
                   </td>
                   <td className="py-2 px-2 tabular-nums text-right whitespace-nowrap font-medium text-success">
                     {mask(formatCurrency(paid))}
-                  </td>
-                  <td className="py-2 px-2 tabular-nums whitespace-nowrap font-medium text-primary">
-                    {settlementDate ? formatDate(settlementDate) : "—"}
                   </td>
                   <td className="py-2 px-2 tabular-nums text-center whitespace-nowrap">
                     {l.paidInstallments ?? 0} / {l.installments}
