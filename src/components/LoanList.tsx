@@ -22,7 +22,7 @@ import { getLoanLateFees, getBaseRemainingAmount } from "@/lib/loanLateFees";
 import { cn } from "@/lib/utils";
 import {
   CheckCircle, Trash2, DollarSign, User, Calendar as CalendarIcon, LayoutGrid, List,
-  Search, Percent, Pencil, Check, X, ChevronDown, ChevronRight, ChevronUp, FolderOpen, Folder, HandCoins, Tag, MoreHorizontal, MessageCircle, Filter, SlidersHorizontal, History, UserCog, Calculator, BellRing, BellOff, RefreshCw, FileDown, AlertTriangle, StickyNote,
+  Search, Percent, Pencil, Check, X, ChevronDown, ChevronRight, ChevronUp, FolderOpen, Folder, HandCoins, Tag, MoreHorizontal, MessageCircle, Filter, SlidersHorizontal, History, UserCog, Calculator, BellRing, BellOff, RefreshCw, FileDown, AlertTriangle, StickyNote, ShoppingBag,
 } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -150,7 +150,7 @@ interface Props {
   clients?: Client[];
 }
 
-type Category = "all" | "overdue" | "paid_interest" | "paid" | "due_today" | "on_track" | "parcelado";
+type Category = "all" | "overdue" | "paid_interest" | "paid" | "due_today" | "on_track" | "parcelado" | "venda";
 
 const categoryConfig: { id: Category; label: string; color: string; activeColor: string }[] = [
   { id: "all", label: "Todos", color: "border-border text-muted-foreground", activeColor: "bg-primary text-primary-foreground border-primary" },
@@ -159,6 +159,7 @@ const categoryConfig: { id: Category; label: string; color: string; activeColor:
   { id: "due_today", label: "Vence Hoje", color: "border-warning/30 text-warning", activeColor: "bg-warning text-warning-foreground border-warning" },
   { id: "on_track", label: "Em Dia", color: "border-primary/30 text-primary", activeColor: "bg-primary text-primary-foreground border-primary" },
   { id: "parcelado", label: "Parcelados", color: "border-blue-400/30 text-blue-400", activeColor: "bg-blue-500 text-white border-blue-500" },
+  { id: "venda", label: "Vendas", color: "border-amber-500/30 text-amber-600 dark:text-amber-400", activeColor: "bg-amber-500 text-white border-amber-500" },
   { id: "paid", label: "Quitado", color: "border-success/30 text-success", activeColor: "bg-success text-success-foreground border-success" },
 ];
 
@@ -439,6 +440,7 @@ function LoanCardView({
     }
   }, [paymentDialog]);
   const [editHasManager, setEditHasManager] = useState<boolean>(loan.hasManager ?? false);
+  const [editIsSale, setEditIsSale] = useState<boolean>(loan.isSale ?? false);
   const [editManagerId, setEditManagerId] = useState<string>(loan.managerId ?? "");
   const [editCommissionRate, setEditCommissionRate] = useState<string>(String(loan.managerCommissionRate ?? 10));
   const managerOptions = useMemo(() => clients.filter((c) => c.isManager && c.active !== false), [clients]);
@@ -629,6 +631,7 @@ function LoanCardView({
       hasManager: editHasManager,
       managerId: editHasManager && editManagerId ? editManagerId : null,
       managerCommissionRate: editHasManager ? parseFloat(editCommissionRate) || 10 : null,
+      isSale: editIsSale,
     });
 
     // Save ALL installment rows
@@ -925,6 +928,22 @@ function LoanCardView({
             )}
           </div>
 
+          {/* Sale toggle */}
+          <div className="border border-border rounded-lg p-3 bg-muted/20">
+            <div className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                id={`edit-sale-${loan.id}`}
+                checked={editIsSale}
+                onChange={(e) => setEditIsSale(e.target.checked)}
+                className="h-4 w-4 rounded border-border accent-primary"
+              />
+              <Label htmlFor={`edit-sale-${loan.id}`} className="text-xs font-medium cursor-pointer">
+                Contrato de venda
+              </Label>
+            </div>
+          </div>
+
           {/* Installment Schedule */}
           {(parseInt(form.installments) || 0) >= 2 && editScheduleRows.length > 0 && (
             <div className="rounded-lg border border-border/50 overflow-hidden">
@@ -1173,6 +1192,11 @@ function LoanCardView({
             {loan.hasManager && (
               <Badge variant="outline" className="text-xs bg-[#009C3B]/15 text-[#009C3B] dark:bg-emerald-500/25 dark:text-emerald-300 border-[#009C3B]/60 dark:border-emerald-500/60 gap-1">
                 <UserCog className="h-3 w-3" />Com gerente
+              </Badge>
+            )}
+            {loan.isSale && (
+              <Badge variant="outline" className="text-xs bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-500/40 gap-1">
+                <ShoppingBag className="h-3 w-3" />Venda
               </Badge>
             )}
             {daysOverdue > 0 && loan.status !== "paid" && (
@@ -2511,6 +2535,7 @@ function LoanRowView({
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deletePaymentId, setDeletePaymentId] = useState<string | null>(null);
   const [editHasManager, setEditHasManager] = useState<boolean>(loan.hasManager ?? false);
+  const [editIsSale, setEditIsSale] = useState<boolean>(loan.isSale ?? false);
   const [editManagerId, setEditManagerId] = useState<string>(loan.managerId ?? "");
   const [editCommissionRate, setEditCommissionRate] = useState<string>(String(loan.managerCommissionRate ?? 10));
   const [showLateInterest, setShowLateInterest] = useState(false);
@@ -2666,6 +2691,7 @@ function LoanRowView({
       hasManager: editHasManager,
       managerId: editHasManager && editManagerId ? editManagerId : null,
       managerCommissionRate: editHasManager ? parseFloat(editCommissionRate) || 10 : null,
+      isSale: editIsSale,
     });
     setEditing(false);
   };
@@ -2847,6 +2873,11 @@ function LoanRowView({
           <div className="min-w-0">
             <div className="flex items-center gap-1 flex-wrap">
               <span className="font-medium text-[11px] sm:text-sm text-foreground truncate block max-w-[80px] sm:max-w-none">{loan.borrowerName}</span>
+              {loan.isSale && (
+                <Badge variant="outline" className="text-[10px] py-0 px-1.5 bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-500/40 gap-0.5">
+                  <ShoppingBag className="h-2.5 w-2.5" />Venda
+                </Badge>
+              )}
               {loan.notes?.trim() && (
                 <TooltipProvider delayDuration={300}>
                   <Tooltip>
@@ -3045,6 +3076,21 @@ function LoanRowView({
                     </div>
                   </div>
                 )}
+              </div>
+              {/* Sale toggle */}
+              <div className="border border-border rounded-lg p-3 bg-muted/20">
+                <div className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    id={`row-edit-sale-${loan.id}`}
+                    checked={editIsSale}
+                    onChange={(e) => setEditIsSale(e.target.checked)}
+                    className="h-4 w-4 rounded border-border accent-primary"
+                  />
+                  <Label htmlFor={`row-edit-sale-${loan.id}`} className="text-xs font-medium cursor-pointer">
+                    Contrato de venda
+                  </Label>
+                </div>
               </div>
               <div><Label className="text-xs">Etiquetas (separar por vírgula)</Label><Input value={form.tags} onChange={(e) => updateField("tags", e.target.value)} className="h-8 text-sm" placeholder="Ex: VIP, Renovação, Garantia" /></div>
               <div><Label className="text-xs">Observações</Label><Textarea value={form.notes} onChange={(e) => updateField("notes", e.target.value)} rows={2} className="text-sm" /></div>
@@ -4469,6 +4515,7 @@ export function LoanList({ loans, payments, installmentSchedules, onPayment, onP
         return selectedCategories.some((sel) => {
           if (sel === "all") return cat !== "paid";
           if (sel === "parcelado") return l.installments >= 2 && l.status !== "paid";
+          if (sel === "venda") return !!l.isSale;
           return cat === sel;
         });
       });
@@ -4476,6 +4523,8 @@ export function LoanList({ loans, payments, installmentSchedules, onPayment, onP
       filtered = filtered.filter((l) => getLoanCategory(l, payments, installmentSchedules) !== "paid");
     } else if (category === "parcelado") {
       filtered = filtered.filter((l) => l.installments >= 2 && l.status !== "paid");
+    } else if (category === "venda") {
+      filtered = filtered.filter((l) => !!l.isSale);
     } else {
       filtered = filtered.filter((l) => getLoanCategory(l, payments, installmentSchedules) === category);
     }

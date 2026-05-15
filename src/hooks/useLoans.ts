@@ -43,6 +43,7 @@ function rowToLoan(l: any): Loan {
     managerCommissionRate: l.manager_commission_rate != null ? Number(l.manager_commission_rate) : 10,
     autoBillingEnabled: l.auto_billing_enabled ?? true,
     renegotiationPenaltyTotal: l.renegotiation_penalty_total != null ? Number(l.renegotiation_penalty_total) : 0,
+    isSale: l.is_sale ?? false,
   };
 }
 
@@ -295,6 +296,7 @@ export function useLoans() {
       has_manager: loan.hasManager ?? false,
       manager_id: loan.managerId ?? null,
       manager_commission_rate: loan.managerCommissionRate ?? 10,
+      is_sale: loan.isSale ?? false,
     };
 
     await upsertCachedRow("loans", { ...insertPayload, created_at: optimistic.createdAt });
@@ -1363,6 +1365,7 @@ export function useLoans() {
     if (data.managerId !== undefined) (updateData as any).manager_id = data.managerId;
     if (data.managerCommissionRate !== undefined) (updateData as any).manager_commission_rate = data.managerCommissionRate ?? 10;
     if (data.autoBillingEnabled !== undefined) (updateData as any).auto_billing_enabled = data.autoBillingEnabled;
+    if (data.isSale !== undefined) (updateData as any).is_sale = data.isSale;
     if (!isOnline()) {
       await enqueueMutation({ table: "loans", op: "update", recordId: id, payload: updateData });
       return;

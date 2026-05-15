@@ -1283,6 +1283,7 @@ export type Database = {
           interest_rate: number
           interest_rate_mode: string
           interest_type: string
+          is_sale: boolean
           late_interest_type: string | null
           late_interest_value: number | null
           manager_commission_rate: number
@@ -1314,6 +1315,7 @@ export type Database = {
           interest_rate?: number
           interest_rate_mode?: string
           interest_type?: string
+          is_sale?: boolean
           late_interest_type?: string | null
           late_interest_value?: number | null
           manager_commission_rate?: number
@@ -1345,6 +1347,7 @@ export type Database = {
           interest_rate?: number
           interest_rate_mode?: string
           interest_type?: string
+          is_sale?: boolean
           late_interest_type?: string | null
           late_interest_value?: number | null
           manager_commission_rate?: number

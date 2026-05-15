@@ -75,6 +75,7 @@ export function LoanForm({ onAdd, onSaveSchedule, onClose, clients, loans, payme
   const [tagInput, setTagInput] = useState("");
 
   const [hasManager, setHasManager] = useState(false);
+  const [isSale, setIsSale] = useState(false);
   const [managerId, setManagerId] = useState<string>("");
   const [commissionRate, setCommissionRate] = useState<string>("10");
   const [commissionAmount, setCommissionAmount] = useState<string>("");
@@ -273,6 +274,7 @@ export function LoanForm({ onAdd, onSaveSchedule, onClose, clients, loans, payme
       hasManager,
       managerId: hasManager && managerId ? managerId : null,
       managerCommissionRate: hasManager ? parseFloat(commissionRate) || 10 : null,
+      isSale,
       createdAt: new Date().toISOString(),
       paymentMethodId,
     });
@@ -359,6 +361,22 @@ export function LoanForm({ onAdd, onSaveSchedule, onClose, clients, loans, payme
                 )}
               </div>
             )}
+
+            {/* Sale toggle */}
+            <div className="border border-border rounded-lg p-3 bg-muted/20">
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  id="isSale"
+                  checked={isSale}
+                  onChange={(e) => setIsSale(e.target.checked)}
+                  className="h-4 w-4 rounded border-border accent-primary"
+                />
+                <Label htmlFor="isSale" className="font-medium cursor-pointer text-sm">
+                  Contrato de venda
+                </Label>
+              </div>
+            </div>
 
             {/* Manager section */}
             <div className="border border-border rounded-lg p-3 space-y-3 bg-muted/20">
