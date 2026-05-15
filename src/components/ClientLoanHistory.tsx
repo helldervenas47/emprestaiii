@@ -438,6 +438,7 @@ function ClientLoansList({ loans, paymentsByLoan, hidden }: ClientLoansListProps
             </th>
             <th className="text-center font-medium py-2 px-2 whitespace-nowrap">Parcelas</th>
             <th className="text-center font-medium py-2 px-2 whitespace-nowrap">Status</th>
+            <th className="text-left font-medium py-2 px-2 whitespace-nowrap">Etiquetas</th>
           </tr>
         </thead>
         <tbody>
@@ -478,6 +479,21 @@ function ClientLoansList({ loans, paymentsByLoan, hidden }: ClientLoansListProps
                   <Badge variant="outline" className={`text-[10px] px-1.5 py-0 h-5 ${statusClass}`}>
                     {statusLabel}
                   </Badge>
+                </td>
+                <td className="py-2 px-2 whitespace-nowrap">
+                  {l.tags && l.tags.length > 0 ? (
+                    <div className="flex flex-wrap gap-1">
+                      {l.tags.map((t) => (
+                        <Badge
+                          key={t}
+                          variant="outline"
+                          className="text-[10px] px-1.5 py-0 h-5 bg-primary/10 text-primary border-primary/30"
+                        >
+                          {t}
+                        </Badge>
+                      ))}
+                    </div>
+                  ) : null}
                 </td>
               </tr>
             );
