@@ -2686,6 +2686,7 @@ function LoanRowView({
       hasManager: editHasManager,
       managerId: editHasManager && editManagerId ? editManagerId : null,
       managerCommissionRate: editHasManager ? parseFloat(editCommissionRate) || 10 : null,
+      isSale: editIsSale,
     });
     setEditing(false);
   };
