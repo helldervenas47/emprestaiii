@@ -41,6 +41,7 @@ const PAGE_SIZE = 30;
 export function FinancialStatement() {
   const { incomes } = useIncomes();
   const { expenses } = useExpenses();
+  const { sales } = useProducts(true);
   const { clients } = useClients();
   const { activeMethods } = usePaymentMethods();
 
@@ -71,6 +72,7 @@ export function FinancialStatement() {
         description: i.description,
         category: i.category || "Outros",
         type: "income",
+        origin: "income",
         amount: i.amount,
         paymentMethod: methodName(i.paymentMethodId),
         account: clientName(i.clientId) || i.source || "—",
@@ -83,13 +85,60 @@ export function FinancialStatement() {
         description: e.description,
         category: e.category || "Outros",
         type: "expense",
+        origin: "expense",
         amount: e.amount,
         paymentMethod: methodName(e.paymentMethodId),
         account: "Pessoal",
       }));
-    return [...incomeRows, ...expenseRows];
+
+    // Vendas: cada pagamento (paymentHistory) vira um lançamento individual no extrato.
+    // Sem duplicidade — fallback só para vendas antigas sem histórico de pagamentos.
+    const saleRows: Row[] = [];
+    sales.forEach((s: Sale) => {
+      const desc = s.description || s.productName || "Venda";
+      const account = s.customerName || "—";
+      const history = s.paymentHistory || [];
+      if (history.length > 0) {
+        history.forEach((p, idx) => {
+          const amt = Number(p.amount) || 0;
+          if (amt <= 0) return;
+          const isFull = p.type === "full" || p.type === "downpayment";
+          saleRows.push({
+            id: `s-${s.id}-p${idx}`,
+            date: p.date || s.date,
+            description: desc,
+            category: "Venda",
+            type: "income",
+            origin: isFull ? "sale-full" : "sale-partial",
+            amount: amt,
+            paymentMethod: "—",
+            account,
+          });
+        });
+      } else {
+        // Fallback: vendas antigas sem histórico — usa downPayment/paidInstallments + partialPaid
+        const iv = s.installmentValue ?? (s.installments > 0 ? s.total / s.installments : s.total);
+        const total = (s.downPayment || 0) + (s.paidInstallments || 0) * iv + (s.partialPaid || 0);
+        if (total > 0) {
+          const isFullyPaid = s.paidInstallments >= s.installments && (s.partialPaid || 0) === 0;
+          saleRows.push({
+            id: `s-${s.id}-legacy`,
+            date: s.date,
+            description: desc,
+            category: "Venda",
+            type: "income",
+            origin: isFullyPaid ? "sale-full" : "sale-partial",
+            amount: total,
+            paymentMethod: "—",
+            account,
+          });
+        }
+      }
+    });
+
+    return [...incomeRows, ...expenseRows, ...saleRows];
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [incomes, expenses, activeMethods, clients]);
+  }, [incomes, expenses, sales, activeMethods, clients]);
 
   const categories = useMemo(() => {
     const set = new Set<string>();
