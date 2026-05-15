@@ -1123,7 +1123,7 @@ const Index = () => {
         </Suspense>
       </main>
 
-      {!isReadOnly && primaryLabel && (tab === "dashboard" || tab === "expenses" || tab === "products" || tab === "vehicles" || (tab === "clients" && clientSubTab === "clientes")) && (
+      {!isReadOnly && primaryLabel && ((tab === "dashboard" && loanSubTab !== "history") || tab === "expenses" || tab === "products" || tab === "vehicles" || (tab === "clients" && clientSubTab === "clientes")) && (
         <button
           type="button"
           onClick={handlePrimaryAction}
