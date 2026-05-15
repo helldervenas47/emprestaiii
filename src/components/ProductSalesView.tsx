@@ -20,6 +20,9 @@ import { addMonths, addWeeks, addDays, format, startOfMonth, endOfMonth, differe
 import { ptBR } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useIncomeCategories, CustomIncomeCategory } from "@/hooks/useIncomeCategories";
+import { personalIconMap } from "@/lib/personalExpenseCategories";
+import { Tag } from "lucide-react";
 
 function addByFrequency(date: Date, frequency: string, n: number): Date {
   if (["Diário", "Diária", "Diario", "Diaria", "daily"].includes(frequency)) return addDays(date, n);
