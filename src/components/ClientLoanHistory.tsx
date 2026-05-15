@@ -18,7 +18,6 @@ function formatCurrency(value: number): string {
 
 interface ClientRow {
   name: string;
-  contracts: number;
   borrowed: number;
   paid: number;
   pending: number;
