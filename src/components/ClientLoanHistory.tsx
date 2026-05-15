@@ -319,60 +319,46 @@ export function ClientLoanHistory({ loans, payments }: Props) {
 
       {/* Mobile — Cards */}
       <div className="md:hidden space-y-2">
-        {rows.map((r) => {
-          const isOpen = !!expanded[r.name];
-          return (
-            <Card key={r.name}>
-              <CardContent className="p-4 space-y-2">
-                <button
-                  type="button"
-                  onClick={() => toggleExpanded(r.name)}
-                  className="w-full flex items-center justify-center gap-2 focus-visible:outline-none"
-                >
-                  <h3 className="font-semibold text-sm truncate text-center">{r.name}</h3>
-                  <ChevronDown
-                    className={`h-4 w-4 text-muted-foreground transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`}
-                  />
-                </button>
-                <div className="grid grid-cols-2 gap-2 text-xs text-center">
-                  <div>
-                    <div className="text-muted-foreground">Emprestado</div>
-                    <div className="tabular-nums font-medium">{mask(formatCurrency(r.borrowed))}</div>
-                  </div>
-                  <div>
-                    <div className="text-muted-foreground">Pago</div>
-                    <div className="tabular-nums font-medium text-success">{mask(formatCurrency(r.paid))}</div>
-                  </div>
-                  <div>
-                    <div className="text-muted-foreground">Pendente</div>
-                    <div className="tabular-nums font-medium text-warning">{mask(formatCurrency(r.pending))}</div>
-                  </div>
-                  <div>
-                    <div className="text-muted-foreground">Total</div>
-                    <div className="tabular-nums font-semibold">{mask(formatCurrency(r.total))}</div>
-                  </div>
-                  <div className="col-span-2 pt-1 border-t border-border/40">
-                    <div className="flex items-center justify-between">
-                      <span className="text-muted-foreground">Taxa de Juros</span>
-                      <span className="tabular-nums font-semibold text-primary">
-                        {hidden ? "•••" : `${r.interestRate.toFixed(2).replace(".", ",")}%`}
-                      </span>
-                    </div>
+        {rows.map((r) => (
+          <Card key={r.name}>
+            <CardContent className="p-4 space-y-2">
+              <button
+                type="button"
+                onClick={() => setSelectedClient(r.name)}
+                className="w-full flex items-center justify-center gap-2 focus-visible:outline-none"
+              >
+                <h3 className="font-semibold text-sm truncate text-center">{r.name}</h3>
+                <ChevronRight className="h-4 w-4 text-muted-foreground" />
+              </button>
+              <div className="grid grid-cols-2 gap-2 text-xs text-center">
+                <div>
+                  <div className="text-muted-foreground">Emprestado</div>
+                  <div className="tabular-nums font-medium">{mask(formatCurrency(r.borrowed))}</div>
+                </div>
+                <div>
+                  <div className="text-muted-foreground">Pago</div>
+                  <div className="tabular-nums font-medium text-success">{mask(formatCurrency(r.paid))}</div>
+                </div>
+                <div>
+                  <div className="text-muted-foreground">Pendente</div>
+                  <div className="tabular-nums font-medium text-warning">{mask(formatCurrency(r.pending))}</div>
+                </div>
+                <div>
+                  <div className="text-muted-foreground">Total</div>
+                  <div className="tabular-nums font-semibold">{mask(formatCurrency(r.total))}</div>
+                </div>
+                <div className="col-span-2 pt-1 border-t border-border/40">
+                  <div className="flex items-center justify-between">
+                    <span className="text-muted-foreground">Taxa de Juros</span>
+                    <span className="tabular-nums font-semibold text-primary">
+                      {hidden ? "•••" : `${r.interestRate.toFixed(2).replace(".", ",")}%`}
+                    </span>
                   </div>
                 </div>
-                {isOpen && (
-                  <div className="pt-2 border-t border-border/40 animate-accordion-down">
-                    <ClientLoansList
-                      loans={loansByClient[r.name] ?? []}
-                      paymentsByLoan={paymentsByLoan}
-                      hidden={hidden}
-                    />
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          );
-        })}
+              </div>
+            </CardContent>
+          </Card>
+        ))}
         {rows.length === 0 && (
           <Card>
             <CardContent className="py-8 text-center text-muted-foreground text-sm">
