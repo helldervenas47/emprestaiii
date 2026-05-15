@@ -540,7 +540,7 @@ function ClientLoansList({ loans, paymentsByLoan, lastPaymentDateByLoan, hidden 
                   {label}
                 </Badge>
               </div>
-              <div className="grid grid-cols-2 gap-2 text-[11px]">
+              <div className="grid grid-cols-2 gap-2 text-[11px] text-center">
                 <div>
                   <div className="text-muted-foreground">Vencimento</div>
                   <div className="tabular-nums font-medium">{formatDate(l.dueDate)}</div>
@@ -578,7 +578,7 @@ function ClientLoansList({ loans, paymentsByLoan, lastPaymentDateByLoan, hidden 
                 {l.tags && l.tags.length > 0 && (
                   <div className={isSettled ? "" : "col-span-2"}>
                     <div className="text-muted-foreground">Etiquetas</div>
-                    <div className="mt-0.5">{renderTags(l.tags)}</div>
+                    <div className="mt-0.5 flex justify-center">{renderTags(l.tags)}</div>
                   </div>
                 )}
               </div>
@@ -592,15 +592,15 @@ function ClientLoansList({ loans, paymentsByLoan, lastPaymentDateByLoan, hidden 
         <table className="w-full text-xs border-collapse">
           <thead>
             <tr className="border-b border-border/60 text-muted-foreground">
-              <th className="text-left font-medium py-2 px-2 whitespace-nowrap">Data</th>
-              <th className="text-left font-medium py-2 px-2 whitespace-nowrap">Vencimento</th>
-              <th className="text-left font-medium py-2 px-2 whitespace-nowrap">Quitado</th>
-              <th className="text-right font-medium py-2 px-2 whitespace-nowrap">Valor</th>
-              <th className="text-right font-medium py-2 px-2 whitespace-nowrap">Restante</th>
-              <th className="text-right font-medium py-2 px-2 whitespace-nowrap">Pago</th>
+              <th className="text-center font-medium py-2 px-2 whitespace-nowrap">Data</th>
+              <th className="text-center font-medium py-2 px-2 whitespace-nowrap">Vencimento</th>
+              <th className="text-center font-medium py-2 px-2 whitespace-nowrap">Quitação</th>
+              <th className="text-center font-medium py-2 px-2 whitespace-nowrap">Valor</th>
+              <th className="text-center font-medium py-2 px-2 whitespace-nowrap">Restante</th>
+              <th className="text-center font-medium py-2 px-2 whitespace-nowrap">Pago</th>
               <th className="text-center font-medium py-2 px-2 whitespace-nowrap">Parcelas</th>
               <th className="text-center font-medium py-2 px-2 whitespace-nowrap">Status</th>
-              <th className="text-left font-medium py-2 px-2 whitespace-nowrap">Etiquetas</th>
+              <th className="text-center font-medium py-2 px-2 whitespace-nowrap">Etiquetas</th>
             </tr>
           </thead>
           <tbody>
@@ -611,18 +611,18 @@ function ClientLoansList({ loans, paymentsByLoan, lastPaymentDateByLoan, hidden 
               const isSettled = l.status === "paid" && remaining === 0 && !!settlementDate;
               return (
                 <tr key={l.id} className="border-b border-border/30 last:border-0 hover:bg-muted/30 transition-colors">
-                  <td className="py-2 px-2 tabular-nums whitespace-nowrap">{formatDate(l.startDate)}</td>
-                  <td className="py-2 px-2 tabular-nums whitespace-nowrap">{formatDate(l.dueDate)}</td>
-                  <td className="py-2 px-2 tabular-nums whitespace-nowrap font-medium text-primary">
+                  <td className="py-2 px-2 tabular-nums whitespace-nowrap text-center">{formatDate(l.startDate)}</td>
+                  <td className="py-2 px-2 tabular-nums whitespace-nowrap text-center">{formatDate(l.dueDate)}</td>
+                  <td className="py-2 px-2 tabular-nums whitespace-nowrap font-medium text-primary text-center">
                     {isSettled ? formatDate(settlementDate) : "—"}
                   </td>
-                  <td className="py-2 px-2 tabular-nums text-right whitespace-nowrap font-medium">
+                  <td className="py-2 px-2 tabular-nums whitespace-nowrap font-medium text-center">
                     {mask(formatCurrency(l.amount))}
                   </td>
-                  <td className="py-2 px-2 tabular-nums text-right whitespace-nowrap font-medium text-warning">
+                  <td className="py-2 px-2 tabular-nums whitespace-nowrap font-medium text-warning text-center">
                     {mask(formatCurrency(remaining))}
                   </td>
-                  <td className="py-2 px-2 tabular-nums text-right whitespace-nowrap font-medium text-success">
+                  <td className="py-2 px-2 tabular-nums whitespace-nowrap font-medium text-success text-center">
                     {mask(formatCurrency(paid))}
                   </td>
                   <td className="py-2 px-2 tabular-nums text-center whitespace-nowrap">
@@ -633,7 +633,9 @@ function ClientLoansList({ loans, paymentsByLoan, lastPaymentDateByLoan, hidden 
                       {label}
                     </Badge>
                   </td>
-                  <td className="py-2 px-2 whitespace-nowrap">{renderTags(l.tags)}</td>
+                  <td className="py-2 px-2 whitespace-nowrap">
+                    <div className="flex justify-center">{renderTags(l.tags)}</div>
+                  </td>
                 </tr>
               );
             })}
