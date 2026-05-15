@@ -750,19 +750,17 @@ const Index = () => {
                   <h2 className="text-lg font-semibold text-foreground">
                     {loanSubTab === "history" ? "Histórico do Cliente" : "Empréstimos"}
                   </h2>
-                  {loanSubTab === "history" && (
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      onClick={() => setLoanSubTab("loans")}
-                      className="md:hidden h-7 w-7 shrink-0"
-                      aria-label="Voltar para Empréstimos"
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
-                  )}
                 </div>
                 <div className="flex items-center gap-2 flex-wrap">
+                  {loanSubTab === "history" && (
+                    <button
+                      onClick={() => setLoanSubTab("loans")}
+                      className="md:hidden h-9 w-9 shrink-0 inline-flex items-center justify-center rounded-full border border-border/60 bg-muted/30 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+                      aria-label="Voltar para Empréstimos"
+                    >
+                      <X className="h-5 w-5" />
+                    </button>
+                  )}
                   {loanSubTab === "history" ? (
                     <Button
                       size="sm"
