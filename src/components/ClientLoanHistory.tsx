@@ -4,7 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { calculateTotalWithInterest } from "@/hooks/useLoans";
-import { Search, Users, BarChart3, ArrowUpDown, ChevronDown } from "lucide-react";
+import { Search, Users, BarChart3, ArrowUpDown, ChevronRight, ArrowLeft } from "lucide-react";
 import { useHideValues } from "@/contexts/HideValuesContext";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -52,12 +52,8 @@ export function ClientLoanHistory({ loans, payments }: Props) {
   const [search, setSearch] = useState("");
   const [showSummary, setShowSummary] = useState(false);
   const [sortBy, setSortBy] = useState<SortOption>("name-asc");
-  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
+  const [selectedClient, setSelectedClient] = useState<string | null>(null);
   const { hidden } = useHideValues();
-
-  const toggleExpanded = useCallback((name: string) => {
-    setExpanded((prev) => ({ ...prev, [name]: !prev[name] }));
-  }, []);
 
   const rows = useMemo<ClientRow[]>(() => {
     const byName: Record<string, Loan[]> = {};
@@ -170,6 +166,35 @@ export function ClientLoanHistory({ loans, payments }: Props) {
           <p className="text-muted-foreground">Nenhum cliente com empréstimos</p>
         </CardContent>
       </Card>
+    );
+  }
+
+  if (selectedClient) {
+    const clientLoans = loansByClient[selectedClient] ?? [];
+    return (
+      <div className="space-y-3 animate-in fade-in slide-in-from-right-4 duration-200">
+        <div className="flex items-center gap-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setSelectedClient(null)}
+            className="gap-1 -ml-2"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Voltar
+          </Button>
+          <h2 className="text-base font-semibold truncate">{selectedClient}</h2>
+        </div>
+        <Card>
+          <CardContent className="p-3 sm:p-4">
+            <ClientLoansList
+              loans={clientLoans}
+              paymentsByLoan={paymentsByLoan}
+              hidden={hidden}
+            />
+          </CardContent>
+        </Card>
+      </div>
     );
   }
 
@@ -290,45 +315,25 @@ export function ClientLoanHistory({ loans, payments }: Props) {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {rows.map((r) => {
-                const isOpen = !!expanded[r.name];
-                return (
-                  <>
-                    <TableRow
-                      key={r.name}
-                      className="cursor-pointer hover:bg-muted/40 transition-colors"
-                      onClick={() => toggleExpanded(r.name)}
-                    >
-                      <TableCell className="w-8">
-                        <ChevronDown
-                          className={`h-4 w-4 text-muted-foreground transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`}
-                        />
-                      </TableCell>
-                      <TableCell className="font-medium">{r.name}</TableCell>
-                      <TableCell className="text-right tabular-nums">{mask(formatCurrency(r.borrowed))}</TableCell>
-                      <TableCell className="text-right tabular-nums text-success">{mask(formatCurrency(r.paid))}</TableCell>
-                      <TableCell className="text-right tabular-nums text-warning">{mask(formatCurrency(r.pending))}</TableCell>
-                      <TableCell className="text-right tabular-nums font-semibold">{mask(formatCurrency(r.total))}</TableCell>
-                      <TableCell className="text-right tabular-nums text-primary font-medium">
-                        {hidden ? "•••" : `${r.interestRate.toFixed(2).replace(".", ",")}%`}
-                      </TableCell>
-                    </TableRow>
-                    {isOpen && (
-                      <TableRow key={`${r.name}-expanded`} className="bg-muted/20 hover:bg-muted/20">
-                        <TableCell colSpan={7} className="p-0">
-                          <div className="px-4 py-3 animate-accordion-down">
-                            <ClientLoansList
-                              loans={loansByClient[r.name] ?? []}
-                              paymentsByLoan={paymentsByLoan}
-                              hidden={hidden}
-                            />
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    )}
-                  </>
-                );
-              })}
+              {rows.map((r) => (
+                <TableRow
+                  key={r.name}
+                  className="cursor-pointer hover:bg-muted/40 transition-colors"
+                  onClick={() => setSelectedClient(r.name)}
+                >
+                  <TableCell className="w-8">
+                    <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                  </TableCell>
+                  <TableCell className="font-medium">{r.name}</TableCell>
+                  <TableCell className="text-right tabular-nums">{mask(formatCurrency(r.borrowed))}</TableCell>
+                  <TableCell className="text-right tabular-nums text-success">{mask(formatCurrency(r.paid))}</TableCell>
+                  <TableCell className="text-right tabular-nums text-warning">{mask(formatCurrency(r.pending))}</TableCell>
+                  <TableCell className="text-right tabular-nums font-semibold">{mask(formatCurrency(r.total))}</TableCell>
+                  <TableCell className="text-right tabular-nums text-primary font-medium">
+                    {hidden ? "•••" : `${r.interestRate.toFixed(2).replace(".", ",")}%`}
+                  </TableCell>
+                </TableRow>
+              ))}
               {rows.length === 0 && (
                 <TableRow>
                   <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
@@ -343,60 +348,46 @@ export function ClientLoanHistory({ loans, payments }: Props) {
 
       {/* Mobile — Cards */}
       <div className="md:hidden space-y-2">
-        {rows.map((r) => {
-          const isOpen = !!expanded[r.name];
-          return (
-            <Card key={r.name}>
-              <CardContent className="p-4 space-y-2">
-                <button
-                  type="button"
-                  onClick={() => toggleExpanded(r.name)}
-                  className="w-full flex items-center justify-center gap-2 focus-visible:outline-none"
-                >
-                  <h3 className="font-semibold text-sm truncate text-center">{r.name}</h3>
-                  <ChevronDown
-                    className={`h-4 w-4 text-muted-foreground transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`}
-                  />
-                </button>
-                <div className="grid grid-cols-2 gap-2 text-xs text-center">
-                  <div>
-                    <div className="text-muted-foreground">Emprestado</div>
-                    <div className="tabular-nums font-medium">{mask(formatCurrency(r.borrowed))}</div>
-                  </div>
-                  <div>
-                    <div className="text-muted-foreground">Pago</div>
-                    <div className="tabular-nums font-medium text-success">{mask(formatCurrency(r.paid))}</div>
-                  </div>
-                  <div>
-                    <div className="text-muted-foreground">Pendente</div>
-                    <div className="tabular-nums font-medium text-warning">{mask(formatCurrency(r.pending))}</div>
-                  </div>
-                  <div>
-                    <div className="text-muted-foreground">Total</div>
-                    <div className="tabular-nums font-semibold">{mask(formatCurrency(r.total))}</div>
-                  </div>
-                  <div className="col-span-2 pt-1 border-t border-border/40">
-                    <div className="flex items-center justify-between">
-                      <span className="text-muted-foreground">Taxa de Juros</span>
-                      <span className="tabular-nums font-semibold text-primary">
-                        {hidden ? "•••" : `${r.interestRate.toFixed(2).replace(".", ",")}%`}
-                      </span>
-                    </div>
+        {rows.map((r) => (
+          <Card key={r.name}>
+            <CardContent className="p-4 space-y-2">
+              <button
+                type="button"
+                onClick={() => setSelectedClient(r.name)}
+                className="w-full flex items-center justify-center gap-2 focus-visible:outline-none"
+              >
+                <h3 className="font-semibold text-sm truncate text-center">{r.name}</h3>
+                <ChevronRight className="h-4 w-4 text-muted-foreground" />
+              </button>
+              <div className="grid grid-cols-2 gap-2 text-xs text-center">
+                <div>
+                  <div className="text-muted-foreground">Emprestado</div>
+                  <div className="tabular-nums font-medium">{mask(formatCurrency(r.borrowed))}</div>
+                </div>
+                <div>
+                  <div className="text-muted-foreground">Pago</div>
+                  <div className="tabular-nums font-medium text-success">{mask(formatCurrency(r.paid))}</div>
+                </div>
+                <div>
+                  <div className="text-muted-foreground">Pendente</div>
+                  <div className="tabular-nums font-medium text-warning">{mask(formatCurrency(r.pending))}</div>
+                </div>
+                <div>
+                  <div className="text-muted-foreground">Total</div>
+                  <div className="tabular-nums font-semibold">{mask(formatCurrency(r.total))}</div>
+                </div>
+                <div className="col-span-2 pt-1 border-t border-border/40">
+                  <div className="flex items-center justify-between">
+                    <span className="text-muted-foreground">Taxa de Juros</span>
+                    <span className="tabular-nums font-semibold text-primary">
+                      {hidden ? "•••" : `${r.interestRate.toFixed(2).replace(".", ",")}%`}
+                    </span>
                   </div>
                 </div>
-                {isOpen && (
-                  <div className="pt-2 border-t border-border/40 animate-accordion-down">
-                    <ClientLoansList
-                      loans={loansByClient[r.name] ?? []}
-                      paymentsByLoan={paymentsByLoan}
-                      hidden={hidden}
-                    />
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          );
-        })}
+              </div>
+            </CardContent>
+          </Card>
+        ))}
         {rows.length === 0 && (
           <Card>
             <CardContent className="py-8 text-center text-muted-foreground text-sm">
