@@ -9,13 +9,16 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { DatePickerField } from "@/components/ui/date-picker-field";
-import { Search, ArrowUpCircle, ArrowDownCircle, FileDown, FileSpreadsheet } from "lucide-react";
+import { Search, ArrowUpCircle, ArrowDownCircle, FileDown, FileSpreadsheet, ShoppingCart } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import * as XLSX from "xlsx";
-import { Expense } from "@/types/loan";
+import { Expense, Sale } from "@/types/loan";
+import { useProducts } from "@/hooks/useProducts";
+
+type RowOrigin = "income" | "expense" | "sale-full" | "sale-partial";
 
 type Row = {
   id: string;
@@ -23,6 +26,7 @@ type Row = {
   description: string;
   category: string;
   type: "income" | "expense";
+  origin: RowOrigin;
   amount: number;
   paymentMethod: string;
   account: string;
