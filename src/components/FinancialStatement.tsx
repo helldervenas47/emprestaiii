@@ -356,7 +356,7 @@ export function FinancialStatement() {
                           )}
                           {r.origin === "sale-partial" && (
                             <Badge className="bg-amber-500/15 text-amber-700 dark:text-amber-400 border border-amber-500/30 gap-1 whitespace-nowrap">
-                              <ShoppingCart className="h-3 w-3" /> Pagamento Parcial
+                              <ShoppingCart className="h-3 w-3" /> Parcial
                             </Badge>
                           )}
                         </div>
