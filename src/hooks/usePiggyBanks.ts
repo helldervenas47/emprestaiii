@@ -113,11 +113,16 @@ const parseYmd = (s: string) => {
   return new Date(y, (m || 1) - 1, d || 1);
 };
 
-/** Generate all due dates for a recurrence between (lastGenerated|start) and today. */
+/**
+ * Generate due dates for a recurrence. Catch-up é limitado ao mês corrente:
+ * datas anteriores ao primeiro dia do mês atual são ignoradas (sem geração
+ * retroativa de meses passados).
+ */
 function dueDatesFor(rec: PiggyBankRecurrence, today: Date): string[] {
   const start = parseYmd(rec.startDate);
   const end = rec.endDate ? parseYmd(rec.endDate) : null;
   const lastGen = rec.lastGeneratedDate ? parseYmd(rec.lastGeneratedDate) : null;
+  const monthFloor = new Date(today.getFullYear(), today.getMonth(), 1);
   const result: string[] = [];
 
   // First due date = start
@@ -136,6 +141,7 @@ function dueDatesFor(rec: PiggyBankRecurrence, today: Date): string[] {
     if (end && d > end) break;
     if (d > today) break;
     if (lastGen && d <= lastGen) continue;
+    if (d < monthFloor) continue; // não gera retroativo de meses passados
     result.push(ymd(d));
   }
   return result;
