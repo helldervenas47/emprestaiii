@@ -296,6 +296,7 @@ export function useLoans() {
       has_manager: loan.hasManager ?? false,
       manager_id: loan.managerId ?? null,
       manager_commission_rate: loan.managerCommissionRate ?? 10,
+      is_sale: loan.isSale ?? false,
     };
 
     await upsertCachedRow("loans", { ...insertPayload, created_at: optimistic.createdAt });
