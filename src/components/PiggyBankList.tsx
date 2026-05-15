@@ -36,6 +36,12 @@ export function PiggyBankList({ readOnly = false }: Props) {
   const { mask } = useHideValues();
   const { piggyBanks, deposits, recurrences, balances, detailed, cdiRate, createPiggyBank, updatePiggyBank, deletePiggyBank, adjustBalance, updateDeposit, deleteDeposit, setPiggyRate, refreshCdiNow, storeMoney, withdrawMoney, setRecurrenceActive, deleteRecurrence } = usePiggyBanks();
 
+  const [transferTarget, setTransferTarget] = useState<PiggyBankType | null>(null);
+  const [transferMode, setTransferMode] = useState<"store" | "withdraw">("store");
+  const [transferValue, setTransferValue] = useState("");
+  const [transferring, setTransferring] = useState(false);
+  const [pulseId, setPulseId] = useState<string | null>(null);
+
   // Saldo em conta — fonte oficial unificada (aba Receitas e Despesas).
   const accountBalance = useAccountBalance();
 
