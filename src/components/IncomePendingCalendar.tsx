@@ -248,6 +248,68 @@ export function IncomePendingCalendar({
       // (mesma lógica das despesas, que contam mesmo quando ainda não pagas).
       e.totalIncome += Number(i.amount) || 0;
     }
+
+    // Vendas recebidas: cada pagamento (paymentHistory) aparece no calendário no dia
+    // do recebimento como uma receita sintética. Para vendas antigas sem histórico,
+    // usa a diferença legacy (downPayment + paidInstallments + partialPaid) na data da venda.
+    for (const s of (sales || [])) {
+      const desc = s.description || s.productName || "Venda";
+      const account = s.customerName || "";
+      const history = s.paymentHistory || [];
+      const iv = s.installmentValue ?? (s.installments > 0 ? s.total / s.installments : s.total);
+      const legacyTotal = (s.downPayment || 0) + (s.paidInstallments || 0) * iv + (s.partialPaid || 0);
+      const historyTotal = history.reduce((acc, p) => acc + (Number(p.amount) || 0), 0);
+
+      history.forEach((p, idx) => {
+        const amt = Number(p.amount) || 0;
+        if (amt <= 0) return;
+        const date = p.date || s.date;
+        if (!date) return;
+        const isPartial = p.type === "partial";
+        const e = ensure(date);
+        const synth: Income = {
+          id: `sale-${s.id}-p${idx}`,
+          description: `Venda${account ? ` · ${account}` : ""} — ${desc}${isPartial ? " (Parcial)" : ""}`,
+          amount: amt,
+          category: "Venda",
+          clientId: null,
+          source: "Venda",
+          paymentMethodId: null,
+          receivedDate: date,
+          actualReceivedDate: date,
+          status: "received",
+          notes: null,
+          recurrence: "once",
+          parentId: null,
+          createdAt: date,
+        };
+        e.incomes.push(synth);
+        e.totalIncome += amt;
+      });
+
+      const missing = legacyTotal - historyTotal;
+      if (missing > 0.005 && s.date) {
+        const e = ensure(s.date);
+        const synth: Income = {
+          id: `sale-${s.id}-legacy`,
+          description: `Venda${account ? ` · ${account}` : ""} — ${desc}`,
+          amount: missing,
+          category: "Venda",
+          clientId: null,
+          source: "Venda",
+          paymentMethodId: null,
+          receivedDate: s.date,
+          actualReceivedDate: s.date,
+          status: "received",
+          notes: null,
+          recurrence: "once",
+          parentId: null,
+          createdAt: s.date,
+        };
+        e.incomes.push(synth);
+        e.totalIncome += missing;
+      }
+    }
     // Determina o intervalo (em meses) que precisa ser projetado, considerando o mês
     // visível, a semana atual e o mês corrente — assim despesas fixas/parceladas
     // aparecem antecipadamente nos próximos meses, espelhando a aba "Despesas pessoais".
@@ -396,7 +458,7 @@ export function IncomePendingCalendar({
       }
     }
     return map;
-  }, [incomes, personalExpenses, expenses, cards, openings, year, month, weekDays, piggyDeposits, piggyBanks]);
+  }, [incomes, personalExpenses, expenses, cards, openings, year, month, weekDays, piggyDeposits, piggyBanks, sales]);
 
 
   const monthTotals = useMemo(() => {
