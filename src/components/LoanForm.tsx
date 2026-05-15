@@ -75,6 +75,7 @@ export function LoanForm({ onAdd, onSaveSchedule, onClose, clients, loans, payme
   const [tagInput, setTagInput] = useState("");
 
   const [hasManager, setHasManager] = useState(false);
+  const [isSale, setIsSale] = useState(false);
   const [managerId, setManagerId] = useState<string>("");
   const [commissionRate, setCommissionRate] = useState<string>("10");
   const [commissionAmount, setCommissionAmount] = useState<string>("");
