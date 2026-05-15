@@ -593,10 +593,10 @@ function ClientLoansList({ loans, paymentsByLoan, lastPaymentDateByLoan, hidden 
             <tr className="border-b border-border/60 text-muted-foreground">
               <th className="text-left font-medium py-2 px-2 whitespace-nowrap">Data</th>
               <th className="text-left font-medium py-2 px-2 whitespace-nowrap">Vencimento</th>
+              <th className="text-left font-medium py-2 px-2 whitespace-nowrap">Quitado em</th>
               <th className="text-right font-medium py-2 px-2 whitespace-nowrap">Valor</th>
               <th className="text-right font-medium py-2 px-2 whitespace-nowrap">Restante</th>
               <th className="text-right font-medium py-2 px-2 whitespace-nowrap">Pago</th>
-              <th className="text-left font-medium py-2 px-2 whitespace-nowrap">Quitado em</th>
               <th className="text-center font-medium py-2 px-2 whitespace-nowrap">Parcelas</th>
               <th className="text-center font-medium py-2 px-2 whitespace-nowrap">Status</th>
               <th className="text-left font-medium py-2 px-2 whitespace-nowrap">Etiquetas</th>
