@@ -27,6 +27,8 @@ export interface Loan {
   autoBillingEnabled?: boolean;
   renegotiationPenaltyTotal?: number;
   isSale?: boolean;
+  /** Divisão do desembolso entre até 2 formas de pagamento (quando houver). */
+  paymentSplit?: PaymentSplit | null;
   createdAt: string;
 }
 

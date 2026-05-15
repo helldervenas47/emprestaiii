@@ -20,10 +20,10 @@ import { toast } from "sonner";
 import { useCreditLimits } from "@/hooks/useCreditLimits";
 import { computeAvailableLimit, computeUsedLimit, formatBRL } from "@/lib/creditLimit";
 import { Wallet, AlertTriangle as AlertTriangleIcon } from "lucide-react";
-import { PaymentMethodPicker } from "@/components/PaymentMethodPicker";
+import { LoanPaymentSplitEditor, buildSplitFromState, type SplitState } from "@/components/LoanPaymentSplitEditor";
 
 interface Props {
-  onAdd: (loan: Omit<Loan, "id" | "status" | "paidInstallments"> & { paymentMethodId?: string | null }) => Promise<string | null>;
+  onAdd: (loan: Omit<Loan, "id" | "status" | "paidInstallments"> & { paymentMethodId?: string | null; paymentSplit?: import("@/types/loan").PaymentSplit | null }) => Promise<string | null>;
   onSaveSchedule: (loanId: string, rows: { installmentNumber: number; dueDate: string; amount: number }[]) => Promise<void>;
   onClose: () => void;
   clients: Client[];
@@ -54,6 +54,7 @@ export function LoanForm({ onAdd, onSaveSchedule, onClose, clients, loans, payme
   const [showSuccess, setShowSuccess] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [paymentMethodId, setPaymentMethodId] = useState<string | null>(null);
+  const [splitState, setSplitState] = useState<SplitState>({ method1Id: null, method2Id: null, amount1: "", amount2: "", enabled: false });
   const [showFormError, setShowFormError] = useState(false);
   const activeClients = clients.filter((c) => c.active).sort((a, b) => a.name.localeCompare(b.name, "pt-BR"));
 
@@ -231,9 +232,16 @@ export function LoanForm({ onAdd, onSaveSchedule, onClose, clients, loans, payme
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedClient || !amount || !installments || isNaN(rate) || rate < 0) return;
-    if (!paymentMethodId) {
+    const effectivePrimaryId = splitState.enabled ? splitState.method1Id : paymentMethodId;
+    if (!effectivePrimaryId) {
       setShowFormError(true);
       toast.error("Selecione a forma de pagamento (Conta ou Dinheiro).");
+      return;
+    }
+    const splitResult = buildSplitFromState(splitState, amount);
+    if (!splitResult.ok) {
+      setShowFormError(true);
+      toast.error(splitResult.error);
       return;
     }
     if (hasManager && !managerId) {
@@ -276,7 +284,8 @@ export function LoanForm({ onAdd, onSaveSchedule, onClose, clients, loans, payme
       managerCommissionRate: hasManager ? parseFloat(commissionRate) || 10 : null,
       isSale,
       createdAt: new Date().toISOString(),
-      paymentMethodId,
+      paymentMethodId: effectivePrimaryId,
+      paymentSplit: splitResult.split,
     });
 
     if (loanId && installmentRows.length > 0) {
@@ -728,12 +737,15 @@ export function LoanForm({ onAdd, onSaveSchedule, onClose, clients, loans, payme
               </div>
             </div>
 
-            <PaymentMethodPicker
-              value={paymentMethodId}
-              onChange={(id) => { setPaymentMethodId(id); setShowFormError(false); }}
-              required
+            <LoanPaymentSplitEditor
+              total={amount}
+              state={{ ...splitState, method1Id: splitState.enabled ? splitState.method1Id : paymentMethodId }}
+              onChange={(next) => {
+                setShowFormError(false);
+                setPaymentMethodId(next.method1Id);
+                setSplitState(next);
+              }}
               showError={showFormError}
-              label="Forma de Pagamento (saída do empréstimo)"
             />
 
             <div>
