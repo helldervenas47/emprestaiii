@@ -108,6 +108,7 @@ export function PiggyBankList({ readOnly = false }: Props) {
   const [deleteDepositId, setDeleteDepositId] = useState<string | null>(null);
   // Diálogo de escolha quando a taxa muda no editar
   const [rateChangePending, setRateChangePending] = useState<{ pb: PiggyBankType; newRate: number } | null>(null);
+  const [recurrenceTarget, setRecurrenceTarget] = useState<PiggyBankType | null>(null);
 
   const openEditDeposit = (d: PiggyBankDeposit) => {
     setEditDepositDraft({ amount: d.amount.toFixed(2), depositDate: d.depositDate });
