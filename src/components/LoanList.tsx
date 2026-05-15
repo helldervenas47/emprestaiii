@@ -928,6 +928,22 @@ function LoanCardView({
             )}
           </div>
 
+          {/* Sale toggle */}
+          <div className="border border-border rounded-lg p-3 bg-muted/20">
+            <div className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                id={`edit-sale-${loan.id}`}
+                checked={editIsSale}
+                onChange={(e) => setEditIsSale(e.target.checked)}
+                className="h-4 w-4 rounded border-border accent-primary"
+              />
+              <Label htmlFor={`edit-sale-${loan.id}`} className="text-xs font-medium cursor-pointer">
+                Contrato de venda
+              </Label>
+            </div>
+          </div>
+
           {/* Installment Schedule */}
           {(parseInt(form.installments) || 0) >= 2 && editScheduleRows.length > 0 && (
             <div className="rounded-lg border border-border/50 overflow-hidden">
