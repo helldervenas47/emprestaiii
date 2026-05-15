@@ -746,20 +746,71 @@ const Index = () => {
           <>
             <div>
               <div className="flex items-center justify-between gap-2 mb-4 flex-wrap">
-                <h2 className="text-lg font-semibold text-foreground">Empréstimos</h2>
-                {!isReadOnly && (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => setShowLoanSimulator(true)}
-                    className="gap-1.5"
-                  >
-                    <Calculator className="h-4 w-4" />
-                    Simular Empréstimo
-                  </Button>
-                )}
+                <h2 className="text-lg font-semibold text-foreground">
+                  {loanSubTab === "history" ? "Histórico do Cliente" : "Empréstimos"}
+                </h2>
+                <div className="flex items-center gap-2 flex-wrap">
+                  {loanSubTab === "history" ? (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setLoanSubTab("loans")}
+                      className="gap-1.5"
+                    >
+                      <LayoutDashboard className="h-4 w-4" />
+                      Voltar para Empréstimos
+                    </Button>
+                  ) : (
+                    <>
+                      {!isReadOnly && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => setShowLoanSimulator(true)}
+                          className="gap-1.5"
+                        >
+                          <Calculator className="h-4 w-4" />
+                          Simular Empréstimo
+                        </Button>
+                      )}
+                      {/* Botão Histórico do Cliente — versão PC/Tablet (oculto no mobile) */}
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => setLoanSubTab("history")}
+                        className="gap-1.5 hidden md:inline-flex"
+                      >
+                        <Users className="h-4 w-4" />
+                        Histórico do Cliente
+                      </Button>
+                    </>
+                  )}
+                </div>
               </div>
-              <LoanList loans={filteredLoans} payments={filteredPayments} installmentSchedules={filteredInstallments} onPayment={addPayment} onPartialPayment={addPartialPayment} onFullPayment={payOffLoan} onInterestPayment={addInterestOnlyPayment} onAmortize={amortizeLoan} onRenegotiate={renegotiateLoan} onUpdate={updateLoan} onDelete={deleteLoan} onDeletePayment={deletePayment} onSaveSchedule={saveSchedule} readOnly={isReadOnly} initialCategory={initialLoanCategory} initialView={initialLoanView} clients={filteredClients} />
+              {loanSubTab === "history" ? (
+                <ClientLoanHistory loans={filteredLoans} payments={filteredPayments} />
+              ) : (
+                <LoanList
+                  loans={filteredLoans}
+                  payments={filteredPayments}
+                  installmentSchedules={filteredInstallments}
+                  onPayment={addPayment}
+                  onPartialPayment={addPartialPayment}
+                  onFullPayment={payOffLoan}
+                  onInterestPayment={addInterestOnlyPayment}
+                  onAmortize={amortizeLoan}
+                  onRenegotiate={renegotiateLoan}
+                  onUpdate={updateLoan}
+                  onDelete={deleteLoan}
+                  onDeletePayment={deletePayment}
+                  onSaveSchedule={saveSchedule}
+                  readOnly={isReadOnly}
+                  initialCategory={initialLoanCategory}
+                  initialView={initialLoanView}
+                  clients={filteredClients}
+                  onOpenClientHistory={() => setLoanSubTab("history")}
+                />
+              )}
             </div>
           </>
         )}
