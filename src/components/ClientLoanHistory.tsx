@@ -480,6 +480,21 @@ function ClientLoansList({ loans, paymentsByLoan, hidden }: ClientLoansListProps
                     {statusLabel}
                   </Badge>
                 </td>
+                <td className="py-2 px-2 whitespace-nowrap">
+                  {l.tags && l.tags.length > 0 ? (
+                    <div className="flex flex-wrap gap-1">
+                      {l.tags.map((t) => (
+                        <Badge
+                          key={t}
+                          variant="outline"
+                          className="text-[10px] px-1.5 py-0 h-5 bg-primary/10 text-primary border-primary/30"
+                        >
+                          {t}
+                        </Badge>
+                      ))}
+                    </div>
+                  ) : null}
+                </td>
               </tr>
             );
           })}
