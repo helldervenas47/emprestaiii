@@ -131,6 +131,7 @@ export function IncomePendingCalendar({
   const today = todayDateInAppTz();
   const todayStr = formatLocalDate(today);
 
+  const isMobile = useIsMobile();
   const [expanded, setExpanded] = useState(false);
   const initialY = monthKey ? Number(monthKey.split("-")[0]) : today.getFullYear();
   const initialM = monthKey ? Number(monthKey.split("-")[1]) - 1 : today.getMonth();
