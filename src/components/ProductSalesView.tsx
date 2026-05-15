@@ -916,8 +916,16 @@ function SalesList({ sales, onDeleteSale, onUpdateSale, clients = [], hideOnTrac
     const q = search.toLowerCase();
     const matchesSearch = s.description.toLowerCase().includes(q) ||
       s.customerName.toLowerCase().includes(q) ||
-      s.productName.toLowerCase().includes(q);
+      s.productName.toLowerCase().includes(q) ||
+      (s.category || "").toLowerCase().includes(q);
     if (!matchesSearch) return false;
+    if (incomeCategoryFilter !== "all") {
+      if (incomeCategoryFilter === "__none__") {
+        if (s.category) return false;
+      } else if (s.category !== incomeCategoryFilter) {
+        return false;
+      }
+    }
     if (categoryFilter === "all") return getSaleCategory(s) !== "paid";
     return getSaleCategory(s) === categoryFilter;
   }).sort((a, b) => {
