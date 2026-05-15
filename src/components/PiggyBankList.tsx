@@ -45,7 +45,7 @@ interface Props {
 
 export function PiggyBankList({ readOnly = false }: Props) {
   const { mask } = useHideValues();
-  const { piggyBanks, deposits, balances, detailed, cdiRate, createPiggyBank, updatePiggyBank, deletePiggyBank, adjustBalance, updateDeposit, deleteDeposit, setPiggyRate, refreshCdiNow, storeMoney, withdrawMoney } = usePiggyBanks();
+  const { piggyBanks, deposits, recurrences, balances, detailed, cdiRate, createPiggyBank, updatePiggyBank, deletePiggyBank, adjustBalance, updateDeposit, deleteDeposit, setPiggyRate, refreshCdiNow, storeMoney, withdrawMoney, setRecurrenceActive, deleteRecurrence } = usePiggyBanks();
   const { incomes } = useIncomes();
   const { expenses } = useExpenses();
   const { sales } = useProducts(true);
