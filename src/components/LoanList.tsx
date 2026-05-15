@@ -1194,6 +1194,11 @@ function LoanCardView({
                 <UserCog className="h-3 w-3" />Com gerente
               </Badge>
             )}
+            {loan.isSale && (
+              <Badge variant="outline" className="text-xs bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-500/40 gap-1">
+                <ShoppingBag className="h-3 w-3" />Venda
+              </Badge>
+            )}
             {daysOverdue > 0 && loan.status !== "paid" && (
               <Badge variant="outline" className="bg-destructive/10 text-destructive border-destructive/20 text-xs">
                 {daysOverdue}d atraso
