@@ -1291,6 +1291,7 @@ export type Database = {
           notes: string | null
           original_due_date: string | null
           paid_installments: number
+          payment_method_split: Json | null
           payment_type: string
           penalty_value: number | null
           remaining_amount: number
@@ -1323,6 +1324,7 @@ export type Database = {
           notes?: string | null
           original_due_date?: string | null
           paid_installments?: number
+          payment_method_split?: Json | null
           payment_type?: string
           penalty_value?: number | null
           remaining_amount?: number
@@ -1355,6 +1357,7 @@ export type Database = {
           notes?: string | null
           original_due_date?: string | null
           paid_installments?: number
+          payment_method_split?: Json | null
           payment_type?: string
           penalty_value?: number | null
           remaining_amount?: number
