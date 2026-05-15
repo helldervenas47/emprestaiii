@@ -442,13 +442,13 @@ function ClientLoansList({ loans, paymentsByLoan, hidden }: ClientLoansListProps
   const computeValueCell = (l: Loan) => {
     const totalPaid = paymentsByLoan[l.id] ?? 0;
     const isPaid = l.status === "paid";
-    if (isPaid) return { value: totalPaid, isPaid };
+    if (isPaid) return { remaining: 0, paid: totalPaid, isPaid };
     const expected = calculateTotalWithInterest(l.amount, l.interestRate, l.installments);
-    const value =
+    const remaining =
       l.remainingAmount != null && l.remainingAmount > 0
         ? l.remainingAmount
         : Math.max(0, expected - totalPaid);
-    return { value, isPaid };
+    return { remaining, paid: totalPaid, isPaid };
   };
 
   const statusMeta = (l: Loan) => {
@@ -467,7 +467,7 @@ function ClientLoansList({ loans, paymentsByLoan, hidden }: ClientLoansListProps
       {/* Mobile — Cards */}
       <div className="md:hidden space-y-2">
         {loans.map((l) => {
-          const { value, isPaid } = computeValueCell(l);
+          const { remaining, paid, isPaid } = computeValueCell(l);
           const { label, className } = statusMeta(l);
           return (
             <div
@@ -498,11 +498,15 @@ function ClientLoansList({ loans, paymentsByLoan, hidden }: ClientLoansListProps
                   <div className="tabular-nums font-medium">{mask(formatCurrency(l.amount))}</div>
                 </div>
                 <div>
-                  <div className="text-muted-foreground">{isPaid ? "Pago" : "Restante"}</div>
-                  <div
-                    className={`tabular-nums font-medium ${isPaid ? "text-success" : "text-warning"}`}
-                  >
-                    {mask(formatCurrency(value))}
+                  <div className="text-muted-foreground">Restante</div>
+                  <div className="tabular-nums font-medium text-warning">
+                    {mask(formatCurrency(remaining))}
+                  </div>
+                </div>
+                <div>
+                  <div className="text-muted-foreground">Pago</div>
+                  <div className="tabular-nums font-medium text-success">
+                    {mask(formatCurrency(paid))}
                   </div>
                 </div>
               </div>
@@ -525,7 +529,8 @@ function ClientLoansList({ loans, paymentsByLoan, hidden }: ClientLoansListProps
               <th className="text-left font-medium py-2 px-2 whitespace-nowrap">Data</th>
               <th className="text-left font-medium py-2 px-2 whitespace-nowrap">Vencimento</th>
               <th className="text-right font-medium py-2 px-2 whitespace-nowrap">Valor</th>
-              <th className="text-right font-medium py-2 px-2 whitespace-nowrap">Restante / Pago</th>
+              <th className="text-right font-medium py-2 px-2 whitespace-nowrap">Restante</th>
+              <th className="text-right font-medium py-2 px-2 whitespace-nowrap">Pago</th>
               <th className="text-center font-medium py-2 px-2 whitespace-nowrap">Parcelas</th>
               <th className="text-center font-medium py-2 px-2 whitespace-nowrap">Status</th>
               <th className="text-left font-medium py-2 px-2 whitespace-nowrap">Etiquetas</th>
@@ -533,7 +538,7 @@ function ClientLoansList({ loans, paymentsByLoan, hidden }: ClientLoansListProps
           </thead>
           <tbody>
             {loans.map((l) => {
-              const { value, isPaid } = computeValueCell(l);
+              const { remaining, paid } = computeValueCell(l);
               const { label, className } = statusMeta(l);
               return (
                 <tr key={l.id} className="border-b border-border/30 last:border-0 hover:bg-muted/30 transition-colors">
@@ -542,8 +547,11 @@ function ClientLoansList({ loans, paymentsByLoan, hidden }: ClientLoansListProps
                   <td className="py-2 px-2 tabular-nums text-right whitespace-nowrap font-medium">
                     {mask(formatCurrency(l.amount))}
                   </td>
-                  <td className={`py-2 px-2 tabular-nums text-right whitespace-nowrap font-medium ${isPaid ? "text-success" : "text-warning"}`}>
-                    {mask(formatCurrency(value))}
+                  <td className="py-2 px-2 tabular-nums text-right whitespace-nowrap font-medium text-warning">
+                    {mask(formatCurrency(remaining))}
+                  </td>
+                  <td className="py-2 px-2 tabular-nums text-right whitespace-nowrap font-medium text-success">
+                    {mask(formatCurrency(paid))}
                   </td>
                   <td className="py-2 px-2 tabular-nums text-center whitespace-nowrap">
                     {l.paidInstallments ?? 0} / {l.installments}
