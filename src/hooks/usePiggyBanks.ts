@@ -113,11 +113,16 @@ const parseYmd = (s: string) => {
   return new Date(y, (m || 1) - 1, d || 1);
 };
 
-/** Generate all due dates for a recurrence between (lastGenerated|start) and today. */
+/**
+ * Generate due dates for a recurrence. Catch-up é limitado ao mês corrente:
+ * datas anteriores ao primeiro dia do mês atual são ignoradas (sem geração
+ * retroativa de meses passados).
+ */
 function dueDatesFor(rec: PiggyBankRecurrence, today: Date): string[] {
   const start = parseYmd(rec.startDate);
   const end = rec.endDate ? parseYmd(rec.endDate) : null;
   const lastGen = rec.lastGeneratedDate ? parseYmd(rec.lastGeneratedDate) : null;
+  const monthFloor = new Date(today.getFullYear(), today.getMonth(), 1);
   const result: string[] = [];
 
   // First due date = start
@@ -136,6 +141,7 @@ function dueDatesFor(rec: PiggyBankRecurrence, today: Date): string[] {
     if (end && d > end) break;
     if (d > today) break;
     if (lastGen && d <= lastGen) continue;
+    if (d < monthFloor) continue; // não gera retroativo de meses passados
     result.push(ymd(d));
   }
   return result;
@@ -494,6 +500,29 @@ export function usePiggyBanks() {
     return (data as any)?.id as string;
   }, [dataOwnerId, reload]);
 
+  /** Ativa/desativa uma recorrência (sem apagar histórico). */
+  const setRecurrenceActive = useCallback(async (id: string, active: boolean) => {
+    const { error } = await (supabase as any)
+      .from("piggy_bank_recurrences")
+      .update({ active })
+      .eq("id", id);
+    if (error) { toast.error("Erro ao atualizar recorrência"); return false; }
+    await reload();
+    return true;
+  }, [reload]);
+
+  /** Remove uma recorrência (não apaga aportes já gerados). */
+  const deleteRecurrence = useCallback(async (id: string) => {
+    const { error } = await (supabase as any)
+      .from("piggy_bank_recurrences")
+      .delete()
+      .eq("id", id);
+    if (error) { toast.error("Erro ao excluir recorrência"); return false; }
+    toast.success("Recorrência removida");
+    await reload();
+    return true;
+  }, [reload]);
+
   /**
    * Retorna os períodos de taxa de uma caixinha. Sempre garante pelo menos um
    * período: se não houver histórico, usa a taxa atual valendo desde a criação.
@@ -613,6 +642,8 @@ export function usePiggyBanks() {
     storeMoney,
     withdrawMoney,
     createRecurrence,
+    setRecurrenceActive,
+    deleteRecurrence,
     setPiggyRate,
     refreshCdiNow,
     reload,
