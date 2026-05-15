@@ -705,15 +705,15 @@ export function IncomePendingCalendar({
                 {selectedInfo.piggyMovements.map((p) => {
                   const isStore = p.amount >= 0;
                   return (
-                    <li key={`piggy-${p.id}`} className="flex items-center justify-between gap-2 rounded-md bg-amber-500/5 border border-amber-500/20 px-2.5 py-1.5">
-                      <span className="flex items-center gap-1.5 text-xs text-foreground truncate min-w-0">
-                        {isStore ? <ArrowDownCircle className="h-3 w-3 text-rose-600 dark:text-rose-400 shrink-0" /> : <ArrowUpCircle className="h-3 w-3 text-emerald-600 dark:text-emerald-400 shrink-0" />}
-                        <span className="truncate">
+                    <li key={`piggy-${p.id}`} className="flex items-start justify-between gap-2 rounded-md bg-amber-500/5 border border-amber-500/20 px-2.5 py-1.5">
+                      <span className="flex items-start gap-1.5 text-xs text-foreground min-w-0 flex-1">
+                        {isStore ? <ArrowDownCircle className="h-3 w-3 mt-0.5 text-rose-600 dark:text-rose-400 shrink-0" /> : <ArrowUpCircle className="h-3 w-3 mt-0.5 text-emerald-600 dark:text-emerald-400 shrink-0" />}
+                        <span className="break-words leading-snug">
                           {isStore ? "Guardar" : "Resgatar"}
                           {p.piggyName ? ` · ${p.piggyName}` : ""}
                         </span>
                       </span>
-                      <span className={`text-xs font-semibold tabular-nums shrink-0 ${isStore ? "text-rose-700 dark:text-rose-400" : "text-emerald-700 dark:text-emerald-400"}`}>
+                      <span className={`text-xs font-semibold tabular-nums shrink-0 whitespace-nowrap ${isStore ? "text-rose-700 dark:text-rose-400" : "text-emerald-700 dark:text-emerald-400"}`}>
                         {isStore ? "-" : "+"}{formatCurrency(Math.abs(p.amount))}
                       </span>
                     </li>
