@@ -3067,6 +3067,21 @@ function LoanRowView({
                   </div>
                 )}
               </div>
+              {/* Sale toggle */}
+              <div className="border border-border rounded-lg p-3 bg-muted/20">
+                <div className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    id={`row-edit-sale-${loan.id}`}
+                    checked={editIsSale}
+                    onChange={(e) => setEditIsSale(e.target.checked)}
+                    className="h-4 w-4 rounded border-border accent-primary"
+                  />
+                  <Label htmlFor={`row-edit-sale-${loan.id}`} className="text-xs font-medium cursor-pointer">
+                    Contrato de venda
+                  </Label>
+                </div>
+              </div>
               <div><Label className="text-xs">Etiquetas (separar por vírgula)</Label><Input value={form.tags} onChange={(e) => updateField("tags", e.target.value)} className="h-8 text-sm" placeholder="Ex: VIP, Renovação, Garantia" /></div>
               <div><Label className="text-xs">Observações</Label><Textarea value={form.notes} onChange={(e) => updateField("notes", e.target.value)} rows={2} className="text-sm" /></div>
             </div>
