@@ -500,11 +500,34 @@ function ClientLoansList({ loans, paymentsByLoan, lastPaymentDateByLoan, hidden 
     const isPaid = l.status === "paid";
     if (isPaid) return { remaining: 0, paid: totalPaid, isPaid };
     const expected = calculateTotalWithInterest(l.amount, l.interestRate, l.installments);
-    const remaining =
+    const baseRemaining =
       l.remainingAmount != null && l.remainingAmount > 0
         ? l.remainingAmount
         : Math.max(0, expected - totalPaid);
-    return { remaining, paid: totalPaid, isPaid };
+
+    // Acrescenta juros de mora + multa se contrato vencido
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const due = l.dueDate ? new Date(`${l.dueDate}T00:00:00`) : null;
+    const daysOverdue =
+      due && !isNaN(due.getTime())
+        ? Math.max(0, Math.floor((today.getTime() - due.getTime()) / 86400000))
+        : 0;
+
+    let lateFees = 0;
+    if (daysOverdue > 0) {
+      if (l.lateInterestValue != null && l.lateInterestValue > 0) {
+        lateFees +=
+          l.lateInterestType === "fixed"
+            ? l.lateInterestValue * daysOverdue
+            : baseRemaining * (l.lateInterestValue / 100) * daysOverdue;
+      }
+      if (l.penaltyValue != null && l.penaltyValue > 0) {
+        lateFees += l.penaltyValue;
+      }
+    }
+
+    return { remaining: baseRemaining + lateFees, paid: totalPaid, isPaid };
   };
 
   const statusMeta = (l: Loan) => {
