@@ -13,13 +13,6 @@ import type { Sale } from "@/types/loan";
 const formatBRL = (n: number) =>
   n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
-function saleReceivedTotal(sale: Sale): number {
-  if (sale.paymentHistory && sale.paymentHistory.length > 0) {
-    return sale.paymentHistory.reduce((s, p) => s + (Number(p.amount) || 0), 0);
-  }
-  const iv = sale.installmentValue ?? (sale.installments > 0 ? sale.total / sale.installments : sale.total);
-  return (sale.downPayment || 0) + (sale.paidInstallments || 0) * iv + (sale.partialPaid || 0);
-}
 
 /** Mesmo cálculo da aba Vendas: total pago considerando installmentAmounts/downPayment/partialPaid. */
 function getSalePaidAmount(s: Sale): number {
