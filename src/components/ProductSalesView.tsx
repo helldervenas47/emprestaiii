@@ -1170,11 +1170,23 @@ function SalesList({ sales, onDeleteSale, onUpdateSale, clients = [], hideOnTrac
         </div>
       </div>
 
-      <div className="flex items-center justify-between gap-4">
-        <div className="relative flex-1">
+      <div className="flex items-center justify-between gap-2 sm:gap-4">
+        <div className="relative flex-1 min-w-0">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground z-10 pointer-events-none" />
           <Input placeholder="Buscar..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-10" />
         </div>
+        <Select value={incomeCategoryFilter} onValueChange={setIncomeCategoryFilter}>
+          <SelectTrigger className="w-[140px] sm:w-[180px] shrink-0">
+            <SelectValue placeholder="Categoria" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todas categorias</SelectItem>
+            <SelectItem value="__none__">Sem categoria</SelectItem>
+            {incomeCategories.map((c) => (
+              <SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
         <div className="text-right shrink-0">
           <p className="text-xs text-muted-foreground">{filtered.length} lançamento(s)</p>
           <p className="text-lg font-bold">{formatCurrency(total)}</p>
