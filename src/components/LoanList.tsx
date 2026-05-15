@@ -440,6 +440,7 @@ function LoanCardView({
     }
   }, [paymentDialog]);
   const [editHasManager, setEditHasManager] = useState<boolean>(loan.hasManager ?? false);
+  const [editIsSale, setEditIsSale] = useState<boolean>(loan.isSale ?? false);
   const [editManagerId, setEditManagerId] = useState<string>(loan.managerId ?? "");
   const [editCommissionRate, setEditCommissionRate] = useState<string>(String(loan.managerCommissionRate ?? 10));
   const managerOptions = useMemo(() => clients.filter((c) => c.isManager && c.active !== false), [clients]);
