@@ -148,6 +148,7 @@ interface Props {
   initialCategory?: Category;
   initialView?: "cards" | "rows" | "folders";
   clients?: Client[];
+  onOpenClientHistory?: () => void;
 }
 
 type Category = "all" | "overdue" | "paid_interest" | "paid" | "due_today" | "on_track" | "parcelado" | "venda";
@@ -4446,7 +4447,7 @@ function ClientFolder({
   );
 }
 
-export function LoanList({ loans, payments, installmentSchedules, onPayment, onPartialPayment, onFullPayment, onInterestPayment, onAmortize, onRenegotiate, onUpdate, onDelete, onDeletePayment, onSaveSchedule, readOnly = false, initialCategory, initialView, clients = [] }: Props) {
+export function LoanList({ loans, payments, installmentSchedules, onPayment, onPartialPayment, onFullPayment, onInterestPayment, onAmortize, onRenegotiate, onUpdate, onDelete, onDeletePayment, onSaveSchedule, readOnly = false, initialCategory, initialView, clients = [], onOpenClientHistory }: Props) {
   const { renegotiations: allRenegotiations } = useLoanRenegotiations();
   const renegotiationsByLoan = useMemo(() => {
     const map = new Map<string, LoanRenegotiation[]>();
@@ -4838,6 +4839,18 @@ export function LoanList({ loans, payments, installmentSchedules, onPayment, onP
                 </button>
               ))}
             </div>
+          )}
+          {/* Botão Histórico do Cliente — versão Mobile (abaixo de Ontem/Hoje/Amanhã) */}
+          {onOpenClientHistory && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onOpenClientHistory}
+              className="w-full md:hidden gap-1.5 mt-1"
+            >
+              <User className="h-3.5 w-3.5" />
+              Histórico do Cliente
+            </Button>
           )}
         </div>
       </div>
