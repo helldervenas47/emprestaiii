@@ -102,7 +102,7 @@ export function FinancialStatement() {
         history.forEach((p, idx) => {
           const amt = Number(p.amount) || 0;
           if (amt <= 0) return;
-          const isFull = p.type === "full" || p.type === "downpayment";
+          const isFull = p.type !== "partial";
           saleRows.push({
             id: `s-${s.id}-p${idx}`,
             date: p.date || s.date,
