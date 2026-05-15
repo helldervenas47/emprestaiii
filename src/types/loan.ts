@@ -230,8 +230,8 @@ export interface Sale {
   partialPaid: number;
   paymentHistory?: SalePaymentRecord[];
   locadorId?: string | null;
+  category?: string | null;
 }
-
 export interface Expense {
   id: string;
   description: string;

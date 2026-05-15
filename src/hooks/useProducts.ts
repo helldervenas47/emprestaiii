@@ -53,6 +53,7 @@ export function useProducts(enabled = true) {
           partialPaid: Number((s as any).partial_paid) || 0,
           paymentHistory: (Array.isArray(s.payment_history) ? s.payment_history : []) as unknown as SalePaymentRecord[],
           locadorId: s.locador_id || null,
+          category: (s as any).category || null,
         })));
       }
       setLoading(false);
@@ -100,6 +101,7 @@ export function useProducts(enabled = true) {
           partialPaid: Number((s as any).partial_paid) || 0,
           paymentHistory: (Array.isArray(s.payment_history) ? s.payment_history : []) as unknown as SalePaymentRecord[],
           locadorId: s.locador_id || null,
+          category: (s as any).category || null,
         })));
       }
     };
@@ -176,6 +178,7 @@ export function useProducts(enabled = true) {
       installment_dates: s.installmentDates || null,
       locador_id: s.locadorId || null,
       notes: s.notes || "",
+      category: s.category || null,
     } as any).select().single();
 
     if (error) {
@@ -222,6 +225,7 @@ export function useProducts(enabled = true) {
     if (data.partialPaid !== undefined) updateData.partial_paid = data.partialPaid;
     if (data.paymentHistory !== undefined) updateData.payment_history = data.paymentHistory;
     if (data.locadorId !== undefined) updateData.locador_id = data.locadorId;
+    if (data.category !== undefined) updateData.category = data.category;
     await supabase.from("sales").update(updateData as any).eq("id", id);
   }, [user, sales]);
 

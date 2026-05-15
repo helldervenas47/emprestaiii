@@ -2207,6 +2207,7 @@ export type Database = {
       sales: {
         Row: {
           business_type: string
+          category: string | null
           created_at: string
           customer_name: string
           description: string
@@ -2230,6 +2231,7 @@ export type Database = {
         }
         Insert: {
           business_type?: string
+          category?: string | null
           created_at?: string
           customer_name?: string
           description?: string
@@ -2253,6 +2255,7 @@ export type Database = {
         }
         Update: {
           business_type?: string
+          category?: string | null
           created_at?: string
           customer_name?: string
           description?: string
