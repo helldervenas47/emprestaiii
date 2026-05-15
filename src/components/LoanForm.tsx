@@ -55,6 +55,7 @@ export function LoanForm({ onAdd, onSaveSchedule, onClose, clients, loans, payme
   const [showSuccess, setShowSuccess] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [paymentMethodId, setPaymentMethodId] = useState<string | null>(null);
+  const [splitState, setSplitState] = useState<SplitState>({ method1Id: null, method2Id: null, amount1: "", amount2: "", enabled: false });
   const [showFormError, setShowFormError] = useState(false);
   const activeClients = clients.filter((c) => c.active).sort((a, b) => a.name.localeCompare(b.name, "pt-BR"));
 
