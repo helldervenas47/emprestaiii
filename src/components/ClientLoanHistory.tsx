@@ -151,9 +151,6 @@ export function ClientLoanHistory({ loans, payments }: Props) {
             <CardContent className="p-4 space-y-2">
               <div className="flex items-center justify-between gap-2">
                 <h3 className="font-semibold text-sm truncate">{r.name}</h3>
-                {r.contracts > 1 && (
-                  <span className="text-[10px] text-muted-foreground shrink-0">{r.contracts} contratos</span>
-                )}
               </div>
               <div className="grid grid-cols-2 gap-2 text-xs">
                 <div>
