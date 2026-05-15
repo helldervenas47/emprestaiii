@@ -500,6 +500,29 @@ export function usePiggyBanks() {
     return (data as any)?.id as string;
   }, [dataOwnerId, reload]);
 
+  /** Ativa/desativa uma recorrência (sem apagar histórico). */
+  const setRecurrenceActive = useCallback(async (id: string, active: boolean) => {
+    const { error } = await (supabase as any)
+      .from("piggy_bank_recurrences")
+      .update({ active })
+      .eq("id", id);
+    if (error) { toast.error("Erro ao atualizar recorrência"); return false; }
+    await reload();
+    return true;
+  }, [reload]);
+
+  /** Remove uma recorrência (não apaga aportes já gerados). */
+  const deleteRecurrence = useCallback(async (id: string) => {
+    const { error } = await (supabase as any)
+      .from("piggy_bank_recurrences")
+      .delete()
+      .eq("id", id);
+    if (error) { toast.error("Erro ao excluir recorrência"); return false; }
+    toast.success("Recorrência removida");
+    await reload();
+    return true;
+  }, [reload]);
+
   /**
    * Retorna os períodos de taxa de uma caixinha. Sempre garante pelo menos um
    * período: se não houver histórico, usa a taxa atual valendo desde a criação.
