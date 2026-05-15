@@ -1,6 +1,32 @@
 import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { offlineDB, OFFLINE_TABLES } from "@/lib/offline/db";
+
+async function clearViewingCaches() {
+  // Clear offline cached rows (do not touch pending_mutations of the real user)
+  try {
+    await Promise.all(OFFLINE_TABLES.map((t) => (offlineDB as any)[t].clear()));
+    await offlineDB.meta.clear();
+  } catch {}
+  // Clear app-level localStorage caches that may be tied to the viewed user
+  try {
+    const toRemove: string[] = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (!k) continue;
+      if (
+        k.startsWith("rq-") ||
+        k.startsWith("cache:") ||
+        k.startsWith("emprestaii:") ||
+        k.includes("dataOwner") ||
+        k.includes("viewing")
+      ) toRemove.push(k);
+    }
+    toRemove.forEach((k) => localStorage.removeItem(k));
+    sessionStorage.clear();
+  } catch {}
+}
 
 interface ViewingSession {
   viewing_user_id: string;
