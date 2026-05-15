@@ -540,7 +540,7 @@ function ClientLoansList({ loans, paymentsByLoan, lastPaymentDateByLoan, hidden 
                   {label}
                 </Badge>
               </div>
-              <div className="grid grid-cols-2 gap-2 text-[11px]">
+              <div className="grid grid-cols-2 gap-2 text-[11px] text-center">
                 <div>
                   <div className="text-muted-foreground">Vencimento</div>
                   <div className="tabular-nums font-medium">{formatDate(l.dueDate)}</div>
@@ -578,7 +578,7 @@ function ClientLoansList({ loans, paymentsByLoan, lastPaymentDateByLoan, hidden 
                 {l.tags && l.tags.length > 0 && (
                   <div className={isSettled ? "" : "col-span-2"}>
                     <div className="text-muted-foreground">Etiquetas</div>
-                    <div className="mt-0.5">{renderTags(l.tags)}</div>
+                    <div className="mt-0.5 flex justify-center">{renderTags(l.tags)}</div>
                   </div>
                 )}
               </div>
