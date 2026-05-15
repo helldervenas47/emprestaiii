@@ -509,13 +509,13 @@ function ClientLoansList({ loans, paymentsByLoan, hidden }: ClientLoansListProps
                     {mask(formatCurrency(paid))}
                   </div>
                 </div>
+                {l.tags && l.tags.length > 0 && (
+                  <div>
+                    <div className="text-muted-foreground">Etiquetas</div>
+                    <div className="mt-0.5">{renderTags(l.tags)}</div>
+                  </div>
+                )}
               </div>
-              {l.tags && l.tags.length > 0 && (
-                <div className="pt-1.5 border-t border-border/40">
-                  <div className="text-[10px] text-muted-foreground mb-1">Etiquetas</div>
-                  {renderTags(l.tags)}
-                </div>
-              )}
             </div>
           );
         })}
