@@ -852,8 +852,8 @@ export function IncomePendingCalendar({
           </span>
         </div>
 
-        <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)]">
-          <div>
+        <div className={`grid gap-4 ${selectedDate ? "" : "md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)]"}`}>
+          <div className={selectedDate ? "hidden" : ""}>
             {expanded ? (
               <>
                 <div className="flex items-center justify-between mb-3">
