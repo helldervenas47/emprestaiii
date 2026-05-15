@@ -63,7 +63,6 @@ export function ClientLoanHistory({ loans, payments }: Props) {
 
       return {
         name,
-        contracts: clientLoans.length,
         borrowed,
         paid,
         pending,
