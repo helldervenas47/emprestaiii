@@ -1245,6 +1245,7 @@ function SalesList({ sales, onDeleteSale, onUpdateSale, clients = [], hideOnTrac
                 onUpdate={(data) => onUpdateSale(sale.id, data)}
                 formatCurrency={formatCurrency}
                 readOnly={readOnly}
+                incomeCategoryByName={incomeCategoryByName}
               />
             ))}
           </div>
