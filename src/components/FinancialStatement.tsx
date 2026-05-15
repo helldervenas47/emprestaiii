@@ -387,7 +387,19 @@ export function FinancialStatement() {
                     )}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="font-medium truncate">{r.description}</div>
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <span className="font-medium truncate">{r.description}</span>
+                      {r.origin === "sale-full" && (
+                        <Badge className="bg-primary/15 text-primary border border-primary/30 gap-1 whitespace-nowrap text-[10px] px-1.5 py-0">
+                          <ShoppingCart className="h-2.5 w-2.5" /> Venda
+                        </Badge>
+                      )}
+                      {r.origin === "sale-partial" && (
+                        <Badge className="bg-amber-500/15 text-amber-700 dark:text-amber-400 border border-amber-500/30 gap-1 whitespace-nowrap text-[10px] px-1.5 py-0">
+                          <ShoppingCart className="h-2.5 w-2.5" /> Parcial
+                        </Badge>
+                      )}
+                    </div>
                     <div className="text-xs text-muted-foreground mt-0.5 flex flex-wrap gap-x-2">
                       <span>{format(new Date(r.date + "T00:00:00"), "dd/MM/yyyy", { locale: ptBR })}</span>
                       <span>· {r.category}</span>
