@@ -574,6 +574,226 @@ export function IncomePendingCalendar({
     [selectedInfo],
   );
 
+  const renderDayDetails = () => {
+    if (!selectedDate) return null;
+    const isFirstOfMonth = selectedDate.endsWith("-01");
+    const monthKeyDay = selectedDate.slice(0, 7);
+    const hasOverride = isFirstOfMonth && overrides[monthKeyDay] !== undefined;
+    return (
+      <>
+        <div className="flex items-start justify-between gap-2 mb-3">
+          <h4 className="text-sm font-semibold text-foreground capitalize">
+            {new Date(selectedDate + "T00:00:00").toLocaleDateString("pt-BR", {
+              weekday: "long",
+              day: "2-digit",
+              month: "long",
+            })}
+          </h4>
+          <div className="text-right shrink-0">
+            <p className="text-[10px] text-muted-foreground uppercase">Saldo do dia</p>
+            <p className={`text-sm font-bold tabular-nums ${selectedBalance >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"}`}>
+              {formatCurrency(selectedBalance)}
+            </p>
+          </div>
+        </div>
+
+        <div className="space-y-3 md:max-h-[360px] md:overflow-y-auto pr-1">
+          <section>
+            <div className="flex items-center justify-between mb-1.5">
+              <div className="flex items-center gap-1.5 text-xs font-semibold text-emerald-700 dark:text-emerald-400">
+                <ArrowUpCircle className="h-3.5 w-3.5" /> Receitas
+              </div>
+              <span className="text-xs font-semibold tabular-nums text-emerald-700 dark:text-emerald-400">
+                {formatCurrency(selectedInfo.totalIncome)}
+              </span>
+            </div>
+            {dayIncomeItems.length === 0 ? (
+              <p className="text-[11px] text-muted-foreground italic px-1">Sem receitas neste dia.</p>
+            ) : (
+              <ul className="space-y-1">
+                {dayIncomeItems.map((inc) => {
+                  const isReceived = inc.status === "received";
+                  return (
+                    <li key={`inc-${inc.id}`} className="flex items-center justify-between gap-2 rounded-md bg-emerald-500/5 border border-emerald-500/20 px-2.5 py-1.5">
+                      <span className="flex items-center gap-2 min-w-0">
+                        <span aria-label={isReceived ? "Recebida" : "Pendente"} title={isReceived ? "Recebida" : "Pendente"} className={`h-2 w-2 rounded-full shrink-0 ${isReceived ? "bg-emerald-500" : "bg-rose-500"}`} />
+                        <span className="text-xs text-foreground truncate">{inc.description}</span>
+                      </span>
+                      <span className="text-xs font-semibold text-emerald-700 dark:text-emerald-400 tabular-nums shrink-0">
+                        {formatCurrency(Number(inc.amount) || 0)}
+                      </span>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </section>
+
+          <section>
+            <div className="flex items-center justify-between mb-1.5">
+              <div className="flex items-center gap-1.5 text-xs font-semibold text-rose-700 dark:text-rose-400">
+                <ArrowDownCircle className="h-3.5 w-3.5" /> Despesas
+              </div>
+              <span className="text-xs font-semibold tabular-nums text-rose-700 dark:text-rose-400">
+                {formatCurrency(selectedInfo.totalExpense)}
+              </span>
+            </div>
+            {dayExpenseItems.length === 0 ? (
+              <p className="text-[11px] text-muted-foreground italic px-1">Sem despesas neste dia.</p>
+            ) : (
+              <ul className="space-y-1">
+                {dayExpenseItems.map((ex) => {
+                  const isPaid = !!ex.paid;
+                  return (
+                    <li key={`exp-${ex.id}`} className="flex items-center justify-between gap-2 rounded-md bg-rose-500/5 border border-rose-500/20 px-2.5 py-1.5">
+                      <span className="flex items-center gap-2 min-w-0">
+                        <span aria-label={isPaid ? "Paga" : "Pendente"} title={isPaid ? "Paga" : "Pendente"} className={`h-2 w-2 rounded-full shrink-0 ${isPaid ? "bg-emerald-500" : "bg-rose-500"}`} />
+                        <span className="text-xs text-foreground truncate">{ex.description}</span>
+                      </span>
+                      <span className="text-xs font-semibold text-rose-700 dark:text-rose-400 tabular-nums shrink-0">
+                        {formatCurrency(Number(ex.amount) || 0)}
+                      </span>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </section>
+
+          {selectedInfo.cardInvoices.length > 0 && (
+            <section>
+              <div className="flex items-center justify-between mb-1.5">
+                <div className="flex items-center gap-1.5 text-xs font-semibold text-violet-700 dark:text-violet-400">
+                  <CreditCardIcon className="h-3.5 w-3.5" /> Faturas de cartão
+                </div>
+                <span className="text-xs font-semibold tabular-nums text-violet-700 dark:text-violet-400">
+                  {formatCurrency(selectedInfo.cardInvoices.reduce((s, c) => s + c.total, 0))}
+                </span>
+              </div>
+              <ul className="space-y-1">
+                {selectedInfo.cardInvoices.map((c) => (
+                  <li key={`inv-${c.cardId}`} className="flex items-center justify-between gap-2 rounded-md bg-violet-500/5 border border-violet-500/20 px-2.5 py-1.5">
+                    <span className="flex items-center gap-1.5 text-xs text-foreground truncate min-w-0">
+                      <CreditCardIcon className="h-3 w-3 text-violet-600 dark:text-violet-400 shrink-0" />
+                      <span className="truncate">{c.cardLabel}</span>
+                      {c.paid && <span className="text-[10px] font-medium text-emerald-700 dark:text-emerald-400 shrink-0">paga</span>}
+                    </span>
+                    <span className="text-xs font-semibold text-violet-700 dark:text-violet-400 tabular-nums shrink-0">
+                      {formatCurrency(c.total)}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+              <p className="text-[10px] text-muted-foreground italic mt-1 px-1">
+                Faturas em aberto entram no cálculo do saldo previsto do dia.
+              </p>
+            </section>
+          )}
+
+          {selectedInfo.piggyMovements.length > 0 && (
+            <section>
+              <div className="flex items-center justify-between mb-1.5">
+                <div className="flex items-center gap-1.5 text-xs font-semibold text-amber-700 dark:text-amber-400">
+                  <PiggyBankIcon className="h-3.5 w-3.5" /> Cofrinhos
+                </div>
+                <span className="text-xs font-semibold tabular-nums text-amber-700 dark:text-amber-400">
+                  {formatCurrency(selectedInfo.piggyMovements.reduce((s, p) => s - p.amount, 0))}
+                </span>
+              </div>
+              <ul className="space-y-1">
+                {selectedInfo.piggyMovements.map((p) => {
+                  const isStore = p.amount >= 0;
+                  return (
+                    <li key={`piggy-${p.id}`} className="flex items-center justify-between gap-2 rounded-md bg-amber-500/5 border border-amber-500/20 px-2.5 py-1.5">
+                      <span className="flex items-center gap-1.5 text-xs text-foreground truncate min-w-0">
+                        {isStore ? <ArrowDownCircle className="h-3 w-3 text-rose-600 dark:text-rose-400 shrink-0" /> : <ArrowUpCircle className="h-3 w-3 text-emerald-600 dark:text-emerald-400 shrink-0" />}
+                        <span className="truncate">
+                          {isStore ? "Guardar" : "Resgatar"}
+                          {p.piggyName ? ` · ${p.piggyName}` : ""}
+                        </span>
+                      </span>
+                      <span className={`text-xs font-semibold tabular-nums shrink-0 ${isStore ? "text-rose-700 dark:text-rose-400" : "text-emerald-700 dark:text-emerald-400"}`}>
+                        {isStore ? "-" : "+"}{formatCurrency(Math.abs(p.amount))}
+                      </span>
+                    </li>
+                  );
+                })}
+              </ul>
+              <p className="text-[10px] text-muted-foreground italic mt-1 px-1">
+                Movimentações dos cofrinhos afetam apenas o saldo previsto, não receitas/despesas.
+              </p>
+            </section>
+          )}
+
+          <div className="rounded-md border border-border bg-card px-3 py-2 space-y-1">
+            {isFirstOfMonth ? (
+              <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+                <span className="flex items-center gap-1"><Wallet className="h-3 w-3" /> Saldo de abertura do mês</span>
+                <span className="tabular-nums">{hasOverride ? "definido manualmente" : "automático"}</span>
+              </div>
+            ) : (
+              <>
+                <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+                  <span className="flex items-center gap-1"><Wallet className="h-3 w-3" /> Saldo previsto do dia anterior</span>
+                  <span className="tabular-nums">{formatCurrency(selectedPrevBalance)}</span>
+                </div>
+                {selectedHasMovement && (
+                  <>
+                    <div className="flex items-center justify-between text-[11px] text-emerald-700 dark:text-emerald-400">
+                      <span>+ Recebimentos do dia</span>
+                      <span className="tabular-nums">{formatCurrency(selectedInfo.totalIncome)}</span>
+                    </div>
+                    <div className="flex items-center justify-between text-[11px] text-rose-700 dark:text-rose-400">
+                      <span>− Despesas do dia</span>
+                      <span className="tabular-nums">{formatCurrency(selectedInfo.totalExpense)}</span>
+                    </div>
+                  </>
+                )}
+              </>
+            )}
+            <div className="flex items-center justify-between pt-1 border-t border-border/60">
+              <span className="text-xs font-semibold text-foreground">Saldo previsto do dia</span>
+              <span className={`text-sm font-bold tabular-nums ${selectedBalance >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"}`}>
+                {formatCurrency(selectedBalance)}
+              </span>
+            </div>
+            {isFirstOfMonth && (
+              <div className="flex items-center gap-2 pt-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-7 text-xs gap-1 flex-1"
+                  disabled={!allowDay1Override}
+                  onClick={() => {
+                    setEditValue((overrides[monthKeyDay] ?? selectedBalance).toFixed(2));
+                    setEditOpen(true);
+                  }}
+                >
+                  <Pencil className="h-3 w-3" /> Alterar saldo do dia
+                </Button>
+                {hasOverride && allowDay1Override && (
+                  <Button variant="ghost" size="sm" className="h-7 text-xs gap-1" onClick={() => { void clearOverrideBalance(monthKeyDay); }}>
+                    <RotateCcw className="h-3 w-3" /> Resetar
+                  </Button>
+                )}
+              </div>
+            )}
+            {isFirstOfMonth && !allowDay1Override && (
+              <p className="text-[10px] text-muted-foreground italic pt-1">
+                Edição do saldo do dia 01 está desativada. Ative o botão no topo do calendário para liberar.
+              </p>
+            )}
+            {isFirstOfMonth && allowDay1Override && !hasOverride && (
+              <p className="text-[10px] text-muted-foreground italic pt-1">
+                Apenas o dia 1 de cada mês pode ter o saldo ajustado manualmente.
+              </p>
+            )}
+          </div>
+        </div>
+      </>
+    );
+  };
+
   return (
     <Card no3d className="animate-fade-in">
       <CardContent className="p-4">
