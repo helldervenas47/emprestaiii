@@ -127,7 +127,7 @@ export function ClientLoanHistory({ loans, payments }: Props) {
       </div>
 
       {showSummary && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div className="grid grid-cols-2 gap-3">
           <Card className="h-full">
             <CardContent className="p-4 flex flex-col items-center justify-center text-center h-full">
               <div className="text-sm text-muted-foreground mb-1">Pendente</div>
