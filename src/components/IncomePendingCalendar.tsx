@@ -852,8 +852,8 @@ export function IncomePendingCalendar({
           </span>
         </div>
 
-        <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)]">
-          <div>
+        <div className={`grid gap-4 ${selectedDate ? "" : "md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)]"}`}>
+          <div className={selectedDate ? "hidden" : ""}>
             {expanded ? (
               <>
                 <div className="flex items-center justify-between mb-3">
@@ -984,36 +984,30 @@ export function IncomePendingCalendar({
             )}
           </div>
 
-          <div className={`hidden md:block rounded-lg border border-border/50 bg-muted/20 p-3 min-h-[200px] animate-fade-in`}>
+          <div className={`rounded-lg border border-border/50 bg-muted/20 p-3 min-h-[200px] animate-fade-in ${selectedDate ? "" : "hidden md:block"}`}>
             {!selectedDate ? (
               <div className="flex h-full min-h-[180px] flex-col items-center justify-center text-center">
                 <TrendingUp className="h-7 w-7 text-muted-foreground mb-2" />
                 <p className="text-xs text-muted-foreground">Selecione um dia para ver os lançamentos.</p>
               </div>
             ) : (
-              renderDayDetails()
+              <>
+                <div className="mb-2 flex items-center justify-between md:hidden">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 -ml-2 gap-1 text-xs text-muted-foreground hover:text-foreground"
+                    onClick={() => setSelectedDate(null)}
+                  >
+                    <ChevronLeft className="h-3.5 w-3.5" /> Voltar ao calendário
+                  </Button>
+                </div>
+                {renderDayDetails()}
+              </>
             )}
           </div>
         </div>
       </CardContent>
-
-      <Sheet open={isMobile && !!selectedDate} onOpenChange={(o) => { if (!o) setSelectedDate(null); }}>
-        <SheetContent side="bottom" className="h-[85vh] overflow-y-auto rounded-t-2xl px-4 pb-[calc(env(safe-area-inset-bottom)+1rem)]">
-          <SheetHeader className="text-left mb-2">
-            <SheetTitle className="text-base capitalize">
-              {selectedDate
-                ? new Date(selectedDate + "T00:00:00").toLocaleDateString("pt-BR", { weekday: "long", day: "2-digit", month: "long" })
-                : "Detalhes do dia"}
-            </SheetTitle>
-            <SheetDescription>
-              Receitas, despesas e saldo previsto deste dia.
-            </SheetDescription>
-          </SheetHeader>
-          <div className="pt-2 animate-fade-in">
-            {renderDayDetails()}
-          </div>
-        </SheetContent>
-      </Sheet>
 
       <Dialog open={editOpen} onOpenChange={setEditOpen}>
         <DialogContent className="max-w-sm">
