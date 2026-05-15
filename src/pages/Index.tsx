@@ -336,6 +336,7 @@ const Index = () => {
   const { vehicles: registeredVehicles, add: addVehicle, update: updateVehicle, remove: removeVehicle } = useVehicleRegistry(needsVehicles);
   const { locador, locadores, save: saveLocador, remove: removeLocador } = useLocadorInfo(needsLocadores);
   const [clientSubTab, setClientSubTab] = useState<ClientSubTab>("clientes");
+  const [loanSubTab, setLoanSubTab] = useState<"loans" | "history">("loans");
   const [vehicleSubTab, setVehicleSubTab] = useState<VehicleSubTab>("veiculos");
   const [planMgmtSubTab, setPlanMgmtSubTab] = useState<PlanMgmtSubTab>("subscribers");
   const [overdueSubTab, setOverdueSubTab] = useState<OverdueSubTab>("metas");
