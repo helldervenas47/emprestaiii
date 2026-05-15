@@ -4643,6 +4643,7 @@ export function LoanList({ loans, payments, installmentSchedules, onPayment, onP
       paid: cats.filter((c) => c === "paid").length,
       due_today: cats.filter((c) => c === "due_today").length,
       on_track: cats.filter((c) => c === "on_track").length,
+      venda: loans.filter((l) => !!l.isSale && l.status !== "paid").length,
     };
   }, [loans, payments, folderCount]);
 
