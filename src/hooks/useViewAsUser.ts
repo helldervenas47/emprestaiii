@@ -87,8 +87,10 @@ export function useViewAsUser() {
           { onConflict: "admin_id" }
         );
       if (!error) {
-        // Reload page so all hooks rehydrate with new dataOwnerId
-        window.location.reload();
+        await clearViewingCaches();
+        const url = new URL(window.location.href);
+        url.searchParams.set("_r", Date.now().toString());
+        window.location.replace(url.toString());
       }
       return { error: error?.message };
     },
