@@ -99,8 +99,24 @@ export function ClientLoanHistory({ loans, payments }: Props) {
       ? out.filter((r) => r.name.toLowerCase().includes(search.trim().toLowerCase()))
       : out;
 
-    return filtered.sort((a, b) => a.name.localeCompare(b.name, "pt-BR"));
-  }, [loans, payments, search]);
+    return filtered.sort((a, b) => {
+      switch (sortBy) {
+        case "name-asc": return a.name.localeCompare(b.name, "pt-BR");
+        case "name-desc": return b.name.localeCompare(a.name, "pt-BR");
+        case "borrowed-desc": return b.borrowed - a.borrowed;
+        case "borrowed-asc": return a.borrowed - b.borrowed;
+        case "paid-desc": return b.paid - a.paid;
+        case "paid-asc": return a.paid - b.paid;
+        case "pending-desc": return b.pending - a.pending;
+        case "pending-asc": return a.pending - b.pending;
+        case "total-desc": return b.total - a.total;
+        case "total-asc": return a.total - b.total;
+        case "rate-desc": return b.interestRate - a.interestRate;
+        case "rate-asc": return a.interestRate - b.interestRate;
+        default: return a.name.localeCompare(b.name, "pt-BR");
+      }
+    });
+  }, [loans, payments, search, sortBy]);
 
   const totals = useMemo(() => {
     const totalPending = rows.reduce((s, r) => s + r.pending, 0);
@@ -127,7 +143,7 @@ export function ClientLoanHistory({ loans, payments }: Props) {
 
   return (
     <div className="space-y-3">
-      <div className="flex items-center gap-2">
+      <div className="flex flex-col md:flex-row items-stretch md:items-center gap-2">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
           <Input
@@ -137,15 +153,37 @@ export function ClientLoanHistory({ loans, payments }: Props) {
             className="pl-10"
           />
         </div>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => setShowSummary((s) => !s)}
-          className="shrink-0 gap-1"
-        >
-          <BarChart3 className="h-4 w-4" />
-          Resumo
-        </Button>
+        <div className="flex items-center gap-2 shrink-0">
+          <Select value={sortBy} onValueChange={(v) => setSortBy(v as SortOption)}>
+            <SelectTrigger className="w-full md:w-[240px] h-10 text-xs">
+              <ArrowUpDown className="h-3.5 w-3.5 mr-1 text-muted-foreground" />
+              <SelectValue placeholder="Ordenar por..." />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="name-asc">Cliente (A → Z)</SelectItem>
+              <SelectItem value="name-desc">Cliente (Z → A)</SelectItem>
+              <SelectItem value="borrowed-desc">Maior valor emprestado</SelectItem>
+              <SelectItem value="borrowed-asc">Menor valor emprestado</SelectItem>
+              <SelectItem value="paid-desc">Maior valor pago</SelectItem>
+              <SelectItem value="paid-asc">Menor valor pago</SelectItem>
+              <SelectItem value="pending-desc">Maior valor pendente</SelectItem>
+              <SelectItem value="pending-asc">Menor valor pendente</SelectItem>
+              <SelectItem value="total-desc">Maior valor total</SelectItem>
+              <SelectItem value="total-asc">Menor valor total</SelectItem>
+              <SelectItem value="rate-desc">Maior taxa de juros</SelectItem>
+              <SelectItem value="rate-asc">Menor taxa de juros</SelectItem>
+            </SelectContent>
+          </Select>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setShowSummary((s) => !s)}
+            className="shrink-0 gap-1"
+          >
+            <BarChart3 className="h-4 w-4" />
+            Resumo
+          </Button>
+        </div>
       </div>
 
       {showSummary && (
