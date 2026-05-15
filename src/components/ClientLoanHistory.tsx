@@ -509,12 +509,27 @@ function ClientLoansList({ loans, paymentsByLoan, lastPaymentDateByLoan, hidden 
 
   const statusMeta = (l: Loan) => {
     const isPaid = l.status === "paid";
-    const label = isPaid ? "Pago" : l.status === "overdue" ? "Atrasado" : "Pendente";
-    const className = isPaid
-      ? "bg-success/15 text-success border-success/30"
-      : l.status === "overdue"
-        ? "bg-destructive/15 text-destructive border-destructive/30"
-        : "bg-warning/15 text-warning border-warning/30";
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const due = l.dueDate ? new Date(l.dueDate) : null;
+    if (due) due.setHours(0, 0, 0, 0);
+    const isExpired = !isPaid && due != null && !isNaN(due.getTime()) && due.getTime() < today.getTime();
+
+    let label: string;
+    let className: string;
+    if (isPaid) {
+      label = "Pago";
+      className = "bg-success/15 text-success border-success/30";
+    } else if (l.status === "overdue") {
+      label = "Atrasado";
+      className = "bg-destructive/15 text-destructive border-destructive/30";
+    } else if (isExpired) {
+      label = "Vencido";
+      className = "bg-destructive/15 text-destructive border-destructive/30";
+    } else {
+      label = "Pendente";
+      className = "bg-warning/15 text-warning border-warning/30";
+    }
     return { label, className };
   };
 
