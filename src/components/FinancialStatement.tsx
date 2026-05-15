@@ -92,47 +92,50 @@ export function FinancialStatement() {
       }));
 
     // Vendas: cada pagamento (paymentHistory) vira um lançamento individual no extrato.
-    // Sem duplicidade — fallback só para vendas antigas sem histórico de pagamentos.
+    // Para vendas antigas com paid_installments/partial_paid sem entrada no histórico,
+    // adiciona uma linha agregada com a diferença para que o extrato bata com o saldo.
     const saleRows: Row[] = [];
     sales.forEach((s: Sale) => {
       const desc = s.description || s.productName || "Venda";
       const account = s.customerName || "—";
       const history = s.paymentHistory || [];
-      if (history.length > 0) {
-        history.forEach((p, idx) => {
-          const amt = Number(p.amount) || 0;
-          if (amt <= 0) return;
-          const isFull = p.type !== "partial";
-          saleRows.push({
-            id: `s-${s.id}-p${idx}`,
-            date: p.date || s.date,
-            description: desc,
-            category: "Venda",
-            type: "income",
-            origin: isFull ? "sale-full" : "sale-partial",
-            amount: amt,
-            paymentMethod: "—",
-            account,
-          });
+      const iv = s.installmentValue ?? (s.installments > 0 ? s.total / s.installments : s.total);
+      const legacyTotal = (s.downPayment || 0) + (s.paidInstallments || 0) * iv + (s.partialPaid || 0);
+      const historyTotal = history.reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
+
+      history.forEach((p, idx) => {
+        const amt = Number(p.amount) || 0;
+        if (amt <= 0) return;
+        const isFull = p.type !== "partial";
+        saleRows.push({
+          id: `s-${s.id}-p${idx}`,
+          date: p.date || s.sale_date || s.date,
+          description: desc,
+          category: "Venda",
+          type: "income",
+          origin: isFull ? "sale-full" : "sale-partial",
+          amount: amt,
+          paymentMethod: "—",
+          account,
         });
-      } else {
-        // Fallback: vendas antigas sem histórico — usa downPayment/paidInstallments + partialPaid
-        const iv = s.installmentValue ?? (s.installments > 0 ? s.total / s.installments : s.total);
-        const total = (s.downPayment || 0) + (s.paidInstallments || 0) * iv + (s.partialPaid || 0);
-        if (total > 0) {
-          const isFullyPaid = s.paidInstallments >= s.installments && (s.partialPaid || 0) === 0;
-          saleRows.push({
-            id: `s-${s.id}-legacy`,
-            date: s.date,
-            description: desc,
-            category: "Venda",
-            type: "income",
-            origin: isFullyPaid ? "sale-full" : "sale-partial",
-            amount: total,
-            paymentMethod: "—",
-            account,
-          });
-        }
+      });
+
+      // Diferença entre o que foi efetivamente pago (paid_installments/partial_paid)
+      // e o que está no histórico — comum em vendas antigas anteriores ao paymentHistory.
+      const missing = legacyTotal - historyTotal;
+      if (missing > 0.005) {
+        const isFullyPaid = s.paidInstallments >= s.installments && (s.partialPaid || 0) === 0;
+        saleRows.push({
+          id: `s-${s.id}-legacy`,
+          date: s.date,
+          description: desc,
+          category: "Venda",
+          type: "income",
+          origin: isFullyPaid ? "sale-full" : "sale-partial",
+          amount: missing,
+          paymentMethod: "—",
+          account,
+        });
       }
     });
 
