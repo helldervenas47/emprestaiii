@@ -43,6 +43,7 @@ function rowToLoan(l: any): Loan {
     managerCommissionRate: l.manager_commission_rate != null ? Number(l.manager_commission_rate) : 10,
     autoBillingEnabled: l.auto_billing_enabled ?? true,
     renegotiationPenaltyTotal: l.renegotiation_penalty_total != null ? Number(l.renegotiation_penalty_total) : 0,
+    isSale: l.is_sale ?? false,
   };
 }
 
