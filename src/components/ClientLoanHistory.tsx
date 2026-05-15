@@ -33,9 +33,24 @@ interface ClientRow {
   interestRate: number;
 }
 
+type SortOption =
+  | "name-asc"
+  | "name-desc"
+  | "borrowed-desc"
+  | "borrowed-asc"
+  | "paid-desc"
+  | "paid-asc"
+  | "pending-desc"
+  | "pending-asc"
+  | "total-desc"
+  | "total-asc"
+  | "rate-desc"
+  | "rate-asc";
+
 export function ClientLoanHistory({ loans, payments }: Props) {
   const [search, setSearch] = useState("");
   const [showSummary, setShowSummary] = useState(false);
+  const [sortBy, setSortBy] = useState<SortOption>("name-asc");
   const { hidden } = useHideValues();
 
   const rows = useMemo<ClientRow[]>(() => {
