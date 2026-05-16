@@ -424,9 +424,9 @@ function SaleCard({ sale, onDelete, onEdit, onUpdate, formatCurrency, readOnly =
               {/* Partial payment dialog */}
               <Dialog open={showPartial} onOpenChange={(open) => {
                 setShowPartial(open);
-                if (!open) { setPartialAmount(""); setPartialDate(undefined); }
+                if (!open) { setPartialAmount(""); setPartialDate(undefined); setPartialMethodId(null); setPartialNotes(""); }
               }}>
-                <DialogContent className="sm:max-w-md">
+                <DialogContent className="sm:max-w-md max-h-[85vh] overflow-y-auto">
                   <DialogHeader>
                     <DialogTitle>Pagamento Parcial</DialogTitle>
                     <DialogDescription>
@@ -463,9 +463,19 @@ function SaleCard({ sale, onDelete, onEdit, onUpdate, formatCurrency, readOnly =
                         </PopoverContent>
                       </Popover>
                     </div>
+                    <PaymentMethodPicker value={partialMethodId} onChange={setPartialMethodId} />
+                    <div>
+                      <label className="text-sm font-medium text-foreground mb-1 block">Observações (opcional)</label>
+                      <Textarea
+                        rows={2}
+                        placeholder="Detalhes do pagamento..."
+                        value={partialNotes}
+                        onChange={(e) => setPartialNotes(e.target.value)}
+                      />
+                    </div>
                   </div>
                   <DialogFooter>
-                    <Button variant="ghost" onClick={() => { setShowPartial(false); setPartialAmount(""); setPartialDate(undefined); }}>Cancelar</Button>
+                    <Button variant="ghost" onClick={() => { setShowPartial(false); setPartialAmount(""); setPartialDate(undefined); setPartialMethodId(null); setPartialNotes(""); }}>Cancelar</Button>
                     <Button onClick={() => {
                       const val = parseFloat(partialAmount);
                       if (val > 0 && partialDate) {
@@ -473,7 +483,13 @@ function SaleCard({ sale, onDelete, onEdit, onUpdate, formatCurrency, readOnly =
                         const currentValue = getParcelaValue(nextIdx);
                         const currentPartial = sale.partialPaid || 0;
                         const newPartialTotal = currentPartial + val;
-                        const newRecord: SalePaymentRecord = { amount: val, date: format(partialDate, "yyyy-MM-dd"), type: "partial" };
+                        const newRecord: SalePaymentRecord = {
+                          amount: val,
+                          date: format(partialDate, "yyyy-MM-dd"),
+                          type: "partial",
+                          paymentMethodId: partialMethodId || null,
+                          notes: partialNotes.trim() || null,
+                        };
                         const history = [...(sale.paymentHistory || []), newRecord];
                         if (newPartialTotal >= currentValue - 0.01) {
                           const remainder = newPartialTotal - currentValue;
@@ -486,7 +502,7 @@ function SaleCard({ sale, onDelete, onEdit, onUpdate, formatCurrency, readOnly =
                           onUpdate({ partialPaid: newPartialTotal, paymentHistory: history });
                         }
                         celebrate({ kind: "sale", message: "Pagamento recebido!", amount: val });
-                        setPartialAmount(""); setPartialDate(undefined); setShowPartial(false);
+                        setPartialAmount(""); setPartialDate(undefined); setPartialMethodId(null); setPartialNotes(""); setShowPartial(false);
                       }
                     }} disabled={!partialAmount || parseFloat(partialAmount) <= 0 || !partialDate}>
                       Confirmar
