@@ -120,6 +120,7 @@ function SaleCard({ sale, onDelete, onEdit, onUpdate, formatCurrency, readOnly =
   const [partialNotes, setPartialNotes] = useState("");
   const [fullMethodId, setFullMethodId] = useState<string | null>(null);
   const [fullNotes, setFullNotes] = useState("");
+  const [fullDate, setFullDate] = useState<Date | undefined>(undefined);
   const [showParcelas, setShowParcelas] = useState(false);
   const [showPayDatePicker, setShowPayDatePicker] = useState(false);
   const [showPayments, setShowPayments] = useState(false);
