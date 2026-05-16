@@ -1069,66 +1069,6 @@ function SaleListRow({ sale, onEdit, onUpdate, formatCurrency, readOnly = false,
             initialMode="partial"
           />
 
-          <Dialog open={showPartial} onOpenChange={(open) => {
-            setShowPartial(open);
-            if (!open) { setPartialAmount(""); setPartialDate(undefined); }
-          }}>
-            <DialogContent className="sm:max-w-md">
-              <DialogHeader>
-                <DialogTitle>Pagamento Parcial</DialogTitle>
-                <DialogDescription>
-                  Parcela pendente: {formatCurrency(nextInstValue)}.
-                  {(sale.partialPaid || 0) > 0 && ` Já pago: ${formatCurrency(sale.partialPaid)}. Falta: ${formatCurrency(partialOnNext)}.`}
-                </DialogDescription>
-              </DialogHeader>
-              <div className="space-y-4 py-2">
-                <div>
-                  <label className="text-sm font-medium text-foreground mb-1 block">Valor (R$)</label>
-                  <Input type="number" step="0.01" placeholder="0,00" value={partialAmount} onChange={(e) => setPartialAmount(e.target.value)} autoFocus />
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-foreground mb-1 block">Data do Pagamento</label>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button variant="outline" className={cn("w-full justify-start text-left font-normal", !partialDate && "text-muted-foreground")}>
-                        <CalendarIcon className="mr-2 h-4 w-4" />
-                        {partialDate ? format(partialDate, "dd/MM/yyyy") : "Selecione a data"}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <Calendar mode="single" selected={partialDate} onSelect={setPartialDate} initialFocus className={cn("p-3 pointer-events-auto")} />
-                    </PopoverContent>
-                  </Popover>
-                </div>
-              </div>
-              <DialogFooter>
-                <Button variant="ghost" onClick={() => { setShowPartial(false); setPartialAmount(""); setPartialDate(undefined); }}>Cancelar</Button>
-                <Button onClick={() => {
-                  const val = parseFloat(partialAmount);
-                  if (val > 0 && partialDate) {
-                    const currentValue = nextInstValue;
-                    const currentPartial = sale.partialPaid || 0;
-                    const newPartialTotal = currentPartial + val;
-                    const newRecord: SalePaymentRecord = { amount: val, date: format(partialDate, "yyyy-MM-dd"), type: "partial" };
-                    const history = [...(sale.paymentHistory || []), newRecord];
-                    if (newPartialTotal >= currentValue - 0.01) {
-                      const remainder = newPartialTotal - currentValue;
-                      onUpdate({
-                        paidInstallments: Math.min(sale.installments, sale.paidInstallments + 1),
-                        partialPaid: remainder > 0.01 ? remainder : 0,
-                        paymentHistory: history,
-                      });
-                    } else {
-                      onUpdate({ partialPaid: newPartialTotal, paymentHistory: history });
-                    }
-                    setPartialAmount(""); setPartialDate(undefined); setShowPartial(false);
-                  }
-                }} disabled={!partialAmount || parseFloat(partialAmount) <= 0 || !partialDate}>
-                  Confirmar
-                </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
         </div>
       )}
       <SalePaymentHistoryDialog
