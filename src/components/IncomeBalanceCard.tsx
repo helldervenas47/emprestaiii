@@ -15,6 +15,7 @@ import { isPiggyExpense, usePiggyBanks } from "@/hooks/usePiggyBanks";
 import { useProducts } from "@/hooks/useProducts";
 import { Sale } from "@/types/loan";
 import { useMonthlyOpeningBalances } from "@/hooks/useMonthlyOpeningBalances";
+import { useExternalAccountSources } from "@/hooks/useExternalAccountSources";
 import { getMonthEndProjectedBalance } from "@/lib/projectedBalance";
 import { todayDateInAppTz } from "@/lib/timezone";
 
@@ -76,6 +77,7 @@ export function IncomeBalanceCard({ incomes, expenses, onAdjust, readOnly, onOpe
   const { sales } = useProducts(true);
   const { deposits: piggyDeposits } = usePiggyBanks();
   const { overrides: openingOverrides } = useMonthlyOpeningBalances();
+  const externalSources = useExternalAccountSources();
   const [adjustOpen, setAdjustOpen] = useState(false);
   const [target, setTarget] = useState("");
   const [saving, setSaving] = useState(false);
@@ -103,7 +105,10 @@ export function IncomeBalanceCard({ incomes, expenses, onAdjust, readOnly, onOpe
     const totalPiggyManualDeposits = piggyDeposits
       .filter((d) => !d.expenseId)
       .reduce((s, d) => s + (Number(d.amount) || 0), 0);
-    const balance = totalIncomeReceived + totalSalesReceived - totalExpensePaid - totalPiggyManualDeposits;
+    const baseBalance = totalIncomeReceived + totalSalesReceived - totalExpensePaid - totalPiggyManualDeposits;
+    // Acrescenta saldos externos (Dashboard conta+dinheiro, Cofrinhos e Veículos)
+    // mantendo o cálculo original intacto.
+    const balance = baseBalance + externalSources.total;
 
     // Movimentação do mês vigente
     const monthIn = incomes
@@ -201,7 +206,7 @@ export function IncomeBalanceCard({ incomes, expenses, onAdjust, readOnly, onOpe
       .reduce((s, i) => s + i.amount, 0);
 
     return { balance, monthIn, monthOut, futureIn, futureOut, projected, projectedDiff, prevIn, pendingInCount };
-  }, [incomes, expenses, monthKey, prevKey, cards, openings, sales, piggyDeposits, openingOverrides]);
+  }, [incomes, expenses, monthKey, prevKey, cards, openings, sales, piggyDeposits, openingOverrides, externalSources.total]);
 
   const diff = calc.monthIn - calc.prevIn;
   const pct = calc.prevIn > 0 ? (diff / calc.prevIn) * 100 : 0;
