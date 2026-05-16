@@ -1166,7 +1166,7 @@ function SaleListRow({ sale, onEdit, onUpdate, formatCurrency, readOnly = false,
             <Button
               variant="outline"
               size="sm"
-              className="h-9 text-xs border-muted-foreground/30 text-muted-foreground hover:bg-muted-foreground hover:text-muted-foreground-foreground"
+              className="h-9 text-xs border-secondary text-secondary-foreground hover:bg-secondary/80"
               onClick={(e) => { e.stopPropagation(); onEdit(); }}
             >
               <Pencil className="h-3.5 w-3.5 mr-1.5" /> Editar contrato
