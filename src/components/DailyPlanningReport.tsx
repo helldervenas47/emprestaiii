@@ -300,7 +300,7 @@ export function DailyPlanningReport({ loans, payments, installmentSchedules, sal
                       <span className="text-warning">⏳ {fmtBRL(groupTotal(g, "pending"))}</span>
                     </div>
                   </div>
-                  {[{ label: "Recebido", arr: paid, status: "paid" as const }, { label: "Pendente", arr: pending, status: "pending" as const }].map(({ label, arr, status }) => (
+                  {[{ label: "PAGO", arr: paid, status: "paid" as const }, { label: "Pendente", arr: pending, status: "pending" as const }].map(({ label, arr, status }) => (
                     arr.length > 0 && (
                       <div key={label} className="space-y-1">
                         <p className="text-[10px] text-muted-foreground pl-1">{label}</p>

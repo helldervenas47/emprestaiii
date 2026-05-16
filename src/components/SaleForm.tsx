@@ -176,7 +176,7 @@ export function SaleForm({ onAdd, onClose, defaultBusinessType = "venda", client
   const isVenda = form.businessType === "venda";
   const totalLabel = isVehicleRental
     ? "Valor Total do Contrato (R$)"
-    : (isVenda && merchEnabled ? "Valor Recebido em Dinheiro (R$)" : "Valor Total (R$)");
+    : (isVenda && merchEnabled ? "Valor PAGO em Dinheiro (R$)" : "Valor Total (R$)");
   const formTitle = isVehicleRental ? "Novo Aluguel de Veículo" : "Novo Lançamento";
 
   const frequencyOptions = isVehicleRental
@@ -528,7 +528,7 @@ export function SaleForm({ onAdd, onClose, defaultBusinessType = "venda", client
                     )}
                     {(parseFloat(merchValor) || 0) > 0 && (
                       <div className="text-xs text-muted-foreground border-t border-border/40 pt-2 space-y-0.5">
-                        <p>Recebido em dinheiro: <span className="font-medium text-foreground">{new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(parseFloat(form.total) || 0)}</span></p>
+                        <p>PAGO em dinheiro: <span className="font-medium text-foreground">{new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(parseFloat(form.total) || 0)}</span></p>
                         <p>Mercadoria: <span className="font-medium text-foreground">{new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(parseFloat(merchValor) || 0)}</span></p>
                         <p>Total da venda: <span className="font-bold text-primary">{new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format((parseFloat(form.total) || 0) + (parseFloat(merchValor) || 0))}</span></p>
                       </div>

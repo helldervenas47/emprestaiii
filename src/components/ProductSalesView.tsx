@@ -499,7 +499,7 @@ function SaleCard({ sale, onDelete, onEdit, onUpdate, formatCurrency, readOnly =
                       Mercadoria: <span className="font-medium text-foreground">{merch.descricao}</span> ({rawFormatCurrency(merchValor)})
                     </p>
                     <p className="text-xs text-muted-foreground pt-1 border-t border-primary/10 mt-1">
-                      Recebido em dinheiro: <span className="font-bold text-success">{rawFormatCurrency(pagoDinheiro)}</span>
+                      PAGO em dinheiro: <span className="font-bold text-success">{rawFormatCurrency(pagoDinheiro)}</span>
                     </p>
                   </div>
                 )}
@@ -864,7 +864,7 @@ function SaleClientFolder({
             <p className="font-bold text-foreground">{formatCurrency(group.totalAmount)}</p>
           </div>
           <div className="text-right">
-            <p className="text-[9px] text-muted-foreground uppercase">Recebido</p>
+            <p className="text-[9px] text-muted-foreground uppercase">PAGO</p>
             <p className="font-bold text-success">{formatCurrency(group.totalPaid)}</p>
           </div>
           <div className="text-right">
@@ -883,7 +883,7 @@ function SaleClientFolder({
               <p className="font-bold text-foreground">{formatCurrency(group.totalAmount)}</p>
             </div>
             <div className="text-center flex-1">
-              <p className="text-[9px] text-muted-foreground uppercase">Recebido</p>
+              <p className="text-[9px] text-muted-foreground uppercase">PAGO</p>
               <p className="font-bold text-success">{formatCurrency(group.totalPaid)}</p>
             </div>
             <div className="text-center flex-1">

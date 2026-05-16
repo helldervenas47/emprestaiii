@@ -562,7 +562,7 @@ export function IncomeList({ readOnly }: Props) {
               {viewDateTarget.status === "received" ? (
                 <>
                   <div className="rounded-lg bg-emerald-500/10 border border-emerald-500/30 p-3">
-                    <p className="text-xs text-muted-foreground">Recebido em</p>
+                    <p className="text-xs text-muted-foreground">PAGO em</p>
                     {editingPayDate ? (
                       <div className="mt-1 space-y-2">
                         <DatePickerField value={editPayDateValue} onChange={setEditPayDateValue} />
