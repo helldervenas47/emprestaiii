@@ -930,9 +930,24 @@ function SaleListRow({ sale, onEdit, onUpdate, formatCurrency, readOnly = false,
   const CatIcon = incomeCat ? (personalIconMap[incomeCat.icon] ?? personalIconMap.Package) : Tag;
   const catColor = incomeCat ? `hsl(${incomeCat.color})` : undefined;
 
+  const isMobile = useIsMobile();
+  const [expanded, setExpanded] = useState(false);
+  const totalPaidIncludingPartial = paidAmount + (sale.partialPaid || 0);
+  const statusInfo = isPaid
+    ? { label: "Quitado", cls: "bg-success/15 text-success border-success/30" }
+    : category === "overdue"
+    ? { label: "Atrasado", cls: "bg-destructive/15 text-destructive border-destructive/30" }
+    : category === "due_today"
+    ? { label: "Vence hoje", cls: "bg-warning/15 text-warning border-warning/30" }
+    : { label: "Em dia", cls: "bg-primary/15 text-primary border-primary/30" };
+
    return (
+    <div className="flex flex-col">
     <div className="flex items-center gap-2 sm:gap-3 px-2 sm:px-3 py-2 hover:bg-muted/30 transition-colors">
-      <button onClick={onEdit} className="contents text-left">
+      <div
+        className={`contents text-left ${isMobile ? "cursor-pointer" : ""}`}
+        onClick={isMobile ? () => setExpanded((v) => !v) : undefined}
+      >
         <div className={`h-8 w-8 sm:h-9 sm:w-9 rounded-full flex items-center justify-center text-primary-foreground font-bold text-[10px] sm:text-xs shrink-0 ${
           category === "paid" ? "bg-success" : category === "overdue" ? "bg-destructive" : category === "due_today" ? "bg-warning" : "gradient-primary"
         }`}>
@@ -989,10 +1004,26 @@ function SaleListRow({ sale, onEdit, onUpdate, formatCurrency, readOnly = false,
             </>
           )}
         </div>
-      </button>
+        {isMobile && (
+          <div className="shrink-0 pl-1">
+            {expanded ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
+          </div>
+        )}
+      </div>
 
       {(isPaid || readOnly) ? (
-        <div className="w-[44px] shrink-0 flex items-center justify-end">
+        <div className="shrink-0 flex items-center justify-end gap-1">
+          {!readOnly && !isMobile && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 text-muted-foreground hover:bg-accent hover:text-foreground"
+              title="Editar"
+              onClick={onEdit}
+            >
+              <Pencil className="h-4 w-4" />
+            </Button>
+          )}
           <Button
             variant="ghost"
             size="icon"
@@ -1009,7 +1040,18 @@ function SaleListRow({ sale, onEdit, onUpdate, formatCurrency, readOnly = false,
           </Button>
         </div>
       ) : (
-        <div className="w-[44px] shrink-0 flex items-center justify-end">
+        <div className="shrink-0 flex items-center justify-end gap-1">
+          {!isMobile && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 text-muted-foreground hover:bg-accent hover:text-foreground"
+              title="Editar"
+              onClick={onEdit}
+            >
+              <Pencil className="h-4 w-4" />
+            </Button>
+          )}
           <Popover>
             <PopoverTrigger asChild>
               <Button variant="ghost" size="icon" className="h-8 w-8 text-primary hover:bg-primary/10 relative" title="Pagamentos">
@@ -1080,8 +1122,63 @@ function SaleListRow({ sale, onEdit, onUpdate, formatCurrency, readOnly = false,
         sale={sale}
         onUpdate={onUpdate}
         formatCurrency={formatCurrency}
-        readOnly={readOnly}
       />
+    </div>
+
+    {isMobile && expanded && (
+      <div className="px-3 pb-3 pt-1 mx-2 mb-2 rounded-xl bg-muted/30 border border-border/40 animate-in slide-in-from-top-1 fade-in duration-200">
+        <div className="grid grid-cols-2 gap-2 text-xs">
+          <div className="col-span-2 flex items-center justify-between">
+            <span className="text-muted-foreground">Cliente</span>
+            <span className="font-semibold text-foreground truncate ml-2">{sale.customerName || "—"}</span>
+          </div>
+          <div className="flex items-center justify-between col-span-2">
+            <span className="text-muted-foreground">Status</span>
+            <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold ${statusInfo.cls}`}>
+              {statusInfo.label}
+            </span>
+          </div>
+          <div>
+            <p className="text-muted-foreground">Valor total</p>
+            <p className="font-bold text-foreground tabular-nums">{formatCurrency(sale.total)}</p>
+          </div>
+          <div>
+            <p className="text-muted-foreground">Valor pago</p>
+            <p className="font-bold text-success tabular-nums">{formatCurrency(totalPaidIncludingPartial)}</p>
+          </div>
+          <div>
+            <p className="text-muted-foreground">Saldo restante</p>
+            <p className="font-bold text-warning tabular-nums">{formatCurrency(remaining)}</p>
+          </div>
+          <div>
+            <p className="text-muted-foreground">Parcelas</p>
+            <p className="font-bold text-foreground tabular-nums">{sale.paidInstallments}/{sale.installments}</p>
+          </div>
+          <div className="col-span-2 flex items-center justify-between">
+            <span className="text-muted-foreground">Vencimento</span>
+            <span className="font-semibold text-foreground">{isPaid ? "Quitado" : format(nextDue, "dd/MM/yyyy")}</span>
+          </div>
+          {sale.notes && (
+            <div className="col-span-2">
+              <p className="text-muted-foreground">Observações</p>
+              <p className="text-foreground italic line-clamp-2">{sale.notes}</p>
+            </div>
+          )}
+        </div>
+        {!readOnly && (
+          <div className="mt-3 pt-3 border-t border-border/40 flex justify-end">
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-9 text-xs border-primary/30 text-primary hover:bg-primary hover:text-primary-foreground"
+              onClick={(e) => { e.stopPropagation(); onEdit(); }}
+            >
+              <Pencil className="h-3.5 w-3.5 mr-1.5" /> Editar contrato
+            </Button>
+          </div>
+        )}
+      </div>
+    )}
     </div>
   );
 }
