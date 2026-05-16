@@ -311,7 +311,7 @@ export function ManagerCommissionsChart({
                 <p className="text-xs sm:text-sm font-bold text-primary leading-tight">{mask(rawFormatCurrency(totalProjected))}</p>
               </div>
               <div className="rounded-md bg-muted/40 sm:bg-transparent px-2 py-1 sm:p-0 text-center sm:text-right">
-                <p className="text-[9px] sm:text-[10px] text-muted-foreground uppercase leading-tight">PAGO</p>
+                <p className="text-[9px] sm:text-[10px] text-muted-foreground uppercase leading-tight">Recebido</p>
                 <p className="text-xs sm:text-sm font-bold text-success leading-tight">{mask(rawFormatCurrency(totalPaid))}</p>
               </div>
               <div className="rounded-md bg-muted/40 sm:bg-transparent px-2 py-1 sm:p-0 text-center sm:text-right">
@@ -359,7 +359,7 @@ export function ManagerCommissionsChart({
                     </span>
                   </div>
                   <div className="flex flex-col items-center sm:flex-row sm:items-center sm:justify-between">
-                    <span className="text-[10px] sm:text-xs text-muted-foreground leading-tight">PAGO</span>
+                    <span className="text-[10px] sm:text-xs text-muted-foreground leading-tight">Recebido</span>
                     <span className="text-xs sm:text-sm font-semibold text-success break-all sm:break-normal">
                       {mask(rawFormatCurrency(m.paid))}
                     </span>
@@ -377,7 +377,7 @@ export function ManagerCommissionsChart({
           </div>
         )}
         <p className="text-[10px] text-muted-foreground mt-3 italic text-center">
-          PAGO = comissões registradas ou derivadas de juros/quitações PAGOS no período. Pendente = parcelas com vencimento no período ainda não pagas. Toque em um gerente para ver os detalhes.
+          Recebido = comissões registradas ou derivadas de juros/quitações recebidos no período. Pendente = parcelas com vencimento no período ainda não pagas. Toque em um gerente para ver os detalhes.
         </p>
       </CardContent>
 
@@ -573,7 +573,7 @@ function ManagerDetailDialog({
                   <p className="text-sm font-bold text-primary">{mask(rawFormatCurrency(detail.totalPending))}</p>
                 </div>
                 <div className="rounded-md bg-muted/40 p-2 text-center">
-                  <p className="text-[10px] text-muted-foreground uppercase">PAGO</p>
+                  <p className="text-[10px] text-muted-foreground uppercase">Recebido</p>
                   <p className="text-sm font-bold text-success">{mask(rawFormatCurrency(detail.totalPaid))}</p>
                 </div>
                 <div className="rounded-md bg-muted/40 p-2 text-center">

@@ -1524,7 +1524,7 @@ function LoanCardView({
                 <p className="font-semibold text-foreground">{formatCurrency(totalInterest)}</p>
               </div>
               <div>
-                <p className="text-muted-foreground">Já PAGO</p>
+                <p className="text-muted-foreground">Já Recebido</p>
                 <p className="font-semibold text-success">{formatCurrency(totalPaid)}</p>
               </div>
             </div>
@@ -3542,7 +3542,7 @@ function LoanRowView({
                           <p className="font-semibold text-foreground tabular-nums truncate">{formatCurrency(totalInterest)}</p>
                         </div>
                         <div className="min-w-0">
-                          <p className="text-muted-foreground truncate">Já PAGO</p>
+                          <p className="text-muted-foreground truncate">Já Recebido</p>
                           <p className="font-semibold text-success tabular-nums truncate">{formatCurrency(totalPaid)}</p>
                         </div>
                       </div>
@@ -4370,7 +4370,7 @@ function ClientFolder({
             <p className="font-bold text-foreground">{formatCurrency(group.totalAmount)}</p>
           </div>
           <div className="text-right">
-            <p className="text-[9px] text-muted-foreground uppercase">PAGO</p>
+            <p className="text-[9px] text-muted-foreground uppercase">Recebido</p>
             <p className="font-bold text-success">{formatCurrency(group.totalPaid)}</p>
           </div>
           <div className="text-right">
@@ -4409,7 +4409,7 @@ function ClientFolder({
                 <p className="font-bold text-foreground">{formatCurrency(group.totalAmount)}</p>
               </div>
               <div className="text-center flex-1" data-whatsapp-export-hidden="true">
-                <p className="text-[9px] text-muted-foreground uppercase">PAGO</p>
+                <p className="text-[9px] text-muted-foreground uppercase">Recebido</p>
                 <p className="font-bold text-success">{formatCurrency(group.totalPaid)}</p>
               </div>
               <div className="text-center flex-1">

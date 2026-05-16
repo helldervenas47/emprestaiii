@@ -521,7 +521,7 @@ export function SaleEditForm({ sale, onSave, onClose, clients = [], registeredVe
                         }} placeholder="0,00" />
                       </div>
                       <div>
-                        <Label className="text-xs">PAGO em dinheiro (R$)</Label>
+                        <Label className="text-xs">Recebido em dinheiro (R$)</Label>
                         <Input type="number" step="0.01" min="0" value={cashValor} onChange={(e) => {
                           const nextCash = e.target.value;
                           setCashValor(nextCash);

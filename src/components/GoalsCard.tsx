@@ -62,15 +62,15 @@ const GOAL_EXPLANATIONS: Record<GoalType, {
     measurement: "Quanto maior, mais próximo da meta. Atingimento = (Realizado ÷ Meta) × 100. Resultado em % com 2 casas decimais.",
   },
   profit: {
-    formula: "Faturamento do Período (%) = (Total PAGO no Mês ÷ Total Previsto no Mês) × 100",
+    formula: "Faturamento do Período (%) = (Total Recebido no Mês ÷ Total Previsto no Mês) × 100",
     indicators: [
-      "Total PAGO = soma de TODOS pagamentos com data no mês (principal + juros + multa), igual ao extrato",
+      "Total Recebido = soma de TODOS pagamentos com data no mês (principal + juros + multa), igual ao extrato",
       "Inclui pagamentos somente de juros (parcela 0) e juros + multa",
       "Total Previsto = soma das parcelas (principal + juros) com vencimento no mês, independentemente do status (pendente ou quitada)",
     ],
     dataSource: ["Tabela de Pagamentos (payments.date, payments.amount)", "Tabela de Empréstimos / Cronograma de Parcelas (vencimentos no mês)"],
     example: {
-      setup: "Previsto a receber no mês: R$ 3.000. PAGO no mês: R$ 1.800 (parcelas + R$ 200 de juros avulsos).",
+      setup: "Previsto a receber no mês: R$ 3.000. Recebido no mês: R$ 1.800 (parcelas + R$ 200 de juros avulsos).",
       calc: "(1.800 ÷ 3.000) × 100",
       result: "Faturamento do Período = 60,00%",
     },
@@ -99,7 +99,7 @@ const GOAL_EXPLANATIONS: Record<GoalType, {
     measurement: "Atingimento = (Quantidade realizada ÷ Meta) × 100.",
   },
   received_total: {
-    formula: "Total PAGO = Soma do valor de todos os pagamentos com data no mês selecionado",
+    formula: "Total Recebido = Soma do valor de todos os pagamentos com data no mês selecionado",
     indicators: ["Valor de cada pagamento (principal + juros)", "Data do pagamento"],
     dataSource: ["Tabela de Pagamentos (payments)", "Campo: amount", "Filtro: date no mês selecionado"],
     example: {
@@ -110,7 +110,7 @@ const GOAL_EXPLANATIONS: Record<GoalType, {
     measurement: "Atingimento = (Total recebido ÷ Meta) × 100.",
   },
   interest_received: {
-    formula: "Juros PAGOS = mesma lógica do 'Realizado' no gráfico 'Lucro por Período'",
+    formula: "Juros Recebidos = mesma lógica do 'Realizado' no gráfico 'Lucro por Período'",
     indicators: [
       "1) Juros avulsos (parcela 0) de contratos não quitados → valor integral",
       "2) Contratos quitados no mês → (Total Pago − Principal)",
@@ -190,9 +190,9 @@ const GOAL_EXPLANATIONS: Record<GoalType, {
     measurement: "Meta INVERSA: quanto menor, melhor. Atingimento = máx(0, 100 − (Realizado ÷ Meta) × 100).",
   },
   daily_received_avg: {
-    formula: "Média diária = Total PAGO no mês ÷ Dias corridos do mês até hoje",
+    formula: "Média diária = Total Recebido no mês ÷ Dias corridos do mês até hoje",
     indicators: [
-      "Total PAGO = soma de todos os pagamentos com data no mês",
+      "Total Recebido = soma de todos os pagamentos com data no mês",
       "Dias corridos = somente dias do início do mês até a data atual (não conta o mês inteiro)",
       "Necessário/dia = (Meta mensal − Total recebido) ÷ Dias restantes do mês",
       "Atingimento medido contra a Meta MENSAL cadastrada",
@@ -203,7 +203,7 @@ const GOAL_EXPLANATIONS: Record<GoalType, {
       calc: "Média diária = 20.000 ÷ 10 = R$ 2.000/dia. Necessário/dia = (60.000 − 20.000) ÷ 20 dias restantes",
       result: "Média diária atual = R$ 2.000/dia · Necessário = R$ 2.000/dia",
     },
-    measurement: "Atingimento = (Total PAGO ÷ Meta Mensal) × 100. Quando atingir 100%, exibe 'Meta atingida'.",
+    measurement: "Atingimento = (Total Recebido ÷ Meta Mensal) × 100. Quando atingir 100%, exibe 'Meta atingida'.",
   },
 };
 
@@ -214,8 +214,8 @@ const GOAL_TYPE_META: Record<GoalType, { label: string; icon: any; unit: Unit; c
   profit:             { label: "Faturamento do Período",            icon: TrendingUp,    unit: "%",   color: "text-success",     bgColor: "bg-success/15",     description: "Quanto do valor previsto foi efetivamente realizado." },
   loan_volume:        { label: "Volume Emprestado",                icon: Banknote,      unit: "R$",  color: "text-primary",     bgColor: "bg-primary/15",     description: "Soma do valor de novos empréstimos criados no mês." },
   new_loans_count:    { label: "Novos Empréstimos",                icon: FileText,      unit: "qtd", color: "text-primary",     bgColor: "bg-primary/15",     description: "Quantidade de novos contratos criados no mês." },
-   received_total:     { label: "Pagamentos no Mês",              icon: HandCoins,     unit: "R$",  color: "text-success",     bgColor: "bg-success/15",     description: "Soma de todos os pagamentos PAGOS no mês." },
-  interest_received:  { label: "Juros PAGOS",                  icon: Coins,         unit: "R$",  color: "text-success",     bgColor: "bg-success/15",     description: "Apenas a parte dos juros dos pagamentos PAGOS." },
+   received_total:     { label: "Pagamentos no Mês",              icon: HandCoins,     unit: "R$",  color: "text-success",     bgColor: "bg-success/15",     description: "Soma de todos os pagamentos Recebidos no mês." },
+  interest_received:  { label: "Juros Recebidos",                  icon: Coins,         unit: "R$",  color: "text-success",     bgColor: "bg-success/15",     description: "Apenas a parte dos juros dos pagamentos Recebidos." },
   active_capital:     { label: "Capital Ativo",                    icon: Wallet,        unit: "R$",  color: "text-primary",     bgColor: "bg-primary/15",     description: "Total ainda a receber em contratos ativos." },
   net_profit:         { label: "Lucro Líquido",                    icon: PiggyBank,     unit: "R$",  color: "text-success",     bgColor: "bg-success/15",     description: "Juros recebidos menos despesas pagas da empresa." },
   max_default_rate:   { label: "Inadimplência Máxima",             icon: AlertTriangle, unit: "%",   color: "text-destructive", bgColor: "bg-destructive/15", description: "Limite máximo de % de parcelas em atraso (meta inversa).", inverse: true },
@@ -1457,7 +1457,7 @@ function GoalDetailDialog({ open, onClose, goal, viewingMonth, payments, loans, 
                           <p className="text-sm font-bold text-success">{fmtValue(goal.targetAmount, "R$", hidden)}</p>
                         </div>
                         <div className="rounded-md border border-border bg-card/60 p-2">
-                          <p className="text-[10px] text-muted-foreground uppercase">PAGO total</p>
+                          <p className="text-[10px] text-muted-foreground uppercase">Recebido total</p>
                           <p className="text-sm font-bold text-foreground">{fmtValue(receivedTotal, "R$", hidden)}</p>
                         </div>
                         <div className={`rounded-md border p-2 ${targetReached ? "border-success/30 bg-success/5" : "border-destructive/30 bg-destructive/5"}`}>
@@ -1501,7 +1501,7 @@ function GoalDetailDialog({ open, onClose, goal, viewingMonth, payments, loans, 
                           <p className="text-[9px] text-muted-foreground mt-0.5">{monthlyPct.toFixed(0)}% atingido</p>
                         </div>
                         <div className="rounded-md border border-border bg-card/60 p-2">
-                          <p className="text-[10px] text-muted-foreground uppercase">PAGO total</p>
+                          <p className="text-[10px] text-muted-foreground uppercase">Recebido total</p>
                           <p className="text-sm font-bold text-foreground">{fmtValue(receivedTotal, "R$", hidden)}</p>
                         </div>
                         {reached ? (
