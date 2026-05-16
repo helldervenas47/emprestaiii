@@ -639,7 +639,7 @@ function SaleListRow({ sale, onEdit, onUpdate, formatCurrency, readOnly = false,
         <div className="hidden md:block w-[140px] lg:flex-1 lg:min-w-[200px] shrink-0 min-w-0">
           <p className="text-xs lg:text-sm font-bold text-foreground truncate">{sale.description || sale.productName || "—"}</p>
         </div>
-        <div className="w-[78px] sm:w-[88px] lg:w-[96px] shrink-0">
+        <div className="w-[78px] sm:w-[88px] lg:w-[110px] shrink-0">
           <p className="text-[11px] sm:text-xs text-foreground truncate">
             {!isPaid ? format(nextDue, "dd/MM/yyyy") : "Quitado"}{isRecorrente && ` • ${sale.paidInstallments}/${sale.installments}`}
           </p>
