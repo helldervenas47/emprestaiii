@@ -32,6 +32,7 @@ export function useAccountBalance() {
   const { expenses } = useExpenses(true);
   const { sales } = useProducts(true);
   const { deposits: piggyDeposits } = usePiggyBanks();
+  const external = useExternalAccountSources();
 
   const balance = useMemo(() => {
     const totalIncomeReceived = incomes
@@ -47,13 +48,14 @@ export function useAccountBalance() {
     const totalPiggyManualDeposits = piggyDeposits
       .filter((d) => !d.expenseId)
       .reduce((s, d) => s + (Number(d.amount) || 0), 0);
-    return (
+    const base =
       totalIncomeReceived +
       totalSalesReceived -
       totalExpensePaid -
-      totalPiggyManualDeposits
-    );
-  }, [incomes, sales, expenses, piggyDeposits]);
+      totalPiggyManualDeposits;
+    // Soma saldos externos (Dashboard conta+dinheiro, Cofrinhos, Veículos)
+    return base + external.total;
+  }, [incomes, sales, expenses, piggyDeposits, external.total]);
 
   return balance;
 }
