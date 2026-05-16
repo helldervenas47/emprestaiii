@@ -43,7 +43,8 @@ export function ConsolidatedBalanceCards() {
   // Saldo em Conta — fonte oficial única (aba Receitas e Despesas).
   const incomesBalance = useAccountBalance();
 
-  const [dashboardBalance, setDashboardBalance] = useState(0);
+  const [dashboardAccount, setDashboardAccount] = useState(0);
+  const [dashboardCash, setDashboardCash] = useState(0);
   const [vehicleBalance, setVehicleBalance] = useState(0);
   const [openRua, setOpenRua] = useState(false);
   const [openMaos, setOpenMaos] = useState(false);
@@ -53,7 +54,8 @@ export function ConsolidatedBalanceCards() {
       getBalances(),
       supabase.auth.getSession(),
     ]);
-    setDashboardBalance(b.total);
+    setDashboardAccount(b.account);
+    setDashboardCash(b.cash);
     const user = session?.user;
     if (user) {
       const { data: ownerRow } = await supabase
