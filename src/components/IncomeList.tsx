@@ -33,7 +33,7 @@ function fmtBRL(n: number) {
 }
 
 const STATUS_LABEL: Record<IncomeStatus, string> = {
-  received: "Recebido",
+  received: "PAGO",
   pending: "Pendente",
   overdue: "Atrasado",
 };
