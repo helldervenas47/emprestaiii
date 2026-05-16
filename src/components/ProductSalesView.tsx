@@ -909,8 +909,6 @@ function SaleListRow({ sale, onEdit, onUpdate, formatCurrency, readOnly = false,
   incomeCategoryByName?: Map<string, CustomIncomeCategory>;
 }) {
   const [showPartial, setShowPartial] = useState(false);
-  const [partialAmount, setPartialAmount] = useState("");
-  const [partialDate, setPartialDate] = useState<Date | undefined>(undefined);
   const [showPayDatePicker, setShowPayDatePicker] = useState(false);
   const [showPayments, setShowPayments] = useState(false);
   const historyCount = (sale.paymentHistory || []).length;
