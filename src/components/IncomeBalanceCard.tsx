@@ -90,16 +90,16 @@ export function IncomeBalanceCard({ incomes, expenses, onAdjust, readOnly, onOpe
   const prevKey = `${prevDate.getFullYear()}-${String(prevDate.getMonth() + 1).padStart(2, "0")}`;
 
   const calc = useMemo(() => {
-    // Saldo em Conta (aba Receitas) = receitas recebidas − despesas pessoais pagas.
-    // Independente da Dashboard: NÃO inclui vendas, cofrinhos, cartões,
-    // empréstimos, saldos externos ou qualquer agregado consolidado.
+    // Saldo em Conta (aba Receitas) = receitas recebidas + vendas recebidas − despesas pessoais pagas.
+    // Inclui vendas para manter consistência com o Saldo em Conta da Dashboard.
     const totalIncomeReceived = incomes
       .filter((i) => i.status === "received")
       .reduce((s, i) => s + i.amount, 0);
+    const totalSalesReceived = sales.reduce((s, sale) => s + saleReceivedTotal(sale), 0);
     const totalExpensePaid = expenses
       .filter((e) => e.paid && (e.scope ?? "business") === "personal")
       .reduce((s, e) => s + e.amount, 0);
-    const balance = totalIncomeReceived - totalExpensePaid;
+    const balance = totalIncomeReceived + totalSalesReceived - totalExpensePaid;
 
     // Movimentação do mês vigente
     const monthIn = incomes
