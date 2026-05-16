@@ -442,7 +442,7 @@ export function FinancialHealthDashboard({ incomes, expenses, monthKey }: Props)
         />
       </div>
 
-      {/* Indicadores de saúde — 5 velocímetros clicáveis */}
+      {/* Indicadores de saúde — 5 anéis clicáveis (estilo fintech) */}
       <div className={`${expanded ? "block" : "hidden"} sm:block mb-6`}>
         <div className="flex items-center gap-2 mb-3">
           <Gauge className="h-4 w-4 text-muted-foreground" />
@@ -451,7 +451,7 @@ export function FinancialHealthDashboard({ incomes, expenses, monthKey }: Props)
           </h4>
         </div>
         {/* Mobile: destaque Reserva + 2x2 demais */}
-        <div className="space-y-2.5 md:hidden">
+        <div className="space-y-3 md:hidden">
           <IndicatorGaugeCard
             key="reserve-m"
             title="Reserva financeira"
@@ -460,36 +460,30 @@ export function FinancialHealthDashboard({ incomes, expenses, monthKey }: Props)
             onClick={() => setOpenIndicator("reserve")}
             featured
           />
-          <div className="grid grid-cols-2 gap-2.5">
-            {INDICATORS.filter((i) => i.key !== "reserve").map((ind) => {
-              const score = data.indicatorScores[ind.key];
-              return (
-                <IndicatorGaugeCard
-                  key={ind.key}
-                  title={ind.label}
-                  icon={ind.icon}
-                  score={score}
-                  onClick={() => setOpenIndicator(ind.key)}
-                />
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Desktop/Tablet: 5 indicadores lado a lado em uma única linha */}
-        <div className="hidden md:grid grid-cols-5 gap-2.5">
-          {INDICATORS.map((ind) => {
-            const score = data.indicatorScores[ind.key];
-            return (
+          <div className="grid grid-cols-2 gap-3">
+            {INDICATORS.filter((i) => i.key !== "reserve").map((ind) => (
               <IndicatorGaugeCard
                 key={ind.key}
                 title={ind.label}
                 icon={ind.icon}
-                score={score}
+                score={data.indicatorScores[ind.key]}
                 onClick={() => setOpenIndicator(ind.key)}
               />
-            );
-          })}
+            ))}
+          </div>
+        </div>
+
+        {/* Desktop/Tablet: 5 indicadores lado a lado em uma única linha */}
+        <div className="hidden md:grid grid-cols-5 gap-3">
+          {INDICATORS.map((ind) => (
+            <IndicatorGaugeCard
+              key={ind.key}
+              title={ind.label}
+              icon={ind.icon}
+              score={data.indicatorScores[ind.key]}
+              onClick={() => setOpenIndicator(ind.key)}
+            />
+          ))}
         </div>
       </div>
 
