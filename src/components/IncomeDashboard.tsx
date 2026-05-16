@@ -103,9 +103,8 @@ export function IncomeDashboard({ incomes, allMonthIncomes, monthKey, sales = []
           <span className="text-xs text-muted-foreground">Total a receber</span>
           <span className="text-sm font-semibold text-amber-500">
             {fmtBRL(
-              consolidated
-                .filter((i) => i.status !== "received")
-                .reduce((s, i) => s + (Number(i.amount) || 0), 0),
+              consolidated.reduce((s, i) => s + (Number(i.amount) || 0), 0) +
+                Array.from(salesByCategory.values()).reduce((s, v) => s + v, 0),
             )}
           </span>
         </div>
