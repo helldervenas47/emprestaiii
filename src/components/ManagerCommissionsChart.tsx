@@ -573,7 +573,7 @@ function ManagerDetailDialog({
                   <p className="text-sm font-bold text-primary">{mask(rawFormatCurrency(detail.totalPending))}</p>
                 </div>
                 <div className="rounded-md bg-muted/40 p-2 text-center">
-                  <p className="text-[10px] text-muted-foreground uppercase">Recebido</p>
+                  <p className="text-[10px] text-muted-foreground uppercase">PAGO</p>
                   <p className="text-sm font-bold text-success">{mask(rawFormatCurrency(detail.totalPaid))}</p>
                 </div>
                 <div className="rounded-md bg-muted/40 p-2 text-center">

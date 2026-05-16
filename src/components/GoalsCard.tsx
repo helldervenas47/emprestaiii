@@ -203,7 +203,7 @@ const GOAL_EXPLANATIONS: Record<GoalType, {
       calc: "Média diária = 20.000 ÷ 10 = R$ 2.000/dia. Necessário/dia = (60.000 − 20.000) ÷ 20 dias restantes",
       result: "Média diária atual = R$ 2.000/dia · Necessário = R$ 2.000/dia",
     },
-    measurement: "Atingimento = (Total Recebido ÷ Meta Mensal) × 100. Quando atingir 100%, exibe 'Meta atingida'.",
+    measurement: "Atingimento = (Total PAGO ÷ Meta Mensal) × 100. Quando atingir 100%, exibe 'Meta atingida'.",
   },
 };
 

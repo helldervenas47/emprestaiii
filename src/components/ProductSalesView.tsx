@@ -499,7 +499,7 @@ function SaleCard({ sale, onDelete, onEdit, onUpdate, formatCurrency, readOnly =
                       Mercadoria: <span className="font-medium text-foreground">{merch.descricao}</span> ({rawFormatCurrency(merchValor)})
                     </p>
                     <p className="text-xs text-muted-foreground pt-1 border-t border-primary/10 mt-1">
-                      Recebido em dinheiro: <span className="font-bold text-success">{rawFormatCurrency(pagoDinheiro)}</span>
+                      PAGO em dinheiro: <span className="font-bold text-success">{rawFormatCurrency(pagoDinheiro)}</span>
                     </p>
                   </div>
                 )}

@@ -1332,7 +1332,7 @@ export function AccountantReport({ loans, payments, sales, expenses }: Accountan
                           </div>
                           <div className="grid grid-cols-3 gap-1.5 text-[11px]">
                             <div>
-                              <p className="text-[10px] text-muted-foreground">Recebido</p>
+                              <p className="text-[10px] text-muted-foreground">PAGO</p>
                               <p className="font-medium tabular-nums">{fmt(v.amount, hidden)}</p>
                             </div>
                             <div>
@@ -1353,7 +1353,7 @@ export function AccountantReport({ loans, payments, sales, expenses }: Accountan
                         </div>
                         <div className="grid grid-cols-3 gap-1.5 text-[11px]">
                           <div>
-                            <p className="text-[10px] text-muted-foreground">Recebido</p>
+                            <p className="text-[10px] text-muted-foreground">PAGO</p>
                             <p className="font-bold tabular-nums">{fmt((dre as any).totalReceived, hidden)}</p>
                           </div>
                           <div>

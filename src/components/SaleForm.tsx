@@ -528,7 +528,7 @@ export function SaleForm({ onAdd, onClose, defaultBusinessType = "venda", client
                     )}
                     {(parseFloat(merchValor) || 0) > 0 && (
                       <div className="text-xs text-muted-foreground border-t border-border/40 pt-2 space-y-0.5">
-                        <p>Recebido em dinheiro: <span className="font-medium text-foreground">{new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(parseFloat(form.total) || 0)}</span></p>
+                        <p>PAGO em dinheiro: <span className="font-medium text-foreground">{new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(parseFloat(form.total) || 0)}</span></p>
                         <p>Mercadoria: <span className="font-medium text-foreground">{new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(parseFloat(merchValor) || 0)}</span></p>
                         <p>Total da venda: <span className="font-bold text-primary">{new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format((parseFloat(form.total) || 0) + (parseFloat(merchValor) || 0))}</span></p>
                       </div>

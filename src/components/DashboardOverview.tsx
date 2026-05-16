@@ -2481,7 +2481,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
       <Sheet open={!!receivedDetailMethodId} onOpenChange={(o) => { if (!o) setReceivedDetailMethodId(null); }}>
         <SheetContent side="bottom" className="max-h-[80vh] overflow-y-auto">
           <SheetHeader>
-            <SheetTitle>Recebido via {receivedDetail?.methodName} — {range.label}</SheetTitle>
+            <SheetTitle>PAGO via {receivedDetail?.methodName} — {range.label}</SheetTitle>
           </SheetHeader>
           <div className="mt-4 space-y-2">
             {!receivedDetail || receivedDetail.rows.length === 0 ? (
