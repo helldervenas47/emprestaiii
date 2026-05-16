@@ -215,7 +215,7 @@ export function IncomeList({ readOnly }: Props) {
               {!incomesExpanded
                 ? "Pendente"
                 : statusFilter === "all" ? "Total"
-                : statusFilter === "received" ? "Total recebido"
+                : statusFilter === "received" ? "Total PAGO"
                 : statusFilter === "pending" ? "Total a receber"
                 : statusFilter === "overdue" ? "Total vencido"
                 : statusFilter === "pending_all" ? "Total a receber"

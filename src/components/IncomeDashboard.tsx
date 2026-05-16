@@ -36,7 +36,7 @@ function salePaidInMonth(sale: Sale, monthKey: string): number {
 }
 
 export function IncomeDashboard({ incomes, allMonthIncomes, monthKey, sales = [] }: Props) {
-  // Considera receitas pagas + pendentes (consolidado por categoria)
+  // Considera receitas PAGAS + pendentes (consolidado por categoria)
   const consolidated = allMonthIncomes ?? incomes;
 
   // Sales contribution per category — only the value effectively received in the period.
