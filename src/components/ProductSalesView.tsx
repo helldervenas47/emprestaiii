@@ -374,7 +374,7 @@ function SaleCard({ sale, onDelete, onEdit, onUpdate, formatCurrency, readOnly =
                                 </p>
                               )}
                             </div>
-                            {!readOnly && (
+                            {!readOnly && !isSynthetic && (
                               <Button
                                 size="icon"
                                 variant="ghost"
