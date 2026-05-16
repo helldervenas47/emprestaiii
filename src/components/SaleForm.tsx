@@ -176,7 +176,7 @@ export function SaleForm({ onAdd, onClose, defaultBusinessType = "venda", client
   const isVenda = form.businessType === "venda";
   const totalLabel = isVehicleRental
     ? "Valor Total do Contrato (R$)"
-    : (isVenda && merchEnabled ? "Valor Recebido em Dinheiro (R$)" : "Valor Total (R$)");
+    : (isVenda && merchEnabled ? "Valor PAGO em Dinheiro (R$)" : "Valor Total (R$)");
   const formTitle = isVehicleRental ? "Novo Aluguel de Veículo" : "Novo Lançamento";
 
   const frequencyOptions = isVehicleRental

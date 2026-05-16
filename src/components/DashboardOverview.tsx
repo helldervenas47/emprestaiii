@@ -1756,9 +1756,9 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
           { label: "Total a Receber", value: formatCurrency(portfolio.totalToReceive), color: "text-foreground", iconBg: "bg-primary/10", iconColor: "text-primary", tooltip: "Soma de tudo que ainda falta receber dos contratos ativos: principal + juros de todas as parcelas em aberto." },
           { label: "Pendente de Recebimento", value: formatCurrency(portfolio.pendingReceivable), color: "text-success", iconBg: "bg-success/10", iconColor: "text-success", tooltip: "Valor restante a receber de todos os contratos de empréstimos ativos." },
           { label: "Lucro Estimado", value: formatCurrency(portfolio.estimatedProfit), color: "text-success", iconBg: "bg-success/10", iconColor: "text-success", tooltip: "Total de juros previstos a receber considerando todos os contratos ativos até o final dos seus ciclos. É o lucro projetado se todos pagarem conforme o combinado." },
-          { label: "Juros a Receber no Mês", value: formatCurrency(interestDueInPeriod), color: "text-success", iconBg: "bg-success/10", iconColor: "text-success", onClick: () => { setInterestExpectedFilter("all"); setShowInterestExpectedDetail(true); }, tooltip: "Soma dos 'Juros Recebidos no Mês' + 'Juros Pendentes do Mês'. Representa o total de juros do período: o que já entrou somado ao que ainda falta receber. Clique para ver o detalhamento." },
-          { label: "Juros Recebidos no Mês", value: formatCurrency(interestReceivedInPeriod), color: "text-warning", iconBg: "bg-warning/10", iconColor: "text-warning", onClick: () => setShowInterestDetail(true), tooltip: "Critério: DATA DE PAGAMENTO. Soma os juros efetivamente recebidos em pagamentos registrados no mês, independentemente do mês de vencimento. Inclui: juros avulsos, lucro integral de contratos quitados antecipadamente e a porção de juros de parcelas regulares/parciais. Por usar data de pagamento (e não vencimento), pode divergir de 'Juros a Receber no Mês'. Clique para ver o detalhamento." },
-          { label: "Juros Pendentes do Mês", value: formatCurrency(interestPendingInPeriod), color: "text-warning", iconBg: "bg-warning/10", iconColor: "text-warning", onClick: () => { setInterestExpectedFilter("pending"); setShowInterestExpectedDetail(true); }, tooltip: "Diferença entre 'Juros a Receber no Mês' (vencimento) e 'Juros Recebidos no Mês' (pagamento). Clique para ver o detalhamento do que está pendente de recebimento." },
+          { label: "Juros a Receber no Mês", value: formatCurrency(interestDueInPeriod), color: "text-success", iconBg: "bg-success/10", iconColor: "text-success", onClick: () => { setInterestExpectedFilter("all"); setShowInterestExpectedDetail(true); }, tooltip: "Soma dos 'Juros PAGOS no Mês' + 'Juros Pendentes do Mês'. Representa o total de juros do período: o que já entrou somado ao que ainda falta receber. Clique para ver o detalhamento." },
+          { label: "Juros PAGOS no Mês", value: formatCurrency(interestReceivedInPeriod), color: "text-warning", iconBg: "bg-warning/10", iconColor: "text-warning", onClick: () => setShowInterestDetail(true), tooltip: "Critério: DATA DE PAGAMENTO. Soma os juros efetivamente PAGOS em pagamentos registrados no mês, independentemente do mês de vencimento. Inclui: juros avulsos, lucro integral de contratos quitados antecipadamente e a porção de juros de parcelas regulares/parciais. Por usar data de pagamento (e não vencimento), pode divergir de 'Juros a Receber no Mês'. Clique para ver o detalhamento." },
+          { label: "Juros Pendentes do Mês", value: formatCurrency(interestPendingInPeriod), color: "text-warning", iconBg: "bg-warning/10", iconColor: "text-warning", onClick: () => { setInterestExpectedFilter("pending"); setShowInterestExpectedDetail(true); }, tooltip: "Diferença entre 'Juros a Receber no Mês' (vencimento) e 'Juros PAGOS no Mês' (pagamento). Clique para ver o detalhamento do que está pendente de recebimento." },
         ];
 
         const pendingCard = items[2]; // Pendente de Recebimento
@@ -2116,7 +2116,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
       <Card no3d>
         <CardContent className="p-6">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-sm font-semibold text-foreground">Juros Recebidos por Mês (Últimos 12 Meses)</h3>
+            <h3 className="text-sm font-semibold text-foreground">Juros PAGOS por Mês (Últimos 12 Meses)</h3>
             <div className="flex items-center gap-1">
               {editingInterest ? (
                 <>
@@ -2138,7 +2138,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
                 <thead className="bg-muted/50 sticky top-0">
                   <tr>
                     <th className="text-left p-2 font-medium text-muted-foreground">Mês</th>
-                    <th className="text-right p-2 font-medium text-primary">Juros Recebido</th>
+                    <th className="text-right p-2 font-medium text-primary">Juros PAGO</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -2167,10 +2167,10 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
                 <XAxis dataKey="month" tick={{ fontSize: 11 }} className="text-muted-foreground" />
                 <YAxis tick={{ fontSize: 11 }} tickFormatter={(v) => `R$${(v / 1000).toFixed(0)}k`} className="text-muted-foreground" />
                 <Tooltip
-                  formatter={(value: number) => [formatCurrency(value), "Juros Recebido"]}
+                  formatter={(value: number) => [formatCurrency(value), "Juros PAGO"]}
                   contentStyle={{ borderRadius: "8px", border: "1px solid hsl(var(--border))", backgroundColor: "hsl(var(--card))" }}
                 />
-                <Legend formatter={() => "Juros Recebido"} />
+                <Legend formatter={() => "Juros PAGO"} />
                 <Bar dataKey="juros" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
@@ -2443,7 +2443,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
       <Sheet open={showInterestDetail} onOpenChange={setShowInterestDetail}>
         <SheetContent side="bottom" className="max-h-[80vh] overflow-y-auto">
           <SheetHeader>
-            <SheetTitle>Juros Recebidos no Mês — {range.label}</SheetTitle>
+            <SheetTitle>Juros PAGOS no Mês — {range.label}</SheetTitle>
           </SheetHeader>
           <div className="mt-4 space-y-2">
             {data.interestDetailRecords.length === 0 ? (
