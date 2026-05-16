@@ -115,10 +115,10 @@ export function ConsolidatedBalanceCards() {
     return sum;
   }, [piggyBanks, piggyBalances]);
 
-  // "Saldo Total em Mãos" agora reflete EXATAMENTE o "Saldo em Conta" da aba
-  // Receitas e Despesas (fonte oficial). Demais valores aparecem apenas como
-  // detalhamento no diálogo.
-  const totalEmMaos = incomesBalance;
+  // "Saldo Total em Mãos" = soma de todos os saldos exibidos no detalhamento
+  // (Conta + Dinheiro em mãos + Saldo em Conta (Receitas) + Cofrinhos + Veículos).
+  const totalEmMaos =
+    dashboardAccount + dashboardCash + incomesBalance + piggyTotal + vehicleBalance;
 
   const Row = ({ label, value }: { label: string; value: number }) => (
     <div className="flex items-center justify-between py-2 border-b border-border/40 last:border-0">
