@@ -1104,6 +1104,14 @@ function SaleListRow({ sale, onEdit, onUpdate, formatCurrency, readOnly = false,
           </Dialog>
         </div>
       )}
+      <SalePaymentHistoryDialog
+        open={showPayments}
+        onOpenChange={setShowPayments}
+        sale={sale}
+        onUpdate={onUpdate}
+        formatCurrency={formatCurrency}
+        readOnly={readOnly}
+      />
     </div>
   );
 }
