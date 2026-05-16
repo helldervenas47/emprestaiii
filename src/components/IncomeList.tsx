@@ -33,7 +33,7 @@ function fmtBRL(n: number) {
 }
 
 const STATUS_LABEL: Record<IncomeStatus, string> = {
-  received: "PAGO",
+  received: "Recebido",
   pending: "Pendente",
   overdue: "Atrasado",
 };
@@ -215,7 +215,7 @@ export function IncomeList({ readOnly }: Props) {
               {!incomesExpanded
                 ? "Pendente"
                 : statusFilter === "all" ? "Total"
-                : statusFilter === "received" ? "Total PAGO"
+                : statusFilter === "received" ? "Total recebido"
                 : statusFilter === "pending" ? "Total a receber"
                 : statusFilter === "overdue" ? "Total vencido"
                 : statusFilter === "pending_all" ? "Total a receber"
@@ -562,7 +562,7 @@ export function IncomeList({ readOnly }: Props) {
               {viewDateTarget.status === "received" ? (
                 <>
                   <div className="rounded-lg bg-emerald-500/10 border border-emerald-500/30 p-3">
-                    <p className="text-xs text-muted-foreground">PAGO em</p>
+                    <p className="text-xs text-muted-foreground">Recebido em</p>
                     {editingPayDate ? (
                       <div className="mt-1 space-y-2">
                         <DatePickerField value={editPayDateValue} onChange={setEditPayDateValue} />
