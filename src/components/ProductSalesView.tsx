@@ -601,9 +601,9 @@ function SaleListRow({ sale, onEdit, onUpdate, formatCurrency, readOnly = false,
   const CatIcon = incomeCat ? (personalIconMap[incomeCat.icon] ?? personalIconMap.Package) : Tag;
   const catColor = incomeCat ? `hsl(${incomeCat.color})` : undefined;
 
-  return (
-    <div className="flex items-center gap-2 px-2 sm:px-3 py-2 hover:bg-muted/30 transition-colors">
-      <button onClick={onEdit} className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0 text-left">
+   return (
+    <div className="flex items-center gap-2 sm:gap-3 px-2 sm:px-3 py-2 hover:bg-muted/30 transition-colors">
+      <button onClick={onEdit} className="contents text-left">
         <div className={`h-8 w-8 sm:h-9 sm:w-9 rounded-full flex items-center justify-center text-primary-foreground font-bold text-[10px] sm:text-xs shrink-0 ${
           category === "paid" ? "bg-success" : category === "overdue" ? "bg-destructive" : category === "due_today" ? "bg-warning" : "gradient-primary"
         }`}>
@@ -623,27 +623,27 @@ function SaleListRow({ sale, onEdit, onUpdate, formatCurrency, readOnly = false,
             <span className="truncate">{incomeCat ? incomeCat.name : "Sem categoria"}</span>
           </span>
         </div>
-        <div className="hidden md:block flex-1 min-w-0 max-w-[200px]">
+        <div className="hidden md:block w-[200px] shrink-0 min-w-0">
           <p className="text-sm font-bold text-foreground truncate">{sale.description || sale.productName || "—"}</p>
         </div>
-        <div className="shrink-0 min-w-[70px] sm:min-w-[90px]">
+        <div className="w-[78px] sm:w-[96px] shrink-0">
           <p className="text-[11px] sm:text-xs text-foreground truncate">
             {!isPaid ? format(nextDue, "dd/MM/yyyy") : "Quitado"}{isRecorrente && ` • ${sale.paidInstallments}/${sale.installments}`}
           </p>
           {!isPaid && sale.businessType === "aluguel_veiculo" && (() => {
             const days = differenceInCalendarDays(nextDue, new Date());
-            if (days < 0) return <p className="text-[10px] sm:text-[11px] font-semibold text-destructive">{Math.abs(days)}d em atraso</p>;
-            if (days === 0) return <p className="text-[10px] sm:text-[11px] font-semibold text-warning">Vence hoje</p>;
-            return <p className="text-[10px] sm:text-[11px] font-semibold text-muted-foreground">Faltam {days}d</p>;
+            if (days < 0) return <p className="text-[10px] sm:text-[11px] font-semibold text-destructive truncate">{Math.abs(days)}d em atraso</p>;
+            if (days === 0) return <p className="text-[10px] sm:text-[11px] font-semibold text-warning truncate">Vence hoje</p>;
+            return <p className="text-[10px] sm:text-[11px] font-semibold text-muted-foreground truncate">Faltam {days}d</p>;
           })()}
         </div>
-        <div className="text-right shrink-0 min-w-[60px] sm:min-w-[80px]">
+        <div className="w-[70px] sm:w-[90px] shrink-0 text-right tabular-nums">
           {isPaid ? (
-            <p className="text-xs sm:text-sm font-bold text-success">{formatCurrency(sale.total)}</p>
+            <p className="text-xs sm:text-sm font-bold text-success truncate">{formatCurrency(sale.total)}</p>
           ) : (
             <>
-              <p className="text-xs sm:text-sm font-bold text-foreground">{formatCurrency(partialOnNext)}</p>
-              <p className="text-[10px] sm:text-[11px] text-muted-foreground">Rest. {formatCurrency(remaining)}</p>
+              <p className="text-xs sm:text-sm font-bold text-foreground truncate">{formatCurrency(partialOnNext)}</p>
+              <p className="text-[10px] sm:text-[11px] text-muted-foreground truncate">Rest. {formatCurrency(remaining)}</p>
             </>
           )}
         </div>
