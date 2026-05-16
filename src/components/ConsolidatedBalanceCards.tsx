@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState, useCallback } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { TrendingUp, Wallet } from "lucide-react";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { TrendingUp, Wallet, Landmark, Banknote, PiggyBank, Car, ArrowDownCircle } from "lucide-react";
 import { useLoans } from "@/hooks/useLoans";
 import { useProducts } from "@/hooks/useProducts";
 import { usePiggyBanks } from "@/hooks/usePiggyBanks";
@@ -42,7 +43,8 @@ export function ConsolidatedBalanceCards() {
   // Saldo em Conta — fonte oficial única (aba Receitas e Despesas).
   const incomesBalance = useAccountBalance();
 
-  const [dashboardBalance, setDashboardBalance] = useState(0);
+  const [dashboardAccount, setDashboardAccount] = useState(0);
+  const [dashboardCash, setDashboardCash] = useState(0);
   const [vehicleBalance, setVehicleBalance] = useState(0);
   const [openRua, setOpenRua] = useState(false);
   const [openMaos, setOpenMaos] = useState(false);
@@ -52,7 +54,8 @@ export function ConsolidatedBalanceCards() {
       getBalances(),
       supabase.auth.getSession(),
     ]);
-    setDashboardBalance(b.total);
+    setDashboardAccount(b.account);
+    setDashboardCash(b.cash);
     const user = session?.user;
     if (user) {
       const { data: ownerRow } = await supabase
@@ -162,24 +165,105 @@ export function ConsolidatedBalanceCards() {
       </Dialog>
 
       <Dialog open={openMaos} onOpenChange={setOpenMaos}>
-        <DialogContent className="max-w-sm">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
+        <DialogContent className="max-w-md p-0 overflow-hidden border-border/60 bg-gradient-to-br from-background via-background to-muted/30 backdrop-blur-xl">
+          <DialogHeader className="px-5 pt-5 pb-3">
+            <DialogTitle className="flex items-center gap-2 text-base">
               <Wallet className="h-4 w-4 text-success" /> Saldo Total em Mãos
             </DialogTitle>
-          </DialogHeader>
-          <div className="space-y-1">
-            <Row label="Saldo em Conta (Receitas e Despesas)" value={incomesBalance} />
-            <div className="flex items-center justify-between pt-3 mt-2 border-t border-border">
-              <span className="text-sm font-semibold">Total consolidado</span>
-              <span className={`text-base font-bold tabular-nums ${totalEmMaos < 0 ? "text-destructive" : "text-foreground"}`}>
+            <div className="mt-3 rounded-2xl border border-border/60 bg-gradient-to-br from-success/10 via-success/5 to-transparent p-4 shadow-sm">
+              <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Total consolidado</p>
+              <p className={`text-3xl font-bold tabular-nums leading-tight mt-1 ${totalEmMaos < 0 ? "text-destructive" : "text-foreground"}`}>
                 {formatBRL(totalEmMaos)}
-              </span>
+              </p>
             </div>
-            <p className="text-[11px] text-muted-foreground pt-2">
-              Fonte oficial: aba Receitas e Despesas. Dashboard manual ({formatBRL(dashboardBalance)}), Cofrinhos ({formatBRL(piggyTotal)}) e Veículos ({formatBRL(vehicleBalance)}) são exibidos apenas como referência.
-            </p>
-          </div>
+          </DialogHeader>
+          <ScrollArea className="max-h-[60vh] px-5 pb-5">
+            {(() => {
+              const baseReceitas = incomesBalance - (dashboardAccount + dashboardCash + piggyTotal + vehicleBalance);
+              const Item = ({
+                icon: Icon,
+                label,
+                hint,
+                value,
+                tint,
+              }: {
+                icon: typeof Wallet;
+                label: string;
+                hint?: string;
+                value: number;
+                tint: string;
+              }) => (
+                <div className="flex items-center gap-3 rounded-xl border border-border/50 bg-card/60 backdrop-blur-sm p-3 shadow-sm hover:bg-card/80 transition-colors">
+                  <div className={`shrink-0 h-9 w-9 rounded-full flex items-center justify-center ${tint}`}>
+                    <Icon className="h-4 w-4" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-medium text-foreground truncate">{label}</p>
+                    {hint && <p className="text-[10px] text-muted-foreground truncate">{hint}</p>}
+                  </div>
+                  <span className={`text-sm font-bold tabular-nums ${value < 0 ? "text-destructive" : "text-foreground"}`}>
+                    {formatBRL(value)}
+                  </span>
+                </div>
+              );
+
+              const Section = ({ title, children }: { title: string; children: React.ReactNode }) => (
+                <div className="space-y-2">
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground px-1">{title}</p>
+                  <div className="space-y-2">{children}</div>
+                </div>
+              );
+
+              return (
+                <div className="space-y-4">
+                  <Section title="Contas">
+                    <Item
+                      icon={Landmark}
+                      label="Conta"
+                      hint="Saldo bancário (Dashboard)"
+                      value={dashboardAccount}
+                      tint="bg-primary/15 text-primary"
+                    />
+                    <Item
+                      icon={Banknote}
+                      label="Dinheiro em mãos"
+                      hint="Carteira (Dashboard)"
+                      value={dashboardCash}
+                      tint="bg-success/15 text-success"
+                    />
+                    <Item
+                      icon={ArrowDownCircle}
+                      label="Saldo em Conta (Receitas)"
+                      hint="Receitas − Despesas pessoais"
+                      value={baseReceitas}
+                      tint="bg-warning/15 text-warning"
+                    />
+                  </Section>
+
+                  <Section title="Reservas">
+                    <Item
+                      icon={PiggyBank}
+                      label="Total dos Cofrinhos"
+                      hint={`${piggyBanks.length} ${piggyBanks.length === 1 ? "cofrinho" : "cofrinhos"}`}
+                      value={piggyTotal}
+                      tint="bg-pink-500/15 text-pink-500"
+                    />
+                    <Item
+                      icon={Car}
+                      label="Saldo de Veículos"
+                      hint="Reserva vinculada a veículos"
+                      value={vehicleBalance}
+                      tint="bg-blue-500/15 text-blue-500"
+                    />
+                  </Section>
+
+                  <p className="text-[10px] text-muted-foreground text-center pt-1">
+                    Fonte oficial: aba Receitas e Despesas. Atualizado em tempo real.
+                  </p>
+                </div>
+              );
+            })()}
+          </ScrollArea>
         </DialogContent>
       </Dialog>
     </>
