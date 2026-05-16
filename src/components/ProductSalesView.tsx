@@ -1119,7 +1119,7 @@ function SaleListRow({ sale, onEdit, onUpdate, formatCurrency, readOnly = false,
           )}
         </div>
         {!readOnly && (
-          <div className="mt-3 pt-3 border-t border-border/40 flex flex-wrap items-center justify-end gap-2">
+          <div className="mt-3 pt-3 border-t border-border/40 flex flex-wrap items-center justify-center gap-2">
             <Popover>
               <PopoverTrigger asChild>
                 <Button
@@ -1166,7 +1166,7 @@ function SaleListRow({ sale, onEdit, onUpdate, formatCurrency, readOnly = false,
             <Button
               variant="outline"
               size="sm"
-              className="h-9 text-xs border-primary/30 text-primary hover:bg-primary hover:text-primary-foreground"
+              className="h-9 text-xs border-muted-foreground/30 text-muted-foreground hover:bg-muted-foreground hover:text-muted-foreground-foreground"
               onClick={(e) => { e.stopPropagation(); onEdit(); }}
             >
               <Pencil className="h-3.5 w-3.5 mr-1.5" /> Editar contrato
