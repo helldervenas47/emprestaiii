@@ -852,7 +852,7 @@ export function IncomePendingCalendar({
           </span>
         </div>
 
-        <div className={`grid gap-4 ${selectedDate ? "" : "md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)]"}`}>
+        <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)]">
           {/* Calendário (semana ou mês expandido) permanece sempre visível acima dos detalhes,
               inclusive no mobile, dando contexto ao dia selecionado. */}
           <div>
