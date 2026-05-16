@@ -1122,6 +1122,7 @@ function SaleListRow({ sale, onEdit, onUpdate, formatCurrency, readOnly = false,
         sale={sale}
         onUpdate={onUpdate}
         formatCurrency={formatCurrency}
+        readOnly={readOnly}
       />
     </div>
 
