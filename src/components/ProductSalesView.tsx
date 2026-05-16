@@ -1167,7 +1167,50 @@ function SaleListRow({ sale, onEdit, onUpdate, formatCurrency, readOnly = false,
           )}
         </div>
         {!readOnly && (
-          <div className="mt-3 pt-3 border-t border-border/40 flex justify-end">
+          <div className="mt-3 pt-3 border-t border-border/40 flex flex-wrap items-center justify-end gap-2">
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-9 text-xs border-primary/30 text-primary hover:bg-primary hover:text-primary-foreground"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <HandCoins className="h-3.5 w-3.5 mr-1.5" /> Pagar
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-52 p-1" align="end">
+                <button
+                  type="button"
+                  onClick={(e) => { e.stopPropagation(); setShowPayDatePicker(true); }}
+                  className="w-full flex items-center gap-2 rounded-md px-2 py-2 text-sm text-foreground hover:bg-primary/10 transition-colors"
+                >
+                  <CheckCircle className="h-4 w-4 text-primary" />
+                  <span>Pagar Parcela</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={(e) => { e.stopPropagation(); setShowPartial(true); }}
+                  className="w-full flex items-center gap-2 rounded-md px-2 py-2 text-sm text-foreground hover:bg-warning/10 transition-colors"
+                >
+                  <HandCoins className="h-4 w-4 text-warning" />
+                  <span>Pagar Parcial</span>
+                </button>
+              </PopoverContent>
+            </Popover>
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-9 text-xs border-success/30 text-success hover:bg-success hover:text-success-foreground relative"
+              onClick={(e) => { e.stopPropagation(); setShowPayments(true); }}
+            >
+              <Receipt className="h-3.5 w-3.5 mr-1.5" /> Histórico
+              {historyCount > 0 && (
+                <Badge variant="secondary" className="ml-1.5 text-[10px] px-1.5 py-0">
+                  {historyCount}
+                </Badge>
+              )}
+            </Button>
             <Button
               variant="outline"
               size="sm"
