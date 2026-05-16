@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect, useMemo } from "react";
+import { useIsMobile } from "@/hooks/use-mobile";
 import * as LucideIcons from "lucide-react";
 import { usePaymentCelebration } from "@/hooks/usePaymentCelebration";
 import { todayInAppTz } from "@/lib/timezone";
