@@ -415,7 +415,10 @@ function RegisterSalePaymentDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md max-h-[92vh] overflow-y-auto bg-card/95 backdrop-blur-2xl border-white/10 shadow-2xl">
+      <DialogContent
+        onOpenAutoFocus={(event) => event.preventDefault()}
+        className="sm:max-w-md max-h-[92vh] overflow-y-auto bg-card/95 backdrop-blur-2xl border-white/10 shadow-2xl"
+      >
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <HandCoins className="h-5 w-5 text-primary" />
