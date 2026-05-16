@@ -63,13 +63,10 @@ export function IncomeDashboard({ incomes, allMonthIncomes, monthKey, sales = []
 
   const topCategories = useMemo(() => {
     const map = new Map<string, number>();
-    // Only realized values are considered for the ranking.
-    consolidated
-      .filter((i) => i.status === "received")
-      .forEach((i) => {
-        const k = i.category || "Outros";
-        map.set(k, (map.get(k) || 0) + i.amount);
-      });
+    consolidated.forEach((i) => {
+      const k = i.category || "Outros";
+      map.set(k, (map.get(k) || 0) + i.amount);
+    });
     salesByCategory.forEach((v, k) => map.set(k, (map.get(k) || 0) + v));
     return Array.from(map.entries())
       .sort((a, b) => b[1] - a[1])
