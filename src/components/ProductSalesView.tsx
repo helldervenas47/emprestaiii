@@ -612,7 +612,7 @@ function SaleListRow({ sale, onEdit, onUpdate, formatCurrency, readOnly = false,
         <div className="flex-1 min-w-0">
           <p className="text-xs sm:text-sm font-semibold text-foreground truncate">{sale.customerName || "—"}</p>
           <span
-            className="mt-0.5 inline-flex items-center gap-1 rounded-full border px-1.5 py-0.5 text-[9px] sm:text-[10px] font-medium max-w-full"
+            className="md:hidden mt-0.5 inline-flex items-center gap-1 rounded-full border px-1.5 py-0.5 text-[9px] sm:text-[10px] font-medium max-w-full"
             style={incomeCat ? {
               borderColor: `hsl(${incomeCat.color} / 0.4)`,
               backgroundColor: `hsl(${incomeCat.color} / 0.12)`,
@@ -620,6 +620,19 @@ function SaleListRow({ sale, onEdit, onUpdate, formatCurrency, readOnly = false,
             } : undefined}
           >
             <CatIcon className="h-2.5 w-2.5 shrink-0" style={catColor ? { color: catColor } : undefined} />
+            <span className="truncate">{incomeCat ? incomeCat.name : "Sem categoria"}</span>
+          </span>
+        </div>
+        <div className="hidden md:flex w-[150px] shrink-0 min-w-0 items-center">
+          <span
+            className="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-medium max-w-full"
+            style={incomeCat ? {
+              borderColor: `hsl(${incomeCat.color} / 0.4)`,
+              backgroundColor: `hsl(${incomeCat.color} / 0.12)`,
+              color: catColor,
+            } : undefined}
+          >
+            <CatIcon className="h-3 w-3 shrink-0" style={catColor ? { color: catColor } : undefined} />
             <span className="truncate">{incomeCat ? incomeCat.name : "Sem categoria"}</span>
           </span>
         </div>
