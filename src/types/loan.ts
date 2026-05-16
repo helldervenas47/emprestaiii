@@ -206,6 +206,8 @@ export interface SalePaymentRecord {
   amount: number;
   date: string;
   type: "full" | "partial";
+  paymentMethodId?: string | null;
+  notes?: string | null;
 }
 
 export interface Sale {
