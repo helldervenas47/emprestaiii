@@ -580,6 +580,46 @@ function InsightCard({
 // Indicadores essenciais — 5 velocímetros clicáveis
 // =====================================================================
 
+function RingGauge({ score, color, size, stroke }: { score: number; color: string; size: number; stroke: number }) {
+  const r = (size - stroke) / 2;
+  const c = 2 * Math.PI * r;
+  const pct = Math.max(0, Math.min(100, score));
+  const dash = (pct / 100) * c;
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox={`0 0 ${size} ${size}`}
+      className="block"
+      role="img"
+      aria-label={`Pontuação ${score} de 100`}
+    >
+      <circle
+        cx={size / 2}
+        cy={size / 2}
+        r={r}
+        fill="none"
+        stroke="hsl(var(--foreground) / 0.08)"
+        strokeWidth={stroke}
+        strokeLinecap="round"
+      />
+      <circle
+        cx={size / 2}
+        cy={size / 2}
+        r={r}
+        fill="none"
+        stroke={color}
+        strokeWidth={stroke}
+        strokeLinecap="round"
+        strokeDasharray={`${dash} ${c - dash}`}
+        strokeDashoffset={c * 0.25}
+        transform={`rotate(-90 ${size / 2} ${size / 2}) scale(1,-1) translate(0 -${size})`}
+        style={{ transition: "stroke-dasharray 900ms cubic-bezier(0.22, 1, 0.36, 1)" }}
+      />
+    </svg>
+  );
+}
+
 function IndicatorGaugeCard({
   title,
   icon,
@@ -595,92 +635,73 @@ function IndicatorGaugeCard({
 }) {
   const color = scoreColorOf(score);
   const label = scoreLabelOf(score);
-  const gaugeData = [{ name: "score", value: score, fill: color }];
   return (
     <button
       type="button"
       onClick={onClick}
-      className={`group relative w-full overflow-hidden rounded-2xl border border-black/10 dark:border-white/10 bg-foreground/[0.03] backdrop-blur-xl text-left transition-all hover:bg-foreground/[0.07] active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
-        featured ? "p-3 shadow-md shadow-black/5" : "p-2.5"
+      className={`group relative w-full overflow-hidden rounded-2xl border border-black/5 dark:border-white/10 bg-white/70 dark:bg-foreground/[0.04] backdrop-blur-xl text-left transition-all hover:bg-white dark:hover:bg-foreground/[0.08] hover:shadow-lg hover:-translate-y-0.5 active:scale-[0.99] focus:outline-none focus-visible:ring-2 focus-visible:ring-primary shadow-[0_4px_20px_-8px_hsl(220_30%_8%/0.12)] ${
+        featured ? "p-4" : "p-3"
       }`}
-      style={
-        featured
-          ? { background: `linear-gradient(180deg, ${color}10, hsl(var(--foreground) / 0.03))` }
-          : undefined
-      }
     >
-      <div
-        className={`absolute inset-x-0 top-0 ${featured ? "h-[2px]" : "h-px"}`}
-        style={{ background: `linear-gradient(90deg, transparent, ${color}, transparent)` }}
-      />
-      <div className={`flex items-center justify-between gap-2 ${featured ? "mb-1" : "mb-1"}`}>
-        <div className="flex items-center gap-1.5 min-w-0">
-          <span
-            className={`flex items-center justify-center rounded-md shrink-0 ${
-              featured ? "h-7 w-7" : "h-5 w-5"
-            }`}
-            style={{ background: `${color}22`, color }}
-          >
-            {icon}
-          </span>
-          <span
-            className={`text-foreground/90 font-semibold truncate ${
-              featured ? "text-[13px]" : "text-[11px]"
-            }`}
-          >
-            {title}
-          </span>
+      {featured ? (
+        // Featured: layout horizontal com anel grande à direita
+        <div className="flex items-center gap-4">
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-2 mb-1.5">
+              <span
+                className="flex h-8 w-8 items-center justify-center rounded-xl shrink-0"
+                style={{ background: `${color}1f`, color }}
+              >
+                {icon}
+              </span>
+              <span className="text-foreground text-sm font-semibold truncate">{title}</span>
+            </div>
+            <span
+              className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-semibold"
+              style={{ background: `${color}1f`, color }}
+            >
+              <span className="h-1.5 w-1.5 rounded-full" style={{ background: color }} />
+              {label}
+            </span>
+          </div>
+          <div className="relative shrink-0">
+            <RingGauge score={score} color={color} size={92} stroke={10} />
+            <div className="absolute inset-0 flex flex-col items-center justify-center leading-none">
+              <span className="text-2xl font-bold tabular-nums" style={{ color }}>
+                {score}
+              </span>
+              <span className="text-[9px] text-muted-foreground mt-0.5">de 100</span>
+            </div>
+          </div>
         </div>
-        {featured && (
+      ) : (
+        // Compacto: anel centralizado com título acima e label abaixo
+        <div className="flex flex-col items-center text-center gap-2">
+          <div className="flex items-center gap-1.5 max-w-full">
+            <span
+              className="flex h-5 w-5 items-center justify-center rounded-md shrink-0"
+              style={{ background: `${color}1f`, color }}
+            >
+              {icon}
+            </span>
+            <span className="text-foreground/90 text-[11px] font-semibold truncate">{title}</span>
+          </div>
+          <div className="relative">
+            <RingGauge score={score} color={color} size={76} stroke={8} />
+            <div className="absolute inset-0 flex flex-col items-center justify-center leading-none">
+              <span className="text-xl font-bold tabular-nums" style={{ color }}>
+                {score}
+              </span>
+              <span className="text-[8px] text-muted-foreground mt-0.5">de 100</span>
+            </div>
+          </div>
           <span
-            className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-semibold"
+            className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[9px] font-semibold"
             style={{ background: `${color}1f`, color }}
           >
-            <span className="h-1.5 w-1.5 rounded-full" style={{ background: color }} />
+            <span className="h-1 w-1 rounded-full" style={{ background: color }} />
             {label}
           </span>
-        )}
-      </div>
-      {/* Velocímetro com pontuação centralizada dentro */}
-      <div className={`relative w-full ${featured ? "aspect-[2.2/1]" : "aspect-[1.9/1]"}`}>
-        <ResponsiveContainer width="100%" height="100%">
-          <RadialBarChart
-            cx="50%"
-            cy="95%"
-            innerRadius={featured ? "82%" : "78%"}
-            outerRadius={featured ? "118%" : "114%"}
-            startAngle={180}
-            endAngle={0}
-            data={gaugeData}
-          >
-            <PolarAngleAxis type="number" domain={[0, 100]} tick={false} />
-            <RadialBar
-              background={{ fill: "hsl(var(--foreground) / 0.07)" }}
-              dataKey="value"
-              cornerRadius={10}
-              fill={color}
-              isAnimationActive
-              animationDuration={1100}
-            />
-          </RadialBarChart>
-        </ResponsiveContainer>
-        {/* Pontuação posicionada acima do arco, próxima ao centro do velocímetro */}
-        <div className={`pointer-events-none absolute inset-x-0 flex justify-center ${featured ? "bottom-[51%]" : "bottom-[45%]"}`}>
-          <span
-            className={`font-bold leading-none tabular-nums ${featured ? "text-4xl" : "text-2xl"}`}
-            style={{ color }}
-          >
-            {score}
-          </span>
-        </div>
-      </div>
-      {!featured && (
-        <div
-          className="mt-1 inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[9px] font-semibold"
-          style={{ background: `${color}1f`, color }}
-        >
-          <span className="h-1 w-1 rounded-full" style={{ background: color }} />
-          {label}
         </div>
       )}
     </button>
