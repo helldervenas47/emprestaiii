@@ -623,7 +623,7 @@ function SaleListRow({ sale, onEdit, onUpdate, formatCurrency, readOnly = false,
             <span className="truncate">{incomeCat ? incomeCat.name : "Sem categoria"}</span>
           </span>
         </div>
-        <div className="hidden md:flex w-[150px] shrink-0 min-w-0 items-center">
+        <div className="hidden md:flex w-[140px] lg:w-[160px] shrink-0 min-w-0 items-center">
           <span
             className="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-medium max-w-full"
             style={incomeCat ? {
@@ -636,7 +636,7 @@ function SaleListRow({ sale, onEdit, onUpdate, formatCurrency, readOnly = false,
             <span className="truncate">{incomeCat ? incomeCat.name : "Sem categoria"}</span>
           </span>
         </div>
-        <div className="hidden md:block w-[200px] shrink-0 min-w-0">
+        <div className="hidden lg:block w-[200px] shrink-0 min-w-0">
           <p className="text-sm font-bold text-foreground truncate">{sale.description || sale.productName || "—"}</p>
         </div>
         <div className="w-[78px] sm:w-[96px] shrink-0">
