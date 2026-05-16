@@ -650,7 +650,7 @@ function SaleListRow({ sale, onEdit, onUpdate, formatCurrency, readOnly = false,
             return <p className="text-[10px] sm:text-[11px] font-semibold text-muted-foreground truncate">Faltam {days}d</p>;
           })()}
         </div>
-        <div className="w-[102px] sm:w-[108px] lg:w-[122px] shrink-0 text-right tabular-nums">
+        <div className="w-[102px] sm:w-[108px] lg:w-[140px] shrink-0 text-right tabular-nums">
           {isPaid ? (
             <p className="text-xs sm:text-sm font-bold text-success truncate">{formatCurrency(sale.total)}</p>
           ) : (
