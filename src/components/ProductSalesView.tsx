@@ -514,27 +514,54 @@ function SaleCard({ sale, onDelete, onEdit, onUpdate, formatCurrency, readOnly =
 
               {!readOnly && (
               <div className="flex gap-2">
-                <Popover open={showPayDatePicker} onOpenChange={setShowPayDatePicker}>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className="flex-1 h-9 text-xs border-primary/30 text-primary hover:bg-primary hover:text-primary-foreground"
-                    >
-                      <CheckCircle className="h-3.5 w-3.5 mr-1" /> Pagar Parcela
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <div className="p-3 border-b border-border">
-                      <p className="text-sm font-medium text-foreground">Selecione a data do pagamento</p>
+                <Dialog open={showPayDatePicker} onOpenChange={(open) => {
+                  setShowPayDatePicker(open);
+                  if (!open) { setFullDate(undefined); setFullMethodId(null); setFullNotes(""); }
+                }}>
+                  <DialogContent className="sm:max-w-md max-h-[85vh] overflow-y-auto">
+                    <DialogHeader>
+                      <DialogTitle>Pagar Parcela</DialogTitle>
+                      <DialogDescription>
+                        Confirme a data, forma de pagamento e observações.
+                      </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4 py-2">
+                      <div>
+                        <label className="text-sm font-medium text-foreground mb-1 block">Data do Pagamento</label>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button variant="outline" className={cn("w-full justify-start text-left font-normal", !fullDate && "text-muted-foreground")}>
+                              <CalendarIcon className="mr-2 h-4 w-4" />
+                              {fullDate ? format(fullDate, "dd/MM/yyyy") : "Selecione a data"}
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0" align="start">
+                            <Calendar mode="single" selected={fullDate} onSelect={setFullDate} initialFocus className={cn("p-3 pointer-events-auto")} />
+                          </PopoverContent>
+                        </Popover>
+                      </div>
+                      <PaymentMethodPicker value={fullMethodId} onChange={setFullMethodId} />
+                      <div>
+                        <label className="text-sm font-medium text-foreground mb-1 block">Observações (opcional)</label>
+                        <Textarea rows={2} placeholder="Detalhes do pagamento..." value={fullNotes} onChange={(e) => setFullNotes(e.target.value)} />
+                      </div>
                     </div>
-                    <Calendar
-                      mode="single"
-                      selected={undefined}
-                      onSelect={(date) => {
-                        if (date) {
+                    <DialogFooter>
+                      <Button variant="ghost" onClick={() => { setShowPayDatePicker(false); setFullDate(undefined); setFullMethodId(null); setFullNotes(""); }}>Cancelar</Button>
+                      <Button
+                        className="flex-1 h-9 border-primary/30 text-primary-foreground bg-primary hover:bg-primary/90"
+                        disabled={!fullDate}
+                        onClick={() => {
+                          if (!fullDate) return;
                           const nextIdx = sale.paidInstallments;
                           const paymentVal = getParcelaValue(nextIdx) - (sale.partialPaid || 0);
-                          const newRecord: SalePaymentRecord = { amount: paymentVal, date: format(date, "yyyy-MM-dd"), type: "full" };
+                          const newRecord: SalePaymentRecord = {
+                            amount: paymentVal,
+                            date: format(fullDate, "yyyy-MM-dd"),
+                            type: "full",
+                            paymentMethodId: fullMethodId || null,
+                            notes: fullNotes.trim() || null,
+                          };
                           const history = [...(sale.paymentHistory || []), newRecord];
                           onUpdate({
                             paidInstallments: Math.min(sale.installments, sale.paidInstallments + 1),
@@ -542,14 +569,21 @@ function SaleCard({ sale, onDelete, onEdit, onUpdate, formatCurrency, readOnly =
                             paymentHistory: history,
                           });
                           celebrate({ kind: "sale", message: "Parcela paga!", amount: paymentVal });
-                          setShowPayDatePicker(false);
-                        }
-                      }}
-                      initialFocus
-                      className={cn("p-3 pointer-events-auto")}
-                    />
-                  </PopoverContent>
-                </Popover>
+                          setShowPayDatePicker(false); setFullDate(undefined); setFullMethodId(null); setFullNotes("");
+                        }}
+                      >
+                        <CheckCircle className="h-4 w-4 mr-1" /> Confirmar
+                      </Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
+                <Button
+                  variant="outline"
+                  className="flex-1 h-9 text-xs border-primary/30 text-primary hover:bg-primary hover:text-primary-foreground"
+                  onClick={() => setShowPayDatePicker(true)}
+                >
+                  <CheckCircle className="h-3.5 w-3.5 mr-1" /> Pagar Parcela
+                </Button>
                 <Button
                   variant="outline"
                   className="flex-1 h-9 text-xs border-warning/30 text-warning hover:bg-warning hover:text-warning-foreground"
