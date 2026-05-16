@@ -106,9 +106,19 @@ const saleCategoryConfig = {
 
 function SaleCard({ sale, onDelete, onEdit, onUpdate, formatCurrency, readOnly = false, clients = [], locadorInfo, registeredVehicles = [], locadores = [] }: { sale: Sale; onDelete: () => void; onEdit: () => void; onUpdate: (data: Partial<Omit<Sale, "id">>) => void; formatCurrency: (v: number) => string; readOnly?: boolean; clients?: Client[]; locadorInfo?: LocadorInfo; registeredVehicles?: VehicleInfo[]; locadores?: LocadorInfo[] }) {
   const { celebrate } = usePaymentCelebration();
+  const { activeMethods } = usePaymentMethods();
+  const methodById = useMemo(() => {
+    const m = new Map<string, { name: string; icon: string | null }>();
+    activeMethods.forEach((pm) => m.set(pm.id, { name: pm.name, icon: pm.icon }));
+    return m;
+  }, [activeMethods]);
   const [showPartial, setShowPartial] = useState(false);
   const [partialAmount, setPartialAmount] = useState("");
   const [partialDate, setPartialDate] = useState<Date | undefined>(undefined);
+  const [partialMethodId, setPartialMethodId] = useState<string | null>(null);
+  const [partialNotes, setPartialNotes] = useState("");
+  const [fullMethodId, setFullMethodId] = useState<string | null>(null);
+  const [fullNotes, setFullNotes] = useState("");
   const [showParcelas, setShowParcelas] = useState(false);
   const [showPayDatePicker, setShowPayDatePicker] = useState(false);
   const [showPayments, setShowPayments] = useState(false);
