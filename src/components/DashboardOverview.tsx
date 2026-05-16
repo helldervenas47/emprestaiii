@@ -1499,7 +1499,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
                 <div className="h-10 w-10 rounded-full bg-success/10 flex items-center justify-center shrink-0 mb-1">
                   <ArrowDownToLine className="h-5 w-5 text-success" />
                 </div>
-                <p className="text-xs text-muted-foreground">Valores Recebidos</p>
+                <p className="text-xs text-muted-foreground">Valores PAGOS</p>
                 <p className="text-lg font-bold text-success">{formatCurrency(receivedByMethod.total)}</p>
                 <p className="text-[10px] text-muted-foreground">{range.label}</p>
               </div>
@@ -1507,7 +1507,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
             <div className="mt-3 flex-1">
               {receivedByMethod.items.length === 0 && receivedByMethod.unassigned <= 0 ? (
                 <div className="bg-muted/50 rounded-lg p-3 border border-border/30 text-center">
-                  <p className="text-[11px] text-muted-foreground">Nenhum recebimento no período</p>
+                  <p className="text-[11px] text-muted-foreground">Nenhum pagamento no período</p>
                 </div>
               ) : (
                 <div className="grid grid-cols-2 gap-2">
@@ -2602,7 +2602,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
 
                 {/* Total */}
                 <div className="flex items-center justify-between pt-3 border-t-2 border-border">
-                  <p className="text-sm font-semibold">{showReceived ? "Total (Recebidos + Pendentes)" : "Total Pendente"}</p>
+                  <p className="text-sm font-semibold">{showReceived ? "Total (PAGOS + Pendentes)" : "Total Pendente"}</p>
                   <p className="text-base font-bold text-foreground">{formatCurrency(grandTotal)}</p>
                 </div>
               </div>
