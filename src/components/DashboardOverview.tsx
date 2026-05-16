@@ -29,7 +29,7 @@ import {
 } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { usePaymentMethods } from "@/hooks/usePaymentMethods";
-import { Banknote, Smartphone, ArrowDownToLine } from "lucide-react";
+import { Banknote, Smartphone, ArrowDownToLine, Activity } from "lucide-react";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, ComposedChart, Line } from "recharts";
 import { AIReportAudioPlayer } from "@/components/AIReportAudioPlayer";
@@ -1889,141 +1889,181 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
         );
       })()}
 
-      {/* Health Score Gauge - placed above Goals */}
-      <Card no3d className="relative overflow-hidden border border-white/10 bg-card/60 backdrop-blur-2xl backdrop-saturate-150 shadow-[0_20px_60px_-30px_hsl(var(--primary)/0.35)]">
-        <div className="pointer-events-none absolute -top-24 -right-24 h-72 w-72 rounded-full blur-3xl opacity-30" style={{ background: `radial-gradient(circle, hsl(var(--primary) / 0.35), transparent 70%)` }} />
-        <div className="pointer-events-none absolute -bottom-32 -left-20 h-72 w-72 rounded-full blur-3xl opacity-20" style={{ background: `radial-gradient(circle, hsl(var(--success) / 0.4), transparent 70%)` }} />
-        <CardContent className="relative p-4 sm:p-6">
-          <div className="flex flex-col items-center text-center gap-3 mb-5 sm:flex-row sm:items-center sm:justify-between sm:text-left sm:gap-4">
-            <div className="flex items-center gap-2.5">
-              <div className="h-9 w-9 rounded-xl bg-primary/15 border border-primary/20 flex items-center justify-center shrink-0 backdrop-blur-md">
-                <Sparkles className="h-4 w-4 text-primary" />
-              </div>
-              <div>
-                <h3 className="text-sm sm:text-base font-semibold text-foreground tracking-tight">Saúde da Operação</h3>
-                <p className="text-[10px] sm:text-xs text-muted-foreground">Indicadores principais da carteira no período</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className={`hidden sm:inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider backdrop-blur-md ${
-                portfolio.score >= 70
-                  ? "bg-success/10 text-success border-success/30"
-                  : portfolio.score >= 40
-                    ? "bg-warning/10 text-warning border-warning/30"
-                    : "bg-destructive/10 text-destructive border-destructive/30"
-              }`}>
-                <span className={`h-1.5 w-1.5 rounded-full animate-pulse ${
-                  portfolio.score >= 70 ? "bg-success" : portfolio.score >= 40 ? "bg-warning" : "bg-destructive"
-                }`} />
-                {portfolio.score >= 70 ? "Saudável" : portfolio.score >= 40 ? "Atenção" : "Crítico"}
-              </span>
-              <button
-                type="button"
-                onClick={() => setShowHealthInfo(true)}
-                className="inline-flex items-center gap-1.5 rounded-full border border-border/40 bg-card/60 px-2.5 py-1.5 text-xs text-muted-foreground hover:text-foreground hover:bg-card/80 backdrop-blur-md transition-colors"
-                aria-label="Como cada indicador é calculado"
-              >
-                <Info className="h-3.5 w-3.5" />
-                <span className="hidden sm:inline">Como é calculado?</span>
-              </button>
-            </div>
-          </div>
-          <div className="flex flex-col items-center gap-5 sm:flex-row sm:gap-6">
-            {/* Gauge */}
-            <div className="relative w-32 h-32 sm:w-44 sm:h-44 shrink-0">
-              <svg viewBox="0 0 120 120" className="w-full h-full -rotate-90">
-                <circle cx="60" cy="60" r="52" fill="none" stroke="currentColor" strokeWidth="10" className="text-foreground/5" />
-                <circle
-                  cx="60" cy="60" r="52" fill="none" strokeWidth="10" strokeLinecap="round"
-                  className={healthStroke}
-                  strokeDasharray={`${(portfolio.score / 100) * 326.7} 326.7`}
-                  style={{ filter: "drop-shadow(0 0 8px currentColor)", transition: "stroke-dasharray 900ms cubic-bezier(0.22, 1, 0.36, 1)" }}
-                />
-              </svg>
-              <div className="absolute inset-0 flex flex-col items-center justify-center">
-                <span className={`text-3xl sm:text-4xl font-bold ${healthColor} tracking-tight`}>{portfolio.score}</span>
-                <span className="text-[10px] sm:text-xs text-muted-foreground uppercase tracking-wider mt-0.5">de 100</span>
-              </div>
-            </div>
-            {/* Metrics — glass cards */}
-            <div className="flex-1 grid grid-cols-2 gap-2.5 sm:gap-3 w-full">
-              {(() => {
-                const variants = {
-                  success: {
-                    wrap: "border-success/20 bg-success/5 hover:bg-success/10 hover:shadow-[0_10px_30px_-15px_hsl(var(--success)/0.5)]",
-                    line: "via-success/60",
-                    text: "text-success",
-                  },
-                  warning: {
-                    wrap: "border-warning/20 bg-warning/5 hover:bg-warning/10 hover:shadow-[0_10px_30px_-15px_hsl(var(--warning)/0.5)]",
-                    line: "via-warning/60",
-                    text: "text-warning",
-                  },
-                  destructive: {
-                    wrap: "border-destructive/20 bg-destructive/5 hover:bg-destructive/10 hover:shadow-[0_10px_30px_-15px_hsl(var(--destructive)/0.5)]",
-                    line: "via-destructive/60",
-                    text: "text-destructive",
-                  },
-                } as const;
-                const recKey = portfolio.receivingRate >= 70 ? "success" : portfolio.receivingRate >= 40 ? "warning" : "destructive";
-                const defKey = portfolio.defaultRate <= 20 ? "success" : portfolio.defaultRate <= 50 ? "warning" : "destructive";
-                const rec = variants[recKey];
-                const def = variants[defKey];
-                return (
-                  <>
-                    <div className={`group relative overflow-hidden rounded-2xl border backdrop-blur-xl p-3 sm:p-4 transition-all hover:-translate-y-0.5 ${rec.wrap}`}>
-                      <div className={`absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent to-transparent ${rec.line}`} />
-                      <p className="text-[10px] sm:text-xs text-muted-foreground uppercase tracking-wider font-medium">Taxa de Recebimento</p>
-                      <p className={`text-lg sm:text-2xl font-bold mt-1 tabular-nums ${rec.text}`}>{portfolio.receivingRate.toFixed(1)}%</p>
+      {/* Health Score — Command Center */}
+      {(() => {
+        const status = portfolio.score >= 70 ? "Saudável" : portfolio.score >= 40 ? "Atenção" : "Crítico";
+        const accent = portfolio.score >= 70 ? "success" : portfolio.score >= 40 ? "warning" : "destructive";
+        const recPct = Math.min(100, Math.max(0, portfolio.receivingRate));
+        const defPct = Math.min(100, Math.max(0, portfolio.defaultRate));
+        const recAccent = portfolio.receivingRate >= 70 ? "success" : portfolio.receivingRate >= 40 ? "warning" : "destructive";
+        const defAccent = portfolio.defaultRate <= 20 ? "success" : portfolio.defaultRate <= 50 ? "warning" : "destructive";
+        const bars = [
+          { key: "rec", label: "Taxa de Recebimento", value: `${portfolio.receivingRate.toFixed(1)}%`, pct: recPct, accent: recAccent },
+          { key: "def", label: "Inadimplência", value: `${portfolio.defaultRate.toFixed(1)}%`, pct: defPct, accent: defAccent },
+        ] as const;
+        const tiles = [
+          { key: "received", label: "Recebido", value: formatCurrency(portfolio.totalReceived), accent: "success" as const, expandable: false },
+          { key: "overdue", label: "Atrasado", value: formatCurrency(portfolio.overdueAmount), accent: "destructive" as const, expandable: true, sub: `${portfolio.overdueLoans.length} contrato${portfolio.overdueLoans.length !== 1 ? "s" : ""}` },
+        ];
+        const accentMap = {
+          success: { text: "text-success", bg: "bg-success", border: "border-success/30", soft: "bg-success/10", glow: "shadow-[0_0_24px_hsl(var(--success)/0.35)]", dot: "bg-success" },
+          warning: { text: "text-warning", bg: "bg-warning", border: "border-warning/30", soft: "bg-warning/10", glow: "shadow-[0_0_24px_hsl(var(--warning)/0.35)]", dot: "bg-warning" },
+          destructive: { text: "text-destructive", bg: "bg-destructive", border: "border-destructive/30", soft: "bg-destructive/10", glow: "shadow-[0_0_24px_hsl(var(--destructive)/0.35)]", dot: "bg-destructive" },
+        } as const;
+        const a = accentMap[accent];
+        return (
+          <Card no3d className="relative overflow-hidden border border-white/10 bg-[hsl(220_40%_4%/0.55)] dark:bg-[hsl(220_50%_3%/0.7)] backdrop-blur-2xl shadow-[0_30px_80px_-40px_hsl(var(--primary)/0.5)]">
+            {/* Ambient grid + glow */}
+            <div className="pointer-events-none absolute inset-0 opacity-[0.07]" style={{ backgroundImage: "linear-gradient(hsl(var(--foreground)) 1px, transparent 1px), linear-gradient(90deg, hsl(var(--foreground)) 1px, transparent 1px)", backgroundSize: "32px 32px" }} />
+            <div className={`pointer-events-none absolute -top-32 -right-20 h-80 w-80 rounded-full blur-3xl opacity-40`} style={{ background: `radial-gradient(circle, hsl(var(--${accent}) / 0.4), transparent 70%)` }} />
+            <div className="pointer-events-none absolute -bottom-40 -left-24 h-80 w-80 rounded-full blur-3xl opacity-25" style={{ background: `radial-gradient(circle, hsl(var(--primary) / 0.4), transparent 70%)` }} />
+
+            <CardContent className="relative p-4 sm:p-6">
+              {/* Header bar */}
+              <div className="flex items-center justify-between gap-2 mb-5 pb-4 border-b border-white/10">
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <div className={`h-9 w-9 rounded-lg border ${a.border} ${a.soft} flex items-center justify-center shrink-0`}>
+                    <Activity className={`h-4 w-4 ${a.text}`} />
+                  </div>
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2">
+                      <h3 className="text-[11px] sm:text-xs font-bold text-foreground tracking-[0.2em] uppercase">Saúde da Operação</h3>
+                      <span className={`hidden sm:inline-flex items-center gap-1 text-[9px] font-mono uppercase tracking-widest ${a.text}`}>
+                        <span className={`h-1 w-1 rounded-full ${a.dot} animate-pulse`} />LIVE
+                      </span>
                     </div>
-                    <div className={`group relative overflow-hidden rounded-2xl border backdrop-blur-xl p-3 sm:p-4 transition-all hover:-translate-y-0.5 ${def.wrap}`}>
-                      <div className={`absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent to-transparent ${def.line}`} />
-                      <p className="text-[10px] sm:text-xs text-muted-foreground uppercase tracking-wider font-medium">Inadimplência</p>
-                      <p className={`text-lg sm:text-2xl font-bold mt-1 tabular-nums ${def.text}`}>{portfolio.defaultRate.toFixed(1)}%</p>
-                    </div>
-                  </>
-                );
-              })()}
-              <div className="group relative overflow-hidden rounded-2xl border border-success/20 bg-success/5 backdrop-blur-xl p-3 sm:p-4 transition-all hover:bg-success/10 hover:-translate-y-0.5 hover:shadow-[0_10px_30px_-15px_hsl(var(--success)/0.5)]">
-                <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-success/60 to-transparent" />
-                <p className="text-[10px] sm:text-xs text-muted-foreground uppercase tracking-wider font-medium">Recebido</p>
-                <p className="text-lg sm:text-2xl font-bold text-success mt-1 tabular-nums">{formatCurrency(portfolio.totalReceived)}</p>
-              </div>
-              <button
-                type="button"
-                onClick={() => setExpandedBreakdown(expandedBreakdown === "overdue" ? null : "overdue")}
-                className="group relative overflow-hidden rounded-2xl border border-destructive/20 bg-destructive/5 backdrop-blur-xl p-3 sm:p-4 text-left transition-all hover:bg-destructive/10 hover:-translate-y-0.5 hover:shadow-[0_10px_30px_-15px_hsl(var(--destructive)/0.5)]"
-              >
-                <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-destructive/60 to-transparent" />
-                <div className="flex items-center justify-between">
-                  <p className="text-[10px] sm:text-xs text-muted-foreground uppercase tracking-wider font-medium">Atrasado</p>
-                  <ChevronDown className={`h-3.5 w-3.5 text-muted-foreground transition-transform duration-300 ${expandedBreakdown === "overdue" ? "rotate-180" : ""}`} />
+                    <p className="text-[10px] text-muted-foreground font-mono truncate">// indicadores · {range.label}</p>
+                  </div>
                 </div>
-                <p className="text-lg sm:text-2xl font-bold text-destructive mt-1 tabular-nums">{formatCurrency(portfolio.overdueAmount)}</p>
-                <p className="text-[10px] text-muted-foreground mt-0.5">{portfolio.overdueLoans.length} contrato{portfolio.overdueLoans.length !== 1 ? "s" : ""}</p>
-                {expandedBreakdown === "overdue" && portfolio.overdueLoans.length > 0 && (
-                  <div className="mt-3 pt-3 border-t border-destructive/20 space-y-2 max-h-60 overflow-y-auto">
-                    {[...portfolio.overdueLoans].sort((a, b) => a.dueDate.localeCompare(b.dueDate)).map((l) => {
-                      const remaining = getOverdueAmount(l, installmentSchedules, todayInAppTz());
-                      const dueDate = new Date(l.dueDate + "T00:00:00");
-                      const daysLate = Math.max(0, Math.floor((Date.now() - dueDate.getTime()) / (1000 * 60 * 60 * 24)));
+                <button
+                  type="button"
+                  onClick={() => setShowHealthInfo(true)}
+                  className="inline-flex items-center gap-1.5 rounded-md border border-white/10 bg-white/5 px-2 py-1.5 text-[10px] font-mono uppercase tracking-wider text-muted-foreground hover:text-foreground hover:bg-white/10 transition-colors shrink-0"
+                  aria-label="Como cada indicador é calculado"
+                >
+                  <Info className="h-3 w-3" />
+                  <span className="hidden sm:inline">info</span>
+                </button>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-[auto_1fr] gap-5 sm:gap-7 items-center">
+                {/* Gauge */}
+                <div className="relative w-40 h-40 sm:w-48 sm:h-48 mx-auto sm:mx-0 shrink-0">
+                  <svg viewBox="0 0 120 120" className="w-full h-full -rotate-90">
+                    <defs>
+                      <linearGradient id={`healthGrad-${accent}`} x1="0" y1="0" x2="1" y2="1">
+                        <stop offset="0%" stopColor={`hsl(var(--${accent}))`} stopOpacity="1" />
+                        <stop offset="100%" stopColor={`hsl(var(--${accent}))`} stopOpacity="0.5" />
+                      </linearGradient>
+                    </defs>
+                    {/* Tick marks */}
+                    {Array.from({ length: 60 }).map((_, i) => {
+                      const angle = (i / 60) * 360;
+                      const isMajor = i % 5 === 0;
                       return (
-                        <div key={l.id} className="flex items-center justify-between text-xs">
-                          <div>
-                            <p className="font-medium text-foreground">{l.borrowerName}</p>
-                            <p className="text-[10px] text-muted-foreground">{daysLate} dia{daysLate !== 1 ? "s" : ""} atraso • Venc. {dueDate.toLocaleDateString("pt-BR")}</p>
+                        <line
+                          key={i}
+                          x1="60" y1={isMajor ? 4 : 6}
+                          x2="60" y2={isMajor ? 10 : 9}
+                          stroke="currentColor"
+                          strokeWidth={isMajor ? 1 : 0.5}
+                          className="text-foreground/20"
+                          transform={`rotate(${angle} 60 60)`}
+                        />
+                      );
+                    })}
+                    <circle cx="60" cy="60" r="48" fill="none" stroke="currentColor" strokeWidth="3" className="text-foreground/5" />
+                    <circle
+                      cx="60" cy="60" r="48" fill="none" strokeWidth="3" strokeLinecap="round"
+                      stroke={`url(#healthGrad-${accent})`}
+                      strokeDasharray={`${(portfolio.score / 100) * 301.6} 301.6`}
+                      style={{ filter: `drop-shadow(0 0 6px hsl(var(--${accent}) / 0.8))`, transition: "stroke-dasharray 900ms cubic-bezier(0.22, 1, 0.36, 1)" }}
+                    />
+                  </svg>
+                  <div className="absolute inset-0 flex flex-col items-center justify-center">
+                    <span className="text-[9px] font-mono uppercase tracking-[0.25em] text-muted-foreground">SCORE</span>
+                    <span className={`text-5xl sm:text-6xl font-black ${a.text} tracking-tighter tabular-nums leading-none mt-1`} style={{ textShadow: `0 0 24px hsl(var(--${accent}) / 0.5)` }}>{portfolio.score}</span>
+                    <span className="text-[9px] font-mono text-muted-foreground mt-1">/ 100</span>
+                    <span className={`mt-2 inline-flex items-center gap-1 rounded-sm border ${a.border} ${a.soft} px-1.5 py-0.5 text-[9px] font-mono uppercase tracking-widest ${a.text}`}>
+                      {status}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Right column: bars + tiles */}
+                <div className="flex-1 space-y-3 w-full min-w-0">
+                  {/* Progress bars */}
+                  <div className="space-y-3">
+                    {bars.map((b) => {
+                      const ba = accentMap[b.accent];
+                      return (
+                        <div key={b.key} className="space-y-1.5">
+                          <div className="flex items-baseline justify-between gap-2">
+                            <span className="text-[10px] font-mono uppercase tracking-[0.15em] text-muted-foreground truncate">{b.label}</span>
+                            <span className={`text-sm sm:text-base font-bold tabular-nums ${ba.text}`}>{b.value}</span>
                           </div>
-                          <span className="font-bold text-destructive whitespace-nowrap">{rawFormatCurrency(remaining)}</span>
+                          <div className="relative h-1.5 rounded-full bg-white/5 overflow-hidden">
+                            <div
+                              className={`absolute inset-y-0 left-0 ${ba.bg} rounded-full transition-[width] duration-700 ease-out`}
+                              style={{ width: `${b.pct}%`, boxShadow: `0 0 12px hsl(var(--${b.accent}) / 0.7)` }}
+                            />
+                          </div>
                         </div>
                       );
                     })}
                   </div>
-                )}
-              </button>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+
+                  {/* Stat tiles */}
+                  <div className="grid grid-cols-2 gap-2 pt-1">
+                    {tiles.map((t) => {
+                      const ta = accentMap[t.accent];
+                      const isOverdue = t.key === "overdue";
+                      const expanded = isOverdue && expandedBreakdown === "overdue";
+                      const Wrapper = isOverdue ? "button" : "div";
+                      return (
+                        <Wrapper
+                          key={t.key}
+                          {...(isOverdue ? { type: "button" as const, onClick: () => setExpandedBreakdown(expanded ? null : "overdue") } : {})}
+                          className={`group relative overflow-hidden rounded-lg border ${ta.border} ${ta.soft} p-2.5 sm:p-3 text-left transition-all hover:-translate-y-0.5 ${isOverdue ? `hover:${ta.glow}` : ""}`}
+                        >
+                          <div className={`absolute left-0 top-0 bottom-0 w-0.5 ${ta.bg}`} style={{ boxShadow: `0 0 8px hsl(var(--${t.accent}) / 0.8)` }} />
+                          <div className="flex items-center justify-between">
+                            <p className="text-[9px] font-mono uppercase tracking-[0.15em] text-muted-foreground">{t.label}</p>
+                            {isOverdue && <ChevronDown className={`h-3 w-3 text-muted-foreground transition-transform ${expanded ? "rotate-180" : ""}`} />}
+                          </div>
+                          <p className={`text-sm sm:text-base font-bold tabular-nums mt-0.5 ${ta.text}`}>{t.value}</p>
+                          {t.sub && <p className="text-[9px] text-muted-foreground font-mono mt-0.5">{t.sub}</p>}
+                        </Wrapper>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+
+              {/* Overdue breakdown */}
+              {expandedBreakdown === "overdue" && portfolio.overdueLoans.length > 0 && (
+                <div className="mt-4 pt-4 border-t border-destructive/20 space-y-2 max-h-60 overflow-y-auto animate-fade-in">
+                  <p className="text-[9px] font-mono uppercase tracking-[0.2em] text-destructive mb-1">// contratos em atraso</p>
+                  {[...portfolio.overdueLoans].sort((a, b) => a.dueDate.localeCompare(b.dueDate)).map((l) => {
+                    const remaining = getOverdueAmount(l, installmentSchedules, todayInAppTz());
+                    const dueDate = new Date(l.dueDate + "T00:00:00");
+                    const daysLate = Math.max(0, Math.floor((Date.now() - dueDate.getTime()) / (1000 * 60 * 60 * 24)));
+                    return (
+                      <div key={l.id} className="flex items-center justify-between gap-3 rounded-md border border-destructive/15 bg-destructive/5 px-2.5 py-1.5 text-xs">
+                        <div className="min-w-0">
+                          <p className="font-medium text-foreground truncate">{l.borrowerName}</p>
+                          <p className="text-[10px] text-muted-foreground font-mono">{daysLate}d · venc {dueDate.toLocaleDateString("pt-BR")}</p>
+                        </div>
+                        <span className="font-bold text-destructive whitespace-nowrap tabular-nums">{rawFormatCurrency(remaining)}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        );
+      })()}
 
       {/* Goals Card */}
       <GoalsCard loans={loans} payments={payments} expenses={expenses} clients={clients ?? []} installmentSchedules={installmentSchedules} renegotiations={renegotiations} selectedMonth={goalMonthKey} periodLabel={range.label} />
