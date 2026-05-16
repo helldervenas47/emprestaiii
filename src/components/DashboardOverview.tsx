@@ -1890,96 +1890,136 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
       })()}
 
       {/* Health Score Gauge - placed above Goals */}
-      <Card no3d>
-        <CardContent className="p-3 sm:p-6">
-          <div className="flex flex-col items-center text-center gap-3 mb-4 sm:flex-row sm:items-center sm:justify-between sm:text-left sm:gap-4">
-            <div className="flex items-center gap-2">
-              <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+      <Card no3d className="relative overflow-hidden border border-white/10 bg-card/60 backdrop-blur-2xl backdrop-saturate-150 shadow-[0_20px_60px_-30px_hsl(var(--primary)/0.35)]">
+        <div className="pointer-events-none absolute -top-24 -right-24 h-72 w-72 rounded-full blur-3xl opacity-30" style={{ background: `radial-gradient(circle, hsl(var(--primary) / 0.35), transparent 70%)` }} />
+        <div className="pointer-events-none absolute -bottom-32 -left-20 h-72 w-72 rounded-full blur-3xl opacity-20" style={{ background: `radial-gradient(circle, hsl(var(--success) / 0.4), transparent 70%)` }} />
+        <CardContent className="relative p-4 sm:p-6">
+          <div className="flex flex-col items-center text-center gap-3 mb-5 sm:flex-row sm:items-center sm:justify-between sm:text-left sm:gap-4">
+            <div className="flex items-center gap-2.5">
+              <div className="h-9 w-9 rounded-xl bg-primary/15 border border-primary/20 flex items-center justify-center shrink-0 backdrop-blur-md">
                 <Sparkles className="h-4 w-4 text-primary" />
               </div>
               <div>
-                <h3 className="text-sm font-semibold text-foreground">Saúde da Operação</h3>
-                <p className="text-[10px] text-muted-foreground">Indicadores principais da carteira no período</p>
+                <h3 className="text-sm sm:text-base font-semibold text-foreground tracking-tight">Saúde da Operação</h3>
+                <p className="text-[10px] sm:text-xs text-muted-foreground">Indicadores principais da carteira no período</p>
               </div>
             </div>
-            <button
-              type="button"
-              onClick={() => setShowHealthInfo(true)}
-              className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-2.5 py-1.5 text-xs text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-              aria-label="Como cada indicador é calculado"
-            >
-              <Info className="h-3.5 w-3.5" />
-              Como é calculado?
-            </button>
+            <div className="flex items-center gap-2">
+              <span className={`hidden sm:inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider backdrop-blur-md ${
+                portfolio.score >= 70
+                  ? "bg-success/10 text-success border-success/30"
+                  : portfolio.score >= 40
+                    ? "bg-warning/10 text-warning border-warning/30"
+                    : "bg-destructive/10 text-destructive border-destructive/30"
+              }`}>
+                <span className={`h-1.5 w-1.5 rounded-full animate-pulse ${
+                  portfolio.score >= 70 ? "bg-success" : portfolio.score >= 40 ? "bg-warning" : "bg-destructive"
+                }`} />
+                {portfolio.score >= 70 ? "Saudável" : portfolio.score >= 40 ? "Atenção" : "Crítico"}
+              </span>
+              <button
+                type="button"
+                onClick={() => setShowHealthInfo(true)}
+                className="inline-flex items-center gap-1.5 rounded-full border border-border/40 bg-card/60 px-2.5 py-1.5 text-xs text-muted-foreground hover:text-foreground hover:bg-card/80 backdrop-blur-md transition-colors"
+                aria-label="Como cada indicador é calculado"
+              >
+                <Info className="h-3.5 w-3.5" />
+                <span className="hidden sm:inline">Como é calculado?</span>
+              </button>
+            </div>
           </div>
-          <div className="flex flex-col items-center gap-4 sm:flex-row sm:gap-6">
+          <div className="flex flex-col items-center gap-5 sm:flex-row sm:gap-6">
             {/* Gauge */}
-            <div className="relative w-28 h-28 sm:w-40 sm:h-40 shrink-0">
+            <div className="relative w-32 h-32 sm:w-44 sm:h-44 shrink-0">
               <svg viewBox="0 0 120 120" className="w-full h-full -rotate-90">
-                <circle cx="60" cy="60" r="52" fill="none" stroke="currentColor" strokeWidth="10" className="text-muted/30" />
+                <circle cx="60" cy="60" r="52" fill="none" stroke="currentColor" strokeWidth="10" className="text-foreground/5" />
                 <circle
                   cx="60" cy="60" r="52" fill="none" strokeWidth="10" strokeLinecap="round"
                   className={healthStroke}
                   strokeDasharray={`${(portfolio.score / 100) * 326.7} 326.7`}
+                  style={{ filter: "drop-shadow(0 0 8px currentColor)", transition: "stroke-dasharray 900ms cubic-bezier(0.22, 1, 0.36, 1)" }}
                 />
               </svg>
               <div className="absolute inset-0 flex flex-col items-center justify-center">
-                <span className={`text-2xl sm:text-3xl font-bold ${healthColor}`}>{portfolio.score}</span>
-                <span className="text-[10px] sm:text-xs text-muted-foreground">de 100</span>
+                <span className={`text-3xl sm:text-4xl font-bold ${healthColor} tracking-tight`}>{portfolio.score}</span>
+                <span className="text-[10px] sm:text-xs text-muted-foreground uppercase tracking-wider mt-0.5">de 100</span>
               </div>
             </div>
-            {/* Metrics */}
-            <div className="flex-1 grid grid-cols-2 gap-2 sm:gap-4 w-full">
-              <Card no3d className={`bg-gradient-to-br ${healthBg} border-0`}>
-                <CardContent className="p-3 sm:p-4">
-                  <p className="text-[10px] sm:text-xs text-muted-foreground">Taxa de Recebimento</p>
-                  <p className={`text-base sm:text-xl font-bold ${portfolio.receivingRate >= 70 ? "text-success" : portfolio.receivingRate >= 40 ? "text-warning" : "text-destructive"}`}>
-                    {portfolio.receivingRate.toFixed(1)}%
-                  </p>
-                </CardContent>
-              </Card>
-              <Card no3d className={`bg-gradient-to-br ${portfolio.defaultRate <= 20 ? "from-success/20 to-success/5" : portfolio.defaultRate <= 50 ? "from-warning/20 to-warning/5" : "from-destructive/20 to-destructive/5"} border-0`}>
-                <CardContent className="p-3 sm:p-4">
-                  <p className="text-[10px] sm:text-xs text-muted-foreground">Inadimplência</p>
-                  <p className={`text-base sm:text-xl font-bold ${portfolio.defaultRate <= 20 ? "text-success" : portfolio.defaultRate <= 50 ? "text-warning" : "text-destructive"}`}>
-                    {portfolio.defaultRate.toFixed(1)}%
-                  </p>
-                </CardContent>
-              </Card>
-              <Card no3d className="border-0 bg-gradient-to-br from-success/10 to-success/5">
-                <CardContent className="p-3 sm:p-4">
-                  <p className="text-[10px] sm:text-xs text-muted-foreground">Recebido</p>
-                  <p className="text-base sm:text-xl font-bold text-success">{formatCurrency(portfolio.totalReceived)}</p>
-                </CardContent>
-              </Card>
-              <Card no3d className="border-0 bg-gradient-to-br from-destructive/10 to-destructive/5 cursor-pointer transition-all duration-300" onClick={() => setExpandedBreakdown(expandedBreakdown === "overdue" ? null : "overdue")}>
-                <CardContent className="p-3 sm:p-4">
-                  <div className="flex items-center justify-between">
-                    <p className="text-[10px] sm:text-xs text-muted-foreground">Atrasado</p>
-                    <ChevronDown className={`h-3.5 w-3.5 text-muted-foreground transition-transform duration-300 ${expandedBreakdown === "overdue" ? "rotate-180" : ""}`} />
-                  </div>
-                  <p className="text-base sm:text-xl font-bold text-destructive">{formatCurrency(portfolio.overdueAmount)}</p>
-                  <p className="text-[10px] text-muted-foreground">{portfolio.overdueLoans.length} contrato{portfolio.overdueLoans.length !== 1 ? "s" : ""}</p>
-                  {expandedBreakdown === "overdue" && portfolio.overdueLoans.length > 0 && (
-                    <div className="mt-3 pt-3 border-t border-destructive/20 space-y-2 max-h-60 overflow-y-auto">
-                      {[...portfolio.overdueLoans].sort((a, b) => a.dueDate.localeCompare(b.dueDate)).map((l) => {
-                        const remaining = getOverdueAmount(l, installmentSchedules, todayInAppTz());
-                        const dueDate = new Date(l.dueDate + "T00:00:00");
-                        const daysLate = Math.max(0, Math.floor((Date.now() - dueDate.getTime()) / (1000 * 60 * 60 * 24)));
-                        return (
-                          <div key={l.id} className="flex items-center justify-between text-xs">
-                            <div>
-                              <p className="font-medium text-foreground">{l.borrowerName}</p>
-                              <p className="text-[10px] text-muted-foreground">{daysLate} dia{daysLate !== 1 ? "s" : ""} atraso • Venc. {dueDate.toLocaleDateString("pt-BR")}</p>
-                            </div>
-                            <span className="font-bold text-destructive whitespace-nowrap">{rawFormatCurrency(remaining)}</span>
-                          </div>
-                        );
-                      })}
+            {/* Metrics — glass cards */}
+            <div className="flex-1 grid grid-cols-2 gap-2.5 sm:gap-3 w-full">
+              {(() => {
+                const variants = {
+                  success: {
+                    wrap: "border-success/20 bg-success/5 hover:bg-success/10 hover:shadow-[0_10px_30px_-15px_hsl(var(--success)/0.5)]",
+                    line: "via-success/60",
+                    text: "text-success",
+                  },
+                  warning: {
+                    wrap: "border-warning/20 bg-warning/5 hover:bg-warning/10 hover:shadow-[0_10px_30px_-15px_hsl(var(--warning)/0.5)]",
+                    line: "via-warning/60",
+                    text: "text-warning",
+                  },
+                  destructive: {
+                    wrap: "border-destructive/20 bg-destructive/5 hover:bg-destructive/10 hover:shadow-[0_10px_30px_-15px_hsl(var(--destructive)/0.5)]",
+                    line: "via-destructive/60",
+                    text: "text-destructive",
+                  },
+                } as const;
+                const recKey = portfolio.receivingRate >= 70 ? "success" : portfolio.receivingRate >= 40 ? "warning" : "destructive";
+                const defKey = portfolio.defaultRate <= 20 ? "success" : portfolio.defaultRate <= 50 ? "warning" : "destructive";
+                const rec = variants[recKey];
+                const def = variants[defKey];
+                return (
+                  <>
+                    <div className={`group relative overflow-hidden rounded-2xl border backdrop-blur-xl p-3 sm:p-4 transition-all hover:-translate-y-0.5 ${rec.wrap}`}>
+                      <div className={`absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent to-transparent ${rec.line}`} />
+                      <p className="text-[10px] sm:text-xs text-muted-foreground uppercase tracking-wider font-medium">Taxa de Recebimento</p>
+                      <p className={`text-lg sm:text-2xl font-bold mt-1 tabular-nums ${rec.text}`}>{portfolio.receivingRate.toFixed(1)}%</p>
                     </div>
-                  )}
-                </CardContent>
-              </Card>
+                    <div className={`group relative overflow-hidden rounded-2xl border backdrop-blur-xl p-3 sm:p-4 transition-all hover:-translate-y-0.5 ${def.wrap}`}>
+                      <div className={`absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent to-transparent ${def.line}`} />
+                      <p className="text-[10px] sm:text-xs text-muted-foreground uppercase tracking-wider font-medium">Inadimplência</p>
+                      <p className={`text-lg sm:text-2xl font-bold mt-1 tabular-nums ${def.text}`}>{portfolio.defaultRate.toFixed(1)}%</p>
+                    </div>
+                  </>
+                );
+              })()}
+              <div className="group relative overflow-hidden rounded-2xl border border-success/20 bg-success/5 backdrop-blur-xl p-3 sm:p-4 transition-all hover:bg-success/10 hover:-translate-y-0.5 hover:shadow-[0_10px_30px_-15px_hsl(var(--success)/0.5)]">
+                <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-success/60 to-transparent" />
+                <p className="text-[10px] sm:text-xs text-muted-foreground uppercase tracking-wider font-medium">Recebido</p>
+                <p className="text-lg sm:text-2xl font-bold text-success mt-1 tabular-nums">{formatCurrency(portfolio.totalReceived)}</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setExpandedBreakdown(expandedBreakdown === "overdue" ? null : "overdue")}
+                className="group relative overflow-hidden rounded-2xl border border-destructive/20 bg-destructive/5 backdrop-blur-xl p-3 sm:p-4 text-left transition-all hover:bg-destructive/10 hover:-translate-y-0.5 hover:shadow-[0_10px_30px_-15px_hsl(var(--destructive)/0.5)]"
+              >
+                <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-destructive/60 to-transparent" />
+                <div className="flex items-center justify-between">
+                  <p className="text-[10px] sm:text-xs text-muted-foreground uppercase tracking-wider font-medium">Atrasado</p>
+                  <ChevronDown className={`h-3.5 w-3.5 text-muted-foreground transition-transform duration-300 ${expandedBreakdown === "overdue" ? "rotate-180" : ""}`} />
+                </div>
+                <p className="text-lg sm:text-2xl font-bold text-destructive mt-1 tabular-nums">{formatCurrency(portfolio.overdueAmount)}</p>
+                <p className="text-[10px] text-muted-foreground mt-0.5">{portfolio.overdueLoans.length} contrato{portfolio.overdueLoans.length !== 1 ? "s" : ""}</p>
+                {expandedBreakdown === "overdue" && portfolio.overdueLoans.length > 0 && (
+                  <div className="mt-3 pt-3 border-t border-destructive/20 space-y-2 max-h-60 overflow-y-auto">
+                    {[...portfolio.overdueLoans].sort((a, b) => a.dueDate.localeCompare(b.dueDate)).map((l) => {
+                      const remaining = getOverdueAmount(l, installmentSchedules, todayInAppTz());
+                      const dueDate = new Date(l.dueDate + "T00:00:00");
+                      const daysLate = Math.max(0, Math.floor((Date.now() - dueDate.getTime()) / (1000 * 60 * 60 * 24)));
+                      return (
+                        <div key={l.id} className="flex items-center justify-between text-xs">
+                          <div>
+                            <p className="font-medium text-foreground">{l.borrowerName}</p>
+                            <p className="text-[10px] text-muted-foreground">{daysLate} dia{daysLate !== 1 ? "s" : ""} atraso • Venc. {dueDate.toLocaleDateString("pt-BR")}</p>
+                          </div>
+                          <span className="font-bold text-destructive whitespace-nowrap">{rawFormatCurrency(remaining)}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </button>
             </div>
           </div>
         </CardContent>
