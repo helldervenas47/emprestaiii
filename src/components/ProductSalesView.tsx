@@ -1260,10 +1260,10 @@ function SalesList({ sales, onDeleteSale, onUpdateSale, clients = [], hideOnTrac
           <div className="flex items-center gap-2 sm:gap-3 px-2 sm:px-3 py-2 border-b border-border/50 bg-muted/40">
             <div className="h-8 w-8 sm:h-9 sm:w-9 shrink-0" aria-hidden />
             <p className="flex-1 min-w-0 text-[9px] sm:text-[10px] text-muted-foreground uppercase tracking-wide font-medium">Cliente</p>
-            <p className="hidden md:block w-[140px] lg:w-[160px] shrink-0 text-[10px] text-muted-foreground uppercase tracking-wide font-medium">Categoria</p>
-            <p className="hidden lg:block w-[200px] shrink-0 text-[10px] text-muted-foreground uppercase tracking-wide font-medium">Descrição</p>
-            <p className="w-[78px] sm:w-[96px] shrink-0 text-[9px] sm:text-[10px] text-muted-foreground uppercase tracking-wide font-medium">Vencimento</p>
-            <p className="w-[102px] sm:w-[122px] shrink-0 text-right text-[9px] sm:text-[10px] text-muted-foreground uppercase tracking-wide font-medium">Valor</p>
+            <p className="hidden md:block w-[120px] lg:w-[160px] shrink-0 text-[10px] text-muted-foreground uppercase tracking-wide font-medium">Categoria</p>
+            <p className="hidden md:block w-[140px] lg:w-[200px] shrink-0 text-[10px] text-muted-foreground uppercase tracking-wide font-medium">Descrição</p>
+            <p className="w-[78px] sm:w-[88px] lg:w-[96px] shrink-0 text-[9px] sm:text-[10px] text-muted-foreground uppercase tracking-wide font-medium">Vencimento</p>
+            <p className="w-[102px] sm:w-[108px] lg:w-[122px] shrink-0 text-right text-[9px] sm:text-[10px] text-muted-foreground uppercase tracking-wide font-medium">Valor</p>
             <div className="w-[44px] shrink-0" aria-hidden />
           </div>
           <div className="divide-y divide-border/30">
