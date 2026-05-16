@@ -580,6 +580,13 @@ export function IncomePendingCalendar({
     const isFirstOfMonth = selectedDate.endsWith("-01");
     const monthKeyDay = selectedDate.slice(0, 7);
     const hasOverride = isFirstOfMonth && overrides[monthKeyDay] !== undefined;
+    const dayBalanceDelta = selectedInfo.totalIncome - selectedInfo.totalExpense;
+    const totalCount =
+      selectedInfo.incomes.length +
+      selectedInfo.expenses.length +
+      selectedInfo.cardInvoices.length +
+      selectedInfo.piggyMovements.length;
+    const isPositive = dayBalanceDelta >= 0;
     return (
       <>
         <div className="flex items-start justify-between gap-2 mb-3">
@@ -598,27 +605,61 @@ export function IncomePendingCalendar({
           </div>
         </div>
 
-        <div className="space-y-3 md:max-h-[360px] md:overflow-y-auto pr-1">
+        {/* Resumo do dia */}
+        <div className={`rounded-lg border px-3 py-2 mb-3 ${isPositive ? "border-emerald-500/30 bg-emerald-500/5" : "border-rose-500/30 bg-rose-500/5"}`}>
+          <div className="grid grid-cols-3 gap-2 text-center">
+            <div>
+              <p className="text-[10px] text-muted-foreground uppercase">Receitas</p>
+              <p className="text-xs font-semibold tabular-nums text-emerald-700 dark:text-emerald-400">{formatCurrency(selectedInfo.totalIncome)}</p>
+            </div>
+            <div>
+              <p className="text-[10px] text-muted-foreground uppercase">Despesas</p>
+              <p className="text-xs font-semibold tabular-nums text-rose-700 dark:text-rose-400">{formatCurrency(selectedInfo.totalExpense)}</p>
+            </div>
+            <div>
+              <p className="text-[10px] text-muted-foreground uppercase">Saldo</p>
+              <p className={`text-xs font-bold tabular-nums ${isPositive ? "text-emerald-700 dark:text-emerald-400" : "text-rose-700 dark:text-rose-400"}`}>
+                {isPositive ? "+" : ""}{formatCurrency(dayBalanceDelta)}
+              </p>
+            </div>
+          </div>
+          <p className="text-[10px] text-muted-foreground mt-1.5 text-center">
+            {totalCount} {totalCount === 1 ? "lançamento" : "lançamentos"} no dia
+          </p>
+        </div>
+
+        <div className="space-y-3 md:max-h-[420px] md:overflow-y-auto pr-1">
           <section>
             <div className="flex items-center justify-between mb-1.5">
               <div className="flex items-center gap-1.5 text-xs font-semibold text-emerald-700 dark:text-emerald-400">
                 <ArrowUpCircle className="h-3.5 w-3.5" /> Receitas
+                <span className="text-[10px] text-muted-foreground font-normal">({dayIncomeItems.length})</span>
               </div>
               <span className="text-xs font-semibold tabular-nums text-emerald-700 dark:text-emerald-400">
                 {formatCurrency(selectedInfo.totalIncome)}
               </span>
             </div>
             {dayIncomeItems.length === 0 ? (
-              <p className="text-[11px] text-muted-foreground italic px-1">Sem receitas neste dia.</p>
+              <p className="text-[11px] text-muted-foreground italic px-1">Nenhuma movimentação encontrada para esta data.</p>
             ) : (
               <ul className="space-y-1">
                 {dayIncomeItems.map((inc) => {
                   const isReceived = inc.status === "received";
+                  const isLate = !isReceived && selectedDate < todayStr;
+                  const statusLabel = isReceived ? "Pago" : isLate ? "Atrasado" : "Pendente";
+                  const statusCls = isReceived
+                    ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30"
+                    : isLate
+                      ? "bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/30"
+                      : "bg-rose-500/15 text-rose-700 dark:text-rose-400 border-rose-500/30";
                   return (
                     <li key={`inc-${inc.id}`} className="flex items-start justify-between gap-2 rounded-md bg-emerald-500/5 border border-emerald-500/20 px-2.5 py-1.5">
-                      <span className="flex items-start gap-2 min-w-0 flex-1">
-                        <span aria-label={isReceived ? "Recebida" : "Pendente"} title={isReceived ? "Recebida" : "Pendente"} className={`h-2 w-2 mt-1 rounded-full shrink-0 ${isReceived ? "bg-emerald-500" : "bg-rose-500"}`} />
-                        <span className="text-xs text-foreground break-words leading-snug">{inc.description}</span>
+                      <span className="flex flex-col gap-0.5 min-w-0 flex-1">
+                        <span className="text-xs text-foreground break-words leading-snug font-medium">{inc.description}</span>
+                        <span className="flex items-center gap-1.5 flex-wrap">
+                          {inc.category && <span className="text-[10px] text-muted-foreground">{inc.category}</span>}
+                          <span className={`text-[9px] px-1.5 py-0.5 rounded border font-medium ${statusCls}`}>{statusLabel}</span>
+                        </span>
                       </span>
                       <span className="text-xs font-semibold text-emerald-700 dark:text-emerald-400 tabular-nums shrink-0 whitespace-nowrap">
                         {formatCurrency(Number(inc.amount) || 0)}
@@ -634,22 +675,33 @@ export function IncomePendingCalendar({
             <div className="flex items-center justify-between mb-1.5">
               <div className="flex items-center gap-1.5 text-xs font-semibold text-rose-700 dark:text-rose-400">
                 <ArrowDownCircle className="h-3.5 w-3.5" /> Despesas
+                <span className="text-[10px] text-muted-foreground font-normal">({dayExpenseItems.length})</span>
               </div>
               <span className="text-xs font-semibold tabular-nums text-rose-700 dark:text-rose-400">
                 {formatCurrency(selectedInfo.totalExpense)}
               </span>
             </div>
             {dayExpenseItems.length === 0 ? (
-              <p className="text-[11px] text-muted-foreground italic px-1">Sem despesas neste dia.</p>
+              <p className="text-[11px] text-muted-foreground italic px-1">Nenhuma movimentação encontrada para esta data.</p>
             ) : (
               <ul className="space-y-1">
                 {dayExpenseItems.map((ex) => {
                   const isPaid = !!ex.paid;
+                  const isLate = !isPaid && !!ex.dueDate && ex.dueDate < todayStr;
+                  const statusLabel = isPaid ? "Pago" : isLate ? "Atrasado" : "Pendente";
+                  const statusCls = isPaid
+                    ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30"
+                    : isLate
+                      ? "bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/30"
+                      : "bg-rose-500/15 text-rose-700 dark:text-rose-400 border-rose-500/30";
                   return (
                     <li key={`exp-${ex.id}`} className="flex items-start justify-between gap-2 rounded-md bg-rose-500/5 border border-rose-500/20 px-2.5 py-1.5">
-                      <span className="flex items-start gap-2 min-w-0 flex-1">
-                        <span aria-label={isPaid ? "Paga" : "Pendente"} title={isPaid ? "Paga" : "Pendente"} className={`h-2 w-2 mt-1 rounded-full shrink-0 ${isPaid ? "bg-emerald-500" : "bg-rose-500"}`} />
-                        <span className="text-xs text-foreground break-words leading-snug">{ex.description}</span>
+                      <span className="flex flex-col gap-0.5 min-w-0 flex-1">
+                        <span className="text-xs text-foreground break-words leading-snug font-medium">{ex.description}</span>
+                        <span className="flex items-center gap-1.5 flex-wrap">
+                          {ex.category && <span className="text-[10px] text-muted-foreground">{ex.category}</span>}
+                          <span className={`text-[9px] px-1.5 py-0.5 rounded border font-medium ${statusCls}`}>{statusLabel}</span>
+                        </span>
                       </span>
                       <span className="text-xs font-semibold text-rose-700 dark:text-rose-400 tabular-nums shrink-0 whitespace-nowrap">
                         {formatCurrency(Number(ex.amount) || 0)}
@@ -852,7 +904,7 @@ export function IncomePendingCalendar({
           </span>
         </div>
 
-        <div className={`grid gap-4 ${selectedDate ? "" : "md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)]"}`}>
+        <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)]">
           {/* Calendário (semana ou mês expandido) permanece sempre visível acima dos detalhes,
               inclusive no mobile, dando contexto ao dia selecionado. */}
           <div>
