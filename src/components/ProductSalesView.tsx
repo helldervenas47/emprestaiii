@@ -459,7 +459,6 @@ function RegisterSalePaymentDialog({
               placeholder="0,00"
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
-              autoFocus
               className="mt-1"
             />
             <div className="mt-1.5 flex items-center justify-between text-[11px]">
