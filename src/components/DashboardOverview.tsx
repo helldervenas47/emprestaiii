@@ -1948,19 +1948,38 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
             {/* Metrics — glass cards */}
             <div className="flex-1 grid grid-cols-2 gap-2.5 sm:gap-3 w-full">
               {(() => {
-                const recColor = portfolio.receivingRate >= 70 ? "success" : portfolio.receivingRate >= 40 ? "warning" : "destructive";
-                const defColor = portfolio.defaultRate <= 20 ? "success" : portfolio.defaultRate <= 50 ? "warning" : "destructive";
+                const variants = {
+                  success: {
+                    wrap: "border-success/20 bg-success/5 hover:bg-success/10 hover:shadow-[0_10px_30px_-15px_hsl(var(--success)/0.5)]",
+                    line: "via-success/60",
+                    text: "text-success",
+                  },
+                  warning: {
+                    wrap: "border-warning/20 bg-warning/5 hover:bg-warning/10 hover:shadow-[0_10px_30px_-15px_hsl(var(--warning)/0.5)]",
+                    line: "via-warning/60",
+                    text: "text-warning",
+                  },
+                  destructive: {
+                    wrap: "border-destructive/20 bg-destructive/5 hover:bg-destructive/10 hover:shadow-[0_10px_30px_-15px_hsl(var(--destructive)/0.5)]",
+                    line: "via-destructive/60",
+                    text: "text-destructive",
+                  },
+                } as const;
+                const recKey = portfolio.receivingRate >= 70 ? "success" : portfolio.receivingRate >= 40 ? "warning" : "destructive";
+                const defKey = portfolio.defaultRate <= 20 ? "success" : portfolio.defaultRate <= 50 ? "warning" : "destructive";
+                const rec = variants[recKey];
+                const def = variants[defKey];
                 return (
                   <>
-                    <div className={`group relative overflow-hidden rounded-2xl border border-${recColor}/20 bg-${recColor}/5 backdrop-blur-xl p-3 sm:p-4 transition-all hover:bg-${recColor}/10 hover:-translate-y-0.5 hover:shadow-[0_10px_30px_-15px_hsl(var(--${recColor})/0.5)]`}>
-                      <div className={`absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-${recColor}/60 to-transparent`} />
+                    <div className={`group relative overflow-hidden rounded-2xl border backdrop-blur-xl p-3 sm:p-4 transition-all hover:-translate-y-0.5 ${rec.wrap}`}>
+                      <div className={`absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent to-transparent ${rec.line}`} />
                       <p className="text-[10px] sm:text-xs text-muted-foreground uppercase tracking-wider font-medium">Taxa de Recebimento</p>
-                      <p className={`text-lg sm:text-2xl font-bold text-${recColor} mt-1 tabular-nums`}>{portfolio.receivingRate.toFixed(1)}%</p>
+                      <p className={`text-lg sm:text-2xl font-bold mt-1 tabular-nums ${rec.text}`}>{portfolio.receivingRate.toFixed(1)}%</p>
                     </div>
-                    <div className={`group relative overflow-hidden rounded-2xl border border-${defColor}/20 bg-${defColor}/5 backdrop-blur-xl p-3 sm:p-4 transition-all hover:bg-${defColor}/10 hover:-translate-y-0.5 hover:shadow-[0_10px_30px_-15px_hsl(var(--${defColor})/0.5)]`}>
-                      <div className={`absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-${defColor}/60 to-transparent`} />
+                    <div className={`group relative overflow-hidden rounded-2xl border backdrop-blur-xl p-3 sm:p-4 transition-all hover:-translate-y-0.5 ${def.wrap}`}>
+                      <div className={`absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent to-transparent ${def.line}`} />
                       <p className="text-[10px] sm:text-xs text-muted-foreground uppercase tracking-wider font-medium">Inadimplência</p>
-                      <p className={`text-lg sm:text-2xl font-bold text-${defColor} mt-1 tabular-nums`}>{portfolio.defaultRate.toFixed(1)}%</p>
+                      <p className={`text-lg sm:text-2xl font-bold mt-1 tabular-nums ${def.text}`}>{portfolio.defaultRate.toFixed(1)}%</p>
                     </div>
                   </>
                 );
