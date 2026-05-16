@@ -612,8 +612,7 @@ function RingGauge({ score, color, size, stroke }: { score: number; color: strin
         strokeWidth={stroke}
         strokeLinecap="round"
         strokeDasharray={`${dash} ${c - dash}`}
-        strokeDashoffset={c * 0.25}
-        transform={`rotate(-90 ${size / 2} ${size / 2}) scale(1,-1) translate(0 -${size})`}
+        transform={`rotate(-90 ${size / 2} ${size / 2})`}
         style={{ transition: "stroke-dasharray 900ms cubic-bezier(0.22, 1, 0.36, 1)" }}
       />
     </svg>
