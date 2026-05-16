@@ -4,9 +4,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { TrendingUp, Wallet } from "lucide-react";
 import { useLoans } from "@/hooks/useLoans";
 import { useProducts } from "@/hooks/useProducts";
-import { useIncomes } from "@/hooks/useIncomes";
-import { useExpenses } from "@/hooks/useExpenses";
 import { usePiggyBanks } from "@/hooks/usePiggyBanks";
+import { useAccountBalance } from "@/hooks/useAccountBalance";
 import { getBalances } from "@/lib/balance";
 import { supabase } from "@/integrations/supabase/client";
 import type { Sale } from "@/types/loan";
@@ -14,13 +13,6 @@ import type { Sale } from "@/types/loan";
 const formatBRL = (n: number) =>
   n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
-function saleReceivedTotal(sale: Sale): number {
-  if (sale.paymentHistory && sale.paymentHistory.length > 0) {
-    return sale.paymentHistory.reduce((s, p) => s + (Number(p.amount) || 0), 0);
-  }
-  const iv = sale.installmentValue ?? (sale.installments > 0 ? sale.total / sale.installments : sale.total);
-  return (sale.downPayment || 0) + (sale.paidInstallments || 0) * iv + (sale.partialPaid || 0);
-}
 
 /** Mesmo cálculo da aba Vendas: total pago considerando installmentAmounts/downPayment/partialPaid. */
 function getSalePaidAmount(s: Sale): number {
@@ -45,9 +37,10 @@ function isSalePaid(s: Sale): boolean {
 export function ConsolidatedBalanceCards() {
   const { loans } = useLoans();
   const { sales } = useProducts(true);
-  const { incomes } = useIncomes(true);
-  const { expenses } = useExpenses(true);
-  const { piggyBanks, balances: piggyBalances, deposits: piggyDeposits } = usePiggyBanks();
+  const { piggyBanks, balances: piggyBalances } = usePiggyBanks();
+
+  // Saldo em Conta — fonte oficial única (aba Receitas e Despesas).
+  const incomesBalance = useAccountBalance();
 
   const [dashboardBalance, setDashboardBalance] = useState(0);
   const [vehicleBalance, setVehicleBalance] = useState(0);
@@ -98,22 +91,6 @@ export function ConsolidatedBalanceCards() {
   );
   const totalNaRua = pendingLoans + pendingSales;
 
-  // Saldo em Conta (Receitas) — espelha exatamente IncomeBalanceCard:
-  //  recebidos + vendas recebidas − despesas pessoais pagas − aportes manuais ao cofrinho.
-  const incomesBalance = useMemo(() => {
-    const totalIncomeReceived = incomes
-      .filter((i) => i.status === "received")
-      .reduce((s, i) => s + i.amount, 0);
-    const totalSalesReceived = sales.reduce((s, sale) => s + saleReceivedTotal(sale), 0);
-    const totalExpensePaid = expenses
-      .filter((e) => e.paid && (e.scope ?? "business") === "personal")
-      .reduce((s, e) => s + e.amount, 0);
-    const totalPiggyManualDeposits = piggyDeposits
-      .filter((d) => !d.expenseId)
-      .reduce((s, d) => s + (Number(d.amount) || 0), 0);
-    return totalIncomeReceived + totalSalesReceived - totalExpensePaid - totalPiggyManualDeposits;
-  }, [incomes, sales, expenses, piggyDeposits]);
-
   const piggyTotal = useMemo(() => {
     let sum = 0;
     piggyBanks.forEach((pb) => {
@@ -123,7 +100,10 @@ export function ConsolidatedBalanceCards() {
     return sum;
   }, [piggyBanks, piggyBalances]);
 
-  const totalEmMaos = dashboardBalance + incomesBalance + piggyTotal + vehicleBalance;
+  // "Saldo Total em Mãos" agora reflete EXATAMENTE o "Saldo em Conta" da aba
+  // Receitas e Despesas (fonte oficial). Demais valores aparecem apenas como
+  // detalhamento no diálogo.
+  const totalEmMaos = incomesBalance;
 
   const Row = ({ label, value }: { label: string; value: number }) => (
     <div className="flex items-center justify-between py-2 border-b border-border/40 last:border-0">
@@ -189,16 +169,16 @@ export function ConsolidatedBalanceCards() {
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-1">
-            <Row label="Saldo em conta (Dashboard)" value={dashboardBalance} />
-            <Row label="Saldo em conta (Receitas)" value={incomesBalance} />
-            <Row label="Total dos Cofrinhos" value={piggyTotal} />
-            <Row label="Saldo (Veículos)" value={vehicleBalance} />
+            <Row label="Saldo em Conta (Receitas e Despesas)" value={incomesBalance} />
             <div className="flex items-center justify-between pt-3 mt-2 border-t border-border">
               <span className="text-sm font-semibold">Total consolidado</span>
               <span className={`text-base font-bold tabular-nums ${totalEmMaos < 0 ? "text-destructive" : "text-foreground"}`}>
                 {formatBRL(totalEmMaos)}
               </span>
             </div>
+            <p className="text-[11px] text-muted-foreground pt-2">
+              Fonte oficial: aba Receitas e Despesas. Dashboard manual ({formatBRL(dashboardBalance)}), Cofrinhos ({formatBRL(piggyTotal)}) e Veículos ({formatBRL(vehicleBalance)}) são exibidos apenas como referência.
+            </p>
           </div>
         </DialogContent>
       </Dialog>
