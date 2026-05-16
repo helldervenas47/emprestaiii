@@ -30,7 +30,7 @@ const GOAL_TYPE_META: Record<GoalType, { label: string; icon: any; unit: Unit; c
   loan_volume:        { label: "Volume Emprestado no Mês",         icon: Banknote,      unit: "R$",  color: "text-primary",     description: "Soma do valor de novos empréstimos criados no mês." },
   new_loans_count:    { label: "Novos Empréstimos no Mês",         icon: FileText,      unit: "qtd", color: "text-primary",     description: "Quantidade de novos contratos criados no mês." },
   received_total:     { label: "Recebimentos no Mês",              icon: HandCoins,     unit: "R$",  color: "text-success",     description: "Soma de todos os pagamentos recebidos no mês." },
-  interest_received:  { label: "Juros PAGOS no Mês",           icon: Coins,         unit: "R$",  color: "text-success",     description: "Apenas a parte dos juros dos pagamentos recebidos." },
+  interest_received:  { label: "Média Recebida por Dia",           icon: Coins,         unit: "R$",  color: "text-success",     description: "Apenas a parte dos juros dos pagamentos recebidos." },
   active_capital:     { label: "Capital Ativo / em Circulação",    icon: Wallet,        unit: "R$",  color: "text-primary",     description: "Valor mensal congelado no fechamento de cada mês." },
   net_profit:         { label: "Lucro Líquido do Mês",             icon: PiggyBank,     unit: "R$",  color: "text-success",     description: "Juros recebidos menos despesas pagas da empresa." },
   max_default_rate:   { label: "Inadimplência Máxima",             icon: AlertTriangle, unit: "%",   color: "text-destructive", description: "Limite máximo de % de parcelas em atraso (meta inversa).", inverse: true },
