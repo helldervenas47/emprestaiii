@@ -311,7 +311,24 @@ function SaleCard({ sale, onDelete, onEdit, onUpdate, formatCurrency, readOnly =
               </DialogDescription>
             </DialogHeader>
             {(() => {
-              const sorted = [...(sale.paymentHistory || [])].sort((a, b) => a.date.localeCompare(b.date));
+              const rawHistory = sale.paymentHistory || [];
+              // Backfill sintético para contratos antigos sem histórico explícito.
+              const synthetic: (SalePaymentRecord & { __synthetic?: boolean })[] = [];
+              if (rawHistory.length === 0) {
+                if ((sale.downPayment || 0) > 0) {
+                  synthetic.push({ amount: sale.downPayment, date: sale.date, type: "full", notes: "Entrada", __synthetic: true } as any);
+                }
+                for (let i = 0; i < (sale.paidInstallments || 0); i++) {
+                  const customDate = sale.installmentDates && sale.installmentDates[i];
+                  const baseDate = new Date(sale.date + "T00:00:00");
+                  const dueDate = customDate ? customDate : format(isRecorrente ? addByFrequency(baseDate, sale.frequency || "Mensal", i) : baseDate, "yyyy-MM-dd");
+                  synthetic.push({ amount: getParcelaValue(i), date: dueDate, type: "full", notes: `Parcela ${i + 1} (registro anterior)`, __synthetic: true } as any);
+                }
+                if ((sale.partialPaid || 0) > 0) {
+                  synthetic.push({ amount: sale.partialPaid, date: todayInAppTz(), type: "partial", notes: "Pagamento parcial (registro anterior)", __synthetic: true } as any);
+                }
+              }
+              const sorted = [...(rawHistory.length > 0 ? rawHistory : synthetic)].sort((a, b) => a.date.localeCompare(b.date));
               const totalPago = sorted.reduce((s, r) => s + r.amount, 0);
               return (
                 <>
