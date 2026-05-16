@@ -650,21 +650,42 @@ function SaleListRow({ sale, onEdit, onUpdate, formatCurrency, readOnly = false,
       </button>
 
       {(isPaid || readOnly) ? (
-        <div className="w-[76px] shrink-0" aria-hidden />
+        <div className="w-[44px] shrink-0" aria-hidden />
       ) : (
-        <div className="w-[76px] shrink-0 flex items-center justify-end gap-1">
-          {/* Pay installment */}
-          <Popover open={showPayDatePicker} onOpenChange={setShowPayDatePicker}>
+        <div className="w-[44px] shrink-0 flex items-center justify-end">
+          <Popover>
             <PopoverTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-8 w-8 text-primary hover:bg-primary/10" title="Pagar Parcela">
-                <CheckCircle className="h-4 w-4" />
+              <Button variant="ghost" size="icon" className="h-8 w-8 text-primary hover:bg-primary/10" title="Pagamentos">
+                <HandCoins className="h-4 w-4" />
               </Button>
             </PopoverTrigger>
-            <PopoverContent className="w-auto p-0" align="end">
-              <div className="p-3 border-b border-border">
-                <p className="text-sm font-medium text-foreground">Data do pagamento</p>
-                <p className="text-xs text-muted-foreground">Parcela: {formatCurrency(partialOnNext)}</p>
-              </div>
+            <PopoverContent className="w-48 p-1" align="end">
+              <button
+                type="button"
+                onClick={() => setShowPayDatePicker(true)}
+                className="w-full flex items-center gap-2 rounded-md px-2 py-2 text-sm text-foreground hover:bg-primary/10 transition-colors"
+              >
+                <CheckCircle className="h-4 w-4 text-primary" />
+                <span>Pagar Parcela</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowPartial(true)}
+                className="w-full flex items-center gap-2 rounded-md px-2 py-2 text-sm text-foreground hover:bg-warning/10 transition-colors"
+              >
+                <HandCoins className="h-4 w-4 text-warning" />
+                <span>Pagar Parcial</span>
+              </button>
+            </PopoverContent>
+          </Popover>
+
+          {/* Pay installment dialog (calendar) */}
+          <Dialog open={showPayDatePicker} onOpenChange={setShowPayDatePicker}>
+            <DialogContent className="sm:max-w-sm p-0 overflow-hidden">
+              <DialogHeader className="p-4 border-b border-border">
+                <DialogTitle>Pagar Parcela</DialogTitle>
+                <DialogDescription>Parcela: {formatCurrency(partialOnNext)}</DialogDescription>
+              </DialogHeader>
               <Calendar
                 mode="single"
                 selected={undefined}
@@ -682,15 +703,10 @@ function SaleListRow({ sale, onEdit, onUpdate, formatCurrency, readOnly = false,
                   }
                 }}
                 initialFocus
-                className={cn("p-3 pointer-events-auto")}
+                className={cn("p-3 pointer-events-auto mx-auto")}
               />
-            </PopoverContent>
-          </Popover>
-
-          {/* Partial payment */}
-          <Button variant="ghost" size="icon" className="h-8 w-8 text-warning hover:bg-warning/10" title="Pagar Parcial" onClick={() => setShowPartial(true)}>
-            <HandCoins className="h-4 w-4" />
-          </Button>
+            </DialogContent>
+          </Dialog>
 
           <Dialog open={showPartial} onOpenChange={(open) => {
             setShowPartial(open);
