@@ -1052,34 +1052,22 @@ function SaleListRow({ sale, onEdit, onUpdate, formatCurrency, readOnly = false,
             </PopoverContent>
           </Popover>
 
-          {/* Pay installment dialog (calendar) */}
-          <Dialog open={showPayDatePicker} onOpenChange={setShowPayDatePicker}>
-            <DialogContent className="sm:max-w-sm p-0 overflow-hidden">
-              <DialogHeader className="p-4 border-b border-border">
-                <DialogTitle>Pagar Parcela</DialogTitle>
-                <DialogDescription>Parcela: {formatCurrency(partialOnNext)}</DialogDescription>
-              </DialogHeader>
-              <Calendar
-                mode="single"
-                selected={undefined}
-                onSelect={(date) => {
-                  if (date) {
-                    const paymentVal = partialOnNext;
-                    const newRecord: SalePaymentRecord = { amount: paymentVal, date: format(date, "yyyy-MM-dd"), type: "full" };
-                    const history = [...(sale.paymentHistory || []), newRecord];
-                    onUpdate({
-                      paidInstallments: Math.min(sale.installments, sale.paidInstallments + 1),
-                      partialPaid: 0,
-                      paymentHistory: history,
-                    });
-                    setShowPayDatePicker(false);
-                  }
-                }}
-                initialFocus
-                className={cn("p-3 pointer-events-auto mx-auto")}
-              />
-            </DialogContent>
-          </Dialog>
+          <RegisterSalePaymentDialog
+            open={showPayDatePicker}
+            onOpenChange={setShowPayDatePicker}
+            sale={sale}
+            onUpdate={onUpdate}
+            formatCurrency={formatCurrency}
+            initialMode="full"
+          />
+          <RegisterSalePaymentDialog
+            open={showPartial}
+            onOpenChange={setShowPartial}
+            sale={sale}
+            onUpdate={onUpdate}
+            formatCurrency={formatCurrency}
+            initialMode="partial"
+          />
 
           <Dialog open={showPartial} onOpenChange={(open) => {
             setShowPartial(open);
