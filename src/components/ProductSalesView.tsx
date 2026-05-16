@@ -343,7 +343,8 @@ function SaleCard({ sale, onDelete, onEdit, onUpdate, formatCurrency, readOnly =
                       const method = record.paymentMethodId ? methodById.get(record.paymentMethodId) : null;
                       const MethodIcon = method?.icon ? (LucideIcons as any)[method.icon] : Wallet;
                       const isFull = record.type === "full";
-                      const origIdx = (sale.paymentHistory || []).indexOf(record);
+                      const isSynthetic = (record as any).__synthetic === true;
+                      const origIdx = isSynthetic ? -1 : (sale.paymentHistory || []).indexOf(record);
                       return (
                         <div key={`${record.date}-${i}`} className={`rounded-xl border p-3 ${isFull ? "border-success/20 bg-success/5" : "border-warning/20 bg-warning/5"}`}>
                           <div className="flex items-start gap-3">
