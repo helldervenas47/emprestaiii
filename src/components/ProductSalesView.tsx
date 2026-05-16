@@ -1224,17 +1224,15 @@ function SalesList({ sales, onDeleteSale, onUpdateSale, clients = [], hideOnTrac
           </CardContent></Card>
         )
       ) : view === "list" ? (
-        <Card no3d className="overflow-hidden">
+       <Card no3d className="overflow-hidden">
           {/* Header row */}
-          <div className="flex items-center gap-2 px-2 sm:px-3 py-2 border-b border-border/50 bg-muted/40">
-            <div className="w-8 sm:w-9 shrink-0" />
-            <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
-              <p className="flex-1 min-w-0 text-[9px] sm:text-[10px] text-muted-foreground uppercase tracking-wide font-medium">Cliente</p>
-              <p className="hidden md:block flex-1 min-w-0 max-w-[200px] text-[10px] text-muted-foreground uppercase tracking-wide font-medium">Descrição</p>
-              <p className="shrink-0 min-w-[70px] sm:min-w-[90px] text-[9px] sm:text-[10px] text-muted-foreground uppercase tracking-wide font-medium">Vencimento</p>
-              <p className="text-right shrink-0 min-w-[60px] sm:min-w-[80px] text-[9px] sm:text-[10px] text-muted-foreground uppercase tracking-wide font-medium">Valor</p>
-            </div>
-            <div className="w-[68px] shrink-0" />
+          <div className="flex items-center gap-2 sm:gap-3 px-2 sm:px-3 py-2 border-b border-border/50 bg-muted/40">
+            <div className="h-8 w-8 sm:h-9 sm:w-9 shrink-0" aria-hidden />
+            <p className="flex-1 min-w-0 text-[9px] sm:text-[10px] text-muted-foreground uppercase tracking-wide font-medium">Cliente</p>
+            <p className="hidden md:block w-[200px] shrink-0 text-[10px] text-muted-foreground uppercase tracking-wide font-medium">Descrição</p>
+            <p className="w-[78px] sm:w-[96px] shrink-0 text-[9px] sm:text-[10px] text-muted-foreground uppercase tracking-wide font-medium">Vencimento</p>
+            <p className="w-[70px] sm:w-[90px] shrink-0 text-right text-[9px] sm:text-[10px] text-muted-foreground uppercase tracking-wide font-medium">Valor</p>
+            <div className="w-[76px] shrink-0" aria-hidden />
           </div>
           <div className="divide-y divide-border/30">
             {listSorted.map((sale) => (
