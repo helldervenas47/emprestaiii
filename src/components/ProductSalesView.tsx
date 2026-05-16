@@ -762,161 +762,24 @@ function SaleCard({ sale, onDelete, onEdit, onUpdate, formatCurrency, readOnly =
         <div className="mt-auto space-y-2">
           {!isPaid && (
             <>
-              {/* Partial payment dialog */}
-              <Dialog open={showPartial} onOpenChange={(open) => {
-                setShowPartial(open);
-                if (!open) { setPartialAmount(""); setPartialDate(undefined); setPartialMethodId(null); setPartialNotes(""); }
-              }}>
-                <DialogContent className="sm:max-w-md max-h-[85vh] overflow-y-auto">
-                  <DialogHeader>
-                    <DialogTitle>Pagamento Parcial</DialogTitle>
-                    <DialogDescription>
-                      Informe o valor e a data do pagamento. O valor será abatido da {sale.paidInstallments + 1}ª parcela pendente ({formatCurrency(getParcelaValue(sale.paidInstallments))}).
-                      {(sale.partialPaid || 0) > 0 && ` Já pago parcialmente: ${formatCurrency(sale.partialPaid)}. Falta: ${formatCurrency(getParcelaValue(sale.paidInstallments) - (sale.partialPaid || 0))}.`}
-                    </DialogDescription>
-                  </DialogHeader>
-                  <div className="space-y-4 py-2">
-                    <div>
-                      <label className="text-sm font-medium text-foreground mb-1 block">Valor do Pagamento (R$)</label>
-                      <Input
-                        type="number" step="0.01" placeholder="0,00"
-                        value={partialAmount} onChange={(e) => setPartialAmount(e.target.value)}
-                        autoFocus
-                      />
-                    </div>
-                    <div>
-                      <label className="text-sm font-medium text-foreground mb-1 block">Data do Pagamento</label>
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <Button variant="outline" className={cn("w-full justify-start text-left font-normal", !partialDate && "text-muted-foreground")}>
-                            <CalendarIcon className="mr-2 h-4 w-4" />
-                            {partialDate ? format(partialDate, "dd/MM/yyyy") : "Selecione a data"}
-                          </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0" align="start">
-                          <Calendar
-                            mode="single"
-                            selected={partialDate}
-                            onSelect={setPartialDate}
-                            initialFocus
-                            className={cn("p-3 pointer-events-auto")}
-                          />
-                        </PopoverContent>
-                      </Popover>
-                    </div>
-                    <PaymentMethodPicker value={partialMethodId} onChange={setPartialMethodId} />
-                    <div>
-                      <label className="text-sm font-medium text-foreground mb-1 block">Observações (opcional)</label>
-                      <Textarea
-                        rows={2}
-                        placeholder="Detalhes do pagamento..."
-                        value={partialNotes}
-                        onChange={(e) => setPartialNotes(e.target.value)}
-                      />
-                    </div>
-                  </div>
-                  <DialogFooter>
-                    <Button variant="ghost" onClick={() => { setShowPartial(false); setPartialAmount(""); setPartialDate(undefined); setPartialMethodId(null); setPartialNotes(""); }}>Cancelar</Button>
-                    <Button onClick={() => {
-                      const val = parseFloat(partialAmount);
-                      if (val > 0 && partialDate) {
-                        const nextIdx = sale.paidInstallments;
-                        const currentValue = getParcelaValue(nextIdx);
-                        const currentPartial = sale.partialPaid || 0;
-                        const newPartialTotal = currentPartial + val;
-                        const newRecord: SalePaymentRecord = {
-                          amount: val,
-                          date: format(partialDate, "yyyy-MM-dd"),
-                          type: "partial",
-                          paymentMethodId: partialMethodId || null,
-                          notes: partialNotes.trim() || null,
-                        };
-                        const history = [...(sale.paymentHistory || []), newRecord];
-                        if (newPartialTotal >= currentValue - 0.01) {
-                          const remainder = newPartialTotal - currentValue;
-                          onUpdate({
-                            paidInstallments: Math.min(sale.installments, sale.paidInstallments + 1),
-                            partialPaid: remainder > 0.01 ? remainder : 0,
-                            paymentHistory: history,
-                          });
-                        } else {
-                          onUpdate({ partialPaid: newPartialTotal, paymentHistory: history });
-                        }
-                        celebrate({ kind: "sale", message: "Pagamento recebido!", amount: val });
-                        setPartialAmount(""); setPartialDate(undefined); setPartialMethodId(null); setPartialNotes(""); setShowPartial(false);
-                      }
-                    }} disabled={!partialAmount || parseFloat(partialAmount) <= 0 || !partialDate}>
-                      Confirmar
-                    </Button>
-                  </DialogFooter>
-                </DialogContent>
-              </Dialog>
-
+              <RegisterSalePaymentDialog
+                open={showPartial}
+                onOpenChange={setShowPartial}
+                sale={sale}
+                onUpdate={onUpdate}
+                formatCurrency={formatCurrency}
+                initialMode="partial"
+              />
+              <RegisterSalePaymentDialog
+                open={showPayDatePicker}
+                onOpenChange={setShowPayDatePicker}
+                sale={sale}
+                onUpdate={onUpdate}
+                formatCurrency={formatCurrency}
+                initialMode="full"
+              />
               {!readOnly && (
               <div className="flex gap-2">
-                <Dialog open={showPayDatePicker} onOpenChange={(open) => {
-                  setShowPayDatePicker(open);
-                  if (!open) { setFullDate(undefined); setFullMethodId(null); setFullNotes(""); }
-                }}>
-                  <DialogContent className="sm:max-w-md max-h-[85vh] overflow-y-auto">
-                    <DialogHeader>
-                      <DialogTitle>Pagar Parcela</DialogTitle>
-                      <DialogDescription>
-                        Confirme a data, forma de pagamento e observações.
-                      </DialogDescription>
-                    </DialogHeader>
-                    <div className="space-y-4 py-2">
-                      <div>
-                        <label className="text-sm font-medium text-foreground mb-1 block">Data do Pagamento</label>
-                        <Popover>
-                          <PopoverTrigger asChild>
-                            <Button variant="outline" className={cn("w-full justify-start text-left font-normal", !fullDate && "text-muted-foreground")}>
-                              <CalendarIcon className="mr-2 h-4 w-4" />
-                              {fullDate ? format(fullDate, "dd/MM/yyyy") : "Selecione a data"}
-                            </Button>
-                          </PopoverTrigger>
-                          <PopoverContent className="w-auto p-0" align="start">
-                            <Calendar mode="single" selected={fullDate} onSelect={setFullDate} initialFocus className={cn("p-3 pointer-events-auto")} />
-                          </PopoverContent>
-                        </Popover>
-                      </div>
-                      <PaymentMethodPicker value={fullMethodId} onChange={setFullMethodId} />
-                      <div>
-                        <label className="text-sm font-medium text-foreground mb-1 block">Observações (opcional)</label>
-                        <Textarea rows={2} placeholder="Detalhes do pagamento..." value={fullNotes} onChange={(e) => setFullNotes(e.target.value)} />
-                      </div>
-                    </div>
-                    <DialogFooter>
-                      <Button variant="ghost" onClick={() => { setShowPayDatePicker(false); setFullDate(undefined); setFullMethodId(null); setFullNotes(""); }}>Cancelar</Button>
-                      <Button
-                        className="flex-1 h-9 border-primary/30 text-primary-foreground bg-primary hover:bg-primary/90"
-                        disabled={!fullDate}
-                        onClick={() => {
-                          if (!fullDate) return;
-                          const nextIdx = sale.paidInstallments;
-                          const paymentVal = getParcelaValue(nextIdx) - (sale.partialPaid || 0);
-                          const newRecord: SalePaymentRecord = {
-                            amount: paymentVal,
-                            date: format(fullDate, "yyyy-MM-dd"),
-                            type: "full",
-                            paymentMethodId: fullMethodId || null,
-                            notes: fullNotes.trim() || null,
-                          };
-                          const history = [...(sale.paymentHistory || []), newRecord];
-                          onUpdate({
-                            paidInstallments: Math.min(sale.installments, sale.paidInstallments + 1),
-                            partialPaid: 0,
-                            paymentHistory: history,
-                          });
-                          celebrate({ kind: "sale", message: "Parcela paga!", amount: paymentVal });
-                          setShowPayDatePicker(false); setFullDate(undefined); setFullMethodId(null); setFullNotes("");
-                        }}
-                      >
-                        <CheckCircle className="h-4 w-4 mr-1" /> Confirmar
-                      </Button>
-                    </DialogFooter>
-                  </DialogContent>
-                </Dialog>
                 <Button
                   variant="outline"
                   className="flex-1 h-9 text-xs border-primary/30 text-primary hover:bg-primary hover:text-primary-foreground"
