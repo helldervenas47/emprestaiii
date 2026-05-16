@@ -3,6 +3,7 @@ import { useIncomes } from "@/hooks/useIncomes";
 import { useExpenses } from "@/hooks/useExpenses";
 import { useProducts } from "@/hooks/useProducts";
 import { usePiggyBanks } from "@/hooks/usePiggyBanks";
+import { useExternalAccountSources } from "@/hooks/useExternalAccountSources";
 import type { Sale } from "@/types/loan";
 
 /**
