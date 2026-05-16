@@ -206,7 +206,7 @@ export function IncomeForm({ open, onClose, onSubmit, initial }: Props) {
               <Select value={status} onValueChange={(v) => setStatus(v as IncomeStatus)}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="received">Recebido</SelectItem>
+                  <SelectItem value="received">PAGO</SelectItem>
                   <SelectItem value="pending">Pendente</SelectItem>
                   <SelectItem value="overdue">Atrasado</SelectItem>
                 </SelectContent>
