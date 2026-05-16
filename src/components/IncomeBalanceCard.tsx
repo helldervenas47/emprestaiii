@@ -105,7 +105,10 @@ export function IncomeBalanceCard({ incomes, expenses, onAdjust, readOnly, onOpe
     const totalPiggyManualDeposits = piggyDeposits
       .filter((d) => !d.expenseId)
       .reduce((s, d) => s + (Number(d.amount) || 0), 0);
-    const balance = totalIncomeReceived + totalSalesReceived - totalExpensePaid - totalPiggyManualDeposits;
+    const baseBalance = totalIncomeReceived + totalSalesReceived - totalExpensePaid - totalPiggyManualDeposits;
+    // Acrescenta saldos externos (Dashboard conta+dinheiro, Cofrinhos e Veículos)
+    // mantendo o cálculo original intacto.
+    const balance = baseBalance + externalSources.total;
 
     // Movimentação do mês vigente
     const monthIn = incomes
