@@ -2406,7 +2406,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
               <p className="text-muted-foreground text-xs leading-relaxed">
                 Percentual do que já foi efetivamente recebido em relação ao total esperado da carteira no período.
                 <br />
-                <span className="font-mono text-[11px]">= (Recebido ÷ Total esperado) × 100</span>
+                <span className="font-mono text-[11px]">= (PAGO ÷ Total esperado) × 100</span>
               </p>
             </div>
 

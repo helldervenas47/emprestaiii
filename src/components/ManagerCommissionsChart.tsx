@@ -377,7 +377,7 @@ export function ManagerCommissionsChart({
           </div>
         )}
         <p className="text-[10px] text-muted-foreground mt-3 italic text-center">
-          Recebido = comissões registradas ou derivadas de juros/quitações recebidos no período. Pendente = parcelas com vencimento no período ainda não pagas. Toque em um gerente para ver os detalhes.
+          PAGO = comissões registradas ou derivadas de juros/quitações PAGOS no período. Pendente = parcelas com vencimento no período ainda não pagas. Toque em um gerente para ver os detalhes.
         </p>
       </CardContent>
 
