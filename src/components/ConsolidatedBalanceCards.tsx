@@ -191,7 +191,7 @@ export function ConsolidatedBalanceCards() {
           </DialogHeader>
           <ScrollArea className="max-h-[60vh] px-5 pb-5">
             {(() => {
-              const baseReceitas = incomesBalance - (dashboardAccount + dashboardCash + piggyTotal + vehicleBalance);
+              const baseReceitas = incomesBalance;
               const Item = ({
                 icon: Icon,
                 label,
