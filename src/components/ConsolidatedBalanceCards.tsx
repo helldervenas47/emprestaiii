@@ -169,16 +169,16 @@ export function ConsolidatedBalanceCards() {
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-1">
-            <Row label="Saldo em conta (Dashboard)" value={dashboardBalance} />
-            <Row label="Saldo em conta (Receitas)" value={incomesBalance} />
-            <Row label="Total dos Cofrinhos" value={piggyTotal} />
-            <Row label="Saldo (Veículos)" value={vehicleBalance} />
+            <Row label="Saldo em Conta (Receitas e Despesas)" value={incomesBalance} />
             <div className="flex items-center justify-between pt-3 mt-2 border-t border-border">
               <span className="text-sm font-semibold">Total consolidado</span>
               <span className={`text-base font-bold tabular-nums ${totalEmMaos < 0 ? "text-destructive" : "text-foreground"}`}>
                 {formatBRL(totalEmMaos)}
               </span>
             </div>
+            <p className="text-[11px] text-muted-foreground pt-2">
+              Fonte oficial: aba Receitas e Despesas. Dashboard manual ({formatBRL(dashboardBalance)}), Cofrinhos ({formatBRL(piggyTotal)}) e Veículos ({formatBRL(vehicleBalance)}) são exibidos apenas como referência.
+            </p>
           </div>
         </DialogContent>
       </Dialog>
