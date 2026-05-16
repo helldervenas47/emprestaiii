@@ -649,8 +649,10 @@ function SaleListRow({ sale, onEdit, onUpdate, formatCurrency, readOnly = false,
         </div>
       </button>
 
-      {!isPaid && !readOnly && (
-        <div className="flex items-center gap-1 shrink-0">
+      {(isPaid || readOnly) ? (
+        <div className="w-[76px] shrink-0" aria-hidden />
+      ) : (
+        <div className="w-[76px] shrink-0 flex items-center justify-end gap-1">
           {/* Pay installment */}
           <Popover open={showPayDatePicker} onOpenChange={setShowPayDatePicker}>
             <PopoverTrigger asChild>
