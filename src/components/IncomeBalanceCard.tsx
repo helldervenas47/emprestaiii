@@ -90,25 +90,16 @@ export function IncomeBalanceCard({ incomes, expenses, onAdjust, readOnly, onOpe
   const prevKey = `${prevDate.getFullYear()}-${String(prevDate.getMonth() + 1).padStart(2, "0")}`;
 
   const calc = useMemo(() => {
-    // Saldo em Conta = receitas recebidas + recebimentos efetivos de vendas
-    //                  − despesas pagas − aportes ao cofrinho (todos os períodos)
+    // Saldo em Conta (aba Receitas) = receitas recebidas − despesas pessoais pagas.
+    // Independente da Dashboard: NÃO inclui vendas, cofrinhos, cartões,
+    // empréstimos, saldos externos ou qualquer agregado consolidado.
     const totalIncomeReceived = incomes
       .filter((i) => i.status === "received")
       .reduce((s, i) => s + i.amount, 0);
-    const totalSalesReceived = sales.reduce((s, sale) => s + saleReceivedTotal(sale), 0);
-    // Despesas da empresa (scope=business) NÃO afetam o saldo nem o status da aba de Receitas.
     const totalExpensePaid = expenses
       .filter((e) => e.paid && (e.scope ?? "business") === "personal")
       .reduce((s, e) => s + e.amount, 0);
-    // Aportes manuais/recorrentes ao cofrinho (não vinculados a despesa).
-    // Aportes vinculados a uma despesa cofrinho já estão contabilizados em totalExpensePaid.
-    const totalPiggyManualDeposits = piggyDeposits
-      .filter((d) => !d.expenseId)
-      .reduce((s, d) => s + (Number(d.amount) || 0), 0);
-    const baseBalance = totalIncomeReceived + totalSalesReceived - totalExpensePaid - totalPiggyManualDeposits;
-    // Acrescenta saldos externos (Dashboard conta+dinheiro, Cofrinhos e Veículos)
-    // mantendo o cálculo original intacto.
-    const balance = baseBalance + externalSources.total;
+    const balance = totalIncomeReceived - totalExpensePaid;
 
     // Movimentação do mês vigente
     const monthIn = incomes
