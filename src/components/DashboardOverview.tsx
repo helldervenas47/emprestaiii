@@ -1969,12 +1969,12 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
                 </div>
                 <button
                   type="button"
-                  onClick={() => setExpandedBreakdown(expanded ? null : "overdue")}
+                  onClick={() => setExpandedBreakdown("overdue")}
                   className="p-3 sm:p-4 rounded-2xl bg-white/[0.03] border border-white/10 text-left transition-all hover:bg-white/[0.06] hover:border-white/20"
                 >
                   <div className="flex items-center justify-between mb-1">
                     <p className="text-muted-foreground text-[10px] sm:text-xs font-medium uppercase tracking-wider">Atrasado</p>
-                    <ChevronDown className={`h-3 w-3 text-muted-foreground transition-transform ${expanded ? "rotate-180" : ""}`} />
+                    <ChevronRight className="h-3 w-3 text-muted-foreground" />
                   </div>
                   <p className="text-destructive font-bold text-base sm:text-lg tabular-nums leading-tight truncate">{formatCurrency(portfolio.overdueAmount)}</p>
                   {portfolio.overdueLoans.length > 0 && (
@@ -1990,28 +1990,55 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
                   <span className={`h-1.5 w-1.5 rounded-full ${a.bg} animate-pulse`} />Live
                 </span>
               </div>
-
-              {/* Overdue breakdown */}
-              {expanded && portfolio.overdueLoans.length > 0 && (
-                <div className="mt-4 pt-4 border-t border-destructive/20 space-y-2 max-h-60 overflow-y-auto animate-fade-in">
-                  <p className="text-[10px] font-medium uppercase tracking-widest text-destructive mb-1">Contratos em atraso</p>
-                  {[...portfolio.overdueLoans].sort((a, b) => a.dueDate.localeCompare(b.dueDate)).map((l) => {
-                    const remaining = getOverdueAmount(l, installmentSchedules, todayInAppTz());
-                    const dueDate = new Date(l.dueDate + "T00:00:00");
-                    const daysLate = Math.max(0, Math.floor((Date.now() - dueDate.getTime()) / (1000 * 60 * 60 * 24)));
-                    return (
-                      <div key={l.id} className="flex items-center justify-between gap-3 rounded-xl border border-destructive/15 bg-destructive/5 px-3 py-2 text-xs">
-                        <div className="min-w-0">
-                          <p className="font-medium text-foreground truncate">{l.borrowerName}</p>
-                          <p className="text-[10px] text-muted-foreground">{daysLate}d · venc {dueDate.toLocaleDateString("pt-BR")}</p>
-                        </div>
-                        <span className="font-bold text-destructive whitespace-nowrap tabular-nums">{rawFormatCurrency(remaining)}</span>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
             </CardContent>
+
+            {/* Overdue Modal */}
+            <Dialog open={expanded} onOpenChange={(o) => !o && setExpandedBreakdown(null)}>
+              <DialogContent className="max-w-lg max-h-[85vh] overflow-hidden flex flex-col p-0 gap-0 border border-white/10 bg-card/80 backdrop-blur-2xl backdrop-saturate-150 shadow-2xl">
+                <DialogHeader className="p-5 pb-4 border-b border-white/10">
+                  <DialogTitle className="flex items-center gap-3">
+                    <div className="h-9 w-9 rounded-xl border border-destructive/30 bg-destructive/10 flex items-center justify-center shrink-0">
+                      <AlertCircle className="h-4 w-4 text-destructive" />
+                    </div>
+                    <div className="min-w-0 text-left">
+                      <p className="text-base font-semibold text-foreground truncate">Contratos em atraso</p>
+                      <p className="text-[11px] font-normal text-muted-foreground">
+                        {portfolio.overdueLoans.length} contrato{portfolio.overdueLoans.length !== 1 ? "s" : ""} · {rawFormatCurrency(portfolio.overdueAmount)}
+                      </p>
+                    </div>
+                  </DialogTitle>
+                </DialogHeader>
+                <div className="flex-1 overflow-y-auto p-4 space-y-2">
+                  {portfolio.overdueLoans.length === 0 ? (
+                    <div className="py-12 text-center text-sm text-muted-foreground">
+                      Nenhum contrato em atraso.
+                    </div>
+                  ) : (
+                    [...portfolio.overdueLoans].sort((a, b) => a.dueDate.localeCompare(b.dueDate)).map((l) => {
+                      const remaining = getOverdueAmount(l, installmentSchedules, todayInAppTz());
+                      const dueDate = new Date(l.dueDate + "T00:00:00");
+                      const daysLate = Math.max(0, Math.floor((Date.now() - dueDate.getTime()) / (1000 * 60 * 60 * 24)));
+                      return (
+                        <div key={l.id} className="rounded-2xl border border-destructive/20 bg-destructive/5 p-3.5 transition-colors hover:bg-destructive/10">
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="min-w-0 flex-1">
+                              <p className="font-semibold text-foreground truncate">{l.borrowerName}</p>
+                              <div className="flex items-center gap-2 mt-1">
+                                <span className="inline-flex items-center rounded-full bg-destructive/15 px-2 py-0.5 text-[10px] font-semibold text-destructive">
+                                  {daysLate}d em atraso
+                                </span>
+                                <span className="text-[11px] text-muted-foreground">venc. {dueDate.toLocaleDateString("pt-BR")}</span>
+                              </div>
+                            </div>
+                            <span className="font-bold text-destructive whitespace-nowrap tabular-nums text-sm">{rawFormatCurrency(remaining)}</span>
+                          </div>
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+              </DialogContent>
+            </Dialog>
           </Card>
         );
       })()}
