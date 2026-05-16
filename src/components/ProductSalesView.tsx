@@ -1052,68 +1052,20 @@ function SaleListRow({ sale, onEdit, onUpdate, formatCurrency, readOnly = false,
               <Pencil className="h-4 w-4" />
             </Button>
           )}
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-8 w-8 text-primary hover:bg-primary/10 relative" title="Pagamentos">
-                <HandCoins className="h-4 w-4" />
-                {historyCount > 0 && (
-                  <span className="absolute -top-0.5 -right-0.5 min-w-[14px] h-[14px] rounded-full bg-success text-success-foreground text-[9px] font-bold flex items-center justify-center px-1">
-                    {historyCount}
-                  </span>
-                )}
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-52 p-1" align="end">
-              <button
-                type="button"
-                onClick={() => setShowPayDatePicker(true)}
-                className="w-full flex items-center gap-2 rounded-md px-2 py-2 text-sm text-foreground hover:bg-primary/10 transition-colors"
-              >
-                <CheckCircle className="h-4 w-4 text-primary" />
-                <span>Pagar Parcela</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setShowPartial(true)}
-                className="w-full flex items-center gap-2 rounded-md px-2 py-2 text-sm text-foreground hover:bg-warning/10 transition-colors"
-              >
-                <HandCoins className="h-4 w-4 text-warning" />
-                <span>Pagar Parcial</span>
-              </button>
-              <div className="my-1 h-px bg-border/60" />
-              <button
-                type="button"
-                onClick={() => setShowPayments(true)}
-                className="w-full flex items-center justify-between gap-2 rounded-md px-2 py-2 text-sm text-foreground hover:bg-success/10 transition-colors"
-              >
-                <span className="flex items-center gap-2">
-                  <Receipt className="h-4 w-4 text-success" />
-                  <span>Histórico</span>
-                </span>
-                <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
-                  {historyCount}
-                </Badge>
-              </button>
-            </PopoverContent>
-          </Popover>
-
-          <RegisterSalePaymentDialog
-            open={showPayDatePicker}
-            onOpenChange={setShowPayDatePicker}
-            sale={sale}
-            onUpdate={onUpdate}
-            formatCurrency={formatCurrency}
-            initialMode="full"
-          />
-          <RegisterSalePaymentDialog
-            open={showPartial}
-            onOpenChange={setShowPartial}
-            sale={sale}
-            onUpdate={onUpdate}
-            formatCurrency={formatCurrency}
-            initialMode="partial"
-          />
-
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8 text-success hover:bg-success/10 relative"
+            title="Histórico de Pagamentos"
+            onClick={() => setShowPayments(true)}
+          >
+            <Receipt className="h-4 w-4" />
+            {historyCount > 0 && (
+              <span className="absolute -top-0.5 -right-0.5 min-w-[14px] h-[14px] rounded-full bg-success text-success-foreground text-[9px] font-bold flex items-center justify-center px-1">
+                {historyCount}
+              </span>
+            )}
+          </Button>
         </div>
       )}
       <SalePaymentHistoryDialog
