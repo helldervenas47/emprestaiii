@@ -6,7 +6,8 @@ import { TrendingUp, Wallet, Landmark, Banknote, PiggyBank, Car, ArrowDownCircle
 import { useLoans } from "@/hooks/useLoans";
 import { useProducts } from "@/hooks/useProducts";
 import { usePiggyBanks } from "@/hooks/usePiggyBanks";
-import { useAccountBalance } from "@/hooks/useAccountBalance";
+import { useIncomes } from "@/hooks/useIncomes";
+import { useExpenses } from "@/hooks/useExpenses";
 import { getBalances } from "@/lib/balance";
 import { supabase } from "@/integrations/supabase/client";
 import type { Sale } from "@/types/loan";
@@ -40,8 +41,19 @@ export function ConsolidatedBalanceCards() {
   const { sales } = useProducts(true);
   const { piggyBanks, balances: piggyBalances } = usePiggyBanks();
 
-  // Saldo em Conta — fonte oficial única (aba Receitas e Despesas).
-  const incomesBalance = useAccountBalance();
+  // Espelha EXATAMENTE o "Saldo em Conta" da aba Receitas e Despesas
+  // (IncomeBalanceCard): receitas recebidas − despesas pessoais pagas.
+  const { incomes } = useIncomes(true);
+  const { expenses } = useExpenses(true);
+  const incomesBalance = useMemo(() => {
+    const totalIncomeReceived = incomes
+      .filter((i) => i.status === "received")
+      .reduce((s, i) => s + (Number(i.amount) || 0), 0);
+    const totalExpensePaid = expenses
+      .filter((e: any) => e.paid && (e.scope ?? "business") === "personal")
+      .reduce((s: number, e: any) => s + (Number(e.amount) || 0), 0);
+    return totalIncomeReceived - totalExpensePaid;
+  }, [incomes, expenses]);
 
   const [dashboardAccount, setDashboardAccount] = useState(0);
   const [dashboardCash, setDashboardCash] = useState(0);
