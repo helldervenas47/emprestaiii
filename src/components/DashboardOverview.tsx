@@ -29,7 +29,7 @@ import {
 } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { usePaymentMethods } from "@/hooks/usePaymentMethods";
-import { Banknote, Smartphone, ArrowDownToLine, Activity, ShieldCheck } from "lucide-react";
+import { Banknote, Smartphone, ArrowDownToLine, Activity, ShieldCheck, AlertCircle } from "lucide-react";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, ComposedChart, Line } from "recharts";
 import { AIReportAudioPlayer } from "@/components/AIReportAudioPlayer";
