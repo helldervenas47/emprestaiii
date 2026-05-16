@@ -206,7 +206,7 @@ export function IncomeBalanceCard({ incomes, expenses, onAdjust, readOnly, onOpe
       .reduce((s, i) => s + i.amount, 0);
 
     return { balance, monthIn, monthOut, futureIn, futureOut, projected, projectedDiff, prevIn, pendingInCount };
-  }, [incomes, expenses, monthKey, prevKey, cards, openings, sales, piggyDeposits, openingOverrides]);
+  }, [incomes, expenses, monthKey, prevKey, cards, openings, sales, piggyDeposits, openingOverrides, externalSources.total]);
 
   const diff = calc.monthIn - calc.prevIn;
   const pct = calc.prevIn > 0 ? (diff / calc.prevIn) * 100 : 0;
