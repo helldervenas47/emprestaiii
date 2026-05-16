@@ -1948,7 +1948,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
               </Card>
               <Card no3d className="border-0 bg-gradient-to-br from-success/10 to-success/5">
                 <CardContent className="p-3 sm:p-4">
-                  <p className="text-[10px] sm:text-xs text-muted-foreground">Recebido</p>
+                  <p className="text-[10px] sm:text-xs text-muted-foreground">PAGO</p>
                   <p className="text-base sm:text-xl font-bold text-success">{formatCurrency(portfolio.totalReceived)}</p>
                 </CardContent>
               </Card>
@@ -2060,7 +2060,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
                   <tr>
                     <th className="text-left p-2 font-medium text-muted-foreground">Mês</th>
                     <th className="text-right p-2 font-medium text-warning">Emprestado</th>
-                    <th className="text-right p-2 font-medium text-success">Recebido</th>
+                    <th className="text-right p-2 font-medium text-success">PAGO</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -2099,11 +2099,11 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
                 <XAxis dataKey="month" tick={{ fontSize: 11 }} className="text-muted-foreground" />
                 <YAxis tick={{ fontSize: 11 }} tickFormatter={(v) => `R$${(v / 1000).toFixed(0)}k`} className="text-muted-foreground" />
                 <Tooltip
-                  formatter={(value: number, name: string) => [formatCurrency(value), name === "emprestado" ? "Emprestado" : "Recebido"]}
+                  formatter={(value: number, name: string) => [formatCurrency(value), name === "emprestado" ? "Emprestado" : "PAGO"]}
                   labelFormatter={(label) => label}
                   contentStyle={{ borderRadius: "8px", border: "1px solid hsl(var(--border))", backgroundColor: "hsl(var(--card))" }}
                 />
-                <Legend formatter={(value) => value === "emprestado" ? "Emprestado" : "Recebido"} />
+                <Legend formatter={(value) => value === "emprestado" ? "Emprestado" : "PAGO"} />
                 <Bar dataKey="emprestado" fill="hsl(var(--warning))" radius={[4, 4, 0, 0]} />
                 <Bar dataKey="recebido" fill="hsl(var(--success))" radius={[4, 4, 0, 0]} />
               </BarChart>
@@ -2420,7 +2420,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
             </div>
 
             <div className="rounded-lg border border-border bg-muted/30 p-3">
-              <p className="font-semibold text-foreground mb-1">Recebido</p>
+              <p className="font-semibold text-foreground mb-1">PAGO</p>
               <p className="text-muted-foreground text-xs leading-relaxed">
                 Soma de todos os pagamentos efetivamente registrados no período selecionado (critério: data de pagamento).
                 Inclui parcelas, juros avulsos e quitações.
@@ -2532,7 +2532,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
                 {showReceived && (
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
-                      <p className="text-xs font-semibold uppercase tracking-wider text-success">Recebidos</p>
+                      <p className="text-xs font-semibold uppercase tracking-wider text-success">PAGOS</p>
                       <p className="text-xs text-muted-foreground">{receivedRecs.length} registro(s)</p>
                     </div>
                     {receivedRecs.length === 0 ? (
@@ -2543,7 +2543,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
                           <div key={`r-${i}`} className="flex items-center justify-between p-3 rounded-lg bg-success/5 border border-success/30">
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center gap-2">
-                                <span className="text-[10px] uppercase font-semibold px-1.5 py-0.5 rounded bg-success/20 text-success">Recebido</span>
+                                <span className="text-[10px] uppercase font-semibold px-1.5 py-0.5 rounded bg-success/20 text-success">PAGO</span>
                                 <p className="text-sm font-medium truncate">{rec.borrowerName}</p>
                               </div>
                               <p className="text-xs text-muted-foreground mt-0.5">
@@ -2557,7 +2557,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
                           </div>
                         ))}
                         <div className="flex items-center justify-between pt-2 border-t border-border/60">
-                          <p className="text-xs font-semibold">Subtotal Recebido</p>
+                          <p className="text-xs font-semibold">Subtotal PAGO</p>
                           <p className="text-sm font-bold text-success">{formatCurrency(receivedTotal)}</p>
                         </div>
                       </>

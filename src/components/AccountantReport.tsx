@@ -1296,7 +1296,7 @@ export function AccountantReport({ loans, payments, sales, expenses }: Accountan
                           <tr className="text-left text-muted-foreground border-b">
                             <th className="py-2 pr-2">Tipo</th>
                             <th className="py-2 pr-2 text-right">Qtd</th>
-                            <th className="py-2 pr-2 text-right">Recebido</th>
+                            <th className="py-2 pr-2 text-right">PAGO</th>
                             <th className="py-2 pr-2 text-right">Juros</th>
                             <th className="py-2 text-right">Principal</th>
                           </tr>

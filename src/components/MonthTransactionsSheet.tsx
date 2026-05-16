@@ -32,7 +32,7 @@ type Row = {
 };
 
 const STATUS_LABEL: Record<Row["status"], string> = {
-  received: "Recebido",
+  received: "PAGO",
   pending: "Pendente",
   overdue: "Atrasado",
   paid: "Pago",
