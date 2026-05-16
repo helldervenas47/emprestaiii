@@ -99,6 +99,16 @@ export function IncomeDashboard({ incomes, allMonthIncomes, monthKey, sales = []
             </div>
           ))}
         </div>
+        <div className="mt-3 pt-3 border-t border-border flex items-center justify-between">
+          <span className="text-xs text-muted-foreground">Total a receber</span>
+          <span className="text-sm font-semibold text-amber-500">
+            {fmtBRL(
+              consolidated
+                .filter((i) => i.status !== "received")
+                .reduce((s, i) => s + (Number(i.amount) || 0), 0),
+            )}
+          </span>
+        </div>
       </Card>
 
       <Card no3d className="p-4">
