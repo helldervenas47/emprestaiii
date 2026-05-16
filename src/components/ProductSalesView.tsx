@@ -1038,20 +1038,6 @@ function SaleListRow({ sale, onEdit, onUpdate, formatCurrency, readOnly = false,
               <Pencil className="h-4 w-4" />
             </Button>
           )}
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-8 w-8 text-success hover:bg-success/10 relative"
-            title="Histórico de Pagamentos"
-            onClick={() => setShowPayments(true)}
-          >
-            <Receipt className="h-4 w-4" />
-            {historyCount > 0 && (
-              <span className="absolute -top-0.5 -right-0.5 min-w-[14px] h-[14px] rounded-full bg-success text-success-foreground text-[9px] font-bold flex items-center justify-center px-1">
-                {historyCount}
-              </span>
-            )}
-          </Button>
         </div>
       )}
       <SalePaymentHistoryDialog
