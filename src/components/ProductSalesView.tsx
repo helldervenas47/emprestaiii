@@ -609,7 +609,7 @@ function SaleListRow({ sale, onEdit, onUpdate, formatCurrency, readOnly = false,
         }`}>
           {(sale.customerName || sale.description || "?").charAt(0).toUpperCase()}
         </div>
-        <div className="flex-1 min-w-0">
+        <div className="flex-1 min-w-0 lg:max-w-[200px]">
           <p className="text-xs sm:text-sm font-semibold text-foreground truncate">{sale.customerName || "—"}</p>
           <span
             className="md:hidden mt-0.5 inline-flex items-center gap-1 rounded-full border px-1.5 py-0.5 text-[9px] sm:text-[10px] font-medium max-w-full"
@@ -623,7 +623,7 @@ function SaleListRow({ sale, onEdit, onUpdate, formatCurrency, readOnly = false,
             <span className="truncate">{incomeCat ? incomeCat.name : "Sem categoria"}</span>
           </span>
         </div>
-        <div className="hidden md:flex w-[120px] lg:w-[160px] shrink-0 min-w-0 items-center">
+        <div className="hidden md:flex w-[120px] lg:w-[200px] shrink-0 min-w-0 items-center">
           <span
             className="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-medium max-w-full"
             style={incomeCat ? {
@@ -636,10 +636,10 @@ function SaleListRow({ sale, onEdit, onUpdate, formatCurrency, readOnly = false,
             <span className="truncate">{incomeCat ? incomeCat.name : "Sem categoria"}</span>
           </span>
         </div>
-        <div className="hidden md:block w-[140px] lg:w-[200px] shrink-0 min-w-0">
+        <div className="hidden md:block w-[140px] lg:flex-1 lg:min-w-[200px] shrink-0 min-w-0">
           <p className="text-xs lg:text-sm font-bold text-foreground truncate">{sale.description || sale.productName || "—"}</p>
         </div>
-        <div className="w-[78px] sm:w-[88px] lg:w-[96px] shrink-0">
+        <div className="w-[78px] sm:w-[88px] lg:w-[110px] shrink-0">
           <p className="text-[11px] sm:text-xs text-foreground truncate">
             {!isPaid ? format(nextDue, "dd/MM/yyyy") : "Quitado"}{isRecorrente && ` • ${sale.paidInstallments}/${sale.installments}`}
           </p>
@@ -650,7 +650,7 @@ function SaleListRow({ sale, onEdit, onUpdate, formatCurrency, readOnly = false,
             return <p className="text-[10px] sm:text-[11px] font-semibold text-muted-foreground truncate">Faltam {days}d</p>;
           })()}
         </div>
-        <div className="w-[102px] sm:w-[108px] lg:w-[122px] shrink-0 text-right tabular-nums">
+        <div className="w-[102px] sm:w-[108px] lg:w-[140px] shrink-0 text-right tabular-nums">
           {isPaid ? (
             <p className="text-xs sm:text-sm font-bold text-success truncate">{formatCurrency(sale.total)}</p>
           ) : (
@@ -1259,11 +1259,11 @@ function SalesList({ sales, onDeleteSale, onUpdateSale, clients = [], hideOnTrac
           {/* Header row */}
           <div className="flex items-center gap-2 sm:gap-3 px-2 sm:px-3 py-2 border-b border-border/50 bg-muted/40">
             <div className="h-8 w-8 sm:h-9 sm:w-9 shrink-0" aria-hidden />
-            <p className="flex-1 min-w-0 text-[9px] sm:text-[10px] text-muted-foreground uppercase tracking-wide font-medium">Cliente</p>
-            <p className="hidden md:block w-[120px] lg:w-[160px] shrink-0 text-[10px] text-muted-foreground uppercase tracking-wide font-medium">Categoria</p>
-            <p className="hidden md:block w-[140px] lg:w-[200px] shrink-0 text-[10px] text-muted-foreground uppercase tracking-wide font-medium">Descrição</p>
-            <p className="w-[78px] sm:w-[88px] lg:w-[96px] shrink-0 text-[9px] sm:text-[10px] text-muted-foreground uppercase tracking-wide font-medium">Vencimento</p>
-            <p className="w-[102px] sm:w-[108px] lg:w-[122px] shrink-0 text-right text-[9px] sm:text-[10px] text-muted-foreground uppercase tracking-wide font-medium">Valor</p>
+            <p className="flex-1 min-w-0 lg:max-w-[200px] text-[9px] sm:text-[10px] text-muted-foreground uppercase tracking-wide font-medium">Cliente</p>
+            <p className="hidden md:block w-[120px] lg:w-[200px] shrink-0 text-[10px] text-muted-foreground uppercase tracking-wide font-medium">Categoria</p>
+            <p className="hidden md:block w-[140px] lg:flex-1 lg:min-w-[200px] shrink-0 text-[10px] text-muted-foreground uppercase tracking-wide font-medium">Descrição</p>
+            <p className="w-[78px] sm:w-[88px] lg:w-[110px] shrink-0 text-[9px] sm:text-[10px] text-muted-foreground uppercase tracking-wide font-medium">Vencimento</p>
+            <p className="w-[102px] sm:w-[108px] lg:w-[140px] shrink-0 text-right text-[9px] sm:text-[10px] text-muted-foreground uppercase tracking-wide font-medium">Valor</p>
             <div className="w-[44px] shrink-0" aria-hidden />
           </div>
           <div className="divide-y divide-border/30">
