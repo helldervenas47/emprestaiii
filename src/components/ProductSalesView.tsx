@@ -871,6 +871,8 @@ function SaleListRow({ sale, onEdit, onUpdate, formatCurrency, readOnly = false,
   const [partialAmount, setPartialAmount] = useState("");
   const [partialDate, setPartialDate] = useState<Date | undefined>(undefined);
   const [showPayDatePicker, setShowPayDatePicker] = useState(false);
+  const [showPayments, setShowPayments] = useState(false);
+  const historyCount = (sale.paymentHistory || []).length;
 
   const category = getSaleCategory(sale);
   const catStyle = saleCategoryConfig[category];
