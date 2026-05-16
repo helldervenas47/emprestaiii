@@ -950,16 +950,36 @@ function SaleListRow({ sale, onEdit, onUpdate, formatCurrency, readOnly = false,
       </button>
 
       {(isPaid || readOnly) ? (
-        <div className="w-[44px] shrink-0" aria-hidden />
+        <div className="w-[44px] shrink-0 flex items-center justify-end">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8 text-success hover:bg-success/10 relative"
+            title="Histórico de Pagamentos"
+            onClick={() => setShowPayments(true)}
+          >
+            <Receipt className="h-4 w-4" />
+            {historyCount > 0 && (
+              <span className="absolute -top-0.5 -right-0.5 min-w-[14px] h-[14px] rounded-full bg-success text-success-foreground text-[9px] font-bold flex items-center justify-center px-1">
+                {historyCount}
+              </span>
+            )}
+          </Button>
+        </div>
       ) : (
         <div className="w-[44px] shrink-0 flex items-center justify-end">
           <Popover>
             <PopoverTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-8 w-8 text-primary hover:bg-primary/10" title="Pagamentos">
+              <Button variant="ghost" size="icon" className="h-8 w-8 text-primary hover:bg-primary/10 relative" title="Pagamentos">
                 <HandCoins className="h-4 w-4" />
+                {historyCount > 0 && (
+                  <span className="absolute -top-0.5 -right-0.5 min-w-[14px] h-[14px] rounded-full bg-success text-success-foreground text-[9px] font-bold flex items-center justify-center px-1">
+                    {historyCount}
+                  </span>
+                )}
               </Button>
             </PopoverTrigger>
-            <PopoverContent className="w-48 p-1" align="end">
+            <PopoverContent className="w-52 p-1" align="end">
               <button
                 type="button"
                 onClick={() => setShowPayDatePicker(true)}
@@ -975,6 +995,20 @@ function SaleListRow({ sale, onEdit, onUpdate, formatCurrency, readOnly = false,
               >
                 <HandCoins className="h-4 w-4 text-warning" />
                 <span>Pagar Parcial</span>
+              </button>
+              <div className="my-1 h-px bg-border/60" />
+              <button
+                type="button"
+                onClick={() => setShowPayments(true)}
+                className="w-full flex items-center justify-between gap-2 rounded-md px-2 py-2 text-sm text-foreground hover:bg-success/10 transition-colors"
+              >
+                <span className="flex items-center gap-2">
+                  <Receipt className="h-4 w-4 text-success" />
+                  <span>Histórico</span>
+                </span>
+                <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
+                  {historyCount}
+                </Badge>
               </button>
             </PopoverContent>
           </Popover>
