@@ -204,10 +204,17 @@ export type PaymentMode = "fixa" | "recorrente";
 
 export interface SalePaymentRecord {
   amount: number;
+  /** Data do pagamento (YYYY-MM-DD). */
   date: string;
+  /** Hora do pagamento (HH:mm). Opcional para registros antigos. */
+  time?: string | null;
   type: "full" | "partial";
   paymentMethodId?: string | null;
   notes?: string | null;
+  /** Número da parcela (1-indexed) a que este pagamento foi aplicado. Opcional p/ registros antigos. */
+  installmentNumber?: number | null;
+  /** Nome ou e-mail do usuário responsável pelo recebimento. */
+  userName?: string | null;
 }
 
 export interface Sale {
