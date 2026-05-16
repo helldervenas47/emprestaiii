@@ -864,7 +864,7 @@ function SaleClientFolder({
             <p className="font-bold text-foreground">{formatCurrency(group.totalAmount)}</p>
           </div>
           <div className="text-right">
-            <p className="text-[9px] text-muted-foreground uppercase">Recebido</p>
+            <p className="text-[9px] text-muted-foreground uppercase">PAGO</p>
             <p className="font-bold text-success">{formatCurrency(group.totalPaid)}</p>
           </div>
           <div className="text-right">
@@ -883,7 +883,7 @@ function SaleClientFolder({
               <p className="font-bold text-foreground">{formatCurrency(group.totalAmount)}</p>
             </div>
             <div className="text-center flex-1">
-              <p className="text-[9px] text-muted-foreground uppercase">Recebido</p>
+              <p className="text-[9px] text-muted-foreground uppercase">PAGO</p>
               <p className="font-bold text-success">{formatCurrency(group.totalPaid)}</p>
             </div>
             <div className="text-center flex-1">
