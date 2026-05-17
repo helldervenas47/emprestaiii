@@ -1994,7 +1994,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
             </CardContent>
 
             {/* Overdue Modal */}
-            <Dialog open={expanded} onOpenChange={(o) => !o && setExpandedBreakdown(null)}>
+            <Dialog open={expanded} onOpenChange={(o) => setOverdueDialogOpen(o)}>
               <DialogContent className="max-w-lg max-h-[85vh] overflow-hidden flex flex-col p-0 gap-0 border border-white/10 bg-card/80 backdrop-blur-2xl backdrop-saturate-150 shadow-2xl">
                 <DialogHeader className="p-5 pb-4 border-b border-white/10">
                   <DialogTitle className="flex items-center gap-3">
