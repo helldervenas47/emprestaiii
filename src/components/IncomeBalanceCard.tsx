@@ -11,9 +11,11 @@ import { TrendingUp, TrendingDown, Wallet, ArrowUpRight, ArrowDownRight, Setting
 import { useCreditCards } from "@/hooks/useCreditCards";
 import { useCreditCardOpenings } from "@/hooks/useCreditCardOpenings";
 import { getCardInvoiceTotalsForMonth, isCreditCardExpense } from "@/lib/creditCardInvoiceTotals";
-import { isPiggyExpense } from "@/hooks/usePiggyBanks";
+import { isPiggyExpense, usePiggyBanks } from "@/hooks/usePiggyBanks";
 import { useProducts } from "@/hooks/useProducts";
 import { Sale } from "@/types/loan";
+import { useBalanceAdjustments } from "@/hooks/useBalanceAdjustments";
+import { getMonthEndProjectedBalance } from "@/lib/projectedBalance";
 
 /** Total efetivamente recebido de uma venda (não os lançamentos previstos). */
 function saleReceivedTotal(sale: Sale): number {
