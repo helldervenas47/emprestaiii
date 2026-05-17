@@ -1970,7 +1970,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
                 </div>
                 <button
                   type="button"
-                  onClick={() => setExpandedBreakdown("overdue")}
+                  onClick={() => setOverdueDialogOpen(true)}
                   className="p-3 sm:p-4 rounded-2xl bg-white/[0.03] border border-white/10 text-left transition-all hover:bg-white/[0.06] hover:border-white/20"
                 >
                   <div className="flex items-center justify-between mb-1">
