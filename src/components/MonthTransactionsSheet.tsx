@@ -101,6 +101,47 @@ export function MonthTransactionsSheet({ open, onOpenChange, type, monthKey, inc
           if (i.receivedDate.startsWith(monthKey)) pushOcc(base, 0);
         }
       }
+      // Vendas recebidas no mês — mesma lógica do card "Entradas mês".
+      for (const sale of sales || []) {
+        const history = sale.paymentHistory || [];
+        const iv = sale.installmentValue ?? (sale.installments > 0 ? sale.total / sale.installments : sale.total);
+        const legacyTotal = (sale.downPayment || 0) + (sale.paidInstallments || 0) * iv + (sale.partialPaid || 0);
+        const historyTotal = history.reduce((s, p) => s + (Number(p.amount) || 0), 0);
+        const title = `Venda — ${sale.productName || "Produto"}`;
+        const subtitle = sale.clientName || sale.category || "Venda";
+        if (history.length > 0) {
+          for (const p of history) {
+            if (!(p.date || "").startsWith(monthKey)) continue;
+            out.push({
+              id: `sale-${sale.id}-${p.id ?? p.date}`,
+              date: p.date,
+              title,
+              subtitle,
+              amount: Number(p.amount) || 0,
+              status: "received",
+            });
+          }
+          if (historyTotal < legacyTotal && (sale.date || "").startsWith(monthKey)) {
+            out.push({
+              id: `sale-${sale.id}-legacy`,
+              date: sale.date,
+              title,
+              subtitle,
+              amount: legacyTotal - historyTotal,
+              status: "received",
+            });
+          }
+        } else if ((sale.date || "").startsWith(monthKey) && legacyTotal > 0) {
+          out.push({
+            id: `sale-${sale.id}-legacy`,
+            date: sale.date,
+            title,
+            subtitle,
+            amount: legacyTotal,
+            status: "received",
+          });
+        }
+      }
       return out;
     }
     return expenses
