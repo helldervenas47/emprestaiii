@@ -408,10 +408,12 @@ export function IncomeBalanceCard({ incomes, expenses, onAdjust, readOnly, onOpe
           </DialogHeader>
           <div className="space-y-3 text-sm">
             <div className="rounded-lg bg-muted/40 p-3 font-mono text-xs leading-relaxed">
-              Saldo previsto = Saldo em conta<br />
-              &nbsp;&nbsp;+ Receitas pendentes do mês<br />
-              &nbsp;&nbsp;− Despesas pessoais a pagar do mês<br />
-              &nbsp;&nbsp;− Faturas de cartão pendentes do mês
+              Projeção diária a partir do saldo atual:<br />
+              &nbsp;&nbsp;+ Receitas previstas dia a dia<br />
+              &nbsp;&nbsp;− Despesas pessoais previstas dia a dia<br />
+              &nbsp;&nbsp;− Faturas de cartão no vencimento<br />
+              &nbsp;&nbsp;± Aportes/resgates de cofrinhos<br />
+              &nbsp;&nbsp;± Ajustes manuais de saldo
             </div>
             <div className="grid grid-cols-2 gap-2">
               <div className="rounded-md border border-border/40 p-2">
