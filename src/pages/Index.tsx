@@ -55,6 +55,7 @@ const WhatsappAutoBillingCard = lazy(() => import("@/components/WhatsappAutoBill
 const WhatsappAssistantCard = lazy(() => import("@/components/WhatsappAssistantCard").then(m => ({ default: m.WhatsappAssistantCard })));
 const Settings = lazy(() => import("@/components/Settings").then(m => ({ default: m.Settings })));
 const SystemSettings = lazy(() => import("@/components/SystemSettings").then(m => ({ default: m.SystemSettings })));
+const SalaryTab = lazy(() => import("@/components/salary/SalaryTab").then(m => ({ default: m.SalaryTab })));
 
 // Direct import for the constant used at render time
 import { isVehicleExpenseForVehicles } from "@/components/VehicleExpenseForm";
@@ -94,7 +95,7 @@ import { useExpenses } from "@/hooks/useExpenses";
 import { useVehicleRegistry } from "@/hooks/useVehicleRegistry";
 import { useLocadorInfo } from "@/hooks/useLocadorInfo";
 
-type Tab = "overview" | "dashboard" | "clients" | "products" | "vehicles" | "overdue" | "expenses" | "accountant" | "calendar" | "settings" | "system";
+type Tab = "overview" | "dashboard" | "clients" | "products" | "vehicles" | "overdue" | "expenses" | "salary" | "accountant" | "calendar" | "settings" | "system";
 type ClientSubTab = "clientes" | "veiculos";
 type VehicleSubTab = "veiculos" | "locadores";
 type PlanMgmtSubTab = "subscribers" | "plans";
@@ -111,6 +112,7 @@ const tabConfig = [
   { id: "calendar" as Tab, label: "Calendário", icon: CalendarDays },
   { id: "clients" as Tab, label: "Cadastro", icon: Users },
   { id: "expenses" as Tab, label: "Receitas e Despesas", icon: Receipt },
+  { id: "salary" as Tab, label: "Salário", icon: Wallet },
   { id: "accountant" as Tab, label: "Contador", icon: Calculator },
   
   { id: "overdue" as Tab, label: "Relatório", icon: AlertTriangle },
@@ -195,6 +197,15 @@ const tabHelp: Record<Tab, { title: string; items: string[] }> = {
       "Lista todos os empréstimos com parcelas em atraso.",
       "Também mostra empréstimos que vencem hoje.",
       "Use para priorizar suas cobranças diárias.",
+    ],
+  },
+  salary: {
+    title: "Salário",
+    items: [
+      "Cadastre funcionários CLT, autônomos ou prestadores.",
+      "Gere a folha mensal automaticamente para todos os ativos.",
+      "Ao confirmar um pagamento, uma despesa em \"Salários\" é criada e o saldo é atualizado.",
+      "Emita contracheques em PDF para qualquer competência paga.",
     ],
   },
   settings: {
@@ -985,6 +996,11 @@ const Index = () => {
         {tab === "accountant" && (
           <SubscriptionGate requiredTier={2} featureName="Contador">
             <AccountantReport loans={loans} payments={payments} sales={sales} expenses={expenses} />
+          </SubscriptionGate>
+        )}
+        {tab === "salary" && (
+          <SubscriptionGate requiredTier={2} featureName="Salário">
+            <SalaryTab readOnly={isReadOnly} />
           </SubscriptionGate>
         )}
         {tab === "overdue" && (

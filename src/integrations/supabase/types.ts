@@ -867,6 +867,84 @@ export type Database = {
         }
         Relationships: []
       }
+      employees: {
+        Row: {
+          account: string | null
+          agency: string | null
+          bank: string | null
+          base_salary: number
+          benefits: Json
+          commission_percent: number | null
+          cpf: string | null
+          created_at: string
+          deductions: Json
+          department: string | null
+          hire_date: string | null
+          hourly_rate: number | null
+          id: string
+          name: string
+          notes: string | null
+          payment_type: string
+          photo_url: string | null
+          pix_key: string | null
+          registration: string | null
+          role: string | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          account?: string | null
+          agency?: string | null
+          bank?: string | null
+          base_salary?: number
+          benefits?: Json
+          commission_percent?: number | null
+          cpf?: string | null
+          created_at?: string
+          deductions?: Json
+          department?: string | null
+          hire_date?: string | null
+          hourly_rate?: number | null
+          id?: string
+          name: string
+          notes?: string | null
+          payment_type?: string
+          photo_url?: string | null
+          pix_key?: string | null
+          registration?: string | null
+          role?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          account?: string | null
+          agency?: string | null
+          bank?: string | null
+          base_salary?: number
+          benefits?: Json
+          commission_percent?: number | null
+          cpf?: string | null
+          created_at?: string
+          deductions?: Json
+          department?: string | null
+          hire_date?: string | null
+          hourly_rate?: number | null
+          id?: string
+          name?: string
+          notes?: string | null
+          payment_type?: string
+          photo_url?: string | null
+          pix_key?: string | null
+          registration?: string | null
+          role?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       expense_category_hints: {
         Row: {
           category: string
@@ -1743,6 +1821,124 @@ export type Database = {
             columns: ["payment_method_id"]
             isOneToOne: false
             referencedRelation: "payment_methods"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      payroll_payments: {
+        Row: {
+          amount: number
+          created_at: string
+          expense_id: string | null
+          id: string
+          notes: string | null
+          paid_date: string
+          payment_method_id: string | null
+          payroll_id: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          expense_id?: string | null
+          id?: string
+          notes?: string | null
+          paid_date?: string
+          payment_method_id?: string | null
+          payroll_id: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          expense_id?: string | null
+          id?: string
+          notes?: string | null
+          paid_date?: string
+          payment_method_id?: string | null
+          payroll_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payroll_payments_payroll_id_fkey"
+            columns: ["payroll_id"]
+            isOneToOne: false
+            referencedRelation: "payrolls"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      payrolls: {
+        Row: {
+          closed: boolean
+          competence: string
+          created_at: string
+          due_date: string | null
+          employee_id: string
+          expense_id: string | null
+          gross_salary: number
+          id: string
+          items: Json
+          net_salary: number
+          notes: string | null
+          paid_amount: number
+          paid_date: string | null
+          payment_method_id: string | null
+          status: string
+          total_benefits: number
+          total_deductions: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          closed?: boolean
+          competence: string
+          created_at?: string
+          due_date?: string | null
+          employee_id: string
+          expense_id?: string | null
+          gross_salary?: number
+          id?: string
+          items?: Json
+          net_salary?: number
+          notes?: string | null
+          paid_amount?: number
+          paid_date?: string | null
+          payment_method_id?: string | null
+          status?: string
+          total_benefits?: number
+          total_deductions?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          closed?: boolean
+          competence?: string
+          created_at?: string
+          due_date?: string | null
+          employee_id?: string
+          expense_id?: string | null
+          gross_salary?: number
+          id?: string
+          items?: Json
+          net_salary?: number
+          notes?: string | null
+          paid_amount?: number
+          paid_date?: string | null
+          payment_method_id?: string | null
+          status?: string
+          total_benefits?: number
+          total_deductions?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payrolls_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
             referencedColumns: ["id"]
           },
         ]

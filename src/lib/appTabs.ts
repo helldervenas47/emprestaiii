@@ -15,6 +15,7 @@ export const APP_TABS = [
   { id: "calendar", label: "Calendário" },
   { id: "clients", label: "Cadastro" },
   { id: "expenses", label: "Receitas e Despesas" },
+  { id: "salary", label: "Salário" },
   { id: "accountant", label: "Contador" },
   { id: "overdue", label: "Relatório" },
   { id: "settings", label: "Configurações" },
