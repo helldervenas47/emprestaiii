@@ -313,13 +313,13 @@ export function IncomeBalanceCard({ incomes, expenses, onAdjust, readOnly, onOpe
           >
             <Info className="h-3.5 w-3.5" />
           </button>
-          <div className={`h-8 w-8 rounded-lg flex items-center justify-center mb-2 ${calc.projected >= calc.balance ? "bg-primary/10" : "bg-destructive/10"}`}>
+          <div className={`h-8 w-8 rounded-lg flex items-center justify-center mb-2 ${calc.projected >= 0 ? "bg-primary/10" : "bg-destructive/10"}`}>
             {calc.projectedDiff >= 0
-              ? <TrendingUp className={`h-4 w-4 ${calc.projected >= calc.balance ? "text-primary" : "text-destructive"}`} />
-              : <TrendingDown className={`h-4 w-4 ${calc.projected >= calc.balance ? "text-primary" : "text-destructive"}`} />}
+              ? <TrendingUp className={`h-4 w-4 ${calc.projected >= 0 ? "text-primary" : "text-destructive"}`} />
+              : <TrendingDown className={`h-4 w-4 ${calc.projected >= 0 ? "text-primary" : "text-destructive"}`} />}
           </div>
           <p className="text-[10px] sm:text-xs text-muted-foreground">Saldo previsto</p>
-          <p className={`text-sm sm:text-xl font-bold mt-0.5 ${calc.projected >= calc.balance ? "text-primary" : "text-destructive"}`}>{fmt(calc.projected, hide)}</p>
+          <p className={`text-sm sm:text-xl font-bold mt-0.5 ${calc.projected >= 0 ? "text-primary" : "text-destructive"}`}>{fmt(calc.projected, hide)}</p>
           <p className={`text-[10px] mt-1 ${calc.projectedDiff >= 0 ? "text-success" : "text-destructive"}`}>
             {calc.projectedDiff >= 0 ? "+" : ""}{fmt(calc.projectedDiff, hide)} vs atual
           </p>
