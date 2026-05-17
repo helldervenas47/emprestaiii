@@ -298,6 +298,60 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, onUpda
     return [...top, { name: "Outras categorias", value: rest, cat: resolveCategory("Outros") }];
   }, [spendingMonth, getInstallmentAmount, resolveCategory, cardInvoiceMonthTotal]);
 
+  const topCategoryEntries: CategoryEntry[] = useMemo(() => {
+    if (!selectedTopCategory) return [];
+    const topNames = new Set(categoryData.filter((c) => c.name !== "Outras categorias").map((c) => c.name));
+    const isAggregated = selectedTopCategory === "Outras categorias";
+    const matches = (cat: string) =>
+      isAggregated ? !topNames.has(cat) : cat === selectedTopCategory;
+    const list: CategoryEntry[] = [];
+    spendingMonth.forEach((e) => {
+      const v = getInstallmentAmount(e);
+      if (v <= 0) return;
+      if (!matches(e.category)) return;
+      list.push({
+        id: `exp-${e.id}`,
+        description: e.description,
+        amount: v,
+        date: e.paid && e.paidDate ? e.paidDate : e.dueDate,
+        type: "despesa",
+        account: paymentMethodName(e.paymentMethodId),
+      });
+    });
+    if (
+      cardInvoiceMonthTotal > 0 &&
+      matches(CREDIT_CARD_INVOICE_CATEGORY)
+    ) {
+      cardInvoiceTotalsMonth.forEach((inv: any, idx: number) => {
+        const val = Number(inv?.paid ?? inv?.total ?? 0);
+        if (val <= 0) return;
+        const card = cards.find((c) => c.id === inv.cardId);
+        list.push({
+          id: `inv-${inv.cardId || idx}`,
+          description: `Fatura ${card?.name || "Cartão"}`,
+          amount: val,
+          date: inv.dueDate || `${selectedMonth}-01`,
+          type: "despesa",
+          account: card?.name || "Cartão de crédito",
+        });
+      });
+    }
+    return list;
+  }, [
+    selectedTopCategory,
+    categoryData,
+    spendingMonth,
+    getInstallmentAmount,
+    cardInvoiceMonthTotal,
+    cardInvoiceTotalsMonth,
+    cards,
+    selectedMonth,
+    paymentMethodsList,
+  ]);
+
+  const selectedTopCategoryTotal =
+    categoryData.find((c) => c.name === selectedTopCategory)?.value || 0;
+
   const totalCategorized = categoryData.reduce((s, it) => s + it.value, 0);
 
   // Spend per category — includes paid AND pending expenses (excluding cofrinho)
