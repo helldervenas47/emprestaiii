@@ -59,14 +59,14 @@ describe("validateIncomeDate — pagamento manual e rápido", () => {
     const target = list[1];
     const res = validateIncomeDate(target, list, "2026-05-10");
     expect(res.ok).toBe(false);
-    if (!res.ok) expect(res.conflictingId).toBe("a");
+    if (res.ok === false) expect(res.conflictingId).toBe("a");
   });
 
   it("rejeita pagamento na data de vencimento de outra ocorrência pendente", () => {
     const target = list[1];
     const res = validateIncomeDate(target, list, "2026-05-23");
     expect(res.ok).toBe(false);
-    if (!res.ok) expect(res.conflictingId).toBe("c");
+    if (res.ok === false) expect(res.conflictingId).toBe("c");
   });
 
   it("ignora colisão com séries diferentes", () => {
