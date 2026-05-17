@@ -181,6 +181,14 @@ export function IncomeDashboard({ incomes, allMonthIncomes, monthKey, sales = []
           </PieChart>
         </ResponsiveContainer>
       </Card>
+
+      <CategoryDetailsSheet
+        open={!!selectedCategory}
+        onOpenChange={(o) => !o && setSelectedCategory(null)}
+        categoryName={selectedCategory || ""}
+        entries={selectedEntries}
+        total={selectedTotal}
+      />
     </div>
   );
 }
