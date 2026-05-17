@@ -1906,7 +1906,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
         const da = accentMap[defAccent];
         // Segmented health bar: 10 segments, fill proportional to score
         const filledSegments = Math.round((portfolio.score / 100) * 10);
-        const expanded = expandedBreakdown === "overdue";
+        const expanded = overdueDialogOpen;
         return (
           <Card no3d className="relative overflow-hidden border border-white/10 bg-white/5 backdrop-blur-xl shadow-2xl">
             {/* Background glow */}
