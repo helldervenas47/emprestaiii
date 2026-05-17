@@ -1191,63 +1191,85 @@ function SaleListRow({ sale, onEdit, onUpdate, formatCurrency, readOnly = false,
       )}
     </div>
 
-    {isMobile && expanded && (
-      <div className="px-3 pb-3 pt-1 mx-2 mb-2 rounded-xl bg-muted/30 border border-border/40 animate-in slide-in-from-top-1 fade-in duration-200">
-        <div className="grid grid-cols-2 gap-2 text-xs">
-          <div className="col-span-2 flex items-center justify-between">
-            <span className="text-muted-foreground">Cliente</span>
-            <span className="font-semibold text-foreground truncate ml-2">{sale.customerName || "—"}</span>
+    {isMobile && expanded && (() => {
+      const pct = sale.total > 0 ? Math.min(100, (totalPaidIncludingPartial / sale.total) * 100) : 0;
+      return (
+      <div className="px-2.5 pb-2.5 pt-2 mx-2 mb-2 rounded-xl bg-muted/30 border border-border/40 animate-in slide-in-from-top-1 fade-in duration-200 space-y-2">
+        {/* Header: valor + status */}
+        <div className="flex items-center justify-between gap-2">
+          <div className="min-w-0">
+            <p className="text-[10px] text-muted-foreground leading-none">Valor total</p>
+            <p className="font-bold text-foreground tabular-nums text-sm leading-tight">{formatCurrency(sale.total)}</p>
+          </div>
+          <span className={`shrink-0 inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold ${statusInfo.cls}`}>
+            {statusInfo.label}
+          </span>
+        </div>
+
+        {/* Cliente + Descrição */}
+        <div className="space-y-1 text-xs">
+          <div className="flex items-baseline justify-between gap-2">
+            <span className="text-muted-foreground text-[10px] uppercase tracking-wide">Cliente</span>
+            <span className="font-semibold text-foreground truncate">{sale.customerName || "—"}</span>
           </div>
           {(sale.description || sale.productName) && (
-            <div className="col-span-2">
-              <p className="text-muted-foreground">Descrição</p>
-              <p className="font-semibold text-foreground break-words">{sale.description || sale.productName}</p>
-            </div>
-          )}
-          <div className="flex items-center justify-between col-span-2">
-            <span className="text-muted-foreground">Status</span>
-            <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold ${statusInfo.cls}`}>
-              {statusInfo.label}
-            </span>
-          </div>
-          <div>
-            <p className="text-muted-foreground">Valor total</p>
-            <p className="font-bold text-foreground tabular-nums">{formatCurrency(sale.total)}</p>
-          </div>
-          <div>
-            <p className="text-muted-foreground">Valor pago</p>
-            <p className="font-bold text-success tabular-nums">{formatCurrency(totalPaidIncludingPartial)}</p>
-          </div>
-          <div>
-            <p className="text-muted-foreground">Saldo restante</p>
-            <p className="font-bold text-warning tabular-nums">{formatCurrency(remaining)}</p>
-          </div>
-          <div>
-            <p className="text-muted-foreground">Parcelas</p>
-            <p className="font-bold text-foreground tabular-nums">{sale.paidInstallments}/{sale.installments}</p>
-          </div>
-          <div className="col-span-2 flex items-center justify-between">
-            <span className="text-muted-foreground">Vencimento</span>
-            <span className="font-semibold text-foreground">{isPaid ? "Quitado" : format(nextDue, "dd/MM/yyyy")}</span>
-          </div>
-          {sale.notes && (
-            <div className="col-span-2">
-              <p className="text-muted-foreground">Observações</p>
-              <p className="text-foreground italic line-clamp-2">{sale.notes}</p>
+            <div className="flex items-baseline justify-between gap-2">
+              <span className="text-muted-foreground text-[10px] uppercase tracking-wide shrink-0">Descrição</span>
+              <span className="font-medium text-foreground text-right line-clamp-2 break-words">{sale.description || sale.productName}</span>
             </div>
           )}
         </div>
+
+        {/* Progresso */}
+        {!isPaid && sale.total > 0 && (
+          <div className="space-y-1">
+            <div className="h-1 w-full rounded-full bg-muted overflow-hidden">
+              <div
+                className="h-full bg-success rounded-full transition-all duration-500"
+                style={{ width: `${pct}%` }}
+              />
+            </div>
+            <div className="flex items-center justify-between text-[10px] tabular-nums">
+              <span className="text-success font-semibold">{formatCurrency(totalPaidIncludingPartial)} pago</span>
+              <span className="text-warning font-semibold">{formatCurrency(remaining)} restante</span>
+            </div>
+          </div>
+        )}
+
+        {/* Chips compactos: parcelas + vencimento */}
+        <div className="flex flex-wrap gap-1.5 text-[10px]">
+          <span className="inline-flex items-center gap-1 rounded-md bg-muted/60 px-2 py-0.5 font-semibold text-foreground tabular-nums">
+            <Receipt className="h-3 w-3 text-muted-foreground" />
+            {sale.paidInstallments}/{sale.installments} parcelas
+          </span>
+          <span className="inline-flex items-center gap-1 rounded-md bg-muted/60 px-2 py-0.5 font-semibold text-foreground tabular-nums">
+            <CalendarIcon className="h-3 w-3 text-muted-foreground" />
+            {isPaid ? "Quitado" : format(nextDue, "dd/MM/yyyy")}
+          </span>
+          {historyCount > 0 && (
+            <span className="inline-flex items-center gap-1 rounded-md bg-muted/60 px-2 py-0.5 font-semibold text-foreground tabular-nums">
+              {historyCount} pgto{historyCount > 1 ? "s" : ""}
+            </span>
+          )}
+        </div>
+
+        {sale.notes && (
+          <p className="text-[11px] text-muted-foreground italic line-clamp-2 border-l-2 border-border/60 pl-2">
+            {sale.notes}
+          </p>
+        )}
+
         {!readOnly && (
-          <div className="mt-3 pt-3 border-t border-border/40 grid grid-cols-3 gap-2">
+          <div className="pt-2 border-t border-border/40 grid grid-cols-3 gap-1.5">
             <Popover>
               <PopoverTrigger asChild>
                 <Button
                   variant="outline"
                   size="sm"
-                  className="h-9 text-xs border-primary/30 text-primary hover:bg-primary hover:text-primary-foreground w-full justify-center"
+                  className="h-8 text-[11px] px-2 border-primary/30 text-primary hover:bg-primary hover:text-primary-foreground w-full justify-center"
                   onClick={(e) => e.stopPropagation()}
                 >
-                  <HandCoins className="h-3.5 w-3.5 mr-1.5" /> Pagar
+                  <HandCoins className="h-3.5 w-3.5 mr-1" /> Pagar
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-52 p-1" align="end">
@@ -1272,12 +1294,12 @@ function SaleListRow({ sale, onEdit, onUpdate, formatCurrency, readOnly = false,
             <Button
               variant="outline"
               size="sm"
-              className="h-9 text-xs border-success/30 text-success hover:bg-success hover:text-success-foreground relative w-full justify-center"
+              className="h-8 text-[11px] px-2 border-success/30 text-success hover:bg-success hover:text-success-foreground relative w-full justify-center"
               onClick={(e) => { e.stopPropagation(); setShowPayments(true); }}
             >
-              <Receipt className="h-3.5 w-3.5 mr-1.5" /> Histórico
+              <Receipt className="h-3.5 w-3.5 mr-1" /> Histórico
               {historyCount > 0 && (
-                <Badge variant="secondary" className="ml-1.5 text-[10px] px-1.5 py-0">
+                <Badge variant="secondary" className="ml-1 text-[9px] px-1 py-0">
                   {historyCount}
                 </Badge>
               )}
@@ -1285,15 +1307,16 @@ function SaleListRow({ sale, onEdit, onUpdate, formatCurrency, readOnly = false,
             <Button
               variant="outline"
               size="sm"
-              className="h-9 text-xs border-secondary text-secondary-foreground hover:bg-secondary/80 w-full justify-center"
+              className="h-8 text-[11px] px-2 border-secondary text-secondary-foreground hover:bg-secondary/80 w-full justify-center"
               onClick={(e) => { e.stopPropagation(); onEdit(); }}
             >
-              <Pencil className="h-3.5 w-3.5 mr-1.5" /> Editar
+              <Pencil className="h-3.5 w-3.5 mr-1" /> Editar
             </Button>
           </div>
         )}
       </div>
-    )}
+      );
+    })()}
     </div>
   );
 }
