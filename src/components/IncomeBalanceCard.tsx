@@ -101,17 +101,29 @@ export function IncomeBalanceCard({ incomes, expenses, onAdjust, readOnly, onOpe
       .reduce((s, e) => s + e.amount, 0);
     const balance = totalIncomeReceived + totalSalesReceived - totalExpensePaid;
 
-    // Movimentação do mês vigente
-    const monthIn = incomes
-      .filter((i) => i.status === "received" && i.receivedDate.startsWith(monthKey))
-      .reduce((s, i) => s + i.amount, 0)
-      + sales.reduce((s, sale) => s + saleReceivedInMonth(sale, monthKey), 0);
-    const monthOut = expenses
-      .filter((e) => e.paid && (e.scope ?? "business") === "personal" && (e.paidDate || "").startsWith(monthKey))
-      .reduce((s, e) => s + e.amount, 0)
-      + piggyDeposits
-        .filter((d) => !d.expenseId && (d.depositDate || "").startsWith(monthKey))
-        .reduce((s, d) => s + (Number(d.amount) || 0), 0);
+    // Movimentação do mês vigente — alinhada ao total exibido em MonthTransactionsSheet
+    // (Entradas/Saídas do mês), considerando todas as ocorrências do mês (pagas + pendentes).
+    const monthIn = incomes.reduce((s, i) => {
+      if (i.source === "Ajuste manual") return s;
+      if (!i.receivedDate.startsWith(monthKey)) return s;
+      if (i.status === "received") return s + i.amount;
+      if (
+        i.recurrence === "once" ||
+        i.recurrence === "weekly" ||
+        i.recurrence === "biweekly" ||
+        i.recurrence === "monthly" ||
+        i.recurrence === "yearly"
+      ) return s + i.amount;
+      return s;
+    }, 0);
+    const monthOut = expenses.reduce((s, e) => {
+      const d = e.dueDate || e.paidDate || "";
+      if (!d.startsWith(monthKey)) return s;
+      const amt = e.type === "recorrente" && e.installments && e.installments > 1
+        ? e.amount / e.installments
+        : e.amount;
+      return s + amt;
+    }, 0);
 
     // Futuras do mês selecionado (pendentes/agendadas, não canceladas).
     // Receitas recorrentes são materializadas como lançamentos mensais separados;
