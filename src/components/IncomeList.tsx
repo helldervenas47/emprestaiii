@@ -309,7 +309,27 @@ export function IncomeList({ readOnly }: Props) {
                           {i.category && <Badge variant="secondary" className="text-xs">{i.category}</Badge>}
                         </div>
                         <div className="text-xs text-muted-foreground mt-1 flex flex-wrap gap-x-3 gap-y-0.5">
-                          <span>{format(new Date(i.receivedDate + "T00:00:00"), "dd/MM/yyyy", { locale: ptBR })}</span>
+                          {(() => {
+                            const isReceived = i.status === "received";
+                            const actual = i.actualReceivedDate || i.receivedDate;
+                            const showActual = isReceived && actual;
+                            const dateToShow = showActual ? actual : i.receivedDate;
+                            const dueDiff = showActual && i.actualReceivedDate && i.actualReceivedDate !== i.receivedDate
+                              ? Math.round((new Date(i.actualReceivedDate + "T00:00:00").getTime() - new Date(i.receivedDate + "T00:00:00").getTime()) / 86400000)
+                              : 0;
+                            return (
+                              <>
+                                <span>
+                                  {showActual ? "Recebido em " : ""}{format(new Date(dateToShow + "T00:00:00"), "dd/MM/yyyy", { locale: ptBR })}
+                                  {dueDiff !== 0 && (
+                                    <span className="ml-1 text-[10px] text-muted-foreground/80">
+                                      (venc. {format(new Date(i.receivedDate + "T00:00:00"), "dd/MM", { locale: ptBR })} · {dueDiff > 0 ? `+${dueDiff}` : dueDiff}d)
+                                    </span>
+                                  )}
+                                </span>
+                              </>
+                            );
+                          })()}
                           <span>{clientName(i)}</span>
                           <span>{methodName(i.paymentMethodId)}</span>
                           {i.recurrence !== "once" && <span className="text-primary">↻ {({ weekly: "Semanal", biweekly: "Quinzenal", monthly: "Mensal", yearly: "Anual" } as Record<string, string>)[i.recurrence] ?? i.recurrence}</span>}
