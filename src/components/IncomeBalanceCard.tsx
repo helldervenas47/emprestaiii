@@ -116,8 +116,11 @@ export function IncomeBalanceCard({ incomes, expenses, onAdjust, readOnly, onOpe
       ) return s + i.amount;
       return s;
     }, 0);
+    // Saídas do mês: apenas despesas pessoais pagas, considerando a data de pagamento.
     const monthOut = expenses.reduce((s, e) => {
-      const d = e.dueDate || e.paidDate || "";
+      if ((e.scope ?? "business") !== "personal") return s;
+      if (!e.paid) return s;
+      const d = e.paidDate || e.dueDate || "";
       if (!d.startsWith(monthKey)) return s;
       const amt = e.type === "recorrente" && e.installments && e.installments > 1
         ? e.amount / e.installments
