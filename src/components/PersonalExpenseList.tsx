@@ -110,6 +110,10 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, onUpda
   const [sourceFilter, setSourceFilter] = useState<"all" | "auto" | "manual">("all");
   const [budgetDetailCat, setBudgetDetailCat] = useState<string | null>(null);
   const [categoryFilter, setCategoryFilter] = useState<string | null>(null);
+  const [selectedTopCategory, setSelectedTopCategory] = useState<string | null>(null);
+  const { methods: paymentMethodsList } = usePaymentMethods();
+  const paymentMethodName = (id?: string | null) =>
+    paymentMethodsList.find((m) => m.id === id)?.name || "";
   const now = new Date();
   const [selectedMonth, setSelectedMonth] = useState(
     `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`
