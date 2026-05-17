@@ -10,6 +10,7 @@ export interface CategoryEntry {
   date: string; // YYYY-MM-DD
   type: "receita" | "despesa";
   account?: string | null;
+  status?: "paid" | "pending" | "overdue";
 }
 
 interface Props {
@@ -99,9 +100,21 @@ export function CategoryDetailsSheet({ open, onOpenChange, categoryName, entries
                         {isIncome ? "+" : "-"} {fmtBRL(e.amount)}
                       </div>
                     </div>
-                    <div className="mt-1 flex items-center flex-wrap gap-x-3 gap-y-0.5 text-xs text-muted-foreground">
+                    <div className="mt-1 flex items-center flex-wrap gap-x-2 gap-y-1 text-xs text-muted-foreground">
                       <span>{fmtDate(e.date)}</span>
-                      <span className="capitalize">{e.type}</span>
+                      {e.status && (
+                        <span
+                          className={`px-1.5 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wide ${
+                            e.status === "paid"
+                              ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400"
+                              : e.status === "overdue"
+                                ? "bg-rose-500/15 text-rose-600 dark:text-rose-400"
+                                : "bg-amber-500/15 text-amber-600 dark:text-amber-400"
+                          }`}
+                        >
+                          {e.status === "paid" ? "Pago" : e.status === "overdue" ? "Atrasado" : "Pendente"}
+                        </span>
+                      )}
                       {e.account && <span className="truncate">{e.account}</span>}
                     </div>
                   </div>
