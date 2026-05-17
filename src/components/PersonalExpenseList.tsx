@@ -1070,7 +1070,12 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, onUpda
                       const Icon = entry.cat.icon;
                       const pct = totalCategorized > 0 ? (entry.value / totalCategorized) * 100 : 0;
                       return (
-                        <div key={entry.name} className="flex items-center justify-between text-xs">
+                        <button
+                          type="button"
+                          key={entry.name}
+                          onClick={() => setSelectedTopCategory(entry.name)}
+                          className="w-full flex items-center justify-between text-xs rounded-md px-1.5 py-1 -mx-1.5 hover:bg-muted/50 transition-colors text-left"
+                        >
                           <div className="flex items-center gap-2 min-w-0">
                             <Icon className="h-3.5 w-3.5 shrink-0" style={{ color: `hsl(${entry.cat.color})` }} />
                             <span className="truncate text-foreground">{entry.name}</span>
@@ -1079,7 +1084,7 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, onUpda
                             <span className="text-muted-foreground">{pct.toFixed(0)}%</span>
                             <span className="font-medium text-foreground">{formatCurrency(entry.value)}</span>
                           </div>
-                        </div>
+                        </button>
                       );
                     })}
                   </div>
