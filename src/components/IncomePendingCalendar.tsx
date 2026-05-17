@@ -767,29 +767,26 @@ export function IncomePendingCalendar({
           )}
 
           <div className="rounded-md border border-border bg-card px-3 py-2 space-y-1">
-            {isFirstOfMonth ? (
-              <div className="flex items-center justify-between text-[11px] text-muted-foreground">
-                <span className="flex items-center gap-1"><Wallet className="h-3 w-3" /> Saldo de abertura do mês</span>
-                <span className="tabular-nums">{hasOverride ? "definido manualmente" : "automático"}</span>
+            <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+              <span className="flex items-center gap-1"><Wallet className="h-3 w-3" /> Saldo previsto do dia anterior</span>
+              <span className="tabular-nums">{formatCurrency(selectedPrevBalance)}</span>
+            </div>
+            {hasAdjustment && (
+              <div className="flex items-center justify-between text-[11px] text-primary">
+                <span className="flex items-center gap-1"><Wand2 className="h-3 w-3" /> Ajuste de saldo base</span>
+                <span className="tabular-nums">{formatCurrency(adjustments[selectedDate]!.amount)}</span>
               </div>
-            ) : (
+            )}
+            {selectedHasMovement && (
               <>
-                <div className="flex items-center justify-between text-[11px] text-muted-foreground">
-                  <span className="flex items-center gap-1"><Wallet className="h-3 w-3" /> Saldo previsto do dia anterior</span>
-                  <span className="tabular-nums">{formatCurrency(selectedPrevBalance)}</span>
+                <div className="flex items-center justify-between text-[11px] text-emerald-700 dark:text-emerald-400">
+                  <span>+ Recebimentos do dia</span>
+                  <span className="tabular-nums">{formatCurrency(selectedInfo.totalIncome)}</span>
                 </div>
-                {selectedHasMovement && (
-                  <>
-                    <div className="flex items-center justify-between text-[11px] text-emerald-700 dark:text-emerald-400">
-                      <span>+ Recebimentos do dia</span>
-                      <span className="tabular-nums">{formatCurrency(selectedInfo.totalIncome)}</span>
-                    </div>
-                    <div className="flex items-center justify-between text-[11px] text-rose-700 dark:text-rose-400">
-                      <span>− Despesas do dia</span>
-                      <span className="tabular-nums">{formatCurrency(selectedInfo.totalExpense)}</span>
-                    </div>
-                  </>
-                )}
+                <div className="flex items-center justify-between text-[11px] text-rose-700 dark:text-rose-400">
+                  <span>− Despesas do dia</span>
+                  <span className="tabular-nums">{formatCurrency(selectedInfo.totalExpense)}</span>
+                </div>
               </>
             )}
             <div className="flex items-center justify-between pt-1 border-t border-border/60">
@@ -798,35 +795,25 @@ export function IncomePendingCalendar({
                 {formatCurrency(selectedBalance)}
               </span>
             </div>
-            {isFirstOfMonth && (
-              <div className="flex items-center gap-2 pt-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="h-7 text-xs gap-1 flex-1"
-                  disabled={!allowDay1Override}
-                  onClick={() => {
-                    setEditValue((overrides[monthKeyDay] ?? selectedBalance).toFixed(2));
-                    setEditOpen(true);
-                  }}
-                >
-                  <Pencil className="h-3 w-3" /> Alterar saldo do dia
+            <div className="flex items-center gap-2 pt-2">
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-7 text-xs gap-1 flex-1"
+                disabled={isPastMonth}
+                onClick={() => openAdjustModal(selectedDate)}
+              >
+                <Wand2 className="h-3 w-3" /> Ajustar saldo base
+              </Button>
+              {hasAdjustment && !isPastMonth && (
+                <Button variant="ghost" size="sm" className="h-7 text-xs gap-1" onClick={() => { void clearAdjustment(selectedDate); }}>
+                  <RotateCcw className="h-3 w-3" /> Remover ajuste
                 </Button>
-                {hasOverride && allowDay1Override && (
-                  <Button variant="ghost" size="sm" className="h-7 text-xs gap-1" onClick={() => { void clearOverrideBalance(monthKeyDay); }}>
-                    <RotateCcw className="h-3 w-3" /> Resetar
-                  </Button>
-                )}
-              </div>
-            )}
-            {isFirstOfMonth && !allowDay1Override && (
+              )}
+            </div>
+            {isPastMonth && (
               <p className="text-[10px] text-muted-foreground italic pt-1">
-                Edição do saldo do dia 01 está desativada. Ative o botão no topo do calendário para liberar.
-              </p>
-            )}
-            {isFirstOfMonth && allowDay1Override && !hasOverride && (
-              <p className="text-[10px] text-muted-foreground italic pt-1">
-                Apenas o dia 1 de cada mês pode ter o saldo ajustado manualmente.
+                Meses encerrados são congelados para preservar o histórico financeiro.
               </p>
             )}
           </div>
