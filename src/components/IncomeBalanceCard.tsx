@@ -76,7 +76,7 @@ export function IncomeBalanceCard({ incomes, expenses, onAdjust, readOnly, onOpe
   const { openings } = useCreditCardOpenings();
   const { sales } = useProducts(true);
   const { deposits: piggyDeposits } = usePiggyBanks();
-  const { overrides: openingOverrides } = useMonthlyOpeningBalances();
+  const { adjustments: balanceAdjustments } = useBalanceAdjustments();
   const externalSources = useExternalAccountSources();
   const [adjustOpen, setAdjustOpen] = useState(false);
   const [target, setTarget] = useState("");
