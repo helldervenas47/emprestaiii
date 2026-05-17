@@ -19,6 +19,7 @@ interface Props {
   monthKey: string;
   incomes: Income[];
   expenses: Expense[];
+  sales?: Sale[];
   initialFilter?: string;
 }
 
