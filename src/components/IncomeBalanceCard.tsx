@@ -187,7 +187,7 @@ export function IncomeBalanceCard({ incomes, expenses, onAdjust, readOnly, onOpe
       cards,
       openings,
       piggyDeposits,
-      overrides: openingOverrides,
+      adjustments: Object.fromEntries(Object.entries(balanceAdjustments).map(([d, a]) => [d, a.amount])),
     });
     const projected = monthEndProjected ?? (balance + futureIn - futureOut);
     const projectedDiff = projected - balance;
