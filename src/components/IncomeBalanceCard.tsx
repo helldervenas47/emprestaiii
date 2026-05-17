@@ -200,7 +200,9 @@ export function IncomeBalanceCard({ incomes, expenses, onAdjust, readOnly, onOpe
       cards,
       openings,
       piggyDeposits,
-      adjustments,
+      adjustments: Object.fromEntries(
+        Object.entries(adjustments).map(([d, a]) => [d, a.amount]),
+      ),
     });
     const projected = dailyProjected ?? (balance + futureIn - futureOut);
     const projectedDiff = projected - balance;
