@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { LayoutDashboard, Users, ClipboardList, FileText, CalendarDays, Gift, History as HistoryIcon } from "lucide-react";
+import { useState, useEffect } from "react";
+import { LayoutDashboard, Users, ClipboardList, FileText, CalendarDays, History as HistoryIcon } from "lucide-react";
 import { SalaryDashboard } from "./SalaryDashboard";
 import { EmployeeManager } from "./EmployeeManager";
 import { PayrollManager } from "./PayrollManager";
