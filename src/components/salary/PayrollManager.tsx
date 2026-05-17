@@ -24,7 +24,7 @@ interface Props { readOnly?: boolean }
 export function PayrollManager({ readOnly }: Props) {
   const { employees } = useEmployees();
   const { payrolls, generateMonthlyBatch, payPayroll, reopenPayroll, closePayroll, deletePayroll } = usePayrolls();
-  const branding = useAppBranding();
+  const { branding } = useAppBranding();
   const [monthOffset, setMonthOffset] = useState(0);
   const [payingId, setPayingId] = useState<string | null>(null);
 
@@ -106,7 +106,7 @@ export function PayrollManager({ readOnly }: Props) {
                   {!readOnly && remaining > 0 && (
                     <Button size="sm" onClick={() => setPayingId(p.id)}><Wallet className="h-3 w-3" /> Pagar</Button>
                   )}
-                  <Button size="sm" variant="outline" onClick={() => emp && generatePayslipPdf(p, emp, { brandName: branding.brandName })}>
+                  <Button size="sm" variant="outline" onClick={() => emp && generatePayslipPdf(p, emp, { brandName: branding.brand_name })}>
                     <FileText className="h-3 w-3" /> Contracheque
                   </Button>
                   {!readOnly && (p.closed

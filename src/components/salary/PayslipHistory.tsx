@@ -15,7 +15,7 @@ const BRL = (n: number) => n.toLocaleString("pt-BR", { style: "currency", curren
 export function PayslipHistory() {
   const { employees } = useEmployees();
   const { payrolls } = usePayrolls();
-  const branding = useAppBranding();
+  const { branding } = useAppBranding();
   const [search, setSearch] = useState("");
 
   const rows = useMemo(() => {
@@ -49,7 +49,7 @@ export function PayslipHistory() {
                   {format(parseISO(p.competence + "-01"), "MMMM 'de' yyyy", { locale: ptBR })} · Líquido {BRL(p.netSalary)}
                 </p>
               </div>
-              <Button size="sm" variant="outline" onClick={() => emp && generatePayslipPdf(p, emp, { brandName: branding.brandName })}>
+              <Button size="sm" variant="outline" onClick={() => emp && generatePayslipPdf(p, emp, { brandName: branding.brand_name })}>
                 <Download className="h-3 w-3" /> PDF
               </Button>
             </CardContent>
