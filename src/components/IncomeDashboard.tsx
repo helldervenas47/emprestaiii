@@ -1,10 +1,12 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { Income } from "@/hooks/useIncomes";
 import { Sale } from "@/types/loan";
 import { Card } from "@/components/ui/card";
 import {
   ResponsiveContainer, PieChart, Pie, Cell, Tooltip,
 } from "recharts";
+import { CategoryDetailsSheet, CategoryEntry } from "@/components/CategoryDetailsSheet";
+import { usePaymentMethods } from "@/hooks/usePaymentMethods";
 
 const COLORS = ["hsl(var(--primary))", "hsl(var(--accent))", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6", "#06b6d4", "#84cc16"];
 
