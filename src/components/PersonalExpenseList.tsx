@@ -328,11 +328,11 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, onUpda
         const card = cards.find((c) => c.id === inv.cardId);
         list.push({
           id: `inv-${inv.cardId || idx}`,
-          description: `Fatura ${card?.name || "Cartão"}`,
+          description: `Fatura ${card?.nickname || card?.bank || "Cartão"}`,
           amount: val,
           date: inv.dueDate || `${selectedMonth}-01`,
           type: "despesa",
-          account: card?.name || "Cartão de crédito",
+          account: card?.nickname || card?.bank || "Cartão de crédito",
         });
       });
     }
