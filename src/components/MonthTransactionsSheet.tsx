@@ -3,7 +3,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Income, IncomeStatus } from "@/hooks/useIncomes";
-import { Expense } from "@/types/loan";
+import { Expense, Sale } from "@/types/loan";
 import { ArrowUpRight, ArrowDownRight, CheckCircle2, Clock, AlertTriangle, Repeat } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -19,6 +19,7 @@ interface Props {
   monthKey: string;
   incomes: Income[];
   expenses: Expense[];
+  sales?: Sale[];
   initialFilter?: string;
 }
 
@@ -49,7 +50,7 @@ const STATUS_BADGE: Record<Row["status"], string> = {
   recurring: "bg-primary/15 text-primary border-primary/30",
 };
 
-export function MonthTransactionsSheet({ open, onOpenChange, type, monthKey, incomes, expenses, initialFilter }: Props) {
+export function MonthTransactionsSheet({ open, onOpenChange, type, monthKey, incomes, expenses, sales, initialFilter }: Props) {
   const [filter, setFilter] = useState<string>(initialFilter ?? "all");
   const [sortBy, setSortBy] = useState<"date_desc" | "date_asc" | "amount">("date_desc");
 
@@ -98,6 +99,48 @@ export function MonthTransactionsSheet({ open, onOpenChange, type, monthKey, inc
           i.recurrence === "yearly"
         ) {
           if (i.receivedDate.startsWith(monthKey)) pushOcc(base, 0);
+        }
+      }
+      // Vendas recebidas no mês — mesma lógica do card "Entradas mês".
+      for (const sale of sales || []) {
+        const history = sale.paymentHistory || [];
+        const iv = sale.installmentValue ?? (sale.installments > 0 ? sale.total / sale.installments : sale.total);
+        const legacyTotal = (sale.downPayment || 0) + (sale.paidInstallments || 0) * iv + (sale.partialPaid || 0);
+        const historyTotal = history.reduce((s, p) => s + (Number(p.amount) || 0), 0);
+        const title = `Venda — ${sale.productName || "Produto"}`;
+        const subtitle = sale.customerName || sale.category || "Venda";
+        if (history.length > 0) {
+          for (let pi = 0; pi < history.length; pi++) {
+            const p = history[pi];
+            if (!(p.date || "").startsWith(monthKey)) continue;
+            out.push({
+              id: `sale-${sale.id}-${pi}`,
+              date: p.date,
+              title,
+              subtitle,
+              amount: Number(p.amount) || 0,
+              status: "received",
+            });
+          }
+          if (historyTotal < legacyTotal && (sale.date || "").startsWith(monthKey)) {
+            out.push({
+              id: `sale-${sale.id}-legacy`,
+              date: sale.date,
+              title,
+              subtitle,
+              amount: legacyTotal - historyTotal,
+              status: "received",
+            });
+          }
+        } else if ((sale.date || "").startsWith(monthKey) && legacyTotal > 0) {
+          out.push({
+            id: `sale-${sale.id}-legacy`,
+            date: sale.date,
+            title,
+            subtitle,
+            amount: legacyTotal,
+            status: "received",
+          });
         }
       }
       return out;
