@@ -690,13 +690,23 @@ export function IncomePendingCalendar({
               <ul className="space-y-1">
                 {dayExpenseItems.map((ex) => {
                   const isPaid = !!ex.paid;
+                  const dueOriginal = ex.dueDate;
+                  const actual = ex.paidDate;
+                  const diffDays = isPaid && dueOriginal && actual
+                    ? Math.round((new Date(actual + "T00:00:00").getTime() - new Date(dueOriginal + "T00:00:00").getTime()) / 86400000)
+                    : 0;
                   const isLate = !isPaid && !!ex.dueDate && ex.dueDate < todayStr;
-                  const statusLabel = isPaid ? "Pago" : isLate ? "Atrasado" : "Pendente";
-                  const statusCls = isPaid
-                    ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30"
-                    : isLate
-                      ? "bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/30"
-                      : "bg-rose-500/15 text-rose-700 dark:text-rose-400 border-rose-500/30";
+                  let statusLabel = "Pendente";
+                  let statusCls = "bg-rose-500/15 text-rose-700 dark:text-rose-400 border-rose-500/30";
+                  if (isPaid) {
+                    if (diffDays < 0) { statusLabel = "Pago antecipadamente"; statusCls = "bg-sky-500/15 text-sky-700 dark:text-sky-400 border-sky-500/30"; }
+                    else if (diffDays > 0) { statusLabel = "Pago com atraso"; statusCls = "bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/30"; }
+                    else { statusLabel = "Pago em dia"; statusCls = "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30"; }
+                  } else if (isLate) {
+                    statusLabel = "Atrasado";
+                    statusCls = "bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/30";
+                  }
+                  const fmtBR = (d: string) => new Date(d + "T00:00:00").toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
                   return (
                     <li key={`exp-${ex.id}`} className="flex items-start justify-between gap-2 rounded-md bg-rose-500/5 border border-rose-500/20 px-2.5 py-1.5">
                       <span className="flex flex-col gap-0.5 min-w-0 flex-1">
@@ -705,6 +715,11 @@ export function IncomePendingCalendar({
                           {ex.category && <span className="text-[10px] text-muted-foreground">{ex.category}</span>}
                           <span className={`text-[9px] px-1.5 py-0.5 rounded border font-medium ${statusCls}`}>{statusLabel}</span>
                         </span>
+                        {isPaid && diffDays !== 0 && dueOriginal && actual && (
+                          <span className="text-[10px] text-muted-foreground">
+                            Venc. {fmtBR(dueOriginal)} · Pago {fmtBR(actual)} ({diffDays > 0 ? `+${diffDays}` : diffDays}d)
+                          </span>
+                        )}
                       </span>
                       <span className="text-xs font-semibold text-rose-700 dark:text-rose-400 tabular-nums shrink-0 whitespace-nowrap">
                         {formatCurrency(Number(ex.amount) || 0)}
