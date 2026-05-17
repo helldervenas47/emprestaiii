@@ -97,11 +97,16 @@ export function IncomeDashboard({ incomes, allMonthIncomes, monthKey, sales = []
         <h3 className="text-sm font-semibold mb-3 text-foreground">Top 5 categorias</h3>
         <div className="space-y-2">
           {topCategories.map((s, idx) => (
-            <div key={s.name} className="flex items-center gap-3">
+            <button
+              key={s.name}
+              type="button"
+              onClick={() => setSelectedCategory(s.name)}
+              className="w-full flex items-center gap-3 rounded-md px-1.5 py-1 -mx-1.5 hover:bg-muted/50 transition-colors text-left"
+            >
               <span className="w-5 text-xs text-muted-foreground">{idx + 1}.</span>
               <span className="flex-1 text-sm truncate text-foreground">{s.name}</span>
               <span className="text-sm font-semibold text-foreground">{fmtBRL(s.value)}</span>
-            </div>
+            </button>
           ))}
         </div>
         <div className="mt-3 pt-3 border-t border-border flex items-center justify-between">
