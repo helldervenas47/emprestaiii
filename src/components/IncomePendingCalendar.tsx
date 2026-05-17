@@ -134,14 +134,10 @@ export function IncomePendingCalendar({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [year, month]);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
-  const { overrides, setBalance: setOverrideBalance, clearBalance: clearOverrideBalance } = useMonthlyOpeningBalances();
+  const { adjustments, setAdjustment, clearAdjustment } = useBalanceAdjustments();
   const [editOpen, setEditOpen] = useState(false);
   const [editValue, setEditValue] = useState("");
-  const [allowDay1Override, setAllowDay1Override] = useState<boolean>(() => loadAllowDay1Override());
-  const toggleAllowDay1Override = (v: boolean) => {
-    setAllowDay1Override(v);
-    saveAllowDay1Override(v);
-  };
+  const [editDate, setEditDate] = useState<string>("");
 
   const { sales } = useProducts(true);
   const { deposits: piggyDeposits, piggyBanks } = usePiggyBanks();
