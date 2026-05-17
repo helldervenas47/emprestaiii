@@ -1204,7 +1204,7 @@ function SaleListRow({ sale, onEdit, onUpdate, formatCurrency, readOnly = false,
               className="h-9 text-xs border-secondary text-secondary-foreground hover:bg-secondary/80 w-full justify-center"
               onClick={(e) => { e.stopPropagation(); onEdit(); }}
             >
-              <Pencil className="h-3.5 w-3.5 mr-1.5" /> Editar contrato
+              <Pencil className="h-3.5 w-3.5 mr-1.5" /> Editar
             </Button>
           </div>
         )}
