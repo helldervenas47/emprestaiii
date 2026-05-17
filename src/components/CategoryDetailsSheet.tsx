@@ -10,6 +10,7 @@ export interface CategoryEntry {
   date: string; // YYYY-MM-DD
   type: "receita" | "despesa";
   account?: string | null;
+  status?: "paid" | "pending" | "overdue";
 }
 
 interface Props {
