@@ -14,7 +14,7 @@ import { getCardInvoiceTotalsForMonth, isCreditCardExpense } from "@/lib/creditC
 import { isPiggyExpense, usePiggyBanks } from "@/hooks/usePiggyBanks";
 import { useProducts } from "@/hooks/useProducts";
 import { Sale } from "@/types/loan";
-import { useMonthlyOpeningBalances } from "@/hooks/useMonthlyOpeningBalances";
+import { useBalanceAdjustments } from "@/hooks/useBalanceAdjustments";
 import { useExternalAccountSources } from "@/hooks/useExternalAccountSources";
 import { getMonthEndProjectedBalance } from "@/lib/projectedBalance";
 import { todayDateInAppTz } from "@/lib/timezone";
@@ -76,7 +76,7 @@ export function IncomeBalanceCard({ incomes, expenses, onAdjust, readOnly, onOpe
   const { openings } = useCreditCardOpenings();
   const { sales } = useProducts(true);
   const { deposits: piggyDeposits } = usePiggyBanks();
-  const { overrides: openingOverrides } = useMonthlyOpeningBalances();
+  const { adjustments: balanceAdjustments } = useBalanceAdjustments();
   const externalSources = useExternalAccountSources();
   const [adjustOpen, setAdjustOpen] = useState(false);
   const [target, setTarget] = useState("");
@@ -187,7 +187,7 @@ export function IncomeBalanceCard({ incomes, expenses, onAdjust, readOnly, onOpe
       cards,
       openings,
       piggyDeposits,
-      overrides: openingOverrides,
+      adjustments: Object.fromEntries(Object.entries(balanceAdjustments).map(([d, a]) => [d, a.amount])),
     });
     const projected = monthEndProjected ?? (balance + futureIn - futureOut);
     const projectedDiff = projected - balance;
@@ -197,7 +197,7 @@ export function IncomeBalanceCard({ incomes, expenses, onAdjust, readOnly, onOpe
       .reduce((s, i) => s + i.amount, 0);
 
     return { balance, monthIn, monthOut, futureIn, futureOut, projected, projectedDiff, prevIn, pendingInCount };
-  }, [incomes, expenses, monthKey, prevKey, cards, openings, sales, piggyDeposits, openingOverrides, externalSources.total]);
+  }, [incomes, expenses, monthKey, prevKey, cards, openings, sales, piggyDeposits, balanceAdjustments, externalSources.total]);
 
   const diff = calc.monthIn - calc.prevIn;
   const pct = calc.prevIn > 0 ? (diff / calc.prevIn) * 100 : 0;

@@ -340,6 +340,42 @@ export type Database = {
         }
         Relationships: []
       }
+      balance_adjustments: {
+        Row: {
+          adjusted_by: string | null
+          adjustment_date: string
+          amount: number
+          created_at: string
+          id: string
+          notes: string | null
+          owner_id: string
+          previous_amount: number
+          updated_at: string
+        }
+        Insert: {
+          adjusted_by?: string | null
+          adjustment_date: string
+          amount?: number
+          created_at?: string
+          id?: string
+          notes?: string | null
+          owner_id: string
+          previous_amount?: number
+          updated_at?: string
+        }
+        Update: {
+          adjusted_by?: string | null
+          adjustment_date?: string
+          amount?: number
+          created_at?: string
+          id?: string
+          notes?: string | null
+          owner_id?: string
+          previous_amount?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       chart_overrides: {
         Row: {
           created_at: string

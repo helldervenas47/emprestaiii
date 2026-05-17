@@ -133,14 +133,25 @@ export function computeRunningBalance(opts: {
   startDate: Date;
   endDate: Date;
   deltas: Record<string, DailyDelta>;
-  overrides: Record<string, number>;
+  /** Ajustes manuais por data (YYYY-MM-DD). Quando presente, o saldo do dia
+   *  é fixado neste valor (nova âncora) e em seguida o delta do próprio dia
+   *  é somado normalmente. */
+  adjustments?: Record<string, number>;
+  /** @deprecated Use `adjustments` (chave por data). Mantido por compatibilidade —
+   *  é interpretado como ajuste no dia 01 do mês informado. */
+  overrides?: Record<string, number>;
 }): Record<string, number> {
   const map: Record<string, number> = {};
   let running = opts.baseBalance;
   const cursor = new Date(opts.startDate);
+  const adjustments = opts.adjustments ?? {};
   while (cursor <= opts.endDate) {
     const ds = fmt(cursor);
-    if (cursor.getDate() === 1) {
+    // 1) Ajuste manual por data (nova lógica genérica).
+    if (adjustments[ds] !== undefined) {
+      running = adjustments[ds];
+    } else if (cursor.getDate() === 1 && opts.overrides) {
+      // 2) Compat: override legado por mês, aplicado no dia 01.
       const mk = ds.slice(0, 7);
       if (opts.overrides[mk] !== undefined) {
         running = opts.overrides[mk];
@@ -171,7 +182,10 @@ export function getMonthEndProjectedBalance(opts: {
   cards: CreditCard[];
   openings: InvoiceOpening[];
   piggyDeposits?: PiggyBankDeposit[];
-  overrides: Record<string, number>;
+  /** Ajustes manuais por data (YYYY-MM-DD). Nova âncora oficial. */
+  adjustments?: Record<string, number>;
+  /** @deprecated Use `adjustments`. Mantido por compat. */
+  overrides?: Record<string, number>;
 }): number | null {
   const [tgtY, tgtM] = opts.monthKey.split("-").map(Number);
   if (!tgtY || !tgtM) return null;
@@ -192,8 +206,6 @@ export function getMonthEndProjectedBalance(opts: {
     opts.today.getDate() + 1,
   );
 
-  // Caso já estejamos no/após o último dia do mês alvo, o próprio saldo atual
-  // é a melhor estimativa de fechamento.
   if (startDate > targetEnd) return opts.baseBalance;
 
   const deltas = buildDailyDeltas({
@@ -212,6 +224,7 @@ export function getMonthEndProjectedBalance(opts: {
     startDate,
     endDate: targetEnd,
     deltas,
+    adjustments: opts.adjustments,
     overrides: opts.overrides,
   });
   const ds = fmt(targetEnd);
