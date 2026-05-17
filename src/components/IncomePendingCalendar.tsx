@@ -1021,40 +1021,73 @@ export function IncomePendingCalendar({
       </CardContent>
 
       <Dialog open={editOpen} onOpenChange={setEditOpen}>
-        <DialogContent className="max-w-sm">
+        <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Alterar saldo do dia 1</DialogTitle>
+            <DialogTitle className="flex items-center gap-2"><Wand2 className="h-4 w-4 text-primary" /> Ajustar saldo base</DialogTitle>
             <DialogDescription>
-              Defina o saldo previsto do dia 1 de{" "}
-              {selectedDate
-                ? new Date(selectedDate + "T00:00:00").toLocaleDateString("pt-BR", { month: "long", year: "numeric" })
-                : ""}
-              . A projeção dos próximos dias passa a ser calculada a partir desse valor.
+              Informe o saldo real em uma data específica. A projeção dos próximos dias passa a ser recalculada a partir desse valor.
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-2">
-            <Label htmlFor="day1-balance">Saldo do dia (R$)</Label>
-            <Input
-              id="day1-balance"
-              type="number"
-              step="0.01"
-              value={editValue}
-              onChange={(e) => setEditValue(e.target.value)}
-            />
-          </div>
+          {(() => {
+            const autoBalance = editDate ? (runningBalanceMap[editDate] ?? baseBalance) : baseBalance;
+            const v = Number(editValue);
+            // Prévia: dias até o fim do mês visível, ou até +60d se anterior.
+            const previewEnd = (() => {
+              const monthEnd = new Date(year, month + 1, 0);
+              if (!editDate) return monthEnd;
+              const d = new Date(editDate + "T00:00:00");
+              const sixty = new Date(d); sixty.setDate(sixty.getDate() + 60);
+              return monthEnd > d ? monthEnd : sixty;
+            })();
+            const previewDays = editDate
+              ? Math.max(0, Math.round((previewEnd.getTime() - new Date(editDate + "T00:00:00").getTime()) / 86400000))
+              : 0;
+            const dateBlocked = editDate ? isPastMonthDate(editDate) : false;
+            return (
+              <div className="space-y-3">
+                <div className="rounded-md border border-border bg-muted/30 px-3 py-2 flex items-center justify-between">
+                  <span className="text-xs text-muted-foreground">Saldo previsto atual</span>
+                  <span className="text-sm font-semibold tabular-nums">{formatCurrency(autoBalance)}</span>
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="adj-amount">Saldo correto</Label>
+                  <MoneyInput id="adj-amount" value={editValue} onChange={setEditValue} />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="adj-date">Data do saldo</Label>
+                  <DatePickerField id="adj-date" value={editDate} onChange={setEditDate} />
+                  {dateBlocked && (
+                    <p className="text-[11px] text-rose-600 dark:text-rose-400">
+                      Não é possível recalcular saldos de meses encerrados.
+                    </p>
+                  )}
+                </div>
+                {!dateBlocked && editDate && !isNaN(v) && (
+                  <div className="rounded-md border border-primary/30 bg-primary/5 px-3 py-2 text-xs text-foreground">
+                    Os próximos <span className="font-semibold">{previewDays} dias</span> serão recalculados usando este valor como nova base.
+                  </div>
+                )}
+              </div>
+            );
+          })()}
           <DialogFooter className="gap-2">
             <Button variant="ghost" onClick={() => setEditOpen(false)}>Cancelar</Button>
             <Button
               onClick={() => {
                 const v = Number(editValue);
-                if (!selectedDate || isNaN(v)) return;
-                const monthKey = selectedDate.slice(0, 7);
-                void setOverrideBalance(monthKey, v);
+                if (!editDate || isNaN(v)) return;
+                if (isPastMonthDate(editDate)) {
+                  toast.error("Não é possível recalcular saldos de meses encerrados.");
+                  return;
+                }
+                const prevAuto = runningBalanceMap[editDate] ?? baseBalance;
+                void setAdjustment(editDate, v, prevAuto);
+                toast.success("Saldo base ajustado — projeção recalculada.");
                 setEditOpen(false);
               }}
-              disabled={editValue === "" || isNaN(Number(editValue))}
+              disabled={!editDate || editValue === "" || isNaN(Number(editValue)) || (editDate ? isPastMonthDate(editDate) : false)}
             >
-              Salvar
+              Recalcular saldo futuro
             </Button>
           </DialogFooter>
         </DialogContent>
