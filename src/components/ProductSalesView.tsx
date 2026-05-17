@@ -1091,13 +1091,13 @@ function SaleListRow({ sale, onEdit, onUpdate, formatCurrency, readOnly = false,
           )}
         </div>
         {!readOnly && (
-          <div className="mt-3 pt-3 border-t border-border/40 flex flex-wrap items-center justify-center gap-2">
+          <div className="mt-3 pt-3 border-t border-border/40 grid grid-cols-3 gap-2">
             <Popover>
               <PopoverTrigger asChild>
                 <Button
                   variant="outline"
                   size="sm"
-                  className="h-9 text-xs border-primary/30 text-primary hover:bg-primary hover:text-primary-foreground"
+                  className="h-9 text-xs border-primary/30 text-primary hover:bg-primary hover:text-primary-foreground w-full justify-center"
                   onClick={(e) => e.stopPropagation()}
                 >
                   <HandCoins className="h-3.5 w-3.5 mr-1.5" /> Pagar
@@ -1125,7 +1125,7 @@ function SaleListRow({ sale, onEdit, onUpdate, formatCurrency, readOnly = false,
             <Button
               variant="outline"
               size="sm"
-              className="h-9 text-xs border-success/30 text-success hover:bg-success hover:text-success-foreground relative"
+              className="h-9 text-xs border-success/30 text-success hover:bg-success hover:text-success-foreground relative w-full justify-center"
               onClick={(e) => { e.stopPropagation(); setShowPayments(true); }}
             >
               <Receipt className="h-3.5 w-3.5 mr-1.5" /> Histórico
@@ -1138,7 +1138,7 @@ function SaleListRow({ sale, onEdit, onUpdate, formatCurrency, readOnly = false,
             <Button
               variant="outline"
               size="sm"
-              className="h-9 text-xs border-secondary text-secondary-foreground hover:bg-secondary/80"
+              className="h-9 text-xs border-secondary text-secondary-foreground hover:bg-secondary/80 w-full justify-center"
               onClick={(e) => { e.stopPropagation(); onEdit(); }}
             >
               <Pencil className="h-3.5 w-3.5 mr-1.5" /> Editar contrato
