@@ -198,7 +198,15 @@ const tabHelp: Record<Tab, { title: string; items: string[] }> = {
       "Use para priorizar suas cobranças diárias.",
     ],
   },
-  settings: {
+  salary: {
+    title: "Salário",
+    items: [
+      "Cadastre funcionários CLT, autônomos ou prestadores.",
+      "Gere a folha mensal automaticamente para todos os ativos.",
+      "Ao confirmar um pagamento, uma despesa em \"Salários\" é criada e o saldo é atualizado.",
+      "Emita contracheques em PDF para qualquer competência paga.",
+    ],
+  },
     title: "Configurações",
     items: [
       "Centralize preferências de exibição (tema e ocultar valores).",
