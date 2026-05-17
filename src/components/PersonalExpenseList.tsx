@@ -45,6 +45,8 @@ import { PersonalAIInsightsCard } from "@/components/PersonalAIInsightsCard";
 import { CreditCardInvoice } from "@/components/CreditCardInvoice";
 import type { CreditCard } from "@/hooks/useCreditCards";
 import { CreditCard as CreditCardIcon } from "lucide-react";
+import { CategoryDetailsSheet, CategoryEntry } from "@/components/CategoryDetailsSheet";
+import { usePaymentMethods } from "@/hooks/usePaymentMethods";
 
 
 
@@ -108,6 +110,10 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, onUpda
   const [sourceFilter, setSourceFilter] = useState<"all" | "auto" | "manual">("all");
   const [budgetDetailCat, setBudgetDetailCat] = useState<string | null>(null);
   const [categoryFilter, setCategoryFilter] = useState<string | null>(null);
+  const [selectedTopCategory, setSelectedTopCategory] = useState<string | null>(null);
+  const { methods: paymentMethodsList } = usePaymentMethods();
+  const paymentMethodName = (id?: string | null) =>
+    paymentMethodsList.find((m) => m.id === id)?.name || "";
   const now = new Date();
   const [selectedMonth, setSelectedMonth] = useState(
     `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`
@@ -291,6 +297,60 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, onUpda
     const rest = arr.slice(5).reduce((s, it) => s + it.value, 0);
     return [...top, { name: "Outras categorias", value: rest, cat: resolveCategory("Outros") }];
   }, [spendingMonth, getInstallmentAmount, resolveCategory, cardInvoiceMonthTotal]);
+
+  const topCategoryEntries: CategoryEntry[] = useMemo(() => {
+    if (!selectedTopCategory) return [];
+    const topNames = new Set(categoryData.filter((c) => c.name !== "Outras categorias").map((c) => c.name));
+    const isAggregated = selectedTopCategory === "Outras categorias";
+    const matches = (cat: string) =>
+      isAggregated ? !topNames.has(cat) : cat === selectedTopCategory;
+    const list: CategoryEntry[] = [];
+    spendingMonth.forEach((e) => {
+      const v = getInstallmentAmount(e);
+      if (v <= 0) return;
+      if (!matches(e.category)) return;
+      list.push({
+        id: `exp-${e.id}`,
+        description: e.description,
+        amount: v,
+        date: e.paid && e.paidDate ? e.paidDate : e.dueDate,
+        type: "despesa",
+        account: paymentMethodName(e.paymentMethodId),
+      });
+    });
+    if (
+      cardInvoiceMonthTotal > 0 &&
+      matches(CREDIT_CARD_INVOICE_CATEGORY)
+    ) {
+      cardInvoiceTotalsMonth.forEach((inv: any, idx: number) => {
+        const val = Number(inv?.paid ?? inv?.total ?? 0);
+        if (val <= 0) return;
+        const card = cards.find((c) => c.id === inv.cardId);
+        list.push({
+          id: `inv-${inv.cardId || idx}`,
+          description: `Fatura ${card?.nickname || card?.bank || "Cartão"}`,
+          amount: val,
+          date: inv.dueDate || `${selectedMonth}-01`,
+          type: "despesa",
+          account: card?.nickname || card?.bank || "Cartão de crédito",
+        });
+      });
+    }
+    return list;
+  }, [
+    selectedTopCategory,
+    categoryData,
+    spendingMonth,
+    getInstallmentAmount,
+    cardInvoiceMonthTotal,
+    cardInvoiceTotalsMonth,
+    cards,
+    selectedMonth,
+    paymentMethodsList,
+  ]);
+
+  const selectedTopCategoryTotal =
+    categoryData.find((c) => c.name === selectedTopCategory)?.value || 0;
 
   const totalCategorized = categoryData.reduce((s, it) => s + it.value, 0);
 
@@ -1064,7 +1124,12 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, onUpda
                       const Icon = entry.cat.icon;
                       const pct = totalCategorized > 0 ? (entry.value / totalCategorized) * 100 : 0;
                       return (
-                        <div key={entry.name} className="flex items-center justify-between text-xs">
+                        <button
+                          type="button"
+                          key={entry.name}
+                          onClick={() => setSelectedTopCategory(entry.name)}
+                          className="w-full flex items-center justify-between text-xs rounded-md px-1.5 py-1 -mx-1.5 hover:bg-muted/50 transition-colors text-left"
+                        >
                           <div className="flex items-center gap-2 min-w-0">
                             <Icon className="h-3.5 w-3.5 shrink-0" style={{ color: `hsl(${entry.cat.color})` }} />
                             <span className="truncate text-foreground">{entry.name}</span>
@@ -1073,7 +1138,7 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, onUpda
                             <span className="text-muted-foreground">{pct.toFixed(0)}%</span>
                             <span className="font-medium text-foreground">{formatCurrency(entry.value)}</span>
                           </div>
-                        </div>
+                        </button>
                       );
                     })}
                   </div>
@@ -1083,6 +1148,14 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, onUpda
           </CardContent>
         </Card>
       )}
+
+      <CategoryDetailsSheet
+        open={!!selectedTopCategory}
+        onOpenChange={(o) => !o && setSelectedTopCategory(null)}
+        categoryName={selectedTopCategory || ""}
+        entries={topCategoryEntries}
+        total={selectedTopCategoryTotal}
+      />
 
       {/* AI-generated intelligent report */}
       <PersonalAIInsightsCard

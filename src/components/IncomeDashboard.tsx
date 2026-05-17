@@ -1,10 +1,12 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { Income } from "@/hooks/useIncomes";
 import { Sale } from "@/types/loan";
 import { Card } from "@/components/ui/card";
 import {
   ResponsiveContainer, PieChart, Pie, Cell, Tooltip,
 } from "recharts";
+import { CategoryDetailsSheet, CategoryEntry } from "@/components/CategoryDetailsSheet";
+import { usePaymentMethods } from "@/hooks/usePaymentMethods";
 
 const COLORS = ["hsl(var(--primary))", "hsl(var(--accent))", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6", "#06b6d4", "#84cc16"];
 
@@ -38,6 +40,9 @@ function salePaidInMonth(sale: Sale, monthKey: string): number {
 export function IncomeDashboard({ incomes, allMonthIncomes, monthKey, sales = [] }: Props) {
   // Considera receitas PAGAS + pendentes (consolidado por categoria)
   const consolidated = allMonthIncomes ?? incomes;
+  const { methods } = usePaymentMethods();
+  const methodName = (id?: string | null) => methods.find((m) => m.id === id)?.name || "";
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
 
   // Sales contribution per category — only the value effectively received in the period.
   const salesByCategory = useMemo(() => {
@@ -77,6 +82,51 @@ export function IncomeDashboard({ incomes, allMonthIncomes, monthKey, sales = []
   const [y, m] = monthKey.split("-").map(Number);
   const monthLabel = new Date(y, m - 1, 1).toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
 
+  const selectedEntries: CategoryEntry[] = useMemo(() => {
+    if (!selectedCategory) return [];
+    const list: CategoryEntry[] = [];
+    consolidated.forEach((i) => {
+      const k = i.category || "Outros";
+      if (k !== selectedCategory) return;
+      list.push({
+        id: `inc-${i.id}`,
+        description: i.description,
+        amount: Number(i.amount) || 0,
+        date: i.actualReceivedDate || i.receivedDate,
+        type: "receita",
+        account: methodName(i.paymentMethodId),
+      });
+    });
+    sales.forEach((s) => {
+      const k = (s.category && s.category.trim()) || "Vendas";
+      if (k !== selectedCategory) return;
+      if ((s.downPayment || 0) > 0 && s.date?.startsWith(monthKey)) {
+        list.push({
+          id: `sale-${s.id}-down`,
+          description: `Venda: ${(s as any).description || (s as any).productName || "—"} (entrada)`,
+          amount: Number(s.downPayment) || 0,
+          date: s.date,
+          type: "receita",
+          account: "",
+        });
+      }
+      (s.paymentHistory || []).forEach((p, idx) => {
+        if (!p?.date?.startsWith(monthKey)) return;
+        list.push({
+          id: `sale-${s.id}-pay-${idx}`,
+          description: `Venda: ${(s as any).description || (s as any).productName || "—"}`,
+          amount: Number(p.amount) || 0,
+          date: p.date,
+          type: "receita",
+          account: "",
+        });
+      });
+    });
+    return list;
+  }, [selectedCategory, consolidated, sales, monthKey, methods]);
+
+  const selectedTotal = topCategories.find((c) => c.name === selectedCategory)?.value || 0;
+
   if (consolidated.length === 0 && salesByCategory.size === 0) {
     return (
       <Card no3d className="p-4">
@@ -92,11 +142,16 @@ export function IncomeDashboard({ incomes, allMonthIncomes, monthKey, sales = []
         <h3 className="text-sm font-semibold mb-3 text-foreground">Top 5 categorias</h3>
         <div className="space-y-2">
           {topCategories.map((s, idx) => (
-            <div key={s.name} className="flex items-center gap-3">
+            <button
+              key={s.name}
+              type="button"
+              onClick={() => setSelectedCategory(s.name)}
+              className="w-full flex items-center gap-3 rounded-md px-1.5 py-1 -mx-1.5 hover:bg-muted/50 transition-colors text-left"
+            >
               <span className="w-5 text-xs text-muted-foreground">{idx + 1}.</span>
               <span className="flex-1 text-sm truncate text-foreground">{s.name}</span>
               <span className="text-sm font-semibold text-foreground">{fmtBRL(s.value)}</span>
-            </div>
+            </button>
           ))}
         </div>
         <div className="mt-3 pt-3 border-t border-border flex items-center justify-between">
@@ -126,6 +181,14 @@ export function IncomeDashboard({ incomes, allMonthIncomes, monthKey, sales = []
           </PieChart>
         </ResponsiveContainer>
       </Card>
+
+      <CategoryDetailsSheet
+        open={!!selectedCategory}
+        onOpenChange={(o) => !o && setSelectedCategory(null)}
+        categoryName={selectedCategory || ""}
+        entries={selectedEntries}
+        total={selectedTotal}
+      />
     </div>
   );
 }
