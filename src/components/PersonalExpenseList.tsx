@@ -45,6 +45,8 @@ import { PersonalAIInsightsCard } from "@/components/PersonalAIInsightsCard";
 import { CreditCardInvoice } from "@/components/CreditCardInvoice";
 import type { CreditCard } from "@/hooks/useCreditCards";
 import { CreditCard as CreditCardIcon } from "lucide-react";
+import { CategoryDetailsSheet, CategoryEntry } from "@/components/CategoryDetailsSheet";
+import { usePaymentMethods } from "@/hooks/usePaymentMethods";
 
 
 
