@@ -254,6 +254,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
   const [comparisonWindow, setComparisonWindow] = useState<3 | 6 | 12>(6);
   const [showAllTx, setShowAllTx] = useState(false);
   const [expandedBreakdown, setExpandedBreakdown] = useState<string | null>(null);
+  const [overdueDialogOpen, setOverdueDialogOpen] = useState(false);
   const [expandedInsightId, setExpandedInsightId] = useState<string | null>(null);
   
   const [accountBalance, setAccountBalance] = useAccountBalance();
