@@ -60,7 +60,7 @@ describe("validateIncomeDate — pagamento manual e rápido", () => {
     const res = validateIncomeDate(target, list, "2026-05-10");
     expect(res.ok).toBe(false);
     expect(res.ok).toBe(false);
-    expect((res as { conflictingId?: string }).conflictingId).toBe("a");
+    expect(res.conflictingId).toBe("a");
   });
 
   it("rejeita pagamento na data de vencimento de outra ocorrência pendente", () => {
@@ -68,7 +68,7 @@ describe("validateIncomeDate — pagamento manual e rápido", () => {
     const res = validateIncomeDate(target, list, "2026-05-23");
     expect(res.ok).toBe(false);
     expect(res.ok).toBe(false);
-    expect((res as { conflictingId?: string }).conflictingId).toBe("c");
+    expect(res.conflictingId).toBe("c");
   });
 
   it("ignora colisão com séries diferentes", () => {
