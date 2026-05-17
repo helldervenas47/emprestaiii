@@ -254,6 +254,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
   const [comparisonWindow, setComparisonWindow] = useState<3 | 6 | 12>(6);
   const [showAllTx, setShowAllTx] = useState(false);
   const [expandedBreakdown, setExpandedBreakdown] = useState<string | null>(null);
+  const [overdueDialogOpen, setOverdueDialogOpen] = useState(false);
   const [expandedInsightId, setExpandedInsightId] = useState<string | null>(null);
   
   const [accountBalance, setAccountBalance] = useAccountBalance();
@@ -1905,7 +1906,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
         const da = accentMap[defAccent];
         // Segmented health bar: 10 segments, fill proportional to score
         const filledSegments = Math.round((portfolio.score / 100) * 10);
-        const expanded = expandedBreakdown === "overdue";
+        const expanded = overdueDialogOpen;
         return (
           <Card no3d className="relative overflow-hidden border border-white/10 bg-white/5 backdrop-blur-xl shadow-2xl">
             {/* Background glow */}
@@ -1969,7 +1970,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
                 </div>
                 <button
                   type="button"
-                  onClick={() => setExpandedBreakdown("overdue")}
+                  onClick={() => setOverdueDialogOpen(true)}
                   className="p-3 sm:p-4 rounded-2xl bg-white/[0.03] border border-white/10 text-left transition-all hover:bg-white/[0.06] hover:border-white/20"
                 >
                   <div className="flex items-center justify-between mb-1">
@@ -1993,7 +1994,7 @@ export function DashboardOverview({ loans, sales, payments, expenses, installmen
             </CardContent>
 
             {/* Overdue Modal */}
-            <Dialog open={expanded} onOpenChange={(o) => !o && setExpandedBreakdown(null)}>
+            <Dialog open={expanded} onOpenChange={(o) => setOverdueDialogOpen(o)}>
               <DialogContent className="max-w-lg max-h-[85vh] overflow-hidden flex flex-col p-0 gap-0 border border-white/10 bg-card/80 backdrop-blur-2xl backdrop-saturate-150 shadow-2xl">
                 <DialogHeader className="p-5 pb-4 border-b border-white/10">
                   <DialogTitle className="flex items-center gap-3">
