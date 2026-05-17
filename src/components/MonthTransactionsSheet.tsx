@@ -3,7 +3,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Income, IncomeStatus } from "@/hooks/useIncomes";
-import { Expense } from "@/types/loan";
+import { Expense, Sale } from "@/types/loan";
 import { ArrowUpRight, ArrowDownRight, CheckCircle2, Clock, AlertTriangle, Repeat } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
