@@ -910,6 +910,9 @@ export function IncomePendingCalendar({
                           ${!isSelected && !isToday && status === "none" ? "bg-background hover:bg-muted" : ""}
                         `}
                       >
+                        {adjustments[dateStr] && (
+                          <Wand2 className={`absolute top-0.5 right-0.5 h-2.5 w-2.5 ${isSelected ? "text-primary-foreground" : "text-primary"}`} />
+                        )}
                         <span className={isSelected ? "text-primary-foreground" : "text-foreground"}>
                           {day}
                         </span>
