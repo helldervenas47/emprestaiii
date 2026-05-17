@@ -301,7 +301,7 @@ export function ManagerCommissionsChart({
                     </PopoverContent>
                   </Popover>
                 </div>
-                <p className="text-[10px] text-muted-foreground mt-0.5">Acompanhe o total recebido e pendente das comissões por gerente</p>
+                <p className="text-[10px] text-muted-foreground mt-0.5">Acompanhe o total pago e pendente das comissões por gerente</p>
                 <p className="text-[10px] text-muted-foreground">Exibindo: {filterLabel}{rangeLabel ? ` • ${rangeLabel}` : ""}</p>
               </div>
             </div>
