@@ -15,7 +15,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
-import { Trash2, Search, ShoppingCart, Tv, Car, Calendar as CalendarIcon, User, Pencil, ChevronDown, ChevronUp, CheckCircle, HandCoins, Check, X as XIcon, DollarSign, AlertTriangle, Clock, CircleCheck, Receipt, Plus, Wallet, ChevronLeft, ChevronRight, LayoutGrid, Folder, List, FileText, BookOpen } from "lucide-react";
+import { Trash2, Search, ShoppingCart, Tv, Car, Calendar as CalendarIcon, User, Pencil, ChevronDown, ChevronUp, CheckCircle, CheckCircle2, HandCoins, Check, X as XIcon, DollarSign, AlertTriangle, Clock, CircleCheck, Receipt, Plus, Wallet, ChevronLeft, ChevronRight, LayoutGrid, Folder, List, FileText, BookOpen } from "lucide-react";
 import { SalesLedger } from "@/components/SalesLedger";
 import { generateContract } from "@/lib/generateContract";
 import { addMonths, addWeeks, addDays, format, startOfMonth, endOfMonth, differenceInCalendarDays } from "date-fns";
