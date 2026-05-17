@@ -171,7 +171,7 @@ function EmployeeFormDialog({ open, onOpenChange, initial, onSave }: {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto" onOpenAutoFocus={(e) => e.preventDefault()}>
         <DialogHeader><DialogTitle>{initial ? "Editar funcionário" : "Novo funcionário"}</DialogTitle></DialogHeader>
         <form onSubmit={submit} className="space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
