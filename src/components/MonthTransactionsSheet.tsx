@@ -104,23 +104,20 @@ export function MonthTransactionsSheet({ open, onOpenChange, type, monthKey, inc
     }
     return expenses
       .filter((e) => {
-        const d = e.dueDate || e.paidDate || "";
+        if ((e.scope ?? "business") !== "personal") return false;
+        if (!e.paid) return false;
+        const d = e.paidDate || e.dueDate || "";
         return d.startsWith(monthKey);
       })
       .map((e) => {
         const isRec = e.type === "recorrente";
-        const status: Row["status"] = e.paid
-          ? "paid"
-          : isRec
-          ? "recurring"
-          : "due";
         return {
           id: e.id,
-          date: e.dueDate || e.paidDate || "",
+          date: e.paidDate || e.dueDate || "",
           title: e.description,
           subtitle: e.category || undefined,
           amount: isRec && e.installments && e.installments > 1 ? e.amount / e.installments : e.amount,
-          status,
+          status: "paid" as Row["status"],
         };
       });
   }, [type, incomes, expenses, monthKey]);
