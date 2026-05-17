@@ -359,7 +359,7 @@ export function ManagerCommissionsChart({
                     </span>
                   </div>
                   <div className="flex flex-col items-center sm:flex-row sm:items-center sm:justify-between">
-                    <span className="text-[10px] sm:text-xs text-muted-foreground leading-tight">Recebido</span>
+                    <span className="text-[10px] sm:text-xs text-muted-foreground leading-tight">Pago</span>
                     <span className="text-xs sm:text-sm font-semibold text-success break-all sm:break-normal">
                       {mask(rawFormatCurrency(m.paid))}
                     </span>
