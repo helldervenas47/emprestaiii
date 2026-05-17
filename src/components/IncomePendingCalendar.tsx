@@ -1,15 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription,
 } from "@/components/ui/dialog";
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { ChevronLeft, ChevronRight, ChevronDown, ChevronUp, CalendarDays, TrendingUp, ArrowUpCircle, ArrowDownCircle, Wallet, Pencil, RotateCcw, CreditCard as CreditCardIcon, Lock, PiggyBank as PiggyBankIcon } from "lucide-react";
-import { Switch } from "@/components/ui/switch";
+import { ChevronLeft, ChevronRight, ChevronDown, ChevronUp, CalendarDays, TrendingUp, ArrowUpCircle, ArrowDownCircle, Wallet, Pencil, RotateCcw, CreditCard as CreditCardIcon, PiggyBank as PiggyBankIcon, Wand2, User as UserIcon, CalendarIcon } from "lucide-react";
 import type { Income } from "@/hooks/useIncomes";
 import type { Expense, Sale } from "@/types/loan";
 import { useProducts } from "@/hooks/useProducts";
@@ -17,30 +15,12 @@ import { usePiggyBanks } from "@/hooks/usePiggyBanks";
 import { useCreditCards } from "@/hooks/useCreditCards";
 import { useCreditCardOpenings } from "@/hooks/useCreditCardOpenings";
 import { getCardInvoiceTotalsForMonth, isCreditCardExpense } from "@/lib/creditCardInvoiceTotals";
-import { useMonthlyOpeningBalances } from "@/hooks/useMonthlyOpeningBalances";
+import { useBalanceAdjustments } from "@/hooks/useBalanceAdjustments";
 import { todayDateInAppTz } from "@/lib/timezone";
+import { MoneyInput } from "@/components/ui/money-input";
+import { DatePickerField } from "@/components/ui/date-picker-field";
+import { toast } from "sonner";
 
-const ALLOW_DAY1_OVERRIDE_KEY = "calendar:incomeAllowDay1BalanceOverride";
-
-function loadAllowDay1Override(): boolean {
-  if (typeof window === "undefined") return false;
-  try {
-    const raw = window.localStorage.getItem(ALLOW_DAY1_OVERRIDE_KEY);
-    if (raw === null) return false;
-    return raw === "true";
-  } catch {
-    return false;
-  }
-}
-
-function saveAllowDay1Override(v: boolean) {
-  if (typeof window === "undefined") return;
-  try {
-    window.localStorage.setItem(ALLOW_DAY1_OVERRIDE_KEY, String(v));
-  } catch {
-    // ignore
-  }
-}
 
 interface Props {
   incomes: Income[];
