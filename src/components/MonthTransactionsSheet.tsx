@@ -108,12 +108,13 @@ export function MonthTransactionsSheet({ open, onOpenChange, type, monthKey, inc
         const legacyTotal = (sale.downPayment || 0) + (sale.paidInstallments || 0) * iv + (sale.partialPaid || 0);
         const historyTotal = history.reduce((s, p) => s + (Number(p.amount) || 0), 0);
         const title = `Venda — ${sale.productName || "Produto"}`;
-        const subtitle = sale.clientName || sale.category || "Venda";
+        const subtitle = sale.customerName || sale.category || "Venda";
         if (history.length > 0) {
-          for (const p of history) {
+          for (let pi = 0; pi < history.length; pi++) {
+            const p = history[pi];
             if (!(p.date || "").startsWith(monthKey)) continue;
             out.push({
-              id: `sale-${sale.id}-${p.id ?? p.date}`,
+              id: `sale-${sale.id}-${pi}`,
               date: p.date,
               title,
               subtitle,
