@@ -68,7 +68,7 @@ export function FinancialStatement() {
       .filter((i) => i.status === "received" && i.source !== "Ajuste manual")
       .map((i: Income) => ({
         id: `i-${i.id}`,
-        date: i.receivedDate,
+        date: i.actualReceivedDate || i.receivedDate,
         description: i.description,
         category: i.category || "Outros",
         type: "income",
