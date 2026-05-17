@@ -242,17 +242,14 @@ export function useIncomes(enabled = true) {
   }, [incomes, addIncome]);
 
   const markReceived = useCallback(async (id: string) => {
-    const target = incomes.find((i) => i.id === id);
-    const isRecurringOccurrence =
-      !!target && (!!target.parentId || target.recurrence !== "once");
     const today = todayInAppTz();
-    // Em séries recorrentes, preservar a data agendada (received_date) para não colidir com outra ocorrência.
-    // Sempre registramos a data efetiva do recebimento em actual_received_date.
-    const patch: Partial<Income> = isRecurringOccurrence
-      ? { status: "received", actualReceivedDate: today }
-      : { status: "received", receivedDate: today, actualReceivedDate: today };
+    // Preserva a data de vencimento original (received_date) — usada para histórico,
+    // relatórios e auditoria. A data real do recebimento vai sempre para
+    // actual_received_date, que é o que o calendário usa para posicionar o item.
+    const patch: Partial<Income> = { status: "received", actualReceivedDate: today };
     await updateIncome(id, patch);
-  }, [incomes, updateIncome]);
+  }, [updateIncome]);
+
 
   // Backfill: para receitas recorrentes antigas que ainda não foram expandidas,
   // gera as ocorrências restantes (semanal/quinzenal no mês; mensal/anual no horizonte futuro).
