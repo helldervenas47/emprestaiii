@@ -544,11 +544,30 @@ export function IncomePendingCalendar({
     [selectedInfo],
   );
 
+  // Bloqueio de meses encerrados: só permite ajustar a partir do 1º dia do mês corrente.
+  const currentMonthStartStr = useMemo(() => {
+    const t = todayDateInAppTz();
+    return `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, "0")}-01`;
+  }, []);
+  const isPastMonthDate = (ds: string) => ds < currentMonthStartStr;
+
+  const openAdjustModal = (ds: string) => {
+    if (isPastMonthDate(ds)) {
+      toast.error("Não é possível recalcular saldos de meses encerrados.");
+      return;
+    }
+    const existing = adjustments[ds];
+    const auto = runningBalanceMap[ds] ?? baseBalance;
+    setEditDate(ds);
+    setEditValue((existing?.amount ?? auto).toFixed(2));
+    setEditOpen(true);
+  };
+
   const renderDayDetails = () => {
     if (!selectedDate) return null;
-    const isFirstOfMonth = selectedDate.endsWith("-01");
-    const monthKeyDay = selectedDate.slice(0, 7);
-    const hasOverride = isFirstOfMonth && overrides[monthKeyDay] !== undefined;
+    const hasAdjustment = adjustments[selectedDate] !== undefined;
+    const isPastMonth = isPastMonthDate(selectedDate);
+
     const dayBalanceDelta = selectedInfo.totalIncome - selectedInfo.totalExpense;
     const totalCount =
       selectedInfo.incomes.length +
