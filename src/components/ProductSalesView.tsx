@@ -761,46 +761,104 @@ function SaleCard({ sale, onDelete, onEdit, onUpdate, formatCurrency, readOnly =
           <ChevronDown className="h-4 w-4 text-muted-foreground" />
         </button>
 
-        {/* Row 5: Payment buttons - fixed position via mt-auto */}
+        {/* Row 5: Payment action panel */}
         <div className="mt-auto space-y-2">
-          {!isPaid && (
-            <>
-              <RegisterSalePaymentDialog
-                open={showPartial}
-                onOpenChange={setShowPartial}
-                sale={sale}
-                onUpdate={onUpdate}
-                formatCurrency={formatCurrency}
-                initialMode="partial"
-              />
-              <RegisterSalePaymentDialog
-                open={showPayDatePicker}
-                onOpenChange={setShowPayDatePicker}
-                sale={sale}
-                onUpdate={onUpdate}
-                formatCurrency={formatCurrency}
-                initialMode="full"
-              />
-              {!readOnly && (
-              <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  className="flex-1 h-9 text-xs border-primary/30 text-primary hover:bg-primary hover:text-primary-foreground"
-                  onClick={() => setShowPayDatePicker(true)}
-                >
-                  <CheckCircle className="h-3.5 w-3.5 mr-1" /> Pagar Parcela
-                </Button>
-                <Button
-                  variant="outline"
-                  className="flex-1 h-9 text-xs border-warning/30 text-warning hover:bg-warning hover:text-warning-foreground"
-                  onClick={() => setShowPartial(true)}
-                >
-                  <HandCoins className="h-3.5 w-3.5 mr-1" /> Pagar Parcial
-                </Button>
+          {(() => {
+            const totalPaid = parcelas.filter(p => p.paid).reduce((s, p) => s + p.fullValue, 0)
+              + (sale.downPayment || 0) + (sale.partialPaid || 0);
+            const pct = sale.total > 0 ? Math.min(100, Math.round((totalPaid / sale.total) * 100)) : 0;
+            const hasPartial = (sale.partialPaid || 0) > 0;
+            const nextIdx = sale.paidInstallments;
+            const nextParcela = parcelas[nextIdx];
+            let state: "paid" | "partial" | "overdue" | "pending" = "pending";
+            if (isPaid) state = "paid";
+            else if (nextParcela) {
+              const today = new Date(); today.setHours(0,0,0,0);
+              if (nextParcela.rawDate < today) state = "overdue";
+              else if (hasPartial) state = "partial";
+              else state = "pending";
+            } else if (hasPartial) state = "partial";
+
+            const stateConfig = {
+              paid: { label: "Quitado", icon: CheckCircle2, cls: "bg-success/15 text-success border-success/30", bar: "bg-success" },
+              partial: { label: "Parcial", icon: HandCoins, cls: "bg-warning/15 text-warning border-warning/30", bar: "bg-warning" },
+              overdue: { label: "Atrasado", icon: Clock, cls: "bg-destructive/15 text-destructive border-destructive/30", bar: "bg-destructive" },
+              pending: { label: "Pendente", icon: Clock, cls: "bg-primary/15 text-primary border-primary/30", bar: "bg-primary" },
+            }[state];
+            const StIcon = stateConfig.icon;
+
+            return (
+              <div className="rounded-2xl border border-border/40 bg-card/40 backdrop-blur-sm p-2.5 space-y-2.5 transition-all duration-300">
+                {/* Status + progress */}
+                <div className="flex items-center gap-2">
+                  <span className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-semibold ${stateConfig.cls} transition-colors duration-300`}>
+                    <StIcon className="h-3 w-3" />
+                    {stateConfig.label}
+                  </span>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between text-[10px] text-muted-foreground mb-0.5">
+                      <span className="tabular-nums font-medium">{formatCurrency(totalPaid)}</span>
+                      <span className="tabular-nums font-semibold">{pct}%</span>
+                    </div>
+                    <div className="h-1.5 w-full rounded-full bg-muted/60 overflow-hidden">
+                      <div
+                        className={`h-full ${stateConfig.bar} rounded-full transition-all duration-700 ease-out`}
+                        style={{ width: `${pct}%` }}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {!isPaid && (
+                  <>
+                    <RegisterSalePaymentDialog
+                      open={showPartial}
+                      onOpenChange={setShowPartial}
+                      sale={sale}
+                      onUpdate={onUpdate}
+                      formatCurrency={formatCurrency}
+                      initialMode="partial"
+                    />
+                    <RegisterSalePaymentDialog
+                      open={showPayDatePicker}
+                      onOpenChange={setShowPayDatePicker}
+                      sale={sale}
+                      onUpdate={onUpdate}
+                      formatCurrency={formatCurrency}
+                      initialMode="full"
+                    />
+                    {!readOnly && (
+                      <div className="flex flex-wrap gap-2">
+                        <Button
+                          variant="success"
+                          size="sm"
+                          className="flex-[2] min-w-[140px] h-10 text-xs font-semibold rounded-xl shadow-[0_6px_18px_-8px_hsl(var(--success)/0.6)] hover:shadow-[0_10px_24px_-8px_hsl(var(--success)/0.85)] hover:-translate-y-[1px] transition-all duration-200"
+                          onClick={() => setShowPayDatePicker(true)}
+                        >
+                          <CheckCircle2 className="h-4 w-4" /> Pagar Parcela
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="flex-1 min-w-[120px] h-10 text-xs font-semibold rounded-xl border-warning/40 text-warning hover:bg-warning hover:text-warning-foreground hover:border-warning transition-all duration-200"
+                          onClick={() => setShowPartial(true)}
+                        >
+                          <HandCoins className="h-4 w-4" /> Parcial
+                        </Button>
+                      </div>
+                    )}
+                  </>
+                )}
+
+                {isPaid && (
+                  <div className="flex items-center justify-center gap-2 py-1.5 text-success animate-fade-in">
+                    <CheckCircle2 className="h-4 w-4" />
+                    <span className="text-xs font-semibold">Pagamento concluído</span>
+                  </div>
+                )}
               </div>
-              )}
-            </>
-          )}
+            );
+          })()}
 
           {(() => {
             const parsed = parseNotesWithMerchandise(sale.notes);
