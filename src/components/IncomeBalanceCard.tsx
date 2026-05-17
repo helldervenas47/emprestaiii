@@ -187,8 +187,22 @@ export function IncomeBalanceCard({ incomes, expenses, onAdjust, readOnly, onOpe
     const futureOut = personalPendingExpenses + cardInvoicePendingMonth;
     const pendingInCount = incomes.reduce((s, i) => s + pendingOccurrencesInMonth(i), 0);
 
-    // Saldo previsto do card: usa exatamente os mesmos totais exibidos no popup.
-    const projected = balance + futureIn - futureOut;
+    // Saldo previsto do card: usa a projeção diária do calendário (encadeando
+    // cofrinhos, ajustes manuais, faturas de cartão e demais lançamentos),
+    // de modo que o valor exibido bata com o saldo do último dia do mês no
+    // calendário. Para meses passados, cai no cálculo simplificado.
+    const dailyProjected = getMonthEndProjectedBalance({
+      baseBalance: balance,
+      monthKey,
+      today: new Date(),
+      incomes,
+      expenses,
+      cards,
+      openings,
+      piggyDeposits,
+      adjustments,
+    });
+    const projected = dailyProjected ?? (balance + futureIn - futureOut);
     const projectedDiff = projected - balance;
 
     const prevIn = incomes
@@ -196,7 +210,7 @@ export function IncomeBalanceCard({ incomes, expenses, onAdjust, readOnly, onOpe
       .reduce((s, i) => s + i.amount, 0);
 
     return { balance, monthIn, monthOut, futureIn, futureOut, projected, projectedDiff, prevIn, pendingInCount };
-  }, [incomes, expenses, monthKey, prevKey, cards, openings, sales]);
+  }, [incomes, expenses, monthKey, prevKey, cards, openings, sales, piggyDeposits, adjustments]);
 
   const diff = calc.monthIn - calc.prevIn;
   const pct = calc.prevIn > 0 ? (diff / calc.prevIn) * 100 : 0;
