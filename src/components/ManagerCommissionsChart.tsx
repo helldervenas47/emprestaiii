@@ -608,7 +608,7 @@ function ManagerDetailDialog({
                           </p>
                         </div>
                         <div className="text-right text-[11px] space-y-0.5">
-                          <div className="text-success font-semibold">+ {mask(rawFormatCurrency(paidAmount))} recebido</div>
+                          <div className="text-success font-semibold">+ {mask(rawFormatCurrency(paidAmount))} pago</div>
                           <div className="text-primary font-semibold">+ {mask(rawFormatCurrency(pendingAmount))} pendente</div>
                         </div>
                       </div>
