@@ -1,4 +1,4 @@
-import { useMemo, useState, useEffect } from "react";
+import { useMemo, useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,13 +11,9 @@ import { TrendingUp, TrendingDown, Wallet, ArrowUpRight, ArrowDownRight, Setting
 import { useCreditCards } from "@/hooks/useCreditCards";
 import { useCreditCardOpenings } from "@/hooks/useCreditCardOpenings";
 import { getCardInvoiceTotalsForMonth, isCreditCardExpense } from "@/lib/creditCardInvoiceTotals";
-import { isPiggyExpense, usePiggyBanks } from "@/hooks/usePiggyBanks";
+import { isPiggyExpense } from "@/hooks/usePiggyBanks";
 import { useProducts } from "@/hooks/useProducts";
 import { Sale } from "@/types/loan";
-import { useBalanceAdjustments } from "@/hooks/useBalanceAdjustments";
-import { useExternalAccountSources } from "@/hooks/useExternalAccountSources";
-import { getMonthEndProjectedBalance } from "@/lib/projectedBalance";
-import { todayDateInAppTz } from "@/lib/timezone";
 
 /** Total efetivamente recebido de uma venda (não os lançamentos previstos). */
 function saleReceivedTotal(sale: Sale): number {
@@ -75,9 +71,6 @@ export function IncomeBalanceCard({ incomes, expenses, onAdjust, readOnly, onOpe
   const { cards } = useCreditCards();
   const { openings } = useCreditCardOpenings();
   const { sales } = useProducts(true);
-  const { deposits: piggyDeposits } = usePiggyBanks();
-  const { adjustments: balanceAdjustments } = useBalanceAdjustments();
-  const externalSources = useExternalAccountSources();
   const [adjustOpen, setAdjustOpen] = useState(false);
   const [target, setTarget] = useState("");
   const [saving, setSaving] = useState(false);
