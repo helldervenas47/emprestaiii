@@ -27,6 +27,8 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { Plus, Search, Copy, Pencil, Trash2, CheckCircle2, Clock, AlertTriangle, ArrowUpDown, ChevronLeft, ChevronRight, CalendarCheck, ChevronDown } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { validateIncomeDate } from "@/lib/paymentValidation";
+import { toast } from "sonner";
 
 function fmtBRL(n: number) {
   return n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -483,18 +485,23 @@ export function IncomeList({ readOnly }: Props) {
               disabled={paySaving || !payDate}
               onClick={async () => {
                 if (!payTarget) return;
+                // Valida duplicidade: data efetiva do pagamento não pode colidir com
+                // outra ocorrência da mesma série (recorrente ou parcelada).
+                const check = validateIncomeDate(payTarget, incomes, payDate);
+                if (!check.ok) {
+                  toast.error(check.reason || "Data já utilizada por outra ocorrência.");
+                  return;
+                }
                 setPaySaving(true);
                 const finalAmount = payAmount.trim() && Number(payAmount) > 0
                   ? Number(payAmount)
                   : payTarget.amount;
-                // Para receitas recorrentes (parcelas de uma série), NÃO sobrescrever
-                // a data agendada — caso contrário a data muda e pode colidir com outra
-                // ocorrência da mesma série, causando duplicidade.
                 const isRecurringOccurrence =
                   !!payTarget.parentId || payTarget.recurrence !== "once";
                 const patch: any = {
                   status: "received",
                   amount: finalAmount,
+                  actualReceivedDate: payDate,
                 };
                 if (!isRecurringOccurrence) {
                   patch.receivedDate = payDate;
