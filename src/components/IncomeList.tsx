@@ -195,6 +195,7 @@ export function IncomeList({ readOnly }: Props) {
         monthKey={monthKey}
         incomes={incomes}
         expenses={expenses}
+        sales={sales}
         initialFilter={sheetInitialFilter}
       />
 
