@@ -95,6 +95,7 @@ export function IncomeDashboard({ incomes, allMonthIncomes, monthKey, sales = []
         date: i.actualReceivedDate || i.receivedDate,
         type: "receita",
         account: methodName(i.paymentMethodId),
+        status: i.status === "received" ? "paid" : i.status === "overdue" ? "overdue" : "pending",
       });
     });
     sales.forEach((s) => {
@@ -108,6 +109,7 @@ export function IncomeDashboard({ incomes, allMonthIncomes, monthKey, sales = []
           date: s.date,
           type: "receita",
           account: "",
+          status: "paid",
         });
       }
       (s.paymentHistory || []).forEach((p, idx) => {
@@ -119,6 +121,7 @@ export function IncomeDashboard({ incomes, allMonthIncomes, monthKey, sales = []
           date: p.date,
           type: "receita",
           account: "",
+          status: "paid",
         });
       });
     });
