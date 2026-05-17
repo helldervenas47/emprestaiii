@@ -36,9 +36,11 @@ export interface SalePaymentLike {
   type?: string;
 }
 
-export type ValidationResult =
-  | { ok: true }
-  | { ok: false; reason: string; conflictingId?: string };
+export interface ValidationResult {
+  ok: boolean;
+  reason?: string;
+  conflictingId?: string;
+}
 
 /** Retorna a data efetiva de uma receita (data real quando recebida; senão, vencimento). */
 export function effectiveIncomeDate(i: IncomeLike): string {
