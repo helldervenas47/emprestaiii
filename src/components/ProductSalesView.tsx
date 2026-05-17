@@ -1111,6 +1111,26 @@ function SaleListRow({ sale, onEdit, onUpdate, formatCurrency, readOnly = false,
         formatCurrency={formatCurrency}
         readOnly={readOnly}
       />
+      {!isPaid && !readOnly && (
+        <>
+          <RegisterSalePaymentDialog
+            open={showPartial}
+            onOpenChange={setShowPartial}
+            sale={sale}
+            onUpdate={onUpdate}
+            formatCurrency={formatCurrency}
+            initialMode="partial"
+          />
+          <RegisterSalePaymentDialog
+            open={showPayDatePicker}
+            onOpenChange={setShowPayDatePicker}
+            sale={sale}
+            onUpdate={onUpdate}
+            formatCurrency={formatCurrency}
+            initialMode="full"
+          />
+        </>
+      )}
     </div>
 
     {isMobile && expanded && (
