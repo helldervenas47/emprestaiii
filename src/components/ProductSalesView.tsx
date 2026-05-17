@@ -27,6 +27,8 @@ import { personalIconMap } from "@/lib/personalExpenseCategories";
 import { Tag } from "lucide-react";
 import { PaymentMethodPicker } from "@/components/PaymentMethodPicker";
 import { usePaymentMethods } from "@/hooks/usePaymentMethods";
+import { validateSalePayment } from "@/lib/paymentValidation";
+import { toast } from "sonner";
 
 function addByFrequency(date: Date, frequency: string, n: number): Date {
   if (["Diário", "Diária", "Diario", "Diaria", "daily"].includes(frequency)) return addDays(date, n);
@@ -396,6 +398,11 @@ function RegisterSalePaymentDialog({
       installmentNumber: nextIdx + 1,
       userName,
     };
+    const check = validateSalePayment(sale.paymentHistory || [], newRecord);
+    if (!check.ok) {
+      toast.error(check.reason);
+      return;
+    }
     const history = [...(sale.paymentHistory || []), newRecord];
     if (willComplete) {
       const remainder = valNum + jaPagoParcela - parcelaTotal;
