@@ -133,14 +133,25 @@ export function computeRunningBalance(opts: {
   startDate: Date;
   endDate: Date;
   deltas: Record<string, DailyDelta>;
-  overrides: Record<string, number>;
+  /** Ajustes manuais por data (YYYY-MM-DD). Quando presente, o saldo do dia
+   *  é fixado neste valor (nova âncora) e em seguida o delta do próprio dia
+   *  é somado normalmente. */
+  adjustments?: Record<string, number>;
+  /** @deprecated Use `adjustments` (chave por data). Mantido por compatibilidade —
+   *  é interpretado como ajuste no dia 01 do mês informado. */
+  overrides?: Record<string, number>;
 }): Record<string, number> {
   const map: Record<string, number> = {};
   let running = opts.baseBalance;
   const cursor = new Date(opts.startDate);
+  const adjustments = opts.adjustments ?? {};
   while (cursor <= opts.endDate) {
     const ds = fmt(cursor);
-    if (cursor.getDate() === 1) {
+    // 1) Ajuste manual por data (nova lógica genérica).
+    if (adjustments[ds] !== undefined) {
+      running = adjustments[ds];
+    } else if (cursor.getDate() === 1 && opts.overrides) {
+      // 2) Compat: override legado por mês, aplicado no dia 01.
       const mk = ds.slice(0, 7);
       if (opts.overrides[mk] !== undefined) {
         running = opts.overrides[mk];
