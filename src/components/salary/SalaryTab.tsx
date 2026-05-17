@@ -21,6 +21,14 @@ interface Props { readOnly?: boolean }
 
 export function SalaryTab({ readOnly }: Props) {
   const [sub, setSub] = useState<SubTab>("dashboard");
+
+  useEffect(() => {
+    // Ao abrir a aba Salário, desfoca qualquer input para evitar que o teclado suba automaticamente no mobile
+    if (document.activeElement && "blur" in document.activeElement) {
+      (document.activeElement as HTMLElement).blur();
+    }
+  }, []);
+
   return (
     <div className="space-y-4">
       <div className="overflow-x-auto -mx-1 px-1">
