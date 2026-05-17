@@ -1013,6 +1013,22 @@ function SaleListRow({ sale, onEdit, onUpdate, formatCurrency, readOnly = false,
 
       {(isPaid || readOnly) ? (
         <div className="shrink-0 flex items-center justify-end gap-1">
+          {!isMobile && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 text-success hover:bg-success/10 relative"
+              title="Histórico de pagamentos"
+              onClick={(e) => { e.stopPropagation(); setShowPayments(true); }}
+            >
+              <Receipt className="h-4 w-4" />
+              {historyCount > 0 && (
+                <span className="absolute -top-1 -right-1 h-4 min-w-[16px] px-1 rounded-full bg-success text-success-foreground text-[10px] font-bold flex items-center justify-center">
+                  {historyCount}
+                </span>
+              )}
+            </Button>
+          )}
           {!readOnly && !isMobile && (
             <Button
               variant="ghost"
