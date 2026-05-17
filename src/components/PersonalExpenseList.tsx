@@ -1149,6 +1149,14 @@ export function PersonalExpenseList({ expenses, onPay, onUnpay, onDelete, onUpda
         </Card>
       )}
 
+      <CategoryDetailsSheet
+        open={!!selectedTopCategory}
+        onOpenChange={(o) => !o && setSelectedTopCategory(null)}
+        categoryName={selectedTopCategory || ""}
+        entries={topCategoryEntries}
+        total={selectedTopCategoryTotal}
+      />
+
       {/* AI-generated intelligent report */}
       <PersonalAIInsightsCard
         month={selectedMonth}
