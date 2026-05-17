@@ -243,12 +243,24 @@ export function useIncomes(enabled = true) {
 
   const markReceived = useCallback(async (id: string) => {
     const today = todayInAppTz();
-    // Preserva a data de vencimento original (received_date) — usada para histórico,
-    // relatórios e auditoria. A data real do recebimento vai sempre para
-    // actual_received_date, que é o que o calendário usa para posicionar o item.
+    const target = incomes.find((i) => i.id === id);
+    if (target) {
+      // Evita colisão: se já existe outra ocorrência da mesma série em "hoje",
+      // não força actualReceivedDate=hoje (mantém a data original como real).
+      const root = target.parentId || target.id;
+      const collision = incomes.find((other) =>
+        other.id !== target.id &&
+        (other.parentId || other.id) === root &&
+        ((other.status === "received" ? (other.actualReceivedDate || other.receivedDate) : other.receivedDate) === today)
+      );
+      if (collision) {
+        await updateIncome(id, { status: "received", actualReceivedDate: target.receivedDate });
+        return;
+      }
+    }
     const patch: Partial<Income> = { status: "received", actualReceivedDate: today };
     await updateIncome(id, patch);
-  }, [updateIncome]);
+  }, [incomes, updateIncome]);
 
 
   // Backfill: para receitas recorrentes antigas que ainda não foram expandidas,
