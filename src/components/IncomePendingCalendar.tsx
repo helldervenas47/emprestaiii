@@ -859,9 +859,9 @@ export function IncomePendingCalendar({
           <div className="flex items-center gap-2 min-w-0">
             <CalendarDays className="h-4 w-4 text-primary shrink-0" />
             <h3 className="text-sm font-semibold text-foreground truncate">
-              Calendário diário
+              Calendário
             </h3>
-            <span className="text-xs text-muted-foreground hidden sm:inline">
+            <span className="text-xs text-muted-foreground truncate">
               · {monthNames[month]} {year}: <span className={`font-semibold ${monthEndProjectedBalance >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"}`}>{formatCurrency(monthEndProjectedBalance)}</span>
             </span>
           </div>
