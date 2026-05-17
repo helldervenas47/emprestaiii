@@ -56,16 +56,19 @@ export function buildDailyDeltas(opts: {
       ex.type === "recorrente" && (ex.installments ?? 0) > 1;
 
     if (isRecParent) {
-      // Materializa cada parcela restante (uma por mês) a partir da próxima dueDate.
-      const installmentAmount =
-        (Number(ex.amount) || 0) / (ex.installments as number);
-      const remaining =
-        (ex.installments as number) - (ex.paidInstallments ?? 0);
+      // Materializa cada parcela restante (uma por mês) a partir da PRÓXIMA
+      // parcela não paga — não da dueDate original. Caso contrário, despesas
+      // recorrentes antigas com várias parcelas pagas teriam suas parcelas
+      // futuras agendadas em meses já passados e nunca entrariam na projeção.
+      const totalInstallments = ex.installments as number;
+      const installmentAmount = (Number(ex.amount) || 0) / totalInstallments;
+      const paidCount = ex.paidInstallments ?? 0;
+      const remaining = totalInstallments - paidCount;
       if (remaining <= 0 || !ex.dueDate) continue;
       const start = new Date(ex.dueDate + "T00:00:00");
       for (let i = 0; i < remaining; i++) {
         const occ = new Date(start);
-        occ.setMonth(start.getMonth() + i);
+        occ.setMonth(start.getMonth() + paidCount + i);
         if (occ > projectionEnd) break;
         ensure(fmt(occ)).expense += installmentAmount;
       }
