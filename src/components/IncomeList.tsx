@@ -485,18 +485,23 @@ export function IncomeList({ readOnly }: Props) {
               disabled={paySaving || !payDate}
               onClick={async () => {
                 if (!payTarget) return;
+                // Valida duplicidade: data efetiva do pagamento não pode colidir com
+                // outra ocorrência da mesma série (recorrente ou parcelada).
+                const check = validateIncomeDate(payTarget, incomes, payDate);
+                if (!check.ok) {
+                  toast.error(check.reason || "Data já utilizada por outra ocorrência.");
+                  return;
+                }
                 setPaySaving(true);
                 const finalAmount = payAmount.trim() && Number(payAmount) > 0
                   ? Number(payAmount)
                   : payTarget.amount;
-                // Para receitas recorrentes (parcelas de uma série), NÃO sobrescrever
-                // a data agendada — caso contrário a data muda e pode colidir com outra
-                // ocorrência da mesma série, causando duplicidade.
                 const isRecurringOccurrence =
                   !!payTarget.parentId || payTarget.recurrence !== "once";
                 const patch: any = {
                   status: "received",
                   amount: finalAmount,
+                  actualReceivedDate: payDate,
                 };
                 if (!isRecurringOccurrence) {
                   patch.receivedDate = payDate;
