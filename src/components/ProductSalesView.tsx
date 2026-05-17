@@ -1198,6 +1198,12 @@ function SaleListRow({ sale, onEdit, onUpdate, formatCurrency, readOnly = false,
             <span className="text-muted-foreground">Cliente</span>
             <span className="font-semibold text-foreground truncate ml-2">{sale.customerName || "—"}</span>
           </div>
+          {(sale.description || sale.productName) && (
+            <div className="col-span-2">
+              <p className="text-muted-foreground">Descrição</p>
+              <p className="font-semibold text-foreground break-words">{sale.description || sale.productName}</p>
+            </div>
+          )}
           <div className="flex items-center justify-between col-span-2">
             <span className="text-muted-foreground">Status</span>
             <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold ${statusInfo.cls}`}>
