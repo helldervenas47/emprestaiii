@@ -301,7 +301,7 @@ export function ManagerCommissionsChart({
                     </PopoverContent>
                   </Popover>
                 </div>
-                <p className="text-[10px] text-muted-foreground mt-0.5">Acompanhe o total recebido e pendente das comissões por gerente</p>
+                <p className="text-[10px] text-muted-foreground mt-0.5">Acompanhe o total pago e pendente das comissões por gerente</p>
                 <p className="text-[10px] text-muted-foreground">Exibindo: {filterLabel}{rangeLabel ? ` • ${rangeLabel}` : ""}</p>
               </div>
             </div>
@@ -311,7 +311,7 @@ export function ManagerCommissionsChart({
                 <p className="text-xs sm:text-sm font-bold text-primary leading-tight">{mask(rawFormatCurrency(totalProjected))}</p>
               </div>
               <div className="rounded-md bg-muted/40 sm:bg-transparent px-2 py-1 sm:p-0 text-center sm:text-right">
-                <p className="text-[9px] sm:text-[10px] text-muted-foreground uppercase leading-tight">Recebido</p>
+                <p className="text-[9px] sm:text-[10px] text-muted-foreground uppercase leading-tight">Pago</p>
                 <p className="text-xs sm:text-sm font-bold text-success leading-tight">{mask(rawFormatCurrency(totalPaid))}</p>
               </div>
               <div className="rounded-md bg-muted/40 sm:bg-transparent px-2 py-1 sm:p-0 text-center sm:text-right">
@@ -359,7 +359,7 @@ export function ManagerCommissionsChart({
                     </span>
                   </div>
                   <div className="flex flex-col items-center sm:flex-row sm:items-center sm:justify-between">
-                    <span className="text-[10px] sm:text-xs text-muted-foreground leading-tight">Recebido</span>
+                    <span className="text-[10px] sm:text-xs text-muted-foreground leading-tight">Pago</span>
                     <span className="text-xs sm:text-sm font-semibold text-success break-all sm:break-normal">
                       {mask(rawFormatCurrency(m.paid))}
                     </span>
@@ -377,7 +377,7 @@ export function ManagerCommissionsChart({
           </div>
         )}
         <p className="text-[10px] text-muted-foreground mt-3 italic text-center">
-          Recebido = comissões registradas ou derivadas de juros/quitações recebidos no período. Pendente = parcelas com vencimento no período ainda não pagas. Toque em um gerente para ver os detalhes.
+          Pago = comissões registradas ou derivadas de juros/quitações pagos no período. Pendente = parcelas com vencimento no período ainda não pagas. Toque em um gerente para ver os detalhes.
         </p>
       </CardContent>
 
@@ -573,7 +573,7 @@ function ManagerDetailDialog({
                   <p className="text-sm font-bold text-primary">{mask(rawFormatCurrency(detail.totalPending))}</p>
                 </div>
                 <div className="rounded-md bg-muted/40 p-2 text-center">
-                  <p className="text-[10px] text-muted-foreground uppercase">Recebido</p>
+                  <p className="text-[10px] text-muted-foreground uppercase">Pago</p>
                   <p className="text-sm font-bold text-success">{mask(rawFormatCurrency(detail.totalPaid))}</p>
                 </div>
                 <div className="rounded-md bg-muted/40 p-2 text-center">
@@ -608,7 +608,7 @@ function ManagerDetailDialog({
                           </p>
                         </div>
                         <div className="text-right text-[11px] space-y-0.5">
-                          <div className="text-success font-semibold">+ {mask(rawFormatCurrency(paidAmount))} recebido</div>
+                          <div className="text-success font-semibold">+ {mask(rawFormatCurrency(paidAmount))} pago</div>
                           <div className="text-primary font-semibold">+ {mask(rawFormatCurrency(pendingAmount))} pendente</div>
                         </div>
                       </div>
