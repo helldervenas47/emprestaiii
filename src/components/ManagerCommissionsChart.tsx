@@ -311,7 +311,7 @@ export function ManagerCommissionsChart({
                 <p className="text-xs sm:text-sm font-bold text-primary leading-tight">{mask(rawFormatCurrency(totalProjected))}</p>
               </div>
               <div className="rounded-md bg-muted/40 sm:bg-transparent px-2 py-1 sm:p-0 text-center sm:text-right">
-                <p className="text-[9px] sm:text-[10px] text-muted-foreground uppercase leading-tight">Recebido</p>
+                <p className="text-[9px] sm:text-[10px] text-muted-foreground uppercase leading-tight">Pago</p>
                 <p className="text-xs sm:text-sm font-bold text-success leading-tight">{mask(rawFormatCurrency(totalPaid))}</p>
               </div>
               <div className="rounded-md bg-muted/40 sm:bg-transparent px-2 py-1 sm:p-0 text-center sm:text-right">
