@@ -55,6 +55,7 @@ const WhatsappAutoBillingCard = lazy(() => import("@/components/WhatsappAutoBill
 const WhatsappAssistantCard = lazy(() => import("@/components/WhatsappAssistantCard").then(m => ({ default: m.WhatsappAssistantCard })));
 const Settings = lazy(() => import("@/components/Settings").then(m => ({ default: m.Settings })));
 const SystemSettings = lazy(() => import("@/components/SystemSettings").then(m => ({ default: m.SystemSettings })));
+const SalaryTab = lazy(() => import("@/components/salary/SalaryTab").then(m => ({ default: m.SalaryTab })));
 
 // Direct import for the constant used at render time
 import { isVehicleExpenseForVehicles } from "@/components/VehicleExpenseForm";
@@ -995,6 +996,11 @@ const Index = () => {
         {tab === "accountant" && (
           <SubscriptionGate requiredTier={2} featureName="Contador">
             <AccountantReport loans={loans} payments={payments} sales={sales} expenses={expenses} />
+          </SubscriptionGate>
+        )}
+        {tab === "salary" && (
+          <SubscriptionGate requiredTier={2} featureName="Salário">
+            <SalaryTab readOnly={isReadOnly} />
           </SubscriptionGate>
         )}
         {tab === "overdue" && (
