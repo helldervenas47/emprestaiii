@@ -317,11 +317,13 @@ export async function sendReportsAsImage(
   brand: { name: string; primaryHsl?: string | null },
   opts?: { title?: string; subtitle?: string; fallbackText?: string; reportKey?: ImageReportKey },
 ): Promise<{ sent: boolean; reason?: string; mode?: "image" | "text" }> {
+  const tag = `[reports-bot][${opts?.reportKey ?? "unknown"}][user=${userId}]`;
   try {
     const prefs = await getImageDeliveryPrefs(supabase, userId);
     const key = opts?.reportKey;
     // Per-report toggle: if explicitly disabled, send as plain text.
     if (key && prefs.reports[key] === false) {
+      console.log(`${tag} mode=text reason=report_toggle_disabled`);
       const text = opts?.fallbackText ?? lines.join("\n");
       const r = await sendReportsMessage(supabase, userId, chatId, text);
       return { sent: r.sent, reason: r.reason, mode: "text" };
@@ -329,22 +331,37 @@ export async function sendReportsAsImage(
     // Admin-controlled allow-list: if recipient not allowed, send as text.
     const allowed = await isImageDeliveryAllowedForUser(supabase, userId);
     if (!allowed) {
+      console.log(`${tag} mode=text reason=not_in_allowed_user_ids`);
       const text = opts?.fallbackText ?? lines.join("\n");
       const r = await sendReportsMessage(supabase, userId, chatId, text);
       return { sent: r.sent, reason: r.reason, mode: "text" };
     }
 
-    const { buildTextReportSVG, svgToPng, buildCaptionFromLines } = await import("./renderReportImage.ts");
-    const svg = buildTextReportSVG(lines, brand, { title: opts?.title, subtitle: opts?.subtitle });
-    const png = await svgToPng(svg);
+    let png: Uint8Array;
+    try {
+      const { buildTextReportSVG, svgToPng } = await import("./renderReportImage.ts");
+      const svg = buildTextReportSVG(lines, brand, { title: opts?.title, subtitle: opts?.subtitle });
+      png = await svgToPng(svg);
+    } catch (renderErr) {
+      console.error(`${tag} mode=text reason=render_failed`, renderErr);
+      const text = opts?.fallbackText ?? lines.join("\n");
+      const r = await sendReportsMessage(supabase, userId, chatId, text);
+      return { sent: r.sent, reason: `render_failed: ${(renderErr as Error).message}`, mode: "text" };
+    }
+
+    const { buildCaptionFromLines } = await import("./renderReportImage.ts");
     const caption = prefs.includeText ? buildCaptionFromLines(lines, brand) : "";
     const res = await sendReportsPhoto(supabase, userId, chatId, png, caption);
-    if (res.sent) return { sent: true, mode: "image" };
+    if (res.sent) {
+      console.log(`${tag} mode=image sent=ok`);
+      return { sent: true, mode: "image" };
+    }
+    console.error(`${tag} mode=text reason=sendPhoto_failed (${res.reason})`);
     const text = opts?.fallbackText ?? lines.join("\n");
     const r2 = await sendReportsMessage(supabase, userId, chatId, text);
     return { sent: r2.sent, reason: r2.reason, mode: "text" };
   } catch (e) {
-    console.error("[reports-bot] image render failed, falling back to text", e);
+    console.error(`${tag} mode=text reason=unexpected_exception`, e);
     const text = opts?.fallbackText ?? lines.join("\n");
     const r = await sendReportsMessage(supabase, userId, chatId, text);
     return { sent: r.sent, reason: r.reason, mode: "text" };
