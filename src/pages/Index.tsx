@@ -94,7 +94,7 @@ import { useExpenses } from "@/hooks/useExpenses";
 import { useVehicleRegistry } from "@/hooks/useVehicleRegistry";
 import { useLocadorInfo } from "@/hooks/useLocadorInfo";
 
-type Tab = "overview" | "dashboard" | "clients" | "products" | "vehicles" | "overdue" | "expenses" | "accountant" | "calendar" | "settings" | "system";
+type Tab = "overview" | "dashboard" | "clients" | "products" | "vehicles" | "overdue" | "expenses" | "salary" | "accountant" | "calendar" | "settings" | "system";
 type ClientSubTab = "clientes" | "veiculos";
 type VehicleSubTab = "veiculos" | "locadores";
 type PlanMgmtSubTab = "subscribers" | "plans";
@@ -111,6 +111,7 @@ const tabConfig = [
   { id: "calendar" as Tab, label: "Calendário", icon: CalendarDays },
   { id: "clients" as Tab, label: "Cadastro", icon: Users },
   { id: "expenses" as Tab, label: "Receitas e Despesas", icon: Receipt },
+  { id: "salary" as Tab, label: "Salário", icon: Wallet },
   { id: "accountant" as Tab, label: "Contador", icon: Calculator },
   
   { id: "overdue" as Tab, label: "Relatório", icon: AlertTriangle },
