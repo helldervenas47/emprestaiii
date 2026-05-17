@@ -849,25 +849,7 @@ export function IncomePendingCalendar({
           </Button>
         </div>
 
-        {/* Flag: permitir alterar o saldo do dia 01 */}
-        <div className="flex items-center justify-between gap-2 mb-3 rounded-md border border-border/60 bg-muted/30 px-3 py-2">
-          <div className="flex items-center gap-2 min-w-0">
-            <Lock className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-            <div className="min-w-0">
-              <p className="text-xs font-medium text-foreground">Permitir alterar saldo do dia 01</p>
-              <p className="text-[10px] text-muted-foreground leading-tight">
-                {allowDay1Override
-                  ? "Você pode editar o saldo de abertura do mês."
-                  : "Edição bloqueada — valores já salvos permanecem aplicados na projeção."}
-              </p>
-            </div>
-          </div>
-          <Switch
-            checked={allowDay1Override}
-            onCheckedChange={toggleAllowDay1Override}
-            aria-label="Permitir alterar saldo do dia 01"
-          />
-        </div>
+
 
         {/* Legenda de status dos lançamentos */}
         <div className="flex items-center gap-3 mb-3 text-[11px] text-muted-foreground flex-wrap">
