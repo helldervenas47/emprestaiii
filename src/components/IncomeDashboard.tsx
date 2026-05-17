@@ -40,6 +40,9 @@ function salePaidInMonth(sale: Sale, monthKey: string): number {
 export function IncomeDashboard({ incomes, allMonthIncomes, monthKey, sales = [] }: Props) {
   // Considera receitas PAGAS + pendentes (consolidado por categoria)
   const consolidated = allMonthIncomes ?? incomes;
+  const { methods } = usePaymentMethods();
+  const methodName = (id?: string | null) => methods.find((m) => m.id === id)?.name || "";
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
 
   // Sales contribution per category — only the value effectively received in the period.
   const salesByCategory = useMemo(() => {
