@@ -1013,6 +1013,22 @@ function SaleListRow({ sale, onEdit, onUpdate, formatCurrency, readOnly = false,
 
       {(isPaid || readOnly) ? (
         <div className="shrink-0 flex items-center justify-end gap-1">
+          {!isMobile && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 text-success hover:bg-success/10 relative"
+              title="Histórico de pagamentos"
+              onClick={(e) => { e.stopPropagation(); setShowPayments(true); }}
+            >
+              <Receipt className="h-4 w-4" />
+              {historyCount > 0 && (
+                <span className="absolute -top-1 -right-1 h-4 min-w-[16px] px-1 rounded-full bg-success text-success-foreground text-[10px] font-bold flex items-center justify-center">
+                  {historyCount}
+                </span>
+              )}
+            </Button>
+          )}
           {!readOnly && !isMobile && (
             <Button
               variant="ghost"
@@ -1028,15 +1044,62 @@ function SaleListRow({ sale, onEdit, onUpdate, formatCurrency, readOnly = false,
       ) : (
         <div className="shrink-0 flex items-center justify-end gap-1">
           {!isMobile && (
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8 text-muted-foreground hover:bg-accent hover:text-foreground"
-              title="Editar"
-              onClick={onEdit}
-            >
-              <Pencil className="h-4 w-4" />
-            </Button>
+            <>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 text-primary hover:bg-primary/10"
+                    title="Pagar"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <HandCoins className="h-4 w-4" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-52 p-1" align="end">
+                  <button
+                    type="button"
+                    onClick={(e) => { e.stopPropagation(); setShowPayDatePicker(true); }}
+                    className="w-full flex items-center gap-2 rounded-md px-2 py-2 text-sm text-foreground hover:bg-primary/10 transition-colors"
+                  >
+                    <CheckCircle className="h-4 w-4 text-primary" />
+                    <span>Pagar Parcela</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={(e) => { e.stopPropagation(); setShowPartial(true); }}
+                    className="w-full flex items-center gap-2 rounded-md px-2 py-2 text-sm text-foreground hover:bg-warning/10 transition-colors"
+                  >
+                    <HandCoins className="h-4 w-4 text-warning" />
+                    <span>Pagar Parcial</span>
+                  </button>
+                </PopoverContent>
+              </Popover>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 text-success hover:bg-success/10 relative"
+                title="Histórico de pagamentos"
+                onClick={(e) => { e.stopPropagation(); setShowPayments(true); }}
+              >
+                <Receipt className="h-4 w-4" />
+                {historyCount > 0 && (
+                  <span className="absolute -top-1 -right-1 h-4 min-w-[16px] px-1 rounded-full bg-success text-success-foreground text-[10px] font-bold flex items-center justify-center">
+                    {historyCount}
+                  </span>
+                )}
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 text-muted-foreground hover:bg-accent hover:text-foreground"
+                title="Editar"
+                onClick={onEdit}
+              >
+                <Pencil className="h-4 w-4" />
+              </Button>
+            </>
           )}
         </div>
       )}
