@@ -11,11 +11,9 @@ import { TrendingUp, TrendingDown, Wallet, ArrowUpRight, ArrowDownRight, Setting
 import { useCreditCards } from "@/hooks/useCreditCards";
 import { useCreditCardOpenings } from "@/hooks/useCreditCardOpenings";
 import { getCardInvoiceTotalsForMonth, isCreditCardExpense } from "@/lib/creditCardInvoiceTotals";
-import { isPiggyExpense, usePiggyBanks } from "@/hooks/usePiggyBanks";
+import { isPiggyExpense } from "@/hooks/usePiggyBanks";
 import { useProducts } from "@/hooks/useProducts";
 import { Sale } from "@/types/loan";
-import { useBalanceAdjustments } from "@/hooks/useBalanceAdjustments";
-import { getMonthEndProjectedBalance } from "@/lib/projectedBalance";
 
 /** Total efetivamente recebido de uma venda (não os lançamentos previstos). */
 function saleReceivedTotal(sale: Sale): number {
@@ -73,8 +71,6 @@ export function IncomeBalanceCard({ incomes, expenses, onAdjust, readOnly, onOpe
   const { cards } = useCreditCards();
   const { openings } = useCreditCardOpenings();
   const { sales } = useProducts(true);
-  const { deposits: piggyDeposits } = usePiggyBanks();
-  const { adjustments } = useBalanceAdjustments();
   const [adjustOpen, setAdjustOpen] = useState(false);
   const [target, setTarget] = useState("");
   const [saving, setSaving] = useState(false);
@@ -187,24 +183,8 @@ export function IncomeBalanceCard({ incomes, expenses, onAdjust, readOnly, onOpe
     const futureOut = personalPendingExpenses + cardInvoicePendingMonth;
     const pendingInCount = incomes.reduce((s, i) => s + pendingOccurrencesInMonth(i), 0);
 
-    // Saldo previsto do card: usa a projeção diária do calendário (encadeando
-    // cofrinhos, ajustes manuais, faturas de cartão e demais lançamentos),
-    // de modo que o valor exibido bata com o saldo do último dia do mês no
-    // calendário. Para meses passados, cai no cálculo simplificado.
-    const dailyProjected = getMonthEndProjectedBalance({
-      baseBalance: balance,
-      monthKey,
-      today: new Date(),
-      incomes,
-      expenses,
-      cards,
-      openings,
-      piggyDeposits,
-      adjustments: Object.fromEntries(
-        Object.entries(adjustments).map(([d, a]) => [d, a.amount]),
-      ),
-    });
-    const projected = dailyProjected ?? (balance + futureIn - futureOut);
+    // Saldo previsto do card: usa exatamente os mesmos totais exibidos no popup.
+    const projected = balance + futureIn - futureOut;
     const projectedDiff = projected - balance;
 
     const prevIn = incomes
@@ -212,7 +192,7 @@ export function IncomeBalanceCard({ incomes, expenses, onAdjust, readOnly, onOpe
       .reduce((s, i) => s + i.amount, 0);
 
     return { balance, monthIn, monthOut, futureIn, futureOut, projected, projectedDiff, prevIn, pendingInCount };
-  }, [incomes, expenses, monthKey, prevKey, cards, openings, sales, piggyDeposits, adjustments]);
+  }, [incomes, expenses, monthKey, prevKey, cards, openings, sales]);
 
   const diff = calc.monthIn - calc.prevIn;
   const pct = calc.prevIn > 0 ? (diff / calc.prevIn) * 100 : 0;
@@ -408,12 +388,10 @@ export function IncomeBalanceCard({ incomes, expenses, onAdjust, readOnly, onOpe
           </DialogHeader>
           <div className="space-y-3 text-sm">
             <div className="rounded-lg bg-muted/40 p-3 font-mono text-xs leading-relaxed">
-              Projeção diária a partir do saldo atual:<br />
-              &nbsp;&nbsp;+ Receitas previstas dia a dia<br />
-              &nbsp;&nbsp;− Despesas pessoais previstas dia a dia<br />
-              &nbsp;&nbsp;− Faturas de cartão no vencimento<br />
-              &nbsp;&nbsp;± Aportes/resgates de cofrinhos<br />
-              &nbsp;&nbsp;± Ajustes manuais de saldo
+              Saldo previsto = Saldo em conta<br />
+              &nbsp;&nbsp;+ Receitas pendentes do mês<br />
+              &nbsp;&nbsp;− Despesas pessoais a pagar do mês<br />
+              &nbsp;&nbsp;− Faturas de cartão pendentes do mês
             </div>
             <div className="grid grid-cols-2 gap-2">
               <div className="rounded-md border border-border/40 p-2">
