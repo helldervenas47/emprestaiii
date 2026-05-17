@@ -207,6 +207,7 @@ const tabHelp: Record<Tab, { title: string; items: string[] }> = {
       "Emita contracheques em PDF para qualquer competência paga.",
     ],
   },
+  settings: {
     title: "Configurações",
     items: [
       "Centralize preferências de exibição (tema e ocultar valores).",
