@@ -1080,6 +1080,33 @@ export function CreditCardInvoice({ card, onClose, referenceMonth, originRect }:
                     onChange={(e) => setPayDate(e.target.value)}
                   />
                 </div>
+
+                <div className="space-y-1.5">
+                  <Label>Conta de origem</Label>
+                  <div className="grid grid-cols-2 gap-2">
+                    <Button
+                      type="button"
+                      variant={payWallet === "account" ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setPayWallet("account")}
+                      className="h-9"
+                    >
+                      Conta
+                    </Button>
+                    <Button
+                      type="button"
+                      variant={payWallet === "cash" ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setPayWallet("cash")}
+                      className="h-9"
+                    >
+                      Dinheiro
+                    </Button>
+                  </div>
+                  <p className="text-[11px] text-muted-foreground">
+                    O valor será debitado desta carteira e lançado no extrato.
+                  </p>
+                </div>
               </div>
             );
           })()}
@@ -1109,22 +1136,44 @@ export function CreditCardInvoice({ card, onClose, referenceMonth, originRect }:
                     for (const e of unpaid) {
                       await updateExpense(e.id, { paid: true, paidDate: payDate });
                     }
-                    if (opening || openingAmount > 0 || total > 0) {
-                      const baseNotes = writePaidOverride(
-                        (opening?.notes ?? "").replace(/\[PAGA\]/gi, "").trim(),
-                        Number(total.toFixed(2)),
-                      );
-                      const newNotes = baseNotes ? `${baseNotes} [PAGA]` : "[PAGA]";
-                      await upsertOpening(card.id, cycleKey, 0, newNotes);
-                    }
-                    toast.success(`Fatura paga · ${mask(fmt(amount))}`);
+                    const baseNotes = writePaidOverride(
+                      (opening?.notes ?? "").replace(/\[PAGA\]/gi, "").replace(/\[LEDGER\]/gi, "").trim(),
+                      Number(total.toFixed(2)),
+                    );
+                    const newNotes = `${baseNotes ? baseNotes + " " : ""}[PAGA] [LEDGER]`.trim();
+                    await upsertOpening(card.id, cycleKey, 0, newNotes);
                   } else {
-                    // Pagamento parcial: apenas atualiza o override [PAID:xxx].
-                    const cleaned = (opening?.notes ?? "").replace(/\[PAGA\]/gi, "").trim();
+                    // Pagamento parcial: atualiza override [PAID:xxx] e marca como ledger-handled.
+                    const cleaned = (opening?.notes ?? "")
+                      .replace(/\[PAGA\]/gi, "")
+                      .replace(/\[LEDGER\]/gi, "")
+                      .trim();
                     const baseNotes = writePaidOverride(cleaned, newPaidTotal);
-                    await upsertOpening(card.id, cycleKey, openingAmount, baseNotes || undefined);
-                    toast.success(`Pagamento parcial registrado · ${mask(fmt(amount))}`);
+                    const newNotes = `${baseNotes ? baseNotes + " " : ""}[LEDGER]`.trim();
+                    await upsertOpening(card.id, cycleKey, openingAmount, newNotes);
                   }
+
+                  // Lança no extrato (debita a carteira selecionada).
+                  await recordLedger({
+                    direction: "out",
+                    category: "expense",
+                    amount,
+                    description: `Pagamento fatura ${card.nickname || brandLabel(card.bank)}`,
+                    occurred_on: payDate,
+                    source: "auto",
+                    wallet: payWallet,
+                    metadata: {
+                      credit_card_id: card.id,
+                      cycle_key: cycleKey,
+                      kind: "credit_card_invoice_payment",
+                    },
+                  });
+
+                  toast.success(
+                    isFull
+                      ? `Fatura paga · ${mask(fmt(amount))}`
+                      : `Pagamento parcial registrado · ${mask(fmt(amount))}`,
+                  );
                   setPayDialogOpen(false);
                 } catch {
                   toast.error("Erro ao pagar fatura");
