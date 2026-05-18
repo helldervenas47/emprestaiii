@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "@/hooks/use-toast";
+import { displayIncomeCategory, incomeCategoryKey } from "@/lib/incomeCategory";
 
 export interface CustomIncomeCategory {
   id: string;
@@ -30,7 +31,15 @@ export function useIncomeCategories() {
       setLoading(false);
       return;
     }
-    setCategories((data ?? []) as any);
+    const seen = new Set<string>();
+    const normalized = ((data ?? []) as any[]).reduce<CustomIncomeCategory[]>((acc, row) => {
+      const key = incomeCategoryKey(row.name);
+      if (seen.has(key)) return acc;
+      seen.add(key);
+      acc.push({ ...row, name: displayIncomeCategory(row.name) });
+      return acc;
+    }, []);
+    setCategories(normalized);
     setLoading(false);
   }, [user]);
 
@@ -48,7 +57,7 @@ export function useIncomeCategories() {
   const create = useCallback(
     async (input: { name: string; icon: string; color: string }) => {
       if (!user) return null;
-      const name = input.name.trim();
+      const name = displayIncomeCategory(input.name);
       if (!name) return null;
       const { data, error } = await supabase
         .from("income_categories" as any)
@@ -74,7 +83,7 @@ export function useIncomeCategories() {
   const update = useCallback(
     async (id: string, input: { name: string; icon: string; color: string }) => {
       if (!user) return null;
-      const name = input.name.trim();
+      const name = displayIncomeCategory(input.name);
       if (!name) return null;
       const { data, error } = await supabase
         .from("income_categories" as any)
