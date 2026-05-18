@@ -25,8 +25,23 @@ export function BoletoSearchTab({ readOnly }: Props) {
   const [result, setResult] = useState<ParsedBoleto | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [expenseOpen, setExpenseOpen] = useState(false);
+  const [pixRaw, setPixRaw] = useState("");
+  const [showPixField, setShowPixField] = useState(false);
   const { addExpense } = useExpenses(false);
   const { items: history, addItem, clear: clearHistory } = useBoletoHistory();
+  const isMobile = useMemo(() => isMobileDevice(), []);
+
+  const pixInfo = useMemo(() => (pixRaw.trim() ? parsePixBrCode(pixRaw) : null), [pixRaw]);
+
+  // Auto-carrega PIX salvo do histórico ao decodificar o mesmo boleto
+  useEffect(() => {
+    if (!result) { setPixRaw(""); setShowPixField(false); return; }
+    const prev = history.find((h) => h.digits === result.digits);
+    if (prev?.pix_brcode) {
+      setPixRaw(prev.pix_brcode);
+      setShowPixField(true);
+    }
+  }, [result?.digits]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleParse = (text: string) => {
     setError(null);
