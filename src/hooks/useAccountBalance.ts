@@ -4,6 +4,9 @@ import { useExpenses } from "@/hooks/useExpenses";
 import { useProducts } from "@/hooks/useProducts";
 import { usePiggyBanks } from "@/hooks/usePiggyBanks";
 import { useExternalAccountSources } from "@/hooks/useExternalAccountSources";
+import { useCreditCards } from "@/hooks/useCreditCards";
+import { useCreditCardOpenings } from "@/hooks/useCreditCardOpenings";
+import { creditCardInvoiceExtraPaid } from "@/lib/creditCardInvoiceTotals";
 import type { Sale } from "@/types/loan";
 
 /**
