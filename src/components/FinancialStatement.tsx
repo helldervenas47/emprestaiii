@@ -17,6 +17,13 @@ import autoTable from "jspdf-autotable";
 import * as XLSX from "xlsx";
 import { Expense, Sale } from "@/types/loan";
 import { useProducts } from "@/hooks/useProducts";
+import { useCreditCards } from "@/hooks/useCreditCards";
+import { useCreditCardOpenings } from "@/hooks/useCreditCardOpenings";
+import {
+  isCreditCardExpense,
+  listPaidInvoicesInRange,
+  CREDIT_CARD_INVOICE_CATEGORY,
+} from "@/lib/creditCardInvoiceTotals";
 
 type RowOrigin = "income" | "expense" | "sale-full" | "sale-partial";
 
