@@ -2,7 +2,10 @@ import { useEffect, useMemo, useState, useCallback } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { TrendingUp, Wallet, Landmark, Banknote, PiggyBank, Car, ArrowDownCircle, ArrowUpRight, ArrowDownRight, PieChart } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Button } from "@/components/ui/button";
+import { TrendingUp, Wallet, Landmark, Banknote, PiggyBank, Car, ArrowDownCircle, ArrowUpRight, ArrowDownRight, PieChart, Settings2 } from "lucide-react";
 import { useLoans } from "@/hooks/useLoans";
 import { useProducts } from "@/hooks/useProducts";
 import { usePiggyBanks } from "@/hooks/usePiggyBanks";
@@ -11,6 +14,19 @@ import { useExpenses } from "@/hooks/useExpenses";
 import { getBalances } from "@/lib/balance";
 import { supabase } from "@/integrations/supabase/client";
 import type { Sale } from "@/types/loan";
+
+type MaosCardId = "account" | "cash" | "incomes" | "piggy" | "vehicle" | "composition" | "projection";
+const ALL_MAOS_CARDS: { id: MaosCardId; label: string }[] = [
+  { id: "account", label: "Conta" },
+  { id: "cash", label: "Dinheiro em mãos" },
+  { id: "incomes", label: "Saldo em Conta (Receitas)" },
+  { id: "piggy", label: "Total dos Cofrinhos" },
+  { id: "vehicle", label: "Saldo de Veículos" },
+  { id: "composition", label: "Composição do saldo" },
+  { id: "projection", label: "Projeção em 30 dias" },
+];
+const MAOS_VISIBLE_KEY = "consolidated:maos:visibleCards:v1";
+const DEFAULT_MAOS_VISIBLE: MaosCardId[] = ["account", "cash"];
 
 const formatBRL = (n: number) =>
   n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
