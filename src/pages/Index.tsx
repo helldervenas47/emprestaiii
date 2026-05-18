@@ -56,6 +56,7 @@ const WhatsappAssistantCard = lazy(() => import("@/components/WhatsappAssistantC
 const Settings = lazy(() => import("@/components/Settings").then(m => ({ default: m.Settings })));
 const SystemSettings = lazy(() => import("@/components/SystemSettings").then(m => ({ default: m.SystemSettings })));
 const SalaryTab = lazy(() => import("@/components/salary/SalaryTab").then(m => ({ default: m.SalaryTab })));
+const BoletoSearchTab = lazy(() => import("@/components/boletos/BoletoSearchTab").then(m => ({ default: m.BoletoSearchTab })));
 
 // Direct import for the constant used at render time
 import { isVehicleExpenseForVehicles } from "@/components/VehicleExpenseForm";
@@ -95,7 +96,7 @@ import { useExpenses } from "@/hooks/useExpenses";
 import { useVehicleRegistry } from "@/hooks/useVehicleRegistry";
 import { useLocadorInfo } from "@/hooks/useLocadorInfo";
 
-type Tab = "overview" | "dashboard" | "clients" | "products" | "vehicles" | "overdue" | "expenses" | "salary" | "accountant" | "calendar" | "settings" | "system";
+type Tab = "overview" | "dashboard" | "clients" | "products" | "vehicles" | "overdue" | "expenses" | "boletos" | "salary" | "accountant" | "calendar" | "settings" | "system";
 type ClientSubTab = "clientes" | "veiculos";
 type VehicleSubTab = "veiculos" | "locadores";
 type PlanMgmtSubTab = "subscribers" | "plans";
@@ -112,6 +113,7 @@ const tabConfig = [
   { id: "calendar" as Tab, label: "Calendário", icon: CalendarDays },
   { id: "clients" as Tab, label: "Cadastro", icon: Users },
   { id: "expenses" as Tab, label: "Receitas e Despesas", icon: Receipt },
+  { id: "boletos" as Tab, label: "Boletos", icon: Barcode },
   { id: "salary" as Tab, label: "Salário", icon: Wallet },
   { id: "accountant" as Tab, label: "Contador", icon: Calculator },
   
@@ -206,6 +208,15 @@ const tabHelp: Record<Tab, { title: string; items: string[] }> = {
       "Gere a folha mensal automaticamente para todos os ativos.",
       "Ao confirmar um pagamento, uma despesa em \"Salários\" é criada e o saldo é atualizado.",
       "Emita contracheques em PDF para qualquer competência paga.",
+    ],
+  },
+  boletos: {
+    title: "Boletos",
+    items: [
+      "Cole a linha digitável (47 dígitos) ou o código de barras (44 dígitos) para decodificar.",
+      "Mostra banco emissor, vencimento e valor calculados localmente — funciona offline.",
+      "Valida os dígitos verificadores e alerta sobre digitação errada.",
+      "Use \"Salvar como despesa\" para enviar o boleto direto para a aba Despesas.",
     ],
   },
   settings: {
