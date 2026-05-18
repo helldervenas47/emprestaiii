@@ -108,6 +108,7 @@ export function useBoletoHistory() {
         due_date: input.due_date,
         label: input.label,
         parsed_at,
+        pix_brcode: input.pix_brcode ?? null,
       },
       { onConflict: "owner_id,digits" },
     );
