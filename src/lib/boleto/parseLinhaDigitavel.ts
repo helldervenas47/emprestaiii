@@ -100,11 +100,20 @@ function parseBancario(d: string): ParsedBoleto {
   const validBarcode = Number(dvGeral) === expectedDv;
   if (!validBarcode) warnings.push("Dígito verificador geral inválido.");
 
-  // Vencimento
+  // Vencimento — Febraban: base 07/10/1997 + fator (dias).
+  // Quando o fator atinge 9999 ele reinicia em 1000 (ciclo de 9000 dias ≈ 24,6 anos).
+  // Regra prática: se a data calculada cair mais de ~3 anos antes de hoje,
+  // somamos 9000 dias até trazer para a janela atual.
   const fatorNum = Number(fator);
   let dueDate: string | null = null;
   if (fatorNum > 0) {
-    dueDate = toISODate(addDaysUTC(FATOR_BASE, fatorNum));
+    let candidate = addDaysUTC(FATOR_BASE, fatorNum);
+    const now = Date.now();
+    const threeYearsAgo = now - 3 * 365 * 86_400_000;
+    while (candidate.getTime() < threeYearsAgo) {
+      candidate = addDaysUTC(candidate, 9000);
+    }
+    dueDate = toISODate(candidate);
   } else {
     warnings.push("Boleto sem fator de vencimento (a vista ou inválido).");
   }
