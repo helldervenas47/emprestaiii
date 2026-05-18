@@ -197,11 +197,12 @@ export function IncomeForm({ open, onClose, onSubmit, initial }: Props) {
                   )}
                   {allCategories.customs.map((c) => {
                     const Icon = personalIconMap[c.icon] ?? personalIconMap.Package;
+                    const name = displayIncomeCategory(c.name);
                     return (
-                      <SelectItem key={c.id} value={c.name}>
+                      <SelectItem key={c.id} value={name}>
                         <span className="inline-flex items-center gap-2">
                           <Icon className="h-3.5 w-3.5" style={{ color: `hsl(${c.color})` }} />
-                          {c.name}
+                          {name}
                         </span>
                       </SelectItem>
                     );
