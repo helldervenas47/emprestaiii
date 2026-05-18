@@ -1134,7 +1134,7 @@ export function CreditCardInvoice({ card, onClose, referenceMonth, originRect }:
                   const remaining = paymentRemaining;
                   const parsedAmount = Number(payAmount.replace(",", "."));
                   const amount = Math.max(0, Number(parsedAmount.toFixed(2)));
-                  if (amount <= 0) {
+                  if (!Number.isFinite(parsedAmount) || amount <= 0) {
                     toast.error("Informe um valor válido");
                     setPaying(false);
                     return;
