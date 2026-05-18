@@ -224,11 +224,6 @@ export function listPaidInvoicesInRange(
       const override = readPaidOverride(opening?.notes);
 
       const total = itemsTotal + openingAmount;
-      const openingPending = openingAmount > 0 && !openingPaidFlag && override === null;
-      const cycleHasPending = items.some((e) => !e.paid) || openingPending;
-      const cycleEverHadValue = items.length > 0 || openingAmount > 0 || openingPaidFlag || override !== null;
-      const paid = cycleEverHadValue && !cycleHasPending;
-      if (!paid) continue;
 
       const itemsPaidTotal = items
         .filter((e) => e.paid)
