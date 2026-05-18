@@ -63,43 +63,17 @@ export function MonthTransactionsSheet({ open, onOpenChange, type, monthKey, inc
       const out: Row[] = [];
       for (const i of incomes) {
         if (i.source === "Ajuste manual") continue;
-        // Recebidos: somente se a receivedDate está no mês
-        if (i.status === "received") {
-          if (i.receivedDate.startsWith(monthKey)) {
-            out.push({
-              id: i.id,
-              date: i.receivedDate,
-              title: i.description,
-              subtitle: i.category || i.source || undefined,
-              amount: i.amount,
-              status: "received",
-            });
-          }
-          continue;
-        }
-        // Pendentes/atrasadas: receitas recorrentes já foram materializadas em linhas separadas.
-        // Usar apenas a própria data evita mostrar a receita antiga novamente nos meses futuros.
-        const base = new Date(i.receivedDate + "T00:00:00");
-        const pushOcc = (d: Date, idx: number) => {
-          const iso = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-          out.push({
-            id: `${i.id}-${idx}`,
-            date: iso,
-            title: i.description,
-            subtitle: i.category || i.source || undefined,
-            amount: i.amount,
-            status: i.status as Row["status"],
-          });
-        };
-        if (
-          i.recurrence === "once" ||
-          i.recurrence === "weekly" ||
-          i.recurrence === "biweekly" ||
-          i.recurrence === "monthly" ||
-          i.recurrence === "yearly"
-        ) {
-          if (i.receivedDate.startsWith(monthKey)) pushOcc(base, 0);
-        }
+        // Apenas receitas efetivamente recebidas no mês.
+        if (i.status !== "received") continue;
+        if (!i.receivedDate.startsWith(monthKey)) continue;
+        out.push({
+          id: i.id,
+          date: i.receivedDate,
+          title: i.description,
+          subtitle: i.category || i.source || undefined,
+          amount: i.amount,
+          status: "received",
+        });
       }
       // Vendas recebidas no mês — mesma lógica do card "Entradas mês".
       for (const sale of sales || []) {
@@ -206,11 +180,7 @@ export function MonthTransactionsSheet({ open, onOpenChange, type, monthKey, inc
             <SelectContent>
               <SelectItem value="all">Todos status</SelectItem>
               {isIncome ? (
-                <>
-                  <SelectItem value="received">Recebidas</SelectItem>
-                  <SelectItem value="pending">Pendentes</SelectItem>
-                  <SelectItem value="overdue">Atrasadas</SelectItem>
-                </>
+                <SelectItem value="received">Recebidas</SelectItem>
               ) : (
                 <>
                   <SelectItem value="paid">Pagas</SelectItem>
