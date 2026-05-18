@@ -2,10 +2,7 @@ import { useEffect, useMemo, useState, useCallback } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Button } from "@/components/ui/button";
-import { TrendingUp, Wallet, Landmark, Banknote, PiggyBank, Car, ArrowDownCircle, ArrowUpRight, ArrowDownRight, PieChart, Settings2 } from "lucide-react";
+import { TrendingUp, Wallet, Landmark, Banknote, PiggyBank, Car, ArrowDownCircle, ArrowUpRight, ArrowDownRight, PieChart } from "lucide-react";
 import { useLoans } from "@/hooks/useLoans";
 import { useProducts } from "@/hooks/useProducts";
 import { usePiggyBanks } from "@/hooks/usePiggyBanks";
@@ -14,19 +11,6 @@ import { useExpenses } from "@/hooks/useExpenses";
 import { getBalances } from "@/lib/balance";
 import { supabase } from "@/integrations/supabase/client";
 import type { Sale } from "@/types/loan";
-
-type MaosCardId = "account" | "cash" | "incomes" | "piggy" | "vehicle" | "composition" | "projection";
-const ALL_MAOS_CARDS: { id: MaosCardId; label: string }[] = [
-  { id: "account", label: "Conta" },
-  { id: "cash", label: "Dinheiro em mãos" },
-  { id: "incomes", label: "Saldo em Conta (Receitas)" },
-  { id: "piggy", label: "Total dos Cofrinhos" },
-  { id: "vehicle", label: "Saldo de Veículos" },
-  { id: "composition", label: "Composição do saldo" },
-  { id: "projection", label: "Projeção em 30 dias" },
-];
-const MAOS_VISIBLE_KEY = "consolidated:maos:visibleCards:v1";
-const DEFAULT_MAOS_VISIBLE: MaosCardId[] = ["account", "cash"];
 
 const formatBRL = (n: number) =>
   n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -85,32 +69,6 @@ export function ConsolidatedBalanceCards() {
   const [vehicleBalance, setVehicleBalance] = useState(0);
   const [openRua, setOpenRua] = useState(false);
   const [openMaos, setOpenMaos] = useState(false);
-  const [settingsOpen, setSettingsOpen] = useState(false);
-  const [visibleCards, setVisibleCards] = useState<MaosCardId[]>(() => {
-    try {
-      const raw = typeof window !== "undefined" ? window.localStorage.getItem(MAOS_VISIBLE_KEY) : null;
-      if (raw) {
-        const parsed = JSON.parse(raw) as MaosCardId[];
-        const valid = parsed.filter((id) => ALL_MAOS_CARDS.some((c) => c.id === id));
-        if (valid.length === 2) return valid;
-      }
-    } catch { /* noop */ }
-    return DEFAULT_MAOS_VISIBLE;
-  });
-  useEffect(() => {
-    try { window.localStorage.setItem(MAOS_VISIBLE_KEY, JSON.stringify(visibleCards)); } catch { /* noop */ }
-  }, [visibleCards]);
-  const toggleCard = useCallback((id: MaosCardId) => {
-    setVisibleCards((prev) => {
-      if (prev.includes(id)) {
-        if (prev.length <= 1) return prev; // keep at least 1
-        return prev.filter((x) => x !== id);
-      }
-      if (prev.length >= 2) return [prev[1], id]; // replace oldest
-      return [...prev, id];
-    });
-  }, []);
-  const isVisible = useCallback((id: MaosCardId) => visibleCards.includes(id), [visibleCards]);
 
   const reloadExternalBalances = useCallback(async () => {
     const [b, { data: { session } }] = await Promise.all([
@@ -231,43 +189,6 @@ export function ConsolidatedBalanceCards() {
         <DialogContent
           className="!p-0 overflow-hidden border-border/60 bg-gradient-to-br from-background via-background to-muted/30 backdrop-blur-xl max-sm:!fixed max-sm:!inset-0 max-sm:!left-0 max-sm:!top-0 max-sm:!translate-x-0 max-sm:!translate-y-0 max-sm:!max-w-none max-sm:!w-screen max-sm:!h-screen max-sm:!max-h-screen max-sm:!rounded-none max-sm:!flex max-sm:!flex-col max-sm:!gap-0 sm:max-w-md"
         >
-          <Popover open={settingsOpen} onOpenChange={setSettingsOpen}>
-            <PopoverTrigger asChild>
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                aria-label="Configurar cards visíveis"
-                className="absolute right-12 top-4 h-7 w-7 rounded-md opacity-70 hover:opacity-100 z-10"
-                style={{ top: "calc(1rem + env(safe-area-inset-top))" }}
-              >
-                <Settings2 className="h-4 w-4" />
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent align="end" className="w-64 p-3 z-[60]">
-              <p className="text-xs font-semibold mb-1">Cards visíveis</p>
-              <p className="text-[10px] text-muted-foreground mb-2">Selecione até 2 para exibir.</p>
-              <div className="space-y-1.5">
-                {ALL_MAOS_CARDS.map((c) => {
-                  const checked = visibleCards.includes(c.id);
-                  const disabled = !checked && visibleCards.length >= 2;
-                  return (
-                    <label
-                      key={c.id}
-                      className={`flex items-center gap-2 rounded-md px-2 py-1.5 text-xs ${disabled ? "opacity-50" : "hover:bg-accent cursor-pointer"}`}
-                    >
-                      <Checkbox
-                        checked={checked}
-                        disabled={disabled}
-                        onCheckedChange={() => toggleCard(c.id)}
-                      />
-                      <span className="flex-1 truncate">{c.label}</span>
-                    </label>
-                  );
-                })}
-              </div>
-            </PopoverContent>
-          </Popover>
           <DialogHeader className="px-5 pt-5 pb-3" style={{ paddingTop: "calc(1.25rem + env(safe-area-inset-top))" }}>
             <DialogTitle className="flex items-center gap-2 text-base">
               <Wallet className="h-4 w-4 text-success" /> Saldo Total em Mãos
@@ -319,73 +240,50 @@ export function ConsolidatedBalanceCards() {
                 </div>
               );
 
-              const showAccount = isVisible("account");
-              const showCash = isVisible("cash");
-              const showIncomes = isVisible("incomes");
-              const showPiggy = isVisible("piggy");
-              const showVehicle = isVisible("vehicle");
-              const showComposition = isVisible("composition");
-              const showProjection = isVisible("projection");
-              const hasContas = showAccount || showCash || showIncomes;
-              const hasReservas = showPiggy || showVehicle;
               return (
                 <div className="space-y-4">
-                  {hasContas && (
-                    <Section title="Contas">
-                      {showAccount && (
-                        <Item
-                          icon={Landmark}
-                          label="Conta"
-                          hint="Saldo bancário (Dashboard)"
-                          value={dashboardAccount}
-                          tint="bg-primary/15 text-primary"
-                        />
-                      )}
-                      {showCash && (
-                        <Item
-                          icon={Banknote}
-                          label="Dinheiro em mãos"
-                          hint="Carteira (Dashboard)"
-                          value={dashboardCash}
-                          tint="bg-success/15 text-success"
-                        />
-                      )}
-                      {showIncomes && (
-                        <Item
-                          icon={ArrowDownCircle}
-                          label="Saldo em Conta (Receitas)"
-                          hint="Receitas − Despesas pessoais"
-                          value={baseReceitas}
-                          tint="bg-warning/15 text-warning"
-                        />
-                      )}
-                    </Section>
-                  )}
+                  <Section title="Contas">
+                    <Item
+                      icon={Landmark}
+                      label="Conta"
+                      hint="Saldo bancário (Dashboard)"
+                      value={dashboardAccount}
+                      tint="bg-primary/15 text-primary"
+                    />
+                    <Item
+                      icon={Banknote}
+                      label="Dinheiro em mãos"
+                      hint="Carteira (Dashboard)"
+                      value={dashboardCash}
+                      tint="bg-success/15 text-success"
+                    />
+                    <Item
+                      icon={ArrowDownCircle}
+                      label="Saldo em Conta (Receitas)"
+                      hint="Receitas − Despesas pessoais"
+                      value={baseReceitas}
+                      tint="bg-warning/15 text-warning"
+                    />
+                  </Section>
 
-                  {hasReservas && (
-                    <Section title="Reservas">
-                      {showPiggy && (
-                        <Item
-                          icon={PiggyBank}
-                          label="Total dos Cofrinhos"
-                          hint={`${piggyBanks.length} ${piggyBanks.length === 1 ? "cofrinho" : "cofrinhos"}`}
-                          value={piggyTotal}
-                          tint="bg-pink-500/15 text-pink-500"
-                        />
-                      )}
-                      {showVehicle && (
-                        <Item
-                          icon={Car}
-                          label="Saldo de Veículos"
-                          hint="Reserva vinculada a veículos"
-                          value={vehicleBalance}
-                          tint="bg-blue-500/15 text-blue-500"
-                        />
-                      )}
-                    </Section>
-                  )}
+                  <Section title="Reservas">
+                    <Item
+                      icon={PiggyBank}
+                      label="Total dos Cofrinhos"
+                      hint={`${piggyBanks.length} ${piggyBanks.length === 1 ? "cofrinho" : "cofrinhos"}`}
+                      value={piggyTotal}
+                      tint="bg-pink-500/15 text-pink-500"
+                    />
+                    <Item
+                      icon={Car}
+                      label="Saldo de Veículos"
+                      hint="Reserva vinculada a veículos"
+                      value={vehicleBalance}
+                      tint="bg-blue-500/15 text-blue-500"
+                    />
+                  </Section>
 
-                  {showComposition && (() => {
+                  {(() => {
                     const parts = [
                       { label: "Conta", value: Math.max(0, dashboardAccount), color: "bg-primary" },
                       { label: "Dinheiro", value: Math.max(0, dashboardCash), color: "bg-success" },
@@ -430,7 +328,7 @@ export function ConsolidatedBalanceCards() {
                     );
                   })()}
 
-                  {showProjection && (() => {
+                  {(() => {
                     const today = new Date();
                     const todayStr = today.toISOString().slice(0, 10);
                     const horizon = new Date(today);
