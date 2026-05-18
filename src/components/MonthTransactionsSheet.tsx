@@ -137,7 +137,7 @@ export function MonthTransactionsSheet({ open, onOpenChange, type, monthKey, inc
           status: "paid" as Row["status"],
         };
       });
-  }, [type, incomes, expenses, monthKey]);
+  }, [type, incomes, expenses, sales, monthKey]);
 
   const filtered = useMemo(() => {
     let arr = rows;
