@@ -7,6 +7,7 @@ import {
 } from "recharts";
 import { CategoryDetailsSheet, CategoryEntry } from "@/components/CategoryDetailsSheet";
 import { usePaymentMethods } from "@/hooks/usePaymentMethods";
+import { displayIncomeCategory, incomeCategoryKey } from "@/lib/incomeCategory";
 
 const COLORS = ["hsl(var(--primary))", "hsl(var(--accent))", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6", "#06b6d4", "#84cc16"];
 
@@ -57,26 +58,36 @@ export function IncomeDashboard({ incomes, allMonthIncomes, monthKey, sales = []
   }, [sales, monthKey]);
 
   const byCategory = useMemo(() => {
-    const map = new Map<string, number>();
+    const map = new Map<string, { name: string; value: number }>();
     consolidated.forEach((i) => {
-      const k = i.category || "Outros";
-      map.set(k, (map.get(k) || 0) + i.amount);
+      const key = incomeCategoryKey(i.category);
+      const current = map.get(key) ?? { name: displayIncomeCategory(i.category), value: 0 };
+      map.set(key, { ...current, value: current.value + i.amount });
     });
-    salesByCategory.forEach((v, k) => map.set(k, (map.get(k) || 0) + v));
-    return Array.from(map.entries()).map(([name, value]) => ({ name, value }));
+    salesByCategory.forEach((v, k) => {
+      const key = incomeCategoryKey(k);
+      const current = map.get(key) ?? { name: displayIncomeCategory(k), value: 0 };
+      map.set(key, { ...current, value: current.value + v });
+    });
+    return Array.from(map.values());
   }, [consolidated, salesByCategory]);
 
   const topCategories = useMemo(() => {
-    const map = new Map<string, number>();
+    const map = new Map<string, { name: string; value: number }>();
     consolidated.forEach((i) => {
-      const k = i.category || "Outros";
-      map.set(k, (map.get(k) || 0) + i.amount);
+      const key = incomeCategoryKey(i.category);
+      const current = map.get(key) ?? { name: displayIncomeCategory(i.category), value: 0 };
+      map.set(key, { ...current, value: current.value + i.amount });
     });
-    salesByCategory.forEach((v, k) => map.set(k, (map.get(k) || 0) + v));
-    return Array.from(map.entries())
-      .sort((a, b) => b[1] - a[1])
+    salesByCategory.forEach((v, k) => {
+      const key = incomeCategoryKey(k);
+      const current = map.get(key) ?? { name: displayIncomeCategory(k), value: 0 };
+      map.set(key, { ...current, value: current.value + v });
+    });
+    return Array.from(map.values())
+      .sort((a, b) => b.value - a.value)
       .slice(0, 5)
-      .map(([name, value]) => ({ name, value }));
+      .map(({ name, value }) => ({ name, value }));
   }, [consolidated, salesByCategory]);
 
   const [y, m] = monthKey.split("-").map(Number);
@@ -85,9 +96,9 @@ export function IncomeDashboard({ incomes, allMonthIncomes, monthKey, sales = []
   const selectedEntries: CategoryEntry[] = useMemo(() => {
     if (!selectedCategory) return [];
     const list: CategoryEntry[] = [];
+    const selectedKey = incomeCategoryKey(selectedCategory);
     consolidated.forEach((i) => {
-      const k = i.category || "Outros";
-      if (k !== selectedCategory) return;
+      if (incomeCategoryKey(i.category) !== selectedKey) return;
       list.push({
         id: `inc-${i.id}`,
         description: i.description,
@@ -100,7 +111,7 @@ export function IncomeDashboard({ incomes, allMonthIncomes, monthKey, sales = []
     });
     sales.forEach((s) => {
       const k = (s.category && s.category.trim()) || "Vendas";
-      if (k !== selectedCategory) return;
+      if (incomeCategoryKey(k) !== selectedKey) return;
       if ((s.downPayment || 0) > 0 && s.date?.startsWith(monthKey)) {
         list.push({
           id: `sale-${s.id}-down`,
