@@ -121,23 +121,18 @@ export function getCardInvoiceTotalsForMonth(
     const opening = openings.find((o) => o.cardId === card.id && o.cycleKey === cycleKey);
     const openingAmount = opening?.openingAmount ?? 0;
     const openingPaidFlag = /\[PAGA\]/i.test(opening?.notes ?? "");
+    const override = readPaidOverride(opening?.notes);
 
     const total = itemsTotal + openingAmount;
 
-    // Mesmo critério usado no CreditCardInvoice.tsx para "fatura paga":
-    // - houve algum lançamento ou saldo inicial em algum momento
-    // - e nada está pendente (nenhum item sem pagar e nenhum opening com saldo).
-    const cycleHasPending = items.some((e) => !e.paid) || openingAmount > 0;
-    const cycleEverHadValue = items.length > 0 || openingAmount > 0 || openingPaidFlag;
+    // O saldo inicial só conta como pendente se NÃO estiver marcado [PAGA] e
+    // NÃO houver override [PAID:xxx] (override = usuário confirmou valor pago).
+    const openingPending = openingAmount > 0 && !openingPaidFlag && override === null;
+    const cycleHasPending = items.some((e) => !e.paid) || openingPending;
+    const cycleEverHadValue = items.length > 0 || openingAmount > 0 || openingPaidFlag || override !== null;
     const paid = cycleEverHadValue && !cycleHasPending;
 
-    // Valor efetivamente pago = soma dos lançamentos pagos do ciclo
-    // (reflete ajustes/edições). O opening, quando pago, foi zerado e marcado [PAGA],
-    // por isso não somamos seu valor original (que se perdeu) — o que importa é
-    // o fluxo real de saída registrado nos itens.
-    // Override manual em opening.notes ([PAID:xxx]) tem precedência.
     const itemsPaidTotal = items.filter((e) => e.paid).reduce((s, e) => s + installmentValue(e), 0);
-    const override = readPaidOverride(opening?.notes);
     const paidTotal = override ?? itemsPaidTotal;
 
     if (total > 0 || (paid && paidTotal > 0) || override !== null) {
