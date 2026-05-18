@@ -319,50 +319,73 @@ export function ConsolidatedBalanceCards() {
                 </div>
               );
 
+              const showAccount = isVisible("account");
+              const showCash = isVisible("cash");
+              const showIncomes = isVisible("incomes");
+              const showPiggy = isVisible("piggy");
+              const showVehicle = isVisible("vehicle");
+              const showComposition = isVisible("composition");
+              const showProjection = isVisible("projection");
+              const hasContas = showAccount || showCash || showIncomes;
+              const hasReservas = showPiggy || showVehicle;
               return (
                 <div className="space-y-4">
-                  <Section title="Contas">
-                    <Item
-                      icon={Landmark}
-                      label="Conta"
-                      hint="Saldo bancário (Dashboard)"
-                      value={dashboardAccount}
-                      tint="bg-primary/15 text-primary"
-                    />
-                    <Item
-                      icon={Banknote}
-                      label="Dinheiro em mãos"
-                      hint="Carteira (Dashboard)"
-                      value={dashboardCash}
-                      tint="bg-success/15 text-success"
-                    />
-                    <Item
-                      icon={ArrowDownCircle}
-                      label="Saldo em Conta (Receitas)"
-                      hint="Receitas − Despesas pessoais"
-                      value={baseReceitas}
-                      tint="bg-warning/15 text-warning"
-                    />
-                  </Section>
+                  {hasContas && (
+                    <Section title="Contas">
+                      {showAccount && (
+                        <Item
+                          icon={Landmark}
+                          label="Conta"
+                          hint="Saldo bancário (Dashboard)"
+                          value={dashboardAccount}
+                          tint="bg-primary/15 text-primary"
+                        />
+                      )}
+                      {showCash && (
+                        <Item
+                          icon={Banknote}
+                          label="Dinheiro em mãos"
+                          hint="Carteira (Dashboard)"
+                          value={dashboardCash}
+                          tint="bg-success/15 text-success"
+                        />
+                      )}
+                      {showIncomes && (
+                        <Item
+                          icon={ArrowDownCircle}
+                          label="Saldo em Conta (Receitas)"
+                          hint="Receitas − Despesas pessoais"
+                          value={baseReceitas}
+                          tint="bg-warning/15 text-warning"
+                        />
+                      )}
+                    </Section>
+                  )}
 
-                  <Section title="Reservas">
-                    <Item
-                      icon={PiggyBank}
-                      label="Total dos Cofrinhos"
-                      hint={`${piggyBanks.length} ${piggyBanks.length === 1 ? "cofrinho" : "cofrinhos"}`}
-                      value={piggyTotal}
-                      tint="bg-pink-500/15 text-pink-500"
-                    />
-                    <Item
-                      icon={Car}
-                      label="Saldo de Veículos"
-                      hint="Reserva vinculada a veículos"
-                      value={vehicleBalance}
-                      tint="bg-blue-500/15 text-blue-500"
-                    />
-                  </Section>
+                  {hasReservas && (
+                    <Section title="Reservas">
+                      {showPiggy && (
+                        <Item
+                          icon={PiggyBank}
+                          label="Total dos Cofrinhos"
+                          hint={`${piggyBanks.length} ${piggyBanks.length === 1 ? "cofrinho" : "cofrinhos"}`}
+                          value={piggyTotal}
+                          tint="bg-pink-500/15 text-pink-500"
+                        />
+                      )}
+                      {showVehicle && (
+                        <Item
+                          icon={Car}
+                          label="Saldo de Veículos"
+                          hint="Reserva vinculada a veículos"
+                          value={vehicleBalance}
+                          tint="bg-blue-500/15 text-blue-500"
+                        />
+                      )}
+                    </Section>
+                  )}
 
-                  {(() => {
+                  {showComposition && (() => {
                     const parts = [
                       { label: "Conta", value: Math.max(0, dashboardAccount), color: "bg-primary" },
                       { label: "Dinheiro", value: Math.max(0, dashboardCash), color: "bg-success" },
