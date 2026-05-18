@@ -983,8 +983,8 @@ export function IncomePendingCalendar({
                   {weekDays.map((d) => {
                     const dateStr = formatLocalDate(d);
                     const info = dayMap[dateStr];
-                    const status = getDayStatus(info);
-                    const hasMovement = status !== "none";
+                    const status = getDayStatus(info, dateStr);
+                    const hasMovement = status === "paid" || status === "overdue";
                     const isToday = dateStr === todayStr;
                     const isSelected = dateStr === selectedDate;
                     return (
@@ -995,8 +995,8 @@ export function IncomePendingCalendar({
                           ${isSelected ? "bg-primary text-primary-foreground ring-2 ring-primary" : ""}
                           ${isToday && !isSelected ? "bg-accent font-bold" : ""}
                           ${!isSelected && !isToday && status === "paid" ? "bg-emerald-500/10" : ""}
-                          ${!isSelected && !isToday && status === "pending" ? "bg-rose-500/10" : ""}
-                          ${!isSelected && !isToday && status === "none" ? "bg-background hover:bg-muted" : ""}
+                          ${!isSelected && !isToday && status === "overdue" ? "bg-rose-500/10" : ""}
+                          ${!isSelected && !isToday && (status === "none" || status === "pending") ? "bg-background hover:bg-muted" : ""}
                         `}
                       >
                         <span className={`text-[10px] uppercase ${isSelected ? "text-primary-foreground/80" : "text-muted-foreground"}`}>
