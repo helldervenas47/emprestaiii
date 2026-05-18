@@ -194,20 +194,20 @@ export function BoletoSearchTab({ readOnly }: Props) {
                 <History className="h-4 w-4 text-muted-foreground" />
                 <h3 className="font-semibold text-sm">Consultas recentes</h3>
               </div>
-              <Button size="sm" variant="ghost" onClick={() => { saveHistory([]); setHistory([]); }}>
+              <Button size="sm" variant="ghost" onClick={() => clearHistory()}>
                 <Trash2 className="h-3 w-3" /> Limpar
               </Button>
             </div>
             <div className="space-y-1">
               {history.map((h) => (
                 <button
-                  key={h.digits + h.parsedAt}
+                  key={h.id}
                   onClick={() => { setRaw(h.digits); handleParse(h.digits); }}
                   className="w-full text-left rounded-lg bg-muted/40 hover:bg-muted px-3 py-2 text-sm flex items-center justify-between gap-2"
                 >
                   <span className="truncate">{h.label}</span>
                   <span className="text-[10px] text-muted-foreground shrink-0">
-                    {format(parseISO(h.parsedAt), "dd/MM HH:mm", { locale: ptBR })}
+                    {format(parseISO(h.parsed_at), "dd/MM HH:mm", { locale: ptBR })}
                   </span>
                 </button>
               ))}
