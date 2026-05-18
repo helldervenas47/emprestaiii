@@ -142,6 +142,17 @@ export function PayrollManager({ readOnly }: Props) {
           setPayingId(null);
         }}
       />
+
+      <PaymentsHistoryDialog
+        open={!!historyId}
+        onOpenChange={(o) => !o && setHistoryId(null)}
+        payrollId={historyId}
+        readOnly={readOnly}
+        onReverse={async (paymentId) => {
+          await reversePayrollPayment(paymentId);
+          toast.success("Pagamento estornado");
+        }}
+      />
     </div>
   );
 }
