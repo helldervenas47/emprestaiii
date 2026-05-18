@@ -1,1 +1,0 @@
-UPDATE public.balance SET account_amount = 165.21, amount = 165.21 + cash_amount, updated_at = now() WHERE user_id='ba365726-d9b1-430d-b3c5-e05ac1816aad';
