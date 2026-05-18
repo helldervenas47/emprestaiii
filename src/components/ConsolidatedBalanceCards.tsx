@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState, useCallback } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { TrendingUp, Wallet, Landmark, Banknote, PiggyBank, Car, ArrowDownCircle } from "lucide-react";
+import { TrendingUp, Wallet, Landmark, Banknote, PiggyBank, Car, ArrowDownCircle, ArrowUpRight, ArrowDownRight, PieChart } from "lucide-react";
 import { useLoans } from "@/hooks/useLoans";
 import { useProducts } from "@/hooks/useProducts";
 import { usePiggyBanks } from "@/hooks/usePiggyBanks";
@@ -282,6 +282,97 @@ export function ConsolidatedBalanceCards() {
                       tint="bg-blue-500/15 text-blue-500"
                     />
                   </Section>
+
+                  {(() => {
+                    const parts = [
+                      { label: "Conta", value: Math.max(0, dashboardAccount), color: "bg-primary" },
+                      { label: "Dinheiro", value: Math.max(0, dashboardCash), color: "bg-success" },
+                      { label: "Receitas", value: Math.max(0, baseReceitas), color: "bg-warning" },
+                      { label: "Cofrinhos", value: Math.max(0, piggyTotal), color: "bg-pink-500" },
+                      { label: "Veículos", value: Math.max(0, vehicleBalance), color: "bg-blue-500" },
+                    ];
+                    const sum = parts.reduce((s, p) => s + p.value, 0);
+                    if (sum <= 0) return null;
+                    return (
+                      <div className="space-y-2">
+                        <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground px-1 flex items-center gap-1">
+                          <PieChart className="h-3 w-3" /> Composição do saldo
+                        </p>
+                        <div className="rounded-xl border border-border/50 bg-card/60 backdrop-blur-sm p-3 space-y-3">
+                          <div className="flex h-2.5 w-full overflow-hidden rounded-full bg-muted">
+                            {parts.map((p) =>
+                              p.value > 0 ? (
+                                <div
+                                  key={p.label}
+                                  className={p.color}
+                                  style={{ width: `${(p.value / sum) * 100}%` }}
+                                  title={`${p.label}: ${formatBRL(p.value)}`}
+                                />
+                              ) : null,
+                            )}
+                          </div>
+                          <div className="grid grid-cols-2 gap-x-3 gap-y-1.5">
+                            {parts.map((p) => {
+                              const pct = sum > 0 ? (p.value / sum) * 100 : 0;
+                              return (
+                                <div key={p.label} className="flex items-center gap-1.5 min-w-0">
+                                  <span className={`h-2 w-2 rounded-full shrink-0 ${p.color}`} />
+                                  <span className="text-[11px] text-muted-foreground truncate flex-1">{p.label}</span>
+                                  <span className="text-[11px] font-semibold tabular-nums">{pct.toFixed(0)}%</span>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })()}
+
+                  {(() => {
+                    const now = new Date();
+                    const ym = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+                    const inMonth = (d?: string | null) => !!d && d.startsWith(ym);
+                    const incomesMonth = incomes
+                      .filter((i: any) => i.status === "received" && inMonth(i.actualReceivedDate || i.receivedDate))
+                      .reduce((s: number, i: any) => s + (Number(i.amount) || 0), 0);
+                    const salesMonth = sales.reduce((s, sale) => {
+                      const hist = sale.paymentHistory || [];
+                      return s + hist.filter((p) => inMonth(p.date)).reduce((a, p) => a + (Number(p.amount) || 0), 0);
+                    }, 0);
+                    const expensesMonth = expenses
+                      .filter((e: any) => e.paid && (e.scope ?? "business") === "personal" && inMonth(e.paidDate))
+                      .reduce((s: number, e: any) => s + (Number(e.amount) || 0), 0);
+                    const inflow = incomesMonth + salesMonth;
+                    const outflow = expensesMonth;
+                    const net = inflow - outflow;
+                    const monthName = now.toLocaleDateString("pt-BR", { month: "long" });
+                    return (
+                      <div className="space-y-2">
+                        <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground px-1">
+                          Movimentação em {monthName}
+                        </p>
+                        <div className="rounded-xl border border-border/50 bg-card/60 backdrop-blur-sm p-3 space-y-2.5">
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs text-muted-foreground">Variação no mês</span>
+                            <span className={`text-base font-bold tabular-nums flex items-center gap-1 ${net < 0 ? "text-destructive" : "text-success"}`}>
+                              {net >= 0 ? <ArrowUpRight className="h-4 w-4" /> : <ArrowDownRight className="h-4 w-4" />}
+                              {net >= 0 ? "+" : ""}{formatBRL(net)}
+                            </span>
+                          </div>
+                          <div className="grid grid-cols-2 gap-2 pt-1">
+                            <div className="rounded-lg bg-success/10 p-2">
+                              <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Entradas</p>
+                              <p className="text-sm font-bold text-success tabular-nums">{formatBRL(inflow)}</p>
+                            </div>
+                            <div className="rounded-lg bg-destructive/10 p-2">
+                              <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Saídas</p>
+                              <p className="text-sm font-bold text-destructive tabular-nums">{formatBRL(outflow)}</p>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })()}
 
                   <p className="text-[10px] text-muted-foreground text-center pt-1">
                     Fonte oficial: aba Receitas e Despesas. Atualizado em tempo real.
