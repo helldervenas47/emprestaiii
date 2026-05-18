@@ -11,29 +11,9 @@ import { ptBR } from "date-fns/locale";
 import { parseLinhaDigitavel, formatLinhaDigitavel, type ParsedBoleto } from "@/lib/boleto/parseLinhaDigitavel";
 import { ExpenseForm } from "@/components/ExpenseForm";
 import { useExpenses } from "@/hooks/useExpenses";
-
-const HISTORY_KEY = "boleto.history.v1";
-const HISTORY_MAX = 15;
+import { useBoletoHistory } from "@/hooks/useBoletoHistory";
 
 const BRL = (n: number) => n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-
-interface HistoryItem {
-  digits: string;
-  parsedAt: string;
-  label: string;
-}
-
-function loadHistory(): HistoryItem[] {
-  try {
-    const raw = localStorage.getItem(HISTORY_KEY);
-    if (!raw) return [];
-    const arr = JSON.parse(raw);
-    return Array.isArray(arr) ? arr : [];
-  } catch { return []; }
-}
-function saveHistory(items: HistoryItem[]) {
-  try { localStorage.setItem(HISTORY_KEY, JSON.stringify(items.slice(0, HISTORY_MAX))); } catch { /* noop */ }
-}
 
 interface Props { readOnly?: boolean }
 
@@ -41,9 +21,9 @@ export function BoletoSearchTab({ readOnly }: Props) {
   const [raw, setRaw] = useState("");
   const [result, setResult] = useState<ParsedBoleto | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [history, setHistory] = useState<HistoryItem[]>(loadHistory);
   const [expenseOpen, setExpenseOpen] = useState(false);
   const { addExpense } = useExpenses(false);
+  const { items: history, addItem, clear: clearHistory } = useBoletoHistory();
 
   const handleParse = (text: string) => {
     setError(null);
@@ -55,16 +35,21 @@ export function BoletoSearchTab({ readOnly }: Props) {
       return;
     }
     setResult(out);
-    // history
     const label = out.kind === "bancario"
-      ? `${out.bankName} · ${BRL(out.amount)}`
-      : `${out.segmentLabel} · ${BRL(out.amount)}`;
-    const next: HistoryItem[] = [
-      { digits: out.digits, parsedAt: new Date().toISOString(), label },
-      ...history.filter((h) => h.digits !== out.digits),
-    ];
-    setHistory(next);
-    saveHistory(next);
+      ? `${out.bankName ?? "Boleto"} · ${BRL(out.amount)}`
+      : `${out.segmentLabel ?? "Arrecadação"} · ${BRL(out.amount)}`;
+    addItem({
+      digits: out.digits,
+      barcode: out.barcode,
+      kind: out.kind,
+      bank_code: out.bankCode ?? null,
+      bank_name: out.bankName ?? null,
+      segment: out.segment ?? null,
+      segment_label: out.segmentLabel ?? null,
+      amount: out.amount,
+      due_date: out.dueDate,
+      label,
+    });
   };
 
   const handlePaste = async () => {
