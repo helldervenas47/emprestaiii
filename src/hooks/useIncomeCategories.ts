@@ -57,8 +57,9 @@ export function useIncomeCategories() {
   const create = useCallback(
     async (input: { name: string; icon: string; color: string }) => {
       if (!user) return null;
-      const name = displayIncomeCategory(input.name);
-      if (!name) return null;
+      const rawName = input.name.trim();
+      if (!rawName) return null;
+      const name = displayIncomeCategory(rawName);
       const { data, error } = await supabase
         .from("income_categories" as any)
         .insert({ user_id: user.id, name, icon: input.icon, color: input.color })
@@ -83,8 +84,9 @@ export function useIncomeCategories() {
   const update = useCallback(
     async (id: string, input: { name: string; icon: string; color: string }) => {
       if (!user) return null;
-      const name = displayIncomeCategory(input.name);
-      if (!name) return null;
+      const rawName = input.name.trim();
+      if (!rawName) return null;
+      const name = displayIncomeCategory(rawName);
       const { data, error } = await supabase
         .from("income_categories" as any)
         .update({ name, icon: input.icon, color: input.color })
