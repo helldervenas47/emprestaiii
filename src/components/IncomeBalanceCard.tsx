@@ -96,18 +96,12 @@ export function IncomeBalanceCard({ incomes, expenses, onAdjust, readOnly, onOpe
 
     // Movimentação do mês vigente — alinhada ao total exibido em MonthTransactionsSheet
     // (Entradas/Saídas do mês), considerando todas as ocorrências do mês (pagas + pendentes).
+    // Apenas receitas efetivamente recebidas no mês entram em "Entradas mês".
     const monthInIncomes = incomes.reduce((s, i) => {
       if (i.source === "Ajuste manual") return s;
+      if (i.status !== "received") return s;
       if (!i.receivedDate.startsWith(monthKey)) return s;
-      if (i.status === "received") return s + i.amount;
-      if (
-        i.recurrence === "once" ||
-        i.recurrence === "weekly" ||
-        i.recurrence === "biweekly" ||
-        i.recurrence === "monthly" ||
-        i.recurrence === "yearly"
-      ) return s + i.amount;
-      return s;
+      return s + i.amount;
     }, 0);
     const monthInSales = sales.reduce((s, sale) => s + saleReceivedInMonth(sale, monthKey), 0);
     const monthIn = monthInIncomes + monthInSales;
