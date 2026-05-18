@@ -1,97 +1,85 @@
-## Objetivo
+## Buscador de Boletos
 
-Substituir o "override do dia 1" por uma funcionalidade genérica de **Ajuste de Saldo Base**, permitindo ancorar a projeção do saldo previsto em qualquer data válida (mês atual ou futuro) com auditoria visível e propagação consistente para todos os cálculos derivados.
+Criar uma nova seção **Boletos** no app com duas funções:
 
-## 1. Backend (nova tabela)
+1. **Consulta por linha digitável / código de barras** — funciona offline, sem API externa.
+2. **Importação de boletos a pagar de uma plataforma externa** — estrutura pronta, pendente de você confirmar qual plataforma (Asaas, Cora, Iugu, Banco Inter PJ, BB API, etc.).
 
-Criar tabela `balance_adjustments` (substitui semanticamente `monthly_opening_balances`, que ficará apenas como legado migrável):
+Em ambos os casos os boletos aparecem **apenas para consulta** — nada é gravado automaticamente em Despesas. Um botão "Salvar como despesa" fica disponível para o usuário decidir caso a caso.
 
-| coluna | tipo | nota |
-|---|---|---|
-| id | uuid PK | |
-| owner_id | uuid | RLS por `get_data_owner_id` |
-| adjustment_date | date | **UNIQUE (owner_id, adjustment_date)** |
-| amount | numeric | saldo correto naquela data |
-| previous_amount | numeric | saldo previsto automático no momento do ajuste (auditoria) |
-| adjusted_by | uuid | `auth.uid()` no insert (quem ajustou) |
-| notes | text nullable | |
-| created_at, updated_at | timestamptz | |
+---
 
-- RLS: mesmas políticas de `monthly_opening_balances` (select por owner; insert/update/delete exigem `can_write_data`).
-- Migração de dados: copiar registros de `monthly_opening_balances` para `balance_adjustments` como `YYYY-MM-01` (idempotente, ignora conflitos).
-- Manter `monthly_opening_balances` por compatibilidade (read-only no app daqui em diante).
+### 1. Parser de linha digitável (offline)
 
-## 2. Hook `useBalanceAdjustments`
+Tela com um campo grande onde o usuário cola/digita a linha digitável (47 dígitos para boleto bancário, 48 para arrecadação/concessionária). O app decodifica localmente e mostra:
 
-Substitui `useMonthlyOpeningBalances` no calendário. Expõe:
+- **Banco emissor** (ex: 341 → Itaú, 001 → BB, 237 → Bradesco…) via tabela local + fallback BrasilAPI para nomes não conhecidos.
+- **Vencimento** (calculado a partir do fator de vencimento).
+- **Valor** (últimas 10 posições do código).
+- **Tipo**: cobrança bancária ou arrecadação (água, luz, tributo…).
+- **Validade dos dígitos verificadores** (módulo 10 / 11) — alerta vermelho se inválido.
+- **Código de barras** (44 dígitos) reconstruído, com botão "Copiar".
 
-- `adjustments: Record<YYYY-MM-DD, { amount, previousAmount, adjustedAt, adjustedBy, adjustedByName? }>`
-- `setAdjustment(date, amount, previousAmount)` — upsert
-- `clearAdjustment(date)` — delete
-- Lookup do nome via `profiles.display_name` (join leve, cacheado).
+Tudo isso roda no frontend, sem custos e sem chamadas externas (exceto opcionalmente o nome do banco).
 
-## 3. Lógica de projeção
+> Importante: a linha digitável **não contém** o nome do beneficiário nem o status (pago/em aberto). Essa informação só existe no sistema do banco emissor — por isso a parte 2.
 
-Atualizar `src/lib/projectedBalance.ts` (`computeRunningBalance`) e o cálculo inline em `IncomePendingCalendar.tsx`:
+### 2. Importação de boletos de plataforma externa
 
-- A cada dia do cursor, se `adjustments[YYYY-MM-DD]` existir → `running = amount` ANTES de aplicar o delta do dia (o ajuste vira a nova base do dia; receitas/despesas do mesmo dia continuam somando).
-- Remove o caso especial "se dia === 1, ler de overrides[YYYY-MM]" (substituído pela nova lógica genérica). Manter fallback de leitura para `monthly_opening_balances` apenas se não houver `balance_adjustments[YYYY-MM-01]` para aquele mês (compatibilidade).
-- Garante que o efeito cascata é único: ao recalcular, sempre parte da última base ajustada — sem dupla contagem (a lógica já é sequencial dia-a-dia, então isso é automático).
+Tela "Meus boletos a pagar" lista boletos pendentes vindos de uma API externa, com filtros por status (pendente / pago / vencido) e busca por beneficiário/valor.
 
-## 4. Regra de bloqueio retroativo
+Como não existe uma API única que retorna "qualquer boleto do Brasil", a integração é por plataforma. A arquitetura é genérica: uma edge function `boletos-import` recebe o nome do provedor e devolve uma lista normalizada `{id, beneficiary, dueDate, amount, status, barcode, payLink}`. Adapters por provedor ficam isolados.
 
-No componente, antes de abrir/salvar:
+**Provedores prontos para plugar** (decidir 1 e me dizer qual):
+- **Asaas** — só API key, mais simples.
+- **Cora** — OAuth2 + client_id/secret.
+- **Iugu** — API key.
+- **Banco Inter PJ** — exige certificado mTLS (mais complexo, edge function precisa de variáveis extras).
+- **BB API** — exige cadastro no portal do desenvolvedor + OAuth.
 
-- Permitido: `data >= primeiro dia do mês atual` (em `appTz`).
-- Bloqueado: data em mês anterior → `toast.error("Não é possível recalcular saldos de meses encerrados.")` e não abre/salva.
+Enquanto você não escolher, a tela mostra estado vazio com botão "Configurar provedor".
 
-## 5. UI — Novo modal "Ajustar saldo base"
+### 3. Integração com o app
 
-Substitui o modal atual de "Alterar saldo do dia 1". Acessível ao clicar no saldo previsto de **qualquer dia** (não só dia 1) — botão "Ajustar saldo base" no card de saldo do dia selecionado.
+- Novo item no menu/abas principais: **Boletos** (logo após Despesas).
+- Mesmo padrão visual das outras abas (Card, Badge, MoneyInput, dialog em pt-BR).
+- Botão secundário em cada boleto consultado: **"Salvar como despesa"** → abre o `ExpenseForm` pré-preenchido (descrição = beneficiário, valor, vencimento, categoria sugerida "Boletos"). Salvar só acontece se o usuário confirmar — sem duplicidade.
+- Histórico local (Lovable Cloud) das últimas linhas digitáveis consultadas, para reabertura rápida.
 
-Conteúdo:
+---
 
-- **Saldo previsto atual** (read-only, calculado)
-- **Saldo correto** (`MoneyInput`)
-- **Data do saldo** (`DatePickerField`, default = dia selecionado, validação contra mês passado)
-- **Prévia do impacto**: "Os próximos N dias serão recalculados" (N = dias entre data e fim do mês visível, ou até `today + 60d` se mês visível < data)
-- Botões: `Cancelar` · `Recalcular saldo futuro` (CTA primário) · `Remover ajuste` (se já existe um ajuste nessa data)
+### Detalhes técnicos
 
-Remove o Switch "Permitir alterar saldo do dia 01" e a flag `calendar:incomeAllowDay1BalanceOverride` (não faz mais sentido).
+**Arquivos novos:**
+- `src/lib/boleto/parseLinhaDigitavel.ts` — parser puro (banco, vencimento, valor, DV, código de barras).
+- `src/lib/boleto/banks.ts` — dicionário código→nome dos principais bancos brasileiros.
+- `src/components/boletos/BoletoSearchTab.tsx` — tela principal com 2 sub-abas: "Consultar" e "A pagar".
+- `src/components/boletos/BoletoParserCard.tsx` — input + resultado decodificado.
+- `src/components/boletos/BoletoImportList.tsx` — lista vinda da edge function.
+- `src/hooks/useBoletoHistory.ts` — histórico das consultas recentes.
+- `supabase/migrations/...` — tabela `boleto_lookups` (id, user_id, raw_line, parsed_json, created_at) com RLS por `get_data_owner_id(auth.uid())`.
+- `supabase/functions/boletos-import/index.ts` — edge function genérica com adapter pattern (`adapters/asaas.ts`, etc.). Inicialmente só o esqueleto + um adapter de exemplo (Asaas, se você confirmar).
 
-## 6. UI — Indicador visual de ajuste manual
+**Arquivos alterados:**
+- `src/lib/appTabs.ts` — adicionar a aba "Boletos".
+- `src/pages/Index.tsx` — registrar a aba (provavelmente atrás de `SubscriptionGate` Tier 1 ou 2, igual ao padrão atual).
+- `src/components/ExpenseForm.tsx` — aceitar `initialValues` opcionais via props para o atalho "Salvar como despesa".
 
-No grid do calendário (mês expandido **e** semana atual):
+**Algoritmo do parser** (resumo):
+```text
+Linha digitável (47 dígitos) → reordena para código de barras (44 dígitos):
+  posições 1-4 banco, 5 moeda, 33 DV geral,
+  34-37 fator de vencimento (dias desde 07/10/1997),
+  38-47 valor em centavos,
+  18-44 campo livre do banco.
+Vencimento = 1997-10-07 + fator dias.
+Cada um dos 3 campos da linha tem DV módulo 10.
+```
 
-- Dias com `adjustments[date]` recebem um pequeno ícone (lucide `Wand2` ou `Anchor`) no canto superior direito da célula, cor `primary`.
-- Clique no ícone (stopPropagation) abre **popover** mostrando:
-  - Saldo anterior (`previousAmount`)
-  - Saldo corrigido (`amount`)
-  - Data do ajuste (`adjustedAt`)
-  - Usuário responsável (`adjustedByName` ou e-mail)
-  - Botão "Remover ajuste"
+**Custos/limites:** parser é grátis. Importação externa depende da plataforma escolhida — algumas têm tier gratuito (Asaas), outras só PJ pago.
 
-## 7. Sincronização com outros módulos
+---
 
-Verificar consumidores do override antigo:
-- `src/lib/projectedBalance.ts` — usado em `DailyPlanning.tsx`, `DailyPlanningReport.tsx`, `IncomeDashboard.tsx`. Trocar parâmetro `overrides: Record<YYYY-MM, number>` por `adjustments: Record<YYYY-MM-DD, number>` (a forma simplificada — só o valor — basta para projeção; o resto só interessa à UI do calendário).
-- `useAccountBalance` (saldo total em mãos) **não muda** — ele reflete movimentações reais (recebidas/pagas), não projeção. Ajustes manuais não alteram o saldo "agora", só a projeção futura.
-- Dashboard, Extrato, Cofrinhos, Receitas/Despesas → todos que consomem `getMonthEndProjectedBalance` passam a receber `adjustments` em vez de `overrides`.
+### Próximo passo
 
-## 8. Cleanup
-
-- Remover `ALLOW_DAY1_OVERRIDE_KEY` e o Switch correspondente.
-- Manter `useMonthlyOpeningBalances` exportado por enquanto (não quebrar imports caso existam fora do calendário) marcando como `@deprecated`.
-
-## Detalhes técnicos
-
-- A migração SQL será criada pela ferramenta de migration (com aprovação separada).
-- O dia do ajuste vira ponto-âncora: `running = adjustment.amount` aplicado ANTES do delta do dia. Assim, receitas/despesas lançadas no próprio dia ainda alteram o saldo final exibido (correto: "saldo corrigido = R$ 2.350" representa o ponto de partida do dia).
-- `previous_amount` é capturado no momento do salvamento usando `runningBalanceMap[date]` ANTES do upsert.
-- `adjusted_by` preenchido no client (`auth.user.id`); display name resolvido via `profiles`.
-
-## Pontos de confirmação antes de codar
-
-1. **Confirmar substituição** do modal atual de "dia 1" pelo novo (em vez de coexistirem).
-2. **Confirmar remoção** do Switch "Permitir alterar saldo do dia 01".
-3. **Confirmar** que ajuste é por **data específica** (não por mês), conforme o exemplo "01/06/2026 = R$ 2.350".
+Me confirme **qual plataforma** você quer usar na importação (ou se prefere começar só com o parser e adicionar a integração externa depois). Depois disso eu implemento.
