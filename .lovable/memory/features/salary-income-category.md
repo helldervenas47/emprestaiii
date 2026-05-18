@@ -1,6 +1,6 @@
 ---
-name: Salary income category reuse
-description: When addToIncomes is true, payPayroll reuses an existing user income category matching "salario"/"salarios" (accent/case-insensitive) instead of forcing "Salários"
+name: Salary income category normalization
+description: Treat "Salário" and "Salários" as the same income category; display, save, and aggregate salary income as "Salário"
 type: feature
 ---
-In `usePayrolls.payPayroll`, the optional Receitas entry resolves the category by querying `income_categories` for the owner and picking any existing name whose normalized form is `salario` or `salarios`. Falls back to literal "Salários" only if none exists. This prevents duplicate "Salário" vs "Salários" categories in the income tab.
+All income flows must treat `Salário` and `Salários` as the same category (accent/case-insensitive). Store and display salary income as `Salário`, dedupe custom income categories by normalized key, and aggregate dashboards/details using that key so the Receita tab never shows separate salary buckets.

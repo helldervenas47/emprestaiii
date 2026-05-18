@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
 import { recordLedger, removeLedgerByRef } from "@/lib/ledger";
+import { displayIncomeCategory, incomeCategoryKey, SALARY_INCOME_CATEGORY } from "@/lib/incomeCategory";
 import { todayInAppTz } from "@/lib/timezone";
 import type { Employee, Payroll, PayrollItems, PayrollStatus, SalaryItem } from "@/types/salary";
 
@@ -164,19 +165,14 @@ export function usePayrolls(enabled = true) {
     if (employee?.addToIncomes) {
       // Resolve a categoria de receita reutilizando a categoria já cadastrada
       // pelo usuário (ex.: "Salário"), evitando criar duplicata "Salários".
-      const norm = (s: string) =>
-        s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
       const { data: cats } = await supabase
         .from("income_categories" as any)
         .select("name")
         .eq("user_id", dataOwnerId);
       const existing = ((cats as any[]) ?? [])
         .map((c) => c.name as string)
-        .find((n) => {
-          const k = norm(n);
-          return k === "salario" || k === "salarios";
-        });
-      const incomeCategory = existing ?? "Salários";
+        .find((n) => incomeCategoryKey(n) === "salario");
+      const incomeCategory = displayIncomeCategory(existing ?? SALARY_INCOME_CATEGORY);
 
       const { data: incomeRow } = await supabase.from("incomes").insert({
         user_id: dataOwnerId,
