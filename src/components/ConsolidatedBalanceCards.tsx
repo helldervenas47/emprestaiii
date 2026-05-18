@@ -329,46 +329,52 @@ export function ConsolidatedBalanceCards() {
                   })()}
 
                   {(() => {
-                    const now = new Date();
-                    const ym = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
-                    const inMonth = (d?: string | null) => !!d && d.startsWith(ym);
-                    const incomesMonth = incomes
-                      .filter((i: any) => i.status === "received" && inMonth(i.actualReceivedDate || i.receivedDate))
+                    const today = new Date();
+                    const todayStr = today.toISOString().slice(0, 10);
+                    const horizon = new Date(today);
+                    horizon.setDate(horizon.getDate() + 30);
+                    const horizonStr = horizon.toISOString().slice(0, 10);
+                    const inRange = (d?: string | null) => !!d && d >= todayStr && d <= horizonStr;
+
+                    const expectedIn = incomes
+                      .filter((i: any) => i.status !== "received" && inRange(i.receivedDate))
                       .reduce((s: number, i: any) => s + (Number(i.amount) || 0), 0);
-                    const salesMonth = sales.reduce((s, sale) => {
-                      const hist = sale.paymentHistory || [];
-                      return s + hist.filter((p) => inMonth(p.date)).reduce((a, p) => a + (Number(p.amount) || 0), 0);
-                    }, 0);
-                    const expensesMonth = expenses
-                      .filter((e: any) => e.paid && (e.scope ?? "business") === "personal" && inMonth(e.paidDate))
+                    const expectedOut = expenses
+                      .filter((e: any) => !e.paid && (e.scope ?? "business") === "personal" && inRange(e.dueDate))
                       .reduce((s: number, e: any) => s + (Number(e.amount) || 0), 0);
-                    const inflow = incomesMonth + salesMonth;
-                    const outflow = expensesMonth;
-                    const net = inflow - outflow;
-                    const monthName = now.toLocaleDateString("pt-BR", { month: "long" });
+                    const projected = totalEmMaos + expectedIn - expectedOut;
+                    const delta = projected - totalEmMaos;
                     return (
                       <div className="space-y-2">
-                        <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground px-1">
-                          Movimentação em {monthName}
+                        <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground px-1 flex items-center gap-1">
+                          <TrendingUp className="h-3 w-3" /> Projeção em 30 dias
                         </p>
                         <div className="rounded-xl border border-border/50 bg-card/60 backdrop-blur-sm p-3 space-y-2.5">
-                          <div className="flex items-center justify-between">
-                            <span className="text-xs text-muted-foreground">Variação no mês</span>
-                            <span className={`text-base font-bold tabular-nums flex items-center gap-1 ${net < 0 ? "text-destructive" : "text-success"}`}>
-                              {net >= 0 ? <ArrowUpRight className="h-4 w-4" /> : <ArrowDownRight className="h-4 w-4" />}
-                              {net >= 0 ? "+" : ""}{formatBRL(net)}
+                          <div className="flex items-end justify-between">
+                            <div className="min-w-0">
+                              <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Saldo projetado</p>
+                              <p className={`text-xl font-bold tabular-nums leading-tight ${projected < 0 ? "text-destructive" : "text-foreground"}`}>
+                                {formatBRL(projected)}
+                              </p>
+                            </div>
+                            <span className={`text-xs font-semibold tabular-nums flex items-center gap-0.5 ${delta < 0 ? "text-destructive" : "text-success"}`}>
+                              {delta >= 0 ? <ArrowUpRight className="h-3.5 w-3.5" /> : <ArrowDownRight className="h-3.5 w-3.5" />}
+                              {delta >= 0 ? "+" : ""}{formatBRL(delta)}
                             </span>
                           </div>
                           <div className="grid grid-cols-2 gap-2 pt-1">
                             <div className="rounded-lg bg-success/10 p-2">
-                              <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Entradas</p>
-                              <p className="text-sm font-bold text-success tabular-nums">{formatBRL(inflow)}</p>
+                              <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Entradas previstas</p>
+                              <p className="text-sm font-bold text-success tabular-nums">{formatBRL(expectedIn)}</p>
                             </div>
                             <div className="rounded-lg bg-destructive/10 p-2">
-                              <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Saídas</p>
-                              <p className="text-sm font-bold text-destructive tabular-nums">{formatBRL(outflow)}</p>
+                              <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Saídas previstas</p>
+                              <p className="text-sm font-bold text-destructive tabular-nums">{formatBRL(expectedOut)}</p>
                             </div>
                           </div>
+                          <p className="text-[10px] text-muted-foreground">
+                            Considera receitas pendentes e despesas pessoais a vencer nos próximos 30 dias.
+                          </p>
                         </div>
                       </div>
                     );
