@@ -231,6 +231,43 @@ export function ConsolidatedBalanceCards() {
         <DialogContent
           className="!p-0 overflow-hidden border-border/60 bg-gradient-to-br from-background via-background to-muted/30 backdrop-blur-xl max-sm:!fixed max-sm:!inset-0 max-sm:!left-0 max-sm:!top-0 max-sm:!translate-x-0 max-sm:!translate-y-0 max-sm:!max-w-none max-sm:!w-screen max-sm:!h-screen max-sm:!max-h-screen max-sm:!rounded-none max-sm:!flex max-sm:!flex-col max-sm:!gap-0 sm:max-w-md"
         >
+          <Popover open={settingsOpen} onOpenChange={setSettingsOpen}>
+            <PopoverTrigger asChild>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                aria-label="Configurar cards visíveis"
+                className="absolute right-12 top-4 h-7 w-7 rounded-md opacity-70 hover:opacity-100 z-10"
+                style={{ top: "calc(1rem + env(safe-area-inset-top))" }}
+              >
+                <Settings2 className="h-4 w-4" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent align="end" className="w-64 p-3 z-[60]">
+              <p className="text-xs font-semibold mb-1">Cards visíveis</p>
+              <p className="text-[10px] text-muted-foreground mb-2">Selecione até 2 para exibir.</p>
+              <div className="space-y-1.5">
+                {ALL_MAOS_CARDS.map((c) => {
+                  const checked = visibleCards.includes(c.id);
+                  const disabled = !checked && visibleCards.length >= 2;
+                  return (
+                    <label
+                      key={c.id}
+                      className={`flex items-center gap-2 rounded-md px-2 py-1.5 text-xs ${disabled ? "opacity-50" : "hover:bg-accent cursor-pointer"}`}
+                    >
+                      <Checkbox
+                        checked={checked}
+                        disabled={disabled}
+                        onCheckedChange={() => toggleCard(c.id)}
+                      />
+                      <span className="flex-1 truncate">{c.label}</span>
+                    </label>
+                  );
+                })}
+              </div>
+            </PopoverContent>
+          </Popover>
           <DialogHeader className="px-5 pt-5 pb-3" style={{ paddingTop: "calc(1.25rem + env(safe-area-inset-top))" }}>
             <DialogTitle className="flex items-center gap-2 text-base">
               <Wallet className="h-4 w-4 text-success" /> Saldo Total em Mãos
