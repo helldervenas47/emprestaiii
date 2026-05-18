@@ -232,6 +232,20 @@ export function CreditCardInvoice({ card, onClose, referenceMonth, originRect }:
   const cycleEverHadValue = items.length > 0 || openingAmount > 0 || openingPaidFlag;
   const isPaid = cycleEverHadValue && !cycleHasPending;
 
+  // Histórico de pagamentos: faturas pagas deste cartão nos últimos 24 meses,
+  // excluindo a fatura aberta neste modal (que aparece acima).
+  const paymentHistory = useMemo(() => {
+    const today = new Date();
+    const fromD = new Date(today.getFullYear(), today.getMonth() - 24, 1);
+    const toD = new Date(today.getFullYear(), today.getMonth() + 2, 0);
+    const fromISO = `${fromD.getFullYear()}-${String(fromD.getMonth() + 1).padStart(2, "0")}-${String(fromD.getDate()).padStart(2, "0")}`;
+    const toISO = `${toD.getFullYear()}-${String(toD.getMonth() + 1).padStart(2, "0")}-${String(toD.getDate()).padStart(2, "0")}`;
+    const list = listPaidInvoicesInRange(expenses, [card], openings, fromISO, toISO);
+    return list
+      .filter((p) => p.cycleKey !== cycleKey)
+      .sort((a, b) => (a.paidDate < b.paidDate ? 1 : -1));
+  }, [expenses, openings, card, cycleKey]);
+
   const status: { label: string; tone: string; icon: typeof Clock } = isPaid
     ? { label: isClosed ? "Fechada — Paga" : "Paga", tone: "bg-success/15 text-success border-success/30", icon: CheckCircle2 }
     : isOverdue
