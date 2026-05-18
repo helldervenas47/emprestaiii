@@ -838,15 +838,26 @@ export function CreditCardInvoice({ card, onClose, referenceMonth, originRect }:
                           </span>
                         </div>
                       </div>
-                      <div className="text-right shrink-0">
-                        <p className="text-sm font-semibold text-foreground tabular-nums">
-                          {mask(fmt(p.paidTotal))}
-                        </p>
-                        {partial && (
-                          <p className="text-[10px] text-muted-foreground tabular-nums">
-                            de {mask(fmt(p.total))}
+                      <div className="flex items-start gap-2 shrink-0">
+                        <div className="text-right">
+                          <p className="text-sm font-semibold text-foreground tabular-nums">
+                            {mask(fmt(p.paidTotal))}
                           </p>
-                        )}
+                          {partial && (
+                            <p className="text-[10px] text-muted-foreground tabular-nums">
+                              de {mask(fmt(p.total))}
+                            </p>
+                          )}
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                          onClick={() => setDeletingPayment(p)}
+                          aria-label="Excluir pagamento"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
                       </div>
                     </div>
                   );
