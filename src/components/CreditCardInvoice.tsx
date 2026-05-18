@@ -1065,6 +1065,18 @@ export function CreditCardInvoice({ card, onClose, referenceMonth, originRect }:
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <ConfirmDeleteDialog
+        open={!!deletingPayment}
+        onOpenChange={(o) => !o && !deletingPaymentBusy && setDeletingPayment(null)}
+        title="Excluir pagamento da fatura?"
+        description={
+          deletingPayment
+            ? `O valor de ${fmt(deletingPayment.paidTotal)} será estornado para a conta de origem, os lançamentos individuais voltarão como pendentes e a fatura ficará em aberto novamente.`
+            : ""
+        }
+        onConfirm={() => deletingPayment && handleDeleteInvoicePayment(deletingPayment)}
+      />
     </div>
   );
 
