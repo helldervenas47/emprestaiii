@@ -118,6 +118,7 @@ export function CreditCardInvoice({ card, onClose, referenceMonth, originRect }:
     return `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, "0")}-${String(t.getDate()).padStart(2, "0")}`;
   });
   const [paying, setPaying] = useState(false);
+  const [payAmount, setPayAmount] = useState("");
   const [deletingPayment, setDeletingPayment] = useState<PaidInvoiceEntry | null>(null);
   const [deletingPaymentBusy, setDeletingPaymentBusy] = useState(false);
 
@@ -602,16 +603,23 @@ export function CreditCardInvoice({ card, onClose, referenceMonth, originRect }:
           </div>
 
           {/* Pagar fatura */}
-          {(items.some((e) => !e.paid) || (opening && openingAmount > 0)) && (
-            <Button
-              onClick={() => setPayDialogOpen(true)}
-              className="w-full h-11 text-sm font-semibold shadow-md"
-              size="lg"
-            >
-              <Wallet className="h-4 w-4 mr-2" />
-              Pagar fatura · {mask(fmt(total))}
-            </Button>
-          )}
+          {(() => {
+            const remaining = Math.max(0, Number((total - paidTotal).toFixed(2)));
+            if (remaining <= 0.005) return null;
+            return (
+              <Button
+                onClick={() => {
+                  setPayAmount(remaining.toFixed(2));
+                  setPayDialogOpen(true);
+                }}
+                className="w-full h-11 text-sm font-semibold shadow-md"
+                size="lg"
+              >
+                <Wallet className="h-4 w-4 mr-2" />
+                Pagar fatura · {mask(fmt(remaining))}
+              </Button>
+            );
+          })()}
           {prevTotal > 0 && (
             <div className="rounded-xl border bg-muted/30 px-3 py-2.5 flex items-center justify-between">
               <div>
@@ -998,60 +1006,98 @@ export function CreditCardInvoice({ card, onClose, referenceMonth, originRect }:
               Pagar fatura
             </DialogTitle>
             <DialogDescription>
-              Marca todos os lançamentos em aberto deste ciclo como pagos.
+              Registra o pagamento desta fatura, debita o valor da conta e atualiza o histórico.
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-4 py-2">
-            <div className="rounded-xl bg-muted/40 p-3 text-center">
-              <p className="text-xs text-muted-foreground">Valor total</p>
-              <p className="text-2xl font-bold text-foreground mt-1">{mask(fmt(total))}</p>
-              <p className="text-[11px] text-muted-foreground mt-1">
-                {items.filter((e) => !e.paid).length} lançamento(s) em aberto
-              </p>
-            </div>
+          {(() => {
+            const remaining = Math.max(0, Number((total - paidTotal).toFixed(2)));
+            return (
+              <div className="space-y-4 py-2">
+                <div className="rounded-xl bg-muted/40 p-3 grid grid-cols-3 gap-2 text-center">
+                  <div>
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Total</p>
+                    <p className="text-sm font-semibold text-foreground mt-0.5">{mask(fmt(total))}</p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Já pago</p>
+                    <p className="text-sm font-semibold text-success mt-0.5">{mask(fmt(paidTotal))}</p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Restante</p>
+                    <p className="text-sm font-semibold text-foreground mt-0.5">{mask(fmt(remaining))}</p>
+                  </div>
+                </div>
 
-            <div className="space-y-1.5">
-              <Label htmlFor="pay-date">Data do pagamento</Label>
-              <Input
-                id="pay-date"
-                type="date"
-                value={payDate}
-                onChange={(e) => setPayDate(e.target.value)}
-              />
-            </div>
-          </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="pay-amount">Valor a pagar (R$)</Label>
+                  <Input
+                    id="pay-amount"
+                    type="number"
+                    step="0.01"
+                    min="0.01"
+                    value={payAmount}
+                    onChange={(e) => setPayAmount(e.target.value)}
+                  />
+                  <p className="text-[11px] text-muted-foreground">
+                    Padrão: restante da fatura. Use um valor menor para pagamento parcial.
+                  </p>
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label htmlFor="pay-date">Data do pagamento</Label>
+                  <Input
+                    id="pay-date"
+                    type="date"
+                    value={payDate}
+                    onChange={(e) => setPayDate(e.target.value)}
+                  />
+                </div>
+              </div>
+            );
+          })()}
 
           <DialogFooter className="gap-2">
             <Button variant="outline" onClick={() => setPayDialogOpen(false)} disabled={paying}>
               Cancelar
             </Button>
             <Button
-              disabled={paying || !payDate}
+              disabled={paying || !payDate || !payAmount || Number(payAmount) <= 0}
               onClick={async () => {
                 setPaying(true);
                 try {
-                  const unpaid = items.filter((e) => !e.paid);
-                  for (const e of unpaid) {
-                    await updateExpense(e.id, { paid: true, paidDate: payDate });
+                  const remaining = Math.max(0, Number((total - paidTotal).toFixed(2)));
+                  const amount = Math.max(0, Number(Number(payAmount).toFixed(2)));
+                  if (amount <= 0) {
+                    toast.error("Informe um valor válido");
+                    setPaying(false);
+                    return;
                   }
-                  // Marca o saldo inicial como quitado: adiciona "[PAGA]" e grava
-                  // [PAID:total] no notes para preservar o valor efetivamente pago
-                  // (necessário para o débito no saldo em conta via
-                  // creditCardInvoiceExtraPaid e para aparecer no extrato/histórico).
-                  if (opening || openingAmount > 0 || total > 0) {
-                    const baseNotes = writePaidOverride(
-                      (opening?.notes ?? "").replace(/\[PAGA\]/gi, "").trim(),
-                      Number(total.toFixed(2)),
-                    );
-                    const newNotes = baseNotes ? `${baseNotes} [PAGA]` : "[PAGA]";
-                    await upsertOpening(card.id, cycleKey, 0, newNotes);
+                  const isFull = amount + 0.005 >= remaining;
+                  const newPaidTotal = Number(Math.min(total, paidTotal + amount).toFixed(2));
+
+                  if (isFull) {
+                    // Pagamento total: marca itens em aberto como pagos e quita o saldo inicial.
+                    const unpaid = items.filter((e) => !e.paid);
+                    for (const e of unpaid) {
+                      await updateExpense(e.id, { paid: true, paidDate: payDate });
+                    }
+                    if (opening || openingAmount > 0 || total > 0) {
+                      const baseNotes = writePaidOverride(
+                        (opening?.notes ?? "").replace(/\[PAGA\]/gi, "").trim(),
+                        Number(total.toFixed(2)),
+                      );
+                      const newNotes = baseNotes ? `${baseNotes} [PAGA]` : "[PAGA]";
+                      await upsertOpening(card.id, cycleKey, 0, newNotes);
+                    }
+                    toast.success(`Fatura paga · ${mask(fmt(amount))}`);
+                  } else {
+                    // Pagamento parcial: apenas atualiza o override [PAID:xxx].
+                    const cleaned = (opening?.notes ?? "").replace(/\[PAGA\]/gi, "").trim();
+                    const baseNotes = writePaidOverride(cleaned, newPaidTotal);
+                    await upsertOpening(card.id, cycleKey, openingAmount, baseNotes || undefined);
+                    toast.success(`Pagamento parcial registrado · ${mask(fmt(amount))}`);
                   }
-                  toast.success(
-                    unpaid.length > 0 || openingAmount > 0
-                      ? `Fatura paga · ${unpaid.length} lançamento(s) quitado(s)`
-                      : "Fatura registrada como paga"
-                  );
                   setPayDialogOpen(false);
                 } catch {
                   toast.error("Erro ao pagar fatura");
