@@ -60,6 +60,8 @@ export function useIncomeCategories() {
       const rawName = input.name.trim();
       if (!rawName) return null;
       const name = displayIncomeCategory(rawName);
+      const existing = categories.find((c) => incomeCategoryKey(c.name) === incomeCategoryKey(name));
+      if (existing) return existing;
       const { data, error } = await supabase
         .from("income_categories" as any)
         .insert({ user_id: user.id, name, icon: input.icon, color: input.color })
@@ -78,7 +80,7 @@ export function useIncomeCategories() {
       toast({ title: "Categoria criada", description: name });
       return created;
     },
-    [user],
+    [user, categories],
   );
 
   const update = useCallback(
