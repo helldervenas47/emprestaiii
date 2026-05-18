@@ -292,6 +292,9 @@ export function creditCardInvoiceExtraPaid(
   for (const opening of openings) {
     const card = cards.find((c) => c.id === opening.cardId);
     if (!card) continue;
+    // Quando o pagamento já foi lançado no extrato (ledger), o débito real ocorre
+    // via external.total (balance table). Não somar ccExtra para evitar dupla saída.
+    if (creditCardLedgerHandled(opening.notes)) continue;
     const override = readPaidOverride(opening.notes);
     const openingPaidFlag = /\[PAGA\]/i.test(opening.notes ?? "");
     // Só conta quando há saldo inicial pago (override OU [PAGA] com opening_amount original).
