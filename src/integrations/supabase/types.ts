@@ -376,6 +376,60 @@ export type Database = {
         }
         Relationships: []
       }
+      boleto_lookups: {
+        Row: {
+          amount: number
+          bank_code: string | null
+          bank_name: string | null
+          barcode: string | null
+          created_at: string
+          digits: string
+          due_date: string | null
+          id: string
+          kind: string
+          label: string | null
+          owner_id: string
+          parsed_at: string
+          segment: string | null
+          segment_label: string | null
+          user_id: string
+        }
+        Insert: {
+          amount?: number
+          bank_code?: string | null
+          bank_name?: string | null
+          barcode?: string | null
+          created_at?: string
+          digits: string
+          due_date?: string | null
+          id?: string
+          kind: string
+          label?: string | null
+          owner_id: string
+          parsed_at?: string
+          segment?: string | null
+          segment_label?: string | null
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          bank_code?: string | null
+          bank_name?: string | null
+          barcode?: string | null
+          created_at?: string
+          digits?: string
+          due_date?: string | null
+          id?: string
+          kind?: string
+          label?: string | null
+          owner_id?: string
+          parsed_at?: string
+          segment?: string | null
+          segment_label?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       chart_overrides: {
         Row: {
           created_at: string
