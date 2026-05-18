@@ -118,6 +118,7 @@ export function CreditCardInvoice({ card, onClose, referenceMonth, originRect }:
     return `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, "0")}-${String(t.getDate()).padStart(2, "0")}`;
   });
   const [paying, setPaying] = useState(false);
+  const [payAmount, setPayAmount] = useState("");
   const [deletingPayment, setDeletingPayment] = useState<PaidInvoiceEntry | null>(null);
   const [deletingPaymentBusy, setDeletingPaymentBusy] = useState(false);
 
