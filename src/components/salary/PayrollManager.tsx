@@ -108,6 +108,11 @@ export function PayrollManager({ readOnly }: Props) {
                   {!readOnly && remaining > 0 && (
                     <Button size="sm" onClick={() => setPayingId(p.id)}><Wallet className="h-3 w-3" /> Pagar</Button>
                   )}
+                  {p.paidAmount > 0 && (
+                    <Button size="sm" variant="outline" onClick={() => setHistoryId(p.id)}>
+                      <History className="h-3 w-3" /> Pagamentos
+                    </Button>
+                  )}
                   <Button size="sm" variant="outline" onClick={() => emp && generatePayslipPdf(p, emp, { brandName: branding.brand_name })}>
                     <FileText className="h-3 w-3" /> Contracheque
                   </Button>
