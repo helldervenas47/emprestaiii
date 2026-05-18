@@ -1139,8 +1139,8 @@ export function CreditCardInvoice({ card, onClose, referenceMonth, originRect }:
                     setPaying(false);
                     return;
                   }
-                  const isFull = amount + 0.005 >= remaining;
                   const newPaidTotal = Number(Math.min(total, paidTotal + amount).toFixed(2));
+                  const isFull = newPaidTotal + 0.005 >= total;
 
                   if (isFull) {
                     // Pagamento total: marca itens em aberto como pagos e quita o saldo inicial.
