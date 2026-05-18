@@ -221,17 +221,18 @@ export function listPaidInvoicesInRange(
       const opening = openings.find((o) => o.cardId === card.id && o.cycleKey === cycleKey);
       const openingAmount = opening?.openingAmount ?? 0;
       const openingPaidFlag = /\[PAGA\]/i.test(opening?.notes ?? "");
+      const override = readPaidOverride(opening?.notes);
 
       const total = itemsTotal + openingAmount;
-      const cycleHasPending = items.some((e) => !e.paid) || openingAmount > 0;
-      const cycleEverHadValue = items.length > 0 || openingAmount > 0 || openingPaidFlag;
+      const openingPending = openingAmount > 0 && !openingPaidFlag && override === null;
+      const cycleHasPending = items.some((e) => !e.paid) || openingPending;
+      const cycleEverHadValue = items.length > 0 || openingAmount > 0 || openingPaidFlag || override !== null;
       const paid = cycleEverHadValue && !cycleHasPending;
       if (!paid) continue;
 
       const itemsPaidTotal = items
         .filter((e) => e.paid)
         .reduce((s, e) => s + installmentValue(e), 0);
-      const override = readPaidOverride(opening?.notes);
       const paidTotal = override ?? itemsPaidTotal;
       if (paidTotal <= 0) continue;
 
