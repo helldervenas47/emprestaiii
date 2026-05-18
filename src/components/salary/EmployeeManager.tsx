@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Plus, Pencil, Trash2, Search, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -146,8 +146,26 @@ function EmployeeFormDialog({ open, onOpenChange, initial, onSave }: {
   const [deductions, setDeductions] = useState<SalaryItem[]>(initial?.deductions ?? []);
   const [addToIncomes, setAddToIncomes] = useState<boolean>(initial?.addToIncomes ?? false);
 
-  // reset on open change
-  useState(() => { /* no-op, jsut to silence */ });
+  // Resync form whenever the dialog opens with a different employee
+  useEffect(() => {
+    if (!open) return;
+    setName(initial?.name ?? "");
+    setCpf(initial?.cpf ?? "");
+    setRole(initial?.role ?? "");
+    setDepartment(initial?.department ?? "");
+    setRegistration(initial?.registration ?? "");
+    setHireDate(initial?.hireDate ?? "");
+    setStatus(initial?.status ?? "ativo");
+    setBaseSalary(String(initial?.baseSalary ?? ""));
+    setPaymentType(initial?.paymentType ?? "mensal");
+    setBank(initial?.bank ?? "");
+    setAgency(initial?.agency ?? "");
+    setAccount(initial?.account ?? "");
+    setPixKey(initial?.pixKey ?? "");
+    setBenefits(initial?.benefits ?? []);
+    setDeductions(initial?.deductions ?? []);
+    setAddToIncomes(initial?.addToIncomes ?? false);
+  }, [open, initial]);
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
