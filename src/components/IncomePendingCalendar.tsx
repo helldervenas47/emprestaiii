@@ -715,10 +715,14 @@ export function IncomePendingCalendar({
                     statusCls = "bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/30";
                   }
                   const fmtBR = (d: string) => new Date(d + "T00:00:00").toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
+                  const dotCls = isPaid ? "bg-emerald-500" : isLate ? "bg-rose-500" : "";
                   return (
                     <li key={`exp-${ex.id}`} className="flex items-start justify-between gap-2 rounded-md bg-rose-500/5 border border-rose-500/20 px-2.5 py-1.5">
                       <span className="flex flex-col gap-0.5 min-w-0 flex-1">
-                        <span className="text-xs text-foreground break-words leading-snug font-medium">{ex.description}</span>
+                        <span className="text-xs text-foreground break-words leading-snug font-medium inline-flex items-center gap-1.5">
+                          {dotCls && <span className={`h-1.5 w-1.5 rounded-full shrink-0 ${dotCls}`} aria-hidden />}
+                          <span className="break-words">{ex.description}</span>
+                        </span>
                         <span className="flex items-center gap-1.5 flex-wrap">
                           {ex.category && <span className="text-[10px] text-muted-foreground">{ex.category}</span>}
                           <span className={`text-[9px] px-1.5 py-0.5 rounded border font-medium ${statusCls}`}>{statusLabel}</span>
@@ -750,9 +754,13 @@ export function IncomePendingCalendar({
                 </span>
               </div>
               <ul className="space-y-1">
-                {selectedInfo.cardInvoices.map((c) => (
+                {selectedInfo.cardInvoices.map((c) => {
+                  const isLate = !c.paid && selectedDate! < todayStr;
+                  const dotCls = c.paid ? "bg-emerald-500" : isLate ? "bg-rose-500" : "";
+                  return (
                   <li key={`inv-${c.cardId}`} className="flex items-start justify-between gap-2 rounded-md bg-violet-500/5 border border-violet-500/20 px-2.5 py-1.5">
                     <span className="flex items-start gap-1.5 text-xs text-foreground min-w-0 flex-1">
+                      {dotCls && <span className={`h-1.5 w-1.5 mt-1 rounded-full shrink-0 ${dotCls}`} aria-hidden />}
                       <CreditCardIcon className="h-3 w-3 mt-0.5 text-violet-600 dark:text-violet-400 shrink-0" />
                       <span className="break-words leading-snug">{c.cardLabel}</span>
                       {c.paid && <span className="text-[10px] font-medium text-emerald-700 dark:text-emerald-400 shrink-0">paga</span>}
@@ -761,7 +769,8 @@ export function IncomePendingCalendar({
                       {formatCurrency(c.total)}
                     </span>
                   </li>
-                ))}
+                  );
+                })}
               </ul>
               <p className="text-[10px] text-muted-foreground italic mt-1 px-1">
                 Faturas em aberto entram no cálculo do saldo previsto do dia.
