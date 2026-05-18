@@ -119,6 +119,7 @@ export function CreditCardInvoice({ card, onClose, referenceMonth, originRect }:
   });
   const [paying, setPaying] = useState(false);
   const [payAmount, setPayAmount] = useState("");
+  const [payWallet, setPayWallet] = useState<"account" | "cash">("account");
   const [deletingPayment, setDeletingPayment] = useState<PaidInvoiceEntry | null>(null);
   const [deletingPaymentBusy, setDeletingPaymentBusy] = useState(false);
 
