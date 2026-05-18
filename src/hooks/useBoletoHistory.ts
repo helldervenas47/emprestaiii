@@ -61,6 +61,7 @@ export function useBoletoHistory() {
         due_date: d.due_date,
         label: d.label,
         parsed_at: d.parsed_at,
+        pix_brcode: d.pix_brcode ?? null,
       })) as BoletoHistoryItem[];
       setItems(mapped);
       saveLocal(mapped);
