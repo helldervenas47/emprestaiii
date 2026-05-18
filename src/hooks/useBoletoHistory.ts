@@ -15,6 +15,7 @@ export interface BoletoHistoryItem {
   due_date: string | null;
   label: string;
   parsed_at: string;
+  pix_brcode?: string | null;
 }
 
 const LOCAL_KEY = "boleto.history.v1";
