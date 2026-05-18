@@ -430,7 +430,7 @@ export function ConsolidatedBalanceCards() {
                     );
                   })()}
 
-                  {(() => {
+                  {showProjection && (() => {
                     const today = new Date();
                     const todayStr = today.toISOString().slice(0, 10);
                     const horizon = new Date(today);
