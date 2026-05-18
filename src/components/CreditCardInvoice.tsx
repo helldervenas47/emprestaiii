@@ -148,7 +148,11 @@ export function CreditCardInvoice({ card, onClose, referenceMonth, originRect }:
       }, 0);
       const override = readPaidOverride(op?.notes);
       const restoredOpening =
-        override !== null ? Math.max(0, Number((override - itemsTotal).toFixed(2))) : (op?.openingAmount ?? 0);
+        (op?.openingAmount ?? 0) > 0
+          ? op!.openingAmount
+          : override !== null
+            ? Math.max(0, Number((override - itemsTotal).toFixed(2)))
+            : 0;
 
       // Estorna lançamentos pagos do ciclo (desmarca paid).
       const paidIds = Array.from(new Set(cycleItems.filter((e) => e.paid).map((e) => e.id)));
