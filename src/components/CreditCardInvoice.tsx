@@ -603,16 +603,23 @@ export function CreditCardInvoice({ card, onClose, referenceMonth, originRect }:
           </div>
 
           {/* Pagar fatura */}
-          {(items.some((e) => !e.paid) || (opening && openingAmount > 0)) && (
-            <Button
-              onClick={() => setPayDialogOpen(true)}
-              className="w-full h-11 text-sm font-semibold shadow-md"
-              size="lg"
-            >
-              <Wallet className="h-4 w-4 mr-2" />
-              Pagar fatura · {mask(fmt(total))}
-            </Button>
-          )}
+          {(() => {
+            const remaining = Math.max(0, Number((total - paidTotal).toFixed(2)));
+            if (remaining <= 0.005) return null;
+            return (
+              <Button
+                onClick={() => {
+                  setPayAmount(remaining.toFixed(2));
+                  setPayDialogOpen(true);
+                }}
+                className="w-full h-11 text-sm font-semibold shadow-md"
+                size="lg"
+              >
+                <Wallet className="h-4 w-4 mr-2" />
+                Pagar fatura · {mask(fmt(remaining))}
+              </Button>
+            );
+          })()}
           {prevTotal > 0 && (
             <div className="rounded-xl border bg-muted/30 px-3 py-2.5 flex items-center justify-between">
               <div>
