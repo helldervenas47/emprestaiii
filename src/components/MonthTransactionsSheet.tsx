@@ -180,12 +180,16 @@ export function MonthTransactionsSheet({ open, onOpenChange, type, monthKey, inc
             <SelectContent>
               <SelectItem value="all">Todos status</SelectItem>
               {isIncome ? (
-                <>
-                  <SelectItem value="received">Recebidas</SelectItem>
-                  <SelectItem value="pending">Pendentes</SelectItem>
-                  <SelectItem value="overdue">Atrasadas</SelectItem>
-                </>
+                <SelectItem value="received">Recebidas</SelectItem>
               ) : (
+                <>
+                  <SelectItem value="paid">Pagas</SelectItem>
+                  <SelectItem value="due">A vencer</SelectItem>
+                  <SelectItem value="recurring">Recorrentes</SelectItem>
+                </>
+              )}
+            </SelectContent>
+          </Select>
                 <>
                   <SelectItem value="paid">Pagas</SelectItem>
                   <SelectItem value="due">A vencer</SelectItem>
