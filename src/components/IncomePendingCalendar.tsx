@@ -922,8 +922,8 @@ export function IncomePendingCalendar({
                     if (day === null) return <div key={`empty-${idx}`} />;
                     const dateStr = `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
                     const info = dayMap[dateStr];
-                    const status = getDayStatus(info);
-                    const hasMovement = status !== "none";
+                    const status = getDayStatus(info, dateStr);
+                    const hasMovement = status === "paid" || status === "overdue";
                     const isToday = dateStr === todayStr;
                     const isSelected = dateStr === selectedDate;
 
@@ -935,8 +935,8 @@ export function IncomePendingCalendar({
                           ${isSelected ? "bg-primary text-primary-foreground ring-2 ring-primary" : ""}
                           ${isToday && !isSelected ? "bg-accent font-bold" : ""}
                           ${!isSelected && !isToday && status === "paid" ? "bg-emerald-500/10" : ""}
-                          ${!isSelected && !isToday && status === "pending" ? "bg-rose-500/10" : ""}
-                          ${!isSelected && !isToday && status === "none" ? "bg-background hover:bg-muted" : ""}
+                          ${!isSelected && !isToday && status === "overdue" ? "bg-rose-500/10" : ""}
+                          ${!isSelected && !isToday && (status === "none" || status === "pending") ? "bg-background hover:bg-muted" : ""}
                         `}
                       >
                         {adjustments[dateStr] && (
