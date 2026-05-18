@@ -156,15 +156,39 @@ export function CreditCardInvoice({ card, onClose, referenceMonth, originRect }:
         await updateExpense(id, { paid: false, paidDate: null });
       }
 
-      // Limpa marcadores [PAID:xxx] e [PAGA] e restaura o saldo inicial.
+      // Limpa marcadores [PAID:xxx], [PAGA] e [LEDGER]; restaura o saldo inicial.
       const cleaned = (op?.notes ?? "")
         .replace(/\[PAID:[0-9]+(?:\.[0-9]+)?\]/gi, "")
         .replace(/\[PAGA\]/gi, "")
+        .replace(/\[LEDGER\]/gi, "")
         .replace(/\s+/g, " ")
         .trim();
       if (op || restoredOpening > 0) {
         await upsertOpening(card.id, entry.cycleKey, restoredOpening, cleaned || undefined);
       }
+
+      // Remove os lançamentos do extrato (ledger) referentes a esta fatura.
+      // Restitui o saldo das carteiras (Conta/Dinheiro) automaticamente via syncBalance.
+      try {
+        const { data: ledgerRows } = await supabase
+          .from("account_ledger")
+          .select("id, direction, amount, wallet")
+          .eq("metadata->>credit_card_id", card.id)
+          .eq("metadata->>cycle_key", entry.cycleKey)
+          .eq("metadata->>kind", "credit_card_invoice_payment");
+        if (ledgerRows && ledgerRows.length > 0) {
+          const ids = ledgerRows.map((r: any) => r.id);
+          await supabase.from("account_ledger").delete().in("id", ids);
+          // Estorna saldos das carteiras impactadas
+          const { adjustBalance } = await import("@/lib/balance");
+          for (const r of ledgerRows as any[]) {
+            const w = (r.wallet as "account" | "cash") || "account";
+            const delta = r.direction === "in" ? -Number(r.amount) : Number(r.amount);
+            if (delta !== 0) await adjustBalance(delta, w);
+          }
+          window.dispatchEvent(new CustomEvent("ledger:changed"));
+        }
+      } catch { /* noop */ }
       toast.success("Pagamento da fatura excluído");
       setDeletingPayment(null);
     } catch {
