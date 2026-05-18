@@ -37,7 +37,7 @@ function rowToIncome(r: any): Income {
     id: r.id,
     description: r.description,
     amount: Number(r.amount),
-    category: r.category,
+    category: displayIncomeCategory(r.category),
     clientId: r.client_id,
     source: r.source,
     paymentMethodId: r.payment_method_id,
