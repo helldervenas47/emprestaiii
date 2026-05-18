@@ -45,6 +45,8 @@ import { ExpenseEditDialog } from "./ExpenseEditDialog";
 import { ConfirmDeleteDialog } from "./ConfirmDeleteDialog";
 import { Expense } from "@/types/loan";
 import { toast } from "sonner";
+import { recordLedger } from "@/lib/ledger";
+import { supabase } from "@/integrations/supabase/client";
 
 interface Props {
   card: CreditCard;
