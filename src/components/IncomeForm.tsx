@@ -17,6 +17,7 @@ import { PlusCircle } from "lucide-react";
 import { todayInAppTz } from "@/lib/timezone";
 import { MoneyInput } from "@/components/ui/money-input";
 import { useDescriptionHistory } from "@/hooks/useDescriptionHistory";
+import { displayIncomeCategory, incomeCategoryKey } from "@/lib/incomeCategory";
 
 export const INCOME_CATEGORIES = [
   "Vendas",
@@ -55,9 +56,16 @@ export function IncomeForm({ open, onClose, onSubmit, initial }: Props) {
   const { suggestions, record } = useDescriptionHistory("income");
 
   const allCategories = useMemo(() => {
-    const customNames = new Set(customCategories.map((c) => c.name.trim().toLowerCase()));
-    const builtIns = INCOME_CATEGORIES.filter((c) => !customNames.has(c.trim().toLowerCase()));
-    return { builtIns, customs: customCategories };
+    const customKeys = new Set(customCategories.map((c) => incomeCategoryKey(c.name)));
+    const builtIns = INCOME_CATEGORIES.filter((c) => !customKeys.has(incomeCategoryKey(c)));
+    const seenCustoms = new Set<string>();
+    const customs = customCategories.filter((c) => {
+      const key = incomeCategoryKey(c.name);
+      if (seenCustoms.has(key)) return false;
+      seenCustoms.add(key);
+      return true;
+    });
+    return { builtIns, customs };
   }, [customCategories]);
 
   useEffect(() => {
@@ -65,7 +73,7 @@ export function IncomeForm({ open, onClose, onSubmit, initial }: Props) {
       if (initial) {
         setDescription(initial.description);
         setAmount(String(initial.amount));
-        setCategory(initial.category || "Outros");
+        setCategory(displayIncomeCategory(initial.category));
         const c = clients.find((c) => c.id === initial.clientId);
         setClientName(c?.name || initial.source || "");
         setPaymentMethodId(initial.paymentMethodId || "");
@@ -109,7 +117,7 @@ export function IncomeForm({ open, onClose, onSubmit, initial }: Props) {
     await onSubmit({
       description: description.trim(),
       amount: Number(amount),
-      category,
+      category: displayIncomeCategory(category),
       clientId: matched?.id || null,
       source: !matched && clientName.trim() ? clientName.trim() : null,
       paymentMethodId: paymentMethodId || null,
