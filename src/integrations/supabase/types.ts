@@ -390,6 +390,7 @@ export type Database = {
           label: string | null
           owner_id: string
           parsed_at: string
+          pix_brcode: string | null
           segment: string | null
           segment_label: string | null
           user_id: string
@@ -407,6 +408,7 @@ export type Database = {
           label?: string | null
           owner_id: string
           parsed_at?: string
+          pix_brcode?: string | null
           segment?: string | null
           segment_label?: string | null
           user_id: string
@@ -424,6 +426,7 @@ export type Database = {
           label?: string | null
           owner_id?: string
           parsed_at?: string
+          pix_brcode?: string | null
           segment?: string | null
           segment_label?: string | null
           user_id?: string

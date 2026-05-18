@@ -15,6 +15,7 @@ export interface BoletoHistoryItem {
   due_date: string | null;
   label: string;
   parsed_at: string;
+  pix_brcode?: string | null;
 }
 
 const LOCAL_KEY = "boleto.history.v1";
@@ -60,6 +61,7 @@ export function useBoletoHistory() {
         due_date: d.due_date,
         label: d.label,
         parsed_at: d.parsed_at,
+        pix_brcode: d.pix_brcode ?? null,
       })) as BoletoHistoryItem[];
       setItems(mapped);
       saveLocal(mapped);
@@ -106,6 +108,7 @@ export function useBoletoHistory() {
         due_date: input.due_date,
         label: input.label,
         parsed_at,
+        pix_brcode: input.pix_brcode ?? null,
       },
       { onConflict: "owner_id,digits" },
     );
