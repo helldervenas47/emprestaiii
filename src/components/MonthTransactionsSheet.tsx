@@ -190,14 +190,6 @@ export function MonthTransactionsSheet({ open, onOpenChange, type, monthKey, inc
               )}
             </SelectContent>
           </Select>
-                <>
-                  <SelectItem value="paid">Pagas</SelectItem>
-                  <SelectItem value="due">A vencer</SelectItem>
-                  <SelectItem value="recurring">Recorrentes</SelectItem>
-                </>
-              )}
-            </SelectContent>
-          </Select>
           <Select value={sortBy} onValueChange={(v: any) => setSortBy(v)}>
             <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
             <SelectContent>
