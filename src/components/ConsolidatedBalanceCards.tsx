@@ -200,7 +200,10 @@ export function ConsolidatedBalanceCards() {
               </p>
             </div>
           </DialogHeader>
-          <ScrollArea className="max-h-[60vh] px-5 pb-5">
+          <ScrollArea
+            className="max-h-[60vh] max-sm:max-h-none max-sm:flex-1 max-sm:h-full px-5 pb-5"
+            style={{ paddingBottom: "calc(1.25rem + env(safe-area-inset-bottom))" }}
+          >
             {(() => {
               const baseReceitas = incomesBalance;
               const Item = ({
