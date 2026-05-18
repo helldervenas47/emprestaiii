@@ -148,15 +148,11 @@ export function getCardInvoiceTotalsForMonth(
 
     const total = itemsTotal + openingAmount;
 
-    // O saldo inicial só conta como pendente se NÃO estiver marcado [PAGA] e
-    // NÃO houver override [PAID:xxx] (override = usuário confirmou valor pago).
-    const openingPending = openingAmount > 0 && !openingPaidFlag && override === null;
-    const cycleHasPending = items.some((e) => !e.paid) || openingPending;
-    const cycleEverHadValue = items.length > 0 || openingAmount > 0 || openingPaidFlag || override !== null;
-    const paid = cycleEverHadValue && !cycleHasPending;
-
     const itemsPaidTotal = items.filter((e) => e.paid).reduce((s, e) => s + installmentValue(e), 0);
     const paidTotal = override ?? Number((itemsPaidTotal + (openingPaidFlag ? openingAmount : 0)).toFixed(2));
+    const cycleHasPending = Math.max(0, total - paidTotal) > 0.005;
+    const cycleEverHadValue = items.length > 0 || openingAmount > 0 || openingPaidFlag || override !== null;
+    const paid = cycleEverHadValue && !cycleHasPending;
 
     if (total > 0 || (paid && paidTotal > 0) || override !== null) {
       result.push({ card, total, paid, paidTotal, hasPaidOverride: override !== null });
