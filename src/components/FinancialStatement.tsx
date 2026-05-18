@@ -51,6 +51,8 @@ export function FinancialStatement() {
   const { sales } = useProducts(true);
   const { clients } = useClients();
   const { activeMethods } = usePaymentMethods();
+  const { cards } = useCreditCards();
+  const { openings } = useCreditCardOpenings();
 
   const today = new Date();
   const firstOfMonth = new Date(today.getFullYear(), today.getMonth(), 1)
