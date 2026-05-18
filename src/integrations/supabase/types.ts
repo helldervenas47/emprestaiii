@@ -870,6 +870,7 @@ export type Database = {
       employees: {
         Row: {
           account: string | null
+          add_to_incomes: boolean
           agency: string | null
           bank: string | null
           base_salary: number
@@ -895,6 +896,7 @@ export type Database = {
         }
         Insert: {
           account?: string | null
+          add_to_incomes?: boolean
           agency?: string | null
           bank?: string | null
           base_salary?: number
@@ -920,6 +922,7 @@ export type Database = {
         }
         Update: {
           account?: string | null
+          add_to_incomes?: boolean
           agency?: string | null
           bank?: string | null
           base_salary?: number
@@ -1831,6 +1834,7 @@ export type Database = {
           created_at: string
           expense_id: string | null
           id: string
+          income_id: string | null
           notes: string | null
           paid_date: string
           payment_method_id: string | null
@@ -1842,6 +1846,7 @@ export type Database = {
           created_at?: string
           expense_id?: string | null
           id?: string
+          income_id?: string | null
           notes?: string | null
           paid_date?: string
           payment_method_id?: string | null
@@ -1853,6 +1858,7 @@ export type Database = {
           created_at?: string
           expense_id?: string | null
           id?: string
+          income_id?: string | null
           notes?: string | null
           paid_date?: string
           payment_method_id?: string | null
@@ -1879,6 +1885,7 @@ export type Database = {
           expense_id: string | null
           gross_salary: number
           id: string
+          income_id: string | null
           items: Json
           net_salary: number
           notes: string | null
@@ -1900,6 +1907,7 @@ export type Database = {
           expense_id?: string | null
           gross_salary?: number
           id?: string
+          income_id?: string | null
           items?: Json
           net_salary?: number
           notes?: string | null
@@ -1921,6 +1929,7 @@ export type Database = {
           expense_id?: string | null
           gross_salary?: number
           id?: string
+          income_id?: string | null
           items?: Json
           net_salary?: number
           notes?: string | null

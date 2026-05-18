@@ -8,6 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Label } from "@/components/ui/label";
 import { MoneyInput } from "@/components/ui/money-input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
 import { useEmployees } from "@/hooks/useEmployees";
@@ -143,6 +144,7 @@ function EmployeeFormDialog({ open, onOpenChange, initial, onSave }: {
   const [pixKey, setPixKey] = useState(initial?.pixKey ?? "");
   const [benefits, setBenefits] = useState<SalaryItem[]>(initial?.benefits ?? []);
   const [deductions, setDeductions] = useState<SalaryItem[]>(initial?.deductions ?? []);
+  const [addToIncomes, setAddToIncomes] = useState<boolean>(initial?.addToIncomes ?? false);
 
   // reset on open change
   useState(() => { /* no-op, jsut to silence */ });
@@ -166,6 +168,7 @@ function EmployeeFormDialog({ open, onOpenChange, initial, onSave }: {
       pixKey: pixKey || null,
       benefits,
       deductions,
+      addToIncomes,
     });
   };
 
@@ -218,6 +221,16 @@ function EmployeeFormDialog({ open, onOpenChange, initial, onSave }: {
 
           <ItemListEditor title="Benefícios" items={benefits} setItems={setBenefits} />
           <ItemListEditor title="Descontos" items={deductions} setItems={setDeductions} />
+
+          <div className="flex items-start justify-between gap-3 rounded-lg border bg-muted/30 p-3">
+            <div className="space-y-0.5 min-w-0">
+              <Label className="text-sm">Adicionar salário ao saldo da aba Receitas?</Label>
+              <p className="text-xs text-muted-foreground">
+                Quando ativo, cada pagamento gera também um lançamento de entrada interna em Receitas (apenas composição — não duplica o saldo).
+              </p>
+            </div>
+            <Switch checked={addToIncomes} onCheckedChange={setAddToIncomes} />
+          </div>
 
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>

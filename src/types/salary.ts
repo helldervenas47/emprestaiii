@@ -30,6 +30,8 @@ export interface Employee {
   benefits: SalaryItem[];
   deductions: SalaryItem[];
   notes?: string | null;
+  /** Quando true, cada pagamento de salário gera também uma entrada na aba Receitas (somente composição, sem impacto duplicado no saldo). */
+  addToIncomes: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -53,6 +55,7 @@ export interface Payroll {
   paidDate?: string | null;
   paymentMethodId?: string | null;
   expenseId?: string | null;
+  incomeId?: string | null;
   closed: boolean;
   items: PayrollItems;
   notes?: string | null;
@@ -67,6 +70,7 @@ export interface PayrollPayment {
   paidDate: string;
   paymentMethodId?: string | null;
   expenseId?: string | null;
+  incomeId?: string | null;
   notes?: string | null;
   createdAt: string;
 }

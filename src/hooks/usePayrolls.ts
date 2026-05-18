@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
-import { recordLedger } from "@/lib/ledger";
+import { recordLedger, removeLedgerByRef } from "@/lib/ledger";
 import { todayInAppTz } from "@/lib/timezone";
 import type { Employee, Payroll, PayrollItems, PayrollStatus, SalaryItem } from "@/types/salary";
 
@@ -20,6 +20,7 @@ function rowToPayroll(r: any): Payroll {
     paidDate: r.paid_date,
     paymentMethodId: r.payment_method_id,
     expenseId: r.expense_id,
+    incomeId: r.income_id,
     closed: !!r.closed,
     items: (r.items as PayrollItems) ?? { earnings: [], deductions: [] },
     notes: r.notes,
@@ -106,7 +107,18 @@ export function usePayrolls(enabled = true) {
     return created;
   }, [generatePayroll]);
 
-  /** Aplica um pagamento (total ou parcial) e gera despesa + extrato. */
+  /**
+   * Aplica um pagamento (total ou parcial).
+   *
+   * Regra única de saída financeira:
+   *   - A despesa "Salários" criada aqui é o ÚNICO evento que debita o caixa
+   *     (via uma entrada no extrato vinculada a essa despesa).
+   *
+   * Composição opcional (employee.addToIncomes = true):
+   *   - Cria também uma entrada na aba Receitas (status recebido), categoria
+   *     "Salários", SEM tocar no extrato — serve apenas para compor o saldo
+   *     operacional da aba Receitas. Não duplica nem altera o saldo total.
+   */
   const payPayroll = useCallback(async (payroll: Payroll, employee: Employee | undefined, amount: number, opts?: { paidDate?: string; paymentMethodId?: string | null; notes?: string }) => {
     if (!dataOwnerId) return;
     const date = opts?.paidDate || todayInAppTz();
@@ -114,11 +126,13 @@ export function usePayrolls(enabled = true) {
     const fully = newPaid >= payroll.netSalary - 0.01;
     const status: PayrollStatus = fully ? "pago" : "parcial";
 
-    // 1. Cria despesa "Salários" já marcada como paga
     const empName = employee?.name ?? "Funcionário";
+    const baseDesc = `Salário ${empName} - ${payroll.competence}${fully ? "" : " (parcial)"}`;
+
+    // 1. Despesa em "Salários" (única saída financeira real)
     const expensePayload = {
       user_id: dataOwnerId,
-      description: `Salário ${empName} - ${payroll.competence}${fully ? "" : " (parcial)"}`,
+      description: baseDesc,
       amount,
       type: "fixa",
       category: "Salários",
@@ -127,12 +141,12 @@ export function usePayrolls(enabled = true) {
       paid_date: date,
       scope: "business",
       payment_method_id: opts?.paymentMethodId ?? null,
-      notes: opts?.notes ?? `Folha de pagamento - competência ${payroll.competence}`,
+      notes: opts?.notes ?? `Folha de pagamento - competência ${payroll.competence} | employee_id=${payroll.employeeId}`,
     };
     const { data: expenseRow } = await supabase.from("expenses").insert(expensePayload as any).select().single();
-    const expenseId = expenseRow?.id ?? null;
+    const expenseId = (expenseRow as any)?.id ?? null;
 
-    // 2. Registra no extrato (ledger)
+    // 2. Extrato (única baixa) — vinculado à despesa
     await recordLedger({
       direction: "out",
       category: "expense",
@@ -145,7 +159,26 @@ export function usePayrolls(enabled = true) {
       metadata: { payroll_id: payroll.id, competence: payroll.competence, employee_id: payroll.employeeId },
     });
 
-    // 3. Salva histórico do pagamento
+    // 3. Composição opcional na aba Receitas (não toca em saldo/extrato)
+    let incomeId: string | null = null;
+    if (employee?.addToIncomes) {
+      const { data: incomeRow } = await supabase.from("incomes").insert({
+        user_id: dataOwnerId,
+        description: baseDesc,
+        amount,
+        category: "Salários",
+        source: "salary",
+        received_date: date,
+        actual_received_date: date,
+        status: "received",
+        recurrence: "once",
+        payment_method_id: opts?.paymentMethodId ?? null,
+        notes: `Composição interna do salário | payroll_id=${payroll.id} | employee_id=${payroll.employeeId}`,
+      } as any).select().single();
+      incomeId = (incomeRow as any)?.id ?? null;
+    }
+
+    // 4. Histórico do pagamento (vincula despesa + income opcional)
     await supabase.from("payroll_payments" as any).insert({
       user_id: dataOwnerId,
       payroll_id: payroll.id,
@@ -153,19 +186,58 @@ export function usePayrolls(enabled = true) {
       paid_date: date,
       payment_method_id: opts?.paymentMethodId ?? null,
       expense_id: expenseId,
+      income_id: incomeId,
       notes: opts?.notes ?? null,
     } as any);
 
-    // 4. Atualiza folha
+    // 5. Atualiza folha
     await supabase.from("payrolls" as any).update({
       paid_amount: newPaid,
       status,
       paid_date: fully ? date : null,
       payment_method_id: opts?.paymentMethodId ?? null,
       expense_id: fully ? expenseId : payroll.expenseId,
+      income_id: fully ? incomeId : payroll.incomeId,
       closed: fully ? true : payroll.closed,
     } as any).eq("id", payroll.id);
   }, [dataOwnerId]);
+
+  /** Estorna um pagamento individual: remove despesa, extrato e income vinculados. */
+  const reversePayrollPayment = useCallback(async (paymentId: string) => {
+    const { data: pay } = await supabase
+      .from("payroll_payments" as any)
+      .select("*")
+      .eq("id", paymentId)
+      .maybeSingle();
+    if (!pay) return;
+    const p = pay as any;
+    if (p.expense_id) {
+      await removeLedgerByRef({ expense_id: p.expense_id });
+      await supabase.from("expenses").delete().eq("id", p.expense_id);
+    }
+    if (p.income_id) {
+      await supabase.from("incomes").delete().eq("id", p.income_id);
+    }
+    await supabase.from("payroll_payments" as any).delete().eq("id", paymentId);
+
+    // Recalcula totais da folha
+    const { data: remaining } = await supabase
+      .from("payroll_payments" as any)
+      .select("amount")
+      .eq("payroll_id", p.payroll_id);
+    const newPaid = ((remaining as any[]) ?? []).reduce((s, r) => s + Number(r.amount || 0), 0);
+    const { data: payrollRow } = await supabase
+      .from("payrolls" as any).select("net_salary").eq("id", p.payroll_id).maybeSingle();
+    const net = Number((payrollRow as any)?.net_salary ?? 0);
+    const fully = newPaid >= net - 0.01;
+    const status: PayrollStatus = newPaid <= 0.01 ? "pendente" : fully ? "pago" : "parcial";
+    await supabase.from("payrolls" as any).update({
+      paid_amount: newPaid,
+      status,
+      paid_date: fully ? p.paid_date : null,
+      closed: fully ? true : false,
+    } as any).eq("id", p.payroll_id);
+  }, []);
 
   const reopenPayroll = useCallback(async (payroll: Payroll) => {
     await supabase.from("payrolls" as any).update({ closed: false } as any).eq("id", payroll.id);
@@ -175,7 +247,21 @@ export function usePayrolls(enabled = true) {
     await supabase.from("payrolls" as any).update({ closed: true } as any).eq("id", payroll.id);
   }, []);
 
+  /** Exclui a folha e todos os efeitos colaterais (despesas, incomes, extrato). */
   const deletePayroll = useCallback(async (id: string) => {
+    const { data: payments } = await supabase
+      .from("payroll_payments" as any)
+      .select("expense_id, income_id")
+      .eq("payroll_id", id);
+    for (const p of ((payments as any[]) ?? [])) {
+      if (p.expense_id) {
+        await removeLedgerByRef({ expense_id: p.expense_id });
+        await supabase.from("expenses").delete().eq("id", p.expense_id);
+      }
+      if (p.income_id) {
+        await supabase.from("incomes").delete().eq("id", p.income_id);
+      }
+    }
     await supabase.from("payrolls" as any).delete().eq("id", id);
   }, []);
 
@@ -196,7 +282,7 @@ export function usePayrolls(enabled = true) {
 
   return {
     payrolls, loading, refresh: fetchAll,
-    generatePayroll, generateMonthlyBatch, payPayroll,
+    generatePayroll, generateMonthlyBatch, payPayroll, reversePayrollPayment,
     reopenPayroll, closePayroll, deletePayroll, updatePayroll,
   };
 }

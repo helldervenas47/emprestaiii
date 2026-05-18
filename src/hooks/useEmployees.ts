@@ -25,6 +25,7 @@ function rowToEmployee(r: any): Employee {
     benefits: (r.benefits as SalaryItem[]) ?? [],
     deductions: (r.deductions as SalaryItem[]) ?? [],
     notes: r.notes,
+    addToIncomes: !!r.add_to_incomes,
     createdAt: r.created_at,
     updatedAt: r.updated_at,
   };
@@ -80,6 +81,7 @@ export function useEmployees(enabled = true) {
       benefits: e.benefits,
       deductions: e.deductions,
       notes: e.notes ?? null,
+      add_to_incomes: !!e.addToIncomes,
     };
     const { data, error } = await supabase.from("employees" as any).insert(payload as any).select().single();
     if (error) throw error;
@@ -107,6 +109,7 @@ export function useEmployees(enabled = true) {
     if (patch.benefits !== undefined) p.benefits = patch.benefits;
     if (patch.deductions !== undefined) p.deductions = patch.deductions;
     if (patch.notes !== undefined) p.notes = patch.notes;
+    if (patch.addToIncomes !== undefined) p.add_to_incomes = patch.addToIncomes;
     await supabase.from("employees" as any).update(p).eq("id", id);
   }, []);
 
