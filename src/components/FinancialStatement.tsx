@@ -181,9 +181,9 @@ export function FinancialStatement() {
       }
     });
 
-    return [...incomeRows, ...expenseRows, ...saleRows];
+    return [...incomeRows, ...expenseRows, ...saleRows, ...creditCardRows];
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [incomes, expenses, sales, activeMethods, clients]);
+  }, [incomes, expenses, sales, activeMethods, clients, cards, openings, from, to]);
 
   const categories = useMemo(() => {
     const set = new Set<string>();
