@@ -36,7 +36,7 @@ import { Progress } from "@/components/ui/progress";
 import { CreditCard } from "@/hooks/useCreditCards";
 import { useExpenses } from "@/hooks/useExpenses";
 import { useCreditCardOpenings, cycleKeyFromDate } from "@/hooks/useCreditCardOpenings";
-import { readPaidOverride, writePaidOverride } from "@/lib/creditCardInvoiceTotals";
+import { readPaidOverride, writePaidOverride, listPaidInvoicesInRange } from "@/lib/creditCardInvoiceTotals";
 import { expandCreditCardExpenses, type ExpandedExpense } from "@/lib/creditCardInstallments";
 import { useHideValues } from "@/contexts/HideValuesContext";
 import { getBank, brandLabel } from "@/lib/creditCardBanks";
@@ -231,6 +231,20 @@ export function CreditCardInvoice({ card, onClose, referenceMonth, originRect }:
   const cycleHasPending = items.some((e) => !e.paid) || openingAmount > 0;
   const cycleEverHadValue = items.length > 0 || openingAmount > 0 || openingPaidFlag;
   const isPaid = cycleEverHadValue && !cycleHasPending;
+
+  // Histórico de pagamentos: faturas pagas deste cartão nos últimos 24 meses,
+  // excluindo a fatura aberta neste modal (que aparece acima).
+  const paymentHistory = useMemo(() => {
+    const today = new Date();
+    const fromD = new Date(today.getFullYear(), today.getMonth() - 24, 1);
+    const toD = new Date(today.getFullYear(), today.getMonth() + 2, 0);
+    const fromISO = `${fromD.getFullYear()}-${String(fromD.getMonth() + 1).padStart(2, "0")}-${String(fromD.getDate()).padStart(2, "0")}`;
+    const toISO = `${toD.getFullYear()}-${String(toD.getMonth() + 1).padStart(2, "0")}-${String(toD.getDate()).padStart(2, "0")}`;
+    const list = listPaidInvoicesInRange(expenses, [card], openings, fromISO, toISO);
+    return list
+      .filter((p) => p.cycleKey !== cycleKey)
+      .sort((a, b) => (a.paidDate < b.paidDate ? 1 : -1));
+  }, [expenses, openings, card, cycleKey]);
 
   const status: { label: string; tone: string; icon: typeof Clock } = isPaid
     ? { label: isClosed ? "Fechada — Paga" : "Paga", tone: "bg-success/15 text-success border-success/30", icon: CheckCircle2 }
@@ -722,6 +736,74 @@ export function CreditCardInvoice({ card, onClose, referenceMonth, originRect }:
                 })
               )}
             </div>
+          </div>
+
+          {/* Histórico de pagamentos de faturas anteriores */}
+          <div className="mt-2">
+            <div className="flex items-center justify-between mb-2 px-1">
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                Histórico de pagamentos ({paymentHistory.length})
+              </p>
+              <p className="text-[11px] text-muted-foreground">Últimos 24 meses</p>
+            </div>
+
+            {paymentHistory.length === 0 ? (
+              <div className="text-center py-6 text-sm text-muted-foreground border border-dashed rounded-xl">
+                Nenhuma fatura paga registrada ainda.
+              </div>
+            ) : (
+              <div className="space-y-1.5 max-h-72 overflow-y-auto pr-1">
+                {paymentHistory.map((p) => {
+                  const [cy, cm] = p.cycleKey.split("-").map(Number);
+                  const cycleLabel = format(new Date(cy, (cm ?? 1) - 1, 1), "MMM/yy", { locale: ptBR });
+                  const paid = new Date(p.paidDate + "T00:00:00");
+                  const due = new Date(p.dueDate + "T00:00:00");
+                  const partial = p.paidTotal + 0.01 < p.total;
+                  return (
+                    <div
+                      key={`${p.cycleKey}-${p.paidDate}`}
+                      className="flex items-center justify-between gap-2 p-3 rounded-xl border bg-card"
+                    >
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <p className="text-sm font-medium text-foreground capitalize">
+                            Fatura {cycleLabel}
+                          </p>
+                          <Badge
+                            variant="outline"
+                            className={
+                              partial
+                                ? "text-[10px] py-0 h-4 bg-warning/15 text-warning border-warning/30"
+                                : "text-[10px] py-0 h-4 bg-success/15 text-success border-success/30"
+                            }
+                          >
+                            {partial ? "Pago parcial" : "Pago"}
+                          </Badge>
+                        </div>
+                        <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                          <span className="text-[11px] text-muted-foreground">
+                            Pago em {format(paid, "dd/MM/yyyy", { locale: ptBR })}
+                          </span>
+                          <span className="text-[11px] text-muted-foreground">
+                            · Venc. {format(due, "dd/MM/yyyy", { locale: ptBR })}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="text-right shrink-0">
+                        <p className="text-sm font-semibold text-foreground tabular-nums">
+                          {mask(fmt(p.paidTotal))}
+                        </p>
+                        {partial && (
+                          <p className="text-[10px] text-muted-foreground tabular-nums">
+                            de {mask(fmt(p.total))}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>
