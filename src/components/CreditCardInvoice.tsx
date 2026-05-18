@@ -36,7 +36,7 @@ import { Progress } from "@/components/ui/progress";
 import { CreditCard } from "@/hooks/useCreditCards";
 import { useExpenses } from "@/hooks/useExpenses";
 import { useCreditCardOpenings, cycleKeyFromDate } from "@/hooks/useCreditCardOpenings";
-import { readPaidOverride, writePaidOverride, listPaidInvoicesInRange } from "@/lib/creditCardInvoiceTotals";
+import { readPaidOverride, writePaidOverride, listPaidInvoicesInRange, isCreditCardExpense, type PaidInvoiceEntry } from "@/lib/creditCardInvoiceTotals";
 import { expandCreditCardExpenses, type ExpandedExpense } from "@/lib/creditCardInstallments";
 import { useHideValues } from "@/contexts/HideValuesContext";
 import { getBank, brandLabel } from "@/lib/creditCardBanks";
@@ -118,6 +118,57 @@ export function CreditCardInvoice({ card, onClose, referenceMonth, originRect }:
     return `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, "0")}-${String(t.getDate()).padStart(2, "0")}`;
   });
   const [paying, setPaying] = useState(false);
+  const [deletingPayment, setDeletingPayment] = useState<PaidInvoiceEntry | null>(null);
+  const [deletingPaymentBusy, setDeletingPaymentBusy] = useState(false);
+
+  const handleDeleteInvoicePayment = async (entry: PaidInvoiceEntry) => {
+    setDeletingPaymentBusy(true);
+    try {
+      const op = openings.find((o) => o.cardId === card.id && o.cycleKey === entry.cycleKey);
+      const [cy, cm] = entry.cycleKey.split("-").map(Number);
+      const cycleTo = new Date(cy, cm - 1, Math.min(card.closingDay, new Date(cy, cm, 0).getDate()));
+      const cycleFrom = new Date(cy, cm - 2, Math.min(card.closingDay, new Date(cy, cm - 1, 0).getDate()));
+      const tag = (card.nickname || card.lastFour || "").toLowerCase();
+      const cycleItems = expandedExpenses.filter((e) => {
+        if (!isCreditCardExpense(e)) return false;
+        if (tag) {
+          const n = (e.notes ?? "").toLowerCase();
+          if (!n.includes(tag) && /cart[aã]o[:\s]/i.test(n)) return false;
+        }
+        const due = new Date(e.dueDate + "T00:00:00");
+        return due >= cycleFrom && due < cycleTo;
+      });
+      const itemsTotal = cycleItems.reduce((s, e) => {
+        const isRec = e.type === "recorrente" && !!e.installments && e.installments > 1;
+        return s + (isRec ? e.amount / e.installments! : e.amount);
+      }, 0);
+      const override = readPaidOverride(op?.notes);
+      const restoredOpening =
+        override !== null ? Math.max(0, Number((override - itemsTotal).toFixed(2))) : (op?.openingAmount ?? 0);
+
+      // Estorna lançamentos pagos do ciclo (desmarca paid).
+      const paidIds = Array.from(new Set(cycleItems.filter((e) => e.paid).map((e) => e.id)));
+      for (const id of paidIds) {
+        await updateExpense(id, { paid: false, paidDate: null });
+      }
+
+      // Limpa marcadores [PAID:xxx] e [PAGA] e restaura o saldo inicial.
+      const cleaned = (op?.notes ?? "")
+        .replace(/\[PAID:[0-9]+(?:\.[0-9]+)?\]/gi, "")
+        .replace(/\[PAGA\]/gi, "")
+        .replace(/\s+/g, " ")
+        .trim();
+      if (op || restoredOpening > 0) {
+        await upsertOpening(card.id, entry.cycleKey, restoredOpening, cleaned || undefined);
+      }
+      toast.success("Pagamento da fatura excluído");
+      setDeletingPayment(null);
+    } catch {
+      toast.error("Erro ao excluir pagamento");
+    } finally {
+      setDeletingPaymentBusy(false);
+    }
+  };
 
   useEffect(() => {
     setCycleOffset(initialOffset);
@@ -787,15 +838,26 @@ export function CreditCardInvoice({ card, onClose, referenceMonth, originRect }:
                           </span>
                         </div>
                       </div>
-                      <div className="text-right shrink-0">
-                        <p className="text-sm font-semibold text-foreground tabular-nums">
-                          {mask(fmt(p.paidTotal))}
-                        </p>
-                        {partial && (
-                          <p className="text-[10px] text-muted-foreground tabular-nums">
-                            de {mask(fmt(p.total))}
+                      <div className="flex items-start gap-2 shrink-0">
+                        <div className="text-right">
+                          <p className="text-sm font-semibold text-foreground tabular-nums">
+                            {mask(fmt(p.paidTotal))}
                           </p>
-                        )}
+                          {partial && (
+                            <p className="text-[10px] text-muted-foreground tabular-nums">
+                              de {mask(fmt(p.total))}
+                            </p>
+                          )}
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                          onClick={() => setDeletingPayment(p)}
+                          aria-label="Excluir pagamento"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
                       </div>
                     </div>
                   );
@@ -1003,6 +1065,18 @@ export function CreditCardInvoice({ card, onClose, referenceMonth, originRect }:
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <ConfirmDeleteDialog
+        open={!!deletingPayment}
+        onOpenChange={(o) => !o && !deletingPaymentBusy && setDeletingPayment(null)}
+        title="Excluir pagamento da fatura?"
+        description={
+          deletingPayment
+            ? `O valor de ${fmt(deletingPayment.paidTotal)} será estornado para a conta de origem, os lançamentos individuais voltarão como pendentes e a fatura ficará em aberto novamente.`
+            : ""
+        }
+        onConfirm={() => deletingPayment && handleDeleteInvoicePayment(deletingPayment)}
+      />
     </div>
   );
 
