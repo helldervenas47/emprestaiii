@@ -17,6 +17,13 @@ import autoTable from "jspdf-autotable";
 import * as XLSX from "xlsx";
 import { Expense, Sale } from "@/types/loan";
 import { useProducts } from "@/hooks/useProducts";
+import { useCreditCards } from "@/hooks/useCreditCards";
+import { useCreditCardOpenings } from "@/hooks/useCreditCardOpenings";
+import {
+  isCreditCardExpense,
+  listPaidInvoicesInRange,
+  CREDIT_CARD_INVOICE_CATEGORY,
+} from "@/lib/creditCardInvoiceTotals";
 
 type RowOrigin = "income" | "expense" | "sale-full" | "sale-partial";
 
@@ -44,6 +51,8 @@ export function FinancialStatement() {
   const { sales } = useProducts(true);
   const { clients } = useClients();
   const { activeMethods } = usePaymentMethods();
+  const { cards } = useCreditCards();
+  const { openings } = useCreditCardOpenings();
 
   const today = new Date();
   const firstOfMonth = new Date(today.getFullYear(), today.getMonth(), 1)
@@ -78,7 +87,15 @@ export function FinancialStatement() {
         account: clientName(i.clientId) || i.source || "—",
       }));
     const expenseRows: Row[] = expenses
-      .filter((e) => e.paid && !!e.paidDate && e.scope === "personal")
+      .filter(
+        (e) =>
+          e.paid &&
+          !!e.paidDate &&
+          e.scope === "personal" &&
+          // Despesas individuais de cartão de crédito NÃO entram no extrato —
+          // são agregadas em um único lançamento por fatura paga (ver creditCardRows).
+          !isCreditCardExpense(e),
+      )
       .map((e: Expense) => ({
         id: `e-${e.id}`,
         date: e.paidDate!,
@@ -90,6 +107,31 @@ export function FinancialStatement() {
         paymentMethod: methodName(e.paymentMethodId),
         account: "Pessoal",
       }));
+
+    // Faturas de cartão pagas no período → 1 lançamento por (cartão, ciclo).
+    const creditCardRows: Row[] = listPaidInvoicesInRange(
+      expenses,
+      cards,
+      openings,
+      from,
+      to,
+    ).map((inv) => {
+      const label =
+        inv.card.nickname?.trim() ||
+        [inv.card.bank, inv.card.lastFour].filter(Boolean).join(" •••• ") ||
+        "Cartão";
+      return {
+        id: `cc-${inv.card.id}-${inv.cycleKey}`,
+        date: inv.paidDate,
+        description: `Fatura ${label}`,
+        category: CREDIT_CARD_INVOICE_CATEGORY,
+        type: "expense",
+        origin: "expense",
+        amount: inv.paidTotal,
+        paymentMethod: "—",
+        account: "Pessoal",
+      };
+    });
 
     // Vendas: cada pagamento (paymentHistory) vira um lançamento individual no extrato.
     // Para vendas antigas com paid_installments/partial_paid sem entrada no histórico,
@@ -139,9 +181,9 @@ export function FinancialStatement() {
       }
     });
 
-    return [...incomeRows, ...expenseRows, ...saleRows];
+    return [...incomeRows, ...expenseRows, ...saleRows, ...creditCardRows];
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [incomes, expenses, sales, activeMethods, clients]);
+  }, [incomes, expenses, sales, activeMethods, clients, cards, openings, from, to]);
 
   const categories = useMemo(() => {
     const set = new Set<string>();
