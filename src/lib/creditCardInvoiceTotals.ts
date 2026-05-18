@@ -21,6 +21,12 @@ export function writePaidOverride(notes: string | null | undefined, value: numbe
   return base ? `${base} [PAID:${value.toFixed(2)}]` : `[PAID:${value.toFixed(2)}]`;
 }
 
+/** Lê a data efetiva do pagamento gravada em opening.notes como [PAID_DATE:YYYY-MM-DD]. */
+function readPaidDate(notes: string | null | undefined): string | null {
+  const m = /\[PAID_DATE:(\d{4}-\d{2}-\d{2})\]/i.exec(notes ?? "");
+  return m ? m[1] : null;
+}
+
 /** Detecta se o pagamento da fatura já foi lançado no extrato (ledger). */
 export function creditCardLedgerHandled(notes: string | null | undefined): boolean {
   return /\[LEDGER\]/i.test(notes ?? "");
@@ -150,7 +156,7 @@ export function getCardInvoiceTotalsForMonth(
     const paid = cycleEverHadValue && !cycleHasPending;
 
     const itemsPaidTotal = items.filter((e) => e.paid).reduce((s, e) => s + installmentValue(e), 0);
-    const paidTotal = override ?? itemsPaidTotal;
+    const paidTotal = override ?? Number((itemsPaidTotal + (openingPaidFlag ? openingAmount : 0)).toFixed(2));
 
     if (total > 0 || (paid && paidTotal > 0) || override !== null) {
       result.push({ card, total, paid, paidTotal, hasPaidOverride: override !== null });
@@ -245,7 +251,7 @@ export function listPaidInvoicesInRange(
       const itemsPaidTotal = items
         .filter((e) => e.paid)
         .reduce((s, e) => s + installmentValue(e), 0);
-      const paidTotal = override ?? itemsPaidTotal;
+      const paidTotal = override ?? Number((itemsPaidTotal + (openingPaidFlag ? openingAmount : 0)).toFixed(2));
       const invoiceTotal = Math.max(total, paidTotal);
       if (paidTotal <= 0) continue;
 
@@ -254,7 +260,7 @@ export function listPaidInvoicesInRange(
         .map((e) => e.paidDate)
         .filter((d): d is string => !!d)
         .sort();
-      const paidDate = paidDates.length > 0 ? paidDates[paidDates.length - 1] : toISO_(cycle.dueDate);
+      const paidDate = readPaidDate(opening?.notes) ?? (paidDates.length > 0 ? paidDates[paidDates.length - 1] : toISO_(cycle.dueDate));
 
       // Filtra pelo intervalo (pela data do pagamento).
       if (paidDate < fromISO || paidDate > toISO) continue;
