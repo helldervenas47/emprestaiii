@@ -24,10 +24,11 @@ interface Props { readOnly?: boolean }
 
 export function PayrollManager({ readOnly }: Props) {
   const { employees } = useEmployees();
-  const { payrolls, generateMonthlyBatch, payPayroll, reopenPayroll, closePayroll, deletePayroll } = usePayrolls();
+  const { payrolls, generateMonthlyBatch, payPayroll, reversePayrollPayment, reopenPayroll, closePayroll, deletePayroll } = usePayrolls();
   const { branding } = useAppBranding();
   const [monthOffset, setMonthOffset] = useState(0);
   const [payingId, setPayingId] = useState<string | null>(null);
+  const [historyId, setHistoryId] = useState<string | null>(null);
 
   const competence = useMemo(() => {
     const d = new Date();
