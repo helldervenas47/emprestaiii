@@ -282,7 +282,7 @@ export function usePayrolls(enabled = true) {
 
   return {
     payrolls, loading, refresh: fetchAll,
-    generatePayroll, generateMonthlyBatch, payPayroll,
+    generatePayroll, generateMonthlyBatch, payPayroll, reversePayrollPayment,
     reopenPayroll, closePayroll, deletePayroll, updatePayroll,
   };
 }
