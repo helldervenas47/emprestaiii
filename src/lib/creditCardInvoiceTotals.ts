@@ -149,3 +149,120 @@ export function getCardInvoiceTotalsForMonth(
 
 /** Categoria virtual usada para agregar faturas de cartão no resumo. */
 export const CREDIT_CARD_INVOICE_CATEGORY = "Cartão de Crédito";
+
+export interface PaidInvoiceEntry {
+  card: CreditCard;
+  cycleKey: string;
+  /** Data de vencimento do ciclo (YYYY-MM-DD). */
+  dueDate: string;
+  /** Data efetiva do pagamento (último paid_date dentre os itens) ou dueDate como fallback. */
+  paidDate: string;
+  /** Valor total da fatura. */
+  total: number;
+  /** Valor efetivamente pago (com override [PAID:xxx] se houver). */
+  paidTotal: number;
+}
+
+function toISO(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
+/**
+ * Lista todas as faturas de cartão pagas cujo pagamento ocorreu dentro do intervalo
+ * [fromISO, toISO] (datas YYYY-MM-DD inclusivas). Uma entrada por (cartão, ciclo).
+ */
+export function listPaidInvoicesInRange(
+  expenses: Expense[],
+  cards: CreditCard[],
+  openings: InvoiceOpening[],
+  fromISO: string,
+  toISO: string,
+): PaidInvoiceEntry[] {
+  if (!fromISO || !toISO) return [];
+  const expanded = expandCreditCardExpenses(expenses);
+  const fromDate = new Date(fromISO + "T00:00:00");
+  const toDate = new Date(toISO + "T23:59:59");
+
+  // Cobre meses entre from e to com folga de ±1 para pegar faturas cuja due cai fora
+  // do range mas o pagamento foi dentro.
+  const months: string[] = [];
+  const cursor = new Date(fromDate.getFullYear(), fromDate.getMonth() - 1, 1);
+  const end = new Date(toDate.getFullYear(), toDate.getMonth() + 1, 1);
+  while (cursor <= end) {
+    months.push(`${cursor.getFullYear()}-${String(cursor.getMonth() + 1).padStart(2, "0")}`);
+    cursor.setMonth(cursor.getMonth() + 1);
+  }
+
+  const out: PaidInvoiceEntry[] = [];
+  for (const card of cards) {
+    if (card.active === false) continue;
+    const cardTag = (card.nickname || card.lastFour || "").toLowerCase();
+
+    for (const yyyymm of months) {
+      const cycle = getCycleForDueMonth(yyyymm, card.closingDay, card.dueDay);
+      if (!cycle) continue;
+
+      const items = expanded.filter((e) => {
+        if (!isCreditCardExpense(e)) return false;
+        if (cardTag) {
+          const n = (e.notes ?? "").toLowerCase();
+          if (n.includes(cardTag)) {
+            // ok
+          } else if (/cart[aã]o[:\s]/i.test(n)) {
+            return false;
+          }
+        }
+        const due = new Date(e.dueDate + "T00:00:00");
+        return due >= cycle.from && due < cycle.to;
+      });
+
+      const installmentValue = (e: Expense) => {
+        const isRec = e.type === "recorrente" && !!e.installments && e.installments > 1;
+        return isRec ? e.amount / e.installments! : e.amount;
+      };
+      const itemsTotal = items.reduce((s, e) => s + installmentValue(e), 0);
+
+      const cycleKey = cycleKeyFromDate(cycle.to);
+      const opening = openings.find((o) => o.cardId === card.id && o.cycleKey === cycleKey);
+      const openingAmount = opening?.openingAmount ?? 0;
+      const openingPaidFlag = /\[PAGA\]/i.test(opening?.notes ?? "");
+
+      const total = itemsTotal + openingAmount;
+      const cycleHasPending = items.some((e) => !e.paid) || openingAmount > 0;
+      const cycleEverHadValue = items.length > 0 || openingAmount > 0 || openingPaidFlag;
+      const paid = cycleEverHadValue && !cycleHasPending;
+      if (!paid) continue;
+
+      const itemsPaidTotal = items
+        .filter((e) => e.paid)
+        .reduce((s, e) => s + installmentValue(e), 0);
+      const override = readPaidOverride(opening?.notes);
+      const paidTotal = override ?? itemsPaidTotal;
+      if (paidTotal <= 0) continue;
+
+      // Data efetiva do pagamento: último paid_date entre os itens; fallback = dueDate.
+      const paidDates = items
+        .map((e) => e.paidDate)
+        .filter((d): d is string => !!d)
+        .sort();
+      const paidDate = paidDates.length > 0 ? paidDates[paidDates.length - 1] : toISO_(cycle.dueDate);
+
+      // Filtra pelo intervalo (pela data do pagamento).
+      if (paidDate < fromISO || paidDate > toISO) continue;
+
+      out.push({
+        card,
+        cycleKey,
+        dueDate: toISO_(cycle.dueDate),
+        paidDate,
+        total: Number(total.toFixed(2)),
+        paidTotal: Number(paidTotal.toFixed(2)),
+      });
+    }
+  }
+  return out;
+}
+
+function toISO_(d: Date): string {
+  return toISO(d);
+}
