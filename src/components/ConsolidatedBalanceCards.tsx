@@ -85,6 +85,32 @@ export function ConsolidatedBalanceCards() {
   const [vehicleBalance, setVehicleBalance] = useState(0);
   const [openRua, setOpenRua] = useState(false);
   const [openMaos, setOpenMaos] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [visibleCards, setVisibleCards] = useState<MaosCardId[]>(() => {
+    try {
+      const raw = typeof window !== "undefined" ? window.localStorage.getItem(MAOS_VISIBLE_KEY) : null;
+      if (raw) {
+        const parsed = JSON.parse(raw) as MaosCardId[];
+        const valid = parsed.filter((id) => ALL_MAOS_CARDS.some((c) => c.id === id));
+        if (valid.length === 2) return valid;
+      }
+    } catch { /* noop */ }
+    return DEFAULT_MAOS_VISIBLE;
+  });
+  useEffect(() => {
+    try { window.localStorage.setItem(MAOS_VISIBLE_KEY, JSON.stringify(visibleCards)); } catch { /* noop */ }
+  }, [visibleCards]);
+  const toggleCard = useCallback((id: MaosCardId) => {
+    setVisibleCards((prev) => {
+      if (prev.includes(id)) {
+        if (prev.length <= 1) return prev; // keep at least 1
+        return prev.filter((x) => x !== id);
+      }
+      if (prev.length >= 2) return [prev[1], id]; // replace oldest
+      return [...prev, id];
+    });
+  }, []);
+  const isVisible = useCallback((id: MaosCardId) => visibleCards.includes(id), [visibleCards]);
 
   const reloadExternalBalances = useCallback(async () => {
     const [b, { data: { session } }] = await Promise.all([
