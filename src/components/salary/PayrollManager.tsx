@@ -187,12 +187,29 @@ function PayDialog({ open, onOpenChange, payroll, onConfirm }: {
   const remaining = payroll ? Math.max(0, payroll.netSalary - payroll.paidAmount) : 0;
   const [amount, setAmount] = useState(String(remaining));
   const [date, setDate] = useState(todayInAppTz());
+  const [submitting, setSubmitting] = useState(false);
 
-  // sync when payroll changes
-  useMemo(() => { setAmount(String(remaining)); }, [remaining]);
+  useEffect(() => { setAmount(String(remaining)); setSubmitting(false); }, [remaining, open]);
+
+  const handleConfirm = async () => {
+    if (submitting) return;
+    const v = Number(amount) || 0;
+    if (v <= 0) return;
+    if (payroll && v > remaining + 0.01) {
+      toast.error("Valor excede o restante a pagar");
+      return;
+    }
+    setSubmitting(true);
+    try {
+      await onConfirm(v, date);
+    } catch (e: any) {
+      toast.error("Falha ao registrar pagamento", { description: e?.message });
+      setSubmitting(false);
+    }
+  };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={(o) => { if (!submitting) onOpenChange(o); }}>
       <DialogContent className="max-w-md" onOpenAutoFocus={(e) => e.preventDefault()}>
         <DialogHeader><DialogTitle>Pagar salário</DialogTitle></DialogHeader>
         <div className="space-y-3">
@@ -201,10 +218,92 @@ function PayDialog({ open, onOpenChange, payroll, onConfirm }: {
           <div><Label>Data</Label><Input type="date" value={date} onChange={(e) => setDate(e.target.value)} /></div>
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
-          <Button onClick={() => onConfirm(Number(amount) || 0, date)} disabled={!Number(amount)}>
-            <CheckCircle2 className="h-4 w-4" /> Confirmar
+          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={submitting}>Cancelar</Button>
+          <Button onClick={handleConfirm} disabled={submitting || !Number(amount)}>
+            <CheckCircle2 className="h-4 w-4" /> {submitting ? "Processando..." : "Confirmar"}
           </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+interface PaymentRow {
+  id: string;
+  amount: number;
+  paid_date: string;
+  notes: string | null;
+  created_at: string;
+}
+
+function PaymentsHistoryDialog({ open, onOpenChange, payrollId, readOnly, onReverse }: {
+  open: boolean;
+  onOpenChange: (o: boolean) => void;
+  payrollId: string | null;
+  readOnly?: boolean;
+  onReverse: (paymentId: string) => Promise<void>;
+}) {
+  const [rows, setRows] = useState<PaymentRow[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [busyId, setBusyId] = useState<string | null>(null);
+
+  const load = async () => {
+    if (!payrollId) return;
+    setLoading(true);
+    const { data } = await supabase
+      .from("payroll_payments" as any)
+      .select("id, amount, paid_date, notes, created_at")
+      .eq("payroll_id", payrollId)
+      .order("paid_date", { ascending: false });
+    setRows(((data as any[]) ?? []) as PaymentRow[]);
+    setLoading(false);
+  };
+
+  useEffect(() => { if (open) load(); /* eslint-disable-next-line */ }, [open, payrollId]);
+
+  const handleReverse = async (id: string) => {
+    if (busyId) return;
+    if (!confirm("Estornar este pagamento? A despesa e o lançamento no extrato vinculados serão removidos.")) return;
+    setBusyId(id);
+    try {
+      await onReverse(id);
+      await load();
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-lg">
+        <DialogHeader>
+          <DialogTitle>Pagamentos registrados</DialogTitle>
+          <DialogDescription>Estorne um pagamento para reverter a despesa e o lançamento no extrato.</DialogDescription>
+        </DialogHeader>
+        <div className="space-y-2 max-h-[60vh] overflow-y-auto">
+          {loading && <div className="text-sm text-muted-foreground">Carregando...</div>}
+          {!loading && rows.length === 0 && (
+            <div className="text-sm text-muted-foreground text-center py-6">Nenhum pagamento.</div>
+          )}
+          {rows.map((r) => (
+            <div key={r.id} className="flex items-center gap-3 border rounded-md p-3">
+              <div className="flex-1 min-w-0">
+                <div className="font-semibold">{BRL(Number(r.amount))}</div>
+                <div className="text-xs text-muted-foreground">
+                  {format(parseISO(r.paid_date), "dd/MM/yyyy", { locale: ptBR })}
+                </div>
+                {r.notes && <div className="text-xs text-muted-foreground truncate">{r.notes}</div>}
+              </div>
+              {!readOnly && (
+                <Button size="sm" variant="outline" onClick={() => handleReverse(r.id)} disabled={busyId === r.id}>
+                  <Undo2 className="h-3 w-3" /> {busyId === r.id ? "Estornando..." : "Estornar"}
+                </Button>
+              )}
+            </div>
+          ))}
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>Fechar</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
