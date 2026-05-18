@@ -28,22 +28,30 @@ interface Props {
   onAdd: (expense: Omit<Expense, "id" | "paid" | "paidDate" | "createdAt">) => void;
   onClose: () => void;
   scope?: "business" | "personal";
+  defaults?: Partial<{
+    description: string;
+    amount: string | number;
+    category: string;
+    dueDate: string;
+    notes: string;
+    kind: ExpenseKind;
+  }>;
 }
 
-export function ExpenseForm({ onAdd, onClose, scope = "business" }: Props) {
+export function ExpenseForm({ onAdd, onClose, scope = "business", defaults }: Props) {
   const [showSuccess, setShowSuccess] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [showFormError, setShowFormError] = useState(false);
   const [paymentMethodId, setPaymentMethodId] = useState<string | null>(null);
   const { suggestions, record } = useDescriptionHistory(`expense-${scope}`);
   const [form, setForm] = useState({
-    description: "",
-    amount: "",
-    kind: "unica" as ExpenseKind,
-    category: "",
+    description: defaults?.description ?? "",
+    amount: defaults?.amount != null ? String(defaults.amount) : "",
+    kind: (defaults?.kind ?? "unica") as ExpenseKind,
+    category: defaults?.category ?? "",
     installments: "1",
-    dueDate: todayInAppTz(),
-    notes: "",
+    dueDate: defaults?.dueDate ?? todayInAppTz(),
+    notes: defaults?.notes ?? "",
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
