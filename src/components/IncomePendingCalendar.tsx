@@ -966,7 +966,7 @@ export function IncomePendingCalendar({
                     <span className="h-2 w-2 rounded-full bg-emerald-500" /> Pago
                   </div>
                   <div className="flex items-center gap-1">
-                    <span className="h-2 w-2 rounded-full bg-rose-500" /> Pendente
+                    <span className="h-2 w-2 rounded-full bg-rose-500" /> Atrasado
                   </div>
                   <div className="ml-auto">
                     Saldo mês: <span className={`font-semibold ${monthEndProjectedBalance >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"}`}>{formatCurrency(monthEndProjectedBalance)}</span>
