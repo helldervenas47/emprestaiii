@@ -234,6 +234,7 @@ export function listPaidInvoicesInRange(
         .filter((e) => e.paid)
         .reduce((s, e) => s + installmentValue(e), 0);
       const paidTotal = override ?? itemsPaidTotal;
+      const invoiceTotal = Math.max(total, paidTotal);
       if (paidTotal <= 0) continue;
 
       // Data efetiva do pagamento: último paid_date entre os itens; fallback = dueDate.
@@ -251,7 +252,7 @@ export function listPaidInvoicesInRange(
         cycleKey,
         dueDate: toISO_(cycle.dueDate),
         paidDate,
-        total: Number(total.toFixed(2)),
+        total: Number(invoiceTotal.toFixed(2)),
         paidTotal: Number(paidTotal.toFixed(2)),
       });
     }
