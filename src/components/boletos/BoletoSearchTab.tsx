@@ -1,5 +1,6 @@
-import { useMemo, useState } from "react";
-import { Barcode, Search, Copy, AlertTriangle, CheckCircle2, Building2, Calendar, DollarSign, Receipt, History, Trash2 } from "lucide-react";
+import { useMemo, useState, useEffect } from "react";
+import { Barcode, Search, Copy, AlertTriangle, CheckCircle2, Building2, Calendar, DollarSign, Receipt, History, Trash2, Smartphone, QrCode, ChevronDown } from "lucide-react";
+import { QRCodeSVG } from "qrcode.react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
@@ -12,6 +13,8 @@ import { parseLinhaDigitavel, formatLinhaDigitavel, type ParsedBoleto } from "@/
 import { ExpenseForm } from "@/components/ExpenseForm";
 import { useExpenses } from "@/hooks/useExpenses";
 import { useBoletoHistory } from "@/hooks/useBoletoHistory";
+import { hasBankAppLink, openBankApp, isMobileDevice } from "@/lib/boleto/bankDeepLinks";
+import { parsePixBrCode } from "@/lib/boleto/pixBrCode";
 
 const BRL = (n: number) => n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
