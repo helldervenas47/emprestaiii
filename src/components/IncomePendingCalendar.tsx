@@ -165,16 +165,15 @@ export function IncomePendingCalendar({
   // - "paid": todos os lançamentos do dia (receitas, despesas e faturas) estão pagos/recebidos
   // - "pending": existe ao menos 1 lançamento pendente no dia
   // - "none": nenhum lançamento
-  const getDayStatus = (info?: DayInfo): "paid" | "pending" | "none" => {
-    if (!info) return "none";
-    const total =
-      info.incomes.length + info.expenses.length + info.cardInvoices.length;
-    if (total === 0) return "none";
-    const hasPending =
-      info.incomes.some((i) => i.status !== "received") ||
-      info.expenses.some((e) => !e.paid) ||
-      info.cardInvoices.some((c) => !c.paid);
-    return hasPending ? "pending" : "paid";
+  const getDayStatus = (
+    info?: DayInfo,
+    dateStr?: string,
+  ): "paid" | "overdue" | "pending" | "none" => {
+    if (!info || info.incomes.length === 0) return "none";
+    const hasPending = info.incomes.some((i) => i.status !== "received");
+    if (!hasPending) return "paid";
+    if (dateStr && dateStr < todayStr) return "overdue";
+    return "pending";
   };
 
   const calendarDays = useMemo(() => {
