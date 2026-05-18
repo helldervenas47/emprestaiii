@@ -4,6 +4,9 @@ import { useExpenses } from "@/hooks/useExpenses";
 import { useProducts } from "@/hooks/useProducts";
 import { usePiggyBanks } from "@/hooks/usePiggyBanks";
 import { useExternalAccountSources } from "@/hooks/useExternalAccountSources";
+import { useCreditCards } from "@/hooks/useCreditCards";
+import { useCreditCardOpenings } from "@/hooks/useCreditCardOpenings";
+import { creditCardInvoiceExtraPaid } from "@/lib/creditCardInvoiceTotals";
 import type { Sale } from "@/types/loan";
 
 /**
@@ -33,6 +36,8 @@ export function useAccountBalance() {
   const { sales } = useProducts(true);
   const { deposits: piggyDeposits } = usePiggyBanks();
   const external = useExternalAccountSources();
+  const { cards } = useCreditCards();
+  const { openings } = useCreditCardOpenings();
 
   const balance = useMemo(() => {
     const totalIncomeReceived = incomes
@@ -48,14 +53,17 @@ export function useAccountBalance() {
     const totalPiggyManualDeposits = piggyDeposits
       .filter((d) => !d.expenseId)
       .reduce((s, d) => s + (Number(d.amount) || 0), 0);
+    // Excedente pago de faturas de cartão (saldo inicial / override) que não está em despesas individuais.
+    const ccExtra = creditCardInvoiceExtraPaid(expenses as any, cards, openings);
     const base =
       totalIncomeReceived +
       totalSalesReceived -
       totalExpensePaid -
-      totalPiggyManualDeposits;
+      totalPiggyManualDeposits -
+      ccExtra;
     // Soma saldos externos (Dashboard conta+dinheiro, Cofrinhos, Veículos)
     return base + external.total;
-  }, [incomes, sales, expenses, piggyDeposits, external.total]);
+  }, [incomes, sales, expenses, piggyDeposits, external.total, cards, openings]);
 
   return balance;
 }

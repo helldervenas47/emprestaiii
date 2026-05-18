@@ -266,3 +266,53 @@ export function listPaidInvoicesInRange(
 function toISO_(d: Date): string {
   return toISO(d);
 }
+
+/**
+ * Soma o "excedente pago" das faturas de cartão — quando o valor pago real
+ * (override [PAID:xxx] ou saldo inicial já pago) supera o que foi registrado
+ * como itens individuais pagos. Esse delta precisa sair do saldo em conta
+ * porque representa uma saída real que não está em nenhuma despesa individual.
+ */
+export function creditCardInvoiceExtraPaid(
+  expenses: Expense[],
+  cards: CreditCard[],
+  openings: InvoiceOpening[],
+): number {
+  const expanded = expandCreditCardExpenses(expenses);
+  let extra = 0;
+  for (const opening of openings) {
+    const card = cards.find((c) => c.id === opening.cardId);
+    if (!card) continue;
+    const override = readPaidOverride(opening.notes);
+    const openingPaidFlag = /\[PAGA\]/i.test(opening.notes ?? "");
+    // Só conta quando há saldo inicial pago (override OU [PAGA] com opening_amount original).
+    if (override === null && !openingPaidFlag) continue;
+
+    const cardTag = (card.nickname || card.lastFour || "").toLowerCase();
+    // Reconstrói o ciclo a partir do cycleKey (YYYY-MM do fechamento).
+    const [cy, cm] = opening.cycleKey.split("-").map(Number);
+    const cycleTo = new Date(cy, cm - 1, Math.min(card.closingDay, new Date(cy, cm, 0).getDate()));
+    const cycleFrom = new Date(cy, cm - 2, Math.min(card.closingDay, new Date(cy, cm - 1, 0).getDate()));
+
+    const items = expanded.filter((e) => {
+      if (!isCreditCardExpense(e)) return false;
+      if (cardTag) {
+        const n = (e.notes ?? "").toLowerCase();
+        if (!n.includes(cardTag) && /cart[aã]o[:\s]/i.test(n)) return false;
+      }
+      const due = new Date(e.dueDate + "T00:00:00");
+      return due >= cycleFrom && due < cycleTo;
+    });
+    const installmentValue = (e: Expense) => {
+      const isRec = e.type === "recorrente" && !!e.installments && e.installments > 1;
+      return isRec ? e.amount / e.installments! : e.amount;
+    };
+    const itemsPaidTotal = items
+      .filter((e) => e.paid)
+      .reduce((s, e) => s + installmentValue(e), 0);
+    const paidTotal = override ?? (opening.openingAmount + itemsPaidTotal);
+    const delta = paidTotal - itemsPaidTotal;
+    if (delta > 0) extra += delta;
+  }
+  return extra;
+}
