@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
+import { displayIncomeCategory } from "@/lib/incomeCategory";
 import { todayInAppTz } from "@/lib/timezone";
 
 export type IncomeStatus = "pending" | "received" | "overdue";
@@ -85,7 +86,7 @@ export function useIncomes(enabled = true) {
       user_id: dataOwnerId,
       description: input.description,
       amount: input.amount,
-      category: input.category,
+      category: displayIncomeCategory(input.category),
       client_id: input.clientId,
       source: input.source,
       payment_method_id: input.paymentMethodId,
@@ -199,7 +200,7 @@ export function useIncomes(enabled = true) {
     const updatePayload: any = {};
     if (patch.description !== undefined) updatePayload.description = patch.description;
     if (patch.amount !== undefined) updatePayload.amount = patch.amount;
-    if (patch.category !== undefined) updatePayload.category = patch.category;
+    if (patch.category !== undefined) updatePayload.category = displayIncomeCategory(patch.category);
     if (patch.clientId !== undefined) updatePayload.client_id = patch.clientId;
     if (patch.source !== undefined) updatePayload.source = patch.source;
     if (patch.paymentMethodId !== undefined) updatePayload.payment_method_id = patch.paymentMethodId;
@@ -209,7 +210,7 @@ export function useIncomes(enabled = true) {
     if (patch.notes !== undefined) updatePayload.notes = patch.notes;
     if (patch.recurrence !== undefined) updatePayload.recurrence = patch.recurrence;
 
-    setIncomes((arr) => arr.map((i) => i.id === id ? { ...i, ...patch } : i));
+    setIncomes((arr) => arr.map((i) => i.id === id ? { ...i, ...patch, category: patch.category !== undefined ? displayIncomeCategory(patch.category) : i.category } : i));
     await supabase.from("incomes" as any).update(updatePayload).eq("id", id);
   }, []);
 
